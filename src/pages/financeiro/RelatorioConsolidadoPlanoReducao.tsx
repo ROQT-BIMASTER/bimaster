@@ -18,6 +18,9 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
   ArrowLeft, Plus, Trash2, FileDown, Sparkles, TrendingDown, Wallet,
   Calculator, PiggyBank, FileSpreadsheet, FileText,
 } from "lucide-react";
@@ -546,7 +549,7 @@ export default function RelatorioConsolidadoPlanoReducao() {
     URL.revokeObjectURL(url);
   };
 
-  const handleExportPDF = async () => {
+  const handleExportPDF = async (incluirSubtotais: boolean = true) => {
     const { jsPDF } = await import("jspdf");
     const autoTable = (await import("jspdf-autotable")).default;
     const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "a4" });
@@ -594,15 +597,17 @@ export default function RelatorioConsolidadoPlanoReducao() {
           formatCurrency(it.media),
         ]);
       });
-      subtotalRowIdxs.add(body.length);
-      body.push([
-        `Subtotal ${g.fornecedor}`,
-        "",
-        "",
-        ...g.subtotalMes.map((v) => formatCurrency(v)),
-        formatCurrency(g.subtotalTotal),
-        formatCurrency(g.subtotalMedia),
-      ]);
+      if (incluirSubtotais) {
+        subtotalRowIdxs.add(body.length);
+        body.push([
+          `Subtotal ${g.fornecedor}`,
+          "",
+          "",
+          ...g.subtotalMes.map((v) => formatCurrency(v)),
+          formatCurrency(g.subtotalTotal),
+          formatCurrency(g.subtotalMedia),
+        ]);
+      }
     });
 
     const totaisMes = meses.map((_, i) =>
@@ -661,9 +666,21 @@ export default function RelatorioConsolidadoPlanoReducao() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={handleExportPDF}>
-            <FileText className="h-4 w-4 mr-2" /> PDF
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline">
+                <FileText className="h-4 w-4 mr-2" /> PDF
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => handleExportPDF(true)}>
+                Com subtotais por fornecedor
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleExportPDF(false)}>
+                Sem subtotais
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
           <Button variant="outline" onClick={handleExportExcel}>
             <FileSpreadsheet className="h-4 w-4 mr-2" /> Excel
           </Button>
