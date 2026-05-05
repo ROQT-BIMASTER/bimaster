@@ -321,6 +321,41 @@ export function PlanoReducaoGastos({ dataInicio, dataFim, filterEmpresa }: Plano
 
   const activeGrouped = viewMode === 'fornecedor' ? groupedByFornecedor : groupedByDepartamento;
 
+  // 6 meses do histórico (derivado do primeiro fornecedor com dados, ordem do RPC)
+  const mesesHistorico = useMemo<string[]>(() => {
+    if (!metricasMap) return [];
+    for (const k of Object.keys(metricasMap)) {
+      const h = metricasMap[k]?.historico_mensal as any[] | undefined;
+      if (h && h.length) return h.map((x: any) => x.mes);
+    }
+    return [];
+  }, [metricasMap]);
+
+  const getValorMes = (codigo: string | null | undefined, mes: string): number => {
+    if (!codigo || !metricasMap?.[codigo]) return 0;
+    const h = metricasMap[codigo].historico_mensal as any[] | undefined;
+    if (!h) return 0;
+    const found = h.find((x: any) => x.mes === mes);
+    return found ? Number(found.valor || 0) : 0;
+  };
+
+  // Totais gerais (rodapé)
+  const footerTotals = useMemo(() => {
+    const items = filteredRevisoes || [];
+    const valorAtual = items.reduce((a, r) => a + Number(r.valor_atual || 0), 0);
+    const mediaMes = items.reduce((a, r) => {
+      const m = r.fornecedor_codigo ? metricasMap?.[r.fornecedor_codigo] : null;
+      return a + Number(m?.media_mensal || 0);
+    }, 0);
+    const metaValor = items.reduce((a, r) => a + Number(r.meta_reducao_valor || 0), 0);
+    const porMes: Record<string, number> = {};
+    mesesHistorico.forEach((mes) => {
+      porMes[mes] = items.reduce((a, r) => a + getValorMes(r.fornecedor_codigo, mes), 0);
+    });
+    return { valorAtual, mediaMes, metaValor, porMes };
+  }, [filteredRevisoes, metricasMap, mesesHistorico]);
+
+
   const handleUpdateStatus = async (id: string, novoStatus: string, resultadoObtido?: number) => {
     try {
       const updateData: any = { status: novoStatus };
