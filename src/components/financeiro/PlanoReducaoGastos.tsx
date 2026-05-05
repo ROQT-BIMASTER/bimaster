@@ -68,6 +68,13 @@ export function PlanoReducaoGastos({ dataInicio, dataFim, filterEmpresa }: Plano
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
   const [focusMode, setFocusMode] = useState(false);
   const [viewMode, setViewMode] = useState<'departamento' | 'fornecedor'>('departamento');
+  const [showSubtotais, setShowSubtotais] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return true;
+    return localStorage.getItem('plano-reducao-show-subtotais') !== 'false';
+  });
+  useEffect(() => {
+    if (typeof window !== 'undefined') localStorage.setItem('plano-reducao-show-subtotais', String(showSubtotais));
+  }, [showSubtotais]);
   const [viewLayout, setViewLayout] = useState<'padrao' | 'historico'>(() => {
     if (typeof window === 'undefined') return 'padrao';
     return (localStorage.getItem('plano-reducao-view-layout') as 'padrao' | 'historico') || 'padrao';
