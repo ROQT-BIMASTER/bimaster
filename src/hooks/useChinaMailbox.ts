@@ -243,28 +243,30 @@ export function useChinaMailbox(folder: MailboxFolder): UseChinaMailboxResult {
     }
 
     // Classificadores por pasta (aplicam à lista total para os contadores)
+    // Itens deletados só aparecem em "trash". Snooze ativo esconde de "inbox".
     const matchInbox = (i: MailboxItem) => {
+      if (i.is_deleted) return false;
+      if (i.snooze_until) return false;
       if (i.submissao_status === "aprovado" || i.submissao_status === "rejeitado") return false;
       if (isBrasilUser) {
         return i.doc_status
           ? ["pendente", "enviado", "contestado"].includes(i.doc_status)
           : i.submissao_status === "em_revisao" || i.submissao_status === "pendente";
       }
-      // China: precisa ajustar
       return i.doc_status === "rejeitado" || i.submissao_status === "em_revisao";
     };
     const matchSent = (i: MailboxItem) => {
+      if (i.is_deleted) return false;
       if (isChinaUser) {
         return ["em_revisao", "pendente"].includes(i.submissao_status);
       }
-      // Brasil: enviou ajuste/aprovação → docs aprovados/rejeitados
       return i.doc_status === "aprovado" || i.doc_status === "rejeitado";
     };
-    const matchDrafts = (i: MailboxItem) => i.submissao_status === "rascunho";
-    const matchApproved = (i: MailboxItem) => i.submissao_status === "aprovado";
-    const matchRejected = (i: MailboxItem) => i.submissao_status === "rejeitado";
-    const matchTrash = () => false; // deleted_at não exposto no select padrão; placeholder
-    const matchStarred = (i: MailboxItem) => i.is_flagged;
+    const matchDrafts = (i: MailboxItem) => !i.is_deleted && i.submissao_status === "rascunho";
+    const matchApproved = (i: MailboxItem) => !i.is_deleted && i.submissao_status === "aprovado";
+    const matchRejected = (i: MailboxItem) => !i.is_deleted && i.submissao_status === "rejeitado";
+    const matchTrash = (i: MailboxItem) => i.is_deleted;
+    const matchStarred = (i: MailboxItem) => !i.is_deleted && i.is_flagged;
 
     const counts: MailboxCounts = {
       inbox: 0,
