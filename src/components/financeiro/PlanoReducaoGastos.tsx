@@ -68,6 +68,13 @@ export function PlanoReducaoGastos({ dataInicio, dataFim, filterEmpresa }: Plano
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
   const [focusMode, setFocusMode] = useState(false);
   const [viewMode, setViewMode] = useState<'departamento' | 'fornecedor'>('departamento');
+  const [viewLayout, setViewLayout] = useState<'padrao' | 'historico'>(() => {
+    if (typeof window === 'undefined') return 'padrao';
+    return (localStorage.getItem('plano-reducao-view-layout') as 'padrao' | 'historico') || 'padrao';
+  });
+  useEffect(() => {
+    if (typeof window !== 'undefined') localStorage.setItem('plano-reducao-view-layout', viewLayout);
+  }, [viewLayout]);
   const [editingSubstituto, setEditingSubstituto] = useState<string | null>(null);
   const [substitutoValue, setSubstitutoValue] = useState('');
   const [selectedPlanoId, setSelectedPlanoId] = useState<string>('');
