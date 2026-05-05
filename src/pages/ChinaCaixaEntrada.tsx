@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { Inbox, RefreshCw, Search, X } from "lucide-react";
+import { Inbox, RefreshCw, Search, X, Trash2, RotateCcw, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ChinaPageShell } from "@/components/china/ChinaPageShell";
@@ -9,6 +9,7 @@ import { ChinaDocPreviewDialog } from "@/components/china/ChinaDocPreviewDialog"
 import { MailboxSidebar } from "@/components/china/inbox/MailboxSidebar";
 import { MailboxList } from "@/components/china/inbox/MailboxList";
 import { MailboxReadingPane } from "@/components/china/inbox/MailboxReadingPane";
+import { SnoozeMenu } from "@/components/china/inbox/SnoozeMenu";
 import {
   ResizableHandle,
   ResizablePanel,
@@ -16,6 +17,11 @@ import {
 } from "@/components/ui/resizable";
 import { useChinaMailbox, type MailboxFolder, type MailboxItem } from "@/hooks/useChinaMailbox";
 import { useToggleInboxRead, useToggleSubmissaoFlag } from "@/hooks/useChinaMailboxActions";
+import {
+  useTrashSubmissoes,
+  useRestoreSubmissoes,
+  usePurgeSubmissoes,
+} from "@/hooks/useChinaMailboxTrash";
 import { useCriarRevisao, useDarCiencia } from "@/hooks/useChinaRevisoes";
 import { useChinaUserContext } from "@/hooks/useChinaUserContext";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
@@ -38,6 +44,9 @@ export default function ChinaCaixaEntrada() {
   const darCiencia = useDarCiencia();
   const toggleRead = useToggleInboxRead();
   const toggleFlag = useToggleSubmissaoFlag();
+  const trash = useTrashSubmissoes();
+  const restore = useRestoreSubmissoes();
+  const purge = usePurgeSubmissoes();
 
   const [search, setSearch] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -210,11 +219,55 @@ export default function ChinaCaixaEntrada() {
           )}
         </div>
         {selectedIds.size > 0 && (
-          <div className="flex items-center gap-1.5">
+          <div className="flex flex-wrap items-center gap-1.5">
             <span className="text-[11px] text-muted-foreground">{selectedIds.size} selecionados</span>
             <Button size="sm" variant="outline" className="h-7 text-xs" onClick={handleBulkRead}>
               Marcar como lidos
             </Button>
+            {folder !== "trash" ? (
+              <>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-7 gap-1.5 text-xs text-destructive border-destructive/30 hover:bg-destructive/10"
+                  onClick={() => {
+                    trash.mutate(Array.from(selectedIds));
+                    setSelectedIds(new Set());
+                  }}
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                  Mover para Lixeira
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-7 gap-1.5 text-xs"
+                  onClick={() => {
+                    restore.mutate(Array.from(selectedIds));
+                    setSelectedIds(new Set());
+                  }}
+                >
+                  <RotateCcw className="h-3.5 w-3.5" />
+                  Restaurar
+                </Button>
+                <Button
+                  size="sm"
+                  variant="destructive"
+                  className="h-7 gap-1.5 text-xs"
+                  onClick={() => {
+                    if (!confirm("Excluir definitivamente os itens selecionados? Esta ação não pode ser desfeita.")) return;
+                    purge.mutate(Array.from(selectedIds));
+                    setSelectedIds(new Set());
+                  }}
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                  Excluir definitivamente
+                </Button>
+              </>
+            )}
             <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setSelectedIds(new Set())}>
               Limpar
             </Button>

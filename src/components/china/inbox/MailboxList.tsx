@@ -161,6 +161,11 @@ export function MailboxList({
                   <SbIcon className="h-2.5 w-2.5" />
                   {sb.label}
                 </Badge>
+                {item.snooze_until && (
+                  <Badge variant="outline" className="h-4 px-1.5 text-[9.5px] gap-0.5 bg-amber-500/15 text-amber-400 border-amber-500/30">
+                    <Clock className="h-2.5 w-2.5" /> adiada
+                  </Badge>
+                )}
                 <span className="text-[10px] tabular-nums text-muted-foreground">
                   {relativeAge(item.horas_pendentes)}
                 </span>

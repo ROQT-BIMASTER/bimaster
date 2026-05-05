@@ -1,11 +1,17 @@
 import { useState } from "react";
-import { ExternalLink, CheckCircle2, AlertTriangle, FileText, Star, MailOpen, Mail, ArrowLeft } from "lucide-react";
+import { ExternalLink, CheckCircle2, AlertTriangle, FileText, Star, MailOpen, Mail, ArrowLeft, Download, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
+import { format } from "date-fns";
+import { ResponseTemplatePicker } from "@/components/china/inbox/ResponseTemplatePicker";
+import { SnoozeMenu } from "@/components/china/inbox/SnoozeMenu";
+import { exportSubmissaoPdf } from "@/lib/china/exportSubmissaoPdf";
+import { useUnsnoozeSubmissao } from "@/hooks/useChinaInboxSnooze";
+import { toast } from "sonner";
 import type { MailboxItem } from "@/hooks/useChinaMailbox";
 
 interface Props {
@@ -37,6 +43,17 @@ export function MailboxReadingPane({
 }: Props) {
   const navigate = useNavigate();
   const [motivo, setMotivo] = useState("");
+  const unsnooze = useUnsnoozeSubmissao();
+
+  const handleExportPdf = async () => {
+    if (!item) return;
+    try {
+      await exportSubmissaoPdf(item);
+      toast.success("PDF exportado");
+    } catch (e: any) {
+      toast.error(e.message || "Falha ao exportar PDF");
+    }
+  };
 
   if (!item) {
     return (
@@ -81,6 +98,19 @@ export function MailboxReadingPane({
           {item.is_flagged ? "Desmarcar" : "Estrela"}
         </Button>
         <div className="ml-auto" />
+        {!item.is_deleted && (
+          <SnoozeMenu submissaoId={item.submissao_id} />
+        )}
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-7 gap-1.5 text-xs"
+          onClick={handleExportPdf}
+          title="Exportar registro em PDF"
+        >
+          <Download className="h-3.5 w-3.5" />
+          PDF
+        </Button>
         <Button
           variant="ghost"
           size="sm"
@@ -91,6 +121,23 @@ export function MailboxReadingPane({
           Abrir submissão / 打开
         </Button>
       </div>
+
+      {item.snooze_until && (
+        <div className="flex items-center justify-between gap-2 border-b border-amber-500/30 bg-amber-500/10 px-3 py-1.5 text-[11px] text-amber-300">
+          <span className="flex items-center gap-1.5">
+            <Clock className="h-3.5 w-3.5" />
+            Adiada até {format(new Date(item.snooze_until), "dd/MM/yy HH:mm")}
+          </span>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-6 text-[11px] text-amber-200 hover:text-amber-50"
+            onClick={() => unsnooze.mutate(item.submissao_id)}
+          >
+            Reativar agora
+          </Button>
+        </div>
+      )}
 
       <div className="flex-1 overflow-y-auto p-5">
         <header className="space-y-1">
@@ -155,6 +202,19 @@ export function MailboxReadingPane({
 
         {canBrasilApprove && (
           <section className="mt-6 space-y-3">
+            <div className="flex flex-wrap items-center gap-1.5">
+              <ResponseTemplatePicker
+                tipo="rejeitar"
+                onPick={(t) => setMotivo((prev) => (prev ? `${prev}\n${t}` : t))}
+              />
+              <ResponseTemplatePicker
+                tipo="aprovar"
+                onPick={(t) => setMotivo(t)}
+              />
+              <span className="text-[10px] text-muted-foreground">
+                Insere texto no campo abaixo
+              </span>
+            </div>
             <Textarea
               placeholder="Motivo do ajuste (obrigatório para rejeitar) / 调整原因"
               value={motivo}

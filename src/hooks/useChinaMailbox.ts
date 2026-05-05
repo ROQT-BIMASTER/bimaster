@@ -37,6 +37,8 @@ export interface MailboxItem {
   horas_pendentes: number;
   is_read: boolean;
   is_flagged: boolean;
+  is_deleted: boolean;
+  snooze_until: string | null;
 }
 
 export interface MailboxCounts {
@@ -85,7 +87,7 @@ export function useChinaMailbox(folder: MailboxFolder): UseChinaMailboxResult {
       const { data: { user } } = await supabase.auth.getUser();
       const uid = user?.id ?? null;
 
-      const [subsRes, docsRes, readRes, flagsRes] = await Promise.all([
+      const [subsRes, docsRes, readRes, flagsRes, snoozeRes] = await Promise.all([
         (supabase
           .from("china_produto_submissoes" as any)
           .select(
@@ -112,7 +114,16 @@ export function useChinaMailbox(folder: MailboxFolder): UseChinaMailboxResult {
               .select("submissao_id")
               .eq("usuario_id", uid) as any)
           : Promise.resolve({ data: [] }),
+        uid
+          ? (supabase
+              .from("china_inbox_snooze" as any)
+              .select("submissao_id, snooze_until")
+              .eq("usuario_id", uid) as any)
+          : Promise.resolve({ data: [] }),
       ]);
+
+      const snoozeMap = new Map<string, string>();
+      for (const r of (snoozeRes.data || []) as any[]) snoozeMap.set(r.submissao_id, r.snooze_until);
 
       return {
         uid,
@@ -120,6 +131,7 @@ export function useChinaMailbox(folder: MailboxFolder): UseChinaMailboxResult {
         docs: (docsRes.data || []) as any[],
         read: new Set<string>(((readRes.data || []) as any[]).map((r) => r.documento_id)),
         flagged: new Set<string>(((flagsRes.data || []) as any[]).map((r) => r.submissao_id)),
+        snoozeMap,
       };
     },
   });
@@ -159,13 +171,19 @@ export function useChinaMailbox(folder: MailboxFolder): UseChinaMailboxResult {
     const data = query.data;
     if (!data) return { items: [] as MailboxItem[], counts: ZERO_COUNTS };
 
-    const { uid, subs, docs, read, flagged } = data;
+    const { uid, subs, docs, read, flagged, snoozeMap } = data;
     const now = Date.now();
     const subsById = new Map(subs.map((s) => [s.id, s]));
 
     // Construímos um item por documento; submissões sem doc viram um item "submissão".
     const allItems: MailboxItem[] = [];
     const seenSubs = new Set<string>();
+
+    const snoozedActive = (subId: string) => {
+      const u = snoozeMap.get(subId);
+      if (!u) return null;
+      return new Date(u).getTime() > now ? u : null;
+    };
 
     for (const d of docs) {
       const sub = subsById.get(d.submissao_id);
@@ -191,6 +209,8 @@ export function useChinaMailbox(folder: MailboxFolder): UseChinaMailboxResult {
         horas_pendentes: Math.floor((now - created) / 3_600_000),
         is_read: read.has(d.id),
         is_flagged: flagged.has(sub.id),
+        is_deleted: !!sub.deleted_at,
+        snooze_until: snoozedActive(sub.id),
       });
     }
 
@@ -217,32 +237,36 @@ export function useChinaMailbox(folder: MailboxFolder): UseChinaMailboxResult {
         horas_pendentes: Math.floor((now - created) / 3_600_000),
         is_read: true,
         is_flagged: flagged.has(sub.id),
+        is_deleted: !!sub.deleted_at,
+        snooze_until: snoozedActive(sub.id),
       });
     }
 
     // Classificadores por pasta (aplicam à lista total para os contadores)
+    // Itens deletados só aparecem em "trash". Snooze ativo esconde de "inbox".
     const matchInbox = (i: MailboxItem) => {
+      if (i.is_deleted) return false;
+      if (i.snooze_until) return false;
       if (i.submissao_status === "aprovado" || i.submissao_status === "rejeitado") return false;
       if (isBrasilUser) {
         return i.doc_status
           ? ["pendente", "enviado", "contestado"].includes(i.doc_status)
           : i.submissao_status === "em_revisao" || i.submissao_status === "pendente";
       }
-      // China: precisa ajustar
       return i.doc_status === "rejeitado" || i.submissao_status === "em_revisao";
     };
     const matchSent = (i: MailboxItem) => {
+      if (i.is_deleted) return false;
       if (isChinaUser) {
         return ["em_revisao", "pendente"].includes(i.submissao_status);
       }
-      // Brasil: enviou ajuste/aprovação → docs aprovados/rejeitados
       return i.doc_status === "aprovado" || i.doc_status === "rejeitado";
     };
-    const matchDrafts = (i: MailboxItem) => i.submissao_status === "rascunho";
-    const matchApproved = (i: MailboxItem) => i.submissao_status === "aprovado";
-    const matchRejected = (i: MailboxItem) => i.submissao_status === "rejeitado";
-    const matchTrash = () => false; // deleted_at não exposto no select padrão; placeholder
-    const matchStarred = (i: MailboxItem) => i.is_flagged;
+    const matchDrafts = (i: MailboxItem) => !i.is_deleted && i.submissao_status === "rascunho";
+    const matchApproved = (i: MailboxItem) => !i.is_deleted && i.submissao_status === "aprovado";
+    const matchRejected = (i: MailboxItem) => !i.is_deleted && i.submissao_status === "rejeitado";
+    const matchTrash = (i: MailboxItem) => i.is_deleted;
+    const matchStarred = (i: MailboxItem) => !i.is_deleted && i.is_flagged;
 
     const counts: MailboxCounts = {
       inbox: 0,
@@ -297,6 +321,10 @@ export function useChinaMailbox(folder: MailboxFolder): UseChinaMailboxResult {
       if (matchRejected(i) && !seenForCount.rejected.has(i.submissao_id)) {
         counts.rejected += 1;
         seenForCount.rejected.add(i.submissao_id);
+      }
+      if (matchTrash(i) && !seenForCount.trash.has(i.submissao_id)) {
+        counts.trash += 1;
+        seenForCount.trash.add(i.submissao_id);
       }
     }
 
