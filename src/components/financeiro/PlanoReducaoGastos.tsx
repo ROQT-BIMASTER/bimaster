@@ -503,12 +503,20 @@ export function PlanoReducaoGastos({ dataInicio, dataFim, filterEmpresa }: Plano
             <TableHead className="w-[90px]">Prioridade</TableHead>
             <TableHead className="w-[120px]">Status</TableHead>
             <TableHead className="text-right w-[130px]">Valor Atual</TableHead>
-            <TableHead className="w-[180px]">Substituído por</TableHead>
-            <TableHead className="text-right w-[110px]">Média/Mês</TableHead>
-            <TableHead className="w-[90px]">Último Pgto</TableHead>
-            <TableHead className="w-[80px]">Status</TableHead>
-            <TableHead className="text-right w-[130px]">Meta Redução</TableHead>
-            <TableHead className="w-[100px]">Prazo</TableHead>
+            {viewLayout === 'padrao' ? (
+              <>
+                <TableHead className="w-[180px]">Substituído por</TableHead>
+                <TableHead className="text-right w-[110px]">Média/Mês</TableHead>
+                <TableHead className="w-[90px]">Último Pgto</TableHead>
+                <TableHead className="w-[80px]">Status</TableHead>
+                <TableHead className="text-right w-[130px]">Meta Redução</TableHead>
+                <TableHead className="w-[100px]">Prazo</TableHead>
+              </>
+            ) : (
+              mesesHistorico.map((mes) => (
+                <TableHead key={mes} className="text-right w-[100px] whitespace-nowrap">{mes}</TableHead>
+              ))
+            )}
             <TableHead className="text-right w-[120px]">Ações</TableHead>
           </TableRow>
         </TableHeader>
