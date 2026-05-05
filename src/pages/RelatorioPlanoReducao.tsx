@@ -201,6 +201,14 @@ export default function RelatorioPlanoReducao() {
           {plano?.descricao && <p className="text-sm text-muted-foreground mt-1">{plano.descricao}</p>}
         </div>
         <div className="flex items-center gap-2">
+          <Button
+            variant="default"
+            size="sm"
+            onClick={() => navigate(`/dashboard/financeiro/plano-reducao/${planoId}/consolidado`)}
+          >
+            <BarChart3 className="h-4 w-4 mr-2" />
+            Relatório Consolidado
+          </Button>
           {plano?.created_at && (
             <span className="text-xs text-muted-foreground">
               Criado em {format(parseISO(plano.created_at), "dd/MM/yyyy", { locale: ptBR })}
