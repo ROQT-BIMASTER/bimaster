@@ -109,10 +109,30 @@ export default function RelatorioConsolidadoPlanoReducao() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("contas_pagar_revisao")
-        .select("id, categoria_nome, fornecedor_nome, valor_atual, meta_reducao_valor, tipo_revisao, status")
+        .select("id, categoria_nome, fornecedor_nome, fornecedor_codigo, valor_atual, meta_reducao_valor, meta_reducao_percentual, tipo_revisao, status")
         .eq("plano_id", planoId!);
       if (error) throw error;
       return data || [];
+    },
+  });
+
+  // Histórico mensal real das revisões (por fornecedor + mês)
+  const { data: revisoesHist } = useQuery({
+    queryKey: ["revisoes-plano-hist", planoId, meses],
+    enabled: !!planoId && (revisoes?.length ?? 0) > 0,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("get_revisoes_plano_historico_mensal", {
+        p_plano_id: planoId!,
+        p_meses: meses,
+      });
+      if (error) throw error;
+      // Map: revisao_id -> { mes -> valor }
+      const m: Record<string, Record<string, number>> = {};
+      (data || []).forEach((r: any) => {
+        if (!m[r.revisao_id]) m[r.revisao_id] = {};
+        m[r.revisao_id][r.mes] = Number(r.valor || 0);
+      });
+      return m;
     },
   });
 
@@ -122,19 +142,25 @@ export default function RelatorioConsolidadoPlanoReducao() {
     return typeof v === "number" ? v : Number(d.valor_mensal || 0);
   };
 
+  const valorMesRevisao = (r: any, mes: string): number => {
+    const real = revisoesHist?.[r.id]?.[mes];
+    if (typeof real === "number" && real > 0) return real;
+    return Number(r.valor_atual || 0);
+  };
+
   const totalMesDespesas = (mes: string): number =>
     despesas.reduce((s, d) => s + valorMesDespesa(d, mes), 0);
 
-  const totalMes = (mes: string): number => {
-    const extras = totalMesDespesas(mes);
-    const planoVal = (revisoes || []).reduce((s, r: any) => s + Number(r.valor_atual || 0), 0);
-    return extras + planoVal;
-  };
+  const totalMesRevisoes = (mes: string): number =>
+    (revisoes || []).reduce((s, r: any) => s + valorMesRevisao(r, mes), 0);
+
+  const totalMes = (mes: string): number => totalMesDespesas(mes) + totalMesRevisoes(mes);
 
   const mediaMensal = useMemo(() => {
     const soma = meses.reduce((s, m) => s + totalMes(m), 0);
     return soma / meses.length;
-  }, [meses, despesas, revisoes]);
+  }, [meses, despesas, revisoes, revisoesHist]);
+
 
   const economiaMensal = mediaMensal - custoSistemaNum;
   const economiaPct = mediaMensal > 0 ? (economiaMensal / mediaMensal) * 100 : 0;
