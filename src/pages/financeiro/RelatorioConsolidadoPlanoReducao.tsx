@@ -202,7 +202,7 @@ export default function RelatorioConsolidadoPlanoReducao() {
   // Totalizador de itens "a eliminar" (despesas extras + revisões), média mensal
   const mediaEliminar = useMemo(() => {
     const despEliminar = despesas.filter((d) => d.tipo === "eliminar");
-    const revEliminar = (revisoes || []).filter((r: any) => r.tipo_revisao === "eliminar");
+    const revEliminar = revisoesEfetivas.filter((r: any) => r.tipo_revisao === "eliminar");
     const somaMeses = meses.reduce((acc, m) => {
       const sd = despEliminar.reduce((s, d) => s + valorMesDespesa(d, m), 0);
       const sr = revEliminar.reduce((s, r: any) => s + valorMesRevisao(r, m), 0);
