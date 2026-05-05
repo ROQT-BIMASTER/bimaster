@@ -297,26 +297,78 @@ export default function RelatorioConsolidadoPlanoReducao() {
       }
     });
 
-    // Aba Itens do Plano
+    // Aba Itens do Plano (mensal)
     if (revisoes && revisoes.length) {
       const p = wb.addWorksheet("Itens do Plano");
-      p.addRow(["Categoria/Fornecedor", "Tipo", "Status", "Valor Atual", "Meta Redução"]);
+      p.addRow([
+        "Categoria/Fornecedor", "Tipo", "Status",
+        ...meses.map(labelMesLongo),
+        "Média", "Total 6m", "Meta Redução",
+      ]);
       revisoes.forEach((it: any) => {
+        const valores = meses.map((m) => valorMesRevisao(it, m));
+        const total = valores.reduce((s, v) => s + v, 0);
         p.addRow([
           it.categoria_nome || it.fornecedor_nome || "—",
           it.tipo_revisao,
           it.status,
-          Number(it.valor_atual || 0),
+          ...valores,
+          total / meses.length,
+          total,
           Number(it.meta_reducao_valor || 0),
         ]);
       });
+      const totRevRow = [
+        "TOTAL", "", "",
+        ...meses.map((m) => totalMesRevisoes(m)),
+      ] as any[];
+      const totRevSoma = meses.reduce((s, m) => s + totalMesRevisoes(m), 0);
+      totRevRow.push(totRevSoma / meses.length, totRevSoma, (revisoes || []).reduce((s, r: any) => s + Number(r.meta_reducao_valor || 0), 0));
+      const trr = p.addRow(totRevRow);
+      trr.font = { bold: true };
       p.getRow(1).font = { bold: true };
-      p.columns = [{ width: 40 }, { width: 14 }, { width: 14 }, { width: 16 }, { width: 16 }];
+      p.columns = [
+        { width: 40 }, { width: 14 }, { width: 14 },
+        ...meses.map(() => ({ width: 14 })),
+        { width: 14 }, { width: 14 }, { width: 16 },
+      ];
       p.eachRow((row, idx) => {
         if (idx === 1) return;
-        ["D", "E"].forEach((c) => (row.getCell(c).numFmt = '"R$" #,##0.00'));
+        for (let c = 4; c <= 3 + meses.length + 3; c++) {
+          row.getCell(c).numFmt = '"R$" #,##0.00';
+        }
       });
     }
+
+    // Aba Consolidado
+    {
+      const c = wb.addWorksheet("Consolidado");
+      c.addRow(["Linha", ...meses.map(labelMesLongo), "Média", "Total 6m"]);
+      const linhaDesp = meses.map((m) => totalMesDespesas(m));
+      const linhaRev = meses.map((m) => totalMesRevisoes(m));
+      const linhaTot = meses.map((_, i) => linhaDesp[i] + linhaRev[i]);
+      const linhaSis = meses.map(() => custoSistemaNum);
+      const linhaEcon = linhaTot.map((v, i) => v - linhaSis[i]);
+      const sum = (a: number[]) => a.reduce((s, v) => s + v, 0);
+      const addLine = (label: string, vals: number[]) =>
+        c.addRow([label, ...vals, sum(vals) / vals.length, sum(vals)]);
+      addLine("Despesas Extras", linhaDesp);
+      addLine("Itens do Plano", linhaRev);
+      const totRow = addLine("TOTAL GERAL", linhaTot);
+      totRow.font = { bold: true };
+      addLine("Custo com Sistema (alvo)", linhaSis);
+      const econRow = addLine("Diferença vs Sistema", linhaEcon);
+      econRow.font = { bold: true };
+      c.getRow(1).font = { bold: true };
+      c.columns = [{ width: 28 }, ...meses.map(() => ({ width: 14 })), { width: 14 }, { width: 14 }];
+      c.eachRow((row, idx) => {
+        if (idx === 1) return;
+        for (let col = 2; col <= 1 + meses.length + 2; col++) {
+          row.getCell(col).numFmt = '"R$" #,##0.00';
+        }
+      });
+    }
+
 
     const buf = await wb.xlsx.writeBuffer();
     const blob = new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
