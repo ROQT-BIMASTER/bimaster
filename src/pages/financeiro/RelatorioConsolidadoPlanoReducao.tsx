@@ -498,7 +498,10 @@ export default function RelatorioConsolidadoPlanoReducao() {
     autoTable(doc, {
       startY: 76,
       head: [["KPI", "Valor"]],
-      body: [["Custo Atual Mensal (média 6m)", formatCurrency(mediaMensal)]],
+      body: [
+        ["Custo Atual Mensal (média 6m)", formatCurrency(mediaMensal)],
+        ["A Eliminar (média 6m)", `${formatCurrency(mediaEliminar)}  (${pctReducaoEliminar.toFixed(1)}%)`],
+      ],
       styles: { fontSize: 10 },
       headStyles: { fillColor: [40, 40, 40] },
     });
