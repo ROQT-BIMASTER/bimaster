@@ -85,7 +85,7 @@ export function useChinaMailbox(folder: MailboxFolder): UseChinaMailboxResult {
       const { data: { user } } = await supabase.auth.getUser();
       const uid = user?.id ?? null;
 
-      const [subsRes, docsRes, readRes, flagsRes] = await Promise.all([
+      const [subsRes, docsRes, readRes, flagsRes, snoozeRes] = await Promise.all([
         (supabase
           .from("china_produto_submissoes" as any)
           .select(
