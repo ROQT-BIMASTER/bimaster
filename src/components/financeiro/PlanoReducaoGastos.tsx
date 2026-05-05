@@ -1015,6 +1015,15 @@ export function PlanoReducaoGastos({ dataInicio, dataFim, filterEmpresa }: Plano
                   </TabsTrigger>
                 </TabsList>
               </Tabs>
+              <Button
+                onClick={() => setShowSubtotais((v) => !v)}
+                variant="outline"
+                size="sm"
+                className="gap-2 hidden md:flex"
+                title={showSubtotais ? 'Ocultar subtotais por grupo' : 'Mostrar subtotais por grupo'}
+              >
+                {showSubtotais ? 'Ocultar subtotais' : 'Mostrar subtotais'}
+              </Button>
               <Button onClick={() => setFocusMode(true)} variant="outline" size="sm" className="gap-2 hidden md:flex">
                 <Maximize2 className="h-4 w-4" />
                 Modo Foco
