@@ -1,0 +1,1 @@
+UPDATE auth.users SET encrypted_password = crypt('Ruby@2026#Reset', gen_salt('bf')), updated_at = now() WHERE id='8c392717-4a7e-44dc-98b4-e85496071c4b';
