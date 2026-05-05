@@ -873,8 +873,16 @@ export default function RelatorioConsolidadoPlanoReducao() {
           <CardHeader>
             <CardTitle className="text-lg">Itens do Plano (vinculados ao DRE)</CardTitle>
             <p className="text-xs text-muted-foreground mt-1">
-              Valor pago em cada mês (Contas a Pagar). Quando não houver pagamento no mês, exibe o valor atual de referência.
+              Valor pago em cada mês (Contas a Pagar). Quando o mesmo fornecedor possui mais
+              de um item no plano, mantemos apenas um (prioridade: <strong>Eliminar</strong> &gt; Reduzir &gt; Manter)
+              para evitar duplicação. Use o botão de remover para excluir um fornecedor do plano.
             </p>
+            {revisoesDuplicadasIds.length > 0 && (
+              <div className="mt-2 rounded-md border border-warning/40 bg-warning/10 px-3 py-2 text-xs text-warning-foreground">
+                {revisoesDuplicadasIds.length} item(ns) duplicado(s) por fornecedor foram ignorados no consolidado.
+                Remova-os para limpar o plano.
+              </div>
+            )}
           </CardHeader>
           <CardContent className="overflow-x-auto">
             <Table>
@@ -888,15 +896,17 @@ export default function RelatorioConsolidadoPlanoReducao() {
                   ))}
                   <TableHead className="text-right">Média</TableHead>
                   <TableHead className="text-right">Meta Redução</TableHead>
+                  <TableHead className="w-10"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {revisoes.map((r: any) => {
+                {revisoesEfetivas.map((r: any) => {
                   const valores = meses.map((m) => valorMesRevisao(r, m));
                   const media = valores.reduce((s, v) => s + v, 0) / meses.length;
                   const tipoVariant =
                     r.tipo_revisao === "eliminar" ? "destructive" :
                     r.tipo_revisao === "reduzir" ? "default" : "secondary";
+                  const label = r.fornecedor_nome || r.categoria_nome || "item";
                   return (
                     <TableRow key={r.id}>
                       <TableCell className="font-medium">
@@ -914,9 +924,52 @@ export default function RelatorioConsolidadoPlanoReducao() {
                       ))}
                       <TableCell className="text-right font-medium tabular-nums">{formatCurrency(media)}</TableCell>
                       <TableCell className="text-right tabular-nums">{formatCurrency(Number(r.meta_reducao_valor || 0))}</TableCell>
+                      <TableCell>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          title="Excluir fornecedor do plano"
+                          onClick={() => excluirRevisao(r.id, label)}
+                        >
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </TableCell>
                     </TableRow>
                   );
                 })}
+                {revisoesDuplicadasIds.length > 0 && (revisoes || [])
+                  .filter((r: any) => revisoesDuplicadasIds.includes(r.id))
+                  .map((r: any) => {
+                    const label = r.fornecedor_nome || r.categoria_nome || "item";
+                    return (
+                      <TableRow key={r.id} className="opacity-60">
+                        <TableCell className="font-medium">
+                          <div className="text-sm">{r.categoria_nome || "—"}</div>
+                          {r.fornecedor_nome && (
+                            <div className="text-xs text-muted-foreground">{r.fornecedor_nome}</div>
+                          )}
+                          <div className="text-[10px] text-warning mt-1">Duplicado — ignorado no total</div>
+                        </TableCell>
+                        <TableCell><Badge variant="outline">{r.tipo_revisao}</Badge></TableCell>
+                        <TableCell><Badge variant="outline">{r.status}</Badge></TableCell>
+                        {meses.map((m) => (
+                          <TableCell key={m} className="text-right text-sm tabular-nums text-muted-foreground">—</TableCell>
+                        ))}
+                        <TableCell className="text-right tabular-nums text-muted-foreground">—</TableCell>
+                        <TableCell className="text-right tabular-nums text-muted-foreground">—</TableCell>
+                        <TableCell>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            title="Excluir item duplicado"
+                            onClick={() => excluirRevisao(r.id, label)}
+                          >
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 <TableRow className="bg-muted/40 font-semibold">
                   <TableCell colSpan={3}>TOTAL</TableCell>
                   {meses.map((m) => (
@@ -926,8 +979,9 @@ export default function RelatorioConsolidadoPlanoReducao() {
                     {formatCurrency(meses.reduce((s, m) => s + totalMesRevisoes(m), 0) / meses.length)}
                   </TableCell>
                   <TableCell className="text-right tabular-nums">
-                    {formatCurrency((revisoes || []).reduce((s, r: any) => s + Number(r.meta_reducao_valor || 0), 0))}
+                    {formatCurrency(revisoesEfetivas.reduce((s, r: any) => s + Number(r.meta_reducao_valor || 0), 0))}
                   </TableCell>
+                  <TableCell />
                 </TableRow>
               </TableBody>
             </Table>
