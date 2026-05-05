@@ -144,8 +144,7 @@ export default function RelatorioConsolidadoPlanoReducao() {
 
   const valorMesRevisao = (r: any, mes: string): number => {
     const real = revisoesHist?.[r.id]?.[mes];
-    if (typeof real === "number" && real > 0) return real;
-    return Number(r.valor_atual || 0);
+    return typeof real === "number" ? real : 0;
   };
 
   const totalMesDespesas = (mes: string): number =>
