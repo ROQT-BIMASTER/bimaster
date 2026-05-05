@@ -171,13 +171,19 @@ export function useChinaMailbox(folder: MailboxFolder): UseChinaMailboxResult {
     const data = query.data;
     if (!data) return { items: [] as MailboxItem[], counts: ZERO_COUNTS };
 
-    const { uid, subs, docs, read, flagged } = data;
+    const { uid, subs, docs, read, flagged, snoozeMap } = data;
     const now = Date.now();
     const subsById = new Map(subs.map((s) => [s.id, s]));
 
     // Construímos um item por documento; submissões sem doc viram um item "submissão".
     const allItems: MailboxItem[] = [];
     const seenSubs = new Set<string>();
+
+    const snoozedActive = (subId: string) => {
+      const u = snoozeMap.get(subId);
+      if (!u) return null;
+      return new Date(u).getTime() > now ? u : null;
+    };
 
     for (const d of docs) {
       const sub = subsById.get(d.submissao_id);
@@ -203,6 +209,8 @@ export function useChinaMailbox(folder: MailboxFolder): UseChinaMailboxResult {
         horas_pendentes: Math.floor((now - created) / 3_600_000),
         is_read: read.has(d.id),
         is_flagged: flagged.has(sub.id),
+        is_deleted: !!sub.deleted_at,
+        snooze_until: snoozedActive(sub.id),
       });
     }
 
@@ -229,6 +237,8 @@ export function useChinaMailbox(folder: MailboxFolder): UseChinaMailboxResult {
         horas_pendentes: Math.floor((now - created) / 3_600_000),
         is_read: true,
         is_flagged: flagged.has(sub.id),
+        is_deleted: !!sub.deleted_at,
+        snooze_until: snoozedActive(sub.id),
       });
     }
 
