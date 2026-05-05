@@ -748,7 +748,7 @@ export function PlanoReducaoGastos({ dataInicio, dataFim, filterEmpresa }: Plano
                 </TableRow>
                 {isExpanded && (
                   <TableRow key={`${revisao.id}-detail`} className="bg-muted/30 hover:bg-muted/30">
-                    <TableCell colSpan={13} className="py-3">
+                    <TableCell colSpan={totalCols} className="py-3">
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm px-2">
                         <div>
                           <span className="text-xs text-muted-foreground block">Documento</span>
