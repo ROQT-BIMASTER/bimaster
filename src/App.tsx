@@ -348,6 +348,7 @@ const SyncCadastrosAP = lazyWithRetry(() => import("./pages/financeiro/SyncCadas
 const ConciliacaoManualAP = lazyWithRetry(() => import("./pages/financeiro/ConciliacaoManualAP"));
 const RelatorioAPxERP = lazyWithRetry(() => import("./pages/financeiro/RelatorioAPxERP"));
 const RelatorioPlanoReducao = lazyWithRetry(() => import("./pages/RelatorioPlanoReducao"));
+const RelatorioConsolidadoPlanoReducao = lazyWithRetry(() => import("./pages/financeiro/RelatorioConsolidadoPlanoReducao"));
 
 // OMS Module
 const OmsPainelPedidos = lazyWithRetry(() => import("./pages/OmsPainelPedidos"));
@@ -734,6 +735,7 @@ function AppContent() {
             <Route path="/dashboard/financeiro/consolidado" element={<ModuleRoute moduleCode="financeiro"><ScreenProtectedRoute screenCode="financeiro_consolidado"><FinanceiroConsolidadoDashboard /></ScreenProtectedRoute></ModuleRoute>} />
             <Route path="/dashboard/financeiro/conciliacao-bancaria" element={<ModuleRoute moduleCode="financeiro"><ScreenProtectedRoute screenCode="financeiro_conciliacao"><ConciliacaoBancaria /></ScreenProtectedRoute></ModuleRoute>} />
             <Route path="/dashboard/financeiro/plano-reducao/:planoId" element={<ModuleRoute moduleCode="financeiro"><ScreenProtectedRoute screenCode="financeiro_dre"><RelatorioPlanoReducao /></ScreenProtectedRoute></ModuleRoute>} />
+            <Route path="/dashboard/financeiro/plano-reducao/:planoId/consolidado" element={<ModuleRoute moduleCode="financeiro"><ScreenProtectedRoute screenCode="financeiro_dre"><RelatorioConsolidadoPlanoReducao /></ScreenProtectedRoute></ModuleRoute>} />
             <Route path="/dashboard/financeiro/investimentos" element={<ModuleRoute moduleCode="financeiro"><ScreenProtectedRoute screenCode="financeiro_investimentos"><InvestimentosCorporativos /></ScreenProtectedRoute></ModuleRoute>} />
             
             {/* Marketing Mission Control */}

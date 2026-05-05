@@ -24059,6 +24059,56 @@ export type Database = {
           },
         ]
       }
+      plano_reducao_despesas_extras: {
+        Row: {
+          categoria: string
+          created_at: string
+          criado_por: string
+          descricao: string
+          id: string
+          ordem: number
+          plano_id: string
+          tipo: string
+          updated_at: string
+          valor_mensal: number
+          valores_mensais: Json
+        }
+        Insert: {
+          categoria: string
+          created_at?: string
+          criado_por: string
+          descricao: string
+          id?: string
+          ordem?: number
+          plano_id: string
+          tipo?: string
+          updated_at?: string
+          valor_mensal?: number
+          valores_mensais?: Json
+        }
+        Update: {
+          categoria?: string
+          created_at?: string
+          criado_por?: string
+          descricao?: string
+          id?: string
+          ordem?: number
+          plano_id?: string
+          tipo?: string
+          updated_at?: string
+          valor_mensal?: number
+          valores_mensais?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "plano_reducao_despesas_extras_plano_id_fkey"
+            columns: ["plano_id"]
+            isOneToOne: false
+            referencedRelation: "planos_reducao"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       planos: {
         Row: {
           ativo: boolean
@@ -24102,6 +24152,7 @@ export type Database = {
         Row: {
           created_at: string | null
           criado_por: string
+          custo_alvo_mensal: number
           descricao: string | null
           id: string
           nome: string
@@ -24111,6 +24162,7 @@ export type Database = {
         Insert: {
           created_at?: string | null
           criado_por: string
+          custo_alvo_mensal?: number
           descricao?: string | null
           id?: string
           nome: string
@@ -24120,6 +24172,7 @@ export type Database = {
         Update: {
           created_at?: string | null
           criado_por?: string
+          custo_alvo_mensal?: number
           descricao?: string | null
           id?: string
           nome?: string
