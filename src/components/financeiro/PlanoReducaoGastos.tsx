@@ -811,6 +811,29 @@ export function PlanoReducaoGastos({ dataInicio, dataFim, filterEmpresa }: Plano
             );
           })}
         </TableBody>
+        <TableFooter className="sticky bottom-0 bg-card border-t-2 z-10">
+          <TableRow>
+            <TableCell colSpan={5} className="font-semibold text-sm">TOTAL</TableCell>
+            <TableCell className="text-right font-mono font-semibold text-sm">{fmtCurrency(footerTotals.valorAtual)}</TableCell>
+            {viewLayout === 'padrao' ? (
+              <>
+                <TableCell />
+                <TableCell className="text-right font-mono font-semibold text-xs">{fmtCurrency(footerTotals.mediaMes)}</TableCell>
+                <TableCell />
+                <TableCell />
+                <TableCell className="text-right font-mono font-semibold text-xs">{fmtCurrency(footerTotals.metaValor)}</TableCell>
+                <TableCell />
+              </>
+            ) : (
+              mesesHistorico.map((mes) => (
+                <TableCell key={mes} className="text-right font-mono font-semibold text-xs">
+                  {footerTotals.porMes[mes] > 0 ? fmtCurrency(footerTotals.porMes[mes]) : '—'}
+                </TableCell>
+              ))
+            )}
+            <TableCell />
+          </TableRow>
+        </TableFooter>
       </Table>
     </div>
   );
