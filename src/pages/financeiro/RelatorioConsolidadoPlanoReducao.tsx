@@ -129,6 +129,22 @@ export default function RelatorioConsolidadoPlanoReducao() {
     qc.invalidateQueries({ queryKey: ["revisoes-plano-hist", planoId] });
     toast.success("Fornecedor removido do plano");
   };
+
+  const [limpandoDuplicados, setLimpandoDuplicados] = useState(false);
+  const limparDuplicados = async (ids: string[]) => {
+    if (ids.length === 0) return;
+    if (!confirm(`Remover ${ids.length} item(ns) duplicado(s) do plano? A revisão efetiva de cada fornecedor (prioridade Eliminar > Reduzir > Manter) será mantida.`)) return;
+    setLimpandoDuplicados(true);
+    const { error } = await supabase.from("contas_pagar_revisao").delete().in("id", ids);
+    setLimpandoDuplicados(false);
+    if (error) {
+      toast.error("Falha ao limpar duplicados");
+      return;
+    }
+    qc.invalidateQueries({ queryKey: ["revisoes-plano", planoId] });
+    qc.invalidateQueries({ queryKey: ["revisoes-plano-hist", planoId] });
+    toast.success(`${ids.length} duplicado(s) removido(s)`);
+  };
   // Histórico mensal real das revisões (por fornecedor + mês)
   const { data: revisoesHist } = useQuery({
     queryKey: ["revisoes-plano-hist", planoId, meses],
@@ -878,9 +894,21 @@ export default function RelatorioConsolidadoPlanoReducao() {
               para evitar duplicação. Use o botão de remover para excluir um fornecedor do plano.
             </p>
             {revisoesDuplicadasIds.length > 0 && (
-              <div className="mt-2 rounded-md border border-warning/40 bg-warning/10 px-3 py-2 text-xs text-warning-foreground">
-                {revisoesDuplicadasIds.length} item(ns) duplicado(s) por fornecedor foram ignorados no consolidado.
-                Remova-os para limpar o plano.
+              <div className="mt-2 flex items-center justify-between gap-3 rounded-md border border-warning/40 bg-warning/10 px-3 py-2 text-xs text-warning-foreground">
+                <span>
+                  {revisoesDuplicadasIds.length} item(ns) duplicado(s) por fornecedor foram ignorados no consolidado.
+                  Use o botão ao lado para limpar de uma vez.
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={limpandoDuplicados}
+                  onClick={() => limparDuplicados(revisoesDuplicadasIds)}
+                  className="shrink-0"
+                >
+                  <Trash2 className="h-3.5 w-3.5 mr-1" />
+                  {limpandoDuplicados ? "Limpando..." : "Limpar duplicados"}
+                </Button>
               </div>
             )}
           </CardHeader>
