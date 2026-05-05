@@ -42842,6 +42842,15 @@ export type Database = {
         }[]
       }
       get_reativacao_kpis: { Args: { p_empresa_id?: number }; Returns: Json }
+      get_revisoes_plano_historico_mensal: {
+        Args: { p_meses: string[]; p_plano_id: string }
+        Returns: {
+          fornecedor_codigo: string
+          mes: string
+          revisao_id: string
+          valor: number
+        }[]
+      }
       get_sales_performance: {
         Args: never
         Returns: {
