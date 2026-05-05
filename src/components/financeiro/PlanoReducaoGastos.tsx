@@ -735,11 +735,21 @@ export function PlanoReducaoGastos({ dataInicio, dataFim, filterEmpresa }: Plano
                           <Check className="h-3.5 w-3.5 text-success" />
                         </Button>
                       )}
+                      {revisao.status !== 'cancelado' && revisao.status !== 'concluido' && (
+                        <Button variant="ghost" size="icon" className="h-7 w-7" title="Tirar do plano de redução"
+                          onClick={() => {
+                            if (confirm(`Tirar "${itemName}" do plano de redução? O item será marcado como cancelado e deixará de afetar os totais, mas o histórico será preservado.`)) {
+                              handleUpdateStatus(revisao.id, 'cancelado');
+                            }
+                          }}>
+                          <Ban className="h-3.5 w-3.5 text-warning" />
+                        </Button>
+                      )}
                       <Button variant="ghost" size="icon" className="h-7 w-7" title="Editar"
                         onClick={() => openEditDialog(revisao)}>
                         <Edit className="h-3.5 w-3.5 text-muted-foreground" />
                       </Button>
-                      <Button variant="ghost" size="icon" className="h-7 w-7" title="Excluir"
+                      <Button variant="ghost" size="icon" className="h-7 w-7" title="Excluir definitivamente"
                         onClick={() => handleDelete(revisao.id)}>
                         <Trash2 className="h-3.5 w-3.5 text-destructive" />
                       </Button>
