@@ -109,10 +109,30 @@ export default function RelatorioConsolidadoPlanoReducao() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("contas_pagar_revisao")
-        .select("id, categoria_nome, fornecedor_nome, valor_atual, meta_reducao_valor, tipo_revisao, status")
+        .select("id, categoria_nome, fornecedor_nome, fornecedor_codigo, valor_atual, meta_reducao_valor, meta_reducao_percentual, tipo_revisao, status")
         .eq("plano_id", planoId!);
       if (error) throw error;
       return data || [];
+    },
+  });
+
+  // Histórico mensal real das revisões (por fornecedor + mês)
+  const { data: revisoesHist } = useQuery({
+    queryKey: ["revisoes-plano-hist", planoId, meses],
+    enabled: !!planoId && (revisoes?.length ?? 0) > 0,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("get_revisoes_plano_historico_mensal", {
+        p_plano_id: planoId!,
+        p_meses: meses,
+      });
+      if (error) throw error;
+      // Map: revisao_id -> { mes -> valor }
+      const m: Record<string, Record<string, number>> = {};
+      (data || []).forEach((r: any) => {
+        if (!m[r.revisao_id]) m[r.revisao_id] = {};
+        m[r.revisao_id][r.mes] = Number(r.valor || 0);
+      });
+      return m;
     },
   });
 
@@ -122,19 +142,25 @@ export default function RelatorioConsolidadoPlanoReducao() {
     return typeof v === "number" ? v : Number(d.valor_mensal || 0);
   };
 
+  const valorMesRevisao = (r: any, mes: string): number => {
+    const real = revisoesHist?.[r.id]?.[mes];
+    if (typeof real === "number" && real > 0) return real;
+    return Number(r.valor_atual || 0);
+  };
+
   const totalMesDespesas = (mes: string): number =>
     despesas.reduce((s, d) => s + valorMesDespesa(d, mes), 0);
 
-  const totalMes = (mes: string): number => {
-    const extras = totalMesDespesas(mes);
-    const planoVal = (revisoes || []).reduce((s, r: any) => s + Number(r.valor_atual || 0), 0);
-    return extras + planoVal;
-  };
+  const totalMesRevisoes = (mes: string): number =>
+    (revisoes || []).reduce((s, r: any) => s + valorMesRevisao(r, mes), 0);
+
+  const totalMes = (mes: string): number => totalMesDespesas(mes) + totalMesRevisoes(mes);
 
   const mediaMensal = useMemo(() => {
     const soma = meses.reduce((s, m) => s + totalMes(m), 0);
     return soma / meses.length;
-  }, [meses, despesas, revisoes]);
+  }, [meses, despesas, revisoes, revisoesHist]);
+
 
   const economiaMensal = mediaMensal - custoSistemaNum;
   const economiaPct = mediaMensal > 0 ? (economiaMensal / mediaMensal) * 100 : 0;
@@ -271,26 +297,78 @@ export default function RelatorioConsolidadoPlanoReducao() {
       }
     });
 
-    // Aba Itens do Plano
+    // Aba Itens do Plano (mensal)
     if (revisoes && revisoes.length) {
       const p = wb.addWorksheet("Itens do Plano");
-      p.addRow(["Categoria/Fornecedor", "Tipo", "Status", "Valor Atual", "Meta Redução"]);
+      p.addRow([
+        "Categoria/Fornecedor", "Tipo", "Status",
+        ...meses.map(labelMesLongo),
+        "Média", "Total 6m", "Meta Redução",
+      ]);
       revisoes.forEach((it: any) => {
+        const valores = meses.map((m) => valorMesRevisao(it, m));
+        const total = valores.reduce((s, v) => s + v, 0);
         p.addRow([
           it.categoria_nome || it.fornecedor_nome || "—",
           it.tipo_revisao,
           it.status,
-          Number(it.valor_atual || 0),
+          ...valores,
+          total / meses.length,
+          total,
           Number(it.meta_reducao_valor || 0),
         ]);
       });
+      const totRevRow = [
+        "TOTAL", "", "",
+        ...meses.map((m) => totalMesRevisoes(m)),
+      ] as any[];
+      const totRevSoma = meses.reduce((s, m) => s + totalMesRevisoes(m), 0);
+      totRevRow.push(totRevSoma / meses.length, totRevSoma, (revisoes || []).reduce((s, r: any) => s + Number(r.meta_reducao_valor || 0), 0));
+      const trr = p.addRow(totRevRow);
+      trr.font = { bold: true };
       p.getRow(1).font = { bold: true };
-      p.columns = [{ width: 40 }, { width: 14 }, { width: 14 }, { width: 16 }, { width: 16 }];
+      p.columns = [
+        { width: 40 }, { width: 14 }, { width: 14 },
+        ...meses.map(() => ({ width: 14 })),
+        { width: 14 }, { width: 14 }, { width: 16 },
+      ];
       p.eachRow((row, idx) => {
         if (idx === 1) return;
-        ["D", "E"].forEach((c) => (row.getCell(c).numFmt = '"R$" #,##0.00'));
+        for (let c = 4; c <= 3 + meses.length + 3; c++) {
+          row.getCell(c).numFmt = '"R$" #,##0.00';
+        }
       });
     }
+
+    // Aba Consolidado
+    {
+      const c = wb.addWorksheet("Consolidado");
+      c.addRow(["Linha", ...meses.map(labelMesLongo), "Média", "Total 6m"]);
+      const linhaDesp = meses.map((m) => totalMesDespesas(m));
+      const linhaRev = meses.map((m) => totalMesRevisoes(m));
+      const linhaTot = meses.map((_, i) => linhaDesp[i] + linhaRev[i]);
+      const linhaSis = meses.map(() => custoSistemaNum);
+      const linhaEcon = linhaTot.map((v, i) => v - linhaSis[i]);
+      const sum = (a: number[]) => a.reduce((s, v) => s + v, 0);
+      const addLine = (label: string, vals: number[]) =>
+        c.addRow([label, ...vals, sum(vals) / vals.length, sum(vals)]);
+      addLine("Despesas Extras", linhaDesp);
+      addLine("Itens do Plano", linhaRev);
+      const totRow = addLine("TOTAL GERAL", linhaTot);
+      totRow.font = { bold: true };
+      addLine("Custo com Sistema (alvo)", linhaSis);
+      const econRow = addLine("Diferença vs Sistema", linhaEcon);
+      econRow.font = { bold: true };
+      c.getRow(1).font = { bold: true };
+      c.columns = [{ width: 28 }, ...meses.map(() => ({ width: 14 })), { width: 14 }, { width: 14 }];
+      c.eachRow((row, idx) => {
+        if (idx === 1) return;
+        for (let col = 2; col <= 1 + meses.length + 2; col++) {
+          row.getCell(col).numFmt = '"R$" #,##0.00';
+        }
+      });
+    }
+
 
     const buf = await wb.xlsx.writeBuffer();
     const blob = new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
@@ -600,38 +678,143 @@ export default function RelatorioConsolidadoPlanoReducao() {
         </CardContent>
       </Card>
 
-      {/* Itens do plano (revisões) */}
+      {/* Itens do plano (revisões) — formato mês a mês */}
       {revisoes && revisoes.length > 0 && (
         <Card>
           <CardHeader>
             <CardTitle className="text-lg">Itens do Plano (vinculados ao DRE)</CardTitle>
+            <p className="text-xs text-muted-foreground mt-1">
+              Valor pago em cada mês (Contas a Pagar). Quando não houver pagamento no mês, exibe o valor atual de referência.
+            </p>
           </CardHeader>
-          <CardContent>
+          <CardContent className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Categoria/Fornecedor</TableHead>
+                  <TableHead className="min-w-[260px]">Categoria/Fornecedor</TableHead>
                   <TableHead>Tipo</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Valor Atual</TableHead>
+                  {meses.map((m) => (
+                    <TableHead key={m} className="text-right">{labelMes(m)}</TableHead>
+                  ))}
+                  <TableHead className="text-right">Média</TableHead>
                   <TableHead className="text-right">Meta Redução</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {revisoes.map((r: any) => (
-                  <TableRow key={r.id}>
-                    <TableCell>{r.categoria_nome || r.fornecedor_nome || "—"}</TableCell>
-                    <TableCell><Badge variant="outline">{r.tipo_revisao}</Badge></TableCell>
-                    <TableCell><Badge variant="secondary">{r.status}</Badge></TableCell>
-                    <TableCell className="text-right">{formatCurrency(Number(r.valor_atual || 0))}</TableCell>
-                    <TableCell className="text-right">{formatCurrency(Number(r.meta_reducao_valor || 0))}</TableCell>
-                  </TableRow>
-                ))}
+                {revisoes.map((r: any) => {
+                  const valores = meses.map((m) => valorMesRevisao(r, m));
+                  const media = valores.reduce((s, v) => s + v, 0) / meses.length;
+                  const tipoVariant =
+                    r.tipo_revisao === "eliminar" ? "destructive" :
+                    r.tipo_revisao === "reduzir" ? "default" : "secondary";
+                  return (
+                    <TableRow key={r.id}>
+                      <TableCell className="font-medium">
+                        <div className="text-sm">{r.categoria_nome || "—"}</div>
+                        {r.fornecedor_nome && (
+                          <div className="text-xs text-muted-foreground">{r.fornecedor_nome}</div>
+                        )}
+                      </TableCell>
+                      <TableCell><Badge variant={tipoVariant as any}>{r.tipo_revisao}</Badge></TableCell>
+                      <TableCell><Badge variant="secondary">{r.status}</Badge></TableCell>
+                      {valores.map((v, i) => (
+                        <TableCell key={meses[i]} className="text-right text-sm tabular-nums">
+                          {v > 0 ? formatCurrency(v) : <span className="text-muted-foreground">—</span>}
+                        </TableCell>
+                      ))}
+                      <TableCell className="text-right font-medium tabular-nums">{formatCurrency(media)}</TableCell>
+                      <TableCell className="text-right tabular-nums">{formatCurrency(Number(r.meta_reducao_valor || 0))}</TableCell>
+                    </TableRow>
+                  );
+                })}
+                <TableRow className="bg-muted/40 font-semibold">
+                  <TableCell colSpan={3}>TOTAL</TableCell>
+                  {meses.map((m) => (
+                    <TableCell key={m} className="text-right tabular-nums">{formatCurrency(totalMesRevisoes(m))}</TableCell>
+                  ))}
+                  <TableCell className="text-right tabular-nums">
+                    {formatCurrency(meses.reduce((s, m) => s + totalMesRevisoes(m), 0) / meses.length)}
+                  </TableCell>
+                  <TableCell className="text-right tabular-nums">
+                    {formatCurrency((revisoes || []).reduce((s, r: any) => s + Number(r.meta_reducao_valor || 0), 0))}
+                  </TableCell>
+                </TableRow>
               </TableBody>
             </Table>
           </CardContent>
         </Card>
       )}
+
+      {/* Total Consolidado das duas tabelas */}
+      {(despesas.length > 0 || (revisoes && revisoes.length > 0)) && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Total Consolidado do Plano</CardTitle>
+            <p className="text-xs text-muted-foreground mt-1">
+              Soma mês a mês de Despesas Extras + Itens do Plano, comparado com o custo do sistema.
+            </p>
+          </CardHeader>
+          <CardContent className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="min-w-[220px]">Linha</TableHead>
+                  {meses.map((m) => (
+                    <TableHead key={m} className="text-right">{labelMes(m)}</TableHead>
+                  ))}
+                  <TableHead className="text-right">Média</TableHead>
+                  <TableHead className="text-right">Total 6m</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {(() => {
+                  const linhaDesp = meses.map((m) => totalMesDespesas(m));
+                  const linhaRev = meses.map((m) => totalMesRevisoes(m));
+                  const linhaTot = meses.map((_, i) => linhaDesp[i] + linhaRev[i]);
+                  const linhaSis = meses.map(() => custoSistemaNum);
+                  const linhaEcon = linhaTot.map((v, i) => v - linhaSis[i]);
+                  const sum = (a: number[]) => a.reduce((s, v) => s + v, 0);
+                  const renderRow = (label: string, vals: number[], opts?: { strong?: boolean; tone?: "success" | "destructive" | "info"; sign?: boolean }) => {
+                    const total = sum(vals);
+                    const media = total / vals.length;
+                    const toneCls = opts?.tone === "success" ? "text-success"
+                      : opts?.tone === "destructive" ? "text-destructive"
+                      : opts?.tone === "info" ? "text-primary" : "";
+                    const fontCls = opts?.strong ? "font-semibold" : "";
+                    return (
+                      <TableRow className={opts?.strong ? "bg-muted/40" : undefined}>
+                        <TableCell className={`${fontCls}`}>{label}</TableCell>
+                        {vals.map((v, i) => (
+                          <TableCell key={i} className={`text-right tabular-nums ${fontCls} ${toneCls}`}>
+                            {opts?.sign && v > 0 ? "+" : ""}{formatCurrency(v)}
+                          </TableCell>
+                        ))}
+                        <TableCell className={`text-right tabular-nums ${fontCls} ${toneCls}`}>{formatCurrency(media)}</TableCell>
+                        <TableCell className={`text-right tabular-nums ${fontCls} ${toneCls}`}>{formatCurrency(total)}</TableCell>
+                      </TableRow>
+                    );
+                  };
+                  return (
+                    <>
+                      {renderRow("Despesas Extras", linhaDesp)}
+                      {renderRow("Itens do Plano", linhaRev)}
+                      {renderRow("TOTAL GERAL", linhaTot, { strong: true })}
+                      {renderRow("Custo com Sistema (alvo)", linhaSis, { tone: "info" })}
+                      {renderRow(
+                        "Diferença vs Sistema",
+                        linhaEcon,
+                        { strong: true, tone: economiaMensal > 0 ? "success" : "destructive", sign: true },
+                      )}
+                    </>
+                  );
+                })()}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      )}
+
 
       {/* Gráficos */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
