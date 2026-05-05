@@ -44,6 +44,9 @@ export default function ChinaCaixaEntrada() {
   const darCiencia = useDarCiencia();
   const toggleRead = useToggleInboxRead();
   const toggleFlag = useToggleSubmissaoFlag();
+  const trash = useTrashSubmissoes();
+  const restore = useRestoreSubmissoes();
+  const purge = usePurgeSubmissoes();
 
   const [search, setSearch] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
