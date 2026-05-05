@@ -26,7 +26,6 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { formatCurrency } from "@/lib/formatters";
-import { triggerBlobDownload } from "@/lib/utils/storage-download";
 import {
   useDespesasExtrasPlano, type DespesaExtra, type DespesaExtraTipo,
 } from "@/hooks/useDespesasExtrasPlano";
@@ -753,9 +752,7 @@ export default function RelatorioConsolidadoPlanoReducao() {
       }
 
       const fileName = `Relatorio_${(plano?.nome || "Plano").replace(/\s+/g, "_")}.pdf`;
-      const blob = doc.output("blob");
-      const url = URL.createObjectURL(new Blob([blob], { type: "application/pdf" }));
-      triggerBlobDownload(url, fileName);
+      await (doc as any).save(fileName, { returnPromise: true });
       toast.success("PDF gerado com sucesso");
     } catch (err: any) {
       console.error("[ExportPDF]", err);
