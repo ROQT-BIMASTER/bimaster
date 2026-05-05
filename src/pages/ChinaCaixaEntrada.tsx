@@ -219,11 +219,55 @@ export default function ChinaCaixaEntrada() {
           )}
         </div>
         {selectedIds.size > 0 && (
-          <div className="flex items-center gap-1.5">
+          <div className="flex flex-wrap items-center gap-1.5">
             <span className="text-[11px] text-muted-foreground">{selectedIds.size} selecionados</span>
             <Button size="sm" variant="outline" className="h-7 text-xs" onClick={handleBulkRead}>
               Marcar como lidos
             </Button>
+            {folder !== "trash" ? (
+              <>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-7 gap-1.5 text-xs text-destructive border-destructive/30 hover:bg-destructive/10"
+                  onClick={() => {
+                    trash.mutate(Array.from(selectedIds));
+                    setSelectedIds(new Set());
+                  }}
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                  Mover para Lixeira
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-7 gap-1.5 text-xs"
+                  onClick={() => {
+                    restore.mutate(Array.from(selectedIds));
+                    setSelectedIds(new Set());
+                  }}
+                >
+                  <RotateCcw className="h-3.5 w-3.5" />
+                  Restaurar
+                </Button>
+                <Button
+                  size="sm"
+                  variant="destructive"
+                  className="h-7 gap-1.5 text-xs"
+                  onClick={() => {
+                    if (!confirm("Excluir definitivamente os itens selecionados? Esta ação não pode ser desfeita.")) return;
+                    purge.mutate(Array.from(selectedIds));
+                    setSelectedIds(new Set());
+                  }}
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                  Excluir definitivamente
+                </Button>
+              </>
+            )}
             <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setSelectedIds(new Set())}>
               Limpar
             </Button>
