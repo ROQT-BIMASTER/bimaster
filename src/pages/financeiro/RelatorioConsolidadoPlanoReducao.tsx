@@ -167,6 +167,19 @@ export default function RelatorioConsolidadoPlanoReducao() {
   const economiaAnual = economiaMensal * 12;
   const payback = economiaMensal > 0 ? custoSistemaNum / economiaMensal : 0;
 
+  // Totalizador de itens "a eliminar" (despesas extras + revisões), média mensal
+  const mediaEliminar = useMemo(() => {
+    const despEliminar = despesas.filter((d) => d.tipo === "eliminar");
+    const revEliminar = (revisoes || []).filter((r: any) => r.tipo_revisao === "eliminar");
+    const somaMeses = meses.reduce((acc, m) => {
+      const sd = despEliminar.reduce((s, d) => s + valorMesDespesa(d, m), 0);
+      const sr = revEliminar.reduce((s, r: any) => s + valorMesRevisao(r, m), 0);
+      return acc + sd + sr;
+    }, 0);
+    return somaMeses / meses.length;
+  }, [despesas, revisoes, revisoesHist, meses]);
+  const pctReducaoEliminar = mediaMensal > 0 ? (mediaEliminar / mediaMensal) * 100 : 0;
+
   // Dados gráficos
   const dadosLinhaTotal = meses.map((m) => ({
     mes: labelMes(m),
