@@ -183,17 +183,27 @@ export function EncaminharProjetoDialog({
                   </li>
                   {filteredTarefas.map((t) => {
                     const active = tarefa?.id === t.id;
+                    const isSmart = recomendadasIds.has(t.id);
+                    const motivos = motivosById.get(t.id) ?? [];
                     return (
                       <li
                         key={t.id}
                         onClick={() => setTarefa({ id: t.id, titulo: t.titulo, secao_id: t.secao_id })}
                         className={cn(
                           "flex cursor-pointer items-center gap-2 px-2.5 py-1.5 text-xs hover:bg-muted/50",
-                          active && "bg-primary/10"
+                          active && "bg-primary/10",
+                          isSmart && !active && "bg-primary/[0.04]"
                         )}
+                        title={motivos.length ? `Recomendada: ${motivos.join(" • ")}` : undefined}
                       >
-                        <ListChecks className="h-4 w-4 text-muted-foreground shrink-0" />
+                        <ListChecks className={cn("h-4 w-4 shrink-0", isSmart ? "text-primary" : "text-muted-foreground")} />
                         <span className="truncate flex-1 font-medium text-foreground">{t.titulo}</span>
+                        {isSmart && (
+                          <Badge variant="outline" className="h-4 gap-0.5 border-primary/40 px-1 text-[9px] text-primary">
+                            <Sparkles className="h-2.5 w-2.5" />
+                            Recomendada
+                          </Badge>
+                        )}
                         {t.codigo && (
                           <span className="text-[10px] text-muted-foreground">{t.codigo}</span>
                         )}
