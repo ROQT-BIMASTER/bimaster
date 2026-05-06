@@ -11,7 +11,8 @@ export type MailboxFolder =
   | "drafts"
   | "approved"
   | "rejected"
-  | "trash";
+  | "trash"
+  | "oc";
 
 export interface MailboxItem {
   // Documento (quando aplicável)
