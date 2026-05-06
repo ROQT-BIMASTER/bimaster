@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { Search, AlertTriangle, AlertOctagon, Link2 } from "lucide-react";
 import { parseLocalDate } from "@/lib/utils/parseLocalDate";
-import { formatInTimeZone } from "date-fns-tz";
+import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import type { InboxOC } from "@/hooks/useCompradorInboxOCs";
 
