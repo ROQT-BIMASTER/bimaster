@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { OcRecebimentoKpi } from "./useChinaRecebimentoKpis";
-
+import { isAtrasada as isAtrasadaShared } from "@/lib/compras/inboxStatus";
 export type InboxFolder =
   | "todas"
   | "rascunho"
