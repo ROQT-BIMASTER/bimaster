@@ -136,7 +136,11 @@ export default function ProjetoVincularChina() {
   const [bulkOpen, setBulkOpen] = useState(false);
   const [desvincularTarget, setDesvincularTarget] = useState<string | null>(null);
   const [vinculando, setVinculando] = useState(false);
-  const [kpiStatusFilter, setKpiStatusFilter] = useState<string>("todos");
+  const [kpiStatusFilter, setKpiStatusFilter] = useState<string>(searchParams.get("kpi") || "todos");
+  const [kpisOpen, setKpisOpen] = useState<boolean>(() => {
+    if (typeof window === "undefined") return true;
+    return window.localStorage.getItem("vincular_kpis_open") !== "false";
+  });
   const [recentlyLinkedId, setRecentlyLinkedId] = useState<string | null>(null);
   const [folder, setFolder] = useState<VincularFolder>(initialFolder);
   const [searchTerm, setSearchTerm] = useState(initialSearch);
