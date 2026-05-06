@@ -5,6 +5,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { EmptyState } from "@/components/ui/empty-state";
 import { KpiCard } from "@/components/ui/kpi-card";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   ShoppingCart, Factory, Ship, Compass, FileCheck2, PackageCheck,
   Link2, AlertOctagon, History, Inbox, ExternalLink, CheckCircle2, Clock,
@@ -135,100 +136,173 @@ export function InboxOCReader({ oc }: InboxOCReaderProps) {
           </div>
         </div>
 
-        <ScrollArea className="flex-1">
-          <div className="p-4 space-y-4">
-            {/* KPIs */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
-              <KpiCard title="Pedido" value={fmtNum(oc.qty_pedida)} icon={ShoppingCart} variant="info" />
-              <KpiCard title="Produzido" value={fmtNum(oc.qty_produzida)} icon={Factory} variant="default" />
-              <KpiCard title="Embarcado" value={fmtNum(oc.qty_embarcada)} icon={Ship} variant="accent" />
-              <KpiCard title="Recebido" value={fmtNum(oc.qty_recebida)} subtitle={`Saldo ${fmtNum(oc.saldo_aberto)}`} icon={PackageCheck} variant={oc.saldo_aberto > 0 ? "warning" : "default"} />
-            </div>
+        <Tabs defaultValue="resumo" className="flex-1 flex flex-col overflow-hidden">
+          <TabsList className="mx-4 mt-3 self-start">
+            <TabsTrigger value="resumo">Resumo</TabsTrigger>
+            <TabsTrigger value="timeline">Linha do tempo</TabsTrigger>
+            <TabsTrigger value="acoes">Ações & deep links</TabsTrigger>
+          </TabsList>
 
-            <Separator />
-
-            {/* Timeline */}
-            {isLoading ? (
-              <p className="text-xs text-muted-foreground text-center py-4">Carregando linha do tempo...</p>
-            ) : (
-              <div className="space-y-2">
-                <StageCard icon={ShoppingCart} title="1. Pedido" status={stPedido}>
-                  <DataRow label="Emissão" value={fmtDate(oc.data_emissao)} />
-                  <DataRow label="Entrega prevista" value={fmtDate(oc.data_entrega_prevista)} />
-                  <DataRow label="EAN caixa master" value={timeline?.oc?.ean_caixa_master || "—"} />
-                  {timeline?.oc?.aprovado_em && <DataRow label="Aprovado em" value={fmtDate(timeline.oc.aprovado_em)} />}
-                </StageCard>
-
-                <StageCard icon={Factory} title="2. Produção" status={stProducao}>
-                  <DataRow label="Apontado" value={`${fmtNum(totalApontado)} un.`} />
-                  <DataRow label="Apontamentos" value={timeline?.apontamentos?.length || 0} />
-                  {timeline && timeline.apontamentos.length > 0 && (
-                    <div className="mt-2 pt-2 border-t space-y-1">
-                      {timeline.apontamentos.slice(0, 3).map((a: any) => (
-                        <div key={a.id} className="flex justify-between text-[11px]">
-                          <span className="text-muted-foreground">{fmtDate(a.data_producao)} · {a.cor_nome}</span>
-                          <span className="tabular-nums font-medium">{fmtNum(a.quantidade)}</span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </StageCard>
-
-                <StageCard icon={Ship} title="3. Embarque" status={stEmbarque}>
-                  {embarque ? (
-                    <>
-                      <DataRow label="Modalidade" value={`${embarque.modalidade || "—"} · ${embarque.tipo_embarque || "—"}`} />
-                      <DataRow label="Container" value={embarque.numero_container || "—"} />
-                      <DataRow label="BL" value={embarque.numero_bl || "—"} />
-                      <DataRow label="Navio" value={embarque.navio || "—"} />
-                      <DataRow label="ETD" value={fmtDate(embarque.data_embarque)} />
-                      <DataRow label="ETA" value={fmtDate(embarque.data_eta)} />
-                    </>
-                  ) : (
-                    <p className="text-muted-foreground italic">Nenhum embarque registrado.</p>
-                  )}
-                </StageCard>
-
-                <StageCard icon={Compass} title="4. Trânsito" status={stTransito}>
-                  <DataRow label="Origem" value={embarque?.porto_origem || "—"} />
-                  <DataRow label="Destino" value={embarque?.porto_destino || "—"} />
-                  <DataRow label="Chegada porto" value={fmtDate(oc.data_chegada_porto)} />
-                </StageCard>
-
-                <StageCard icon={FileCheck2} title="5. Desembaraço" status={stDesemb}>
-                  <DataRow label="Chegada porto" value={fmtDate(oc.data_chegada_porto)} />
-                  <DataRow label="Desembaraço" value={fmtDate(oc.data_desembaraco)} />
-                  <DataRow label="SLA porto→CD" value={oc.sla_porto_cd_dias != null ? `${oc.sla_porto_cd_dias} dias` : "—"} />
-                </StageCard>
-
-                <StageCard icon={PackageCheck} title="6. Recebido" status={stReceb}>
-                  <DataRow label="Recebido CD" value={fmtDate(oc.data_recebimento_cd)} />
-                  <DataRow label="Avariado" value={fmtNum(oc.qty_avariada)} />
-                  <DataRow label="Faltante" value={fmtNum(oc.qty_faltante)} />
-                  {timeline && timeline.ncs.length > 0 && (
-                    <p className="text-[11px] text-amber-600 mt-1">
-                      {timeline.ncs.length} não conformidade(s) registrada(s).
-                    </p>
-                  )}
-                </StageCard>
-
-                <StageCard icon={Link2} title="7. Vínculos Brasil" status={timeline && timeline.vinculos.length > 0 ? "done" : "neutral"}>
-                  {timeline && timeline.vinculos.length > 0 ? (
-                    timeline.vinculos.map((v: any) => (
-                      <DataRow
-                        key={v.id}
-                        label={v.fabrica_op_id ? "OP" : v.fabrica_compra_id ? "Compra MP" : "MP"}
-                        value={`${fmtNum(Number(v.qty_alocada))} un.`}
-                      />
-                    ))
-                  ) : (
-                    <p className="text-muted-foreground italic">Nenhum vínculo Brasil ainda.</p>
-                  )}
-                </StageCard>
+          <TabsContent value="resumo" className="flex-1 overflow-hidden mt-2">
+            <ScrollArea className="h-full">
+              <div className="p-4 space-y-4">
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
+                  <KpiCard title="Pedido" value={fmtNum(oc.qty_pedida)} icon={ShoppingCart} variant="info" />
+                  <KpiCard title="Produzido" value={fmtNum(oc.qty_produzida)} icon={Factory} variant="default" />
+                  <KpiCard title="Embarcado" value={fmtNum(oc.qty_embarcada)} icon={Ship} variant="accent" />
+                  <KpiCard title="Recebido" value={fmtNum(oc.qty_recebida)} subtitle={`Saldo ${fmtNum(oc.saldo_aberto)}`} icon={PackageCheck} variant={oc.saldo_aberto > 0 ? "warning" : "default"} />
+                </div>
+                <Separator />
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  <Card className="p-3 space-y-1">
+                    <div className="text-muted-foreground">Emissão</div>
+                    <div className="font-medium">{fmtDate(oc.data_emissao)}</div>
+                  </Card>
+                  <Card className="p-3 space-y-1">
+                    <div className="text-muted-foreground">Entrega prevista</div>
+                    <div className={cn("font-medium", atrasada && "text-destructive")}>{fmtDate(oc.data_entrega_prevista)}</div>
+                  </Card>
+                  <Card className="p-3 space-y-1">
+                    <div className="text-muted-foreground">Chegada porto</div>
+                    <div className="font-medium">{fmtDate(oc.data_chegada_porto)}</div>
+                  </Card>
+                  <Card className="p-3 space-y-1">
+                    <div className="text-muted-foreground">Recebido CD</div>
+                    <div className="font-medium">{fmtDate(oc.data_recebimento_cd)}</div>
+                  </Card>
+                </div>
+                {timeline && timeline.ncs.length > 0 && (
+                  <Card className="p-3 border-l-4 border-l-amber-500/60 text-xs space-y-1">
+                    <div className="font-semibold text-amber-700">{timeline.ncs.length} não conformidade(s) abertas</div>
+                    <p className="text-muted-foreground">Use a aba Ações para abrir o painel de divergências.</p>
+                  </Card>
+                )}
               </div>
-            )}
-          </div>
-        </ScrollArea>
+            </ScrollArea>
+          </TabsContent>
+
+          <TabsContent value="timeline" className="flex-1 overflow-hidden mt-2">
+            <ScrollArea className="h-full">
+              <div className="p-4 space-y-2">
+                {isLoading ? (
+                  <p className="text-xs text-muted-foreground text-center py-4">Carregando linha do tempo...</p>
+                ) : (
+                  <>
+                    <StageCard icon={ShoppingCart} title="1. Pedido" status={stPedido}>
+                      <DataRow label="Emissão" value={fmtDate(oc.data_emissao)} />
+                      <DataRow label="Entrega prevista" value={fmtDate(oc.data_entrega_prevista)} />
+                      <DataRow label="EAN caixa master" value={timeline?.oc?.ean_caixa_master || "—"} />
+                      {timeline?.oc?.aprovado_em && <DataRow label="Aprovado em" value={fmtDate(timeline.oc.aprovado_em)} />}
+                    </StageCard>
+
+                    <StageCard icon={Factory} title="2. Produção" status={stProducao}>
+                      <DataRow label="Apontado" value={`${fmtNum(totalApontado)} un.`} />
+                      <DataRow label="Apontamentos" value={timeline?.apontamentos?.length || 0} />
+                      {timeline && timeline.apontamentos.length > 0 && (
+                        <div className="mt-2 pt-2 border-t space-y-1">
+                          {timeline.apontamentos.slice(0, 3).map((a: any) => (
+                            <div key={a.id} className="flex justify-between text-[11px]">
+                              <span className="text-muted-foreground">{fmtDate(a.data_producao)} · {a.cor_nome}</span>
+                              <span className="tabular-nums font-medium">{fmtNum(a.quantidade)}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </StageCard>
+
+                    <StageCard icon={Ship} title="3. Embarque" status={stEmbarque}>
+                      {embarque ? (
+                        <>
+                          <DataRow label="Modalidade" value={`${embarque.modalidade || "—"} · ${embarque.tipo_embarque || "—"}`} />
+                          <DataRow label="Container" value={embarque.numero_container || "—"} />
+                          <DataRow label="BL" value={embarque.numero_bl || "—"} />
+                          <DataRow label="Navio" value={embarque.navio || "—"} />
+                          <DataRow label="ETD" value={fmtDate(embarque.data_embarque)} />
+                          <DataRow label="ETA" value={fmtDate(embarque.data_eta)} />
+                        </>
+                      ) : (
+                        <p className="text-muted-foreground italic">Nenhum embarque registrado.</p>
+                      )}
+                    </StageCard>
+
+                    <StageCard icon={Compass} title="4. Trânsito" status={stTransito}>
+                      <DataRow label="Origem" value={embarque?.porto_origem || "—"} />
+                      <DataRow label="Destino" value={embarque?.porto_destino || "—"} />
+                      <DataRow label="Chegada porto" value={fmtDate(oc.data_chegada_porto)} />
+                    </StageCard>
+
+                    <StageCard icon={FileCheck2} title="5. Desembaraço" status={stDesemb}>
+                      <DataRow label="Chegada porto" value={fmtDate(oc.data_chegada_porto)} />
+                      <DataRow label="Desembaraço" value={fmtDate(oc.data_desembaraco)} />
+                      <DataRow label="SLA porto→CD" value={oc.sla_porto_cd_dias != null ? `${oc.sla_porto_cd_dias} dias` : "—"} />
+                    </StageCard>
+
+                    <StageCard icon={PackageCheck} title="6. Recebido" status={stReceb}>
+                      <DataRow label="Recebido CD" value={fmtDate(oc.data_recebimento_cd)} />
+                      <DataRow label="Avariado" value={fmtNum(oc.qty_avariada)} />
+                      <DataRow label="Faltante" value={fmtNum(oc.qty_faltante)} />
+                      {timeline && timeline.ncs.length > 0 && (
+                        <p className="text-[11px] text-amber-600 mt-1">
+                          {timeline.ncs.length} não conformidade(s) registrada(s).
+                        </p>
+                      )}
+                    </StageCard>
+
+                    <StageCard icon={Link2} title="7. Vínculos Brasil" status={timeline && timeline.vinculos.length > 0 ? "done" : "neutral"}>
+                      {timeline && timeline.vinculos.length > 0 ? (
+                        timeline.vinculos.map((v: any) => (
+                          <DataRow
+                            key={v.id}
+                            label={v.fabrica_op_id ? "OP" : v.fabrica_compra_id ? "Compra MP" : "MP"}
+                            value={`${fmtNum(Number(v.qty_alocada))} un.`}
+                          />
+                        ))
+                      ) : (
+                        <p className="text-muted-foreground italic">Nenhum vínculo Brasil ainda.</p>
+                      )}
+                    </StageCard>
+                  </>
+                )}
+              </div>
+            </ScrollArea>
+          </TabsContent>
+
+          <TabsContent value="acoes" className="flex-1 overflow-hidden mt-2">
+            <ScrollArea className="h-full">
+              <div className="p-4 space-y-3">
+                <p className="text-xs text-muted-foreground">
+                  Ações rápidas e atalhos para os módulos especializados desta OC.
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <Button variant="outline" className="justify-start" onClick={() => setVincOpen(true)}>
+                    <Link2 className="h-4 w-4 mr-2" /> Vincular ao Brasil (OP/Compra MP)
+                  </Button>
+                  <Button variant="outline" className="justify-start" onClick={() => setHistOpen(true)}>
+                    <History className="h-4 w-4 mr-2" /> Histórico de recebimentos
+                  </Button>
+                  <Button variant="outline" className="justify-start" onClick={() => setNcOpen(true)}>
+                    <AlertOctagon className="h-4 w-4 mr-2" /> Abrir não conformidade
+                  </Button>
+                  <Button variant="outline" className="justify-start" onClick={() => navigate(`/dashboard/fabrica-china/ordens/${oc.ordem_compra_id}`)}>
+                    <ExternalLink className="h-4 w-4 mr-2" /> Detalhe completo da OC
+                  </Button>
+                  <Button variant="outline" className="justify-start" onClick={() => navigate(`/dashboard/fabrica-china/recebimentos-oc?oc=${oc.ordem_compra_id}`)}>
+                    <PackageCheck className="h-4 w-4 mr-2" /> Monitor de recebimentos
+                  </Button>
+                  <Button variant="outline" className="justify-start" onClick={() => navigate(`/dashboard/fabrica-china/recebimentos/divergencias?oc=${oc.ordem_compra_id}`)}>
+                    <AlertOctagon className="h-4 w-4 mr-2" /> Divergências
+                  </Button>
+                  <Button variant="outline" className="justify-start" onClick={() => navigate(`/dashboard/fabrica-china/torre-containers?oc=${oc.ordem_compra_id}`)}>
+                    <Ship className="h-4 w-4 mr-2" /> Torre de Containers
+                  </Button>
+                  <Button variant="outline" className="justify-start" onClick={() => navigate(`/dashboard/fabrica-china/patio-embarque?oc=${oc.ordem_compra_id}`)}>
+                    <Ship className="h-4 w-4 mr-2" /> Pátio de Embarque
+                  </Button>
+                </div>
+              </div>
+            </ScrollArea>
+          </TabsContent>
+        </Tabs>
       </div>
 
       <VincularBrasilDialog

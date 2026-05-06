@@ -11,7 +11,10 @@ export type InboxFolder =
   | "transito"
   | "desembaraco"
   | "recebidas"
-  | "atrasadas";
+  | "atrasadas"
+  | "divergencias"
+  | "catalogo"
+  | "submissoes";
 
 export interface InboxOC extends OcRecebimentoKpi {
   ultima_movimentacao: string;
@@ -46,6 +49,11 @@ export function folderMatches(o: InboxOC, folder: InboxFolder): boolean {
       return o.saldo_aberto <= 0 || o.oc_status === "concluida";
     case "atrasadas":
       return isAtrasada(o);
+    case "divergencias":
+      return o.has_divergencia;
+    case "catalogo":
+    case "submissoes":
+      return false;
   }
 }
 
@@ -117,6 +125,9 @@ export function inboxFolderCounts(items: InboxOC[]): Record<InboxFolder, number>
     "desembaraco",
     "recebidas",
     "atrasadas",
+    "divergencias",
+    "catalogo",
+    "submissoes",
   ];
   const counts = {} as Record<InboxFolder, number>;
   folders.forEach((f) => {

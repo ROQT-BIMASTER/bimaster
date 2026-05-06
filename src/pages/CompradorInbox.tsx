@@ -9,6 +9,8 @@ import { InboxFolderList } from "@/components/compras/inbox/InboxFolderList";
 import { InboxOCList } from "@/components/compras/inbox/InboxOCList";
 import { InboxOCReader } from "@/components/compras/inbox/InboxOCReader";
 import { NovaOCDialog } from "@/components/compras/inbox/NovaOCDialog";
+import { CatalogoChinaPanel } from "@/components/compras/inbox/CatalogoChinaPanel";
+import { SubmissoesAprovadasPanel } from "@/components/compras/inbox/SubmissoesAprovadasPanel";
 import {
   useCompradorInboxOCs,
   inboxFolderCounts,
@@ -79,24 +81,39 @@ export default function CompradorInbox() {
         </Button>
       </div>
 
-      <div className="grid grid-cols-[220px_360px_1fr] gap-0 border rounded-xl overflow-hidden bg-card h-[calc(100vh-220px)] min-h-[560px]">
-        <div className="border-r bg-muted/20">
-          <InboxFolderList active={folder} onSelect={setFolder} counts={counts} />
+      {folder === "catalogo" || folder === "submissoes" ? (
+        <div className="grid grid-cols-[220px_1fr] gap-0 border rounded-xl overflow-hidden bg-card h-[calc(100vh-220px)] min-h-[560px]">
+          <div className="border-r bg-muted/20">
+            <InboxFolderList active={folder} onSelect={setFolder} counts={counts} />
+          </div>
+          <div className="bg-background overflow-hidden">
+            {folder === "catalogo" ? (
+              <CatalogoChinaPanel onCreated={() => qc.invalidateQueries({ queryKey: ["comprador-inbox-ocs"] })} />
+            ) : (
+              <SubmissoesAprovadasPanel onCreated={() => qc.invalidateQueries({ queryKey: ["comprador-inbox-ocs"] })} />
+            )}
+          </div>
         </div>
-        <div className="border-r">
-          <InboxOCList
-            items={filtered}
-            selectedId={selectedId}
-            onSelect={handleSelect}
-            search={search}
-            onSearchChange={setSearch}
-            isLoading={isLoading}
-          />
+      ) : (
+        <div className="grid grid-cols-[220px_360px_1fr] gap-0 border rounded-xl overflow-hidden bg-card h-[calc(100vh-220px)] min-h-[560px]">
+          <div className="border-r bg-muted/20">
+            <InboxFolderList active={folder} onSelect={setFolder} counts={counts} />
+          </div>
+          <div className="border-r">
+            <InboxOCList
+              items={filtered}
+              selectedId={selectedId}
+              onSelect={handleSelect}
+              search={search}
+              onSearchChange={setSearch}
+              isLoading={isLoading}
+            />
+          </div>
+          <div className="bg-background overflow-hidden">
+            <InboxOCReader oc={selected} />
+          </div>
         </div>
-        <div className="bg-background overflow-hidden">
-          <InboxOCReader oc={selected} />
-        </div>
-      </div>
+      )}
 
       <NovaOCDialog
         open={novaOpen}
