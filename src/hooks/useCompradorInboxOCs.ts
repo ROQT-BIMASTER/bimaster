@@ -53,6 +53,8 @@ export function folderMatches(o: InboxOC, folder: InboxFolder): boolean {
       return isAtrasada(o);
     case "divergencias":
       return o.has_divergencia;
+    case "patio":
+    case "containers":
     case "catalogo":
     case "submissoes":
       return false;
