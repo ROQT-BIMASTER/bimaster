@@ -13,10 +13,12 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Link2, Factory, ShoppingBag, Package } from "lucide-react";
+import { Link2, Factory, ShoppingBag, Package, Sparkles } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCriarVinculo } from "@/hooks/useComprasInternacionalVinculos";
+import { useSubmissaoProjetosOPs } from "@/hooks/useSubmissaoProjetosOPs";
+import { useEffect } from "react";
 
 interface Props {
   open: boolean;
@@ -26,6 +28,7 @@ interface Props {
   itemId?: string;
   itemDescricao?: string;
   qtyDisponivel: number;
+  submissaoId?: string;
 }
 
 export function VincularBrasilDialog({
