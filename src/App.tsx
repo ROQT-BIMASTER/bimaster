@@ -257,6 +257,7 @@ const ChinaCaixaEntrada = lazyWithRetry(() => import("./pages/ChinaCaixaEntrada"
 const ChinaNovaSubmissao = lazyWithRetry(() => import("./pages/ChinaNovaSubmissao"));
 const ChinaRecebimentos = lazyWithRetry(() => import("./pages/ChinaRecebimentos"));
 const ChinaMonitorRecebimentosOC = lazyWithRetry(() => import("./pages/ChinaMonitorRecebimentosOC"));
+const ChinaDivergenciasRecebimento = lazyWithRetry(() => import("./pages/ChinaDivergenciasRecebimento"));
 const ChinaOrdens = lazyWithRetry(() => import("./pages/ChinaOrdens"));
 const ChinaOrdemDetalhe = lazyWithRetry(() => import("./pages/ChinaOrdemDetalhe"));
 const ChinaSubmissaoDetalhe = lazyWithRetry(() => import("./pages/ChinaSubmissaoDetalhe"));
@@ -637,6 +638,7 @@ function AppContent() {
             <Route path="/dashboard/fabrica-china/nova/:submissaoId" element={<ModuleRoute moduleCode="china"><ScreenProtectedRoute screenCode="china_submissoes"><ChinaNovaSubmissao /></ScreenProtectedRoute></ModuleRoute>} />
             <Route path="/dashboard/fabrica-china/recebimentos" element={<ModuleRoute moduleCode="china"><ScreenProtectedRoute screenCode="china_recebimentos"><ChinaRecebimentos /></ScreenProtectedRoute></ModuleRoute>} />
             <Route path="/dashboard/fabrica-china/recebimentos-oc" element={<ModuleRoute moduleCode="china"><ScreenProtectedRoute screenCode="china_recebimentos"><ChinaMonitorRecebimentosOC /></ScreenProtectedRoute></ModuleRoute>} />
+            <Route path="/dashboard/fabrica-china/recebimentos/divergencias" element={<ModuleRoute moduleCode="china"><ScreenProtectedRoute screenCode="china_recebimentos"><ChinaDivergenciasRecebimento /></ScreenProtectedRoute></ModuleRoute>} />
             <Route path="/dashboard/fabrica-china/ordens" element={<ModuleRoute moduleCode="china"><ScreenProtectedRoute screenCode="china_ordens"><ChinaOrdens /></ScreenProtectedRoute></ModuleRoute>} />
             <Route path="/dashboard/fabrica-china/ordens/:id" element={<ModuleRoute moduleCode="china"><ScreenProtectedRoute screenCode="china_ordens"><ChinaOrdemDetalhe /></ScreenProtectedRoute></ModuleRoute>} />
             <Route path="/dashboard/fabrica-china/submissao/:id" element={<ModuleRoute moduleCode="china"><ScreenProtectedRoute screenCode="china_submissoes"><ChinaSubmissaoDetalhe /></ScreenProtectedRoute></ModuleRoute>} />

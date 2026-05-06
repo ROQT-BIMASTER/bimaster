@@ -6,7 +6,8 @@ import { Progress } from "@/components/ui/progress";
 import { useFabricaOPDaOC } from "@/hooks/useFabricaOPDaOC";
 import { useDesvincularOP } from "@/hooks/useGerarOPDaOC";
 import { GerarOPDialog } from "./GerarOPDialog";
-import { Plus, Factory, ExternalLink, Unlink, Loader2 } from "lucide-react";
+import { RegistrarApontamentoDialog } from "./RegistrarApontamentoDialog";
+import { Plus, Factory, ExternalLink, Unlink, Loader2, ClipboardList } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -37,6 +38,7 @@ interface Props {
 export function OPVinculadaCard({ ocId, ocNumero, produtoCodigo, produtoNome, qtySugerida }: Props) {
   const { data: ops = [], isLoading } = useFabricaOPDaOC(ocId);
   const [openDialog, setOpenDialog] = useState(false);
+  const [apontarOp, setApontarOp] = useState<{ id: string; numero: string; saldo: number } | null>(null);
   const desvincular = useDesvincularOP();
   const navigate = useNavigate();
 
@@ -85,6 +87,22 @@ export function OPVinculadaCard({ ocId, ocNumero, produtoCodigo, produtoNome, qt
                 </div>
               </div>
               <div className="flex gap-1">
+                {!["concluida", "cancelada"].includes(op.status) && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    title="Apontar produção"
+                    onClick={() =>
+                      setApontarOp({
+                        id: op.op_id,
+                        numero: op.numero,
+                        saldo: Math.max(0, Number(op.quantidade_planejada) - Number(op.quantidade_produzida || 0)),
+                      })
+                    }
+                  >
+                    <ClipboardList className="h-3.5 w-3.5" />
+                  </Button>
+                )}
                 <Button size="sm" variant="ghost" title="Abrir OP" onClick={() => navigate(`/dashboard/fabrica/ordens-producao?op=${op.op_id}`)}>
                   <ExternalLink className="h-3.5 w-3.5" />
                 </Button>
@@ -153,6 +171,16 @@ export function OPVinculadaCard({ ocId, ocNumero, produtoCodigo, produtoNome, qt
         produtoNome={produtoNome}
         qtySugerida={qtySugerida}
       />
+
+      {apontarOp && (
+        <RegistrarApontamentoDialog
+          open={!!apontarOp}
+          onOpenChange={(v) => { if (!v) setApontarOp(null); }}
+          opId={apontarOp.id}
+          opNumero={apontarOp.numero}
+          saldoSugerido={apontarOp.saldo}
+        />
+      )}
     </Card>
   );
 }

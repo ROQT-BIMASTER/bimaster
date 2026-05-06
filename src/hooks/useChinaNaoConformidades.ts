@@ -26,18 +26,32 @@ export function useResolverNC() {
       id,
       resolucao,
       status,
+      motivo_cancelamento,
     }: {
       id: string;
-      resolucao: string;
+      resolucao?: string;
       status: "em_tratativa" | "resolvida" | "cancelada";
+      motivo_cancelamento?: string;
     }) => {
+      const user = (await supabase.auth.getUser()).data.user;
+      const now = new Date().toISOString();
+      const patch: any = { status };
+      if (status === "em_tratativa") {
+        patch.iniciada_em = now;
+        patch.iniciada_por = user?.id || null;
+      }
+      if (status === "resolvida") {
+        patch.resolucao = resolucao || null;
+        patch.resolvida_em = now;
+      }
+      if (status === "cancelada") {
+        patch.cancelada_em = now;
+        patch.cancelada_por = user?.id || null;
+        patch.motivo_cancelamento = motivo_cancelamento || null;
+      }
       const { error } = await supabase
         .from("china_nao_conformidades" as any)
-        .update({
-          resolucao,
-          status,
-          resolvida_em: status === "resolvida" ? new Date().toISOString() : null,
-        } as any)
+        .update(patch)
         .eq("id", id);
       if (error) throw error;
     },
