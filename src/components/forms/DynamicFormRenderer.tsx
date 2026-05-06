@@ -179,12 +179,16 @@ export function DynamicFormRenderer({ formId, tokenId, userId, onSubmitSuccess }
 
       if (respErr) throw respErr;
 
-      // Create answers
-      const answers = fields.map((f) => ({
-        response_id: response.id,
-        field_id: f.id,
-        value: values[f.id] ?? null,
-      }));
+      // Create answers — checkbox values are stored sorted by value for
+      // consistency (independent of click order); display order in the renderer
+      // follows the field's options array.
+      const answers = fields.map((f) => {
+        let v = values[f.id] ?? null;
+        if (f.field_type === "checkbox" && Array.isArray(v)) {
+          v = [...v].sort((a: string, b: string) => a.localeCompare(b, "pt-BR"));
+        }
+        return { response_id: response.id, field_id: f.id, value: v };
+      });
 
       const { error: ansErr } = await supabase
         .from("dynamic_form_answers")
