@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { ChinaPageShell } from "@/components/china/ChinaPageShell";
 import { ChinaPageHeader } from "@/components/china/ChinaPageHeader";
@@ -8,11 +8,22 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, Loader2, AlertTriangle, Clock, Package, Truck, FileDown, ExternalLink } from "lucide-react";
+import {
+  DropdownMenu, DropdownMenuTrigger, DropdownMenuContent,
+  DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
+import { Search, Loader2, AlertTriangle, Clock, Truck, FileDown, ExternalLink, AlertOctagon } from "lucide-react";
 import { useChinaRecebimentoKpis } from "@/hooks/useChinaRecebimentoKpis";
 import { OPVinculadaCard } from "@/components/china/op/OPVinculadaCard";
 import { formatLocalDate } from "@/utils/dateUtils";
 import { cn } from "@/lib/utils";
+import { SavedFiltersMenu } from "@/components/china/recebimentos/SavedFiltersMenu";
+import { AlertasResponsavelPanel } from "@/components/china/recebimentos/AlertasResponsavelPanel";
+import { useSavedFiltersRecebimento } from "@/hooks/useSavedFiltersRecebimento";
+import { buildOCResumoCsv, buildOPsCsv, buildDivergenciasCsv, downloadBlob } from "@/lib/china/csvExporters";
+import { fetchOPsByOCs } from "@/hooks/useFabricaOPsByOCs";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 function pct(num: number, den: number) {
   if (!den) return 0;
@@ -32,8 +43,24 @@ export default function ChinaMonitorRecebimentosOC() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [filtroEspecial, setFiltroEspecial] = useState<string>("all");
+  const [exporting, setExporting] = useState(false);
 
+  const { data: savedFilters = [] } = useSavedFiltersRecebimento();
   const { data: kpis = [], isLoading } = useChinaRecebimentoKpis();
+
+  // Aplicar filtro padrão na primeira render se não houver ?oc=
+  useEffect(() => {
+    if (params.get("oc")) return;
+    const def = savedFilters.find((f: any) => f.is_default);
+    if (def && search === "" && statusFilter === "all" && filtroEspecial === "all") {
+      const p = def.payload || {};
+      if (p.search) setSearch(p.search);
+      if (p.statusFilter) setStatusFilter(p.statusFilter);
+      if (p.filtroEspecial) setFiltroEspecial(p.filtroEspecial);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [savedFilters.length]);
+
 
   const filtered = useMemo(() => {
     return kpis.filter((k) => {
