@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { EspelhoEvidenceListener } from "@/components/processos/EspelhoEvidenceListener";
+import { ConfirmConclusaoListener } from "@/components/projetos/ConfirmConclusaoListener";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import ErrorPage from "@/pages/ErrorPage";
@@ -922,6 +923,7 @@ const App = () => {
                     <Toaster />
                     <Sonner />
                     <EspelhoEvidenceListener />
+                    <ConfirmConclusaoListener />
                     <AppContent />
                   </TooltipProvider>
                   </InboxDrawerProvider>
