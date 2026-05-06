@@ -61,6 +61,7 @@ export function folderMatches(o: InboxOC, folder: InboxFolder): boolean {
     case "containers":
     case "catalogo":
     case "submissoes":
+    case "tabela":
       return false;
   }
 }
