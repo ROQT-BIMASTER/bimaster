@@ -141,6 +141,43 @@ export function VincularBrasilDialog({
           </TabsList>
 
           <TabsContent value="op" className="space-y-2 pt-3">
+            {sugestoes.length > 0 && (
+              <div className="rounded-md border border-primary/20 bg-primary/5 p-2.5 space-y-2">
+                <div className="flex items-center gap-1.5 text-[11px] font-medium text-primary">
+                  <Sparkles className="h-3.5 w-3.5" />
+                  Sugestão automática (mesmo projeto da submissão)
+                </div>
+                {sugestoes.map((s) => (
+                  <div key={s.projeto_id} className="space-y-1">
+                    <div className="text-[11px] text-muted-foreground">
+                      Projeto <strong className="text-foreground">{s.projeto_nome}</strong> · {s.ops.length} OP{s.ops.length > 1 ? "s" : ""} em aberto
+                    </div>
+                    <div className="space-y-1">
+                      {s.ops.slice(0, 5).map((op) => (
+                        <div
+                          key={op.id}
+                          className="flex items-center justify-between gap-2 rounded border bg-background px-2 py-1 text-[11px]"
+                        >
+                          <span className="truncate">
+                            <strong>{op.numero}</strong>
+                            <span className="text-muted-foreground"> · {op.status} · {op.quantidade_planejada ?? 0}</span>
+                          </span>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant={opId === op.id ? "default" : "outline"}
+                            className="h-6 px-2 text-[10px]"
+                            onClick={() => setOpId(op.id)}
+                          >
+                            {opId === op.id ? "Selecionada" : "Usar esta OP"}
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
             <Label className="text-xs">Selecione a Ordem de Produção</Label>
             <Select value={opId} onValueChange={setOpId}>
               <SelectTrigger><SelectValue placeholder="Escolha uma OP em aberto" /></SelectTrigger>
