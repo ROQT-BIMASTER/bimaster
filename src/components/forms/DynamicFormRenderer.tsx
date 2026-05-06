@@ -80,9 +80,22 @@ export function DynamicFormRenderer({ formId, tokenId, userId, onSubmitSuccess }
       .order("order_index");
 
     if (fieldData) {
-      setFields(fieldData as any);
+      // Sanitize options arrays: keep only non-empty strings, dedupe preserving order
+      const sanitized = (fieldData as any[]).map((f) => {
+        const rawOpts = Array.isArray(f.options) ? f.options : [];
+        const seen = new Set<string>();
+        const opts: string[] = [];
+        for (const o of rawOpts) {
+          const s = typeof o === "string" ? o.trim() : String(o ?? "").trim();
+          if (!s || seen.has(s)) continue;
+          seen.add(s);
+          opts.push(s);
+        }
+        return { ...f, options: opts };
+      });
+      setFields(sanitized as any);
       const initial: Record<string, any> = {};
-      fieldData.forEach((f: any) => {
+      sanitized.forEach((f: any) => {
         if (f.field_type === "checkbox") initial[f.id] = [];
         else if (f.field_type === "address") initial[f.id] = null;
         else initial[f.id] = "";
@@ -166,12 +179,16 @@ export function DynamicFormRenderer({ formId, tokenId, userId, onSubmitSuccess }
 
       if (respErr) throw respErr;
 
-      // Create answers
-      const answers = fields.map((f) => ({
-        response_id: response.id,
-        field_id: f.id,
-        value: values[f.id] ?? null,
-      }));
+      // Create answers — checkbox values are stored sorted by value for
+      // consistency (independent of click order); display order in the renderer
+      // follows the field's options array.
+      const answers = fields.map((f) => {
+        let v = values[f.id] ?? null;
+        if (f.field_type === "checkbox" && Array.isArray(v)) {
+          v = [...v].sort((a: string, b: string) => a.localeCompare(b, "pt-BR"));
+        }
+        return { response_id: response.id, field_id: f.id, value: v };
+      });
 
       const { error: ansErr } = await supabase
         .from("dynamic_form_answers")
