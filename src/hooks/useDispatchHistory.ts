@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
 export interface ProcessEventRow {
@@ -15,17 +15,20 @@ export interface ProcessEventRow {
   created_at: string;
 }
 
+export const DISPATCH_PAGE_SIZE = 25;
+
 /**
  * Carrega o histórico de despacho/encaminhamento (process_events) de uma
- * submissão China — resolve o process_id correspondente automaticamente.
+ * submissão China com paginação cursor-based por `created_at`.
  */
 export function useDispatchHistory(submissaoId: string | null) {
-  return useQuery({
+  return useInfiniteQuery({
     queryKey: ["china-dispatch-history", submissaoId],
     enabled: !!submissaoId,
     staleTime: 15_000,
-    queryFn: async (): Promise<ProcessEventRow[]> => {
-      if (!submissaoId) return [];
+    initialPageParam: null as string | null,
+    queryFn: async ({ pageParam }): Promise<{ rows: ProcessEventRow[]; nextCursor: string | null }> => {
+      if (!submissaoId) return { rows: [], nextCursor: null };
       const { data: proc } = await (supabase
         .from("product_process" as any)
         .select("id")
@@ -33,14 +36,23 @@ export function useDispatchHistory(submissaoId: string | null) {
         .eq("produto_ref_id", submissaoId)
         .maybeSingle() as any);
       const pid: string | null = proc?.id ?? null;
-      if (!pid) return [];
-      const { data } = await (supabase
+      if (!pid) return { rows: [], nextCursor: null };
+
+      let query = (supabase
         .from("process_events" as any)
         .select("*")
         .eq("process_id", pid)
         .order("created_at", { ascending: false })
-        .limit(50) as any);
-      return (data ?? []) as ProcessEventRow[];
+        .order("id", { ascending: false })
+        .limit(DISPATCH_PAGE_SIZE) as any);
+
+      if (pageParam) query = query.lt("created_at", pageParam);
+
+      const { data } = await (query as any);
+      const rows = (data ?? []) as ProcessEventRow[];
+      const nextCursor = rows.length === DISPATCH_PAGE_SIZE ? rows[rows.length - 1].created_at : null;
+      return { rows, nextCursor };
     },
+    getNextPageParam: (last) => last.nextCursor,
   });
 }
