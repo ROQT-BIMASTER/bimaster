@@ -40,6 +40,7 @@ import { VincularChinaKpis } from "@/components/china/VincularChinaKpis";
 import { VincularMailboxSidebar } from "@/components/china/vincular/VincularMailboxSidebar";
 import { VincularMailboxList } from "@/components/china/vincular/VincularMailboxList";
 import { EncaminharResponsavelDialog } from "@/components/china/vincular/EncaminharResponsavelDialog";
+import { EncaminharProjetoDialog } from "@/components/china/vincular/EncaminharProjetoDialog";
 import {
   useVincularChinaUserState,
   classifyVincularRows,
@@ -135,6 +136,7 @@ export default function ProjetoVincularChina() {
   const [folder, setFolder] = useState<VincularFolder>("nao_vinculadas");
   const [searchTerm, setSearchTerm] = useState("");
   const [encaminharOpen, setEncaminharOpen] = useState(false);
+  const [encaminharProjetoOpen, setEncaminharProjetoOpen] = useState(false);
   const queryClient = useQueryClient();
   const toggleFlag = useToggleSubmissaoFlag();
   const { flags, snoozes } = useVincularChinaUserState();
@@ -706,6 +708,7 @@ export default function ProjetoVincularChina() {
                       onClose={() => setSelectedSubmissaoId(null)}
                       onPreviewDoc={setPreviewDoc}
                       onEncaminharResponsavel={() => setEncaminharOpen(true)}
+                      onEncaminharProjeto={() => setEncaminharProjetoOpen(true)}
                       onDecisionClick={(id) => { setDecisionProcessId(id); setDecisionOpen(true); }}
                       secoes={secoes}
                       tarefas={tarefas}
@@ -873,6 +876,15 @@ export default function ProjetoVincularChina() {
       <EncaminharResponsavelDialog
         open={encaminharOpen}
         onOpenChange={setEncaminharOpen}
+        submissaoId={selectedSubmissaoId}
+        produtoCodigo={selectedSubmissao?.produto_codigo}
+        produtoNome={selectedSubmissao?.produto_nome}
+      />
+
+      {/* Encaminhar a projeto/tarefa */}
+      <EncaminharProjetoDialog
+        open={encaminharProjetoOpen}
+        onOpenChange={setEncaminharProjetoOpen}
         submissaoId={selectedSubmissaoId}
         produtoCodigo={selectedSubmissao?.produto_codigo}
         produtoNome={selectedSubmissao?.produto_nome}
