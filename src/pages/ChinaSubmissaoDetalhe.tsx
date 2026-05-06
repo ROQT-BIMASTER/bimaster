@@ -19,6 +19,7 @@ import { useResolvedBackTo } from "@/lib/navigation/withReturnTo";
 export default function ChinaSubmissaoDetalhe() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { backTo } = useResolvedBackTo("/dashboard/fabrica-china");
   // ADV-6: Field visibility — hide cost/financial sections for restricted profiles
   const { isFieldVisible } = useFieldVisibility("china_ficha");
 
