@@ -111,25 +111,59 @@ export function VincularMailboxList({
     try { window.localStorage.setItem(SCROLL_PREF_KEY, v); } catch { /* noop */ }
   }, []);
 
-  useEffect(() => {
-    if (!selectedId || !selectedStillVisible) return;
-    if (scrollPref === "none") return;
+  const scrollSelectedIntoView = useCallback((forceBehavior?: ScrollBehavior) => {
+    if (!selectedId) return;
     const list = listRef.current;
     const el = itemRefs.current.get(selectedId);
     if (!list || !el) return;
-
     const listRect = list.getBoundingClientRect();
     const elRect = el.getBoundingClientRect();
     const topGap = elRect.top - listRect.top;
     const bottomGap = listRect.bottom - elRect.bottom;
-    const behavior: ScrollBehavior = scrollPref === "auto" ? "auto" : "smooth";
-
+    const behavior: ScrollBehavior =
+      forceBehavior ?? (scrollPref === "auto" ? "auto" : "smooth");
     if (topGap < SCROLL_OFFSET_TOP) {
       list.scrollBy({ top: topGap - SCROLL_OFFSET_TOP, behavior });
     } else if (bottomGap < SCROLL_OFFSET_BOTTOM) {
       list.scrollBy({ top: SCROLL_OFFSET_BOTTOM - bottomGap, behavior });
     }
-  }, [selectedId, selectedStillVisible, filtered.length, search, scrollPref]);
+  }, [selectedId, scrollPref]);
+
+  useEffect(() => {
+    if (!selectedId || !selectedStillVisible) return;
+    if (scrollPref === "none") return;
+    scrollSelectedIntoView();
+  }, [selectedId, selectedStillVisible, filtered.length, search, scrollPref, scrollSelectedIntoView]);
+
+  // Atalhos: Esc limpa busca quando o item selecionado está escondido pelo filtro;
+  // "/" foca o campo de busca (ou limpa, se já estiver com algo digitado e item escondido).
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      const tag = target?.tagName;
+      const inField =
+        tag === "INPUT" || tag === "TEXTAREA" || target?.isContentEditable;
+
+      if (e.key === "Escape" && selectedHiddenByFilter) {
+        e.preventDefault();
+        onSearchChange("");
+        return;
+      }
+      if (e.key === "/" && !inField) {
+        e.preventDefault();
+        if (selectedHiddenByFilter && search) {
+          onSearchChange("");
+        } else {
+          searchInputRef.current?.focus();
+          searchInputRef.current?.select();
+        }
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [selectedHiddenByFilter, search, onSearchChange]);
+
 
   return (
     <div className="flex h-full flex-col bg-background">
