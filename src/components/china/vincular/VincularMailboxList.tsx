@@ -72,8 +72,8 @@ export function VincularMailboxList({
 
   return (
     <div className="flex h-full flex-col bg-background">
-      {/* Toolbar */}
-      <div className="flex items-center gap-2 border-b border-border bg-card/40 px-3 py-2">
+      {/* Toolbar — alinhada à Caixa de Entrada */}
+      <div className="flex items-center gap-2 border-b border-border bg-card/30 px-3 py-1.5">
         <Checkbox
           checked={allChecked}
           onCheckedChange={onToggleAllChecks}
@@ -87,14 +87,14 @@ export function VincularMailboxList({
         />
         {someChecked ? (
           <div className="flex items-center gap-1.5">
-            <span className="text-[11px] text-muted-foreground">{selectedIds.size} sel.</span>
+            <span className="text-[11px] text-muted-foreground">{selectedIds.size} selecionados</span>
             {onBulkLink && (
-              <Button size="sm" variant="outline" className="h-7 text-[11px] gap-1" onClick={onBulkLink}>
+              <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={onBulkLink}>
                 <Link2 className="h-3 w-3" /> Vincular
               </Button>
             )}
             {onBulkExport && (
-              <Button size="sm" variant="ghost" className="h-7 text-[11px]" onClick={onBulkExport}>
+              <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={onBulkExport}>
                 Exportar
               </Button>
             )}
@@ -160,7 +160,7 @@ export function VincularMailboxList({
                   </span>
                   <span
                     className={cn(
-                      "truncate text-[12.5px]",
+                      "truncate text-[13px]",
                       unread ? "font-semibold text-foreground" : "font-medium text-foreground/90",
                     )}
                   >
@@ -172,7 +172,7 @@ export function VincularMailboxList({
                     </span>
                   )}
                 </div>
-                <div className="mt-0.5 flex items-center gap-2 truncate text-[11px] text-muted-foreground">
+                <div className="mt-0.5 flex items-center gap-1.5 truncate text-[11.5px] text-muted-foreground">
                   {item.isLinked && item.projetoNome ? (
                     <span className="flex items-center gap-1.5 truncate">
                       <span

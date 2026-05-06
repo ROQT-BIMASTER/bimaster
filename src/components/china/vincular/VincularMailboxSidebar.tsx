@@ -62,14 +62,14 @@ export function VincularMailboxSidebar({ folder, counts, onSelect, progressPct, 
                 : "text-muted-foreground hover:bg-muted/40 hover:text-foreground",
             )}
           >
-            <Icon className={cn("h-3.5 w-3.5 shrink-0", f.tone, active && "text-primary")} />
-            <span className="truncate flex-1 text-left text-[12.5px]">
+            <Icon className={cn("h-4 w-4 shrink-0", f.tone, active && "text-primary")} />
+            <span className="truncate flex-1 text-left">
               {f.label}
-              <span className="ml-1 text-[10px] text-muted-foreground/60">{f.labelCn}</span>
+              <span className="ml-1 text-[10px] text-muted-foreground/70">{f.labelCn}</span>
             </span>
             {total > 0 && (
               <span className={cn(
-                "text-[10.5px] tabular-nums",
+                "text-[11px] tabular-nums",
                 active ? "text-foreground font-medium" : "text-muted-foreground",
               )}>
                 {total}
