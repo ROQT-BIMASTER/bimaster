@@ -3,7 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Link as RouterLink } from "react-router-dom";
 import {
-  ArrowRightCircle, UserCircle2, Folder, ListChecks, Gavel, History, ExternalLink,
+  ArrowRightCircle, UserCircle2, Folder, ListChecks, Gavel, History, ExternalLink, RefreshCw,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -112,6 +112,7 @@ function EventCard({ ev }: { ev: ProcessEventRow }) {
 export function DispatchHistoryPanel({ submissaoId, className }: Props) {
   const {
     data, isLoading, hasNextPage, isFetchingNextPage, fetchNextPage,
+    pendingCount, flushPending,
   } = useDispatchHistory(submissaoId);
   const events = (data?.pages ?? []).flatMap((p) => p.rows);
 
@@ -126,6 +127,17 @@ export function DispatchHistoryPanel({ submissaoId, className }: Props) {
           <Badge variant="secondary" className="h-4 px-1.5 text-[10px]">
             {events.length}{hasNextPage ? "+" : ""}
           </Badge>
+        )}
+        {pendingCount > 0 && (
+          <button
+            type="button"
+            onClick={flushPending}
+            className="ml-auto inline-flex items-center gap-1 rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary transition-colors hover:bg-primary/20"
+            title="Novos eventos chegaram em tempo real"
+          >
+            <RefreshCw className="h-2.5 w-2.5" />
+            {pendingCount} {pendingCount === 1 ? "novo evento" : "novos eventos"} · Atualizar
+          </button>
         )}
       </div>
 

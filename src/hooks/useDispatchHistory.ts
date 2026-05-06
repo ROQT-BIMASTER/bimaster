@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -45,13 +45,38 @@ async function resolveProcessId(submissaoId: string): Promise<string | null> {
   return proc?.id ?? null;
 }
 
+/** Compara duas chaves (created_at, id) em ordem decrescente. */
+function cmpDesc(a: ProcessEventRow, b: ProcessEventRow): number {
+  if (a.created_at !== b.created_at) return a.created_at < b.created_at ? 1 : -1;
+  if (a.id !== b.id) return a.id < b.id ? 1 : -1;
+  return 0;
+}
+
+/**
+ * Insere `incoming` na primeira página, deduplicando contra TODAS as páginas
+ * já carregadas e mantendo a ordenação descendente por (created_at, id).
+ */
+function mergeIncoming(prev: { pages: Page[]; pageParams: any[] } | undefined, incoming: ProcessEventRow[]) {
+  if (!prev || prev.pages.length === 0) return prev;
+  if (incoming.length === 0) return prev;
+
+  const seen = new Set<string>();
+  for (const p of prev.pages) for (const r of p.rows) seen.add(r.id);
+  const toAdd = incoming.filter((r) => !seen.has(r.id));
+  if (toAdd.length === 0) return prev;
+
+  const [first, ...rest] = prev.pages;
+  const merged = [...toAdd, ...first.rows].sort(cmpDesc);
+  return { ...prev, pages: [{ ...first, rows: merged }, ...rest] };
+}
+
 /**
  * Carrega `process_events` de uma submissão China com:
- *  - paginação por cursor composto (`created_at`, `id`) — evita inconsistências
- *    quando vários eventos compartilham o mesmo timestamp;
- *  - assinatura realtime que prepende novos eventos à página inicial;
- *  - restauração do número de páginas previamente carregadas ao voltar/refresh
- *    (via `sessionStorage`).
+ *  - paginação por cursor composto (`created_at`, `id`);
+ *  - assinatura realtime que **bufferiza** novos eventos e expõe `pendingCount`
+ *    + `flushPending()` para o usuário decidir quando atualizar a lista;
+ *  - deduplicação contra todas as páginas + reordenação ao mesclar;
+ *  - restauração do número de páginas previamente carregadas (sessionStorage).
  */
 export function useDispatchHistory(submissaoId: string | null) {
   const qc = useQueryClient();
@@ -76,7 +101,6 @@ export function useDispatchHistory(submissaoId: string | null) {
         .limit(DISPATCH_PAGE_SIZE) as any);
 
       if (pageParam) {
-        // Cursor composto: (created_at < c.created_at) OR (created_at = c.created_at AND id < c.id)
         q = q.or(
           `created_at.lt.${pageParam.created_at},and(created_at.eq.${pageParam.created_at},id.lt.${pageParam.id})`,
         );
@@ -93,6 +117,18 @@ export function useDispatchHistory(submissaoId: string | null) {
     getNextPageParam: (last) => last.nextCursor,
   });
 
+  // Buffer de eventos recebidos via realtime aguardando flush manual
+  const pendingRef = useRef<ProcessEventRow[]>([]);
+  const [pendingCount, setPendingCount] = useState(0);
+
+  const flushPending = useCallback(() => {
+    const buf = pendingRef.current;
+    if (buf.length === 0) return;
+    pendingRef.current = [];
+    setPendingCount(0);
+    qc.setQueryData<{ pages: Page[]; pageParams: any[] }>(queryKey, (prev) => mergeIncoming(prev, buf));
+  }, [qc, queryKey]);
+
   // Persiste número de páginas carregadas
   useEffect(() => {
     if (!submissaoId) return;
@@ -100,7 +136,7 @@ export function useDispatchHistory(submissaoId: string | null) {
     if (n > 0) sessionPages.set(submissaoId, n);
   }, [submissaoId, query.data?.pages.length]);
 
-  // Restaura páginas anteriores em uma única passada (na primeira hidratação)
+  // Restaura páginas anteriores em uma única passada
   const restoredFor = useRef<string | null>(null);
   useEffect(() => {
     if (!submissaoId || query.isLoading) return;
@@ -114,7 +150,13 @@ export function useDispatchHistory(submissaoId: string | null) {
     }
   }, [submissaoId, query.isLoading, query.data?.pages.length, query.hasNextPage, query.isFetchingNextPage]);
 
-  // Realtime: novos eventos vão para o topo da primeira página
+  // Limpa buffer ao trocar de submissão
+  useEffect(() => {
+    pendingRef.current = [];
+    setPendingCount(0);
+  }, [submissaoId]);
+
+  // Realtime: bufferiza novos eventos (com dedupe contra páginas + buffer)
   useEffect(() => {
     if (!submissaoId) return;
     let cancelled = false;
@@ -130,16 +172,20 @@ export function useDispatchHistory(submissaoId: string | null) {
           { event: "INSERT", schema: "public", table: "process_events", filter: `process_id=eq.${pid}` },
           (payload) => {
             const row = payload.new as ProcessEventRow;
-            qc.setQueryData<{ pages: Page[]; pageParams: any[] }>(queryKey, (prev) => {
-              if (!prev) return prev;
-              const [first, ...rest] = prev.pages;
-              if (!first) return prev;
-              if (first.rows.some((r) => r.id === row.id)) return prev;
-              return {
-                ...prev,
-                pages: [{ ...first, rows: [row, ...first.rows] }, ...rest],
-              };
-            });
+            if (!row?.id) return;
+
+            // Dedupe contra páginas já carregadas
+            const cached = qc.getQueryData<{ pages: Page[]; pageParams: any[] }>(queryKey);
+            if (cached) {
+              for (const p of cached.pages) {
+                if (p.rows.some((r) => r.id === row.id)) return;
+              }
+            }
+            // Dedupe contra buffer
+            if (pendingRef.current.some((r) => r.id === row.id)) return;
+
+            pendingRef.current = [row, ...pendingRef.current];
+            setPendingCount(pendingRef.current.length);
           },
         )
         .subscribe();
@@ -149,7 +195,7 @@ export function useDispatchHistory(submissaoId: string | null) {
       cancelled = true;
       if (channel) supabase.removeChannel(channel);
     };
-  }, [submissaoId, qc]);
+  }, [submissaoId, qc, queryKey]);
 
-  return query;
+  return Object.assign(query, { pendingCount, flushPending });
 }
