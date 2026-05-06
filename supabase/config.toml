@@ -315,3 +315,5 @@ project_id = "aokkyrgaqjarhlywhjju"
     verify_jwt = false
   [functions.health]
     verify_jwt = false
+  [functions.china-sla-monitor]
+    verify_jwt = false
