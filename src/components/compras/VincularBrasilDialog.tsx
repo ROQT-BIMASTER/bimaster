@@ -82,7 +82,13 @@ export function VincularBrasilDialog({
   const [mpId, setMpId] = useState<string>("");
   const [qty, setQty] = useState<number>(qtyDisponivel);
   const [obs, setObs] = useState("");
+  const [opSearch, setOpSearch] = useState("");
   const criar = useCriarVinculo();
+
+  const persistKey = useMemo(
+    () => buildPersistKey(ocId, itemId, submissaoId),
+    [ocId, itemId, submissaoId],
+  );
 
   const { data: sugestoes = [], isLoading: loadingSugestoes } = useSubmissaoProjetosOPs(
     open ? submissaoId : undefined,
@@ -90,6 +96,29 @@ export function VincularBrasilDialog({
   const sugestoesComOps = sugestoes.filter((s) => s.ops.length > 0);
   const sugestaoFlat = sugestoesComOps.flatMap((s) => s.ops);
   const temProjetosSemOps = sugestoes.length > 0 && sugestoesComOps.length === 0;
+
+  // Recupera OP previamente selecionada para este (oc, item, submissao) ao abrir
+  useEffect(() => {
+    if (!open) return;
+    try {
+      const saved = localStorage.getItem(persistKey);
+      if (saved) setOpId(saved);
+    } catch {
+      // ignore
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, persistKey]);
+
+  // Persiste seleção sempre que mudar
+  useEffect(() => {
+    if (!open) return;
+    try {
+      if (opId) localStorage.setItem(persistKey, opId);
+      else localStorage.removeItem(persistKey);
+    } catch {
+      // ignore
+    }
+  }, [open, opId, persistKey]);
 
   // Auto-preenche quando há exatamente uma OP sugerida e o usuário ainda não escolheu nada
   useEffect(() => {
