@@ -434,6 +434,36 @@ export function TabelaOCsPanel() {
           </div>
         </div>
       </div>
+
+      <OCDetailDrawer
+        oc={drawerOC}
+        open={!!drawerOC}
+        onOpenChange={(v) => !v && setDrawerOC(null)}
+        onOpenReader={(id) => { setDrawerOC(null); openReader(id); }}
+      />
+
+      <Dialog open={savePresetOpen} onOpenChange={setSavePresetOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader><DialogTitle>Salvar preset de filtros</DialogTitle></DialogHeader>
+          <div className="space-y-2">
+            <Label className="text-xs">Nome</Label>
+            <Input
+              value={presetName}
+              onChange={(e) => setPresetName(e.target.value)}
+              placeholder="Ex.: Atrasadas marca X"
+              autoFocus
+              onKeyDown={(e) => { if (e.key === "Enter") handleSavePreset(); }}
+            />
+            <p className="text-[11px] text-muted-foreground">
+              Salva: marca, fornecedor, status, OC, período e busca atuais.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setSavePresetOpen(false)}>Cancelar</Button>
+            <Button onClick={handleSavePreset}>Salvar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </ScrollArea>
   );
 }
