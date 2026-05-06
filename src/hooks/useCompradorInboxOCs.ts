@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { OcRecebimentoKpi } from "./useChinaRecebimentoKpis";
-
+import { isAtrasada as isAtrasadaShared } from "@/lib/compras/inboxStatus";
 export type InboxFolder =
   | "todas"
   | "rascunho"
@@ -29,13 +29,14 @@ export interface InboxOC extends OcRecebimentoKpi {
   embarque_container: string | null;
 }
 
-function isAtrasada(o: OcRecebimentoKpi): boolean {
-  if (!o.data_entrega_prevista) return false;
-  if (o.oc_status === "concluida" || o.oc_status === "cancelada") return false;
-  return o.data_entrega_prevista < new Date().toISOString().slice(0, 10);
+function isAtrasada(o: OcRecebimentoKpi & { data_recebimento_cd?: string | null }): boolean {
+  return isAtrasadaShared(o);
 }
 
 export function folderMatches(o: InboxOC, folder: InboxFolder): boolean {
+  // Buckets exclusivos: uma OC já recebida não aparece em produção/embarcada/trânsito.
+  const recebida = o.saldo_aberto <= 0 || o.oc_status === "concluida" || !!o.data_recebimento_cd;
+
   switch (folder) {
     case "todas":
       return o.oc_status !== "cancelada";
@@ -44,15 +45,15 @@ export function folderMatches(o: InboxOC, folder: InboxFolder): boolean {
     case "aguardando":
       return o.oc_status === "aguardando_aprovacao" || o.oc_status === "pendente_aprovacao";
     case "producao":
-      return ["aprovada", "em_producao", "produzindo"].includes(o.oc_status);
+      return !recebida && ["aprovada", "em_producao", "produzindo"].includes(o.oc_status);
     case "embarcadas":
-      return o.qty_embarcada > 0 && !o.data_chegada_porto;
+      return !recebida && o.qty_embarcada > 0 && !o.data_chegada_porto;
     case "transito":
-      return !!o.data_chegada_porto && !o.data_desembaraco;
+      return !recebida && !!o.data_chegada_porto && !o.data_desembaraco;
     case "desembaraco":
-      return !!o.data_desembaraco && !o.data_recebimento_cd;
+      return !recebida && !!o.data_desembaraco;
     case "recebidas":
-      return o.saldo_aberto <= 0 || o.oc_status === "concluida";
+      return recebida;
     case "atrasadas":
       return isAtrasada(o);
     case "divergencias":

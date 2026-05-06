@@ -2,7 +2,10 @@ import { useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { CalendarIcon, Download, Search, X, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import {
+  CalendarIcon, Download, Search, X, ArrowUpDown, ArrowUp, ArrowDown,
+  Bookmark, Save, Trash2,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -10,12 +13,19 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { parseLocalDate } from "@/lib/utils/parseLocalDate";
 import { useCompradorInboxOCs, type InboxOC } from "@/hooks/useCompradorInboxOCs";
 import { downloadInboxCSV } from "@/lib/compras/exportInboxCSV";
+import { useInboxFilterPresets } from "@/hooks/useInboxFilterPresets";
+import { OCDetailDrawer } from "./OCDetailDrawer";
+import { isAtrasada, statusBucket, type StatusBucket } from "@/lib/compras/inboxStatus";
+import { toast } from "sonner";
 
-type StatusBucket = "todas" | "pendente" | "producao" | "patio" | "embarcada" | "transito" | "recebida" | "atrasada" | "divergencia";
 type SortKey =
   | "numero_oc" | "produto_nome" | "marca" | "ops" | "status" | "data_emissao" | "data_entrega_prevista"
   | "qty_pedida" | "qty_produzida" | "nao_produzido" | "qty_embarcada" | "qty_recebida" | "saldo_aberto" | "qty_avariada";
@@ -32,23 +42,6 @@ const STATUS_OPTS: { value: StatusBucket; label: string }[] = [
   { value: "atrasada", label: "Atrasada" },
   { value: "divergencia", label: "Divergência" },
 ];
-
-function isAtrasada(o: InboxOC): boolean {
-  if (!o.data_entrega_prevista) return false;
-  if (o.oc_status === "concluida" || o.oc_status === "cancelada") return false;
-  return o.data_entrega_prevista < new Date().toISOString().slice(0, 10);
-}
-
-function statusBucket(o: InboxOC): StatusBucket {
-  if (o.has_divergencia) return "divergencia";
-  if (isAtrasada(o)) return "atrasada";
-  if (o.saldo_aberto <= 0 || o.oc_status === "concluida") return "recebida";
-  if (o.data_chegada_porto && !o.data_desembaraco) return "transito";
-  if (o.qty_embarcada > 0 && !o.data_chegada_porto) return "embarcada";
-  if (["aprovada", "em_producao", "produzindo"].includes(o.oc_status)) return "producao";
-  if (["aguardando_aprovacao", "pendente_aprovacao", "rascunho"].includes(o.oc_status)) return "pendente";
-  return "pendente";
-}
 
 const STATUS_BADGE: Record<StatusBucket, string> = {
   todas: "",
@@ -78,10 +71,19 @@ export function TabelaOCsPanel() {
   const [marca, setMarca] = useState<string>("todas");
   const [status, setStatus] = useState<StatusBucket>("todas");
   const [oc, setOc] = useState<string>("todas");
+  const [fornecedor, setFornecedor] = useState<string>("");
   const [period, setPeriod] = useState<{ from?: Date; to?: Date }>({});
   const [search, setSearch] = useState("");
   const [sortKey, setSortKey] = useState<SortKey>("data_emissao");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
+
+  // Drawer
+  const [drawerOC, setDrawerOC] = useState<InboxOC | null>(null);
+
+  // Presets
+  const { presets, save: savePreset, remove: removePreset } = useInboxFilterPresets();
+  const [savePresetOpen, setSavePresetOpen] = useState(false);
+  const [presetName, setPresetName] = useState("");
 
   const marcas = useMemo(
     () => Array.from(new Set(items.map((o) => o.marca).filter(Boolean) as string[])).sort(),
@@ -97,6 +99,14 @@ export function TabelaOCsPanel() {
     if (marca !== "todas") list = list.filter((o) => o.marca === marca);
     if (status !== "todas") list = list.filter((o) => statusBucket(o) === status);
     if (oc !== "todas") list = list.filter((o) => o.numero_oc === oc);
+    const fq = fornecedor.trim().toLowerCase();
+    if (fq) {
+      list = list.filter((o) =>
+        (o.produto_nome || "").toLowerCase().includes(fq) ||
+        (o.produto_codigo || "").toLowerCase().includes(fq) ||
+        (o.marca || "").toLowerCase().includes(fq),
+      );
+    }
     if (period.from) {
       const fromIso = period.from.toISOString().slice(0, 10);
       list = list.filter((o) => (o.data_emissao || "") >= fromIso || (o.data_entrega_prevista || "") >= fromIso);
@@ -115,7 +125,7 @@ export function TabelaOCsPanel() {
       );
     }
     return list;
-  }, [items, marca, status, oc, period, search]);
+  }, [items, marca, status, oc, fornecedor, period, search]);
 
   const sorted = useMemo(() => {
     const dir = sortDir === "asc" ? 1 : -1;
@@ -158,11 +168,41 @@ export function TabelaOCsPanel() {
 
   const clearFilters = () => {
     setMarca("todas"); setStatus("todas"); setOc("todas");
-    setPeriod({}); setSearch("");
+    setFornecedor(""); setPeriod({}); setSearch("");
   };
 
-  const openOC = (id: string) => {
+  const openReader = (id: string) => {
     setParams((p) => { const np = new URLSearchParams(p); np.set("oc", id); return np; }, { replace: true });
+  };
+
+  const openDrawer = (item: InboxOC) => setDrawerOC(item);
+
+  const aplicarPreset = (id: string) => {
+    const p = presets.find((x) => x.id === id);
+    if (!p) return;
+    setMarca(p.marca || "todas");
+    setStatus((p.status as StatusBucket) || "todas");
+    setOc(p.oc || "todas");
+    setFornecedor(p.fornecedor || "");
+    setPeriod({
+      from: p.period_from ? parseLocalDate(p.period_from) || undefined : undefined,
+      to: p.period_to ? parseLocalDate(p.period_to) || undefined : undefined,
+    });
+    setSearch(p.search || "");
+    toast.success(`Preset "${p.nome}" aplicado`);
+  };
+
+  const handleSavePreset = () => {
+    if (!presetName.trim()) { toast.error("Nome obrigatório"); return; }
+    savePreset({
+      nome: presetName.trim(),
+      marca, status, oc, fornecedor, search,
+      period_from: period.from ? period.from.toISOString().slice(0, 10) : null,
+      period_to: period.to ? period.to.toISOString().slice(0, 10) : null,
+    });
+    toast.success(`Preset "${presetName.trim()}" salvo`);
+    setPresetName("");
+    setSavePresetOpen(false);
   };
 
   const periodLabel = period.from || period.to
@@ -174,10 +214,41 @@ export function TabelaOCsPanel() {
       <div className="p-4 space-y-4">
         {/* Filtros */}
         <div className="rounded-xl border bg-card p-4">
-          <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center justify-between mb-3 gap-3 flex-wrap">
             <div>
               <h3 className="text-sm font-semibold">Forecast & Acompanhamento de OCs</h3>
               <p className="text-xs text-muted-foreground">{filtered.length} OCs</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <Select value="" onValueChange={aplicarPreset}>
+                <SelectTrigger className="h-8 w-[200px] text-xs">
+                  <div className="flex items-center gap-1.5 truncate">
+                    <Bookmark className="h-3.5 w-3.5" />
+                    <SelectValue placeholder={presets.length ? "Aplicar preset…" : "Sem presets salvos"} />
+                  </div>
+                </SelectTrigger>
+                <SelectContent>
+                  {presets.length === 0 && (
+                    <div className="px-2 py-1.5 text-xs text-muted-foreground">Nenhum preset salvo</div>
+                  )}
+                  {presets.map((p) => (
+                    <div key={p.id} className="flex items-center pr-1">
+                      <SelectItem value={p.id} className="flex-1">{p.nome}</SelectItem>
+                      <button
+                        type="button"
+                        onMouseDown={(e) => { e.stopPropagation(); e.preventDefault(); removePreset(p.id); toast.success("Preset removido"); }}
+                        className="p-1 text-muted-foreground hover:text-destructive"
+                        title="Remover preset"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </button>
+                    </div>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button size="sm" variant="outline" className="h-8 gap-1.5 text-xs" onClick={() => setSavePresetOpen(true)}>
+                <Save className="h-3.5 w-3.5" /> Salvar preset
+              </Button>
             </div>
           </div>
           <div className="flex flex-wrap items-end gap-3">
@@ -206,6 +277,14 @@ export function TabelaOCsPanel() {
                   {ocs.map((n) => <SelectItem key={n} value={n}>{n}</SelectItem>)}
                 </SelectContent>
               </Select>
+            </Field>
+            <Field label="Fornecedor China">
+              <Input
+                value={fornecedor}
+                onChange={(e) => setFornecedor(e.target.value)}
+                placeholder="Nome / código"
+                className="h-9 w-[180px]"
+              />
             </Field>
             <Field label="Período">
               <Popover>
@@ -305,10 +384,19 @@ export function TabelaOCsPanel() {
                   return (
                     <tr
                       key={o.ordem_compra_id}
-                      onClick={() => openOC(o.ordem_compra_id)}
+                      onClick={() => openDrawer(o)}
                       className="border-t hover:bg-muted/40 cursor-pointer"
                     >
-                      <td className="px-3 py-2 font-medium text-primary">{o.numero_oc}</td>
+                      <td className="px-3 py-2 font-medium text-primary">
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); openReader(o.ordem_compra_id); }}
+                          className="hover:underline"
+                          title="Abrir reader"
+                        >
+                          {o.numero_oc}
+                        </button>
+                      </td>
                       <td className="px-3 py-2">
                         <div className="font-medium truncate max-w-[220px]">{o.produto_nome}</div>
                         <div className="text-[10px] text-muted-foreground">{o.produto_codigo}</div>
@@ -346,6 +434,36 @@ export function TabelaOCsPanel() {
           </div>
         </div>
       </div>
+
+      <OCDetailDrawer
+        oc={drawerOC}
+        open={!!drawerOC}
+        onOpenChange={(v) => !v && setDrawerOC(null)}
+        onOpenReader={(id) => { setDrawerOC(null); openReader(id); }}
+      />
+
+      <Dialog open={savePresetOpen} onOpenChange={setSavePresetOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader><DialogTitle>Salvar preset de filtros</DialogTitle></DialogHeader>
+          <div className="space-y-2">
+            <Label className="text-xs">Nome</Label>
+            <Input
+              value={presetName}
+              onChange={(e) => setPresetName(e.target.value)}
+              placeholder="Ex.: Atrasadas marca X"
+              autoFocus
+              onKeyDown={(e) => { if (e.key === "Enter") handleSavePreset(); }}
+            />
+            <p className="text-[11px] text-muted-foreground">
+              Salva: marca, fornecedor, status, OC, período e busca atuais.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setSavePresetOpen(false)}>Cancelar</Button>
+            <Button onClick={handleSavePreset}>Salvar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </ScrollArea>
   );
 }
