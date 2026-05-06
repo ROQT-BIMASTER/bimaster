@@ -39,29 +39,36 @@ export function InboxFolderList({ active, onSelect, counts }: InboxFolderListPro
           const Icon = f.icon;
           const isActive = active === f.key;
           const count = counts[f.key] || 0;
+          const showCount = !["catalogo", "submissoes"].includes(f.key);
           return (
-            <Button
-              key={f.key}
-              variant="ghost"
-              size="sm"
-              onClick={() => onSelect(f.key)}
-              className={cn(
-                "w-full justify-start gap-2 px-2 h-9 font-normal",
-                isActive && "bg-primary/10 text-primary font-medium hover:bg-primary/15",
-                f.tone === "destructive" && !isActive && "text-destructive/80",
+            <div key={f.key}>
+              {f.section && (
+                <div className="px-2 pt-3 pb-1 text-[10px] uppercase tracking-wider text-muted-foreground font-medium">
+                  {f.section}
+                </div>
               )}
-            >
-              <Icon className="h-4 w-4 shrink-0" />
-              <span className="truncate flex-1 text-left">{f.label}</span>
-              {count > 0 && (
-                <Badge
-                  variant={f.tone === "destructive" ? "destructive" : "secondary"}
-                  className="h-5 px-1.5 text-[10px] tabular-nums"
-                >
-                  {count}
-                </Badge>
-              )}
-            </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => onSelect(f.key)}
+                className={cn(
+                  "w-full justify-start gap-2 px-2 h-9 font-normal",
+                  isActive && "bg-primary/10 text-primary font-medium hover:bg-primary/15",
+                  f.tone === "destructive" && !isActive && "text-destructive/80",
+                )}
+              >
+                <Icon className="h-4 w-4 shrink-0" />
+                <span className="truncate flex-1 text-left">{f.label}</span>
+                {showCount && count > 0 && (
+                  <Badge
+                    variant={f.tone === "destructive" ? "destructive" : "secondary"}
+                    className="h-5 px-1.5 text-[10px] tabular-nums"
+                  >
+                    {count}
+                  </Badge>
+                )}
+              </Button>
+            </div>
           );
         })}
       </div>
