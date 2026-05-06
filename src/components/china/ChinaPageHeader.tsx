@@ -24,6 +24,8 @@ interface ChinaPageHeaderProps {
   showBack?: boolean;
   /** Caminho customizado de "voltar". Padrão: navigate(-1) */
   backTo?: string;
+  /** Rótulo customizado do botão voltar (ex.: "Voltar à Mesa de Vínculo") */
+  backLabel?: string;
   /** Slot direito (ações como "Nova Submissão", manual, etc.) */
   actions?: ReactNode;
 }
