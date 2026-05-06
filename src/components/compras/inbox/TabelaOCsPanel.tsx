@@ -278,7 +278,14 @@ export function TabelaOCsPanel() {
                 </SelectContent>
               </Select>
             </Field>
-            <Field label="Período">
+            <Field label="Fornecedor China">
+              <Input
+                value={fornecedor}
+                onChange={(e) => setFornecedor(e.target.value)}
+                placeholder="Nome / código"
+                className="h-9 w-[180px]"
+              />
+            </Field>
               <Popover>
                 <PopoverTrigger asChild>
                   <Button variant="outline" size="sm" className="h-9 w-[200px] justify-start gap-2 font-normal">
