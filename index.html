@@ -67,6 +67,58 @@
 
   <body>
     <div id="root"></div>
+    <!--
+      Fallback automático: se o domínio raiz bimaster.online estiver com problema
+      (app não inicializa em até 8s ou erro de carregamento de script principal),
+      redireciona para china.bimaster.online preservando path, query e hash.
+      Para a rota pública /formulario-equipe o redirect é imediato (preemptivo)
+      para garantir que o link nunca trave.
+    -->
+    <script>
+      (function () {
+        try {
+          var h = location.hostname;
+          var isPrimary = h === "bimaster.online" || h === "www.bimaster.online";
+          if (!isPrimary) return;
+          var FALLBACK = "https://china.bimaster.online";
+          var go = function (reason) {
+            try { sessionStorage.setItem("__domain_fallback__", reason || "1"); } catch (e) {}
+            location.replace(FALLBACK + location.pathname + location.search + location.hash);
+          };
+
+          // Redirect imediato para formulário público (link crítico)
+          if (location.pathname === "/formulario-equipe") {
+            go("formulario-preemptive");
+            return;
+          }
+
+          // Timeout de boot do app: se em 8s o React não montou, vai pro fallback
+          var booted = false;
+          var bootTimer = setTimeout(function () {
+            if (booted) return;
+            var root = document.getElementById("root");
+            if (!root || root.childElementCount === 0) go("boot-timeout");
+          }, 8000);
+          var mo = new MutationObserver(function () {
+            var root = document.getElementById("root");
+            if (root && root.childElementCount > 0) {
+              booted = true;
+              clearTimeout(bootTimer);
+              mo.disconnect();
+            }
+          });
+          mo.observe(document.getElementById("root"), { childList: true });
+
+          // Falha ao carregar o bundle principal
+          window.addEventListener("error", function (ev) {
+            var t = ev && ev.target;
+            if (t && (t.tagName === "SCRIPT" || t.tagName === "LINK") && t.src && /\/src\/main\.tsx|\/assets\//.test(t.src || t.href || "")) {
+              go("asset-error");
+            }
+          }, true);
+        } catch (_) { /* noop */ }
+      })();
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
