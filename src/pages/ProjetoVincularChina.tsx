@@ -287,15 +287,31 @@ export default function ProjetoVincularChina() {
   const vinculadasCount = useMemo(() => tableData.filter(r => r.isLinked).length, [tableData]);
   const progressPct = tableData.length > 0 ? Math.round((vinculadasCount / tableData.length) * 100) : 0;
 
-  const kpiData = useMemo(() => ({
-    total: tableData.length,
-    enviados: tableData.filter(r => r.status === "enviado").length,
-    emRevisao: tableData.filter(r => r.status === "em_revisao").length,
-    aprovados: tableData.filter(r => r.status === "aprovado").length,
-    rejeitados: tableData.filter(r => r.status === "rejeitado").length,
-    enviadosBrasil: tableData.filter(r => r.status === "enviado_brasil").length,
-    vinculados: vinculadasCount,
-  }), [tableData, vinculadasCount]);
+  // KPIs computados a partir de TODAS as submissões válidas (não só as enviado_brasil
+  // que alimentam o mailbox), para refletir o pipeline completo.
+  const kpiData = useMemo(() => {
+    const valid = (submissoes as any[]).filter(
+      (s) => s.produto_codigo && s.produto_nome && s.produto_codigo !== "null"
+    );
+    const now = Date.now();
+    const atrasados = tableData.filter((r) => {
+      if (r.isLinked) return false;
+      const t = r.data_envio ? new Date(r.data_envio).getTime() : (r.created_at ? new Date(r.created_at).getTime() : 0);
+      return t > 0 && now - t > 48 * 3600 * 1000;
+    }).length;
+    const comPendencias = tableData.filter((r) => (r.pendencias ?? 0) > 0).length;
+    return {
+      total: valid.length,
+      enviados: valid.filter((r) => r.status === "enviado").length,
+      emRevisao: valid.filter((r) => r.status === "em_revisao").length,
+      aprovados: valid.filter((r) => r.status === "aprovado").length,
+      rejeitados: valid.filter((r) => r.status === "rejeitado").length,
+      enviadosBrasil: valid.filter((r) => r.status === "enviado_brasil").length,
+      vinculados: vinculadasCount,
+      atrasados,
+      comPendencias,
+    };
+  }, [submissoes, tableData, vinculadasCount]);
 
   // Handlers
   const handleRowClick = (row: SubmissaoRow) => {
