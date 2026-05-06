@@ -1,10 +1,15 @@
-import { useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
   Star, Paperclip, Clock, AlertTriangle, Link2, Link2Off, Package,
   CheckCircle2, FileText, Send, XCircle, Loader2, Globe, Maximize2,
+  MousePointerClick, Zap, MoveVertical, X,
 } from "lucide-react";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem,
+  DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -72,14 +77,43 @@ export function VincularMailboxList({
 
   // Auto-scroll: mantém o item selecionado visível (j/k, clique, busca/filtros).
   // Aplica offset para não encostar na toolbar fixa do topo nem no rodapé.
-  const SCROLL_OFFSET_TOP = 48; // altura aprox. da toolbar + folga
+  const SCROLL_OFFSET_TOP = 48;
   const SCROLL_OFFSET_BOTTOM = 16;
   const listRef = useRef<HTMLUListElement>(null);
   const itemRefs = useRef<Map<string, HTMLLIElement>>(new Map());
+
+  // Preserva o item selecionado mesmo quando ele sai da lista filtrada.
+  // `lastSelectedSnapshot` guarda a última versão conhecida do item selecionado
+  // a partir da lista completa, para podermos exibir um banner persistente.
+  const lastSelectedSnapshotRef = useRef<MailboxRow | null>(null);
+  const fullSelected = useMemo(
+    () => (selectedId ? items.find((i) => i.id === selectedId) ?? null : null),
+    [items, selectedId],
+  );
+  useEffect(() => {
+    if (fullSelected) lastSelectedSnapshotRef.current = fullSelected;
+  }, [fullSelected]);
+  const pinnedItem: MailboxRow | null =
+    fullSelected ?? (selectedId ? lastSelectedSnapshotRef.current : null);
   const selectedStillVisible = !!selectedId && filtered.some((i) => i.id === selectedId);
+  const selectedHiddenByFilter = !!selectedId && !selectedStillVisible && !!pinnedItem;
+
+  // Comportamento de rolagem ao navegar com j/k (configurável pelo usuário).
+  type ScrollPref = "smooth" | "auto" | "none";
+  const SCROLL_PREF_KEY = "china:vincular:list:scrollBehavior";
+  const [scrollPref, setScrollPref] = useState<ScrollPref>(() => {
+    if (typeof window === "undefined") return "smooth";
+    const v = window.localStorage.getItem(SCROLL_PREF_KEY) as ScrollPref | null;
+    return v === "smooth" || v === "auto" || v === "none" ? v : "smooth";
+  });
+  const updateScrollPref = useCallback((v: ScrollPref) => {
+    setScrollPref(v);
+    try { window.localStorage.setItem(SCROLL_PREF_KEY, v); } catch { /* noop */ }
+  }, []);
 
   useEffect(() => {
     if (!selectedId || !selectedStillVisible) return;
+    if (scrollPref === "none") return;
     const list = listRef.current;
     const el = itemRefs.current.get(selectedId);
     if (!list || !el) return;
@@ -88,13 +122,14 @@ export function VincularMailboxList({
     const elRect = el.getBoundingClientRect();
     const topGap = elRect.top - listRect.top;
     const bottomGap = listRect.bottom - elRect.bottom;
+    const behavior: ScrollBehavior = scrollPref === "auto" ? "auto" : "smooth";
 
     if (topGap < SCROLL_OFFSET_TOP) {
-      list.scrollBy({ top: topGap - SCROLL_OFFSET_TOP, behavior: "smooth" });
+      list.scrollBy({ top: topGap - SCROLL_OFFSET_TOP, behavior });
     } else if (bottomGap < SCROLL_OFFSET_BOTTOM) {
-      list.scrollBy({ top: SCROLL_OFFSET_BOTTOM - bottomGap, behavior: "smooth" });
+      list.scrollBy({ top: SCROLL_OFFSET_BOTTOM - bottomGap, behavior });
     }
-  }, [selectedId, selectedStillVisible, filtered.length, search]);
+  }, [selectedId, selectedStillVisible, filtered.length, search, scrollPref]);
 
   return (
     <div className="flex h-full flex-col bg-background">
@@ -130,7 +165,66 @@ export function VincularMailboxList({
             {filtered.length} item{filtered.length === 1 ? "" : "s"}
           </span>
         )}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-7 px-1.5 text-[11px] gap-1 text-muted-foreground"
+              title="Comportamento de rolagem ao navegar com j/k"
+            >
+              {scrollPref === "smooth" && <MoveVertical className="h-3 w-3" />}
+              {scrollPref === "auto" && <Zap className="h-3 w-3" />}
+              {scrollPref === "none" && <MousePointerClick className="h-3 w-3" />}
+              <span className="hidden sm:inline">
+                {scrollPref === "smooth" ? "Suave" : scrollPref === "auto" ? "Instantâneo" : "Sem rolar"}
+              </span>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuLabel className="text-[11px]">Rolagem ao navegar (j/k)</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => updateScrollPref("smooth")} className="text-xs gap-2">
+              <MoveVertical className="h-3.5 w-3.5" /> Suave (padrão)
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => updateScrollPref("auto")} className="text-xs gap-2">
+              <Zap className="h-3.5 w-3.5" /> Instantâneo
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => updateScrollPref("none")} className="text-xs gap-2">
+              <MousePointerClick className="h-3.5 w-3.5" /> Desativada
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
+
+      {/* Aviso quando o item selecionado foi escondido por filtros/busca */}
+      {selectedHiddenByFilter && pinnedItem && (
+        <div className="flex items-center gap-2 border-b border-amber-500/30 bg-amber-500/10 px-3 py-1.5 text-[11px] text-amber-300">
+          <AlertTriangle className="h-3 w-3 shrink-0" />
+          <span className="truncate">
+            Item selecionado fora do filtro:{" "}
+            <span className="font-mono font-semibold">{pinnedItem.produto_codigo}</span>{" "}
+            <span className="text-amber-200/80">{pinnedItem.produto_nome}</span>
+          </span>
+          <Button
+            size="sm"
+            variant="ghost"
+            className="ml-auto h-5 px-1.5 text-[10px] text-amber-200 hover:text-amber-100"
+            onClick={() => onSearchChange("")}
+          >
+            Limpar busca
+          </Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            className="h-5 w-5 p-0 text-amber-200 hover:text-amber-100"
+            onClick={() => onSelect("")}
+            title="Desmarcar"
+          >
+            <X className="h-3 w-3" />
+          </Button>
+        </div>
+      )}
 
       {/* List */}
       <ul ref={listRef} className="flex-1 overflow-y-auto scroll-pt-12" role="list">
