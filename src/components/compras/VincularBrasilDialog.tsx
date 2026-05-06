@@ -39,6 +39,7 @@ export function VincularBrasilDialog({
   itemId,
   itemDescricao,
   qtyDisponivel,
+  submissaoId,
 }: Props) {
   const [tipo, setTipo] = useState<"op" | "compra" | "mp">("op");
   const [opId, setOpId] = useState<string>("");
@@ -47,6 +48,17 @@ export function VincularBrasilDialog({
   const [qty, setQty] = useState<number>(qtyDisponivel);
   const [obs, setObs] = useState("");
   const criar = useCriarVinculo();
+
+  const { data: sugestoes = [] } = useSubmissaoProjetosOPs(open ? submissaoId : undefined);
+  const sugestaoFlat = sugestoes.flatMap((s) => s.ops);
+
+  // Auto-preenche quando há exatamente uma OP sugerida e o usuário ainda não escolheu nada
+  useEffect(() => {
+    if (open && tipo === "op" && !opId && sugestaoFlat.length === 1) {
+      setOpId(sugestaoFlat[0].id);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, sugestaoFlat.length]);
 
   const { data: ops = [] } = useQuery({
     queryKey: ["fabrica-ops-aberto"],
