@@ -243,7 +243,14 @@ export function VincularChinaSidePanel({
               variant="outline"
               size="sm"
               className="w-full gap-1.5"
-              onClick={() => navigate(`/dashboard/fabrica-china/produto/${submissao.id}`)}
+              onClick={() => {
+                const { url, state } = buildReturnToTarget(
+                  `/dashboard/fabrica-china/produto/${submissao.id}`,
+                  location.pathname + location.search,
+                  { fromLabel: "Mesa de Vínculo" },
+                );
+                navigate(url, { state });
+              }}
             >
               <ExternalLink className="h-3.5 w-3.5" />
               Abrir Ficha Completa
