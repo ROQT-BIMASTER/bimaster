@@ -6,7 +6,8 @@ import { Progress } from "@/components/ui/progress";
 import { useFabricaOPDaOC } from "@/hooks/useFabricaOPDaOC";
 import { useDesvincularOP } from "@/hooks/useGerarOPDaOC";
 import { GerarOPDialog } from "./GerarOPDialog";
-import { Plus, Factory, ExternalLink, Unlink, Loader2 } from "lucide-react";
+import { RegistrarApontamentoDialog } from "./RegistrarApontamentoDialog";
+import { Plus, Factory, ExternalLink, Unlink, Loader2, ClipboardList } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -37,6 +38,7 @@ interface Props {
 export function OPVinculadaCard({ ocId, ocNumero, produtoCodigo, produtoNome, qtySugerida }: Props) {
   const { data: ops = [], isLoading } = useFabricaOPDaOC(ocId);
   const [openDialog, setOpenDialog] = useState(false);
+  const [apontarOp, setApontarOp] = useState<{ id: string; numero: string; saldo: number } | null>(null);
   const desvincular = useDesvincularOP();
   const navigate = useNavigate();
 
