@@ -39,6 +39,7 @@ import { VincularChinaBulkActions } from "@/components/china/VincularChinaBulkAc
 import { VincularChinaKpis } from "@/components/china/VincularChinaKpis";
 import { VincularMailboxSidebar } from "@/components/china/vincular/VincularMailboxSidebar";
 import { VincularMailboxList } from "@/components/china/vincular/VincularMailboxList";
+import { EncaminharResponsavelDialog } from "@/components/china/vincular/EncaminharResponsavelDialog";
 import {
   useVincularChinaUserState,
   classifyVincularRows,
@@ -133,6 +134,7 @@ export default function ProjetoVincularChina() {
   const [recentlyLinkedId, setRecentlyLinkedId] = useState<string | null>(null);
   const [folder, setFolder] = useState<VincularFolder>("nao_vinculadas");
   const [searchTerm, setSearchTerm] = useState("");
+  const [encaminharOpen, setEncaminharOpen] = useState(false);
   const queryClient = useQueryClient();
   const toggleFlag = useToggleSubmissaoFlag();
   const { flags, snoozes } = useVincularChinaUserState();
@@ -605,10 +607,13 @@ export default function ProjetoVincularChina() {
                 <Link2 className="h-5 w-5 text-primary" />
               </div>
               <div className="flex-1 min-w-0">
-                <h1 className="text-xl font-bold text-foreground truncate">Vincular Envio China 关联中国发货</h1>
+                <h1 className="text-xl font-bold text-foreground truncate">Mesa de Vínculo — Documentos da China</h1>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Receba, faça a triagem e encaminhe os envios da China para projetos, despachos e responsáveis.
+                </p>
                 <div className="flex items-center gap-3 mt-1">
                   <Progress value={progressPct} className="h-2 w-40" />
-                  <span className="text-xs font-medium text-foreground">{vinculadasCount}/{tableData.length} · {progressPct}%</span>
+                  <span className="text-xs font-medium text-foreground">{vinculadasCount}/{tableData.length} encaminhados · {progressPct}%</span>
                 </div>
               </div>
               <div className="w-[250px]">
@@ -698,6 +703,7 @@ export default function ProjetoVincularChina() {
                       selectedProjetoId={selectedProjetoId}
                       onClose={() => setSelectedSubmissaoId(null)}
                       onPreviewDoc={setPreviewDoc}
+                      onEncaminharResponsavel={() => setEncaminharOpen(true)}
                       onDecisionClick={(id) => { setDecisionProcessId(id); setDecisionOpen(true); }}
                       secoes={secoes}
                       tarefas={tarefas}
@@ -860,6 +866,15 @@ export default function ProjetoVincularChina() {
           documentos={documentos.map((d: any) => ({ id: d.id, nome_arquivo: d.nome_arquivo, tipo_documento: d.tipo_documento }))}
         />
       )}
+
+      {/* Encaminhar a responsável */}
+      <EncaminharResponsavelDialog
+        open={encaminharOpen}
+        onOpenChange={setEncaminharOpen}
+        submissaoId={selectedSubmissaoId}
+        produtoCodigo={selectedSubmissao?.produto_codigo}
+        produtoNome={selectedSubmissao?.produto_nome}
+      />
 
       {/* Desvincular confirmation */}
       <AlertDialog open={!!desvincularTarget} onOpenChange={open => { if (!open) setDesvincularTarget(null); }}>

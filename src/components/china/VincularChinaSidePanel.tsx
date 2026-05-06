@@ -44,6 +44,7 @@ interface Props {
   onClose: () => void;
   onPreviewDoc: (doc: any) => void;
   onDecisionClick: (submissaoId: string) => void;
+  onEncaminharResponsavel?: () => void;
   // vincular tab props
   secoes: any[];
   tarefas: any[];
@@ -60,11 +61,14 @@ interface Props {
 
 export function VincularChinaSidePanel({
   submissao, isLinkedToProject, selectedProjetoId, onClose, onPreviewDoc, onDecisionClick,
+  onEncaminharResponsavel,
   secoes, tarefas, vinculos, docVinculos, checkedTarefas,
   onToggleTarefa, onVincular, onToggleDocVinculo, vinculosPending, auditResult, auditLoading,
 }: Props) {
   const navigate = useNavigate();
   const [isTransitioning, setIsTransitioning] = useState(false);
+  const [tabValue, setTabValue] = useState<string>("detalhes");
+  const onChangeTab = (v: string) => setTabValue(v);
   const { data: documentos = [], isLoading: loadingDocs } = useDocumentosDaSubmissao(submissao.id);
   const { data: despachos = [] } = useDespachosPorSubmissao(submissao.id);
 
@@ -119,6 +123,7 @@ export function VincularChinaSidePanel({
             <div className="flex items-center gap-2">
               <span className="text-xs font-mono font-bold text-primary">{submissao.produto_codigo}</span>
               <Badge variant={sc.variant} className="text-[10px]">{sc.label}</Badge>
+              <span className="text-[10px] text-muted-foreground">Recebido da China</span>
             </div>
             <p className="text-sm font-semibold truncate">{submissao.produto_nome}</p>
           </div>
@@ -126,17 +131,57 @@ export function VincularChinaSidePanel({
             <X className="h-4 w-4" />
           </Button>
         </div>
+
+        {/* Mesa de despacho — 3 destinos */}
+        <div className="mt-3">
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">
+            Encaminhar para
+          </p>
+          <div className="grid grid-cols-3 gap-1.5">
+            <button
+              type="button"
+              onClick={() => onChangeTab?.("vincular")}
+              disabled={!selectedProjetoId}
+              className="group flex flex-col items-center gap-1 rounded-md border border-border bg-background hover:bg-accent/40 hover:border-primary/40 transition-colors px-2 py-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              title={selectedProjetoId ? "Encaminhar a um projeto/tarefa" : "Selecione um projeto no topo"}
+            >
+              <Link2 className="h-4 w-4 text-primary" />
+              <span className="text-[10px] font-medium text-foreground">Projeto / Tarefa</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => onChangeTab?.("despacho")}
+              className="group flex flex-col items-center gap-1 rounded-md border border-border bg-background hover:bg-accent/40 hover:border-primary/40 transition-colors px-2 py-2"
+              title="Abrir despacho para um módulo"
+            >
+              <Gavel className="h-4 w-4 text-primary" />
+              <span className="text-[10px] font-medium text-foreground">Despacho</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => onEncaminharResponsavel?.()}
+              className="group flex flex-col items-center gap-1 rounded-md border border-border bg-background hover:bg-accent/40 hover:border-primary/40 transition-colors px-2 py-2"
+              title="Encaminhar a um responsável"
+            >
+              <MessageSquare className="h-4 w-4 text-primary" />
+              <span className="text-[10px] font-medium text-foreground">Responsável</span>
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* Tabs */}
-      <Tabs defaultValue="detalhes" className="flex-1 flex flex-col min-h-0">
+      <Tabs value={tabValue} onValueChange={onChangeTab} className="flex-1 flex flex-col min-h-0">
         <TabsList className="w-full justify-start rounded-none border-b bg-transparent px-2 h-9 shrink-0">
           <TabsTrigger value="detalhes" className="text-xs h-7">Detalhes</TabsTrigger>
           {selectedProjetoId && (
             <TabsTrigger value="vincular" className="text-xs h-7 gap-1">
-              <Link2 className="h-3 w-3" />Vincular
+              <Link2 className="h-3 w-3" />Projeto
             </TabsTrigger>
           )}
+          <TabsTrigger value="despacho" className="text-xs h-7 gap-1">
+            <Gavel className="h-3 w-3" />Despacho
+          </TabsTrigger>
           <TabsTrigger value="documentos" className="text-xs h-7 gap-1">
             <FileText className="h-3 w-3" />Docs
             {totalPendentes > 0 && <Badge variant="destructive" className="text-[8px] h-3.5 px-1 ml-0.5">{totalPendentes}</Badge>}
@@ -217,6 +262,11 @@ export function VincularChinaSidePanel({
               />
             </TabsContent>
           )}
+
+          {/* Despacho Tab */}
+          <TabsContent value="despacho" className="m-0 p-4 space-y-3">
+            <DespachosPanel submissaoId={submissao.id} documentos={documentos} />
+          </TabsContent>
 
           {/* Documentos Tab */}
           <TabsContent value="documentos" className="m-0 p-4 space-y-4">
