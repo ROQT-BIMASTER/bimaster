@@ -3057,6 +3057,76 @@ export type Database = {
         }
         Relationships: []
       }
+      china_doc_alertas: {
+        Row: {
+          created_at: string
+          despacho_id: string | null
+          dispensado_em: string | null
+          dispensado_por: string | null
+          documento_id: string | null
+          id: string
+          mensagem: string
+          resolvido_em: string | null
+          severidade: string
+          submissao_id: string
+          sugestao: Json | null
+          tipo: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          despacho_id?: string | null
+          dispensado_em?: string | null
+          dispensado_por?: string | null
+          documento_id?: string | null
+          id?: string
+          mensagem: string
+          resolvido_em?: string | null
+          severidade?: string
+          submissao_id: string
+          sugestao?: Json | null
+          tipo: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          despacho_id?: string | null
+          dispensado_em?: string | null
+          dispensado_por?: string | null
+          documento_id?: string | null
+          id?: string
+          mensagem?: string
+          resolvido_em?: string | null
+          severidade?: string
+          submissao_id?: string
+          sugestao?: Json | null
+          tipo?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "china_doc_alertas_despacho_id_fkey"
+            columns: ["despacho_id"]
+            isOneToOne: false
+            referencedRelation: "process_despacho_documento"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "china_doc_alertas_documento_id_fkey"
+            columns: ["documento_id"]
+            isOneToOne: false
+            referencedRelation: "china_produto_documentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "china_doc_alertas_submissao_id_fkey"
+            columns: ["submissao_id"]
+            isOneToOne: false
+            referencedRelation: "china_produto_submissoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       china_doc_revisoes: {
         Row: {
           acao_por_nome: string | null
@@ -3119,6 +3189,30 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      china_doc_sla_default: {
+        Row: {
+          created_at: string
+          descricao: string | null
+          horas_uteis: number
+          tipo_documento: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          descricao?: string | null
+          horas_uteis?: number
+          tipo_documento: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          descricao?: string | null
+          horas_uteis?: number
+          tipo_documento?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       china_documento_tarefa_vinculos: {
         Row: {
@@ -24800,6 +24894,7 @@ export type Database = {
           ciencia_em: string | null
           ciencia_por: string | null
           ciencia_por_nome: string | null
+          concluido_em: string | null
           created_at: string
           created_by: string | null
           departamento_destino_id: string | null
@@ -24817,7 +24912,12 @@ export type Database = {
           parecer_por_nome: string | null
           parecer_texto: string | null
           prazo_ciencia_horas: number
+          prazo_origem: string | null
+          prazo_sla: string | null
+          prioridade: string
           processo_id: string | null
+          sla_horas_uteis: number | null
+          sla_status: string
           status: string
           submissao_id: string
           vinculo_projeto_id: string | null
@@ -24829,6 +24929,7 @@ export type Database = {
           ciencia_em?: string | null
           ciencia_por?: string | null
           ciencia_por_nome?: string | null
+          concluido_em?: string | null
           created_at?: string
           created_by?: string | null
           departamento_destino_id?: string | null
@@ -24846,7 +24947,12 @@ export type Database = {
           parecer_por_nome?: string | null
           parecer_texto?: string | null
           prazo_ciencia_horas?: number
+          prazo_origem?: string | null
+          prazo_sla?: string | null
+          prioridade?: string
           processo_id?: string | null
+          sla_horas_uteis?: number | null
+          sla_status?: string
           status?: string
           submissao_id: string
           vinculo_projeto_id?: string | null
@@ -24858,6 +24964,7 @@ export type Database = {
           ciencia_em?: string | null
           ciencia_por?: string | null
           ciencia_por_nome?: string | null
+          concluido_em?: string | null
           created_at?: string
           created_by?: string | null
           departamento_destino_id?: string | null
@@ -24875,7 +24982,12 @@ export type Database = {
           parecer_por_nome?: string | null
           parecer_texto?: string | null
           prazo_ciencia_horas?: number
+          prazo_origem?: string | null
+          prazo_sla?: string | null
+          prioridade?: string
           processo_id?: string | null
+          sla_horas_uteis?: number | null
+          sla_status?: string
           status?: string
           submissao_id?: string
           vinculo_projeto_id?: string | null
@@ -43534,6 +43646,10 @@ export type Database = {
           p_produto_id?: string
         }
         Returns: string
+      }
+      rpc_recalcular_alertas_china: {
+        Args: { _submissao_id: string }
+        Returns: number
       }
       rpc_revogar_oficializacao_cofre: {
         Args: { p_item_id: string; p_motivo?: string }
