@@ -72,6 +72,7 @@ export function VincularChinaSidePanel({
   onToggleTarefa, onVincular, onToggleDocVinculo, vinculosPending, auditResult, auditLoading,
 }: Props) {
   const navigate = useNavigate();
+  const location = useLocation();
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [tabValue, setTabValue] = useState<string>("detalhes");
   const onChangeTab = (v: string) => setTabValue(v);
