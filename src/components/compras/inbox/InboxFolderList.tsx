@@ -4,7 +4,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import {
   Inbox, FileEdit, Hourglass, Factory, Ship, Compass, FileCheck2, PackageCheck, AlertTriangle,
-  AlertOctagon, BookOpen, FileStack,
+  AlertOctagon, BookOpen, FileStack, Container,
 } from "lucide-react";
 import type { InboxFolder } from "@/hooks/useCompradorInboxOCs";
 
@@ -17,16 +17,20 @@ interface InboxFolderListProps {
 type FolderDef = { key: InboxFolder; label: string; icon: any; tone?: "destructive"; section?: string };
 
 const folders: FolderDef[] = [
-  { key: "todas", label: "Caixa de entrada", icon: Inbox },
-  { key: "rascunho", label: "Rascunhos", icon: FileEdit },
+  { key: "todas", label: "Caixa de entrada", icon: Inbox, section: "Geral" },
+  { key: "atrasadas", label: "Atrasadas", icon: AlertTriangle, tone: "destructive" },
+  { key: "divergencias", label: "Divergências", icon: AlertOctagon, tone: "destructive" },
+
+  { key: "rascunho", label: "Rascunhos", icon: FileEdit, section: "Ciclo da OC" },
   { key: "aguardando", label: "Aguardando aprovação", icon: Hourglass },
   { key: "producao", label: "Em produção", icon: Factory },
+  { key: "patio", label: "Pátio de embarque", icon: PackageCheck },
   { key: "embarcadas", label: "Embarcadas", icon: Ship },
+  { key: "containers", label: "Containers", icon: Container },
   { key: "transito", label: "Em trânsito", icon: Compass },
   { key: "desembaraco", label: "Desembaraço", icon: FileCheck2 },
   { key: "recebidas", label: "Recebidas", icon: PackageCheck },
-  { key: "atrasadas", label: "Atrasadas", icon: AlertTriangle, tone: "destructive" },
-  { key: "divergencias", label: "Divergências", icon: AlertOctagon, tone: "destructive" },
+
   { key: "catalogo", label: "Catálogo China", icon: BookOpen, section: "Origem de OC" },
   { key: "submissoes", label: "Submissões aprovadas", icon: FileStack },
 ];
@@ -39,7 +43,7 @@ export function InboxFolderList({ active, onSelect, counts }: InboxFolderListPro
           const Icon = f.icon;
           const isActive = active === f.key;
           const count = counts[f.key] || 0;
-          const showCount = !["catalogo", "submissoes"].includes(f.key);
+          const showCount = !["catalogo", "submissoes", "patio", "containers"].includes(f.key);
           return (
             <div key={f.key}>
               {f.section && (
