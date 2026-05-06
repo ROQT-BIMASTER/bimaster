@@ -133,7 +133,7 @@ export function VincularMailboxList({
       </div>
 
       {/* List */}
-      <ul className="flex-1 overflow-y-auto" role="list">
+      <ul ref={listRef} className="flex-1 overflow-y-auto scroll-pt-12" role="list">
         {filtered.length === 0 && (
           <li className="p-8 text-center text-sm text-muted-foreground">
             Nenhuma submissão nesta pasta
