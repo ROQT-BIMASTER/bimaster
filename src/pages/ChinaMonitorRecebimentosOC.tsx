@@ -85,10 +85,11 @@ export default function ChinaMonitorRecebimentosOC() {
   return (
     <ChinaPageShell>
       <ChinaPageHeader
-        icon={<Truck className="h-5 w-5" />}
+        icon={Truck}
         titlePt="Monitor de Recebimentos · OCs"
         titleCn="收货监控 · 采购单"
-        subtitlePt="Acompanhe pedido, embarque, recebimento e produção vinculada por OC."
+        subtitle="Acompanhe pedido, embarque, recebimento e produção vinculada por OC."
+        showBack
         backTo="/dashboard/fabrica-china/recebimentos"
         backLabel="Voltar para Recebimentos"
       />
