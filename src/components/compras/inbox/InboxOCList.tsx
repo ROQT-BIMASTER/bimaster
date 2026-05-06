@@ -21,7 +21,7 @@ interface InboxOCListProps {
 function fmtDate(d: string | null): string {
   const parsed = parseLocalDate(d);
   if (!parsed) return "—";
-  return formatInTimeZone(parsed, "America/Sao_Paulo", "dd MMM", { locale: ptBR });
+  return format(parsed, "dd MMM", { locale: ptBR });
 }
 
 function statusLabel(s: string): string {
