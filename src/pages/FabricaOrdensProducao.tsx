@@ -19,9 +19,12 @@ import { Progress } from "@/components/ui/progress";
 import { TourButton } from "@/components/tour/TourButton";
 import { FABRICA_ORDENS_TOUR_ID, fabricaOrdensTourSteps } from "@/components/tour/tours/fabricaOrdensTour";
 import { ManualFabricaDrawer } from "@/components/fabrica/ManualFabricaDrawer";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { ContainerVinculadoCard } from "@/components/china/embarque/ContainerVinculadoCard";
 
 export default function FabricaOrdensProducao() {
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [opSelecionada, setOpSelecionada] = useState<{ id: string; numero: string } | null>(null);
 
   const { data: ordens, isLoading } = useQuery({
     queryKey: ["fabrica-ordens-producao"],
