@@ -215,7 +215,11 @@ export default function FabricaOrdensProducao() {
                           </TableCell>
                           <TableCell>{getStatusBadge(op.status)}</TableCell>
                           <TableCell>
-                            <Button variant="ghost" size="sm">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setOpSelecionada({ id: op.id, numero: op.numero })}
+                            >
                               Ver Detalhes
                             </Button>
                           </TableCell>
