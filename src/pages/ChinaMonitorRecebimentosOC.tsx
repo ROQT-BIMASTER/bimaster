@@ -244,6 +244,7 @@ export default function ChinaMonitorRecebimentosOC() {
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuLabel>Escopo</DropdownMenuLabel>
+            <DropdownMenuItem onSelect={() => exportar("produtos")}>Produtos (resumo)</DropdownMenuItem>
             <DropdownMenuItem onSelect={() => exportar("oc")}>OCs (resumo)</DropdownMenuItem>
             <DropdownMenuItem onSelect={() => exportar("ops")}>OPs vinculadas</DropdownMenuItem>
             <DropdownMenuItem onSelect={() => exportar("divergencias")}>Divergências</DropdownMenuItem>
