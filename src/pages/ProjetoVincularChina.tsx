@@ -867,6 +867,15 @@ export default function ProjetoVincularChina() {
         />
       )}
 
+      {/* Encaminhar a responsável */}
+      <EncaminharResponsavelDialog
+        open={encaminharOpen}
+        onOpenChange={setEncaminharOpen}
+        submissaoId={selectedSubmissaoId}
+        produtoCodigo={selectedSubmissao?.produto_codigo}
+        produtoNome={selectedSubmissao?.produto_nome}
+      />
+
       {/* Desvincular confirmation */}
       <AlertDialog open={!!desvincularTarget} onOpenChange={open => { if (!open) setDesvincularTarget(null); }}>
         <AlertDialogContent>
