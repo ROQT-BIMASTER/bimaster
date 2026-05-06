@@ -53,6 +53,7 @@ import { useUIPermissions } from "@/hooks/useUIPermissions";
 export default function ChinaFichaProduto() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { backTo, backLabel } = useResolvedBackTo("/dashboard/fabrica-china/recebimentos");
   const queryClient = useQueryClient();
   const { isBrasilUser, isChinaUser } = useChinaUserContext();
   // ADV-6: Field visibility for cost/margin fields
