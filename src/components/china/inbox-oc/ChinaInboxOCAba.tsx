@@ -6,7 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, Search, FileText, ShoppingBag, Factory, PackageCheck, Ship, CheckCircle2 } from "lucide-react";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { Loader2, Search, FileText, ShoppingBag, Factory, PackageCheck, Ship, CheckCircle2, List, Table as TableIcon } from "lucide-react";
+import { ChinaTabelaOCsPanel } from "./ChinaTabelaOCsPanel";
 import {
   useChinaInboxOCs,
   chinaInboxOCCounts,
@@ -37,6 +39,7 @@ export function ChinaInboxOCAba() {
   const [tab, setTab] = useState<ChinaOCSubTab>("pendente");
   const [search, setSearch] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [view, setView] = useState<"lista" | "tabela">("lista");
 
   const { data: items = [], isLoading } = useChinaInboxOCs();
   const counts = useMemo(() => chinaInboxOCCounts(items), [items]);
@@ -58,28 +61,54 @@ export function ChinaInboxOCAba() {
   const selected = items.find((o) => o.ordem_compra_id === selectedId) || null;
   const onChanged = () => qc.invalidateQueries({ queryKey: ["china-inbox-ocs"] });
 
+  if (view === "tabela") {
+    return (
+      <div className="flex flex-col h-full">
+        <div className="border-b p-3 flex items-center gap-2">
+          <ToggleGroup type="single" value={view} onValueChange={(v) => v && setView(v as any)} size="sm">
+            <ToggleGroupItem value="lista" className="h-8 px-2 text-xs gap-1.5"><List className="h-3.5 w-3.5" />Lista</ToggleGroupItem>
+            <ToggleGroupItem value="tabela" className="h-8 px-2 text-xs gap-1.5"><TableIcon className="h-3.5 w-3.5" />Tabela</ToggleGroupItem>
+          </ToggleGroup>
+        </div>
+        <div className="flex-1 overflow-hidden">
+          <ChinaTabelaOCsPanel
+            items={items}
+            isLoading={isLoading}
+            onOpen={(id) => { setSelectedId(id); setView("lista"); }}
+          />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="grid grid-cols-[1fr_minmax(380px,560px)] h-full">
       <div className="flex flex-col border-r overflow-hidden">
         <div className="border-b p-3 space-y-2">
-          <Tabs value={tab} onValueChange={(v) => { setTab(v as ChinaOCSubTab); setSelectedId(null); }}>
-            <TabsList className="h-9">
-              {TABS.map((t) => {
-                const Icon = t.icon;
-                return (
-                  <TabsTrigger key={t.key} value={t.key} className="text-xs gap-1.5">
-                    <Icon className="h-3.5 w-3.5" />
-                    {t.label}
-                    {counts[t.key] > 0 && (
-                      <Badge variant="secondary" className="h-4 px-1.5 text-[10px] tabular-nums">
-                        {counts[t.key]}
-                      </Badge>
-                    )}
-                  </TabsTrigger>
-                );
-              })}
-            </TabsList>
-          </Tabs>
+          <div className="flex items-center justify-between gap-2">
+            <Tabs value={tab} onValueChange={(v) => { setTab(v as ChinaOCSubTab); setSelectedId(null); }}>
+              <TabsList className="h-9">
+                {TABS.map((t) => {
+                  const Icon = t.icon;
+                  return (
+                    <TabsTrigger key={t.key} value={t.key} className="text-xs gap-1.5">
+                      <Icon className="h-3.5 w-3.5" />
+                      {t.label}
+                      {counts[t.key] > 0 && (
+                        <Badge variant="secondary" className="h-4 px-1.5 text-[10px] tabular-nums">
+                          {counts[t.key]}
+                        </Badge>
+                      )}
+                    </TabsTrigger>
+                  );
+                })}
+              </TabsList>
+            </Tabs>
+            <ToggleGroup type="single" value={view} onValueChange={(v) => v && setView(v as any)} size="sm">
+              <ToggleGroupItem value="lista" className="h-8 px-2 text-xs gap-1.5"><List className="h-3.5 w-3.5" />Lista</ToggleGroupItem>
+              <ToggleGroupItem value="tabela" className="h-8 px-2 text-xs gap-1.5"><TableIcon className="h-3.5 w-3.5" />Tabela</ToggleGroupItem>
+            </ToggleGroup>
+          </div>
 
           <div className="relative">
             <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
