@@ -249,7 +249,7 @@ export function DespacharDocPopover({ submissaoId, documentoId, documentoNome, t
               <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Selecionar módulo" /></SelectTrigger>
               <SelectContent>
                 {(modulos as any[]).map((m: any) => (
-                  <SelectItem key={m.id || m.codigo} value={m.codigo || m.id}>{m.nome || m.label || m.codigo}</SelectItem>
+                  <SelectItem key={m.id || m.key} value={m.key}>{m.label}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
