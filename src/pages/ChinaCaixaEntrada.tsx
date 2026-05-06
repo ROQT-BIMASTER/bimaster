@@ -10,6 +10,7 @@ import { ChinaDocPreviewDialog } from "@/components/china/ChinaDocPreviewDialog"
 import { MailboxSidebar } from "@/components/china/inbox/MailboxSidebar";
 import { MailboxList } from "@/components/china/inbox/MailboxList";
 import { MailboxReadingPane } from "@/components/china/inbox/MailboxReadingPane";
+import { ChinaInboxOCAba } from "@/components/china/inbox-oc/ChinaInboxOCAba";
 import { SnoozeMenu } from "@/components/china/inbox/SnoozeMenu";
 import {
   ResizableHandle,
@@ -28,7 +29,7 @@ import { useChinaUserContext } from "@/hooks/useChinaUserContext";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 
 const VALID_FOLDERS: MailboxFolder[] = [
-  "inbox", "starred", "sent", "drafts", "approved", "rejected", "trash",
+  "oc", "inbox", "starred", "sent", "drafts", "approved", "rejected", "trash",
 ];
 
 export default function ChinaCaixaEntrada() {

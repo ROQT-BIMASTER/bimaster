@@ -338,6 +338,7 @@ export function useChinaMailbox(folder: MailboxFolder): UseChinaMailboxResult {
       approved: matchApproved,
       rejected: matchRejected,
       trash: matchTrash,
+      oc: () => false, // pasta "oc" tem dataset próprio (useChinaInboxOCs)
     };
     const items = allItems.filter(matcher[folder]);
 
