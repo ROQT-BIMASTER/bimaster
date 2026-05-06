@@ -1,4 +1,4 @@
-import { Inbox, Star, Send, FileEdit, CheckCircle2, XCircle, Trash2, Pencil } from "lucide-react";
+import { Inbox, Star, Send, FileEdit, CheckCircle2, XCircle, Trash2, Pencil, ShoppingBag } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -22,6 +22,7 @@ interface FolderDef {
 }
 
 const FOLDERS: FolderDef[] = [
+  { key: "oc" as MailboxFolder, label: "Ordens de Compra", labelCn: "采购单", icon: ShoppingBag, countKey: "inbox" },
   { key: "inbox", label: "Caixa de Entrada", labelCn: "收件箱", icon: Inbox, countKey: "inbox", unreadKey: "unread_inbox" },
   { key: "starred", label: "Marcados", labelCn: "已标记", icon: Star, countKey: "starred" },
   { key: "sent", label: "Enviados", labelCn: "已发送", icon: Send, countKey: "sent" },

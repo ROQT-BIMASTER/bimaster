@@ -4049,6 +4049,8 @@ export type Database = {
       }
       china_ordens_compra: {
         Row: {
+          aceita_em: string | null
+          aceita_por: string | null
           aprovado_em: string | null
           aprovado_por: string | null
           created_at: string
@@ -4058,6 +4060,7 @@ export type Database = {
           data_entrega_real: string | null
           ean_caixa_master: string | null
           id: string
+          motivo_recusa: string | null
           motivo_rejeicao: string | null
           numero_oc: string
           observacoes: string | null
@@ -4065,11 +4068,15 @@ export type Database = {
           produto_nome: string
           qty_produzida: number
           qty_total: number
+          recusada_em: string | null
+          recusada_por: string | null
           status: string
           submissao_id: string
           updated_at: string
         }
         Insert: {
+          aceita_em?: string | null
+          aceita_por?: string | null
           aprovado_em?: string | null
           aprovado_por?: string | null
           created_at?: string
@@ -4079,6 +4086,7 @@ export type Database = {
           data_entrega_real?: string | null
           ean_caixa_master?: string | null
           id?: string
+          motivo_recusa?: string | null
           motivo_rejeicao?: string | null
           numero_oc: string
           observacoes?: string | null
@@ -4086,11 +4094,15 @@ export type Database = {
           produto_nome: string
           qty_produzida?: number
           qty_total?: number
+          recusada_em?: string | null
+          recusada_por?: string | null
           status?: string
           submissao_id: string
           updated_at?: string
         }
         Update: {
+          aceita_em?: string | null
+          aceita_por?: string | null
           aprovado_em?: string | null
           aprovado_por?: string | null
           created_at?: string
@@ -4100,6 +4112,7 @@ export type Database = {
           data_entrega_real?: string | null
           ean_caixa_master?: string | null
           id?: string
+          motivo_recusa?: string | null
           motivo_rejeicao?: string | null
           numero_oc?: string
           observacoes?: string | null
@@ -4107,6 +4120,8 @@ export type Database = {
           produto_nome?: string
           qty_produzida?: number
           qty_total?: number
+          recusada_em?: string | null
+          recusada_por?: string | null
           status?: string
           submissao_id?: string
           updated_at?: string
@@ -44296,6 +44311,118 @@ export type Database = {
       rpc_avancar_item_aprovacao: {
         Args: { p_comentario?: string; p_decisao: string; p_item_id: string }
         Returns: Json
+      }
+      rpc_china_aceitar_oc: {
+        Args: { p_oc_id: string }
+        Returns: {
+          aceita_em: string | null
+          aceita_por: string | null
+          aprovado_em: string | null
+          aprovado_por: string | null
+          created_at: string
+          created_by: string | null
+          data_emissao: string
+          data_entrega_prevista: string | null
+          data_entrega_real: string | null
+          ean_caixa_master: string | null
+          id: string
+          motivo_recusa: string | null
+          motivo_rejeicao: string | null
+          numero_oc: string
+          observacoes: string | null
+          produto_codigo: string
+          produto_nome: string
+          qty_produzida: number
+          qty_total: number
+          recusada_em: string | null
+          recusada_por: string | null
+          status: string
+          submissao_id: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "china_ordens_compra"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      rpc_china_confirmar_embarque: {
+        Args: {
+          p_data_embarque: string
+          p_data_eta: string
+          p_navio?: string
+          p_numero_bl: string
+          p_numero_container: string
+          p_oc_id: string
+          p_porto_destino?: string
+          p_porto_origem?: string
+        }
+        Returns: {
+          booking_number: string | null
+          created_at: string
+          created_by: string | null
+          data_embarque: string | null
+          data_eta: string | null
+          id: string
+          modalidade: string | null
+          navio: string | null
+          numero_bl: string | null
+          numero_container: string | null
+          numero_embarque: number | null
+          observacoes: string | null
+          ordem_compra_id: string | null
+          peso_total_kg: number | null
+          porto_destino: string | null
+          porto_origem: string | null
+          qtd_volumes: number | null
+          status: string
+          tipo_embarque: string | null
+          updated_at: string
+          valor_frete_usd: number | null
+          volume_cbm: number | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "china_embarques"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      rpc_china_recusar_oc: {
+        Args: { p_motivo: string; p_oc_id: string }
+        Returns: {
+          aceita_em: string | null
+          aceita_por: string | null
+          aprovado_em: string | null
+          aprovado_por: string | null
+          created_at: string
+          created_by: string | null
+          data_emissao: string
+          data_entrega_prevista: string | null
+          data_entrega_real: string | null
+          ean_caixa_master: string | null
+          id: string
+          motivo_recusa: string | null
+          motivo_rejeicao: string | null
+          numero_oc: string
+          observacoes: string | null
+          produto_codigo: string
+          produto_nome: string
+          qty_produzida: number
+          qty_total: number
+          recusada_em: string | null
+          recusada_por: string | null
+          status: string
+          submissao_id: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "china_ordens_compra"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       rpc_clonar_fluxo_para_projeto: {
         Args: { p_nome?: string; p_projeto_id: string; p_template_id: string }
