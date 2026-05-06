@@ -241,6 +241,8 @@ export function VincularChinaSidePanel({
               <ExternalLink className="h-3.5 w-3.5" />
               Abrir Ficha Completa
             </Button>
+            <Separator />
+            <DispatchHistoryPanel submissaoId={submissao.id} />
           </TabsContent>
 
           {/* Vincular Tab */}
