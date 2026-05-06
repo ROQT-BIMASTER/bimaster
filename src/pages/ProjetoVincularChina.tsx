@@ -39,6 +39,7 @@ import { VincularChinaBulkActions } from "@/components/china/VincularChinaBulkAc
 import { VincularChinaKpis } from "@/components/china/VincularChinaKpis";
 import { VincularMailboxSidebar } from "@/components/china/vincular/VincularMailboxSidebar";
 import { VincularMailboxList } from "@/components/china/vincular/VincularMailboxList";
+import { EncaminharResponsavelDialog } from "@/components/china/vincular/EncaminharResponsavelDialog";
 import {
   useVincularChinaUserState,
   classifyVincularRows,
