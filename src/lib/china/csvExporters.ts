@@ -56,6 +56,23 @@ export function buildOPsCsv(rows: any[], sep = ","): Blob {
   return build([header, ...data], sep);
 }
 
+// Escopo Produtos (resumo agregado)
+export function buildProdutosCsv(rows: any[], sep = ","): Blob {
+  const header = [
+    "Produto código", "Produto", "Status submissão", "Linha",
+    "OCs", "OCs ativas",
+    "Pedido", "Embarcado", "Recebido", "Saldo", "Avariado", "Faltante",
+    "Última OC", "Próxima entrega prevista",
+  ];
+  const data = rows.map((r) => [
+    r.produto_codigo, r.produto_nome, r.status_submissao || "", r.linha_produto || "",
+    r.qtd_ocs, r.qtd_ocs_ativas,
+    r.qty_pedida, r.qty_embarcada, r.qty_recebida, r.qty_saldo, r.qty_avariada, r.qty_faltante,
+    r.data_ultima_oc || "", r.data_proxima_entrega_prevista || "",
+  ]);
+  return build([header, ...data], sep);
+}
+
 // Escopo divergências (NCs)
 export function buildDivergenciasCsv(ncs: any[], sep = ","): Blob {
   const header = [

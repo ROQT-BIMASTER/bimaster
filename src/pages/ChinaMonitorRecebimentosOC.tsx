@@ -12,23 +12,21 @@ import {
   DropdownMenu, DropdownMenuTrigger, DropdownMenuContent,
   DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import { Search, Loader2, AlertTriangle, Clock, Truck, FileDown, ExternalLink, AlertOctagon } from "lucide-react";
+import { Search, Loader2, Clock, Truck, FileDown, ExternalLink, AlertOctagon } from "lucide-react";
 import { useChinaRecebimentoKpis } from "@/hooks/useChinaRecebimentoKpis";
+import { useChinaProdutosRecebimentoKpis } from "@/hooks/useChinaProdutosRecebimentoKpis";
+import { ProdutoVinculadoChinaCard } from "@/components/china/recebimentos/ProdutoVinculadoChinaCard";
 import { OPVinculadaCard } from "@/components/china/op/OPVinculadaCard";
 import { formatLocalDate } from "@/utils/dateUtils";
 import { cn } from "@/lib/utils";
 import { SavedFiltersMenu } from "@/components/china/recebimentos/SavedFiltersMenu";
 import { AlertasResponsavelPanel } from "@/components/china/recebimentos/AlertasResponsavelPanel";
 import { useSavedFiltersRecebimento } from "@/hooks/useSavedFiltersRecebimento";
-import { buildOCResumoCsv, buildOPsCsv, buildDivergenciasCsv, downloadBlob } from "@/lib/china/csvExporters";
+import { buildOCResumoCsv, buildOPsCsv, buildDivergenciasCsv, buildProdutosCsv, downloadBlob } from "@/lib/china/csvExporters";
 import { fetchOPsByOCs } from "@/hooks/useFabricaOPsByOCs";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
-function pct(num: number, den: number) {
-  if (!den) return 0;
-  return Math.min(100, Math.round((num / den) * 100));
-}
 
 function slaBadge(dias: number | null) {
   if (dias == null) return <Badge variant="outline">—</Badge>;
@@ -47,6 +45,8 @@ export default function ChinaMonitorRecebimentosOC() {
 
   const { data: savedFilters = [] } = useSavedFiltersRecebimento();
   const { data: kpis = [], isLoading } = useChinaRecebimentoKpis();
+  const { data: produtos = [], isLoading: isLoadingProdutos } = useChinaProdutosRecebimentoKpis();
+  const [expandedProds, setExpandedProds] = useState<Set<string>>(new Set());
 
   // Aplicar filtro padrão na primeira render se não houver ?oc=
   useEffect(() => {
@@ -84,22 +84,79 @@ export default function ChinaMonitorRecebimentosOC() {
     });
   }, [kpis, search, statusFilter, filtroEspecial]);
 
+  // Agrupa OCs filtradas por submissao_id
+  const ocsByProduto = useMemo(() => {
+    const m = new Map<string, typeof filtered>();
+    for (const oc of filtered) {
+      const arr = m.get(oc.submissao_id) || [];
+      arr.push(oc);
+      m.set(oc.submissao_id, arr);
+    }
+    return m;
+  }, [filtered]);
+
+  const produtosFiltrados = useMemo(() => {
+    const s = search.trim().toLowerCase();
+    return produtos.filter((p) => {
+      const ocsDoProd = ocsByProduto.get(p.submissao_id) || [];
+      const hasOcsAfterFilter = ocsDoProd.length > 0;
+      // Se há filtros aplicados (status/especial), oculta produtos sem OC visível
+      const hasOcFilter = statusFilter !== "all" || filtroEspecial !== "all";
+      if (hasOcFilter && !hasOcsAfterFilter) return false;
+      if (s) {
+        const matchProduto =
+          p.produto_codigo.toLowerCase().includes(s) ||
+          p.produto_nome.toLowerCase().includes(s);
+        const matchOc = ocsDoProd.some((oc) =>
+          oc.numero_oc.toLowerCase().includes(s)
+        );
+        if (!matchProduto && !matchOc) return false;
+      }
+      return true;
+    });
+  }, [produtos, ocsByProduto, search, statusFilter, filtroEspecial]);
+
   const selectedId = params.get("oc");
-  const selected = filtered.find((k) => k.ordem_compra_id === selectedId) || filtered[0];
+  const selected = kpis.find((k) => k.ordem_compra_id === selectedId)
+    || filtered[0];
 
   const setSelected = (id: string) => {
     const next = new URLSearchParams(params);
     next.set("oc", id);
     setParams(next, { replace: true });
+    // Auto-expande o produto da OC selecionada
+    const oc = kpis.find((k) => k.ordem_compra_id === id);
+    if (oc) {
+      setExpandedProds((prev) => new Set(prev).add(oc.submissao_id));
+    }
   };
 
-  const exportar = async (escopo: "oc" | "ops" | "divergencias") => {
+  const toggleProduto = (submissaoId: string) => {
+    setExpandedProds((prev) => {
+      const next = new Set(prev);
+      if (next.has(submissaoId)) next.delete(submissaoId);
+      else next.add(submissaoId);
+      return next;
+    });
+  };
+
+  // Auto-expande produto da OC selecionada na primeira render
+  useEffect(() => {
+    if (selected && !expandedProds.has(selected.submissao_id)) {
+      setExpandedProds((prev) => new Set(prev).add(selected.submissao_id));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedId]);
+
+  const exportar = async (escopo: "oc" | "ops" | "divergencias" | "produtos") => {
     setExporting(true);
     try {
       const stamp = Date.now();
       const ocIds = filtered.map((k) => k.ordem_compra_id);
       if (escopo === "oc") {
         downloadBlob(buildOCResumoCsv(filtered), `monitor-recebimentos-oc-${stamp}.csv`);
+      } else if (escopo === "produtos") {
+        downloadBlob(buildProdutosCsv(produtosFiltrados), `monitor-recebimentos-produtos-${stamp}.csv`);
       } else if (escopo === "ops") {
         const rows = await fetchOPsByOCs(ocIds);
         if (!rows.length) toast.info("Nenhuma OP vinculada às OCs filtradas");
@@ -183,6 +240,7 @@ export default function ChinaMonitorRecebimentosOC() {
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuLabel>Escopo</DropdownMenuLabel>
+            <DropdownMenuItem onSelect={() => exportar("produtos")}>Produtos (resumo)</DropdownMenuItem>
             <DropdownMenuItem onSelect={() => exportar("oc")}>OCs (resumo)</DropdownMenuItem>
             <DropdownMenuItem onSelect={() => exportar("ops")}>OPs vinculadas</DropdownMenuItem>
             <DropdownMenuItem onSelect={() => exportar("divergencias")}>Divergências</DropdownMenuItem>
@@ -200,67 +258,27 @@ export default function ChinaMonitorRecebimentosOC() {
       <div className="grid grid-cols-12 gap-3">
         {/* Lista */}
         <div className="col-span-12 lg:col-span-5 space-y-2 max-h-[calc(100vh-260px)] overflow-auto pr-1">
-          {isLoading && (
+          {(isLoading || isLoadingProdutos) && (
             <div className="text-sm text-muted-foreground flex items-center gap-2 p-4">
-              <Loader2 className="h-4 w-4 animate-spin" /> Carregando OCs…
+              <Loader2 className="h-4 w-4 animate-spin" /> Carregando produtos…
             </div>
           )}
-          {!isLoading && filtered.length === 0 && (
+          {!isLoading && !isLoadingProdutos && produtosFiltrados.length === 0 && (
             <Card className="p-6 text-center text-sm text-muted-foreground">
-              Nenhuma OC encontrada com os filtros atuais.
+              Nenhum produto encontrado com os filtros atuais.
             </Card>
           )}
-          {filtered.map((k) => {
-            const recPct = pct(k.qty_recebida, k.qty_pedida);
-            const isSel = selected?.ordem_compra_id === k.ordem_compra_id;
-            const divergencia = k.qty_avariada + k.qty_faltante > 0;
-            return (
-              <Card
-                key={k.ordem_compra_id}
-                onClick={() => setSelected(k.ordem_compra_id)}
-                className={cn(
-                  "p-3 cursor-pointer hover:border-primary transition-colors",
-                  isSel && "border-primary ring-1 ring-primary/20"
-                )}
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <div className="font-mono text-xs font-semibold">{k.numero_oc}</div>
-                    <div className="text-xs truncate">
-                      <span className="font-mono text-muted-foreground">{k.produto_codigo}</span> — {k.produto_nome}
-                    </div>
-                  </div>
-                  <Badge variant="outline" className="shrink-0 text-[10px]">{k.oc_status}</Badge>
-                </div>
-                <div className="mt-2 grid grid-cols-3 gap-2 text-[11px]">
-                  <div>
-                    <div className="text-muted-foreground">Pedida</div>
-                    <div className="font-medium">{k.qty_pedida.toLocaleString("pt-BR")}</div>
-                  </div>
-                  <div>
-                    <div className="text-muted-foreground">Embarcada</div>
-                    <div className="font-medium">{k.qty_embarcada.toLocaleString("pt-BR")}</div>
-                  </div>
-                  <div>
-                    <div className="text-muted-foreground">Recebida</div>
-                    <div className="font-medium">{k.qty_recebida.toLocaleString("pt-BR")} ({recPct}%)</div>
-                  </div>
-                </div>
-                <Progress value={recPct} className="h-1.5 mt-1.5" />
-                <div className="mt-1.5 flex items-center justify-between text-[10px] text-muted-foreground">
-                  <span>Saldo: {k.saldo_aberto.toLocaleString("pt-BR")}</span>
-                  <div className="flex items-center gap-1.5">
-                    {divergencia && (
-                      <Badge className="bg-amber-500 text-white text-[10px] py-0 h-4">
-                        <AlertTriangle className="h-2.5 w-2.5 mr-0.5" /> divergência
-                      </Badge>
-                    )}
-                    {slaBadge(k.sla_porto_cd_dias)}
-                  </div>
-                </div>
-              </Card>
-            );
-          })}
+          {produtosFiltrados.map((p) => (
+            <ProdutoVinculadoChinaCard
+              key={p.submissao_id}
+              produto={p}
+              ocs={ocsByProduto.get(p.submissao_id) || []}
+              expanded={expandedProds.has(p.submissao_id)}
+              selectedOcId={selected?.ordem_compra_id}
+              onToggle={() => toggleProduto(p.submissao_id)}
+              onSelectOC={setSelected}
+            />
+          ))}
         </div>
 
         {/* Detalhe */}
