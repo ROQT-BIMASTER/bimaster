@@ -182,6 +182,7 @@ export function inboxFolderCounts(items: InboxOC[]): Record<InboxFolder, number>
     "divergencias",
     "catalogo",
     "submissoes",
+    "tabela",
   ];
   const counts = {} as Record<InboxFolder, number>;
   folders.forEach((f) => {
