@@ -4,7 +4,7 @@ import { ptBR } from "date-fns/locale";
 import {
   Star, Paperclip, Clock, AlertTriangle, Link2, Link2Off, Package,
   CheckCircle2, FileText, Send, XCircle, Loader2, Globe, Maximize2,
-  MousePointerClick, Zap, MoveVertical, X,
+  MousePointerClick, Zap, MoveVertical, X, Crosshair,
 } from "lucide-react";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
