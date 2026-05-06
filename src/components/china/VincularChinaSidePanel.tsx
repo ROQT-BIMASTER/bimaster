@@ -186,6 +186,9 @@ export function VincularChinaSidePanel({
           <TabsTrigger value="despacho" className="text-xs h-7 gap-1">
             <Gavel className="h-3 w-3" />Despacho
           </TabsTrigger>
+          <TabsTrigger value="mesa" className="text-xs h-7 gap-1">
+            <Gavel className="h-3 w-3" />Mesa
+          </TabsTrigger>
           <TabsTrigger value="documentos" className="text-xs h-7 gap-1">
             <FileText className="h-3 w-3" />Docs
             {totalPendentes > 0 && <Badge variant="destructive" className="text-[8px] h-3.5 px-1 ml-0.5">{totalPendentes}</Badge>}
