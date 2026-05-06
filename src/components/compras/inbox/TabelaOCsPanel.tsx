@@ -387,7 +387,16 @@ export function TabelaOCsPanel() {
                       onClick={() => openDrawer(o)}
                       className="border-t hover:bg-muted/40 cursor-pointer"
                     >
-                      <td className="px-3 py-2 font-medium text-primary">{o.numero_oc}</td>
+                      <td className="px-3 py-2 font-medium text-primary">
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); openReader(o.ordem_compra_id); }}
+                          className="hover:underline"
+                          title="Abrir reader"
+                        >
+                          {o.numero_oc}
+                        </button>
+                      </td>
                       <td className="px-3 py-2">
                         <div className="font-medium truncate max-w-[220px]">{o.produto_nome}</div>
                         <div className="text-[10px] text-muted-foreground">{o.produto_codigo}</div>
