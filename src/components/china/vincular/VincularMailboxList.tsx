@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
@@ -70,6 +70,15 @@ export function VincularMailboxList({
   const allChecked = filtered.length > 0 && filtered.every((i) => selectedIds.has(i.id));
   const someChecked = selectedIds.size > 0;
 
+  // Auto-scroll: mantém o item selecionado (j/k ou clique) visível na lista.
+  const itemRefs = useRef<Map<string, HTMLLIElement>>(new Map());
+  useEffect(() => {
+    if (!selectedId) return;
+    const el = itemRefs.current.get(selectedId);
+    if (!el) return;
+    el.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  }, [selectedId]);
+
   return (
     <div className="flex h-full flex-col bg-background">
       {/* Toolbar — alinhada à Caixa de Entrada */}
@@ -123,6 +132,10 @@ export function VincularMailboxList({
           return (
             <li
               key={item.id}
+              ref={(el) => {
+                if (el) itemRefs.current.set(item.id, el);
+                else itemRefs.current.delete(item.id);
+              }}
               onClick={() => onSelect(item.id)}
               className={cn(
                 "group flex cursor-pointer items-start gap-2 border-b border-border/40 px-3 py-2 text-sm transition-colors",

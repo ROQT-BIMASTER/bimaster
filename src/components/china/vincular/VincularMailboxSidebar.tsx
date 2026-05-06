@@ -77,8 +77,8 @@ export function VincularMailboxSidebar({ folder, counts, onSelect, progressPct, 
   );
 
   return (
-    <aside className="flex h-full flex-col border-r border-border bg-card/40">
-      <div className="border-b border-border/60 p-3 space-y-2">
+    <aside className="flex h-full min-h-0 flex-col border-r border-border bg-card/40">
+      <div className="shrink-0 border-b border-border/60 p-3 space-y-2">
         <div className="flex items-center justify-between text-[11px]">
           <span className="font-semibold text-foreground">Encaminhados</span>
           <span className="tabular-nums text-muted-foreground">
