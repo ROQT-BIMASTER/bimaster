@@ -735,13 +735,19 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
   }, [filtered, sortMode, filterTime, manualOrder]);
 
   const handleToggle = useCallback(async (tarefaId: string, done: boolean) => {
+    if (done) {
+      const { confirmConclusaoTarefa } = await import("@/lib/projetos/confirmConclusao");
+      const titulo = tarefas.find((t) => t.id === tarefaId)?.titulo;
+      const ok = await confirmConclusaoTarefa({ titulo });
+      if (!ok) return;
+    }
     const update: Record<string, any> = { status: done ? "concluida" : "pendente" };
     update.data_conclusao = done ? new Date().toISOString() : null;
     const { error } = await supabase.from("projeto_tarefas").update(update as never).eq("id", tarefaId);
     if (error) { toast.error("Erro ao atualizar tarefa"); return; }
     queryClient.invalidateQueries({ queryKey: ["minhas-tarefas"] });
     toast.success(done ? "Tarefa concluída! ✓" : "Tarefa reaberta");
-  }, [queryClient]);
+  }, [queryClient, tarefas]);
 
   const handleSelectTask = useCallback((t: MinaTarefa) => {
     setDetailTarefa(t);
@@ -758,6 +764,9 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
 
   const handleBulkComplete = async () => {
     const ids = Array.from(selectedIds);
+    const { confirmConclusaoTarefa } = await import("@/lib/projetos/confirmConclusao");
+    const ok = await confirmConclusaoTarefa({ quantidade: ids.length });
+    if (!ok) return;
     const { error } = await supabase
       .from("projeto_tarefas")
       .update({ status: "concluida", data_conclusao: new Date().toISOString() })
