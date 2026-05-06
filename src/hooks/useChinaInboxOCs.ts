@@ -10,6 +10,7 @@ export type ChinaOCSubTab =
 
 export interface ChinaInboxOC {
   ordem_compra_id: string;
+  submissao_id: string | null;
   numero_oc: string;
   produto_codigo: string;
   produto_nome: string;
@@ -51,7 +52,7 @@ export function useChinaInboxOCs() {
       const { data: ocs, error } = await supabase
         .from("china_ordens_compra")
         .select(
-          "id, numero_oc, produto_codigo, produto_nome, qty_total, qty_produzida, data_emissao, data_entrega_prevista, data_entrega_real, status, aceita_em, recusada_em, motivo_recusa, observacoes",
+          "id, submissao_id, numero_oc, produto_codigo, produto_nome, qty_total, qty_produzida, data_emissao, data_entrega_prevista, data_entrega_real, status, aceita_em, recusada_em, motivo_recusa, observacoes",
         )
         .order("created_at", { ascending: false })
         .limit(500);
@@ -78,6 +79,7 @@ export function useChinaInboxOCs() {
         const emb = embMap.get(o.id);
         return {
           ordem_compra_id: o.id,
+          submissao_id: o.submissao_id ?? null,
           numero_oc: o.numero_oc,
           produto_codigo: o.produto_codigo,
           produto_nome: o.produto_nome,

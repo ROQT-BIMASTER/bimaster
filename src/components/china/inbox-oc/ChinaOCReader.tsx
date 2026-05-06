@@ -17,6 +17,7 @@ import { parseLocalDate } from "@/lib/utils/parseLocalDate";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import type { ChinaInboxOC } from "@/hooks/useChinaInboxOCs";
+import { ChinaOCEditPanel } from "./ChinaOCEditPanel";
 
 interface Props {
   oc: ChinaInboxOC | null;
@@ -157,6 +158,8 @@ export function ChinaOCReader({ oc, onChanged }: Props) {
             <div className="whitespace-pre-wrap">{oc.observacoes}</div>
           </Card>
         )}
+
+        <ChinaOCEditPanel oc={oc} onChanged={onChanged} />
       </div>
 
       <RecusarDialog

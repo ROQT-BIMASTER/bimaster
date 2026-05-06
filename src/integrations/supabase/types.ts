@@ -3968,6 +3968,57 @@ export type Database = {
           },
         ]
       }
+      china_oc_versoes: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          diff: Json | null
+          id: string
+          marco: string
+          motivo: string | null
+          ordem_compra_id: string
+          snapshot: Json
+          versao: number
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          diff?: Json | null
+          id?: string
+          marco: string
+          motivo?: string | null
+          ordem_compra_id: string
+          snapshot: Json
+          versao: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          diff?: Json | null
+          id?: string
+          marco?: string
+          motivo?: string | null
+          ordem_compra_id?: string
+          snapshot?: Json
+          versao?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "china_oc_versoes_ordem_compra_id_fkey"
+            columns: ["ordem_compra_id"]
+            isOneToOne: false
+            referencedRelation: "china_ordens_compra"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "china_oc_versoes_ordem_compra_id_fkey"
+            columns: ["ordem_compra_id"]
+            isOneToOne: false
+            referencedRelation: "vw_china_oc_recebimento_kpis"
+            referencedColumns: ["ordem_compra_id"]
+          },
+        ]
+      }
       china_ordem_itens: {
         Row: {
           cor_id: string | null
@@ -42448,6 +42499,7 @@ export type Database = {
       }
     }
     Functions: {
+      _china_oc_snapshot_payload: { Args: { p_oc_id: string }; Returns: Json }
       _dispatch_backfill_alert: {
         Args: {
           p_alert_type: string
@@ -44388,6 +44440,32 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      rpc_china_oc_atualizar_logistica: {
+        Args: {
+          p_data_entrega_prevista?: string
+          p_motivo?: string
+          p_observacoes?: string
+          p_oc_id: string
+        }
+        Returns: undefined
+      }
+      rpc_china_oc_cancelar_saldo_item: {
+        Args: { p_item_id: string; p_motivo: string; p_qty_cancelar: number }
+        Returns: undefined
+      }
+      rpc_china_oc_editar_itens_pendente: {
+        Args: { p_itens: Json; p_motivo?: string; p_oc_id: string }
+        Returns: undefined
+      }
+      rpc_china_oc_snapshot: {
+        Args: {
+          p_diff?: Json
+          p_marco: string
+          p_motivo?: string
+          p_oc_id: string
+        }
+        Returns: string
       }
       rpc_china_recusar_oc: {
         Args: { p_motivo: string; p_oc_id: string }
