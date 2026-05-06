@@ -969,6 +969,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
             {hasPermission("fabrica_dashboard") && (
               <MenuItemLink to="/dashboard/fabrica" icon={Home} title={t("fabrica.dashboard")} colorKey="fabrica" end />
             )}
+            <MenuItemLink to="/dashboard/compras-nacionais" icon={ShoppingCart} title="Compras Nacionais" colorKey="fabrica" />
             {fabricaGroups.map(group => {
               const filteredItems = group.items.filter(item => isAdmin || hasPermission(item.screenCode));
               if (filteredItems.length === 0) return null;
