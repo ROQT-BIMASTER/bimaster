@@ -16,13 +16,17 @@ export type InboxFolder =
   | "atrasadas"
   | "divergencias"
   | "catalogo"
-  | "submissoes";
+  | "submissoes"
+  | "tabela";
 
 export interface InboxOC extends OcRecebimentoKpi {
   ultima_movimentacao: string;
   has_divergencia: boolean;
   has_vinculo: boolean;
   embarque_status: string | null;
+  marca: string | null;
+  ops_numeros: string[];
+  embarque_container: string | null;
 }
 
 function isAtrasada(o: OcRecebimentoKpi): boolean {
