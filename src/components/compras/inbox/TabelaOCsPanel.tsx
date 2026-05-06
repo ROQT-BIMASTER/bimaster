@@ -286,6 +286,7 @@ export function TabelaOCsPanel() {
                 className="h-9 w-[180px]"
               />
             </Field>
+            <Field label="Período">
               <Popover>
                 <PopoverTrigger asChild>
                   <Button variant="outline" size="sm" className="h-9 w-[200px] justify-start gap-2 font-normal">
