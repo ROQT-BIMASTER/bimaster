@@ -706,6 +706,7 @@ export default function ProjetoVincularChina() {
                       onClose={() => setSelectedSubmissaoId(null)}
                       onPreviewDoc={setPreviewDoc}
                       onEncaminharResponsavel={() => setEncaminharOpen(true)}
+                      onEncaminharProjeto={() => setEncaminharProjetoOpen(true)}
                       onDecisionClick={(id) => { setDecisionProcessId(id); setDecisionOpen(true); }}
                       secoes={secoes}
                       tarefas={tarefas}
