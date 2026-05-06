@@ -110,7 +110,10 @@ function EventCard({ ev }: { ev: ProcessEventRow }) {
 }
 
 export function DispatchHistoryPanel({ submissaoId, className }: Props) {
-  const { data: events = [], isLoading } = useDispatchHistory(submissaoId);
+  const {
+    data, isLoading, hasNextPage, isFetchingNextPage, fetchNextPage,
+  } = useDispatchHistory(submissaoId);
+  const events = (data?.pages ?? []).flatMap((p) => p.rows);
 
   return (
     <div className={cn("space-y-2", className)}>
@@ -120,7 +123,9 @@ export function DispatchHistoryPanel({ submissaoId, className }: Props) {
           Histórico de despacho
         </span>
         {events.length > 0 && (
-          <Badge variant="secondary" className="h-4 px-1.5 text-[10px]">{events.length}</Badge>
+          <Badge variant="secondary" className="h-4 px-1.5 text-[10px]">
+            {events.length}{hasNextPage ? "+" : ""}
+          </Badge>
         )}
       </div>
 
@@ -134,9 +139,21 @@ export function DispatchHistoryPanel({ submissaoId, className }: Props) {
           Nenhum encaminhamento registrado ainda.
         </p>
       ) : (
-        <ul className="space-y-1.5">
-          {events.map((ev) => <EventCard key={ev.id} ev={ev} />)}
-        </ul>
+        <>
+          <ul className="space-y-1.5">
+            {events.map((ev) => <EventCard key={ev.id} ev={ev} />)}
+          </ul>
+          {hasNextPage && (
+            <button
+              type="button"
+              onClick={() => fetchNextPage()}
+              disabled={isFetchingNextPage}
+              className="w-full rounded-md border border-border bg-card/40 px-2.5 py-1.5 text-[11px] font-medium text-muted-foreground transition-colors hover:bg-muted/40 disabled:opacity-60"
+            >
+              {isFetchingNextPage ? "Carregando..." : "Carregar mais"}
+            </button>
+          )}
+        </>
       )}
     </div>
   );
