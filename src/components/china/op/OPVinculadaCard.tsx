@@ -87,6 +87,22 @@ export function OPVinculadaCard({ ocId, ocNumero, produtoCodigo, produtoNome, qt
                 </div>
               </div>
               <div className="flex gap-1">
+                {!["concluida", "cancelada"].includes(op.status) && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    title="Apontar produção"
+                    onClick={() =>
+                      setApontarOp({
+                        id: op.op_id,
+                        numero: op.numero,
+                        saldo: Math.max(0, Number(op.quantidade_planejada) - Number(op.quantidade_produzida || 0)),
+                      })
+                    }
+                  >
+                    <ClipboardList className="h-3.5 w-3.5" />
+                  </Button>
+                )}
                 <Button size="sm" variant="ghost" title="Abrir OP" onClick={() => navigate(`/dashboard/fabrica/ordens-producao?op=${op.op_id}`)}>
                   <ExternalLink className="h-3.5 w-3.5" />
                 </Button>
