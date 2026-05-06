@@ -37,6 +37,15 @@ import { VincularChinaTable, type SubmissaoRow } from "@/components/china/Vincul
 import { VincularChinaSidePanel } from "@/components/china/VincularChinaSidePanel";
 import { VincularChinaBulkActions } from "@/components/china/VincularChinaBulkActions";
 import { VincularChinaKpis } from "@/components/china/VincularChinaKpis";
+import { VincularMailboxSidebar } from "@/components/china/vincular/VincularMailboxSidebar";
+import { VincularMailboxList } from "@/components/china/vincular/VincularMailboxList";
+import {
+  useVincularChinaUserState,
+  classifyVincularRows,
+  filterByFolder,
+  type VincularFolder,
+} from "@/hooks/useVincularChinaMailboxData";
+import { useToggleSubmissaoFlag } from "@/hooks/useChinaMailboxActions";
 import { ChinaSubmissaoExpandido } from "@/components/china/ChinaSubmissaoExpandido";
 import { DespachosPanel } from "@/components/processo/DespachosPanel";
 import { ProcessDecisionDialog } from "@/components/processo/ProcessDecisionDialog";
@@ -122,7 +131,11 @@ export default function ProjetoVincularChina() {
   const [vinculando, setVinculando] = useState(false);
   const [kpiStatusFilter, setKpiStatusFilter] = useState<string>("todos");
   const [recentlyLinkedId, setRecentlyLinkedId] = useState<string | null>(null);
+  const [folder, setFolder] = useState<VincularFolder>("nao_vinculadas");
+  const [searchTerm, setSearchTerm] = useState("");
   const queryClient = useQueryClient();
+  const toggleFlag = useToggleSubmissaoFlag();
+  const { flags, snoozes } = useVincularChinaUserState();
 
   // Data queries
   const { data: submissoes = [], isLoading: loadingSub } = useSubmissoesChina("");
