@@ -15,6 +15,9 @@ Deno.serve(secureHandler({ auth: "none", rateLimit: 10, rateLimitPrefix: "asana-
 
   const startTime = Date.now();
   function timeLeft() { return TIME_BUDGET_MS - (Date.now() - startTime); }
+  const corsHeaders = getCorsHeaders(req);
+  const json = (data: any, status = 200) =>
+    new Response(JSON.stringify(data), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
   try {
     const authHeader = req.headers.get("Authorization");
@@ -764,9 +767,7 @@ async function syncSubtasksRecursive(
 }
 
 // --- Helpers ---
-function json(data: any, status = 200) {
-  return new Response(JSON.stringify(data), { status, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } });
-}
+// (json helper is defined inline inside the handler so it has access to `req` for CORS)
 
 function friendlyAsanaError(status: number, body: string): Error {
   if (status === 401) {
