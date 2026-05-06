@@ -16,6 +16,8 @@ import { CHINA_DOCUMENT_TYPES, DOCUMENT_CATEGORIES } from "@/lib/china-document-
 import { ProcessOrchestrationPanel } from "@/components/processo/ProcessOrchestrationPanel";
 import { DespachosPanel } from "@/components/processo/DespachosPanel";
 import { DispatchHistoryPanel } from "@/components/china/vincular/DispatchHistoryPanel";
+import { MesaDespachoTab } from "@/components/china/vincular/MesaDespachoTab";
+import { CaixaAlertasChinaPanel } from "@/components/china/vincular/CaixaAlertasChinaPanel";
 import { cn } from "@/lib/utils";
 import type { SubmissaoRow } from "./VincularChinaTable";
 import { VincularChinaVincularTab } from "./VincularChinaVincularTab";
