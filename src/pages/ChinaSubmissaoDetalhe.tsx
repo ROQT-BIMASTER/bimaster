@@ -102,7 +102,7 @@ export default function ChinaSubmissaoDetalhe() {
         icon={FileText}
         iconTone="primary"
         showBack
-        backTo="/dashboard/fabrica-china"
+        backTo={backTo}
         actions={
           <>
             <Badge variant={statusInfo.variant} className="text-sm px-3 py-1">
