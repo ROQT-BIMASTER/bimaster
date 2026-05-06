@@ -215,7 +215,7 @@ export function OptionsEditor({ options, onChange, fieldType }: OptionsEditorPro
         </Button>
       </div>
       <p className="text-[10px] text-muted-foreground">
-        Arraste pelo ícone à esquerda para reordenar. Cole várias opções separadas por vírgula, ponto-e-vírgula ou quebra de linha para adicionar de uma vez.
+        Arraste pelo ícone à esquerda ou foque-o e use Alt+Setas (Alt+Home/End para extremos) para reordenar. Cole várias opções separadas por vírgula, ponto-e-vírgula ou quebra de linha para adicionar de uma vez.
       </p>
     </div>
   );
