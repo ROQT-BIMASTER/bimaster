@@ -88,14 +88,69 @@ export default function ChinaMonitorRecebimentosOC() {
     });
   }, [kpis, search, statusFilter, filtroEspecial]);
 
+  // Agrupa OCs filtradas por submissao_id
+  const ocsByProduto = useMemo(() => {
+    const m = new Map<string, typeof filtered>();
+    for (const oc of filtered) {
+      const arr = m.get(oc.submissao_id) || [];
+      arr.push(oc);
+      m.set(oc.submissao_id, arr);
+    }
+    return m;
+  }, [filtered]);
+
+  const produtosFiltrados = useMemo(() => {
+    const s = search.trim().toLowerCase();
+    return produtos.filter((p) => {
+      const ocsDoProd = ocsByProduto.get(p.submissao_id) || [];
+      const hasOcsAfterFilter = ocsDoProd.length > 0;
+      // Se há filtros aplicados (status/especial), oculta produtos sem OC visível
+      const hasOcFilter = statusFilter !== "all" || filtroEspecial !== "all";
+      if (hasOcFilter && !hasOcsAfterFilter) return false;
+      if (s) {
+        const matchProduto =
+          p.produto_codigo.toLowerCase().includes(s) ||
+          p.produto_nome.toLowerCase().includes(s);
+        const matchOc = ocsDoProd.some((oc) =>
+          oc.numero_oc.toLowerCase().includes(s)
+        );
+        if (!matchProduto && !matchOc) return false;
+      }
+      return true;
+    });
+  }, [produtos, ocsByProduto, search, statusFilter, filtroEspecial]);
+
   const selectedId = params.get("oc");
-  const selected = filtered.find((k) => k.ordem_compra_id === selectedId) || filtered[0];
+  const selected = kpis.find((k) => k.ordem_compra_id === selectedId)
+    || filtered[0];
 
   const setSelected = (id: string) => {
     const next = new URLSearchParams(params);
     next.set("oc", id);
     setParams(next, { replace: true });
+    // Auto-expande o produto da OC selecionada
+    const oc = kpis.find((k) => k.ordem_compra_id === id);
+    if (oc) {
+      setExpandedProds((prev) => new Set(prev).add(oc.submissao_id));
+    }
   };
+
+  const toggleProduto = (submissaoId: string) => {
+    setExpandedProds((prev) => {
+      const next = new Set(prev);
+      if (next.has(submissaoId)) next.delete(submissaoId);
+      else next.add(submissaoId);
+      return next;
+    });
+  };
+
+  // Auto-expande produto da OC selecionada na primeira render
+  useEffect(() => {
+    if (selected && !expandedProds.has(selected.submissao_id)) {
+      setExpandedProds((prev) => new Set(prev).add(selected.submissao_id));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedId]);
 
   const exportar = async (escopo: "oc" | "ops" | "divergencias") => {
     setExporting(true);
