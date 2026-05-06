@@ -252,8 +252,9 @@ export function VincularMailboxList({
             variant="ghost"
             className="ml-auto h-5 px-1.5 text-[10px] text-amber-200 hover:text-amber-100"
             onClick={() => onSearchChange("")}
+            title="Atalho: Esc"
           >
-            Limpar busca
+            Limpar busca (Esc)
           </Button>
           <Button
             size="sm"
@@ -263,6 +264,21 @@ export function VincularMailboxList({
             title="Desmarcar"
           >
             <X className="h-3 w-3" />
+          </Button>
+        </div>
+      )}
+
+      {/* Pílula "Ir para o item" quando o selecionado está na lista mas pode estar fora da viewport */}
+      {!selectedHiddenByFilter && selectedId && selectedStillVisible && (
+        <div className="pointer-events-none relative">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => scrollSelectedIntoView("smooth")}
+            className="pointer-events-auto absolute right-3 top-1.5 z-10 h-6 gap-1 bg-card/90 px-2 text-[10px] text-muted-foreground shadow-sm backdrop-blur hover:text-foreground"
+            title="Rolar até o item selecionado"
+          >
+            <Crosshair className="h-3 w-3" /> Ir para o item
           </Button>
         </div>
       )}
