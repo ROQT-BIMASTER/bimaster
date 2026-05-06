@@ -173,9 +173,11 @@ export function OptionsEditor({ options, onChange, fieldType }: OptionsEditorPro
                   key={ids[idx]}
                   id={ids[idx]}
                   index={idx}
+                  total={options.length}
                   value={opt}
                   onUpdate={(v) => update(idx, v)}
                   onRemove={() => remove(idx)}
+                  onMove={move}
                 />
               ))}
             </div>
