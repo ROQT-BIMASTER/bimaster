@@ -101,14 +101,25 @@ export function VincularMailboxList({
   // Comportamento de rolagem ao navegar com j/k (configurável pelo usuário).
   type ScrollPref = "smooth" | "auto" | "none";
   const SCROLL_PREF_KEY = "china:vincular:list:scrollBehavior";
+  const JUMP_PREF_KEY = "china:vincular:list:jumpScrollBehavior";
   const [scrollPref, setScrollPref] = useState<ScrollPref>(() => {
     if (typeof window === "undefined") return "smooth";
     const v = window.localStorage.getItem(SCROLL_PREF_KEY) as ScrollPref | null;
     return v === "smooth" || v === "auto" || v === "none" ? v : "smooth";
   });
+  // Comportamento da rolagem ao "Ir para o item" e ao auto-rolar quando filtros mudam.
+  const [jumpPref, setJumpPref] = useState<ScrollPref>(() => {
+    if (typeof window === "undefined") return "smooth";
+    const v = window.localStorage.getItem(JUMP_PREF_KEY) as ScrollPref | null;
+    return v === "smooth" || v === "auto" || v === "none" ? v : "smooth";
+  });
   const updateScrollPref = useCallback((v: ScrollPref) => {
     setScrollPref(v);
     try { window.localStorage.setItem(SCROLL_PREF_KEY, v); } catch { /* noop */ }
+  }, []);
+  const updateJumpPref = useCallback((v: ScrollPref) => {
+    setJumpPref(v);
+    try { window.localStorage.setItem(JUMP_PREF_KEY, v); } catch { /* noop */ }
   }, []);
 
   const scrollSelectedIntoView = useCallback((forceBehavior?: ScrollBehavior) => {
@@ -129,11 +140,33 @@ export function VincularMailboxList({
     }
   }, [selectedId, scrollPref]);
 
+  // Auto-scroll ao navegar (j/k, clique) — usa scrollPref.
   useEffect(() => {
     if (!selectedId || !selectedStillVisible) return;
     if (scrollPref === "none") return;
     scrollSelectedIntoView();
-  }, [selectedId, selectedStillVisible, filtered.length, search, scrollPref, scrollSelectedIntoView]);
+  }, [selectedId, selectedStillVisible, scrollPref, scrollSelectedIntoView]);
+
+  // Auto-scroll quando a lista é (re)carregada ou filtros mudam — usa jumpPref.
+  // Tenta novamente em rAF até o elemento existir no DOM (cobre refetch / loading).
+  useEffect(() => {
+    if (!selectedId || !selectedStillVisible) return;
+    if (jumpPref === "none") return;
+    let cancelled = false;
+    let attempts = 0;
+    const tryScroll = () => {
+      if (cancelled) return;
+      const el = itemRefs.current.get(selectedId);
+      if (el && listRef.current) {
+        const behavior: ScrollBehavior = jumpPref === "auto" ? "auto" : "smooth";
+        scrollSelectedIntoView(behavior);
+        return;
+      }
+      if (attempts++ < 30) requestAnimationFrame(tryScroll);
+    };
+    requestAnimationFrame(tryScroll);
+    return () => { cancelled = true; };
+  }, [items, filtered.length, search, folder, selectedId, selectedStillVisible, jumpPref, scrollSelectedIntoView]);
 
   // Atalhos: Esc limpa busca quando o item selecionado está escondido pelo filtro;
   // "/" foca o campo de busca (ou limpa, se já estiver com algo digitado e item escondido).
