@@ -4,6 +4,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import {
   Inbox, FileEdit, Hourglass, Factory, Ship, Compass, FileCheck2, PackageCheck, AlertTriangle,
+  AlertOctagon, BookOpen, FileStack,
 } from "lucide-react";
 import type { InboxFolder } from "@/hooks/useCompradorInboxOCs";
 
@@ -13,7 +14,9 @@ interface InboxFolderListProps {
   counts: Record<InboxFolder, number>;
 }
 
-const folders: { key: InboxFolder; label: string; icon: any; tone?: "destructive" }[] = [
+type FolderDef = { key: InboxFolder; label: string; icon: any; tone?: "destructive"; section?: string };
+
+const folders: FolderDef[] = [
   { key: "todas", label: "Caixa de entrada", icon: Inbox },
   { key: "rascunho", label: "Rascunhos", icon: FileEdit },
   { key: "aguardando", label: "Aguardando aprovação", icon: Hourglass },
@@ -23,6 +26,9 @@ const folders: { key: InboxFolder; label: string; icon: any; tone?: "destructive
   { key: "desembaraco", label: "Desembaraço", icon: FileCheck2 },
   { key: "recebidas", label: "Recebidas", icon: PackageCheck },
   { key: "atrasadas", label: "Atrasadas", icon: AlertTriangle, tone: "destructive" },
+  { key: "divergencias", label: "Divergências", icon: AlertOctagon, tone: "destructive" },
+  { key: "catalogo", label: "Catálogo China", icon: BookOpen, section: "Origem de OC" },
+  { key: "submissoes", label: "Submissões aprovadas", icon: FileStack },
 ];
 
 export function InboxFolderList({ active, onSelect, counts }: InboxFolderListProps) {
