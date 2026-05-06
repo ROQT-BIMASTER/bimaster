@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import {
   Dialog,
   DialogContent,
@@ -13,11 +13,16 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Link2, Factory, ShoppingBag, Package, Sparkles, X, AlertCircle } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Link2, Factory, ShoppingBag, Package, Sparkles, X, AlertCircle, Search } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCriarVinculo } from "@/hooks/useComprasInternacionalVinculos";
 import { useSubmissaoProjetosOPs } from "@/hooks/useSubmissaoProjetosOPs";
+
+const OP_PERSIST_PREFIX = "vincular-brasil:op-selecionada:";
+const buildPersistKey = (ocId: string, itemId?: string, submissaoId?: string) =>
+  `${OP_PERSIST_PREFIX}${submissaoId ?? "no-sub"}:${ocId}:${itemId ?? "no-item"}`;
 
 interface Props {
   open: boolean;
@@ -77,7 +82,13 @@ export function VincularBrasilDialog({
   const [mpId, setMpId] = useState<string>("");
   const [qty, setQty] = useState<number>(qtyDisponivel);
   const [obs, setObs] = useState("");
+  const [opSearch, setOpSearch] = useState("");
   const criar = useCriarVinculo();
+
+  const persistKey = useMemo(
+    () => buildPersistKey(ocId, itemId, submissaoId),
+    [ocId, itemId, submissaoId],
+  );
 
   const { data: sugestoes = [], isLoading: loadingSugestoes } = useSubmissaoProjetosOPs(
     open ? submissaoId : undefined,
@@ -85,6 +96,29 @@ export function VincularBrasilDialog({
   const sugestoesComOps = sugestoes.filter((s) => s.ops.length > 0);
   const sugestaoFlat = sugestoesComOps.flatMap((s) => s.ops);
   const temProjetosSemOps = sugestoes.length > 0 && sugestoesComOps.length === 0;
+
+  // Recupera OP previamente selecionada para este (oc, item, submissao) ao abrir
+  useEffect(() => {
+    if (!open) return;
+    try {
+      const saved = localStorage.getItem(persistKey);
+      if (saved) setOpId(saved);
+    } catch {
+      // ignore
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, persistKey]);
+
+  // Persiste seleção sempre que mudar
+  useEffect(() => {
+    if (!open) return;
+    try {
+      if (opId) localStorage.setItem(persistKey, opId);
+      else localStorage.removeItem(persistKey);
+    } catch {
+      // ignore
+    }
+  }, [open, opId, persistKey]);
 
   // Auto-preenche quando há exatamente uma OP sugerida e o usuário ainda não escolheu nada
   useEffect(() => {
@@ -166,8 +200,21 @@ export function VincularBrasilDialog({
   const handleLimpar = useCallback(() => {
     if (!opId) return;
     setOpId("");
+    try {
+      localStorage.removeItem(persistKey);
+    } catch {
+      // ignore
+    }
     logOPSelection({ source: "limpar", opId: null, ocId, itemId, submissaoId, numeroOC });
-  }, [opId, ocId, itemId, submissaoId, numeroOC]);
+  }, [opId, ocId, itemId, submissaoId, numeroOC, persistKey]);
+
+  const filteredOps = useMemo(() => {
+    const q = opSearch.trim().toLowerCase();
+    if (!q) return ops;
+    return ops.filter((op) =>
+      `${op.numero ?? ""} ${op.status ?? ""}`.toLowerCase().includes(q),
+    );
+  }, [ops, opSearch]);
 
   const handleSubmit = async () => {
     await criar.mutateAsync({
@@ -211,7 +258,19 @@ export function VincularBrasilDialog({
           </TabsList>
 
           <TabsContent value="op" className="space-y-2 pt-3">
-            {sugestoesComOps.length > 0 && (
+            {loadingSugestoes && submissaoId && (
+              <div className="rounded-md border border-primary/20 bg-primary/5 p-2.5 space-y-2">
+                <div className="flex items-center gap-1.5 text-[11px] font-medium text-primary">
+                  <Sparkles className="h-3.5 w-3.5" />
+                  Buscando sugestões do projeto…
+                </div>
+                <Skeleton className="h-3 w-2/3" />
+                <Skeleton className="h-7 w-full" />
+                <Skeleton className="h-7 w-full" />
+              </div>
+            )}
+
+            {!loadingSugestoes && sugestoesComOps.length > 0 && (
               <div className="rounded-md border border-primary/20 bg-primary/5 p-2.5 space-y-2">
                 <div className="flex items-center gap-1.5 text-[11px] font-medium text-primary">
                   <Sparkles className="h-3.5 w-3.5" />
@@ -278,26 +337,48 @@ export function VincularBrasilDialog({
                 </Button>
               )}
             </div>
-            <Select value={opId} onValueChange={handleSelectManual} disabled={semOpsDisponiveis}>
-              <SelectTrigger>
-                <SelectValue
-                  placeholder={
-                    loadingOps
-                      ? "Carregando OPs…"
-                      : semOpsDisponiveis
-                      ? "Nenhuma OP em aberto disponível"
-                      : "Escolha uma OP em aberto"
-                  }
-                />
-              </SelectTrigger>
-              <SelectContent>
-                {ops.map((op) => (
-                  <SelectItem key={op.id} value={op.id}>
-                    {op.numero} · {op.status} · {op.quantidade_planejada}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+
+            {loadingOps ? (
+              <Skeleton className="h-10 w-full" />
+            ) : (
+              <Select value={opId} onValueChange={handleSelectManual} disabled={semOpsDisponiveis}>
+                <SelectTrigger>
+                  <SelectValue
+                    placeholder={
+                      semOpsDisponiveis
+                        ? "Nenhuma OP em aberto disponível"
+                        : "Escolha uma OP em aberto"
+                    }
+                  />
+                </SelectTrigger>
+                <SelectContent>
+                  <div className="sticky top-0 z-10 bg-popover p-1.5 border-b">
+                    <div className="relative">
+                      <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                      <Input
+                        autoFocus
+                        value={opSearch}
+                        onChange={(e) => setOpSearch(e.target.value)}
+                        onKeyDown={(e) => e.stopPropagation()}
+                        placeholder="Buscar por número ou status…"
+                        className="h-7 pl-7 text-xs"
+                      />
+                    </div>
+                  </div>
+                  {filteredOps.length === 0 ? (
+                    <div className="px-2 py-3 text-center text-[11px] text-muted-foreground">
+                      Nenhuma OP corresponde a "{opSearch}"
+                    </div>
+                  ) : (
+                    filteredOps.map((op) => (
+                      <SelectItem key={op.id} value={op.id}>
+                        {op.numero} · {op.status} · {op.quantidade_planejada}
+                      </SelectItem>
+                    ))
+                  )}
+                </SelectContent>
+              </Select>
+            )}
             {semOpsDisponiveis && (
               <p className="text-[10px] text-muted-foreground">
                 Não há Ordens de Produção pendentes, planejadas ou em andamento. Crie uma no módulo Fábrica antes de vincular.
