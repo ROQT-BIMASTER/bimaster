@@ -1,9 +1,10 @@
-import { useDispatchHistory, type ProcessEventRow } from "@/hooks/useDispatchHistory";
+import { useDispatchHistory, type ProcessEventRow, type DispatchFlushInfo } from "@/hooks/useDispatchHistory";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Link as RouterLink } from "react-router-dom";
 import {
-  ArrowRightCircle, UserCircle2, Folder, ListChecks, Gavel, History, ExternalLink, RefreshCw,
+  ArrowRightCircle, UserCircle2, Folder, ListChecks, Gavel, History, ExternalLink,
+  RefreshCw, AlertTriangle, ArrowUpDown, X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -40,7 +41,7 @@ function formatDate(iso: string) {
   } catch { return iso; }
 }
 
-function EventCard({ ev }: { ev: ProcessEventRow }) {
+function EventCard({ ev, highlighted }: { ev: ProcessEventRow; highlighted?: boolean }) {
   const meta = TYPE_META[ev.tipo_evento] ?? {
     label: ev.tipo_evento.replace(/_/g, " "),
     icon: <ArrowRightCircle className="h-3.5 w-3.5" />,
@@ -60,7 +61,14 @@ function EventCard({ ev }: { ev: ProcessEventRow }) {
       : null;
 
   return (
-    <li className="rounded-md border border-border bg-card/40 px-2.5 py-2">
+    <li
+      className={cn(
+        "rounded-md border px-2.5 py-2 transition-colors duration-700",
+        highlighted
+          ? "border-primary/60 bg-primary/10 ring-1 ring-primary/40 animate-in fade-in slide-in-from-top-1"
+          : "border-border bg-card/40",
+      )}
+    >
       <div className="flex items-center gap-1.5 text-[11px]">
         <span className={cn("flex h-5 w-5 items-center justify-center rounded-full bg-muted", meta.tone)}>
           {meta.icon}
@@ -73,6 +81,11 @@ function EventCard({ ev }: { ev: ProcessEventRow }) {
             <span className="text-muted-foreground">·</span>
             <span className="text-muted-foreground truncate">{ev.usuario_nome}</span>
           </>
+        )}
+        {highlighted && (
+          <Badge variant="outline" className="ml-auto h-4 border-primary/40 px-1.5 text-[9px] text-primary">
+            Novo
+          </Badge>
         )}
       </div>
 
@@ -112,13 +125,18 @@ function EventCard({ ev }: { ev: ProcessEventRow }) {
 export function DispatchHistoryPanel({ submissaoId, className }: Props) {
   const {
     data, isLoading, hasNextPage, isFetchingNextPage, fetchNextPage,
-    pendingCount, flushPending,
-  } = useDispatchHistory(submissaoId);
+    pendingCount, droppedCount, lastFlush, flushPending, clearLastFlush, bufferMax,
+  } = useDispatchHistory(submissaoId) as ReturnType<typeof useDispatchHistory> & {
+    pendingCount: number; droppedCount: number; lastFlush: DispatchFlushInfo | null;
+    flushPending: () => void; clearLastFlush: () => void; bufferMax: number;
+  };
   const events = (data?.pages ?? []).flatMap((p) => p.rows);
+  const highlightSet = new Set(lastFlush?.insertedIds ?? []);
+  const bufferFull = pendingCount >= bufferMax;
 
   return (
     <div className={cn("space-y-2", className)}>
-      <div className="flex items-center gap-1.5">
+      <div className="flex flex-wrap items-center gap-1.5">
         <History className="h-3.5 w-3.5 text-muted-foreground" />
         <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
           Histórico de despacho
@@ -132,14 +150,47 @@ export function DispatchHistoryPanel({ submissaoId, className }: Props) {
           <button
             type="button"
             onClick={flushPending}
-            className="ml-auto inline-flex items-center gap-1 rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary transition-colors hover:bg-primary/20"
-            title="Novos eventos chegaram em tempo real"
+            className={cn(
+              "ml-auto inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-medium transition-colors",
+              bufferFull
+                ? "border-warning/40 bg-warning/15 text-warning hover:bg-warning/25"
+                : "border-primary/30 bg-primary/10 text-primary hover:bg-primary/20",
+            )}
+            title={bufferFull
+              ? `Buffer cheio (limite ${bufferMax}). Eventos mais antigos serão descartados.`
+              : "Novos eventos chegaram em tempo real"}
           >
             <RefreshCw className="h-2.5 w-2.5" />
-            {pendingCount} {pendingCount === 1 ? "novo evento" : "novos eventos"} · Atualizar
+            {pendingCount}{bufferFull ? "+" : ""} {pendingCount === 1 ? "novo evento" : "novos eventos"} · Atualizar
           </button>
         )}
       </div>
+
+      {droppedCount > 0 && (
+        <div className="flex items-center gap-1.5 rounded-md border border-warning/30 bg-warning/10 px-2 py-1 text-[10px] text-warning">
+          <AlertTriangle className="h-3 w-3" />
+          <span>
+            {droppedCount} {droppedCount === 1 ? "evento foi descartado" : "eventos foram descartados"} do buffer (limite {bufferMax}). Recarregue para ver tudo.
+          </span>
+        </div>
+      )}
+
+      {lastFlush?.reordered && (
+        <div className="flex items-center gap-1.5 rounded-md border border-primary/30 bg-primary/10 px-2 py-1 text-[10px] text-primary">
+          <ArrowUpDown className="h-3 w-3" />
+          <span className="flex-1">
+            A ordenação por data/ID foi ajustada após o flush. Confira os itens destacados.
+          </span>
+          <button
+            type="button"
+            onClick={clearLastFlush}
+            className="rounded p-0.5 hover:bg-primary/20"
+            aria-label="Dispensar aviso de reordenação"
+          >
+            <X className="h-3 w-3" />
+          </button>
+        </div>
+      )}
 
       {isLoading ? (
         <div className="space-y-1.5">
@@ -153,7 +204,9 @@ export function DispatchHistoryPanel({ submissaoId, className }: Props) {
       ) : (
         <>
           <ul className="space-y-1.5">
-            {events.map((ev) => <EventCard key={ev.id} ev={ev} />)}
+            {events.map((ev) => (
+              <EventCard key={ev.id} ev={ev} highlighted={highlightSet.has(ev.id)} />
+            ))}
           </ul>
           {hasNextPage && (
             <button
