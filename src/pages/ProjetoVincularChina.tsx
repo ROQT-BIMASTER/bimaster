@@ -133,6 +133,7 @@ export default function ProjetoVincularChina() {
   const [recentlyLinkedId, setRecentlyLinkedId] = useState<string | null>(null);
   const [folder, setFolder] = useState<VincularFolder>("nao_vinculadas");
   const [searchTerm, setSearchTerm] = useState("");
+  const [encaminharOpen, setEncaminharOpen] = useState(false);
   const queryClient = useQueryClient();
   const toggleFlag = useToggleSubmissaoFlag();
   const { flags, snoozes } = useVincularChinaUserState();
@@ -701,6 +702,7 @@ export default function ProjetoVincularChina() {
                       selectedProjetoId={selectedProjetoId}
                       onClose={() => setSelectedSubmissaoId(null)}
                       onPreviewDoc={setPreviewDoc}
+                      onEncaminharResponsavel={() => setEncaminharOpen(true)}
                       onDecisionClick={(id) => { setDecisionProcessId(id); setDecisionOpen(true); }}
                       secoes={secoes}
                       tarefas={tarefas}
