@@ -135,6 +135,7 @@ export default function ProjetoVincularChina() {
   const [folder, setFolder] = useState<VincularFolder>("nao_vinculadas");
   const [searchTerm, setSearchTerm] = useState("");
   const [encaminharOpen, setEncaminharOpen] = useState(false);
+  const [encaminharProjetoOpen, setEncaminharProjetoOpen] = useState(false);
   const queryClient = useQueryClient();
   const toggleFlag = useToggleSubmissaoFlag();
   const { flags, snoozes } = useVincularChinaUserState();
