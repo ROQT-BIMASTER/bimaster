@@ -6,7 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, Search, FileText, ShoppingBag, Factory, PackageCheck, Ship, CheckCircle2 } from "lucide-react";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { Loader2, Search, FileText, ShoppingBag, Factory, PackageCheck, Ship, CheckCircle2, List, Table as TableIcon } from "lucide-react";
+import { ChinaTabelaOCsPanel } from "./ChinaTabelaOCsPanel";
 import {
   useChinaInboxOCs,
   chinaInboxOCCounts,
