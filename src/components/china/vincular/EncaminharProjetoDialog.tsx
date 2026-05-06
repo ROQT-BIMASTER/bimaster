@@ -32,9 +32,26 @@ export function EncaminharProjetoDialog({
 
   const { data: projetos = [], isLoading: loadingProjetos } = useProjetosParaVinculo();
   const { data: secoesData, isLoading: loadingTarefas } = useSecoesETarefas(projeto?.id ?? null);
+  const { data: smart } = useEncaminhamentoSmartDefaults(open ? submissaoId : null);
   const enviar = useEncaminharProjetoTarefa();
 
+  // Pre-seleciona projeto recomendado ao abrir o diálogo (sem sobrescrever escolha manual)
+  useEffect(() => {
+    if (open && smart?.projeto && !projeto) {
+      setProjeto({ id: smart.projeto.id, nome: smart.projeto.nome, cor: smart.projeto.cor ?? undefined });
+    }
+  }, [open, smart?.projeto, projeto]);
+
   const tarefas = (secoesData?.tarefas ?? []) as Array<{ id: string; titulo: string; secao_id: string | null; codigo?: string | null }>;
+  const recomendadasIds = useMemo(
+    () => new Set((smart?.tarefas ?? []).map((t) => t.id)),
+    [smart?.tarefas],
+  );
+  const motivosById = useMemo(() => {
+    const m = new Map<string, string[]>();
+    (smart?.tarefas ?? []).forEach((t) => m.set(t.id, t.motivos));
+    return m;
+  }, [smart?.tarefas]);
 
   const filteredProjetos = useMemo(() => {
     const q = search.trim().toLowerCase();
