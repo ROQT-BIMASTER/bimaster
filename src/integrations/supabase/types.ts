@@ -2895,6 +2895,13 @@ export type Database = {
             referencedRelation: "china_produto_submissoes"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "china_chat_mensagens_submissao_id_fkey"
+            columns: ["submissao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_china_produto_recebimento_kpis"
+            referencedColumns: ["submissao_id"]
+          },
         ]
       }
       china_checklist_custom_categorias: {
@@ -2935,6 +2942,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "china_produto_submissoes"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "china_checklist_custom_categorias_submissao_id_fkey"
+            columns: ["submissao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_china_produto_recebimento_kpis"
+            referencedColumns: ["submissao_id"]
           },
         ]
       }
@@ -2993,6 +3007,13 @@ export type Database = {
             referencedRelation: "china_produto_submissoes"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "china_checklist_custom_itens_submissao_id_fkey"
+            columns: ["submissao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_china_produto_recebimento_kpis"
+            referencedColumns: ["submissao_id"]
+          },
         ]
       }
       china_checklist_itens_ocultos: {
@@ -3024,6 +3045,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "china_produto_submissoes"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "china_checklist_itens_ocultos_submissao_id_fkey"
+            columns: ["submissao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_china_produto_recebimento_kpis"
+            referencedColumns: ["submissao_id"]
           },
         ]
       }
@@ -3125,6 +3153,13 @@ export type Database = {
             referencedRelation: "china_produto_submissoes"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "china_doc_alertas_submissao_id_fkey"
+            columns: ["submissao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_china_produto_recebimento_kpis"
+            referencedColumns: ["submissao_id"]
+          },
         ]
       }
       china_doc_revisoes: {
@@ -3187,6 +3222,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "china_produto_submissoes"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "china_doc_revisoes_submissao_id_fkey"
+            columns: ["submissao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_china_produto_recebimento_kpis"
+            referencedColumns: ["submissao_id"]
           },
         ]
       }
@@ -3533,6 +3575,13 @@ export type Database = {
             referencedRelation: "china_produto_submissoes"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "china_ficha_despachos_submissao_id_fkey"
+            columns: ["submissao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_china_produto_recebimento_kpis"
+            referencedColumns: ["submissao_id"]
+          },
         ]
       }
       china_ficha_visibilidade: {
@@ -3567,6 +3616,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "china_produto_submissoes"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "china_ficha_visibilidade_submissao_id_fkey"
+            columns: ["submissao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_china_produto_recebimento_kpis"
+            referencedColumns: ["submissao_id"]
           },
         ]
       }
@@ -3622,6 +3678,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "china_produto_submissoes"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "china_inbox_snooze_submissao_id_fkey"
+            columns: ["submissao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_china_produto_recebimento_kpis"
+            referencedColumns: ["submissao_id"]
           },
         ]
       }
@@ -4056,6 +4119,13 @@ export type Database = {
             referencedRelation: "china_produto_submissoes"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "china_ordens_compra_submissao_id_fkey"
+            columns: ["submissao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_china_produto_recebimento_kpis"
+            referencedColumns: ["submissao_id"]
+          },
         ]
       }
       china_pasta_digital: {
@@ -4164,6 +4234,13 @@ export type Database = {
             referencedRelation: "china_produto_submissoes"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "china_pasta_digital_submissao_id_fkey"
+            columns: ["submissao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_china_produto_recebimento_kpis"
+            referencedColumns: ["submissao_id"]
+          },
         ]
       }
       china_producao_apontamentos: {
@@ -4255,6 +4332,13 @@ export type Database = {
             isOneToOne: true
             referencedRelation: "china_produto_submissoes"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "china_produto_checklist_submissao_id_fkey"
+            columns: ["submissao_id"]
+            isOneToOne: true
+            referencedRelation: "vw_china_produto_recebimento_kpis"
+            referencedColumns: ["submissao_id"]
           },
         ]
       }
@@ -4354,6 +4438,13 @@ export type Database = {
             referencedRelation: "china_produto_submissoes"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "china_produto_cores_submissao_id_fkey"
+            columns: ["submissao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_china_produto_recebimento_kpis"
+            referencedColumns: ["submissao_id"]
+          },
         ]
       }
       china_produto_documentos: {
@@ -4428,6 +4519,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "china_produto_submissoes"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "china_produto_documentos_submissao_id_fkey"
+            columns: ["submissao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_china_produto_recebimento_kpis"
+            referencedColumns: ["submissao_id"]
           },
         ]
       }
@@ -4871,6 +4969,13 @@ export type Database = {
             referencedRelation: "china_produto_submissoes"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "china_submissao_projetos_submissao_id_fkey"
+            columns: ["submissao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_china_produto_recebimento_kpis"
+            referencedColumns: ["submissao_id"]
+          },
         ]
       }
       china_submissao_tarefa_vinculos: {
@@ -4933,6 +5038,13 @@ export type Database = {
             referencedRelation: "china_produto_submissoes"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "china_submissao_tarefa_vinculos_submissao_id_fkey"
+            columns: ["submissao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_china_produto_recebimento_kpis"
+            referencedColumns: ["submissao_id"]
+          },
         ]
       }
       china_submissao_user_flags: {
@@ -4958,6 +5070,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "china_produto_submissoes"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "china_submissao_user_flags_submissao_id_fkey"
+            columns: ["submissao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_china_produto_recebimento_kpis"
+            referencedColumns: ["submissao_id"]
           },
         ]
       }
@@ -5927,6 +6046,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "china_produto_submissoes"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cofre_produto_itens_submissao_id_fkey"
+            columns: ["submissao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_china_produto_recebimento_kpis"
+            referencedColumns: ["submissao_id"]
           },
         ]
       }
@@ -25399,6 +25525,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "process_despacho_documento_submissao_id_fkey"
+            columns: ["submissao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_china_produto_recebimento_kpis"
+            referencedColumns: ["submissao_id"]
+          },
+          {
             foreignKeyName: "process_despacho_documento_vinculo_projeto_id_fkey"
             columns: ["vinculo_projeto_id"]
             isOneToOne: false
@@ -26047,6 +26180,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "china_produto_submissoes"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "processo_documento_recebimentos_submissao_id_fkey"
+            columns: ["submissao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_china_produto_recebimento_kpis"
+            referencedColumns: ["submissao_id"]
           },
         ]
       }
@@ -27221,6 +27361,13 @@ export type Database = {
             referencedRelation: "china_produto_submissoes"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "produto_amostras_submissao_id_fkey"
+            columns: ["submissao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_china_produto_recebimento_kpis"
+            referencedColumns: ["submissao_id"]
+          },
         ]
       }
       produto_analise_embalagem: {
@@ -27303,6 +27450,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "china_produto_submissoes"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "produto_analise_embalagem_submissao_id_fkey"
+            columns: ["submissao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_china_produto_recebimento_kpis"
+            referencedColumns: ["submissao_id"]
           },
         ]
       }
@@ -27722,6 +27876,13 @@ export type Database = {
             referencedRelation: "china_produto_submissoes"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "produto_composicao_submissao_id_fkey"
+            columns: ["submissao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_china_produto_recebimento_kpis"
+            referencedColumns: ["submissao_id"]
+          },
         ]
       }
       produto_composicao_versoes: {
@@ -27768,6 +27929,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "china_produto_submissoes"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "produto_composicao_versoes_submissao_id_fkey"
+            columns: ["submissao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_china_produto_recebimento_kpis"
+            referencedColumns: ["submissao_id"]
           },
         ]
       }
@@ -28022,6 +28190,13 @@ export type Database = {
             referencedRelation: "china_produto_submissoes"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "produto_etiqueta_bula_submissao_id_fkey"
+            columns: ["submissao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_china_produto_recebimento_kpis"
+            referencedColumns: ["submissao_id"]
+          },
         ]
       }
       produto_etiqueta_cores: {
@@ -28149,6 +28324,13 @@ export type Database = {
             referencedRelation: "china_produto_submissoes"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "produto_fluxo_artes_submissao_id_fkey"
+            columns: ["submissao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_china_produto_recebimento_kpis"
+            referencedColumns: ["submissao_id"]
+          },
         ]
       }
       produto_fluxo_artes_cores: {
@@ -28249,6 +28431,13 @@ export type Database = {
             referencedRelation: "china_produto_submissoes"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "produto_gate_criacao_submissao_id_fkey"
+            columns: ["submissao_id"]
+            isOneToOne: true
+            referencedRelation: "vw_china_produto_recebimento_kpis"
+            referencedColumns: ["submissao_id"]
+          },
         ]
       }
       produto_peticionamento: {
@@ -28327,6 +28516,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "china_produto_submissoes"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "produto_peticionamento_submissao_id_fkey"
+            columns: ["submissao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_china_produto_recebimento_kpis"
+            referencedColumns: ["submissao_id"]
           },
         ]
       }
@@ -28489,6 +28685,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "china_produto_submissoes"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "produto_solicitacao_amostra_submissao_id_fkey"
+            columns: ["submissao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_china_produto_recebimento_kpis"
+            referencedColumns: ["submissao_id"]
           },
         ]
       }
@@ -28762,6 +28965,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "china_produto_submissoes"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "produtos_brasil_submissao_china_id_fkey"
+            columns: ["submissao_china_id"]
+            isOneToOne: false
+            referencedRelation: "vw_china_produto_recebimento_kpis"
+            referencedColumns: ["submissao_id"]
           },
           {
             foreignKeyName: "produtos_brasil_vinculo_id_fkey"
@@ -41850,7 +42060,34 @@ export type Database = {
             referencedRelation: "china_produto_submissoes"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "china_ordens_compra_submissao_id_fkey"
+            columns: ["submissao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_china_produto_recebimento_kpis"
+            referencedColumns: ["submissao_id"]
+          },
         ]
+      }
+      vw_china_produto_recebimento_kpis: {
+        Row: {
+          data_proxima_entrega_prevista: string | null
+          data_ultima_oc: string | null
+          linha_produto: string | null
+          produto_codigo: string | null
+          produto_nome: string | null
+          qtd_ocs: number | null
+          qtd_ocs_ativas: number | null
+          qty_avariada: number | null
+          qty_embarcada: number | null
+          qty_faltante: number | null
+          qty_pedida: number | null
+          qty_recebida: number | null
+          qty_saldo: number | null
+          status_submissao: string | null
+          submissao_id: string | null
+        }
+        Relationships: []
       }
       vw_clientes_cobranca: {
         Row: {
