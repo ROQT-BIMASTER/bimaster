@@ -704,8 +704,8 @@ export default function ProjetoVincularChina() {
               onFilterClick={(key) => {
                 setKpiStatusFilter(key);
                 if (key === "vinculados") setFolder("vinculadas");
-                else if (key === "atrasados") setFolder("a_encaminhar");
-                else if (key === "com_pendencias") setFolder("com_pendencias");
+                else if (key === "atrasados") setFolder("nao_vinculadas");
+                else if (key === "com_pendencias") setFolder("pendencias");
               }}
               collapsed={!kpisOpen}
               onToggleCollapsed={() => setKpisOpen((v) => !v)}
