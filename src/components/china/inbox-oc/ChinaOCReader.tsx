@@ -158,6 +158,8 @@ export function ChinaOCReader({ oc, onChanged }: Props) {
             <div className="whitespace-pre-wrap">{oc.observacoes}</div>
           </Card>
         )}
+
+        <ChinaOCEditPanel oc={oc} onChanged={onChanged} />
       </div>
 
       <RecusarDialog
