@@ -93,20 +93,37 @@ export default function ChinaMonitorRecebimentosOC() {
     setParams(next, { replace: true });
   };
 
-  const exportCsv = () => {
-    const rows = [
-      ["OC", "Produto", "Status", "Pedida", "Embarcada", "Recebida", "Avariada", "Faltante", "Saldo", "Chegada porto", "Recebido CD", "SLA dias"].join(","),
-      ...filtered.map((k) => [
-        k.numero_oc, `"${(k.produto_nome || "").replace(/"/g, '""')}"`, k.oc_status,
-        k.qty_pedida, k.qty_embarcada, k.qty_recebida, k.qty_avariada, k.qty_faltante, k.saldo_aberto,
-        k.data_chegada_porto || "", k.data_recebimento_cd || "", k.sla_porto_cd_dias ?? "",
-      ].join(","))
-    ].join("\n");
-    const blob = new Blob([rows], { type: "text/csv;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url; a.download = `monitor-recebimentos-oc-${Date.now()}.csv`;
-    a.click(); URL.revokeObjectURL(url);
+  const exportar = async (escopo: "oc" | "ops" | "divergencias") => {
+    setExporting(true);
+    try {
+      const stamp = Date.now();
+      const ocIds = filtered.map((k) => k.ordem_compra_id);
+      if (escopo === "oc") {
+        downloadBlob(buildOCResumoCsv(filtered), `monitor-recebimentos-oc-${stamp}.csv`);
+      } else if (escopo === "ops") {
+        const rows = await fetchOPsByOCs(ocIds);
+        if (!rows.length) toast.info("Nenhuma OP vinculada às OCs filtradas");
+        downloadBlob(buildOPsCsv(rows), `monitor-recebimentos-ops-${stamp}.csv`);
+      } else {
+        const { data } = await supabase
+          .from("china_nao_conformidades" as any)
+          .select("*, oc:china_ordens_compra(numero_oc, produto_codigo)")
+          .in("ordem_compra_id", ocIds.length ? ocIds : ["00000000-0000-0000-0000-000000000000"])
+          .order("created_at", { ascending: false });
+        if (!data || !data.length) toast.info("Nenhuma divergência nas OCs filtradas");
+        downloadBlob(buildDivergenciasCsv((data || []) as any[]), `monitor-divergencias-${stamp}.csv`);
+      }
+    } catch (e: any) {
+      toast.error(e.message || "Erro ao exportar");
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const applySaved = (p: { search?: string; statusFilter?: string; filtroEspecial?: string }) => {
+    setSearch(p.search || "");
+    setStatusFilter(p.statusFilter || "all");
+    setFiltroEspecial(p.filtroEspecial || "all");
   };
 
   return (
@@ -120,6 +137,8 @@ export default function ChinaMonitorRecebimentosOC() {
         backTo="/dashboard/fabrica-china/recebimentos"
         backLabel="Voltar para Recebimentos"
       />
+
+      <AlertasResponsavelPanel onSelectOC={setSelected} />
 
       <Card className="p-3 mb-3 flex flex-wrap items-center gap-2">
         <div className="relative flex-1 min-w-[220px]">
@@ -151,8 +170,30 @@ export default function ChinaMonitorRecebimentosOC() {
             <SelectItem value="atrasada">Atrasadas</SelectItem>
           </SelectContent>
         </Select>
-        <Button variant="outline" size="sm" onClick={exportCsv}>
-          <FileDown className="h-3.5 w-3.5 mr-1" /> CSV
+        <SavedFiltersMenu
+          current={{ search, statusFilter, filtroEspecial }}
+          onApply={applySaved}
+        />
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="sm" disabled={exporting}>
+              <FileDown className="h-3.5 w-3.5 mr-1" />
+              {exporting ? "Exportando…" : "Exportar CSV"}
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuLabel>Escopo</DropdownMenuLabel>
+            <DropdownMenuItem onSelect={() => exportar("oc")}>OCs (resumo)</DropdownMenuItem>
+            <DropdownMenuItem onSelect={() => exportar("ops")}>OPs vinculadas</DropdownMenuItem>
+            <DropdownMenuItem onSelect={() => exportar("divergencias")}>Divergências</DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => navigate("/dashboard/fabrica-china/recebimentos/divergencias")}
+        >
+          <AlertOctagon className="h-3.5 w-3.5 mr-1" /> Divergências
         </Button>
       </Card>
 
