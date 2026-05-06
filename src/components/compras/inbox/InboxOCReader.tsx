@@ -236,7 +236,6 @@ export function InboxOCReader({ oc }: InboxOCReaderProps) {
         onOpenChange={setVincOpen}
         ocId={oc.ordem_compra_id}
         numeroOC={oc.numero_oc}
-        itemId={undefined as any}
         itemDescricao={oc.produto_nome}
         qtyDisponivel={Number(oc.qty_recebida) || Number(oc.saldo_aberto) || 0}
       />
