@@ -80,9 +80,22 @@ export function DynamicFormRenderer({ formId, tokenId, userId, onSubmitSuccess }
       .order("order_index");
 
     if (fieldData) {
-      setFields(fieldData as any);
+      // Sanitize options arrays: keep only non-empty strings, dedupe preserving order
+      const sanitized = (fieldData as any[]).map((f) => {
+        const rawOpts = Array.isArray(f.options) ? f.options : [];
+        const seen = new Set<string>();
+        const opts: string[] = [];
+        for (const o of rawOpts) {
+          const s = typeof o === "string" ? o.trim() : String(o ?? "").trim();
+          if (!s || seen.has(s)) continue;
+          seen.add(s);
+          opts.push(s);
+        }
+        return { ...f, options: opts };
+      });
+      setFields(sanitized as any);
       const initial: Record<string, any> = {};
-      fieldData.forEach((f: any) => {
+      sanitized.forEach((f: any) => {
         if (f.field_type === "checkbox") initial[f.id] = [];
         else if (f.field_type === "address") initial[f.id] = null;
         else initial[f.id] = "";
