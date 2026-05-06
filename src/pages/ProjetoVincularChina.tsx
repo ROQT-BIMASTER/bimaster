@@ -136,7 +136,11 @@ export default function ProjetoVincularChina() {
   const [bulkOpen, setBulkOpen] = useState(false);
   const [desvincularTarget, setDesvincularTarget] = useState<string | null>(null);
   const [vinculando, setVinculando] = useState(false);
-  const [kpiStatusFilter, setKpiStatusFilter] = useState<string>("todos");
+  const [kpiStatusFilter, setKpiStatusFilter] = useState<string>(searchParams.get("kpi") || "todos");
+  const [kpisOpen, setKpisOpen] = useState<boolean>(() => {
+    if (typeof window === "undefined") return true;
+    return window.localStorage.getItem("vincular_kpis_open") !== "false";
+  });
   const [recentlyLinkedId, setRecentlyLinkedId] = useState<string | null>(null);
   const [folder, setFolder] = useState<VincularFolder>(initialFolder);
   const [searchTerm, setSearchTerm] = useState(initialSearch);
@@ -152,11 +156,32 @@ export default function ProjetoVincularChina() {
     if (selectedSubmissaoId) next.set("sel", selectedSubmissaoId); else next.delete("sel");
     if (folder && folder !== "nao_vinculadas") next.set("folder", folder); else next.delete("folder");
     if (searchTerm) next.set("q", searchTerm); else next.delete("q");
+    if (kpiStatusFilter && kpiStatusFilter !== "todos") next.set("kpi", kpiStatusFilter); else next.delete("kpi");
     const cur = searchParams.toString();
     const nxt = next.toString();
     if (cur !== nxt) setSearchParams(next, { replace: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedSubmissaoId, folder, searchTerm]);
+  }, [selectedSubmissaoId, folder, searchTerm, kpiStatusFilter]);
+
+  // Persistir colapso dos KPIs em localStorage + atalho "k"
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem("vincular_kpis_open", String(kpisOpen));
+    }
+  }, [kpisOpen]);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || (e.target as HTMLElement)?.isContentEditable) return;
+      if (e.key === "k" || e.key === "K") {
+        e.preventDefault();
+        setKpisOpen((v) => !v);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
   // Data queries
   const { data: submissoes = [], isLoading: loadingSub } = useSubmissoesChina("");
@@ -262,15 +287,31 @@ export default function ProjetoVincularChina() {
   const vinculadasCount = useMemo(() => tableData.filter(r => r.isLinked).length, [tableData]);
   const progressPct = tableData.length > 0 ? Math.round((vinculadasCount / tableData.length) * 100) : 0;
 
-  const kpiData = useMemo(() => ({
-    total: tableData.length,
-    enviados: tableData.filter(r => r.status === "enviado").length,
-    emRevisao: tableData.filter(r => r.status === "em_revisao").length,
-    aprovados: tableData.filter(r => r.status === "aprovado").length,
-    rejeitados: tableData.filter(r => r.status === "rejeitado").length,
-    enviadosBrasil: tableData.filter(r => r.status === "enviado_brasil").length,
-    vinculados: vinculadasCount,
-  }), [tableData, vinculadasCount]);
+  // KPIs computados a partir de TODAS as submissões válidas (não só as enviado_brasil
+  // que alimentam o mailbox), para refletir o pipeline completo.
+  const kpiData = useMemo(() => {
+    const valid = (submissoes as any[]).filter(
+      (s) => s.produto_codigo && s.produto_nome && s.produto_codigo !== "null"
+    );
+    const now = Date.now();
+    const atrasados = tableData.filter((r) => {
+      if (r.isLinked) return false;
+      const t = (r as any).data_envio ? new Date((r as any).data_envio).getTime() : ((r as any).created_at ? new Date((r as any).created_at).getTime() : 0);
+      return t > 0 && now - t > 48 * 3600 * 1000;
+    }).length;
+    const comPendencias = tableData.filter((r) => (r.pendencias ?? 0) > 0).length;
+    return {
+      total: valid.length,
+      enviados: valid.filter((r) => r.status === "enviado").length,
+      emRevisao: valid.filter((r) => r.status === "em_revisao").length,
+      aprovados: valid.filter((r) => r.status === "aprovado").length,
+      rejeitados: valid.filter((r) => r.status === "rejeitado").length,
+      enviadosBrasil: valid.filter((r) => r.status === "enviado_brasil").length,
+      vinculados: vinculadasCount,
+      atrasados,
+      comPendencias,
+    };
+  }, [submissoes, tableData, vinculadasCount]);
 
   // Handlers
   const handleRowClick = (row: SubmissaoRow) => {
@@ -656,10 +697,38 @@ export default function ProjetoVincularChina() {
               </div>
             </div>
 
+            {/* Painel de monitoramento — KPIs */}
+            <VincularChinaKpis
+              data={kpiData}
+              activeFilter={kpiStatusFilter}
+              onFilterClick={(key) => {
+                setKpiStatusFilter(key);
+                if (key === "vinculados") setFolder("vinculadas");
+                else if (key === "atrasados") setFolder("nao_vinculadas");
+                else if (key === "com_pendencias") setFolder("pendencias");
+              }}
+              collapsed={!kpisOpen}
+              onToggleCollapsed={() => setKpisOpen((v) => !v)}
+            />
+
       {/* Mailbox 3-pane layout */}
       {(() => {
         const { rows: mailboxRows, counts: folderCounts } = classifyVincularRows(tableData, flags, snoozes);
-        const folderItems = filterByFolder(mailboxRows, folder);
+        const baseFolderItems = filterByFolder(mailboxRows, folder);
+        const folderItems = (() => {
+          if (!kpiStatusFilter || kpiStatusFilter === "todos") return baseFolderItems;
+          if (kpiStatusFilter === "vinculados") return baseFolderItems.filter((i: any) => i.isLinked);
+          if (kpiStatusFilter === "com_pendencias") return baseFolderItems.filter((i: any) => (i.pendencias ?? 0) > 0);
+          if (kpiStatusFilter === "atrasados") {
+            const now = Date.now();
+            return baseFolderItems.filter((i: any) => {
+              if (i.isLinked) return false;
+              const t = i.data_envio ? new Date(i.data_envio).getTime() : (i.created_at ? new Date(i.created_at).getTime() : 0);
+              return t > 0 && now - t > 48 * 3600 * 1000;
+            });
+          }
+          return baseFolderItems.filter((i: any) => i.status === kpiStatusFilter);
+        })();
         const selectedMailRow = mailboxRows.find((r) => r.id === selectedSubmissaoId) || null;
 
         const handleToggleAllChecks = () => {
