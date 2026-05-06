@@ -30,12 +30,14 @@ interface OptionsEditorProps {
 interface OptionRowProps {
   id: string;
   index: number;
+  total: number;
   value: string;
   onUpdate: (val: string) => void;
   onRemove: () => void;
+  onMove: (from: number, to: number) => void;
 }
 
-function OptionRow({ id, value, onUpdate, onRemove }: OptionRowProps) {
+function OptionRow({ id, index, total, value, onUpdate, onRemove, onMove }: OptionRowProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -43,14 +45,32 @@ function OptionRow({ id, value, onUpdate, onRemove }: OptionRowProps) {
     opacity: isDragging ? 0.6 : 1,
     zIndex: isDragging ? 10 : "auto" as const,
   };
+
+  function handleHandleKeyDown(e: React.KeyboardEvent<HTMLButtonElement>) {
+    // Alt+ArrowUp/Down moves the option without needing pointer drag
+    if (e.altKey && (e.key === "ArrowUp" || e.key === "ArrowDown")) {
+      e.preventDefault();
+      const target = e.key === "ArrowUp" ? index - 1 : index + 1;
+      if (target >= 0 && target < total) onMove(index, target);
+    } else if (e.key === "Home" && e.altKey) {
+      e.preventDefault();
+      if (index !== 0) onMove(index, 0);
+    } else if (e.key === "End" && e.altKey) {
+      e.preventDefault();
+      if (index !== total - 1) onMove(index, total - 1);
+    }
+  }
+
   return (
     <div ref={setNodeRef} style={style} className="flex items-center gap-1.5 group bg-background rounded">
       <button
         type="button"
         {...attributes}
         {...listeners}
-        className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground touch-none"
-        title="Arraste para reordenar"
+        onKeyDown={handleHandleKeyDown}
+        aria-label={`Opção ${index + 1} de ${total}: ${value || "vazia"}. Use Alt+Setas para reordenar, ou arraste.`}
+        className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground touch-none rounded p-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:text-foreground"
+        title="Arraste ou use Alt+Setas para reordenar"
       >
         <GripVertical className="h-3.5 w-3.5" />
       </button>
@@ -58,8 +78,16 @@ function OptionRow({ id, value, onUpdate, onRemove }: OptionRowProps) {
         value={value}
         onChange={(e) => onUpdate(e.target.value)}
         className="h-8 text-sm flex-1"
+        aria-label={`Texto da opção ${index + 1}`}
       />
-      <Button type="button" size="icon" variant="ghost" className="h-7 w-7" onClick={onRemove}>
+      <Button
+        type="button"
+        size="icon"
+        variant="ghost"
+        className="h-7 w-7"
+        onClick={onRemove}
+        aria-label={`Remover opção ${index + 1}`}
+      >
         <X className="h-3.5 w-3.5" />
       </Button>
     </div>
