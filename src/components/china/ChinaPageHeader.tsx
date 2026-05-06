@@ -52,6 +52,7 @@ export function ChinaPageHeader({
   iconTone = "destructive",
   showBack = false,
   backTo,
+  backLabel,
   actions,
 }: ChinaPageHeaderProps) {
   const navigate = useNavigate();
