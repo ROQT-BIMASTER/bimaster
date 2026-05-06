@@ -49,6 +49,11 @@ export function folderMatches(o: InboxOC, folder: InboxFolder): boolean {
       return o.saldo_aberto <= 0 || o.oc_status === "concluida";
     case "atrasadas":
       return isAtrasada(o);
+    case "divergencias":
+      return o.has_divergencia;
+    case "catalogo":
+    case "submissoes":
+      return false;
   }
 }
 
