@@ -296,6 +296,11 @@ export default function ChinaCaixaEntrada() {
               />
             </ResizablePanel>
             <ResizableHandle withHandle />
+            {folder === "oc" ? (
+              <ResizablePanel defaultSize={82} minSize={50}>
+                <ChinaInboxOCAba />
+              </ResizablePanel>
+            ) : (<>
             <ResizablePanel defaultSize={36} minSize={24}>
               {isLoading ? (
                 <div className="space-y-2 p-3">
@@ -332,6 +337,7 @@ export default function ChinaCaixaEntrada() {
                 loading={loading}
               />
             </ResizablePanel>
+            </>)}
           </ResizablePanelGroup>
         </div>
       ) : (
