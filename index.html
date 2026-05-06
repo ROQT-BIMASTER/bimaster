@@ -77,22 +77,44 @@
     <script>
       (function () {
         try {
+          var START = Date.now();
           var h = location.hostname;
           var isPrimary = h === "bimaster.online" || h === "www.bimaster.online";
           if (!isPrimary) return;
           var FALLBACK = "https://china.bimaster.online";
           var go = function (reason) {
             try { sessionStorage.setItem("__domain_fallback__", reason || "1"); } catch (e) {}
-            location.replace(FALLBACK + location.pathname + location.search + location.hash);
+            var elapsed = Date.now() - START;
+            // Anexa motivo + tempo na URL para o destino logar
+            var sp = new URLSearchParams(location.search);
+            sp.set("_df", reason || "unknown");
+            sp.set("_dft", String(elapsed));
+            sp.set("_dfo", h);
+            var url = FALLBACK + location.pathname + "?" + sp.toString() + location.hash;
+            // Best-effort: tenta logar antes do redirect (sendBeacon é não-bloqueante)
+            try {
+              var body = JSON.stringify({
+                reason: reason || "unknown",
+                elapsed_ms: elapsed,
+                origin_host: h,
+                target_host: "china.bimaster.online",
+                pathname: location.pathname,
+              });
+              if (navigator.sendBeacon) {
+                navigator.sendBeacon(
+                  "https://aokkyrgaqjarhlywhjju.supabase.co/functions/v1/log-domain-fallback",
+                  new Blob([body], { type: "application/json" })
+                );
+              }
+            } catch (_) {}
+            location.replace(url);
           };
 
-          // Redirect imediato para formulário público (link crítico)
           if (location.pathname === "/formulario-equipe") {
             go("formulario-preemptive");
             return;
           }
 
-          // Timeout de boot do app: se em 8s o React não montou, vai pro fallback
           var booted = false;
           var bootTimer = setTimeout(function () {
             if (booted) return;
@@ -109,7 +131,6 @@
           });
           mo.observe(document.getElementById("root"), { childList: true });
 
-          // Falha ao carregar o bundle principal
           window.addEventListener("error", function (ev) {
             var t = ev && ev.target;
             if (t && (t.tagName === "SCRIPT" || t.tagName === "LINK") && t.src && /\/src\/main\.tsx|\/assets\//.test(t.src || t.href || "")) {

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -10,7 +10,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { CheckCircle2, Loader2, ShieldCheck, Users } from "lucide-react";
+import { CheckCircle2, Loader2, ShieldCheck, Users, Info } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { toast } from "@/hooks/use-toast";
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
@@ -71,6 +72,36 @@ export default function FormularioEquipe() {
   const [token, setToken] = useState(searchParams.get("token") || "");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [tokenInput, setTokenInput] = useState(searchParams.get("token") || "");
+
+  // Detecta se o usuário foi redirecionado para cá via fallback de domínio.
+  // Os parâmetros são injetados pelo script de fallback em index.html.
+  const fallbackReason = searchParams.get("_df");
+  const fallbackElapsed = searchParams.get("_dft");
+  const fallbackOrigin = searchParams.get("_dfo");
+  const cameFromFallback = !!fallbackReason;
+
+  // Best-effort: registra no backend que carregamos via fallback (idempotente o
+  // bastante via rate-limit). Roda uma única vez por mount.
+  useEffect(() => {
+    if (!cameFromFallback) return;
+    try {
+      const url = `${SUPABASE_URL}/functions/v1/log-domain-fallback`;
+      const body = JSON.stringify({
+        reason: `form-arrived:${fallbackReason}`,
+        elapsed_ms: fallbackElapsed ? Number(fallbackElapsed) : undefined,
+        origin_host: fallbackOrigin || undefined,
+        target_host: window.location.hostname,
+        pathname: window.location.pathname,
+      });
+      fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body,
+        keepalive: true,
+      }).catch(() => {});
+    } catch { /* noop */ }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cameFromFallback]);
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -142,6 +173,21 @@ export default function FormularioEquipe() {
             Preencha seus dados para completar o cadastro
           </p>
         </div>
+
+        {cameFromFallback && (
+          <Alert className="mb-4 border-amber-500/40 bg-amber-500/10 text-amber-100">
+            <Info className="h-4 w-4 text-amber-300" />
+            <AlertTitle className="text-amber-200">
+              Carregado pelo endereço alternativo
+            </AlertTitle>
+            <AlertDescription className="text-amber-100/90 text-xs">
+              O endereço principal está temporariamente indisponível, então
+              redirecionamos automaticamente para <code className="font-mono">china.bimaster.online</code>.
+              Pode prosseguir normalmente com o cadastro — registramos o evento
+              para acompanhamento técnico.
+            </AlertDescription>
+          </Alert>
+        )}
 
         {/* Step: Token */}
         {step === "token" && (

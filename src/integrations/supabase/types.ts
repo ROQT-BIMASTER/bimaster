@@ -9101,6 +9101,42 @@ export type Database = {
         }
         Relationships: []
       }
+      domain_fallback_logs: {
+        Row: {
+          created_at: string
+          elapsed_ms: number | null
+          id: string
+          origin_host: string | null
+          pathname: string | null
+          reason: string
+          target_host: string | null
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          elapsed_ms?: number | null
+          id?: string
+          origin_host?: string | null
+          pathname?: string | null
+          reason: string
+          target_host?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          elapsed_ms?: number | null
+          id?: string
+          origin_host?: string | null
+          pathname?: string | null
+          reason?: string
+          target_host?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       dr_drill_log: {
         Row: {
           executed_by: string | null
