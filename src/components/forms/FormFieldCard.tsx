@@ -101,15 +101,10 @@ export function FormFieldCard({ field, onUpdate, onRemove, onOpenConfig }: FormF
         </div>
 
         {(field.field_type === "select" || field.field_type === "checkbox") && (
-          <Input
-            value={(field.options || []).join(", ")}
-            onChange={(e) =>
-              onUpdate(field.id, {
-                options: e.target.value.split(",").map((s) => s.trim()).filter(Boolean),
-              })
-            }
-            placeholder="Opções separadas por vírgula"
-            className="text-sm"
+          <OptionsEditor
+            options={Array.isArray(field.options) ? field.options : []}
+            onChange={(opts) => onUpdate(field.id, { options: opts })}
+            fieldType={field.field_type as "select" | "checkbox"}
           />
         )}
 
