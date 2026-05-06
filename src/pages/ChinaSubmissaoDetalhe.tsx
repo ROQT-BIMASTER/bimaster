@@ -14,6 +14,7 @@ import { ChinaPageHeader } from "@/components/china/ChinaPageHeader";
 import { getSignedUrl } from "@/lib/utils/storage-helper";
 import { Loader2 } from "lucide-react";
 import { useFieldVisibility } from "@/hooks/useFieldVisibility";
+import { useResolvedBackTo } from "@/lib/navigation/withReturnTo";
 
 export default function ChinaSubmissaoDetalhe() {
   const { id } = useParams<{ id: string }>();
