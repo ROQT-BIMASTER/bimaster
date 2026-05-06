@@ -3,6 +3,23 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Plus, X, GripVertical } from "lucide-react";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
 interface OptionsEditorProps {
   options: string[];
@@ -10,8 +27,55 @@ interface OptionsEditorProps {
   fieldType: "select" | "checkbox";
 }
 
+interface OptionRowProps {
+  id: string;
+  index: number;
+  value: string;
+  onUpdate: (val: string) => void;
+  onRemove: () => void;
+}
+
+function OptionRow({ id, value, onUpdate, onRemove }: OptionRowProps) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.6 : 1,
+    zIndex: isDragging ? 10 : "auto" as const,
+  };
+  return (
+    <div ref={setNodeRef} style={style} className="flex items-center gap-1.5 group bg-background rounded">
+      <button
+        type="button"
+        {...attributes}
+        {...listeners}
+        className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground touch-none"
+        title="Arraste para reordenar"
+      >
+        <GripVertical className="h-3.5 w-3.5" />
+      </button>
+      <Input
+        value={value}
+        onChange={(e) => onUpdate(e.target.value)}
+        className="h-8 text-sm flex-1"
+      />
+      <Button type="button" size="icon" variant="ghost" className="h-7 w-7" onClick={onRemove}>
+        <X className="h-3.5 w-3.5" />
+      </Button>
+    </div>
+  );
+}
+
 export function OptionsEditor({ options, onChange, fieldType }: OptionsEditorProps) {
   const [draft, setDraft] = useState("");
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
+
+  // Use option text as id; if duplicates exist (shouldn't), append index
+  const ids = options.map((o, i) => `${o}__${i}`);
 
   function add() {
     const v = draft.trim();
@@ -26,14 +90,6 @@ export function OptionsEditor({ options, onChange, fieldType }: OptionsEditorPro
 
   function remove(idx: number) {
     onChange(options.filter((_, i) => i !== idx));
-  }
-
-  function move(from: number, to: number) {
-    if (to < 0 || to >= options.length) return;
-    const next = [...options];
-    const [it] = next.splice(from, 1);
-    next.splice(to, 0, it);
-    onChange(next);
   }
 
   function update(idx: number, val: string) {
@@ -55,6 +111,15 @@ export function OptionsEditor({ options, onChange, fieldType }: OptionsEditorPro
     return true;
   }
 
+  function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const oldIndex = ids.indexOf(String(active.id));
+    const newIndex = ids.indexOf(String(over.id));
+    if (oldIndex < 0 || newIndex < 0) return;
+    onChange(arrayMove(options, oldIndex, newIndex));
+  }
+
   return (
     <div className="space-y-2 rounded-md border bg-muted/20 p-3">
       <div className="flex items-center justify-between">
@@ -67,35 +132,22 @@ export function OptionsEditor({ options, onChange, fieldType }: OptionsEditorPro
       </div>
 
       {options.length > 0 && (
-        <div className="space-y-1.5">
-          {options.map((opt, idx) => (
-            <div key={idx} className="flex items-center gap-1.5 group">
-              <button
-                type="button"
-                onClick={() => move(idx, idx - 1)}
-                disabled={idx === 0}
-                className="text-muted-foreground hover:text-foreground disabled:opacity-30"
-                title="Mover para cima"
-              >
-                <GripVertical className="h-3.5 w-3.5" />
-              </button>
-              <Input
-                value={opt}
-                onChange={(e) => update(idx, e.target.value)}
-                className="h-8 text-sm flex-1"
-              />
-              <Button
-                type="button"
-                size="icon"
-                variant="ghost"
-                className="h-7 w-7"
-                onClick={() => remove(idx)}
-              >
-                <X className="h-3.5 w-3.5" />
-              </Button>
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+          <SortableContext items={ids} strategy={verticalListSortingStrategy}>
+            <div className="space-y-1.5">
+              {options.map((opt, idx) => (
+                <OptionRow
+                  key={ids[idx]}
+                  id={ids[idx]}
+                  index={idx}
+                  value={opt}
+                  onUpdate={(v) => update(idx, v)}
+                  onRemove={() => remove(idx)}
+                />
+              ))}
             </div>
-          ))}
-        </div>
+          </SortableContext>
+        </DndContext>
       )}
 
       <div className="flex gap-1.5">
@@ -128,7 +180,7 @@ export function OptionsEditor({ options, onChange, fieldType }: OptionsEditorPro
         </Button>
       </div>
       <p className="text-[10px] text-muted-foreground">
-        Dica: cole várias opções separadas por vírgula, ponto-e-vírgula ou quebra de linha para adicionar de uma vez.
+        Arraste pelo ícone à esquerda para reordenar. Cole várias opções separadas por vírgula, ponto-e-vírgula ou quebra de linha para adicionar de uma vez.
       </p>
     </div>
   );
