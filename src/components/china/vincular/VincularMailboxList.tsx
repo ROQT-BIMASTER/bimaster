@@ -175,9 +175,16 @@ export function VincularMailboxList({
           aria-label="Selecionar todos"
         />
         <Input
+          ref={searchInputRef}
           value={search}
           onChange={(e) => onSearchChange(e.target.value)}
-          placeholder="Buscar código, nome, OC, projeto..."
+          onKeyDown={(e) => {
+            if (e.key === "Escape") {
+              if (search) { e.preventDefault(); onSearchChange(""); }
+              else (e.target as HTMLInputElement).blur();
+            }
+          }}
+          placeholder='Buscar... (atalho "/")'
           className="h-7 text-xs flex-1 max-w-md"
         />
         {someChecked ? (
