@@ -164,6 +164,8 @@ export function useEncaminharProjetoTarefa() {
       qc.invalidateQueries({ queryKey: ["china-tarefa-vinculos-all"] });
       qc.invalidateQueries({ queryKey: ["china-produto-brasil-vinculos"] });
       qc.invalidateQueries({ queryKey: ["process-events"] });
+      qc.invalidateQueries({ queryKey: ["china-dispatch-history"] });
+      qc.invalidateQueries({ queryKey: ["china-encaminhamento-defaults"] });
     },
     onError: (e: any) => {
       if (e?.code === "23505") {

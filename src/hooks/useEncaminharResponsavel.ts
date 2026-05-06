@@ -72,6 +72,7 @@ export function useEncaminharResponsavel() {
       toast.success("Encaminhado ao responsável");
       qc.invalidateQueries({ queryKey: ["china-mailbox"] });
       qc.invalidateQueries({ queryKey: ["process-events"] });
+      qc.invalidateQueries({ queryKey: ["china-dispatch-history"] });
     },
     onError: (e: any) => {
       toast.error("Falha ao encaminhar", { description: e?.message });

@@ -15,6 +15,7 @@ import { useDespachosPorSubmissao } from "@/hooks/useDespachoDocumentos";
 import { CHINA_DOCUMENT_TYPES, DOCUMENT_CATEGORIES } from "@/lib/china-document-types";
 import { ProcessOrchestrationPanel } from "@/components/processo/ProcessOrchestrationPanel";
 import { DespachosPanel } from "@/components/processo/DespachosPanel";
+import { DispatchHistoryPanel } from "@/components/china/vincular/DispatchHistoryPanel";
 import { cn } from "@/lib/utils";
 import type { SubmissaoRow } from "./VincularChinaTable";
 import { VincularChinaVincularTab } from "./VincularChinaVincularTab";
@@ -240,6 +241,8 @@ export function VincularChinaSidePanel({
               <ExternalLink className="h-3.5 w-3.5" />
               Abrir Ficha Completa
             </Button>
+            <Separator />
+            <DispatchHistoryPanel submissaoId={submissao.id} />
           </TabsContent>
 
           {/* Vincular Tab */}
