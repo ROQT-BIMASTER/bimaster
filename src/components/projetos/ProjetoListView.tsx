@@ -92,7 +92,11 @@ export function ProjetoListView({ projetoId, darkBg = false, filters = EMPTY_FIL
     createTarefa.mutate({ titulo, secao_id: secaoId });
   };
 
-  const handleToggle = (tarefa: ProjetoTarefa) => {
+  const handleToggle = async (tarefa: ProjetoTarefa) => {
+    if (tarefa.status !== "concluida") {
+      const ok = await confirmConclusaoTarefa({ titulo: tarefa.titulo });
+      if (!ok) return;
+    }
     toggleTarefaCompleta.mutate(tarefa);
   };
 
