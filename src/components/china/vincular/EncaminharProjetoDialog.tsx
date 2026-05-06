@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
@@ -9,9 +9,10 @@ import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { Search, Folder, ListChecks, Send, ArrowLeft } from "lucide-react";
+import { Search, Folder, ListChecks, Send, ArrowLeft, Sparkles } from "lucide-react";
 import { useProjetosParaVinculo, useSecoesETarefas } from "@/hooks/useChinaTarefaVinculos";
 import { useEncaminharProjetoTarefa } from "@/hooks/useEncaminharProjetoTarefa";
+import { useEncaminhamentoSmartDefaults } from "@/hooks/useEncaminhamentoSmartDefaults";
 
 interface Props {
   open: boolean;
