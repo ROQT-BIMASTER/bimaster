@@ -11,6 +11,8 @@ import { InboxOCReader } from "@/components/compras/inbox/InboxOCReader";
 import { NovaOCDialog } from "@/components/compras/inbox/NovaOCDialog";
 import { CatalogoChinaPanel } from "@/components/compras/inbox/CatalogoChinaPanel";
 import { SubmissoesAprovadasPanel } from "@/components/compras/inbox/SubmissoesAprovadasPanel";
+import { PatioEmbarquePanel } from "@/components/compras/inbox/PatioEmbarquePanel";
+import { TorreContainersPanel } from "@/components/compras/inbox/TorreContainersPanel";
 import {
   useCompradorInboxOCs,
   inboxFolderCounts,
