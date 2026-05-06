@@ -269,6 +269,14 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
       logger.debug(`[toggleTarefaCompleta] tarefa: ${tarefa.id} isCompleting: ${isCompleting}`);
 
       if (isCompleting) {
+        // Confirmação obrigatória para evitar conclusão acidental por clique
+        const { confirmConclusaoTarefa } = await import("@/lib/projetos/confirmConclusao");
+        const ok = await confirmConclusaoTarefa({ titulo: tarefa.titulo });
+        if (!ok) {
+          // Sinaliza cancelamento para reverter o estado otimista
+          throw new Error("__CANCELLED__");
+        }
+
         const { data: esp } = await supabase
           .from("processo_tarefa_espelho" as any)
           .select("*")
@@ -278,7 +286,7 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
           .maybeSingle();
         if (esp) {
           window.dispatchEvent(new CustomEvent("espelho-precisa-evidencia", { detail: esp }));
-          return;
+          throw new Error("__CANCELLED__");
         }
       }
 
