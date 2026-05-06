@@ -995,6 +995,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
             <MenuItemLink to="/dashboard/fabrica-china/recebimentos" icon={Package} title="Submissões 提交" colorKey="china" />
             <MenuItemLink to="/dashboard/fabrica-china/ordens" icon={ShoppingCart} title="Ordens de Compra 采购订单" colorKey="china" />
             <MenuItemLink to="/dashboard/fabrica-china/recebimentos-oc" icon={TrendingUp} title="Monitor Recebimentos OC 收货监控" colorKey="china" />
+            <MenuItemLink to="/dashboard/fabrica-china/patio-embarque" icon={Package} title="Pátio Pronto p/ Embarque 待发货" colorKey="china" />
             <MenuItemLink to="/dashboard/fabrica-china/torre-containers" icon={Ship} title="Torre de Containers 集装箱" colorKey="china" />
             <MenuItemLink to="/dashboard/compras-internacionais" icon={Globe} title="Central Internacional 国际采购" colorKey="china" />
             <MenuItemLink to="/dashboard/compras-nacionais" icon={ShoppingCart} title="Compras Nacionais 国内采购" colorKey="china" />
