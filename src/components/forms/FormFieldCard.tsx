@@ -13,6 +13,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { GripVertical, Trash2, Settings2 } from "lucide-react";
+import { OptionsEditor } from "./OptionsEditor";
 
 export interface FormField {
   id: string;
