@@ -77,14 +77,43 @@ export function VincularMailboxList({
 
   // Auto-scroll: mantém o item selecionado visível (j/k, clique, busca/filtros).
   // Aplica offset para não encostar na toolbar fixa do topo nem no rodapé.
-  const SCROLL_OFFSET_TOP = 48; // altura aprox. da toolbar + folga
+  const SCROLL_OFFSET_TOP = 48;
   const SCROLL_OFFSET_BOTTOM = 16;
   const listRef = useRef<HTMLUListElement>(null);
   const itemRefs = useRef<Map<string, HTMLLIElement>>(new Map());
+
+  // Preserva o item selecionado mesmo quando ele sai da lista filtrada.
+  // `lastSelectedSnapshot` guarda a última versão conhecida do item selecionado
+  // a partir da lista completa, para podermos exibir um banner persistente.
+  const lastSelectedSnapshotRef = useRef<MailboxRow | null>(null);
+  const fullSelected = useMemo(
+    () => (selectedId ? items.find((i) => i.id === selectedId) ?? null : null),
+    [items, selectedId],
+  );
+  useEffect(() => {
+    if (fullSelected) lastSelectedSnapshotRef.current = fullSelected;
+  }, [fullSelected]);
+  const pinnedItem: MailboxRow | null =
+    fullSelected ?? (selectedId ? lastSelectedSnapshotRef.current : null);
   const selectedStillVisible = !!selectedId && filtered.some((i) => i.id === selectedId);
+  const selectedHiddenByFilter = !!selectedId && !selectedStillVisible && !!pinnedItem;
+
+  // Comportamento de rolagem ao navegar com j/k (configurável pelo usuário).
+  type ScrollPref = "smooth" | "auto" | "none";
+  const SCROLL_PREF_KEY = "china:vincular:list:scrollBehavior";
+  const [scrollPref, setScrollPref] = useState<ScrollPref>(() => {
+    if (typeof window === "undefined") return "smooth";
+    const v = window.localStorage.getItem(SCROLL_PREF_KEY) as ScrollPref | null;
+    return v === "smooth" || v === "auto" || v === "none" ? v : "smooth";
+  });
+  const updateScrollPref = useCallback((v: ScrollPref) => {
+    setScrollPref(v);
+    try { window.localStorage.setItem(SCROLL_PREF_KEY, v); } catch { /* noop */ }
+  }, []);
 
   useEffect(() => {
     if (!selectedId || !selectedStillVisible) return;
+    if (scrollPref === "none") return;
     const list = listRef.current;
     const el = itemRefs.current.get(selectedId);
     if (!list || !el) return;
@@ -93,13 +122,14 @@ export function VincularMailboxList({
     const elRect = el.getBoundingClientRect();
     const topGap = elRect.top - listRect.top;
     const bottomGap = listRect.bottom - elRect.bottom;
+    const behavior: ScrollBehavior = scrollPref === "auto" ? "auto" : "smooth";
 
     if (topGap < SCROLL_OFFSET_TOP) {
-      list.scrollBy({ top: topGap - SCROLL_OFFSET_TOP, behavior: "smooth" });
+      list.scrollBy({ top: topGap - SCROLL_OFFSET_TOP, behavior });
     } else if (bottomGap < SCROLL_OFFSET_BOTTOM) {
-      list.scrollBy({ top: SCROLL_OFFSET_BOTTOM - bottomGap, behavior: "smooth" });
+      list.scrollBy({ top: SCROLL_OFFSET_BOTTOM - bottomGap, behavior });
     }
-  }, [selectedId, selectedStillVisible, filtered.length, search]);
+  }, [selectedId, selectedStillVisible, filtered.length, search, scrollPref]);
 
   return (
     <div className="flex h-full flex-col bg-background">
