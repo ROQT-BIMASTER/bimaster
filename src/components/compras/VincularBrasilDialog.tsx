@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   Dialog,
   DialogContent,
@@ -13,12 +13,11 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Link2, Factory, ShoppingBag, Package, Sparkles } from "lucide-react";
+import { Link2, Factory, ShoppingBag, Package, Sparkles, X, AlertCircle } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCriarVinculo } from "@/hooks/useComprasInternacionalVinculos";
 import { useSubmissaoProjetosOPs } from "@/hooks/useSubmissaoProjetosOPs";
-import { useEffect } from "react";
 
 interface Props {
   open: boolean;
@@ -29,6 +28,37 @@ interface Props {
   itemDescricao?: string;
   qtyDisponivel: number;
   submissaoId?: string;
+}
+
+type OPSelectionSource = "sugestao_auto" | "sugestao_clique" | "select_manual" | "limpar";
+
+async function logOPSelection(params: {
+  source: OPSelectionSource;
+  opId: string | null;
+  ocId: string;
+  itemId?: string;
+  submissaoId?: string;
+  numeroOC: string;
+}) {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    await supabase.from("audit_logs" as any).insert({
+      user_id: user.id,
+      action: `vincular_brasil.op_${params.source}`,
+      entity_type: "china_ordem_compra",
+      entity_id: params.ocId,
+      metadata: {
+        source: params.source,
+        op_id: params.opId,
+        item_id: params.itemId ?? null,
+        submissao_id: params.submissaoId ?? null,
+        numero_oc: params.numeroOC,
+      },
+    });
+  } catch {
+    // auditoria best-effort
+  }
 }
 
 export function VincularBrasilDialog({
@@ -49,20 +79,34 @@ export function VincularBrasilDialog({
   const [obs, setObs] = useState("");
   const criar = useCriarVinculo();
 
-  const { data: sugestoes = [] } = useSubmissaoProjetosOPs(open ? submissaoId : undefined);
-  const sugestaoFlat = sugestoes.flatMap((s) => s.ops);
+  const { data: sugestoes = [], isLoading: loadingSugestoes } = useSubmissaoProjetosOPs(
+    open ? submissaoId : undefined,
+  );
+  const sugestoesComOps = sugestoes.filter((s) => s.ops.length > 0);
+  const sugestaoFlat = sugestoesComOps.flatMap((s) => s.ops);
+  const temProjetosSemOps = sugestoes.length > 0 && sugestoesComOps.length === 0;
 
   // Auto-preenche quando há exatamente uma OP sugerida e o usuário ainda não escolheu nada
   useEffect(() => {
     if (open && tipo === "op" && !opId && sugestaoFlat.length === 1) {
-      setOpId(sugestaoFlat[0].id);
+      const auto = sugestaoFlat[0];
+      setOpId(auto.id);
+      logOPSelection({
+        source: "sugestao_auto",
+        opId: auto.id,
+        ocId,
+        itemId,
+        submissaoId,
+        numeroOC,
+      });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, sugestaoFlat.length]);
 
-  const { data: ops = [] } = useQuery({
+  const { data: ops = [], isLoading: loadingOps } = useQuery({
     queryKey: ["fabrica-ops-aberto"],
     enabled: open,
+    staleTime: 30_000,
     queryFn: async () => {
       const { data } = await supabase
         .from("fabrica_ordens_producao" as any)
@@ -77,6 +121,7 @@ export function VincularBrasilDialog({
   const { data: compras = [] } = useQuery({
     queryKey: ["fabrica-compras-aberto"],
     enabled: open,
+    staleTime: 30_000,
     queryFn: async () => {
       const { data } = await supabase
         .from("fabrica_compras" as any)
@@ -91,6 +136,7 @@ export function VincularBrasilDialog({
   const { data: mps = [] } = useQuery({
     queryKey: ["fabrica-mps-list"],
     enabled: open,
+    staleTime: 60_000,
     queryFn: async () => {
       const { data } = await supabase
         .from("fabrica_materias_primas" as any)
@@ -100,6 +146,28 @@ export function VincularBrasilDialog({
       return (data || []) as any[];
     },
   });
+
+  const handleUsarSugestao = useCallback(
+    (id: string) => {
+      setOpId(id);
+      logOPSelection({ source: "sugestao_clique", opId: id, ocId, itemId, submissaoId, numeroOC });
+    },
+    [ocId, itemId, submissaoId, numeroOC],
+  );
+
+  const handleSelectManual = useCallback(
+    (id: string) => {
+      setOpId(id);
+      logOPSelection({ source: "select_manual", opId: id, ocId, itemId, submissaoId, numeroOC });
+    },
+    [ocId, itemId, submissaoId, numeroOC],
+  );
+
+  const handleLimpar = useCallback(() => {
+    if (!opId) return;
+    setOpId("");
+    logOPSelection({ source: "limpar", opId: null, ocId, itemId, submissaoId, numeroOC });
+  }, [opId, ocId, itemId, submissaoId, numeroOC]);
 
   const handleSubmit = async () => {
     await criar.mutateAsync({
@@ -117,6 +185,8 @@ export function VincularBrasilDialog({
 
   const podeSubmeter =
     qty > 0 && ((tipo === "op" && opId) || (tipo === "compra" && compraId) || (tipo === "mp" && mpId));
+
+  const semOpsDisponiveis = !loadingOps && ops.length === 0;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -141,13 +211,13 @@ export function VincularBrasilDialog({
           </TabsList>
 
           <TabsContent value="op" className="space-y-2 pt-3">
-            {sugestoes.length > 0 && (
+            {sugestoesComOps.length > 0 && (
               <div className="rounded-md border border-primary/20 bg-primary/5 p-2.5 space-y-2">
                 <div className="flex items-center gap-1.5 text-[11px] font-medium text-primary">
                   <Sparkles className="h-3.5 w-3.5" />
                   Sugestão automática (mesmo projeto da submissão)
                 </div>
-                {sugestoes.map((s) => (
+                {sugestoesComOps.map((s) => (
                   <div key={s.projeto_id} className="space-y-1">
                     <div className="text-[11px] text-muted-foreground">
                       Projeto <strong className="text-foreground">{s.projeto_nome}</strong> · {s.ops.length} OP{s.ops.length > 1 ? "s" : ""} em aberto
@@ -167,7 +237,8 @@ export function VincularBrasilDialog({
                             size="sm"
                             variant={opId === op.id ? "default" : "outline"}
                             className="h-6 px-2 text-[10px]"
-                            onClick={() => setOpId(op.id)}
+                            onClick={() => handleUsarSugestao(op.id)}
+                            disabled={semOpsDisponiveis}
                           >
                             {opId === op.id ? "Selecionada" : "Usar esta OP"}
                           </Button>
@@ -178,9 +249,47 @@ export function VincularBrasilDialog({
                 ))}
               </div>
             )}
-            <Label className="text-xs">Selecione a Ordem de Produção</Label>
-            <Select value={opId} onValueChange={setOpId}>
-              <SelectTrigger><SelectValue placeholder="Escolha uma OP em aberto" /></SelectTrigger>
+
+            {temProjetosSemOps && !loadingSugestoes && (
+              <div className="rounded-md border border-amber-500/30 bg-amber-500/5 p-2.5 flex items-start gap-2 text-[11px]">
+                <AlertCircle className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                <div>
+                  <div className="font-medium text-amber-700 dark:text-amber-300">
+                    Projeto vinculado, mas sem OP em aberto
+                  </div>
+                  <div className="text-muted-foreground">
+                    Os projetos da submissão não possuem Ordens de Produção pendentes ou em andamento. Crie uma OP no módulo Fábrica ou selecione uma OP avulsa abaixo.
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div className="flex items-center justify-between gap-2">
+              <Label className="text-xs">Selecione a Ordem de Produção</Label>
+              {opId && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 px-2 text-[10px] gap-1"
+                  onClick={handleLimpar}
+                >
+                  <X className="h-3 w-3" /> Limpar seleção
+                </Button>
+              )}
+            </div>
+            <Select value={opId} onValueChange={handleSelectManual} disabled={semOpsDisponiveis}>
+              <SelectTrigger>
+                <SelectValue
+                  placeholder={
+                    loadingOps
+                      ? "Carregando OPs…"
+                      : semOpsDisponiveis
+                      ? "Nenhuma OP em aberto disponível"
+                      : "Escolha uma OP em aberto"
+                  }
+                />
+              </SelectTrigger>
               <SelectContent>
                 {ops.map((op) => (
                   <SelectItem key={op.id} value={op.id}>
@@ -189,6 +298,11 @@ export function VincularBrasilDialog({
                 ))}
               </SelectContent>
             </Select>
+            {semOpsDisponiveis && (
+              <p className="text-[10px] text-muted-foreground">
+                Não há Ordens de Produção pendentes, planejadas ou em andamento. Crie uma no módulo Fábrica antes de vincular.
+              </p>
+            )}
           </TabsContent>
 
           <TabsContent value="compra" className="space-y-2 pt-3">
