@@ -255,7 +255,7 @@ export function VincularMailboxList({
               </span>
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56">
+          <DropdownMenuContent align="end" className="w-64">
             <DropdownMenuLabel className="text-[11px]">Rolagem ao navegar (j/k)</DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => updateScrollPref("smooth")} className="text-xs gap-2">
@@ -266,6 +266,23 @@ export function VincularMailboxList({
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => updateScrollPref("none")} className="text-xs gap-2">
               <MousePointerClick className="h-3.5 w-3.5" /> Desativada
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuLabel className="text-[11px]">
+              "Ir para o item" e mudança de filtros
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => updateJumpPref("smooth")} className="text-xs gap-2">
+              <MoveVertical className="h-3.5 w-3.5" />
+              Suave {jumpPref === "smooth" && "✓"}
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => updateJumpPref("auto")} className="text-xs gap-2">
+              <Zap className="h-3.5 w-3.5" />
+              Instantâneo {jumpPref === "auto" && "✓"}
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => updateJumpPref("none")} className="text-xs gap-2">
+              <MousePointerClick className="h-3.5 w-3.5" />
+              Desativada {jumpPref === "none" && "✓"}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
