@@ -152,7 +152,7 @@ export default function ChinaMonitorRecebimentosOC() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedId]);
 
-  const exportar = async (escopo: "oc" | "ops" | "divergencias") => {
+  const exportar = async (escopo: "oc" | "ops" | "divergencias" | "produtos") => {
     setExporting(true);
     try {
       const stamp = Date.now();
