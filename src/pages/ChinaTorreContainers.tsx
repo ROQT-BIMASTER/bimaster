@@ -13,6 +13,10 @@ import { NovoTrackingDialog } from "@/components/china/NovoTrackingDialog";
 import { parseLocalDate } from "@/lib/utils/parseLocalDate";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { useContainersConsolidado, useFecharContainer } from "@/hooks/usePatioProntoEmbarque";
+import { toast } from "sonner";
 
 const FINAL_STATUSES = new Set(["DELIVERED", "GATE_OUT"]);
 
