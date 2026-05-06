@@ -156,11 +156,32 @@ export default function ProjetoVincularChina() {
     if (selectedSubmissaoId) next.set("sel", selectedSubmissaoId); else next.delete("sel");
     if (folder && folder !== "nao_vinculadas") next.set("folder", folder); else next.delete("folder");
     if (searchTerm) next.set("q", searchTerm); else next.delete("q");
+    if (kpiStatusFilter && kpiStatusFilter !== "todos") next.set("kpi", kpiStatusFilter); else next.delete("kpi");
     const cur = searchParams.toString();
     const nxt = next.toString();
     if (cur !== nxt) setSearchParams(next, { replace: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedSubmissaoId, folder, searchTerm]);
+  }, [selectedSubmissaoId, folder, searchTerm, kpiStatusFilter]);
+
+  // Persistir colapso dos KPIs em localStorage + atalho "k"
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem("vincular_kpis_open", String(kpisOpen));
+    }
+  }, [kpisOpen]);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || (e.target as HTMLElement)?.isContentEditable) return;
+      if (e.key === "k" || e.key === "K") {
+        e.preventDefault();
+        setKpisOpen((v) => !v);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
   // Data queries
   const { data: submissoes = [], isLoading: loadingSub } = useSubmissoesChina("");
