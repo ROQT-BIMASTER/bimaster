@@ -19,9 +19,12 @@ import { Progress } from "@/components/ui/progress";
 import { TourButton } from "@/components/tour/TourButton";
 import { FABRICA_ORDENS_TOUR_ID, fabricaOrdensTourSteps } from "@/components/tour/tours/fabricaOrdensTour";
 import { ManualFabricaDrawer } from "@/components/fabrica/ManualFabricaDrawer";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { ContainerVinculadoCard } from "@/components/china/embarque/ContainerVinculadoCard";
 
 export default function FabricaOrdensProducao() {
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [opSelecionada, setOpSelecionada] = useState<{ id: string; numero: string } | null>(null);
 
   const { data: ordens, isLoading } = useQuery({
     queryKey: ["fabrica-ordens-producao"],
@@ -212,7 +215,11 @@ export default function FabricaOrdensProducao() {
                           </TableCell>
                           <TableCell>{getStatusBadge(op.status)}</TableCell>
                           <TableCell>
-                            <Button variant="ghost" size="sm">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setOpSelecionada({ id: op.id, numero: op.numero })}
+                            >
                               Ver Detalhes
                             </Button>
                           </TableCell>
@@ -238,6 +245,19 @@ export default function FabricaOrdensProducao() {
         open={dialogOpen}
         onClose={() => setDialogOpen(false)}
       />
+
+      <Sheet open={!!opSelecionada} onOpenChange={(o) => !o && setOpSelecionada(null)}>
+        <SheetContent className="w-[480px] sm:max-w-[480px] overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle>OP {opSelecionada?.numero}</SheetTitle>
+          </SheetHeader>
+          {opSelecionada && (
+            <div className="mt-4">
+              <ContainerVinculadoCard ordemProducaoId={opSelecionada.id} />
+            </div>
+          )}
+        </SheetContent>
+      </Sheet>
       
       <TourButton 
         tourId={FABRICA_ORDENS_TOUR_ID}
