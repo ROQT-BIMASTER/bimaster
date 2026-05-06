@@ -12,15 +12,17 @@ import {
   DropdownMenu, DropdownMenuTrigger, DropdownMenuContent,
   DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import { Search, Loader2, AlertTriangle, Clock, Truck, FileDown, ExternalLink, AlertOctagon } from "lucide-react";
+import { Search, Loader2, Clock, Truck, FileDown, ExternalLink, AlertOctagon } from "lucide-react";
 import { useChinaRecebimentoKpis } from "@/hooks/useChinaRecebimentoKpis";
+import { useChinaProdutosRecebimentoKpis } from "@/hooks/useChinaProdutosRecebimentoKpis";
+import { ProdutoVinculadoChinaCard } from "@/components/china/recebimentos/ProdutoVinculadoChinaCard";
 import { OPVinculadaCard } from "@/components/china/op/OPVinculadaCard";
 import { formatLocalDate } from "@/utils/dateUtils";
 import { cn } from "@/lib/utils";
 import { SavedFiltersMenu } from "@/components/china/recebimentos/SavedFiltersMenu";
 import { AlertasResponsavelPanel } from "@/components/china/recebimentos/AlertasResponsavelPanel";
 import { useSavedFiltersRecebimento } from "@/hooks/useSavedFiltersRecebimento";
-import { buildOCResumoCsv, buildOPsCsv, buildDivergenciasCsv, downloadBlob } from "@/lib/china/csvExporters";
+import { buildOCResumoCsv, buildOPsCsv, buildDivergenciasCsv, buildProdutosCsv, downloadBlob } from "@/lib/china/csvExporters";
 import { fetchOPsByOCs } from "@/hooks/useFabricaOPsByOCs";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
