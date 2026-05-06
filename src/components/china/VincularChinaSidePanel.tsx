@@ -142,10 +142,9 @@ export function VincularChinaSidePanel({
           <div className="grid grid-cols-3 gap-1.5">
             <button
               type="button"
-              onClick={() => onChangeTab?.("vincular")}
-              disabled={!selectedProjetoId}
-              className="group flex flex-col items-center gap-1 rounded-md border border-border bg-background hover:bg-accent/40 hover:border-primary/40 transition-colors px-2 py-2 disabled:opacity-50 disabled:cursor-not-allowed"
-              title={selectedProjetoId ? "Encaminhar a um projeto/tarefa" : "Selecione um projeto no topo"}
+              onClick={() => onEncaminharProjeto?.()}
+              className="group flex flex-col items-center gap-1 rounded-md border border-border bg-background hover:bg-accent/40 hover:border-primary/40 transition-colors px-2 py-2"
+              title="Encaminhar a um projeto/tarefa"
             >
               <Link2 className="h-4 w-4 text-primary" />
               <span className="text-[10px] font-medium text-foreground">Projeto / Tarefa</span>
