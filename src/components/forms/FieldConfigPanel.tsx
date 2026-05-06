@@ -1,6 +1,7 @@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import { X } from "lucide-react";
 import type { FormField } from "./FormFieldCard";
 
@@ -72,6 +73,27 @@ export function FieldConfigPanel({ field, onUpdate, onClose }: FieldConfigPanelP
                 })
               }
               placeholder="Ex: ^\d{3}\.\d{3}\.\d{3}-\d{2}$"
+            />
+          </div>
+        )}
+
+        {(field.field_type === "file" || field.field_type === "image") && (
+          <div className="flex items-center justify-between rounded-md border bg-background px-3 py-2">
+            <div>
+              <Label className="text-xs font-medium">Permitir múltiplos arquivos</Label>
+              <p className="text-[10px] text-muted-foreground">
+                {field.field_type === "image"
+                  ? "Usuário poderá enviar várias imagens neste campo"
+                  : "Usuário poderá anexar vários arquivos neste campo"}
+              </p>
+            </div>
+            <Switch
+              checked={!!field.validation?.multiple}
+              onCheckedChange={(v) =>
+                onUpdate(field.id, {
+                  validation: { ...field.validation, multiple: v || undefined },
+                })
+              }
             />
           </div>
         )}
