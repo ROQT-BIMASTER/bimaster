@@ -312,6 +312,7 @@ export function InboxOCReader({ oc }: InboxOCReaderProps) {
         numeroOC={oc.numero_oc}
         itemDescricao={oc.produto_nome}
         qtyDisponivel={Number(oc.qty_recebida) || Number(oc.saldo_aberto) || 0}
+        submissaoId={oc.submissao_id}
       />
       <HistoricoRecebimentosInternacionalSheet
         open={histOpen}
