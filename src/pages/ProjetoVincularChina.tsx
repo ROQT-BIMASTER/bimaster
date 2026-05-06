@@ -630,79 +630,94 @@ export default function ProjetoVincularChina() {
               </div>
             </div>
 
-      {/* KPIs */}
-      <VincularChinaKpis
-        data={kpiData}
-        activeFilter={kpiStatusFilter}
-        onFilterClick={(status) => setKpiStatusFilter(status)}
-      />
+      {/* Mailbox 3-pane layout */}
+      {(() => {
+        const { rows: mailboxRows, counts: folderCounts } = classifyVincularRows(tableData, flags, snoozes);
+        const folderItems = filterByFolder(mailboxRows, folder);
+        const selectedMailRow = mailboxRows.find((r) => r.id === selectedSubmissaoId) || null;
 
-      {/* Split panel: Table + Side Panel */}
-      <div style={{ minHeight: "calc(100vh - 320px)" }}>
-        {selectedSubmissaoId && selectedRow ? (
-          <ResizablePanelGroup direction="horizontal" className="rounded-lg">
-            <ResizablePanel defaultSize={58} minSize={40} maxSize={75}>
-              <VincularChinaTable
-                data={tableData}
-                loading={loadingSub}
-                projetos={projetos}
-                selectedIds={selectedIds}
-                onSelectionChange={setSelectedIds}
-                onRowClick={handleRowClick}
-                onFocusClick={handleFocusClick}
-                onDespacharClick={(ids) => setBulkOpen(true)}
-                filterProjeto={filterProjeto}
-                onFilterProjetoChange={setFilterProjeto}
-                statusFilter={kpiStatusFilter}
-                onStatusFilterChange={setKpiStatusFilter}
-                onLinkRowToProjeto={handleLinkRowToProjeto}
-                recentlyLinkedId={recentlyLinkedId}
-              />
-            </ResizablePanel>
-            <ResizableHandle withHandle />
-            <ResizablePanel defaultSize={42} minSize={25} maxSize={55}>
-              <div className="h-full rounded-lg border overflow-hidden">
-                <VincularChinaSidePanel
-                  submissao={selectedRow}
-                  isLinkedToProject={submissaoVinculadas.has(selectedSubmissaoId)}
-                  selectedProjetoId={selectedProjetoId}
-                  onClose={() => setSelectedSubmissaoId(null)}
-                  onPreviewDoc={setPreviewDoc}
-                  onDecisionClick={(id) => { setDecisionProcessId(id); setDecisionOpen(true); }}
-                  secoes={secoes}
-                  tarefas={tarefas}
-                  vinculos={vinculos}
-                  docVinculos={docVinculos}
-                  checkedTarefas={checkedTarefas}
-                  onToggleTarefa={handleToggleTarefa}
-                  onVincular={handleVincular}
-                  onToggleDocVinculo={handleToggleDocVinculo}
-                  vinculosPending={createVinculo.isPending || vinculando}
-                  auditResult={auditResult}
-                  auditLoading={auditLoading}
+        const handleToggleAllChecks = () => {
+          if (folderItems.every((i) => selectedIds.has(i.id))) {
+            const next = new Set(selectedIds);
+            folderItems.forEach((i) => next.delete(i.id));
+            setSelectedIds(next);
+          } else {
+            const next = new Set(selectedIds);
+            folderItems.forEach((i) => next.add(i.id));
+            setSelectedIds(next);
+          }
+        };
+
+        const handleToggleCheck = (id: string) => {
+          const next = new Set(selectedIds);
+          next.has(id) ? next.delete(id) : next.add(id);
+          setSelectedIds(next);
+        };
+
+        return (
+          <div className="rounded-lg border overflow-hidden bg-card/30" style={{ height: "calc(100vh - 220px)" }}>
+            <ResizablePanelGroup direction="horizontal">
+              <ResizablePanel defaultSize={18} minSize={14} maxSize={26}>
+                <VincularMailboxSidebar
+                  folder={folder}
+                  counts={folderCounts}
+                  onSelect={(f) => { setFolder(f); }}
+                  progressPct={progressPct}
+                  vinculadas={vinculadasCount}
+                  total={tableData.length}
                 />
-              </div>
-            </ResizablePanel>
-          </ResizablePanelGroup>
-        ) : (
-          <VincularChinaTable
-            data={tableData}
-            loading={loadingSub}
-            projetos={projetos}
-            selectedIds={selectedIds}
-            onSelectionChange={setSelectedIds}
-            onRowClick={handleRowClick}
-            onFocusClick={handleFocusClick}
-            onDespacharClick={(ids) => setBulkOpen(true)}
-            filterProjeto={filterProjeto}
-            onFilterProjetoChange={setFilterProjeto}
-            statusFilter={kpiStatusFilter}
-            onStatusFilterChange={setKpiStatusFilter}
-            onLinkRowToProjeto={handleLinkRowToProjeto}
-            recentlyLinkedId={recentlyLinkedId}
-          />
-        )}
-      </div>
+              </ResizablePanel>
+              <ResizableHandle withHandle />
+              <ResizablePanel defaultSize={selectedMailRow ? 38 : 82} minSize={28}>
+                <VincularMailboxList
+                  items={folderItems}
+                  folder={folder}
+                  selectedId={selectedSubmissaoId}
+                  selectedIds={selectedIds}
+                  onSelect={(id) => setSelectedSubmissaoId(id)}
+                  onFocus={(item) => setFocusSubmissao(item)}
+                  onToggleCheck={handleToggleCheck}
+                  onToggleAllChecks={handleToggleAllChecks}
+                  onToggleStar={(item) =>
+                    toggleFlag.mutate({ submissao_id: item.id, flagged: !item.is_flagged })
+                  }
+                  onLinkRow={(row, pid) => handleLinkRowToProjeto(row, pid)}
+                  projetos={projetos}
+                  search={searchTerm}
+                  onSearchChange={setSearchTerm}
+                  onBulkLink={() => setBulkOpen(true)}
+                />
+              </ResizablePanel>
+              {selectedMailRow && (
+                <>
+                  <ResizableHandle withHandle />
+                  <ResizablePanel defaultSize={44} minSize={28} maxSize={60}>
+                    <VincularChinaSidePanel
+                      submissao={selectedMailRow}
+                      isLinkedToProject={submissaoVinculadas.has(selectedMailRow.id)}
+                      selectedProjetoId={selectedProjetoId}
+                      onClose={() => setSelectedSubmissaoId(null)}
+                      onPreviewDoc={setPreviewDoc}
+                      onDecisionClick={(id) => { setDecisionProcessId(id); setDecisionOpen(true); }}
+                      secoes={secoes}
+                      tarefas={tarefas}
+                      vinculos={vinculos}
+                      docVinculos={docVinculos}
+                      checkedTarefas={checkedTarefas}
+                      onToggleTarefa={handleToggleTarefa}
+                      onVincular={handleVincular}
+                      onToggleDocVinculo={handleToggleDocVinculo}
+                      vinculosPending={createVinculo.isPending || vinculando}
+                      auditResult={auditResult}
+                      auditLoading={auditLoading}
+                    />
+                  </ResizablePanel>
+                </>
+              )}
+            </ResizablePanelGroup>
+          </div>
+        );
+      })()}
 
       {/* Existing vinculos (collapsible) */}
       {allVinculos.length > 0 && (
