@@ -13,6 +13,7 @@ import { CatalogoChinaPanel } from "@/components/compras/inbox/CatalogoChinaPane
 import { SubmissoesAprovadasPanel } from "@/components/compras/inbox/SubmissoesAprovadasPanel";
 import { PatioEmbarquePanel } from "@/components/compras/inbox/PatioEmbarquePanel";
 import { TorreContainersPanel } from "@/components/compras/inbox/TorreContainersPanel";
+import { TabelaOCsPanel } from "@/components/compras/inbox/TabelaOCsPanel";
 import {
   useCompradorInboxOCs,
   inboxFolderCounts,
