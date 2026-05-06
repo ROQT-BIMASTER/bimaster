@@ -101,14 +101,25 @@ export function VincularMailboxList({
   // Comportamento de rolagem ao navegar com j/k (configurável pelo usuário).
   type ScrollPref = "smooth" | "auto" | "none";
   const SCROLL_PREF_KEY = "china:vincular:list:scrollBehavior";
+  const JUMP_PREF_KEY = "china:vincular:list:jumpScrollBehavior";
   const [scrollPref, setScrollPref] = useState<ScrollPref>(() => {
     if (typeof window === "undefined") return "smooth";
     const v = window.localStorage.getItem(SCROLL_PREF_KEY) as ScrollPref | null;
     return v === "smooth" || v === "auto" || v === "none" ? v : "smooth";
   });
+  // Comportamento da rolagem ao "Ir para o item" e ao auto-rolar quando filtros mudam.
+  const [jumpPref, setJumpPref] = useState<ScrollPref>(() => {
+    if (typeof window === "undefined") return "smooth";
+    const v = window.localStorage.getItem(JUMP_PREF_KEY) as ScrollPref | null;
+    return v === "smooth" || v === "auto" || v === "none" ? v : "smooth";
+  });
   const updateScrollPref = useCallback((v: ScrollPref) => {
     setScrollPref(v);
     try { window.localStorage.setItem(SCROLL_PREF_KEY, v); } catch { /* noop */ }
+  }, []);
+  const updateJumpPref = useCallback((v: ScrollPref) => {
+    setJumpPref(v);
+    try { window.localStorage.setItem(JUMP_PREF_KEY, v); } catch { /* noop */ }
   }, []);
 
   const scrollSelectedIntoView = useCallback((forceBehavior?: ScrollBehavior) => {
@@ -129,11 +140,33 @@ export function VincularMailboxList({
     }
   }, [selectedId, scrollPref]);
 
+  // Auto-scroll ao navegar (j/k, clique) — usa scrollPref.
   useEffect(() => {
     if (!selectedId || !selectedStillVisible) return;
     if (scrollPref === "none") return;
     scrollSelectedIntoView();
-  }, [selectedId, selectedStillVisible, filtered.length, search, scrollPref, scrollSelectedIntoView]);
+  }, [selectedId, selectedStillVisible, scrollPref, scrollSelectedIntoView]);
+
+  // Auto-scroll quando a lista é (re)carregada ou filtros mudam — usa jumpPref.
+  // Tenta novamente em rAF até o elemento existir no DOM (cobre refetch / loading).
+  useEffect(() => {
+    if (!selectedId || !selectedStillVisible) return;
+    if (jumpPref === "none") return;
+    let cancelled = false;
+    let attempts = 0;
+    const tryScroll = () => {
+      if (cancelled) return;
+      const el = itemRefs.current.get(selectedId);
+      if (el && listRef.current) {
+        const behavior: ScrollBehavior = jumpPref === "auto" ? "auto" : "smooth";
+        scrollSelectedIntoView(behavior);
+        return;
+      }
+      if (attempts++ < 30) requestAnimationFrame(tryScroll);
+    };
+    requestAnimationFrame(tryScroll);
+    return () => { cancelled = true; };
+  }, [items, filtered.length, search, folder, selectedId, selectedStillVisible, jumpPref, scrollSelectedIntoView]);
 
   // Atalhos: Esc limpa busca quando o item selecionado está escondido pelo filtro;
   // "/" foca o campo de busca (ou limpa, se já estiver com algo digitado e item escondido).
@@ -222,7 +255,7 @@ export function VincularMailboxList({
               </span>
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56">
+          <DropdownMenuContent align="end" className="w-64">
             <DropdownMenuLabel className="text-[11px]">Rolagem ao navegar (j/k)</DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => updateScrollPref("smooth")} className="text-xs gap-2">
@@ -233,6 +266,23 @@ export function VincularMailboxList({
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => updateScrollPref("none")} className="text-xs gap-2">
               <MousePointerClick className="h-3.5 w-3.5" /> Desativada
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuLabel className="text-[11px]">
+              "Ir para o item" e mudança de filtros
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => updateJumpPref("smooth")} className="text-xs gap-2">
+              <MoveVertical className="h-3.5 w-3.5" />
+              Suave {jumpPref === "smooth" && "✓"}
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => updateJumpPref("auto")} className="text-xs gap-2">
+              <Zap className="h-3.5 w-3.5" />
+              Instantâneo {jumpPref === "auto" && "✓"}
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => updateJumpPref("none")} className="text-xs gap-2">
+              <MousePointerClick className="h-3.5 w-3.5" />
+              Desativada {jumpPref === "none" && "✓"}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -274,7 +324,7 @@ export function VincularMailboxList({
           <Button
             size="sm"
             variant="outline"
-            onClick={() => scrollSelectedIntoView("smooth")}
+            onClick={() => scrollSelectedIntoView(jumpPref === "auto" ? "auto" : "smooth")}
             className="pointer-events-auto absolute right-3 top-1.5 z-10 h-6 gap-1 bg-card/90 px-2 text-[10px] text-muted-foreground shadow-sm backdrop-blur hover:text-foreground"
             title="Rolar até o item selecionado"
           >
