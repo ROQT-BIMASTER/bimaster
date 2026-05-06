@@ -263,6 +263,7 @@ const ChinaSubmissaoDetalhe = lazyWithRetry(() => import("./pages/ChinaSubmissao
 const ChinaFichaProduto = lazyWithRetry(() => import("./pages/ChinaFichaProduto"));
 const ChinaProdutoChecklist = lazyWithRetry(() => import("./pages/ChinaProdutoChecklist"));
 const ChinaTorreContainers = lazyWithRetry(() => import("./pages/ChinaTorreContainers"));
+const ChinaPatioProntoEmbarque = lazyWithRetry(() => import("./pages/ChinaPatioProntoEmbarque"));
 const ComprasInternacionais = lazyWithRetry(() => import("./pages/ComprasInternacionais"));
 const ComprasNacionais = lazyWithRetry(() => import("./pages/ComprasNacionais"));
 const Projetos = lazyWithRetry(() => import("./pages/Projetos"));
