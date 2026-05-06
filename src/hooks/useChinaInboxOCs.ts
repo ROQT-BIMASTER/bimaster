@@ -10,6 +10,7 @@ export type ChinaOCSubTab =
 
 export interface ChinaInboxOC {
   ordem_compra_id: string;
+  submissao_id: string | null;
   numero_oc: string;
   produto_codigo: string;
   produto_nome: string;
