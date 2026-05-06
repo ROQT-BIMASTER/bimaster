@@ -44,6 +44,7 @@ interface Props {
   onClose: () => void;
   onPreviewDoc: (doc: any) => void;
   onDecisionClick: (submissaoId: string) => void;
+  onEncaminharResponsavel?: () => void;
   // vincular tab props
   secoes: any[];
   tarefas: any[];
@@ -60,11 +61,14 @@ interface Props {
 
 export function VincularChinaSidePanel({
   submissao, isLinkedToProject, selectedProjetoId, onClose, onPreviewDoc, onDecisionClick,
+  onEncaminharResponsavel,
   secoes, tarefas, vinculos, docVinculos, checkedTarefas,
   onToggleTarefa, onVincular, onToggleDocVinculo, vinculosPending, auditResult, auditLoading,
 }: Props) {
   const navigate = useNavigate();
   const [isTransitioning, setIsTransitioning] = useState(false);
+  const [tabValue, setTabValue] = useState<string>("detalhes");
+  const onChangeTab = (v: string) => setTabValue(v);
   const { data: documentos = [], isLoading: loadingDocs } = useDocumentosDaSubmissao(submissao.id);
   const { data: despachos = [] } = useDespachosPorSubmissao(submissao.id);
 
