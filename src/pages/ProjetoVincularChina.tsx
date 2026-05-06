@@ -1,7 +1,7 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Link as RouterLink } from "react-router-dom";
+import { Link as RouterLink, useSearchParams } from "react-router-dom";
 import { Link2, Package, Loader2, Maximize2, Gavel, CheckCircle2, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
@@ -116,8 +116,13 @@ export default function ProjetoVincularChina() {
   const { bgColor, setBgColor } = usePageBgColor("vincular_china");
 
 
-  // States
-  const [selectedSubmissaoId, setSelectedSubmissaoId] = useState<string | null>(null);
+  // States — selectedId, folder e busca persistem na URL para sobreviver a refresh
+  const [searchParams, setSearchParams] = useSearchParams();
+  const initialSel = searchParams.get("sel");
+  const initialFolder = (searchParams.get("folder") as VincularFolder | null) || "nao_vinculadas";
+  const initialSearch = searchParams.get("q") || "";
+
+  const [selectedSubmissaoId, setSelectedSubmissaoId] = useState<string | null>(initialSel);
   const [selectedProjetoId, setSelectedProjetoId] = useState<string | null>(null);
   const [checkedTarefas, setCheckedTarefas] = useState<Set<string>>(new Set());
   const [gradeOpen, setGradeOpen] = useState(false);
@@ -133,13 +138,25 @@ export default function ProjetoVincularChina() {
   const [vinculando, setVinculando] = useState(false);
   const [kpiStatusFilter, setKpiStatusFilter] = useState<string>("todos");
   const [recentlyLinkedId, setRecentlyLinkedId] = useState<string | null>(null);
-  const [folder, setFolder] = useState<VincularFolder>("nao_vinculadas");
-  const [searchTerm, setSearchTerm] = useState("");
+  const [folder, setFolder] = useState<VincularFolder>(initialFolder);
+  const [searchTerm, setSearchTerm] = useState(initialSearch);
   const [encaminharOpen, setEncaminharOpen] = useState(false);
   const [encaminharProjetoOpen, setEncaminharProjetoOpen] = useState(false);
   const queryClient = useQueryClient();
   const toggleFlag = useToggleSubmissaoFlag();
   const { flags, snoozes } = useVincularChinaUserState();
+
+  // Sincroniza estado relevante de volta para a URL (preserva refresh / share link)
+  useEffect(() => {
+    const next = new URLSearchParams(searchParams);
+    if (selectedSubmissaoId) next.set("sel", selectedSubmissaoId); else next.delete("sel");
+    if (folder && folder !== "nao_vinculadas") next.set("folder", folder); else next.delete("folder");
+    if (searchTerm) next.set("q", searchTerm); else next.delete("q");
+    const cur = searchParams.toString();
+    const nxt = next.toString();
+    if (cur !== nxt) setSearchParams(next, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedSubmissaoId, folder, searchTerm]);
 
   // Data queries
   const { data: submissoes = [], isLoading: loadingSub } = useSubmissoesChina("");

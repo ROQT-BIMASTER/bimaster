@@ -4,7 +4,7 @@ import { ptBR } from "date-fns/locale";
 import {
   Star, Paperclip, Clock, AlertTriangle, Link2, Link2Off, Package,
   CheckCircle2, FileText, Send, XCircle, Loader2, Globe, Maximize2,
-  MousePointerClick, Zap, MoveVertical, X,
+  MousePointerClick, Zap, MoveVertical, X, Crosshair,
 } from "lucide-react";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
@@ -111,25 +111,59 @@ export function VincularMailboxList({
     try { window.localStorage.setItem(SCROLL_PREF_KEY, v); } catch { /* noop */ }
   }, []);
 
-  useEffect(() => {
-    if (!selectedId || !selectedStillVisible) return;
-    if (scrollPref === "none") return;
+  const scrollSelectedIntoView = useCallback((forceBehavior?: ScrollBehavior) => {
+    if (!selectedId) return;
     const list = listRef.current;
     const el = itemRefs.current.get(selectedId);
     if (!list || !el) return;
-
     const listRect = list.getBoundingClientRect();
     const elRect = el.getBoundingClientRect();
     const topGap = elRect.top - listRect.top;
     const bottomGap = listRect.bottom - elRect.bottom;
-    const behavior: ScrollBehavior = scrollPref === "auto" ? "auto" : "smooth";
-
+    const behavior: ScrollBehavior =
+      forceBehavior ?? (scrollPref === "auto" ? "auto" : "smooth");
     if (topGap < SCROLL_OFFSET_TOP) {
       list.scrollBy({ top: topGap - SCROLL_OFFSET_TOP, behavior });
     } else if (bottomGap < SCROLL_OFFSET_BOTTOM) {
       list.scrollBy({ top: SCROLL_OFFSET_BOTTOM - bottomGap, behavior });
     }
-  }, [selectedId, selectedStillVisible, filtered.length, search, scrollPref]);
+  }, [selectedId, scrollPref]);
+
+  useEffect(() => {
+    if (!selectedId || !selectedStillVisible) return;
+    if (scrollPref === "none") return;
+    scrollSelectedIntoView();
+  }, [selectedId, selectedStillVisible, filtered.length, search, scrollPref, scrollSelectedIntoView]);
+
+  // Atalhos: Esc limpa busca quando o item selecionado está escondido pelo filtro;
+  // "/" foca o campo de busca (ou limpa, se já estiver com algo digitado e item escondido).
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      const tag = target?.tagName;
+      const inField =
+        tag === "INPUT" || tag === "TEXTAREA" || target?.isContentEditable;
+
+      if (e.key === "Escape" && selectedHiddenByFilter) {
+        e.preventDefault();
+        onSearchChange("");
+        return;
+      }
+      if (e.key === "/" && !inField) {
+        e.preventDefault();
+        if (selectedHiddenByFilter && search) {
+          onSearchChange("");
+        } else {
+          searchInputRef.current?.focus();
+          searchInputRef.current?.select();
+        }
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [selectedHiddenByFilter, search, onSearchChange]);
+
 
   return (
     <div className="flex h-full flex-col bg-background">
@@ -141,9 +175,16 @@ export function VincularMailboxList({
           aria-label="Selecionar todos"
         />
         <Input
+          ref={searchInputRef}
           value={search}
           onChange={(e) => onSearchChange(e.target.value)}
-          placeholder="Buscar código, nome, OC, projeto..."
+          onKeyDown={(e) => {
+            if (e.key === "Escape") {
+              if (search) { e.preventDefault(); onSearchChange(""); }
+              else (e.target as HTMLInputElement).blur();
+            }
+          }}
+          placeholder='Buscar... (atalho "/")'
           className="h-7 text-xs flex-1 max-w-md"
         />
         {someChecked ? (
@@ -211,8 +252,9 @@ export function VincularMailboxList({
             variant="ghost"
             className="ml-auto h-5 px-1.5 text-[10px] text-amber-200 hover:text-amber-100"
             onClick={() => onSearchChange("")}
+            title="Atalho: Esc"
           >
-            Limpar busca
+            Limpar busca (Esc)
           </Button>
           <Button
             size="sm"
@@ -222,6 +264,21 @@ export function VincularMailboxList({
             title="Desmarcar"
           >
             <X className="h-3 w-3" />
+          </Button>
+        </div>
+      )}
+
+      {/* Pílula "Ir para o item" quando o selecionado está na lista mas pode estar fora da viewport */}
+      {!selectedHiddenByFilter && selectedId && selectedStillVisible && (
+        <div className="pointer-events-none relative">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => scrollSelectedIntoView("smooth")}
+            className="pointer-events-auto absolute right-3 top-1.5 z-10 h-6 gap-1 bg-card/90 px-2 text-[10px] text-muted-foreground shadow-sm backdrop-blur hover:text-foreground"
+            title="Rolar até o item selecionado"
+          >
+            <Crosshair className="h-3 w-3" /> Ir para o item
           </Button>
         </div>
       )}
