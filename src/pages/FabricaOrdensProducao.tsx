@@ -245,6 +245,19 @@ export default function FabricaOrdensProducao() {
         open={dialogOpen}
         onClose={() => setDialogOpen(false)}
       />
+
+      <Sheet open={!!opSelecionada} onOpenChange={(o) => !o && setOpSelecionada(null)}>
+        <SheetContent className="w-[480px] sm:max-w-[480px] overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle>OP {opSelecionada?.numero}</SheetTitle>
+          </SheetHeader>
+          {opSelecionada && (
+            <div className="mt-4">
+              <ContainerVinculadoCard ordemProducaoId={opSelecionada.id} />
+            </div>
+          )}
+        </SheetContent>
+      </Sheet>
       
       <TourButton 
         tourId={FABRICA_ORDENS_TOUR_ID}
