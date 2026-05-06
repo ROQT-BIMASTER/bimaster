@@ -52,7 +52,7 @@ export function useChinaInboxOCs() {
       const { data: ocs, error } = await supabase
         .from("china_ordens_compra")
         .select(
-          "id, numero_oc, produto_codigo, produto_nome, qty_total, qty_produzida, data_emissao, data_entrega_prevista, data_entrega_real, status, aceita_em, recusada_em, motivo_recusa, observacoes",
+          "id, submissao_id, numero_oc, produto_codigo, produto_nome, qty_total, qty_produzida, data_emissao, data_entrega_prevista, data_entrega_real, status, aceita_em, recusada_em, motivo_recusa, observacoes",
         )
         .order("created_at", { ascending: false })
         .limit(500);
