@@ -9,6 +9,8 @@ import { InboxFolderList } from "@/components/compras/inbox/InboxFolderList";
 import { InboxOCList } from "@/components/compras/inbox/InboxOCList";
 import { InboxOCReader } from "@/components/compras/inbox/InboxOCReader";
 import { NovaOCDialog } from "@/components/compras/inbox/NovaOCDialog";
+import { CatalogoChinaPanel } from "@/components/compras/inbox/CatalogoChinaPanel";
+import { SubmissoesAprovadasPanel } from "@/components/compras/inbox/SubmissoesAprovadasPanel";
 import {
   useCompradorInboxOCs,
   inboxFolderCounts,
