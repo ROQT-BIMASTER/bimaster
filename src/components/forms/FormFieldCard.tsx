@@ -36,6 +36,7 @@ const FIELD_TYPES = [
   { value: "image", label: "Imagem" },
   { value: "price", label: "Preço" },
   { value: "address", label: "Endereço (CEP)" },
+  { value: "banner", label: "Banner (imagem com crop)" },
 ];
 
 interface FormFieldCardProps {

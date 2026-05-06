@@ -23,6 +23,7 @@ import { Loader2, CheckCircle2 } from "lucide-react";
 import { CepAddressField } from "@/components/forms/CepAddressField";
 import { MaterialRequestCard } from "@/components/forms/MaterialRequestCard";
 import { FormFileUpload } from "@/components/forms/FormFileUpload";
+import { FormBannerUpload } from "@/components/forms/FormBannerUpload";
 import { toast } from "sonner";
 
 interface DynamicFormRendererProps {
@@ -363,6 +364,9 @@ export function DynamicFormRenderer({ formId, tokenId, userId, onSubmitSuccess }
                   value={values[field.id] || null}
                   onChange={(v) => updateValue(field.id, v)}
                   multiple={!!field.validation?.multiple}
+                  maxSizeMB={field.validation?.maxSizeMB ?? 20}
+                  maxFiles={field.validation?.maxFiles ?? (field.validation?.multiple ? 10 : 1)}
+                  maxTotalSizeMB={field.validation?.maxTotalSizeMB ?? 50}
                 />
               )}
 
@@ -374,6 +378,19 @@ export function DynamicFormRenderer({ formId, tokenId, userId, onSubmitSuccess }
                   onChange={(v) => updateValue(field.id, v)}
                   acceptImages
                   multiple={!!field.validation?.multiple}
+                  maxSizeMB={field.validation?.maxSizeMB ?? 10}
+                  maxFiles={field.validation?.maxFiles ?? (field.validation?.multiple ? 10 : 1)}
+                  maxTotalSizeMB={field.validation?.maxTotalSizeMB ?? 30}
+                />
+              )}
+
+              {field.field_type === "banner" && (
+                <FormBannerUpload
+                  formId={formId}
+                  fieldId={field.id}
+                  value={values[field.id] || null}
+                  onChange={(v) => updateValue(field.id, v)}
+                  defaultAspect={field.validation?.aspect || "3:1"}
                 />
               )}
 
