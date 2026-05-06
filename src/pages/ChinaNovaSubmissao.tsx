@@ -36,6 +36,7 @@ const STEPS = [
 
 export default function ChinaNovaSubmissao() {
   const navigate = useNavigate();
+  const { backTo } = useResolvedBackTo("/dashboard/fabrica-china");
   const queryClient = useQueryClient();
   const { submissaoId: editId } = useParams<{ submissaoId: string }>();
   const [step, setStep] = useState(0);
