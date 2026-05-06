@@ -5,6 +5,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { EmptyState } from "@/components/ui/empty-state";
 import { KpiCard } from "@/components/ui/kpi-card";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   ShoppingCart, Factory, Ship, Compass, FileCheck2, PackageCheck,
   Link2, AlertOctagon, History, Inbox, ExternalLink, CheckCircle2, Clock,
