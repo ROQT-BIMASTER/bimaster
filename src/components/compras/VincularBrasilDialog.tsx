@@ -258,7 +258,19 @@ export function VincularBrasilDialog({
           </TabsList>
 
           <TabsContent value="op" className="space-y-2 pt-3">
-            {sugestoesComOps.length > 0 && (
+            {loadingSugestoes && submissaoId && (
+              <div className="rounded-md border border-primary/20 bg-primary/5 p-2.5 space-y-2">
+                <div className="flex items-center gap-1.5 text-[11px] font-medium text-primary">
+                  <Sparkles className="h-3.5 w-3.5" />
+                  Buscando sugestões do projeto…
+                </div>
+                <Skeleton className="h-3 w-2/3" />
+                <Skeleton className="h-7 w-full" />
+                <Skeleton className="h-7 w-full" />
+              </div>
+            )}
+
+            {!loadingSugestoes && sugestoesComOps.length > 0 && (
               <div className="rounded-md border border-primary/20 bg-primary/5 p-2.5 space-y-2">
                 <div className="flex items-center gap-1.5 text-[11px] font-medium text-primary">
                   <Sparkles className="h-3.5 w-3.5" />
@@ -325,26 +337,48 @@ export function VincularBrasilDialog({
                 </Button>
               )}
             </div>
-            <Select value={opId} onValueChange={handleSelectManual} disabled={semOpsDisponiveis}>
-              <SelectTrigger>
-                <SelectValue
-                  placeholder={
-                    loadingOps
-                      ? "Carregando OPs…"
-                      : semOpsDisponiveis
-                      ? "Nenhuma OP em aberto disponível"
-                      : "Escolha uma OP em aberto"
-                  }
-                />
-              </SelectTrigger>
-              <SelectContent>
-                {ops.map((op) => (
-                  <SelectItem key={op.id} value={op.id}>
-                    {op.numero} · {op.status} · {op.quantidade_planejada}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+
+            {loadingOps ? (
+              <Skeleton className="h-10 w-full" />
+            ) : (
+              <Select value={opId} onValueChange={handleSelectManual} disabled={semOpsDisponiveis}>
+                <SelectTrigger>
+                  <SelectValue
+                    placeholder={
+                      semOpsDisponiveis
+                        ? "Nenhuma OP em aberto disponível"
+                        : "Escolha uma OP em aberto"
+                    }
+                  />
+                </SelectTrigger>
+                <SelectContent>
+                  <div className="sticky top-0 z-10 bg-popover p-1.5 border-b">
+                    <div className="relative">
+                      <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                      <Input
+                        autoFocus
+                        value={opSearch}
+                        onChange={(e) => setOpSearch(e.target.value)}
+                        onKeyDown={(e) => e.stopPropagation()}
+                        placeholder="Buscar por número ou status…"
+                        className="h-7 pl-7 text-xs"
+                      />
+                    </div>
+                  </div>
+                  {filteredOps.length === 0 ? (
+                    <div className="px-2 py-3 text-center text-[11px] text-muted-foreground">
+                      Nenhuma OP corresponde a "{opSearch}"
+                    </div>
+                  ) : (
+                    filteredOps.map((op) => (
+                      <SelectItem key={op.id} value={op.id}>
+                        {op.numero} · {op.status} · {op.quantidade_planejada}
+                      </SelectItem>
+                    ))
+                  )}
+                </SelectContent>
+              </Select>
+            )}
             {semOpsDisponiveis && (
               <p className="text-[10px] text-muted-foreground">
                 Não há Ordens de Produção pendentes, planejadas ou em andamento. Crie uma no módulo Fábrica antes de vincular.
