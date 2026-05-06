@@ -262,67 +262,27 @@ export default function ChinaMonitorRecebimentosOC() {
       <div className="grid grid-cols-12 gap-3">
         {/* Lista */}
         <div className="col-span-12 lg:col-span-5 space-y-2 max-h-[calc(100vh-260px)] overflow-auto pr-1">
-          {isLoading && (
+          {(isLoading || isLoadingProdutos) && (
             <div className="text-sm text-muted-foreground flex items-center gap-2 p-4">
-              <Loader2 className="h-4 w-4 animate-spin" /> Carregando OCs…
+              <Loader2 className="h-4 w-4 animate-spin" /> Carregando produtos…
             </div>
           )}
-          {!isLoading && filtered.length === 0 && (
+          {!isLoading && !isLoadingProdutos && produtosFiltrados.length === 0 && (
             <Card className="p-6 text-center text-sm text-muted-foreground">
-              Nenhuma OC encontrada com os filtros atuais.
+              Nenhum produto encontrado com os filtros atuais.
             </Card>
           )}
-          {filtered.map((k) => {
-            const recPct = pct(k.qty_recebida, k.qty_pedida);
-            const isSel = selected?.ordem_compra_id === k.ordem_compra_id;
-            const divergencia = k.qty_avariada + k.qty_faltante > 0;
-            return (
-              <Card
-                key={k.ordem_compra_id}
-                onClick={() => setSelected(k.ordem_compra_id)}
-                className={cn(
-                  "p-3 cursor-pointer hover:border-primary transition-colors",
-                  isSel && "border-primary ring-1 ring-primary/20"
-                )}
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <div className="font-mono text-xs font-semibold">{k.numero_oc}</div>
-                    <div className="text-xs truncate">
-                      <span className="font-mono text-muted-foreground">{k.produto_codigo}</span> — {k.produto_nome}
-                    </div>
-                  </div>
-                  <Badge variant="outline" className="shrink-0 text-[10px]">{k.oc_status}</Badge>
-                </div>
-                <div className="mt-2 grid grid-cols-3 gap-2 text-[11px]">
-                  <div>
-                    <div className="text-muted-foreground">Pedida</div>
-                    <div className="font-medium">{k.qty_pedida.toLocaleString("pt-BR")}</div>
-                  </div>
-                  <div>
-                    <div className="text-muted-foreground">Embarcada</div>
-                    <div className="font-medium">{k.qty_embarcada.toLocaleString("pt-BR")}</div>
-                  </div>
-                  <div>
-                    <div className="text-muted-foreground">Recebida</div>
-                    <div className="font-medium">{k.qty_recebida.toLocaleString("pt-BR")} ({recPct}%)</div>
-                  </div>
-                </div>
-                <Progress value={recPct} className="h-1.5 mt-1.5" />
-                <div className="mt-1.5 flex items-center justify-between text-[10px] text-muted-foreground">
-                  <span>Saldo: {k.saldo_aberto.toLocaleString("pt-BR")}</span>
-                  <div className="flex items-center gap-1.5">
-                    {divergencia && (
-                      <Badge className="bg-amber-500 text-white text-[10px] py-0 h-4">
-                        <AlertTriangle className="h-2.5 w-2.5 mr-0.5" /> divergência
-                      </Badge>
-                    )}
-                    {slaBadge(k.sla_porto_cd_dias)}
-                  </div>
-                </div>
-              </Card>
-            );
-          })}
+          {produtosFiltrados.map((p) => (
+            <ProdutoVinculadoChinaCard
+              key={p.submissao_id}
+              produto={p}
+              ocs={ocsByProduto.get(p.submissao_id) || []}
+              expanded={expandedProds.has(p.submissao_id)}
+              selectedOcId={selected?.ordem_compra_id}
+              onToggle={() => toggleProduto(p.submissao_id)}
+              onSelectOC={setSelected}
+            />
+          ))}
         </div>
 
         {/* Detalhe */}
