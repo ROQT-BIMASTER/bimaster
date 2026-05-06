@@ -296,7 +296,7 @@ export default function ProjetoVincularChina() {
     const now = Date.now();
     const atrasados = tableData.filter((r) => {
       if (r.isLinked) return false;
-      const t = r.data_envio ? new Date(r.data_envio).getTime() : (r.created_at ? new Date(r.created_at).getTime() : 0);
+      const t = (r as any).data_envio ? new Date((r as any).data_envio).getTime() : ((r as any).created_at ? new Date((r as any).created_at).getTime() : 0);
       return t > 0 && now - t > 48 * 3600 * 1000;
     }).length;
     const comPendencias = tableData.filter((r) => (r.pendencias ?? 0) > 0).length;
