@@ -641,7 +641,7 @@ export default function ChinaNovaSubmissao() {
         icon={UploadIcon}
         iconTone="primary"
         showBack
-        backTo="/dashboard/fabrica-china"
+        backTo={backTo}
         actions={
           <>
             <ManualFabricaDrawer screen="china-nova-submissao" />
