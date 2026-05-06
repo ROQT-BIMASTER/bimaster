@@ -249,8 +249,7 @@ export function InboxOCReader({ oc }: InboxOCReaderProps) {
       <AbrirNCDialog
         open={ncOpen}
         onOpenChange={setNcOpen}
-        ordemCompraId={oc.ordem_compra_id}
-        numeroOC={oc.numero_oc}
+        ordemCompraIdInicial={oc.ordem_compra_id}
       />
     </>
   );
