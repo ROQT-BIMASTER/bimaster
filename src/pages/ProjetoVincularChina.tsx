@@ -697,10 +697,38 @@ export default function ProjetoVincularChina() {
               </div>
             </div>
 
+            {/* Painel de monitoramento — KPIs */}
+            <VincularChinaKpis
+              data={kpiData}
+              activeFilter={kpiStatusFilter}
+              onFilterClick={(key) => {
+                setKpiStatusFilter(key);
+                if (key === "vinculados") setFolder("vinculadas");
+                else if (key === "atrasados") setFolder("a_encaminhar");
+                else if (key === "com_pendencias") setFolder("com_pendencias");
+              }}
+              collapsed={!kpisOpen}
+              onToggleCollapsed={() => setKpisOpen((v) => !v)}
+            />
+
       {/* Mailbox 3-pane layout */}
       {(() => {
         const { rows: mailboxRows, counts: folderCounts } = classifyVincularRows(tableData, flags, snoozes);
-        const folderItems = filterByFolder(mailboxRows, folder);
+        const baseFolderItems = filterByFolder(mailboxRows, folder);
+        const folderItems = (() => {
+          if (!kpiStatusFilter || kpiStatusFilter === "todos") return baseFolderItems;
+          if (kpiStatusFilter === "vinculados") return baseFolderItems.filter((i: any) => i.isLinked);
+          if (kpiStatusFilter === "com_pendencias") return baseFolderItems.filter((i: any) => (i.pendencias ?? 0) > 0);
+          if (kpiStatusFilter === "atrasados") {
+            const now = Date.now();
+            return baseFolderItems.filter((i: any) => {
+              if (i.isLinked) return false;
+              const t = i.data_envio ? new Date(i.data_envio).getTime() : (i.created_at ? new Date(i.created_at).getTime() : 0);
+              return t > 0 && now - t > 48 * 3600 * 1000;
+            });
+          }
+          return baseFolderItems.filter((i: any) => i.status === kpiStatusFilter);
+        })();
         const selectedMailRow = mailboxRows.find((r) => r.id === selectedSubmissaoId) || null;
 
         const handleToggleAllChecks = () => {
