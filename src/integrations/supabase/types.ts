@@ -3329,6 +3329,13 @@ export type Database = {
             referencedRelation: "china_embarques"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "china_embarque_documentos_embarque_id_fkey"
+            columns: ["embarque_id"]
+            isOneToOne: false
+            referencedRelation: "vw_container_consolidado"
+            referencedColumns: ["embarque_id"]
+          },
         ]
       }
       china_embarque_itens: {
@@ -3338,7 +3345,8 @@ export type Database = {
           id: string
           lote: string | null
           observacao: string | null
-          ordem_item_id: string
+          ordem_item_id: string | null
+          ordem_producao_id: string | null
           qty_embarcada: number
         }
         Insert: {
@@ -3347,7 +3355,8 @@ export type Database = {
           id?: string
           lote?: string | null
           observacao?: string | null
-          ordem_item_id: string
+          ordem_item_id?: string | null
+          ordem_producao_id?: string | null
           qty_embarcada: number
         }
         Update: {
@@ -3356,7 +3365,8 @@ export type Database = {
           id?: string
           lote?: string | null
           observacao?: string | null
-          ordem_item_id?: string
+          ordem_item_id?: string | null
+          ordem_producao_id?: string | null
           qty_embarcada?: number
         }
         Relationships: [
@@ -3368,11 +3378,32 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "china_embarque_itens_embarque_id_fkey"
+            columns: ["embarque_id"]
+            isOneToOne: false
+            referencedRelation: "vw_container_consolidado"
+            referencedColumns: ["embarque_id"]
+          },
+          {
             foreignKeyName: "china_embarque_itens_ordem_item_id_fkey"
             columns: ["ordem_item_id"]
             isOneToOne: false
             referencedRelation: "china_ordem_itens"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "china_embarque_itens_ordem_producao_id_fkey"
+            columns: ["ordem_producao_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_ordens_producao"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "china_embarque_itens_ordem_producao_id_fkey"
+            columns: ["ordem_producao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_op_pronto_embarque"
+            referencedColumns: ["ordem_producao_id"]
           },
         ]
       }
@@ -3390,7 +3421,7 @@ export type Database = {
           numero_container: string | null
           numero_embarque: number | null
           observacoes: string | null
-          ordem_compra_id: string
+          ordem_compra_id: string | null
           peso_total_kg: number | null
           porto_destino: string | null
           porto_origem: string | null
@@ -3414,7 +3445,7 @@ export type Database = {
           numero_container?: string | null
           numero_embarque?: number | null
           observacoes?: string | null
-          ordem_compra_id: string
+          ordem_compra_id?: string | null
           peso_total_kg?: number | null
           porto_destino?: string | null
           porto_origem?: string | null
@@ -3438,7 +3469,7 @@ export type Database = {
           numero_container?: string | null
           numero_embarque?: number | null
           observacoes?: string | null
-          ordem_compra_id?: string
+          ordem_compra_id?: string | null
           peso_total_kg?: number | null
           porto_destino?: string | null
           porto_origem?: string | null
@@ -3671,6 +3702,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "china_embarques"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "china_nao_conformidades_embarque_id_fkey"
+            columns: ["embarque_id"]
+            isOneToOne: false
+            referencedRelation: "vw_container_consolidado"
+            referencedColumns: ["embarque_id"]
           },
           {
             foreignKeyName: "china_nao_conformidades_ordem_compra_id_fkey"
@@ -4603,6 +4641,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "china_embarques"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "china_recebimentos_carga_embarque_id_fkey"
+            columns: ["embarque_id"]
+            isOneToOne: false
+            referencedRelation: "vw_container_consolidado"
+            referencedColumns: ["embarque_id"]
           },
           {
             foreignKeyName: "china_recebimentos_carga_ordem_compra_id_fkey"
@@ -6302,6 +6347,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "fabrica_ordens_producao"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compras_internacional_vinculos_fabrica_op_id_fkey"
+            columns: ["fabrica_op_id"]
+            isOneToOne: false
+            referencedRelation: "vw_op_pronto_embarque"
+            referencedColumns: ["ordem_producao_id"]
           },
         ]
       }
@@ -11254,6 +11306,13 @@ export type Database = {
             referencedRelation: "fabrica_ordens_producao"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "fabrica_apontamentos_ordem_producao_id_fkey"
+            columns: ["ordem_producao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_op_pronto_embarque"
+            referencedColumns: ["ordem_producao_id"]
+          },
         ]
       }
       fabrica_apuracao_fiscal: {
@@ -11994,6 +12053,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "fabrica_ordens_producao"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_custos_producao_ordem_producao_id_fkey"
+            columns: ["ordem_producao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_op_pronto_embarque"
+            referencedColumns: ["ordem_producao_id"]
           },
         ]
       }
@@ -13182,6 +13248,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "fabrica_inspecoes_qualidade_ordem_producao_id_fkey"
+            columns: ["ordem_producao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_op_pronto_embarque"
+            referencedColumns: ["ordem_producao_id"]
+          },
+          {
             foreignKeyName: "fabrica_inspecoes_qualidade_plano_inspecao_id_fkey"
             columns: ["plano_inspecao_id"]
             isOneToOne: false
@@ -13981,6 +14054,13 @@ export type Database = {
             referencedRelation: "fabrica_ordens_producao"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "fabrica_movimentacoes_ordem_producao_id_fkey"
+            columns: ["ordem_producao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_op_pronto_embarque"
+            referencedColumns: ["ordem_producao_id"]
+          },
         ]
       }
       fabrica_movimentacoes_estoque: {
@@ -14059,6 +14139,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "fabrica_ordens_producao"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_movimentacoes_estoque_ordem_producao_id_fkey"
+            columns: ["ordem_producao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_op_pronto_embarque"
+            referencedColumns: ["ordem_producao_id"]
           },
         ]
       }
@@ -14224,6 +14311,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "fabrica_ordens_producao"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_nao_conformidades_ordem_producao_id_fkey"
+            columns: ["ordem_producao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_op_pronto_embarque"
+            referencedColumns: ["ordem_producao_id"]
           },
         ]
       }
@@ -14668,6 +14762,13 @@ export type Database = {
             referencedRelation: "fabrica_ordens_producao"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "fabrica_paradas_ordem_producao_id_fkey"
+            columns: ["ordem_producao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_op_pronto_embarque"
+            referencedColumns: ["ordem_producao_id"]
+          },
         ]
       }
       fabrica_planejamento_necessidades: {
@@ -14727,6 +14828,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "fabrica_ordens_producao"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_planejamento_necessidades_ordem_producao_id_fkey"
+            columns: ["ordem_producao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_op_pronto_embarque"
+            referencedColumns: ["ordem_producao_id"]
           },
         ]
       }
@@ -14885,6 +14993,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "fabrica_ordens_producao"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_precos_produtos_ordem_producao_id_fkey"
+            columns: ["ordem_producao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_op_pronto_embarque"
+            referencedColumns: ["ordem_producao_id"]
           },
           {
             foreignKeyName: "fabrica_precos_produtos_produto_id_fkey"
@@ -15485,6 +15600,13 @@ export type Database = {
             referencedRelation: "fabrica_ordens_producao"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "fabrica_refugos_ordem_producao_id_fkey"
+            columns: ["ordem_producao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_op_pronto_embarque"
+            referencedColumns: ["ordem_producao_id"]
+          },
         ]
       }
       fabrica_regras_fiscais: {
@@ -15750,11 +15872,25 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "fabrica_retrabalhos_ordem_producao_original_id_fkey"
+            columns: ["ordem_producao_original_id"]
+            isOneToOne: false
+            referencedRelation: "vw_op_pronto_embarque"
+            referencedColumns: ["ordem_producao_id"]
+          },
+          {
             foreignKeyName: "fabrica_retrabalhos_ordem_producao_retrabalho_id_fkey"
             columns: ["ordem_producao_retrabalho_id"]
             isOneToOne: false
             referencedRelation: "fabrica_ordens_producao"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_retrabalhos_ordem_producao_retrabalho_id_fkey"
+            columns: ["ordem_producao_retrabalho_id"]
+            isOneToOne: false
+            referencedRelation: "vw_op_pronto_embarque"
+            referencedColumns: ["ordem_producao_id"]
           },
         ]
       }
@@ -16565,6 +16701,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "fabrica_ordens_producao"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_timesheets_ordem_producao_id_fkey"
+            columns: ["ordem_producao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_op_pronto_embarque"
+            referencedColumns: ["ordem_producao_id"]
           },
         ]
       }
@@ -34071,6 +34214,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "shipsgo_shipments_embarque_id_fkey"
+            columns: ["embarque_id"]
+            isOneToOne: false
+            referencedRelation: "vw_container_consolidado"
+            referencedColumns: ["embarque_id"]
+          },
+          {
             foreignKeyName: "shipsgo_shipments_ordem_compra_id_fkey"
             columns: ["ordem_compra_id"]
             isOneToOne: false
@@ -41637,6 +41787,30 @@ export type Database = {
         }
         Relationships: []
       }
+      vw_container_consolidado: {
+        Row: {
+          booking_number: string | null
+          data_embarque: string | null
+          data_eta: string | null
+          embarque_id: string | null
+          navio: string | null
+          numero_bl: string | null
+          numero_container: string | null
+          numero_embarque: number | null
+          porto_destino: string | null
+          porto_origem: string | null
+          qtd_ocs: number | null
+          qtd_ops: number | null
+          shipsgo_dias_atraso: number | null
+          shipsgo_eta_atual: string | null
+          shipsgo_last_event_at: string | null
+          shipsgo_status: string | null
+          status: string | null
+          tipo_embarque: string | null
+          total_pecas: number | null
+        }
+        Relationships: []
+      }
       vw_contas_receber_completo: {
         Row: {
           bloqueado: boolean | null
@@ -41761,6 +41935,47 @@ export type Database = {
           valor: number | null
         }
         Relationships: []
+      }
+      vw_op_pronto_embarque: {
+        Row: {
+          data_fim: string | null
+          dias_parado: number | null
+          lote: string | null
+          op_numero: string | null
+          op_status: string | null
+          ordem_compra_id: string | null
+          ordem_producao_id: string | null
+          produto_codigo: string | null
+          produto_id: string | null
+          produto_nome: string | null
+          qty_alocada: number | null
+          qty_disponivel: number | null
+          quantidade_planejada: number | null
+          quantidade_produzida: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "compras_internacional_vinculos_china_ordem_compra_id_fkey"
+            columns: ["ordem_compra_id"]
+            isOneToOne: false
+            referencedRelation: "china_ordens_compra"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compras_internacional_vinculos_china_ordem_compra_id_fkey"
+            columns: ["ordem_compra_id"]
+            isOneToOne: false
+            referencedRelation: "vw_china_oc_recebimento_kpis"
+            referencedColumns: ["ordem_compra_id"]
+          },
+          {
+            foreignKeyName: "fabrica_ordens_producao_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_produtos"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       vw_process_timeline: {
         Row: {
@@ -43661,6 +43876,16 @@ export type Database = {
         Args: { p_instancia_id: string }
         Returns: string
       }
+      rpc_alocar_op_em_container: {
+        Args: {
+          p_embarque_id: string
+          p_lote?: string
+          p_observacao?: string
+          p_op_id: string
+          p_qty: number
+        }
+        Returns: string
+      }
       rpc_aprovacoes_pendentes_para: {
         Args: { _user_id: string }
         Returns: {
@@ -43717,6 +43942,10 @@ export type Database = {
         Args: { p_comentario: string; p_item_id: string }
         Returns: string
       }
+      rpc_criar_container_consolidado: {
+        Args: { p_itens: Json; p_payload: Json }
+        Returns: string
+      }
       rpc_criar_lote_aprovacao: {
         Args: {
           p_config_id: string
@@ -43770,6 +43999,10 @@ export type Database = {
             }
             Returns: string
           }
+      rpc_fechar_container: {
+        Args: { p_embarque_id: string }
+        Returns: undefined
+      }
       rpc_gerar_op_da_oc_china: {
         Args: {
           p_data_prevista?: string
