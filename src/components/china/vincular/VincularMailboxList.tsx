@@ -35,10 +35,10 @@ function statusBadge(status: string) {
   const map: Record<string, { label: string; icon: typeof Clock; cls: string }> = {
     rascunho: { label: "Rascunho", icon: FileText, cls: "bg-muted/40 text-muted-foreground border-border" },
     enviado: { label: "Enviado", icon: Send, cls: "bg-primary/15 text-primary border-primary/30" },
-    em_revisao: { label: "Em Revisão", icon: Loader2, cls: "bg-amber-500/15 text-amber-400 border-amber-500/30" },
+    em_revisao: { label: "Em revisão", icon: Loader2, cls: "bg-amber-500/15 text-amber-400 border-amber-500/30" },
     aprovado: { label: "Aprovado", icon: CheckCircle2, cls: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30" },
-    enviado_brasil: { label: "Enviado Brasil", icon: Globe, cls: "bg-sky-500/15 text-sky-400 border-sky-500/30" },
-    arte_enviada: { label: "Docs Enviados", icon: Paperclip, cls: "bg-violet-500/15 text-violet-400 border-violet-500/30" },
+    enviado_brasil: { label: "Recebido da China", icon: Globe, cls: "bg-sky-500/15 text-sky-400 border-sky-500/30" },
+    arte_enviada: { label: "Docs enviados", icon: Paperclip, cls: "bg-violet-500/15 text-violet-400 border-violet-500/30" },
     rejeitado: { label: "Rejeitado", icon: XCircle, cls: "bg-rose-500/15 text-rose-400 border-rose-500/30" },
   };
   return map[status] || { label: status, icon: Clock, cls: "bg-muted text-muted-foreground border-border" };
@@ -179,14 +179,14 @@ export function VincularMailboxList({
                         className="h-1.5 w-1.5 shrink-0 rounded-full"
                         style={{ backgroundColor: item.projetoCor || "hsl(var(--primary))" }}
                       />
-                      <span className="truncate">{item.projetoNome}</span>
+                      <span className="truncate">Encaminhado para {item.projetoNome}</span>
                       {(item.tarefasVinculadas ?? 0) > 0 && (
                         <span>· {item.tarefasVinculadas} tarefa{item.tarefasVinculadas === 1 ? "" : "s"}</span>
                       )}
                     </span>
                   ) : (
                     <span className="flex items-center gap-1 italic text-amber-400/80">
-                      <Link2Off className="h-3 w-3" /> Sem vínculo
+                      <Link2Off className="h-3 w-3" /> A encaminhar
                     </span>
                   )}
                   {(item.docCount ?? 0) > 0 && (

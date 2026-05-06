@@ -605,10 +605,13 @@ export default function ProjetoVincularChina() {
                 <Link2 className="h-5 w-5 text-primary" />
               </div>
               <div className="flex-1 min-w-0">
-                <h1 className="text-xl font-bold text-foreground truncate">Vincular Envio China 关联中国发货</h1>
+                <h1 className="text-xl font-bold text-foreground truncate">Mesa de Vínculo — Documentos da China</h1>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Receba, faça a triagem e encaminhe os envios da China para projetos, despachos e responsáveis.
+                </p>
                 <div className="flex items-center gap-3 mt-1">
                   <Progress value={progressPct} className="h-2 w-40" />
-                  <span className="text-xs font-medium text-foreground">{vinculadasCount}/{tableData.length} · {progressPct}%</span>
+                  <span className="text-xs font-medium text-foreground">{vinculadasCount}/{tableData.length} encaminhados · {progressPct}%</span>
                 </div>
               </div>
               <div className="w-[250px]">
