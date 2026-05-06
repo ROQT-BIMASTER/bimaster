@@ -1,0 +1,114 @@
+import {
+  Inbox, Link2, Link2Off, FileText, Send, Loader2, CheckCircle2, Globe,
+  XCircle, AlertTriangle, Star, Clock,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+import { Badge } from "@/components/ui/badge";
+import type { VincularFolder, VincularFolderCounts } from "@/hooks/useVincularChinaMailboxData";
+
+interface Props {
+  folder: VincularFolder;
+  counts: VincularFolderCounts;
+  onSelect: (f: VincularFolder) => void;
+  progressPct: number;
+  vinculadas: number;
+  total: number;
+}
+
+const FOLDERS: Array<{
+  key: VincularFolder;
+  label: string;
+  labelCn: string;
+  icon: typeof Inbox;
+  countKey: keyof VincularFolderCounts;
+  tone?: string;
+  group?: "main" | "status" | "alerts";
+}> = [
+  { key: "todas", label: "Caixa de Entrada", labelCn: "全部", icon: Inbox, countKey: "todas", group: "main" },
+  { key: "nao_vinculadas", label: "Não vinculadas", labelCn: "未关联", icon: Link2Off, countKey: "nao_vinculadas", tone: "text-amber-400", group: "main" },
+  { key: "vinculadas", label: "Vinculadas", labelCn: "已关联", icon: Link2, countKey: "vinculadas", tone: "text-emerald-400", group: "main" },
+  { key: "estrelados", label: "Marcados", labelCn: "已标记", icon: Star, countKey: "estrelados", tone: "text-amber-400", group: "main" },
+  { key: "snoozed", label: "Adiados", labelCn: "已推迟", icon: Clock, countKey: "snoozed", tone: "text-sky-400", group: "main" },
+
+  { key: "rascunho", label: "Rascunhos", labelCn: "草稿", icon: FileText, countKey: "rascunho", group: "status" },
+  { key: "enviado", label: "Enviados", labelCn: "已发送", icon: Send, countKey: "enviado", group: "status" },
+  { key: "em_revisao", label: "Em Revisão", labelCn: "审核中", icon: Loader2, countKey: "em_revisao", tone: "text-amber-400", group: "status" },
+  { key: "aprovado", label: "Aprovados", labelCn: "已批准", icon: CheckCircle2, countKey: "aprovado", tone: "text-emerald-400", group: "status" },
+  { key: "enviado_brasil", label: "Enviados ao Brasil", labelCn: "已发巴西", icon: Globe, countKey: "enviado_brasil", tone: "text-sky-400", group: "status" },
+  { key: "rejeitado", label: "Rejeitados", labelCn: "已拒绝", icon: XCircle, countKey: "rejeitado", tone: "text-rose-400", group: "status" },
+
+  { key: "pendencias", label: "Com pendências", labelCn: "待办事项", icon: AlertTriangle, countKey: "pendencias", tone: "text-rose-400", group: "alerts" },
+];
+
+export function VincularMailboxSidebar({ folder, counts, onSelect, progressPct, vinculadas, total }: Props) {
+  const renderGroup = (group: "main" | "status" | "alerts", title: string) => (
+    <div className="mb-2">
+      <p className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">
+        {title}
+      </p>
+      {FOLDERS.filter((f) => f.group === group).map((f) => {
+        const Icon = f.icon;
+        const active = folder === f.key;
+        const total = counts[f.countKey];
+        return (
+          <button
+            key={f.key}
+            type="button"
+            onClick={() => onSelect(f.key)}
+            className={cn(
+              "group flex w-full items-center gap-2.5 rounded-md px-2.5 py-1.5 text-sm transition-colors",
+              active
+                ? "bg-primary/15 text-foreground font-medium"
+                : "text-muted-foreground hover:bg-muted/40 hover:text-foreground",
+            )}
+          >
+            <Icon className={cn("h-3.5 w-3.5 shrink-0", f.tone, active && "text-primary")} />
+            <span className="truncate flex-1 text-left text-[12.5px]">
+              {f.label}
+              <span className="ml-1 text-[10px] text-muted-foreground/60">{f.labelCn}</span>
+            </span>
+            {total > 0 && (
+              <span className={cn(
+                "text-[10.5px] tabular-nums",
+                active ? "text-foreground font-medium" : "text-muted-foreground",
+              )}>
+                {total}
+              </span>
+            )}
+          </button>
+        );
+      })}
+    </div>
+  );
+
+  return (
+    <aside className="flex h-full flex-col border-r border-border bg-card/40">
+      <div className="border-b border-border/60 p-3 space-y-2">
+        <div className="flex items-center justify-between text-[11px]">
+          <span className="font-semibold text-foreground">Progresso</span>
+          <span className="tabular-nums text-muted-foreground">
+            {vinculadas}/{total} · {progressPct}%
+          </span>
+        </div>
+        <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+          <div
+            className="h-full bg-primary transition-all"
+            style={{ width: `${progressPct}%` }}
+          />
+        </div>
+      </div>
+      <nav className="flex-1 overflow-y-auto px-1.5 pt-3 pb-3">
+        {renderGroup("main", "Bandeja")}
+        {renderGroup("status", "Status")}
+        {renderGroup("alerts", "Alertas")}
+      </nav>
+      <div className="border-t border-border/60 p-3 text-[10px] leading-relaxed text-muted-foreground">
+        <p className="font-medium text-foreground/80">Atalhos</p>
+        <p>j / k — Navegar lista</p>
+        <p>x — Selecionar · s — Estrela</p>
+        <p>v — Abrir vinculação · / — Buscar</p>
+        <p>g i — Caixa · g n — Não vinculadas</p>
+      </div>
+    </aside>
+  );
+}
