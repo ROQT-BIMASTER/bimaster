@@ -24,6 +24,8 @@ interface ChinaPageHeaderProps {
   showBack?: boolean;
   /** Caminho customizado de "voltar". Padrão: navigate(-1) */
   backTo?: string;
+  /** Rótulo customizado do botão voltar (ex.: "Voltar à Mesa de Vínculo") */
+  backLabel?: string;
   /** Slot direito (ações como "Nova Submissão", manual, etc.) */
   actions?: ReactNode;
 }
@@ -50,6 +52,7 @@ export function ChinaPageHeader({
   iconTone = "destructive",
   showBack = false,
   backTo,
+  backLabel,
   actions,
 }: ChinaPageHeaderProps) {
   const navigate = useNavigate();
@@ -63,12 +66,14 @@ export function ChinaPageHeader({
         {showBack && (
           <Button
             variant="ghost"
-            size="icon"
-            className="h-8 w-8"
+            size="sm"
+            className="h-8 gap-1.5 px-2"
             onClick={() => (backTo ? navigate(backTo) : navigate(-1))}
-            aria-label="Voltar"
+            aria-label={backLabel || "Voltar"}
+            title={backLabel || "Voltar"}
           >
             <ArrowLeft className="h-4 w-4" />
+            {backLabel && <span className="text-xs font-medium hidden sm:inline">{backLabel}</span>}
           </Button>
         )}
         <div className={cn("h-11 w-11 rounded-2xl flex items-center justify-center shrink-0", TONE_BG[iconTone])}>

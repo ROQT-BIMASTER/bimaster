@@ -1,5 +1,6 @@
 import { useMemo, useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
+import { buildReturnToTarget } from "@/lib/navigation/withReturnTo";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
@@ -71,6 +72,7 @@ export function VincularChinaSidePanel({
   onToggleTarefa, onVincular, onToggleDocVinculo, vinculosPending, auditResult, auditLoading,
 }: Props) {
   const navigate = useNavigate();
+  const location = useLocation();
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [tabValue, setTabValue] = useState<string>("detalhes");
   const onChangeTab = (v: string) => setTabValue(v);
@@ -241,7 +243,14 @@ export function VincularChinaSidePanel({
               variant="outline"
               size="sm"
               className="w-full gap-1.5"
-              onClick={() => navigate(`/dashboard/fabrica-china/produto/${submissao.id}`)}
+              onClick={() => {
+                const { url, state } = buildReturnToTarget(
+                  `/dashboard/fabrica-china/produto/${submissao.id}`,
+                  location.pathname + location.search,
+                  { fromLabel: "Mesa de Vínculo" },
+                );
+                navigate(url, { state });
+              }}
             >
               <ExternalLink className="h-3.5 w-3.5" />
               Abrir Ficha Completa

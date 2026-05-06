@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { useResolvedBackTo } from "@/lib/navigation/withReturnTo";
 import {
   ArrowLeft, Package, Eye, CheckCircle2, XCircle, Clock, Loader2,
   ShoppingCart, Upload, Barcode, Download, FileText, TrendingUp,
@@ -52,6 +53,7 @@ import { useUIPermissions } from "@/hooks/useUIPermissions";
 export default function ChinaFichaProduto() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { backTo, backLabel } = useResolvedBackTo("/dashboard/fabrica-china/recebimentos");
   const queryClient = useQueryClient();
   const { isBrasilUser, isChinaUser } = useChinaUserContext();
   // ADV-6: Field visibility for cost/margin fields
@@ -266,7 +268,8 @@ export default function ChinaFichaProduto() {
         icon={Package}
         iconTone="primary"
         showBack
-        backTo="/dashboard/fabrica-china/recebimentos"
+        backTo={backTo}
+        backLabel={backLabel}
         actions={
           <>
             <Button
