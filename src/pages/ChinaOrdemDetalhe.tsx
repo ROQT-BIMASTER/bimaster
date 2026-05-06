@@ -1,6 +1,7 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft, Loader2, Package, Clock, CheckCircle, XCircle, Ship, ClipboardCheck, Scale, History } from "lucide-react";
 import { VinculosBrasilPanel } from "@/components/china/VinculosBrasilPanel";
+import { OPVinculadaCard } from "@/components/china/op/OPVinculadaCard";
 import { HistoricoRecebimentosInternacionalSheet } from "@/components/compras/HistoricoRecebimentosInternacionalSheet";
 import { ChinaOrdemItensPanel } from "@/components/china/ChinaOrdemItensPanel";
 import { EmbarqueParcialDialog } from "@/components/china/EmbarqueParcialDialog";
