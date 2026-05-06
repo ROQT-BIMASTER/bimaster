@@ -153,7 +153,7 @@ export default function ChinaCaixaEntrada() {
     });
   };
   const handleCorrigir = (item: MailboxItem) => {
-    navigate(`/dashboard/fabrica-china/submissao/${item.submissao_id}`);
+    goWithReturn(`/dashboard/fabrica-china/submissao/${item.submissao_id}`);
   };
   const handleToggleRead = (item: MailboxItem) => {
     if (!item.documento_id) return;
