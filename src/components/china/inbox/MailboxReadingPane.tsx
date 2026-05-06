@@ -43,6 +43,12 @@ export function MailboxReadingPane({
   loading,
 }: Props) {
   const navigate = useNavigate();
+  const location = useLocation();
+  const goWithReturn = (target: string) => {
+    const fromPath = `${location.pathname}${location.search}`;
+    const { url, state } = buildReturnToTarget(target, fromPath, { fromLabel: "Caixa de Entrada" });
+    navigate(url, { state });
+  };
   const [motivo, setMotivo] = useState("");
   const unsnooze = useUnsnoozeSubmissao();
 
