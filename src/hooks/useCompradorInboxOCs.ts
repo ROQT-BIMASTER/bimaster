@@ -11,7 +11,10 @@ export type InboxFolder =
   | "transito"
   | "desembaraco"
   | "recebidas"
-  | "atrasadas";
+  | "atrasadas"
+  | "divergencias"
+  | "catalogo"
+  | "submissoes";
 
 export interface InboxOC extends OcRecebimentoKpi {
   ultima_movimentacao: string;
