@@ -655,9 +655,9 @@ export default function ProjetoVincularChina() {
         };
 
         return (
-          <div className="rounded-lg border overflow-hidden bg-card/30" style={{ height: "calc(100vh - 220px)" }}>
+          <div className="h-[calc(100vh-220px)] overflow-hidden rounded-md border border-border bg-card/20">
             <ResizablePanelGroup direction="horizontal">
-              <ResizablePanel defaultSize={18} minSize={14} maxSize={26}>
+              <ResizablePanel defaultSize={18} minSize={14} maxSize={28}>
                 <VincularMailboxSidebar
                   folder={folder}
                   counts={folderCounts}
@@ -668,7 +668,7 @@ export default function ProjetoVincularChina() {
                 />
               </ResizablePanel>
               <ResizableHandle withHandle />
-              <ResizablePanel defaultSize={selectedMailRow ? 38 : 82} minSize={28}>
+              <ResizablePanel defaultSize={selectedMailRow ? 36 : 82} minSize={24}>
                 <VincularMailboxList
                   items={folderItems}
                   folder={folder}
@@ -691,7 +691,7 @@ export default function ProjetoVincularChina() {
               {selectedMailRow && (
                 <>
                   <ResizableHandle withHandle />
-                  <ResizablePanel defaultSize={44} minSize={28} maxSize={60}>
+                  <ResizablePanel defaultSize={46} minSize={28} maxSize={60}>
                     <VincularChinaSidePanel
                       submissao={selectedMailRow}
                       isLinkedToProject={submissaoVinculadas.has(selectedMailRow.id)}
