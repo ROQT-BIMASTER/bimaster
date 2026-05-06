@@ -61,11 +61,20 @@ export function EncaminharProjetoDialog({
 
   const filteredTarefas = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return tarefas;
-    return tarefas.filter((t) =>
-      `${t.titulo ?? ""} ${t.codigo ?? ""}`.toLowerCase().includes(q)
-    );
-  }, [tarefas, search]);
+    const list = q
+      ? tarefas.filter((t) => `${t.titulo ?? ""} ${t.codigo ?? ""}`.toLowerCase().includes(q))
+      : tarefas;
+    // Recomendadas primeiro, mantendo ordem do score (smart.tarefas já vem ordenado)
+    const smartOrder = (smart?.tarefas ?? []).map((t) => t.id);
+    return [...list].sort((a, b) => {
+      const ai = smartOrder.indexOf(a.id);
+      const bi = smartOrder.indexOf(b.id);
+      if (ai === -1 && bi === -1) return 0;
+      if (ai === -1) return 1;
+      if (bi === -1) return -1;
+      return ai - bi;
+    });
+  }, [tarefas, search, smart?.tarefas]);
 
   const reset = () => {
     setProjeto(null); setTarefa(null); setObs(""); setSearch("");
