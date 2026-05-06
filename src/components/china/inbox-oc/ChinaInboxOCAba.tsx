@@ -39,6 +39,7 @@ export function ChinaInboxOCAba() {
   const [tab, setTab] = useState<ChinaOCSubTab>("pendente");
   const [search, setSearch] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [view, setView] = useState<"lista" | "tabela">("lista");
 
   const { data: items = [], isLoading } = useChinaInboxOCs();
   const counts = useMemo(() => chinaInboxOCCounts(items), [items]);
