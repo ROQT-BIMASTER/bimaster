@@ -174,6 +174,21 @@ export default function FormularioEquipe() {
           </p>
         </div>
 
+        {cameFromFallback && (
+          <Alert className="mb-4 border-amber-500/40 bg-amber-500/10 text-amber-100">
+            <Info className="h-4 w-4 text-amber-300" />
+            <AlertTitle className="text-amber-200">
+              Carregado pelo endereço alternativo
+            </AlertTitle>
+            <AlertDescription className="text-amber-100/90 text-xs">
+              O endereço principal está temporariamente indisponível, então
+              redirecionamos automaticamente para <code className="font-mono">china.bimaster.online</code>.
+              Pode prosseguir normalmente com o cadastro — registramos o evento
+              para acompanhamento técnico.
+            </AlertDescription>
+          </Alert>
+        )}
+
         {/* Step: Token */}
         {step === "token" && (
           <Card>
