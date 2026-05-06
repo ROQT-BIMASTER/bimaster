@@ -23,6 +23,7 @@ import { Loader2, CheckCircle2 } from "lucide-react";
 import { CepAddressField } from "@/components/forms/CepAddressField";
 import { MaterialRequestCard } from "@/components/forms/MaterialRequestCard";
 import { FormFileUpload } from "@/components/forms/FormFileUpload";
+import { FormBannerUpload } from "@/components/forms/FormBannerUpload";
 import { toast } from "sonner";
 
 interface DynamicFormRendererProps {
