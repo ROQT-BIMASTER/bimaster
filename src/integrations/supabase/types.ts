@@ -3628,11 +3628,16 @@ export type Database = {
       china_nao_conformidades: {
         Row: {
           aberta_por: string | null
+          cancelada_em: string | null
+          cancelada_por: string | null
           created_at: string
           descricao: string
           embarque_id: string | null
           evidencias: Json | null
           id: string
+          iniciada_em: string | null
+          iniciada_por: string | null
+          motivo_cancelamento: string | null
           numero_nc: string
           ordem_compra_id: string
           ordem_item_id: string | null
@@ -3651,11 +3656,16 @@ export type Database = {
         }
         Insert: {
           aberta_por?: string | null
+          cancelada_em?: string | null
+          cancelada_por?: string | null
           created_at?: string
           descricao: string
           embarque_id?: string | null
           evidencias?: Json | null
           id?: string
+          iniciada_em?: string | null
+          iniciada_por?: string | null
+          motivo_cancelamento?: string | null
           numero_nc: string
           ordem_compra_id: string
           ordem_item_id?: string | null
@@ -3674,11 +3684,16 @@ export type Database = {
         }
         Update: {
           aberta_por?: string | null
+          cancelada_em?: string | null
+          cancelada_por?: string | null
           created_at?: string
           descricao?: string
           embarque_id?: string | null
           evidencias?: Json | null
           id?: string
+          iniciada_em?: string | null
+          iniciada_por?: string | null
+          motivo_cancelamento?: string | null
           numero_nc?: string
           ordem_compra_id?: string
           ordem_item_id?: string | null
@@ -4524,6 +4539,90 @@ export type Database = {
         }
         Relationships: []
       }
+      china_recebimento_alertas: {
+        Row: {
+          criado_em: string
+          id: string
+          lido_em: string | null
+          mensagem: string
+          metadata: Json
+          ordem_compra_id: string
+          resolvido_em: string | null
+          responsavel_id: string | null
+          severidade: string
+          tipo: string
+        }
+        Insert: {
+          criado_em?: string
+          id?: string
+          lido_em?: string | null
+          mensagem: string
+          metadata?: Json
+          ordem_compra_id: string
+          resolvido_em?: string | null
+          responsavel_id?: string | null
+          severidade?: string
+          tipo: string
+        }
+        Update: {
+          criado_em?: string
+          id?: string
+          lido_em?: string | null
+          mensagem?: string
+          metadata?: Json
+          ordem_compra_id?: string
+          resolvido_em?: string | null
+          responsavel_id?: string | null
+          severidade?: string
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "china_recebimento_alertas_ordem_compra_id_fkey"
+            columns: ["ordem_compra_id"]
+            isOneToOne: false
+            referencedRelation: "china_ordens_compra"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "china_recebimento_alertas_ordem_compra_id_fkey"
+            columns: ["ordem_compra_id"]
+            isOneToOne: false
+            referencedRelation: "vw_china_oc_recebimento_kpis"
+            referencedColumns: ["ordem_compra_id"]
+          },
+        ]
+      }
+      china_recebimento_filtros_salvos: {
+        Row: {
+          created_at: string
+          id: string
+          is_default: boolean
+          nome: string
+          payload: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_default?: boolean
+          nome: string
+          payload?: Json
+          updated_at?: string
+          user_id?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_default?: boolean
+          nome?: string
+          payload?: Json
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       china_recebimento_itens: {
         Row: {
           created_at: string
@@ -4698,6 +4797,33 @@ export type Database = {
           titulo?: string
           updated_at?: string
           usuario_id?: string | null
+        }
+        Relationships: []
+      }
+      china_sla_config: {
+        Row: {
+          created_at: string
+          dias_atraso_alerta: number
+          id: string
+          sla_porto_cd_dias_alvo: number
+          sla_porto_cd_dias_critico: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          dias_atraso_alerta?: number
+          id?: string
+          sla_porto_cd_dias_alvo?: number
+          sla_porto_cd_dias_critico?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          dias_atraso_alerta?: number
+          id?: string
+          sla_porto_cd_dias_alvo?: number
+          sla_porto_cd_dias_critico?: number
+          updated_at?: string
         }
         Relationships: []
       }
