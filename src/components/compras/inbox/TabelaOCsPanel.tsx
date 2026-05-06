@@ -99,6 +99,14 @@ export function TabelaOCsPanel() {
     if (marca !== "todas") list = list.filter((o) => o.marca === marca);
     if (status !== "todas") list = list.filter((o) => statusBucket(o) === status);
     if (oc !== "todas") list = list.filter((o) => o.numero_oc === oc);
+    const fq = fornecedor.trim().toLowerCase();
+    if (fq) {
+      list = list.filter((o) =>
+        (o.produto_nome || "").toLowerCase().includes(fq) ||
+        (o.produto_codigo || "").toLowerCase().includes(fq) ||
+        (o.marca || "").toLowerCase().includes(fq),
+      );
+    }
     if (period.from) {
       const fromIso = period.from.toISOString().slice(0, 10);
       list = list.filter((o) => (o.data_emissao || "") >= fromIso || (o.data_entrega_prevista || "") >= fromIso);
@@ -117,7 +125,7 @@ export function TabelaOCsPanel() {
       );
     }
     return list;
-  }, [items, marca, status, oc, period, search]);
+  }, [items, marca, status, oc, fornecedor, period, search]);
 
   const sorted = useMemo(() => {
     const dir = sortDir === "asc" ? 1 : -1;
