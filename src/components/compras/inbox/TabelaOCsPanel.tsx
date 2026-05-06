@@ -214,10 +214,41 @@ export function TabelaOCsPanel() {
       <div className="p-4 space-y-4">
         {/* Filtros */}
         <div className="rounded-xl border bg-card p-4">
-          <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center justify-between mb-3 gap-3 flex-wrap">
             <div>
               <h3 className="text-sm font-semibold">Forecast & Acompanhamento de OCs</h3>
               <p className="text-xs text-muted-foreground">{filtered.length} OCs</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <Select value="" onValueChange={aplicarPreset}>
+                <SelectTrigger className="h-8 w-[200px] text-xs">
+                  <div className="flex items-center gap-1.5 truncate">
+                    <Bookmark className="h-3.5 w-3.5" />
+                    <SelectValue placeholder={presets.length ? "Aplicar preset…" : "Sem presets salvos"} />
+                  </div>
+                </SelectTrigger>
+                <SelectContent>
+                  {presets.length === 0 && (
+                    <div className="px-2 py-1.5 text-xs text-muted-foreground">Nenhum preset salvo</div>
+                  )}
+                  {presets.map((p) => (
+                    <div key={p.id} className="flex items-center pr-1">
+                      <SelectItem value={p.id} className="flex-1">{p.nome}</SelectItem>
+                      <button
+                        type="button"
+                        onMouseDown={(e) => { e.stopPropagation(); e.preventDefault(); removePreset(p.id); toast.success("Preset removido"); }}
+                        className="p-1 text-muted-foreground hover:text-destructive"
+                        title="Remover preset"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </button>
+                    </div>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button size="sm" variant="outline" className="h-8 gap-1.5 text-xs" onClick={() => setSavePresetOpen(true)}>
+                <Save className="h-3.5 w-3.5" /> Salvar preset
+              </Button>
             </div>
           </div>
           <div className="flex flex-wrap items-end gap-3">
