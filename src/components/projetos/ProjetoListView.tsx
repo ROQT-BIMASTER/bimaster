@@ -16,7 +16,6 @@ import { ProjetoVisaoParcialBanner } from "./ProjetoVisaoParcialBanner";
 import { ListSkeleton } from "./ProjetoSkeletons";
 import { logger } from "@/lib/logger";
 import { useAuth } from "@/contexts/AuthContext";
-import { confirmConclusaoTarefa } from "@/lib/projetos/confirmConclusao";
 
 // Legacy export for backwards compat
 export const GRID_COLS = "grid-cols-[20px_20px_1fr_80px_1px_100px_120px_90px_120px_80px_80px]";
@@ -93,11 +92,7 @@ export function ProjetoListView({ projetoId, darkBg = false, filters = EMPTY_FIL
     createTarefa.mutate({ titulo, secao_id: secaoId });
   };
 
-  const handleToggle = async (tarefa: ProjetoTarefa) => {
-    if (tarefa.status !== "concluida") {
-      const ok = await confirmConclusaoTarefa({ titulo: tarefa.titulo });
-      if (!ok) return;
-    }
+  const handleToggle = (tarefa: ProjetoTarefa) => {
     toggleTarefaCompleta.mutate(tarefa);
   };
 
