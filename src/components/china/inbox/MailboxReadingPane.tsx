@@ -122,7 +122,7 @@ export function MailboxReadingPane({
           variant="ghost"
           size="sm"
           className="h-7 gap-1.5 text-xs"
-          onClick={() => navigate(`/dashboard/fabrica-china/submissao/${item.submissao_id}`)}
+          onClick={() => goWithReturn(`/dashboard/fabrica-china/submissao/${item.submissao_id}`)}
         >
           <ExternalLink className="h-3.5 w-3.5" />
           Abrir submissão / 打开
