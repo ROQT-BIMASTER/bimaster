@@ -13,6 +13,7 @@ import { CatalogoChinaPanel } from "@/components/compras/inbox/CatalogoChinaPane
 import { SubmissoesAprovadasPanel } from "@/components/compras/inbox/SubmissoesAprovadasPanel";
 import { PatioEmbarquePanel } from "@/components/compras/inbox/PatioEmbarquePanel";
 import { TorreContainersPanel } from "@/components/compras/inbox/TorreContainersPanel";
+import { TabelaOCsPanel } from "@/components/compras/inbox/TabelaOCsPanel";
 import {
   useCompradorInboxOCs,
   inboxFolderCounts,
@@ -83,7 +84,7 @@ export default function CompradorInbox() {
         </Button>
       </div>
 
-      {(["catalogo", "submissoes", "patio", "containers"] as InboxFolder[]).includes(folder) ? (
+      {(["catalogo", "submissoes", "patio", "containers", "tabela"] as InboxFolder[]).includes(folder) ? (
         <div className="grid grid-cols-[220px_1fr] gap-0 border rounded-xl overflow-hidden bg-card h-[calc(100vh-220px)] min-h-[560px]">
           <div className="border-r bg-muted/20">
             <InboxFolderList active={folder} onSelect={setFolder} counts={counts} />
@@ -97,6 +98,7 @@ export default function CompradorInbox() {
             )}
             {folder === "patio" && <PatioEmbarquePanel />}
             {folder === "containers" && <TorreContainersPanel />}
+            {folder === "tabela" && <TabelaOCsPanel />}
           </div>
         </div>
       ) : (

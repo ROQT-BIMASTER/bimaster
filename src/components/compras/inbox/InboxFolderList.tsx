@@ -4,7 +4,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import {
   Inbox, FileEdit, Hourglass, Factory, Ship, Compass, FileCheck2, PackageCheck, AlertTriangle,
-  AlertOctagon, BookOpen, FileStack, Container,
+  AlertOctagon, BookOpen, FileStack, Container, Table2,
 } from "lucide-react";
 import type { InboxFolder } from "@/hooks/useCompradorInboxOCs";
 
@@ -18,6 +18,7 @@ type FolderDef = { key: InboxFolder; label: string; icon: any; tone?: "destructi
 
 const folders: FolderDef[] = [
   { key: "todas", label: "Caixa de entrada", icon: Inbox, section: "Geral" },
+  { key: "tabela", label: "Tabela", icon: Table2 },
   { key: "atrasadas", label: "Atrasadas", icon: AlertTriangle, tone: "destructive" },
   { key: "divergencias", label: "Divergências", icon: AlertOctagon, tone: "destructive" },
 
@@ -43,7 +44,7 @@ export function InboxFolderList({ active, onSelect, counts }: InboxFolderListPro
           const Icon = f.icon;
           const isActive = active === f.key;
           const count = counts[f.key] || 0;
-          const showCount = !["catalogo", "submissoes", "patio", "containers"].includes(f.key);
+          const showCount = !["catalogo", "submissoes", "patio", "containers", "tabela"].includes(f.key);
           return (
             <div key={f.key}>
               {f.section && (

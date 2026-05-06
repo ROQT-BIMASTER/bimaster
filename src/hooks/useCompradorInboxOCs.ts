@@ -16,13 +16,17 @@ export type InboxFolder =
   | "atrasadas"
   | "divergencias"
   | "catalogo"
-  | "submissoes";
+  | "submissoes"
+  | "tabela";
 
 export interface InboxOC extends OcRecebimentoKpi {
   ultima_movimentacao: string;
   has_divergencia: boolean;
   has_vinculo: boolean;
   embarque_status: string | null;
+  marca: string | null;
+  ops_numeros: string[];
+  embarque_container: string | null;
 }
 
 function isAtrasada(o: OcRecebimentoKpi): boolean {
@@ -57,6 +61,7 @@ export function folderMatches(o: InboxOC, folder: InboxFolder): boolean {
     case "containers":
     case "catalogo":
     case "submissoes":
+    case "tabela":
       return false;
   }
 }
@@ -74,20 +79,52 @@ export function useCompradorInboxOCs() {
       const list = (kpis || []) as unknown as OcRecebimentoKpi[];
 
       const ocIds = list.map((o) => o.ordem_compra_id);
-      const [{ data: vincs }, { data: ncs }, { data: embarques }] = await Promise.all([
+      const submissaoIds = Array.from(new Set(list.map((o) => o.submissao_id).filter(Boolean)));
+      const safeOcIds = ocIds.length ? ocIds : ["00000000-0000-0000-0000-000000000000"];
+      const safeSubIds = submissaoIds.length ? submissaoIds : ["00000000-0000-0000-0000-000000000000"];
+
+      const [{ data: vincs }, { data: ncs }, { data: embarques }, { data: submissoes }, { data: ocsRow }] = await Promise.all([
         supabase
           .from("compras_internacional_vinculos" as any)
           .select("china_ordem_compra_id")
-          .in("china_ordem_compra_id", ocIds.length ? ocIds : ["00000000-0000-0000-0000-000000000000"]),
+          .in("china_ordem_compra_id", safeOcIds),
         supabase
           .from("china_nao_conformidades" as any)
           .select("ordem_compra_id, status")
-          .in("ordem_compra_id", ocIds.length ? ocIds : ["00000000-0000-0000-0000-000000000000"]),
+          .in("ordem_compra_id", safeOcIds),
         supabase
           .from("china_embarques" as any)
-          .select("ordem_compra_id, status")
-          .in("ordem_compra_id", ocIds.length ? ocIds : ["00000000-0000-0000-0000-000000000000"]),
+          .select("ordem_compra_id, status, numero_container, numero_bl, data_embarque")
+          .in("ordem_compra_id", safeOcIds)
+          .order("data_embarque", { ascending: false }),
+        supabase
+          .from("china_produto_submissoes" as any)
+          .select("id, linha_produto")
+          .in("id", safeSubIds),
+        supabase
+          .from("china_ordens_compra" as any)
+          .select("id")
+          .in("id", safeOcIds),
       ]);
+
+      // OPs vinculadas por OC via china_embarque_itens -> fabrica_ordens_producao
+      const embIds = (embarques || []).map((e: any) => e.id).filter(Boolean);
+      const opsByOc = new Map<string, Set<string>>();
+      if (embIds.length || ocIds.length) {
+        const { data: embItens } = await supabase
+          .from("china_embarque_itens" as any)
+          .select("ordem_producao_id, embarque_id, fabrica_ordens_producao(numero)")
+          .not("ordem_producao_id", "is", null);
+        const embToOc = new Map<string, string>();
+        (embarques || []).forEach((e: any) => e.id && embToOc.set(e.id, e.ordem_compra_id));
+        (embItens || []).forEach((it: any) => {
+          const ocId = embToOc.get(it.embarque_id);
+          const numero = it.fabrica_ordens_producao?.numero;
+          if (!ocId || !numero) return;
+          if (!opsByOc.has(ocId)) opsByOc.set(ocId, new Set());
+          opsByOc.get(ocId)!.add(numero);
+        });
+      }
 
       const vincSet = new Set((vincs || []).map((v: any) => v.china_ordem_compra_id));
       const ncSet = new Set(
@@ -96,7 +133,15 @@ export function useCompradorInboxOCs() {
           .map((n: any) => n.ordem_compra_id),
       );
       const embMap = new Map<string, string>();
-      (embarques || []).forEach((e: any) => embMap.set(e.ordem_compra_id, e.status));
+      const containerMap = new Map<string, string>();
+      (embarques || []).forEach((e: any) => {
+        if (!embMap.has(e.ordem_compra_id)) embMap.set(e.ordem_compra_id, e.status);
+        if (!containerMap.has(e.ordem_compra_id) && (e.numero_container || e.numero_bl)) {
+          containerMap.set(e.ordem_compra_id, e.numero_container || e.numero_bl);
+        }
+      });
+      const marcaMap = new Map<string, string>();
+      (submissoes || []).forEach((s: any) => s.linha_produto && marcaMap.set(s.id, s.linha_produto));
 
       const items: InboxOC[] = list.map((o) => ({
         ...o,
@@ -109,6 +154,9 @@ export function useCompradorInboxOCs() {
         has_divergencia: ncSet.has(o.ordem_compra_id),
         has_vinculo: vincSet.has(o.ordem_compra_id),
         embarque_status: embMap.get(o.ordem_compra_id) || null,
+        marca: marcaMap.get(o.submissao_id) || null,
+        ops_numeros: Array.from(opsByOc.get(o.ordem_compra_id) || []),
+        embarque_container: containerMap.get(o.ordem_compra_id) || null,
       }));
 
       items.sort((a, b) => (a.ultima_movimentacao < b.ultima_movimentacao ? 1 : -1));
@@ -134,6 +182,7 @@ export function inboxFolderCounts(items: InboxOC[]): Record<InboxFolder, number>
     "divergencias",
     "catalogo",
     "submissoes",
+    "tabela",
   ];
   const counts = {} as Record<InboxFolder, number>;
   folders.forEach((f) => {
