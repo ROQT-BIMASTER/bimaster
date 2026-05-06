@@ -92,19 +92,19 @@ export function VincularMailboxSidebar({ folder, counts, onSelect, progressPct, 
           />
         </div>
       </div>
-      <nav className="flex-1 overflow-y-auto px-1.5 pt-3 pb-3">
+      <nav className="flex-1 min-h-0 overflow-y-auto px-1.5 pt-3 pb-3">
         {renderGroup("main", "Bandeja")}
         {renderGroup("status", "Status")}
         {renderGroup("alerts", "Alertas")}
+        <div className="mt-3 border-t border-border/60 px-2 pt-3 text-[10px] leading-relaxed text-muted-foreground">
+          <p className="font-medium text-foreground/80">Atalhos</p>
+          <p>j / k — Navegar</p>
+          <p>x — Selecionar · s — Marcar</p>
+          <p>e — Encaminhar a projeto</p>
+          <p>d — Abrir despacho · r — Encaminhar a responsável</p>
+          <p>/ — Buscar</p>
+        </div>
       </nav>
-      <div className="border-t border-border/60 p-3 text-[10px] leading-relaxed text-muted-foreground">
-        <p className="font-medium text-foreground/80">Atalhos</p>
-        <p>j / k — Navegar</p>
-        <p>x — Selecionar · s — Marcar</p>
-        <p>e — Encaminhar a projeto</p>
-        <p>d — Abrir despacho · r — Encaminhar a responsável</p>
-        <p>/ — Buscar</p>
-      </div>
     </aside>
   );
 }
