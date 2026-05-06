@@ -71,10 +71,19 @@ export function TabelaOCsPanel() {
   const [marca, setMarca] = useState<string>("todas");
   const [status, setStatus] = useState<StatusBucket>("todas");
   const [oc, setOc] = useState<string>("todas");
+  const [fornecedor, setFornecedor] = useState<string>("");
   const [period, setPeriod] = useState<{ from?: Date; to?: Date }>({});
   const [search, setSearch] = useState("");
   const [sortKey, setSortKey] = useState<SortKey>("data_emissao");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
+
+  // Drawer
+  const [drawerOC, setDrawerOC] = useState<InboxOC | null>(null);
+
+  // Presets
+  const { presets, save: savePreset, remove: removePreset } = useInboxFilterPresets();
+  const [savePresetOpen, setSavePresetOpen] = useState(false);
+  const [presetName, setPresetName] = useState("");
 
   const marcas = useMemo(
     () => Array.from(new Set(items.map((o) => o.marca).filter(Boolean) as string[])).sort(),
