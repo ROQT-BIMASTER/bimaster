@@ -2,7 +2,10 @@ import { useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { CalendarIcon, Download, Search, X, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import {
+  CalendarIcon, Download, Search, X, ArrowUpDown, ArrowUp, ArrowDown,
+  Bookmark, Save, Trash2,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -10,12 +13,19 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { parseLocalDate } from "@/lib/utils/parseLocalDate";
 import { useCompradorInboxOCs, type InboxOC } from "@/hooks/useCompradorInboxOCs";
 import { downloadInboxCSV } from "@/lib/compras/exportInboxCSV";
+import { useInboxFilterPresets } from "@/hooks/useInboxFilterPresets";
+import { OCDetailDrawer } from "./OCDetailDrawer";
+import { isAtrasada, statusBucket, type StatusBucket } from "@/lib/compras/inboxStatus";
+import { toast } from "sonner";
 
-type StatusBucket = "todas" | "pendente" | "producao" | "patio" | "embarcada" | "transito" | "recebida" | "atrasada" | "divergencia";
 type SortKey =
   | "numero_oc" | "produto_nome" | "marca" | "ops" | "status" | "data_emissao" | "data_entrega_prevista"
   | "qty_pedida" | "qty_produzida" | "nao_produzido" | "qty_embarcada" | "qty_recebida" | "saldo_aberto" | "qty_avariada";
@@ -32,23 +42,6 @@ const STATUS_OPTS: { value: StatusBucket; label: string }[] = [
   { value: "atrasada", label: "Atrasada" },
   { value: "divergencia", label: "Divergência" },
 ];
-
-function isAtrasada(o: InboxOC): boolean {
-  if (!o.data_entrega_prevista) return false;
-  if (o.oc_status === "concluida" || o.oc_status === "cancelada") return false;
-  return o.data_entrega_prevista < new Date().toISOString().slice(0, 10);
-}
-
-function statusBucket(o: InboxOC): StatusBucket {
-  if (o.has_divergencia) return "divergencia";
-  if (isAtrasada(o)) return "atrasada";
-  if (o.saldo_aberto <= 0 || o.oc_status === "concluida") return "recebida";
-  if (o.data_chegada_porto && !o.data_desembaraco) return "transito";
-  if (o.qty_embarcada > 0 && !o.data_chegada_porto) return "embarcada";
-  if (["aprovada", "em_producao", "produzindo"].includes(o.oc_status)) return "producao";
-  if (["aguardando_aprovacao", "pendente_aprovacao", "rascunho"].includes(o.oc_status)) return "pendente";
-  return "pendente";
-}
 
 const STATUS_BADGE: Record<StatusBucket, string> = {
   todas: "",
