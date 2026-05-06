@@ -168,11 +168,41 @@ export function TabelaOCsPanel() {
 
   const clearFilters = () => {
     setMarca("todas"); setStatus("todas"); setOc("todas");
-    setPeriod({}); setSearch("");
+    setFornecedor(""); setPeriod({}); setSearch("");
   };
 
-  const openOC = (id: string) => {
+  const openReader = (id: string) => {
     setParams((p) => { const np = new URLSearchParams(p); np.set("oc", id); return np; }, { replace: true });
+  };
+
+  const openDrawer = (item: InboxOC) => setDrawerOC(item);
+
+  const aplicarPreset = (id: string) => {
+    const p = presets.find((x) => x.id === id);
+    if (!p) return;
+    setMarca(p.marca || "todas");
+    setStatus((p.status as StatusBucket) || "todas");
+    setOc(p.oc || "todas");
+    setFornecedor(p.fornecedor || "");
+    setPeriod({
+      from: p.period_from ? parseLocalDate(p.period_from) || undefined : undefined,
+      to: p.period_to ? parseLocalDate(p.period_to) || undefined : undefined,
+    });
+    setSearch(p.search || "");
+    toast.success(`Preset "${p.nome}" aplicado`);
+  };
+
+  const handleSavePreset = () => {
+    if (!presetName.trim()) { toast.error("Nome obrigatório"); return; }
+    savePreset({
+      nome: presetName.trim(),
+      marca, status, oc, fornecedor, search,
+      period_from: period.from ? period.from.toISOString().slice(0, 10) : null,
+      period_to: period.to ? period.to.toISOString().slice(0, 10) : null,
+    });
+    toast.success(`Preset "${presetName.trim()}" salvo`);
+    setPresetName("");
+    setSavePresetOpen(false);
   };
 
   const periodLabel = period.from || period.to
