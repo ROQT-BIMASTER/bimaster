@@ -61,8 +61,8 @@ export function useFabricaOPDaOC(ocId: string | undefined) {
         .limit(100);
 
       return (vinculos || []).map((v: any) => {
-        const op = (ops || []).find((o: any) => o.id === v.fabrica_op_id);
-        const prod = op ? (produtos || []).find((p: any) => p.id === op.produto_id) : null;
+        const op: any = (ops as any[] || []).find((o: any) => o.id === v.fabrica_op_id);
+        const prod: any = op ? (produtos as any[] || []).find((p: any) => p.id === op.produto_id) : null;
         const ap = (apont || []).filter((a: any) => a.ordem_producao_id === v.fabrica_op_id).slice(0, 5);
         return {
           vinculo_id: v.id,
