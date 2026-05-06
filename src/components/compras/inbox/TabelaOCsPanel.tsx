@@ -345,7 +345,7 @@ export function TabelaOCsPanel() {
                   return (
                     <tr
                       key={o.ordem_compra_id}
-                      onClick={() => openOC(o.ordem_compra_id)}
+                      onClick={() => openDrawer(o)}
                       className="border-t hover:bg-muted/40 cursor-pointer"
                     >
                       <td className="px-3 py-2 font-medium text-primary">{o.numero_oc}</td>
