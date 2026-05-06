@@ -83,17 +83,20 @@ export default function CompradorInbox() {
         </Button>
       </div>
 
-      {folder === "catalogo" || folder === "submissoes" ? (
+      {(["catalogo", "submissoes", "patio", "containers"] as InboxFolder[]).includes(folder) ? (
         <div className="grid grid-cols-[220px_1fr] gap-0 border rounded-xl overflow-hidden bg-card h-[calc(100vh-220px)] min-h-[560px]">
           <div className="border-r bg-muted/20">
             <InboxFolderList active={folder} onSelect={setFolder} counts={counts} />
           </div>
           <div className="bg-background overflow-hidden">
-            {folder === "catalogo" ? (
+            {folder === "catalogo" && (
               <CatalogoChinaPanel onCreated={() => qc.invalidateQueries({ queryKey: ["comprador-inbox-ocs"] })} />
-            ) : (
+            )}
+            {folder === "submissoes" && (
               <SubmissoesAprovadasPanel onCreated={() => qc.invalidateQueries({ queryKey: ["comprador-inbox-ocs"] })} />
             )}
+            {folder === "patio" && <PatioEmbarquePanel />}
+            {folder === "containers" && <TorreContainersPanel />}
           </div>
         </div>
       ) : (
