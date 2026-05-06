@@ -200,8 +200,21 @@ export function VincularBrasilDialog({
   const handleLimpar = useCallback(() => {
     if (!opId) return;
     setOpId("");
+    try {
+      localStorage.removeItem(persistKey);
+    } catch {
+      // ignore
+    }
     logOPSelection({ source: "limpar", opId: null, ocId, itemId, submissaoId, numeroOC });
-  }, [opId, ocId, itemId, submissaoId, numeroOC]);
+  }, [opId, ocId, itemId, submissaoId, numeroOC, persistKey]);
+
+  const filteredOps = useMemo(() => {
+    const q = opSearch.trim().toLowerCase();
+    if (!q) return ops;
+    return ops.filter((op) =>
+      `${op.numero ?? ""} ${op.status ?? ""}`.toLowerCase().includes(q),
+    );
+  }, [ops, opSearch]);
 
   const handleSubmit = async () => {
     await criar.mutateAsync({
