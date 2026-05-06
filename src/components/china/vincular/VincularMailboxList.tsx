@@ -324,7 +324,7 @@ export function VincularMailboxList({
           <Button
             size="sm"
             variant="outline"
-            onClick={() => scrollSelectedIntoView("smooth")}
+            onClick={() => scrollSelectedIntoView(jumpPref === "auto" ? "auto" : "smooth")}
             className="pointer-events-auto absolute right-3 top-1.5 z-10 h-6 gap-1 bg-card/90 px-2 text-[10px] text-muted-foreground shadow-sm backdrop-blur hover:text-foreground"
             title="Rolar até o item selecionado"
           >
