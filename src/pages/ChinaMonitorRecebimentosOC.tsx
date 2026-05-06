@@ -159,6 +159,8 @@ export default function ChinaMonitorRecebimentosOC() {
       const ocIds = filtered.map((k) => k.ordem_compra_id);
       if (escopo === "oc") {
         downloadBlob(buildOCResumoCsv(filtered), `monitor-recebimentos-oc-${stamp}.csv`);
+      } else if (escopo === "produtos") {
+        downloadBlob(buildProdutosCsv(produtosFiltrados), `monitor-recebimentos-produtos-${stamp}.csv`);
       } else if (escopo === "ops") {
         const rows = await fetchOPsByOCs(ocIds);
         if (!rows.length) toast.info("Nenhuma OP vinculada às OCs filtradas");
