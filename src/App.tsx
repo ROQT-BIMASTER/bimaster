@@ -649,7 +649,7 @@ function AppContent() {
             <Route path="/dashboard/fabrica-china/patio-embarque" element={<ModuleRoute moduleCode="china"><ChinaPatioProntoEmbarque /></ModuleRoute>} />
 
             {/* Compras (Internacionais e Nacionais) */}
-            <Route path="/dashboard/compras-internacionais" element={<ModuleRoute moduleCode="china"><ComprasInternacionais /></ModuleRoute>} />
+            <Route path="/dashboard/compras-internacionais" element={<Navigate to="/dashboard/compras-internacionais/inbox" replace />} />
             <Route path="/dashboard/compras-internacionais/inbox" element={<ModuleRoute moduleCode="china"><CompradorInbox /></ModuleRoute>} />
             <Route path="/dashboard/compras-nacionais" element={<ModuleRoute moduleCode="fabrica"><ComprasNacionais /></ModuleRoute>} />
             {/* Painel Executivo — protegido por módulo + tela central_inteligencia */}
