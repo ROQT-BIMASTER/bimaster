@@ -171,6 +171,16 @@ export function OPVinculadaCard({ ocId, ocNumero, produtoCodigo, produtoNome, qt
         produtoNome={produtoNome}
         qtySugerida={qtySugerida}
       />
+
+      {apontarOp && (
+        <RegistrarApontamentoDialog
+          open={!!apontarOp}
+          onOpenChange={(v) => { if (!v) setApontarOp(null); }}
+          opId={apontarOp.id}
+          opNumero={apontarOp.numero}
+          saldoSugerido={apontarOp.saldo}
+        />
+      )}
     </Card>
   );
 }
