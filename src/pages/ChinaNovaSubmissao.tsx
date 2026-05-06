@@ -26,6 +26,7 @@ import { ChinaPageHeader } from "@/components/china/ChinaPageHeader";
 import { Upload as UploadIcon } from "lucide-react";
 import { validateLinhaProduto } from "@/lib/validations/china-submissao";
 import { logger } from "@/lib/logger";
+import { useResolvedBackTo } from "@/lib/navigation/withReturnTo";
 
 const STEPS = [
   { labelPt: "Dados do Produto", labelCn: "产品数据", icon: FileSpreadsheet },
