@@ -3457,6 +3457,13 @@ export type Database = {
             referencedRelation: "china_ordens_compra"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "china_embarques_ordem_compra_id_fkey"
+            columns: ["ordem_compra_id"]
+            isOneToOne: false
+            referencedRelation: "vw_china_oc_recebimento_kpis"
+            referencedColumns: ["ordem_compra_id"]
+          },
         ]
       }
       china_ficha_despachos: {
@@ -3673,6 +3680,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "china_nao_conformidades_ordem_compra_id_fkey"
+            columns: ["ordem_compra_id"]
+            isOneToOne: false
+            referencedRelation: "vw_china_oc_recebimento_kpis"
+            referencedColumns: ["ordem_compra_id"]
+          },
+          {
             foreignKeyName: "china_nao_conformidades_ordem_item_id_fkey"
             columns: ["ordem_item_id"]
             isOneToOne: false
@@ -3757,6 +3771,13 @@ export type Database = {
             referencedRelation: "china_ordens_compra"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "china_oc_custos_ordem_compra_id_fkey"
+            columns: ["ordem_compra_id"]
+            isOneToOne: true
+            referencedRelation: "vw_china_oc_recebimento_kpis"
+            referencedColumns: ["ordem_compra_id"]
+          },
         ]
       }
       china_oc_saldo_decisoes: {
@@ -3802,11 +3823,25 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "china_oc_saldo_decisoes_nova_oc_id_fkey"
+            columns: ["nova_oc_id"]
+            isOneToOne: false
+            referencedRelation: "vw_china_oc_recebimento_kpis"
+            referencedColumns: ["ordem_compra_id"]
+          },
+          {
             foreignKeyName: "china_oc_saldo_decisoes_ordem_compra_id_fkey"
             columns: ["ordem_compra_id"]
             isOneToOne: false
             referencedRelation: "china_ordens_compra"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "china_oc_saldo_decisoes_ordem_compra_id_fkey"
+            columns: ["ordem_compra_id"]
+            isOneToOne: false
+            referencedRelation: "vw_china_oc_recebimento_kpis"
+            referencedColumns: ["ordem_compra_id"]
           },
           {
             foreignKeyName: "china_oc_saldo_decisoes_ordem_item_id_fkey"
@@ -3886,6 +3921,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "china_ordens_compra"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "china_ordem_itens_ordem_compra_id_fkey"
+            columns: ["ordem_compra_id"]
+            isOneToOne: false
+            referencedRelation: "vw_china_oc_recebimento_kpis"
+            referencedColumns: ["ordem_compra_id"]
           },
         ]
       }
@@ -4118,6 +4160,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "china_ordens_compra"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "china_producao_apontamentos_ordem_compra_id_fkey"
+            columns: ["ordem_compra_id"]
+            isOneToOne: false
+            referencedRelation: "vw_china_oc_recebimento_kpis"
+            referencedColumns: ["ordem_compra_id"]
           },
         ]
       }
@@ -4561,6 +4610,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "china_ordens_compra"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "china_recebimentos_carga_ordem_compra_id_fkey"
+            columns: ["ordem_compra_id"]
+            isOneToOne: false
+            referencedRelation: "vw_china_oc_recebimento_kpis"
+            referencedColumns: ["ordem_compra_id"]
           },
         ]
       }
@@ -6211,6 +6267,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "china_ordens_compra"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compras_internacional_vinculos_china_ordem_compra_id_fkey"
+            columns: ["china_ordem_compra_id"]
+            isOneToOne: false
+            referencedRelation: "vw_china_oc_recebimento_kpis"
+            referencedColumns: ["ordem_compra_id"]
           },
           {
             foreignKeyName: "compras_internacional_vinculos_china_ordem_item_id_fkey"
@@ -34014,6 +34077,13 @@ export type Database = {
             referencedRelation: "china_ordens_compra"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "shipsgo_shipments_ordem_compra_id_fkey"
+            columns: ["ordem_compra_id"]
+            isOneToOne: false
+            referencedRelation: "vw_china_oc_recebimento_kpis"
+            referencedColumns: ["ordem_compra_id"]
+          },
         ]
       }
       shipsgo_webhook_log: {
@@ -41472,6 +41542,40 @@ export type Database = {
         }
         Relationships: []
       }
+      vw_china_oc_recebimento_kpis: {
+        Row: {
+          data_chegada_porto: string | null
+          data_desembaraco: string | null
+          data_emissao: string | null
+          data_entrega_prevista: string | null
+          data_entrega_real: string | null
+          data_recebimento_cd: string | null
+          numero_oc: string | null
+          oc_status: string | null
+          ordem_compra_id: string | null
+          produto_codigo: string | null
+          produto_nome: string | null
+          qty_avariada: number | null
+          qty_cancelada: number | null
+          qty_embarcada: number | null
+          qty_faltante: number | null
+          qty_pedida: number | null
+          qty_produzida: number | null
+          qty_recebida: number | null
+          saldo_aberto: number | null
+          sla_porto_cd_dias: number | null
+          submissao_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "china_ordens_compra_submissao_id_fkey"
+            columns: ["submissao_id"]
+            isOneToOne: false
+            referencedRelation: "china_produto_submissoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       vw_clientes_cobranca: {
         Row: {
           celular: string | null
@@ -43636,6 +43740,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      rpc_desvincular_op_da_oc: {
+        Args: { p_vinculo_id: string }
+        Returns: undefined
+      }
       rpc_duplicar_kanban_template: {
         Args: { _novo_nome?: string; _template_id: string }
         Returns: string
@@ -43662,6 +43770,23 @@ export type Database = {
             }
             Returns: string
           }
+      rpc_gerar_op_da_oc_china: {
+        Args: {
+          p_data_prevista?: string
+          p_formula_id?: string
+          p_lote?: string
+          p_maquina_id?: string
+          p_obs?: string
+          p_oc_id: string
+          p_produto_id: string
+          p_qty: number
+          p_responsavel_id?: string
+        }
+        Returns: {
+          numero: string
+          op_id: string
+        }[]
+      }
       rpc_mover_item_coluna: {
         Args: { p_coluna: string; p_comentario?: string; p_item_id: string }
         Returns: undefined
@@ -43698,6 +43823,15 @@ export type Database = {
       rpc_update_member_avatar: {
         Args: { _avatar_url: string; _member_id: string }
         Returns: undefined
+      }
+      rpc_vincular_op_existente: {
+        Args: {
+          p_obs?: string
+          p_oc_id: string
+          p_op_id: string
+          p_qty?: number
+        }
+        Returns: string
       }
       secret_audit_access: {
         Args: {

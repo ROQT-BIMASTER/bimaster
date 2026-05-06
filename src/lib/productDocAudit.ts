@@ -8,7 +8,11 @@ export type AuditAction =
   | "publicacao_cofre" 
   | "download"
   | "versao_oficial"
-  | "status_change";
+  | "status_change"
+  | "op_gerada"
+  | "op_vinculada"
+  | "op_desvinculada"
+  | "op_status_change";
 
 export async function logDocAudit({
   documentoId,

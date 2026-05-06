@@ -145,7 +145,14 @@ export default function ChinaRecebimentos() {
         iconTone="primary"
         showBack
         backTo="/dashboard/fabrica-china"
-        actions={<ManualFabricaDrawer screen="china-submissoes" />}
+        actions={
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={() => navigate("/dashboard/fabrica-china/recebimentos-oc")}>
+              <TrendingUp className="h-3.5 w-3.5 mr-1" /> Monitor de OCs
+            </Button>
+            <ManualFabricaDrawer screen="china-submissoes" />
+          </div>
+        }
       />
 
         <SubmissionManual />

@@ -1,6 +1,7 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft, Loader2, Package, Clock, CheckCircle, XCircle, Ship, ClipboardCheck, Scale, History } from "lucide-react";
 import { VinculosBrasilPanel } from "@/components/china/VinculosBrasilPanel";
+import { OPVinculadaCard } from "@/components/china/op/OPVinculadaCard";
 import { HistoricoRecebimentosInternacionalSheet } from "@/components/compras/HistoricoRecebimentosInternacionalSheet";
 import { ChinaOrdemItensPanel } from "@/components/china/ChinaOrdemItensPanel";
 import { EmbarqueParcialDialog } from "@/components/china/EmbarqueParcialDialog";
@@ -352,6 +353,15 @@ export default function ChinaOrdemDetalhe() {
           ocId={ordem.id}
           numeroOC={ordem.numero_oc}
           produtoNome={ordem.produto_nome}
+        />
+
+        {/* Ordens de Produção vinculadas */}
+        <OPVinculadaCard
+          ocId={ordem.id}
+          ocNumero={ordem.numero_oc}
+          produtoCodigo={ordem.produto_codigo}
+          produtoNome={ordem.produto_nome}
+          qtySugerida={ordem.qty_total}
         />
 
         {/* Histórico de recebimentos no Brasil */}
