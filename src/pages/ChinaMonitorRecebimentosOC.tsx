@@ -49,6 +49,8 @@ export default function ChinaMonitorRecebimentosOC() {
 
   const { data: savedFilters = [] } = useSavedFiltersRecebimento();
   const { data: kpis = [], isLoading } = useChinaRecebimentoKpis();
+  const { data: produtos = [], isLoading: isLoadingProdutos } = useChinaProdutosRecebimentoKpis();
+  const [expandedProds, setExpandedProds] = useState<Set<string>>(new Set());
 
   // Aplicar filtro padrão na primeira render se não houver ?oc=
   useEffect(() => {
