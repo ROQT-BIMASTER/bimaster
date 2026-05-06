@@ -14,10 +14,12 @@ import { ChinaPageHeader } from "@/components/china/ChinaPageHeader";
 import { getSignedUrl } from "@/lib/utils/storage-helper";
 import { Loader2 } from "lucide-react";
 import { useFieldVisibility } from "@/hooks/useFieldVisibility";
+import { useResolvedBackTo } from "@/lib/navigation/withReturnTo";
 
 export default function ChinaSubmissaoDetalhe() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { backTo } = useResolvedBackTo("/dashboard/fabrica-china");
   // ADV-6: Field visibility — hide cost/financial sections for restricted profiles
   const { isFieldVisible } = useFieldVisibility("china_ficha");
 
@@ -100,7 +102,7 @@ export default function ChinaSubmissaoDetalhe() {
         icon={FileText}
         iconTone="primary"
         showBack
-        backTo="/dashboard/fabrica-china"
+        backTo={backTo}
         actions={
           <>
             <Badge variant={statusInfo.variant} className="text-sm px-3 py-1">

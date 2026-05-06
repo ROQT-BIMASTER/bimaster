@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
+import { buildReturnToTarget } from "@/lib/navigation/withReturnTo";
 import { Inbox, RefreshCw, Search, X, Trash2, RotateCcw, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -32,7 +33,13 @@ const VALID_FOLDERS: MailboxFolder[] = [
 
 export default function ChinaCaixaEntrada() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
+  const goWithReturn = (target: string) => {
+    const fromPath = `${location.pathname}${location.search}`;
+    const { url, state } = buildReturnToTarget(target, fromPath, { fromLabel: "Caixa de Entrada" });
+    navigate(url, { state });
+  };
   const { isBrasilUser, isChinaUser } = useChinaUserContext();
   const isDesktop = useMediaQuery("(min-width: 1024px)");
 
@@ -146,7 +153,7 @@ export default function ChinaCaixaEntrada() {
     });
   };
   const handleCorrigir = (item: MailboxItem) => {
-    navigate(`/dashboard/fabrica-china/submissao/${item.submissao_id}`);
+    goWithReturn(`/dashboard/fabrica-china/submissao/${item.submissao_id}`);
   };
   const handleToggleRead = (item: MailboxItem) => {
     if (!item.documento_id) return;
@@ -284,7 +291,7 @@ export default function ChinaCaixaEntrada() {
                 folder={folder}
                 counts={counts}
                 onSelect={setFolder}
-                onCompose={() => navigate("/dashboard/fabrica-china/nova-submissao")}
+                onCompose={() => goWithReturn("/dashboard/fabrica-china/nova-submissao")}
               />
             </ResizablePanel>
             <ResizableHandle withHandle />

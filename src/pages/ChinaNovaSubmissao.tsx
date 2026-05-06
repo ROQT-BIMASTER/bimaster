@@ -26,6 +26,7 @@ import { ChinaPageHeader } from "@/components/china/ChinaPageHeader";
 import { Upload as UploadIcon } from "lucide-react";
 import { validateLinhaProduto } from "@/lib/validations/china-submissao";
 import { logger } from "@/lib/logger";
+import { useResolvedBackTo } from "@/lib/navigation/withReturnTo";
 
 const STEPS = [
   { labelPt: "Dados do Produto", labelCn: "产品数据", icon: FileSpreadsheet },
@@ -35,6 +36,7 @@ const STEPS = [
 
 export default function ChinaNovaSubmissao() {
   const navigate = useNavigate();
+  const { backTo } = useResolvedBackTo("/dashboard/fabrica-china");
   const queryClient = useQueryClient();
   const { submissaoId: editId } = useParams<{ submissaoId: string }>();
   const [step, setStep] = useState(0);
@@ -639,7 +641,7 @@ export default function ChinaNovaSubmissao() {
         icon={UploadIcon}
         iconTone="primary"
         showBack
-        backTo="/dashboard/fabrica-china"
+        backTo={backTo}
         actions={
           <>
             <ManualFabricaDrawer screen="china-nova-submissao" />

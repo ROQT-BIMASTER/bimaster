@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
+import { buildReturnToTarget } from "@/lib/navigation/withReturnTo";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { ResponseTemplatePicker } from "@/components/china/inbox/ResponseTemplatePicker";
@@ -42,6 +43,12 @@ export function MailboxReadingPane({
   loading,
 }: Props) {
   const navigate = useNavigate();
+  const location = useLocation();
+  const goWithReturn = (target: string) => {
+    const fromPath = `${location.pathname}${location.search}`;
+    const { url, state } = buildReturnToTarget(target, fromPath, { fromLabel: "Caixa de Entrada" });
+    navigate(url, { state });
+  };
   const [motivo, setMotivo] = useState("");
   const unsnooze = useUnsnoozeSubmissao();
 
@@ -115,7 +122,7 @@ export function MailboxReadingPane({
           variant="ghost"
           size="sm"
           className="h-7 gap-1.5 text-xs"
-          onClick={() => navigate(`/dashboard/fabrica-china/submissao/${item.submissao_id}`)}
+          onClick={() => goWithReturn(`/dashboard/fabrica-china/submissao/${item.submissao_id}`)}
         >
           <ExternalLink className="h-3.5 w-3.5" />
           Abrir submissão / 打开
