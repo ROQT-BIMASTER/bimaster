@@ -44,7 +44,7 @@ export function InboxFolderList({ active, onSelect, counts }: InboxFolderListPro
           const Icon = f.icon;
           const isActive = active === f.key;
           const count = counts[f.key] || 0;
-          const showCount = !["catalogo", "submissoes", "patio", "containers"].includes(f.key);
+          const showCount = !["catalogo", "submissoes", "patio", "containers", "tabela"].includes(f.key);
           return (
             <div key={f.key}>
               {f.section && (
