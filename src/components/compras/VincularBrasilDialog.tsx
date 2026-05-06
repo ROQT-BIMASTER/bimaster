@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import {
   Dialog,
   DialogContent,
@@ -13,11 +13,16 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Link2, Factory, ShoppingBag, Package, Sparkles, X, AlertCircle } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Link2, Factory, ShoppingBag, Package, Sparkles, X, AlertCircle, Search } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCriarVinculo } from "@/hooks/useComprasInternacionalVinculos";
 import { useSubmissaoProjetosOPs } from "@/hooks/useSubmissaoProjetosOPs";
+
+const OP_PERSIST_PREFIX = "vincular-brasil:op-selecionada:";
+const buildPersistKey = (ocId: string, itemId?: string, submissaoId?: string) =>
+  `${OP_PERSIST_PREFIX}${submissaoId ?? "no-sub"}:${ocId}:${itemId ?? "no-item"}`;
 
 interface Props {
   open: boolean;
