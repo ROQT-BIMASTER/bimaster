@@ -767,9 +767,7 @@ async function syncSubtasksRecursive(
 }
 
 // --- Helpers ---
-function json(data: any, status = 200) {
-  return new Response(JSON.stringify(data), { status, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } });
-}
+// (json helper is defined inline inside the handler so it has access to `req` for CORS)
 
 function friendlyAsanaError(status: number, body: string): Error {
   if (status === 401) {
