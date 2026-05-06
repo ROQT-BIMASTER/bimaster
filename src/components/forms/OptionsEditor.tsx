@@ -126,6 +126,11 @@ export function OptionsEditor({ options, onChange, fieldType }: OptionsEditorPro
     onChange(next);
   }
 
+  function move(from: number, to: number) {
+    if (to < 0 || to >= options.length || from === to) return;
+    onChange(arrayMove(options, from, to));
+  }
+
   function bulkPaste(text: string) {
     const items = text
       .split(/[\n,;]+/)
