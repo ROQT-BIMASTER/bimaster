@@ -165,7 +165,66 @@ export function VincularMailboxList({
             {filtered.length} item{filtered.length === 1 ? "" : "s"}
           </span>
         )}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-7 px-1.5 text-[11px] gap-1 text-muted-foreground"
+              title="Comportamento de rolagem ao navegar com j/k"
+            >
+              {scrollPref === "smooth" && <MoveVertical className="h-3 w-3" />}
+              {scrollPref === "auto" && <Zap className="h-3 w-3" />}
+              {scrollPref === "none" && <MousePointerClick className="h-3 w-3" />}
+              <span className="hidden sm:inline">
+                {scrollPref === "smooth" ? "Suave" : scrollPref === "auto" ? "Instantâneo" : "Sem rolar"}
+              </span>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuLabel className="text-[11px]">Rolagem ao navegar (j/k)</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => updateScrollPref("smooth")} className="text-xs gap-2">
+              <MoveVertical className="h-3.5 w-3.5" /> Suave (padrão)
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => updateScrollPref("auto")} className="text-xs gap-2">
+              <Zap className="h-3.5 w-3.5" /> Instantâneo
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => updateScrollPref("none")} className="text-xs gap-2">
+              <MousePointerClick className="h-3.5 w-3.5" /> Desativada
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
+
+      {/* Aviso quando o item selecionado foi escondido por filtros/busca */}
+      {selectedHiddenByFilter && pinnedItem && (
+        <div className="flex items-center gap-2 border-b border-amber-500/30 bg-amber-500/10 px-3 py-1.5 text-[11px] text-amber-300">
+          <AlertTriangle className="h-3 w-3 shrink-0" />
+          <span className="truncate">
+            Item selecionado fora do filtro:{" "}
+            <span className="font-mono font-semibold">{pinnedItem.produto_codigo}</span>{" "}
+            <span className="text-amber-200/80">{pinnedItem.produto_nome}</span>
+          </span>
+          <Button
+            size="sm"
+            variant="ghost"
+            className="ml-auto h-5 px-1.5 text-[10px] text-amber-200 hover:text-amber-100"
+            onClick={() => onSearchChange("")}
+          >
+            Limpar busca
+          </Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            className="h-5 w-5 p-0 text-amber-200 hover:text-amber-100"
+            onClick={() => onSelect("")}
+            title="Desmarcar"
+          >
+            <X className="h-3 w-3" />
+          </Button>
+        </div>
+      )}
 
       {/* List */}
       <ul ref={listRef} className="flex-1 overflow-y-auto scroll-pt-12" role="list">
