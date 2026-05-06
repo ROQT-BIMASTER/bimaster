@@ -357,23 +357,23 @@ export function DynamicFormRenderer({ formId, tokenId, userId, onSubmitSuccess }
               )}
 
               {field.field_type === "file" && (
-                <Input
-                  type="file"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) updateValue(field.id, file.name);
-                  }}
+                <FormFileUpload
+                  formId={formId}
+                  fieldId={field.id}
+                  value={values[field.id] || null}
+                  onChange={(v) => updateValue(field.id, v)}
+                  multiple={!!field.validation?.multiple}
                 />
               )}
 
               {field.field_type === "image" && (
-                <Input
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) updateValue(field.id, file.name);
-                  }}
+                <FormFileUpload
+                  formId={formId}
+                  fieldId={field.id}
+                  value={values[field.id] || null}
+                  onChange={(v) => updateValue(field.id, v)}
+                  acceptImages
+                  multiple={!!field.validation?.multiple}
                 />
               )}
 
