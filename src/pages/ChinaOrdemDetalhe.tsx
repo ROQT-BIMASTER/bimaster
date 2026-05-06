@@ -355,6 +355,15 @@ export default function ChinaOrdemDetalhe() {
           produtoNome={ordem.produto_nome}
         />
 
+        {/* Ordens de Produção vinculadas */}
+        <OPVinculadaCard
+          ocId={ordem.id}
+          ocNumero={ordem.numero_oc}
+          produtoCodigo={ordem.produto_codigo}
+          produtoNome={ordem.produto_nome}
+          qtySugerida={ordem.qty_total}
+        />
+
         {/* Histórico de recebimentos no Brasil */}
         <Card className="p-4 flex items-center justify-between">
           <div>
