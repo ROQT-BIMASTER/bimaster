@@ -33,7 +33,13 @@ const VALID_FOLDERS: MailboxFolder[] = [
 
 export default function ChinaCaixaEntrada() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
+  const goWithReturn = (target: string) => {
+    const fromPath = `${location.pathname}${location.search}`;
+    const { url, state } = buildReturnToTarget(target, fromPath, { fromLabel: "Caixa de Entrada" });
+    navigate(url, { state });
+  };
   const { isBrasilUser, isChinaUser } = useChinaUserContext();
   const isDesktop = useMediaQuery("(min-width: 1024px)");
 
