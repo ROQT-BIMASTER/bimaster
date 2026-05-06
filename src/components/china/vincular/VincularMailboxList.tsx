@@ -70,14 +70,31 @@ export function VincularMailboxList({
   const allChecked = filtered.length > 0 && filtered.every((i) => selectedIds.has(i.id));
   const someChecked = selectedIds.size > 0;
 
-  // Auto-scroll: mantém o item selecionado (j/k ou clique) visível na lista.
+  // Auto-scroll: mantém o item selecionado visível (j/k, clique, busca/filtros).
+  // Aplica offset para não encostar na toolbar fixa do topo nem no rodapé.
+  const SCROLL_OFFSET_TOP = 48; // altura aprox. da toolbar + folga
+  const SCROLL_OFFSET_BOTTOM = 16;
+  const listRef = useRef<HTMLUListElement>(null);
   const itemRefs = useRef<Map<string, HTMLLIElement>>(new Map());
+  const selectedStillVisible = !!selectedId && filtered.some((i) => i.id === selectedId);
+
   useEffect(() => {
-    if (!selectedId) return;
+    if (!selectedId || !selectedStillVisible) return;
+    const list = listRef.current;
     const el = itemRefs.current.get(selectedId);
-    if (!el) return;
-    el.scrollIntoView({ block: "nearest", behavior: "smooth" });
-  }, [selectedId]);
+    if (!list || !el) return;
+
+    const listRect = list.getBoundingClientRect();
+    const elRect = el.getBoundingClientRect();
+    const topGap = elRect.top - listRect.top;
+    const bottomGap = listRect.bottom - elRect.bottom;
+
+    if (topGap < SCROLL_OFFSET_TOP) {
+      list.scrollBy({ top: topGap - SCROLL_OFFSET_TOP, behavior: "smooth" });
+    } else if (bottomGap < SCROLL_OFFSET_BOTTOM) {
+      list.scrollBy({ top: SCROLL_OFFSET_BOTTOM - bottomGap, behavior: "smooth" });
+    }
+  }, [selectedId, selectedStillVisible, filtered.length, search]);
 
   return (
     <div className="flex h-full flex-col bg-background">
