@@ -111,6 +111,20 @@ export function EncaminharProjetoDialog({
         </DialogHeader>
 
         <div className="space-y-3">
+          {!projeto && smart?.projeto && (
+            <button
+              type="button"
+              onClick={() => setProjeto({ id: smart.projeto!.id, nome: smart.projeto!.nome, cor: smart.projeto!.cor ?? undefined })}
+              className="flex w-full items-center gap-2 rounded-md border border-primary/30 bg-primary/5 px-2.5 py-1.5 text-left transition-colors hover:bg-primary/10"
+            >
+              <Sparkles className="h-3.5 w-3.5 text-primary shrink-0" />
+              <div className="min-w-0 flex-1">
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-primary">Projeto recomendado</p>
+                <p className="truncate text-xs font-medium text-foreground">{smart.projeto.nome}</p>
+              </div>
+              <Badge variant="outline" className="h-5 border-primary/40 text-[10px] text-primary">Usar</Badge>
+            </button>
+          )}
           {projeto && (
             <div className="flex items-center justify-between rounded-md border border-border bg-muted/30 px-2.5 py-1.5">
               <div className="flex items-center gap-2 min-w-0">
