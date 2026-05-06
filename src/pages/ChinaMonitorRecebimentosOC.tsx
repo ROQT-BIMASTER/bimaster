@@ -27,10 +27,6 @@ import { fetchOPsByOCs } from "@/hooks/useFabricaOPsByOCs";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
-function pct(num: number, den: number) {
-  if (!den) return 0;
-  return Math.min(100, Math.round((num / den) * 100));
-}
 
 function slaBadge(dias: number | null) {
   if (dias == null) return <Badge variant="outline">—</Badge>;
