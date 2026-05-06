@@ -268,7 +268,8 @@ export default function ChinaFichaProduto() {
         icon={Package}
         iconTone="primary"
         showBack
-        backTo="/dashboard/fabrica-china/recebimentos"
+        backTo={backTo}
+        backLabel={backLabel}
         actions={
           <>
             <Button
