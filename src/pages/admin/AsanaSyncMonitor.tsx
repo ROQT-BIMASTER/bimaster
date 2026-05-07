@@ -41,6 +41,27 @@ function durationMs(a: string, b: string | null) {
 export default function AsanaSyncMonitor() {
   const { isAdmin, loading: roleLoading } = useUserRole();
   const [running, setRunning] = useState(false);
+  const [replayingUserId, setReplayingUserId] = useState<string | null>(null);
+
+  async function replayUser(uid: string, label: string) {
+    setReplayingUserId(uid);
+    try {
+      const { data, error } = await supabase.functions.invoke("asana-sync", {
+        body: { path: "/replay-user", user_id: uid },
+      });
+      if (error) throw error;
+      const r: any = data;
+      toast.success(
+        `Replay de ${label}: ${r?.tasks_reconciled ?? 0} tarefas, ${r?.assignees_updated ?? 0} responsáveis, ${r?.followers_added ?? 0} seguidores`,
+      );
+      logs.refetch();
+      userHealth.refetch();
+    } catch (e: any) {
+      toast.error(`Falha no replay: ${e?.message || "erro"}`);
+    } finally {
+      setReplayingUserId(null);
+    }
+  }
 
   const logs = useQuery({
     queryKey: ["asana-sync-logs"],
