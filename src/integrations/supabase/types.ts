@@ -42657,6 +42657,7 @@ export type Database = {
         }
         Returns: number
       }
+      _get_vault_secret: { Args: { p_name: string }; Returns: string }
       _kanban_coluna_universal: {
         Args: { p_etapa_ordem: number; p_status: string }
         Returns: string
