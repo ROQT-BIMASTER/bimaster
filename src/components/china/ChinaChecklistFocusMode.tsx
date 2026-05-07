@@ -128,6 +128,30 @@ export function ChinaChecklistFocusMode({
   const [addItemLabelCn, setAddItemLabelCn] = useState("");
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
 
+  // Edit category dialog
+  const [editCatOpen, setEditCatOpen] = useState(false);
+  const [editCatTarget, setEditCatTarget] = useState<MergedCategory | null>(null);
+  const [editCatLabelPt, setEditCatLabelPt] = useState("");
+  const [editCatLabelCn, setEditCatLabelCn] = useState("");
+
+  // Templates
+  const [tplSaveOpen, setTplSaveOpen] = useState(false);
+  const [tplNome, setTplNome] = useState("");
+  const [tplDescricao, setTplDescricao] = useState("");
+  const [tplEscopo, setTplEscopo] = useState<"pessoal" | "global">("global");
+  const [applyingTpl, setApplyingTpl] = useState(false);
+
+  const { data: templates = [] } = useDocChecklistTemplates();
+  const saveTemplate = useSaveDocChecklistTemplate();
+  const deleteTemplate = useDeleteDocChecklistTemplate();
+  const { data: catOverrides = [] } = useCategoriaOverrides(submissaoId);
+  const upsertCatOverride = useUpsertCategoriaOverride();
+
+  const overrideMap = useMemo(
+    () => new Map(catOverrides.map((o) => [o.categoria_key, o])),
+    [catOverrides],
+  );
+
   // Fetch custom categories
   const { data: customCategories = [] } = useQuery({
     queryKey: ["checklist-custom-cats", submissaoId],
