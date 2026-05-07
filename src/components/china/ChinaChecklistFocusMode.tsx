@@ -230,17 +230,19 @@ export function ChinaChecklistFocusMode({
     return [...defaults, ...customs];
   }, [customItems]);
 
-  // Add custom items to default categories
+  // Add custom items to default categories + apply label overrides
   const enrichedCategories = useMemo(() => {
     return allCategories.map(cat => {
-      if (cat.isCustom) return cat;
-      // Find custom items assigned to this default category
+      const ov = overrideMap.get(cat.key);
+      const labelPt = ov?.label_pt || cat.labelPt;
+      const labelCn = ov?.label_cn ?? cat.labelCn;
+      if (cat.isCustom) return { ...cat, labelPt, labelCn };
       const extraItems = customItems
         .filter((i: any) => i.categoria_default_key === cat.key && !i.categoria_custom_id)
         .map((i: any) => i.tipo_key);
-      return { ...cat, tipos: [...cat.tipos, ...extraItems] };
+      return { ...cat, labelPt, labelCn, tipos: [...cat.tipos, ...extraItems] };
     });
-  }, [allCategories, customItems]);
+  }, [allCategories, customItems, overrideMap]);
 
   const visibleCategories = useMemo(
     () => enrichedCategories.filter((c) => !hiddenSet.has(`cat:${c.key}`)),
