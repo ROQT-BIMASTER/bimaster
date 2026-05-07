@@ -692,6 +692,134 @@ Deno.serve(secureHandler({ auth: "none", rateLimit: 10, rateLimitPrefix: "asana-
         return json({ logs: logs || [] });
       }
 
+      case "/replay-user": {
+        const { user_id: targetUserId } = body || {};
+        if (!targetUserId) return json({ error: "user_id obrigatório" }, 400);
+        if (!asanaPat) return json({ error: "Token do Asana não configurado" }, 400);
+
+        const { data: userMapping } = await adminClient
+          .from("asana_sync_mappings")
+          .select("asana_gid, workspace_gid")
+          .eq("entity_type", "user")
+          .eq("local_id", targetUserId)
+          .maybeSingle();
+
+        if (!userMapping?.asana_gid) {
+          return json({ error: "Usuário sem mapeamento Asana. Rode uma sincronização completa primeiro." }, 404);
+        }
+
+        const asanaUserGid = userMapping.asana_gid;
+        const wsGid = workspace_gid || userMapping.workspace_gid || "1143464998190096";
+
+        const { data: logRow } = await adminClient
+          .from("asana_sync_log")
+          .insert({ workspace_gid: wsGid, project_gids: [], status: "running", started_by: userId })
+          .select().single();
+        const replayLogId = logRow!.id;
+
+        const replayErrors: any[] = [];
+        let tasksReconciled = 0, followersAdded = 0, assigneesUpdated = 0;
+
+        try {
+          const { data: localProjects } = await adminClient
+            .from("projetos").select("id, asana_gid").not("asana_gid", "is", null);
+          const projectGidToLocal = new Map<string, string>();
+          for (const p of (localProjects || [])) {
+            if (p.asana_gid) projectGidToLocal.set(p.asana_gid, p.id);
+          }
+
+          const taskGids = new Set<string>();
+
+          // Tasks assigned to user across each synced project
+          for (const pg of projectGidToLocal.keys()) {
+            if (timeLeft() < 5000) break;
+            try {
+              const tasks = await asanaGetAll(`/tasks`, asanaPat, {
+                assignee: asanaUserGid, project: pg, opt_fields: "gid",
+              });
+              for (const t of tasks) taskGids.add(t.gid);
+            } catch (e: any) {
+              replayErrors.push({ project: pg, error: e.message });
+            }
+          }
+
+          // Tasks where user follows (via My Tasks list)
+          try {
+            const utl = await asanaGet(`/users/${asanaUserGid}/user_task_list`, asanaPat, {
+              workspace: wsGid, opt_fields: "gid",
+            });
+            const utlGid = utl?.data?.gid;
+            if (utlGid) {
+              const utlTasks = await asanaGetAll(`/user_task_lists/${utlGid}/tasks`, asanaPat, {
+                opt_fields: "gid", completed_since: "now",
+              });
+              for (const t of utlTasks) taskGids.add(t.gid);
+            }
+          } catch (e: any) {
+            replayErrors.push({ stage: "user_task_list", error: e.message });
+          }
+
+          for (const gid of taskGids) {
+            if (timeLeft() < 4000) break;
+            try {
+              const { data: localTask } = await adminClient
+                .from("projeto_tarefas")
+                .select("id, projeto_id, responsavel_id")
+                .eq("asana_gid", gid).maybeSingle();
+              if (!localTask) continue;
+
+              const detail = await asanaGet(`/tasks/${gid}`, asanaPat, {
+                opt_fields: "assignee.gid,followers.gid",
+              });
+              const t = detail.data;
+
+              if (t.assignee?.gid === asanaUserGid && localTask.responsavel_id !== targetUserId) {
+                await adminClient.from("projeto_tarefas")
+                  .update({ responsavel_id: targetUserId }).eq("id", localTask.id);
+                await ensureMembership(adminClient, localTask.projeto_id, targetUserId);
+                assigneesUpdated++;
+              }
+
+              const isFollower = (t.followers || []).some((f: any) => f.gid === asanaUserGid);
+              if (isFollower) {
+                await ensureMembership(adminClient, localTask.projeto_id, targetUserId);
+                await adminClient.from("projeto_tarefa_colaboradores")
+                  .upsert({ tarefa_id: localTask.id, user_id: targetUserId }, { onConflict: "tarefa_id,user_id", ignoreDuplicates: true });
+                await adminClient.from("projeto_tarefa_seguidores")
+                  .upsert({ tarefa_id: localTask.id, user_id: targetUserId, asana_gid: asanaUserGid }, { onConflict: "tarefa_id,user_id", ignoreDuplicates: true });
+                followersAdded++;
+              }
+
+              tasksReconciled++;
+            } catch (e: any) {
+              replayErrors.push({ task: gid, error: e.message });
+            }
+          }
+
+          await adminClient.from("asana_sync_log").update({
+            status: replayErrors.length ? "completed_with_errors" : "completed",
+            tasks_synced: tasksReconciled,
+            collaborators_synced: followersAdded,
+            users_mapped: 1,
+            errors: replayErrors,
+            completed_at: new Date().toISOString(),
+          }).eq("id", replayLogId);
+
+          return json({
+            success: true, log_id: replayLogId, asana_user_gid: asanaUserGid,
+            tasks_inspected: taskGids.size, tasks_reconciled: tasksReconciled,
+            assignees_updated: assigneesUpdated, followers_added: followersAdded,
+            errors: replayErrors,
+          });
+        } catch (e: any) {
+          await adminClient.from("asana_sync_log").update({
+            status: "failed", errors: [...replayErrors, { fatal: e.message }],
+            completed_at: new Date().toISOString(),
+          }).eq("id", replayLogId);
+          return json({ error: e.message, log_id: replayLogId }, 500);
+        }
+      }
+
       default:
         return json({ error: `Rota desconhecida: ${path}` }, 400);
     }
