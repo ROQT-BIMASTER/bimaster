@@ -843,15 +843,26 @@ export function ChinaChecklistFocusMode({
 
                         return (
                           <div key={cat.key} className="relative group">
-                            <button
-                              type="button"
-                              onClick={(e) => handleDeleteCategory(e, cat)}
-                              className="absolute top-1.5 right-1.5 z-10 p-1 rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-opacity"
-                              title="Excluir categoria"
-                              aria-label={`Excluir categoria ${cat.labelPt}`}
-                            >
-                              <Trash2 className="h-3 w-3" />
-                            </button>
+                            <div className="absolute top-1.5 right-1.5 z-10 flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <button
+                                type="button"
+                                onClick={(e) => openEditCategory(e, cat)}
+                                className="p-1 rounded text-muted-foreground hover:text-primary hover:bg-primary/10"
+                                title="Editar nome da categoria"
+                                aria-label={`Editar categoria ${cat.labelPt}`}
+                              >
+                                <Pencil className="h-3 w-3" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={(e) => handleDeleteCategory(e, cat)}
+                                className="p-1 rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                                title="Excluir categoria"
+                                aria-label={`Excluir categoria ${cat.labelPt}`}
+                              >
+                                <Trash2 className="h-3 w-3" />
+                              </button>
+                            </div>
                             <button
                               onClick={() => setActiveCat(cat.key)}
                               className={cn(
