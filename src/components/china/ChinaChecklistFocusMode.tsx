@@ -1283,6 +1283,115 @@ export function ChinaChecklistFocusMode({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Edit Category Dialog */}
+      <Dialog open={editCatOpen} onOpenChange={(o) => { setEditCatOpen(o); if (!o) setEditCatTarget(null); }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Pencil className="h-5 w-5 text-primary" />
+              Editar Categoria
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div>
+              <Label className="text-xs">Nome (Português)</Label>
+              <Input
+                value={editCatLabelPt}
+                onChange={(e) => setEditCatLabelPt(e.target.value)}
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <Label className="text-xs">Nome (Chinês) — opcional</Label>
+              <Input
+                value={editCatLabelCn}
+                onChange={(e) => setEditCatLabelCn(e.target.value)}
+                className="mt-1"
+              />
+            </div>
+            {editCatTarget && !editCatTarget.isCustom && (
+              <p className="text-[10px] text-muted-foreground">
+                Esta é uma categoria padrão. O novo nome será aplicado apenas a este checklist.
+              </p>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setEditCatOpen(false)}>Cancelar</Button>
+            <Button
+              onClick={() => saveEditCategory.mutate()}
+              disabled={!editCatLabelPt.trim() || saveEditCategory.isPending}
+            >
+              {saveEditCategory.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Save className="h-4 w-4 mr-1" />}
+              Salvar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Save Template Dialog */}
+      <Dialog open={tplSaveOpen} onOpenChange={setTplSaveOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <BookmarkPlus className="h-5 w-5 text-primary" />
+              Salvar Modelo de Checklist
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div>
+              <Label className="text-xs">Nome do modelo *</Label>
+              <Input
+                value={tplNome}
+                onChange={(e) => setTplNome(e.target.value)}
+                placeholder="Ex.: Padrão Maquiagem, Skincare China..."
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <Label className="text-xs">Descrição (opcional)</Label>
+              <Input
+                value={tplDescricao}
+                onChange={(e) => setTplDescricao(e.target.value)}
+                placeholder="Para que serve este modelo?"
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <Label className="text-xs">Visibilidade</Label>
+              <div className="flex gap-2 mt-1">
+                <Badge
+                  variant={tplEscopo === "global" ? "default" : "secondary"}
+                  className="cursor-pointer"
+                  onClick={() => setTplEscopo("global")}
+                >
+                  Global (todos)
+                </Badge>
+                <Badge
+                  variant={tplEscopo === "pessoal" ? "default" : "secondary"}
+                  className="cursor-pointer"
+                  onClick={() => setTplEscopo("pessoal")}
+                >
+                  Pessoal (só você)
+                </Badge>
+              </div>
+            </div>
+            <p className="text-[10px] text-muted-foreground">
+              O modelo guarda a estrutura de categorias, itens e nomes personalizados — não inclui arquivos enviados.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setTplSaveOpen(false)}>Cancelar</Button>
+            <Button
+              onClick={handleSaveTemplate}
+              disabled={!tplNome.trim() || saveTemplate.isPending}
+            >
+              {saveTemplate.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <BookmarkPlus className="h-4 w-4 mr-1" />}
+              Salvar Modelo
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
