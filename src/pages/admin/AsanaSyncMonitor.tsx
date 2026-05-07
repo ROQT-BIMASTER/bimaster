@@ -41,6 +41,27 @@ function durationMs(a: string, b: string | null) {
 export default function AsanaSyncMonitor() {
   const { isAdmin, loading: roleLoading } = useUserRole();
   const [running, setRunning] = useState(false);
+  const [replayingUserId, setReplayingUserId] = useState<string | null>(null);
+
+  async function replayUser(uid: string, label: string) {
+    setReplayingUserId(uid);
+    try {
+      const { data, error } = await supabase.functions.invoke("asana-sync", {
+        body: { path: "/replay-user", user_id: uid },
+      });
+      if (error) throw error;
+      const r: any = data;
+      toast.success(
+        `Replay de ${label}: ${r?.tasks_reconciled ?? 0} tarefas, ${r?.assignees_updated ?? 0} responsáveis, ${r?.followers_added ?? 0} seguidores`,
+      );
+      logs.refetch();
+      userHealth.refetch();
+    } catch (e: any) {
+      toast.error(`Falha no replay: ${e?.message || "erro"}`);
+    } finally {
+      setReplayingUserId(null);
+    }
+  }
 
   const logs = useQuery({
     queryKey: ["asana-sync-logs"],
@@ -241,6 +262,7 @@ export default function AsanaSyncMonitor() {
                       <th className="text-right py-2 px-2">Responsável</th>
                       <th className="text-right py-2 px-2">Seguidor</th>
                       <th className="text-right py-2 px-2">Colaborador</th>
+                      <th className="text-right py-2 px-2">Ação</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -254,6 +276,17 @@ export default function AsanaSyncMonitor() {
                         <td className="py-2 px-2 text-right">{u.responsavel_em}</td>
                         <td className="py-2 px-2 text-right">{u.seguidor_em}</td>
                         <td className="py-2 px-2 text-right">{u.colaborador_em}</td>
+                        <td className="py-2 px-2 text-right">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            disabled={u.sem_mapeamento || replayingUserId === u.id}
+                            onClick={() => replayUser(u.id, u.nome || u.email || "")}
+                          >
+                            <RefreshCw className={`h-3 w-3 mr-1 ${replayingUserId === u.id ? "animate-spin" : ""}`} />
+                            Replay
+                          </Button>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
