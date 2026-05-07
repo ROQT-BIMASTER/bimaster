@@ -2904,6 +2904,54 @@ export type Database = {
           },
         ]
       }
+      china_checklist_cat_overrides: {
+        Row: {
+          categoria_key: string
+          created_at: string
+          created_by: string | null
+          id: string
+          label_cn: string | null
+          label_pt: string
+          submissao_id: string
+          updated_at: string
+        }
+        Insert: {
+          categoria_key: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          label_cn?: string | null
+          label_pt: string
+          submissao_id: string
+          updated_at?: string
+        }
+        Update: {
+          categoria_key?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          label_cn?: string | null
+          label_pt?: string
+          submissao_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "china_checklist_cat_overrides_submissao_id_fkey"
+            columns: ["submissao_id"]
+            isOneToOne: false
+            referencedRelation: "china_produto_submissoes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "china_checklist_cat_overrides_submissao_id_fkey"
+            columns: ["submissao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_china_produto_recebimento_kpis"
+            referencedColumns: ["submissao_id"]
+          },
+        ]
+      }
       china_checklist_custom_categorias: {
         Row: {
           created_at: string
@@ -3161,6 +3209,39 @@ export type Database = {
             referencedColumns: ["submissao_id"]
           },
         ]
+      }
+      china_doc_checklist_templates: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          descricao: string | null
+          escopo: string
+          estrutura: Json
+          id: string
+          nome: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          descricao?: string | null
+          escopo?: string
+          estrutura?: Json
+          id?: string
+          nome: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          descricao?: string | null
+          escopo?: string
+          estrutura?: Json
+          id?: string
+          nome?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       china_doc_revisoes: {
         Row: {
