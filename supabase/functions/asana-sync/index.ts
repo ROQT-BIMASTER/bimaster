@@ -21,18 +21,26 @@ Deno.serve(secureHandler({ auth: "none", rateLimit: 10, rateLimitPrefix: "asana-
 
   try {
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader?.startsWith("Bearer ")) return json({ error: "Não autorizado" }, 401);
+    const cronSecret = req.headers.get("x-cron-secret");
+    const expectedCronSecret = Deno.env.get("CRON_SECRET");
+    const isCron = !!(cronSecret && expectedCronSecret && cronSecret === expectedCronSecret);
 
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_ANON_KEY")!,
-      { global: { headers: { Authorization: authHeader } } }
-    );
-
-    const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: claimsErr } = await supabase.auth.getClaims(token);
-    if (claimsErr || !claimsData?.claims) return json({ error: "Token inválido" }, 401);
-    const userId = claimsData.claims.sub as string;
+    let userId: string;
+    if (isCron) {
+      // System user (admin) for scheduled runs
+      userId = "4af78a22-7d9a-495a-9a4f-f846d94af061";
+    } else {
+      if (!authHeader?.startsWith("Bearer ")) return json({ error: "Não autorizado" }, 401);
+      const supabase = createClient(
+        Deno.env.get("SUPABASE_URL")!,
+        Deno.env.get("SUPABASE_ANON_KEY")!,
+        { global: { headers: { Authorization: authHeader } } }
+      );
+      const token = authHeader.replace("Bearer ", "");
+      const { data: claimsData, error: claimsErr } = await supabase.auth.getClaims(token);
+      if (claimsErr || !claimsData?.claims) return json({ error: "Token inválido" }, 401);
+      userId = claimsData.claims.sub as string;
+    }
 
     const adminClient = createClient(
       Deno.env.get("SUPABASE_URL")!,
