@@ -609,6 +609,109 @@ export function ChinaChecklistFocusMode({
     setAddCatOpen(true);
   };
 
+  const openEditCategory = (e: React.MouseEvent, cat: MergedCategory) => {
+    e.stopPropagation();
+    setEditCatTarget(cat);
+    setEditCatLabelPt(cat.labelPt);
+    setEditCatLabelCn(cat.labelCn || "");
+    setEditCatOpen(true);
+  };
+
+  const saveEditCategory = useMutation({
+    mutationFn: async () => {
+      if (!editCatTarget) return;
+      const labelPt = editCatLabelPt.trim();
+      const labelCn = editCatLabelCn.trim();
+      if (!labelPt) throw new Error("Nome é obrigatório");
+      if (editCatTarget.isCustom && editCatTarget.customId) {
+        const { error } = await (supabase as any)
+          .from("china_checklist_custom_categorias")
+          .update({ label_pt: labelPt, label_cn: labelCn })
+          .eq("id", editCatTarget.customId);
+        if (error) throw error;
+        queryClient.invalidateQueries({ queryKey: ["checklist-custom-cats", submissaoId] });
+      } else {
+        await upsertCatOverride.mutateAsync({
+          submissaoId,
+          categoriaKey: editCatTarget.key,
+          labelPt,
+          labelCn,
+        });
+      }
+    },
+    onSuccess: () => {
+      setEditCatOpen(false);
+      setEditCatTarget(null);
+    },
+    onError: (e: any) => toast.error(e?.message || "Erro ao salvar"),
+  });
+
+  // Build template snapshot from current state
+  const buildEstruturaSnapshot = (): TemplateEstrutura => {
+    const categorias = enrichedCategories.map((c, idx) => ({
+      key: c.key,
+      label_pt: c.labelPt,
+      label_cn: c.labelCn || "",
+      fluxo: c.fluxo,
+      ordem: idx,
+      custom: !!c.isCustom,
+    }));
+    const itens = allDocTypes
+      .filter((d) => !hiddenSet.has(d.tipo))
+      .map((d) => {
+        const cat = enrichedCategories.find((c) => c.tipos.includes(d.tipo));
+        return {
+          tipo_key: d.tipo,
+          label_pt: d.labelPt,
+          label_cn: d.labelCn || "",
+          categoria_key: cat?.key || "",
+          custom: !!d.isCustom,
+          accept: d.accept || null,
+          multiple: d.multiple ?? false,
+        };
+      })
+      .filter((i) => i.categoria_key);
+    const ocultos = Array.from(hiddenSet) as string[];
+    const overrides_categoria = catOverrides.map((o) => ({
+      categoria_key: o.categoria_key,
+      label_pt: o.label_pt,
+      label_cn: o.label_cn || "",
+    }));
+    return { categorias, itens, ocultos, overrides_categoria };
+  };
+
+  const handleSaveTemplate = async () => {
+    if (!tplNome.trim()) return;
+    await saveTemplate.mutateAsync({
+      nome: tplNome.trim(),
+      descricao: tplDescricao.trim() || undefined,
+      escopo: tplEscopo,
+      estrutura: buildEstruturaSnapshot(),
+    });
+    setTplSaveOpen(false);
+    setTplNome("");
+    setTplDescricao("");
+  };
+
+  const handleApplyTemplate = async (tpl: { id: string; nome: string; estrutura: TemplateEstrutura }) => {
+    if (!confirm(`Aplicar o modelo "${tpl.nome}" a este checklist? Itens já existentes não serão removidos.`)) return;
+    setApplyingTpl(true);
+    try {
+      await aplicarTemplateNaSubmissao(submissaoId, tpl.estrutura);
+      await queryClient.invalidateQueries({ queryKey: ["checklist-custom-cats", submissaoId] });
+      await queryClient.invalidateQueries({ queryKey: ["checklist-custom-items", submissaoId] });
+      await queryClient.invalidateQueries({ queryKey: ["checklist-hidden-items", submissaoId] });
+      await queryClient.invalidateQueries({ queryKey: ["china-cat-overrides", submissaoId] });
+      onRefresh();
+      toast.success(`Modelo "${tpl.nome}" aplicado`);
+    } catch (e: any) {
+      toast.error(e?.message || "Erro ao aplicar modelo");
+    } finally {
+      setApplyingTpl(false);
+    }
+  };
+
+
   return (
     <>
       <Button variant="outline" size="sm" onClick={() => setIsOpen(true)} className="gap-2">
