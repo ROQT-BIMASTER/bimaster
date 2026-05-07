@@ -294,11 +294,11 @@ Deno.serve(secureHandler({ auth: "none", rateLimit: 10, rateLimitPrefix: "asana-
                   }
                   const task = tasks[i];
 
-                  // Skip if unchanged
+                  // Detect "unchanged" tasks — we'll still re-sync followers/colaboradores
+                  // (assignment/follower changes in Asana don't bump modified_at on the task itself
+                  // when only metadata changes server-side, so we always reconcile membership).
                   const existing = existingMap.get(task.gid);
-                  if (existing && existing.modifiedAt && task.modified_at && existing.modifiedAt === task.modified_at) {
-                    continue;
-                  }
+                  const unchanged = !!(existing && existing.modifiedAt && task.modified_at && existing.modifiedAt === task.modified_at);
 
                   const sectionGid = task.memberships?.[0]?.section?.gid;
                   const sectionId = sectionGid ? sectionMap.get(sectionGid) : defaultSectionId;
@@ -361,7 +361,12 @@ Deno.serve(secureHandler({ auth: "none", rateLimit: 10, rateLimitPrefix: "asana-
                   let localTaskId: string;
                   if (existing) {
                     localTaskId = existing.id;
-                    await adminClient.from("projeto_tarefas").update(taskData).eq("id", localTaskId);
+                    // Skip the heavy column-update if nothing meaningful changed,
+                    // but still proceed to reconcile followers/tags/parent below.
+                    if (!unchanged) {
+                      await adminClient.from("projeto_tarefas").update(taskData).eq("id", localTaskId);
+                      tasksSynced++;
+                    }
                   } else {
                     const { data: newTask, error: insertErr } = await adminClient.from("projeto_tarefas").insert({
                       ...taskData, projeto_id: localProjectId, secao_id: sectionId || defaultSectionId, criador_id: userId,
@@ -371,8 +376,8 @@ Deno.serve(secureHandler({ auth: "none", rateLimit: 10, rateLimitPrefix: "asana-
                       continue;
                     }
                     localTaskId = newTask.id;
+                    tasksSynced++;
                   }
-                  tasksSynced++;
 
                   // Followers — populate both legacy collaborators table and the new dedicated followers table
                   for (const f of (task.followers || [])) {
