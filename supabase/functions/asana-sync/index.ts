@@ -294,11 +294,11 @@ Deno.serve(secureHandler({ auth: "none", rateLimit: 10, rateLimitPrefix: "asana-
                   }
                   const task = tasks[i];
 
-                  // Skip if unchanged
+                  // Detect "unchanged" tasks — we'll still re-sync followers/colaboradores
+                  // (assignment/follower changes in Asana don't bump modified_at on the task itself
+                  // when only metadata changes server-side, so we always reconcile membership).
                   const existing = existingMap.get(task.gid);
-                  if (existing && existing.modifiedAt && task.modified_at && existing.modifiedAt === task.modified_at) {
-                    continue;
-                  }
+                  const unchanged = !!(existing && existing.modifiedAt && task.modified_at && existing.modifiedAt === task.modified_at);
 
                   const sectionGid = task.memberships?.[0]?.section?.gid;
                   const sectionId = sectionGid ? sectionMap.get(sectionGid) : defaultSectionId;
