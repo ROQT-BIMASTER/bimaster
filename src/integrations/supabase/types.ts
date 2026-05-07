@@ -44837,6 +44837,7 @@ export type Database = {
         | "promotor"
         | "cliente"
         | "gerente"
+        | "consultor"
       checklist_arte_tipo:
         | "etiqueta_bula"
         | "etiqueta_fundo"
@@ -45041,6 +45042,7 @@ export const Constants = {
         "promotor",
         "cliente",
         "gerente",
+        "consultor",
       ],
       checklist_arte_tipo: [
         "etiqueta_bula",
