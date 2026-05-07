@@ -255,6 +255,17 @@ export default function AsanaSyncMonitor() {
                         <td className="py-2 px-2 text-right">{u.responsavel_em}</td>
                         <td className="py-2 px-2 text-right">{u.seguidor_em}</td>
                         <td className="py-2 px-2 text-right">{u.colaborador_em}</td>
+                        <td className="py-2 px-2 text-right">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            disabled={u.sem_mapeamento || replayingUserId === u.id}
+                            onClick={() => replayUser(u.id, u.nome || u.email || "")}
+                          >
+                            <RefreshCw className={`h-3 w-3 mr-1 ${replayingUserId === u.id ? "animate-spin" : ""}`} />
+                            Replay
+                          </Button>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
