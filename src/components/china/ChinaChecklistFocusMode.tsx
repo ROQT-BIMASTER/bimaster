@@ -738,6 +738,63 @@ export function ChinaChecklistFocusMode({
                     Submeter {selected.size} ao Brasil
                   </Button>
                 )}
+                {/* Templates menu */}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="sm" className="gap-1.5" disabled={applyingTpl}>
+                      {applyingTpl ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Bookmark className="h-3.5 w-3.5" />}
+                      Modelos
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-[320px] max-h-[400px] overflow-y-auto">
+                    <DropdownMenuLabel>Modelos de Checklist</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    {templates.length === 0 && (
+                      <div className="px-2 py-3 text-xs text-muted-foreground text-center">
+                        Nenhum modelo salvo ainda
+                      </div>
+                    )}
+                    {templates.map((t) => (
+                      <DropdownMenuItem
+                        key={t.id}
+                        onSelect={(e) => e.preventDefault()}
+                        className="flex items-start justify-between gap-2 py-2"
+                      >
+                        <button
+                          className="flex-1 text-left"
+                          onClick={() => handleApplyTemplate(t)}
+                        >
+                          <div className="font-medium text-sm">{t.nome}</div>
+                          <div className="flex items-center gap-1 mt-0.5 flex-wrap">
+                            <Badge variant={t.escopo === "global" ? "secondary" : "outline"} className="text-[10px] h-4">
+                              {t.escopo === "global" ? "Global" : "Pessoal"}
+                            </Badge>
+                            {t.descricao && (
+                              <span className="text-[10px] text-muted-foreground truncate max-w-[180px]">
+                                {t.descricao}
+                              </span>
+                            )}
+                          </div>
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (confirm(`Excluir modelo "${t.nome}"?`)) deleteTemplate.mutate(t.id);
+                          }}
+                          className="text-destructive hover:text-destructive/70 shrink-0"
+                          title="Excluir modelo"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </DropdownMenuItem>
+                    ))}
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onSelect={() => setTplSaveOpen(true)} className="gap-2">
+                      <BookmarkPlus className="h-3.5 w-3.5 text-primary" />
+                      <span className="text-sm">Salvar checklist atual como modelo</span>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
                 <Button variant="ghost" size="icon" onClick={() => setIsOpen(false)}>
                   <X className="h-4 w-4" />
                 </Button>
