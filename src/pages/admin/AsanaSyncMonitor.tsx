@@ -242,6 +242,7 @@ export default function AsanaSyncMonitor() {
                       <th className="text-right py-2 px-2">Seguidor</th>
                       <th className="text-right py-2 px-2">Colaborador</th>
                       <th className="text-right py-2 px-2">Ação</th>
+                    </tr>
                   </thead>
                   <tbody>
                     {(userHealth.data || []).map((u) => (
