@@ -29170,6 +29170,153 @@ export type Database = {
           },
         ]
       }
+      profile_dedupe_candidates: {
+        Row: {
+          detected_at: string
+          id: string
+          notes: string | null
+          profile_canonical_id: string
+          profile_duplicate_id: string
+          reason: string
+          resolved_at: string | null
+          resolved_by: string | null
+          score: number
+          status: string
+        }
+        Insert: {
+          detected_at?: string
+          id?: string
+          notes?: string | null
+          profile_canonical_id: string
+          profile_duplicate_id: string
+          reason: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          score: number
+          status?: string
+        }
+        Update: {
+          detected_at?: string
+          id?: string
+          notes?: string | null
+          profile_canonical_id?: string
+          profile_duplicate_id?: string
+          reason?: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          score?: number
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profile_dedupe_candidates_profile_canonical_id_fkey"
+            columns: ["profile_canonical_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profile_dedupe_candidates_profile_canonical_id_fkey"
+            columns: ["profile_canonical_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profile_dedupe_candidates_profile_canonical_id_fkey"
+            columns: ["profile_canonical_id"]
+            isOneToOne: false
+            referencedRelation: "team_performance_view"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "profile_dedupe_candidates_profile_duplicate_id_fkey"
+            columns: ["profile_duplicate_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profile_dedupe_candidates_profile_duplicate_id_fkey"
+            columns: ["profile_duplicate_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profile_dedupe_candidates_profile_duplicate_id_fkey"
+            columns: ["profile_duplicate_id"]
+            isOneToOne: false
+            referencedRelation: "team_performance_view"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "profile_dedupe_candidates_resolved_by_fkey"
+            columns: ["resolved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profile_dedupe_candidates_resolved_by_fkey"
+            columns: ["resolved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profile_dedupe_candidates_resolved_by_fkey"
+            columns: ["resolved_by"]
+            isOneToOne: false
+            referencedRelation: "team_performance_view"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
+      profile_merge_audit: {
+        Row: {
+          candidate_id: string | null
+          canonical_id: string
+          duplicate_email_before: string | null
+          duplicate_id: string
+          duplicate_nome_before: string | null
+          executed_at: string
+          executed_by: string | null
+          id: string
+          records_moved: Json
+        }
+        Insert: {
+          candidate_id?: string | null
+          canonical_id: string
+          duplicate_email_before?: string | null
+          duplicate_id: string
+          duplicate_nome_before?: string | null
+          executed_at?: string
+          executed_by?: string | null
+          id?: string
+          records_moved?: Json
+        }
+        Update: {
+          candidate_id?: string | null
+          canonical_id?: string
+          duplicate_email_before?: string | null
+          duplicate_id?: string
+          duplicate_nome_before?: string | null
+          executed_at?: string
+          executed_by?: string | null
+          id?: string
+          records_moved?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profile_merge_audit_candidate_id_fkey"
+            columns: ["candidate_id"]
+            isOneToOne: false
+            referencedRelation: "profile_dedupe_candidates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           aprovado: boolean
@@ -42960,6 +43107,14 @@ export type Database = {
         }[]
       }
       consistency_check_tarefas_run_now: { Args: never; Returns: string }
+      consolidate_profiles: {
+        Args: {
+          p_candidate_id?: string
+          p_canonical_id: string
+          p_duplicate_id: string
+        }
+        Returns: Json
+      }
       consume_budget_credit: {
         Args: { p_amount: number; p_budget_id: string }
         Returns: undefined
@@ -43011,6 +43166,7 @@ export type Database = {
         Returns: string
       }
       current_user_email: { Args: never; Returns: string }
+      daitch_mokotoff: { Args: { "": string }; Returns: string[] }
       debug_visibilidade_tarefa: {
         Args: { p_tarefa_id: string; p_user_id: string }
         Returns: Json
@@ -43020,6 +43176,15 @@ export type Database = {
       delete_email: {
         Args: { message_id: number; queue_name: string }
         Returns: boolean
+      }
+      detect_duplicate_profiles: {
+        Args: never
+        Returns: {
+          canonical_id: string
+          duplicate_id: string
+          reason: string
+          score: number
+        }[]
       }
       diag_backfill_log_listar: {
         Args: {
@@ -43088,6 +43253,8 @@ export type Database = {
           ultimo_backfill_rows: number
         }[]
       }
+      dmetaphone: { Args: { "": string }; Returns: string }
+      dmetaphone_alt: { Args: { "": string }; Returns: string }
       encrypt_token: { Args: { p_token: string }; Returns: string }
       enfileirar_cobrancas_automaticas: { Args: never; Returns: number }
       enqueue_email: {
@@ -44675,6 +44842,7 @@ export type Database = {
         Args: { p_force_sync?: boolean; p_user_id: string }
         Returns: undefined
       }
+      soundex: { Args: { "": string }; Returns: string }
       start_sync: {
         Args: { p_entidade: string; p_metadata?: Json; p_tipo?: string }
         Returns: string
@@ -44697,10 +44865,12 @@ export type Database = {
           fonte: string
         }[]
       }
+      test_get_minhas_tarefas_central: { Args: never; Returns: Json }
       test_rpc_comentar_item_aprovacao: {
         Args: { p_admin?: string }
         Returns: string
       }
+      text_soundex: { Args: { "": string }; Returns: string }
       unaccent: { Args: { "": string }; Returns: string }
       update_sync_progress: {
         Args: { p_records_processed: number; p_session_id: string }
