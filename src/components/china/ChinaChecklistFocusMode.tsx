@@ -14,8 +14,17 @@ import { ChinaUploadPreviewDialog } from "./ChinaUploadPreviewDialog";
 import {
   Maximize2, X, Send, Save, Upload, Loader2, CheckCircle2, Clock, XCircle,
   FileText, Eye, Trash2, Image as ImageIcon, CalendarIcon, AlertCircle,
-  Plus, FolderPlus, Pencil,
+  Plus, FolderPlus, Pencil, Bookmark, BookmarkPlus,
 } from "lucide-react";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
+  DropdownMenuSeparator, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  useDocChecklistTemplates, useSaveDocChecklistTemplate, useDeleteDocChecklistTemplate,
+  aplicarTemplateNaSubmissao, useCategoriaOverrides, useUpsertCategoriaOverride,
+  type TemplateEstrutura,
+} from "@/hooks/useChinaDocChecklistTemplates";
 import { CHINA_DOCUMENT_TYPES, DOCUMENT_CATEGORIES, CATEGORIES_CHINA_ENVIA, CATEGORIES_BRASIL_ENVIA, STATUS_LABELS } from "@/lib/china-document-types";
 import type { DocumentSlotConfig } from "@/components/china/ChinaDocumentSlot";
 import { ArrowUpRight, ArrowDownLeft } from "lucide-react";
@@ -119,6 +128,30 @@ export function ChinaChecklistFocusMode({
   const [addItemLabelCn, setAddItemLabelCn] = useState("");
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
 
+  // Edit category dialog
+  const [editCatOpen, setEditCatOpen] = useState(false);
+  const [editCatTarget, setEditCatTarget] = useState<MergedCategory | null>(null);
+  const [editCatLabelPt, setEditCatLabelPt] = useState("");
+  const [editCatLabelCn, setEditCatLabelCn] = useState("");
+
+  // Templates
+  const [tplSaveOpen, setTplSaveOpen] = useState(false);
+  const [tplNome, setTplNome] = useState("");
+  const [tplDescricao, setTplDescricao] = useState("");
+  const [tplEscopo, setTplEscopo] = useState<"pessoal" | "global">("global");
+  const [applyingTpl, setApplyingTpl] = useState(false);
+
+  const { data: templates = [] } = useDocChecklistTemplates();
+  const saveTemplate = useSaveDocChecklistTemplate();
+  const deleteTemplate = useDeleteDocChecklistTemplate();
+  const { data: catOverrides = [] } = useCategoriaOverrides(submissaoId);
+  const upsertCatOverride = useUpsertCategoriaOverride();
+
+  const overrideMap = useMemo(
+    () => new Map(catOverrides.map((o) => [o.categoria_key, o])),
+    [catOverrides],
+  );
+
   // Fetch custom categories
   const { data: customCategories = [] } = useQuery({
     queryKey: ["checklist-custom-cats", submissaoId],
@@ -197,17 +230,19 @@ export function ChinaChecklistFocusMode({
     return [...defaults, ...customs];
   }, [customItems]);
 
-  // Add custom items to default categories
+  // Add custom items to default categories + apply label overrides
   const enrichedCategories = useMemo(() => {
     return allCategories.map(cat => {
-      if (cat.isCustom) return cat;
-      // Find custom items assigned to this default category
+      const ov = overrideMap.get(cat.key);
+      const labelPt = ov?.label_pt || cat.labelPt;
+      const labelCn = ov?.label_cn ?? cat.labelCn;
+      if (cat.isCustom) return { ...cat, labelPt, labelCn };
       const extraItems = customItems
         .filter((i: any) => i.categoria_default_key === cat.key && !i.categoria_custom_id)
         .map((i: any) => i.tipo_key);
-      return { ...cat, tipos: [...cat.tipos, ...extraItems] };
+      return { ...cat, labelPt, labelCn, tipos: [...cat.tipos, ...extraItems] };
     });
-  }, [allCategories, customItems]);
+  }, [allCategories, customItems, overrideMap]);
 
   const visibleCategories = useMemo(
     () => enrichedCategories.filter((c) => !hiddenSet.has(`cat:${c.key}`)),
@@ -574,6 +609,109 @@ export function ChinaChecklistFocusMode({
     setAddCatOpen(true);
   };
 
+  const openEditCategory = (e: React.MouseEvent, cat: MergedCategory) => {
+    e.stopPropagation();
+    setEditCatTarget(cat);
+    setEditCatLabelPt(cat.labelPt);
+    setEditCatLabelCn(cat.labelCn || "");
+    setEditCatOpen(true);
+  };
+
+  const saveEditCategory = useMutation({
+    mutationFn: async () => {
+      if (!editCatTarget) return;
+      const labelPt = editCatLabelPt.trim();
+      const labelCn = editCatLabelCn.trim();
+      if (!labelPt) throw new Error("Nome é obrigatório");
+      if (editCatTarget.isCustom && editCatTarget.customId) {
+        const { error } = await (supabase as any)
+          .from("china_checklist_custom_categorias")
+          .update({ label_pt: labelPt, label_cn: labelCn })
+          .eq("id", editCatTarget.customId);
+        if (error) throw error;
+        queryClient.invalidateQueries({ queryKey: ["checklist-custom-cats", submissaoId] });
+      } else {
+        await upsertCatOverride.mutateAsync({
+          submissaoId,
+          categoriaKey: editCatTarget.key,
+          labelPt,
+          labelCn,
+        });
+      }
+    },
+    onSuccess: () => {
+      setEditCatOpen(false);
+      setEditCatTarget(null);
+    },
+    onError: (e: any) => toast.error(e?.message || "Erro ao salvar"),
+  });
+
+  // Build template snapshot from current state
+  const buildEstruturaSnapshot = (): TemplateEstrutura => {
+    const categorias = enrichedCategories.map((c, idx) => ({
+      key: c.key,
+      label_pt: c.labelPt,
+      label_cn: c.labelCn || "",
+      fluxo: c.fluxo,
+      ordem: idx,
+      custom: !!c.isCustom,
+    }));
+    const itens = allDocTypes
+      .filter((d) => !hiddenSet.has(d.tipo))
+      .map((d) => {
+        const cat = enrichedCategories.find((c) => c.tipos.includes(d.tipo));
+        return {
+          tipo_key: d.tipo,
+          label_pt: d.labelPt,
+          label_cn: d.labelCn || "",
+          categoria_key: cat?.key || "",
+          custom: !!d.isCustom,
+          accept: d.accept || null,
+          multiple: d.multiple ?? false,
+        };
+      })
+      .filter((i) => i.categoria_key);
+    const ocultos = Array.from(hiddenSet) as string[];
+    const overrides_categoria = catOverrides.map((o) => ({
+      categoria_key: o.categoria_key,
+      label_pt: o.label_pt,
+      label_cn: o.label_cn || "",
+    }));
+    return { categorias, itens, ocultos, overrides_categoria };
+  };
+
+  const handleSaveTemplate = async () => {
+    if (!tplNome.trim()) return;
+    await saveTemplate.mutateAsync({
+      nome: tplNome.trim(),
+      descricao: tplDescricao.trim() || undefined,
+      escopo: tplEscopo,
+      estrutura: buildEstruturaSnapshot(),
+    });
+    setTplSaveOpen(false);
+    setTplNome("");
+    setTplDescricao("");
+  };
+
+  const handleApplyTemplate = async (tpl: { id: string; nome: string; estrutura: TemplateEstrutura }) => {
+    if (!confirm(`Aplicar o modelo "${tpl.nome}" a este checklist? Itens já existentes não serão removidos.`)) return;
+    setApplyingTpl(true);
+    try {
+      await aplicarTemplateNaSubmissao(submissaoId, tpl.estrutura);
+      await queryClient.invalidateQueries({ queryKey: ["checklist-custom-cats", submissaoId] });
+      await queryClient.invalidateQueries({ queryKey: ["checklist-custom-items", submissaoId] });
+      await queryClient.invalidateQueries({ queryKey: ["checklist-hidden-items", submissaoId] });
+      await queryClient.invalidateQueries({ queryKey: ["china-cat-overrides", submissaoId] });
+      onRefresh();
+      toast.success(`Modelo "${tpl.nome}" aplicado`);
+    } catch (e: any) {
+      toast.error(e?.message || "Erro ao aplicar modelo");
+    } finally {
+      setApplyingTpl(false);
+    }
+  };
+
+
   return (
     <>
       <Button variant="outline" size="sm" onClick={() => setIsOpen(true)} className="gap-2">
@@ -600,6 +738,63 @@ export function ChinaChecklistFocusMode({
                     Submeter {selected.size} ao Brasil
                   </Button>
                 )}
+                {/* Templates menu */}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="sm" className="gap-1.5" disabled={applyingTpl}>
+                      {applyingTpl ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Bookmark className="h-3.5 w-3.5" />}
+                      Modelos
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-[320px] max-h-[400px] overflow-y-auto">
+                    <DropdownMenuLabel>Modelos de Checklist</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    {templates.length === 0 && (
+                      <div className="px-2 py-3 text-xs text-muted-foreground text-center">
+                        Nenhum modelo salvo ainda
+                      </div>
+                    )}
+                    {templates.map((t) => (
+                      <DropdownMenuItem
+                        key={t.id}
+                        onSelect={(e) => e.preventDefault()}
+                        className="flex items-start justify-between gap-2 py-2"
+                      >
+                        <button
+                          className="flex-1 text-left"
+                          onClick={() => handleApplyTemplate(t)}
+                        >
+                          <div className="font-medium text-sm">{t.nome}</div>
+                          <div className="flex items-center gap-1 mt-0.5 flex-wrap">
+                            <Badge variant={t.escopo === "global" ? "secondary" : "outline"} className="text-[10px] h-4">
+                              {t.escopo === "global" ? "Global" : "Pessoal"}
+                            </Badge>
+                            {t.descricao && (
+                              <span className="text-[10px] text-muted-foreground truncate max-w-[180px]">
+                                {t.descricao}
+                              </span>
+                            )}
+                          </div>
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (confirm(`Excluir modelo "${t.nome}"?`)) deleteTemplate.mutate(t.id);
+                          }}
+                          className="text-destructive hover:text-destructive/70 shrink-0"
+                          title="Excluir modelo"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </DropdownMenuItem>
+                    ))}
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onSelect={() => setTplSaveOpen(true)} className="gap-2">
+                      <BookmarkPlus className="h-3.5 w-3.5 text-primary" />
+                      <span className="text-sm">Salvar checklist atual como modelo</span>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
                 <Button variant="ghost" size="icon" onClick={() => setIsOpen(false)}>
                   <X className="h-4 w-4" />
                 </Button>
@@ -648,15 +843,26 @@ export function ChinaChecklistFocusMode({
 
                         return (
                           <div key={cat.key} className="relative group">
-                            <button
-                              type="button"
-                              onClick={(e) => handleDeleteCategory(e, cat)}
-                              className="absolute top-1.5 right-1.5 z-10 p-1 rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-opacity"
-                              title="Excluir categoria"
-                              aria-label={`Excluir categoria ${cat.labelPt}`}
-                            >
-                              <Trash2 className="h-3 w-3" />
-                            </button>
+                            <div className="absolute top-1.5 right-1.5 z-10 flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <button
+                                type="button"
+                                onClick={(e) => openEditCategory(e, cat)}
+                                className="p-1 rounded text-muted-foreground hover:text-primary hover:bg-primary/10"
+                                title="Editar nome da categoria"
+                                aria-label={`Editar categoria ${cat.labelPt}`}
+                              >
+                                <Pencil className="h-3 w-3" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={(e) => handleDeleteCategory(e, cat)}
+                                className="p-1 rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                                title="Excluir categoria"
+                                aria-label={`Excluir categoria ${cat.labelPt}`}
+                              >
+                                <Trash2 className="h-3 w-3" />
+                              </button>
+                            </div>
                             <button
                               onClick={() => setActiveCat(cat.key)}
                               className={cn(
@@ -1073,6 +1279,115 @@ export function ChinaChecklistFocusMode({
                 <Plus className="h-4 w-4 mr-1" />
               )}
               {editingItemId ? "Salvar" : "Adicionar Item"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Category Dialog */}
+      <Dialog open={editCatOpen} onOpenChange={(o) => { setEditCatOpen(o); if (!o) setEditCatTarget(null); }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Pencil className="h-5 w-5 text-primary" />
+              Editar Categoria
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div>
+              <Label className="text-xs">Nome (Português)</Label>
+              <Input
+                value={editCatLabelPt}
+                onChange={(e) => setEditCatLabelPt(e.target.value)}
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <Label className="text-xs">Nome (Chinês) — opcional</Label>
+              <Input
+                value={editCatLabelCn}
+                onChange={(e) => setEditCatLabelCn(e.target.value)}
+                className="mt-1"
+              />
+            </div>
+            {editCatTarget && !editCatTarget.isCustom && (
+              <p className="text-[10px] text-muted-foreground">
+                Esta é uma categoria padrão. O novo nome será aplicado apenas a este checklist.
+              </p>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setEditCatOpen(false)}>Cancelar</Button>
+            <Button
+              onClick={() => saveEditCategory.mutate()}
+              disabled={!editCatLabelPt.trim() || saveEditCategory.isPending}
+            >
+              {saveEditCategory.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Save className="h-4 w-4 mr-1" />}
+              Salvar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Save Template Dialog */}
+      <Dialog open={tplSaveOpen} onOpenChange={setTplSaveOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <BookmarkPlus className="h-5 w-5 text-primary" />
+              Salvar Modelo de Checklist
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div>
+              <Label className="text-xs">Nome do modelo *</Label>
+              <Input
+                value={tplNome}
+                onChange={(e) => setTplNome(e.target.value)}
+                placeholder="Ex.: Padrão Maquiagem, Skincare China..."
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <Label className="text-xs">Descrição (opcional)</Label>
+              <Input
+                value={tplDescricao}
+                onChange={(e) => setTplDescricao(e.target.value)}
+                placeholder="Para que serve este modelo?"
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <Label className="text-xs">Visibilidade</Label>
+              <div className="flex gap-2 mt-1">
+                <Badge
+                  variant={tplEscopo === "global" ? "default" : "secondary"}
+                  className="cursor-pointer"
+                  onClick={() => setTplEscopo("global")}
+                >
+                  Global (todos)
+                </Badge>
+                <Badge
+                  variant={tplEscopo === "pessoal" ? "default" : "secondary"}
+                  className="cursor-pointer"
+                  onClick={() => setTplEscopo("pessoal")}
+                >
+                  Pessoal (só você)
+                </Badge>
+              </div>
+            </div>
+            <p className="text-[10px] text-muted-foreground">
+              O modelo guarda a estrutura de categorias, itens e nomes personalizados — não inclui arquivos enviados.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setTplSaveOpen(false)}>Cancelar</Button>
+            <Button
+              onClick={handleSaveTemplate}
+              disabled={!tplNome.trim() || saveTemplate.isPending}
+            >
+              {saveTemplate.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <BookmarkPlus className="h-4 w-4 mr-1" />}
+              Salvar Modelo
             </Button>
           </DialogFooter>
         </DialogContent>
