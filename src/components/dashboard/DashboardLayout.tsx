@@ -51,6 +51,12 @@ function InboxKeyboardShortcut() {
   return null;
 }
 
+function MencoesTitleAlert() {
+  const { naoLidas } = useMencoesNotifications();
+  useDocumentTitleAlert(naoLidas);
+  return null;
+}
+
 interface DashboardLayoutProps {
   children: ReactNode;
 }
