@@ -189,6 +189,7 @@ export function ProjetoInboxContent() {
 
   return (
     <div className="space-y-5">
+      <EnablePushBanner />
       <div className="flex items-center justify-between gap-3">
         <div className={cn(
           "inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium border",
