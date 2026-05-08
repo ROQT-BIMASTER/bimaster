@@ -181,6 +181,7 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
               <img src={logoHuugs} alt="Huugs MakeUp" className="h-8 sm:h-10" />
             </div>
           </header>
+          <MencoesTitleAlert />
           <CommandPalette open={cmdOpen} onOpenChange={setCmdOpen} />
           {connectionQuality === 'offline' && (
             <Alert className="m-4 border-destructive bg-destructive/10">
