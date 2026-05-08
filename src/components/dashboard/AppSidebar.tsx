@@ -1533,6 +1533,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
             </div>
             <div className="flex items-center gap-1">
               <ThemeSelectorPopover />
+              <LanguagePreferencePopover />
               {hasModulePermission("configuracoes") && (
                 <NavLink to="/dashboard/configuracoes" className="p-1.5 rounded-md text-[var(--sidebar-text-muted-raw)] hover:text-[var(--sidebar-text-hover-raw)] hover:bg-[var(--sidebar-hover-raw)] transition-colors">
                   <Settings className="h-4 w-4" />
