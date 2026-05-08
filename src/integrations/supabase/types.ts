@@ -44705,6 +44705,23 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      rpc_china_criar_op: {
+        Args: {
+          p_data_inicio?: string
+          p_data_prevista?: string
+          p_formula_id?: string
+          p_lote?: string
+          p_obs?: string
+          p_oc_id?: string
+          p_produto_id?: string
+          p_qty: number
+          p_submissao_id: string
+        }
+        Returns: {
+          numero: string
+          op_id: string
+        }[]
+      }
       rpc_china_oc_atualizar_logistica: {
         Args: {
           p_data_entrega_prevista?: string
