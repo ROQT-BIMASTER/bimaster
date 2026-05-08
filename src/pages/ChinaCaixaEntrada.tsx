@@ -57,6 +57,7 @@ export default function ChinaCaixaEntrada() {
   const purge = usePurgeSubmissoes();
 
   const [search, setSearch] = useState("");
+  const [actionFilter, setActionFilter] = useState<"mine" | "theirs" | "all">("mine");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [previewDoc, setPreviewDoc] = useState<MailboxItem | null>(null);
