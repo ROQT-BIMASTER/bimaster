@@ -53,6 +53,12 @@ export function MailboxReadingPane({
     navigate(url, { state });
   };
   const [motivo, setMotivo] = useState("");
+  const [chatOpen, setChatOpen] = useState<boolean>(() => {
+    try { return localStorage.getItem("china-inbox-chat-open") !== "0"; } catch { return true; }
+  });
+  useEffect(() => {
+    try { localStorage.setItem("china-inbox-chat-open", chatOpen ? "1" : "0"); } catch { /* ignore */ }
+  }, [chatOpen]);
   const unsnooze = useUnsnoozeSubmissao();
 
   const handleExportPdf = async () => {
