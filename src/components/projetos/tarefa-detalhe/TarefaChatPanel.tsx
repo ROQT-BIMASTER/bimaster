@@ -40,11 +40,14 @@ interface TarefaChatPanelProps {
   messages: Message[];
   sendMessage: { mutate: (data: { conteudo: string; mentions: string[] }) => void };
   teamMembers: TeamMember[];
-  criadorId: string | null;
+  /** @deprecated mantido por compatibilidade — use `currentUserId` para alinhar a bolha. */
+  criadorId?: string | null;
+  currentUserId?: string | null;
   onClose: () => void;
 }
 
-export function TarefaChatPanel({ messages, sendMessage, teamMembers, criadorId, onClose }: TarefaChatPanelProps) {
+export function TarefaChatPanel({ messages, sendMessage, teamMembers, criadorId, currentUserId, onClose }: TarefaChatPanelProps) {
+  const meId = currentUserId ?? criadorId ?? null;
   const [chatValue, setChatValue] = useState("");
   const chatEndRef = useRef<HTMLDivElement>(null);
 
