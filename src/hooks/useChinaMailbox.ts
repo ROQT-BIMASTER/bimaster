@@ -220,6 +220,7 @@ export function useChinaMailbox(folder: MailboxFolder): UseChinaMailboxResult {
         is_flagged: flagged.has(sub.id),
         is_deleted: !!sub.deleted_at,
         snooze_until: snoozedActive(sub.id),
+        had_previous_rejection: rejectedSubs.has(sub.id) && d.status !== "rejeitado",
       });
     }
 
