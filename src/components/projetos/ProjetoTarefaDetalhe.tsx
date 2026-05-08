@@ -131,6 +131,7 @@ export function ProjetoTarefaDetalhe({
   const { id: routeProjetoId } = useParams<{ id: string }>();
   const projetoId = projetoIdOverride || routeProjetoId;
   const { isAdmin } = useUserRole();
+  const { user } = useAuth();
   const {
     comentarios, addComentario, anexos, uploadAnexo, deleteAnexo, getAnexoUrl,
     sendToCofre, messages, sendMessage, searchProdutos, teamMembers, linkedProduto,
