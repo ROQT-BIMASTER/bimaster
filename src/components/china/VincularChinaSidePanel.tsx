@@ -359,6 +359,16 @@ export function VincularChinaSidePanel({
             )}
           </TabsContent>
 
+          {/* Chat Tab */}
+          <TabsContent value="chat" className="m-0 p-0 h-[calc(100vh-220px)] min-h-[400px]">
+            <ChinaChatPanel
+              key={submissao.id}
+              submissaoId={submissao.id}
+              produtoNome={submissao.produto_nome}
+              tipoRemetente="brasil"
+            />
+          </TabsContent>
+
           {/* Processo Tab */}
           {isLinkedToProject && (
             <TabsContent value="processo" className="m-0 p-4 space-y-4">
