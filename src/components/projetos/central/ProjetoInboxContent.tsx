@@ -130,14 +130,14 @@ export function ProjetoInboxContent() {
     [atividades],
   );
 
-  const currentList = useMemo(() => {
+  const currentList = useMemo<ProjetoAtividade[]>(() => {
     switch (activeTab) {
-      case "mencoes": return mencoes;
       case "favoritas": return favoritas;
       case "arquivadas": return arquivadas;
+      case "mencoes": return []; // renderizado por <MencoesList /> abaixo
       default: return atividades;
     }
-  }, [activeTab, atividades, mencoes, favoritas, arquivadas]);
+  }, [activeTab, atividades, favoritas, arquivadas]);
 
   const handleSelect = useCallback((id: string) => {
     setSelectedIds(prev => {
