@@ -76,7 +76,7 @@ export function TarefaChatPanel({ messages, sendMessage, teamMembers, criadorId,
             <p className="text-xs text-muted-foreground text-center py-8">Nenhuma mensagem ainda.</p>
           )}
           {messages.map(m => {
-            const isMe = m.user_id === criadorId;
+            const isMe = !!meId && m.user_id === meId;
             return (
               <div key={m.id} className={cn("flex gap-1.5", isMe ? "flex-row-reverse" : "flex-row")}>
                 <Avatar className="h-5 w-5 flex-shrink-0">
