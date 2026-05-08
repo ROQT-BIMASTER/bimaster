@@ -17,6 +17,7 @@ import {
 import { useProjetoAtividades, type ProjetoAtividade, type InboxFilter } from "@/hooks/useProjetoAtividades";
 import { useMencoesNotifications } from "@/hooks/useMencoesNotifications";
 import { MencoesList } from "@/components/projetos/central/MencoesList";
+import { EnablePushBanner } from "@/components/notifications/EnablePushBanner";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { useInboxScope } from "@/hooks/useInboxScope";
