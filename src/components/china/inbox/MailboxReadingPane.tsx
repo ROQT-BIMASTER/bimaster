@@ -1,5 +1,6 @@
-import { useState } from "react";
-import { ExternalLink, CheckCircle2, AlertTriangle, FileText, Star, MailOpen, Mail, ArrowLeft, Download, Clock } from "lucide-react";
+import { useState, useEffect } from "react";
+import { ExternalLink, CheckCircle2, AlertTriangle, FileText, Star, MailOpen, Mail, ArrowLeft, Download, Clock, MessageSquare, ChevronDown, ChevronRight } from "lucide-react";
+import { ChinaChatPanel } from "@/components/china/ChinaChatPanel";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
