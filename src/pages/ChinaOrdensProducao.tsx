@@ -18,6 +18,7 @@ import { ChinaPageHeader } from "@/components/china/ChinaPageHeader";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ManualFabricaDrawer } from "@/components/fabrica/ManualFabricaDrawer";
 import { NovaOPChinaDialog } from "@/components/china/op/NovaOPChinaDialog";
+import { ChinaOPDrawer } from "@/components/china/op/ChinaOPDrawer";
 import { useChinaOrdensProducao, type ChinaOPRow } from "@/hooks/useChinaOrdensProducao";
 import { getOPStatusInfo } from "@/lib/china/opStatus";
 import {
@@ -44,6 +45,7 @@ export default function ChinaOrdensProducao() {
   const [tab, setTab] = useState<TabKey>("todas");
   const [search, setSearch] = useState("");
   const [novaOPOpen, setNovaOPOpen] = useState(false);
+  const [drawerOP, setDrawerOP] = useState<ChinaOPRow | null>(null);
   const [exporting, setExporting] = useState(false);
 
   const kpis = useMemo(() => {
@@ -216,7 +218,7 @@ export default function ChinaOrdensProducao() {
                         <tr
                           key={r.id}
                           className={`border-t border-border hover:bg-accent/40 cursor-pointer border-l-[3px] ${info.bar}`}
-                          onClick={() => navigate(`/dashboard/fabrica/ordens-producao?op=${r.id}`)}
+                          onClick={() => setDrawerOP(r)}
                         >
                           <Td className="font-mono font-semibold">{r.numero}</Td>
                           <Td className="font-mono">{r.submissao_numero || "—"}</Td>
@@ -262,6 +264,7 @@ export default function ChinaOrdensProducao() {
       </Tabs>
 
       <NovaOPChinaDialog open={novaOPOpen} onOpenChange={setNovaOPOpen} />
+      <ChinaOPDrawer op={drawerOP} open={!!drawerOP} onOpenChange={(v) => !v && setDrawerOP(null)} />
     </ChinaPageShell>
   );
 }
