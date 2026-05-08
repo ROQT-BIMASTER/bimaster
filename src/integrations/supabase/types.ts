@@ -2837,6 +2837,7 @@ export type Database = {
           conteudo: string
           created_at: string
           id: string
+          idioma_origem: string | null
           lida_por: Json | null
           mencoes: Json | null
           ref_id: string | null
@@ -2845,6 +2846,7 @@ export type Database = {
           resposta_a_id: string | null
           submissao_id: string
           tipo: string
+          traducoes: Json
           usuario_id: string
           usuario_nome: string
         }
@@ -2853,6 +2855,7 @@ export type Database = {
           conteudo: string
           created_at?: string
           id?: string
+          idioma_origem?: string | null
           lida_por?: Json | null
           mencoes?: Json | null
           ref_id?: string | null
@@ -2861,6 +2864,7 @@ export type Database = {
           resposta_a_id?: string | null
           submissao_id: string
           tipo?: string
+          traducoes?: Json
           usuario_id: string
           usuario_nome: string
         }
@@ -2869,6 +2873,7 @@ export type Database = {
           conteudo?: string
           created_at?: string
           id?: string
+          idioma_origem?: string | null
           lida_por?: Json | null
           mencoes?: Json | null
           ref_id?: string | null
@@ -2877,6 +2882,7 @@ export type Database = {
           resposta_a_id?: string | null
           submissao_id?: string
           tipo?: string
+          traducoes?: Json
           usuario_id?: string
           usuario_nome?: string
         }
@@ -29412,6 +29418,7 @@ export type Database = {
           id: string
           is_honeytoken: boolean
           nome: string
+          preferred_language: string
           status: string
           supervisor_id: string | null
           telefone: string | null
@@ -29428,6 +29435,7 @@ export type Database = {
           id: string
           is_honeytoken?: boolean
           nome: string
+          preferred_language?: string
           status?: string
           supervisor_id?: string | null
           telefone?: string | null
@@ -29444,6 +29452,7 @@ export type Database = {
           id?: string
           is_honeytoken?: boolean
           nome?: string
+          preferred_language?: string
           status?: string
           supervisor_id?: string | null
           telefone?: string | null
