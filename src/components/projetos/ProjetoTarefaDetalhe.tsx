@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
@@ -130,6 +131,7 @@ export function ProjetoTarefaDetalhe({
   const { id: routeProjetoId } = useParams<{ id: string }>();
   const projetoId = projetoIdOverride || routeProjetoId;
   const { isAdmin } = useUserRole();
+  const { user } = useAuth();
   const {
     comentarios, addComentario, anexos, uploadAnexo, deleteAnexo, getAnexoUrl,
     sendToCofre, messages, sendMessage, searchProdutos, teamMembers, linkedProduto,
@@ -1226,7 +1228,7 @@ export function ProjetoTarefaDetalhe({
                 messages={messages}
                 sendMessage={sendMessage}
                 teamMembers={teamMembers}
-                criadorId={(tarefa as any).criador_id || null}
+                currentUserId={user?.id || null}
                 onClose={() => setChatOpen(false)}
               />
             )}

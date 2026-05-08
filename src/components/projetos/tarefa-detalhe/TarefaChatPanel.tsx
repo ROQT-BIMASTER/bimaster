@@ -13,6 +13,7 @@ interface Message {
   conteudo: string;
   user_id: string;
   created_at: string;
+  mentions?: string[];
   autor?: { nome: string; avatar_url: string | null } | null;
 }
 
@@ -40,11 +41,14 @@ interface TarefaChatPanelProps {
   messages: Message[];
   sendMessage: { mutate: (data: { conteudo: string; mentions: string[] }) => void };
   teamMembers: TeamMember[];
-  criadorId: string | null;
+  /** @deprecated mantido por compatibilidade — use `currentUserId` para alinhar a bolha. */
+  criadorId?: string | null;
+  currentUserId?: string | null;
   onClose: () => void;
 }
 
-export function TarefaChatPanel({ messages, sendMessage, teamMembers, criadorId, onClose }: TarefaChatPanelProps) {
+export function TarefaChatPanel({ messages, sendMessage, teamMembers, criadorId, currentUserId, onClose }: TarefaChatPanelProps) {
+  const meId = currentUserId ?? criadorId ?? null;
   const [chatValue, setChatValue] = useState("");
   const chatEndRef = useRef<HTMLDivElement>(null);
 
@@ -73,7 +77,7 @@ export function TarefaChatPanel({ messages, sendMessage, teamMembers, criadorId,
             <p className="text-xs text-muted-foreground text-center py-8">Nenhuma mensagem ainda.</p>
           )}
           {messages.map(m => {
-            const isMe = m.user_id === criadorId;
+            const isMe = !!meId && m.user_id === meId;
             return (
               <div key={m.id} className={cn("flex gap-1.5", isMe ? "flex-row-reverse" : "flex-row")}>
                 <Avatar className="h-5 w-5 flex-shrink-0">

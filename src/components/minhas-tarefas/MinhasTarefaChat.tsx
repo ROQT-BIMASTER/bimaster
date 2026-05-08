@@ -53,6 +53,7 @@ export function MinhasTarefaChat({ messages, sendMessage, teamMembers, currentUs
           )}
           {messages.map(m => {
             const isMe = m.user_id === currentUserId;
+            const mencionado = !!currentUserId && Array.isArray(m.mentions) && m.mentions.includes(currentUserId);
             return (
               <div key={m.id} className={cn("flex gap-1.5", isMe ? "flex-row-reverse" : "flex-row")}>
                 <Avatar className="h-5 w-5 flex-shrink-0 mt-0.5">
@@ -63,10 +64,12 @@ export function MinhasTarefaChat({ messages, sendMessage, teamMembers, currentUs
                 </Avatar>
                 <div className={cn(
                   "max-w-[85%] rounded-lg px-2.5 py-1.5 text-xs",
-                  isMe ? "bg-primary/20 text-foreground" : "bg-muted text-foreground"
+                  isMe ? "bg-primary/20 text-foreground" : "bg-muted text-foreground",
+                  mencionado && !isMe && "ring-1 ring-primary/60 bg-primary/10"
                 )}>
                   <p className="font-medium text-[10px] mb-0.5 text-muted-foreground">
                     {m.autor?.nome?.split(" ")[0]}
+                    {mencionado && !isMe && <span className="ml-1 text-primary">· você foi mencionado</span>}
                   </p>
                   <p className="whitespace-pre-wrap">{renderMentionText(m.conteudo)}</p>
                   <p className="text-[9px] text-muted-foreground mt-0.5">

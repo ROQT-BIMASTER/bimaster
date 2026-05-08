@@ -53,13 +53,16 @@ export function useProjetoChat(projetoId: string | null) {
   }, [projetoId, qc]);
 
   const sendMessage = useMutation({
-    mutationFn: async (conteudo: string) => {
+    mutationFn: async (input: string | { conteudo: string; mentions?: string[] }) => {
       if (!projetoId || !user?.id) throw new Error("Sem projeto/usuário");
+      const conteudo = typeof input === "string" ? input : input.conteudo;
+      const mentions = typeof input === "string" ? [] : (input.mentions || []);
       const { error } = await (supabase as any).from("projeto_chat_messages").insert({
         projeto_id: projetoId,
         user_id: user.id,
         conteudo,
         tipo: "mensagem",
+        mentions,
       });
       if (error) throw error;
     },

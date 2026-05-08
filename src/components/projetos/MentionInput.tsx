@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useCallback } from "react";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Textarea } from "@/components/ui/textarea";
@@ -34,21 +34,21 @@ export function MentionInput({
 }: MentionInputProps) {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [filteredUsers, setFilteredUsers] = useState<MentionUser[]>([]);
-  const [mentionQuery, setMentionQuery] = useState("");
   const [cursorPosition, setCursorPosition] = useState(0);
   const [selectedIndex, setSelectedIndex] = useState(0);
+  // Mapa de menções escolhidas explicitamente via dropdown — fonte de verdade.
+  // Evita o falso positivo de prefixo (ex.: "Isabella" matchando "Isabella Moraes")
+  // e o falso negativo de acento/case do String.includes.
+  const selectedMentionsRef = useRef<Map<string, string>>(new Map());
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  const extractMentionIds = useCallback((text: string): string[] => {
+  const buildMentionIds = useCallback((text: string): string[] => {
     const ids: string[] = [];
-    // Match @Name patterns and find corresponding user IDs
-    for (const user of users) {
-      if (text.includes(`@${user.nome}`)) {
-        ids.push(user.id);
-      }
-    }
+    selectedMentionsRef.current.forEach((nome, id) => {
+      if (text.includes(`@${nome}`)) ids.push(id);
+    });
     return [...new Set(ids)];
-  }, [users]);
+  }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const newValue = e.target.value;
@@ -56,17 +56,16 @@ export function MentionInput({
     onChange(newValue);
     setCursorPosition(pos);
 
-    // Check if we're in a mention context
     const textBeforeCursor = newValue.substring(0, pos);
     const atIndex = textBeforeCursor.lastIndexOf("@");
-    
+
     if (atIndex !== -1 && (atIndex === 0 || textBeforeCursor[atIndex - 1] === " " || textBeforeCursor[atIndex - 1] === "\n")) {
       const query = textBeforeCursor.substring(atIndex + 1);
       if (!query.includes(" ") || query.length < 20) {
-        setMentionQuery(query);
-        const filtered = users.filter(u =>
-          u.nome.toLowerCase().includes(query.toLowerCase())
-        ).slice(0, 5);
+        const q = query.toLowerCase();
+        const filtered = users
+          .filter(u => u.nome?.toLowerCase().includes(q))
+          .slice(0, 5);
         setFilteredUsers(filtered);
         setShowSuggestions(filtered.length > 0);
         setSelectedIndex(0);
@@ -82,6 +81,7 @@ export function MentionInput({
     const before = value.substring(0, atIndex);
     const after = value.substring(cursorPosition);
     const newValue = `${before}@${user.nome} ${after}`;
+    selectedMentionsRef.current.set(user.id, user.nome);
     onChange(newValue);
     setShowSuggestions(false);
     textareaRef.current?.focus();
@@ -97,9 +97,7 @@ export function MentionInput({
         setSelectedIndex(i => Math.max(i - 1, 0));
       } else if (e.key === "Enter" || e.key === "Tab") {
         e.preventDefault();
-        if (filteredUsers[selectedIndex]) {
-          insertMention(filteredUsers[selectedIndex]);
-        }
+        if (filteredUsers[selectedIndex]) insertMention(filteredUsers[selectedIndex]);
       } else if (e.key === "Escape") {
         setShowSuggestions(false);
       }
@@ -111,14 +109,14 @@ export function MentionInput({
 
   const handleSubmit = () => {
     if (!value.trim()) return;
-    const ids = extractMentionIds(value);
+    const ids = buildMentionIds(value);
     onSubmit(value.trim(), ids);
+    selectedMentionsRef.current.clear();
     onChange("");
   };
 
   return (
     <div className={cn("relative", className)}>
-      {/* Suggestions dropdown */}
       {showSuggestions && (
         <div className="absolute bottom-full left-0 right-0 mb-1 bg-popover border border-border rounded-lg shadow-lg z-50 overflow-hidden">
           {filteredUsers.map((user, i) => (

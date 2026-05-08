@@ -1,16 +1,17 @@
-import { useState, useRef, useEffect } from "react";
+import { useRef, useEffect, useState } from "react";
 import { useProjetoChat } from "@/hooks/useProjetoChat";
 import { useAuth } from "@/contexts/AuthContext";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Send, Sparkles, MessageCircle, Bot } from "lucide-react";
+import { Sparkles, MessageCircle, Bot } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import ReactMarkdown from "react-markdown";
+import { MentionInput } from "@/components/projetos/MentionInput";
+import { useProjetoMembros } from "@/hooks/useProjetoMembros";
 
 interface Props {
   projetoId: string;
@@ -19,15 +20,20 @@ interface Props {
 export function ProjetoChatTab({ projetoId }: Props) {
   const { messages, isLoading, sendMessage, gerarResumoHoje } = useProjetoChat(projetoId);
   const { user } = useAuth();
+  const { membros } = useProjetoMembros(projetoId);
   const [text, setText] = useState("");
   const endRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages.length]);
 
-  const handleSend = () => {
-    const t = text.trim();
-    if (!t) return;
-    sendMessage.mutate(t);
+  const mentionUsers = (membros || []).map((m) => ({
+    id: m.user_id,
+    nome: m.profile?.nome || m.profile?.email || "Usuário",
+    avatar_url: m.profile?.avatar_url || null,
+  }));
+
+  const handleSubmit = (conteudo: string, mentions: string[]) => {
+    sendMessage.mutate({ conteudo, mentions });
     setText("");
   };
 
@@ -105,18 +111,15 @@ export function ProjetoChatTab({ projetoId }: Props) {
         </div>
       </ScrollArea>
 
-      <div className="border-t p-3 flex gap-2">
-        <Textarea
+      <div className="border-t p-3">
+        <MentionInput
           value={text}
-          onChange={(e) => setText(e.target.value)}
-          onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
+          onChange={setText}
+          onSubmit={handleSubmit}
+          users={mentionUsers}
           placeholder="Mensagem... (Enter envia, Shift+Enter quebra linha)"
-          rows={2}
-          className="resize-none text-sm"
+          minRows={2}
         />
-        <Button onClick={handleSend} disabled={!text.trim() || sendMessage.isPending} size="icon">
-          <Send className="h-4 w-4" />
-        </Button>
       </div>
     </div>
   );

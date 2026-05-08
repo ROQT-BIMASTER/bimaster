@@ -25425,6 +25425,7 @@ export type Database = {
           documento_oficializado_id: string | null
           fase_processo: string | null
           id: string
+          mentions: string[]
           metadata: Json | null
           modulo_origem: string | null
           process_id: string
@@ -25441,6 +25442,7 @@ export type Database = {
           documento_oficializado_id?: string | null
           fase_processo?: string | null
           id?: string
+          mentions?: string[]
           metadata?: Json | null
           modulo_origem?: string | null
           process_id: string
@@ -25457,6 +25459,7 @@ export type Database = {
           documento_oficializado_id?: string | null
           fase_processo?: string | null
           id?: string
+          mentions?: string[]
           metadata?: Json | null
           modulo_origem?: string | null
           process_id?: string
@@ -29751,6 +29754,7 @@ export type Database = {
           conteudo: string
           created_at: string
           id: string
+          mentions: string[]
           metadata: Json
           projeto_id: string
           tipo: string
@@ -29760,6 +29764,7 @@ export type Database = {
           conteudo: string
           created_at?: string
           id?: string
+          mentions?: string[]
           metadata?: Json
           projeto_id: string
           tipo?: string
@@ -29769,6 +29774,7 @@ export type Database = {
           conteudo?: string
           created_at?: string
           id?: string
+          mentions?: string[]
           metadata?: Json
           projeto_id?: string
           tipo?: string

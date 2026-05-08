@@ -15,6 +15,8 @@ import {
   ShieldCheck, AlertTriangle
 } from "lucide-react";
 import { useProjetoAtividades, type ProjetoAtividade, type InboxFilter } from "@/hooks/useProjetoAtividades";
+import { useMencoesNotifications } from "@/hooks/useMencoesNotifications";
+import { MencoesList } from "@/components/projetos/central/MencoesList";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { useInboxScope } from "@/hooks/useInboxScope";
@@ -102,10 +104,18 @@ export function ProjetoInboxContent() {
   }), [filterProjetoIds, filterTipos, search]);
 
   const {
-    atividades, arquivadas, favoritas, mencoes, isLoading,
+    atividades, arquivadas, favoritas, mencoes: _mencoesLegacy, isLoading,
     naoLidas, hoje, projetos,
     arquivar, desarquivar, toggleFavorita, marcarLidas,
   } = useProjetoAtividades(filter);
+
+  // Menções reais vêm de `notifications` (gravadas pelos triggers de menção).
+  const {
+    mencoes,
+    isLoading: isLoadingMencoes,
+    marcarLida: marcarMencaoLida,
+    remover: removerMencao,
+  } = useMencoesNotifications();
 
   const { scope } = useInboxScope();
   // Para a visão híbrida (admin/gerente geral) não diferenciamos rótulos —
@@ -120,14 +130,14 @@ export function ProjetoInboxContent() {
     [atividades],
   );
 
-  const currentList = useMemo(() => {
+  const currentList = useMemo<ProjetoAtividade[]>(() => {
     switch (activeTab) {
-      case "mencoes": return mencoes;
       case "favoritas": return favoritas;
       case "arquivadas": return arquivadas;
+      case "mencoes": return []; // renderizado por <MencoesList /> abaixo
       default: return atividades;
     }
-  }, [activeTab, atividades, mencoes, favoritas, arquivadas]);
+  }, [activeTab, atividades, favoritas, arquivadas]);
 
   const handleSelect = useCallback((id: string) => {
     setSelectedIds(prev => {
@@ -399,36 +409,42 @@ export function ProjetoInboxContent() {
       )}
 
       <div className="border border-border/50 rounded-lg overflow-hidden bg-card">
-        <ProjetoInboxFeed
-          atividades={currentList}
-          isLoading={isLoading}
-          groupMode={groupMode}
-          selectedIds={selectedIds}
-          onSelect={handleSelect}
-          onOpenDetail={setDetailAtividade}
-          onMarcarLida={id => marcarLidas([id])}
-          onToggleFavorita={id => toggleFavorita(id)}
-          onArquivar={id => activeTab === "arquivadas" ? desarquivar([id]) : arquivar([id])}
-          showArquivarRestore={activeTab === "arquivadas"}
-          emptyTitle={
-            activeTab === "mencoes" ? "Nenhuma menção ainda" :
-            activeTab === "favoritas" ? "Nenhuma favorita" :
-            activeTab === "arquivadas" ? "Nenhuma arquivada" :
-            "Tudo em dia!"
-          }
-          emptyDesc={
-            activeTab === "mencoes" ? "Quando alguém mencionar você com @, a notificação aparecerá aqui" :
-            activeTab === "favoritas" ? "Marque notificações com ⭐ para acessá-las rapidamente" :
-            activeTab === "arquivadas" ? "Arquive notificações antigas para manter sua caixa organizada" :
-            "Nenhuma notificação pendente. Aproveite para focar no que importa!"
-          }
-          emptyIcon={
-            activeTab === "mencoes" ? AtSign :
-            activeTab === "favoritas" ? Star :
-            activeTab === "arquivadas" ? Archive :
-            Sparkles
-          }
-        />
+        {activeTab === "mencoes" ? (
+          <MencoesList
+            mencoes={mencoes}
+            isLoading={isLoadingMencoes}
+            onMarcarLida={(ids) => marcarMencaoLida.mutate(ids)}
+            onRemover={(ids) => removerMencao.mutate(ids)}
+          />
+        ) : (
+          <ProjetoInboxFeed
+            atividades={currentList}
+            isLoading={isLoading}
+            groupMode={groupMode}
+            selectedIds={selectedIds}
+            onSelect={handleSelect}
+            onOpenDetail={setDetailAtividade}
+            onMarcarLida={id => marcarLidas([id])}
+            onToggleFavorita={id => toggleFavorita(id)}
+            onArquivar={id => activeTab === "arquivadas" ? desarquivar([id]) : arquivar([id])}
+            showArquivarRestore={activeTab === "arquivadas"}
+            emptyTitle={
+              activeTab === "favoritas" ? "Nenhuma favorita" :
+              activeTab === "arquivadas" ? "Nenhuma arquivada" :
+              "Tudo em dia!"
+            }
+            emptyDesc={
+              activeTab === "favoritas" ? "Marque notificações com ⭐ para acessá-las rapidamente" :
+              activeTab === "arquivadas" ? "Arquive notificações antigas para manter sua caixa organizada" :
+              "Nenhuma notificação pendente. Aproveite para focar no que importa!"
+            }
+            emptyIcon={
+              activeTab === "favoritas" ? Star :
+              activeTab === "arquivadas" ? Archive :
+              Sparkles
+            }
+          />
+        )}
       </div>
 
       <ProjetoInboxDetail
