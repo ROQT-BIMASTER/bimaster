@@ -176,7 +176,11 @@ export function ChinaOPDrawer({ op, open, onOpenChange }: Props) {
 
           <TabsContent value="chat" className="mt-3">
             {op.submissao_id ? (
-              <ChinaChatPanel submissaoId={op.submissao_id} tipoRemetente="china" />
+              <ChinaChatPanel
+                submissaoId={op.submissao_id}
+                produtoNome={op.produto_nome || op.produto_codigo || ""}
+                tipoRemetente="china"
+              />
             ) : (
               <p className="text-xs text-muted-foreground py-6 text-center">
                 Vincule esta OP a uma submissão para usar o chat.
