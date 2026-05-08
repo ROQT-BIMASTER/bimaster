@@ -104,10 +104,18 @@ export function ProjetoInboxContent() {
   }), [filterProjetoIds, filterTipos, search]);
 
   const {
-    atividades, arquivadas, favoritas, mencoes, isLoading,
+    atividades, arquivadas, favoritas, mencoes: _mencoesLegacy, isLoading,
     naoLidas, hoje, projetos,
     arquivar, desarquivar, toggleFavorita, marcarLidas,
   } = useProjetoAtividades(filter);
+
+  // Menções reais vêm de `notifications` (gravadas pelos triggers de menção).
+  const {
+    mencoes,
+    isLoading: isLoadingMencoes,
+    marcarLida: marcarMencaoLida,
+    remover: removerMencao,
+  } = useMencoesNotifications();
 
   const { scope } = useInboxScope();
   // Para a visão híbrida (admin/gerente geral) não diferenciamos rótulos —
