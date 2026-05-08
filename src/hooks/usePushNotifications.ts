@@ -101,14 +101,17 @@ export const usePushNotifications = () => {
         },
         async (payload) => {
           const notification = payload.new as any;
-          
-          if (notification && notification.title) {
-            await showNotification(notification.title, {
-              body: notification.message,
-              tag: notification.id,
-              data: { url: notification.action_url }
-            });
-          }
+          const MENTION_TYPES = ["task_mention","chat_mention","process_mention"];
+          // Push é EXCLUSIVO de menções para evitar spam de notificações genéricas
+          if (!notification || !notification.title) return;
+          if (!MENTION_TYPES.includes(notification.type)) return;
+
+          await showNotification(notification.title, {
+            body: notification.message,
+            tag: notification.id,
+            requireInteraction: true,
+            data: { url: notification.action_url }
+          });
         }
       )
       .subscribe();
