@@ -170,6 +170,7 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
               <EmpresaSelector compact />
               <span className="hidden sm:inline-flex"><LanguageSelector /></span>
               <span className="hidden sm:inline-flex"><ImpersonationSelector /></span>
+              <MencoesBell />
               <NotificationBell />
               <img src={logoHuugs} alt="Huugs MakeUp" className="h-8 sm:h-10" />
             </div>
