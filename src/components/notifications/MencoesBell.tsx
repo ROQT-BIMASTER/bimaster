@@ -61,7 +61,7 @@ export const MencoesBell = () => {
             variant="ghost"
             size="sm"
             className="w-full text-xs"
-            onClick={() => navigate("/dashboard/projetos/central?tab=mencoes")}
+            onClick={() => navigate("/dashboard/projetos/central?tab=inbox&subtab=mencoes")}
           >
             Ver todas as menções
           </Button>
