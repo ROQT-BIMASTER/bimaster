@@ -305,14 +305,19 @@ export function ChinaDataValidationDialog({
     return groups;
   }, [cores]);
 
-  const mismatchedGroups = useMemo(() => {
-    if (!qtyPerDisplay) return [];
-    return Object.entries(groupSummary)
-      .filter(([_, qty]) => qty !== qtyPerDisplay)
-      .map(([grupo, qty]) => ({ grupo, qty }));
+  // Nova regra: a SOMA de todos os grupos deve fechar em qtyPerDisplay (1 caixa).
+  // Cada grupo pode ser uma fração da caixa (ex.: G1=216 + G2=216 = 432).
+  const groupBreakdown = useMemo(() => {
+    return Object.entries(groupSummary).map(([grupo, qty]) => ({
+      grupo,
+      qty,
+      pct: qtyPerDisplay > 0 ? (qty / qtyPerDisplay) * 100 : 0,
+    }));
   }, [groupSummary, qtyPerDisplay]);
 
-  const hasMismatch = mismatchedGroups.length > 0;
+  const totalDiff = qtyPerDisplay > 0 ? colorSum - qtyPerDisplay : 0;
+  const hasMismatch =
+    qtyPerDisplay > 0 && Object.keys(groupSummary).length > 0 && colorSum !== qtyPerDisplay;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
