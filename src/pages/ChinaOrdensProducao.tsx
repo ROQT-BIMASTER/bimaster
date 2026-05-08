@@ -45,6 +45,7 @@ export default function ChinaOrdensProducao() {
   const [tab, setTab] = useState<TabKey>("todas");
   const [search, setSearch] = useState("");
   const [novaOPOpen, setNovaOPOpen] = useState(false);
+  const [drawerOP, setDrawerOP] = useState<ChinaOPRow | null>(null);
   const [exporting, setExporting] = useState(false);
 
   const kpis = useMemo(() => {
