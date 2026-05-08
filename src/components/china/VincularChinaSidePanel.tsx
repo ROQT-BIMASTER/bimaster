@@ -80,6 +80,7 @@ export function VincularChinaSidePanel({
   const onChangeTab = (v: string) => setTabValue(v);
   const { data: documentos = [], isLoading: loadingDocs } = useDocumentosDaSubmissao(submissao.id);
   const { data: despachos = [] } = useDespachosPorSubmissao(submissao.id);
+  const chatUnread = useSubmissaoChatUnread(submissao.id);
 
   // Show brief loading state when switching submissions
   useEffect(() => {
