@@ -111,18 +111,15 @@ export function ProjetoChatTab({ projetoId }: Props) {
         </div>
       </ScrollArea>
 
-      <div className="border-t p-3 flex gap-2">
-        <Textarea
+      <div className="border-t p-3">
+        <MentionInput
           value={text}
-          onChange={(e) => setText(e.target.value)}
-          onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
+          onChange={setText}
+          onSubmit={handleSubmit}
+          users={mentionUsers}
           placeholder="Mensagem... (Enter envia, Shift+Enter quebra linha)"
-          rows={2}
-          className="resize-none text-sm"
+          minRows={2}
         />
-        <Button onClick={handleSend} disabled={!text.trim() || sendMessage.isPending} size="icon">
-          <Send className="h-4 w-4" />
-        </Button>
       </div>
     </div>
   );
