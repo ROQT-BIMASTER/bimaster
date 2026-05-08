@@ -264,6 +264,7 @@ export default function ChinaOrdensProducao() {
       </Tabs>
 
       <NovaOPChinaDialog open={novaOPOpen} onOpenChange={setNovaOPOpen} />
+      <ChinaOPDrawer op={drawerOP} open={!!drawerOP} onOpenChange={(v) => !v && setDrawerOP(null)} />
     </ChinaPageShell>
   );
 }
