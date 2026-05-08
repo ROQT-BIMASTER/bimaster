@@ -305,14 +305,19 @@ export function ChinaDataValidationDialog({
     return groups;
   }, [cores]);
 
-  const mismatchedGroups = useMemo(() => {
-    if (!qtyPerDisplay) return [];
-    return Object.entries(groupSummary)
-      .filter(([_, qty]) => qty !== qtyPerDisplay)
-      .map(([grupo, qty]) => ({ grupo, qty }));
+  // Nova regra: a SOMA de todos os grupos deve fechar em qtyPerDisplay (1 caixa).
+  // Cada grupo pode ser uma fração da caixa (ex.: G1=216 + G2=216 = 432).
+  const groupBreakdown = useMemo(() => {
+    return Object.entries(groupSummary).map(([grupo, qty]) => ({
+      grupo,
+      qty,
+      pct: qtyPerDisplay > 0 ? (qty / qtyPerDisplay) * 100 : 0,
+    }));
   }, [groupSummary, qtyPerDisplay]);
 
-  const hasMismatch = mismatchedGroups.length > 0;
+  const totalDiff = qtyPerDisplay > 0 ? colorSum - qtyPerDisplay : 0;
+  const hasMismatch =
+    qtyPerDisplay > 0 && Object.keys(groupSummary).length > 0 && colorSum !== qtyPerDisplay;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -594,24 +599,20 @@ export function ChinaDataValidationDialog({
                   </Table>
                 </div>
 
-                {/* Group summary — cada grupo = 1 caixa */}
+                {/* Group summary — grupos podem ser frações da caixa; soma deve fechar 1 caixa */}
                 <div className="flex flex-wrap gap-2">
-                  {Object.entries(groupSummary).map(([g, qty]) => {
-                    const ok = qtyPerDisplay > 0 && qty === qtyPerDisplay;
-                    const mismatch = qtyPerDisplay > 0 && qty !== qtyPerDisplay;
-                    return (
-                      <Badge
-                        key={g}
-                        variant={mismatch ? "destructive" : ok ? "default" : "secondary"}
-                        className="text-xs gap-1"
-                      >
-                        {g}: {qty.toLocaleString()} pcs
-                        {qtyPerDisplay > 0 && ` / ${qtyPerDisplay}`}
-                      </Badge>
-                    );
-                  })}
-                  <Badge variant="secondary" className="text-xs gap-1 font-bold">
+                  {groupBreakdown.map(({ grupo, qty, pct }) => (
+                    <Badge key={grupo} variant="secondary" className="text-xs gap-1">
+                      {grupo}: {qty.toLocaleString()} pcs
+                      {qtyPerDisplay > 0 && ` (${pct.toFixed(pct % 1 === 0 ? 0 : 1)}% da caixa)`}
+                    </Badge>
+                  ))}
+                  <Badge
+                    variant={hasMismatch ? "destructive" : qtyPerDisplay > 0 && colorSum === qtyPerDisplay ? "default" : "secondary"}
+                    className="text-xs gap-1 font-bold"
+                  >
                     Total: {colorSum.toLocaleString()} pcs
+                    {qtyPerDisplay > 0 && ` / ${qtyPerDisplay.toLocaleString()}`}
                   </Badge>
                 </div>
 
@@ -624,21 +625,20 @@ export function ChinaDataValidationDialog({
                     </div>
                     <ul className="text-muted-foreground space-y-0.5 pl-5 list-disc">
                       <li>
-                        Cada <strong>grupo (G1, G2…) = 1 caixa</strong> de{" "}
-                        <strong>{qtyPerDisplay.toLocaleString()} pcs</strong>.{" "}
-                        <span className="opacity-70">每个组 = 1 箱 = {qtyPerDisplay.toLocaleString()} 件</span>
+                        Os <strong>grupos (G1, G2…) podem ser frações de 1 caixa</strong>.
+                        Ex.: G1 = {Math.round(qtyPerDisplay / 2).toLocaleString()} + G2 ={" "}
+                        {Math.round(qtyPerDisplay / 2).toLocaleString()} ={" "}
+                        <strong>{qtyPerDisplay.toLocaleString()} pcs</strong> (1 caixa).{" "}
+                        <span className="opacity-70">组可以是箱的一部分</span>
                       </li>
                       <li>
-                        Os números por cor dentro do grupo são <strong>SKUs/cores</strong> que somados
-                        devem totalizar a QTY/Caixa <strong>({qtyPerDisplay.toLocaleString()})</strong>.
+                        A <strong>soma de todos os grupos</strong> deve fechar em{" "}
+                        <strong>{qtyPerDisplay.toLocaleString()} pcs</strong> (1 caixa).{" "}
+                        <span className="opacity-70">所有组的总和 = 1 箱 = {qtyPerDisplay.toLocaleString()} 件</span>
                       </li>
                       <li>
-                        <strong>
-                          Total geral = {Object.keys(groupSummary).length} grupo
-                          {Object.keys(groupSummary).length > 1 ? "s" : ""} × {qtyPerDisplay.toLocaleString()} ={" "}
-                          {(Object.keys(groupSummary).length * qtyPerDisplay).toLocaleString()} pcs
-                        </strong>
-                        . <span className="opacity-70">总数量 = 组数 × 每箱数量</span>
+                        Dentro de cada grupo, as <strong>cores/SKUs</strong> somam a quantidade do
+                        próprio grupo. <span className="opacity-70">每个组内的颜色/SKU相加 = 该组数量</span>
                       </li>
                     </ul>
                   </div>
@@ -649,25 +649,28 @@ export function ChinaDataValidationDialog({
                     <div className="flex items-center gap-2">
                       <AlertTriangle className="h-4 w-4 shrink-0" />
                       <span>
-                        {mismatchedGroups.length === 1
-                          ? `Grupo ${mismatchedGroups[0].grupo} não fecha em ${qtyPerDisplay.toLocaleString()} pcs (1 caixa).`
-                          : `${mismatchedGroups.length} grupos não fecham em ${qtyPerDisplay.toLocaleString()} pcs (1 caixa cada).`}
-                        {" "}组颜色总量与每箱数量不匹配。
+                        Os grupos não fecham em {qtyPerDisplay.toLocaleString()} pcs (1 caixa).{" "}
+                        各组总和与每箱数量不匹配。
                       </span>
                     </div>
                     <div className="text-xs text-destructive/80 pl-6 space-y-0.5">
-                      {mismatchedGroups.map(({ grupo, qty }) => {
+                      {groupBreakdown.map(({ grupo, qty, pct }) => {
                         const itens = cores.filter(c => c.grupo === grupo);
-                        const calc = itens.map(c => `${c.cor_nome || "?"}: ${(c.quantidade || 0).toLocaleString()}`).join(' + ');
-                        const diff = qty - qtyPerDisplay;
+                        const calc = itens
+                          .map(c => `${c.cor_nome || "?"}: ${(c.quantidade || 0).toLocaleString()}`)
+                          .join(' + ');
                         return (
                           <div key={grupo}>
-                            <strong>{grupo}</strong>: {calc} = {qty.toLocaleString()} pcs ·
-                            esperado <strong>{qtyPerDisplay.toLocaleString()}</strong> ·
-                            diferença <strong>{diff > 0 ? `+${diff}` : diff}</strong>
+                            <strong>{grupo}</strong>: {calc} = {qty.toLocaleString()} pcs
+                            {qtyPerDisplay > 0 && ` (${pct.toFixed(pct % 1 === 0 ? 0 : 1)}% da caixa)`}
                           </div>
                         );
                       })}
+                      <div className="pt-1 border-t border-destructive/20 mt-1">
+                        <strong>Total</strong>: {colorSum.toLocaleString()} pcs · esperado{" "}
+                        <strong>{qtyPerDisplay.toLocaleString()}</strong> · diferença{" "}
+                        <strong>{totalDiff > 0 ? `+${totalDiff}` : totalDiff}</strong>
+                      </div>
                     </div>
                   </div>
                 )}
