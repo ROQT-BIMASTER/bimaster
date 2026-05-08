@@ -59,7 +59,7 @@ interface Props {
   submissaoId: string;
   produtoNome: string;
   tipoRemetente: "china" | "brasil";
-  referenciasDisponiveis: RefOption[];
+  referenciasDisponiveis?: RefOption[];
 }
 
 const IA_USER_ID = "00000000-0000-0000-0000-000000000001"; // sentinela para mensagens IA
@@ -98,7 +98,7 @@ const REF_ICONS: Record<string, React.ReactNode> = {
   documento: <FileText className="h-3 w-3" />,
 };
 
-export function ChinaChatPanel({ submissaoId, produtoNome, tipoRemetente, referenciasDisponiveis }: Props) {
+export function ChinaChatPanel({ submissaoId, produtoNome, tipoRemetente, referenciasDisponiveis = [] }: Props) {
   const { language: leitorIdioma, setLanguage } = useUserLanguage();
   const [mensagens, setMensagens] = useState<Mensagem[]>([]);
   const [translatingIds, setTranslatingIds] = useState<Set<string>>(new Set());

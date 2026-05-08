@@ -1,5 +1,6 @@
-import { useState } from "react";
-import { ExternalLink, CheckCircle2, AlertTriangle, FileText, Star, MailOpen, Mail, ArrowLeft, Download, Clock } from "lucide-react";
+import { useState, useEffect } from "react";
+import { ExternalLink, CheckCircle2, AlertTriangle, FileText, Star, MailOpen, Mail, ArrowLeft, Download, Clock, MessageSquare, ChevronDown, ChevronRight } from "lucide-react";
+import { ChinaChatPanel } from "@/components/china/ChinaChatPanel";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
@@ -52,6 +53,12 @@ export function MailboxReadingPane({
     navigate(url, { state });
   };
   const [motivo, setMotivo] = useState("");
+  const [chatOpen, setChatOpen] = useState<boolean>(() => {
+    try { return localStorage.getItem("china-inbox-chat-open") !== "0"; } catch { return true; }
+  });
+  useEffect(() => {
+    try { localStorage.setItem("china-inbox-chat-open", chatOpen ? "1" : "0"); } catch { /* ignore */ }
+  }, [chatOpen]);
   const unsnooze = useUnsnoozeSubmissao();
 
   const handleExportPdf = async () => {
@@ -267,6 +274,29 @@ export function MailboxReadingPane({
             </Button>
           </section>
         )}
+
+        {/* Conversa / 对话 — chat China-Brasil contextualizado nesta submissão */}
+        <section className="mt-6">
+          <button
+            type="button"
+            onClick={() => setChatOpen((v) => !v)}
+            className="flex w-full items-center gap-2 rounded-md border border-border bg-card/40 px-3 py-2 text-xs font-semibold hover:bg-card/60 transition-colors"
+          >
+            {chatOpen ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
+            <MessageSquare className="h-3.5 w-3.5 text-primary" />
+            <span>Conversa / 对话</span>
+          </button>
+          {chatOpen && (
+            <div className="mt-2 h-[480px] overflow-hidden rounded-md border border-border">
+              <ChinaChatPanel
+                key={item.submissao_id}
+                submissaoId={item.submissao_id}
+                produtoNome={item.produto_nome}
+                tipoRemetente={isBrasilUser ? "brasil" : "china"}
+              />
+            </div>
+          )}
+        </section>
       </div>
     </div>
   );

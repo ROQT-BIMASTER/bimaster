@@ -13,12 +13,14 @@ import {
 } from "lucide-react";
 import { useDocumentosDaSubmissao, useCoresDaSubmissao } from "@/hooks/useChinaDocumentoVinculos";
 import { useDespachosPorSubmissao } from "@/hooks/useDespachoDocumentos";
+import { useSubmissaoChatUnread } from "@/hooks/useSubmissaoChatUnread";
 import { CHINA_DOCUMENT_TYPES, DOCUMENT_CATEGORIES } from "@/lib/china-document-types";
 import { ProcessOrchestrationPanel } from "@/components/processo/ProcessOrchestrationPanel";
 import { DespachosPanel } from "@/components/processo/DespachosPanel";
 import { DispatchHistoryPanel } from "@/components/china/vincular/DispatchHistoryPanel";
 import { MesaDespachoTab } from "@/components/china/vincular/MesaDespachoTab";
 import { CaixaAlertasChinaPanel } from "@/components/china/vincular/CaixaAlertasChinaPanel";
+import { ChinaChatPanel } from "@/components/china/ChinaChatPanel";
 import { cn } from "@/lib/utils";
 import type { SubmissaoRow } from "./VincularChinaTable";
 import { VincularChinaVincularTab } from "./VincularChinaVincularTab";
@@ -78,6 +80,7 @@ export function VincularChinaSidePanel({
   const onChangeTab = (v: string) => setTabValue(v);
   const { data: documentos = [], isLoading: loadingDocs } = useDocumentosDaSubmissao(submissao.id);
   const { data: despachos = [] } = useDespachosPorSubmissao(submissao.id);
+  const chatUnread = useSubmissaoChatUnread(submissao.id);
 
   // Show brief loading state when switching submissions
   useEffect(() => {
@@ -194,6 +197,10 @@ export function VincularChinaSidePanel({
           <TabsTrigger value="documentos" className="text-xs h-7 gap-1">
             <FileText className="h-3 w-3" />Docs
             {totalPendentes > 0 && <Badge variant="destructive" className="text-[8px] h-3.5 px-1 ml-0.5">{totalPendentes}</Badge>}
+          </TabsTrigger>
+          <TabsTrigger value="chat" className="text-xs h-7 gap-1">
+            <MessageSquare className="h-3 w-3" />Chat
+            {chatUnread > 0 && <Badge className="text-[8px] h-3.5 px-1 ml-0.5 bg-primary text-primary-foreground">{chatUnread}</Badge>}
           </TabsTrigger>
           {isLinkedToProject && (
             <TabsTrigger value="processo" className="text-xs h-7 gap-1">
@@ -350,6 +357,16 @@ export function VincularChinaSidePanel({
                 ))}
               </div>
             )}
+          </TabsContent>
+
+          {/* Chat Tab */}
+          <TabsContent value="chat" className="m-0 p-0 h-[calc(100vh-220px)] min-h-[400px]">
+            <ChinaChatPanel
+              key={submissao.id}
+              submissaoId={submissao.id}
+              produtoNome={submissao.produto_nome}
+              tipoRemetente="brasil"
+            />
           </TabsContent>
 
           {/* Processo Tab */}
