@@ -179,6 +179,7 @@ export function MailboxList({
                 <Star className="h-3.5 w-3.5" fill={item.is_flagged ? "currentColor" : "none"} />
               </button>
               <div className="min-w-0 flex-1">
+                <InboxDirectionBadge info={dir} size="sm" className="mb-0.5" />
                 <div className="flex items-baseline gap-2">
                   <span
                     className={cn(
