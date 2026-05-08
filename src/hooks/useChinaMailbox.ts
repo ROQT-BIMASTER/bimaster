@@ -40,6 +40,8 @@ export interface MailboxItem {
   is_flagged: boolean;
   is_deleted: boolean;
   snooze_until: string | null;
+  /** Houve pelo menos uma rejeição anterior nesta submissão (China teve que corrigir). */
+  had_previous_rejection: boolean;
 }
 
 export interface MailboxCounts {
