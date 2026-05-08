@@ -178,6 +178,12 @@ export function useChinaMailbox(folder: MailboxFolder): UseChinaMailboxResult {
     const now = Date.now();
     const subsById = new Map(subs.map((s) => [s.id, s]));
 
+    // Submissões que já tiveram pelo menos uma rejeição em qualquer doc.
+    const rejectedSubs = new Set<string>();
+    for (const d of docs) {
+      if (d.status === "rejeitado") rejectedSubs.add(d.submissao_id);
+    }
+
     // Construímos um item por documento; submissões sem doc viram um item "submissão".
     const allItems: MailboxItem[] = [];
     const seenSubs = new Set<string>();
