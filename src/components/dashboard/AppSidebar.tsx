@@ -5,6 +5,7 @@ import {
   ShieldCheck, HeartPulse, Eye, GitCompare, Database, Footprints, MessageCircle, Share2, Wand2, CalendarDays, Workflow, Ship, AlertOctagon
 } from "lucide-react";
 import { ThemeSelectorPopover } from "@/components/theme/ThemeSelectorPopover";
+import { LanguagePreferencePopover } from "@/components/profile/LanguagePreferencePopover";
 import { NavLink, useLocation } from "react-router-dom";
 import { MODULE_LOADERS } from "@/hooks/useModulePreloader";
 import { supabase } from "@/integrations/supabase/client";
