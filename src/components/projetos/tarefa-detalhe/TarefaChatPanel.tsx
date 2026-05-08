@@ -13,6 +13,7 @@ interface Message {
   conteudo: string;
   user_id: string;
   created_at: string;
+  mentions?: string[];
   autor?: { nome: string; avatar_url: string | null } | null;
 }
 
