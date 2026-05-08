@@ -4,6 +4,12 @@ import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import type { MailboxItem, MailboxFolder } from "@/hooks/useChinaMailbox";
+import { resolveDirection } from "@/lib/china/inboxDirection";
+import { InboxDirectionBadge } from "./InboxDirectionBadge";
+import { useChinaUserContext } from "@/hooks/useChinaUserContext";
+
+export type ActionFilter = "mine" | "theirs" | "all";
+
 
 interface Props {
   items: MailboxItem[];
@@ -15,6 +21,8 @@ interface Props {
   onToggleAllChecks: () => void;
   onToggleStar: (item: MailboxItem) => void;
   search: string;
+  actionFilter?: ActionFilter;
+  onActionFilterChange?: (f: ActionFilter) => void;
 }
 
 function statusBadge(item: MailboxItem) {
@@ -51,20 +59,70 @@ export function MailboxList({
   onToggleAllChecks,
   onToggleStar,
   search,
+  actionFilter = "all",
+  onActionFilterChange,
 }: Props) {
+  const { isBrasilUser, isChinaUser } = useChinaUserContext();
+  const viewer = { isBrasilUser, isChinaUser };
+
+  // Anota cada item com sua direção (uma vez)
+  const itemsWithDir = useMemo(
+    () => items.map((i) => ({ item: i, dir: resolveDirection(i, viewer) })),
+    [items, isBrasilUser, isChinaUser],
+  );
+
+  // Filtro por ação requerida (só aplicado quando estamos no inbox)
+  const filteredByAction = useMemo(() => {
+    if (folder !== "inbox" || actionFilter === "all") return itemsWithDir;
+    if (actionFilter === "mine") return itemsWithDir.filter((x) => x.dir.ballOnViewer);
+    return itemsWithDir.filter((x) => !x.dir.ballOnViewer);
+  }, [itemsWithDir, actionFilter, folder]);
+
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return items;
-    return items.filter((i) => {
+    if (!q) return filteredByAction;
+    return filteredByAction.filter(({ item: i }) => {
       const blob = `${i.produto_codigo} ${i.produto_nome} ${i.numero_ordem ?? ""} ${i.nome_arquivo ?? ""} ${i.tipo_documento ?? ""} ${i.observacoes_brasil ?? ""} ${i.observacoes_china ?? ""}`.toLowerCase();
       return blob.includes(q);
     });
-  }, [items, search]);
+  }, [filteredByAction, search]);
 
-  const allChecked = filtered.length > 0 && filtered.every((i) => selectedIds.has(i.submissao_id));
+  const mineCount = useMemo(
+    () => itemsWithDir.filter((x) => x.dir.ballOnViewer).length,
+    [itemsWithDir],
+  );
+  const theirsCount = itemsWithDir.length - mineCount;
+
+  const allChecked =
+    filtered.length > 0 && filtered.every(({ item: i }) => selectedIds.has(i.submissao_id));
 
   return (
     <div className="flex h-full flex-col">
+      {folder === "inbox" && onActionFilterChange && (
+        <div className="flex items-center gap-1 border-b border-border bg-card/40 px-2 py-1">
+          {([
+            { k: "mine" as const, label: "Aguarda você", labelCn: "等待您", count: mineCount },
+            { k: "theirs" as const, label: "Outro lado", labelCn: "对方", count: theirsCount },
+            { k: "all" as const, label: "Tudo", labelCn: "全部", count: itemsWithDir.length },
+          ]).map((c) => (
+            <button
+              key={c.k}
+              type="button"
+              onClick={() => onActionFilterChange(c.k)}
+              className={cn(
+                "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10.5px] transition-colors",
+                actionFilter === c.k
+                  ? "bg-primary/20 text-primary border border-primary/40"
+                  : "text-muted-foreground hover:bg-muted/40 border border-transparent",
+              )}
+              title={c.labelCn}
+            >
+              {c.label}
+              <span className="text-[9px] opacity-70">{c.count}</span>
+            </button>
+          ))}
+        </div>
+      )}
       <div className="flex items-center gap-2 border-b border-border bg-card/30 px-3 py-1.5">
         <Checkbox
           checked={allChecked}
@@ -81,7 +139,7 @@ export function MailboxList({
             Nenhum item nesta pasta / 此文件夹中没有项目
           </li>
         )}
-        {filtered.map((item) => {
+        {filtered.map(({ item, dir }) => {
           const id = item.documento_id ?? item.submissao_id;
           const checked = selectedIds.has(item.submissao_id);
           const active = selectedId === id;
@@ -121,6 +179,7 @@ export function MailboxList({
                 <Star className="h-3.5 w-3.5" fill={item.is_flagged ? "currentColor" : "none"} />
               </button>
               <div className="min-w-0 flex-1">
+                <InboxDirectionBadge info={dir} size="sm" className="mb-0.5" />
                 <div className="flex items-baseline gap-2">
                   <span
                     className={cn(

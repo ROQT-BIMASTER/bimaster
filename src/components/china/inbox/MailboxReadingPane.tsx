@@ -14,6 +14,8 @@ import { exportSubmissaoPdf } from "@/lib/china/exportSubmissaoPdf";
 import { useUnsnoozeSubmissao } from "@/hooks/useChinaInboxSnooze";
 import { toast } from "sonner";
 import type { MailboxItem } from "@/hooks/useChinaMailbox";
+import { resolveDirection } from "@/lib/china/inboxDirection";
+import { InboxDirectionBand } from "./InboxDirectionBadge";
 
 interface Props {
   item: MailboxItem | null;
@@ -147,6 +149,10 @@ export function MailboxReadingPane({
       )}
 
       <div className="flex-1 overflow-y-auto p-5">
+        <InboxDirectionBand
+          info={resolveDirection(item, { isBrasilUser, isChinaUser })}
+          className="mb-4"
+        />
         <header className="space-y-1">
           <div className="flex items-center gap-2">
             <h2 className="text-lg font-semibold">

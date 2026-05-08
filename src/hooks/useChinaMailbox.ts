@@ -40,6 +40,8 @@ export interface MailboxItem {
   is_flagged: boolean;
   is_deleted: boolean;
   snooze_until: string | null;
+  /** Houve pelo menos uma rejeição anterior nesta submissão (China teve que corrigir). */
+  had_previous_rejection: boolean;
 }
 
 export interface MailboxCounts {
@@ -176,6 +178,12 @@ export function useChinaMailbox(folder: MailboxFolder): UseChinaMailboxResult {
     const now = Date.now();
     const subsById = new Map(subs.map((s) => [s.id, s]));
 
+    // Submissões que já tiveram pelo menos uma rejeição em qualquer doc.
+    const rejectedSubs = new Set<string>();
+    for (const d of docs) {
+      if (d.status === "rejeitado") rejectedSubs.add(d.submissao_id);
+    }
+
     // Construímos um item por documento; submissões sem doc viram um item "submissão".
     const allItems: MailboxItem[] = [];
     const seenSubs = new Set<string>();
@@ -212,6 +220,7 @@ export function useChinaMailbox(folder: MailboxFolder): UseChinaMailboxResult {
         is_flagged: flagged.has(sub.id),
         is_deleted: !!sub.deleted_at,
         snooze_until: snoozedActive(sub.id),
+        had_previous_rejection: rejectedSubs.has(sub.id) && d.status !== "rejeitado",
       });
     }
 
@@ -240,6 +249,7 @@ export function useChinaMailbox(folder: MailboxFolder): UseChinaMailboxResult {
         is_flagged: flagged.has(sub.id),
         is_deleted: !!sub.deleted_at,
         snooze_until: snoozedActive(sub.id),
+        had_previous_rejection: false,
       });
     }
 
