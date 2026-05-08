@@ -20,13 +20,13 @@ interface Props {
 export function ProjetoChatTab({ projetoId }: Props) {
   const { messages, isLoading, sendMessage, gerarResumoHoje } = useProjetoChat(projetoId);
   const { user } = useAuth();
-  const { data: membros = [] } = useProjetoMembros(projetoId);
+  const { membros } = useProjetoMembros(projetoId);
   const [text, setText] = useState("");
   const endRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages.length]);
 
-  const mentionUsers = (membros as any[]).map((m) => ({
+  const mentionUsers = (membros || []).map((m) => ({
     id: m.user_id,
     nome: m.profile?.nome || m.profile?.email || "Usuário",
     avatar_url: m.profile?.avatar_url || null,
