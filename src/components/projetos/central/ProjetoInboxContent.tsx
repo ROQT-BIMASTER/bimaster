@@ -15,6 +15,8 @@ import {
   ShieldCheck, AlertTriangle
 } from "lucide-react";
 import { useProjetoAtividades, type ProjetoAtividade, type InboxFilter } from "@/hooks/useProjetoAtividades";
+import { useMencoesNotifications } from "@/hooks/useMencoesNotifications";
+import { MencoesList } from "@/components/projetos/central/MencoesList";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { useInboxScope } from "@/hooks/useInboxScope";
