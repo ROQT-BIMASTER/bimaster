@@ -4,6 +4,12 @@ import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import type { MailboxItem, MailboxFolder } from "@/hooks/useChinaMailbox";
+import { resolveDirection } from "@/lib/china/inboxDirection";
+import { InboxDirectionBadge } from "./InboxDirectionBadge";
+import { useChinaUserContext } from "@/hooks/useChinaUserContext";
+
+export type ActionFilter = "mine" | "theirs" | "all";
+
 
 interface Props {
   items: MailboxItem[];
