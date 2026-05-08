@@ -21,6 +21,8 @@ interface Props {
   onToggleAllChecks: () => void;
   onToggleStar: (item: MailboxItem) => void;
   search: string;
+  actionFilter?: ActionFilter;
+  onActionFilterChange?: (f: ActionFilter) => void;
 }
 
 function statusBadge(item: MailboxItem) {
