@@ -26,7 +26,7 @@ export function useSubmissaoChatUnread(submissaoId: string | undefined): number 
         .select("id, usuario_id, lida_por")
         .eq("submissao_id", submissaoId);
       if (!alive) return;
-      const rows = (data || []) as Array<{ usuario_id: string | null; lida_por: string[] | null }>;
+      const rows = ((data || []) as unknown) as Array<{ usuario_id: string | null; lida_por: string[] | null }>;
       const n = rows.filter(
         (m) => m.usuario_id !== uid && !((m.lida_por || []).includes(uid as string)),
       ).length;
