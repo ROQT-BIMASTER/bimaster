@@ -320,6 +320,8 @@ export default function ChinaCaixaEntrada() {
                   onToggleAllChecks={onToggleAllChecks}
                   onToggleStar={handleToggleStar}
                   search={search}
+                  actionFilter={actionFilter}
+                  onActionFilterChange={setActionFilter}
                 />
               )}
             </ResizablePanel>
