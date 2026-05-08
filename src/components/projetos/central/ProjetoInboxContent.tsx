@@ -17,6 +17,7 @@ import {
 import { useProjetoAtividades, type ProjetoAtividade, type InboxFilter } from "@/hooks/useProjetoAtividades";
 import { useMencoesNotifications } from "@/hooks/useMencoesNotifications";
 import { MencoesList } from "@/components/projetos/central/MencoesList";
+import { EnablePushBanner } from "@/components/notifications/EnablePushBanner";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { useInboxScope } from "@/hooks/useInboxScope";
@@ -188,6 +189,7 @@ export function ProjetoInboxContent() {
 
   return (
     <div className="space-y-5">
+      <EnablePushBanner />
       <div className="flex items-center justify-between gap-3">
         <div className={cn(
           "inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium border",

@@ -4,6 +4,9 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "./AppSidebar";
 import logoHuugs from "@/assets/logo-huugs.jpg";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
+import { MencoesBell } from "@/components/notifications/MencoesBell";
+import { useMencoesNotifications } from "@/hooks/useMencoesNotifications";
+import { useDocumentTitleAlert } from "@/hooks/useDocumentTitleAlert";
 import { offlineManager } from "@/lib/utils/offline-manager";
 import { useSyncOfflineData } from "@/hooks/useSyncOfflineData";
 import { WifiOff, Wifi, RefreshCw } from "lucide-react";
@@ -45,6 +48,12 @@ function InboxKeyboardShortcut() {
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
   }, [toggleDrawer]);
+  return null;
+}
+
+function MencoesTitleAlert() {
+  const { naoLidas } = useMencoesNotifications();
+  useDocumentTitleAlert(naoLidas);
   return null;
 }
 
@@ -167,10 +176,12 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
               <EmpresaSelector compact />
               <span className="hidden sm:inline-flex"><LanguageSelector /></span>
               <span className="hidden sm:inline-flex"><ImpersonationSelector /></span>
+              <MencoesBell />
               <NotificationBell />
               <img src={logoHuugs} alt="Huugs MakeUp" className="h-8 sm:h-10" />
             </div>
           </header>
+          <MencoesTitleAlert />
           <CommandPalette open={cmdOpen} onOpenChange={setCmdOpen} />
           {connectionQuality === 'offline' && (
             <Alert className="m-4 border-destructive bg-destructive/10">

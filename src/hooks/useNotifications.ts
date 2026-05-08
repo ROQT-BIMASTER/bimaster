@@ -63,8 +63,9 @@ export const useNotifications = () => {
           },
           (payload) => {
             const newNotif = payload.new as any;
-            // Show toast for new notification
-            if (newNotif?.title) {
+            const isMention = newNotif?.type && ["task_mention","chat_mention","process_mention"].includes(newNotif.type);
+            // Toast/som de menção é tratado por useMencoesNotifications — evita duplicata
+            if (newNotif?.title && !isMention) {
               toast(newNotif.title, {
                 description: newNotif.message?.substring(0, 100),
                 action: newNotif.action_url ? {
