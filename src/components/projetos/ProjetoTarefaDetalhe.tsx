@@ -1228,7 +1228,7 @@ export function ProjetoTarefaDetalhe({
                 messages={messages}
                 sendMessage={sendMessage}
                 teamMembers={teamMembers}
-                criadorId={(tarefa as any).criador_id || null}
+                currentUserId={user?.id || null}
                 onClose={() => setChatOpen(false)}
               />
             )}
