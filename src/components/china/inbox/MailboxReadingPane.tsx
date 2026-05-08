@@ -14,6 +14,8 @@ import { exportSubmissaoPdf } from "@/lib/china/exportSubmissaoPdf";
 import { useUnsnoozeSubmissao } from "@/hooks/useChinaInboxSnooze";
 import { toast } from "sonner";
 import type { MailboxItem } from "@/hooks/useChinaMailbox";
+import { resolveDirection } from "@/lib/china/inboxDirection";
+import { InboxDirectionBand } from "./InboxDirectionBadge";
 
 interface Props {
   item: MailboxItem | null;
