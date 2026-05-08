@@ -18,6 +18,7 @@ import { ChinaPageHeader } from "@/components/china/ChinaPageHeader";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ManualFabricaDrawer } from "@/components/fabrica/ManualFabricaDrawer";
 import { NovaOPChinaDialog } from "@/components/china/op/NovaOPChinaDialog";
+import { ChinaOPDrawer } from "@/components/china/op/ChinaOPDrawer";
 import { useChinaOrdensProducao, type ChinaOPRow } from "@/hooks/useChinaOrdensProducao";
 import { getOPStatusInfo } from "@/lib/china/opStatus";
 import {
