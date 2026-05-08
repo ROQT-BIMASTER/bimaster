@@ -149,6 +149,11 @@ export function MailboxReadingPane({
       )}
 
       <div className="flex-1 overflow-y-auto p-5">
+      <div className="flex-1 overflow-y-auto p-5">
+        <InboxDirectionBand
+          info={resolveDirection(item, { isBrasilUser, isChinaUser })}
+          className="mb-4"
+        />
         <header className="space-y-1">
           <div className="flex items-center gap-2">
             <h2 className="text-lg font-semibold">
