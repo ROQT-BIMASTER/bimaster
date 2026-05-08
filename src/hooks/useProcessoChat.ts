@@ -79,6 +79,7 @@ export function useProcessoChat(processId: string | null) {
       metadata?: Record<string, any>;
       visibilidade?: string;
       destinatarios_ids?: string[];
+      mentions?: string[];
     }) => {
       if (!processId || !user?.id) throw new Error("Sem processo ou usuário");
       const nome = await getUserNome();
@@ -96,6 +97,7 @@ export function useProcessoChat(processId: string | null) {
           metadata: input.metadata || {},
           visibilidade: input.visibilidade || "publica",
           destinatarios_ids: input.destinatarios_ids || [],
+          mentions: input.mentions || [],
         }) as any);
       if (error) throw error;
     },
