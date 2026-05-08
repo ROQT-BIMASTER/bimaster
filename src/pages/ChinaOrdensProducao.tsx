@@ -218,7 +218,7 @@ export default function ChinaOrdensProducao() {
                         <tr
                           key={r.id}
                           className={`border-t border-border hover:bg-accent/40 cursor-pointer border-l-[3px] ${info.bar}`}
-                          onClick={() => navigate(`/dashboard/fabrica/ordens-producao?op=${r.id}`)}
+                          onClick={() => setDrawerOP(r)}
                         >
                           <Td className="font-mono font-semibold">{r.numero}</Td>
                           <Td className="font-mono">{r.submissao_numero || "—"}</Td>
