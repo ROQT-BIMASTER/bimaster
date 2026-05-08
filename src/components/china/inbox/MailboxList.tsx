@@ -139,7 +139,7 @@ export function MailboxList({
             Nenhum item nesta pasta / 此文件夹中没有项目
           </li>
         )}
-        {filtered.map((item) => {
+        {filtered.map(({ item, dir }) => {
           const id = item.documento_id ?? item.submissao_id;
           const checked = selectedIds.has(item.submissao_id);
           const active = selectedId === id;
