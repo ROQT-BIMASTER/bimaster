@@ -438,7 +438,7 @@ export function ChinaChecklistFocusMode({
           tipo_key: tipoKey,
           label_pt: addItemLabelPt.trim(),
           label_cn: addItemLabelCn.trim(),
-          accept: "image/*,.pdf",
+          accept: null,
           multiple: true,
           created_by: user?.id,
         }) as any);
