@@ -126,7 +126,6 @@ export function ChecklistEmbalagensTable({
       <input
         ref={fileInputRef}
         type="file"
-        accept="image/*"
         className="hidden"
         onChange={(e) => {
           handleFileSelected(e.target.files?.[0]);

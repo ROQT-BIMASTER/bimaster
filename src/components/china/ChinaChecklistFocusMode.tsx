@@ -288,6 +288,17 @@ export function ChinaChecklistFocusMode({
         .update({ status: "pendente" } as any)
         .in("id", Array.from(selected));
       if (error) throw error;
+      // Promove a submissão (vista no painel da China) para "enviado_brasil"
+      // para que apareça imediatamente em Vincular China (Mesa do Brasil).
+      // 将提交单状态更新为 enviado_brasil，以便立即出现在“关联中国”面板
+      const { error: subErr } = await supabase
+        .from("china_submissoes" as any)
+        .update({ status: "enviado_brasil", data_envio: new Date().toISOString() } as any)
+        .eq("id", submissaoId);
+      if (subErr) {
+        // Não bloqueia o sucesso parcial — apenas registra
+        console.error("[ChinaChecklistFocusMode] falha ao promover submissão", subErr);
+      }
       toast.success(`${selected.size} documento(s) enviado(s) ao Brasil! ${selected.size}份文件已发送至巴西！`);
       setSelected(new Set());
       onRefresh();
@@ -438,7 +449,7 @@ export function ChinaChecklistFocusMode({
           tipo_key: tipoKey,
           label_pt: addItemLabelPt.trim(),
           label_cn: addItemLabelCn.trim(),
-          accept: "image/*,.pdf",
+          accept: null,
           multiple: true,
           created_by: user?.id,
         }) as any);

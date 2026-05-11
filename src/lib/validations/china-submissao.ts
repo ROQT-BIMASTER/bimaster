@@ -1,27 +1,31 @@
 import { z } from "zod";
 
 /**
- * Linha do Produto — campo obrigatório que identifica a categoria
+ * Linha do Produto — campo opcional que identifica a categoria
  * do produto (ex.: Lip, Eye, Face, Skin Care).
  *
- * Regras:
- *  - Não vazio (após trim).
- *  - Tamanho 1–60 caracteres.
+ * Regras (apenas quando preenchido):
+ *  - Tamanho até 60 caracteres.
  *  - Apenas letras (Unicode, com acentos), números, espaço, hífen, barra `/`
  *    e vírgula. Bloqueia símbolos arbitrários (`!@#$%`, etc.).
+ *
+ * Vazio/branco é aceito e tratado como "não informado".
  */
 export const linhaProdutoSchema = z
-  .string({ required_error: "Informe a Linha do Produto." })
+  .string()
   .trim()
-  .min(1, "Informe a Linha do Produto.")
   .max(60, "Linha do Produto deve ter até 60 caracteres.")
   .regex(
-    /^[\p{L}\p{N}\s\-\/,]+$/u,
+    /^[\p{L}\p{N}\s\-\/,]*$/u,
     "Use apenas letras, números, espaço, hífen, barra ou vírgula.",
-  );
+  )
+  .optional()
+  .nullable();
 
 export function validateLinhaProduto(value: string | undefined | null): string | null {
-  const result = linhaProdutoSchema.safeParse(value ?? "");
+  // Vazio é válido (campo não obrigatório)
+  if (value == null || value.trim() === "") return null;
+  const result = linhaProdutoSchema.safeParse(value);
   if (result.success) return null;
   return result.error.issues[0]?.message ?? "Linha do Produto inválida.";
 }

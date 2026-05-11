@@ -967,8 +967,8 @@ export default function ChinaNovaSubmissao() {
                     </div>
                   </div>
                   <div>
-                    <Label className="text-sm">
-                      Linha do Produto 产品线 <span className="text-destructive">*</span>
+                    <Label className="text-sm text-muted-foreground">
+                      Linha do Produto 产品线 <span className="text-[10px]">(opcional)</span>
                     </Label>
                     <Input
                       value={manualData.linha_produto}
