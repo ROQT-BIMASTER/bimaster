@@ -238,11 +238,12 @@ export const PermissionsProvider = ({ children }: { children: ReactNode }) => {
     fetchPermissions();
 
     // Listener para mudanças de autenticação
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, newSession) => {
       if (!isMountedRef.current) return;
-      
-      if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
-        // SECURITY: Reset state immediately to prevent permission leakage between users
+
+      if (event === "SIGNED_IN") {
+        // SIGNED_IN pode significar troca de usuário — reset agressivo para evitar
+        // leakage de permissões entre contas. Mostra loader até revalidar.
         globalPermissionsCache = null;
         try { localStorage.removeItem(LOCAL_STORAGE_KEY); } catch {}
         setModules([]);
@@ -251,6 +252,36 @@ export const PermissionsProvider = ({ children }: { children: ReactNode }) => {
         setIsAdmin(false);
         setLoading(true);
         fetchPermissions(true);
+      } else if (event === "TOKEN_REFRESHED") {
+        // TOKEN_REFRESHED é só renovação automática do JWT do MESMO usuário.
+        // Antes zerávamos modules/screens + setLoading(true) → ProtectedRoute
+        // desmontava a árvore inteira, fechando modais abertos (ex: detalhe de tarefa).
+        // Agora revalidamos em background, mantendo cache e React state até a
+        // resposta nova chegar (swap-on-success — fetchPermissions só chama
+        // setModules/setScreens depois do sucesso, e forceRefresh=true já ignora
+        // o cache na decisão de buscar).
+        const newUserId = newSession?.user?.id;
+        if (newUserId && globalPermissionsCache && globalPermissionsCache.userId !== newUserId) {
+          // Salvaguarda: refresh devolveu outro usuário (cenário anômalo —
+          // ex.: localStorage manipulado, sessão restaurada de outra conta).
+          // Logamos para detectar e fazemos reset agressivo para evitar
+          // leakage de permissões entre usuários.
+          logger.warn(
+            "[PermissionsContext] TOKEN_REFRESHED com user mismatch — reset agressivo",
+            { cachedUserId: globalPermissionsCache.userId, newUserId }
+          );
+          globalPermissionsCache = null;
+          try { localStorage.removeItem(LOCAL_STORAGE_KEY); } catch { /* ignore */ }
+          setModules([]);
+          setScreens([]);
+          setRole(null);
+          setIsAdmin(false);
+          setLoading(true);
+          fetchPermissions(true);
+        } else {
+          // Fluxo normal: revalida em background sem invalidar nada visível.
+          fetchPermissions(true);
+        }
       } else if (event === "SIGNED_OUT") {
         globalPermissionsCache = null;
         try { localStorage.removeItem(LOCAL_STORAGE_KEY); } catch {}

@@ -9,10 +9,11 @@ interface ClienteProtectedRouteProps {
 
 export const ClienteProtectedRoute = ({ children }: ClienteProtectedRouteProps) => {
   const { session, loading: authLoading } = useAuth();
-  const { role, loading: permLoading } = usePermissions();
+  const { role, loading: permLoading, permissionsReady } = usePermissions();
   const location = useLocation();
 
-  const loading = authLoading || permLoading;
+  // Só bloqueia render no primeiro load. TOKEN_REFRESHED não deve remontar a árvore.
+  const loading = authLoading || (permLoading && !permissionsReady);
   const isCliente = role === "cliente";
 
   if (loading) {

@@ -13,10 +13,12 @@ const SAFETY_TIMEOUT_MS = 5000;
 
 export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   const { session, approved, isActive, loading: authLoading } = useAuth();
-  const { role, loading: permLoading } = usePermissions();
+  const { role, loading: permLoading, permissionsReady } = usePermissions();
   const [timedOut, setTimedOut] = useState(false);
 
-  const loading = authLoading || permLoading;
+  // Bloqueia render apenas até o PRIMEIRO load. Refreshes em background
+  // (ex: TOKEN_REFRESHED) não desmontam a árvore: permissionsReady já estará true.
+  const loading = authLoading || (permLoading && !permissionsReady);
   const isCliente = role === "cliente";
 
   // Safety timeout: prevent infinite white screen
