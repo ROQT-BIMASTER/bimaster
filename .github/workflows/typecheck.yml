@@ -15,4 +15,8 @@ jobs:
           bun-version: latest
       - run: bun install --frozen-lockfile
       - name: TypeScript typecheck
+        # Heap default do Node (~2GB) estoura ao tipechecar o projeto. O crash
+        # acontece em ~2043MB. Subimos para 4096MB para dar folga consistente.
+        env:
+          NODE_OPTIONS: --max-old-space-size=4096
         run: bun run typecheck
