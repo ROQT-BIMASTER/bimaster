@@ -97,7 +97,20 @@ export default function ChinaProdutoChecklist() {
   const handleApplyTemplate = (cols: ChecklistColuna[]) => {
     if (!checklist) return;
     const normalized = cols.map((c, i) => ({ ...c, ordem: i }));
-    updateCols.mutate({ checklistId: checklist.id, colunas: normalized });
+    // Substitui as colunas atuais pelo template selecionado e remove as
+    // células das colunas antigas para não deixar dados órfãos
+    // 用所选模板替换当前列，并删除旧列的单元格以避免遗留数据
+    const novosKeys = new Set(normalized.map((c) => c.key));
+    const removedKeys = colunas
+      .map((c) => c.key)
+      .filter((k) => !novosKeys.has(k));
+    if (removedKeys.length > 0) {
+      const ok = window.confirm(
+        "Aplicar este modelo substitui as colunas atuais e remove os dados das colunas removidas. Continuar?\n\n应用此模板将替换当前列并删除被移除列的数据。是否继续？",
+      );
+      if (!ok) return;
+    }
+    updateCols.mutate({ checklistId: checklist.id, colunas: normalized, removedKeys });
   };
   const handleToggle = (corId: string, colunaKey: string, marcado: boolean) => {
     if (!checklist) return;
