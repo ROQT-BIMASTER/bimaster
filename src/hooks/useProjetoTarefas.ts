@@ -248,9 +248,27 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
     onMutate: async ({ id, ...updates }) => {
       await queryClient.cancelQueries({ queryKey: ["projeto-tarefas-v2", projetoId] });
       const previous = queryClient.getQueryData<ProjetoTarefasView>(["projeto-tarefas-v2", projetoId]);
+      // Enriquecimento: quando `responsavel_id` muda, o objeto derivado
+      // `responsavel: { id, nome, avatar_url }` também precisa ser atualizado
+      // no patch otimista, senão a UI mostra avatar/nome antigos até o refetch.
+      // Olha em `teamMembers` (lista já carregada na view) para popular.
+      const respChange = Object.prototype.hasOwnProperty.call(updates, "responsavel_id");
+      const novoResponsavelId = (updates as Partial<ProjetoTarefa>).responsavel_id;
+      const novoMembro = respChange && novoResponsavelId
+        ? (previous?.teamMembers || []).find(m => m.id === novoResponsavelId)
+        : null;
       patchView((v) => ({
         ...v,
-        tarefas: v.tarefas.map(t => t.id === id ? { ...t, ...updates } as ProjetoTarefa : t),
+        tarefas: v.tarefas.map(t => {
+          if (t.id !== id) return t;
+          const patched = { ...t, ...updates } as ProjetoTarefa;
+          if (respChange) {
+            patched.responsavel = novoMembro
+              ? { id: novoMembro.id, nome: novoMembro.nome, avatar_url: novoMembro.avatar_url }
+              : null;
+          }
+          return patched;
+        }),
       }));
       return { previous };
     },

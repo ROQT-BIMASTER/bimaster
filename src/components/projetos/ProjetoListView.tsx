@@ -40,7 +40,15 @@ export function ProjetoListView({ projetoId, darkBg = false, filters = EMPTY_FIL
   const { data: projeto } = useProjeto(projetoId);
   const { user } = useAuth();
   const currentUserId = user?.id ?? null;
-  const [selectedTarefa, setSelectedTarefa] = useState<ProjetoTarefa | null>(null);
+  const [selectedTarefaId, setSelectedTarefaId] = useState<string | null>(null);
+  // Derive the live tarefa from the freshest `tarefas` array so the detail Sheet
+  // reflects optimistic updates and realtime invalidations without remounting.
+  const selectedTarefa = useMemo(() => {
+    if (!selectedTarefaId) return null;
+    const found = tarefas.find(t => t.id === selectedTarefaId);
+    if (!found) return null;
+    return { ...found, subtarefas: tarefas.filter(st => st.parent_tarefa_id === found.id) };
+  }, [selectedTarefaId, tarefas]);
   const [iaDialogOpen, setIaDialogOpen] = useState(false);
   const { createTasksWithAI, createFromFile, loading: iaLoading } = useProjetoIA();
   const [columns, setColumns] = useState<ColumnConfig[]>(loadColumnConfig);
@@ -97,22 +105,11 @@ export function ProjetoListView({ projetoId, darkBg = false, filters = EMPTY_FIL
   };
 
   const handleSelectTarefa = (tarefa: ProjetoTarefa) => {
-    const fullTarefa = tarefas.find(t => t.id === tarefa.id);
-    if (fullTarefa) {
-      setSelectedTarefa({
-        ...fullTarefa,
-        subtarefas: tarefas.filter(st => st.parent_tarefa_id === fullTarefa.id),
-      });
-    } else {
-      setSelectedTarefa(tarefa);
-    }
+    setSelectedTarefaId(tarefa.id);
   };
 
   const handleUpdateTarefa = (id: string, updates: Partial<ProjetoTarefa>) => {
     updateTarefa.mutate({ id, ...updates });
-    if (selectedTarefa?.id === id) {
-      setSelectedTarefa(prev => prev ? { ...prev, ...updates } : null);
-    }
   };
 
   const handleAddSubtarefa = (titulo: string, parentId: string, secaoId: string) => {
@@ -121,9 +118,6 @@ export function ProjetoListView({ projetoId, darkBg = false, filters = EMPTY_FIL
 
   const handleMoveTarefa = (tarefaId: string, secaoOrigemId: string, secaoDestinoId: string) => {
     moveTarefaToSecao.mutate({ tarefaId, secaoOrigemId, secaoDestinoId });
-    if (selectedTarefa?.id === tarefaId) {
-      setSelectedTarefa(prev => prev ? { ...prev, secao_id: secaoDestinoId } : null);
-    }
   };
 
   const handleCreateIAItems = async (data: { secoes: { nome: string }[]; tasks: any[]; documentFiles: File[] }) => {
@@ -318,7 +312,7 @@ export function ProjetoListView({ projetoId, darkBg = false, filters = EMPTY_FIL
       <ProjetoTarefaDetalhe
         tarefa={selectedTarefa}
         open={!!selectedTarefa}
-        onOpenChange={(open) => { if (!open) setSelectedTarefa(null); }}
+        onOpenChange={(open) => { if (!open) setSelectedTarefaId(null); }}
         onUpdate={handleUpdateTarefa}
         onToggle={handleToggle}
         onAddSubtarefa={handleAddSubtarefa}

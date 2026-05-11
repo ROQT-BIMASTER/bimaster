@@ -1,8 +1,9 @@
 import { useState, useMemo } from "react";
-import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useProjetoMembros } from "@/hooks/useProjetoMembros";
+import { useProjetoTarefas } from "@/hooks/useProjetoTarefas";
+import { logger } from "@/lib/logger";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
@@ -27,7 +28,10 @@ interface Props {
   onChange?: () => void;
 }
 
-async function logAtividade(params: {
+// Fire-and-forget — auditoria não deve bloquear o feedback de UI.
+// Falhas vão para o logger central (Sentry/Datadog em prod) para serem
+// monitoradas; a UI já foi atualizada pelo optimistic update.
+function logAtividade(params: {
   tarefa_id: string;
   projeto_id: string;
   user_id: string;
@@ -37,16 +41,27 @@ async function logAtividade(params: {
   valor_novo?: string | null;
   descricao: string;
 }) {
-  await supabase.from("projeto_tarefa_atividades").insert({
-    tarefa_id: params.tarefa_id,
-    projeto_id: params.projeto_id,
-    user_id: params.user_id,
-    tipo: params.tipo,
-    campo: params.campo,
-    valor_anterior: params.valor_anterior ?? null,
-    valor_novo: params.valor_novo ?? null,
-    descricao: params.descricao,
-  });
+  void supabase
+    .from("projeto_tarefa_atividades")
+    .insert({
+      tarefa_id: params.tarefa_id,
+      projeto_id: params.projeto_id,
+      user_id: params.user_id,
+      tipo: params.tipo,
+      campo: params.campo,
+      valor_anterior: params.valor_anterior ?? null,
+      valor_novo: params.valor_novo ?? null,
+      descricao: params.descricao,
+    })
+    .then(({ error }) => {
+      if (error) {
+        logger.error("[TarefaResponsavelSeguidoresEditor] logAtividade falhou", {
+          tarefa_id: params.tarefa_id,
+          tipo: params.tipo,
+          error: error.message,
+        });
+      }
+    });
 }
 
 export function TarefaResponsavelSeguidoresEditor({
@@ -60,113 +75,89 @@ export function TarefaResponsavelSeguidoresEditor({
 }: Props) {
   const { user } = useAuth();
   const { membros } = useProjetoMembros(projetoId);
-  const queryClient = useQueryClient();
-  const [busy, setBusy] = useState(false);
+  // Reusa as mutations otimistas já definidas em useProjetoTarefas para que o UI
+  // reflita o responsável/seguidor imediatamente, sem aguardar refetch.
+  const { updateTarefa, addColaborador, removeColaborador } = useProjetoTarefas(projetoId);
   const [respOpen, setRespOpen] = useState(false);
   const [segOpen, setSegOpen] = useState(false);
 
+  const busy =
+    updateTarefa.isPending || addColaborador.isPending || removeColaborador.isPending;
+
   const seguidoresIds = useMemo(() => new Set(colaboradores.map((c) => c.user_id)), [colaboradores]);
 
-  const invalidate = () => {
-    queryClient.invalidateQueries({ queryKey: ["projeto-tarefas"] });
-    queryClient.invalidateQueries({ queryKey: ["minhas-tarefas"] });
-    queryClient.invalidateQueries({ queryKey: ["tarefa-timeline-activities"] });
-    onChange?.();
-  };
-
-  const trocarResponsavel = async (novoUserId: string | null) => {
+  const trocarResponsavel = (novoUserId: string | null) => {
     if (!user) return;
-    setBusy(true);
-    try {
-      const novoMembro = membros.find((m) => m.user_id === novoUserId);
-      const { error } = await supabase
-        .from("projeto_tarefas")
-        .update({ responsavel_id: novoUserId })
-        .eq("id", tarefaId);
-      if (error) throw error;
-
-      await logAtividade({
-        tarefa_id: tarefaId,
-        projeto_id: projetoId,
-        user_id: user.id,
-        tipo: "responsavel_change",
-        campo: "responsavel_id",
-        valor_anterior: responsavelNome || null,
-        valor_novo: novoMembro?.profile?.nome || null,
-        descricao: novoUserId
-          ? `Atribuiu a ${novoMembro?.profile?.nome || "membro"} como responsável`
-          : `Removeu o responsável da tarefa`,
-      });
-
-      toast.success("Responsável atualizado");
-      invalidate();
-      setRespOpen(false);
-    } catch (err: any) {
-      toast.error("Erro ao trocar responsável: " + (err?.message || ""));
-    } finally {
-      setBusy(false);
-    }
+    const novoMembro = membros.find((m) => m.user_id === novoUserId);
+    updateTarefa.mutate(
+      { id: tarefaId, responsavel_id: novoUserId },
+      {
+        onSuccess: () => {
+          logAtividade({
+            tarefa_id: tarefaId,
+            projeto_id: projetoId,
+            user_id: user.id,
+            tipo: "responsavel_change",
+            campo: "responsavel_id",
+            valor_anterior: responsavelNome || null,
+            valor_novo: novoMembro?.profile?.nome || null,
+            descricao: novoUserId
+              ? `Atribuiu a ${novoMembro?.profile?.nome || "membro"} como responsável`
+              : `Removeu o responsável da tarefa`,
+          });
+          toast.success("Responsável atualizado");
+          onChange?.();
+        },
+      }
+    );
+    setRespOpen(false);
   };
 
-  const adicionarSeguidor = async (userId: string) => {
+  const adicionarSeguidor = (userId: string) => {
     if (!user) return;
     if (seguidoresIds.has(userId)) return;
-    setBusy(true);
-    try {
-      const membro = membros.find((m) => m.user_id === userId);
-      const { error } = await supabase
-        .from("projeto_tarefa_colaboradores")
-        .insert({ tarefa_id: tarefaId, user_id: userId });
-      if (error) throw error;
-
-      await logAtividade({
-        tarefa_id: tarefaId,
-        projeto_id: projetoId,
-        user_id: user.id,
-        tipo: "seguidor_adicionado",
-        campo: "seguidores",
-        valor_novo: membro?.profile?.nome || userId,
-        descricao: `Adicionou ${membro?.profile?.nome || "membro"} como seguidor`,
-      });
-
-      toast.success("Seguidor adicionado");
-      invalidate();
-    } catch (err: any) {
-      toast.error("Erro ao adicionar seguidor: " + (err?.message || ""));
-    } finally {
-      setBusy(false);
-    }
+    const membro = membros.find((m) => m.user_id === userId);
+    addColaborador.mutate(
+      { tarefaId, userId },
+      {
+        onSuccess: () => {
+          logAtividade({
+            tarefa_id: tarefaId,
+            projeto_id: projetoId,
+            user_id: user.id,
+            tipo: "seguidor_adicionado",
+            campo: "seguidores",
+            valor_novo: membro?.profile?.nome || userId,
+            descricao: `Adicionou ${membro?.profile?.nome || "membro"} como seguidor`,
+          });
+          toast.success("Seguidor adicionado");
+          onChange?.();
+        },
+      }
+    );
   };
 
-  const removerSeguidor = async (userId: string) => {
+  const removerSeguidor = (userId: string) => {
     if (!user) return;
-    setBusy(true);
-    try {
-      const colab = colaboradores.find((c) => c.user_id === userId);
-      const { error } = await supabase
-        .from("projeto_tarefa_colaboradores")
-        .delete()
-        .eq("tarefa_id", tarefaId)
-        .eq("user_id", userId);
-      if (error) throw error;
-
-      await logAtividade({
-        tarefa_id: tarefaId,
-        projeto_id: projetoId,
-        user_id: user.id,
-        tipo: "seguidor_removido",
-        campo: "seguidores",
-        valor_anterior: colab?.nome || userId,
-        descricao: `Removeu ${colab?.nome || "membro"} dos seguidores`,
-      });
-
-      toast.success("Seguidor removido");
-      invalidate();
-    } catch (err: any) {
-      toast.error("Erro ao remover seguidor: " + (err?.message || ""));
-    } finally {
-      setBusy(false);
-    }
+    const colab = colaboradores.find((c) => c.user_id === userId);
+    removeColaborador.mutate(
+      { tarefaId, userId },
+      {
+        onSuccess: () => {
+          logAtividade({
+            tarefa_id: tarefaId,
+            projeto_id: projetoId,
+            user_id: user.id,
+            tipo: "seguidor_removido",
+            campo: "seguidores",
+            valor_anterior: colab?.nome || userId,
+            descricao: `Removeu ${colab?.nome || "membro"} dos seguidores`,
+          });
+          toast.success("Seguidor removido");
+          onChange?.();
+        },
+      }
+    );
   };
 
   return (

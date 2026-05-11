@@ -95,7 +95,15 @@ export function ProjetoKanbanView({ projetoId, darkBg = false, filters = EMPTY_F
     };
   }, [rawTarefasPorSecao, filtersActive, filteredIds]);
 
-  const [selectedTarefa, setSelectedTarefa] = useState<ProjetoTarefa | null>(null);
+  const [selectedTarefaId, setSelectedTarefaId] = useState<string | null>(null);
+  // Derive the live tarefa from the freshest `rawTarefas` array so the detail
+  // Sheet reflects optimistic updates and realtime invalidations.
+  const selectedTarefa = useMemo(() => {
+    if (!selectedTarefaId) return null;
+    const found = rawTarefas.find(t => t.id === selectedTarefaId);
+    if (!found) return null;
+    return { ...found, subtarefas: rawTarefas.filter(st => st.parent_tarefa_id === found.id) };
+  }, [selectedTarefaId, rawTarefas]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [overColumnId, setOverColumnId] = useState<string | null>(null);
   const [quickAddSecaoId, setQuickAddSecaoId] = useState<string | null>(null);
@@ -304,7 +312,7 @@ export function ProjetoKanbanView({ projetoId, darkBg = false, filters = EMPTY_F
                           <DraggableKanbanCard
                             key={tarefa.id}
                             tarefa={tarefa}
-                            onSelect={() => setSelectedTarefa(tarefa)}
+                            onSelect={() => setSelectedTarefaId(tarefa.id)}
                             onToggle={() => toggleTarefaCompleta.mutate(tarefa)}
                             darkBg={darkBg}
                             isDragActive={activeId === tarefa.id}
@@ -354,7 +362,7 @@ export function ProjetoKanbanView({ projetoId, darkBg = false, filters = EMPTY_F
       <ProjetoTarefaDetalhe
         tarefa={selectedTarefa}
         open={!!selectedTarefa}
-        onOpenChange={(open) => { if (!open) setSelectedTarefa(null); }}
+        onOpenChange={(open) => { if (!open) setSelectedTarefaId(null); }}
         onUpdate={(id, updates) => updateTarefa.mutate({ id, ...updates })}
         onToggle={(t) => toggleTarefaCompleta.mutate(t)}
         onAddSubtarefa={(titulo, parentId, secaoId) => createTarefa.mutate({ titulo, secao_id: secaoId, parent_tarefa_id: parentId })}

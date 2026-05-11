@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
@@ -146,7 +146,14 @@ export function ProjetoTarefaDetalhe({
   const [produtoSearch, setProdutoSearch] = useState("");
   const [produtoResults, setProdutoResults] = useState<ProdutoAcabado[]>([]);
   const [showProdutoSearch, setShowProdutoSearch] = useState(false);
-  const [selectedSubtarefa, setSelectedSubtarefa] = useState<ProjetoTarefa | null>(null);
+  const [selectedSubtarefaId, setSelectedSubtarefaId] = useState<string | null>(null);
+  // Derivado da lista live de subtarefas para refletir optimistic updates /
+  // refetches automaticamente — evita stale snapshot ao trocar responsável,
+  // status, etc. via outro caminho (mention, IA, parent task).
+  const selectedSubtarefa = useMemo<ProjetoTarefa | null>(() => {
+    if (!selectedSubtarefaId || !tarefa?.subtarefas) return null;
+    return tarefa.subtarefas.find(st => st.id === selectedSubtarefaId) || null;
+  }, [selectedSubtarefaId, tarefa?.subtarefas]);
   const { suggestFields, generateChecklist, loading: iaLoading } = useProjetoIA();
   const [pendingAISubtarefas, setPendingAISubtarefas] = useState<{ titulo: string; selected: boolean }[]>([]);
   const [focusMode, setFocusMode] = useState(false);
@@ -1099,7 +1106,7 @@ export function ProjetoTarefaDetalhe({
                               variant="ghost"
                               size="icon"
                               className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
-                              onClick={() => setSelectedSubtarefa(st)}
+                              onClick={() => setSelectedSubtarefaId(st.id)}
                             >
                               <ChevronRight className="h-3.5 w-3.5" />
                             </Button>
@@ -1256,7 +1263,7 @@ export function ProjetoTarefaDetalhe({
         <ProjetoTarefaDetalhe
           tarefa={selectedSubtarefa}
           open={!!selectedSubtarefa}
-          onOpenChange={(open) => { if (!open) setSelectedSubtarefa(null); }}
+          onOpenChange={(open) => { if (!open) setSelectedSubtarefaId(null); }}
           onUpdate={onUpdate}
           onToggle={onToggle}
           secoes={secoes}
