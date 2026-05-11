@@ -62,7 +62,7 @@ export function ChinaUploadPreviewDialog({
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && !saving && onClose()}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-lg z-[70] bg-background border-border shadow-2xl">
         <DialogHeader>
           <DialogTitle className="text-base">
             Validar Arquivo 验证文件
