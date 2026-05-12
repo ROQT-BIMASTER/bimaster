@@ -14,8 +14,27 @@ export interface CustoInsumo {
   custo_nf: number;
   custo_servico: number;
   custo_condicao: number;
+  ipi_valor: number;
+  ipi_percentual: number;
   nf_referencia: string | null;
   ordem: number;
+}
+
+/**
+ * Calcula o IPI efetivo de uma linha de insumo.
+ * Regra: se houver percentual > 0, ele incide sobre (NF + Serviço + Condição)
+ * da linha; caso contrário, usa o valor digitado em IPI (R$).
+ */
+export function calcularIPILinha(insumo: Pick<CustoInsumo, "custo_nf" | "custo_servico" | "custo_condicao" | "ipi_valor" | "ipi_percentual">): number {
+  const pct = Number(insumo.ipi_percentual) || 0;
+  if (pct > 0) {
+    const base =
+      (Number(insumo.custo_nf) || 0) +
+      (Number(insumo.custo_servico) || 0) +
+      (Number(insumo.custo_condicao) || 0);
+    return base * (pct / 100);
+  }
+  return Number(insumo.ipi_valor) || 0;
 }
 
 export type BaseCalculoMarkup = 'total' | 'nf' | 'servico' | 'nf_servico';
