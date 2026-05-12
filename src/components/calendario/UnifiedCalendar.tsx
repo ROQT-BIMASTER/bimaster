@@ -49,6 +49,7 @@ export function UnifiedCalendar({
   rightToolbarExtra,
   showEstagioLegend,
   banner,
+  onPeriodChange,
 }: Props) {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<ViewMode>("month");
