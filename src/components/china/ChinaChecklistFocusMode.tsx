@@ -186,6 +186,22 @@ export function ChinaChecklistFocusMode({
   const [editCatLabelPt, setEditCatLabelPt] = useState("");
   const [editCatLabelCn, setEditCatLabelCn] = useState("");
 
+  const traduzirLabel = useTraduzirTexto();
+  const autoTranslateToCn = useCallback(
+    async (textoPt: string, current: string, setter: (v: string) => void) => {
+      const t = textoPt.trim();
+      if (!t || current.trim()) return;
+      try {
+        const r = await traduzirLabel.mutateAsync({ texto: t, origem: "pt" });
+        const zh = r?.traducoes?.zh;
+        if (zh && !current.trim()) setter(zh);
+      } catch {
+        // erro já notificado em useTraduzirTexto
+      }
+    },
+    [traduzirLabel],
+  );
+
   // Templates
   const [tplSaveOpen, setTplSaveOpen] = useState(false);
   const [tplNome, setTplNome] = useState("");
