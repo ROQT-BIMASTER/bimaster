@@ -4,6 +4,9 @@ import { AppSidebar } from "@/components/dashboard/AppSidebar";
 import { usePageBgColor } from "@/hooks/usePageBgColor";
 import { getBgPaletteVars } from "@/lib/colorUtils";
 import { ChinaCommunicationFab } from "@/components/china/ChinaCommunicationFab";
+import { ChinaLanguageSwitcher } from "@/components/china/ChinaLanguageSwitcher";
+// Garante que o i18n do módulo China esteja inicializado em qualquer tela do shell.
+import "@/i18n/china";
 
 interface ChinaPageShellProps {
   children: ReactNode;
