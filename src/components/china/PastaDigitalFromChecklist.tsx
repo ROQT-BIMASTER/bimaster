@@ -7,7 +7,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { BilingualLabel } from "@/components/china/BilingualLabel";
 import { useDocumentosDaSubmissao } from "@/hooks/useChinaDocumentoVinculos";
-import { DOCUMENT_CATEGORIES, CHINA_DOCUMENT_TYPES } from "@/lib/china-document-types";
+import { CHINA_DOCUMENT_TYPES } from "@/lib/china-document-types";
+import { useMergedChinaChecklist } from "@/hooks/useMergedChinaChecklist";
 import { getSignedUrl } from "@/lib/utils/storage-helper";
 import { cn } from "@/lib/utils";
 
