@@ -39,6 +39,8 @@ export default function ChinaNovaSubmissao() {
   const { backTo } = useResolvedBackTo("/dashboard/fabrica-china");
   const queryClient = useQueryClient();
   const { submissaoId: editId } = useParams<{ submissaoId: string }>();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const focusTipo = searchParams.get("focus");
   const [step, setStep] = useState(0);
   const [parsing, setParsing] = useState(false);
   const [parsedData, setParsedData] = useState<any>(null);
