@@ -1,0 +1,1 @@
+ALTER TABLE public.fabrica_ficha_custo_config ADD COLUMN IF NOT EXISTS ipi_percentual_saida numeric NOT NULL DEFAULT 0;
