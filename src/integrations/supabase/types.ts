@@ -3253,13 +3253,18 @@ export type Database = {
         Row: {
           acao_por_nome: string | null
           acao_tipo: string | null
+          anexos: Json
           anotacoes: Json | null
+          contestacao_idioma_origem: string | null
           contestacao_texto: string | null
+          contestacao_traducoes: Json
           contestado_por: string | null
           created_at: string | null
           documento_id: string
           id: string
+          motivo_idioma_origem: string | null
           motivo_rejeicao: string | null
+          motivo_traducoes: Json
           resultado: string
           revisado_por: string | null
           rodada: number
@@ -3268,13 +3273,18 @@ export type Database = {
         Insert: {
           acao_por_nome?: string | null
           acao_tipo?: string | null
+          anexos?: Json
           anotacoes?: Json | null
+          contestacao_idioma_origem?: string | null
           contestacao_texto?: string | null
+          contestacao_traducoes?: Json
           contestado_por?: string | null
           created_at?: string | null
           documento_id: string
           id?: string
+          motivo_idioma_origem?: string | null
           motivo_rejeicao?: string | null
+          motivo_traducoes?: Json
           resultado: string
           revisado_por?: string | null
           rodada?: number
@@ -3283,13 +3293,18 @@ export type Database = {
         Update: {
           acao_por_nome?: string | null
           acao_tipo?: string | null
+          anexos?: Json
           anotacoes?: Json | null
+          contestacao_idioma_origem?: string | null
           contestacao_texto?: string | null
+          contestacao_traducoes?: Json
           contestado_por?: string | null
           created_at?: string | null
           documento_id?: string
           id?: string
+          motivo_idioma_origem?: string | null
           motivo_rejeicao?: string | null
+          motivo_traducoes?: Json
           resultado?: string
           revisado_por?: string | null
           rodada?: number
@@ -3340,6 +3355,57 @@ export type Database = {
           horas_uteis?: number
           tipo_documento?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      china_doc_versoes: {
+        Row: {
+          arquivo_path: string
+          arquivo_url: string | null
+          documento_id: string
+          enviada_em: string
+          enviada_por: string | null
+          id: string
+          mime_type: string | null
+          nome_arquivo: string
+          revisao_id: string | null
+          rodada: number
+          status_no_momento: string
+          submissao_id: string
+          tamanho_bytes: number | null
+          tipo_documento: string
+        }
+        Insert: {
+          arquivo_path: string
+          arquivo_url?: string | null
+          documento_id: string
+          enviada_em?: string
+          enviada_por?: string | null
+          id?: string
+          mime_type?: string | null
+          nome_arquivo: string
+          revisao_id?: string | null
+          rodada?: number
+          status_no_momento?: string
+          submissao_id: string
+          tamanho_bytes?: number | null
+          tipo_documento: string
+        }
+        Update: {
+          arquivo_path?: string
+          arquivo_url?: string | null
+          documento_id?: string
+          enviada_em?: string
+          enviada_por?: string | null
+          id?: string
+          mime_type?: string | null
+          nome_arquivo?: string
+          revisao_id?: string | null
+          rodada?: number
+          status_no_momento?: string
+          submissao_id?: string
+          tamanho_bytes?: number | null
+          tipo_documento?: string
         }
         Relationships: []
       }
