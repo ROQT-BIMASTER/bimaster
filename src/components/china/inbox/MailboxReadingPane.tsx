@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ExternalLink, FileText, Star, MailOpen, Mail, ArrowLeft, Download, Clock, MessageSquare, ChevronDown, ChevronRight, Link2 } from "lucide-react";
+import { ExternalLink, FileText, Star, MailOpen, Mail, ArrowLeft, Download, Clock, MessageSquare, ChevronDown, ChevronRight, Link2, Send } from "lucide-react";
 import { ChinaChatPanel } from "@/components/china/ChinaChatPanel";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -22,6 +22,7 @@ interface Props {
   isChinaUser: boolean;
   onView: (item: MailboxItem) => void;
   onCorrigir: (item: MailboxItem) => void;
+  onEnviarBrasil?: (item: MailboxItem) => void;
   onToggleRead: (item: MailboxItem) => void;
   onToggleStar: (item: MailboxItem) => void;
   onBack?: () => void;
@@ -34,6 +35,7 @@ export function MailboxReadingPane({
   isChinaUser,
   onView,
   onCorrigir,
+  onEnviarBrasil,
   onToggleRead,
   onToggleStar,
   onBack,
@@ -79,6 +81,8 @@ export function MailboxReadingPane({
 
   const canBrasilApprove =
     isBrasilUser && item.doc_status && ["pendente", "enviado", "contestado"].includes(item.doc_status);
+  const canChinaEnviar =
+    isChinaUser && !!onEnviarBrasil && !!item.documento_id && item.doc_status === "rascunho";
   const canChinaCorrigir = isChinaUser && (item.doc_status === "rejeitado" || item.submissao_status === "em_revisao");
 
   return (
@@ -211,6 +215,24 @@ export function MailboxReadingPane({
                 <p className="whitespace-pre-wrap text-foreground/90">{item.observacoes_brasil}</p>
               </div>
             )}
+          </section>
+        )}
+
+        {canChinaEnviar && (
+          <section className="mt-6 rounded-md border border-emerald-500/30 bg-emerald-500/5 p-3">
+            <p className="text-xs text-foreground/90 mb-2">
+              Envie este documento para o Brasil. Ele aparecerá em <strong>Vincular China</strong> para aprovação.
+              <span className="ml-1 text-muted-foreground">将此文件发送至巴西，将在“关联中国”中等待审批。</span>
+            </p>
+            <Button
+              size="sm"
+              className="gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white"
+              onClick={() => onEnviarBrasil!(item)}
+              disabled={loading}
+            >
+              <Send className="h-4 w-4" />
+              Enviar ao Brasil / 发送至巴西
+            </Button>
           </section>
         )}
 

@@ -26,6 +26,7 @@ import {
 } from "@/hooks/useChinaMailboxTrash";
 
 import { useChinaUserContext } from "@/hooks/useChinaUserContext";
+import { useEnviarDocumentoAoBrasil } from "@/hooks/useEnviarDocumentoAoBrasil";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 
 const VALID_FOLDERS: MailboxFolder[] = [
@@ -123,6 +124,17 @@ export default function ChinaCaixaEntrada() {
         if (prev) setSelectedId(prev.documento_id ?? prev.submissao_id);
       } else if (e.key === "s" && selectedItem) {
         toggleFlag.mutate({ submissao_id: selectedItem.submissao_id, flagged: !selectedItem.is_flagged });
+      } else if (
+        e.key === "b" &&
+        selectedItem &&
+        isChinaUser &&
+        selectedItem.documento_id &&
+        selectedItem.doc_status === "rascunho"
+      ) {
+        enviarBrasil.mutate({
+          documento_id: selectedItem.documento_id,
+          submissao_id: selectedItem.submissao_id,
+        });
       }
     };
     window.addEventListener("keydown", onKey);
@@ -130,8 +142,13 @@ export default function ChinaCaixaEntrada() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [items, selectedId, selectedItem, isBrasilUser]);
 
+  const enviarBrasil = useEnviarDocumentoAoBrasil();
   const handleCorrigir = (item: MailboxItem) => {
     goWithReturn(`/dashboard/fabrica-china/submissao/${item.submissao_id}`);
+  };
+  const handleEnviarBrasil = (item: MailboxItem) => {
+    if (!item.documento_id) return;
+    enviarBrasil.mutate({ documento_id: item.documento_id, submissao_id: item.submissao_id });
   };
   const handleToggleRead = (item: MailboxItem) => {
     if (!item.documento_id) return;
@@ -164,7 +181,7 @@ export default function ChinaCaixaEntrada() {
     ? "Documentos da China aguardando sua aprovação."
     : "Mensagens, ajustes e rascunhos do seu envio.";
 
-  const loading = false;
+  const loading = enviarBrasil.isPending;
 
   return (
     <ChinaPageShell>
@@ -309,6 +326,7 @@ export default function ChinaCaixaEntrada() {
                 isChinaUser={isChinaUser}
                 onView={(it) => setPreviewDoc(it)}
                 onCorrigir={handleCorrigir}
+                onEnviarBrasil={handleEnviarBrasil}
                 onToggleRead={handleToggleRead}
                 onToggleStar={handleToggleStar}
                 loading={loading}
@@ -339,6 +357,7 @@ export default function ChinaCaixaEntrada() {
               isChinaUser={isChinaUser}
               onView={(it) => setPreviewDoc(it)}
               onCorrigir={handleCorrigir}
+              onEnviarBrasil={handleEnviarBrasil}
               onToggleRead={handleToggleRead}
               onToggleStar={handleToggleStar}
               onBack={() => setSelectedId(null)}
