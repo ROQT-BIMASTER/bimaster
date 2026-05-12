@@ -22,6 +22,7 @@ import {
   ResizablePanelGroup,
 } from "@/components/ui/resizable";
 import { useChinaMailbox, type MailboxFolder, type MailboxItem } from "@/hooks/useChinaMailbox";
+import { useChinaInboxGroupMode } from "@/hooks/useChinaInboxGroupMode";
 import { useToggleInboxRead, useToggleSubmissaoFlag } from "@/hooks/useChinaMailboxActions";
 import {
   useTrashSubmissoes,
