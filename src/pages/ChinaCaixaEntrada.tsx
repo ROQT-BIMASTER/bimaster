@@ -175,6 +175,7 @@ export default function ChinaCaixaEntrada() {
   }, [items, selectedId, selectedItem, isBrasilUser]);
 
   const enviarBrasil = useEnviarDocumentoAoBrasil();
+  const [lastEnvioVars, setLastEnvioVars] = useState<{ submissao_id: string; documento_id?: string } | null>(null);
   const handleCorrigir = (item: MailboxItem) => {
     goWithReturn(`/dashboard/fabrica-china/submissao/${item.submissao_id}`);
   };
@@ -187,10 +188,18 @@ export default function ChinaCaixaEntrada() {
       acaoLabel: "Sim, enviar ao Brasil",
     });
     if (!ok) return;
-    enviarBrasil.mutate({
+    const vars = {
       submissao_id: item.submissao_id,
       ...(item.documento_id ? { documento_id: item.documento_id } : {}),
-    });
+    };
+    setLastEnvioVars(vars);
+    enviarBrasil.reset();
+    enviarBrasil.mutate(vars);
+  };
+  const handleRetryEnvio = () => {
+    if (!lastEnvioVars) return;
+    enviarBrasil.reset();
+    enviarBrasil.mutate(lastEnvioVars);
   };
   const handleToggleRead = (item: MailboxItem) => {
     if (!item.documento_id) return;
