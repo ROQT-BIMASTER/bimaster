@@ -145,7 +145,7 @@ export default function ChinaNovaSubmissao() {
         display_altura: existingSubmissao.medidas_display?.altura?.toString() || "",
         display_profundidade: existingSubmissao.medidas_display?.profundidade?.toString() || "",
       });
-      if (existingSubmissao.produto_codigo) setStep(1);
+      if (existingSubmissao.produto_codigo || focusTipo) setStep(1);
     }
   }, [existingSubmissao, editId]);
 
