@@ -13,11 +13,16 @@ import { DataRow } from "@/components/shared/timeline/DataRow";
 import { useOCTimeline } from "@/hooks/useOCTimeline";
 import type { MailboxItem } from "@/hooks/useChinaMailbox";
 
+interface SubmissaoLite {
+  submissao_id: string;
+  submissao_status?: string | null;
+  aprovado_em?: string | null;
+  created_at?: string | null;
+  numero_ordem?: string | null;
+}
+
 interface Props {
-  submissao: Pick<
-    MailboxItem,
-    "submissao_id" | "submissao_status" | "aprovado_em" | "created_at" | "numero_ordem"
-  >;
+  submissao: SubmissaoLite;
   /** Quando a OC já existir, passamos o id para hidratar etapas 5–10. */
   ocId?: string | null;
   /** Se true, mostra somente etapas 1–4 (uso embutido em outras telas). */
