@@ -1,5 +1,16 @@
 import { useState } from "react";
-import { ChevronDown, ChevronRight, ArrowRight, FileSpreadsheet, Sparkles, CalendarClock } from "lucide-react";
+import { ChevronDown, ChevronRight, ArrowRight, FileSpreadsheet, Sparkles, CalendarClock, Trash2 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
 import { ProjetoTarefa } from "@/hooks/useProjetoTarefas";
 import { ProjetoTarefaRow, TeamMember } from "./ProjetoTarefaRow";
