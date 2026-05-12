@@ -72,6 +72,7 @@ import { ManualPrioritySortable } from "@/components/projetos/central/ManualPrio
 
 import { BarChart3, RotateCcw } from "lucide-react";
 import type { ProjetoTarefa, ProjetoSecao } from "@/hooks/useProjetoTarefas";
+import { registrarAuditoriaTarefa } from "@/lib/projetos/auditoriaTarefa";
 
 const ListRow = memo(function ListRow({
   tarefa, onToggle, onSelect, selected, onSelectToggle, messageCount,
