@@ -83,6 +83,7 @@ export interface CustoFilho {
   custoNFLinha: number;
   custoServicoLinha: number;
   custoCondicaoLinha: number;
+  custoIPILinha: number;
 }
 
 export function useFichaCustoProduto(produtoId: string | undefined) {
