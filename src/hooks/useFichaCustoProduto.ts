@@ -233,14 +233,13 @@ export function useFichaCustoProduto(produtoId: string | undefined) {
       ? baseCondicaoMarkup * (percentualMarkup / 100) : 0;
     const markupTotal = markupNF + markupServico + markupCondicao;
 
-    // IPI agora incide UMA ÚNICA VEZ sobre a saída final do produto
-    // (NF + markup) + (Serviço + markup) + (Condição + markup) = base de saída
-    // IPI = base de saída × ipi_percentual_saida
-    // Custo Total = base de saída + IPI
-    const baseSaida = subtotal + markupTotal;
+    // IPI Saída incide UMA ÚNICA VEZ, somente sobre o custo de NF de saída do produto
+    // baseIPI = NF + markupNF
+    // Custo Total = (NF + markupNF + IPI) + (Serviço + markupServ) + (Condição + markupCond)
+    const baseIPI = totalNF + markupNF;
     const pctIPISaida = Number(config?.ipi_percentual_saida) || 0;
-    const totalIPI = baseSaida * (pctIPISaida / 100);
-    const custoTotal = baseSaida + totalIPI;
+    const totalIPI = baseIPI * (pctIPISaida / 100);
+    const custoTotal = subtotal + markupTotal + totalIPI;
 
     return {
       totalNF,
@@ -487,11 +486,11 @@ export function useFichaCustoProduto(produtoId: string | undefined) {
         const mNF = (baseMarkup === 'total' || baseMarkup === 'nf' || baseMarkup === 'nf_servico') ? tNF * (pctMarkup / 100) : 0;
         const mServ = (baseMarkup === 'total' || baseMarkup === 'servico' || baseMarkup === 'nf_servico') ? tServ * (pctMarkup / 100) : 0;
         const mCond = baseMarkup === 'total' ? tCond * (pctMarkup / 100) : 0;
-        // IPI agora é único, sobre a saída do filho
-        const baseSaidaFilho = subtotal + mNF + mServ + mCond;
+        // IPI do filho incide somente sobre NF de saída (NF + markupNF)
+        const baseIPIFilho = tNF + mNF;
         const pctIPIFilho = Number((configFilho as any)?.ipi_percentual_saida) || 0;
-        const totalIPIFilho = baseSaidaFilho * (pctIPIFilho / 100);
-        const custoUnit = baseSaidaFilho + totalIPIFilho;
+        const totalIPIFilho = baseIPIFilho * (pctIPIFilho / 100);
+        const custoUnit = subtotal + mNF + mServ + mCond + totalIPIFilho;
 
         const qty = item.quantidade || 1;
         const custoNFFinal = tNF + mNF;
