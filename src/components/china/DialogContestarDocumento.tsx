@@ -65,7 +65,7 @@ export function DialogContestarDocumento({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[92vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Upload className="h-5 w-5 text-primary" />
@@ -108,16 +108,24 @@ export function DialogContestarDocumento({
           )}
 
           <div className="space-y-2">
-            <Label htmlFor="parecer">Parecer técnico (resposta detalhada) *</Label>
-            <Textarea
-              id="parecer"
-              value={parecer}
-              onChange={(e) => setParecer(e.target.value)}
-              rows={6}
-              placeholder="Explique tecnicamente as alterações feitas, o embasamento técnico e por que o novo documento atende às exigências…"
-              maxLength={8000}
-            />
-            <p className="text-xs text-muted-foreground">{parecer.length}/8000 caracteres</p>
+            <Label htmlFor="parecer" className="text-sm font-semibold">
+              Parecer técnico — resposta detalhada *
+            </Label>
+            <div className="rounded-lg border bg-card shadow-sm">
+              <div className="flex items-center justify-between border-b px-3 py-1.5 text-[11px] text-muted-foreground bg-muted/40 rounded-t-lg">
+                <span>Documento de resposta · escreva como em um e-mail ou parecer formal</span>
+                <span>{parecer.length}/8000</span>
+              </div>
+              <Textarea
+                id="parecer"
+                value={parecer}
+                onChange={(e) => setParecer(e.target.value)}
+                rows={16}
+                placeholder={`Prezada equipe do Brasil,\n\nEm resposta ao laudo técnico recebido, segue o parecer detalhado:\n\n1. Análise do apontamento:\n   ...\n\n2. Alterações realizadas no documento:\n   ...\n\n3. Embasamento técnico / normativo:\n   ...\n\nAtenciosamente,\nEquipe China`}
+                maxLength={8000}
+                className="border-0 rounded-t-none focus-visible:ring-0 focus-visible:ring-offset-0 min-h-[320px] font-serif text-[13px] leading-relaxed resize-y"
+              />
+            </div>
           </div>
 
           <div className="space-y-2">

@@ -14,8 +14,10 @@ import { ChinaUploadPreviewDialog } from "./ChinaUploadPreviewDialog";
 import {
   Maximize2, X, Send, Save, Upload, Loader2, CheckCircle2, Clock, XCircle,
   FileText, Eye, Trash2, Image as ImageIcon, CalendarIcon, AlertCircle,
-  Plus, FolderPlus, Pencil, Bookmark, BookmarkPlus,
+  Plus, FolderPlus, Pencil, Bookmark, BookmarkPlus, FileWarning,
 } from "lucide-react";
+import { useRevisoesPorSubmissao } from "@/hooks/useChinaRevisoes";
+import { DialogContestarDocumento } from "./DialogContestarDocumento";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
   DropdownMenuSeparator, DropdownMenuTrigger,
@@ -120,6 +122,18 @@ export function ChinaChecklistFocusMode({
   const [uploadingTipo, setUploadingTipo] = useState<string | null>(null);
   const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
   const queryClient = useQueryClient();
+
+  // Substituir documento rejeitado com parecer técnico
+  const [substituirDoc, setSubstituirDoc] = useState<DocRecord | null>(null);
+  const { data: revisoes = [] } = useRevisoesPorSubmissao(submissaoId);
+  const ultimaRevisaoPorDoc = useMemo(() => {
+    const map = new Map<string, typeof revisoes[number]>();
+    for (const r of revisoes) {
+      const cur = map.get(r.documento_id);
+      if (!cur || new Date(r.created_at) > new Date(cur.created_at)) map.set(r.documento_id, r);
+    }
+    return map;
+  }, [revisoes]);
 
   // Auto-open + focus on a specific document type (vindo de "Corrigir" da tela de detalhe)
   useEffect(() => {
@@ -1132,11 +1146,23 @@ export function ChinaChecklistFocusMode({
                                   </div>
 
                                   <div className="flex gap-0.5 shrink-0">
-                                    <button onClick={() => onViewDoc(d)} className="p-1 rounded hover:bg-accent/50">
+                                    <button onClick={() => onViewDoc(d)} className="p-1 rounded hover:bg-accent/50" title="Visualizar">
                                       <Eye className="h-3.5 w-3.5 text-primary" />
                                     </button>
-                                    {d.status !== "aprovado" && (
-                                      <button onClick={() => onRemoveFile(d.id)} className="p-1 rounded hover:bg-destructive/10">
+                                    {d.status === "rejeitado" && (
+                                      <Button
+                                        size="sm"
+                                        variant="destructive"
+                                        className="h-6 px-2 text-[10px] gap-1"
+                                        onClick={() => setSubstituirDoc(d)}
+                                        title="Substituir documento e enviar parecer técnico"
+                                      >
+                                        <FileWarning className="h-3 w-3" />
+                                        Corrigir / Parecer
+                                      </Button>
+                                    )}
+                                    {d.status !== "aprovado" && d.status !== "rejeitado" && (
+                                      <button onClick={() => onRemoveFile(d.id)} className="p-1 rounded hover:bg-destructive/10" title="Remover">
                                         <Trash2 className="h-3.5 w-3.5 text-destructive" />
                                       </button>
                                     )}
@@ -1438,6 +1464,24 @@ export function ChinaChecklistFocusMode({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {substituirDoc && (
+        <DialogContestarDocumento
+          open={!!substituirDoc}
+          onOpenChange={(o) => !o && setSubstituirDoc(null)}
+          documentoId={substituirDoc.id}
+          submissaoId={submissaoId}
+          tipoDocumento={substituirDoc.tipo_documento}
+          tipoDocumentoLabel={
+            allDocTypes.find((t) => t.tipo === substituirDoc.tipo_documento)?.labelPt
+          }
+          laudoRevisao={ultimaRevisaoPorDoc.get(substituirDoc.id) || null}
+          onSucesso={() => {
+            setSubstituirDoc(null);
+            onRefresh();
+          }}
+        />
+      )}
     </>
   );
 }
