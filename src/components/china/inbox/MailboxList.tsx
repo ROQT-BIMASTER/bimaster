@@ -38,6 +38,7 @@ interface Props {
   search: string;
   actionFilter?: ActionFilter;
   onActionFilterChange?: (f: ActionFilter) => void;
+  viewerOverride?: { isChinaUser: boolean; isBrasilUser: boolean };
 }
 
 function statusBadge(item: MailboxItem) {
