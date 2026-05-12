@@ -168,6 +168,67 @@ Deno.serve(
         .map((d) => new Date(d as string))
         .sort((a, b) => a.getTime() - b.getTime())[0];
 
+      // Analytics agregadas (para cards/gráficos no front)
+      const porColunaMap = new Map<string, { coluna: string; concluido: number; pendente: number; atrasado: number }>();
+      for (const it of checklistFlat.itens) {
+        const cur = porColunaMap.get(it.coluna) ?? { coluna: it.coluna, concluido: 0, pendente: 0, atrasado: 0 };
+        if (it.concluido) cur.concluido++;
+        else if (it.atrasado) cur.atrasado++;
+        else cur.pendente++;
+        porColunaMap.set(it.coluna, cur);
+      }
+      const docs = docsRes.data ?? [];
+      const docs_resumo = {
+        total: docs.length,
+        oficializado: docs.filter((d: any) => d.oficializado).length,
+        pendente: docs.filter((d: any) => !d.oficializado).length,
+      };
+      const ocsArr = ocsRes.data ?? [];
+      const ocs_resumo = {
+        total: ocsArr.length,
+        aprovadas: ocsArr.filter((o: any) => o.aprovado_em).length,
+        em_producao: ocsArr.filter((o: any) => (o.qty_produzida ?? 0) > 0 && (o.qty_produzida ?? 0) < (o.qty_total ?? 0)).length,
+        concluidas: ocsArr.filter((o: any) => (o.qty_produzida ?? 0) >= (o.qty_total ?? 0) && (o.qty_total ?? 0) > 0).length,
+      };
+      const embarques_resumo = {
+        total: embarques.length,
+        em_transito: embarques.filter((e: any) => e.status && /trans|sea|on_board|in_transit/i.test(e.status)).length,
+        entregues: embarques.filter((e: any) => e.status && /entregue|delivered|chegou/i.test(e.status)).length,
+      };
+      const marcos: Array<{ data: string | null; label: string; status: "ok" | "pending" | "late"; tipo: string }> = [];
+      marcos.push({ data: submissao.created_at, label: "Submissão criada", status: "ok", tipo: "submissao" });
+      if (submissao.data_envio) marcos.push({ data: submissao.data_envio, label: "Enviada ao Brasil", status: "ok", tipo: "submissao" });
+      if (submissao.aprovado_em) marcos.push({ data: submissao.aprovado_em, label: "Submissão aprovada", status: "ok", tipo: "submissao" });
+      for (const oc of ocsArr) {
+        if (oc.data_emissao) marcos.push({ data: oc.data_emissao, label: `OC ${oc.numero_oc} emitida`, status: "ok", tipo: "oc" });
+        if (oc.data_entrega_prevista) {
+          const late = !oc.data_entrega_real && new Date(oc.data_entrega_prevista) < hoje;
+          marcos.push({ data: oc.data_entrega_prevista, label: `OC ${oc.numero_oc} — entrega prevista`, status: oc.data_entrega_real ? "ok" : late ? "late" : "pending", tipo: "oc" });
+        }
+        if (oc.data_entrega_real) marcos.push({ data: oc.data_entrega_real, label: `OC ${oc.numero_oc} entregue`, status: "ok", tipo: "oc" });
+      }
+      for (const e of embarques) {
+        if (e.data_embarque) marcos.push({ data: e.data_embarque, label: `Embarque ${e.numero_embarque} — saída`, status: "ok", tipo: "embarque" });
+        if (e.data_eta) {
+          const late = new Date(e.data_eta) < hoje && !/entregue|delivered/i.test(e.status ?? "");
+          marcos.push({ data: e.data_eta, label: `Embarque ${e.numero_embarque} — ETA`, status: late ? "late" : "pending", tipo: "embarque" });
+        }
+      }
+      marcos.sort((a, b) => (a.data ?? "").localeCompare(b.data ?? ""));
+
+      const analytics = {
+        progresso_pct: checklistFlat.total > 0 ? Math.round((checklistFlat.concluidas / checklistFlat.total) * 100) : 0,
+        por_coluna: Array.from(porColunaMap.values()),
+        docs_resumo,
+        ocs_resumo,
+        embarques_resumo,
+        atrasos_top: atrasos
+          .map((a) => ({ coluna: a.coluna, item: a.item, prazo: a.prazo, responsavel: a.responsavel, dias_atraso: a.prazo ? daysBetween(hoje, new Date(a.prazo)) : null }))
+          .sort((a, b) => (b.dias_atraso ?? 0) - (a.dias_atraso ?? 0))
+          .slice(0, 10),
+        marcos,
+      };
+
       // 3. Monta payload estruturado
       const dossie = {
         submissao: {
@@ -234,6 +295,7 @@ Deno.serve(
         JSON.stringify({
           markdown: content,
           kpis: dossie.kpis,
+          analytics,
           submissao: { id: submissao.id, codigo: submissao.produto_codigo, nome: submissao.produto_nome },
           model: r.modelUsed,
         }),
