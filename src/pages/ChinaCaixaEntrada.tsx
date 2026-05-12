@@ -173,8 +173,10 @@ export default function ChinaCaixaEntrada() {
     goWithReturn(`/dashboard/fabrica-china/submissao/${item.submissao_id}`);
   };
   const handleEnviarBrasil = (item: MailboxItem) => {
-    if (!item.documento_id) return;
-    enviarBrasil.mutate({ documento_id: item.documento_id, submissao_id: item.submissao_id });
+    enviarBrasil.mutate({
+      submissao_id: item.submissao_id,
+      ...(item.documento_id ? { documento_id: item.documento_id } : {}),
+    });
   };
   const handleToggleRead = (item: MailboxItem) => {
     if (!item.documento_id) return;
