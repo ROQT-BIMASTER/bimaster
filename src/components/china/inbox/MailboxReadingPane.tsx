@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ExternalLink, FileText, Star, MailOpen, Mail, ArrowLeft, Download, Clock, MessageSquare, ChevronDown, ChevronRight, Link2 } from "lucide-react";
+import { ExternalLink, FileText, Star, MailOpen, Mail, ArrowLeft, Download, Clock, MessageSquare, ChevronDown, ChevronRight, Link2, Send } from "lucide-react";
 import { ChinaChatPanel } from "@/components/china/ChinaChatPanel";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -22,6 +22,7 @@ interface Props {
   isChinaUser: boolean;
   onView: (item: MailboxItem) => void;
   onCorrigir: (item: MailboxItem) => void;
+  onEnviarBrasil?: (item: MailboxItem) => void;
   onToggleRead: (item: MailboxItem) => void;
   onToggleStar: (item: MailboxItem) => void;
   onBack?: () => void;
@@ -34,6 +35,7 @@ export function MailboxReadingPane({
   isChinaUser,
   onView,
   onCorrigir,
+  onEnviarBrasil,
   onToggleRead,
   onToggleStar,
   onBack,
