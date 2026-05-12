@@ -518,5 +518,53 @@ export function VincularChinaSidePanel({
         </ScrollArea>
       </Tabs>
     </div>
+
+    <AlertDialog open={confirmAprovarOpen} onOpenChange={(o) => { if (!aprovando) setConfirmAprovarOpen(o); }}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Aprovar submissão diretamente?</AlertDialogTitle>
+          <AlertDialogDescription asChild>
+            <div className="space-y-2 text-sm">
+              <p>
+                <strong>{submissao.produto_codigo}</strong> — {submissao.produto_nome}
+                {submissao.numero_ordem ? ` · OC ${submissao.numero_ordem}` : ""}
+              </p>
+              <p>
+                Esta ação aprova <strong>{docsAprovaveis.length}</strong> documento(s) e finaliza a etapa
+                no Brasil sem despacho nem encaminhamento. A operação fica registrada em auditoria.
+              </p>
+            </div>
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium text-muted-foreground">
+            Observação (opcional)
+          </label>
+          <Textarea
+            value={aprovarObs}
+            onChange={(e) => setAprovarObs(e.target.value.slice(0, 500))}
+            placeholder="Justificativa ou contexto da aprovação direta..."
+            rows={3}
+            disabled={aprovando}
+          />
+          <p className="text-[10px] text-muted-foreground text-right">{aprovarObs.length}/500</p>
+        </div>
+        <AlertDialogFooter>
+          <AlertDialogCancel disabled={aprovando}>Cancelar</AlertDialogCancel>
+          <AlertDialogAction
+            onClick={(e) => { e.preventDefault(); handleAprovarSubmissao(); }}
+            disabled={aprovando}
+            className="bg-emerald-600 hover:bg-emerald-700 text-white"
+          >
+            {aprovando ? (
+              <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Aprovando...</>
+            ) : (
+              <>Aprovar agora</>
+            )}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+    </>
   );
 }
