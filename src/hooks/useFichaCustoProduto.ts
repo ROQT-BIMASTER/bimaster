@@ -451,7 +451,7 @@ export function useFichaCustoProduto(produtoId: string | undefined) {
         // Buscar insumos do filho
         const { data: insumosFilho } = await supabase
           .from("fabrica_produto_custos")
-          .select("custo_nf, custo_servico, custo_condicao")
+          .select("custo_nf, custo_servico, custo_condicao, ipi_valor, ipi_percentual")
           .eq("produto_id", filhoId);
 
         // Buscar config do filho
@@ -465,6 +465,18 @@ export function useFichaCustoProduto(produtoId: string | undefined) {
         const totalNFIns = (insumosFilho || []).reduce((s, i) => s + (Number(i.custo_nf) || 0), 0);
         const totalServIns = (insumosFilho || []).reduce((s, i) => s + (Number(i.custo_servico) || 0), 0);
         const totalCondIns = (insumosFilho || []).reduce((s, i) => s + (Number(i.custo_condicao) || 0), 0);
+        const totalIPIIns = (insumosFilho || []).reduce(
+          (s, i) =>
+            s +
+            calcularIPILinha({
+              custo_nf: Number(i.custo_nf) || 0,
+              custo_servico: Number(i.custo_servico) || 0,
+              custo_condicao: Number(i.custo_condicao) || 0,
+              ipi_valor: Number((i as any).ipi_valor) || 0,
+              ipi_percentual: Number((i as any).ipi_percentual) || 0,
+            }),
+          0,
+        );
         const moNF = Number(configFilho?.custo_mao_obra_nf) || 0;
         const moServ = Number(configFilho?.custo_mao_obra_servico) || 0;
         const tNF = totalNFIns + moNF;
@@ -476,12 +488,14 @@ export function useFichaCustoProduto(produtoId: string | undefined) {
         const mNF = (baseMarkup === 'total' || baseMarkup === 'nf' || baseMarkup === 'nf_servico') ? tNF * (pctMarkup / 100) : 0;
         const mServ = (baseMarkup === 'total' || baseMarkup === 'servico' || baseMarkup === 'nf_servico') ? tServ * (pctMarkup / 100) : 0;
         const mCond = baseMarkup === 'total' ? tCond * (pctMarkup / 100) : 0;
-        const custoUnit = subtotal + mNF + mServ + mCond;
+        // IPI fica fora do markup, mas entra no custo unitário do filho
+        const custoUnit = subtotal + mNF + mServ + mCond + totalIPIIns;
 
         const qty = item.quantidade || 1;
         const custoNFFinal = tNF + mNF;
         const custoServicoFinal = tServ + mServ;
         const custoCondicaoFinal = tCond + mCond;
+        const custoIPIFinal = totalIPIIns;
 
         filhosComCusto.push({
           produtoFilhoId: filhoId,
@@ -493,6 +507,7 @@ export function useFichaCustoProduto(produtoId: string | undefined) {
           custoNFLinha: custoNFFinal * qty,
           custoServicoLinha: custoServicoFinal * qty,
           custoCondicaoLinha: custoCondicaoFinal * qty,
+          custoIPILinha: custoIPIFinal * qty,
         });
       }
 
