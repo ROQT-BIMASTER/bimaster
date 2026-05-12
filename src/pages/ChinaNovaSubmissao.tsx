@@ -322,7 +322,7 @@ export default function ChinaNovaSubmissao() {
             .single() as any,
           { label: "validation-insert" },
         );
-        if (!r.ok) {
+        if (r.ok === false) {
           setDraftStatus("error");
           setLastDraftError(r.userMessage);
           toast.error(r.userMessage, {
