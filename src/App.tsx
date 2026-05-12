@@ -639,6 +639,7 @@ function AppContent() {
             {/* Módulo Fábrica China */}
             <Route path="/dashboard/fabrica-china" element={<ModuleRoute moduleCode="china"><ScreenProtectedRoute screenCode="china_dashboard"><ChinaFabrica /></ScreenProtectedRoute></ModuleRoute>} />
             <Route path="/dashboard/fabrica-china/caixa-entrada" element={<ModuleRoute moduleCode="china"><ScreenProtectedRoute screenCode="china_dashboard"><ChinaCaixaEntrada /></ScreenProtectedRoute></ModuleRoute>} />
+            <Route path="/dashboard/fabrica-china/auditoria-normalizacao" element={<ModuleRoute moduleCode="china"><ScreenProtectedRoute screenCode="china_dashboard"><ChinaAuditoriaNormalizacao /></ScreenProtectedRoute></ModuleRoute>} />
             <Route path="/dashboard/fabrica-china/nova" element={<ModuleRoute moduleCode="china"><ScreenProtectedRoute screenCode="china_submissoes"><ChinaNovaSubmissao /></ScreenProtectedRoute></ModuleRoute>} />
             <Route path="/dashboard/fabrica-china/nova/:submissaoId" element={<ModuleRoute moduleCode="china"><ScreenProtectedRoute screenCode="china_submissoes"><ChinaNovaSubmissao /></ScreenProtectedRoute></ModuleRoute>} />
             <Route path="/dashboard/fabrica-china/recebimentos" element={<ModuleRoute moduleCode="china"><ScreenProtectedRoute screenCode="china_recebimentos"><ChinaRecebimentos /></ScreenProtectedRoute></ModuleRoute>} />
