@@ -612,11 +612,22 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
 
   const restaurarTarefa = useMutation({
     mutationFn: async (tarefaId: string) => {
+      const tarefa = tarefas.find(t => t.id === tarefaId);
       const { error } = await supabase
         .from("projeto_tarefas")
         .update({ excluida_em: null, excluida_por: null } as any)
         .eq("id", tarefaId);
       if (error) throw error;
+
+      await registrarAuditoriaTarefa({
+        tarefaId,
+        projetoId: tarefa?.projeto_id,
+        parentTarefaId: tarefa?.parent_tarefa_id,
+        isSubtarefa: !!tarefa?.parent_tarefa_id,
+        tituloSnapshot: tarefa?.titulo,
+        action: "restaurada",
+        metadata: { source: "restaurarTarefa" },
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2", projetoId] });
