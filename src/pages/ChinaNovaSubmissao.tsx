@@ -297,24 +297,58 @@ export default function ChinaNovaSubmissao() {
 
       let activeSubId = submissaoId;
 
-      if (activeSubId) {
-        // Update existing submission
-        const { error } = await supabase
-          .from("china_produto_submissoes" as any)
-          .update(submissaoPayload as any)
-          .eq("id", activeSubId);
-        if (error) throw error;
-      } else {
-        // Create new submission
-        const { data: sub, error } = await supabase
-          .from("china_produto_submissoes" as any)
-          .insert({ ...submissaoPayload, created_by: session.user.id } as any)
-          .select("id")
-          .single();
-        if (error) throw error;
-        activeSubId = (sub as any).id;
-        setSubmissaoId(activeSubId);
-      }
+      const runDraftSave = async (): Promise<string | null> => {
+        if (activeSubId) {
+          const r = await saveDraftWithRetry(
+            () => supabase.from("china_produto_submissoes" as any).update(submissaoPayload as any).eq("id", activeSubId!),
+            { label: "validation-update" },
+          );
+          if (!r.ok) {
+            setDraftStatus("error");
+            setLastDraftError(r.userMessage);
+            toast.error(r.userMessage, {
+              description: `Tentativas: ${r.attempts}. Use o botão "Salvar Rascunho" para tentar novamente manualmente.`,
+            });
+            logger.error("Validation update failed:", r.technicalMessage);
+            return null;
+          }
+          return activeSubId;
+        }
+        const r = await saveDraftWithRetry<{ id: string }>(
+          () => supabase
+            .from("china_produto_submissoes" as any)
+            .insert({ ...submissaoPayload, created_by: session.user.id } as any)
+            .select("id")
+            .single() as any,
+          { label: "validation-insert" },
+        );
+        if (!r.ok) {
+          setDraftStatus("error");
+          setLastDraftError(r.userMessage);
+          toast.error(r.userMessage, {
+            description: `Tentativas: ${r.attempts}. Use o botão "Salvar Rascunho" para tentar novamente manualmente.`,
+          });
+          logger.error("Validation insert failed:", r.technicalMessage);
+          return null;
+        }
+        return (r.data as any).id as string;
+      };
+
+      setDraftStatus("saving");
+      lastDraftRetryRef.current = async () => {
+        const id = await runDraftSave();
+        if (id) {
+          if (!submissaoId) setSubmissaoId(id);
+          setDraftStatus("saved");
+          setLastSavedAt(new Date());
+          setLastDraftError(null);
+          toast.success("Rascunho salvo automaticamente.");
+        }
+      };
+      const newId = await runDraftSave();
+      if (!newId) return;
+      activeSubId = newId;
+      if (!submissaoId) setSubmissaoId(activeSubId);
 
       if (validatedData.cores?.length > 0) {
         const parsed: GradeItem[] = validatedData.cores.map((c: any) => ({
