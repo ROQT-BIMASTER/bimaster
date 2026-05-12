@@ -7,9 +7,6 @@ import { ChinaCommunicationFab } from "@/components/china/ChinaCommunicationFab"
 import { ChinaLanguageSwitcher } from "@/components/china/ChinaLanguageSwitcher";
 // Garante que o i18n do módulo China esteja inicializado em qualquer tela do shell.
 import "@/i18n/china";
-import { ChinaLanguageSwitcher } from "@/components/china/ChinaLanguageSwitcher";
-// Garante que o i18n do módulo China esteja inicializado em qualquer tela do shell.
-import "@/i18n/china";
 
 interface ChinaPageShellProps {
   children: ReactNode;
