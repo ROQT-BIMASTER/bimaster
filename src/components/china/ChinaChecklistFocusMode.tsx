@@ -128,6 +128,8 @@ export function ChinaChecklistFocusMode({
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [submitting, setSubmitting] = useState(false);
   const [uploadingTipo, setUploadingTipo] = useState<string | null>(null);
+  const [confirmSingleId, setConfirmSingleId] = useState<string | null>(null);
+  const [confirmAllOpen, setConfirmAllOpen] = useState(false);
   const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
   const queryClient = useQueryClient();
 
