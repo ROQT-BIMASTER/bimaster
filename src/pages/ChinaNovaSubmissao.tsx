@@ -27,6 +27,9 @@ import { Upload as UploadIcon } from "lucide-react";
 import { validateLinhaProduto } from "@/lib/validations/china-submissao";
 import { logger } from "@/lib/logger";
 import { useResolvedBackTo } from "@/lib/navigation/withReturnTo";
+import { saveDraftWithRetry, type DraftSaveStatus } from "@/lib/china/draftRetry";
+import { DraftStatusIndicator } from "@/components/china/DraftStatusIndicator";
+import { ResumeDraftBanner } from "@/components/china/ResumeDraftBanner";
 
 const STEPS = [
   { labelPt: "Dados do Produto", labelCn: "产品数据", icon: FileSpreadsheet },
