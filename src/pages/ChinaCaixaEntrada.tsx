@@ -164,7 +164,7 @@ export default function ChinaCaixaEntrada() {
     ? "Documentos da China aguardando sua aprovação."
     : "Mensagens, ajustes e rascunhos do seu envio.";
 
-  const loading = aprovar.isPending || darCiencia.isPending;
+  const loading = false;
 
   return (
     <ChinaPageShell>
@@ -307,8 +307,6 @@ export default function ChinaCaixaEntrada() {
                 item={selectedItem}
                 isBrasilUser={isBrasilUser}
                 isChinaUser={isChinaUser}
-                onApprove={handleApprove}
-                onReject={handleReject}
                 onView={(it) => setPreviewDoc(it)}
                 onCorrigir={handleCorrigir}
                 onToggleRead={handleToggleRead}
@@ -339,8 +337,6 @@ export default function ChinaCaixaEntrada() {
               item={selectedItem}
               isBrasilUser={isBrasilUser}
               isChinaUser={isChinaUser}
-              onApprove={handleApprove}
-              onReject={handleReject}
               onView={(it) => setPreviewDoc(it)}
               onCorrigir={handleCorrigir}
               onToggleRead={handleToggleRead}
