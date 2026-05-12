@@ -27,6 +27,7 @@ import {
 import { CATEGORIES_BRASIL_ENVIA, CHINA_DOCUMENT_TYPES } from "@/lib/china-document-types";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { verifyCurrentUserPassword } from "@/lib/auth/verifyCurrentUserPassword";
 
 interface Props {
   submissaoId: string;
@@ -122,13 +123,16 @@ export function DocumentosBrasilAssinatura({ submissaoId, produtoNome }: Props) 
     setSignDialogOpen(true);
   };
 
-  const handleSign = () => {
+  const handleSign = async () => {
     if (!nomeCompleto.trim()) {
       toast.error("Informe seu nome completo.");
       return;
     }
-    if (senha !== "bimaster2026") {
-      toast.error("Senha institucional inválida.");
+    // Step-up real: re-verifica a senha do próprio usuário em vez de
+    // validar contra a string hardcoded `"bimaster2026"`.
+    const ok = await verifyCurrentUserPassword(senha);
+    if (!ok) {
+      toast.error("Senha inválida. Confirme sua senha de acesso.");
       return;
     }
     if (!selectedDocId) return;
