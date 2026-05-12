@@ -1056,6 +1056,15 @@ export default function ChinaNovaSubmissao() {
                   onViewDoc={async (doc: any) => {
                     if (doc.arquivo_url) window.open(doc.arquivo_url, "_blank");
                   }}
+                  defaultOpen={!!focusTipo}
+                  focusTipo={focusTipo}
+                  onAfterFocus={() => {
+                    if (focusTipo) {
+                      const next = new URLSearchParams(searchParams);
+                      next.delete("focus");
+                      setSearchParams(next, { replace: true });
+                    }
+                  }}
                 />
               )}
             </div>
