@@ -135,7 +135,7 @@ export function MailboxSidebar({ folder, counts, onSelect, onCompose, forceChina
       </nav>
       <div className="border-t border-border/60 p-3 text-[10px] leading-relaxed text-muted-foreground">
         <p className="font-medium text-foreground/80">Atalhos</p>
-        {isChinaUser ? (
+        {useChina ? (
           <>
             <p>g p — Pendentes · g e — Enviadas</p>
             <p>g a — Em análise · g r — Retorno</p>
