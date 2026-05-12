@@ -204,7 +204,7 @@ export default function ChinaCaixaEntrada() {
 
   const subtitle = isBrasilUser
     ? "Documentos da China aguardando sua aprovação."
-    : "Mensagens, ajustes e rascunhos do seu envio.";
+    : "Central de comando: acompanhe submissões criadas, enviadas e em análise no Brasil.";
 
   const loading = enviarBrasil.isPending;
 
