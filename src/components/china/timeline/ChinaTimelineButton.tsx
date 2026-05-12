@@ -2,7 +2,9 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { History } from "lucide-react";
 import { ChinaUnifiedTimeline } from "./ChinaUnifiedTimeline";
+import { SubmissionTimelineSheet } from "./SubmissionTimelineSheet";
 import type { ChinaTimelineScope } from "@/lib/china/timeline/types";
+import type { MailboxItem } from "@/hooks/useChinaMailbox";
 import { cn } from "@/lib/utils";
 
 interface Props {
@@ -13,6 +15,12 @@ interface Props {
   size?: "default" | "sm" | "icon";
   className?: string;
   iconOnly?: boolean;
+  /** Quando fornecido, abre a versão unificada (Linha do tempo + Histórico de eventos). */
+  submissao?: Pick<
+    MailboxItem,
+    "submissao_id" | "submissao_status" | "aprovado_em" | "created_at" | "numero_ordem" | "produto_codigo" | "produto_nome"
+  > | null;
+  ocId?: string | null;
 }
 
 export function ChinaTimelineButton({
@@ -23,6 +31,8 @@ export function ChinaTimelineButton({
   size = "sm",
   className,
   iconOnly = false,
+  submissao,
+  ocId,
 }: Props) {
   const [open, setOpen] = useState(false);
   return (
@@ -38,7 +48,18 @@ export function ChinaTimelineButton({
         <History className="h-3.5 w-3.5" />
         {!iconOnly && <span className="text-xs">{label}</span>}
       </Button>
-      <ChinaUnifiedTimeline open={open} onOpenChange={setOpen} scope={scope} title={title} />
+      {submissao ? (
+        <SubmissionTimelineSheet
+          open={open}
+          onOpenChange={setOpen}
+          scope={scope}
+          submissao={submissao}
+          ocId={ocId}
+          title={title}
+        />
+      ) : (
+        <ChinaUnifiedTimeline open={open} onOpenChange={setOpen} scope={scope} title={title} />
+      )}
     </>
   );
 }
