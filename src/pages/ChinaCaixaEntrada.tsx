@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/resizable";
 import { useChinaMailbox, type MailboxFolder, type MailboxItem } from "@/hooks/useChinaMailbox";
 import { useChinaInboxGroupMode } from "@/hooks/useChinaInboxGroupMode";
+import { confirmConclusaoTarefa } from "@/lib/projetos/confirmConclusao";
 import { useToggleInboxRead, useToggleSubmissaoFlag } from "@/hooks/useChinaMailboxActions";
 import {
   useTrashSubmissoes,
