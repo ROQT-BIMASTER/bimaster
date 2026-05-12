@@ -57,9 +57,7 @@ export default function ProductPhotoUpload({
 
     setUploading(true);
     try {
-      const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
-      const folder = produtoId || "temp";
-      const fileName = `${folder}/${Date.now()}.${ext}`;
+      const fileName = buildFabricaPhotoPath({ produtoId, fileName: file.name });
 
       const { error: uploadError } = await supabase.storage
         .from(BUCKET)
