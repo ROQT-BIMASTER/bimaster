@@ -1079,7 +1079,7 @@ export function FichaCustoProdutoEditor({
                     const apts = apontamentosPorInsumo.get(insumo.id) || [];
                     const isExpanded = expandedInsumos.has(insumo.id);
                     const insumoEvidencias = evidencias[insumo.id] || [];
-                    const campoLabels: Record<string, string> = { custo_nf: "Custo NF", custo_servico: "Custo Serviço", custo_condicao: "Custo Condição" };
+                    const campoLabels: Record<string, string> = { custo_nf: "Custo NF", custo_servico: "Custo Serviço", custo_condicao: "Custo Condição", ipi_valor: "IPI (R$)", ipi_percentual: "IPI (%)" };
 
                     return (
                       <React.Fragment key={insumo.id}>
