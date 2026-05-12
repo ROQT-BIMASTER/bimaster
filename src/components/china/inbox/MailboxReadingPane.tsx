@@ -46,7 +46,7 @@ export function MailboxReadingPane({
     const { url, state } = buildReturnToTarget(target, fromPath, { fromLabel: "Caixa de Entrada" });
     navigate(url, { state });
   };
-  const [motivo, setMotivo] = useState("");
+  
   const [chatOpen, setChatOpen] = useState<boolean>(() => {
     try { return localStorage.getItem("china-inbox-chat-open") !== "0"; } catch { return true; }
   });
