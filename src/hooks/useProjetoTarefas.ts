@@ -682,6 +682,7 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
     moveTarefaToSecao,
     createSecao,
     updateSecao,
+    deleteSecao,
     toggleSecaoBriefing,
     addColaborador,
     removeColaborador,
