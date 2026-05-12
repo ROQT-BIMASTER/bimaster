@@ -31,7 +31,16 @@ import { useMediaQuery } from "@/hooks/useMediaQuery";
 
 const VALID_FOLDERS: MailboxFolder[] = [
   "oc", "inbox", "starred", "sent", "drafts", "approved", "rejected", "trash",
+  "awaiting_send", "sent_brazil", "in_analysis", "returned",
 ];
+
+// Aliases legados → nova taxonomia da China (compat de URLs).
+const CHINA_FOLDER_ALIAS: Partial<Record<MailboxFolder, MailboxFolder>> = {
+  inbox: "awaiting_send",
+  drafts: "awaiting_send",
+  sent: "sent_brazil",
+  rejected: "returned",
+};
 
 export default function ChinaCaixaEntrada() {
   const navigate = useNavigate();
@@ -46,7 +55,15 @@ export default function ChinaCaixaEntrada() {
   const isDesktop = useMediaQuery("(min-width: 1024px)");
 
   const folderParam = searchParams.get("folder") as MailboxFolder | null;
-  const folder: MailboxFolder = folderParam && VALID_FOLDERS.includes(folderParam) ? folderParam : "inbox";
+  const rawFolder: MailboxFolder =
+    folderParam && VALID_FOLDERS.includes(folderParam)
+      ? folderParam
+      : isChinaUser
+        ? "awaiting_send"
+        : "inbox";
+  const folder: MailboxFolder = isChinaUser
+    ? (CHINA_FOLDER_ALIAS[rawFolder] ?? rawFolder)
+    : rawFolder;
 
   const { items, counts, isLoading, isFetching, refetch } = useChinaMailbox(folder);
   const toggleRead = useToggleInboxRead();
