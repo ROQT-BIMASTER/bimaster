@@ -1067,6 +1067,8 @@ export function FichaCustoProdutoEditor({
                     <TableHead className="min-w-[110px] text-right">NF (R$)</TableHead>
                     <TableHead className="min-w-[110px] text-right">Serviço (R$)</TableHead>
                     <TableHead className="min-w-[110px] text-right">Condição (R$)</TableHead>
+                    <TableHead className="min-w-[90px] text-right">IPI (%)</TableHead>
+                    <TableHead className="min-w-[110px] text-right">IPI (R$)</TableHead>
                     <TableHead className="min-w-[120px]">NF Ref.</TableHead>
                     <TableHead className="w-[80px]"></TableHead>
                   </TableRow>
@@ -1077,7 +1079,7 @@ export function FichaCustoProdutoEditor({
                     const apts = apontamentosPorInsumo.get(insumo.id) || [];
                     const isExpanded = expandedInsumos.has(insumo.id);
                     const insumoEvidencias = evidencias[insumo.id] || [];
-                    const campoLabels: Record<string, string> = { custo_nf: "Custo NF", custo_servico: "Custo Serviço", custo_condicao: "Custo Condição" };
+                    const campoLabels: Record<string, string> = { custo_nf: "Custo NF", custo_servico: "Custo Serviço", custo_condicao: "Custo Condição", ipi_valor: "IPI (R$)", ipi_percentual: "IPI (%)" };
 
                     return (
                       <React.Fragment key={insumo.id}>
@@ -1165,6 +1167,35 @@ export function FichaCustoProdutoEditor({
                             />
                           </TableCell>
                           <TableCell>
+                            <DecimalInput
+                              value={(insumo as any).ipi_percentual ?? 0}
+                              onChange={(val) => {
+                                handleCustoChange(insumo.id, "ipi_percentual", typeof val === "string" ? val : Number(val));
+                                // Se usuário digita %, zera o valor manual para evitar dupla contagem
+                                const pct = typeof val === "string" ? parseFloat(val) || 0 : Number(val);
+                                if (pct > 0 && Number((insumo as any).ipi_valor) > 0) {
+                                  onAtualizarInsumo(insumo.id, "ipi_valor" as keyof CustoInsumo, 0);
+                                }
+                              }}
+                              className="h-9 text-right"
+                              placeholder="0.00"
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <DecimalInput
+                              value={(insumo as any).ipi_valor ?? 0}
+                              onChange={(val) => {
+                                handleCustoChange(insumo.id, "ipi_valor", typeof val === "string" ? val : Number(val));
+                                // Se usuário digita valor R$, zera o % para usar o valor manual
+                                const v = typeof val === "string" ? parseFloat(val) || 0 : Number(val);
+                                if (v > 0 && Number((insumo as any).ipi_percentual) > 0) {
+                                  onAtualizarInsumo(insumo.id, "ipi_percentual" as keyof CustoInsumo, 0);
+                                }
+                              }}
+                              className="h-9 text-right"
+                            />
+                          </TableCell>
+                          <TableCell>
                             <Input
                               value={insumo.nf_referencia || ""}
                               onChange={(e) =>
@@ -1209,7 +1240,7 @@ export function FichaCustoProdutoEditor({
                         {/* Linha expandida com detalhes do insumo */}
                         {isExpanded && (
                           <TableRow className={temApontamento ? "bg-red-50/50 dark:bg-red-950/10" : "bg-muted/30"}>
-                            <TableCell colSpan={10} className="p-0">
+                            <TableCell colSpan={12} className="p-0">
                               <div className="p-4 space-y-4">
                                 {/* Apontamentos da diretoria (se houver) */}
                                 {temApontamento && (
@@ -1411,7 +1442,7 @@ export function FichaCustoProdutoEditor({
           <CardTitle className="text-base">Totais</CardTitle>
         </CardHeader>
         <CardContent className="pt-0">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
             <div className="p-4 bg-muted rounded-lg text-center">
               <p className="text-sm text-muted-foreground">NF</p>
               <p className="text-xl font-bold">{formatarMoeda(totais.totalNF + totais.markupNF)}</p>
@@ -1423,6 +1454,10 @@ export function FichaCustoProdutoEditor({
             <div className="p-4 bg-muted rounded-lg text-center">
               <p className="text-sm text-muted-foreground">Condição</p>
               <p className="text-xl font-bold">{formatarMoeda(totais.totalCondicao + totais.markupCondicao)}</p>
+            </div>
+            <div className="p-4 bg-muted rounded-lg text-center">
+              <p className="text-sm text-muted-foreground">IPI</p>
+              <p className="text-xl font-bold">{formatarMoeda(totais.totalIPI)}</p>
             </div>
             <div className="p-4 bg-primary/10 rounded-lg text-center border-2 border-primary">
               <p className="text-sm text-muted-foreground">Custo Total</p>

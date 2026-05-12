@@ -15821,6 +15821,8 @@ export type Database = {
           custo_servico: number | null
           fornecedor: string | null
           id: string
+          ipi_percentual: number | null
+          ipi_valor: number | null
           mp_id: string | null
           nf_referencia: string | null
           nome: string
@@ -15838,6 +15840,8 @@ export type Database = {
           custo_servico?: number | null
           fornecedor?: string | null
           id?: string
+          ipi_percentual?: number | null
+          ipi_valor?: number | null
           mp_id?: string | null
           nf_referencia?: string | null
           nome: string
@@ -15855,6 +15859,8 @@ export type Database = {
           custo_servico?: number | null
           fornecedor?: string | null
           id?: string
+          ipi_percentual?: number | null
+          ipi_valor?: number | null
           mp_id?: string | null
           nf_referencia?: string | null
           nome?: string
