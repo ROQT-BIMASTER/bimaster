@@ -166,10 +166,34 @@ function ExpandableDocList({
 }
 
 export function UnifiedSubmissionTimeline({ submissao, ocId, onlyChinaStages, className }: Props) {
+  const qc = useQueryClient();
   const { data: docs } = useDocsResumo(submissao.submissao_id);
   const { data: ocTimeline } = useOCTimeline(ocId || null);
   const oc = ocTimeline?.oc as any;
   const embarque = ocTimeline?.embarques?.[0] as any;
+
+  // Realtime: invalida cache local quando docs ou submissão mudam.
+  useEffect(() => {
+    const sid = submissao.submissao_id;
+    if (!sid) return;
+    const channel = supabase
+      .channel(`unified-timeline-${sid}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "china_produto_documentos", filter: `submissao_id=eq.${sid}` },
+        () => qc.invalidateQueries({ queryKey: ["china-submissao-docs-resumo", sid] }),
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "china_produto_submissoes", filter: `id=eq.${sid}` },
+        () => {
+          qc.invalidateQueries({ queryKey: ["china-mailbox"] });
+          qc.invalidateQueries({ queryKey: ["china-submissao-docs-resumo", sid] });
+        },
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [submissao.submissao_id, qc]);
 
   // ---------- China (1–4) ----------
   const stSubmissao: StageStatus = "done";
