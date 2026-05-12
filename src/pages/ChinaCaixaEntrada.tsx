@@ -125,10 +125,18 @@ export default function ChinaCaixaEntrada() {
       }
       if (gPrefixRef.current) {
         gPrefixRef.current = false;
-        if (e.key === "i") setFolder("inbox");
-        else if (e.key === "s") setFolder("sent");
-        else if (e.key === "d") setFolder("drafts");
-        else if (e.key === "a") setFolder("approved");
+        if (isChinaUser) {
+          if (e.key === "p") setFolder("awaiting_send");
+          else if (e.key === "e") setFolder("sent_brazil");
+          else if (e.key === "a") setFolder("in_analysis");
+          else if (e.key === "r") setFolder("returned");
+          else if (e.key === "v") setFolder("approved");
+        } else {
+          if (e.key === "i") setFolder("inbox");
+          else if (e.key === "s") setFolder("sent");
+          else if (e.key === "d") setFolder("drafts");
+          else if (e.key === "a") setFolder("approved");
+        }
         return;
       }
       if (!items.length) return;
