@@ -24,7 +24,7 @@ import {
   useRestoreSubmissoes,
   usePurgeSubmissoes,
 } from "@/hooks/useChinaMailboxTrash";
-import { useCriarRevisao, useDarCiencia } from "@/hooks/useChinaRevisoes";
+
 import { useChinaUserContext } from "@/hooks/useChinaUserContext";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 
@@ -48,8 +48,6 @@ export default function ChinaCaixaEntrada() {
   const folder: MailboxFolder = folderParam && VALID_FOLDERS.includes(folderParam) ? folderParam : "inbox";
 
   const { items, counts, isLoading, isFetching, refetch } = useChinaMailbox(folder);
-  const aprovar = useCriarRevisao();
-  const darCiencia = useDarCiencia();
   const toggleRead = useToggleInboxRead();
   const toggleFlag = useToggleSubmissaoFlag();
   const trash = useTrashSubmissoes();
@@ -125,8 +123,6 @@ export default function ChinaCaixaEntrada() {
         if (prev) setSelectedId(prev.documento_id ?? prev.submissao_id);
       } else if (e.key === "s" && selectedItem) {
         toggleFlag.mutate({ submissao_id: selectedItem.submissao_id, flagged: !selectedItem.is_flagged });
-      } else if (e.key === "e" && selectedItem && isBrasilUser && selectedItem.doc_status && ["pendente","enviado","contestado"].includes(selectedItem.doc_status)) {
-        handleApprove(selectedItem);
       }
     };
     window.addEventListener("keydown", onKey);
@@ -134,26 +130,6 @@ export default function ChinaCaixaEntrada() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [items, selectedId, selectedItem, isBrasilUser]);
 
-  const handleApprove = (item: MailboxItem) => {
-    if (!item.documento_id) return;
-    aprovar.mutate({
-      documento_id: item.documento_id,
-      submissao_id: item.submissao_id,
-      resultado: "aprovado",
-      acao_tipo: "aprovar",
-    });
-  };
-  const handleReject = (item: MailboxItem, motivo: string) => {
-    if (!item.documento_id) return;
-    aprovar.mutate({
-      documento_id: item.documento_id,
-      submissao_id: item.submissao_id,
-      resultado: "rejeitado",
-      motivo_rejeicao: motivo,
-      anotacoes: [],
-      acao_tipo: "rejeitar",
-    });
-  };
   const handleCorrigir = (item: MailboxItem) => {
     goWithReturn(`/dashboard/fabrica-china/submissao/${item.submissao_id}`);
   };
