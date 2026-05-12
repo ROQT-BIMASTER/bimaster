@@ -4,7 +4,7 @@ import { ptBR } from "date-fns/locale";
 import {
   Star, Paperclip, Clock, AlertTriangle, Link2, Link2Off, Package,
   CheckCircle2, FileText, Send, XCircle, Loader2, Globe, Maximize2,
-  MousePointerClick, Zap, MoveVertical, X, Crosshair,
+  MousePointerClick, Zap, MoveVertical, X, Crosshair, CheckCheck,
 } from "lucide-react";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
@@ -17,6 +17,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import type { MailboxRow, VincularFolder } from "@/hooks/useVincularChinaMailboxData";
 import { VincularChinaRowAction } from "@/components/china/VincularChinaRowAction";
+import { isVincularRead, markVincularRead, subscribeVincularRead } from "@/lib/china/vincularReadState";
 
 interface Props {
   items: MailboxRow[];
