@@ -239,6 +239,20 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
 
   const updateTarefa = useMutation({
     mutationFn: async ({ id, ...updates }: Partial<ProjetoTarefa> & { id: string }) => {
+      // Quando o caller troca diretamente o status para "concluida"
+      // (ex.: select de status, drag para coluna concluído), exigimos
+      // confirmação para padronizar com o checkbox e evitar conclusão acidental.
+      if ((updates as any).status === "concluida") {
+        const tarefa = tarefas.find(t => t.id === id);
+        if (tarefa && tarefa.status !== "concluida") {
+          const { confirmConclusaoTarefa } = await import("@/lib/projetos/confirmConclusao");
+          const ok = await confirmConclusaoTarefa({
+            titulo: tarefa.titulo,
+            isSubtarefa: !!tarefa.parent_tarefa_id,
+          });
+          if (!ok) throw new Error("__CANCELLED__");
+        }
+      }
       const { error } = await supabase
         .from("projeto_tarefas")
         .update({ ...updates, updated_at: new Date().toISOString() } as never)
