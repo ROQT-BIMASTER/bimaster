@@ -538,6 +538,8 @@ export function useFichaCustoProduto(produtoId: string | undefined) {
         custo_nf: filho.custoNFLinha,
         custo_servico: filho.custoServicoLinha,
         custo_condicao: filho.custoCondicaoLinha,
+        ipi_valor: filho.custoIPILinha,
+        ipi_percentual: 0,
         fornecedor: "Importado do Kit",
       });
     }
