@@ -281,18 +281,50 @@ Deno.serve(
 
       const content = r.data?.choices?.[0]?.message?.content ?? "";
 
+      // Persistir relatório
+      const submissaoSnapshot = {
+        id: submissao.id,
+        codigo: submissao.produto_codigo,
+        nome: submissao.produto_nome,
+        numero_item: submissao.numero_item,
+        numero_ordem: submissao.numero_ordem,
+        status: submissao.status,
+      };
+      let relatorioId: string | null = null;
+      try {
+        const { data: ins } = await sb
+          .from("china_copilot_relatorios")
+          .insert({
+            submissao_id: submissao.id,
+            idioma,
+            profundidade,
+            markdown: content,
+            kpis: dossie.kpis,
+            analytics,
+            submissao_snapshot: submissaoSnapshot,
+            model: r.modelUsed,
+            gerado_por: _ctx.userId ?? null,
+          })
+          .select("id")
+          .single();
+        relatorioId = ins?.id ?? null;
+      } catch (e) {
+        console.error("Falha ao persistir relatório copiloto:", e);
+      }
+
       // Log no timeline
       sb.from("china_timeline_eventos")
         .insert({
           submissao_id: submissao.id,
           kind: "copilot_relatorio_gerado",
-          payload: { idioma, profundidade, model: r.modelUsed },
+          payload: { idioma, profundidade, model: r.modelUsed, relatorio_id: relatorioId },
         })
         .then(() => {})
         .catch(() => {});
 
       return new Response(
         JSON.stringify({
+          relatorio_id: relatorioId,
           markdown: content,
           kpis: dossie.kpis,
           analytics,
