@@ -40,17 +40,18 @@ function isPdf(name: string) {
 
 export function PastaDigitalFromChecklist({ submissaoId }: PastaDigitalFromChecklistProps) {
   const { data: documentos = [], isLoading, refetch } = useDocumentosDaSubmissao(submissaoId);
+  const merged = useMergedChinaChecklist(submissaoId);
   const [expandedFases, setExpandedFases] = useState<Set<string>>(new Set(["dados_oficiais"]));
   const [selectedDoc, setSelectedDoc] = useState<any>(null);
   const [resolvedUrl, setResolvedUrl] = useState<string | null>(null);
   const [loadingUrl, setLoadingUrl] = useState(false);
 
-  // Group documents by DOCUMENT_CATEGORIES (phases)
+  // Group documents by checklist efetivo (default + custom + overrides + ocultos)
   const fases = useMemo(() => {
     const result: { key: string; labelPt: string; labelCn: string; docs: any[]; fluxo: string }[] = [];
     let pageCounter = 1;
 
-    for (const cat of DOCUMENT_CATEGORIES) {
+    for (const cat of merged.categories) {
       const catDocs = documentos
         .filter((d: any) => cat.tipos.includes(d.tipo_documento))
         .map((d: any) => ({ ...d, _page: pageCounter++ }));
@@ -60,7 +61,7 @@ export function PastaDigitalFromChecklist({ submissaoId }: PastaDigitalFromCheck
     }
 
     // Ungrouped
-    const allTipos = DOCUMENT_CATEGORIES.flatMap((c) => c.tipos);
+    const allTipos = merged.categories.flatMap((c) => c.tipos);
     const ungrouped = documentos
       .filter((d: any) => !allTipos.includes(d.tipo_documento))
       .map((d: any) => ({ ...d, _page: pageCounter++ }));
@@ -69,7 +70,7 @@ export function PastaDigitalFromChecklist({ submissaoId }: PastaDigitalFromCheck
     }
 
     return result;
-  }, [documentos]);
+  }, [documentos, merged.categories]);
 
   const totalDocs = documentos.length;
   const aprovados = documentos.filter((d: any) => d.status === "aprovado").length;
