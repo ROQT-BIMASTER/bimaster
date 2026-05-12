@@ -508,6 +508,15 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
 
   const softDeleteTarefa = useMutation({
     mutationFn: async (tarefaId: string) => {
+      // Confirmação obrigatória — evita exclusão acidental por clique/atalho.
+      const tarefa = tarefas.find(t => t.id === tarefaId);
+      const { confirmExclusaoTarefa } = await import("@/lib/projetos/confirmConclusao");
+      const ok = await confirmExclusaoTarefa({
+        titulo: tarefa?.titulo,
+        isSubtarefa: !!tarefa?.parent_tarefa_id,
+      });
+      if (!ok) throw new Error("__CANCELLED__");
+
       const { error } = await supabase
         .from("projeto_tarefas")
         .update({ excluida_em: new Date().toISOString(), excluida_por: user?.id || null } as any)
