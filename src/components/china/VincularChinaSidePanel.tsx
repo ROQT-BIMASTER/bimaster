@@ -216,6 +216,7 @@ export function VincularChinaSidePanel({
   const sc = getStatusConfig(submissao.status);
 
   return (
+    <>
     <div className="flex flex-col h-full border-l bg-card">
       {/* Header */}
       <div className="px-4 py-3 border-b bg-muted/30 shrink-0">
