@@ -6,6 +6,64 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { logger } from "@/lib/logger";
 import { buildFabricaPhotoPath, FABRICA_FOTOS_BUCKET } from "@/lib/fabrica/photoPath";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+
+function describeUploadError(err: any): { title: string; message: string; hint?: string } {
+  const raw = (err?.message || err?.error || String(err || "")).toString();
+  const status = err?.statusCode || err?.status;
+  const lower = raw.toLowerCase();
+
+  if (lower.includes("row-level security") || lower.includes("rls") || status === 403 || lower.includes("unauthorized") || lower.includes("not authorized")) {
+    return {
+      title: "Sem permissão para enviar foto",
+      message: "Seu usuário não tem permissão para subir fotos no módulo Fábrica.",
+      hint: "Solicite ao administrador acesso de upload no bucket de fotos de produtos acabados.",
+    };
+  }
+  if (lower.includes("jwt") || lower.includes("expired") || status === 401) {
+    return {
+      title: "Sessão expirada",
+      message: "Sua sessão expirou. Faça login novamente para enviar a foto.",
+    };
+  }
+  if (lower.includes("payload") || lower.includes("too large") || status === 413) {
+    return {
+      title: "Arquivo muito grande",
+      message: "A imagem excede o tamanho permitido (máximo 5MB).",
+    };
+  }
+  if (lower.includes("mime") || lower.includes("invalid") && lower.includes("type")) {
+    return {
+      title: "Formato inválido",
+      message: "O arquivo enviado não é uma imagem válida. Use JPG, PNG ou WebP.",
+    };
+  }
+  if (lower.includes("network") || lower.includes("failed to fetch") || lower.includes("timeout")) {
+    return {
+      title: "Falha de conexão",
+      message: "Não foi possível conectar ao servidor. Verifique sua internet e tente novamente.",
+    };
+  }
+  if (lower.includes("bucket") && lower.includes("not found")) {
+    return {
+      title: "Configuração indisponível",
+      message: "O repositório de fotos não foi encontrado. Avise o administrador.",
+    };
+  }
+  return {
+    title: "Erro ao enviar foto",
+    message: raw || "Ocorreu um erro inesperado ao processar o upload.",
+    hint: status ? `Código: ${status}` : undefined,
+  };
+}
 
 interface ProductPhotoUploadProps {
   currentUrl: string | null;
