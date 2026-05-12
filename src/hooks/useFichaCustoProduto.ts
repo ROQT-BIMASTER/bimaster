@@ -150,6 +150,7 @@ export function useFichaCustoProduto(produtoId: string | undefined) {
       setConfig({
         ...data,
         base_calculo_markup: (data.base_calculo_markup as BaseCalculoMarkup) || 'total',
+        ipi_percentual_saida: Number((data as any).ipi_percentual_saida) || 0,
       });
     } else {
       // Criar config padrão
@@ -161,6 +162,7 @@ export function useFichaCustoProduto(produtoId: string | undefined) {
         custo_mao_obra_servico: 0,
         percentual_markup: 10,
         base_calculo_markup: "total",
+        ipi_percentual_saida: 0,
         observacoes: null,
       });
     }
