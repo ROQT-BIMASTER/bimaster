@@ -184,19 +184,34 @@ export function UnifiedSubmissionTimeline({ submissao, ocId, onlyChinaStages, cl
   const submStatus = submissao.submissao_status || "";
   const enviadaParaBrasil = ["enviado", "enviado_brasil", "em_revisao", "aprovado", "rejeitado"]
     .includes(submStatus);
-  const stEnviada: StageStatus = enviadaParaBrasil
+
+  // Stage 3: só fica "done" quando TODOS os documentos do checklist tiverem
+  // sido enviados ao Brasil. Envio parcial vira "pending" e exibe progresso.
+  const totalDocs = docs?.total ?? 0;
+  const enviadosDocs = docs?.enviados ?? 0;
+  const allSent = totalDocs > 0 && enviadosDocs >= totalDocs;
+  const stEnviada: StageStatus = !enviadaParaBrasil && totalDocs === 0
+    ? (submStatus === "rascunho" ? "neutral" : "pending")
+    : allSent
     ? "done"
+    : enviadosDocs > 0
+    ? "pending"
     : submStatus === "rascunho"
     ? "neutral"
     : "pending";
 
-  const stAprovBrasil: StageStatus = submStatus === "aprovado" || submissao.aprovado_em
-    ? "done"
-    : submStatus === "rejeitado"
-    ? "atrasado"
-    : enviadaParaBrasil
-    ? "pending"
-    : "neutral";
+  // Stage 4: comparar documentos enviados vs aprovados pelo Brasil.
+  const aprovDocs = docs?.aprovados ?? 0;
+  const rejDocs = docs?.rejeitados ?? 0;
+  const fullyApproved = enviadosDocs > 0 && aprovDocs >= enviadosDocs;
+  const stAprovBrasil: StageStatus =
+    submissao.aprovado_em || (fullyApproved && submStatus === "aprovado")
+      ? "done"
+      : rejDocs > 0 || submStatus === "rejeitado"
+      ? "atrasado"
+      : enviadosDocs > 0
+      ? "pending"
+      : "neutral";
 
   // ---------- Brasil/OC (5–10) ----------
   const totalApontado = (ocTimeline?.apontamentos || [])
