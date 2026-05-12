@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Star, Paperclip, Clock, AlertTriangle, CheckCircle2, FileText, FileX2, MessageSquareOff, ChevronRight, ChevronDown, Layers } from "lucide-react";
+import { Star, Paperclip, Clock, AlertTriangle, CheckCircle2, FileText, FileX2, MessageSquareOff, ChevronRight, ChevronDown, Layers, CheckCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -90,7 +90,9 @@ function MailboxRow({ item, dir, folder, active, checked, onSelect, onToggleChec
   const id = item.documento_id ?? item.submissao_id;
   const sb = statusBadge(item.submissao_status, item.doc_status);
   const SbIcon = sb.icon;
-  const unread = !item.is_read && folder === "inbox";
+  // Padrão e-mail: enquanto não lido, título em destaque em qualquer pasta.
+  // Itens sem documento (não rastreáveis por leitura) são tratados como lidos.
+  const unread = !item.is_read;
   return (
     <li
       onClick={() => onSelect(id)}
