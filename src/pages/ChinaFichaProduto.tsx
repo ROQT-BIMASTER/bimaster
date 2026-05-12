@@ -468,8 +468,8 @@ export default function ChinaFichaProduto() {
 
           {/* Compact summary table — split by flow */}
           {[
-            { categories: CATEGORIES_CHINA_ENVIA, headerPt: "China Envia ao Brasil", headerCn: "中国发送至巴西", icon: <ArrowUpRight className="h-4 w-4" />, color: "bg-primary/10 text-primary border-primary/30" },
-            { categories: CATEGORIES_BRASIL_ENVIA, headerPt: "Brasil Envia à China", headerCn: "巴西发送至中国", icon: <ArrowDownLeft className="h-4 w-4" />, color: "bg-success/10 text-success border-success/30" },
+            { categories: merged.categoriesChinaEnvia, headerPt: "China Envia ao Brasil", headerCn: "中国发送至巴西", icon: <ArrowUpRight className="h-4 w-4" />, color: "bg-primary/10 text-primary border-primary/30" },
+            { categories: merged.categoriesBrasilEnvia, headerPt: "Brasil Envia à China", headerCn: "巴西发送至中国", icon: <ArrowDownLeft className="h-4 w-4" />, color: "bg-success/10 text-success border-success/30" },
           ].map(({ categories, headerPt, headerCn, icon, color }) => (
             <div key={headerPt} className="overflow-x-auto">
               <table className="w-full text-sm">
@@ -493,7 +493,7 @@ export default function ChinaFichaProduto() {
                 </thead>
                 <tbody className="divide-y divide-border">
                   {categories.map((cat) => {
-                    const catTotalTypes = CHINA_DOCUMENT_TYPES.filter(d => cat.tipos.includes(d.tipo)).length;
+                    const catTotalTypes = cat.tipos.length;
                     const catDocs = documentos.filter((d: any) => cat.tipos.includes(d.tipo_documento));
                     const catFilled = new Set(catDocs.map((d: any) => d.tipo_documento)).size;
                     const hasRejected = catDocs.some((d: any) => d.status === "rejeitado");
