@@ -973,7 +973,7 @@ export function ChinaChecklistFocusMode({
             <ScrollArea className="flex-1">
               <div className="p-6">
                 <BilingualLabel pt={activeCatObj.labelPt} cn={activeCatObj.labelCn} size="lg" className="mb-4" />
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 auto-rows-min items-start">
                   {activeCatTypes.map((config) => {
                     const typeDocs = documentos.filter((d) => d.tipo_documento === config.tipo);
                     const realDocs = typeDocs.filter(d => d.status !== "planejado");
