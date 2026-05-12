@@ -119,7 +119,19 @@ export function DivergenciaDetailPanel({ nc }: Props) {
               size="sm"
               variant="outline"
               className="mt-2 text-red-600 border-red-300"
-              onClick={() => resolver.mutate({ id: nc.id, status: "cancelada", motivo_cancelamento: motivoCancel })}
+              onClick={async () => {
+                const { confirmExclusaoTarefa } = await import("@/lib/projetos/confirmConclusao");
+                const ok = await confirmExclusaoTarefa({
+                  tituloDialog: "Cancelar não conformidade?",
+                  acaoLabel: "Sim, cancelar NC",
+                  descricao:
+                    `Você está prestes a cancelar esta NC com o motivo: "${motivoCancel.trim()}". ` +
+                    `Ela ficará marcada como cancelada e o motivo será registrado no histórico. ` +
+                    `Para reabrir, será necessário criar uma nova NC.`,
+                });
+                if (!ok) return;
+                resolver.mutate({ id: nc.id, status: "cancelada", motivo_cancelamento: motivoCancel });
+              }}
               disabled={!motivoCancel.trim() || resolver.isPending}
             >
               <XCircle className="h-3.5 w-3.5 mr-1" /> Cancelar NC
