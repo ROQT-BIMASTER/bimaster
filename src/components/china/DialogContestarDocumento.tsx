@@ -187,7 +187,7 @@ export function DialogContestarDocumento({
               id="novo"
               type="file"
               onChange={(e) => setNovoArquivo(e.target.files?.[0] || null)}
-              accept=".pdf,.png,.jpg,.jpeg,.webp,.xlsx,.xls,.doc,.docx"
+              accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.rtf,.odt,.ods,.odp,image/*"
             />
             {novoArquivo && (
               <Badge variant="secondary" className="gap-1">
@@ -204,7 +204,7 @@ export function DialogContestarDocumento({
               type="file"
               multiple
               onChange={(e) => handleAnexos(e.target.files)}
-              accept=".pdf,.png,.jpg,.jpeg,.webp,.xlsx,.xls,.doc,.docx"
+              accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.rtf,.odt,.ods,.odp,image/*"
             />
             <p className="text-xs text-muted-foreground">
               Até {MAX_FILES} arquivos, 20MB cada.

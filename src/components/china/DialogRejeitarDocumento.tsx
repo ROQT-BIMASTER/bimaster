@@ -91,7 +91,7 @@ export function DialogRejeitarDocumento({
               type="file"
               multiple
               onChange={(e) => handleFiles(e.target.files)}
-              accept=".pdf,.png,.jpg,.jpeg,.webp,.xlsx,.xls,.doc,.docx"
+              accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.rtf,.odt,.ods,.odp,image/*"
             />
             <p className="text-xs text-muted-foreground">
               Até {MAX_FILES} arquivos, 20MB cada. PDF, imagens, planilhas ou documentos.
