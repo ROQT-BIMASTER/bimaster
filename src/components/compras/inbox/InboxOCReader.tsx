@@ -158,6 +158,26 @@ export function InboxOCReader({ oc }: InboxOCReaderProps) {
                   <p className="text-xs text-muted-foreground text-center py-4">Carregando linha do tempo...</p>
                 ) : (
                   <>
+                    {oc.submissao_id && (
+                      <details className="rounded-md border border-border bg-muted/20 px-2 py-1.5 group">
+                        <summary className="cursor-pointer text-[11px] font-semibold text-muted-foreground uppercase tracking-wide list-none flex items-center gap-1.5">
+                          <span className="group-open:rotate-90 transition-transform">▸</span>
+                          Origem China · etapas 1–4
+                        </summary>
+                        <div className="mt-2">
+                          <UnifiedSubmissionTimeline
+                            submissao={{
+                              submissao_id: oc.submissao_id,
+                              submissao_status: "aprovado",
+                              aprovado_em: timeline?.oc?.aprovado_em ?? null,
+                              created_at: oc.data_emissao,
+                              numero_ordem: oc.numero_oc,
+                            }}
+                            onlyChinaStages
+                          />
+                        </div>
+                      </details>
+                    )}
                     <StageCard icon={ShoppingCart} title="1. Pedido" status={stPedido}>
                       <DataRow label="Emissão" value={fmtDate(oc.data_emissao)} />
                       <DataRow label="Entrega prevista" value={fmtDate(oc.data_entrega_prevista)} />
