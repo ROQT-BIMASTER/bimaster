@@ -349,6 +349,9 @@ export default function ChinaNovaSubmissao() {
       if (!newId) return;
       activeSubId = newId;
       if (!submissaoId) setSubmissaoId(activeSubId);
+      setDraftStatus("saved");
+      setLastSavedAt(new Date());
+      setLastDraftError(null);
 
       if (validatedData.cores?.length > 0) {
         const parsed: GradeItem[] = validatedData.cores.map((c: any) => ({
