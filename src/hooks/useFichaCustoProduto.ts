@@ -486,11 +486,11 @@ export function useFichaCustoProduto(produtoId: string | undefined) {
         const mNF = (baseMarkup === 'total' || baseMarkup === 'nf' || baseMarkup === 'nf_servico') ? tNF * (pctMarkup / 100) : 0;
         const mServ = (baseMarkup === 'total' || baseMarkup === 'servico' || baseMarkup === 'nf_servico') ? tServ * (pctMarkup / 100) : 0;
         const mCond = baseMarkup === 'total' ? tCond * (pctMarkup / 100) : 0;
-        // IPI agora é único, sobre a saída do filho
-        const baseSaidaFilho = subtotal + mNF + mServ + mCond;
+        // IPI do filho incide somente sobre NF de saída (NF + markupNF)
+        const baseIPIFilho = tNF + mNF;
         const pctIPIFilho = Number((configFilho as any)?.ipi_percentual_saida) || 0;
-        const totalIPIFilho = baseSaidaFilho * (pctIPIFilho / 100);
-        const custoUnit = baseSaidaFilho + totalIPIFilho;
+        const totalIPIFilho = baseIPIFilho * (pctIPIFilho / 100);
+        const custoUnit = subtotal + mNF + mServ + mCond + totalIPIFilho;
 
         const qty = item.quantidade || 1;
         const custoNFFinal = tNF + mNF;
