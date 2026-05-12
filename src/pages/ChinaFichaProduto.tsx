@@ -22,6 +22,7 @@ import { ChinaDocumentSlot } from "@/components/china/ChinaDocumentSlot";
 import { CHINA_DOCUMENT_TYPES, DOCUMENT_CATEGORIES, MANDATORY_DOCS, STATUS_LABELS } from "@/lib/china-document-types";
 import { useMergedChinaChecklist } from "@/hooks/useMergedChinaChecklist";
 import { ArrowUpRight, ArrowDownLeft } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { EmitirOCDialog } from "@/components/china/EmitirOCDialog";
 import { useChinaProjetosVinculados, useCriarProjetoChina } from "@/hooks/useChinaProjeto";
 import { ChinaProjetoChecklist } from "@/components/china/ChinaProjetoChecklist";
@@ -507,12 +508,20 @@ export default function ChinaFichaProduto() {
                       ? <Badge variant="success" className="text-xs">✓ Completo 完成</Badge>
                       : hasRejected
                       ? <Badge variant="destructive" className="text-xs">✗ Rejeitado 被拒</Badge>
+                      : hasDrafts > 0
+                      ? <Badge variant="warning" className="text-xs whitespace-nowrap">⚠ Não enviado ao Brasil 未发送</Badge>
                       : catFilled === 0
                       ? <Badge variant="secondary" className="text-xs">— Vazio 空</Badge>
                       : <Badge variant="warning" className="text-xs">⏳ Parcial 部分</Badge>;
 
                     return (
-                      <tr key={cat.key} className="hover:bg-accent/10 transition-colors">
+                      <tr
+                        key={cat.key}
+                        className={cn(
+                          "hover:bg-accent/10 transition-colors",
+                          hasDrafts > 0 && !hasRejected && "bg-warning/5 border-l-4 border-l-warning",
+                        )}
+                      >
                         <td className="px-4 py-3">
                           <div>
                             <p className="font-medium text-foreground text-sm">{cat.labelPt}</p>
