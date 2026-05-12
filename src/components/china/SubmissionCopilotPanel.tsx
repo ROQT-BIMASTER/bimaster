@@ -47,6 +47,15 @@ type Resultado = {
     embarques_resumo: { total: number; em_transito: number; entregues: number };
     atrasos_top: Array<{ coluna: string; item: string; prazo: string | null; responsavel: string | null; dias_atraso: number | null }>;
     marcos: Array<{ data: string | null; label: string; status: "ok" | "pending" | "late"; tipo: string }>;
+    checklist_360?: Array<{
+      categoria: string; categoria_cn: string; fluxo: string;
+      total_itens: number; cumpridos: number; pendentes: number;
+      docs_anexados: number; docs_oficializados: number; percentual: number;
+      itens: Array<{ tipo: string; label: string; cumprido: boolean; docs_anexados: number; docs_oficializados: number; ultimo_envio: string | null }>;
+    }>;
+    docs_por_categoria?: Array<{ categoria: string; anexados: number; oficializados: number }>;
+    planilha_resumo?: { tem_planilha: boolean; linhas: number; colunas: string[]; preview: any[]; principais_campos: Array<{ campo: string; valor: string }> };
+    sugestoes_acao?: Array<{ prioridade: "alta" | "media" | "baixa"; titulo: string; detalhe: string; responsavel: string | null; prazo: string | null }>;
   };
   submissao: { id: string; codigo: string; nome: string };
   model: string;
