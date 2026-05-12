@@ -326,6 +326,7 @@ export default function ChinaCaixaEntrada() {
                 isChinaUser={isChinaUser}
                 onView={(it) => setPreviewDoc(it)}
                 onCorrigir={handleCorrigir}
+                onEnviarBrasil={handleEnviarBrasil}
                 onToggleRead={handleToggleRead}
                 onToggleStar={handleToggleStar}
                 loading={loading}
@@ -356,6 +357,7 @@ export default function ChinaCaixaEntrada() {
               isChinaUser={isChinaUser}
               onView={(it) => setPreviewDoc(it)}
               onCorrigir={handleCorrigir}
+              onEnviarBrasil={handleEnviarBrasil}
               onToggleRead={handleToggleRead}
               onToggleStar={handleToggleStar}
               onBack={() => setSelectedId(null)}
