@@ -181,7 +181,7 @@ export default function ChinaCaixaEntrada() {
     ? "Documentos da China aguardando sua aprovação."
     : "Mensagens, ajustes e rascunhos do seu envio.";
 
-  const loading = false;
+  const loading = enviarBrasil.isPending;
 
   return (
     <ChinaPageShell>
