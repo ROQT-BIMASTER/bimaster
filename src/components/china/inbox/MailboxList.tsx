@@ -130,7 +130,7 @@ export function MailboxList({
           aria-label="Selecionar todos"
         />
         <span className="text-[11px] text-muted-foreground">
-          {filtered.length} item{filtered.length === 1 ? "" : "s"} · {folder}
+          {filtered.length} item{filtered.length === 1 ? "" : "s"} · {FOLDER_TITLES[folder] ?? folder}
         </span>
       </div>
       <ul className="flex-1 overflow-y-auto" role="list">
