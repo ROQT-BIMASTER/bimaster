@@ -76,6 +76,7 @@ const CHINA_GROUPS: FolderGroup[] = [
 
 export function MailboxSidebar({ folder, counts, onSelect, onCompose, forceChinaLayout }: Props) {
   const { isChinaUser } = useChinaUserContext();
+  const { t } = useChinaI18n();
   const useChina = forceChinaLayout || isChinaUser;
   const groups = useChina ? CHINA_GROUPS : BRASIL_GROUPS;
 
@@ -89,15 +90,15 @@ export function MailboxSidebar({ folder, counts, onSelect, onCompose, forceChina
           disabled={!onCompose}
         >
           <Pencil className="h-4 w-4" />
-          Nova submissão / 新提交
+          {t("inbox.actions.novaSubmissao")}
         </Button>
       </div>
       <nav className="flex-1 overflow-y-auto px-1.5 pb-3">
         {groups.map((group, gi) => (
           <div key={gi} className={cn(gi > 0 && "mt-3 border-t border-border/50 pt-2")}>
-            {group.title && (
+            {group.titleKey && (
               <p className="px-2.5 pb-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground/70">
-                {group.title}
+                {t(`inbox.sidebar.${group.titleKey}`)}
               </p>
             )}
             {group.folders.map((f) => {
@@ -119,8 +120,7 @@ export function MailboxSidebar({ folder, counts, onSelect, onCompose, forceChina
                 >
                   <Icon className={cn("h-4 w-4 shrink-0", f.tone, active && "text-primary")} />
                   <span className="truncate flex-1 text-left">
-                    {f.label}
-                    <span className="ml-1 text-[10px] text-muted-foreground/70">{f.labelCn}</span>
+                    {t(`inbox.sidebar.folders.${f.i18nKey}`)}
                   </span>
                   {unread > 0 ? (
                     <Badge className="h-4 px-1.5 text-[10px] bg-primary text-primary-foreground">
@@ -136,20 +136,16 @@ export function MailboxSidebar({ folder, counts, onSelect, onCompose, forceChina
         ))}
       </nav>
       <div className="border-t border-border/60 p-3 text-[10px] leading-relaxed text-muted-foreground">
-        <p className="font-medium text-foreground/80">Atalhos</p>
+        <p className="font-medium text-foreground/80">{t("inbox.sidebar.atalhos")}</p>
         {useChina ? (
           <>
-            <p>g p — Pendentes · g e — Enviadas</p>
-            <p>g a — Em análise · g r — Retorno</p>
-            <p>g v — Aprovadas · b — Enviar ao Brasil</p>
-            <p>j / k — Navegar · / — Buscar · s — Estrela</p>
+            <p>g p · g e · g a · g r · g v · b</p>
+            <p>j / k · / · s</p>
           </>
         ) : (
           <>
-            <p>g i — Caixa de Entrada</p>
-            <p>g s — Enviados · g d — Rascunhos</p>
-            <p>j / k — Navegar · / — Buscar</p>
-            <p>e — Aprovar · s — Estrela</p>
+            <p>g i · g s · g d · g a</p>
+            <p>j / k · / · e · s</p>
           </>
         )}
       </div>
