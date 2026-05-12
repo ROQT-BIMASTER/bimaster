@@ -189,9 +189,14 @@ export function useChinaMailbox(folder: MailboxFolder): UseChinaMailboxResult {
     };
   }, [enabled, queryClient]);
 
-  const { items, counts } = useMemo(() => {
+  const { items, counts, allAwaitingPending } = useMemo(() => {
     const data = query.data;
-    if (!data) return { items: [] as MailboxItem[], counts: ZERO_COUNTS };
+    if (!data)
+      return {
+        items: [] as MailboxItem[],
+        counts: ZERO_COUNTS,
+        allAwaitingPending: [] as MailboxItem[],
+      };
 
     const { uid, subs, docs, read, flagged, snoozeMap } = data;
     const now = Date.now();
