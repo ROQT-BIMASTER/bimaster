@@ -46,9 +46,11 @@ export function ConfirmConclusaoListener() {
   const noun = isSub ? "subtarefa" : "tarefa";
   const nounPlural = isSub ? "subtarefas" : "tarefas";
 
-  const title = isExclusao
-    ? `Excluir ${isBulk ? nounPlural : noun}?`
-    : `Concluir ${isBulk ? nounPlural : noun}?`;
+  const title = pending?.tituloDialog
+    ? pending.tituloDialog
+    : isExclusao
+      ? `Excluir ${isBulk ? nounPlural : noun}?`
+      : `Concluir ${isBulk ? nounPlural : noun}?`;
 
   const qty = pending?.quantidade ?? 0;
   const defaultDescription = isExclusao
@@ -72,6 +74,10 @@ export function ConfirmConclusaoListener() {
           `A data de conclusão será preenchida com a data de hoje e a ação ` +
           `ficará registrada no histórico de auditoria.`
         : `Deseja realmente marcar esta ${noun} como concluída?`;
+
+  const actionLabel = pending?.acaoLabel
+    ? pending.acaoLabel
+    : isExclusao ? "Sim, excluir" : "Sim, concluir";
 
   return (
     <AlertDialog
@@ -102,7 +108,7 @@ export function ConfirmConclusaoListener() {
               isExclusao && "bg-destructive text-destructive-foreground hover:bg-destructive/90",
             )}
           >
-            {isExclusao ? "Sim, excluir" : "Sim, concluir"}
+            {actionLabel}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
