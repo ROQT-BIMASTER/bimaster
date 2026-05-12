@@ -403,6 +403,7 @@ export default function ChinaCaixaEntrada() {
                 search={search}
                 actionFilter={actionFilter}
                 onActionFilterChange={setActionFilter}
+                viewerOverride={{ isChinaUser, isBrasilUser }}
               />
             </div>
           )}
