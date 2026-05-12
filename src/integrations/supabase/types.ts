@@ -2966,7 +2966,10 @@ export type Database = {
           id: string
           label_cn: string | null
           label_pt: string
+          obrigatorio: boolean
           ordem: number
+          peso_percentual: number
+          prazo_dias: number | null
           submissao_id: string
         }
         Insert: {
@@ -2976,7 +2979,10 @@ export type Database = {
           id?: string
           label_cn?: string | null
           label_pt: string
+          obrigatorio?: boolean
           ordem?: number
+          peso_percentual?: number
+          prazo_dias?: number | null
           submissao_id: string
         }
         Update: {
@@ -2986,7 +2992,10 @@ export type Database = {
           id?: string
           label_cn?: string | null
           label_pt?: string
+          obrigatorio?: boolean
           ordem?: number
+          peso_percentual?: number
+          prazo_dias?: number | null
           submissao_id?: string
         }
         Relationships: [
@@ -3017,6 +3026,9 @@ export type Database = {
           label_cn: string | null
           label_pt: string
           multiple: boolean | null
+          obrigatorio: boolean
+          peso_percentual: number
+          prazo_dias: number | null
           submissao_id: string
           tipo_key: string
         }
@@ -3030,6 +3042,9 @@ export type Database = {
           label_cn?: string | null
           label_pt: string
           multiple?: boolean | null
+          obrigatorio?: boolean
+          peso_percentual?: number
+          prazo_dias?: number | null
           submissao_id: string
           tipo_key: string
         }
@@ -3043,6 +3058,9 @@ export type Database = {
           label_cn?: string | null
           label_pt?: string
           multiple?: boolean | null
+          obrigatorio?: boolean
+          peso_percentual?: number
+          prazo_dias?: number | null
           submissao_id?: string
           tipo_key?: string
         }
@@ -3063,6 +3081,81 @@ export type Database = {
           },
           {
             foreignKeyName: "china_checklist_custom_itens_submissao_id_fkey"
+            columns: ["submissao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_china_produto_recebimento_kpis"
+            referencedColumns: ["submissao_id"]
+          },
+        ]
+      }
+      china_checklist_item_estado: {
+        Row: {
+          categoria_key: string
+          concluido_em: string | null
+          concluido_por: string | null
+          created_at: string
+          fluxo: string
+          id: string
+          item_key: string
+          obrigatorio: boolean
+          peso_percentual: number
+          prazo_data: string | null
+          responsavel_id: string | null
+          status: string
+          submissao_id: string
+          updated_at: string
+          waiver_aprovado_em: string | null
+          waiver_aprovado_por: string | null
+          waiver_motivo: string | null
+        }
+        Insert: {
+          categoria_key: string
+          concluido_em?: string | null
+          concluido_por?: string | null
+          created_at?: string
+          fluxo: string
+          id?: string
+          item_key: string
+          obrigatorio?: boolean
+          peso_percentual?: number
+          prazo_data?: string | null
+          responsavel_id?: string | null
+          status?: string
+          submissao_id: string
+          updated_at?: string
+          waiver_aprovado_em?: string | null
+          waiver_aprovado_por?: string | null
+          waiver_motivo?: string | null
+        }
+        Update: {
+          categoria_key?: string
+          concluido_em?: string | null
+          concluido_por?: string | null
+          created_at?: string
+          fluxo?: string
+          id?: string
+          item_key?: string
+          obrigatorio?: boolean
+          peso_percentual?: number
+          prazo_data?: string | null
+          responsavel_id?: string | null
+          status?: string
+          submissao_id?: string
+          updated_at?: string
+          waiver_aprovado_em?: string | null
+          waiver_aprovado_por?: string | null
+          waiver_motivo?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "china_checklist_item_estado_submissao_id_fkey"
+            columns: ["submissao_id"]
+            isOneToOne: false
+            referencedRelation: "china_produto_submissoes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "china_checklist_item_estado_submissao_id_fkey"
             columns: ["submissao_id"]
             isOneToOne: false
             referencedRelation: "vw_china_produto_recebimento_kpis"
@@ -4768,6 +4861,8 @@ export type Database = {
           ean_unidade: string | null
           formula_codigo: string | null
           id: string
+          liberado_para_oc_em: string | null
+          liberado_por: string | null
           linha_produto: string | null
           medidas_display: Json | null
           numero_item: string | null
@@ -4804,6 +4899,8 @@ export type Database = {
           ean_unidade?: string | null
           formula_codigo?: string | null
           id?: string
+          liberado_para_oc_em?: string | null
+          liberado_por?: string | null
           linha_produto?: string | null
           medidas_display?: Json | null
           numero_item?: string | null
@@ -4840,6 +4937,8 @@ export type Database = {
           ean_unidade?: string | null
           formula_codigo?: string | null
           id?: string
+          liberado_para_oc_em?: string | null
+          liberado_por?: string | null
           linha_produto?: string | null
           medidas_display?: Json | null
           numero_item?: string | null
@@ -44732,9 +44831,69 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      rpc_china_aplicar_waiver: {
+        Args: { p_estado_id: string; p_motivo: string }
+        Returns: {
+          categoria_key: string
+          concluido_em: string | null
+          concluido_por: string | null
+          created_at: string
+          fluxo: string
+          id: string
+          item_key: string
+          obrigatorio: boolean
+          peso_percentual: number
+          prazo_data: string | null
+          responsavel_id: string | null
+          status: string
+          submissao_id: string
+          updated_at: string
+          waiver_aprovado_em: string | null
+          waiver_aprovado_por: string | null
+          waiver_motivo: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "china_checklist_item_estado"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      rpc_china_calcular_progresso: {
+        Args: { p_submissao_id: string }
+        Returns: Json
+      }
       rpc_china_chat_set_traducao: {
         Args: { p_idioma: string; p_msg_id: string; p_texto: string }
         Returns: undefined
+      }
+      rpc_china_concluir_item: {
+        Args: { p_estado_id: string }
+        Returns: {
+          categoria_key: string
+          concluido_em: string | null
+          concluido_por: string | null
+          created_at: string
+          fluxo: string
+          id: string
+          item_key: string
+          obrigatorio: boolean
+          peso_percentual: number
+          prazo_data: string | null
+          responsavel_id: string | null
+          status: string
+          submissao_id: string
+          updated_at: string
+          waiver_aprovado_em: string | null
+          waiver_aprovado_por: string | null
+          waiver_motivo: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "china_checklist_item_estado"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       rpc_china_confirmar_embarque: {
         Args: {
@@ -44794,6 +44953,10 @@ export type Database = {
           numero: string
           op_id: string
         }[]
+      }
+      rpc_china_liberar_para_oc: {
+        Args: { p_submissao_id: string }
+        Returns: Json
       }
       rpc_china_oc_atualizar_logistica: {
         Args: {
