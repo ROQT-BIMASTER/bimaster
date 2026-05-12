@@ -1355,6 +1355,7 @@ export function ChinaChecklistFocusMode({
               <Input
                 value={addItemLabelPt}
                 onChange={(e) => setAddItemLabelPt(e.target.value)}
+                onBlur={(e) => autoTranslateToCn(e.target.value, addItemLabelCn, setAddItemLabelCn)}
                 placeholder="Ex: Laudo Microbiológico, Certificado INMETRO..."
                 className="mt-1"
               />
