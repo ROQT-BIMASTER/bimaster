@@ -362,6 +362,16 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
         })
         .eq("id", tarefa.id);
       if (error) throw error;
+
+      await registrarAuditoriaTarefa({
+        tarefaId: tarefa.id,
+        projetoId: tarefa.projeto_id,
+        parentTarefaId: tarefa.parent_tarefa_id,
+        isSubtarefa: !!tarefa.parent_tarefa_id,
+        tituloSnapshot: tarefa.titulo,
+        action: isCompleting ? "concluida" : "reaberta",
+        metadata: { source: "toggleTarefaCompleta" },
+      });
     },
     onMutate: async (tarefa) => {
       await queryClient.cancelQueries({ queryKey: ["projeto-tarefas-v2", projetoId] });
