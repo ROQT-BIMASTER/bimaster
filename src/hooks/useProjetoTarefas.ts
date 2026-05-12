@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { uniqueChannelName } from "@/lib/realtime/channelName";
+import { registrarAuditoriaTarefa } from "@/lib/projetos/auditoriaTarefa";
 
 export interface ProjetoSecao {
   id: string;
@@ -258,6 +259,35 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
         .update({ ...updates, updated_at: new Date().toISOString() } as never)
         .eq("id", id);
       if (error) throw error;
+
+      // Auditoria: registra mudança de status para concluida/reaberta.
+      if (Object.prototype.hasOwnProperty.call(updates, "status")) {
+        const tarefa = tarefas.find(t => t.id === id);
+        const novoStatus = (updates as any).status as string | undefined;
+        if (tarefa && novoStatus && novoStatus !== tarefa.status) {
+          if (novoStatus === "concluida") {
+            await registrarAuditoriaTarefa({
+              tarefaId: id,
+              projetoId: tarefa.projeto_id,
+              parentTarefaId: tarefa.parent_tarefa_id,
+              isSubtarefa: !!tarefa.parent_tarefa_id,
+              tituloSnapshot: tarefa.titulo,
+              action: "concluida",
+              metadata: { source: "updateTarefa" },
+            });
+          } else if (tarefa.status === "concluida") {
+            await registrarAuditoriaTarefa({
+              tarefaId: id,
+              projetoId: tarefa.projeto_id,
+              parentTarefaId: tarefa.parent_tarefa_id,
+              isSubtarefa: !!tarefa.parent_tarefa_id,
+              tituloSnapshot: tarefa.titulo,
+              action: "reaberta",
+              metadata: { source: "updateTarefa", novoStatus },
+            });
+          }
+        }
+      }
     },
     onMutate: async ({ id, ...updates }) => {
       await queryClient.cancelQueries({ queryKey: ["projeto-tarefas-v2", projetoId] });
@@ -332,6 +362,16 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
         })
         .eq("id", tarefa.id);
       if (error) throw error;
+
+      await registrarAuditoriaTarefa({
+        tarefaId: tarefa.id,
+        projetoId: tarefa.projeto_id,
+        parentTarefaId: tarefa.parent_tarefa_id,
+        isSubtarefa: !!tarefa.parent_tarefa_id,
+        tituloSnapshot: tarefa.titulo,
+        action: isCompleting ? "concluida" : "reaberta",
+        metadata: { source: "toggleTarefaCompleta" },
+      });
     },
     onMutate: async (tarefa) => {
       await queryClient.cancelQueries({ queryKey: ["projeto-tarefas-v2", projetoId] });
@@ -537,6 +577,16 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
         .update({ excluida_em: new Date().toISOString(), excluida_por: user?.id || null } as any)
         .eq("id", tarefaId);
       if (error) throw error;
+
+      await registrarAuditoriaTarefa({
+        tarefaId,
+        projetoId: tarefa?.projeto_id,
+        parentTarefaId: tarefa?.parent_tarefa_id,
+        isSubtarefa: !!tarefa?.parent_tarefa_id,
+        tituloSnapshot: tarefa?.titulo,
+        action: "excluida",
+        metadata: { source: "softDeleteTarefa" },
+      });
     },
     onMutate: async (tarefaId) => {
       await queryClient.cancelQueries({ queryKey: ["projeto-tarefas-v2", projetoId] });
@@ -562,11 +612,22 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
 
   const restaurarTarefa = useMutation({
     mutationFn: async (tarefaId: string) => {
+      const tarefa = tarefas.find(t => t.id === tarefaId);
       const { error } = await supabase
         .from("projeto_tarefas")
         .update({ excluida_em: null, excluida_por: null } as any)
         .eq("id", tarefaId);
       if (error) throw error;
+
+      await registrarAuditoriaTarefa({
+        tarefaId,
+        projetoId: tarefa?.projeto_id,
+        parentTarefaId: tarefa?.parent_tarefa_id,
+        isSubtarefa: !!tarefa?.parent_tarefa_id,
+        tituloSnapshot: tarefa?.titulo,
+        action: "restaurada",
+        metadata: { source: "restaurarTarefa" },
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2", projetoId] });

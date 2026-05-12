@@ -70,8 +70,9 @@ import { useTarefaMessageCounts } from "@/hooks/useTarefaMessageCounts";
 import { useManualPriorityOrder, applyManualOrder } from "@/hooks/useManualPriorityOrder";
 import { ManualPrioritySortable } from "@/components/projetos/central/ManualPrioritySortable";
 
-import { BarChart3, RotateCcw } from "lucide-react";
+import { BarChart3, RotateCcw, Trash2 } from "lucide-react";
 import type { ProjetoTarefa, ProjetoSecao } from "@/hooks/useProjetoTarefas";
+import { registrarAuditoriaTarefa } from "@/lib/projetos/auditoriaTarefa";
 
 const ListRow = memo(function ListRow({
   tarefa, onToggle, onSelect, selected, onSelectToggle, messageCount,
@@ -785,8 +786,58 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
       .update({ status: "concluida", data_conclusao: new Date().toISOString() })
       .in("id", ids);
     if (error) { toast.error("Erro ao concluir tarefas"); return; }
+
+    // Auditoria em lote (best-effort, não bloqueia UI).
+    const selecionadas = tarefas.filter((t: any) => ids.includes(t.id));
+    Promise.all(
+      selecionadas.map((t: any) =>
+        registrarAuditoriaTarefa({
+          tarefaId: t.id,
+          projetoId: t.projeto_id ?? null,
+          parentTarefaId: t.parent_tarefa_id ?? null,
+          isSubtarefa: !!t.parent_tarefa_id,
+          tituloSnapshot: t.titulo ?? null,
+          action: "concluida",
+          metadata: { source: "handleBulkComplete" },
+        }),
+      ),
+    ).catch(() => {});
+
     queryClient.invalidateQueries({ queryKey: ["minhas-tarefas"] });
     toast.success(`${ids.length} tarefas concluídas!`);
+    setSelectedIds(new Set());
+  };
+
+  const handleBulkDelete = async () => {
+    const ids = Array.from(selectedIds);
+    const { confirmExclusaoTarefa } = await import("@/lib/projetos/confirmConclusao");
+    const ok = await confirmExclusaoTarefa({ quantidade: ids.length });
+    if (!ok) return;
+    const { data: authData } = await supabase.auth.getUser();
+    const uid = authData.user?.id ?? null;
+    const { error } = await supabase
+      .from("projeto_tarefas")
+      .update({ excluida_em: new Date().toISOString(), excluida_por: uid } as any)
+      .in("id", ids);
+    if (error) { toast.error("Erro ao excluir tarefas"); return; }
+
+    const selecionadas = tarefas.filter((t: any) => ids.includes(t.id));
+    Promise.all(
+      selecionadas.map((t: any) =>
+        registrarAuditoriaTarefa({
+          tarefaId: t.id,
+          projetoId: t.projeto_id ?? null,
+          parentTarefaId: t.parent_tarefa_id ?? null,
+          isSubtarefa: !!t.parent_tarefa_id,
+          tituloSnapshot: t.titulo ?? null,
+          action: "excluida",
+          metadata: { source: "handleBulkDelete" },
+        }),
+      ),
+    ).catch(() => {});
+
+    queryClient.invalidateQueries({ queryKey: ["minhas-tarefas"] });
+    toast.success(`${ids.length} tarefas movidas para a lixeira`);
     setSelectedIds(new Set());
   };
 
@@ -1195,6 +1246,9 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
           <Badge variant="secondary" className="text-xs">{selectedIds.size} selecionadas</Badge>
           <Button size="sm" variant="default" className="h-7 text-xs gap-1" onClick={handleBulkComplete}>
             <CheckCircle2 className="h-3.5 w-3.5" /> Concluir
+          </Button>
+          <Button size="sm" variant="destructive" className="h-7 text-xs gap-1" onClick={handleBulkDelete}>
+            <Trash2 className="h-3.5 w-3.5" /> Excluir
           </Button>
           <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setSelectedIds(new Set())}>
             Limpar seleção
