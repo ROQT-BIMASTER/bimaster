@@ -1261,7 +1261,7 @@ export function ChinaChecklistFocusMode({
                                         size="sm"
                                         variant="gradient"
                                         className="h-6 px-2 text-[10px] gap-1"
-                                        onClick={() => handleSubmitSingle(d.id)}
+                                        onClick={() => setConfirmSingleId(d.id)}
                                         title="Enviar este documento ao Brasil"
                                       >
                                         <Send className="h-3 w-3" />
