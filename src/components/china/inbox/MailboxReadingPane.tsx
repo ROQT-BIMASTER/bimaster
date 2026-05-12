@@ -1,15 +1,13 @@
-import { useState, useEffect } from "react";
-import { ExternalLink, CheckCircle2, AlertTriangle, FileText, Star, MailOpen, Mail, ArrowLeft, Download, Clock, MessageSquare, ChevronDown, ChevronRight } from "lucide-react";
+import { useEffect, useState } from "react";
+import { ExternalLink, FileText, Star, MailOpen, Mail, ArrowLeft, Download, Clock, MessageSquare, ChevronDown, ChevronRight, Link2 } from "lucide-react";
 import { ChinaChatPanel } from "@/components/china/ChinaChatPanel";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { useNavigate, useLocation } from "react-router-dom";
 import { buildReturnToTarget } from "@/lib/navigation/withReturnTo";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
-import { ResponseTemplatePicker } from "@/components/china/inbox/ResponseTemplatePicker";
 import { SnoozeMenu } from "@/components/china/inbox/SnoozeMenu";
 import { exportSubmissaoPdf } from "@/lib/china/exportSubmissaoPdf";
 import { useUnsnoozeSubmissao } from "@/hooks/useChinaInboxSnooze";
@@ -22,8 +20,6 @@ interface Props {
   item: MailboxItem | null;
   isBrasilUser: boolean;
   isChinaUser: boolean;
-  onApprove: (item: MailboxItem) => void;
-  onReject: (item: MailboxItem, motivo: string) => void;
   onView: (item: MailboxItem) => void;
   onCorrigir: (item: MailboxItem) => void;
   onToggleRead: (item: MailboxItem) => void;
@@ -36,8 +32,6 @@ export function MailboxReadingPane({
   item,
   isBrasilUser,
   isChinaUser,
-  onApprove,
-  onReject,
   onView,
   onCorrigir,
   onToggleRead,
@@ -52,7 +46,7 @@ export function MailboxReadingPane({
     const { url, state } = buildReturnToTarget(target, fromPath, { fromLabel: "Caixa de Entrada" });
     navigate(url, { state });
   };
-  const [motivo, setMotivo] = useState("");
+  
   const [chatOpen, setChatOpen] = useState<boolean>(() => {
     try { return localStorage.getItem("china-inbox-chat-open") !== "0"; } catch { return true; }
   });
@@ -221,48 +215,20 @@ export function MailboxReadingPane({
         )}
 
         {canBrasilApprove && (
-          <section className="mt-6 space-y-3">
-            <div className="flex flex-wrap items-center gap-1.5">
-              <ResponseTemplatePicker
-                tipo="rejeitar"
-                onPick={(t) => setMotivo((prev) => (prev ? `${prev}\n${t}` : t))}
-              />
-              <ResponseTemplatePicker
-                tipo="aprovar"
-                onPick={(t) => setMotivo(t)}
-              />
-              <span className="text-[10px] text-muted-foreground">
-                Insere texto no campo abaixo
-              </span>
-            </div>
-            <Textarea
-              placeholder="Motivo do ajuste (obrigatório para rejeitar) / 调整原因"
-              value={motivo}
-              onChange={(e) => setMotivo(e.target.value)}
-              rows={3}
-              className="text-xs"
-            />
-            <div className="flex flex-wrap gap-2">
-              <Button
-                size="sm"
-                className="gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white"
-                onClick={() => onApprove(item)}
-                disabled={loading}
-              >
-                <CheckCircle2 className="h-4 w-4" />
-                Aprovar / 批准
-              </Button>
-              <Button
-                size="sm"
-                variant="destructive"
-                className="gap-1.5"
-                onClick={() => motivo.trim() && onReject(item, motivo.trim())}
-                disabled={loading || !motivo.trim()}
-              >
-                <AlertTriangle className="h-4 w-4" />
-                Pedir ajuste / 修正
-              </Button>
-            </div>
+          <section className="mt-6 rounded-md border border-primary/30 bg-primary/5 p-3">
+            <p className="text-xs text-foreground/90 mb-2">
+              Aprovação e ajustes acontecem em <strong>Vincular China</strong>.
+              <span className="ml-1 text-muted-foreground">审批和调整在“关联中国”界面进行。</span>
+            </p>
+            <Button
+              size="sm"
+              className="gap-1.5"
+              onClick={() => goWithReturn("/dashboard/projetos/vincular-china")}
+              disabled={loading}
+            >
+              <Link2 className="h-4 w-4" />
+              Abrir Vincular China / 打开关联中国
+            </Button>
           </section>
         )}
 

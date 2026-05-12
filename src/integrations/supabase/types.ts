@@ -4693,6 +4693,7 @@ export type Database = {
           created_at: string
           created_by: string | null
           dados_excel: Json | null
+          data_envio: string | null
           delete_reason: string | null
           deleted_at: string | null
           deleted_by: string | null
@@ -4728,6 +4729,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           dados_excel?: Json | null
+          data_envio?: string | null
           delete_reason?: string | null
           deleted_at?: string | null
           deleted_by?: string | null
@@ -4763,6 +4765,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           dados_excel?: Json | null
+          data_envio?: string | null
           delete_reason?: string | null
           deleted_at?: string | null
           deleted_by?: string | null
