@@ -3232,6 +3232,66 @@ export type Database = {
         }
         Relationships: []
       }
+      china_copilot_relatorios: {
+        Row: {
+          analytics: Json
+          created_at: string
+          gerado_por: string | null
+          id: string
+          idioma: string
+          kpis: Json
+          markdown: string
+          model: string | null
+          pdf_path: string | null
+          profundidade: string
+          submissao_id: string
+          submissao_snapshot: Json
+        }
+        Insert: {
+          analytics?: Json
+          created_at?: string
+          gerado_por?: string | null
+          id?: string
+          idioma: string
+          kpis?: Json
+          markdown: string
+          model?: string | null
+          pdf_path?: string | null
+          profundidade: string
+          submissao_id: string
+          submissao_snapshot?: Json
+        }
+        Update: {
+          analytics?: Json
+          created_at?: string
+          gerado_por?: string | null
+          id?: string
+          idioma?: string
+          kpis?: Json
+          markdown?: string
+          model?: string | null
+          pdf_path?: string | null
+          profundidade?: string
+          submissao_id?: string
+          submissao_snapshot?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "china_copilot_relatorios_submissao_id_fkey"
+            columns: ["submissao_id"]
+            isOneToOne: false
+            referencedRelation: "china_produto_submissoes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "china_copilot_relatorios_submissao_id_fkey"
+            columns: ["submissao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_china_produto_recebimento_kpis"
+            referencedColumns: ["submissao_id"]
+          },
+        ]
+      }
       china_doc_alertas: {
         Row: {
           created_at: string
