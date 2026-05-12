@@ -19,6 +19,7 @@ import { ManualFabricaDrawer } from "@/components/fabrica/ManualFabricaDrawer";
 import { ChinaEmbarqueInfo } from "@/components/china/ChinaEmbarqueInfo";
 import { ChinaPageShell } from "@/components/china/ChinaPageShell";
 import { ChinaPageHeader } from "@/components/china/ChinaPageHeader";
+import { ChinaTimelineButton } from "@/components/china/timeline/ChinaTimelineButton";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useState } from "react";
@@ -235,7 +236,12 @@ export default function ChinaOrdemDetalhe() {
         iconTone="primary"
         showBack
         backTo="/dashboard/fabrica-china/ordens"
-        actions={<ManualFabricaDrawer screen="china-ordem-detalhe" />}
+        actions={
+          <>
+            <ChinaTimelineButton scope={{ ocId: ordem.id, submissaoId: ordem.submissao_id }} />
+            <ManualFabricaDrawer screen="china-ordem-detalhe" />
+          </>
+        }
       />
 
         {/* OC Summary */}
