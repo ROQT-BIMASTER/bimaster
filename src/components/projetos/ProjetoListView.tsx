@@ -16,6 +16,7 @@ import { ProjetoVisaoParcialBanner } from "./ProjetoVisaoParcialBanner";
 import { ListSkeleton } from "./ProjetoSkeletons";
 import { logger } from "@/lib/logger";
 import { useAuth } from "@/contexts/AuthContext";
+import { useUserRole } from "@/hooks/useUserRole";
 
 // Legacy export for backwards compat
 export const GRID_COLS = "grid-cols-[20px_20px_1fr_80px_1px_100px_120px_90px_120px_80px_80px]";
@@ -32,14 +33,16 @@ export function ProjetoListView({ projetoId, darkBg = false, filters = EMPTY_FIL
     secoes, tarefas, tarefasPorSecao, ghostsPorSecao,
     secoesLoading, tarefasLoading,
     createTarefa, updateTarefa, toggleTarefaCompleta, moveTarefaToSecao, createSecao,
-    updateSecao,
+    updateSecao, deleteSecao,
     toggleSecaoBriefing, addColaborador, removeColaborador, teamMembers,
     softDeleteTarefa,
     isPartialView, restrictToOwn, totalSecoesProjeto, totalTarefasProjeto, visibleTarefasCount,
   } = useProjetoTarefas(projetoId);
   const { data: projeto } = useProjeto(projetoId);
   const { user } = useAuth();
+  const { isAdmin } = useUserRole();
   const currentUserId = user?.id ?? null;
+  const canDeleteSecao = !!projeto && (isAdmin || projeto.criador_id === currentUserId);
   const [selectedTarefaId, setSelectedTarefaId] = useState<string | null>(null);
   // Derive the live tarefa from the freshest `tarefas` array so the detail Sheet
   // reflects optimistic updates and realtime invalidations without remounting.
@@ -260,6 +263,7 @@ export function ProjetoListView({ projetoId, darkBg = false, filters = EMPTY_FIL
             onUpdateTarefa={handleUpdateTarefa}
             onDeleteTarefa={(tarefaId) => softDeleteTarefa.mutate(tarefaId)}
             onToggleBriefing={(secaoId, value) => toggleSecaoBriefing.mutate({ secaoId, temBriefing: value })}
+            onDeleteSecao={canDeleteSecao ? (secaoId) => deleteSecao.mutate(secaoId) : undefined}
             onCreateBriefingTasks={handleCreateBriefingTasks}
             teamMembers={teamMembers}
             onAddColaborador={(tarefaId, userId) => addColaborador.mutate({ tarefaId, userId })}
