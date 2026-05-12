@@ -1,10 +1,10 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
   Star, Paperclip, Clock, AlertTriangle, Link2, Link2Off, Package,
   CheckCircle2, FileText, Send, XCircle, Loader2, Globe, Maximize2,
-  MousePointerClick, Zap, MoveVertical, X, Crosshair,
+  MousePointerClick, Zap, MoveVertical, X, Crosshair, CheckCheck,
 } from "lucide-react";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
@@ -17,6 +17,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import type { MailboxRow, VincularFolder } from "@/hooks/useVincularChinaMailboxData";
 import { VincularChinaRowAction } from "@/components/china/VincularChinaRowAction";
+import { isVincularRead, markVincularRead, subscribeVincularRead } from "@/lib/china/vincularReadState";
 
 interface Props {
   items: MailboxRow[];
@@ -74,6 +75,13 @@ export function VincularMailboxList({
 
   const allChecked = filtered.length > 0 && filtered.every((i) => selectedIds.has(i.id));
   const someChecked = selectedIds.size > 0;
+
+  // Re-renderiza a lista quando o estado de leitura local muda.
+  useSyncExternalStore(
+    subscribeVincularRead,
+    () => filtered.map((i) => (isVincularRead(i.id) ? "1" : "0")).join(""),
+    () => "",
+  );
 
   // Auto-scroll: mantém o item selecionado visível (j/k, clique, busca/filtros).
   // Aplica offset para não encostar na toolbar fixa do topo nem no rodapé.
@@ -345,7 +353,7 @@ export function VincularMailboxList({
           const active = selectedId === item.id;
           const sb = statusBadge(item.status);
           const SbIcon = sb.icon;
-          const unread = !item.isLinked && folder !== "vinculadas";
+          const unread = !isVincularRead(item.id);
           const dt = item.updated_at || item.created_at;
           return (
             <li
@@ -354,7 +362,7 @@ export function VincularMailboxList({
                 if (el) itemRefs.current.set(item.id, el);
                 else itemRefs.current.delete(item.id);
               }}
-              onClick={() => onSelect(item.id)}
+              onClick={() => { markVincularRead(item.id); onSelect(item.id); }}
               className={cn(
                 "group flex cursor-pointer items-start gap-2 border-b border-border/40 px-3 py-2 text-sm transition-colors",
                 active ? "bg-primary/10" : "hover:bg-muted/30",
@@ -443,7 +451,12 @@ export function VincularMailboxList({
                     <Clock className="h-2.5 w-2.5" /> adiada
                   </Badge>
                 )}
-                <span className="text-[10px] tabular-nums text-muted-foreground">
+                <span className="flex items-center gap-1 text-[10px] tabular-nums text-muted-foreground">
+                  {!unread && (
+                    <span title="Lida" aria-label="Lida" className="inline-flex">
+                      <CheckCheck className="h-3 w-3 text-sky-400" />
+                    </span>
+                  )}
                   {relativeAge(dt)}
                 </span>
               </div>

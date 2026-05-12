@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { AlertCircle, Paperclip, X } from "lucide-react";
 import { useRejeitarComLaudo } from "@/hooks/useChinaRevisoes";
+import { confirmConclusaoTarefa } from "@/lib/projetos/confirmConclusao";
 
 interface Props {
   open: boolean;
@@ -41,6 +42,14 @@ export function DialogRejeitarDocumento({
 
   async function submit() {
     if (!motivo.trim()) return;
+    const ok = await confirmConclusaoTarefa({
+      tituloDialog: "Confirmar rejeição da submissão",
+      titulo: tipoDocumentoLabel || "Documento da submissão",
+      descricao:
+        "Ao confirmar, o documento será marcado como rejeitado, a submissão volta para a China para correção e o laudo técnico será registrado na trilha de auditoria. Esta ação não pode ser desfeita — apenas reanalisada após novo envio.",
+      acaoLabel: "Sim, rejeitar documento",
+    });
+    if (!ok) return;
     await rejeitar.mutateAsync({
       documento_id: documentoId,
       submissao_id: submissaoId,

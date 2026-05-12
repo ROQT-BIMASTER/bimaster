@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ExternalLink, FileText, Star, MailOpen, Mail, ArrowLeft, Download, Clock, MessageSquare, ChevronDown, ChevronRight, Link2, Send } from "lucide-react";
+import { ExternalLink, FileText, Star, MailOpen, Mail, ArrowLeft, Download, Clock, MessageSquare, ChevronDown, ChevronRight, Link2, Send, Loader2 } from "lucide-react";
 import { ChinaChatPanel } from "@/components/china/ChinaChatPanel";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -252,9 +252,10 @@ export function MailboxReadingPane({
               className="gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white"
               onClick={() => onEnviarBrasil!(item)}
               disabled={loading}
+              aria-busy={loading}
             >
-              <Send className="h-4 w-4" />
-              {t("inbox.actions.enviarBrasil")}
+              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+              {loading ? "Enviando ao Brasil…" : t("inbox.actions.enviarBrasil")}
             </Button>
           </section>
         )}
