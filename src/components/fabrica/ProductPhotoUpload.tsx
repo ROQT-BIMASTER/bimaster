@@ -133,7 +133,9 @@ export default function ProductPhotoUpload({
       toast.success("Foto atualizada!");
     } catch (err: any) {
       logger.error("Upload error:", err);
-      toast.error(err.message || "Erro ao fazer upload");
+      const info = describeUploadError(err);
+      setErrorDialog(info);
+      toast.error(info.title, { description: info.message });
     } finally {
       setUploading(false);
     }
