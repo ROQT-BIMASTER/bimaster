@@ -123,6 +123,18 @@ export function ChinaChecklistFocusMode({
   const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
   const queryClient = useQueryClient();
 
+  // Substituir documento rejeitado com parecer técnico
+  const [substituirDoc, setSubstituirDoc] = useState<DocRecord | null>(null);
+  const { data: revisoes = [] } = useRevisoesPorSubmissao(submissaoId);
+  const ultimaRevisaoPorDoc = useMemo(() => {
+    const map = new Map<string, typeof revisoes[number]>();
+    for (const r of revisoes) {
+      const cur = map.get(r.documento_id);
+      if (!cur || new Date(r.created_at) > new Date(cur.created_at)) map.set(r.documento_id, r);
+    }
+    return map;
+  }, [revisoes]);
+
   // Auto-open + focus on a specific document type (vindo de "Corrigir" da tela de detalhe)
   useEffect(() => {
     if (!defaultOpen) return;
