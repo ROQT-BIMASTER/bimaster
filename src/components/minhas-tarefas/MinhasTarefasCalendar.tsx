@@ -31,8 +31,7 @@ export function MinhasTarefasCalendar({ tarefas, onSelect }: Props) {
         const t = byId.get(ev.id);
         if (t) onSelect(t);
       }}
-      colorStrategy="projeto"
-      showEstagioLegend={false}
+      colorStrategy="estagio"
     />
   );
 }
