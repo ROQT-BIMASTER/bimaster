@@ -404,10 +404,13 @@ export function SubmissionCopilotPanel({ open, onOpenChange, initialQuery = "" }
 
               {/* Tabs */}
               <Tabs defaultValue="charts">
-                <TabsList className="grid grid-cols-3 w-full">
-                  <TabsTrigger value="charts">{t.chartsTab}</TabsTrigger>
-                  <TabsTrigger value="timeline">{t.timelineTab}</TabsTrigger>
-                  <TabsTrigger value="report">{t.reportTab}</TabsTrigger>
+                <TabsList className="grid grid-cols-6 w-full">
+                  <TabsTrigger value="charts" className="text-[11px]">{t.chartsTab}</TabsTrigger>
+                  <TabsTrigger value="docs360" className="text-[11px]">{t.docsTab}</TabsTrigger>
+                  <TabsTrigger value="planilha" className="text-[11px]">{t.planilhaTab}</TabsTrigger>
+                  <TabsTrigger value="sugestoes" className="text-[11px]">{t.sugestoesTab}</TabsTrigger>
+                  <TabsTrigger value="timeline" className="text-[11px]">{t.timelineTab}</TabsTrigger>
+                  <TabsTrigger value="report" className="text-[11px]">{t.reportTab}</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="charts" className="mt-3 space-y-3">
