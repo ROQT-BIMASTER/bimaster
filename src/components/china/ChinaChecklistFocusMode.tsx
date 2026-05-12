@@ -14,8 +14,10 @@ import { ChinaUploadPreviewDialog } from "./ChinaUploadPreviewDialog";
 import {
   Maximize2, X, Send, Save, Upload, Loader2, CheckCircle2, Clock, XCircle,
   FileText, Eye, Trash2, Image as ImageIcon, CalendarIcon, AlertCircle,
-  Plus, FolderPlus, Pencil, Bookmark, BookmarkPlus,
+  Plus, FolderPlus, Pencil, Bookmark, BookmarkPlus, FileWarning,
 } from "lucide-react";
+import { useRevisoesPorSubmissao } from "@/hooks/useChinaRevisoes";
+import { DialogContestarDocumento } from "./DialogContestarDocumento";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
   DropdownMenuSeparator, DropdownMenuTrigger,
