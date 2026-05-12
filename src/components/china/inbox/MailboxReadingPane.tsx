@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import type { MailboxItem } from "@/hooks/useChinaMailbox";
 import { resolveDirection } from "@/lib/china/inboxDirection";
 import { InboxDirectionBand } from "./InboxDirectionBadge";
+import { ChinaTimelineButton } from "@/components/china/timeline/ChinaTimelineButton";
 
 interface Props {
   item: MailboxItem | null;
@@ -174,13 +175,16 @@ export function MailboxReadingPane({
           className="mb-4"
         />
         <header className="space-y-1">
-          <div className="flex items-center gap-2">
-            <h2 className="text-lg font-semibold">
-              {item.produto_codigo} — {item.produto_nome}
-            </h2>
-            <Badge variant="outline" className="h-5 px-1.5 text-[10px] uppercase">
-              {item.submissao_status}
-            </Badge>
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 min-w-0">
+              <h2 className="text-lg font-semibold truncate">
+                {item.produto_codigo} — {item.produto_nome}
+              </h2>
+              <Badge variant="outline" className="h-5 px-1.5 text-[10px] uppercase">
+                {item.submissao_status}
+              </Badge>
+            </div>
+            <ChinaTimelineButton scope={{ submissaoId: item.submissao_id }} variant="ghost" />
           </div>
           {item.numero_ordem && (
             <p className="text-xs text-muted-foreground">OC {item.numero_ordem}</p>
