@@ -30,6 +30,7 @@ type Idioma = "pt" | "en" | "zh";
 type Profundidade = "executivo" | "completo";
 
 type Resultado = {
+  relatorio_id?: string | null;
   markdown: string;
   kpis: {
     etapas_concluidas: number;
