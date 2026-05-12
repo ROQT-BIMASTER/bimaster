@@ -40,6 +40,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { createElement } from "react";
+import { usePageBgColor } from "@/components/shared/PageBgCustomizer";
 
 interface DocRecord {
   id: string;
@@ -118,6 +119,7 @@ export function ChinaChecklistFocusMode({
   onAfterFocus,
 }: ChinaChecklistFocusModeProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const { bgStyle, BgColorButton } = usePageBgColor("china_checklist_focus");
   const [activeCat, setActiveCat] = useState(DOCUMENT_CATEGORIES[0].key);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [submitting, setSubmitting] = useState(false);
@@ -797,9 +799,12 @@ export function ChinaChecklistFocusMode({
       </Button>
 
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
-        <DialogContent className="max-w-[98vw] w-[98vw] h-[95vh] max-h-[95vh] p-0 overflow-hidden flex flex-col">
+        <DialogContent
+          className="max-w-[98vw] w-[98vw] h-[95vh] max-h-[95vh] p-0 overflow-hidden flex flex-col"
+          style={bgStyle}
+        >
           {/* Header */}
-          <DialogHeader className="px-6 py-4 border-b bg-background/95 backdrop-blur shrink-0">
+          <DialogHeader className="px-6 py-4 border-b bg-background/80 backdrop-blur shrink-0">
             <div className="flex items-center justify-between">
               <div>
                 <DialogTitle className="text-xl font-bold">Checklist de Documentos 文件清单</DialogTitle>
@@ -872,6 +877,7 @@ export function ChinaChecklistFocusMode({
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
+                <BgColorButton />
                 <Button variant="ghost" size="icon" onClick={() => setIsOpen(false)}>
                   <X className="h-4 w-4" />
                 </Button>
