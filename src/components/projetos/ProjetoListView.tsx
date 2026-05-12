@@ -33,14 +33,16 @@ export function ProjetoListView({ projetoId, darkBg = false, filters = EMPTY_FIL
     secoes, tarefas, tarefasPorSecao, ghostsPorSecao,
     secoesLoading, tarefasLoading,
     createTarefa, updateTarefa, toggleTarefaCompleta, moveTarefaToSecao, createSecao,
-    updateSecao,
+    updateSecao, deleteSecao,
     toggleSecaoBriefing, addColaborador, removeColaborador, teamMembers,
     softDeleteTarefa,
     isPartialView, restrictToOwn, totalSecoesProjeto, totalTarefasProjeto, visibleTarefasCount,
   } = useProjetoTarefas(projetoId);
   const { data: projeto } = useProjeto(projetoId);
   const { user } = useAuth();
+  const { isAdmin } = useUserRole();
   const currentUserId = user?.id ?? null;
+  const canDeleteSecao = !!projeto && (isAdmin || projeto.criador_id === currentUserId);
   const [selectedTarefaId, setSelectedTarefaId] = useState<string | null>(null);
   // Derive the live tarefa from the freshest `tarefas` array so the detail Sheet
   // reflects optimistic updates and realtime invalidations without remounting.
