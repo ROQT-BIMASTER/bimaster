@@ -425,20 +425,20 @@ export function useChinaMailbox(folder: MailboxFolder): UseChinaMailboxResult {
     if (!isChinaUser || !query.data) return;
     const newlyPending: { id: string; produto: string; reasons: AwaitingSendReason[] }[] = [];
     const seenNow = new Set<string>();
-    for (const item of items) {
-      const evalRes = evaluateAwaitingSend(item);
-      if (!evalRes.matches) continue;
-      // Só notifica quando o motivo é falta de documento e/ou parecer (não para rascunhos puros).
-      const motivosRelevantes = evalRes.reasons.filter(
+    const seenSubsLocal = new Set<string>();
+    for (const item of allAwaitingPending) {
+      if (seenSubsLocal.has(item.submissao_id)) continue;
+      seenSubsLocal.add(item.submissao_id);
+      const ev = evaluateAwaitingSend(item);
+      const motivos = ev.reasons.filter(
         (r) => r === "sem_documento" || r === "sem_parecer",
       );
-      if (motivosRelevantes.length === 0) continue;
       seenNow.add(item.submissao_id);
       if (!notifiedRef.current.seen.has(item.submissao_id)) {
         newlyPending.push({
           id: item.submissao_id,
           produto: `${item.produto_codigo} — ${item.produto_nome}`,
-          reasons: motivosRelevantes,
+          reasons: motivos,
         });
       }
     }
@@ -453,7 +453,7 @@ export function useChinaMailbox(folder: MailboxFolder): UseChinaMailboxResult {
     }
     notifiedRef.current.seen = seenNow;
     notifiedRef.current.initialized = true;
-  }, [items, isChinaUser, query.data]);
+  }, [allAwaitingPending, isChinaUser, query.data]);
 
   return {
     items,
