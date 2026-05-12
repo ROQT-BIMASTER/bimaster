@@ -42,6 +42,10 @@ const LABELS: Record<CopilotPdfIdioma, Record<string, string>> = {
     timelineTitle: "Marcos da operação", date: "Data", milestone: "Marco",
     reportTitle: "Relatório completo", model: "Modelo", page: "Página", of: "de",
     generatedAt: "Gerado em",
+    docs360Title: "Documentos & Checklists 360°", attached: "Anexados", official: "Oficializados", pct: "% Concluído",
+    planilhaTitle: "Planilha Inicial", rows: "Linhas", cols: "Colunas", field: "Campo", value: "Valor",
+    sugestoesTitle: "Sugestões Priorizadas", priority: "Prioridade", suggestion: "Sugestão",
+    noPlanilha: "Planilha inicial não disponível.",
   },
   en: {
     title: "Copilot Report", risk: "Risk", progress: "Progress",
