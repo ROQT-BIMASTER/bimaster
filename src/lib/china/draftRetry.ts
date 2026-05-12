@@ -59,7 +59,7 @@ function translate(message: string): string {
 }
 
 export async function saveDraftWithRetry<T>(
-  fn: () => Promise<{ data: T | null; error: any } | T>,
+  fn: () => PromiseLike<{ data: T | null; error: any } | T>,
   opts: DraftRetryOptions = {},
 ): Promise<DraftRetryResult<T>> {
   const maxAttempts = opts.maxAttempts ?? 3;
