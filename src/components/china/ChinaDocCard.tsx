@@ -1,13 +1,22 @@
 import { useState } from "react";
-import { Eye, CheckCircle2, XCircle, RotateCcw, AlertTriangle, MessageSquare, Clock, FileText } from "lucide-react";
+import { Eye, CheckCircle2, XCircle, AlertTriangle, MessageSquare, Clock, FileText, History, Paperclip, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { BilingualLabel } from "./BilingualLabel";
 import { CHINA_DOCUMENT_TYPES, STATUS_LABELS } from "@/lib/china-document-types";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { formatLocalDate } from "@/utils/dateUtils";
 import type { Revisao } from "@/hooks/useChinaRevisoes";
+import { useSalvarTraducaoRevisao } from "@/hooks/useChinaRevisoes";
+import { useVersoesPorDocumento } from "@/hooks/useChinaDocVersoes";
+import { TextoComTraducao } from "./TextoComTraducao";
+import { DialogRejeitarDocumento } from "./DialogRejeitarDocumento";
+import { DialogContestarDocumento } from "./DialogContestarDocumento";
+import { supabase } from "@/integrations/supabase/client";
+import { triggerBlobDownload } from "@/lib/utils/triggerBlobDownload";
+import { toast } from "sonner";
 
 interface ChinaDocCardProps {
   doc: any;
@@ -17,21 +26,39 @@ interface ChinaDocCardProps {
   isChinaUser: boolean;
   onView: (doc: any) => void;
   onAprovar?: (doc: any) => void;
+  // mantidos para compatibilidade — fluxo antigo via pai
   onRejeitar?: (doc: any, motivo: string, anotacoes: any[]) => void;
   onCiencia?: (doc: any) => void;
   onContestar?: (doc: any, texto: string) => void;
   onReupload?: (tipo: string, file: File) => void;
 }
 
+const BUCKET = "china-documentos";
+
+async function downloadStoragePath(path: string, nome: string) {
+  try {
+    const { data, error } = await supabase.storage.from(BUCKET).createSignedUrl(path, 60);
+    if (error || !data?.signedUrl) throw error || new Error("Falha");
+    const res = await fetch(data.signedUrl);
+    const blob = await res.blob();
+    triggerBlobDownload(blob, nome);
+  } catch {
+    toast.error("Não foi possível baixar o arquivo.");
+  }
+}
+
 export function ChinaDocCard({
   doc, fluxo, revisao, isBrasilUser, isChinaUser,
-  onView, onAprovar, onRejeitar, onCiencia, onContestar, onReupload,
+  onView, onAprovar, onCiencia, onContestar,
 }: ChinaDocCardProps) {
   const [rejectDialog, setRejectDialog] = useState(false);
   const [contestDialog, setContestDialog] = useState(false);
-  const [reuploadDialog, setReuploadDialog] = useState(false);
-  const [motivo, setMotivo] = useState("");
+  const [substituirDialog, setSubstituirDialog] = useState(false);
   const [contestTexto, setContestTexto] = useState("");
+  const [historicoOpen, setHistoricoOpen] = useState(false);
+
+  const { data: versoes = [] } = useVersoesPorDocumento(historicoOpen ? doc.id : undefined);
+  const salvarTraducao = useSalvarTraducaoRevisao();
 
   const cfg = CHINA_DOCUMENT_TYPES.find(d => d.tipo === doc.tipo_documento);
   const statusInfo = STATUS_LABELS[doc.status] || STATUS_LABELS.rascunho;
@@ -39,7 +66,6 @@ export function ChinaDocCard({
 
   const borderColor = fluxo === "china_envia" ? "border-l-primary" : "border-l-success";
 
-  // Determine available actions
   const showBrasilApproveReject = isBrasilUser && fluxo === "china_envia" && doc.status === "pendente";
   const showChinaCiencia = isChinaUser && fluxo === "brasil_envia" && doc.status === "pendente";
   const showChinaCorrectContest = isChinaUser && fluxo === "china_envia" && doc.status === "rejeitado";
@@ -64,6 +90,7 @@ export function ChinaDocCard({
           </div>
           <Badge variant={statusInfo.variant} className="text-[10px] shrink-0">
             {statusInfo.pt} {statusInfo.cn}
+            {revisao && revisao.rodada > 1 && ` · v${revisao.rodada}`}
           </Badge>
         </div>
 
@@ -79,17 +106,79 @@ export function ChinaDocCard({
           </div>
         )}
 
-        {/* Rejection reason */}
-        {revisao?.motivo_rejeicao && doc.status === "rejeitado" && (
-          <div className="p-2 bg-destructive/10 rounded text-xs text-destructive font-medium">
-            ❌ {revisao.motivo_rejeicao}
+        {/* Laudo de rejeição (Brasil) com tradução */}
+        {revisao?.motivo_rejeicao && (doc.status === "rejeitado" || doc.status === "contestado") && (
+          <div className="rounded-md border border-destructive/40 bg-destructive/5 p-2 space-y-2">
+            <div className="text-[11px] font-medium text-destructive flex items-center gap-1">
+              <XCircle className="h-3 w-3" /> Laudo técnico do Brasil
+            </div>
+            <TextoComTraducao
+              texto={revisao.motivo_rejeicao}
+              idiomaOrigem={revisao.motivo_idioma_origem}
+              traducoes={revisao.motivo_traducoes}
+              onCacheTraducao={(p) =>
+                salvarTraducao.mutate({
+                  revisao_id: revisao.id,
+                  submissao_id: doc.submissao_id,
+                  campo: "motivo",
+                  traducoes: p.traducoes,
+                  origem: p.origem,
+                })
+              }
+            />
+            {revisao.anexos?.filter((a) => a.lado === "brasil").length > 0 && (
+              <div className="flex flex-wrap gap-1 pt-1">
+                {revisao.anexos.filter((a) => a.lado === "brasil").map((a, i) => (
+                  <Button
+                    key={i}
+                    variant="outline"
+                    size="sm"
+                    className="h-6 text-[11px] gap-1"
+                    onClick={() => downloadStoragePath(a.path, a.nome)}
+                  >
+                    <Paperclip className="h-3 w-3" /> {a.nome}
+                  </Button>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
-        {/* Contest text */}
-        {revisao?.contestacao_texto && doc.status === "contestado" && (
-          <div className="p-2 bg-warning/10 rounded text-xs text-warning font-medium">
-            ⚠️ {revisao.contestacao_texto}
+        {/* Parecer técnico (China) com tradução */}
+        {revisao?.contestacao_texto && (doc.status === "contestado" || doc.status === "pendente") && (
+          <div className="rounded-md border border-warning/40 bg-warning/5 p-2 space-y-2">
+            <div className="text-[11px] font-medium text-warning-foreground flex items-center gap-1">
+              <AlertTriangle className="h-3 w-3" /> Parecer técnico da China
+            </div>
+            <TextoComTraducao
+              texto={revisao.contestacao_texto}
+              idiomaOrigem={revisao.contestacao_idioma_origem}
+              traducoes={revisao.contestacao_traducoes}
+              onCacheTraducao={(p) =>
+                salvarTraducao.mutate({
+                  revisao_id: revisao.id,
+                  submissao_id: doc.submissao_id,
+                  campo: "contestacao",
+                  traducoes: p.traducoes,
+                  origem: p.origem,
+                })
+              }
+            />
+            {revisao.anexos?.filter((a) => a.lado === "china").length > 0 && (
+              <div className="flex flex-wrap gap-1 pt-1">
+                {revisao.anexos.filter((a) => a.lado === "china").map((a, i) => (
+                  <Button
+                    key={i}
+                    variant="outline"
+                    size="sm"
+                    className="h-6 text-[11px] gap-1"
+                    onClick={() => downloadStoragePath(a.path, a.nome)}
+                  >
+                    <Paperclip className="h-3 w-3" /> {a.nome}
+                  </Button>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
@@ -104,6 +193,40 @@ export function ChinaDocCard({
             ))}
           </div>
         )}
+
+        {/* Histórico de versões */}
+        <Collapsible open={historicoOpen} onOpenChange={setHistoricoOpen}>
+          <CollapsibleTrigger asChild>
+            <Button variant="ghost" size="sm" className="h-6 px-2 text-[11px] text-muted-foreground gap-1">
+              <History className="h-3 w-3" />
+              {historicoOpen ? "Ocultar histórico" : "Ver histórico de versões"}
+            </Button>
+          </CollapsibleTrigger>
+          <CollapsibleContent className="pt-2 space-y-1">
+            {versoes.length === 0 ? (
+              <p className="text-[11px] text-muted-foreground italic">Nenhuma versão anterior arquivada.</p>
+            ) : (
+              versoes.map((v) => (
+                <div key={v.id} className="flex items-center justify-between gap-2 rounded border bg-muted/40 p-2 text-[11px]">
+                  <div className="min-w-0">
+                    <span className="font-medium">v{v.rodada}</span>
+                    <span className="ml-2 text-muted-foreground">{v.status_no_momento}</span>
+                    <span className="ml-2 text-muted-foreground">{formatLocalDate(v.enviada_em, "dd/MM HH:mm")}</span>
+                    <p className="truncate text-muted-foreground">{v.nome_arquivo}</p>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 px-2 text-[11px]"
+                    onClick={() => downloadStoragePath(v.arquivo_path, v.nome_arquivo)}
+                  >
+                    Baixar
+                  </Button>
+                </div>
+              ))
+            )}
+          </CollapsibleContent>
+        </Collapsible>
 
         {/* Actions */}
         <div className="flex gap-2 flex-wrap">
@@ -134,14 +257,9 @@ export function ChinaDocCard({
           )}
 
           {showChinaCorrectContest && (
-            <>
-              <Button variant="outline" size="sm" className="text-xs h-7" onClick={() => setReuploadDialog(true)}>
-                <RotateCcw className="h-3 w-3 mr-1" /> Corrigir 修正
-              </Button>
-              <Button variant="outline" size="sm" className="text-xs h-7 text-warning border-warning/30" onClick={() => setContestDialog(true)}>
-                <AlertTriangle className="h-3 w-3 mr-1" /> Contestar 异议
-              </Button>
-            </>
+            <Button size="sm" className="text-xs h-7" onClick={() => setSubstituirDialog(true)}>
+              <Upload className="h-3 w-3 mr-1" /> Substituir com parecer técnico 提交新文件与技术意见
+            </Button>
           )}
 
           {showBrasilContestedActions && (
@@ -157,27 +275,27 @@ export function ChinaDocCard({
         </div>
       </div>
 
-      {/* Reject Dialog */}
-      <Dialog open={rejectDialog} onOpenChange={setRejectDialog}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Rejeitar Documento 拒绝文件</DialogTitle>
-          </DialogHeader>
-          <Textarea value={motivo} onChange={e => setMotivo(e.target.value)} placeholder="Motivo da rejeição..." rows={3} />
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setRejectDialog(false)}>Cancelar</Button>
-            <Button variant="destructive" disabled={!motivo.trim()} onClick={() => {
-              onRejeitar?.(doc, motivo.trim(), []);
-              setRejectDialog(false);
-              setMotivo("");
-            }}>
-              Rejeitar 拒绝
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Novo Reject Dialog (laudo + anexos) */}
+      <DialogRejeitarDocumento
+        open={rejectDialog}
+        onOpenChange={setRejectDialog}
+        documentoId={doc.id}
+        submissaoId={doc.submissao_id}
+        tipoDocumentoLabel={cfg?.labelPt}
+      />
 
-      {/* Contest Dialog */}
+      {/* Substituir com parecer (China responde rejeição) */}
+      <DialogContestarDocumento
+        open={substituirDialog}
+        onOpenChange={setSubstituirDialog}
+        documentoId={doc.id}
+        submissaoId={doc.submissao_id}
+        tipoDocumento={doc.tipo_documento}
+        tipoDocumentoLabel={cfg?.labelPt}
+        laudoRevisao={revisao || null}
+      />
+
+      {/* Contest Dialog (somente texto — usado por China em fluxo brasil_envia) */}
       <Dialog open={contestDialog} onOpenChange={setContestDialog}>
         <DialogContent className="max-w-md">
           <DialogHeader>
@@ -194,23 +312,6 @@ export function ChinaDocCard({
               Enviar 提交
             </Button>
           </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Reupload Dialog */}
-      <Dialog open={reuploadDialog} onOpenChange={setReuploadDialog}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Corrigir e Reenviar 修正并重新提交</DialogTitle>
-          </DialogHeader>
-          <input
-            type="file"
-            onChange={e => {
-              const f = e.target.files?.[0];
-              if (f) { onReupload?.(doc.tipo_documento, f); setReuploadDialog(false); }
-            }}
-            className="text-sm file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-primary file:text-primary-foreground file:font-medium file:cursor-pointer"
-          />
         </DialogContent>
       </Dialog>
     </>
