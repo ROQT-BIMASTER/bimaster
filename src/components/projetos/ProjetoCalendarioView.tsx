@@ -1,8 +1,9 @@
 import { useState, useMemo, useEffect } from "react";
 import { useProjetoTarefas, ProjetoTarefa } from "@/hooks/useProjetoTarefas";
+import { useTarefaDensity } from "@/hooks/useTarefaDensity";
 import { ProjetoFilters, ProjetoSort, EMPTY_FILTERS, DEFAULT_SORT } from "./ProjetoFilterSort";
 import { applyProjetoFilters, applyProjetoSort, hasActiveFilters } from "@/lib/projetoFilterUtils";
-import { getDateKey, parseLocalDate, getToday } from "@/utils/dateUtils";
+import { getDateKey, parseLocalDate } from "@/utils/dateUtils";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -11,6 +12,9 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Calendar } from "@/components/ui/calendar";
 import { CalendarioAnalisePanel } from "./CalendarioAnalisePanel";
+import { CalendarioCard } from "./calendario/CalendarioCard";
+import { MultiDayBar, MULTIDAY_LANE_HEIGHT, MULTIDAY_LANE_GAP } from "./calendario/MultiDayBar";
+import { packLanes, splitEventByWeekRow } from "@/lib/calendario/lanePacking";
 import { ChevronLeft, ChevronRight, CalendarDays, Circle, CheckCircle2, BarChart3 } from "lucide-react";
 import {
   startOfMonth, endOfMonth, startOfWeek, endOfWeek,
