@@ -41,14 +41,28 @@ const fmtDate = (d: string | null | undefined): string => {
 const fmtNum = (n: number | null | undefined) =>
   new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 0 }).format(n || 0);
 
+interface DocRow {
+  id: string;
+  tipo_documento: string;
+  status: string;
+  nome_arquivo: string | null;
+  arquivo_url: string | null;
+  updated_at: string | null;
+  created_at: string;
+}
+
 interface DocSummary {
   total: number;
   pendentes: number;
   aprovados: number;
   rejeitados: number;
+  enviados: number; // total que efetivamente saiu da China para o Brasil
   ultimoStatus: string | null;
   ultimoEm: string | null;
+  rows: DocRow[];
 }
+
+const SENT_STATUSES = ["enviado", "contestado", "aprovado", "rejeitado", "em_revisao"];
 
 function useDocsResumo(submissaoId: string | null | undefined) {
   return useQuery({
@@ -58,26 +72,97 @@ function useDocsResumo(submissaoId: string | null | undefined) {
     queryFn: async (): Promise<DocSummary> => {
       const { data } = await (supabase as any)
         .from("china_produto_documentos")
-        .select("status, updated_at, created_at")
+        .select("id, tipo_documento, status, nome_arquivo, arquivo_url, updated_at, created_at")
         .eq("submissao_id", submissaoId)
         .order("updated_at", { ascending: false });
-      const rows = (data || []) as Array<{ status: string; updated_at: string | null; created_at: string }>;
-      let pendentes = 0, aprovados = 0, rejeitados = 0;
+      const rows = (data || []) as DocRow[];
+      let pendentes = 0, aprovados = 0, rejeitados = 0, enviados = 0;
       for (const r of rows) {
         if (r.status === "aprovado") aprovados += 1;
         else if (r.status === "rejeitado") rejeitados += 1;
         else pendentes += 1;
+        if (SENT_STATUSES.includes(r.status)) enviados += 1;
       }
       return {
         total: rows.length,
         pendentes,
         aprovados,
         rejeitados,
+        enviados,
         ultimoStatus: rows[0]?.status ?? null,
         ultimoEm: rows[0]?.updated_at ?? rows[0]?.created_at ?? null,
+        rows,
       };
     },
   });
+}
+
+function ProgressBlock({
+  label, current, total, tone,
+}: {
+  label: string;
+  current: number;
+  total: number;
+  tone: "emerald" | "amber" | "rose";
+}) {
+  const pct = total > 0 ? Math.round((current / total) * 100) : 0;
+  const colorClass = {
+    emerald: "[&>div]:bg-emerald-500",
+    amber: "[&>div]:bg-amber-500",
+    rose: "[&>div]:bg-rose-500",
+  }[tone];
+  return (
+    <div className="space-y-1">
+      <div className="flex items-center justify-between text-[11px]">
+        <span className="text-muted-foreground">{label}</span>
+        <span className="font-medium tabular-nums">
+          {current}/{total} <span className="text-muted-foreground">({pct}%)</span>
+        </span>
+      </div>
+      <Progress value={pct} className={cn("h-1.5", colorClass)} />
+    </div>
+  );
+}
+
+function ExpandableDocList({
+  rows,
+  filter,
+  emptyText,
+}: {
+  rows: DocRow[];
+  filter: (r: DocRow) => boolean;
+  emptyText: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const filtered = rows.filter(filter);
+  return (
+    <div className="mt-1.5">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground transition-colors"
+      >
+        {open ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+        {open ? "Ocultar detalhamento" : `Ver detalhamento (${filtered.length})`}
+      </button>
+      {open && (
+        <ul className="mt-1.5 space-y-1 border-l border-border/60 pl-2">
+          {filtered.length === 0 ? (
+            <li className="text-[11px] italic text-muted-foreground">{emptyText}</li>
+          ) : (
+            filtered.map((r) => (
+              <li key={r.id} className="flex items-center justify-between gap-2 text-[11px]">
+                <span className="truncate text-foreground/90">{r.tipo_documento}</span>
+                <Badge variant="outline" className="h-4 px-1 text-[9px] uppercase shrink-0">
+                  {r.status}
+                </Badge>
+              </li>
+            ))
+          )}
+        </ul>
+      )}
+    </div>
+  );
 }
 
 export function UnifiedSubmissionTimeline({ submissao, ocId, onlyChinaStages, className }: Props) {
