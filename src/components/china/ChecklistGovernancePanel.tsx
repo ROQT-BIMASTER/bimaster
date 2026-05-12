@@ -128,7 +128,7 @@ export function ChecklistGovernancePanel({ submissaoId }: Props) {
       </button>
 
       {!collapsed && (
-        <div className="border-t px-4 py-3 space-y-3">
+        <div className="border-t px-4 py-3 space-y-3 max-h-[60vh] overflow-y-auto">
           <div className="flex items-center justify-between text-xs text-muted-foreground">
             <div>
               Soma dos pesos:{" "}
