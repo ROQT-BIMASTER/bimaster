@@ -43,7 +43,7 @@ export const DEFAULT_AWAITING_SEND_CONFIG: AwaitingSendConfig = {
   treatRascunhoAsAwaiting: true,
   requireDocumentoAnexado: true,
   requireParecerChina: true,
-  excludeSubmissaoStatuses: ["aprovado", "rejeitado"],
+  excludeSubmissaoStatuses: ["aprovado", "rejeitado", "enviado", "enviado_brasil", "em_revisao"],
   excludeDocStatuses: [],
 };
 

@@ -7,7 +7,7 @@ import {
 
 const base: AwaitingSendItemLike = {
   is_deleted: false,
-  submissao_status: "enviado_brasil",
+  submissao_status: "pendente",
   doc_status: null,
   documento_id: null,
   observacoes_china: null,
@@ -89,12 +89,27 @@ describe("evaluateAwaitingSend", () => {
     expect(r.matches).toBe(false);
   });
 
+  it("submissão com status 'enviado' (legado) nunca entra", () => {
+    const r = evaluateAwaitingSend({ ...base, submissao_status: "enviado" });
+    expect(r.matches).toBe(false);
+  });
+
+  it("submissão com status 'enviado_brasil' nunca entra", () => {
+    const r = evaluateAwaitingSend({ ...base, submissao_status: "enviado_brasil" });
+    expect(r.matches).toBe(false);
+  });
+
+  it("submissão com status 'em_revisao' nunca entra", () => {
+    const r = evaluateAwaitingSend({ ...base, submissao_status: "em_revisao" });
+    expect(r.matches).toBe(false);
+  });
+
   it("config: excluir status custom impede entrada", () => {
     const r = evaluateAwaitingSend(
-      { ...base },
+      { ...base, submissao_status: "pendente" },
       {
         ...DEFAULT_AWAITING_SEND_CONFIG,
-        excludeSubmissaoStatuses: ["aprovado", "rejeitado", "enviado_brasil"],
+        excludeSubmissaoStatuses: ["aprovado", "rejeitado", "enviado", "enviado_brasil", "em_revisao", "pendente"],
       },
     );
     expect(r.matches).toBe(false);
