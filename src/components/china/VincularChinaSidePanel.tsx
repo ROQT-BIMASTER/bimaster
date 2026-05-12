@@ -241,7 +241,7 @@ export function VincularChinaSidePanel({
           <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">
             Encaminhar para
           </p>
-          <div className="grid grid-cols-3 gap-1.5">
+          <div className={cn("grid gap-1.5", isBrasilUser ? "grid-cols-4" : "grid-cols-3")}>
             <button
               type="button"
               onClick={() => onEncaminharProjeto?.()}
@@ -269,7 +269,37 @@ export function VincularChinaSidePanel({
               <MessageSquare className="h-4 w-4 text-primary" />
               <span className="text-[10px] font-medium text-foreground">Responsável</span>
             </button>
+            {isBrasilUser && (
+              <button
+                type="button"
+                onClick={() => setConfirmAprovarOpen(true)}
+                disabled={!canAprovarDireto}
+                className={cn(
+                  "group flex flex-col items-center gap-1 rounded-md border transition-colors px-2 py-2",
+                  canAprovarDireto
+                    ? "border-emerald-500/40 bg-emerald-500/5 hover:bg-emerald-500/10 hover:border-emerald-500/60"
+                    : "border-border bg-muted/30 opacity-50 cursor-not-allowed",
+                )}
+                title={
+                  submissaoFinalizada
+                    ? "Submissão já finalizada"
+                    : despachosAbertos.length > 0
+                      ? "Conclua ou cancele os despachos abertos antes de aprovar diretamente"
+                      : docsAprovaveis.length === 0
+                        ? "Nenhum documento elegível para aprovação"
+                        : "Aprovar a submissão diretamente nesta tela"
+                }
+              >
+                <CheckCircle2 className={cn("h-4 w-4", canAprovarDireto ? "text-emerald-500" : "text-muted-foreground")} />
+                <span className="text-[10px] font-medium text-foreground">Aprovar</span>
+              </button>
+            )}
           </div>
+          {isBrasilUser && despachosAbertos.length > 0 && !submissaoFinalizada && (
+            <p className="mt-1.5 text-[10px] text-amber-500">
+              {despachosAbertos.length} despacho(s) em andamento — conclua ou cancele para habilitar a aprovação direta.
+            </p>
+          )}
         </div>
       </div>
 
