@@ -20,6 +20,10 @@ export type ConfirmKind = "conclusao" | "exclusao";
 export interface ConfirmTarefaOptions {
   titulo?: string;
   descricao?: string;
+  /** Sobrescreve totalmente o título do diálogo (ex.: "Aprovar Ordem de Compra?"). */
+  tituloDialog?: string;
+  /** Sobrescreve o texto do botão de ação (ex.: "Sim, aprovar"). */
+  acaoLabel?: string;
   /** Quantidade de tarefas (para ações em lote) */
   quantidade?: number;
   /** Indica que é uma subtarefa (afeta o texto do diálogo) */
