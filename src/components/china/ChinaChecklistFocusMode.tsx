@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { useRevisoesPorSubmissao } from "@/hooks/useChinaRevisoes";
 import { DialogContestarDocumento } from "./DialogContestarDocumento";
+import { useTraduzirTexto } from "@/hooks/useTraduzirTexto";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
   DropdownMenuSeparator, DropdownMenuTrigger,
@@ -184,6 +185,22 @@ export function ChinaChecklistFocusMode({
   const [editCatTarget, setEditCatTarget] = useState<MergedCategory | null>(null);
   const [editCatLabelPt, setEditCatLabelPt] = useState("");
   const [editCatLabelCn, setEditCatLabelCn] = useState("");
+
+  const traduzirLabel = useTraduzirTexto();
+  const autoTranslateToCn = useCallback(
+    async (textoPt: string, current: string, setter: (v: string) => void) => {
+      const t = textoPt.trim();
+      if (!t || current.trim()) return;
+      try {
+        const r = await traduzirLabel.mutateAsync({ texto: t, origem: "pt" });
+        const zh = r?.traducoes?.zh;
+        if (zh && !current.trim()) setter(zh);
+      } catch {
+        // erro já notificado em useTraduzirTexto
+      }
+    },
+    [traduzirLabel],
+  );
 
   // Templates
   const [tplSaveOpen, setTplSaveOpen] = useState(false);
@@ -1279,12 +1296,13 @@ export function ChinaChecklistFocusMode({
               <Input
                 value={addCatLabelPt}
                 onChange={(e) => setAddCatLabelPt(e.target.value)}
+                onBlur={(e) => autoTranslateToCn(e.target.value, addCatLabelCn, setAddCatLabelCn)}
                 placeholder="Ex: Certificações, Laudos Técnicos..."
                 className="mt-1"
               />
             </div>
             <div>
-              <Label className="text-xs">Nome (Chinês) — opcional</Label>
+              <Label className="text-xs flex items-center gap-1">Nome (Chinês) {traduzirLabel.isPending ? <span className="text-[10px] text-muted-foreground">traduzindo…</span> : <span className="text-muted-foreground">— auto-tradução</span>}</Label>
               <Input
                 value={addCatLabelCn}
                 onChange={(e) => setAddCatLabelCn(e.target.value)}
@@ -1337,12 +1355,13 @@ export function ChinaChecklistFocusMode({
               <Input
                 value={addItemLabelPt}
                 onChange={(e) => setAddItemLabelPt(e.target.value)}
+                onBlur={(e) => autoTranslateToCn(e.target.value, addItemLabelCn, setAddItemLabelCn)}
                 placeholder="Ex: Laudo Microbiológico, Certificado INMETRO..."
                 className="mt-1"
               />
             </div>
             <div>
-              <Label className="text-xs">Nome (Chinês) — opcional</Label>
+              <Label className="text-xs flex items-center gap-1">Nome (Chinês) {traduzirLabel.isPending ? <span className="text-[10px] text-muted-foreground">traduzindo…</span> : <span className="text-muted-foreground">— auto-tradução</span>}</Label>
               <Input
                 value={addItemLabelCn}
                 onChange={(e) => setAddItemLabelCn(e.target.value)}
@@ -1385,11 +1404,12 @@ export function ChinaChecklistFocusMode({
               <Input
                 value={editCatLabelPt}
                 onChange={(e) => setEditCatLabelPt(e.target.value)}
+                onBlur={(e) => autoTranslateToCn(e.target.value, editCatLabelCn, setEditCatLabelCn)}
                 className="mt-1"
               />
             </div>
             <div>
-              <Label className="text-xs">Nome (Chinês) — opcional</Label>
+              <Label className="text-xs flex items-center gap-1">Nome (Chinês) {traduzirLabel.isPending ? <span className="text-[10px] text-muted-foreground">traduzindo…</span> : <span className="text-muted-foreground">— auto-tradução</span>}</Label>
               <Input
                 value={editCatLabelCn}
                 onChange={(e) => setEditCatLabelCn(e.target.value)}
