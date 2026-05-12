@@ -109,6 +109,9 @@ export function ChinaChecklistFocusMode({
   onRefresh,
   onRemoveFile,
   onViewDoc,
+  defaultOpen,
+  focusTipo,
+  onAfterFocus,
 }: ChinaChecklistFocusModeProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [activeCat, setActiveCat] = useState(DOCUMENT_CATEGORIES[0].key);
