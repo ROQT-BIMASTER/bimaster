@@ -234,7 +234,8 @@ export function useFichaCustoProduto(produtoId: string | undefined) {
       ? baseCondicaoMarkup * (percentualMarkup / 100) : 0;
     const markupTotal = markupNF + markupServico + markupCondicao;
 
-    // IPI entra DEPOIS do markup, somando direto no Custo Total (regra fiscal padrão).
+    // Regra fiscal: IPI agrega ao custo da NF (entrada), não à saída.
+    // Custo Total = (NF + IPI) + Serviço + Condição + Markup
     const custoTotal = subtotal + markupTotal + totalIPI;
 
     return {
