@@ -1090,7 +1090,10 @@ export function ChinaChecklistFocusMode({
                             ref={(el) => { fileInputRefs.current[config.tipo] = el; }}
                             type="file"
                             className="hidden"
-                            accept={config.accept}
+                            accept={[
+                              config.accept || "",
+                              ".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.rtf,.odt,.ods,.odp,image/*",
+                            ].filter(Boolean).join(",")}
                             multiple={config.multiple}
                             onChange={(e) => {
                               const files = e.target.files;
