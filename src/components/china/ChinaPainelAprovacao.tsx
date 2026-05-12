@@ -10,10 +10,9 @@ import { ChinaAprovacaoTimeline } from "./ChinaAprovacaoTimeline";
 import { ChinaAutoAdvanceCTA } from "./ChinaAutoAdvanceCTA";
 import {
   DOCUMENT_CATEGORIES,
-  CATEGORIES_CHINA_ENVIA,
-  CATEGORIES_BRASIL_ENVIA,
   CHINA_DOCUMENT_TYPES,
 } from "@/lib/china-document-types";
+import { useMergedChinaChecklist } from "@/hooks/useMergedChinaChecklist";
 import {
   useRevisoesPorSubmissao,
   useCriarRevisao,
@@ -37,6 +36,7 @@ export function ChinaPainelAprovacao({
   onViewDoc, onReupload, onClose,
 }: Props) {
   const { data: revisoes = [] } = useRevisoesPorSubmissao(submissaoId);
+  const merged = useMergedChinaChecklist(submissaoId);
   const criarRevisao = useCriarRevisao();
   const contestar = useContestarRevisao();
   const darCiencia = useDarCiencia();
@@ -90,7 +90,7 @@ export function ChinaPainelAprovacao({
   const pct = totalDocs > 0 ? Math.round((aprovados / totalDocs) * 100) : 0;
 
   const renderColumn = (
-    categories: typeof DOCUMENT_CATEGORIES,
+    categories: typeof merged.categoriesChinaEnvia,
     fluxo: "china_envia" | "brasil_envia",
     headerPt: string,
     headerCn: string,
@@ -110,7 +110,7 @@ export function ChinaPainelAprovacao({
           const catDocs = documentos.filter(d => cat.tipos.includes(d.tipo_documento));
           if (catDocs.length === 0) {
             // Show empty placeholder for types in this category
-            const types = CHINA_DOCUMENT_TYPES.filter(t => cat.tipos.includes(t.tipo));
+            const types = merged.docTypes.filter(t => cat.tipos.includes(t.tipo));
             if (types.length === 0) return null;
             return (
               <div key={cat.key} className="space-y-2">
@@ -184,7 +184,7 @@ export function ChinaPainelAprovacao({
         {/* Dual columns */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {renderColumn(
-            CATEGORIES_CHINA_ENVIA,
+            merged.categoriesChinaEnvia,
             "china_envia",
             "China → Brasil",
             "中国 → 巴西",
@@ -192,7 +192,7 @@ export function ChinaPainelAprovacao({
             "bg-primary/10 text-primary border-primary/30",
           )}
           {renderColumn(
-            CATEGORIES_BRASIL_ENVIA,
+            merged.categoriesBrasilEnvia,
             "brasil_envia",
             "Brasil → China",
             "巴西 → 中国",
