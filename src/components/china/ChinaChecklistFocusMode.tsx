@@ -40,6 +40,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { createElement } from "react";
+import { usePageBgColor } from "@/components/shared/PageBgCustomizer";
 
 interface DocRecord {
   id: string;
