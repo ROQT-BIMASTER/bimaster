@@ -709,6 +709,22 @@ export default function FabricaProdutosAcabados() {
               </Button>
             )}
             <Button
+              variant="outline"
+              size="sm"
+              className="h-8"
+              onClick={() => setDiagnosticoOpen(true)}
+              title="Verificar permissões de upload/edição/exclusão de fotos"
+            >
+              <ShieldQuestion className="h-3.5 w-3.5 mr-1.5" />
+              Diagnóstico de fotos
+            </Button>
+            <Button variant="outline" size="sm" className="h-8" asChild>
+              <Link to="/dashboard/fabrica/auditoria-fotos">
+                <ClipboardList className="h-3.5 w-3.5 mr-1.5" />
+                Auditoria de fotos
+              </Link>
+            </Button>
+            <Button
               size="sm"
               className="h-8"
               onClick={() => {
