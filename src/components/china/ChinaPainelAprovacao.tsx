@@ -184,7 +184,7 @@ export function ChinaPainelAprovacao({
         {/* Dual columns */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {renderColumn(
-            CATEGORIES_CHINA_ENVIA,
+            merged.categoriesChinaEnvia,
             "china_envia",
             "China → Brasil",
             "中国 → 巴西",
@@ -192,7 +192,7 @@ export function ChinaPainelAprovacao({
             "bg-primary/10 text-primary border-primary/30",
           )}
           {renderColumn(
-            CATEGORIES_BRASIL_ENVIA,
+            merged.categoriesBrasilEnvia,
             "brasil_envia",
             "Brasil → China",
             "巴西 → 中国",
