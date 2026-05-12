@@ -177,7 +177,15 @@ export default function ChinaCaixaEntrada() {
   const handleCorrigir = (item: MailboxItem) => {
     goWithReturn(`/dashboard/fabrica-china/submissao/${item.submissao_id}`);
   };
-  const handleEnviarBrasil = (item: MailboxItem) => {
+  const handleEnviarBrasil = async (item: MailboxItem) => {
+    const ok = await confirmConclusaoTarefa({
+      tituloDialog: "Deseja mesmo enviar esse item ao Brasil?",
+      titulo: item.nome_arquivo || item.tipo_documento || `${item.produto_codigo} — ${item.produto_nome}`,
+      descricao:
+        "Após o envio, esta submissão entra na fila de análise do Brasil e não pode mais ser editada pela China sem solicitar retorno.",
+      acaoLabel: "Sim, enviar ao Brasil",
+    });
+    if (!ok) return;
     enviarBrasil.mutate({
       submissao_id: item.submissao_id,
       ...(item.documento_id ? { documento_id: item.documento_id } : {}),
