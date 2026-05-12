@@ -10,10 +10,9 @@ import { ChinaAprovacaoTimeline } from "./ChinaAprovacaoTimeline";
 import { ChinaAutoAdvanceCTA } from "./ChinaAutoAdvanceCTA";
 import {
   DOCUMENT_CATEGORIES,
-  CATEGORIES_CHINA_ENVIA,
-  CATEGORIES_BRASIL_ENVIA,
   CHINA_DOCUMENT_TYPES,
 } from "@/lib/china-document-types";
+import { useMergedChinaChecklist } from "@/hooks/useMergedChinaChecklist";
 import {
   useRevisoesPorSubmissao,
   useCriarRevisao,
