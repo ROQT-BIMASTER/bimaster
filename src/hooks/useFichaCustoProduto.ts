@@ -233,14 +233,13 @@ export function useFichaCustoProduto(produtoId: string | undefined) {
       ? baseCondicaoMarkup * (percentualMarkup / 100) : 0;
     const markupTotal = markupNF + markupServico + markupCondicao;
 
-    // IPI agora incide UMA ÚNICA VEZ sobre a saída final do produto
-    // (NF + markup) + (Serviço + markup) + (Condição + markup) = base de saída
-    // IPI = base de saída × ipi_percentual_saida
-    // Custo Total = base de saída + IPI
-    const baseSaida = subtotal + markupTotal;
+    // IPI Saída incide UMA ÚNICA VEZ, somente sobre o custo de NF de saída do produto
+    // baseIPI = NF + markupNF
+    // Custo Total = (NF + markupNF + IPI) + (Serviço + markupServ) + (Condição + markupCond)
+    const baseIPI = totalNF + markupNF;
     const pctIPISaida = Number(config?.ipi_percentual_saida) || 0;
-    const totalIPI = baseSaida * (pctIPISaida / 100);
-    const custoTotal = baseSaida + totalIPI;
+    const totalIPI = baseIPI * (pctIPISaida / 100);
+    const custoTotal = subtotal + markupTotal + totalIPI;
 
     return {
       totalNF,
