@@ -8,6 +8,7 @@ import { useShipsgoShipment, useSyncShipsgoShipment } from "@/hooks/useShipsgoSh
 import { ContainerStatusBadge } from "./ContainerStatusBadge";
 import { ContainerTimeline } from "./ContainerTimeline";
 import { ContainerRouteMap } from "./ContainerRouteMap";
+import { ChinaTimelineButton } from "@/components/china/timeline/ChinaTimelineButton";
 import { parseLocalDate } from "@/lib/utils/parseLocalDate";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -51,13 +52,15 @@ export function ContainerDetailSheet({ shipmentId, open, onOpenChange }: Props) 
           <div className="mt-4 space-y-4">
             <div className="flex items-center justify-between gap-2">
               <ContainerStatusBadge status={ship.status} />
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => sync.mutate(ship.id)}
-                disabled={sync.isPending}
-              >
-                <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${sync.isPending ? "animate-spin" : ""}`} />
+              <div className="flex items-center gap-2">
+                <ChinaTimelineButton scope={{ containerId: ship.id }} variant="outline" />
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => sync.mutate(ship.id)}
+                  disabled={sync.isPending}
+                >
+                  <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${sync.isPending ? "animate-spin" : ""}`} />
                 Atualizar
               </Button>
             </div>
