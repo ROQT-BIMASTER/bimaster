@@ -27,6 +27,9 @@ import { Upload as UploadIcon } from "lucide-react";
 import { validateLinhaProduto } from "@/lib/validations/china-submissao";
 import { logger } from "@/lib/logger";
 import { useResolvedBackTo } from "@/lib/navigation/withReturnTo";
+import { saveDraftWithRetry, type DraftSaveStatus } from "@/lib/china/draftRetry";
+import { DraftStatusIndicator } from "@/components/china/DraftStatusIndicator";
+import { ResumeDraftBanner } from "@/components/china/ResumeDraftBanner";
 
 const STEPS = [
   { labelPt: "Dados do Produto", labelCn: "产品数据", icon: FileSpreadsheet },
@@ -75,6 +78,18 @@ export default function ChinaNovaSubmissao() {
   const [savingDraft, setSavingDraft] = useState(false);
   const [showProductPreview, setShowProductPreview] = useState(true);
   const [showFinalReview, setShowFinalReview] = useState(false);
+
+  // Auto-save draft status surfaced no header.
+  const [draftStatus, setDraftStatus] = useState<DraftSaveStatus>("idle");
+  const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
+  const [lastDraftError, setLastDraftError] = useState<string | null>(null);
+  // Snapshot da última tentativa que falhou — permite o usuário tentar novamente
+  // pelo botão "Tentar novamente" do indicador.
+  const lastDraftRetryRef = useRef<null | (() => Promise<void>)>(null);
+  const handleRetryDraft = useCallback(async () => {
+    if (!lastDraftRetryRef.current) return;
+    await lastDraftRetryRef.current();
+  }, []);
 
   // Load existing submission for resume/edit
   const { data: existingSubmissao, isLoading: loadingExisting } = useQuery({
@@ -282,24 +297,61 @@ export default function ChinaNovaSubmissao() {
 
       let activeSubId = submissaoId;
 
-      if (activeSubId) {
-        // Update existing submission
-        const { error } = await supabase
-          .from("china_produto_submissoes" as any)
-          .update(submissaoPayload as any)
-          .eq("id", activeSubId);
-        if (error) throw error;
-      } else {
-        // Create new submission
-        const { data: sub, error } = await supabase
-          .from("china_produto_submissoes" as any)
-          .insert({ ...submissaoPayload, created_by: session.user.id } as any)
-          .select("id")
-          .single();
-        if (error) throw error;
-        activeSubId = (sub as any).id;
-        setSubmissaoId(activeSubId);
-      }
+      const runDraftSave = async (): Promise<string | null> => {
+        if (activeSubId) {
+          const r = await saveDraftWithRetry(
+            () => supabase.from("china_produto_submissoes" as any).update(submissaoPayload as any).eq("id", activeSubId!),
+            { label: "validation-update" },
+          );
+          if (r.ok === false) {
+            setDraftStatus("error");
+            setLastDraftError(r.userMessage);
+            toast.error(r.userMessage, {
+              description: `Tentativas: ${r.attempts}. Use o botão "Salvar Rascunho" para tentar novamente manualmente.`,
+            });
+            logger.error("Validation update failed:", r.technicalMessage);
+            return null;
+          }
+          return activeSubId;
+        }
+        const r = await saveDraftWithRetry<{ id: string }>(
+          () => supabase
+            .from("china_produto_submissoes" as any)
+            .insert({ ...submissaoPayload, created_by: session.user.id } as any)
+            .select("id")
+            .single() as any,
+          { label: "validation-insert" },
+        );
+        if (r.ok === false) {
+          setDraftStatus("error");
+          setLastDraftError(r.userMessage);
+          toast.error(r.userMessage, {
+            description: `Tentativas: ${r.attempts}. Use o botão "Salvar Rascunho" para tentar novamente manualmente.`,
+          });
+          logger.error("Validation insert failed:", r.technicalMessage);
+          return null;
+        }
+        return (r.data as any).id as string;
+      };
+
+      setDraftStatus("saving");
+      lastDraftRetryRef.current = async () => {
+        const id = await runDraftSave();
+        if (id) {
+          if (!submissaoId) setSubmissaoId(id);
+          setDraftStatus("saved");
+          setLastSavedAt(new Date());
+          setLastDraftError(null);
+          toast.success("Rascunho salvo automaticamente.");
+        }
+      };
+      const newId = await runDraftSave();
+      if (!newId) return;
+      activeSubId = newId;
+      if (!submissaoId) setSubmissaoId(activeSubId);
+      setDraftStatus("saved");
+      setLastSavedAt(new Date());
+      setLastDraftError(null);
 
       if (validatedData.cores?.length > 0) {
         const parsed: GradeItem[] = validatedData.cores.map((c: any) => ({
@@ -466,29 +518,66 @@ export default function ChinaNovaSubmissao() {
         status: "rascunho",
       };
 
-      if (submissaoId) {
-        // Update existing submission
-        const { error } = await supabase
-          .from("china_produto_submissoes" as any)
-          .update(payload as any)
-          .eq("id", submissaoId);
-        if (error) throw error;
-      } else {
-        // Create new submission
-        const { data: sub, error } = await supabase
-          .from("china_produto_submissoes" as any)
-          .insert({ ...payload, created_by: session.user.id } as any)
-          .select("id")
-          .single();
-        if (error) throw error;
-        setSubmissaoId((sub as any).id);
-      }
+      setDraftStatus("saving");
+      const runManual = async (): Promise<boolean> => {
+        if (submissaoId) {
+          const r = await saveDraftWithRetry(
+            () => supabase.from("china_produto_submissoes" as any).update(payload as any).eq("id", submissaoId),
+            { label: "manual-update" },
+          );
+          if (r.ok === false) {
+            setDraftStatus("error");
+            setLastDraftError(r.userMessage);
+            toast.error(r.userMessage, {
+              description: `Tentativas: ${r.attempts}. Use o botão "Salvar Rascunho" para tentar novamente.`,
+            });
+            logger.error("Manual update failed:", r.technicalMessage);
+            return false;
+          }
+          return true;
+        }
+        const r = await saveDraftWithRetry<{ id: string }>(
+          () => supabase
+            .from("china_produto_submissoes" as any)
+            .insert({ ...payload, created_by: session.user.id } as any)
+            .select("id")
+            .single() as any,
+          { label: "manual-insert" },
+        );
+        if (r.ok === false) {
+          setDraftStatus("error");
+          setLastDraftError(r.userMessage);
+          toast.error(r.userMessage, {
+            description: `Tentativas: ${r.attempts}. Use o botão "Salvar Rascunho" para tentar novamente.`,
+          });
+          logger.error("Manual insert failed:", r.technicalMessage);
+          return false;
+        }
+        setSubmissaoId((r.data as any).id);
+        return true;
+      };
+      lastDraftRetryRef.current = async () => {
+        const ok = await runManual();
+        if (ok) {
+          setDraftStatus("saved");
+          setLastSavedAt(new Date());
+          setLastDraftError(null);
+          toast.success("Rascunho salvo automaticamente.");
+        }
+      };
+      const ok = await runManual();
+      if (!ok) return;
+      setDraftStatus("saved");
+      setLastSavedAt(new Date());
+      setLastDraftError(null);
 
       setParsedData({ _manual: true, ...manualData });
       toast.success("Rascunho salvo automaticamente. 草稿已自动保存。");
       setStep(1);
     } catch (err: any) {
       logger.error("Manual entry error:", err, err?.code, err?.details, err?.hint);
+      setDraftStatus("error");
+      setLastDraftError(err?.message || "Erro inesperado");
       const msg = err?.message || "";
       if (msg.includes("row-level security") || msg.includes("violates")) {
         toast.error("Sem permissão para salvar. Verifique se você tem acesso ao módulo Fábrica/China.");
@@ -612,6 +701,9 @@ export default function ChinaNovaSubmissao() {
 
   return (
     <ChinaPageShell>
+      {/* Banner de retomada — só aparece quando NÃO estamos editando um rascunho específico */}
+      <ResumeDraftBanner hidden={!!editId || !!submissaoId} />
+
       {/* Read-only lock banner */}
       {isReadOnly && (
         <Card className="p-4 border-warning/30 bg-warning/5">
@@ -650,9 +742,12 @@ export default function ChinaNovaSubmissao() {
           <>
             <ManualFabricaDrawer screen="china-nova-submissao" />
             {submissaoId && !isReadOnly && (
-              <Badge variant="secondary" className="text-xs">
-                <Save className="h-3 w-3 mr-1" /> Rascunho 草稿
-              </Badge>
+              <DraftStatusIndicator
+                status={draftStatus}
+                lastSavedAt={lastSavedAt}
+                lastError={lastDraftError}
+                onRetry={handleRetryDraft}
+              />
             )}
             {submissaoId && !isReadOnly && (
               <Button
