@@ -59,5 +59,105 @@
     "pt": "Português",
     "zh": "中文",
     "en": "English"
+  },
+  "inbox": {
+    "title": "收件箱",
+    "subtitleChina": "指挥中心：跟踪已创建、已发送和巴西审核中的提交。",
+    "subtitleBrasil": "等待您批准的中国文件。",
+    "actions": {
+      "recalcular": "重新计算待办",
+      "copiloto": "提交副驾驶",
+      "auditoria": "审计",
+      "atualizar": "刷新",
+      "novaSubmissao": "新提交",
+      "abrirSubmissao": "打开提交",
+      "abrirVincular": "打开“关联中国”",
+      "abrirCorrigir": "打开并修改",
+      "abrirAnexar": "打开提交以附加文件",
+      "enviarBrasil": "发送至巴西",
+      "preVisualizar": "预览",
+      "marcarLida": "标为已读",
+      "marcarNaoLida": "标为未读",
+      "estrela": "加星标",
+      "desmarcar": "取消标记",
+      "exportarPdf": "PDF",
+      "exportarPdfTitle": "导出 PDF 记录",
+      "moverLixeira": "移至回收站",
+      "restaurar": "还原",
+      "excluirDefinitivo": "永久删除",
+      "marcarComoLidos": "标为已读",
+      "limparSelecao": "清除"
+    },
+    "search": {
+      "placeholder": "搜索产品、采购单、文件（快捷键: /)"
+    },
+    "selecionados": "已选择 {{count}} 项",
+    "confirmExcluir": "永久删除所选项目?此操作无法撤销。",
+    "toasts": {
+      "recalcOk": "待办已重新计算。已标准化 {{count}} 项提交。",
+      "recalcNenhuma": "待办已重新计算。无需标准化。",
+      "recalcErro": "重新计算待办失败",
+      "pdfOk": "PDF 已导出",
+      "pdfErro": "导出 PDF 失败"
+    },
+    "empty": {
+      "selectMessage": "选择一条消息以查看。",
+      "noDocument": "此提交尚未附加任何文件。"
+    },
+    "snoozeBanner": {
+      "adiadaAte": "推迟至 {{date}}",
+      "reativar": "立即恢复"
+    },
+    "doc": {
+      "statusPrefix": "文件状态:",
+      "horasAguardando": "已等待 {{count}} 小时",
+      "observacoes": "备注",
+      "china": "中国",
+      "brasil": "巴西"
+    },
+    "blocks": {
+      "enviarTitulo": "将此提交发送至巴西。将在“关联中国”界面等待审批。",
+      "semDocsTitulo": "未附加任何文件",
+      "semDocsTexto": "请在发送至巴西之前至少附加一个文件。",
+      "brasilAprova": "审批和调整在“关联中国”界面进行。",
+      "emAnalise": "巴西审核中",
+      "aguardando": "等待巴西",
+      "emAnaliseTexto": "巴西团队已打开该文件并正在审核。",
+      "aguardandoTexto": "文件已发送。等待巴西团队开始审核。",
+      "horasDecorridas": "已过 {{count}} 小时。",
+      "aprovadaPeloBrasil": "提交已被巴西批准",
+      "aprovadaEm": "批准时间 {{date}}。",
+      "brasilSolicitouAjustes": "巴西请求修改",
+      "conversa": "对话"
+    },
+    "snooze": {
+      "trigger": "推迟",
+      "titulo": "推迟至…",
+      "preset3h": "今天稍后 (3 小时)",
+      "presetAmanha": "明天 9:00",
+      "presetSegunda": "下周一 9:00",
+      "preset1Sem": "1 周后",
+      "datahora": "指定日期/时间"
+    },
+    "sidebar": {
+      "atalhos": "快捷键",
+      "grupoSaida": "发出",
+      "grupoAcompanhamento": "跟踪",
+      "grupoOutros": "其他",
+      "folders": {
+        "oc": "采购单",
+        "inbox": "收件箱",
+        "starred": "已标记",
+        "sent": "已发送",
+        "drafts": "草稿",
+        "approved": "已批准",
+        "rejected": "已拒绝",
+        "trash": "回收站",
+        "awaiting_send": "待发送",
+        "sent_brazil": "已发送至巴西",
+        "in_analysis": "巴西审核中",
+        "returned": "返回：需调整"
+      }
+    }
   }
 }

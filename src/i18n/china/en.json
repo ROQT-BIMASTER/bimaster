@@ -59,5 +59,105 @@
     "pt": "Português",
     "zh": "中文",
     "en": "English"
+  },
+  "inbox": {
+    "title": "Inbox",
+    "subtitleChina": "Command center: track submissions created, sent and under review in Brazil.",
+    "subtitleBrasil": "Documents from China awaiting your approval.",
+    "actions": {
+      "recalcular": "Recalculate pending",
+      "copiloto": "Submission copilot",
+      "auditoria": "Audit",
+      "atualizar": "Refresh",
+      "novaSubmissao": "New submission",
+      "abrirSubmissao": "Open submission",
+      "abrirVincular": "Open Link to China",
+      "abrirCorrigir": "Open and fix",
+      "abrirAnexar": "Open submission to attach",
+      "enviarBrasil": "Send to Brazil",
+      "preVisualizar": "Preview",
+      "marcarLida": "Mark as read",
+      "marcarNaoLida": "Mark as unread",
+      "estrela": "Star",
+      "desmarcar": "Unstar",
+      "exportarPdf": "PDF",
+      "exportarPdfTitle": "Export record as PDF",
+      "moverLixeira": "Move to Trash",
+      "restaurar": "Restore",
+      "excluirDefinitivo": "Delete permanently",
+      "marcarComoLidos": "Mark as read",
+      "limparSelecao": "Clear"
+    },
+    "search": {
+      "placeholder": "Search product, PO, file (shortcut: /)"
+    },
+    "selecionados": "{{count}} selected",
+    "confirmExcluir": "Permanently delete the selected items? This action cannot be undone.",
+    "toasts": {
+      "recalcOk": "Pending items recalculated. {{count}} submission(s) normalized.",
+      "recalcNenhuma": "Pending items recalculated. No normalization needed.",
+      "recalcErro": "Failed to recalculate pending items",
+      "pdfOk": "PDF exported",
+      "pdfErro": "Failed to export PDF"
+    },
+    "empty": {
+      "selectMessage": "Select a message to view.",
+      "noDocument": "This submission has no documents attached yet."
+    },
+    "snoozeBanner": {
+      "adiadaAte": "Snoozed until {{date}}",
+      "reativar": "Reactivate now"
+    },
+    "doc": {
+      "statusPrefix": "Document status:",
+      "horasAguardando": "{{count}}h waiting",
+      "observacoes": "Notes",
+      "china": "CHINA",
+      "brasil": "BRAZIL"
+    },
+    "blocks": {
+      "enviarTitulo": "Send this submission to Brazil. It will appear in Link to China for approval.",
+      "semDocsTitulo": "No documents attached",
+      "semDocsTexto": "Attach at least one document before sending to Brazil.",
+      "brasilAprova": "Approval and adjustments happen in Link to China.",
+      "emAnalise": "Under review in Brazil",
+      "aguardando": "Awaiting Brazil",
+      "emAnaliseTexto": "The Brazil team has already opened this document and is reviewing it.",
+      "aguardandoTexto": "Document sent. Waiting for the Brazil team to start the review.",
+      "horasDecorridas": "{{count}}h elapsed.",
+      "aprovadaPeloBrasil": "Submission approved by Brazil",
+      "aprovadaEm": "Approved on {{date}}.",
+      "brasilSolicitouAjustes": "Brazil requested adjustments",
+      "conversa": "Conversation"
+    },
+    "snooze": {
+      "trigger": "Snooze",
+      "titulo": "Snooze until…",
+      "preset3h": "Later today (3h)",
+      "presetAmanha": "Tomorrow 9am",
+      "presetSegunda": "Next Monday 9am",
+      "preset1Sem": "In 1 week",
+      "datahora": "Specific date/time"
+    },
+    "sidebar": {
+      "atalhos": "Shortcuts",
+      "grupoSaida": "Outbox",
+      "grupoAcompanhamento": "Tracking",
+      "grupoOutros": "Other",
+      "folders": {
+        "oc": "Purchase Orders",
+        "inbox": "Inbox",
+        "starred": "Starred",
+        "sent": "Sent",
+        "drafts": "Drafts",
+        "approved": "Approved",
+        "rejected": "Rejected",
+        "trash": "Trash",
+        "awaiting_send": "Pending send",
+        "sent_brazil": "Sent to Brazil",
+        "in_analysis": "Under review in Brazil",
+        "returned": "Returned: adjustments"
+      }
+    }
   }
 }

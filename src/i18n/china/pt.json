@@ -59,5 +59,105 @@
     "pt": "Português",
     "zh": "中文",
     "en": "English"
+  },
+  "inbox": {
+    "title": "Caixa de entrada",
+    "subtitleChina": "Central de comando: acompanhe submissões criadas, enviadas e em análise no Brasil.",
+    "subtitleBrasil": "Documentos da China aguardando sua aprovação.",
+    "actions": {
+      "recalcular": "Recalcular pendências",
+      "copiloto": "Copiloto de submissão",
+      "auditoria": "Auditoria",
+      "atualizar": "Atualizar",
+      "novaSubmissao": "Nova submissão",
+      "abrirSubmissao": "Abrir submissão",
+      "abrirVincular": "Abrir Vincular China",
+      "abrirCorrigir": "Abrir e corrigir",
+      "abrirAnexar": "Abrir submissão para anexar",
+      "enviarBrasil": "Enviar ao Brasil",
+      "preVisualizar": "Pré-visualizar",
+      "marcarLida": "Marcar lida",
+      "marcarNaoLida": "Marcar não lida",
+      "estrela": "Estrela",
+      "desmarcar": "Desmarcar",
+      "exportarPdf": "PDF",
+      "exportarPdfTitle": "Exportar registro em PDF",
+      "moverLixeira": "Mover para Lixeira",
+      "restaurar": "Restaurar",
+      "excluirDefinitivo": "Excluir definitivamente",
+      "marcarComoLidos": "Marcar como lidos",
+      "limparSelecao": "Limpar"
+    },
+    "search": {
+      "placeholder": "Buscar produto, OC, arquivo (atalho: /)"
+    },
+    "selecionados": "{{count}} selecionados",
+    "confirmExcluir": "Excluir definitivamente os itens selecionados? Esta ação não pode ser desfeita.",
+    "toasts": {
+      "recalcOk": "Pendências recalculadas. {{count}} submissão(ões) normalizada(s).",
+      "recalcNenhuma": "Pendências recalculadas. Nenhuma normalização necessária.",
+      "recalcErro": "Falha ao recalcular pendências",
+      "pdfOk": "PDF exportado",
+      "pdfErro": "Falha ao exportar PDF"
+    },
+    "empty": {
+      "selectMessage": "Selecione uma mensagem para visualizar.",
+      "noDocument": "Esta submissão ainda não tem documentos anexados."
+    },
+    "snoozeBanner": {
+      "adiadaAte": "Adiada até {{date}}",
+      "reativar": "Reativar agora"
+    },
+    "doc": {
+      "statusPrefix": "Status do documento:",
+      "horasAguardando": "{{count}}h aguardando",
+      "observacoes": "Observações",
+      "china": "CHINA",
+      "brasil": "BRASIL"
+    },
+    "blocks": {
+      "enviarTitulo": "Envie esta submissão para o Brasil. Ela aparecerá em Vincular China para aprovação.",
+      "semDocsTitulo": "Sem documentos anexados",
+      "semDocsTexto": "Adicione pelo menos um documento antes de enviar ao Brasil.",
+      "brasilAprova": "Aprovação e ajustes acontecem em Vincular China.",
+      "emAnalise": "Em análise no Brasil",
+      "aguardando": "Aguardando Brasil",
+      "emAnaliseTexto": "A equipe do Brasil já abriu este documento e está revisando.",
+      "aguardandoTexto": "Documento enviado. Aguardando a equipe do Brasil iniciar a análise.",
+      "horasDecorridas": "{{count}}h decorridas.",
+      "aprovadaPeloBrasil": "Submissão aprovada pelo Brasil",
+      "aprovadaEm": "Aprovada em {{date}}.",
+      "brasilSolicitouAjustes": "Brasil solicitou ajustes",
+      "conversa": "Conversa"
+    },
+    "snooze": {
+      "trigger": "Adiar",
+      "titulo": "Adiar para…",
+      "preset3h": "Mais tarde hoje (3h)",
+      "presetAmanha": "Amanhã 9h",
+      "presetSegunda": "Próxima segunda 9h",
+      "preset1Sem": "Em 1 semana",
+      "datahora": "Data/hora específica"
+    },
+    "sidebar": {
+      "atalhos": "Atalhos",
+      "grupoSaida": "Saída",
+      "grupoAcompanhamento": "Acompanhamento",
+      "grupoOutros": "Outros",
+      "folders": {
+        "oc": "Ordens de Compra",
+        "inbox": "Caixa de Entrada",
+        "starred": "Marcados",
+        "sent": "Enviados",
+        "drafts": "Rascunhos",
+        "approved": "Aprovados",
+        "rejected": "Rejeitados",
+        "trash": "Lixeira",
+        "awaiting_send": "Pendentes de envio",
+        "sent_brazil": "Enviadas ao Brasil",
+        "in_analysis": "Em análise no Brasil",
+        "returned": "Retorno: ajustes"
+      }
+    }
   }
 }
