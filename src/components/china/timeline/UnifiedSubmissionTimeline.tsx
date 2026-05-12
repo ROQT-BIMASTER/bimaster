@@ -11,7 +11,7 @@ import { parseLocalDate } from "@/lib/utils/parseLocalDate";
 import { StageCard, type StageStatus } from "@/components/shared/timeline/StageCard";
 import { DataRow } from "@/components/shared/timeline/DataRow";
 import { useOCTimeline } from "@/hooks/useOCTimeline";
-import type { MailboxItem } from "@/hooks/useChinaMailbox";
+
 
 interface SubmissaoLite {
   submissao_id: string;
