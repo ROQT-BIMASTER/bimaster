@@ -51,6 +51,7 @@ export function ProjetoCalendarioView({ projetoId, darkBg = false, filters = EMP
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [selectedTarefaId, setSelectedTarefaId] = useState<string | null>(null);
   const [showAnalisePanel, setShowAnalisePanel] = useState(false);
+  const { isCompact } = useTarefaDensity();
 
   // Reset internal filters when external filters become active
   const externalFiltersActive = hasActiveFilters(filters);
