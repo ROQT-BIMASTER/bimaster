@@ -143,6 +143,16 @@ const I18N: Record<Idioma, Record<string, string>> = {
     empty: "选择一个提交并点击生成报告。",
     statusOk: "完成", statusPending: "待处理", statusLate: "逾期",
     deadline: "截止日期", owner: "负责人", item: "项目", area: "区域", daysLate: "天数",
+    docsTab: "360° 文档", planilhaTab: "初始表格", sugestoesTab: "建议",
+    historyTab: "历史",
+    cumpridos: "已完成", pendentesItens: "待处理", docsAnexados: "已上传",
+    oficializados: "已正式化", percentualConcluido: "完成%",
+    linhasPlanilha: "行", colunas: "列", previewPlanilha: "预览",
+    principaisCampos: "关键字段", semPlanilha: "未找到初始表格。",
+    acoesRecomendadas: "AI 推荐行动", prioridade: "优先级",
+    semSugestoes: "暂无优先建议。",
+    fluxoChina: "中国发送", fluxoBrasil: "巴西发送",
+    reopen: "重新打开", regenerate2: "重新生成", downloadPdf: "下载 PDF", noHistory: "无历史报告。",
   },
 };
 
