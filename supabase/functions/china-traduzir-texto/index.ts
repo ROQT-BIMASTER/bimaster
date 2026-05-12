@@ -5,7 +5,7 @@
 import { z } from "https://esm.sh/zod@3.23.8";
 import { secureHandler } from "../_shared/secure-handler.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
-import { callAIGateway, aiGatewayErrorResponse } from "../_shared/ai-gateway-call.ts";
+import { callAIGateway, aiGatewayErrorResponse, pickLang } from "../_shared/ai-gateway-call.ts";
 
 const Body = z.object({
   texto: z.string().min(1).max(8000),
@@ -61,7 +61,7 @@ Deno.serve(secureHandler(
           },
         ],
       });
-      if (r.kind !== "ok") return aiGatewayErrorResponse(r, cors);
+      if (r.kind !== "ok") return aiGatewayErrorResponse(r, cors, pickLang(req));
       traducoes[alvo] = (r.data.choices?.[0]?.message?.content || "").trim();
     }
 
