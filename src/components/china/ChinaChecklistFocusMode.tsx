@@ -1740,6 +1740,29 @@ export function ChinaChecklistFocusMode({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <AlertDialog open={!!uploadErrorDialog} onOpenChange={(o) => !o && setUploadErrorDialog(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-destructive">
+              {uploadErrorDialog?.title || "Falha no upload"}
+            </AlertDialogTitle>
+            <AlertDialogDescription className="space-y-2">
+              <span className="block">{uploadErrorDialog?.message}</span>
+              {uploadErrorDialog?.hint && (
+                <span className="block text-xs text-muted-foreground">
+                  Sugestão: {uploadErrorDialog.hint}
+                </span>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={() => setUploadErrorDialog(null)}>
+              Entendi
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
