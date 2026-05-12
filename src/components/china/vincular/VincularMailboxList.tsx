@@ -5,6 +5,7 @@ import {
   Star, Paperclip, Clock, AlertTriangle, Link2, Link2Off, Package,
   CheckCircle2, FileText, Send, XCircle, Loader2, Globe, Maximize2,
   MousePointerClick, Zap, MoveVertical, X, Crosshair, CheckCheck,
+  MoreHorizontal, MailOpen, RotateCcw,
 } from "lucide-react";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
@@ -15,9 +16,11 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
+import { toast } from "sonner";
 import type { MailboxRow, VincularFolder } from "@/hooks/useVincularChinaMailboxData";
 import { VincularChinaRowAction } from "@/components/china/VincularChinaRowAction";
-import { isVincularRead, markVincularRead, subscribeVincularRead } from "@/lib/china/vincularReadState";
+import { isVincularRead, markVincularRead, markAllVincularRead, clearVincularRead, subscribeVincularRead } from "@/lib/china/vincularReadState";
+import { ReadStatusLegend } from "@/components/china/inbox/ReadStatusLegend";
 
 interface Props {
   items: MailboxRow[];
@@ -247,6 +250,48 @@ export function VincularMailboxList({
             {filtered.length} item{filtered.length === 1 ? "" : "s"}
           </span>
         )}
+        <ReadStatusLegend />
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-7 px-1.5 text-[11px] gap-1 text-muted-foreground"
+              title="Mais ações de leitura"
+            >
+              <MoreHorizontal className="h-3 w-3" />
+              <span className="hidden sm:inline">Leitura</span>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-64">
+            <DropdownMenuLabel className="text-[11px]">Estado de leitura</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              className="text-xs gap-2"
+              onClick={() => {
+                const ids = filtered.filter((i) => !isVincularRead(i.id)).map((i) => i.id);
+                if (ids.length === 0) {
+                  toast.info("Nenhum item não lido nesta visão.");
+                  return;
+                }
+                markAllVincularRead(ids);
+                toast.success(`${ids.length} item(ns) marcado(s) como lido(s).`);
+              }}
+            >
+              <MailOpen className="h-3.5 w-3.5" /> Marcar todos como lidos
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              className="text-xs gap-2 text-amber-300 focus:text-amber-300"
+              onClick={() => {
+                if (!window.confirm("Limpar todas as marcações locais de leitura desta tela?")) return;
+                clearVincularRead();
+                toast.success("Estado de leitura local zerado.");
+              }}
+            >
+              <RotateCcw className="h-3.5 w-3.5" /> Limpar estado de leitura
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button

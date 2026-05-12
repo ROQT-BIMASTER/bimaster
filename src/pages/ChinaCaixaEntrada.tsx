@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import { buildReturnToTarget } from "@/lib/navigation/withReturnTo";
-import { Inbox, RefreshCw, Search, X, Trash2, RotateCcw, Clock, Calculator, History, Sparkles } from "lucide-react";
+import { Inbox, RefreshCw, Search, X, Trash2, RotateCcw, Clock, Calculator, History, Sparkles, CheckCheck } from "lucide-react";
 import { SubmissionCopilotPanel } from "@/components/china/SubmissionCopilotPanel";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -175,6 +175,7 @@ export default function ChinaCaixaEntrada() {
   }, [items, selectedId, selectedItem, isBrasilUser]);
 
   const enviarBrasil = useEnviarDocumentoAoBrasil();
+  const [lastEnvioVars, setLastEnvioVars] = useState<{ submissao_id: string; documento_id?: string } | null>(null);
   const handleCorrigir = (item: MailboxItem) => {
     goWithReturn(`/dashboard/fabrica-china/submissao/${item.submissao_id}`);
   };
@@ -187,10 +188,18 @@ export default function ChinaCaixaEntrada() {
       acaoLabel: "Sim, enviar ao Brasil",
     });
     if (!ok) return;
-    enviarBrasil.mutate({
+    const vars = {
       submissao_id: item.submissao_id,
       ...(item.documento_id ? { documento_id: item.documento_id } : {}),
-    });
+    };
+    setLastEnvioVars(vars);
+    enviarBrasil.reset();
+    enviarBrasil.mutate(vars);
+  };
+  const handleRetryEnvio = () => {
+    if (!lastEnvioVars) return;
+    enviarBrasil.reset();
+    enviarBrasil.mutate(lastEnvioVars);
   };
   const handleToggleRead = (item: MailboxItem) => {
     if (!item.documento_id) return;
@@ -217,6 +226,20 @@ export default function ChinaCaixaEntrada() {
       .filter((i) => selectedIds.has(i.submissao_id) && i.documento_id && !i.is_read)
       .forEach((i) => toggleRead.mutate({ documento_id: i.documento_id!, read: true }));
     setSelectedIds(new Set());
+  };
+
+  const unreadVisibleCount = useMemo(
+    () => items.filter((i) => i.documento_id && !i.is_read).length,
+    [items],
+  );
+  const handleMarkAllRead = () => {
+    const targets = items.filter((i) => i.documento_id && !i.is_read);
+    if (targets.length === 0) {
+      toast.info("Nenhuma mensagem não lida nesta pasta.");
+      return;
+    }
+    targets.forEach((i) => toggleRead.mutate({ documento_id: i.documento_id!, read: true }));
+    toast.success(`${targets.length} mensagem(ns) marcadas como lidas.`);
   };
 
   const subtitle = isBrasilUser
@@ -274,6 +297,19 @@ export default function ChinaCaixaEntrada() {
             >
               <History className="h-4 w-4 mr-1.5" />
               {t("inbox.actions.auditoria")}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleMarkAllRead}
+              disabled={unreadVisibleCount === 0}
+              title="Marcar todas as mensagens visíveis como lidas"
+            >
+              <CheckCheck className="h-4 w-4 mr-1.5" />
+              Marcar todas como lidas
+              {unreadVisibleCount > 0 && (
+                <span className="ml-1 text-[10px] opacity-70">({unreadVisibleCount})</span>
+              )}
             </Button>
             <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching}>
               <RefreshCw className={`h-4 w-4 mr-1.5 ${isFetching ? "animate-spin" : ""}`} />
@@ -418,6 +454,8 @@ export default function ChinaCaixaEntrada() {
                 onToggleRead={handleToggleRead}
                 onToggleStar={handleToggleStar}
                 loading={loading}
+                error={enviarBrasil.isError ? (enviarBrasil.error as any)?.message ?? "Falha ao enviar ao Brasil." : null}
+                onRetryEnvio={lastEnvioVars && enviarBrasil.isError ? handleRetryEnvio : undefined}
               />
             </ResizablePanel>
             </>)}
@@ -450,6 +488,8 @@ export default function ChinaCaixaEntrada() {
               onToggleStar={handleToggleStar}
               onBack={() => setSelectedId(null)}
               loading={loading}
+              error={enviarBrasil.isError ? (enviarBrasil.error as any)?.message ?? "Falha ao enviar ao Brasil." : null}
+              onRetryEnvio={lastEnvioVars && enviarBrasil.isError ? handleRetryEnvio : undefined}
             />
           ) : (
             <div className="rounded-md border border-border bg-card/30">

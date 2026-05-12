@@ -10,6 +10,7 @@ import { useChinaUserContext } from "@/hooks/useChinaUserContext";
 import { evaluateAwaitingSend, AWAITING_SEND_REASON_LABEL } from "@/lib/china/awaitingSendRule";
 import { groupBySubmissao } from "@/lib/china/groupMailboxItems";
 import type { ChinaInboxGroupMode } from "@/hooks/useChinaInboxGroupMode";
+import { ReadStatusLegend } from "./ReadStatusLegend";
 
 export type ActionFilter = "mine" | "theirs" | "all";
 
@@ -321,6 +322,7 @@ export function MailboxList({
           {" · "}
           {FOLDER_TITLES[folder] ?? folder}
         </span>
+        <ReadStatusLegend />
         {groupingAllowed && onGroupModeChange && (
           <div className="inline-flex items-center rounded-md border border-border/60 bg-background/40 p-0.5">
             <button

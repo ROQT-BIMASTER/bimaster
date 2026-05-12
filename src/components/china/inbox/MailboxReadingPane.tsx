@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ExternalLink, FileText, Star, MailOpen, Mail, ArrowLeft, Download, Clock, MessageSquare, ChevronDown, ChevronRight, Link2, Send, Loader2 } from "lucide-react";
+import { ExternalLink, FileText, Star, MailOpen, Mail, ArrowLeft, Download, Clock, MessageSquare, ChevronDown, ChevronRight, Link2, Send, Loader2, AlertCircle, RotateCw } from "lucide-react";
 import { ChinaChatPanel } from "@/components/china/ChinaChatPanel";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -29,6 +29,8 @@ interface Props {
   onToggleStar: (item: MailboxItem) => void;
   onBack?: () => void;
   loading?: boolean;
+  error?: string | null;
+  onRetryEnvio?: () => void;
 }
 
 export function MailboxReadingPane({
@@ -42,6 +44,8 @@ export function MailboxReadingPane({
   onToggleStar,
   onBack,
   loading,
+  error,
+  onRetryEnvio,
 }: Props) {
   const navigate = useNavigate();
   const location = useLocation();
@@ -247,16 +251,41 @@ export function MailboxReadingPane({
             <p className="text-xs text-foreground/90 mb-2">
               {t("inbox.blocks.enviarTitulo")}
             </p>
-            <Button
-              size="sm"
-              className="gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white"
-              onClick={() => onEnviarBrasil!(item)}
-              disabled={loading}
-              aria-busy={loading}
-            >
-              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-              {loading ? "Enviando ao Brasil…" : t("inbox.actions.enviarBrasil")}
-            </Button>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                size="sm"
+                className="gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white"
+                onClick={() => onEnviarBrasil!(item)}
+                disabled={loading}
+                aria-busy={loading}
+              >
+                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                {loading ? "Enviando ao Brasil…" : t("inbox.actions.enviarBrasil")}
+              </Button>
+              {error && !loading && onRetryEnvio && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="gap-1.5 border-rose-500/40 text-rose-300 hover:bg-rose-500/10"
+                  onClick={onRetryEnvio}
+                >
+                  <RotateCw className="h-4 w-4" />
+                  Tentar novamente
+                </Button>
+              )}
+            </div>
+            {error && !loading && (
+              <div
+                role="alert"
+                className="mt-2 flex items-start gap-2 rounded-md border border-rose-500/30 bg-rose-500/10 p-2 text-[11px] text-rose-300"
+              >
+                <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                <div className="min-w-0">
+                  <p className="font-semibold">Não foi possível enviar ao Brasil.</p>
+                  <p className="mt-0.5 break-words text-rose-200/90">{error}</p>
+                </div>
+              </div>
+            )}
           </section>
         )}
 
