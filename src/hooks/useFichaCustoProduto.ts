@@ -211,6 +211,10 @@ export function useFichaCustoProduto(produtoId: string | undefined) {
     const totalServico = kitServico + normalServico + moServico;
     const totalCondicao = kitCondicao + normalCondicao;
 
+    // IPI por linha — segue a mesma regra de Serviço/Condição:
+    // soma direta de todos os insumos (kit + não-kit), fora do markup.
+    const totalIPI = insumos.reduce((acc, i) => acc + calcularIPILinha(i), 0);
+
     const subtotal = totalNF + totalServico + totalCondicao;
 
     // Markup - aplicado SOMENTE sobre insumos não-kit (para DISPLAY com kit)
@@ -230,12 +234,14 @@ export function useFichaCustoProduto(produtoId: string | undefined) {
       ? baseCondicaoMarkup * (percentualMarkup / 100) : 0;
     const markupTotal = markupNF + markupServico + markupCondicao;
 
-    const custoTotal = subtotal + markupTotal;
+    // IPI entra DEPOIS do markup, somando direto no Custo Total (regra fiscal padrão).
+    const custoTotal = subtotal + markupTotal + totalIPI;
 
     return {
       totalNF,
       totalServico,
       totalCondicao,
+      totalIPI,
       subtotal,
       markupNF,
       markupServico,
