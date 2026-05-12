@@ -1,5 +1,5 @@
-import { useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useEffect, useMemo, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
   FilePlus2, FileText, Send, ShieldCheck, ShoppingCart, Factory,
@@ -31,6 +31,8 @@ interface Props {
   /** Se true, mostra somente etapas 1–4 (uso embutido em outras telas). */
   onlyChinaStages?: boolean;
   className?: string;
+  /** Notifica o pai com a lista de etapas (para exportar em PDF, por exemplo). */
+  onStagesComputed?: (stages: import("@/lib/china/exportTimelinePdf").JourneyStageRow[]) => void;
 }
 
 const fmtDate = (d: string | null | undefined): string => {
@@ -165,11 +167,35 @@ function ExpandableDocList({
   );
 }
 
-export function UnifiedSubmissionTimeline({ submissao, ocId, onlyChinaStages, className }: Props) {
+export function UnifiedSubmissionTimeline({ submissao, ocId, onlyChinaStages, className, onStagesComputed }: Props) {
+  const qc = useQueryClient();
   const { data: docs } = useDocsResumo(submissao.submissao_id);
   const { data: ocTimeline } = useOCTimeline(ocId || null);
   const oc = ocTimeline?.oc as any;
   const embarque = ocTimeline?.embarques?.[0] as any;
+
+  // Realtime: invalida cache local quando docs ou submissão mudam.
+  useEffect(() => {
+    const sid = submissao.submissao_id;
+    if (!sid) return;
+    const channel = supabase
+      .channel(`unified-timeline-${sid}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "china_produto_documentos", filter: `submissao_id=eq.${sid}` },
+        () => qc.invalidateQueries({ queryKey: ["china-submissao-docs-resumo", sid] }),
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "china_produto_submissoes", filter: `id=eq.${sid}` },
+        () => {
+          qc.invalidateQueries({ queryKey: ["china-mailbox"] });
+          qc.invalidateQueries({ queryKey: ["china-submissao-docs-resumo", sid] });
+        },
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [submissao.submissao_id, qc]);
 
   // ---------- China (1–4) ----------
   const stSubmissao: StageStatus = "done";
@@ -242,6 +268,38 @@ export function UnifiedSubmissionTimeline({ submissao, ocId, onlyChinaStages, cl
   const stReceb: StageStatus = !ocLoaded
     ? "neutral"
     : saldoAberto <= 0 && qtyPedida > 0 ? "done" : qtyRecebida > 0 ? "pending" : "neutral";
+
+  // Notifica o pai com o snapshot atual das etapas (para exportar PDF).
+  useEffect(() => {
+    if (!onStagesComputed) return;
+    const stages: import("@/lib/china/exportTimelinePdf").JourneyStageRow[] = [
+      { numero: 1, titulo: "Submissão criada", status: stSubmissao,
+        detalhe: `Status atual: ${submStatus || "—"}` },
+      { numero: 2, titulo: "Documentos & parecer", status: stDocs,
+        detalhe: `${docs?.aprovados ?? 0} aprovados · ${docs?.pendentes ?? 0} pendentes · ${docs?.rejeitados ?? 0} rejeitados (total ${docs?.total ?? 0})` },
+      { numero: 3, titulo: "Enviada ao Brasil", status: stEnviada,
+        detalhe: totalDocs > 0 ? `${enviadosDocs}/${totalDocs} itens enviados` : (enviadaParaBrasil ? "Em poder do Brasil" : "Aguardando envio") },
+      { numero: 4, titulo: "Aprovação Brasil", status: stAprovBrasil,
+        detalhe: enviadosDocs > 0 ? `${aprovDocs}/${enviadosDocs} aprovados${rejDocs > 0 ? ` · ${rejDocs} rejeitados` : ""}` : "Aguardando envio ao Brasil" },
+    ];
+    if (!onlyChinaStages) {
+      stages.push(
+        { numero: 5, titulo: "Pedido (OC)", status: stPedido, detalhe: ocLoaded ? `OC ${oc.numero_oc || submissao.numero_ordem || "—"}` : "OC não emitida" },
+        { numero: 6, titulo: "Produção", status: stProducao, detalhe: ocLoaded ? `${qtyProduzida}/${qtyPedida} apontado` : "—" },
+        { numero: 7, titulo: "Embarque", status: stEmbarque, detalhe: embarque ? `${embarque.modalidade || "—"} · container ${embarque.numero_container || "—"}` : "Sem embarque" },
+        { numero: 8, titulo: "Trânsito", status: stTransito, detalhe: `${embarque?.porto_origem || "—"} → ${embarque?.porto_destino || "—"}` },
+        { numero: 9, titulo: "Desembaraço", status: stDesemb, detalhe: oc?.data_desembaraco ? `Desembaraço em ${fmtDate(oc.data_desembaraco)}` : "Aguardando" },
+        { numero: 10, titulo: "Recebido no CD", status: stReceb, detalhe: ocLoaded ? `Recebido ${qtyRecebida} · saldo ${saldoAberto}` : "Aguardando OC" },
+      );
+    }
+    onStagesComputed(stages);
+  }, [
+    onStagesComputed, onlyChinaStages, submStatus, docs, totalDocs, enviadosDocs,
+    enviadaParaBrasil, aprovDocs, rejDocs, ocLoaded, oc, embarque, qtyProduzida,
+    qtyPedida, qtyRecebida, saldoAberto, stSubmissao, stDocs, stEnviada,
+    stAprovBrasil, stPedido, stProducao, stEmbarque, stTransito, stDesemb,
+    stReceb, submissao.numero_ordem,
+  ]);
 
   return (
     <div className={className}>

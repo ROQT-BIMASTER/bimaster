@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   Sheet,
   SheetContent,
@@ -7,11 +8,15 @@ import {
 } from "@/components/ui/sheet";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Button } from "@/components/ui/button";
+import { Download } from "lucide-react";
+import { toast } from "sonner";
 import { UnifiedSubmissionTimeline } from "./UnifiedSubmissionTimeline";
 import { ChinaUnifiedTimelineEventsBody } from "./ChinaUnifiedTimelineEventsBody";
-import type { ChinaTimelineScope } from "@/lib/china/timeline/types";
+import type { ChinaTimelineScope, ChinaTimelineEvent } from "@/lib/china/timeline/types";
 import type { MailboxItem } from "@/hooks/useChinaMailbox";
 import { usePageBgColor } from "@/components/shared/PageBgCustomizer";
+import { exportTimelinePdf, type JourneyStageRow } from "@/lib/china/exportTimelinePdf";
 
 interface Props {
   open: boolean;
@@ -31,6 +36,31 @@ export function SubmissionTimelineSheet({ open, onOpenChange, scope, submissao, 
     || (submissao ? `${submissao.produto_codigo} — ${submissao.produto_nome}` : "Linha do tempo");
   const { bgStyle, BgColorButton } = usePageBgColor("china_submission_timeline_sheet");
 
+  const [stages, setStages] = useState<JourneyStageRow[]>([]);
+  const [filteredEvents, setFilteredEvents] = useState<ChinaTimelineEvent[]>([]);
+
+  const handleExportPdf = () => {
+    if (!submissao) {
+      toast.error("Submissão indisponível para exportação.");
+      return;
+    }
+    try {
+      exportTimelinePdf({
+        produtoCodigo: submissao.produto_codigo,
+        produtoNome: submissao.produto_nome,
+        numeroOrdem: submissao.numero_ordem,
+        submissaoStatus: submissao.submissao_status,
+        criadaEm: submissao.created_at,
+        stages,
+        eventos: filteredEvents,
+        filtroDescricao: `${filteredEvents.length} evento(s) — exportado conforme filtros aplicados`,
+      });
+      toast.success("PDF da linha do tempo gerado.");
+    } catch (e: any) {
+      toast.error(e?.message || "Falha ao gerar PDF.");
+    }
+  };
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
@@ -46,7 +76,19 @@ export function SubmissionTimelineSheet({ open, onOpenChange, scope, submissao, 
                 Jornada da submissão, do envio na China até o recebimento no CD.
               </SheetDescription>
             </div>
-            <div className="shrink-0">
+            <div className="flex items-center gap-1 shrink-0">
+              {submissao && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-7 gap-1.5 text-xs"
+                  onClick={handleExportPdf}
+                  title="Exportar linha do tempo em PDF"
+                >
+                  <Download className="h-3.5 w-3.5" />
+                  PDF
+                </Button>
+              )}
               <BgColorButton />
             </div>
           </div>
@@ -61,13 +103,20 @@ export function SubmissionTimelineSheet({ open, onOpenChange, scope, submissao, 
           {submissao && (
             <TabsContent value="jornada" className="flex-1 overflow-hidden mt-2">
               <ScrollArea className="h-full px-4 pb-4">
-                <UnifiedSubmissionTimeline submissao={submissao} ocId={ocId} />
+                <UnifiedSubmissionTimeline
+                  submissao={submissao}
+                  ocId={ocId}
+                  onStagesComputed={setStages}
+                />
               </ScrollArea>
             </TabsContent>
           )}
 
           <TabsContent value="eventos" className="flex-1 overflow-hidden mt-2">
-            <ChinaUnifiedTimelineEventsBody scope={scope} />
+            <ChinaUnifiedTimelineEventsBody
+              scope={scope}
+              onFilteredChange={setFilteredEvents}
+            />
           </TabsContent>
         </Tabs>
       </SheetContent>
