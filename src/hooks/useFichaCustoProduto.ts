@@ -47,6 +47,7 @@ export interface CustoConfig {
   custo_mao_obra_servico: number;
   percentual_markup: number;
   base_calculo_markup: BaseCalculoMarkup;
+  ipi_percentual_saida: number;
   observacoes: string | null;
 }
 
