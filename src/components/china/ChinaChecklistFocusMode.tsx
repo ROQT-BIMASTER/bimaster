@@ -887,6 +887,9 @@ export function ChinaChecklistFocusMode({
                 <CounterChip icon={<CalendarIcon className="h-3 w-3" />} label="Com Previsão" value={counters.comPrevisao} colorClass="text-primary bg-primary/10" />
               )}
             </div>
+            <div className="mt-3">
+              <ChecklistGovernancePanel submissaoId={submissaoId} />
+            </div>
           </DialogHeader>
 
           {/* Body: Sidebar + Main */}
