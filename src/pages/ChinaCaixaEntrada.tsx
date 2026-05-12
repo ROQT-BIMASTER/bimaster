@@ -153,14 +153,10 @@ export default function ChinaCaixaEntrada() {
       } else if (
         e.key === "b" &&
         selectedItem &&
-        isChinaUser &&
-        selectedItem.documento_id &&
-        selectedItem.doc_status === "rascunho"
+        selectedItem.tipo_documento &&
+        (selectedItem.submissao_status === "rascunho" || selectedItem.doc_status === "rascunho")
       ) {
-        enviarBrasil.mutate({
-          documento_id: selectedItem.documento_id,
-          submissao_id: selectedItem.submissao_id,
-        });
+        handleEnviarBrasil(selectedItem);
       }
     };
     window.addEventListener("keydown", onKey);
