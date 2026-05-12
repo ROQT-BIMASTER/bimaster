@@ -1445,7 +1445,7 @@ export function FichaCustoProdutoEditor({
               </p>
               <p className="text-xl font-bold">{formatarMoeda(totais.totalIPI)}</p>
               <p className="text-[11px] text-muted-foreground mt-1">
-                sobre saída final
+                sobre NF de saída
               </p>
             </div>
             <div className="p-4 bg-primary/10 rounded-lg text-center border-2 border-primary">
