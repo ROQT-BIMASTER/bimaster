@@ -5,6 +5,7 @@ import { Camera, Loader2, Trash2, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { logger } from "@/lib/logger";
+import { buildFabricaPhotoPath, FABRICA_FOTOS_BUCKET } from "@/lib/fabrica/photoPath";
 
 interface ProductPhotoUploadProps {
   currentUrl: string | null;
@@ -13,7 +14,7 @@ interface ProductPhotoUploadProps {
   className?: string;
 }
 
-const BUCKET = "fabrica-produto-fotos";
+const BUCKET = FABRICA_FOTOS_BUCKET;
 
 /** Resolve a storage path or old public URL into a signed URL */
 async function resolvePhotoUrl(url: string | null): Promise<string | null> {
