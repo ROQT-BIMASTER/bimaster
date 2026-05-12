@@ -215,6 +215,23 @@ export default function ProductPhotoUpload({
           e.target.value = "";
         }}
       />
+
+      <AlertDialog open={!!errorDialog} onOpenChange={(open) => !open && setErrorDialog(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{errorDialog?.title}</AlertDialogTitle>
+            <AlertDialogDescription className="space-y-2">
+              <span className="block">{errorDialog?.message}</span>
+              {errorDialog?.hint && (
+                <span className="block text-xs text-muted-foreground">{errorDialog.hint}</span>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={() => setErrorDialog(null)}>Entendi</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
