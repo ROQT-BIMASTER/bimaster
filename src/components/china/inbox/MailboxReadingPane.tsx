@@ -229,11 +229,11 @@ export function MailboxReadingPane({
           </section>
         )}
 
-        {canChinaEnviar && (
+        {canChinaEnviar && hasDocAnexo && (
           <section className="mt-6 rounded-md border border-emerald-500/30 bg-emerald-500/5 p-3">
             <p className="text-xs text-foreground/90 mb-2">
-              Envie este documento para o Brasil. Ele aparecerá em <strong>Vincular China</strong> para aprovação.
-              <span className="ml-1 text-muted-foreground">将此文件发送至巴西，将在“关联中国”中等待审批。</span>
+              Envie esta submissão para o Brasil. Ela aparecerá em <strong>Vincular China</strong> para aprovação.
+              <span className="ml-1 text-muted-foreground">将此提交发送至巴西，将在“关联中国”中等待审批。</span>
             </p>
             <Button
               size="sm"
@@ -244,6 +244,31 @@ export function MailboxReadingPane({
               <Send className="h-4 w-4" />
               Enviar ao Brasil / 发送至巴西
             </Button>
+          </section>
+        )}
+
+        {canChinaEnviar && !hasDocAnexo && (
+          <section className="mt-6 rounded-md border border-amber-500/30 bg-amber-500/5 p-3">
+            <p className="text-xs font-semibold text-amber-400 mb-1">
+              Sem documentos anexados / 未附文件
+            </p>
+            <p className="text-[11px] text-muted-foreground mb-2">
+              Adicione pelo menos um documento antes de enviar ao Brasil.
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <Button size="sm" variant="outline" className="gap-1.5" onClick={() => onCorrigir(item)}>
+                <FileText className="h-4 w-4" />
+                Abrir submissão para anexar
+              </Button>
+              <Button
+                size="sm"
+                className="gap-1.5 bg-emerald-600/60 text-white"
+                disabled
+              >
+                <Send className="h-4 w-4" />
+                Enviar ao Brasil
+              </Button>
+            </div>
           </section>
         )}
 
