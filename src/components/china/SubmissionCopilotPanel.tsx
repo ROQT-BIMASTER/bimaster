@@ -498,7 +498,108 @@ export function SubmissionCopilotPanel({ open, onOpenChange, initialQuery = "" }
                   </div>
                 </TabsContent>
 
-                <TabsContent value="timeline" className="mt-3">
+                <TabsContent value="docs360" className="mt-3 space-y-2">
+                  {a?.checklist_360?.length ? (
+                    <div className="rounded-md border border-border bg-card/50 overflow-x-auto">
+                      <table className="w-full text-xs">
+                        <thead className="bg-muted/40">
+                          <tr className="text-left text-muted-foreground">
+                            <th className="py-2 px-2">{t.area}</th>
+                            <th className="py-2 px-2 text-center">{t.cumpridos}</th>
+                            <th className="py-2 px-2 text-center">{t.pendentesItens}</th>
+                            <th className="py-2 px-2 text-center">{t.docsAnexados}</th>
+                            <th className="py-2 px-2 text-center">{t.oficializados}</th>
+                            <th className="py-2 px-2">{t.percentualConcluido}</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {a.checklist_360.map((c, i) => {
+                            const pctTone = c.percentual >= 100 ? "text-success" : c.percentual >= 50 ? "text-warning" : "text-destructive";
+                            return (
+                              <tr key={i} className="border-t border-border/50">
+                                <td className="py-1.5 px-2">
+                                  <div className="font-medium">{c.categoria}</div>
+                                  <div className="text-[10px] text-muted-foreground">{c.fluxo === "china_envia" ? t.fluxoChina : t.fluxoBrasil}</div>
+                                </td>
+                                <td className="py-1.5 px-2 text-center tabular-nums">{c.cumpridos}/{c.total_itens}</td>
+                                <td className="py-1.5 px-2 text-center tabular-nums">{c.pendentes}</td>
+                                <td className="py-1.5 px-2 text-center tabular-nums">{c.docs_anexados}</td>
+                                <td className="py-1.5 px-2 text-center tabular-nums">{c.docs_oficializados}</td>
+                                <td className="py-1.5 px-2">
+                                  <div className="flex items-center gap-2">
+                                    <Progress value={c.percentual} className="h-1.5 flex-1" />
+                                    <span className={cn("tabular-nums font-semibold w-9 text-right", pctTone)}>{c.percentual}%</span>
+                                  </div>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    <p className="text-xs text-muted-foreground text-center py-4">—</p>
+                  )}
+                </TabsContent>
+
+                <TabsContent value="planilha" className="mt-3 space-y-2">
+                  {a?.planilha_resumo?.tem_planilha === false && (!a.planilha_resumo.principais_campos.length) ? (
+                    <p className="text-xs text-muted-foreground text-center py-4">{t.semPlanilha}</p>
+                  ) : (
+                    <div className="space-y-2">
+                      <div className="grid grid-cols-2 gap-2">
+                        <KpiTile icon={FileText} label={t.linhasPlanilha} value={a?.planilha_resumo?.linhas ?? 0} />
+                        <KpiTile icon={ListChecks} label={t.colunas} value={a?.planilha_resumo?.colunas?.length ?? 0} />
+                      </div>
+                      {a?.planilha_resumo?.principais_campos?.length ? (
+                        <div className="rounded-md border border-border bg-card/50 p-3">
+                          <div className="text-xs font-semibold mb-2">{t.principaisCampos}</div>
+                          <div className="grid grid-cols-2 gap-1.5">
+                            {a.planilha_resumo.principais_campos.map((p, i) => (
+                              <div key={i} className="flex justify-between text-xs border-b border-border/40 py-1">
+                                <span className="text-muted-foreground">{p.campo}</span>
+                                <span className="font-medium truncate ml-2">{p.valor}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ) : null}
+                    </div>
+                  )}
+                </TabsContent>
+
+                <TabsContent value="sugestoes" className="mt-3 space-y-2">
+                  <div className="text-xs font-semibold flex items-center gap-1.5"><Sparkles className="h-3.5 w-3.5 text-primary" />{t.acoesRecomendadas}</div>
+                  {a?.sugestoes_acao?.length ? (
+                    <div className="space-y-1.5">
+                      {a.sugestoes_acao.map((s, i) => {
+                        const tone = s.prioridade === "alta" ? "border-destructive/40 bg-destructive/5"
+                          : s.prioridade === "media" ? "border-warning/40 bg-warning/5"
+                          : "border-border bg-card/50";
+                        const badge = s.prioridade === "alta" ? "destructive" : s.prioridade === "media" ? "secondary" : "outline";
+                        return (
+                          <div key={i} className={cn("rounded-md border p-2.5", tone)}>
+                            <div className="flex items-center justify-between gap-2 mb-1">
+                              <div className="text-xs font-semibold">{s.titulo}</div>
+                              <Badge variant={badge as any} className="text-[10px] capitalize">{s.prioridade}</Badge>
+                            </div>
+                            <div className="text-[11px] text-muted-foreground">{s.detalhe}</div>
+                            {(s.responsavel || s.prazo) && (
+                              <div className="text-[10px] text-muted-foreground mt-1">
+                                {s.responsavel && <span className="mr-2">{t.owner}: {s.responsavel}</span>}
+                                {s.prazo && <span>{t.deadline}: {fmtDate(s.prazo)}</span>}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-muted-foreground text-center py-4">{t.semSugestoes}</p>
+                  )}
+                </TabsContent>
+
+
                   <div className="rounded-md border border-border bg-card/50 p-3">
                     {a && a.marcos.length > 0 ? (
                       <ol className="relative border-l border-border ml-2 space-y-3">
