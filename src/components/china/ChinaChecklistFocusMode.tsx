@@ -121,6 +121,34 @@ export function ChinaChecklistFocusMode({
   const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
   const queryClient = useQueryClient();
 
+  // Auto-open + focus on a specific document type (vindo de "Corrigir" da tela de detalhe)
+  useEffect(() => {
+    if (!defaultOpen) return;
+    setIsOpen(true);
+    if (focusTipo) {
+      const cat = DOCUMENT_CATEGORIES.find((c) => c.tipos.includes(focusTipo));
+      if (cat) setActiveCat(cat.key);
+    }
+  }, [defaultOpen, focusTipo]);
+
+  useEffect(() => {
+    if (!isOpen || !focusTipo) return;
+    const t = setTimeout(() => {
+      const el = document.querySelector(
+        `[data-doc-tipo="${focusTipo}"]`,
+      ) as HTMLElement | null;
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+        el.classList.add("ring-2", "ring-destructive", "ring-offset-2");
+        setTimeout(() => {
+          el.classList.remove("ring-2", "ring-destructive", "ring-offset-2");
+        }, 2800);
+      }
+      onAfterFocus?.();
+    }, 250);
+    return () => clearTimeout(t);
+  }, [isOpen, focusTipo, activeCat, onAfterFocus]);
+
   // Preview dialog state
   const [previewFile, setPreviewFile] = useState<File | null>(null);
   const [previewTipo, setPreviewTipo] = useState<{ tipo: string; pt: string; cn: string } | null>(null);
