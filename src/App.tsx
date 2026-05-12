@@ -254,6 +254,7 @@ const FormularioEquipe = lazyWithRetry(() => import("./pages/FormularioEquipe"))
 const CofreSharePage = lazyWithRetry(() => import("./pages/CofreSharePage"));
 const ChinaFabrica = lazyWithRetry(() => import("./pages/ChinaFabrica"));
 const ChinaCaixaEntrada = lazyWithRetry(() => import("./pages/ChinaCaixaEntrada"));
+const ChinaAuditoriaNormalizacao = lazyWithRetry(() => import("./pages/ChinaAuditoriaNormalizacao"));
 const ChinaNovaSubmissao = lazyWithRetry(() => import("./pages/ChinaNovaSubmissao"));
 const ChinaRecebimentos = lazyWithRetry(() => import("./pages/ChinaRecebimentos"));
 const ChinaMonitorRecebimentosOC = lazyWithRetry(() => import("./pages/ChinaMonitorRecebimentosOC"));
