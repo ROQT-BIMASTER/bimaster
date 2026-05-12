@@ -492,7 +492,7 @@ function OverflowPopover({ tasks, count, darkBg, onClickTask }: { tasks: Projeto
       </PopoverTrigger>
       <PopoverContent className="w-64 p-2 space-y-0.5" align="start">
         {tasks.map((t) => (
-          <TaskPill key={t.id} tarefa={t} darkBg={false} onClick={() => onClickTask(t.id)} />
+          <CalendarioCard key={t.id} tarefa={t} darkBg={false} onClick={() => onClickTask(t.id)} />
         ))}
       </PopoverContent>
     </Popover>
