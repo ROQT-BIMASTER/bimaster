@@ -90,7 +90,7 @@ export function ChinaPainelAprovacao({
   const pct = totalDocs > 0 ? Math.round((aprovados / totalDocs) * 100) : 0;
 
   const renderColumn = (
-    categories: typeof DOCUMENT_CATEGORIES,
+    categories: typeof merged.categoriesChinaEnvia,
     fluxo: "china_envia" | "brasil_envia",
     headerPt: string,
     headerCn: string,
@@ -110,7 +110,7 @@ export function ChinaPainelAprovacao({
           const catDocs = documentos.filter(d => cat.tipos.includes(d.tipo_documento));
           if (catDocs.length === 0) {
             // Show empty placeholder for types in this category
-            const types = CHINA_DOCUMENT_TYPES.filter(t => cat.tipos.includes(t.tipo));
+            const types = merged.docTypes.filter(t => cat.tipos.includes(t.tipo));
             if (types.length === 0) return null;
             return (
               <div key={cat.key} className="space-y-2">
