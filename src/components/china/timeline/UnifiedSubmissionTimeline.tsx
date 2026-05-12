@@ -93,17 +93,18 @@ export function UnifiedSubmissionTimeline({ submissao, ocId, onlyChinaStages, cl
     return "done";
   }, [docs]);
 
+  const submStatus = submissao.submissao_status || "";
   const enviadaParaBrasil = ["enviado", "enviado_brasil", "em_revisao", "aprovado", "rejeitado"]
-    .includes(submissao.submissao_status);
+    .includes(submStatus);
   const stEnviada: StageStatus = enviadaParaBrasil
     ? "done"
-    : submissao.submissao_status === "rascunho"
+    : submStatus === "rascunho"
     ? "neutral"
     : "pending";
 
-  const stAprovBrasil: StageStatus = submissao.submissao_status === "aprovado"
+  const stAprovBrasil: StageStatus = submStatus === "aprovado" || submissao.aprovado_em
     ? "done"
-    : submissao.submissao_status === "rejeitado"
+    : submStatus === "rejeitado"
     ? "atrasado"
     : enviadaParaBrasil
     ? "pending"
