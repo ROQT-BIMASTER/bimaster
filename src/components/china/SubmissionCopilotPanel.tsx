@@ -47,6 +47,15 @@ type Resultado = {
     embarques_resumo: { total: number; em_transito: number; entregues: number };
     atrasos_top: Array<{ coluna: string; item: string; prazo: string | null; responsavel: string | null; dias_atraso: number | null }>;
     marcos: Array<{ data: string | null; label: string; status: "ok" | "pending" | "late"; tipo: string }>;
+    checklist_360?: Array<{
+      categoria: string; categoria_cn: string; fluxo: string;
+      total_itens: number; cumpridos: number; pendentes: number;
+      docs_anexados: number; docs_oficializados: number; percentual: number;
+      itens: Array<{ tipo: string; label: string; cumprido: boolean; docs_anexados: number; docs_oficializados: number; ultimo_envio: string | null }>;
+    }>;
+    docs_por_categoria?: Array<{ categoria: string; anexados: number; oficializados: number }>;
+    planilha_resumo?: { tem_planilha: boolean; linhas: number; colunas: string[]; preview: any[]; principais_campos: Array<{ campo: string; valor: string }> };
+    sugestoes_acao?: Array<{ prioridade: "alta" | "media" | "baixa"; titulo: string; detalhe: string; responsavel: string | null; prazo: string | null }>;
   };
   submissao: { id: string; codigo: string; nome: string };
   model: string;
@@ -77,6 +86,16 @@ const I18N: Record<Idioma, Record<string, string>> = {
     empty: "Selecione uma submissão e clique em Gerar relatório.",
     statusOk: "Concluído", statusPending: "Pendente", statusLate: "Atrasado",
     deadline: "Prazo", owner: "Responsável", item: "Item", area: "Área", daysLate: "Dias",
+    docsTab: "Documentos 360°", planilhaTab: "Planilha Inicial", sugestoesTab: "Sugestões",
+    historyTab: "Histórico",
+    cumpridos: "Cumpridos", pendentesItens: "Pendentes", docsAnexados: "Anexados",
+    oficializados: "Oficializados", percentualConcluido: "% Concluído",
+    linhasPlanilha: "Linhas", colunas: "Colunas", previewPlanilha: "Pré-visualização",
+    principaisCampos: "Campos principais", semPlanilha: "Planilha inicial não encontrada para esta submissão.",
+    acoesRecomendadas: "Ações recomendadas pela IA", prioridade: "Prioridade",
+    semSugestoes: "Sem sugestões prioritárias no momento.",
+    fluxoChina: "China envia", fluxoBrasil: "Brasil envia",
+    reopen: "Reabrir", regenerate2: "Regenerar", downloadPdf: "Baixar PDF", noHistory: "Sem relatórios anteriores.",
   },
   en: {
     title: "Submission Copilot",
@@ -97,6 +116,16 @@ const I18N: Record<Idioma, Record<string, string>> = {
     empty: "Select a submission and click Generate report.",
     statusOk: "Done", statusPending: "Pending", statusLate: "Overdue",
     deadline: "Deadline", owner: "Owner", item: "Item", area: "Area", daysLate: "Days",
+    docsTab: "360° Documents", planilhaTab: "Initial Sheet", sugestoesTab: "Suggestions",
+    historyTab: "History",
+    cumpridos: "Done", pendentesItens: "Pending", docsAnexados: "Attached",
+    oficializados: "Official", percentualConcluido: "% Done",
+    linhasPlanilha: "Rows", colunas: "Columns", previewPlanilha: "Preview",
+    principaisCampos: "Key fields", semPlanilha: "No initial spreadsheet found.",
+    acoesRecomendadas: "AI recommended actions", prioridade: "Priority",
+    semSugestoes: "No priority suggestions.",
+    fluxoChina: "China sends", fluxoBrasil: "Brazil sends",
+    reopen: "Reopen", regenerate2: "Regenerate", downloadPdf: "Download PDF", noHistory: "No previous reports.",
   },
   zh: {
     title: "提交副驾驶", subtitle: "AI 执行报告:KPI、图表和时间线",
@@ -114,6 +143,16 @@ const I18N: Record<Idioma, Record<string, string>> = {
     empty: "选择一个提交并点击生成报告。",
     statusOk: "完成", statusPending: "待处理", statusLate: "逾期",
     deadline: "截止日期", owner: "负责人", item: "项目", area: "区域", daysLate: "天数",
+    docsTab: "360° 文档", planilhaTab: "初始表格", sugestoesTab: "建议",
+    historyTab: "历史",
+    cumpridos: "已完成", pendentesItens: "待处理", docsAnexados: "已上传",
+    oficializados: "已正式化", percentualConcluido: "完成%",
+    linhasPlanilha: "行", colunas: "列", previewPlanilha: "预览",
+    principaisCampos: "关键字段", semPlanilha: "未找到初始表格。",
+    acoesRecomendadas: "AI 推荐行动", prioridade: "优先级",
+    semSugestoes: "暂无优先建议。",
+    fluxoChina: "中国发送", fluxoBrasil: "巴西发送",
+    reopen: "重新打开", regenerate2: "重新生成", downloadPdf: "下载 PDF", noHistory: "无历史报告。",
   },
 };
 
@@ -360,15 +399,18 @@ export function SubmissionCopilotPanel({ open, onOpenChange, initialQuery = "" }
               <div className="flex gap-1.5 flex-wrap">
                 <Button variant="outline" size="sm" onClick={handleCopy}><Copy className="h-3.5 w-3.5 mr-1.5" />{t.copy}</Button>
                 <Button variant="outline" size="sm" onClick={handleDownload}><Download className="h-3.5 w-3.5 mr-1.5" />{t.download}</Button>
-                <Button variant="outline" size="sm" onClick={handlePrint}><Printer className="h-3.5 w-3.5 mr-1.5" />{t.print}</Button>
+                <Button variant="outline" size="sm" onClick={handlePdf}><FileDown className="h-3.5 w-3.5 mr-1.5" />{t.print}</Button>
               </div>
 
               {/* Tabs */}
               <Tabs defaultValue="charts">
-                <TabsList className="grid grid-cols-3 w-full">
-                  <TabsTrigger value="charts">{t.chartsTab}</TabsTrigger>
-                  <TabsTrigger value="timeline">{t.timelineTab}</TabsTrigger>
-                  <TabsTrigger value="report">{t.reportTab}</TabsTrigger>
+                <TabsList className="grid grid-cols-6 w-full">
+                  <TabsTrigger value="charts" className="text-[11px]">{t.chartsTab}</TabsTrigger>
+                  <TabsTrigger value="docs360" className="text-[11px]">{t.docsTab}</TabsTrigger>
+                  <TabsTrigger value="planilha" className="text-[11px]">{t.planilhaTab}</TabsTrigger>
+                  <TabsTrigger value="sugestoes" className="text-[11px]">{t.sugestoesTab}</TabsTrigger>
+                  <TabsTrigger value="timeline" className="text-[11px]">{t.timelineTab}</TabsTrigger>
+                  <TabsTrigger value="report" className="text-[11px]">{t.reportTab}</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="charts" className="mt-3 space-y-3">
@@ -456,6 +498,106 @@ export function SubmissionCopilotPanel({ open, onOpenChange, initialQuery = "" }
                   </div>
                 </TabsContent>
 
+                <TabsContent value="docs360" className="mt-3 space-y-2">
+                  {a?.checklist_360?.length ? (
+                    <div className="rounded-md border border-border bg-card/50 overflow-x-auto">
+                      <table className="w-full text-xs">
+                        <thead className="bg-muted/40">
+                          <tr className="text-left text-muted-foreground">
+                            <th className="py-2 px-2">{t.area}</th>
+                            <th className="py-2 px-2 text-center">{t.cumpridos}</th>
+                            <th className="py-2 px-2 text-center">{t.pendentesItens}</th>
+                            <th className="py-2 px-2 text-center">{t.docsAnexados}</th>
+                            <th className="py-2 px-2 text-center">{t.oficializados}</th>
+                            <th className="py-2 px-2">{t.percentualConcluido}</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {a.checklist_360.map((c, i) => {
+                            const pctTone = c.percentual >= 100 ? "text-success" : c.percentual >= 50 ? "text-warning" : "text-destructive";
+                            return (
+                              <tr key={i} className="border-t border-border/50">
+                                <td className="py-1.5 px-2">
+                                  <div className="font-medium">{c.categoria}</div>
+                                  <div className="text-[10px] text-muted-foreground">{c.fluxo === "china_envia" ? t.fluxoChina : t.fluxoBrasil}</div>
+                                </td>
+                                <td className="py-1.5 px-2 text-center tabular-nums">{c.cumpridos}/{c.total_itens}</td>
+                                <td className="py-1.5 px-2 text-center tabular-nums">{c.pendentes}</td>
+                                <td className="py-1.5 px-2 text-center tabular-nums">{c.docs_anexados}</td>
+                                <td className="py-1.5 px-2 text-center tabular-nums">{c.docs_oficializados}</td>
+                                <td className="py-1.5 px-2">
+                                  <div className="flex items-center gap-2">
+                                    <Progress value={c.percentual} className="h-1.5 flex-1" />
+                                    <span className={cn("tabular-nums font-semibold w-9 text-right", pctTone)}>{c.percentual}%</span>
+                                  </div>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    <p className="text-xs text-muted-foreground text-center py-4">—</p>
+                  )}
+                </TabsContent>
+
+                <TabsContent value="planilha" className="mt-3 space-y-2">
+                  {a?.planilha_resumo?.tem_planilha === false && (!a.planilha_resumo.principais_campos.length) ? (
+                    <p className="text-xs text-muted-foreground text-center py-4">{t.semPlanilha}</p>
+                  ) : (
+                    <div className="space-y-2">
+                      <div className="grid grid-cols-2 gap-2">
+                        <KpiTile icon={FileText} label={t.linhasPlanilha} value={a?.planilha_resumo?.linhas ?? 0} />
+                        <KpiTile icon={ListChecks} label={t.colunas} value={a?.planilha_resumo?.colunas?.length ?? 0} />
+                      </div>
+                      {a?.planilha_resumo?.principais_campos?.length ? (
+                        <div className="rounded-md border border-border bg-card/50 p-3">
+                          <div className="text-xs font-semibold mb-2">{t.principaisCampos}</div>
+                          <div className="grid grid-cols-2 gap-1.5">
+                            {a.planilha_resumo.principais_campos.map((p, i) => (
+                              <div key={i} className="flex justify-between text-xs border-b border-border/40 py-1">
+                                <span className="text-muted-foreground">{p.campo}</span>
+                                <span className="font-medium truncate ml-2">{p.valor}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ) : null}
+                    </div>
+                  )}
+                </TabsContent>
+
+                <TabsContent value="sugestoes" className="mt-3 space-y-2">
+                  <div className="text-xs font-semibold flex items-center gap-1.5"><Sparkles className="h-3.5 w-3.5 text-primary" />{t.acoesRecomendadas}</div>
+                  {a?.sugestoes_acao?.length ? (
+                    <div className="space-y-1.5">
+                      {a.sugestoes_acao.map((s, i) => {
+                        const tone = s.prioridade === "alta" ? "border-destructive/40 bg-destructive/5"
+                          : s.prioridade === "media" ? "border-warning/40 bg-warning/5"
+                          : "border-border bg-card/50";
+                        const badge = s.prioridade === "alta" ? "destructive" : s.prioridade === "media" ? "secondary" : "outline";
+                        return (
+                          <div key={i} className={cn("rounded-md border p-2.5", tone)}>
+                            <div className="flex items-center justify-between gap-2 mb-1">
+                              <div className="text-xs font-semibold">{s.titulo}</div>
+                              <Badge variant={badge as any} className="text-[10px] capitalize">{s.prioridade}</Badge>
+                            </div>
+                            <div className="text-[11px] text-muted-foreground">{s.detalhe}</div>
+                            {(s.responsavel || s.prazo) && (
+                              <div className="text-[10px] text-muted-foreground mt-1">
+                                {s.responsavel && <span className="mr-2">{t.owner}: {s.responsavel}</span>}
+                                {s.prazo && <span>{t.deadline}: {fmtDate(s.prazo)}</span>}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-muted-foreground text-center py-4">{t.semSugestoes}</p>
+                  )}
+                </TabsContent>
                 <TabsContent value="timeline" className="mt-3">
                   <div className="rounded-md border border-border bg-card/50 p-3">
                     {a && a.marcos.length > 0 ? (

@@ -23,6 +23,9 @@ export interface CopilotPdfResultado {
     embarques_resumo: { total: number; em_transito: number; entregues: number };
     atrasos_top: Array<{ coluna: string; item: string; prazo: string | null; responsavel: string | null; dias_atraso: number | null }>;
     marcos: Array<{ data: string | null; label: string; status: "ok" | "pending" | "late"; tipo: string }>;
+    checklist_360?: Array<{ categoria: string; fluxo: string; total_itens: number; cumpridos: number; pendentes: number; docs_anexados: number; docs_oficializados: number; percentual: number }>;
+    planilha_resumo?: { tem_planilha: boolean; linhas: number; colunas: string[]; principais_campos: Array<{ campo: string; valor: string }> };
+    sugestoes_acao?: Array<{ prioridade: "alta" | "media" | "baixa"; titulo: string; detalhe: string; responsavel: string | null; prazo: string | null }>;
   };
   submissao: { id: string; codigo: string; nome: string };
   model: string;
@@ -39,6 +42,10 @@ const LABELS: Record<CopilotPdfIdioma, Record<string, string>> = {
     timelineTitle: "Marcos da operação", date: "Data", milestone: "Marco",
     reportTitle: "Relatório completo", model: "Modelo", page: "Página", of: "de",
     generatedAt: "Gerado em",
+    docs360Title: "Documentos & Checklists 360°", attached: "Anexados", official: "Oficializados", pct: "% Concluído",
+    planilhaTitle: "Planilha Inicial", rows: "Linhas", cols: "Colunas", field: "Campo", value: "Valor",
+    sugestoesTitle: "Sugestões Priorizadas", priority: "Prioridade", suggestion: "Sugestão",
+    noPlanilha: "Planilha inicial não disponível.",
   },
   en: {
     title: "Copilot Report", risk: "Risk", progress: "Progress",
@@ -50,6 +57,10 @@ const LABELS: Record<CopilotPdfIdioma, Record<string, string>> = {
     timelineTitle: "Operation milestones", date: "Date", milestone: "Milestone",
     reportTitle: "Full report", model: "Model", page: "Page", of: "of",
     generatedAt: "Generated at",
+    docs360Title: "360° Documents & Checklists", attached: "Attached", official: "Official", pct: "% Done",
+    planilhaTitle: "Initial Spreadsheet", rows: "Rows", cols: "Columns", field: "Field", value: "Value",
+    sugestoesTitle: "Prioritized Suggestions", priority: "Priority", suggestion: "Suggestion",
+    noPlanilha: "Initial spreadsheet not available.",
   },
   zh: {
     title: "副驾驶报告", risk: "风险", progress: "进度",
