@@ -403,8 +403,15 @@ export function useChinaMailbox(folder: MailboxFolder): UseChinaMailboxResult {
       returned: matchReturned,
     };
     const items = allItems.filter(matcher[folder]);
+    // Lista global de pendentes-por-falta-de-doc/parecer (independe da pasta atual)
+    // — usada para emitir notificações.
+    const allAwaitingPending = allItems.filter((i) => {
+      const ev = evaluateAwaitingSend(i);
+      if (!ev.matches) return false;
+      return ev.reasons.some((r) => r === "sem_documento" || r === "sem_parecer");
+    });
 
-    return { items, counts };
+    return { items, counts, allAwaitingPending };
   }, [query.data, folder, isBrasilUser, isChinaUser]);
 
   // Notificação: avisar a China quando um novo checklist passa a ficar pendente
