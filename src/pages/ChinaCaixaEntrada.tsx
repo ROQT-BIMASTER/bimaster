@@ -298,6 +298,19 @@ export default function ChinaCaixaEntrada() {
               <History className="h-4 w-4 mr-1.5" />
               {t("inbox.actions.auditoria")}
             </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleMarkAllRead}
+              disabled={unreadVisibleCount === 0}
+              title="Marcar todas as mensagens visíveis como lidas"
+            >
+              <CheckCheck className="h-4 w-4 mr-1.5" />
+              Marcar todas como lidas
+              {unreadVisibleCount > 0 && (
+                <span className="ml-1 text-[10px] opacity-70">({unreadVisibleCount})</span>
+              )}
+            </Button>
             <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching}>
               <RefreshCw className={`h-4 w-4 mr-1.5 ${isFetching ? "animate-spin" : ""}`} />
               {t("inbox.actions.atualizar")}
