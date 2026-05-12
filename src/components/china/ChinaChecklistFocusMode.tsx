@@ -1404,6 +1404,7 @@ export function ChinaChecklistFocusMode({
               <Input
                 value={editCatLabelPt}
                 onChange={(e) => setEditCatLabelPt(e.target.value)}
+                onBlur={(e) => autoTranslateToCn(e.target.value, editCatLabelCn, setEditCatLabelCn)}
                 className="mt-1"
               />
             </div>
