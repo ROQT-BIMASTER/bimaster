@@ -535,6 +535,11 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
   });
 
   const handleBridgeUpdate = useCallback(async (id: string, updates: Partial<ProjetoTarefa>) => {
+    if ((updates as any).status === "concluida") {
+      const { confirmConclusaoTarefa } = await import("@/lib/projetos/confirmConclusao");
+      const ok = await confirmConclusaoTarefa({});
+      if (!ok) return;
+    }
     const { error } = await supabase.from("projeto_tarefas").update(updates as any).eq("id", id);
     if (error) { toast.error("Erro ao atualizar"); return; }
     queryClient.invalidateQueries({ queryKey: ["minhas-tarefas"] });
