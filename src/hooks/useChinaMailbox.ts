@@ -1,8 +1,14 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useChinaUserContext } from "@/hooks/useChinaUserContext";
 import { uniqueChannelName } from "@/lib/realtime/channelName";
+import {
+  evaluateAwaitingSend,
+  AWAITING_SEND_REASON_LABEL,
+  type AwaitingSendReason,
+} from "@/lib/china/awaitingSendRule";
 
 export type MailboxFolder =
   | "inbox"
