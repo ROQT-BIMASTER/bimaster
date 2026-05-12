@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { uniqueChannelName } from "@/lib/realtime/channelName";
+import { registrarAuditoriaTarefa } from "@/lib/projetos/auditoriaTarefa";
 
 export interface ProjetoSecao {
   id: string;
