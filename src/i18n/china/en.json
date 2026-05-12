@@ -1,0 +1,63 @@
+{
+  "common": {
+    "salvar": "Save",
+    "cancelar": "Cancel",
+    "confirmar": "Confirm",
+    "fechar": "Close",
+    "voltar": "Back",
+    "buscar": "Search",
+    "filtrar": "Filter",
+    "limpar": "Clear",
+    "carregando": "Loading…",
+    "semResultados": "No results",
+    "erro": "An error occurred",
+    "sucesso": "Operation completed",
+    "aprovar": "Approve",
+    "rejeitar": "Reject",
+    "contestar": "Contest",
+    "enviar": "Send",
+    "anexar": "Attach",
+    "remover": "Remove",
+    "editar": "Edit",
+    "excluir": "Delete",
+    "novo": "New",
+    "atualizar": "Refresh",
+    "exportar": "Export",
+    "imprimir": "Print",
+    "baixar": "Download",
+    "visualizar": "View",
+    "detalhes": "Details",
+    "sim": "Yes",
+    "nao": "No",
+    "obrigatorio": "Required",
+    "opcional": "Optional"
+  },
+  "status": {
+    "rascunho": "Draft",
+    "em_revisao": "Under review",
+    "aprovado": "Approved",
+    "rejeitado": "Rejected",
+    "enviado": "Sent",
+    "pendente": "Pending",
+    "em_andamento": "In progress",
+    "concluido": "Completed",
+    "cancelado": "Canceled",
+    "pausado": "Paused"
+  },
+  "nav": {
+    "caixaEntrada": "Inbox",
+    "novaSubmissao": "New submission",
+    "painel": "Dashboard",
+    "submissoes": "Submissions",
+    "ordens": "Production orders",
+    "checklist": "Product checklist",
+    "ficha": "Product spec sheet",
+    "auditoria": "Audit"
+  },
+  "language": {
+    "label": "Language",
+    "pt": "Português",
+    "zh": "中文",
+    "en": "English"
+  }
+}

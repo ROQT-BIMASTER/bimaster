@@ -1,0 +1,63 @@
+{
+  "common": {
+    "salvar": "Salvar",
+    "cancelar": "Cancelar",
+    "confirmar": "Confirmar",
+    "fechar": "Fechar",
+    "voltar": "Voltar",
+    "buscar": "Buscar",
+    "filtrar": "Filtrar",
+    "limpar": "Limpar",
+    "carregando": "Carregando…",
+    "semResultados": "Sem resultados",
+    "erro": "Ocorreu um erro",
+    "sucesso": "Operação concluída",
+    "aprovar": "Aprovar",
+    "rejeitar": "Rejeitar",
+    "contestar": "Contestar",
+    "enviar": "Enviar",
+    "anexar": "Anexar",
+    "remover": "Remover",
+    "editar": "Editar",
+    "excluir": "Excluir",
+    "novo": "Novo",
+    "atualizar": "Atualizar",
+    "exportar": "Exportar",
+    "imprimir": "Imprimir",
+    "baixar": "Baixar",
+    "visualizar": "Visualizar",
+    "detalhes": "Detalhes",
+    "sim": "Sim",
+    "nao": "Não",
+    "obrigatorio": "Obrigatório",
+    "opcional": "Opcional"
+  },
+  "status": {
+    "rascunho": "Rascunho",
+    "em_revisao": "Em revisão",
+    "aprovado": "Aprovado",
+    "rejeitado": "Rejeitado",
+    "enviado": "Enviado",
+    "pendente": "Pendente",
+    "em_andamento": "Em andamento",
+    "concluido": "Concluído",
+    "cancelado": "Cancelado",
+    "pausado": "Pausado"
+  },
+  "nav": {
+    "caixaEntrada": "Caixa de entrada",
+    "novaSubmissao": "Nova submissão",
+    "painel": "Painel",
+    "submissoes": "Submissões",
+    "ordens": "Ordens de produção",
+    "checklist": "Checklist do produto",
+    "ficha": "Ficha do produto",
+    "auditoria": "Auditoria"
+  },
+  "language": {
+    "label": "Idioma",
+    "pt": "Português",
+    "zh": "中文",
+    "en": "English"
+  }
+}

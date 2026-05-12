@@ -4,6 +4,9 @@ import { AppSidebar } from "@/components/dashboard/AppSidebar";
 import { usePageBgColor } from "@/hooks/usePageBgColor";
 import { getBgPaletteVars } from "@/lib/colorUtils";
 import { ChinaCommunicationFab } from "@/components/china/ChinaCommunicationFab";
+import { ChinaLanguageSwitcher } from "@/components/china/ChinaLanguageSwitcher";
+// Garante que o i18n do módulo China esteja inicializado em qualquer tela do shell.
+import "@/i18n/china";
 
 interface ChinaPageShellProps {
   children: ReactNode;
@@ -38,6 +41,9 @@ export function ChinaPageShell({ children, showCommunicationFab = true }: ChinaP
           }
         >
           <div className="p-6 w-full space-y-6">
+            <div className="flex justify-end">
+              <ChinaLanguageSwitcher />
+            </div>
             {children}
           </div>
         </main>
