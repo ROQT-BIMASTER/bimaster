@@ -167,7 +167,7 @@ function ExpandableDocList({
   );
 }
 
-export function UnifiedSubmissionTimeline({ submissao, ocId, onlyChinaStages, className }: Props) {
+export function UnifiedSubmissionTimeline({ submissao, ocId, onlyChinaStages, className, onStagesComputed }: Props) {
   const qc = useQueryClient();
   const { data: docs } = useDocsResumo(submissao.submissao_id);
   const { data: ocTimeline } = useOCTimeline(ocId || null);
