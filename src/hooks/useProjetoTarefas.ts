@@ -288,6 +288,7 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
     },
     onError: (err: Error, _vars, context) => {
       if (context?.previous) queryClient.setQueryData(["projeto-tarefas-v2", projetoId], context.previous);
+      if (err.message === "__CANCELLED__") return;
       toast.error(err.message);
     },
     onSettled: () => {
