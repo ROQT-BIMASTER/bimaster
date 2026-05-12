@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { ArrowLeft, Upload, FileSpreadsheet, Check, Loader2, ChevronRight, Scale, ImageIcon, Sparkles, X, PenLine, Save, Eye, EyeOff, Package, Send, AlertTriangle, CheckCircle2, LockKeyhole } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -39,6 +39,8 @@ export default function ChinaNovaSubmissao() {
   const { backTo } = useResolvedBackTo("/dashboard/fabrica-china");
   const queryClient = useQueryClient();
   const { submissaoId: editId } = useParams<{ submissaoId: string }>();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const focusTipo = searchParams.get("focus");
   const [step, setStep] = useState(0);
   const [parsing, setParsing] = useState(false);
   const [parsedData, setParsedData] = useState<any>(null);
@@ -143,7 +145,7 @@ export default function ChinaNovaSubmissao() {
         display_altura: existingSubmissao.medidas_display?.altura?.toString() || "",
         display_profundidade: existingSubmissao.medidas_display?.profundidade?.toString() || "",
       });
-      if (existingSubmissao.produto_codigo) setStep(1);
+      if (existingSubmissao.produto_codigo || focusTipo) setStep(1);
     }
   }, [existingSubmissao, editId]);
 
@@ -1053,6 +1055,15 @@ export default function ChinaNovaSubmissao() {
                   }}
                   onViewDoc={async (doc: any) => {
                     if (doc.arquivo_url) window.open(doc.arquivo_url, "_blank");
+                  }}
+                  defaultOpen={!!focusTipo}
+                  focusTipo={focusTipo}
+                  onAfterFocus={() => {
+                    if (focusTipo) {
+                      const next = new URLSearchParams(searchParams);
+                      next.delete("focus");
+                      setSearchParams(next, { replace: true });
+                    }
                   }}
                 />
               )}

@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useRef } from "react";
+import { useState, useMemo, useCallback, useRef, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -55,6 +55,12 @@ interface ChinaChecklistFocusModeProps {
   onRefresh: () => void;
   onRemoveFile: (fileId: string) => Promise<void>;
   onViewDoc: (doc: DocRecord) => void;
+  /** Abre o dialog automaticamente ao montar e foca o tipo informado. */
+  defaultOpen?: boolean;
+  /** Tipo de documento alvo para destaque/scroll quando o dialog abre. */
+  focusTipo?: string | null;
+  /** Callback após o efeito de focus ser aplicado (limpar query param, etc). */
+  onAfterFocus?: () => void;
 }
 
 const statusIcons: Record<string, React.ReactNode> = {
@@ -103,6 +109,9 @@ export function ChinaChecklistFocusMode({
   onRefresh,
   onRemoveFile,
   onViewDoc,
+  defaultOpen,
+  focusTipo,
+  onAfterFocus,
 }: ChinaChecklistFocusModeProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [activeCat, setActiveCat] = useState(DOCUMENT_CATEGORIES[0].key);
@@ -111,6 +120,34 @@ export function ChinaChecklistFocusMode({
   const [uploadingTipo, setUploadingTipo] = useState<string | null>(null);
   const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
   const queryClient = useQueryClient();
+
+  // Auto-open + focus on a specific document type (vindo de "Corrigir" da tela de detalhe)
+  useEffect(() => {
+    if (!defaultOpen) return;
+    setIsOpen(true);
+    if (focusTipo) {
+      const cat = DOCUMENT_CATEGORIES.find((c) => c.tipos.includes(focusTipo));
+      if (cat) setActiveCat(cat.key);
+    }
+  }, [defaultOpen, focusTipo]);
+
+  useEffect(() => {
+    if (!isOpen || !focusTipo) return;
+    const t = setTimeout(() => {
+      const el = document.querySelector(
+        `[data-doc-tipo="${focusTipo}"]`,
+      ) as HTMLElement | null;
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+        el.classList.add("ring-2", "ring-destructive", "ring-offset-2");
+        setTimeout(() => {
+          el.classList.remove("ring-2", "ring-destructive", "ring-offset-2");
+        }, 2800);
+      }
+      onAfterFocus?.();
+    }, 250);
+    return () => clearTimeout(t);
+  }, [isOpen, focusTipo, activeCat, onAfterFocus]);
 
   // Preview dialog state
   const [previewFile, setPreviewFile] = useState<File | null>(null);
@@ -965,6 +1002,7 @@ export function ChinaChecklistFocusMode({
                     return (
                       <div
                         key={config.tipo}
+                        data-doc-tipo={config.tipo}
                         className={cn(
                           "border rounded-xl bg-card p-4 space-y-3 transition-all",
                           cardBorder,
