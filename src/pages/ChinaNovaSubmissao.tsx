@@ -701,6 +701,9 @@ export default function ChinaNovaSubmissao() {
 
   return (
     <ChinaPageShell>
+      {/* Banner de retomada — só aparece quando NÃO estamos editando um rascunho específico */}
+      <ResumeDraftBanner hidden={!!editId || !!submissaoId} />
+
       {/* Read-only lock banner */}
       {isReadOnly && (
         <Card className="p-4 border-warning/30 bg-warning/5">
@@ -739,9 +742,12 @@ export default function ChinaNovaSubmissao() {
           <>
             <ManualFabricaDrawer screen="china-nova-submissao" />
             {submissaoId && !isReadOnly && (
-              <Badge variant="secondary" className="text-xs">
-                <Save className="h-3 w-3 mr-1" /> Rascunho 草稿
-              </Badge>
+              <DraftStatusIndicator
+                status={draftStatus}
+                lastSavedAt={lastSavedAt}
+                lastError={lastDraftError}
+                onRetry={handleRetryDraft}
+              />
             )}
             {submissaoId && !isReadOnly && (
               <Button
