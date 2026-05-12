@@ -204,7 +204,14 @@ function MailboxRow({ item, dir, folder, active, checked, onSelect, onToggleChec
             <Clock className="h-2.5 w-2.5" /> adiada
           </Badge>
         )}
-        <span className="text-[10px] tabular-nums text-muted-foreground">
+        <span className="flex items-center gap-1 text-[10px] tabular-nums text-muted-foreground">
+          {!unread && (
+            <CheckCheck
+              className="h-3 w-3 text-sky-400"
+              aria-label="Lida"
+              title="Lida"
+            />
+          )}
           {relativeAge(item.horas_pendentes)}
         </span>
       </div>
