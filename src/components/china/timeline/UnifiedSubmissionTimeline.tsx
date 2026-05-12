@@ -269,6 +269,38 @@ export function UnifiedSubmissionTimeline({ submissao, ocId, onlyChinaStages, cl
     ? "neutral"
     : saldoAberto <= 0 && qtyPedida > 0 ? "done" : qtyRecebida > 0 ? "pending" : "neutral";
 
+  // Notifica o pai com o snapshot atual das etapas (para exportar PDF).
+  useEffect(() => {
+    if (!onStagesComputed) return;
+    const stages: import("@/lib/china/exportTimelinePdf").JourneyStageRow[] = [
+      { numero: 1, titulo: "Submissão criada", status: stSubmissao,
+        detalhe: `Status atual: ${submStatus || "—"}` },
+      { numero: 2, titulo: "Documentos & parecer", status: stDocs,
+        detalhe: `${docs?.aprovados ?? 0} aprovados · ${docs?.pendentes ?? 0} pendentes · ${docs?.rejeitados ?? 0} rejeitados (total ${docs?.total ?? 0})` },
+      { numero: 3, titulo: "Enviada ao Brasil", status: stEnviada,
+        detalhe: totalDocs > 0 ? `${enviadosDocs}/${totalDocs} itens enviados` : (enviadaParaBrasil ? "Em poder do Brasil" : "Aguardando envio") },
+      { numero: 4, titulo: "Aprovação Brasil", status: stAprovBrasil,
+        detalhe: enviadosDocs > 0 ? `${aprovDocs}/${enviadosDocs} aprovados${rejDocs > 0 ? ` · ${rejDocs} rejeitados` : ""}` : "Aguardando envio ao Brasil" },
+    ];
+    if (!onlyChinaStages) {
+      stages.push(
+        { numero: 5, titulo: "Pedido (OC)", status: stPedido, detalhe: ocLoaded ? `OC ${oc.numero_oc || submissao.numero_ordem || "—"}` : "OC não emitida" },
+        { numero: 6, titulo: "Produção", status: stProducao, detalhe: ocLoaded ? `${qtyProduzida}/${qtyPedida} apontado` : "—" },
+        { numero: 7, titulo: "Embarque", status: stEmbarque, detalhe: embarque ? `${embarque.modalidade || "—"} · container ${embarque.numero_container || "—"}` : "Sem embarque" },
+        { numero: 8, titulo: "Trânsito", status: stTransito, detalhe: `${embarque?.porto_origem || "—"} → ${embarque?.porto_destino || "—"}` },
+        { numero: 9, titulo: "Desembaraço", status: stDesemb, detalhe: oc?.data_desembaraco ? `Desembaraço em ${fmtDate(oc.data_desembaraco)}` : "Aguardando" },
+        { numero: 10, titulo: "Recebido no CD", status: stReceb, detalhe: ocLoaded ? `Recebido ${qtyRecebida} · saldo ${saldoAberto}` : "Aguardando OC" },
+      );
+    }
+    onStagesComputed(stages);
+  }, [
+    onStagesComputed, onlyChinaStages, submStatus, docs, totalDocs, enviadosDocs,
+    enviadaParaBrasil, aprovDocs, rejDocs, ocLoaded, oc, embarque, qtyProduzida,
+    qtyPedida, qtyRecebida, saldoAberto, stSubmissao, stDocs, stEnviada,
+    stAprovBrasil, stPedido, stProducao, stEmbarque, stTransito, stDesemb,
+    stReceb, submissao.numero_ordem,
+  ]);
+
   return (
     <div className={className}>
       <div className="space-y-2">
