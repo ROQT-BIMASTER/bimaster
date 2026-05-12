@@ -810,9 +810,17 @@ export function ChinaChecklistFocusMode({
     onError: (e: any) => toast.error(e?.message || "Erro ao excluir categoria"),
   });
 
-  const handleDeleteCategory = (e: React.MouseEvent, cat: MergedCategory) => {
+  const handleDeleteCategory = async (e: React.MouseEvent, cat: MergedCategory) => {
     e.stopPropagation();
-    if (!confirm(`Excluir categoria "${cat.labelPt}" deste checklist?`)) return;
+    const { confirmExclusaoTarefa } = await import("@/lib/projetos/confirmConclusao");
+    const ok = await confirmExclusaoTarefa({
+      tituloDialog: "Excluir categoria do checklist?",
+      acaoLabel: "Sim, excluir",
+      descricao:
+        `Você está prestes a remover a categoria "${cat.labelPt}" e todos os cards vinculados deste checklist da submissão China. ` +
+        `Categorias com arquivos enviados precisam ter os arquivos removidos primeiro.`,
+    });
+    if (!ok) return;
     deleteCategory.mutate(cat);
   };
 
