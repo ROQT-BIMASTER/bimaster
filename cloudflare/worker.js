@@ -20,6 +20,14 @@
 
 const ORIGIN = "https://bimaster.lovable.app"; // override per-environment in wrangler.toml vars
 
+// Reverse-proxy alvo para Edge Functions (Lovable Cloud / Supabase managed).
+// Requisições do navegador para `/api/functions/<name>` são reescritas para
+// `<SUPABASE_FUNCTIONS_ORIGIN>/<name>`. Isso evita que clientes na China
+// continental dependam diretamente de `*.supabase.co`, que tem histórico
+// de bloqueio/throttling pela Grande Muralha Digital. Cloudflare costuma
+// passar com mais consistência.
+const SUPABASE_FUNCTIONS_ORIGIN = "https://aokkyrgaqjarhlywhjju.supabase.co/functions/v1";
+
 const CSP = [
   "default-src 'self'",
   "base-uri 'self'",
