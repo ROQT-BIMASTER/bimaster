@@ -218,9 +218,6 @@ export function MailboxReadingPane({
           </section>
         )}
 
-        {canBrasilApprove && (
-          <section className="mt-6 rounded-md border border-primary/30 bg-primary/5 p-3">
-            <p className="text-xs text-foreground/90 mb-2">
         {canChinaEnviar && (
           <section className="mt-6 rounded-md border border-emerald-500/30 bg-emerald-500/5 p-3">
             <p className="text-xs text-foreground/90 mb-2">
