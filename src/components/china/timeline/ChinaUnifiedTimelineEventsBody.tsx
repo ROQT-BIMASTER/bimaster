@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useChinaUnifiedTimeline } from "@/hooks/useChinaUnifiedTimeline";
 import type { ChinaTimelineEvent, ChinaTimelineScope } from "@/lib/china/timeline/types";
 import { kindConfig } from "@/lib/china/timeline/kinds";
@@ -65,7 +65,7 @@ export function ChinaUnifiedTimelineEventsBody({ scope, onFilteredChange }: Prop
   }, [events, query, groupFilter, dateRange]);
 
   // Notifica o pai sempre que filtered mudar.
-  useMemo(() => { onFilteredChange?.(filtered); }, [filtered, onFilteredChange]);
+  useEffect(() => { onFilteredChange?.(filtered); }, [filtered, onFilteredChange]);
 
   const buckets = useMemo(() => {
     const map = new Map<string, typeof filtered>();
