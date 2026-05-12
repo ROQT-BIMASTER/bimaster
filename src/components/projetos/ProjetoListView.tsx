@@ -263,6 +263,7 @@ export function ProjetoListView({ projetoId, darkBg = false, filters = EMPTY_FIL
             onUpdateTarefa={handleUpdateTarefa}
             onDeleteTarefa={(tarefaId) => softDeleteTarefa.mutate(tarefaId)}
             onToggleBriefing={(secaoId, value) => toggleSecaoBriefing.mutate({ secaoId, temBriefing: value })}
+            onDeleteSecao={canDeleteSecao ? (secaoId) => deleteSecao.mutate(secaoId) : undefined}
             onCreateBriefingTasks={handleCreateBriefingTasks}
             teamMembers={teamMembers}
             onAddColaborador={(tarefaId, userId) => addColaborador.mutate({ tarefaId, userId })}
