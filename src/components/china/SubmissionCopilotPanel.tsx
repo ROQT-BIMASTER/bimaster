@@ -369,7 +369,7 @@ export function SubmissionCopilotPanel({ open, onOpenChange, initialQuery = "" }
               <div className="flex gap-1.5 flex-wrap">
                 <Button variant="outline" size="sm" onClick={handleCopy}><Copy className="h-3.5 w-3.5 mr-1.5" />{t.copy}</Button>
                 <Button variant="outline" size="sm" onClick={handleDownload}><Download className="h-3.5 w-3.5 mr-1.5" />{t.download}</Button>
-                <Button variant="outline" size="sm" onClick={handlePrint}><Printer className="h-3.5 w-3.5 mr-1.5" />{t.print}</Button>
+                <Button variant="outline" size="sm" onClick={handlePdf}><FileDown className="h-3.5 w-3.5 mr-1.5" />{t.print}</Button>
               </div>
 
               {/* Tabs */}
