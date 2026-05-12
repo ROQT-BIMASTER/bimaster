@@ -1146,11 +1146,23 @@ export function ChinaChecklistFocusMode({
                                   </div>
 
                                   <div className="flex gap-0.5 shrink-0">
-                                    <button onClick={() => onViewDoc(d)} className="p-1 rounded hover:bg-accent/50">
+                                    <button onClick={() => onViewDoc(d)} className="p-1 rounded hover:bg-accent/50" title="Visualizar">
                                       <Eye className="h-3.5 w-3.5 text-primary" />
                                     </button>
-                                    {d.status !== "aprovado" && (
-                                      <button onClick={() => onRemoveFile(d.id)} className="p-1 rounded hover:bg-destructive/10">
+                                    {d.status === "rejeitado" && (
+                                      <Button
+                                        size="sm"
+                                        variant="destructive"
+                                        className="h-6 px-2 text-[10px] gap-1"
+                                        onClick={() => setSubstituirDoc(d)}
+                                        title="Substituir documento e enviar parecer técnico"
+                                      >
+                                        <FileWarning className="h-3 w-3" />
+                                        Corrigir / Parecer
+                                      </Button>
+                                    )}
+                                    {d.status !== "aprovado" && d.status !== "rejeitado" && (
+                                      <button onClick={() => onRemoveFile(d.id)} className="p-1 rounded hover:bg-destructive/10" title="Remover">
                                         <Trash2 className="h-3.5 w-3.5 text-destructive" />
                                       </button>
                                     )}
