@@ -1628,6 +1628,62 @@ export function ChinaChecklistFocusMode({
           }}
         />
       )}
+
+      {/* Confirmação: envio individual ao Brasil */}
+      <AlertDialog open={!!confirmSingleId} onOpenChange={(o) => !o && setConfirmSingleId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Enviar documento ao Brasil? 发送至巴西？</AlertDialogTitle>
+            <AlertDialogDescription>
+              {(() => {
+                const d = documentos.find((x) => x.id === confirmSingleId);
+                if (!d) return null;
+                return (
+                  <>
+                    O arquivo <strong className="text-foreground">{d.nome_arquivo || d.tipo_documento}</strong> será marcado como pendente de revisão pelo Brasil. O envio será registrado no histórico (usuário e data).
+                  </>
+                );
+              })()}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar 取消</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                if (confirmSingleId) handleSubmitSingleConfirmed(confirmSingleId);
+              }}
+            >
+              Enviar ao Brasil 发送
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Confirmação: envio em lote de todos os rascunhos */}
+      <AlertDialog open={confirmAllOpen} onOpenChange={setConfirmAllOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              Enviar {draftDocs.length} rascunho(s) ao Brasil? 发送所有草稿？
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Todos os documentos atualmente em rascunho serão promovidos para "pendente" e ficarão disponíveis para revisão do Brasil. Cada envio será registrado no histórico com seu usuário e data.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar 取消</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                handleSubmitAllDrafts();
+              }}
+            >
+              Enviar todos 全部发送
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
