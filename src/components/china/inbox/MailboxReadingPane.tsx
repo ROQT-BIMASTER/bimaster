@@ -84,6 +84,14 @@ export function MailboxReadingPane({
   const canChinaEnviar =
     isChinaUser && !!onEnviarBrasil && !!item.documento_id && item.doc_status === "rascunho";
   const canChinaCorrigir = isChinaUser && (item.doc_status === "rejeitado" || item.submissao_status === "em_revisao");
+  // China: documento já enviado e ainda em poder do Brasil — bloco read-only "aguardando"
+  const chinaWaitingBrasil =
+    isChinaUser &&
+    !!item.doc_status &&
+    ["pendente", "enviado", "contestado"].includes(item.doc_status) &&
+    item.submissao_status !== "rejeitado";
+  const brasilOpened = item.doc_status === "enviado" || item.doc_status === "contestado";
+  const chinaApproved = isChinaUser && item.submissao_status === "aprovado";
 
   return (
     <div className="flex h-full flex-col bg-background">
