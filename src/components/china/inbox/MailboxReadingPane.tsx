@@ -81,6 +81,8 @@ export function MailboxReadingPane({
 
   const canBrasilApprove =
     isBrasilUser && item.doc_status && ["pendente", "enviado", "contestado"].includes(item.doc_status);
+  const canChinaEnviar =
+    isChinaUser && !!onEnviarBrasil && !!item.documento_id && item.doc_status === "rascunho";
   const canChinaCorrigir = isChinaUser && (item.doc_status === "rejeitado" || item.submissao_status === "em_revisao");
 
   return (
@@ -213,6 +215,27 @@ export function MailboxReadingPane({
                 <p className="whitespace-pre-wrap text-foreground/90">{item.observacoes_brasil}</p>
               </div>
             )}
+          </section>
+        )}
+
+        {canBrasilApprove && (
+          <section className="mt-6 rounded-md border border-primary/30 bg-primary/5 p-3">
+            <p className="text-xs text-foreground/90 mb-2">
+        {canChinaEnviar && (
+          <section className="mt-6 rounded-md border border-emerald-500/30 bg-emerald-500/5 p-3">
+            <p className="text-xs text-foreground/90 mb-2">
+              Envie este documento para o Brasil. Ele aparecerá em <strong>Vincular China</strong> para aprovação.
+              <span className="ml-1 text-muted-foreground">将此文件发送至巴西，将在“关联中国”中等待审批。</span>
+            </p>
+            <Button
+              size="sm"
+              className="gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white"
+              onClick={() => onEnviarBrasil!(item)}
+              disabled={loading}
+            >
+              <Send className="h-4 w-4" />
+              Enviar ao Brasil / 发送至巴西
+            </Button>
           </section>
         )}
 
