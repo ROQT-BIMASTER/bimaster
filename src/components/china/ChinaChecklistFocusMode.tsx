@@ -1193,15 +1193,33 @@ export function ChinaChecklistFocusMode({
 
                                   <div className="flex items-center gap-1 shrink-0">
                                     {statusIcons[d.status]}
-                                    <Badge variant={label.variant} className="text-[9px] px-1.5 py-0 h-4">
-                                      {label.pt}
-                                    </Badge>
+                                    {isDraft ? (
+                                      <Badge variant="warning" className="text-[9px] px-1.5 py-0 h-4 whitespace-nowrap">
+                                        Não enviado ao Brasil 未发送
+                                      </Badge>
+                                    ) : (
+                                      <Badge variant={label.variant} className="text-[9px] px-1.5 py-0 h-4">
+                                        {label.pt}
+                                      </Badge>
+                                    )}
                                   </div>
 
                                   <div className="flex gap-0.5 shrink-0">
                                     <button onClick={() => onViewDoc(d)} className="p-1 rounded hover:bg-accent/50" title="Visualizar">
                                       <Eye className="h-3.5 w-3.5 text-primary" />
                                     </button>
+                                    {isDraft && (
+                                      <Button
+                                        size="sm"
+                                        variant="gradient"
+                                        className="h-6 px-2 text-[10px] gap-1"
+                                        onClick={() => handleSubmitSingle(d.id)}
+                                        title="Enviar este documento ao Brasil"
+                                      >
+                                        <Send className="h-3 w-3" />
+                                        Enviar ao Brasil
+                                      </Button>
+                                    )}
                                     {d.status === "rejeitado" ? (
                                       <Button
                                         size="sm"
