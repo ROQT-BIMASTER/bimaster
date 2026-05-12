@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { MailboxFolder, MailboxCounts } from "@/hooks/useChinaMailbox";
 import { useChinaUserContext } from "@/hooks/useChinaUserContext";
+import { useChinaI18n } from "@/hooks/useChinaI18n";
 
 interface Props {
   folder: MailboxFolder;
@@ -16,8 +17,8 @@ interface Props {
 
 interface FolderDef {
   key: MailboxFolder;
-  label: string;
-  labelCn: string;
+  /** Chave i18n em `inbox.sidebar.folders.<key>` */
+  i18nKey: string;
   icon: typeof Inbox;
   countKey: keyof MailboxCounts;
   unreadKey?: keyof MailboxCounts;
@@ -25,7 +26,8 @@ interface FolderDef {
 }
 
 interface FolderGroup {
-  title?: string;
+  /** Chave i18n em `inbox.sidebar.<groupKey>` (opcional). */
+  titleKey?: string;
   folders: FolderDef[];
 }
 
@@ -33,14 +35,14 @@ interface FolderGroup {
 const BRASIL_GROUPS: FolderGroup[] = [
   {
     folders: [
-      { key: "oc", label: "Ordens de Compra", labelCn: "采购单", icon: ShoppingBag, countKey: "inbox" },
-      { key: "inbox", label: "Caixa de Entrada", labelCn: "收件箱", icon: Inbox, countKey: "inbox", unreadKey: "unread_inbox" },
-      { key: "starred", label: "Marcados", labelCn: "已标记", icon: Star, countKey: "starred" },
-      { key: "sent", label: "Enviados", labelCn: "已发送", icon: Send, countKey: "sent" },
-      { key: "drafts", label: "Rascunhos", labelCn: "草稿", icon: FileEdit, countKey: "drafts" },
-      { key: "approved", label: "Aprovados", labelCn: "已批准", icon: CheckCircle2, countKey: "approved", tone: "text-emerald-500" },
-      { key: "rejected", label: "Rejeitados", labelCn: "已拒绝", icon: XCircle, countKey: "rejected", tone: "text-rose-500" },
-      { key: "trash", label: "Lixeira", labelCn: "回收站", icon: Trash2, countKey: "trash" },
+      { key: "oc", i18nKey: "oc", icon: ShoppingBag, countKey: "inbox" },
+      { key: "inbox", i18nKey: "inbox", icon: Inbox, countKey: "inbox", unreadKey: "unread_inbox" },
+      { key: "starred", i18nKey: "starred", icon: Star, countKey: "starred" },
+      { key: "sent", i18nKey: "sent", icon: Send, countKey: "sent" },
+      { key: "drafts", i18nKey: "drafts", icon: FileEdit, countKey: "drafts" },
+      { key: "approved", i18nKey: "approved", icon: CheckCircle2, countKey: "approved", tone: "text-emerald-500" },
+      { key: "rejected", i18nKey: "rejected", icon: XCircle, countKey: "rejected", tone: "text-rose-500" },
+      { key: "trash", i18nKey: "trash", icon: Trash2, countKey: "trash" },
     ],
   },
 ];
@@ -48,26 +50,26 @@ const BRASIL_GROUPS: FolderGroup[] = [
 // Sidebar do usuário China — central de comando estilo cliente de e-mail
 const CHINA_GROUPS: FolderGroup[] = [
   {
-    title: "Saída",
+    titleKey: "grupoSaida",
     folders: [
-      { key: "awaiting_send", label: "Pendentes de envio", labelCn: "待发送", icon: FileEdit, countKey: "awaiting_send", tone: "text-muted-foreground" },
-      { key: "sent_brazil", label: "Enviadas ao Brasil", labelCn: "已发送至巴西", icon: Send, countKey: "sent_brazil", tone: "text-primary" },
+      { key: "awaiting_send", i18nKey: "awaiting_send", icon: FileEdit, countKey: "awaiting_send", tone: "text-muted-foreground" },
+      { key: "sent_brazil", i18nKey: "sent_brazil", icon: Send, countKey: "sent_brazil", tone: "text-primary" },
     ],
   },
   {
-    title: "Acompanhamento",
+    titleKey: "grupoAcompanhamento",
     folders: [
-      { key: "in_analysis", label: "Em análise no Brasil", labelCn: "巴西分析中", icon: Eye, countKey: "in_analysis", tone: "text-amber-500" },
-      { key: "returned", label: "Retorno: ajustes", labelCn: "返回：需调整", icon: RotateCcw, countKey: "returned", tone: "text-rose-500" },
-      { key: "approved", label: "Aprovadas", labelCn: "已批准", icon: CheckCircle2, countKey: "approved", tone: "text-emerald-500" },
+      { key: "in_analysis", i18nKey: "in_analysis", icon: Eye, countKey: "in_analysis", tone: "text-amber-500" },
+      { key: "returned", i18nKey: "returned", icon: RotateCcw, countKey: "returned", tone: "text-rose-500" },
+      { key: "approved", i18nKey: "approved", icon: CheckCircle2, countKey: "approved", tone: "text-emerald-500" },
     ],
   },
   {
-    title: "Outros",
+    titleKey: "grupoOutros",
     folders: [
-      { key: "starred", label: "Marcadas", labelCn: "已标记", icon: Star, countKey: "starred" },
-      { key: "oc", label: "Ordens de Compra", labelCn: "采购单", icon: ShoppingBag, countKey: "inbox" },
-      { key: "trash", label: "Lixeira", labelCn: "回收站", icon: Trash2, countKey: "trash" },
+      { key: "starred", i18nKey: "starred", icon: Star, countKey: "starred" },
+      { key: "oc", i18nKey: "oc", icon: ShoppingBag, countKey: "inbox" },
+      { key: "trash", i18nKey: "trash", icon: Trash2, countKey: "trash" },
     ],
   },
 ];
