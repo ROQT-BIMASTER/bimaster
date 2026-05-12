@@ -5401,6 +5401,126 @@ export type Database = {
           },
         ]
       }
+      china_timeline_eventos: {
+        Row: {
+          actor_id: string | null
+          actor_label: string | null
+          container_id: string | null
+          created_at: string
+          dedupe_key: string | null
+          descricao: string | null
+          documento_id: string | null
+          embarque_id: string | null
+          id: string
+          kind: string
+          nc_id: string | null
+          ordem_compra_id: string | null
+          ordem_producao_id: string | null
+          payload: Json
+          produto_codigo: string | null
+          recebimento_id: string | null
+          submissao_id: string | null
+          title: string
+        }
+        Insert: {
+          actor_id?: string | null
+          actor_label?: string | null
+          container_id?: string | null
+          created_at?: string
+          dedupe_key?: string | null
+          descricao?: string | null
+          documento_id?: string | null
+          embarque_id?: string | null
+          id?: string
+          kind: string
+          nc_id?: string | null
+          ordem_compra_id?: string | null
+          ordem_producao_id?: string | null
+          payload?: Json
+          produto_codigo?: string | null
+          recebimento_id?: string | null
+          submissao_id?: string | null
+          title: string
+        }
+        Update: {
+          actor_id?: string | null
+          actor_label?: string | null
+          container_id?: string | null
+          created_at?: string
+          dedupe_key?: string | null
+          descricao?: string | null
+          documento_id?: string | null
+          embarque_id?: string | null
+          id?: string
+          kind?: string
+          nc_id?: string | null
+          ordem_compra_id?: string | null
+          ordem_producao_id?: string | null
+          payload?: Json
+          produto_codigo?: string | null
+          recebimento_id?: string | null
+          submissao_id?: string | null
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "china_timeline_eventos_embarque_id_fkey"
+            columns: ["embarque_id"]
+            isOneToOne: false
+            referencedRelation: "china_embarques"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "china_timeline_eventos_embarque_id_fkey"
+            columns: ["embarque_id"]
+            isOneToOne: false
+            referencedRelation: "vw_container_consolidado"
+            referencedColumns: ["embarque_id"]
+          },
+          {
+            foreignKeyName: "china_timeline_eventos_nc_id_fkey"
+            columns: ["nc_id"]
+            isOneToOne: false
+            referencedRelation: "china_nao_conformidades"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "china_timeline_eventos_ordem_compra_id_fkey"
+            columns: ["ordem_compra_id"]
+            isOneToOne: false
+            referencedRelation: "china_ordens_compra"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "china_timeline_eventos_ordem_compra_id_fkey"
+            columns: ["ordem_compra_id"]
+            isOneToOne: false
+            referencedRelation: "vw_china_oc_recebimento_kpis"
+            referencedColumns: ["ordem_compra_id"]
+          },
+          {
+            foreignKeyName: "china_timeline_eventos_recebimento_id_fkey"
+            columns: ["recebimento_id"]
+            isOneToOne: false
+            referencedRelation: "china_recebimentos_carga"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "china_timeline_eventos_submissao_id_fkey"
+            columns: ["submissao_id"]
+            isOneToOne: false
+            referencedRelation: "china_produto_submissoes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "china_timeline_eventos_submissao_id_fkey"
+            columns: ["submissao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_china_produto_recebimento_kpis"
+            referencedColumns: ["submissao_id"]
+          },
+        ]
+      }
       classification_auto_logs: {
         Row: {
           created_at: string
@@ -44957,6 +45077,25 @@ export type Database = {
       rpc_china_liberar_para_oc: {
         Args: { p_submissao_id: string }
         Returns: Json
+      }
+      rpc_china_log_evento: {
+        Args: {
+          p_container_id?: string
+          p_dedupe_key?: string
+          p_descricao?: string
+          p_documento_id?: string
+          p_embarque_id?: string
+          p_kind: string
+          p_nc_id?: string
+          p_ordem_compra_id?: string
+          p_ordem_producao_id?: string
+          p_payload?: Json
+          p_produto_codigo?: string
+          p_recebimento_id?: string
+          p_submissao_id?: string
+          p_title: string
+        }
+        Returns: string
       }
       rpc_china_oc_atualizar_logistica: {
         Args: {
