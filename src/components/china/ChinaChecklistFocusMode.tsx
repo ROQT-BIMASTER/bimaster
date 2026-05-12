@@ -1302,7 +1302,7 @@ export function ChinaChecklistFocusMode({
               />
             </div>
             <div>
-              <Label className="text-xs">Nome (Chinês) — opcional</Label>
+              <Label className="text-xs flex items-center gap-1">Nome (Chinês) {traduzirLabel.isPending ? <span className="text-[10px] text-muted-foreground">traduzindo…</span> : <span className="text-muted-foreground">— auto-tradução</span>}</Label>
               <Input
                 value={addCatLabelCn}
                 onChange={(e) => setAddCatLabelCn(e.target.value)}
@@ -1361,7 +1361,7 @@ export function ChinaChecklistFocusMode({
               />
             </div>
             <div>
-              <Label className="text-xs">Nome (Chinês) — opcional</Label>
+              <Label className="text-xs flex items-center gap-1">Nome (Chinês) {traduzirLabel.isPending ? <span className="text-[10px] text-muted-foreground">traduzindo…</span> : <span className="text-muted-foreground">— auto-tradução</span>}</Label>
               <Input
                 value={addItemLabelCn}
                 onChange={(e) => setAddItemLabelCn(e.target.value)}
@@ -1409,7 +1409,7 @@ export function ChinaChecklistFocusMode({
               />
             </div>
             <div>
-              <Label className="text-xs">Nome (Chinês) — opcional</Label>
+              <Label className="text-xs flex items-center gap-1">Nome (Chinês) {traduzirLabel.isPending ? <span className="text-[10px] text-muted-foreground">traduzindo…</span> : <span className="text-muted-foreground">— auto-tradução</span>}</Label>
               <Input
                 value={editCatLabelCn}
                 onChange={(e) => setEditCatLabelCn(e.target.value)}
