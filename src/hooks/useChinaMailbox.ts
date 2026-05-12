@@ -12,7 +12,12 @@ export type MailboxFolder =
   | "approved"
   | "rejected"
   | "trash"
-  | "oc";
+  | "oc"
+  // Pastas dedicadas à perspectiva China (central de comando)
+  | "awaiting_send"   // Pendentes de envio (criadas, ainda não despachadas)
+  | "sent_brazil"     // Enviadas ao Brasil — aguardando Brasil abrir
+  | "in_analysis"     // Em análise no Brasil
+  | "returned";       // Retorno: ajustes solicitados
 
 export interface MailboxItem {
   // Documento (quando aplicável)
