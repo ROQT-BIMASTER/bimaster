@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import { buildReturnToTarget } from "@/lib/navigation/withReturnTo";
-import { Inbox, RefreshCw, Search, X, Trash2, RotateCcw, Clock, Calculator, History } from "lucide-react";
+import { Inbox, RefreshCw, Search, X, Trash2, RotateCcw, Clock, Calculator, History, Sparkles } from "lucide-react";
+import { SubmissionCopilotPanel } from "@/components/china/SubmissionCopilotPanel";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
