@@ -15,7 +15,7 @@ import { TextoComTraducao } from "./TextoComTraducao";
 import { DialogRejeitarDocumento } from "./DialogRejeitarDocumento";
 import { DialogContestarDocumento } from "./DialogContestarDocumento";
 import { supabase } from "@/integrations/supabase/client";
-import { triggerBlobDownload } from "@/lib/utils/triggerBlobDownload";
+import { triggerBlobDownload } from "@/lib/utils/storage-download";
 import { toast } from "sonner";
 
 interface ChinaDocCardProps {
