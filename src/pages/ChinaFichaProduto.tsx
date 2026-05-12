@@ -22,6 +22,7 @@ import { ChinaDocumentSlot } from "@/components/china/ChinaDocumentSlot";
 import { CHINA_DOCUMENT_TYPES, DOCUMENT_CATEGORIES, MANDATORY_DOCS, STATUS_LABELS } from "@/lib/china-document-types";
 import { useMergedChinaChecklist } from "@/hooks/useMergedChinaChecklist";
 import { ArrowUpRight, ArrowDownLeft } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { EmitirOCDialog } from "@/components/china/EmitirOCDialog";
 import { useChinaProjetosVinculados, useCriarProjetoChina } from "@/hooks/useChinaProjeto";
 import { ChinaProjetoChecklist } from "@/components/china/ChinaProjetoChecklist";
