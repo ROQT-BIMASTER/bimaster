@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import { buildReturnToTarget } from "@/lib/navigation/withReturnTo";
-import { Inbox, RefreshCw, Search, X, Trash2, RotateCcw, Clock, Calculator, History } from "lucide-react";
+import { Inbox, RefreshCw, Search, X, Trash2, RotateCcw, Clock, Calculator, History, Sparkles } from "lucide-react";
+import { SubmissionCopilotPanel } from "@/components/china/SubmissionCopilotPanel";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
@@ -81,6 +82,7 @@ export default function ChinaCaixaEntrada() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [previewDoc, setPreviewDoc] = useState<MailboxItem | null>(null);
+  const [copilotOpen, setCopilotOpen] = useState(false);
   const searchInputRef = useRef<HTMLInputElement | null>(null);
 
   // Reset seleção ao trocar pasta
@@ -243,6 +245,14 @@ export default function ChinaCaixaEntrada() {
             >
               <Calculator className="h-4 w-4 mr-1.5" />
               Recalcular pendências
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCopilotOpen(true)}
+            >
+              <Sparkles className="h-4 w-4 mr-1.5" />
+              Copiloto de submissão
             </Button>
             <Button
               variant="ghost"
@@ -455,6 +465,7 @@ export default function ChinaCaixaEntrada() {
         nomeArquivo={previewDoc?.nome_arquivo ?? null}
         tipoDocumento={previewDoc?.tipo_documento ?? undefined}
       />
+      <SubmissionCopilotPanel open={copilotOpen} onOpenChange={setCopilotOpen} initialQuery={search} />
     </ChinaPageShell>
   );
 }
