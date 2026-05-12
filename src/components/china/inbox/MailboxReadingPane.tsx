@@ -185,7 +185,11 @@ export function MailboxReadingPane({
                 {item.submissao_status}
               </Badge>
             </div>
-            <ChinaTimelineButton scope={{ submissaoId: item.submissao_id }} variant="ghost" />
+            <ChinaTimelineButton
+              scope={{ submissaoId: item.submissao_id }}
+              variant="ghost"
+              submissao={item}
+            />
           </div>
           {item.numero_ordem && (
             <p className="text-xs text-muted-foreground">OC {item.numero_ordem}</p>

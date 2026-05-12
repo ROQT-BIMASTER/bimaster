@@ -8,7 +8,7 @@ import { KpiCard } from "@/components/ui/kpi-card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   ShoppingCart, Factory, Ship, Compass, FileCheck2, PackageCheck,
-  Link2, AlertOctagon, History, Inbox, ExternalLink, CheckCircle2, Clock,
+  Link2, AlertOctagon, History, Inbox, ExternalLink,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { parseLocalDate } from "@/lib/utils/parseLocalDate";
@@ -21,6 +21,9 @@ import { HistoricoRecebimentosInternacionalSheet } from "@/components/compras/Hi
 import { AbrirNCDialog } from "@/components/china/divergencias/AbrirNCDialog";
 import { useNavigate } from "react-router-dom";
 import type { InboxOC } from "@/hooks/useCompradorInboxOCs";
+import { StageCard } from "@/components/shared/timeline/StageCard";
+import { DataRow } from "@/components/shared/timeline/DataRow";
+import { UnifiedSubmissionTimeline } from "@/components/china/timeline/UnifiedSubmissionTimeline";
 
 interface InboxOCReaderProps {
   oc: InboxOC | null;
@@ -35,41 +38,8 @@ function fmtDate(d: string | null | undefined): string {
   return format(parsed, "dd MMM yyyy", { locale: ptBR });
 }
 
-function StageCard({ icon: Icon, title, status, children }: { icon: any; title: string; status: "done" | "pending" | "atrasado" | "neutral"; children: React.ReactNode }) {
-  const tone = {
-    done: "border-l-emerald-500/60",
-    pending: "border-l-amber-500/60",
-    atrasado: "border-l-destructive",
-    neutral: "border-l-border",
-  }[status];
-  const StatusIcon = status === "done" ? CheckCircle2 : Clock;
-  const statusColor = {
-    done: "text-emerald-500",
-    pending: "text-amber-500",
-    atrasado: "text-destructive",
-    neutral: "text-muted-foreground",
-  }[status];
 
-  return (
-    <Card className={cn("border-l-4 p-3 space-y-2", tone)}>
-      <div className="flex items-center gap-2">
-        <Icon className="h-4 w-4 text-muted-foreground" />
-        <h4 className="text-sm font-semibold flex-1">{title}</h4>
-        <StatusIcon className={cn("h-4 w-4", statusColor)} />
-      </div>
-      <div className="text-xs space-y-1">{children}</div>
-    </Card>
-  );
-}
 
-function DataRow({ label, value }: { label: string; value: React.ReactNode }) {
-  return (
-    <div className="flex justify-between gap-3">
-      <span className="text-muted-foreground">{label}</span>
-      <span className="font-medium tabular-nums text-right">{value}</span>
-    </div>
-  );
-}
 
 export function InboxOCReader({ oc }: InboxOCReaderProps) {
   const navigate = useNavigate();
@@ -188,6 +158,26 @@ export function InboxOCReader({ oc }: InboxOCReaderProps) {
                   <p className="text-xs text-muted-foreground text-center py-4">Carregando linha do tempo...</p>
                 ) : (
                   <>
+                    {oc.submissao_id && (
+                      <details className="rounded-md border border-border bg-muted/20 px-2 py-1.5 group">
+                        <summary className="cursor-pointer text-[11px] font-semibold text-muted-foreground uppercase tracking-wide list-none flex items-center gap-1.5">
+                          <span className="group-open:rotate-90 transition-transform">▸</span>
+                          Origem China · etapas 1–4
+                        </summary>
+                        <div className="mt-2">
+                          <UnifiedSubmissionTimeline
+                            submissao={{
+                              submissao_id: oc.submissao_id,
+                              submissao_status: "aprovado",
+                              aprovado_em: timeline?.oc?.aprovado_em ?? null,
+                              created_at: oc.data_emissao,
+                              numero_ordem: oc.numero_oc,
+                            }}
+                            onlyChinaStages
+                          />
+                        </div>
+                      </details>
+                    )}
                     <StageCard icon={ShoppingCart} title="1. Pedido" status={stPedido}>
                       <DataRow label="Emissão" value={fmtDate(oc.data_emissao)} />
                       <DataRow label="Entrega prevista" value={fmtDate(oc.data_entrega_prevista)} />
