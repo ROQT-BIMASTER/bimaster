@@ -79,23 +79,38 @@ export function ProjetoCalendarioView({ projetoId, darkBg = false, filters = EMP
     };
   }, [currentDate, viewMode]);
 
-  // Group tasks by date key
-  const tasksByDate = useMemo(() => {
+  // Filter once
+  const filteredTarefas = useMemo(() => tarefas.filter((t) => {
+    if (!t.data_prazo) return false;
+    if (filterSecao !== "all" && t.secao_id !== filterSecao) return false;
+    if (filterStatus !== "all" && t.status !== filterStatus) return false;
+    return true;
+  }), [tarefas, filterSecao, filterStatus]);
+
+  // Single-day tasks grouped by data_prazo
+  const singleDayByDate = useMemo(() => {
     const map: Record<string, ProjetoTarefa[]> = {};
-    const filtered = tarefas.filter((t) => {
-      if (!t.data_prazo) return false;
-      if (filterSecao !== "all" && t.secao_id !== filterSecao) return false;
-      if (filterStatus !== "all" && t.status !== filterStatus) return false;
-      return true;
-    });
-    filtered.forEach((t) => {
-      const key = getDateKey(t.data_prazo);
+    filteredTarefas.forEach((t) => {
+      const start = t.data_inicio_planejada;
+      const end = t.data_prazo;
+      if (start && end && start !== end) return; // multi-dia → outra camada
+      const key = getDateKey(end!);
       if (!key) return;
       if (!map[key]) map[key] = [];
       map[key].push(t);
     });
     return map;
-  }, [tarefas, filterSecao, filterStatus]);
+  }, [filteredTarefas]);
+
+  // Multi-day tasks
+  const multiDayTasks = useMemo(() => filteredTarefas
+    .filter((t) => t.data_inicio_planejada && t.data_prazo && t.data_inicio_planejada !== t.data_prazo)
+    .map((t) => ({
+      tarefa: t,
+      start: parseLocalDate(t.data_inicio_planejada!)!,
+      end: parseLocalDate(t.data_prazo!)!,
+    }))
+    .filter((x) => x.start && x.end), [filteredTarefas]);
 
   // Compute grid days
   const days = useMemo(() => {
@@ -112,6 +127,35 @@ export function ProjetoCalendarioView({ projetoId, darkBg = false, filters = EMP
     }
   }, [currentDate, viewMode]);
 
+  const weekRows = useMemo(() => {
+    const rows: Date[][] = [];
+    for (let i = 0; i < days.length; i += 7) rows.push(days.slice(i, i + 7));
+    return rows;
+  }, [days]);
+
+  // Lane packing per week-row for multi-day bars
+  const multiDayByRow = useMemo(() => {
+    const rows: Array<Array<{ tarefa: ProjetoTarefa; startCol: number; endCol: number; lane: number; continuesLeft: boolean; continuesRight: boolean }>> = weekRows.map(() => []);
+    multiDayTasks.forEach(({ tarefa, start, end }) => {
+      const segments = splitEventByWeekRow(start, end, weekRows);
+      segments.forEach((seg) => {
+        const continuesLeft = weekRows[seg.rowIndex][seg.startCol].getTime() > start.getTime();
+        const continuesRight = weekRows[seg.rowIndex][seg.endCol].getTime() < end.getTime();
+        rows[seg.rowIndex].push({ tarefa, startCol: seg.startCol, endCol: seg.endCol, lane: 0, continuesLeft, continuesRight });
+      });
+    });
+    return rows.map((rowEvents) => {
+      const ids = rowEvents.map((e, i) => ({ id: `${e.tarefa.id}-${i}`, startCol: e.startCol, endCol: e.endCol }));
+      const packed = packLanes(ids);
+      return rowEvents.map((e, i) => ({ ...e, lane: packed.find((p) => p.event.id === `${e.tarefa.id}-${i}`)?.lane ?? 0 }));
+    });
+  }, [multiDayTasks, weekRows]);
+
+  const maxLanesByRow = useMemo(
+    () => multiDayByRow.map((row) => row.reduce((m, e) => Math.max(m, e.lane + 1), 0)),
+    [multiDayByRow],
+  );
+
   const navigate = (dir: "prev" | "next") => {
     if (viewMode === "month") {
       setCurrentDate(dir === "prev" ? subMonths(currentDate, 1) : addMonths(currentDate, 1));
@@ -125,12 +169,16 @@ export function ProjetoCalendarioView({ projetoId, darkBg = false, filters = EMP
   const txt = darkBg ? "text-white" : "text-foreground";
   const txtMuted = darkBg ? "text-white/60" : "text-muted-foreground";
   const border = darkBg ? "border-white/10" : "border-border/40";
-  const cellBg = darkBg ? "bg-white/[0.03]" : "bg-background";
-  const cellBgToday = darkBg ? "bg-white/10" : "bg-primary/5";
+  const cellBg = darkBg ? "bg-white/[0.02]" : "bg-background";
+  const cellBgWeekend = darkBg ? "bg-white/[0.01]" : "bg-muted/20";
+  const cellBgToday = darkBg
+    ? "bg-gradient-to-br from-primary/15 via-primary/5 to-transparent"
+    : "bg-gradient-to-br from-primary/10 via-primary/[0.04] to-transparent";
   const cellBgOutside = darkBg ? "bg-transparent" : "bg-muted/30";
   const btnGhost = darkBg ? "text-white hover:bg-white/10" : "";
 
-  const maxVisible = viewMode === "month" ? 3 : 20;
+  const maxVisible = isCompact ? (viewMode === "month" ? 2 : 18) : (viewMode === "month" ? 3 : 20);
+  const cellMinH = isCompact ? (viewMode === "month" ? 84 : 180) : (viewMode === "month" ? 124 : 220);
 
   // If analysis panel is open, render it full-width instead of the calendar
   if (showAnalisePanel) {
