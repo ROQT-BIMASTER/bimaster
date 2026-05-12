@@ -1464,6 +1464,24 @@ export function ChinaChecklistFocusMode({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {substituirDoc && (
+        <DialogContestarDocumento
+          open={!!substituirDoc}
+          onOpenChange={(o) => !o && setSubstituirDoc(null)}
+          documentoId={substituirDoc.id}
+          submissaoId={submissaoId}
+          tipoDocumento={substituirDoc.tipo_documento}
+          tipoDocumentoLabel={
+            allDocTypes.find((t) => t.tipo === substituirDoc.tipo_documento)?.labelPt
+          }
+          laudoRevisao={ultimaRevisaoPorDoc.get(substituirDoc.id) || null}
+          onSucesso={() => {
+            setSubstituirDoc(null);
+            onRefresh();
+          }}
+        />
+      )}
     </>
   );
 }
