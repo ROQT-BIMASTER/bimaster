@@ -25,7 +25,7 @@ import {
   usePurgeSubmissoes,
 } from "@/hooks/useChinaMailboxTrash";
 
-import { useChinaUserContext } from "@/hooks/useChinaUserContext";
+
 import { useEnviarDocumentoAoBrasil } from "@/hooks/useEnviarDocumentoAoBrasil";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 
@@ -51,19 +51,19 @@ export default function ChinaCaixaEntrada() {
     const { url, state } = buildReturnToTarget(target, fromPath, { fromLabel: "Caixa de Entrada" });
     navigate(url, { state });
   };
-  const { isBrasilUser, isChinaUser } = useChinaUserContext();
+  // Esta página é a CENTRAL DE COMANDO da China. Independente do perfil real
+  // do usuário (admin, China, etc.), aqui ele opera como China. Brasil age
+  // pela tela "Vincular China".
+  const isChinaUser = true;
+  const isBrasilUser = false;
   const isDesktop = useMediaQuery("(min-width: 1024px)");
 
   const folderParam = searchParams.get("folder") as MailboxFolder | null;
   const rawFolder: MailboxFolder =
     folderParam && VALID_FOLDERS.includes(folderParam)
       ? folderParam
-      : isChinaUser
-        ? "awaiting_send"
-        : "inbox";
-  const folder: MailboxFolder = isChinaUser
-    ? (CHINA_FOLDER_ALIAS[rawFolder] ?? rawFolder)
-    : rawFolder;
+      : "awaiting_send";
+  const folder: MailboxFolder = CHINA_FOLDER_ALIAS[rawFolder] ?? rawFolder;
 
   const { items, counts, isLoading, isFetching, refetch } = useChinaMailbox(folder);
   const toggleRead = useToggleInboxRead();
@@ -152,14 +152,10 @@ export default function ChinaCaixaEntrada() {
       } else if (
         e.key === "b" &&
         selectedItem &&
-        isChinaUser &&
-        selectedItem.documento_id &&
-        selectedItem.doc_status === "rascunho"
+        selectedItem.tipo_documento &&
+        (selectedItem.submissao_status === "rascunho" || selectedItem.doc_status === "rascunho")
       ) {
-        enviarBrasil.mutate({
-          documento_id: selectedItem.documento_id,
-          submissao_id: selectedItem.submissao_id,
-        });
+        handleEnviarBrasil(selectedItem);
       }
     };
     window.addEventListener("keydown", onKey);
@@ -172,8 +168,10 @@ export default function ChinaCaixaEntrada() {
     goWithReturn(`/dashboard/fabrica-china/submissao/${item.submissao_id}`);
   };
   const handleEnviarBrasil = (item: MailboxItem) => {
-    if (!item.documento_id) return;
-    enviarBrasil.mutate({ documento_id: item.documento_id, submissao_id: item.submissao_id });
+    enviarBrasil.mutate({
+      submissao_id: item.submissao_id,
+      ...(item.documento_id ? { documento_id: item.documento_id } : {}),
+    });
   };
   const handleToggleRead = (item: MailboxItem) => {
     if (!item.documento_id) return;
@@ -312,6 +310,7 @@ export default function ChinaCaixaEntrada() {
                 counts={counts}
                 onSelect={setFolder}
                 onCompose={() => goWithReturn("/dashboard/fabrica-china/nova-submissao")}
+                forceChinaLayout
               />
             </ResizablePanel>
             <ResizableHandle withHandle />
@@ -340,6 +339,7 @@ export default function ChinaCaixaEntrada() {
                   search={search}
                   actionFilter={actionFilter}
                   onActionFilterChange={setActionFilter}
+                  viewerOverride={{ isChinaUser, isBrasilUser }}
                 />
               )}
             </ResizablePanel>
@@ -402,6 +402,7 @@ export default function ChinaCaixaEntrada() {
                 search={search}
                 actionFilter={actionFilter}
                 onActionFilterChange={setActionFilter}
+                viewerOverride={{ isChinaUser, isBrasilUser }}
               />
             </div>
           )}

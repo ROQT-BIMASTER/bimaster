@@ -10,6 +10,8 @@ interface Props {
   counts: MailboxCounts;
   onSelect: (f: MailboxFolder) => void;
   onCompose?: () => void;
+  /** Força layout de central de comando da China, ignorando o contexto de usuário. */
+  forceChinaLayout?: boolean;
 }
 
 interface FolderDef {
@@ -70,9 +72,10 @@ const CHINA_GROUPS: FolderGroup[] = [
   },
 ];
 
-export function MailboxSidebar({ folder, counts, onSelect, onCompose }: Props) {
+export function MailboxSidebar({ folder, counts, onSelect, onCompose, forceChinaLayout }: Props) {
   const { isChinaUser } = useChinaUserContext();
-  const groups = isChinaUser ? CHINA_GROUPS : BRASIL_GROUPS;
+  const useChina = forceChinaLayout || isChinaUser;
+  const groups = useChina ? CHINA_GROUPS : BRASIL_GROUPS;
 
   return (
     <aside className="flex h-full flex-col border-r border-border bg-card/40">
@@ -132,7 +135,7 @@ export function MailboxSidebar({ folder, counts, onSelect, onCompose }: Props) {
       </nav>
       <div className="border-t border-border/60 p-3 text-[10px] leading-relaxed text-muted-foreground">
         <p className="font-medium text-foreground/80">Atalhos</p>
-        {isChinaUser ? (
+        {useChina ? (
           <>
             <p>g p — Pendentes · g e — Enviadas</p>
             <p>g a — Em análise · g r — Retorno</p>
