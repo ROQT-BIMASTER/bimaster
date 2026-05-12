@@ -38,8 +38,23 @@ export function DialogContestarDocumento({
   const [parecer, setParecer] = useState("");
   const [novoArquivo, setNovoArquivo] = useState<File | null>(null);
   const [anexos, setAnexos] = useState<File[]>([]);
+  const [traducoesPreview, setTraducoesPreview] = useState<Partial<Record<IdiomaTraducao, string>> | null>(null);
+  const [idiomaPreview, setIdiomaPreview] = useState<IdiomaTraducao>("pt");
   const contestar = useContestarComParecer();
   const salvarTraducao = useSalvarTraducaoRevisao();
+  const traduzir = useTraduzirTexto();
+
+  async function handleTraduzirParecer() {
+    if (!parecer.trim()) return;
+    try {
+      const r = await traduzir.mutateAsync({ texto: parecer.trim() });
+      setTraducoesPreview({ ...r.traducoes, [r.origem]: parecer.trim() });
+      const alvo: IdiomaTraducao = r.origem === "pt" ? "zh" : "pt";
+      setIdiomaPreview(alvo);
+    } catch {
+      // toast já exibido
+    }
+  }
 
   function handleAnexos(list: FileList | null) {
     if (!list) return;
