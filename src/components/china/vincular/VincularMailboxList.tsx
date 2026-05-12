@@ -353,7 +353,7 @@ export function VincularMailboxList({
           const active = selectedId === item.id;
           const sb = statusBadge(item.status);
           const SbIcon = sb.icon;
-          const unread = !item.isLinked && folder !== "vinculadas";
+          const unread = !isVincularRead(item.id);
           const dt = item.updated_at || item.created_at;
           return (
             <li
@@ -362,7 +362,7 @@ export function VincularMailboxList({
                 if (el) itemRefs.current.set(item.id, el);
                 else itemRefs.current.delete(item.id);
               }}
-              onClick={() => onSelect(item.id)}
+              onClick={() => { markVincularRead(item.id); onSelect(item.id); }}
               className={cn(
                 "group flex cursor-pointer items-start gap-2 border-b border-border/40 px-3 py-2 text-sm transition-colors",
                 active ? "bg-primary/10" : "hover:bg-muted/30",
@@ -451,7 +451,12 @@ export function VincularMailboxList({
                     <Clock className="h-2.5 w-2.5" /> adiada
                   </Badge>
                 )}
-                <span className="text-[10px] tabular-nums text-muted-foreground">
+                <span className="flex items-center gap-1 text-[10px] tabular-nums text-muted-foreground">
+                  {!unread && (
+                    <span title="Lida" aria-label="Lida" className="inline-flex">
+                      <CheckCheck className="h-3 w-3 text-sky-400" />
+                    </span>
+                  )}
                   {relativeAge(dt)}
                 </span>
               </div>
