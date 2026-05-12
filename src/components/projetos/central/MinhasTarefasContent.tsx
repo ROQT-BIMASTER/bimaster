@@ -70,7 +70,7 @@ import { useTarefaMessageCounts } from "@/hooks/useTarefaMessageCounts";
 import { useManualPriorityOrder, applyManualOrder } from "@/hooks/useManualPriorityOrder";
 import { ManualPrioritySortable } from "@/components/projetos/central/ManualPrioritySortable";
 
-import { BarChart3, RotateCcw } from "lucide-react";
+import { BarChart3, RotateCcw, Trash2 } from "lucide-react";
 import type { ProjetoTarefa, ProjetoSecao } from "@/hooks/useProjetoTarefas";
 import { registrarAuditoriaTarefa } from "@/lib/projetos/auditoriaTarefa";
 
