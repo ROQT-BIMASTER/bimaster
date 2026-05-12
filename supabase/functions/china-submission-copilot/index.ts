@@ -295,6 +295,7 @@ Deno.serve(
         JSON.stringify({
           markdown: content,
           kpis: dossie.kpis,
+          analytics,
           submissao: { id: submissao.id, codigo: submissao.produto_codigo, nome: submissao.produto_nome },
           model: r.modelUsed,
         }),
