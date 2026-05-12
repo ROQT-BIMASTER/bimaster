@@ -1,8 +1,8 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import ReactMarkdown from "react-markdown";
 import {
   Sparkles, Copy, Download, Loader2, Search, AlertTriangle, CheckCircle2,
-  Clock, Ship, FileText, ListChecks, TrendingUp, Calendar, Printer,
+  Clock, Ship, FileText, ListChecks, TrendingUp, Calendar, FileDown, History, RefreshCw,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -21,6 +21,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { parseLocalDate } from "@/lib/utils/parseLocalDate";
 import { chartColors } from "@/lib/chart-colors";
 import { cn } from "@/lib/utils";
+import { buildCopilotPdf } from "@/lib/china/copilotPdf";
+import {
+  useCopilotRelatorios, useArchivePdf, fetchRelatorioFull, fetchRelatorioPdfUrl,
+} from "@/hooks/useCopilotRelatorios";
 
 type Idioma = "pt" | "en" | "zh";
 type Profundidade = "executivo" | "completo";
