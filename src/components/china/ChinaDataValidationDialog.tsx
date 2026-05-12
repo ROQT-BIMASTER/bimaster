@@ -1001,8 +1001,11 @@ export function usePasswordProtectedEdit() {
     setShowPasswordPrompt(true);
   };
 
-  const validatePassword = (onSuccess: () => void) => {
-    if (password === EDIT_PASSWORD) {
+  const validatePassword = async (onSuccess: () => void) => {
+    // Step-up real: re-verifica a senha do usuário logado em vez de uma
+    // string hardcoded no bundle. Substitui o antigo `EDIT_PASSWORD`.
+    const ok = await verifyCurrentUserPassword(password);
+    if (ok) {
       setShowPasswordPrompt(false);
       setPassword("");
       onSuccess();
