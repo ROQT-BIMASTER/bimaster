@@ -232,6 +232,57 @@ export function ProjetoSecao({
             </Tooltip>
           )}
         </TooltipProvider>
+        {onDeleteSecao && (
+          <AlertDialog>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <AlertDialogTrigger asChild>
+                    <button
+                      onClick={(e) => e.stopPropagation()}
+                      className={cn(
+                        "p-1.5 rounded-md transition-colors",
+                        darkBg
+                          ? "text-white/30 hover:text-red-400 hover:bg-red-500/10"
+                          : "text-muted-foreground/40 hover:text-destructive hover:bg-destructive/10",
+                      )}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </AlertDialogTrigger>
+                </TooltipTrigger>
+                <TooltipContent side="top">
+                  <p>Excluir seção</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Excluir a seção "{nome}"?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  {totalCount > 0 ? (
+                    <>
+                      Esta seção contém <strong>{totalCount}</strong> tarefa{totalCount === 1 ? "" : "s"}.
+                      Ao excluir a seção, todas as tarefas dela também serão removidas permanentemente.
+                      Esta ação não pode ser desfeita.
+                    </>
+                  ) : (
+                    <>Esta ação não pode ser desfeita.</>
+                  )}
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={() => onDeleteSecao(secaoId)}
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                >
+                  Excluir seção
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        )}
       </div>
 
       {!collapsed && (
