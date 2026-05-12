@@ -116,28 +116,57 @@ export async function callAIGateway(input: CallAIGatewayInput): Promise<CallAIGa
   return { kind: "upstream", status: 500, bodyText: "exhausted attempts", modelTried: model };
 }
 
+// Mensagens traduzidas para PT/EN/ZH. Usadas quando o caller passa `lang`
+// (derivado do Accept-Language ou do header `x-client-country` propagado pelo
+// Cloudflare Worker — ver cloudflare/worker.js, rota /api/functions/*).
+const ERR_MESSAGES = {
+  rate_limited: {
+    pt: "Limite de uso atingido. Tente novamente em alguns instantes.",
+    en: "Rate limit reached. Please try again shortly.",
+    zh: "请求频率过高，请稍后再试。",
+  },
+  payment_required: {
+    pt: "Créditos de IA insuficientes. Adicione créditos no workspace.",
+    en: "Insufficient AI credits. Please add credits in the workspace.",
+    zh: "AI 额度不足，请在工作区充值。",
+  },
+  timeout: {
+    pt: "O assistente demorou demais para responder. Em redes da China continental a latência pode ser maior — tente novamente.",
+    en: "The assistant took too long to respond. From mainland China the latency may be higher — please retry.",
+    zh: "助手响应超时。中国大陆网络可能延迟较高，请重试。",
+  },
+  upstream: {
+    pt: "Erro no provedor de IA. Tente novamente.",
+    en: "AI provider error. Please retry.",
+    zh: "AI 服务出错，请重试。",
+  },
+} as const;
+
+type Lang = "pt" | "en" | "zh";
+
+export function pickLang(req: Request): Lang {
+  const country = (req.headers.get("x-client-country") || "").toUpperCase();
+  if (country === "CN") return "zh";
+  const al = (req.headers.get("accept-language") || "").toLowerCase();
+  if (al.startsWith("zh")) return "zh";
+  if (al.startsWith("en")) return "en";
+  return "pt";
+}
+
 export function aiGatewayErrorResponse(
   result: Exclude<CallAIGatewayResult, { kind: "ok" }>,
-  corsHeaders: Record<string, string>
+  corsHeaders: Record<string, string>,
+  lang: Lang = "pt",
 ): Response {
   const headers = { ...corsHeaders, "Content-Type": "application/json" };
   if (result.kind === "rate_limited") {
-    return new Response(
-      JSON.stringify({ error: "Limite de uso atingido. Tente novamente em alguns instantes." }),
-      { status: 429, headers }
-    );
+    return new Response(JSON.stringify({ error: ERR_MESSAGES.rate_limited[lang] }), { status: 429, headers });
   }
   if (result.kind === "payment_required") {
-    return new Response(
-      JSON.stringify({ error: "Créditos de IA insuficientes. Adicione créditos no workspace." }),
-      { status: 402, headers }
-    );
+    return new Response(JSON.stringify({ error: ERR_MESSAGES.payment_required[lang] }), { status: 402, headers });
   }
   if (result.kind === "timeout") {
-    return new Response(
-      JSON.stringify({ error: "O assistente demorou demais para responder. Tente uma pergunta mais simples." }),
-      { status: 504, headers }
-    );
+    return new Response(JSON.stringify({ error: ERR_MESSAGES.timeout[lang] }), { status: 504, headers });
   }
-  return new Response(JSON.stringify({ error: "Erro no provedor de IA." }), { status: 502, headers });
+  return new Response(JSON.stringify({ error: ERR_MESSAGES.upstream[lang] }), { status: 502, headers });
 }
