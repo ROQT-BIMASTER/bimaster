@@ -454,6 +454,8 @@ export default function ChinaCaixaEntrada() {
                 onToggleRead={handleToggleRead}
                 onToggleStar={handleToggleStar}
                 loading={loading}
+                error={enviarBrasil.isError ? (enviarBrasil.error as any)?.message ?? "Falha ao enviar ao Brasil." : null}
+                onRetryEnvio={lastEnvioVars && enviarBrasil.isError ? handleRetryEnvio : undefined}
               />
             </ResizablePanel>
             </>)}
@@ -486,6 +488,8 @@ export default function ChinaCaixaEntrada() {
               onToggleStar={handleToggleStar}
               onBack={() => setSelectedId(null)}
               loading={loading}
+              error={enviarBrasil.isError ? (enviarBrasil.error as any)?.message ?? "Falha ao enviar ao Brasil." : null}
+              onRetryEnvio={lastEnvioVars && enviarBrasil.isError ? handleRetryEnvio : undefined}
             />
           ) : (
             <div className="rounded-md border border-border bg-card/30">
