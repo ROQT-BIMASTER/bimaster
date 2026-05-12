@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { ArrowLeft, Upload, FileSpreadsheet, Check, Loader2, ChevronRight, Scale, ImageIcon, Sparkles, X, PenLine, Save, Eye, EyeOff, Package, Send, AlertTriangle, CheckCircle2, LockKeyhole } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
