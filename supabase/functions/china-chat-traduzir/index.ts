@@ -6,7 +6,7 @@ import { z } from "https://esm.sh/zod@3.23.8";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { secureHandler } from "../_shared/secure-handler.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
-import { callAIGateway, aiGatewayErrorResponse } from "../_shared/ai-gateway-call.ts";
+import { callAIGateway, aiGatewayErrorResponse, pickLang } from "../_shared/ai-gateway-call.ts";
 
 const Body = z.object({
   mensagem_id: z.string().uuid(),
@@ -92,7 +92,7 @@ Deno.serve(secureHandler(
         if (Object.keys(novas).length > Object.keys(traducoesAtual).length) {
           await sb.from("china_chat_mensagens").update({ traducoes: novas, idioma_origem: origem } as any).eq("id", msg.id);
         }
-        return aiGatewayErrorResponse(r, cors);
+        return aiGatewayErrorResponse(r, cors, pickLang(req));
       }
       const text = (r.data?.choices?.[0]?.message?.content || "").trim();
       if (text) novas[alvo] = text;

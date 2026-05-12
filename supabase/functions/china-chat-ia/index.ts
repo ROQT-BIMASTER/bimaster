@@ -9,7 +9,7 @@ import { z } from "https://esm.sh/zod@3.23.8";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { secureHandler } from "../_shared/secure-handler.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
-import { callAIGateway, aiGatewayErrorResponse } from "../_shared/ai-gateway-call.ts";
+import { callAIGateway, aiGatewayErrorResponse, pickLang } from "../_shared/ai-gateway-call.ts";
 
 const Body = z.object({
   submissao_id: z.string().uuid(),
@@ -156,7 +156,7 @@ Observações China: ${sub.observacoes_china || "—"}`;
       tools,
     });
 
-    if (r.kind !== "ok") return aiGatewayErrorResponse(r, cors);
+    if (r.kind !== "ok") return aiGatewayErrorResponse(r, cors, pickLang(req));
 
     const choice = r.data?.choices?.[0];
     const reply = (choice?.message?.content || "").trim();

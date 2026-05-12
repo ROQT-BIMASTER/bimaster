@@ -20,6 +20,14 @@
 
 const ORIGIN = "https://bimaster.lovable.app"; // override per-environment in wrangler.toml vars
 
+// Reverse-proxy alvo para Edge Functions (Lovable Cloud / Supabase managed).
+// Requisições do navegador para `/api/functions/<name>` são reescritas para
+// `<SUPABASE_FUNCTIONS_ORIGIN>/<name>`. Isso evita que clientes na China
+// continental dependam diretamente de `*.supabase.co`, que tem histórico
+// de bloqueio/throttling pela Grande Muralha Digital. Cloudflare costuma
+// passar com mais consistência.
+const SUPABASE_FUNCTIONS_ORIGIN = "https://aokkyrgaqjarhlywhjju.supabase.co/functions/v1";
+
 const CSP = [
   "default-src 'self'",
   "base-uri 'self'",
@@ -74,7 +82,32 @@ const STRIP = [
 export default {
   async fetch(request, env) {
     const origin = (env && env.ORIGIN) || ORIGIN;
+    const fnOrigin = (env && env.SUPABASE_FUNCTIONS_ORIGIN) || SUPABASE_FUNCTIONS_ORIGIN;
     const url = new URL(request.url);
+
+    // ── China-friendly proxy: /api/functions/<rest> → <fnOrigin>/<rest> ──
+    // Encaminha 1:1 método, headers (Authorization, apikey, content-type)
+    // e corpo. Propaga `cf-ipcountry` para o edge para telemetria de origem.
+    if (url.pathname.startsWith("/api/functions/")) {
+      const rest = url.pathname.slice("/api/functions/".length);
+      const target = `${fnOrigin}/${rest}${url.search}`;
+      const fwdHeaders = new Headers(request.headers);
+      const country = request.cf && request.cf.country;
+      if (country) fwdHeaders.set("x-client-country", country);
+      const proxied = await fetch(target, {
+        method: request.method,
+        headers: fwdHeaders,
+        body: ["GET", "HEAD"].includes(request.method) ? undefined : request.body,
+        redirect: "manual",
+      });
+      const ph = new Headers(proxied.headers);
+      // Preserva CORS para chamadas browser do mesmo domínio
+      ph.set("Access-Control-Allow-Origin", request.headers.get("origin") || "*");
+      ph.set("Access-Control-Allow-Credentials", "true");
+      ph.set("Vary", "Origin");
+      return new Response(proxied.body, { status: proxied.status, statusText: proxied.statusText, headers: ph });
+    }
+
     const upstreamUrl = new URL(url.pathname + url.search, origin);
 
     const upstream = await fetch(upstreamUrl.toString(), {
