@@ -22,6 +22,7 @@ import {
   ResizablePanelGroup,
 } from "@/components/ui/resizable";
 import { useChinaMailbox, type MailboxFolder, type MailboxItem } from "@/hooks/useChinaMailbox";
+import { useChinaInboxGroupMode } from "@/hooks/useChinaInboxGroupMode";
 import { useToggleInboxRead, useToggleSubmissaoFlag } from "@/hooks/useChinaMailboxActions";
 import {
   useTrashSubmissoes,
@@ -86,6 +87,7 @@ export default function ChinaCaixaEntrada() {
   const [previewDoc, setPreviewDoc] = useState<MailboxItem | null>(null);
   const [copilotOpen, setCopilotOpen] = useState(false);
   const searchInputRef = useRef<HTMLInputElement | null>(null);
+  const [groupMode, setGroupMode] = useChinaInboxGroupMode();
 
   // Reset seleção ao trocar pasta
   useEffect(() => {
@@ -390,6 +392,8 @@ export default function ChinaCaixaEntrada() {
                   actionFilter={actionFilter}
                   onActionFilterChange={setActionFilter}
                   viewerOverride={{ isChinaUser, isBrasilUser }}
+                  groupMode={groupMode}
+                  onGroupModeChange={setGroupMode}
                 />
               )}
             </ResizablePanel>
@@ -453,6 +457,8 @@ export default function ChinaCaixaEntrada() {
                 actionFilter={actionFilter}
                 onActionFilterChange={setActionFilter}
                 viewerOverride={{ isChinaUser, isBrasilUser }}
+                groupMode={groupMode}
+                onGroupModeChange={setGroupMode}
               />
             </div>
           )}
