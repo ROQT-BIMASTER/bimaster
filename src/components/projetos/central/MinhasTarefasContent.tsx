@@ -1247,6 +1247,9 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
           <Button size="sm" variant="default" className="h-7 text-xs gap-1" onClick={handleBulkComplete}>
             <CheckCircle2 className="h-3.5 w-3.5" /> Concluir
           </Button>
+          <Button size="sm" variant="destructive" className="h-7 text-xs gap-1" onClick={handleBulkDelete}>
+            <Trash2 className="h-3.5 w-3.5" /> Excluir
+          </Button>
           <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setSelectedIds(new Set())}>
             Limpar seleção
           </Button>
