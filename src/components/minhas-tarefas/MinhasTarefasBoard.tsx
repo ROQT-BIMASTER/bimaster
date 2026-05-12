@@ -253,7 +253,7 @@ export function MinhasTarefasBoard({ tarefas, onToggle, onSelect }: Props) {
         onToggle(taskId, false);
       }
     },
-    [onToggle, tarefas]
+    [onToggle, tarefas, resolveColumnKey]
   );
 
   const handleDragCancel = useCallback(() => {
