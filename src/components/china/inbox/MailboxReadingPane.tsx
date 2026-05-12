@@ -86,7 +86,11 @@ export function MailboxReadingPane({
     !!onEnviarBrasil &&
     (item.submissao_status === "rascunho" || item.doc_status === "rascunho");
   const hasDocAnexo = !!item.tipo_documento;
-  const canChinaCorrigir = isChinaUser && (item.doc_status === "rejeitado" || item.submissao_status === "em_revisao");
+  // Só conta como "Brasil solicitou ajustes" quando houver evidência concreta:
+  // documento rejeitado OU observação textual enviada pelo Brasil.
+  const hasObservacaoBrasil = !!(item.observacoes_brasil && item.observacoes_brasil.trim().length > 0);
+  const canChinaCorrigir =
+    isChinaUser && (item.doc_status === "rejeitado" || hasObservacaoBrasil);
   // China: documento já enviado e ainda em poder do Brasil — bloco read-only "aguardando"
   const chinaWaitingBrasil =
     isChinaUser &&
