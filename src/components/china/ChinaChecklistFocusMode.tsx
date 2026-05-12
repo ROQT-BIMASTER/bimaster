@@ -129,6 +129,7 @@ export function ChinaChecklistFocusMode({
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [submitting, setSubmitting] = useState(false);
   const [uploadingTipo, setUploadingTipo] = useState<string | null>(null);
+  const [uploadErrorDialog, setUploadErrorDialog] = useState<{ title: string; message: string; hint?: string } | null>(null);
   const [confirmSingleId, setConfirmSingleId] = useState<string | null>(null);
   const [confirmAllOpen, setConfirmAllOpen] = useState(false);
   const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
@@ -455,36 +456,57 @@ export function ChinaChecklistFocusMode({
     setPreviewTipo({ tipo, pt: config?.labelPt || tipo, cn: config?.labelCn || "" });
   };
 
+  const describeChecklistUploadError = (err: any): { title: string; message: string; hint?: string } => {
+    const raw = (err?.message || err?.error?.message || String(err || "")).toLowerCase();
+    if (raw.includes("row-level security") || raw.includes("unauthorized") || raw.includes("permission") || raw.includes("403")) {
+      return { title: "Sem permissão para enviar", message: "Você não tem permissão para anexar arquivos nesta submissão.", hint: "Confirme com o administrador o seu acesso ao módulo Fábrica/China." };
+    }
+    if (raw.includes("jwt") || raw.includes("expired") || raw.includes("401")) {
+      return { title: "Sessão expirada", message: "Sua sessão expirou.", hint: "Faça login novamente e tente outra vez." };
+    }
+    if (raw.includes("payload too large") || raw.includes("413") || raw.includes("excede o limite")) {
+      return { title: "Arquivo muito grande", message: err?.message || "O arquivo excede o limite de 20 MB.", hint: "Compacte ou reduza o arquivo antes de enviar." };
+    }
+    if (raw.includes("mime") || raw.includes("extens") || raw.includes("magic") || raw.includes("não é permitido") || raw.includes("não corresponde")) {
+      return { title: "Arquivo rejeitado", message: err?.message || "O tipo ou conteúdo do arquivo não é aceito neste campo.", hint: "Verifique se a extensão e o conteúdo do arquivo correspondem ao esperado (ex.: imagem JPG/PNG para campos de foto)." };
+    }
+    if (raw.includes("network") || raw.includes("failed to fetch") || raw.includes("timeout")) {
+      return { title: "Falha de conexão", message: "Não foi possível concluir o envio.", hint: "Verifique sua conexão e tente novamente." };
+    }
+    if (raw.includes("bucket") && raw.includes("not found")) {
+      return { title: "Repositório indisponível", message: "O repositório de arquivos não foi encontrado.", hint: "Avise o suporte técnico." };
+    }
+    return { title: "Erro ao salvar arquivo", message: err?.message || "Falha inesperada ao salvar o documento.", hint: "Tente novamente; se persistir, anexe um print desta mensagem ao suporte." };
+  };
+
   const handleConfirmUpload = async (file: File, status: "rascunho" | "pendente") => {
     if (!previewTipo) return;
     if (!submissaoId) {
-      toast.error("Submissão ainda não foi salva. Salve os dados básicos antes de anexar arquivos.");
+      const info = { title: "Submissão não salva", message: "Salve os dados básicos da submissão antes de anexar arquivos.", hint: "Conclua a primeira etapa para gerar o rascunho." };
+      setUploadErrorDialog(info);
+      toast.error(info.message);
       return;
     }
     setUploadingTipo(previewTipo.tipo);
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
-        toast.error("Sessão expirada. Faça login novamente.");
+        const info = { title: "Sessão expirada", message: "Faça login novamente para continuar.", hint: undefined as string | undefined };
+        setUploadErrorDialog(info);
+        toast.error(info.message);
         return;
       }
-      // Path padronizado com UID do dono para satisfazer todas as variações de RLS
-      // do bucket china-documentos (uid/... e submissao/...).
       const safeName = file.name.replace(/[^\w.\-]+/g, "_");
       const path = `${session.user.id}/${submissaoId}/${previewTipo.tipo}/${Date.now()}_${safeName}`;
       const { signedUrl, error: uploadError } = await uploadAndGetSignedUrl("china-documentos", path, file);
       if (uploadError || !signedUrl) {
         logger.error("Checklist upload error:", uploadError);
-        const msg = (uploadError as any)?.message || "";
-        if (msg.includes("row-level security") || msg.includes("Unauthorized") || msg.toLowerCase().includes("permission")) {
-          toast.error("Sem permissão para enviar arquivos nesta submissão.");
-        } else {
-          toast.error(msg || "Erro no upload 上传错误");
-        }
+        const info = describeChecklistUploadError(uploadError);
+        setUploadErrorDialog(info);
+        toast.error(info.message);
         return;
       }
 
-      // Check if there's a "planejado" placeholder to update instead of insert
       const existingPlaceholder = documentos.find(d => d.tipo_documento === previewTipo.tipo && d.status === "planejado");
       const dbResult = existingPlaceholder
         ? await supabase.from("china_produto_documentos" as any).update({
@@ -504,12 +526,9 @@ export function ChinaChecklistFocusMode({
 
       if (dbResult.error) {
         logger.error("Checklist doc DB error:", dbResult.error);
-        const msg = dbResult.error.message || "";
-        if (msg.includes("row-level security") || msg.includes("violates")) {
-          toast.error("Sem permissão para registrar o documento. Verifique o acesso ao módulo Fábrica/China.");
-        } else {
-          toast.error(msg || "Erro ao registrar documento no checklist");
-        }
+        const info = describeChecklistUploadError(dbResult.error);
+        setUploadErrorDialog(info);
+        toast.error(info.message);
         return;
       }
 
@@ -517,7 +536,9 @@ export function ChinaChecklistFocusMode({
       toast.success(status === "rascunho" ? "Salvo como rascunho 已保存为草稿" : "Enviado ao Brasil 已发送至巴西");
     } catch (err: any) {
       logger.error("Checklist upload exception:", err);
-      toast.error(err?.message || "Falha inesperada ao salvar documento");
+      const info = describeChecklistUploadError(err);
+      setUploadErrorDialog(info);
+      toast.error(info.message);
     } finally {
       setUploadingTipo(null);
       setPreviewFile(null);
