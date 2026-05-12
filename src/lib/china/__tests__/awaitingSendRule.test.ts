@@ -7,7 +7,7 @@ import {
 
 const base: AwaitingSendItemLike = {
   is_deleted: false,
-  submissao_status: "enviado_brasil",
+  submissao_status: "rascunho",
   doc_status: null,
   documento_id: null,
   observacoes_china: null,
