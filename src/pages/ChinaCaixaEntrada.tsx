@@ -392,6 +392,8 @@ export default function ChinaCaixaEntrada() {
                   actionFilter={actionFilter}
                   onActionFilterChange={setActionFilter}
                   viewerOverride={{ isChinaUser, isBrasilUser }}
+                  groupMode={groupMode}
+                  onGroupModeChange={setGroupMode}
                 />
               )}
             </ResizablePanel>
@@ -455,6 +457,8 @@ export default function ChinaCaixaEntrada() {
                 actionFilter={actionFilter}
                 onActionFilterChange={setActionFilter}
                 viewerOverride={{ isChinaUser, isBrasilUser }}
+                groupMode={groupMode}
+                onGroupModeChange={setGroupMode}
               />
             </div>
           )}
