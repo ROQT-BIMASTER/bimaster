@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { useRevisoesPorSubmissao } from "@/hooks/useChinaRevisoes";
 import { DialogContestarDocumento } from "./DialogContestarDocumento";
+import { ChecklistGovernancePanel } from "./ChecklistGovernancePanel";
 import { useTraduzirTexto } from "@/hooks/useTraduzirTexto";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
@@ -886,6 +887,9 @@ export function ChinaChecklistFocusMode({
               {counters.comPrevisao > 0 && (
                 <CounterChip icon={<CalendarIcon className="h-3 w-3" />} label="Com Previsão" value={counters.comPrevisao} colorClass="text-primary bg-primary/10" />
               )}
+            </div>
+            <div className="mt-3">
+              <ChecklistGovernancePanel submissaoId={submissaoId} />
             </div>
           </DialogHeader>
 
