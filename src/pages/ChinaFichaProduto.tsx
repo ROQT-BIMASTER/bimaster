@@ -102,7 +102,8 @@ export default function ChinaFichaProduto() {
     },
   });
 
-  // Fetch colors/grade
+  // Checklist efetivo (default + custom + ocultos + overrides)
+  const merged = useMergedChinaChecklist(id);
   const { data: cores = [] } = useQuery({
     queryKey: ["china-ficha-cores", id],
     enabled: !!id,
