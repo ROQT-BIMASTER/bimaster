@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { useRevisoesPorSubmissao } from "@/hooks/useChinaRevisoes";
 import { DialogContestarDocumento } from "./DialogContestarDocumento";
+import { useTraduzirTexto } from "@/hooks/useTraduzirTexto";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
   DropdownMenuSeparator, DropdownMenuTrigger,
