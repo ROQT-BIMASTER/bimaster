@@ -293,10 +293,17 @@ export function useChinaMailbox(folder: MailboxFolder): UseChinaMailboxResult {
     const matchStarred = (i: MailboxItem) => !i.is_deleted && i.is_flagged;
 
     // Pastas dedicadas à perspectiva China — central de comando
-    // Pendentes de envio: criadas mas ainda em rascunho (submissão ou doc)
-    const matchAwaitingSend = (i: MailboxItem) =>
-      !i.is_deleted &&
-      (i.submissao_status === "rascunho" || i.doc_status === "rascunho");
+    // Pendentes de envio: checklist criado mas ainda sem documento + parecer anexados,
+    // OU explicitamente em rascunho. Não considera submissões já aprovadas/rejeitadas.
+    const matchAwaitingSend = (i: MailboxItem) => {
+      if (i.is_deleted) return false;
+      if (i.submissao_status === "aprovado" || i.submissao_status === "rejeitado") return false;
+      if (i.submissao_status === "rascunho" || i.doc_status === "rascunho") return true;
+      // Sem documento anexado e sem parecer (observações China) → ainda pendente de envio
+      const semDocumento = !i.documento_id;
+      const semParecer = !i.observacoes_china || i.observacoes_china.trim().length === 0;
+      return semDocumento && semParecer;
+    };
     // Enviadas ao Brasil: despachadas, doc ainda pendente (Brasil não abriu)
     const matchSentBrazil = (i: MailboxItem) =>
       !i.is_deleted &&
