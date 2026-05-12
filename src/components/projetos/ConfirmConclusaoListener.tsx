@@ -50,16 +50,27 @@ export function ConfirmConclusaoListener() {
     ? `Excluir ${isBulk ? nounPlural : noun}?`
     : `Concluir ${isBulk ? nounPlural : noun}?`;
 
+  const qty = pending?.quantidade ?? 0;
   const defaultDescription = isExclusao
     ? isBulk
-      ? `Você está prestes a excluir ${pending?.quantidade} ${nounPlural}. Esta ação não pode ser desfeita pelo próprio usuário.`
+      ? `Você está prestes a excluir ${qty} ${nounPlural} selecionadas. ` +
+        `Elas serão movidas para a lixeira do projeto e poderão ser ` +
+        `restauradas por administradores em até 30 dias. ` +
+        `Subtarefas vinculadas também serão removidas. Esta ação não pode ` +
+        `ser desfeita pelo seu próprio usuário.`
       : titulo
-        ? `Deseja realmente excluir a ${noun} "${titulo}"? Ela será movida para a lixeira do projeto.`
+        ? `Deseja realmente excluir a ${noun} "${titulo}"? ` +
+          `Ela será movida para a lixeira do projeto e ${isSub ? "" : "todas as subtarefas vinculadas também serão removidas. "}` +
+          `Apenas administradores conseguem restaurá-la.`
         : `Deseja realmente excluir esta ${noun}? Ela será movida para a lixeira do projeto.`
     : isBulk
-      ? `Você está prestes a marcar ${pending?.quantidade} ${nounPlural} como concluídas. Deseja continuar?`
+      ? `Você está prestes a marcar ${qty} ${nounPlural} selecionadas como concluídas. ` +
+        `O status, a data de conclusão e o registro de auditoria serão ` +
+        `atualizados para todas elas de uma só vez. Deseja continuar?`
       : titulo
-        ? `Deseja realmente marcar a ${noun} "${titulo}" como concluída?`
+        ? `Deseja realmente marcar a ${noun} "${titulo}" como concluída? ` +
+          `A data de conclusão será preenchida com a data de hoje e a ação ` +
+          `ficará registrada no histórico de auditoria.`
         : `Deseja realmente marcar esta ${noun} como concluída?`;
 
   return (
