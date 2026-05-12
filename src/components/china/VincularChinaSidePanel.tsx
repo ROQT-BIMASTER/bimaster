@@ -14,6 +14,8 @@ import {
 import { useDocumentosDaSubmissao, useCoresDaSubmissao } from "@/hooks/useChinaDocumentoVinculos";
 import { useDespachosPorSubmissao } from "@/hooks/useDespachoDocumentos";
 import { useSubmissaoChatUnread } from "@/hooks/useSubmissaoChatUnread";
+import { useChinaUserContext } from "@/hooks/useChinaUserContext";
+import { useCriarRevisao } from "@/hooks/useChinaRevisoes";
 import { CHINA_DOCUMENT_TYPES, DOCUMENT_CATEGORIES } from "@/lib/china-document-types";
 import { ProcessOrchestrationPanel } from "@/components/processo/ProcessOrchestrationPanel";
 import { DespachosPanel } from "@/components/processo/DespachosPanel";
@@ -21,6 +23,14 @@ import { DispatchHistoryPanel } from "@/components/china/vincular/DispatchHistor
 import { MesaDespachoTab } from "@/components/china/vincular/MesaDespachoTab";
 import { CaixaAlertasChinaPanel } from "@/components/china/vincular/CaixaAlertasChinaPanel";
 import { ChinaChatPanel } from "@/components/china/ChinaChatPanel";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { supabase } from "@/integrations/supabase/client";
+import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import type { SubmissaoRow } from "./VincularChinaTable";
 import { VincularChinaVincularTab } from "./VincularChinaVincularTab";
