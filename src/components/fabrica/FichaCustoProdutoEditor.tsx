@@ -1005,6 +1005,18 @@ export function FichaCustoProdutoEditor({
                 💡 A base mais utilizada nos seus lançamentos é <span className="font-medium text-foreground/70">NF + Serviço</span>
               </p>
             </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="ipi_saida">IPI Saída (%)</Label>
+              <DecimalInput
+                id="ipi_saida"
+                value={(config as any)?.ipi_percentual_saida ?? 0}
+                onChange={(val) => onAtualizarConfig("ipi_percentual_saida" as any, val)}
+                placeholder="0"
+              />
+              <p className="text-[11px] text-muted-foreground italic">
+                Aplicado uma única vez sobre a saída final do produto
+              </p>
+            </div>
           </div>
         </CardContent>
       </Card>
