@@ -91,6 +91,12 @@ export function VincularChinaSidePanel({
   const { data: documentos = [], isLoading: loadingDocs } = useDocumentosDaSubmissao(submissao.id);
   const { data: despachos = [] } = useDespachosPorSubmissao(submissao.id);
   const chatUnread = useSubmissaoChatUnread(submissao.id);
+  const { isBrasilUser } = useChinaUserContext();
+  const criarRevisao = useCriarRevisao();
+  const queryClient = useQueryClient();
+  const [confirmAprovarOpen, setConfirmAprovarOpen] = useState(false);
+  const [aprovarObs, setAprovarObs] = useState("");
+  const [aprovando, setAprovando] = useState(false);
 
   // Show brief loading state when switching submissions
   useEffect(() => {
@@ -104,6 +110,84 @@ export function VincularChinaSidePanel({
     despachos.forEach((d: any) => { map[d.documento_id] = d.status; });
     return map;
   }, [despachos]);
+
+  // Documentos elegíveis para aprovação direta
+  const docsAprovaveis = useMemo(
+    () => documentos.filter((d: any) =>
+      ["pendente", "enviado", "contestado"].includes(d.status)
+    ),
+    [documentos],
+  );
+  // Despachos abertos bloqueiam a aprovação direta
+  const despachosAbertos = useMemo(
+    () => despachos.filter((d: any) =>
+      d.status && !["concluido", "cancelado"].includes(d.status)
+    ),
+    [despachos],
+  );
+  const submissaoFinalizada = ["aprovado", "rejeitado"].includes(submissao.status);
+  const canAprovarDireto =
+    isBrasilUser &&
+    !submissaoFinalizada &&
+    docsAprovaveis.length > 0 &&
+    despachosAbertos.length === 0;
+
+  const handleAprovarSubmissao = async () => {
+    if (aprovando) return;
+    setAprovando(true);
+    try {
+      const obs = aprovarObs.trim();
+      // 1) Aprovar todos os documentos elegíveis (revisão por documento)
+      await Promise.all(
+        docsAprovaveis.map((d: any) =>
+          criarRevisao.mutateAsync({
+            documento_id: d.id,
+            submissao_id: submissao.id,
+            resultado: "aprovado",
+            acao_tipo: "aprovar_direto",
+          }),
+        ),
+      );
+      // 2) Promover a submissão a "aprovado"
+      const { error: subErr } = await supabase
+        .from("china_produto_submissoes" as any)
+        .update({
+          status: "aprovado",
+          aprovado_em: new Date().toISOString(),
+          ...(obs ? { observacoes_brasil: obs } : {}),
+        } as any)
+        .eq("id", submissao.id);
+      if (subErr) throw subErr;
+      // 3) Auditoria/timeline
+      try {
+        await supabase.rpc("rpc_china_log_evento" as any, {
+          p_kind: "submissao_aprovada_direto",
+          p_title: `Submissão aprovada diretamente: ${submissao.produto_codigo} — ${submissao.produto_nome}`,
+          p_descricao: obs || `${docsAprovaveis.length} documento(s) aprovado(s) sem despacho.`,
+          p_payload: {
+            via: "vincular-china-side-panel",
+            documento_ids: docsAprovaveis.map((d: any) => d.id),
+            observacao: obs || null,
+          },
+          p_submissao_id: submissao.id,
+          p_documento_id: null,
+        });
+      } catch {
+        /* não bloquear se o log falhar */
+      }
+      toast.success("Submissão aprovada / 提交已批准");
+      queryClient.invalidateQueries({ queryKey: ["china-mailbox-dataset"] });
+      queryClient.invalidateQueries({ queryKey: ["vincular-china"] });
+      queryClient.invalidateQueries({ queryKey: ["china-revisoes", submissao.id] });
+      queryClient.invalidateQueries({ queryKey: ["china-ficha-docs", submissao.id] });
+      setConfirmAprovarOpen(false);
+      setAprovarObs("");
+    } catch (e: any) {
+      toast.error(e?.message || "Falha ao aprovar submissão");
+    } finally {
+      setAprovando(false);
+    }
+  };
 
   const docsByCategory = useMemo(() => {
     const grouped: Record<string, { label: string; icon: React.ReactNode; docs: any[]; pendentes: number }> = {};
