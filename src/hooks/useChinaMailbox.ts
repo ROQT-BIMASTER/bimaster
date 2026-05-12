@@ -12,7 +12,12 @@ export type MailboxFolder =
   | "approved"
   | "rejected"
   | "trash"
-  | "oc";
+  | "oc"
+  // Pastas dedicadas à perspectiva China (central de comando)
+  | "awaiting_send"   // Pendentes de envio (criadas, ainda não despachadas)
+  | "sent_brazil"     // Enviadas ao Brasil — aguardando Brasil abrir
+  | "in_analysis"     // Em análise no Brasil
+  | "returned";       // Retorno: ajustes solicitados
 
 export interface MailboxItem {
   // Documento (quando aplicável)
@@ -53,6 +58,10 @@ export interface MailboxCounts {
   rejected: number;
   trash: number;
   unread_inbox: number;
+  awaiting_send: number;
+  sent_brazil: number;
+  in_analysis: number;
+  returned: number;
 }
 
 interface UseChinaMailboxResult {
@@ -72,6 +81,10 @@ const ZERO_COUNTS: MailboxCounts = {
   rejected: 0,
   trash: 0,
   unread_inbox: 0,
+  awaiting_send: 0,
+  sent_brazil: 0,
+  in_analysis: 0,
+  returned: 0,
 };
 
 export function useChinaMailbox(folder: MailboxFolder): UseChinaMailboxResult {
@@ -279,6 +292,27 @@ export function useChinaMailbox(folder: MailboxFolder): UseChinaMailboxResult {
     const matchTrash = (i: MailboxItem) => i.is_deleted;
     const matchStarred = (i: MailboxItem) => !i.is_deleted && i.is_flagged;
 
+    // Pastas dedicadas à perspectiva China — central de comando
+    // Pendentes de envio: criadas mas ainda em rascunho (submissão ou doc)
+    const matchAwaitingSend = (i: MailboxItem) =>
+      !i.is_deleted &&
+      (i.submissao_status === "rascunho" || i.doc_status === "rascunho");
+    // Enviadas ao Brasil: despachadas, doc ainda pendente (Brasil não abriu)
+    const matchSentBrazil = (i: MailboxItem) =>
+      !i.is_deleted &&
+      i.submissao_status === "enviado_brasil" &&
+      i.doc_status === "pendente";
+    // Em análise no Brasil: doc visualizado/contestado pelo Brasil
+    const matchInAnalysis = (i: MailboxItem) =>
+      !i.is_deleted &&
+      (i.doc_status === "enviado" ||
+        i.doc_status === "contestado" ||
+        (i.submissao_status === "em_revisao" && i.doc_status !== "rejeitado"));
+    // Retorno: ajustes solicitados pelo Brasil
+    const matchReturned = (i: MailboxItem) =>
+      !i.is_deleted &&
+      (i.doc_status === "rejeitado" || i.submissao_status === "rejeitado");
+
     const counts: MailboxCounts = {
       inbox: 0,
       starred: 0,
@@ -288,6 +322,10 @@ export function useChinaMailbox(folder: MailboxFolder): UseChinaMailboxResult {
       rejected: 0,
       trash: 0,
       unread_inbox: 0,
+      awaiting_send: 0,
+      sent_brazil: 0,
+      in_analysis: 0,
+      returned: 0,
     };
 
     // Contadores por SUBMISSÃO única, não por documento
@@ -300,6 +338,21 @@ export function useChinaMailbox(folder: MailboxFolder): UseChinaMailboxResult {
       rejected: new Set(),
       trash: new Set(),
       unread_inbox: new Set(),
+      awaiting_send: new Set(),
+      sent_brazil: new Set(),
+      in_analysis: new Set(),
+      returned: new Set(),
+    };
+
+    const bumpCount = (
+      key: keyof MailboxCounts,
+      i: MailboxItem,
+      match: (it: MailboxItem) => boolean,
+    ) => {
+      if (match(i) && !seenForCount[key].has(i.submissao_id)) {
+        counts[key] += 1;
+        seenForCount[key].add(i.submissao_id);
+      }
     };
 
     for (const i of allItems) {
@@ -313,30 +366,16 @@ export function useChinaMailbox(folder: MailboxFolder): UseChinaMailboxResult {
           seenForCount.unread_inbox.add(i.submissao_id);
         }
       }
-      if (matchStarred(i) && !seenForCount.starred.has(i.submissao_id)) {
-        counts.starred += 1;
-        seenForCount.starred.add(i.submissao_id);
-      }
-      if (matchSent(i) && !seenForCount.sent.has(i.submissao_id)) {
-        counts.sent += 1;
-        seenForCount.sent.add(i.submissao_id);
-      }
-      if (matchDrafts(i) && !seenForCount.drafts.has(i.submissao_id)) {
-        counts.drafts += 1;
-        seenForCount.drafts.add(i.submissao_id);
-      }
-      if (matchApproved(i) && !seenForCount.approved.has(i.submissao_id)) {
-        counts.approved += 1;
-        seenForCount.approved.add(i.submissao_id);
-      }
-      if (matchRejected(i) && !seenForCount.rejected.has(i.submissao_id)) {
-        counts.rejected += 1;
-        seenForCount.rejected.add(i.submissao_id);
-      }
-      if (matchTrash(i) && !seenForCount.trash.has(i.submissao_id)) {
-        counts.trash += 1;
-        seenForCount.trash.add(i.submissao_id);
-      }
+      bumpCount("starred", i, matchStarred);
+      bumpCount("sent", i, matchSent);
+      bumpCount("drafts", i, matchDrafts);
+      bumpCount("approved", i, matchApproved);
+      bumpCount("rejected", i, matchRejected);
+      bumpCount("trash", i, matchTrash);
+      bumpCount("awaiting_send", i, matchAwaitingSend);
+      bumpCount("sent_brazil", i, matchSentBrazil);
+      bumpCount("in_analysis", i, matchInAnalysis);
+      bumpCount("returned", i, matchReturned);
     }
 
     // Filtro da pasta atual
@@ -349,6 +388,10 @@ export function useChinaMailbox(folder: MailboxFolder): UseChinaMailboxResult {
       rejected: matchRejected,
       trash: matchTrash,
       oc: () => false, // pasta "oc" tem dataset próprio (useChinaInboxOCs)
+      awaiting_send: matchAwaitingSend,
+      sent_brazil: matchSentBrazil,
+      in_analysis: matchInAnalysis,
+      returned: matchReturned,
     };
     const items = allItems.filter(matcher[folder]);
 

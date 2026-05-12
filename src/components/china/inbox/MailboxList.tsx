@@ -10,6 +10,21 @@ import { useChinaUserContext } from "@/hooks/useChinaUserContext";
 
 export type ActionFilter = "mine" | "theirs" | "all";
 
+const FOLDER_TITLES: Partial<Record<MailboxFolder, string>> = {
+  inbox: "Caixa de Entrada",
+  starred: "Marcadas",
+  sent: "Enviados",
+  drafts: "Rascunhos",
+  approved: "Aprovadas",
+  rejected: "Rejeitadas",
+  trash: "Lixeira",
+  oc: "Ordens de Compra",
+  awaiting_send: "Pendentes de envio",
+  sent_brazil: "Enviadas ao Brasil — aguardando análise",
+  in_analysis: "Em análise no Brasil",
+  returned: "Retorno: ajustes solicitados",
+};
+
 
 interface Props {
   items: MailboxItem[];
@@ -130,7 +145,7 @@ export function MailboxList({
           aria-label="Selecionar todos"
         />
         <span className="text-[11px] text-muted-foreground">
-          {filtered.length} item{filtered.length === 1 ? "" : "s"} · {folder}
+          {filtered.length} item{filtered.length === 1 ? "" : "s"} · {FOLDER_TITLES[folder] ?? folder}
         </span>
       </div>
       <ul className="flex-1 overflow-y-auto" role="list">

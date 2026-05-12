@@ -84,6 +84,14 @@ export function MailboxReadingPane({
   const canChinaEnviar =
     isChinaUser && !!onEnviarBrasil && !!item.documento_id && item.doc_status === "rascunho";
   const canChinaCorrigir = isChinaUser && (item.doc_status === "rejeitado" || item.submissao_status === "em_revisao");
+  // China: documento já enviado e ainda em poder do Brasil — bloco read-only "aguardando"
+  const chinaWaitingBrasil =
+    isChinaUser &&
+    !!item.doc_status &&
+    ["pendente", "enviado", "contestado"].includes(item.doc_status) &&
+    item.submissao_status !== "rejeitado";
+  const brasilOpened = item.doc_status === "enviado" || item.doc_status === "contestado";
+  const chinaApproved = isChinaUser && item.submissao_status === "aprovado";
 
   return (
     <div className="flex h-full flex-col bg-background">
@@ -254,8 +262,47 @@ export function MailboxReadingPane({
           </section>
         )}
 
+        {chinaWaitingBrasil && !canChinaCorrigir && (
+          <section className="mt-6 rounded-md border border-amber-500/30 bg-amber-500/5 p-3">
+            <p className="text-xs font-semibold text-foreground/90">
+              {brasilOpened ? "Em análise no Brasil" : "Aguardando Brasil"}
+              <span className="ml-1 text-muted-foreground">
+                {brasilOpened ? "巴西分析中" : "等待巴西"}
+              </span>
+            </p>
+            <p className="mt-1 text-[11px] text-muted-foreground">
+              {brasilOpened
+                ? "A equipe do Brasil já abriu este documento e está revisando."
+                : "Documento enviado. Aguardando a equipe do Brasil iniciar a análise."}
+              {" "}
+              <span className="text-foreground/80">{item.horas_pendentes}h decorridas.</span>
+            </p>
+          </section>
+        )}
+
+        {chinaApproved && (
+          <section className="mt-6 rounded-md border border-emerald-500/30 bg-emerald-500/5 p-3">
+            <p className="text-xs font-semibold text-emerald-400">
+              Submissão aprovada pelo Brasil / 已被巴西批准
+            </p>
+            {item.aprovado_em && (
+              <p className="mt-1 text-[11px] text-muted-foreground">
+                Aprovada em {format(new Date(item.aprovado_em), "dd/MM/yy HH:mm")}.
+              </p>
+            )}
+          </section>
+        )}
+
         {canChinaCorrigir && (
-          <section className="mt-6">
+          <section className="mt-6 rounded-md border border-rose-500/30 bg-rose-500/5 p-3">
+            <p className="text-xs font-semibold text-rose-400 mb-1">
+              Brasil solicitou ajustes / 巴西请求修改
+            </p>
+            {item.observacoes_brasil && (
+              <p className="mb-2 whitespace-pre-wrap text-[11px] text-foreground/90">
+                {item.observacoes_brasil}
+              </p>
+            )}
             <Button size="sm" onClick={() => onCorrigir(item)} className="gap-1.5">
               <FileText className="h-4 w-4" />
               Abrir e corrigir / 打开并修改
