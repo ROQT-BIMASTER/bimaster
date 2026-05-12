@@ -214,10 +214,6 @@ export function useFichaCustoProduto(produtoId: string | undefined) {
     const totalServico = kitServico + normalServico + moServico;
     const totalCondicao = kitCondicao + normalCondicao;
 
-    // IPI por linha — segue a mesma regra de Serviço/Condição:
-    // soma direta de todos os insumos (kit + não-kit), fora do markup.
-    const totalIPI = insumos.reduce((acc, i) => acc + calcularIPILinha(i), 0);
-
     const subtotal = totalNF + totalServico + totalCondicao;
 
     // Markup - aplicado SOMENTE sobre insumos não-kit (para DISPLAY com kit)
@@ -228,18 +224,23 @@ export function useFichaCustoProduto(produtoId: string | undefined) {
     const baseNFMarkup = isDisplayComKit ? (normalNF + moNF) : totalNF;
     const baseServicoMarkup = isDisplayComKit ? (normalServico + moServico) : totalServico;
     const baseCondicaoMarkup = isDisplayComKit ? normalCondicao : totalCondicao;
-    
-    const markupNF = (baseMarkup === 'total' || baseMarkup === 'nf' || baseMarkup === 'nf_servico') 
+
+    const markupNF = (baseMarkup === 'total' || baseMarkup === 'nf' || baseMarkup === 'nf_servico')
       ? baseNFMarkup * (percentualMarkup / 100) : 0;
-    const markupServico = (baseMarkup === 'total' || baseMarkup === 'servico' || baseMarkup === 'nf_servico') 
+    const markupServico = (baseMarkup === 'total' || baseMarkup === 'servico' || baseMarkup === 'nf_servico')
       ? baseServicoMarkup * (percentualMarkup / 100) : 0;
-    const markupCondicao = baseMarkup === 'total' 
+    const markupCondicao = baseMarkup === 'total'
       ? baseCondicaoMarkup * (percentualMarkup / 100) : 0;
     const markupTotal = markupNF + markupServico + markupCondicao;
 
-    // Regra fiscal: IPI agrega ao custo da NF (entrada), não à saída.
-    // Custo Total = (NF + IPI) + Serviço + Condição + Markup
-    const custoTotal = subtotal + markupTotal + totalIPI;
+    // IPI agora incide UMA ÚNICA VEZ sobre a saída final do produto
+    // (NF + markup) + (Serviço + markup) + (Condição + markup) = base de saída
+    // IPI = base de saída × ipi_percentual_saida
+    // Custo Total = base de saída + IPI
+    const baseSaida = subtotal + markupTotal;
+    const pctIPISaida = Number(config?.ipi_percentual_saida) || 0;
+    const totalIPI = baseSaida * (pctIPISaida / 100);
+    const custoTotal = baseSaida + totalIPI;
 
     return {
       totalNF,
