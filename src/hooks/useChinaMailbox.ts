@@ -1,8 +1,14 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useChinaUserContext } from "@/hooks/useChinaUserContext";
 import { uniqueChannelName } from "@/lib/realtime/channelName";
+import {
+  evaluateAwaitingSend,
+  AWAITING_SEND_REASON_LABEL,
+  type AwaitingSendReason,
+} from "@/lib/china/awaitingSendRule";
 
 export type MailboxFolder =
   | "inbox"
@@ -183,9 +189,14 @@ export function useChinaMailbox(folder: MailboxFolder): UseChinaMailboxResult {
     };
   }, [enabled, queryClient]);
 
-  const { items, counts } = useMemo(() => {
+  const { items, counts, allAwaitingPending } = useMemo(() => {
     const data = query.data;
-    if (!data) return { items: [] as MailboxItem[], counts: ZERO_COUNTS };
+    if (!data)
+      return {
+        items: [] as MailboxItem[],
+        counts: ZERO_COUNTS,
+        allAwaitingPending: [] as MailboxItem[],
+      };
 
     const { uid, subs, docs, read, flagged, snoozeMap } = data;
     const now = Date.now();
@@ -293,17 +304,8 @@ export function useChinaMailbox(folder: MailboxFolder): UseChinaMailboxResult {
     const matchStarred = (i: MailboxItem) => !i.is_deleted && i.is_flagged;
 
     // Pastas dedicadas à perspectiva China — central de comando
-    // Pendentes de envio: checklist criado mas ainda sem documento + parecer anexados,
-    // OU explicitamente em rascunho. Não considera submissões já aprovadas/rejeitadas.
-    const matchAwaitingSend = (i: MailboxItem) => {
-      if (i.is_deleted) return false;
-      if (i.submissao_status === "aprovado" || i.submissao_status === "rejeitado") return false;
-      if (i.submissao_status === "rascunho" || i.doc_status === "rascunho") return true;
-      // Sem documento anexado e sem parecer (observações China) → ainda pendente de envio
-      const semDocumento = !i.documento_id;
-      const semParecer = !i.observacoes_china || i.observacoes_china.trim().length === 0;
-      return semDocumento && semParecer;
-    };
+    // Pendentes de envio: regra centralizada em `awaitingSendRule` (parametrizável + testada).
+    const matchAwaitingSend = (i: MailboxItem) => evaluateAwaitingSend(i).matches;
     // Enviadas ao Brasil: despachadas, doc ainda pendente (Brasil não abriu)
     const matchSentBrazil = (i: MailboxItem) =>
       !i.is_deleted &&
@@ -401,9 +403,57 @@ export function useChinaMailbox(folder: MailboxFolder): UseChinaMailboxResult {
       returned: matchReturned,
     };
     const items = allItems.filter(matcher[folder]);
+    // Lista global de pendentes-por-falta-de-doc/parecer (independe da pasta atual)
+    // — usada para emitir notificações.
+    const allAwaitingPending = allItems.filter((i) => {
+      const ev = evaluateAwaitingSend(i);
+      if (!ev.matches) return false;
+      return ev.reasons.some((r) => r === "sem_documento" || r === "sem_parecer");
+    });
 
-    return { items, counts };
+    return { items, counts, allAwaitingPending };
   }, [query.data, folder, isBrasilUser, isChinaUser]);
+
+  // Notificação: avisar a China quando um novo checklist passa a ficar pendente
+  // de envio por falta de documento + parecer. Roda uma vez por submissão e
+  // ignora a primeira carga (snapshot inicial).
+  const notifiedRef = useRef<{ initialized: boolean; seen: Set<string> }>({
+    initialized: false,
+    seen: new Set(),
+  });
+  useEffect(() => {
+    if (!isChinaUser || !query.data) return;
+    const newlyPending: { id: string; produto: string; reasons: AwaitingSendReason[] }[] = [];
+    const seenNow = new Set<string>();
+    const seenSubsLocal = new Set<string>();
+    for (const item of allAwaitingPending) {
+      if (seenSubsLocal.has(item.submissao_id)) continue;
+      seenSubsLocal.add(item.submissao_id);
+      const ev = evaluateAwaitingSend(item);
+      const motivos = ev.reasons.filter(
+        (r) => r === "sem_documento" || r === "sem_parecer",
+      );
+      seenNow.add(item.submissao_id);
+      if (!notifiedRef.current.seen.has(item.submissao_id)) {
+        newlyPending.push({
+          id: item.submissao_id,
+          produto: `${item.produto_codigo} — ${item.produto_nome}`,
+          reasons: motivos,
+        });
+      }
+    }
+    if (notifiedRef.current.initialized) {
+      for (const np of newlyPending) {
+        const motivo = np.reasons.map((r) => AWAITING_SEND_REASON_LABEL[r]).join(" + ");
+        toast.warning(`Checklist pendente de envio: ${np.produto}`, {
+          description: `Motivo: ${motivo}. Anexe documento e parecer técnico para despachar ao Brasil.`,
+          id: `awaiting-send-${np.id}`,
+        });
+      }
+    }
+    notifiedRef.current.seen = seenNow;
+    notifiedRef.current.initialized = true;
+  }, [allAwaitingPending, isChinaUser, query.data]);
 
   return {
     items,
