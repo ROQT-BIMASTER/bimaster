@@ -1,7 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import { buildReturnToTarget } from "@/lib/navigation/withReturnTo";
-import { Inbox, RefreshCw, Search, X, Trash2, RotateCcw, Clock } from "lucide-react";
+import { Inbox, RefreshCw, Search, X, Trash2, RotateCcw, Clock, Calculator, History } from "lucide-react";
+import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ChinaPageShell } from "@/components/china/ChinaPageShell";
@@ -57,6 +60,7 @@ export default function ChinaCaixaEntrada() {
   const isChinaUser = true;
   const isBrasilUser = false;
   const isDesktop = useMediaQuery("(min-width: 1024px)");
+  const queryClient = useQueryClient();
 
   const folderParam = searchParams.get("folder") as MailboxFolder | null;
   const rawFolder: MailboxFolder =
@@ -215,10 +219,44 @@ export default function ChinaCaixaEntrada() {
         icon={Inbox}
         iconTone="primary"
         actions={
-          <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching}>
-            <RefreshCw className={`h-4 w-4 mr-1.5 ${isFetching ? "animate-spin" : ""}`} />
-            Atualizar / 刷新
-          </Button>
+          <div className="flex items-center gap-1.5">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={async () => {
+                try {
+                  const { data, error } = await (supabase as any).rpc("rpc_china_normalize_legacy_status");
+                  if (error) throw error;
+                  const n = Array.isArray(data) ? data.length : 0;
+                  await queryClient.invalidateQueries({ queryKey: ["china-mailbox-dataset"] });
+                  await refetch();
+                  toast.success(
+                    n > 0
+                      ? `Pendências recalculadas. ${n} submissão(ões) normalizada(s).`
+                      : "Pendências recalculadas. Nenhuma normalização necessária.",
+                  );
+                } catch (e: any) {
+                  toast.error("Falha ao recalcular pendências", { description: e?.message });
+                }
+              }}
+              disabled={isFetching}
+            >
+              <Calculator className="h-4 w-4 mr-1.5" />
+              Recalcular pendências
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => navigate("/dashboard/fabrica-china/auditoria-normalizacao")}
+            >
+              <History className="h-4 w-4 mr-1.5" />
+              Auditoria
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching}>
+              <RefreshCw className={`h-4 w-4 mr-1.5 ${isFetching ? "animate-spin" : ""}`} />
+              Atualizar / 刷新
+            </Button>
+          </div>
         }
       />
 

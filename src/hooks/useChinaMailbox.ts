@@ -109,6 +109,15 @@ export function useChinaMailbox(folder: MailboxFolder): UseChinaMailboxResult {
       const { data: { user } } = await supabase.auth.getUser();
       const uid = user?.id ?? null;
 
+      // Reconciliação automática: normaliza status legado "enviado" → "enviado_brasil"
+      // toda vez que a Caixa de Entrada é (re)carregada. Falha silenciosa: não bloqueia
+      // o carregamento se a função não existir ou der erro de rede.
+      try {
+        await (supabase as any).rpc("rpc_china_normalize_legacy_status");
+      } catch (_err) {
+        // ignorado de propósito — log fica no servidor
+      }
+
       const [subsRes, docsRes, readRes, flagsRes, snoozeRes] = await Promise.all([
         (supabase
           .from("china_produto_submissoes" as any)

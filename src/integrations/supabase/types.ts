@@ -45097,6 +45097,14 @@ export type Database = {
         }
         Returns: string
       }
+      rpc_china_normalize_legacy_status: {
+        Args: never
+        Returns: {
+          numero_ordem: string
+          produto_codigo: string
+          submissao_id: string
+        }[]
+      }
       rpc_china_oc_atualizar_logistica: {
         Args: {
           p_data_entrega_prevista?: string

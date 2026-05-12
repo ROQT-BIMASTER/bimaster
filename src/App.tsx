@@ -254,6 +254,7 @@ const FormularioEquipe = lazyWithRetry(() => import("./pages/FormularioEquipe"))
 const CofreSharePage = lazyWithRetry(() => import("./pages/CofreSharePage"));
 const ChinaFabrica = lazyWithRetry(() => import("./pages/ChinaFabrica"));
 const ChinaCaixaEntrada = lazyWithRetry(() => import("./pages/ChinaCaixaEntrada"));
+const ChinaAuditoriaNormalizacao = lazyWithRetry(() => import("./pages/ChinaAuditoriaNormalizacao"));
 const ChinaNovaSubmissao = lazyWithRetry(() => import("./pages/ChinaNovaSubmissao"));
 const ChinaRecebimentos = lazyWithRetry(() => import("./pages/ChinaRecebimentos"));
 const ChinaMonitorRecebimentosOC = lazyWithRetry(() => import("./pages/ChinaMonitorRecebimentosOC"));
@@ -638,6 +639,7 @@ function AppContent() {
             {/* Módulo Fábrica China */}
             <Route path="/dashboard/fabrica-china" element={<ModuleRoute moduleCode="china"><ScreenProtectedRoute screenCode="china_dashboard"><ChinaFabrica /></ScreenProtectedRoute></ModuleRoute>} />
             <Route path="/dashboard/fabrica-china/caixa-entrada" element={<ModuleRoute moduleCode="china"><ScreenProtectedRoute screenCode="china_dashboard"><ChinaCaixaEntrada /></ScreenProtectedRoute></ModuleRoute>} />
+            <Route path="/dashboard/fabrica-china/auditoria-normalizacao" element={<ModuleRoute moduleCode="china"><ScreenProtectedRoute screenCode="china_dashboard"><ChinaAuditoriaNormalizacao /></ScreenProtectedRoute></ModuleRoute>} />
             <Route path="/dashboard/fabrica-china/nova" element={<ModuleRoute moduleCode="china"><ScreenProtectedRoute screenCode="china_submissoes"><ChinaNovaSubmissao /></ScreenProtectedRoute></ModuleRoute>} />
             <Route path="/dashboard/fabrica-china/nova/:submissaoId" element={<ModuleRoute moduleCode="china"><ScreenProtectedRoute screenCode="china_submissoes"><ChinaNovaSubmissao /></ScreenProtectedRoute></ModuleRoute>} />
             <Route path="/dashboard/fabrica-china/recebimentos" element={<ModuleRoute moduleCode="china"><ScreenProtectedRoute screenCode="china_recebimentos"><ChinaRecebimentos /></ScreenProtectedRoute></ModuleRoute>} />
