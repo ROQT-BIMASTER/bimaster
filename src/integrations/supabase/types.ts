@@ -13185,6 +13185,7 @@ export type Database = {
           formula_id: string
           fornecedor_mao_obra: string | null
           id: string
+          ipi_percentual_saida: number
           percentual_markup: number | null
           updated_at: string | null
         }
@@ -13197,6 +13198,7 @@ export type Database = {
           formula_id: string
           fornecedor_mao_obra?: string | null
           id?: string
+          ipi_percentual_saida?: number
           percentual_markup?: number | null
           updated_at?: string | null
         }
@@ -13209,6 +13211,7 @@ export type Database = {
           formula_id?: string
           fornecedor_mao_obra?: string | null
           id?: string
+          ipi_percentual_saida?: number
           percentual_markup?: number | null
           updated_at?: string | null
         }
@@ -15895,6 +15898,7 @@ export type Database = {
           custo_mao_obra_servico: number | null
           fornecedor_mao_obra: string | null
           id: string
+          ipi_percentual_saida: number
           observacoes: string | null
           percentual_markup: number | null
           produto_id: string
@@ -15910,6 +15914,7 @@ export type Database = {
           custo_mao_obra_servico?: number | null
           fornecedor_mao_obra?: string | null
           id?: string
+          ipi_percentual_saida?: number
           observacoes?: string | null
           percentual_markup?: number | null
           produto_id: string
@@ -15925,6 +15930,7 @@ export type Database = {
           custo_mao_obra_servico?: number | null
           fornecedor_mao_obra?: string | null
           id?: string
+          ipi_percentual_saida?: number
           observacoes?: string | null
           percentual_markup?: number | null
           produto_id?: string

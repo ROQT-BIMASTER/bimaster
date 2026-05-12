@@ -47,6 +47,7 @@ export interface CustoConfig {
   custo_mao_obra_servico: number;
   percentual_markup: number;
   base_calculo_markup: BaseCalculoMarkup;
+  ipi_percentual_saida: number;
   observacoes: string | null;
 }
 
@@ -149,6 +150,7 @@ export function useFichaCustoProduto(produtoId: string | undefined) {
       setConfig({
         ...data,
         base_calculo_markup: (data.base_calculo_markup as BaseCalculoMarkup) || 'total',
+        ipi_percentual_saida: Number((data as any).ipi_percentual_saida) || 0,
       });
     } else {
       // Criar config padrão
@@ -160,6 +162,7 @@ export function useFichaCustoProduto(produtoId: string | undefined) {
         custo_mao_obra_servico: 0,
         percentual_markup: 10,
         base_calculo_markup: "total",
+        ipi_percentual_saida: 0,
         observacoes: null,
       });
     }
@@ -211,10 +214,6 @@ export function useFichaCustoProduto(produtoId: string | undefined) {
     const totalServico = kitServico + normalServico + moServico;
     const totalCondicao = kitCondicao + normalCondicao;
 
-    // IPI por linha — segue a mesma regra de Serviço/Condição:
-    // soma direta de todos os insumos (kit + não-kit), fora do markup.
-    const totalIPI = insumos.reduce((acc, i) => acc + calcularIPILinha(i), 0);
-
     const subtotal = totalNF + totalServico + totalCondicao;
 
     // Markup - aplicado SOMENTE sobre insumos não-kit (para DISPLAY com kit)
@@ -225,18 +224,23 @@ export function useFichaCustoProduto(produtoId: string | undefined) {
     const baseNFMarkup = isDisplayComKit ? (normalNF + moNF) : totalNF;
     const baseServicoMarkup = isDisplayComKit ? (normalServico + moServico) : totalServico;
     const baseCondicaoMarkup = isDisplayComKit ? normalCondicao : totalCondicao;
-    
-    const markupNF = (baseMarkup === 'total' || baseMarkup === 'nf' || baseMarkup === 'nf_servico') 
+
+    const markupNF = (baseMarkup === 'total' || baseMarkup === 'nf' || baseMarkup === 'nf_servico')
       ? baseNFMarkup * (percentualMarkup / 100) : 0;
-    const markupServico = (baseMarkup === 'total' || baseMarkup === 'servico' || baseMarkup === 'nf_servico') 
+    const markupServico = (baseMarkup === 'total' || baseMarkup === 'servico' || baseMarkup === 'nf_servico')
       ? baseServicoMarkup * (percentualMarkup / 100) : 0;
-    const markupCondicao = baseMarkup === 'total' 
+    const markupCondicao = baseMarkup === 'total'
       ? baseCondicaoMarkup * (percentualMarkup / 100) : 0;
     const markupTotal = markupNF + markupServico + markupCondicao;
 
-    // Regra fiscal: IPI agrega ao custo da NF (entrada), não à saída.
-    // Custo Total = (NF + IPI) + Serviço + Condição + Markup
-    const custoTotal = subtotal + markupTotal + totalIPI;
+    // IPI agora incide UMA ÚNICA VEZ sobre a saída final do produto
+    // (NF + markup) + (Serviço + markup) + (Condição + markup) = base de saída
+    // IPI = base de saída × ipi_percentual_saida
+    // Custo Total = base de saída + IPI
+    const baseSaida = subtotal + markupTotal;
+    const pctIPISaida = Number(config?.ipi_percentual_saida) || 0;
+    const totalIPI = baseSaida * (pctIPISaida / 100);
+    const custoTotal = baseSaida + totalIPI;
 
     return {
       totalNF,
@@ -365,8 +369,9 @@ export function useFichaCustoProduto(produtoId: string | undefined) {
             custo_mao_obra_servico: config.custo_mao_obra_servico,
             percentual_markup: config.percentual_markup,
             base_calculo_markup: config.base_calculo_markup,
+            ipi_percentual_saida: config.ipi_percentual_saida,
             observacoes: config.observacoes,
-          })
+          } as any)
           .eq("id", config.id);
 
         if (error) throw error;
@@ -380,13 +385,18 @@ export function useFichaCustoProduto(produtoId: string | undefined) {
             custo_mao_obra_servico: config.custo_mao_obra_servico,
             percentual_markup: config.percentual_markup,
             base_calculo_markup: config.base_calculo_markup,
+            ipi_percentual_saida: config.ipi_percentual_saida,
             observacoes: config.observacoes,
-          })
+          } as any)
           .select()
           .single();
 
         if (error) throw error;
-        setConfig({ ...data, base_calculo_markup: (data.base_calculo_markup as BaseCalculoMarkup) || 'total' });
+        setConfig({
+          ...data,
+          base_calculo_markup: (data.base_calculo_markup as BaseCalculoMarkup) || 'total',
+          ipi_percentual_saida: Number((data as any).ipi_percentual_saida) || 0,
+        });
       }
 
       toast.success("Ficha de custos salva com sucesso!");
@@ -452,13 +462,13 @@ export function useFichaCustoProduto(produtoId: string | undefined) {
         // Buscar insumos do filho
         const { data: insumosFilho } = await supabase
           .from("fabrica_produto_custos")
-          .select("custo_nf, custo_servico, custo_condicao, ipi_valor, ipi_percentual")
+          .select("custo_nf, custo_servico, custo_condicao")
           .eq("produto_id", filhoId);
 
         // Buscar config do filho
         const { data: configFilho } = await supabase
           .from("fabrica_produto_custos_config")
-          .select("custo_mao_obra_nf, custo_mao_obra_servico, percentual_markup, base_calculo_markup")
+          .select("custo_mao_obra_nf, custo_mao_obra_servico, percentual_markup, base_calculo_markup, ipi_percentual_saida")
           .eq("produto_id", filhoId)
           .maybeSingle();
 
@@ -466,18 +476,6 @@ export function useFichaCustoProduto(produtoId: string | undefined) {
         const totalNFIns = (insumosFilho || []).reduce((s, i) => s + (Number(i.custo_nf) || 0), 0);
         const totalServIns = (insumosFilho || []).reduce((s, i) => s + (Number(i.custo_servico) || 0), 0);
         const totalCondIns = (insumosFilho || []).reduce((s, i) => s + (Number(i.custo_condicao) || 0), 0);
-        const totalIPIIns = (insumosFilho || []).reduce(
-          (s, i) =>
-            s +
-            calcularIPILinha({
-              custo_nf: Number(i.custo_nf) || 0,
-              custo_servico: Number(i.custo_servico) || 0,
-              custo_condicao: Number(i.custo_condicao) || 0,
-              ipi_valor: Number((i as any).ipi_valor) || 0,
-              ipi_percentual: Number((i as any).ipi_percentual) || 0,
-            }),
-          0,
-        );
         const moNF = Number(configFilho?.custo_mao_obra_nf) || 0;
         const moServ = Number(configFilho?.custo_mao_obra_servico) || 0;
         const tNF = totalNFIns + moNF;
@@ -489,14 +487,17 @@ export function useFichaCustoProduto(produtoId: string | undefined) {
         const mNF = (baseMarkup === 'total' || baseMarkup === 'nf' || baseMarkup === 'nf_servico') ? tNF * (pctMarkup / 100) : 0;
         const mServ = (baseMarkup === 'total' || baseMarkup === 'servico' || baseMarkup === 'nf_servico') ? tServ * (pctMarkup / 100) : 0;
         const mCond = baseMarkup === 'total' ? tCond * (pctMarkup / 100) : 0;
-        // IPI fica fora do markup, mas entra no custo unitário do filho
-        const custoUnit = subtotal + mNF + mServ + mCond + totalIPIIns;
+        // IPI agora é único, sobre a saída do filho
+        const baseSaidaFilho = subtotal + mNF + mServ + mCond;
+        const pctIPIFilho = Number((configFilho as any)?.ipi_percentual_saida) || 0;
+        const totalIPIFilho = baseSaidaFilho * (pctIPIFilho / 100);
+        const custoUnit = baseSaidaFilho + totalIPIFilho;
 
         const qty = item.quantidade || 1;
         const custoNFFinal = tNF + mNF;
         const custoServicoFinal = tServ + mServ;
         const custoCondicaoFinal = tCond + mCond;
-        const custoIPIFinal = totalIPIIns;
+        const custoIPIFinal = totalIPIFilho;
 
         filhosComCusto.push({
           produtoFilhoId: filhoId,
@@ -545,13 +546,14 @@ export function useFichaCustoProduto(produtoId: string | undefined) {
       });
     }
 
-    // Auto-zerar M.O. e Markup do Display, pois já estão embutidos nos custos dos filhos
+    // Auto-zerar M.O., Markup e IPI do Display, pois já estão embutidos nos custos dos filhos
     if (config) {
       const novaConfig = {
         ...config,
         custo_mao_obra_nf: 0,
         custo_mao_obra_servico: 0,
         percentual_markup: 0,
+        ipi_percentual_saida: 0,
       };
       setConfig(novaConfig);
 
@@ -562,11 +564,12 @@ export function useFichaCustoProduto(produtoId: string | undefined) {
             custo_mao_obra_nf: 0,
             custo_mao_obra_servico: 0,
             percentual_markup: 0,
-          })
+            ipi_percentual_saida: 0,
+          } as any)
           .eq("id", config.id);
       }
 
-      toast.info("M.O. e Markup zerados — valores já incluídos nos custos importados dos filhos");
+      toast.info("M.O., Markup e IPI zerados — já incluídos nos custos importados dos filhos");
     }
 
     toast.success(`${custosFilhos.length} produto(s) importado(s) para a ficha`);
