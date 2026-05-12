@@ -32,6 +32,7 @@ import {
 
 import { useEnviarDocumentoAoBrasil } from "@/hooks/useEnviarDocumentoAoBrasil";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
+import { useChinaI18n } from "@/hooks/useChinaI18n";
 
 const VALID_FOLDERS: MailboxFolder[] = [
   "oc", "inbox", "starred", "sent", "drafts", "approved", "rejected", "trash",
@@ -49,10 +50,11 @@ const CHINA_FOLDER_ALIAS: Partial<Record<MailboxFolder, MailboxFolder>> = {
 export default function ChinaCaixaEntrada() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { t } = useChinaI18n();
   const [searchParams, setSearchParams] = useSearchParams();
   const goWithReturn = (target: string) => {
     const fromPath = `${location.pathname}${location.search}`;
-    const { url, state } = buildReturnToTarget(target, fromPath, { fromLabel: "Caixa de Entrada" });
+    const { url, state } = buildReturnToTarget(target, fromPath, { fromLabel: t("inbox.title") });
     navigate(url, { state });
   };
   // Esta página é a CENTRAL DE COMANDO da China. Independente do perfil real
@@ -207,16 +209,16 @@ export default function ChinaCaixaEntrada() {
   };
 
   const subtitle = isBrasilUser
-    ? "Documentos da China aguardando sua aprovação."
-    : "Central de comando: acompanhe submissões criadas, enviadas e em análise no Brasil.";
+    ? t("inbox.subtitleBrasil")
+    : t("inbox.subtitleChina");
 
   const loading = enviarBrasil.isPending;
 
   return (
     <ChinaPageShell>
       <ChinaPageHeader
-        titlePt="Caixa de Entrada"
-        titleCn="收件箱"
+        titlePt={t("inbox.title")}
+        titleCn=""
         subtitle={subtitle}
         icon={Inbox}
         iconTone="primary"
@@ -234,17 +236,17 @@ export default function ChinaCaixaEntrada() {
                   await refetch();
                   toast.success(
                     n > 0
-                      ? `Pendências recalculadas. ${n} submissão(ões) normalizada(s).`
-                      : "Pendências recalculadas. Nenhuma normalização necessária.",
+                      ? t("inbox.toasts.recalcOk", { count: n })
+                      : t("inbox.toasts.recalcNenhuma"),
                   );
                 } catch (e: any) {
-                  toast.error("Falha ao recalcular pendências", { description: e?.message });
+                  toast.error(t("inbox.toasts.recalcErro"), { description: e?.message });
                 }
               }}
               disabled={isFetching}
             >
               <Calculator className="h-4 w-4 mr-1.5" />
-              Recalcular pendências
+              {t("inbox.actions.recalcular")}
             </Button>
             <Button
               variant="outline"
@@ -252,7 +254,7 @@ export default function ChinaCaixaEntrada() {
               onClick={() => setCopilotOpen(true)}
             >
               <Sparkles className="h-4 w-4 mr-1.5" />
-              Copiloto de submissão
+              {t("inbox.actions.copiloto")}
             </Button>
             <Button
               variant="ghost"
@@ -260,11 +262,11 @@ export default function ChinaCaixaEntrada() {
               onClick={() => navigate("/dashboard/fabrica-china/auditoria-normalizacao")}
             >
               <History className="h-4 w-4 mr-1.5" />
-              Auditoria
+              {t("inbox.actions.auditoria")}
             </Button>
             <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching}>
               <RefreshCw className={`h-4 w-4 mr-1.5 ${isFetching ? "animate-spin" : ""}`} />
-              Atualizar / 刷新
+              {t("inbox.actions.atualizar")}
             </Button>
           </div>
         }
@@ -278,7 +280,7 @@ export default function ChinaCaixaEntrada() {
             ref={searchInputRef}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Buscar produto, OC, arquivo / 搜索 (atalho: /)"
+            placeholder={t("inbox.search.placeholder")}
             className="h-8 pl-7 pr-7 text-xs"
           />
           {search && (
@@ -293,9 +295,9 @@ export default function ChinaCaixaEntrada() {
         </div>
         {selectedIds.size > 0 && (
           <div className="flex flex-wrap items-center gap-1.5">
-            <span className="text-[11px] text-muted-foreground">{selectedIds.size} selecionados</span>
+            <span className="text-[11px] text-muted-foreground">{t("inbox.selecionados", { count: selectedIds.size })}</span>
             <Button size="sm" variant="outline" className="h-7 text-xs" onClick={handleBulkRead}>
-              Marcar como lidos
+              {t("inbox.actions.marcarComoLidos")}
             </Button>
             {folder !== "trash" ? (
               <>
@@ -309,7 +311,7 @@ export default function ChinaCaixaEntrada() {
                   }}
                 >
                   <Trash2 className="h-3.5 w-3.5" />
-                  Mover para Lixeira
+                  {t("inbox.actions.moverLixeira")}
                 </Button>
               </>
             ) : (
@@ -324,25 +326,25 @@ export default function ChinaCaixaEntrada() {
                   }}
                 >
                   <RotateCcw className="h-3.5 w-3.5" />
-                  Restaurar
+                  {t("inbox.actions.restaurar")}
                 </Button>
                 <Button
                   size="sm"
                   variant="destructive"
                   className="h-7 gap-1.5 text-xs"
                   onClick={() => {
-                    if (!confirm("Excluir definitivamente os itens selecionados? Esta ação não pode ser desfeita.")) return;
+                    if (!confirm(t("inbox.confirmExcluir"))) return;
                     purge.mutate(Array.from(selectedIds));
                     setSelectedIds(new Set());
                   }}
                 >
                   <Trash2 className="h-3.5 w-3.5" />
-                  Excluir definitivamente
+                  {t("inbox.actions.excluirDefinitivo")}
                 </Button>
               </>
             )}
             <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setSelectedIds(new Set())}>
-              Limpar
+              {t("inbox.actions.limparSelecao")}
             </Button>
           </div>
         )}

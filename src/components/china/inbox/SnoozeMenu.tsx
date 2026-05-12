@@ -9,37 +9,30 @@ import { Input } from "@/components/ui/input";
 import { useState } from "react";
 import { addDays, addHours, format, set, startOfTomorrow } from "date-fns";
 import { useSnoozeSubmissao } from "@/hooks/useChinaInboxSnooze";
+import { useChinaI18n } from "@/hooks/useChinaI18n";
 
 interface Props {
   submissaoId: string;
   triggerVariant?: "icon" | "button";
 }
 
-const presets = [
+const presetDefs = [
+  { key: "preset3h", fn: () => addHours(new Date(), 3) },
+  { key: "presetAmanha", fn: () => set(startOfTomorrow(), { hours: 9 }) },
   {
-    label: "Mais tarde hoje (3h)",
-    fn: () => addHours(new Date(), 3),
-  },
-  {
-    label: "Amanhã 9h",
-    fn: () => set(startOfTomorrow(), { hours: 9 }),
-  },
-  {
-    label: "Próxima segunda 9h",
+    key: "presetSegunda",
     fn: () => {
       let d = new Date();
       do { d = addDays(d, 1); } while (d.getDay() !== 1);
       return set(d, { hours: 9, minutes: 0, seconds: 0 });
     },
   },
-  {
-    label: "Em 1 semana",
-    fn: () => addDays(new Date(), 7),
-  },
+  { key: "preset1Sem", fn: () => addDays(new Date(), 7) },
 ];
 
 export function SnoozeMenu({ submissaoId, triggerVariant = "button" }: Props) {
   const snooze = useSnoozeSubmissao();
+  const { t } = useChinaI18n();
   const [open, setOpen] = useState(false);
   const [custom, setCustom] = useState("");
 
@@ -52,31 +45,31 @@ export function SnoozeMenu({ submissaoId, triggerVariant = "button" }: Props) {
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         {triggerVariant === "icon" ? (
-          <Button variant="ghost" size="icon" className="h-7 w-7" title="Adiar">
+          <Button variant="ghost" size="icon" className="h-7 w-7" title={t("inbox.snooze.trigger")}>
             <Clock className="h-3.5 w-3.5" />
           </Button>
         ) : (
           <Button variant="ghost" size="sm" className="h-7 gap-1.5 text-xs">
             <Clock className="h-3.5 w-3.5" />
-            Adiar
+            {t("inbox.snooze.trigger")}
           </Button>
         )}
       </PopoverTrigger>
       <PopoverContent align="start" className="w-[260px] p-2">
         <p className="px-2 py-1 text-[11px] font-semibold text-muted-foreground">
-          Adiar para…
+          {t("inbox.snooze.titulo")}
         </p>
         <div className="space-y-0.5">
-          {presets.map((p) => {
+          {presetDefs.map((p) => {
             const d = p.fn();
             return (
               <button
-                key={p.label}
+                key={p.key}
                 type="button"
                 onClick={() => apply(d)}
                 className="flex w-full items-center justify-between rounded px-2 py-1.5 text-xs hover:bg-muted/40"
               >
-                <span>{p.label}</span>
+                <span>{t(`inbox.snooze.${p.key}`)}</span>
                 <span className="text-[10px] text-muted-foreground">
                   {format(d, "dd/MM HH:mm")}
                 </span>
@@ -85,7 +78,7 @@ export function SnoozeMenu({ submissaoId, triggerVariant = "button" }: Props) {
           })}
         </div>
         <div className="mt-2 border-t border-border pt-2">
-          <p className="px-2 text-[11px] text-muted-foreground">Data/hora específica</p>
+          <p className="px-2 text-[11px] text-muted-foreground">{t("inbox.snooze.datahora")}</p>
           <div className="mt-1 flex gap-1.5 px-2">
             <Input
               type="datetime-local"

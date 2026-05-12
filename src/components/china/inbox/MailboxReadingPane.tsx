@@ -16,6 +16,7 @@ import type { MailboxItem } from "@/hooks/useChinaMailbox";
 import { resolveDirection } from "@/lib/china/inboxDirection";
 import { InboxDirectionBand } from "./InboxDirectionBadge";
 import { ChinaTimelineButton } from "@/components/china/timeline/ChinaTimelineButton";
+import { useChinaI18n } from "@/hooks/useChinaI18n";
 
 interface Props {
   item: MailboxItem | null;
@@ -44,9 +45,10 @@ export function MailboxReadingPane({
 }: Props) {
   const navigate = useNavigate();
   const location = useLocation();
+  const { t } = useChinaI18n();
   const goWithReturn = (target: string) => {
     const fromPath = `${location.pathname}${location.search}`;
-    const { url, state } = buildReturnToTarget(target, fromPath, { fromLabel: "Caixa de Entrada" });
+    const { url, state } = buildReturnToTarget(target, fromPath, { fromLabel: t("inbox.title") });
     navigate(url, { state });
   };
   
@@ -62,9 +64,9 @@ export function MailboxReadingPane({
     if (!item) return;
     try {
       await exportSubmissaoPdf(item);
-      toast.success("PDF exportado");
+      toast.success(t("inbox.toasts.pdfOk"));
     } catch (e: any) {
-      toast.error(e.message || "Falha ao exportar PDF");
+      toast.error(e.message || t("inbox.toasts.pdfErro"));
     }
   };
 
@@ -73,8 +75,7 @@ export function MailboxReadingPane({
       <div className="flex h-full items-center justify-center bg-card/20 text-center text-sm text-muted-foreground">
         <div className="space-y-1">
           <FileText className="mx-auto h-10 w-10 opacity-30" />
-          <p>Selecione uma mensagem para visualizar.</p>
-          <p className="text-xs">选择一条消息以查看。</p>
+          <p>{t("inbox.empty.selectMessage")}</p>
         </div>
       </div>
     );
@@ -116,7 +117,7 @@ export function MailboxReadingPane({
           onClick={() => onToggleRead(item)}
         >
           {item.is_read ? <Mail className="h-3.5 w-3.5" /> : <MailOpen className="h-3.5 w-3.5" />}
-          {item.is_read ? "Marcar não lida" : "Marcar lida"}
+          {item.is_read ? t("inbox.actions.marcarNaoLida") : t("inbox.actions.marcarLida")}
         </Button>
         <Button
           variant="ghost"
@@ -125,7 +126,7 @@ export function MailboxReadingPane({
           onClick={() => onToggleStar(item)}
         >
           <Star className="h-3.5 w-3.5" fill={item.is_flagged ? "currentColor" : "none"} />
-          {item.is_flagged ? "Desmarcar" : "Estrela"}
+          {item.is_flagged ? t("inbox.actions.desmarcar") : t("inbox.actions.estrela")}
         </Button>
         <div className="ml-auto" />
         {!item.is_deleted && (
@@ -136,10 +137,10 @@ export function MailboxReadingPane({
           size="sm"
           className="h-7 gap-1.5 text-xs"
           onClick={handleExportPdf}
-          title="Exportar registro em PDF"
+          title={t("inbox.actions.exportarPdfTitle")}
         >
           <Download className="h-3.5 w-3.5" />
-          PDF
+          {t("inbox.actions.exportarPdf")}
         </Button>
         <Button
           variant="ghost"
@@ -148,7 +149,7 @@ export function MailboxReadingPane({
           onClick={() => goWithReturn(`/dashboard/fabrica-china/submissao/${item.submissao_id}`)}
         >
           <ExternalLink className="h-3.5 w-3.5" />
-          Abrir submissão / 打开
+          {t("inbox.actions.abrirSubmissao")}
         </Button>
       </div>
 
@@ -156,7 +157,7 @@ export function MailboxReadingPane({
         <div className="flex items-center justify-between gap-2 border-b border-amber-500/30 bg-amber-500/10 px-3 py-1.5 text-[11px] text-amber-300">
           <span className="flex items-center gap-1.5">
             <Clock className="h-3.5 w-3.5" />
-            Adiada até {format(new Date(item.snooze_until), "dd/MM/yy HH:mm")}
+            {t("inbox.snoozeBanner.adiadaAte", { date: format(new Date(item.snooze_until), "dd/MM/yy HH:mm") })}
           </span>
           <Button
             variant="ghost"
@@ -164,7 +165,7 @@ export function MailboxReadingPane({
             className="h-6 text-[11px] text-amber-200 hover:text-amber-50"
             onClick={() => unsnooze.mutate(item.submissao_id)}
           >
-            Reativar agora
+            {t("inbox.snoozeBanner.reativar")}
           </Button>
         </div>
       )}
@@ -203,34 +204,34 @@ export function MailboxReadingPane({
                 )}
               </div>
               <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => onView(item)}>
-                Pré-visualizar / 预览
+                {t("inbox.actions.preVisualizar")}
               </Button>
             </div>
             {item.doc_status && (
               <p className="text-xs text-muted-foreground">
-                Status do documento: <span className="text-foreground">{item.doc_status}</span> ·{" "}
-                {item.horas_pendentes}h aguardando
+                {t("inbox.doc.statusPrefix")} <span className="text-foreground">{item.doc_status}</span> ·{" "}
+                {t("inbox.doc.horasAguardando", { count: item.horas_pendentes })}
               </p>
             )}
           </section>
         ) : (
-          <p className="text-sm text-muted-foreground">Esta submissão ainda não tem documentos anexados.</p>
+          <p className="text-sm text-muted-foreground">{t("inbox.empty.noDocument")}</p>
         )}
 
         {(item.observacoes_china || item.observacoes_brasil) && (
           <section className="mt-4 space-y-2">
             <h3 className="text-xs font-semibold uppercase text-muted-foreground">
-              Observações / 备注
+              {t("inbox.doc.observacoes")}
             </h3>
             {item.observacoes_china && (
               <div className="rounded-md border border-border bg-muted/30 p-2.5 text-xs">
-                <p className="mb-1 text-[10px] font-semibold text-muted-foreground">CHINA</p>
+                <p className="mb-1 text-[10px] font-semibold text-muted-foreground">{t("inbox.doc.china")}</p>
                 <p className="whitespace-pre-wrap text-foreground/90">{item.observacoes_china}</p>
               </div>
             )}
             {item.observacoes_brasil && (
               <div className="rounded-md border border-border bg-muted/30 p-2.5 text-xs">
-                <p className="mb-1 text-[10px] font-semibold text-muted-foreground">BRASIL</p>
+                <p className="mb-1 text-[10px] font-semibold text-muted-foreground">{t("inbox.doc.brasil")}</p>
                 <p className="whitespace-pre-wrap text-foreground/90">{item.observacoes_brasil}</p>
               </div>
             )}
@@ -240,8 +241,7 @@ export function MailboxReadingPane({
         {canChinaEnviar && hasDocAnexo && (
           <section className="mt-6 rounded-md border border-emerald-500/30 bg-emerald-500/5 p-3">
             <p className="text-xs text-foreground/90 mb-2">
-              Envie esta submissão para o Brasil. Ela aparecerá em <strong>Vincular China</strong> para aprovação.
-              <span className="ml-1 text-muted-foreground">将此提交发送至巴西，将在“关联中国”中等待审批。</span>
+              {t("inbox.blocks.enviarTitulo")}
             </p>
             <Button
               size="sm"
@@ -250,7 +250,7 @@ export function MailboxReadingPane({
               disabled={loading}
             >
               <Send className="h-4 w-4" />
-              Enviar ao Brasil / 发送至巴西
+              {t("inbox.actions.enviarBrasil")}
             </Button>
           </section>
         )}
@@ -258,15 +258,15 @@ export function MailboxReadingPane({
         {canChinaEnviar && !hasDocAnexo && (
           <section className="mt-6 rounded-md border border-amber-500/30 bg-amber-500/5 p-3">
             <p className="text-xs font-semibold text-amber-400 mb-1">
-              Sem documentos anexados / 未附文件
+              {t("inbox.blocks.semDocsTitulo")}
             </p>
             <p className="text-[11px] text-muted-foreground mb-2">
-              Adicione pelo menos um documento antes de enviar ao Brasil.
+              {t("inbox.blocks.semDocsTexto")}
             </p>
             <div className="flex flex-wrap gap-2">
               <Button size="sm" variant="outline" className="gap-1.5" onClick={() => onCorrigir(item)}>
                 <FileText className="h-4 w-4" />
-                Abrir submissão para anexar
+                {t("inbox.actions.abrirAnexar")}
               </Button>
               <Button
                 size="sm"
@@ -274,7 +274,7 @@ export function MailboxReadingPane({
                 disabled
               >
                 <Send className="h-4 w-4" />
-                Enviar ao Brasil
+                {t("inbox.actions.enviarBrasil")}
               </Button>
             </div>
           </section>
@@ -283,8 +283,7 @@ export function MailboxReadingPane({
         {canBrasilApprove && (
           <section className="mt-6 rounded-md border border-primary/30 bg-primary/5 p-3">
             <p className="text-xs text-foreground/90 mb-2">
-              Aprovação e ajustes acontecem em <strong>Vincular China</strong>.
-              <span className="ml-1 text-muted-foreground">审批和调整在“关联中国”界面进行。</span>
+              {t("inbox.blocks.brasilAprova")}
             </p>
             <Button
               size="sm"
@@ -293,7 +292,7 @@ export function MailboxReadingPane({
               disabled={loading}
             >
               <Link2 className="h-4 w-4" />
-              Abrir Vincular China / 打开关联中国
+              {t("inbox.actions.abrirVincular")}
             </Button>
           </section>
         )}
@@ -301,17 +300,14 @@ export function MailboxReadingPane({
         {chinaWaitingBrasil && !canChinaCorrigir && (
           <section className="mt-6 rounded-md border border-amber-500/30 bg-amber-500/5 p-3">
             <p className="text-xs font-semibold text-foreground/90">
-              {brasilOpened ? "Em análise no Brasil" : "Aguardando Brasil"}
-              <span className="ml-1 text-muted-foreground">
-                {brasilOpened ? "巴西分析中" : "等待巴西"}
-              </span>
+              {brasilOpened ? t("inbox.blocks.emAnalise") : t("inbox.blocks.aguardando")}
             </p>
             <p className="mt-1 text-[11px] text-muted-foreground">
               {brasilOpened
-                ? "A equipe do Brasil já abriu este documento e está revisando."
-                : "Documento enviado. Aguardando a equipe do Brasil iniciar a análise."}
+                ? t("inbox.blocks.emAnaliseTexto")
+                : t("inbox.blocks.aguardandoTexto")}
               {" "}
-              <span className="text-foreground/80">{item.horas_pendentes}h decorridas.</span>
+              <span className="text-foreground/80">{t("inbox.blocks.horasDecorridas", { count: item.horas_pendentes })}</span>
             </p>
           </section>
         )}
@@ -319,11 +315,11 @@ export function MailboxReadingPane({
         {chinaApproved && (
           <section className="mt-6 rounded-md border border-emerald-500/30 bg-emerald-500/5 p-3">
             <p className="text-xs font-semibold text-emerald-400">
-              Submissão aprovada pelo Brasil / 已被巴西批准
+              {t("inbox.blocks.aprovadaPeloBrasil")}
             </p>
             {item.aprovado_em && (
               <p className="mt-1 text-[11px] text-muted-foreground">
-                Aprovada em {format(new Date(item.aprovado_em), "dd/MM/yy HH:mm")}.
+                {t("inbox.blocks.aprovadaEm", { date: format(new Date(item.aprovado_em), "dd/MM/yy HH:mm") })}
               </p>
             )}
           </section>
@@ -332,7 +328,7 @@ export function MailboxReadingPane({
         {canChinaCorrigir && (
           <section className="mt-6 rounded-md border border-rose-500/30 bg-rose-500/5 p-3">
             <p className="text-xs font-semibold text-rose-400 mb-1">
-              Brasil solicitou ajustes / 巴西请求修改
+              {t("inbox.blocks.brasilSolicitouAjustes")}
             </p>
             {item.observacoes_brasil && (
               <p className="mb-2 whitespace-pre-wrap text-[11px] text-foreground/90">
@@ -341,12 +337,12 @@ export function MailboxReadingPane({
             )}
             <Button size="sm" onClick={() => onCorrigir(item)} className="gap-1.5">
               <FileText className="h-4 w-4" />
-              Abrir e corrigir / 打开并修改
+              {t("inbox.actions.abrirCorrigir")}
             </Button>
           </section>
         )}
 
-        {/* Conversa / 对话 — chat China-Brasil contextualizado nesta submissão */}
+        {/* Conversa — chat China-Brasil contextualizado nesta submissão */}
         <section className="mt-6">
           <button
             type="button"
@@ -355,7 +351,7 @@ export function MailboxReadingPane({
           >
             {chatOpen ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
             <MessageSquare className="h-3.5 w-3.5 text-primary" />
-            <span>Conversa / 对话</span>
+            <span>{t("inbox.blocks.conversa")}</span>
           </button>
           {chatOpen && (
             <div className="mt-2 h-[480px] overflow-hidden rounded-md border border-border">
