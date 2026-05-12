@@ -51,7 +51,6 @@ export default function ChinaCaixaEntrada() {
     const { url, state } = buildReturnToTarget(target, fromPath, { fromLabel: "Caixa de Entrada" });
     navigate(url, { state });
   };
-  const ctx = useChinaUserContext();
   // Esta página é a CENTRAL DE COMANDO da China. Independente do perfil real
   // do usuário (admin, China, etc.), aqui ele opera como China. Brasil age
   // pela tela "Vincular China".
