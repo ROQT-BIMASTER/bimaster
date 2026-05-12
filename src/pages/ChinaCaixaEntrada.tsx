@@ -82,6 +82,7 @@ export default function ChinaCaixaEntrada() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [previewDoc, setPreviewDoc] = useState<MailboxItem | null>(null);
+  const [copilotOpen, setCopilotOpen] = useState(false);
   const searchInputRef = useRef<HTMLInputElement | null>(null);
 
   // Reset seleção ao trocar pasta
@@ -244,6 +245,14 @@ export default function ChinaCaixaEntrada() {
             >
               <Calculator className="h-4 w-4 mr-1.5" />
               Recalcular pendências
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCopilotOpen(true)}
+            >
+              <Sparkles className="h-4 w-4 mr-1.5" />
+              Copiloto de submissão
             </Button>
             <Button
               variant="ghost"
