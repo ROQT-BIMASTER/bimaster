@@ -1,8 +1,8 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import ReactMarkdown from "react-markdown";
 import {
   Sparkles, Copy, Download, Loader2, Search, AlertTriangle, CheckCircle2,
-  Clock, Ship, FileText, ListChecks, TrendingUp, Calendar, Printer,
+  Clock, Ship, FileText, ListChecks, TrendingUp, Calendar, FileDown, History, RefreshCw,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -21,11 +21,16 @@ import { supabase } from "@/integrations/supabase/client";
 import { parseLocalDate } from "@/lib/utils/parseLocalDate";
 import { chartColors } from "@/lib/chart-colors";
 import { cn } from "@/lib/utils";
+import { buildCopilotPdf } from "@/lib/china/copilotPdf";
+import {
+  useCopilotRelatorios, useArchivePdf, fetchRelatorioFull, fetchRelatorioPdfUrl,
+} from "@/hooks/useCopilotRelatorios";
 
 type Idioma = "pt" | "en" | "zh";
 type Profundidade = "executivo" | "completo";
 
 type Resultado = {
+  relatorio_id?: string | null;
   markdown: string;
   kpis: {
     etapas_concluidas: number;
@@ -191,18 +196,51 @@ export function SubmissionCopilotPanel({ open, onOpenChange, initialQuery = "" }
     URL.revokeObjectURL(url);
   };
 
-  const handlePrint = () => {
+  const archive = useArchivePdf();
+  const historyQ = useCopilotRelatorios(selecionada?.id ?? resultado?.submissao.id);
+
+  const handlePdf = async () => {
     if (!resultado) return;
-    const w = window.open("", "_blank", "width=900,height=1000");
-    if (!w) return;
-    const html = document.getElementById("copilot-report-content")?.innerHTML ?? "";
-    w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${resultado.submissao.codigo}</title>
-      <style>body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans SC",sans-serif;max-width:780px;margin:32px auto;padding:0 16px;color:#111;line-height:1.55}
-      h1,h2,h3{margin-top:1.6em}table{border-collapse:collapse;width:100%;margin:12px 0}
-      th,td{border:1px solid #ddd;padding:6px 10px;font-size:13px;text-align:left}th{background:#f7f7f7}</style>
-      </head><body>${html}</body></html>`);
-    w.document.close();
-    setTimeout(() => w.print(), 300);
+    try {
+      const { blob, filename, base64 } = buildCopilotPdf(resultado as any, idioma);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url; a.download = filename;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      if (resultado.relatorio_id) {
+        const b64 = await base64;
+        archive.mutate({ id: resultado.relatorio_id, pdf_base64: b64 });
+      }
+    } catch (e: any) {
+      toast.error(e?.message ?? "Falha ao gerar PDF");
+    }
+  };
+
+  const handleReopen = async (id: string) => {
+    const full = await fetchRelatorioFull(id);
+    if (!full) { toast.error("Relatório indisponível"); return; }
+    setIdioma(full.idioma);
+    setProfundidade(full.profundidade);
+    setResultado({
+      relatorio_id: full.id,
+      markdown: full.markdown,
+      kpis: full.kpis,
+      analytics: full.analytics,
+      submissao: { id: full.submissao_id, codigo: full.submissao_snapshot?.codigo ?? "—", nome: full.submissao_snapshot?.nome ?? "—" },
+      model: full.model ?? "",
+    });
+  };
+
+  const handleDownloadStored = async (id: string) => {
+    const url = await fetchRelatorioPdfUrl(id);
+    if (!url) { toast.error("PDF não arquivado ainda"); return; }
+    const r = await fetch(url);
+    const blob = await r.blob();
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob); a.download = `copiloto-${id}.pdf`;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(a.href);
   };
 
   const a = resultado?.analytics;
