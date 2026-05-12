@@ -77,14 +77,15 @@ export function MailboxList({
   search,
   actionFilter = "all",
   onActionFilterChange,
+  viewerOverride,
 }: Props) {
-  const { isBrasilUser, isChinaUser } = useChinaUserContext();
-  const viewer = { isBrasilUser, isChinaUser };
+  const ctx = useChinaUserContext();
+  const viewer = viewerOverride ?? { isBrasilUser: ctx.isBrasilUser, isChinaUser: ctx.isChinaUser };
 
   // Anota cada item com sua direção (uma vez)
   const itemsWithDir = useMemo(
     () => items.map((i) => ({ item: i, dir: resolveDirection(i, viewer) })),
-    [items, isBrasilUser, isChinaUser],
+    [items, viewer.isBrasilUser, viewer.isChinaUser],
   );
 
   // Filtro por ação requerida (só aplicado quando estamos no inbox)
