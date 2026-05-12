@@ -1,0 +1,63 @@
+{
+  "common": {
+    "salvar": "保存",
+    "cancelar": "取消",
+    "confirmar": "确认",
+    "fechar": "关闭",
+    "voltar": "返回",
+    "buscar": "搜索",
+    "filtrar": "筛选",
+    "limpar": "清除",
+    "carregando": "加载中…",
+    "semResultados": "无结果",
+    "erro": "发生错误",
+    "sucesso": "操作成功",
+    "aprovar": "批准",
+    "rejeitar": "拒绝",
+    "contestar": "异议",
+    "enviar": "发送",
+    "anexar": "附加",
+    "remover": "移除",
+    "editar": "编辑",
+    "excluir": "删除",
+    "novo": "新建",
+    "atualizar": "刷新",
+    "exportar": "导出",
+    "imprimir": "打印",
+    "baixar": "下载",
+    "visualizar": "查看",
+    "detalhes": "详情",
+    "sim": "是",
+    "nao": "否",
+    "obrigatorio": "必填",
+    "opcional": "可选"
+  },
+  "status": {
+    "rascunho": "草稿",
+    "em_revisao": "审核中",
+    "aprovado": "已批准",
+    "rejeitado": "已拒绝",
+    "enviado": "已发送",
+    "pendente": "待处理",
+    "em_andamento": "进行中",
+    "concluido": "已完成",
+    "cancelado": "已取消",
+    "pausado": "已暂停"
+  },
+  "nav": {
+    "caixaEntrada": "收件箱",
+    "novaSubmissao": "新提交",
+    "painel": "看板",
+    "submissoes": "提交记录",
+    "ordens": "生产订单",
+    "checklist": "产品清单",
+    "ficha": "产品规格表",
+    "auditoria": "审计"
+  },
+  "language": {
+    "label": "语言",
+    "pt": "Português",
+    "zh": "中文",
+    "en": "English"
+  }
+}
