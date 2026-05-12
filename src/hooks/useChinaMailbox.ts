@@ -58,6 +58,10 @@ export interface MailboxCounts {
   rejected: number;
   trash: number;
   unread_inbox: number;
+  awaiting_send: number;
+  sent_brazil: number;
+  in_analysis: number;
+  returned: number;
 }
 
 interface UseChinaMailboxResult {
@@ -77,6 +81,10 @@ const ZERO_COUNTS: MailboxCounts = {
   rejected: 0,
   trash: 0,
   unread_inbox: 0,
+  awaiting_send: 0,
+  sent_brazil: 0,
+  in_analysis: 0,
+  returned: 0,
 };
 
 export function useChinaMailbox(folder: MailboxFolder): UseChinaMailboxResult {
