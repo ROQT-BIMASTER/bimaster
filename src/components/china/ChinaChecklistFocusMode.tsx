@@ -377,6 +377,29 @@ export function ChinaChecklistFocusMode({
     }
   };
 
+  const handleSubmitSingle = async (docId: string) => {
+    try {
+      const { error } = await supabase
+        .from("china_produto_documentos" as any)
+        .update({ status: "pendente" } as any)
+        .eq("id", docId);
+      if (error) throw error;
+      await supabase
+        .from("china_produto_submissoes" as any)
+        .update({ status: "enviado_brasil", data_envio: new Date().toISOString() } as any)
+        .eq("id", submissaoId);
+      toast.success("Documento enviado ao Brasil 文件已发送至巴西");
+      setSelected((prev) => {
+        const next = new Set(prev);
+        next.delete(docId);
+        return next;
+      });
+      onRefresh();
+    } catch {
+      toast.error("Erro ao enviar 发送错误");
+    }
+  };
+
   const handleUploadWithPreview = (tipo: string, file: File) => {
     const config = allDocTypes.find((d) => d.tipo === tipo);
     setPreviewFile(file);
