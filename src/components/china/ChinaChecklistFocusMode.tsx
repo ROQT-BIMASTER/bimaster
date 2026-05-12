@@ -39,6 +39,7 @@ import { ArrowUpRight, ArrowDownLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { uploadAndGetSignedUrl } from "@/lib/utils/storage-helper";
+import { logger } from "@/lib/logger";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -456,33 +457,67 @@ export function ChinaChecklistFocusMode({
 
   const handleConfirmUpload = async (file: File, status: "rascunho" | "pendente") => {
     if (!previewTipo) return;
+    if (!submissaoId) {
+      toast.error("Submissão ainda não foi salva. Salve os dados básicos antes de anexar arquivos.");
+      return;
+    }
     setUploadingTipo(previewTipo.tipo);
     try {
-      const path = `${submissaoId}/${previewTipo.tipo}/${Date.now()}_${file.name}`;
-      const { signedUrl, error } = await uploadAndGetSignedUrl("china-documentos", path, file);
-      if (error) { toast.error("Erro no upload 上传错误"); return; }
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        toast.error("Sessão expirada. Faça login novamente.");
+        return;
+      }
+      // Path padronizado com UID do dono para satisfazer todas as variações de RLS
+      // do bucket china-documentos (uid/... e submissao/...).
+      const safeName = file.name.replace(/[^\w.\-]+/g, "_");
+      const path = `${session.user.id}/${submissaoId}/${previewTipo.tipo}/${Date.now()}_${safeName}`;
+      const { signedUrl, error: uploadError } = await uploadAndGetSignedUrl("china-documentos", path, file);
+      if (uploadError || !signedUrl) {
+        logger.error("Checklist upload error:", uploadError);
+        const msg = (uploadError as any)?.message || "";
+        if (msg.includes("row-level security") || msg.includes("Unauthorized") || msg.toLowerCase().includes("permission")) {
+          toast.error("Sem permissão para enviar arquivos nesta submissão.");
+        } else {
+          toast.error(msg || "Erro no upload 上传错误");
+        }
+        return;
+      }
 
       // Check if there's a "planejado" placeholder to update instead of insert
       const existingPlaceholder = documentos.find(d => d.tipo_documento === previewTipo.tipo && d.status === "planejado");
-      if (existingPlaceholder) {
-        await supabase.from("china_produto_documentos" as any).update({
-          arquivo_url: signedUrl,
-          arquivo_path: path,
-          nome_arquivo: file.name,
-          status,
-        } as any).eq("id", existingPlaceholder.id);
-      } else {
-        await supabase.from("china_produto_documentos" as any).insert({
-          submissao_id: submissaoId,
-          tipo_documento: previewTipo.tipo,
-          arquivo_url: signedUrl,
-          arquivo_path: path,
-          nome_arquivo: file.name,
-          status,
-        } as any);
+      const dbResult = existingPlaceholder
+        ? await supabase.from("china_produto_documentos" as any).update({
+            arquivo_url: signedUrl,
+            arquivo_path: path,
+            nome_arquivo: file.name,
+            status,
+          } as any).eq("id", existingPlaceholder.id)
+        : await supabase.from("china_produto_documentos" as any).insert({
+            submissao_id: submissaoId,
+            tipo_documento: previewTipo.tipo,
+            arquivo_url: signedUrl,
+            arquivo_path: path,
+            nome_arquivo: file.name,
+            status,
+          } as any);
+
+      if (dbResult.error) {
+        logger.error("Checklist doc DB error:", dbResult.error);
+        const msg = dbResult.error.message || "";
+        if (msg.includes("row-level security") || msg.includes("violates")) {
+          toast.error("Sem permissão para registrar o documento. Verifique o acesso ao módulo Fábrica/China.");
+        } else {
+          toast.error(msg || "Erro ao registrar documento no checklist");
+        }
+        return;
       }
+
       onRefresh();
       toast.success(status === "rascunho" ? "Salvo como rascunho 已保存为草稿" : "Enviado ao Brasil 已发送至巴西");
+    } catch (err: any) {
+      logger.error("Checklist upload exception:", err);
+      toast.error(err?.message || "Falha inesperada ao salvar documento");
     } finally {
       setUploadingTipo(null);
       setPreviewFile(null);
