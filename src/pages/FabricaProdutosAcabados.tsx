@@ -28,7 +28,8 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Plus, Search, Package, Edit, Trash2, Upload, DollarSign, FileX, Filter, Layers, X, TrendingUp, ClipboardList, HelpCircle, LayoutGrid, TableIcon, BarChart3, ChevronDown, MessageSquare, Kanban, Link2, Eye, EyeOff, User, PanelLeftClose, PanelLeftOpen, Calendar, Clock, AlertTriangle, Maximize2, Minimize2, Palette, ArrowLeft } from "lucide-react";
+import { Plus, Search, Package, Edit, Trash2, Upload, DollarSign, FileX, Filter, Layers, X, TrendingUp, ClipboardList, HelpCircle, LayoutGrid, TableIcon, BarChart3, ChevronDown, MessageSquare, Kanban, Link2, Eye, EyeOff, User, PanelLeftClose, PanelLeftOpen, Calendar, Clock, AlertTriangle, Maximize2, Minimize2, Palette, ArrowLeft, ShieldQuestion } from "lucide-react";
+import { PhotoPermissionDiagnosticsDialog } from "@/components/fabrica/PhotoPermissionDiagnosticsDialog";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { formatLocalDate, parseLocalDate } from "@/utils/dateUtils";
 import ProductThumbnail from "@/components/fabrica/ProductThumbnail";
@@ -60,6 +61,7 @@ export default function FabricaProdutosAcabados() {
   const { data: systemProfiles } = useSystemProfiles();
   const { startTour, hasSeenTour } = useTour();
   const [dialogNovo, setDialogNovo] = useState(false);
+  const [diagnosticoOpen, setDiagnosticoOpen] = useState(false);
   const [produtoEdit, setProdutoEdit] = useState<any>(null);
   const [busca, setBusca] = useState("");
   const [filtroMarca, setFiltroMarca] = useState("none");
@@ -709,6 +711,22 @@ export default function FabricaProdutosAcabados() {
               </Button>
             )}
             <Button
+              variant="outline"
+              size="sm"
+              className="h-8"
+              onClick={() => setDiagnosticoOpen(true)}
+              title="Verificar permissões de upload/edição/exclusão de fotos"
+            >
+              <ShieldQuestion className="h-3.5 w-3.5 mr-1.5" />
+              Diagnóstico de fotos
+            </Button>
+            <Button variant="outline" size="sm" className="h-8" asChild>
+              <Link to="/dashboard/fabrica/auditoria-fotos">
+                <ClipboardList className="h-3.5 w-3.5 mr-1.5" />
+                Auditoria de fotos
+              </Link>
+            </Button>
+            <Button
               size="sm"
               className="h-8"
               onClick={() => {
@@ -1328,6 +1346,11 @@ export default function FabricaProdutosAcabados() {
           refetch();
           setProdutoEdit(null);
         }}
+      />
+
+      <PhotoPermissionDiagnosticsDialog
+        open={diagnosticoOpen}
+        onOpenChange={setDiagnosticoOpen}
       />
     </DashboardLayout>
   );

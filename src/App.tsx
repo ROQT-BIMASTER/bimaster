@@ -191,6 +191,7 @@ const FabricaParadas = lazyWithRetry(() => import("./pages/FabricaParadas"));
 const FabricaMaquinas = lazyWithRetry(() => import("./pages/FabricaMaquinas"));
 const FabricaOperadores = lazyWithRetry(() => import("./pages/FabricaOperadores"));
 const FabricaProdutosAcabados = lazyWithRetry(() => import("./pages/FabricaProdutosAcabados"));
+const FabricaAuditoriaFotos = lazyWithRetry(() => import("./pages/FabricaAuditoriaFotos"));
 const FichaCustoProduto = lazyWithRetry(() => import("./pages/FichaCustoProduto"));
 const ImportarProdutosAcabados = lazyWithRetry(() => import("./pages/ImportarProdutosAcabados"));
 const FichaRevisaoDiretoria = lazyWithRetry(() => import("./pages/FichaRevisaoDiretoria"));
@@ -628,6 +629,7 @@ function AppContent() {
             <Route path="/dashboard/fabrica/maquinas" element={<ModuleRoute moduleCode="fabrica"><ScreenProtectedRoute screenCode="fabrica_maquinas"><FabricaMaquinas /></ScreenProtectedRoute></ModuleRoute>} />
             <Route path="/dashboard/fabrica/operadores" element={<ModuleRoute moduleCode="fabrica"><ScreenProtectedRoute screenCode="fabrica_operadores"><FabricaOperadores /></ScreenProtectedRoute></ModuleRoute>} />
             <Route path="/dashboard/fabrica/produtos-acabados" element={<ModuleRoute moduleCode="fabrica"><ScreenProtectedRoute screenCode="fabrica_produtos"><FabricaProdutosAcabados /></ScreenProtectedRoute></ModuleRoute>} />
+            <Route path="/dashboard/fabrica/auditoria-fotos" element={<ModuleRoute moduleCode="fabrica"><ScreenProtectedRoute screenCode="fabrica_produtos"><FabricaAuditoriaFotos /></ScreenProtectedRoute></ModuleRoute>} />
             <Route path="/dashboard/fabrica/produtos/:id/custos" element={<ModuleRoute moduleCode="fabrica"><ScreenProtectedRoute screenCode="fabrica_produtos"><FichaCustoProduto /></ScreenProtectedRoute></ModuleRoute>} />
             <Route path="/dashboard/fabrica/produtos/importar" element={<ModuleRoute moduleCode="fabrica"><ScreenProtectedRoute screenCode="fabrica_produtos"><ImportarProdutosAcabados /></ScreenProtectedRoute></ModuleRoute>} />
             <Route path="/dashboard/fabrica/revisao-fichas" element={<ModuleRoute moduleCode="fabrica"><ScreenProtectedRoute screenCode="fabrica_revisao_fichas"><FichaRevisaoDiretoria /></ScreenProtectedRoute></ModuleRoute>} />
