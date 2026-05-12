@@ -37,18 +37,44 @@ export function useChinaOrdemItens(ordemId?: string) {
   });
 }
 
+/**
+ * Cancela parte do saldo de um item de OC chamando a RPC com snapshot,
+ * lock e validação de motivo. Substitui o UPDATE direto que bypassava
+ * `rpc_china_oc_cancelar_saldo_item` (achado #2 da auditoria China).
+ *
+ * `qtyCancelar` é a QUANTIDADE A SOMAR ao saldo cancelado (delta), não o total.
+ */
 export function useCancelarSaldoItem() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, qty }: { id: string; qty: number }) => {
-      const { error } = await supabase
-        .from("china_ordem_itens" as any)
-        .update({ qty_cancelada: qty } as any)
-        .eq("id", id);
+    mutationFn: async ({
+      itemId,
+      qtyCancelar,
+      motivo,
+    }: {
+      itemId: string;
+      qtyCancelar: number;
+      motivo: string;
+    }) => {
+      if (!Number.isFinite(qtyCancelar) || qtyCancelar <= 0) {
+        throw new Error("Quantidade a cancelar deve ser maior que zero");
+      }
+      if (!motivo || motivo.trim().length === 0) {
+        throw new Error("Motivo é obrigatório para cancelar saldo");
+      }
+      const { error } = await supabase.rpc(
+        "rpc_china_oc_cancelar_saldo_item" as any,
+        {
+          p_item_id: itemId,
+          p_qty_cancelar: Math.trunc(qtyCancelar),
+          p_motivo: motivo.trim(),
+        } as any,
+      );
       if (error) throw error;
     },
-    onSuccess: (_d, v) => {
+    onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["china-ordem-itens"] });
+      qc.invalidateQueries({ queryKey: ["china-ordens"] });
       toast.success("Saldo cancelado com sucesso");
     },
     onError: (e: any) => toast.error(e.message || "Erro ao cancelar"),

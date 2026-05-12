@@ -44663,6 +44663,10 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      rpc_china_chat_set_traducao: {
+        Args: { p_idioma: string; p_msg_id: string; p_texto: string }
+        Returns: undefined
+      }
       rpc_china_confirmar_embarque: {
         Args: {
           p_data_embarque: string
