@@ -77,6 +77,11 @@ export function MinhasTarefaDetail({ tarefa, open, onOpenChange }: Props) {
   const isOverdue = tarefa.status !== "concluida" && tarefa.data_prazo && new Date(tarefa.data_prazo) < new Date();
 
   const handleSave = async () => {
+    if (status === "concluida" && tarefa.status !== "concluida") {
+      const { confirmConclusaoTarefa } = await import("@/lib/projetos/confirmConclusao");
+      const ok = await confirmConclusaoTarefa({ titulo: tarefa.titulo });
+      if (!ok) return;
+    }
     setSaving(true);
     const update: Record<string, any> = {
       titulo,

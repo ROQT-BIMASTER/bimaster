@@ -103,6 +103,12 @@ export function HojeTab({ onGoToTarefas }: Props) {
   const totalDestaque = atrasadas.length + hoje.length + semData.length;
 
   const handleToggle = async (id: string, done: boolean) => {
+    if (done) {
+      const tarefa = pendentes.find(t => t.id === id) ?? atrasadas.find(t => t.id === id) ?? hoje.find(t => t.id === id) ?? semData.find(t => t.id === id);
+      const { confirmConclusaoTarefa } = await import("@/lib/projetos/confirmConclusao");
+      const ok = await confirmConclusaoTarefa({ titulo: (tarefa as any)?.titulo });
+      if (!ok) return;
+    }
     const update: any = { status: done ? "concluida" : "pendente" };
     update.data_conclusao = done ? new Date().toISOString() : null;
     const { error } = await supabase.from("projeto_tarefas").update(update).eq("id", id);
