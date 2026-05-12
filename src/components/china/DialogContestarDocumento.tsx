@@ -128,9 +128,22 @@ export function DialogContestarDocumento({
               Parecer técnico — resposta detalhada *
             </Label>
             <div className="rounded-lg border bg-card shadow-sm">
-              <div className="flex items-center justify-between border-b px-3 py-1.5 text-[11px] text-muted-foreground bg-muted/40 rounded-t-lg">
+              <div className="flex items-center justify-between gap-2 border-b px-3 py-1.5 text-[11px] text-muted-foreground bg-muted/40 rounded-t-lg">
                 <span>Documento de resposta · escreva como em um e-mail ou parecer formal</span>
-                <span>{parecer.length}/8000</span>
+                <div className="flex items-center gap-2">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    className="h-6 px-2 text-[11px] gap-1"
+                    onClick={handleTraduzirParecer}
+                    disabled={!parecer.trim() || traduzir.isPending}
+                  >
+                    {traduzir.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Languages className="h-3 w-3" />}
+                    Traduzir PT/ZH/EN
+                  </Button>
+                  <span>{parecer.length}/8000</span>
+                </div>
               </div>
               <Textarea
                 id="parecer"
@@ -142,6 +155,30 @@ export function DialogContestarDocumento({
                 className="border-0 rounded-t-none focus-visible:ring-0 focus-visible:ring-offset-0 min-h-[320px] font-serif text-[13px] leading-relaxed resize-y"
               />
             </div>
+            {traducoesPreview && (
+              <div className="rounded-lg border bg-muted/30 p-3 space-y-2">
+                <div className="flex items-center gap-1 flex-wrap">
+                  <Languages className="h-3.5 w-3.5 text-muted-foreground" />
+                  <span className="text-[11px] font-medium text-muted-foreground mr-1">Pré-visualização da tradução:</span>
+                  {(["pt", "zh", "en"] as IdiomaTraducao[]).map((l) => (
+                    <Button
+                      key={l}
+                      type="button"
+                      size="sm"
+                      variant={idiomaPreview === l ? "default" : "outline"}
+                      className="h-6 px-2 text-[11px]"
+                      onClick={() => setIdiomaPreview(l)}
+                      disabled={!traducoesPreview[l]}
+                    >
+                      {l === "pt" ? "Português" : l === "zh" ? "中文" : "English"}
+                    </Button>
+                  ))}
+                </div>
+                <div className="text-[13px] whitespace-pre-wrap break-words bg-card border rounded p-2 max-h-48 overflow-y-auto">
+                  {traducoesPreview[idiomaPreview] || <span className="italic text-muted-foreground">Tradução indisponível</span>}
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="space-y-2">
