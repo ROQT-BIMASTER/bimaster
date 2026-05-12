@@ -229,6 +229,37 @@ export function MailboxList({
                     </span>
                   )}
                 </div>
+                {folder === "awaiting_send" && (() => {
+                  const ev = evaluateAwaitingSend(item);
+                  if (!ev.matches) return null;
+                  return (
+                    <div className="mt-1 flex flex-wrap items-center gap-1">
+                      {ev.reasons.map((r) => {
+                        const Icon =
+                          r === "sem_documento" ? FileX2 :
+                          r === "sem_parecer" ? MessageSquareOff :
+                          FileText;
+                        const cls =
+                          r === "sem_documento"
+                            ? "bg-rose-500/15 text-rose-400 border-rose-500/30"
+                            : r === "sem_parecer"
+                            ? "bg-amber-500/15 text-amber-400 border-amber-500/30"
+                            : "bg-muted/40 text-muted-foreground border-border";
+                        return (
+                          <Badge
+                            key={r}
+                            variant="outline"
+                            className={cn("h-4 gap-0.5 px-1.5 text-[9.5px] font-medium", cls)}
+                            title={`Motivo: ${AWAITING_SEND_REASON_LABEL[r]}`}
+                          >
+                            <Icon className="h-2.5 w-2.5" />
+                            {AWAITING_SEND_REASON_LABEL[r]}
+                          </Badge>
+                        );
+                      })}
+                    </div>
+                  );
+                })()}
               </div>
               <div className="flex shrink-0 flex-col items-end gap-1">
                 <Badge
