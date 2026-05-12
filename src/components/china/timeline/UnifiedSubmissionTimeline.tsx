@@ -145,7 +145,7 @@ export function UnifiedSubmissionTimeline({ submissao, ocId, onlyChinaStages, cl
       <div className="space-y-2">
         <StageCard icon={FilePlus2} title="1. Submissão criada" status={stSubmissao}>
           <DataRow label="Criada em" value={submissao.created_at ? fmtDate(submissao.created_at) : "—"} />
-          <DataRow label="Status atual" value={submissao.submissao_status} />
+          <DataRow label="Status atual" value={submStatus || "—"} />
           {submissao.numero_ordem && <DataRow label="OC vinculada" value={submissao.numero_ordem} />}
         </StageCard>
 
@@ -171,7 +171,7 @@ export function UnifiedSubmissionTimeline({ submissao, ocId, onlyChinaStages, cl
         <StageCard icon={ShieldCheck} title="4. Aprovação Brasil" status={stAprovBrasil}>
           {submissao.aprovado_em ? (
             <DataRow label="Aprovada em" value={fmtDate(submissao.aprovado_em)} />
-          ) : submissao.submissao_status === "rejeitado" ? (
+          ) : submStatus === "rejeitado" ? (
             <p className="text-muted-foreground italic">Submissão rejeitada — aguardando correção.</p>
           ) : enviadaParaBrasil ? (
             <p className="text-muted-foreground italic">Em análise pelo Brasil.</p>
