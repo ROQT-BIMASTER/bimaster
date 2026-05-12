@@ -577,6 +577,16 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
         .update({ excluida_em: new Date().toISOString(), excluida_por: user?.id || null } as any)
         .eq("id", tarefaId);
       if (error) throw error;
+
+      await registrarAuditoriaTarefa({
+        tarefaId,
+        projetoId: tarefa?.projeto_id,
+        parentTarefaId: tarefa?.parent_tarefa_id,
+        isSubtarefa: !!tarefa?.parent_tarefa_id,
+        tituloSnapshot: tarefa?.titulo,
+        action: "excluida",
+        metadata: { source: "softDeleteTarefa" },
+      });
     },
     onMutate: async (tarefaId) => {
       await queryClient.cancelQueries({ queryKey: ["projeto-tarefas-v2", projetoId] });
