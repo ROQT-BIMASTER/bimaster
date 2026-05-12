@@ -1099,18 +1099,24 @@ export default function ChinaNovaSubmissao() {
                       const catFileCount = catLocalDocs.reduce((sum, [, files]) => sum + files.length, 0);
                       const catFilledTypes = catLocalDocs.filter(([, files]) => files.length > 0).length;
                       const hasRejected = catLocalDocs.some(([, files]) => files.some(f => f.status === "rejeitado"));
+                      const hasDrafts = catLocalDocs.some(([, files]) => files.some(f => f.status === "rascunho"));
                       const allApproved = catFilledTypes === catTotalTypes && catFileCount > 0 && catLocalDocs.every(([, files]) => files.every(f => f.status === "aprovado"));
 
                       const statusBadge = allApproved
                         ? <Badge variant="success" className="text-xs">✓ Completo 完成</Badge>
                         : hasRejected
                         ? <Badge variant="destructive" className="text-xs">✗ Rejeitado 被拒</Badge>
+                        : hasDrafts
+                        ? <Badge variant="warning" className="text-xs whitespace-nowrap">⚠ Não enviado ao Brasil 未发送</Badge>
                         : catFilledTypes === 0
                         ? <Badge variant="secondary" className="text-xs">— Vazio 空</Badge>
                         : <Badge variant="warning" className="text-xs">⏳ Parcial 部分</Badge>;
 
                       return (
-                        <tr key={cat.key} className="hover:bg-accent/10 transition-colors">
+                        <tr
+                          key={cat.key}
+                          className={`hover:bg-accent/10 transition-colors ${hasDrafts && !hasRejected ? "bg-warning/5 border-l-4 border-l-warning" : ""}`}
+                        >
                           <td className="px-4 py-3">
                             <p className="font-medium text-foreground text-sm">{cat.labelPt}</p>
                             <p className="text-[10px] text-muted-foreground">{cat.labelCn}</p>
