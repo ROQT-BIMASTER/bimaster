@@ -20,42 +20,35 @@ export interface CopilotRelatorioFull extends CopilotRelatorioItem {
   analytics: any;
 }
 
+async function authHeaders(): Promise<Record<string, string>> {
+  const { data: { session } } = await supabase.auth.getSession();
+  return { Authorization: `Bearer ${session?.access_token ?? ""}` };
+}
+
+const BASE = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/china-copilot-relatorios`;
+
 export function useCopilotRelatorios(submissaoId: string | null | undefined) {
   return useQuery<CopilotRelatorioItem[]>({
     queryKey: ["china-copilot-rel", submissaoId],
     enabled: !!submissaoId,
     queryFn: async () => {
-      const { data, error } = await supabase.functions.invoke("china-copilot-relatorios", {
-        body: undefined,
-        method: "GET",
-        // @ts-expect-error supabase-js v2 supports query through 'headers' workaround; using direct fetch is simpler
-      });
-      // Fallback usando fetch direto (mais previsível para query string)
-      if (error) {
-        const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/china-copilot-relatorios?submissao_id=${submissaoId}`;
-        const { data: { session } } = await supabase.auth.getSession();
-        const r = await fetch(url, { headers: { Authorization: `Bearer ${session?.access_token ?? ""}` } });
-        const j = await r.json();
-        return j.itens ?? [];
-      }
-      return (data as any)?.itens ?? [];
+      const r = await fetch(`${BASE}?submissao_id=${submissaoId}`, { headers: await authHeaders() });
+      if (!r.ok) return [];
+      const j = await r.json();
+      return j.itens ?? [];
     },
   });
 }
 
 export async function fetchRelatorioFull(id: string): Promise<CopilotRelatorioFull | null> {
-  const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/china-copilot-relatorios?id=${id}`;
-  const { data: { session } } = await supabase.auth.getSession();
-  const r = await fetch(url, { headers: { Authorization: `Bearer ${session?.access_token ?? ""}` } });
+  const r = await fetch(`${BASE}?id=${id}`, { headers: await authHeaders() });
   if (!r.ok) return null;
   const j = await r.json();
   return j.relatorio ?? null;
 }
 
 export async function fetchRelatorioPdfUrl(id: string): Promise<string | null> {
-  const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/china-copilot-relatorios?id=${id}&download=pdf`;
-  const { data: { session } } = await supabase.auth.getSession();
-  const r = await fetch(url, { headers: { Authorization: `Bearer ${session?.access_token ?? ""}` } });
+  const r = await fetch(`${BASE}?id=${id}&download=pdf`, { headers: await authHeaders() });
   if (!r.ok) return null;
   const j = await r.json();
   return j.url ?? null;
@@ -65,13 +58,16 @@ export function useArchivePdf() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, pdf_base64 }: { id: string; pdf_base64: string }) => {
-      const { data, error } = await supabase.functions.invoke("china-copilot-relatorios", {
-        body: { id, pdf_base64 },
+      const headers = await authHeaders();
+      const r = await fetch(BASE, {
+        method: "POST",
+        headers: { ...headers, "Content-Type": "application/json" },
+        body: JSON.stringify({ id, pdf_base64 }),
       });
-      if (error) throw error;
-      return data;
+      if (!r.ok) throw new Error(`upload failed (${r.status})`);
+      return r.json();
     },
-    onSuccess: (_d, vars) => {
+    onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["china-copilot-rel"] });
     },
   });
