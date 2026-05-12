@@ -31,6 +31,8 @@ interface Props {
   /** Se true, mostra somente etapas 1–4 (uso embutido em outras telas). */
   onlyChinaStages?: boolean;
   className?: string;
+  /** Notifica o pai com a lista de etapas (para exportar em PDF, por exemplo). */
+  onStagesComputed?: (stages: import("@/lib/china/exportTimelinePdf").JourneyStageRow[]) => void;
 }
 
 const fmtDate = (d: string | null | undefined): string => {
