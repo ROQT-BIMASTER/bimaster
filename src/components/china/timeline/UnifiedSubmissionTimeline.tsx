@@ -264,22 +264,59 @@ export function UnifiedSubmissionTimeline({ submissao, ocId, onlyChinaStages, cl
         <StageCard icon={Send} title="3. Enviada ao Brasil" status={stEnviada}>
           <DataRow
             label="Estado"
-            value={enviadaParaBrasil ? "Em poder do Brasil" : "Aguardando envio (rascunho)"}
+            value={
+              totalDocs === 0
+                ? (enviadaParaBrasil ? "Em poder do Brasil" : "Aguardando envio (rascunho)")
+                : allSent
+                ? "Checklist completo enviado"
+                : enviadosDocs > 0
+                ? "Envio parcial em andamento"
+                : "Aguardando envio do checklist"
+            }
           />
-          {docs?.ultimoEm && enviadaParaBrasil && (
+          {totalDocs > 0 && (
+            <ProgressBlock
+              label="Checklist enviado ao Brasil"
+              current={enviadosDocs}
+              total={totalDocs}
+              tone={allSent ? "emerald" : "amber"}
+            />
+          )}
+          {docs?.ultimoEm && enviadosDocs > 0 && (
             <DataRow label="Última atividade" value={fmtDate(docs.ultimoEm)} />
+          )}
+          {totalDocs > 0 && !allSent && (
+            <ExpandableDocList
+              rows={docs?.rows ?? []}
+              filter={(r) => !SENT_STATUSES.includes(r.status)}
+              emptyText="Nenhum item pendente."
+            />
           )}
         </StageCard>
 
         <StageCard icon={ShieldCheck} title="4. Aprovação Brasil" status={stAprovBrasil}>
-          {submissao.aprovado_em ? (
-            <DataRow label="Aprovada em" value={fmtDate(submissao.aprovado_em)} />
-          ) : submStatus === "rejeitado" ? (
-            <p className="text-muted-foreground italic">Submissão rejeitada — aguardando correção.</p>
-          ) : enviadaParaBrasil ? (
-            <p className="text-muted-foreground italic">Em análise pelo Brasil.</p>
+          {enviadosDocs > 0 ? (
+            <ProgressBlock
+              label="Aprovados pelo Brasil"
+              current={aprovDocs}
+              total={enviadosDocs}
+              tone={fullyApproved ? "emerald" : rejDocs > 0 ? "rose" : "amber"}
+            />
           ) : (
             <p className="text-muted-foreground italic">Aguardando envio ao Brasil.</p>
+          )}
+          {submissao.aprovado_em && (
+            <DataRow label="Aprovada em" value={fmtDate(submissao.aprovado_em)} />
+          )}
+          {rejDocs > 0 && (
+            <DataRow label="Rejeitados" value={rejDocs} />
+          )}
+          {enviadosDocs > 0 && (aprovDocs < enviadosDocs || rejDocs > 0) && (
+            <ExpandableDocList
+              rows={docs?.rows ?? []}
+              filter={(r) => SENT_STATUSES.includes(r.status) && r.status !== "aprovado"}
+              emptyText="Nenhum item aguardando retorno do Brasil."
+            />
           )}
         </StageCard>
 
