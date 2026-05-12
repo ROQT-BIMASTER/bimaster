@@ -62,7 +62,8 @@ export function ContainerDetailSheet({ shipmentId, open, onOpenChange }: Props) 
                 >
                   <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${sync.isPending ? "animate-spin" : ""}`} />
                 Atualizar
-              </Button>
+                </Button>
+              </div>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
