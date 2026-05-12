@@ -350,24 +350,54 @@ export function ChinaChecklistFocusMode({
     });
   }, []);
 
+  const logSendEvent = async (docs: DocRecord[]) => {
+    if (docs.length === 0) return;
+    try {
+      await supabase.rpc("rpc_china_log_evento" as any, {
+        p_kind: "documento_enviado_brasil",
+        p_title:
+          docs.length === 1
+            ? `Documento enviado ao Brasil: ${docs[0].nome_arquivo || docs[0].tipo_documento}`
+            : `${docs.length} documentos enviados ao Brasil`,
+        p_descricao: docs
+          .map((d) => `• ${d.tipo_documento}${d.nome_arquivo ? ` — ${d.nome_arquivo}` : ""}`)
+          .join("\n"),
+        p_payload: {
+          documento_ids: docs.map((d) => d.id),
+          tipos: docs.map((d) => d.tipo_documento),
+          nomes: docs.map((d) => d.nome_arquivo),
+        },
+        p_submissao_id: submissaoId,
+        p_documento_id: docs.length === 1 ? docs[0].id : null,
+      });
+    } catch {
+      /* não bloquear o envio se o log falhar */
+    }
+  };
+
+  const submitDocs = async (docs: DocRecord[]) => {
+    if (docs.length === 0) return;
+    const ids = docs.map((d) => d.id);
+    const { error } = await supabase
+      .from("china_produto_documentos" as any)
+      .update({ status: "pendente" } as any)
+      .in("id", ids);
+    if (error) throw error;
+    const { error: subErr } = await supabase
+      .from("china_produto_submissoes" as any)
+      .update({ status: "enviado_brasil", data_envio: new Date().toISOString() } as any)
+      .eq("id", submissaoId);
+    if (subErr) throw subErr;
+    await logSendEvent(docs);
+  };
+
   const handleSubmitSelected = async () => {
     if (selected.size === 0) return;
     setSubmitting(true);
     try {
-      const { error } = await supabase
-        .from("china_produto_documentos" as any)
-        .update({ status: "pendente" } as any)
-        .in("id", Array.from(selected));
-      if (error) throw error;
-      // Promove a submissão (vista no painel da China) para "enviado_brasil"
-      // para que apareça imediatamente em Vincular China (Mesa do Brasil).
-      // 将提交单状态更新为 enviado_brasil，以便立即出现在“关联中国”面板
-      const { error: subErr } = await supabase
-        .from("china_produto_submissoes" as any)
-        .update({ status: "enviado_brasil", data_envio: new Date().toISOString() } as any)
-        .eq("id", submissaoId);
-      if (subErr) throw subErr;
-      toast.success(`${selected.size} documento(s) enviado(s) ao Brasil! ${selected.size}份文件已发送至巴西！`);
+      const docs = documentos.filter((d) => selected.has(d.id));
+      await submitDocs(docs);
+      toast.success(`${docs.length} documento(s) enviado(s) ao Brasil! ${docs.length}份文件已发送至巴西！`);
       setSelected(new Set());
       onRefresh();
     } catch {
@@ -377,17 +407,27 @@ export function ChinaChecklistFocusMode({
     }
   };
 
-  const handleSubmitSingle = async (docId: string) => {
+  const handleSubmitAllDrafts = async () => {
+    if (draftDocs.length === 0) return;
+    setSubmitting(true);
     try {
-      const { error } = await supabase
-        .from("china_produto_documentos" as any)
-        .update({ status: "pendente" } as any)
-        .eq("id", docId);
-      if (error) throw error;
-      await supabase
-        .from("china_produto_submissoes" as any)
-        .update({ status: "enviado_brasil", data_envio: new Date().toISOString() } as any)
-        .eq("id", submissaoId);
+      await submitDocs(draftDocs);
+      toast.success(`${draftDocs.length} rascunho(s) enviado(s) ao Brasil! 已发送至巴西！`);
+      setSelected(new Set());
+      onRefresh();
+    } catch {
+      toast.error("Erro ao enviar rascunhos 发送错误");
+    } finally {
+      setSubmitting(false);
+      setConfirmAllOpen(false);
+    }
+  };
+
+  const handleSubmitSingleConfirmed = async (docId: string) => {
+    try {
+      const doc = documentos.find((d) => d.id === docId);
+      if (!doc) return;
+      await submitDocs([doc]);
       toast.success("Documento enviado ao Brasil 文件已发送至巴西");
       setSelected((prev) => {
         const next = new Set(prev);
@@ -397,6 +437,8 @@ export function ChinaChecklistFocusMode({
       onRefresh();
     } catch {
       toast.error("Erro ao enviar 发送错误");
+    } finally {
+      setConfirmSingleId(null);
     }
   };
 
