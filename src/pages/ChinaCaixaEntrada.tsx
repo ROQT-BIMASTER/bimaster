@@ -51,19 +51,20 @@ export default function ChinaCaixaEntrada() {
     const { url, state } = buildReturnToTarget(target, fromPath, { fromLabel: "Caixa de Entrada" });
     navigate(url, { state });
   };
-  const { isBrasilUser, isChinaUser } = useChinaUserContext();
+  const ctx = useChinaUserContext();
+  // Esta página é a CENTRAL DE COMANDO da China. Independente do perfil real
+  // do usuário (admin, China, etc.), aqui ele opera como China. Brasil age
+  // pela tela "Vincular China".
+  const isChinaUser = true;
+  const isBrasilUser = false;
   const isDesktop = useMediaQuery("(min-width: 1024px)");
 
   const folderParam = searchParams.get("folder") as MailboxFolder | null;
   const rawFolder: MailboxFolder =
     folderParam && VALID_FOLDERS.includes(folderParam)
       ? folderParam
-      : isChinaUser
-        ? "awaiting_send"
-        : "inbox";
-  const folder: MailboxFolder = isChinaUser
-    ? (CHINA_FOLDER_ALIAS[rawFolder] ?? rawFolder)
-    : rawFolder;
+      : "awaiting_send";
+  const folder: MailboxFolder = CHINA_FOLDER_ALIAS[rawFolder] ?? rawFolder;
 
   const { items, counts, isLoading, isFetching, refetch } = useChinaMailbox(folder);
   const toggleRead = useToggleInboxRead();
