@@ -799,9 +799,12 @@ export function ChinaChecklistFocusMode({
       </Button>
 
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
-        <DialogContent className="max-w-[98vw] w-[98vw] h-[95vh] max-h-[95vh] p-0 overflow-hidden flex flex-col">
+        <DialogContent
+          className="max-w-[98vw] w-[98vw] h-[95vh] max-h-[95vh] p-0 overflow-hidden flex flex-col"
+          style={bgStyle}
+        >
           {/* Header */}
-          <DialogHeader className="px-6 py-4 border-b bg-background/95 backdrop-blur shrink-0">
+          <DialogHeader className="px-6 py-4 border-b bg-background/80 backdrop-blur shrink-0">
             <div className="flex items-center justify-between">
               <div>
                 <DialogTitle className="text-xl font-bold">Checklist de Documentos 文件清单</DialogTitle>
