@@ -5,6 +5,7 @@ import {
   Star, Paperclip, Clock, AlertTriangle, Link2, Link2Off, Package,
   CheckCircle2, FileText, Send, XCircle, Loader2, Globe, Maximize2,
   MousePointerClick, Zap, MoveVertical, X, Crosshair, CheckCheck,
+  MoreHorizontal, MailOpen, RotateCcw,
 } from "lucide-react";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
@@ -15,9 +16,11 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
+import { toast } from "sonner";
 import type { MailboxRow, VincularFolder } from "@/hooks/useVincularChinaMailboxData";
 import { VincularChinaRowAction } from "@/components/china/VincularChinaRowAction";
-import { isVincularRead, markVincularRead, subscribeVincularRead } from "@/lib/china/vincularReadState";
+import { isVincularRead, markVincularRead, markAllVincularRead, clearVincularRead, subscribeVincularRead } from "@/lib/china/vincularReadState";
+import { ReadStatusLegend } from "@/components/china/inbox/ReadStatusLegend";
 
 interface Props {
   items: MailboxRow[];
