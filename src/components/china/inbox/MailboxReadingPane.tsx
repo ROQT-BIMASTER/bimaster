@@ -20,8 +20,6 @@ interface Props {
   item: MailboxItem | null;
   isBrasilUser: boolean;
   isChinaUser: boolean;
-  onApprove: (item: MailboxItem) => void;
-  onReject: (item: MailboxItem, motivo: string) => void;
   onView: (item: MailboxItem) => void;
   onCorrigir: (item: MailboxItem) => void;
   onToggleRead: (item: MailboxItem) => void;
@@ -34,8 +32,6 @@ export function MailboxReadingPane({
   item,
   isBrasilUser,
   isChinaUser,
-  onApprove,
-  onReject,
   onView,
   onCorrigir,
   onToggleRead,
