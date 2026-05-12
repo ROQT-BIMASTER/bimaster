@@ -465,6 +465,7 @@ export default function ChinaCaixaEntrada() {
         nomeArquivo={previewDoc?.nome_arquivo ?? null}
         tipoDocumento={previewDoc?.tipo_documento ?? undefined}
       />
+      <SubmissionCopilotPanel open={copilotOpen} onOpenChange={setCopilotOpen} initialQuery={search} />
     </ChinaPageShell>
   );
 }
