@@ -1146,6 +1146,14 @@ export default function ChinaNovaSubmissao() {
                     queryClient.invalidateQueries({ queryKey: ["china-edit-docs", editId] });
                   }}
                   onRemoveFile={async (fileId) => {
+                    const { confirmExclusaoTarefa } = await import("@/lib/projetos/confirmConclusao");
+                    const ok = await confirmExclusaoTarefa({
+                      tituloDialog: "Excluir documento?",
+                      acaoLabel: "Sim, excluir",
+                      descricao:
+                        "Você está prestes a excluir definitivamente este documento da submissão. Esta ação não pode ser desfeita.",
+                    });
+                    if (!ok) return;
                     await supabase.from("china_produto_documentos" as any).delete().eq("id", fileId);
                     queryClient.invalidateQueries({ queryKey: ["china-edit-docs", editId] });
                     toast.success("Documento removido 文件已删除");

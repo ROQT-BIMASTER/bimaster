@@ -156,6 +156,16 @@ export default function ChinaOrdemDetalhe() {
   };
 
   const handleAprovar = async () => {
+    const { confirmConclusaoTarefa } = await import("@/lib/projetos/confirmConclusao");
+    const ok = await confirmConclusaoTarefa({
+      tituloDialog: "Aprovar Ordem de Compra?",
+      acaoLabel: "Sim, aprovar",
+      descricao:
+        `Você está prestes a aprovar a OC ${ordem?.codigo ?? ""}. ` +
+        `A China receberá liberação para iniciar a produção imediatamente. ` +
+        `Esta ação ficará registrada com seu usuário e data/hora.`,
+    });
+    if (!ok) return;
     setApprovalLoading(true);
     try {
       const user = (await supabase.auth.getUser()).data.user;
@@ -164,7 +174,7 @@ export default function ChinaOrdemDetalhe() {
         .update({ status: "aprovada", aprovado_por: user?.id, aprovado_em: new Date().toISOString() } as any)
         .eq("id", ordem.id);
       if (error) throw error;
-      toast.success("OC aprovada! A China agora pode iniciar a produção ✅");
+      toast.success("OC aprovada! A China agora pode iniciar a produção");
       handleRefresh();
     } catch (err: any) {
       toast.error(err.message || "Erro ao aprovar");
@@ -178,6 +188,17 @@ export default function ChinaOrdemDetalhe() {
       toast.error("Informe o motivo da rejeição");
       return;
     }
+    const { confirmExclusaoTarefa } = await import("@/lib/projetos/confirmConclusao");
+    const ok = await confirmExclusaoTarefa({
+      tituloDialog: "Rejeitar Ordem de Compra?",
+      acaoLabel: "Sim, rejeitar",
+      descricao:
+        `Você está prestes a rejeitar a OC ${ordem?.codigo ?? ""}. ` +
+        `A China NÃO poderá iniciar a produção e o motivo será registrado: ` +
+        `"${motivoRejeicao.trim()}". Esta ação fica registrada e exigirá ` +
+        `nova OC para reverter.`,
+    });
+    if (!ok) return;
     setApprovalLoading(true);
     try {
       const user = (await supabase.auth.getUser()).data.user;
