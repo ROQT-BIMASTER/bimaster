@@ -70,6 +70,7 @@ interface ProjetoSecaoProps {
   onDeleteTarefa?: (tarefaId: string) => void;
   onToggleBriefing?: (secaoId: string, value: boolean) => void;
   onCreateBriefingTasks?: (tasks: { titulo: string; descricao: string; prioridade: string; secao_id: string }[]) => void;
+  onDeleteSecao?: (secaoId: string) => void;
   teamMembers?: TeamMember[];
   onAddColaborador?: (tarefaId: string, userId: string) => void;
   onRemoveColaborador?: (tarefaId: string, userId: string) => void;
@@ -84,6 +85,7 @@ export function ProjetoSecao({
   projetoDataInicio = null, projetoDataFimAlvo = null, projetoRegime = "dias_uteis",
   onUpdateSecao,
   onToggleTarefa, onSelectTarefa, onAddTarefa, onUpdateTarefa, onDeleteTarefa, onToggleBriefing, onCreateBriefingTasks,
+  onDeleteSecao,
   teamMembers, onAddColaborador, onRemoveColaborador, darkBg = false, columns, metasProgress,
 }: ProjetoSecaoProps) {
   const [collapsed, setCollapsed] = useState(false);
