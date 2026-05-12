@@ -265,6 +265,8 @@ export function useFichaCustoProduto(produtoId: string | undefined) {
         custo_nf: insumo.custo_nf || 0,
         custo_servico: insumo.custo_servico || 0,
         custo_condicao: insumo.custo_condicao || 0,
+        ipi_valor: insumo.ipi_valor || 0,
+        ipi_percentual: insumo.ipi_percentual || 0,
         nf_referencia: insumo.nf_referencia || null,
         mp_id: insumo.mp_id || null,
         ordem: insumos.length,
