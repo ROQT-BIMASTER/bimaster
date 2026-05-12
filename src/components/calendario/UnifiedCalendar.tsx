@@ -53,6 +53,17 @@ export function UnifiedCalendar({
   const [currentDate, setCurrentDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<ViewMode>("month");
 
+  // Notifica mudanças de período (mês/semana visível) para wrappers (ex.: painel de Análise).
+  useEffect(() => {
+    if (!onPeriodChange) return;
+    const inicio = viewMode === "month" ? startOfMonth(currentDate) : startOfWeek(currentDate, { weekStartsOn: 1 });
+    const fim = viewMode === "month" ? endOfMonth(currentDate) : endOfWeek(currentDate, { weekStartsOn: 1 });
+    const label = viewMode === "month"
+      ? format(currentDate, "'Mês de' MMMM yyyy", { locale: ptBR })
+      : `Semana de ${format(inicio, "dd MMM", { locale: ptBR })} – ${format(fim, "dd MMM", { locale: ptBR })}`;
+    onPeriodChange({ inicio, fim, viewMode, label });
+  }, [currentDate, viewMode, onPeriodChange]);
+
   // Single-day vs multi-day
   const singleDayByDate = useMemo(() => {
     const map: Record<string, CalendarEvent[]> = {};
