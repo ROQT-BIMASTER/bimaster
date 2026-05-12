@@ -369,8 +369,9 @@ export function useFichaCustoProduto(produtoId: string | undefined) {
             custo_mao_obra_servico: config.custo_mao_obra_servico,
             percentual_markup: config.percentual_markup,
             base_calculo_markup: config.base_calculo_markup,
+            ipi_percentual_saida: config.ipi_percentual_saida,
             observacoes: config.observacoes,
-          })
+          } as any)
           .eq("id", config.id);
 
         if (error) throw error;
@@ -384,13 +385,18 @@ export function useFichaCustoProduto(produtoId: string | undefined) {
             custo_mao_obra_servico: config.custo_mao_obra_servico,
             percentual_markup: config.percentual_markup,
             base_calculo_markup: config.base_calculo_markup,
+            ipi_percentual_saida: config.ipi_percentual_saida,
             observacoes: config.observacoes,
-          })
+          } as any)
           .select()
           .single();
 
         if (error) throw error;
-        setConfig({ ...data, base_calculo_markup: (data.base_calculo_markup as BaseCalculoMarkup) || 'total' });
+        setConfig({
+          ...data,
+          base_calculo_markup: (data.base_calculo_markup as BaseCalculoMarkup) || 'total',
+          ipi_percentual_saida: Number((data as any).ipi_percentual_saida) || 0,
+        });
       }
 
       toast.success("Ficha de custos salva com sucesso!");
