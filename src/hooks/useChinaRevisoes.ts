@@ -9,6 +9,16 @@ export interface Anotacao {
   campo?: string;
 }
 
+export type IdiomaRevisao = "pt" | "zh" | "en";
+
+export interface RevisaoAnexo {
+  path: string;
+  nome: string;
+  tamanho?: number;
+  mime?: string;
+  lado: "brasil" | "china";
+}
+
 export interface Revisao {
   id: string;
   documento_id: string;
@@ -23,6 +33,11 @@ export interface Revisao {
   acao_tipo: string | null;
   acao_por_nome: string | null;
   created_at: string;
+  anexos: RevisaoAnexo[];
+  motivo_idioma_origem: IdiomaRevisao | null;
+  motivo_traducoes: Partial<Record<IdiomaRevisao, string>>;
+  contestacao_idioma_origem: IdiomaRevisao | null;
+  contestacao_traducoes: Partial<Record<IdiomaRevisao, string>>;
 }
 
 async function getUserName(): Promise<{ id: string; nome: string }> {
