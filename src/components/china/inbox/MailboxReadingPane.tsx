@@ -82,7 +82,10 @@ export function MailboxReadingPane({
   const canBrasilApprove =
     isBrasilUser && item.doc_status && ["pendente", "enviado", "contestado"].includes(item.doc_status);
   const canChinaEnviar =
-    isChinaUser && !!onEnviarBrasil && !!item.documento_id && item.doc_status === "rascunho";
+    isChinaUser &&
+    !!onEnviarBrasil &&
+    (item.submissao_status === "rascunho" || item.doc_status === "rascunho");
+  const hasDocAnexo = !!item.tipo_documento;
   const canChinaCorrigir = isChinaUser && (item.doc_status === "rejeitado" || item.submissao_status === "em_revisao");
   // China: documento já enviado e ainda em poder do Brasil — bloco read-only "aguardando"
   const chinaWaitingBrasil =
