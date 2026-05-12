@@ -41,7 +41,8 @@ async function downloadStoragePath(path: string, nome: string) {
     if (error || !data?.signedUrl) throw error || new Error("Falha");
     const res = await fetch(data.signedUrl);
     const blob = await res.blob();
-    triggerBlobDownload(blob, nome);
+    const url = URL.createObjectURL(blob);
+    triggerBlobDownload(url, nome);
   } catch {
     toast.error("Não foi possível baixar o arquivo.");
   }
