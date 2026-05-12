@@ -1221,7 +1221,7 @@ export function FichaCustoProdutoEditor({
                         {/* Linha expandida com detalhes do insumo */}
                         {isExpanded && (
                           <TableRow className={temApontamento ? "bg-red-50/50 dark:bg-red-950/10" : "bg-muted/30"}>
-                            <TableCell colSpan={12} className="p-0">
+                            <TableCell colSpan={10} className="p-0">
                               <div className="p-4 space-y-4">
                                 {/* Apontamentos da diretoria (se houver) */}
                                 {temApontamento && (
