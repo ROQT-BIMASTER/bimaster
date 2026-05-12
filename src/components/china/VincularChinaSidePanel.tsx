@@ -14,6 +14,8 @@ import {
 import { useDocumentosDaSubmissao, useCoresDaSubmissao } from "@/hooks/useChinaDocumentoVinculos";
 import { useDespachosPorSubmissao } from "@/hooks/useDespachoDocumentos";
 import { useSubmissaoChatUnread } from "@/hooks/useSubmissaoChatUnread";
+import { useChinaUserContext } from "@/hooks/useChinaUserContext";
+import { useCriarRevisao } from "@/hooks/useChinaRevisoes";
 import { CHINA_DOCUMENT_TYPES, DOCUMENT_CATEGORIES } from "@/lib/china-document-types";
 import { ProcessOrchestrationPanel } from "@/components/processo/ProcessOrchestrationPanel";
 import { DespachosPanel } from "@/components/processo/DespachosPanel";
@@ -21,6 +23,14 @@ import { DispatchHistoryPanel } from "@/components/china/vincular/DispatchHistor
 import { MesaDespachoTab } from "@/components/china/vincular/MesaDespachoTab";
 import { CaixaAlertasChinaPanel } from "@/components/china/vincular/CaixaAlertasChinaPanel";
 import { ChinaChatPanel } from "@/components/china/ChinaChatPanel";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { supabase } from "@/integrations/supabase/client";
+import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import type { SubmissaoRow } from "./VincularChinaTable";
 import { VincularChinaVincularTab } from "./VincularChinaVincularTab";
@@ -81,6 +91,12 @@ export function VincularChinaSidePanel({
   const { data: documentos = [], isLoading: loadingDocs } = useDocumentosDaSubmissao(submissao.id);
   const { data: despachos = [] } = useDespachosPorSubmissao(submissao.id);
   const chatUnread = useSubmissaoChatUnread(submissao.id);
+  const { isBrasilUser } = useChinaUserContext();
+  const criarRevisao = useCriarRevisao();
+  const queryClient = useQueryClient();
+  const [confirmAprovarOpen, setConfirmAprovarOpen] = useState(false);
+  const [aprovarObs, setAprovarObs] = useState("");
+  const [aprovando, setAprovando] = useState(false);
 
   // Show brief loading state when switching submissions
   useEffect(() => {
@@ -94,6 +110,84 @@ export function VincularChinaSidePanel({
     despachos.forEach((d: any) => { map[d.documento_id] = d.status; });
     return map;
   }, [despachos]);
+
+  // Documentos elegíveis para aprovação direta
+  const docsAprovaveis = useMemo(
+    () => documentos.filter((d: any) =>
+      ["pendente", "enviado", "contestado"].includes(d.status)
+    ),
+    [documentos],
+  );
+  // Despachos abertos bloqueiam a aprovação direta
+  const despachosAbertos = useMemo(
+    () => despachos.filter((d: any) =>
+      d.status && !["concluido", "cancelado"].includes(d.status)
+    ),
+    [despachos],
+  );
+  const submissaoFinalizada = ["aprovado", "rejeitado"].includes(submissao.status);
+  const canAprovarDireto =
+    isBrasilUser &&
+    !submissaoFinalizada &&
+    docsAprovaveis.length > 0 &&
+    despachosAbertos.length === 0;
+
+  const handleAprovarSubmissao = async () => {
+    if (aprovando) return;
+    setAprovando(true);
+    try {
+      const obs = aprovarObs.trim();
+      // 1) Aprovar todos os documentos elegíveis (revisão por documento)
+      await Promise.all(
+        docsAprovaveis.map((d: any) =>
+          criarRevisao.mutateAsync({
+            documento_id: d.id,
+            submissao_id: submissao.id,
+            resultado: "aprovado",
+            acao_tipo: "aprovar_direto",
+          }),
+        ),
+      );
+      // 2) Promover a submissão a "aprovado"
+      const { error: subErr } = await supabase
+        .from("china_produto_submissoes" as any)
+        .update({
+          status: "aprovado",
+          aprovado_em: new Date().toISOString(),
+          ...(obs ? { observacoes_brasil: obs } : {}),
+        } as any)
+        .eq("id", submissao.id);
+      if (subErr) throw subErr;
+      // 3) Auditoria/timeline
+      try {
+        await supabase.rpc("rpc_china_log_evento" as any, {
+          p_kind: "submissao_aprovada_direto",
+          p_title: `Submissão aprovada diretamente: ${submissao.produto_codigo} — ${submissao.produto_nome}`,
+          p_descricao: obs || `${docsAprovaveis.length} documento(s) aprovado(s) sem despacho.`,
+          p_payload: {
+            via: "vincular-china-side-panel",
+            documento_ids: docsAprovaveis.map((d: any) => d.id),
+            observacao: obs || null,
+          },
+          p_submissao_id: submissao.id,
+          p_documento_id: null,
+        });
+      } catch {
+        /* não bloquear se o log falhar */
+      }
+      toast.success("Submissão aprovada / 提交已批准");
+      queryClient.invalidateQueries({ queryKey: ["china-mailbox-dataset"] });
+      queryClient.invalidateQueries({ queryKey: ["vincular-china"] });
+      queryClient.invalidateQueries({ queryKey: ["china-revisoes", submissao.id] });
+      queryClient.invalidateQueries({ queryKey: ["china-ficha-docs", submissao.id] });
+      setConfirmAprovarOpen(false);
+      setAprovarObs("");
+    } catch (e: any) {
+      toast.error(e?.message || "Falha ao aprovar submissão");
+    } finally {
+      setAprovando(false);
+    }
+  };
 
   const docsByCategory = useMemo(() => {
     const grouped: Record<string, { label: string; icon: React.ReactNode; docs: any[]; pendentes: number }> = {};
@@ -122,6 +216,7 @@ export function VincularChinaSidePanel({
   const sc = getStatusConfig(submissao.status);
 
   return (
+    <>
     <div className="flex flex-col h-full border-l bg-card">
       {/* Header */}
       <div className="px-4 py-3 border-b bg-muted/30 shrink-0">
@@ -147,7 +242,7 @@ export function VincularChinaSidePanel({
           <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">
             Encaminhar para
           </p>
-          <div className="grid grid-cols-3 gap-1.5">
+          <div className={cn("grid gap-1.5", isBrasilUser ? "grid-cols-4" : "grid-cols-3")}>
             <button
               type="button"
               onClick={() => onEncaminharProjeto?.()}
@@ -175,7 +270,37 @@ export function VincularChinaSidePanel({
               <MessageSquare className="h-4 w-4 text-primary" />
               <span className="text-[10px] font-medium text-foreground">Responsável</span>
             </button>
+            {isBrasilUser && (
+              <button
+                type="button"
+                onClick={() => setConfirmAprovarOpen(true)}
+                disabled={!canAprovarDireto}
+                className={cn(
+                  "group flex flex-col items-center gap-1 rounded-md border transition-colors px-2 py-2",
+                  canAprovarDireto
+                    ? "border-emerald-500/40 bg-emerald-500/5 hover:bg-emerald-500/10 hover:border-emerald-500/60"
+                    : "border-border bg-muted/30 opacity-50 cursor-not-allowed",
+                )}
+                title={
+                  submissaoFinalizada
+                    ? "Submissão já finalizada"
+                    : despachosAbertos.length > 0
+                      ? "Conclua ou cancele os despachos abertos antes de aprovar diretamente"
+                      : docsAprovaveis.length === 0
+                        ? "Nenhum documento elegível para aprovação"
+                        : "Aprovar a submissão diretamente nesta tela"
+                }
+              >
+                <CheckCircle2 className={cn("h-4 w-4", canAprovarDireto ? "text-emerald-500" : "text-muted-foreground")} />
+                <span className="text-[10px] font-medium text-foreground">Aprovar</span>
+              </button>
+            )}
           </div>
+          {isBrasilUser && despachosAbertos.length > 0 && !submissaoFinalizada && (
+            <p className="mt-1.5 text-[10px] text-amber-500">
+              {despachosAbertos.length} despacho(s) em andamento — conclua ou cancele para habilitar a aprovação direta.
+            </p>
+          )}
         </div>
       </div>
 
@@ -394,5 +519,53 @@ export function VincularChinaSidePanel({
         </ScrollArea>
       </Tabs>
     </div>
+
+    <AlertDialog open={confirmAprovarOpen} onOpenChange={(o) => { if (!aprovando) setConfirmAprovarOpen(o); }}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Aprovar submissão diretamente?</AlertDialogTitle>
+          <AlertDialogDescription asChild>
+            <div className="space-y-2 text-sm">
+              <p>
+                <strong>{submissao.produto_codigo}</strong> — {submissao.produto_nome}
+                {submissao.numero_ordem ? ` · OC ${submissao.numero_ordem}` : ""}
+              </p>
+              <p>
+                Esta ação aprova <strong>{docsAprovaveis.length}</strong> documento(s) e finaliza a etapa
+                no Brasil sem despacho nem encaminhamento. A operação fica registrada em auditoria.
+              </p>
+            </div>
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium text-muted-foreground">
+            Observação (opcional)
+          </label>
+          <Textarea
+            value={aprovarObs}
+            onChange={(e) => setAprovarObs(e.target.value.slice(0, 500))}
+            placeholder="Justificativa ou contexto da aprovação direta..."
+            rows={3}
+            disabled={aprovando}
+          />
+          <p className="text-[10px] text-muted-foreground text-right">{aprovarObs.length}/500</p>
+        </div>
+        <AlertDialogFooter>
+          <AlertDialogCancel disabled={aprovando}>Cancelar</AlertDialogCancel>
+          <AlertDialogAction
+            onClick={(e) => { e.preventDefault(); handleAprovarSubmissao(); }}
+            disabled={aprovando}
+            className="bg-emerald-600 hover:bg-emerald-700 text-white"
+          >
+            {aprovando ? (
+              <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Aprovando...</>
+            ) : (
+              <>Aprovar agora</>
+            )}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+    </>
   );
 }
