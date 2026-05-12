@@ -1099,7 +1099,7 @@ export default function ChinaNovaSubmissao() {
                       const catFileCount = catLocalDocs.reduce((sum, [, files]) => sum + files.length, 0);
                       const catFilledTypes = catLocalDocs.filter(([, files]) => files.length > 0).length;
                       const hasRejected = catLocalDocs.some(([, files]) => files.some(f => f.status === "rejeitado"));
-                      const hasDrafts = catLocalDocs.some(([, files]) => files.some(f => f.status === "rascunho"));
+                      
                       const allApproved = catFilledTypes === catTotalTypes && catFileCount > 0 && catLocalDocs.every(([, files]) => files.every(f => f.status === "aprovado"));
 
                       const statusBadge = allApproved
