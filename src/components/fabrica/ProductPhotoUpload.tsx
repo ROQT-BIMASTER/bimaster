@@ -96,6 +96,7 @@ export default function ProductPhotoUpload({
 }: ProductPhotoUploadProps) {
   const [uploading, setUploading] = useState(false);
   const [preview, setPreview] = useState<string | null>(null);
+  const [errorDialog, setErrorDialog] = useState<{ title: string; message: string; hint?: string } | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Resolve the initial URL to a signed URL
