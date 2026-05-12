@@ -5,10 +5,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Upload, Paperclip, X, FileWarning } from "lucide-react";
+import { Upload, Paperclip, X, FileWarning, Languages, Loader2 } from "lucide-react";
 import { useContestarComParecer, type Revisao } from "@/hooks/useChinaRevisoes";
 import { TextoComTraducao } from "./TextoComTraducao";
 import { useSalvarTraducaoRevisao } from "@/hooks/useChinaRevisoes";
+import { useTraduzirTexto, type IdiomaTraducao } from "@/hooks/useTraduzirTexto";
 
 interface Props {
   open: boolean;
