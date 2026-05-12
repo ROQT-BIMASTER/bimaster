@@ -598,8 +598,7 @@ export function SubmissionCopilotPanel({ open, onOpenChange, initialQuery = "" }
                     <p className="text-xs text-muted-foreground text-center py-4">{t.semSugestoes}</p>
                   )}
                 </TabsContent>
-
-
+                <TabsContent value="timeline" className="mt-3">
                   <div className="rounded-md border border-border bg-card/50 p-3">
                     {a && a.marcos.length > 0 ? (
                       <ol className="relative border-l border-border ml-2 space-y-3">
