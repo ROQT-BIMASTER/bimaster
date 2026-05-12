@@ -62,7 +62,7 @@ export function ChinaUploadPreviewDialog({
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && !saving && onClose()}>
-      <DialogContent className="max-w-lg z-[70] bg-background border-border shadow-2xl">
+      <DialogContent className="max-w-2xl z-[70] bg-background border-border shadow-2xl">
         <DialogHeader>
           <DialogTitle className="text-base">
             Validar Arquivo 验证文件
@@ -75,11 +75,11 @@ export function ChinaUploadPreviewDialog({
         {/* Preview area */}
         <div className="flex flex-col items-center gap-3 py-4">
           {isImage && previewUrl ? (
-            <div className="w-full max-h-[300px] rounded-lg overflow-hidden border bg-muted/30 flex items-center justify-center">
+            <div className="w-full rounded-lg overflow-hidden border bg-muted/30 flex items-center justify-center p-2">
               <img
                 src={previewUrl}
                 alt={file.name}
-                className="max-w-full max-h-[300px] object-contain"
+                className="max-w-full max-h-[60vh] w-auto h-auto object-contain rounded"
               />
             </div>
           ) : isVideo ? (
