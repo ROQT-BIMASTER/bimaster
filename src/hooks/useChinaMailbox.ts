@@ -402,6 +402,47 @@ export function useChinaMailbox(folder: MailboxFolder): UseChinaMailboxResult {
     return { items, counts };
   }, [query.data, folder, isBrasilUser, isChinaUser]);
 
+  // Notificação: avisar a China quando um novo checklist passa a ficar pendente
+  // de envio por falta de documento + parecer. Roda uma vez por submissão e
+  // ignora a primeira carga (snapshot inicial).
+  const notifiedRef = useRef<{ initialized: boolean; seen: Set<string> }>({
+    initialized: false,
+    seen: new Set(),
+  });
+  useEffect(() => {
+    if (!isChinaUser || !query.data) return;
+    const newlyPending: { id: string; produto: string; reasons: AwaitingSendReason[] }[] = [];
+    const seenNow = new Set<string>();
+    for (const item of items) {
+      const evalRes = evaluateAwaitingSend(item);
+      if (!evalRes.matches) continue;
+      // Só notifica quando o motivo é falta de documento e/ou parecer (não para rascunhos puros).
+      const motivosRelevantes = evalRes.reasons.filter(
+        (r) => r === "sem_documento" || r === "sem_parecer",
+      );
+      if (motivosRelevantes.length === 0) continue;
+      seenNow.add(item.submissao_id);
+      if (!notifiedRef.current.seen.has(item.submissao_id)) {
+        newlyPending.push({
+          id: item.submissao_id,
+          produto: `${item.produto_codigo} — ${item.produto_nome}`,
+          reasons: motivosRelevantes,
+        });
+      }
+    }
+    if (notifiedRef.current.initialized) {
+      for (const np of newlyPending) {
+        const motivo = np.reasons.map((r) => AWAITING_SEND_REASON_LABEL[r]).join(" + ");
+        toast.warning(`Checklist pendente de envio: ${np.produto}`, {
+          description: `Motivo: ${motivo}. Anexe documento e parecer técnico para despachar ao Brasil.`,
+          id: `awaiting-send-${np.id}`,
+        });
+      }
+    }
+    notifiedRef.current.seen = seenNow;
+    notifiedRef.current.initialized = true;
+  }, [items, isChinaUser, query.data]);
+
   return {
     items,
     counts,
