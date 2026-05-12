@@ -358,7 +358,9 @@ export default function ChinaNovaSubmissao() {
       if (editId) {
         queryClient.invalidateQueries({ queryKey: ["china-edit-submissao", editId] });
       }
-      toast.success("✅ Dados validados e salvos! 数据已验证并保存！");
+      // Avança automaticamente para a próxima fase — rascunho já gravado no banco.
+      setStep(1);
+      toast.success("Rascunho salvo automaticamente. 草稿已自动保存。");
     } catch (err: any) {
       logger.error("Validation confirm error:", err, err?.code, err?.details, err?.hint);
       const msg = err?.message || "";
@@ -483,7 +485,7 @@ export default function ChinaNovaSubmissao() {
       }
 
       setParsedData({ _manual: true, ...manualData });
-      toast.success("Dados salvos! 数据已保存！");
+      toast.success("Rascunho salvo automaticamente. 草稿已自动保存。");
       setStep(1);
     } catch (err: any) {
       logger.error("Manual entry error:", err, err?.code, err?.details, err?.hint);
