@@ -1002,6 +1002,7 @@ export function ChinaChecklistFocusMode({
                     return (
                       <div
                         key={config.tipo}
+                        data-doc-tipo={config.tipo}
                         className={cn(
                           "border rounded-xl bg-card p-4 space-y-3 transition-all",
                           cardBorder,
