@@ -1106,17 +1106,12 @@ export default function ChinaNovaSubmissao() {
                         ? <Badge variant="success" className="text-xs">✓ Completo 完成</Badge>
                         : hasRejected
                         ? <Badge variant="destructive" className="text-xs">✗ Rejeitado 被拒</Badge>
-                        : hasDrafts
-                        ? <Badge variant="warning" className="text-xs whitespace-nowrap">⚠ Não enviado ao Brasil 未发送</Badge>
                         : catFilledTypes === 0
                         ? <Badge variant="secondary" className="text-xs">— Vazio 空</Badge>
                         : <Badge variant="warning" className="text-xs">⏳ Parcial 部分</Badge>;
 
                       return (
-                        <tr
-                          key={cat.key}
-                          className={`hover:bg-accent/10 transition-colors ${hasDrafts && !hasRejected ? "bg-warning/5 border-l-4 border-l-warning" : ""}`}
-                        >
+                        <tr key={cat.key} className="hover:bg-accent/10 transition-colors">
                           <td className="px-4 py-3">
                             <p className="font-medium text-foreground text-sm">{cat.labelPt}</p>
                             <p className="text-[10px] text-muted-foreground">{cat.labelCn}</p>
