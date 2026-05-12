@@ -546,13 +546,14 @@ export function useFichaCustoProduto(produtoId: string | undefined) {
       });
     }
 
-    // Auto-zerar M.O. e Markup do Display, pois já estão embutidos nos custos dos filhos
+    // Auto-zerar M.O., Markup e IPI do Display, pois já estão embutidos nos custos dos filhos
     if (config) {
       const novaConfig = {
         ...config,
         custo_mao_obra_nf: 0,
         custo_mao_obra_servico: 0,
         percentual_markup: 0,
+        ipi_percentual_saida: 0,
       };
       setConfig(novaConfig);
 
@@ -563,11 +564,12 @@ export function useFichaCustoProduto(produtoId: string | undefined) {
             custo_mao_obra_nf: 0,
             custo_mao_obra_servico: 0,
             percentual_markup: 0,
-          })
+            ipi_percentual_saida: 0,
+          } as any)
           .eq("id", config.id);
       }
 
-      toast.info("M.O. e Markup zerados — valores já incluídos nos custos importados dos filhos");
+      toast.info("M.O., Markup e IPI zerados — já incluídos nos custos importados dos filhos");
     }
 
     toast.success(`${custosFilhos.length} produto(s) importado(s) para a ficha`);
