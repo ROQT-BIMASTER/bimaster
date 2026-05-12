@@ -36,6 +36,7 @@ export function ChinaPainelAprovacao({
   onViewDoc, onReupload, onClose,
 }: Props) {
   const { data: revisoes = [] } = useRevisoesPorSubmissao(submissaoId);
+  const merged = useMergedChinaChecklist(submissaoId);
   const criarRevisao = useCriarRevisao();
   const contestar = useContestarRevisao();
   const darCiencia = useDarCiencia();
