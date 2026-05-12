@@ -79,6 +79,18 @@ export default function ChinaNovaSubmissao() {
   const [showProductPreview, setShowProductPreview] = useState(true);
   const [showFinalReview, setShowFinalReview] = useState(false);
 
+  // Auto-save draft status surfaced no header.
+  const [draftStatus, setDraftStatus] = useState<DraftSaveStatus>("idle");
+  const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
+  const [lastDraftError, setLastDraftError] = useState<string | null>(null);
+  // Snapshot da última tentativa que falhou — permite o usuário tentar novamente
+  // pelo botão "Tentar novamente" do indicador.
+  const lastDraftRetryRef = useRef<null | (() => Promise<void>)>(null);
+  const handleRetryDraft = useCallback(async () => {
+    if (!lastDraftRetryRef.current) return;
+    await lastDraftRetryRef.current();
+  }, []);
+
   // Load existing submission for resume/edit
   const { data: existingSubmissao, isLoading: loadingExisting } = useQuery({
     queryKey: ["china-edit-submissao", editId],
