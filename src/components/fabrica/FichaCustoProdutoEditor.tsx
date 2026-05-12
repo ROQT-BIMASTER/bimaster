@@ -1423,13 +1423,10 @@ export function FichaCustoProdutoEditor({
           <CardTitle className="text-base">Totais</CardTitle>
         </CardHeader>
         <CardContent className="pt-0">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
             <div className="p-4 bg-muted rounded-lg text-center">
-              <p className="text-sm text-muted-foreground">NF + IPI</p>
-              <p className="text-xl font-bold">{formatarMoeda(totais.totalNF + totais.markupNF + totais.totalIPI)}</p>
-              <p className="text-[11px] text-muted-foreground mt-1">
-                IPI agregado: <strong>{formatarMoeda(totais.totalIPI)}</strong>
-              </p>
+              <p className="text-sm text-muted-foreground">NF</p>
+              <p className="text-xl font-bold">{formatarMoeda(totais.totalNF + totais.markupNF)}</p>
             </div>
             <div className="p-4 bg-muted rounded-lg text-center">
               <p className="text-sm text-muted-foreground">Serviço</p>
@@ -1438,6 +1435,18 @@ export function FichaCustoProdutoEditor({
             <div className="p-4 bg-muted rounded-lg text-center">
               <p className="text-sm text-muted-foreground">Condição</p>
               <p className="text-xl font-bold">{formatarMoeda(totais.totalCondicao + totais.markupCondicao)}</p>
+            </div>
+            <div className="p-4 bg-muted rounded-lg text-center">
+              <p className="text-sm text-muted-foreground">
+                IPI Saída{" "}
+                <span className="text-[11px]">
+                  ({Number((config as any)?.ipi_percentual_saida) || 0}%)
+                </span>
+              </p>
+              <p className="text-xl font-bold">{formatarMoeda(totais.totalIPI)}</p>
+              <p className="text-[11px] text-muted-foreground mt-1">
+                sobre saída final
+              </p>
             </div>
             <div className="p-4 bg-primary/10 rounded-lg text-center border-2 border-primary">
               <p className="text-sm text-muted-foreground">Custo Total</p>
