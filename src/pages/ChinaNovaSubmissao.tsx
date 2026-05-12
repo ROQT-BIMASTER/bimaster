@@ -303,7 +303,7 @@ export default function ChinaNovaSubmissao() {
             () => supabase.from("china_produto_submissoes" as any).update(submissaoPayload as any).eq("id", activeSubId!),
             { label: "validation-update" },
           );
-          if (!r.ok) {
+          if (r.ok === false) {
             setDraftStatus("error");
             setLastDraftError(r.userMessage);
             toast.error(r.userMessage, {
