@@ -485,7 +485,7 @@ export default function ChinaNovaSubmissao() {
       }
 
       setParsedData({ _manual: true, ...manualData });
-      toast.success("Dados salvos! 数据已保存！");
+      toast.success("Rascunho salvo automaticamente. 草稿已自动保存。");
       setStep(1);
     } catch (err: any) {
       logger.error("Manual entry error:", err, err?.code, err?.details, err?.hint);
