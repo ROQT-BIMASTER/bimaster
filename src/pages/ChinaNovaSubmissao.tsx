@@ -518,29 +518,66 @@ export default function ChinaNovaSubmissao() {
         status: "rascunho",
       };
 
-      if (submissaoId) {
-        // Update existing submission
-        const { error } = await supabase
-          .from("china_produto_submissoes" as any)
-          .update(payload as any)
-          .eq("id", submissaoId);
-        if (error) throw error;
-      } else {
-        // Create new submission
-        const { data: sub, error } = await supabase
-          .from("china_produto_submissoes" as any)
-          .insert({ ...payload, created_by: session.user.id } as any)
-          .select("id")
-          .single();
-        if (error) throw error;
-        setSubmissaoId((sub as any).id);
-      }
+      setDraftStatus("saving");
+      const runManual = async (): Promise<boolean> => {
+        if (submissaoId) {
+          const r = await saveDraftWithRetry(
+            () => supabase.from("china_produto_submissoes" as any).update(payload as any).eq("id", submissaoId),
+            { label: "manual-update" },
+          );
+          if (r.ok === false) {
+            setDraftStatus("error");
+            setLastDraftError(r.userMessage);
+            toast.error(r.userMessage, {
+              description: `Tentativas: ${r.attempts}. Use o botão "Salvar Rascunho" para tentar novamente.`,
+            });
+            logger.error("Manual update failed:", r.technicalMessage);
+            return false;
+          }
+          return true;
+        }
+        const r = await saveDraftWithRetry<{ id: string }>(
+          () => supabase
+            .from("china_produto_submissoes" as any)
+            .insert({ ...payload, created_by: session.user.id } as any)
+            .select("id")
+            .single() as any,
+          { label: "manual-insert" },
+        );
+        if (r.ok === false) {
+          setDraftStatus("error");
+          setLastDraftError(r.userMessage);
+          toast.error(r.userMessage, {
+            description: `Tentativas: ${r.attempts}. Use o botão "Salvar Rascunho" para tentar novamente.`,
+          });
+          logger.error("Manual insert failed:", r.technicalMessage);
+          return false;
+        }
+        setSubmissaoId((r.data as any).id);
+        return true;
+      };
+      lastDraftRetryRef.current = async () => {
+        const ok = await runManual();
+        if (ok) {
+          setDraftStatus("saved");
+          setLastSavedAt(new Date());
+          setLastDraftError(null);
+          toast.success("Rascunho salvo automaticamente.");
+        }
+      };
+      const ok = await runManual();
+      if (!ok) return;
+      setDraftStatus("saved");
+      setLastSavedAt(new Date());
+      setLastDraftError(null);
 
       setParsedData({ _manual: true, ...manualData });
       toast.success("Rascunho salvo automaticamente. 草稿已自动保存。");
       setStep(1);
     } catch (err: any) {
       logger.error("Manual entry error:", err, err?.code, err?.details, err?.hint);
+      setDraftStatus("error");
+      setLastDraftError(err?.message || "Erro inesperado");
       const msg = err?.message || "";
       if (msg.includes("row-level security") || msg.includes("violates")) {
         toast.error("Sem permissão para salvar. Verifique se você tem acesso ao módulo Fábrica/China.");
