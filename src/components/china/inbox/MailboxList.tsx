@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { Star, Paperclip, Clock, AlertTriangle, CheckCircle2, FileText } from "lucide-react";
+import { Star, Paperclip, Clock, AlertTriangle, CheckCircle2, FileText, FileX2, MessageSquareOff } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -7,6 +7,7 @@ import type { MailboxItem, MailboxFolder } from "@/hooks/useChinaMailbox";
 import { resolveDirection } from "@/lib/china/inboxDirection";
 import { InboxDirectionBadge } from "./InboxDirectionBadge";
 import { useChinaUserContext } from "@/hooks/useChinaUserContext";
+import { evaluateAwaitingSend, AWAITING_SEND_REASON_LABEL } from "@/lib/china/awaitingSendRule";
 
 export type ActionFilter = "mine" | "theirs" | "all";
 
