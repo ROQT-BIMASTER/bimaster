@@ -37012,6 +37012,45 @@ export type Database = {
         }
         Relationships: []
       }
+      tarefa_auditoria_log: {
+        Row: {
+          action: string
+          created_at: string
+          id: string
+          is_subtarefa: boolean
+          metadata: Json
+          parent_tarefa_id: string | null
+          projeto_id: string | null
+          tarefa_id: string
+          titulo_snapshot: string | null
+          user_id: string
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          id?: string
+          is_subtarefa?: boolean
+          metadata?: Json
+          parent_tarefa_id?: string | null
+          projeto_id?: string | null
+          tarefa_id: string
+          titulo_snapshot?: string | null
+          user_id: string
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          id?: string
+          is_subtarefa?: boolean
+          metadata?: Json
+          parent_tarefa_id?: string | null
+          projeto_id?: string | null
+          tarefa_id?: string
+          titulo_snapshot?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       team_form_submissions: {
         Row: {
           cpf: string
