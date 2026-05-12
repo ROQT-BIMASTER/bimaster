@@ -194,12 +194,29 @@ export function MinhasTarefasBoard({ tarefas, onToggle, onSelect }: Props) {
     setActiveId(event.active.id as string);
   }, []);
 
+  const resolveColumnKey = useCallback(
+    (id: string | null): ColumnKey | null => {
+      if (!id) return null;
+      if (COLUMNS.some((c) => c.key === id)) return id as ColumnKey;
+      // id is a task id — find which column it currently belongs to
+      const t = tarefas.find((x) => x.id === id);
+      if (!t) return null;
+      if (t.status === "concluida") return "done";
+      if (!t.data_prazo) return "upcoming";
+      const d = startOfDay(new Date(t.data_prazo));
+      const now = startOfDay(new Date());
+      if (d < now) return "overdue";
+      if (isToday(d)) return "today";
+      return "upcoming";
+    },
+    [tarefas]
+  );
+
   const handleDragOver = useCallback((event: DragOverEvent) => {
     const overId = event.over?.id as string | null;
-    if (overId && COLUMNS.some((c) => c.key === overId)) {
-      setOverColumnId(overId);
-    }
-  }, []);
+    const col = resolveColumnKey(overId);
+    if (col) setOverColumnId(col);
+  }, [resolveColumnKey]);
 
   const handleDragEnd = useCallback(
     (event: DragEndEvent) => {
@@ -209,9 +226,9 @@ export function MinhasTarefasBoard({ tarefas, onToggle, onSelect }: Props) {
       const overId = event.over?.id as string | null;
       if (!overId || !event.active.id) return;
 
-      // Find which column was dropped on
-      const targetColumn = COLUMNS.find((c) => c.key === overId);
-      if (!targetColumn) return;
+      const targetKey = resolveColumnKey(overId);
+      if (!targetKey) return;
+      const targetColumn = COLUMNS.find((c) => c.key === targetKey)!;
 
       const taskId = event.active.id as string;
       const task = tarefas.find((t) => t.id === taskId);
@@ -236,7 +253,7 @@ export function MinhasTarefasBoard({ tarefas, onToggle, onSelect }: Props) {
         onToggle(taskId, false);
       }
     },
-    [onToggle, tarefas]
+    [onToggle, tarefas, resolveColumnKey]
   );
 
   const handleDragCancel = useCallback(() => {
