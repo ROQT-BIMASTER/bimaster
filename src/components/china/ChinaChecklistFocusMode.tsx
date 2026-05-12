@@ -1090,7 +1090,10 @@ export function ChinaChecklistFocusMode({
                             ref={(el) => { fileInputRefs.current[config.tipo] = el; }}
                             type="file"
                             className="hidden"
-                            accept={config.accept}
+                            accept={[
+                              config.accept || "",
+                              ".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.rtf,.odt,.ods,.odp,image/*",
+                            ].filter(Boolean).join(",")}
                             multiple={config.multiple}
                             onChange={(e) => {
                               const files = e.target.files;
@@ -1149,7 +1152,7 @@ export function ChinaChecklistFocusMode({
                                     <button onClick={() => onViewDoc(d)} className="p-1 rounded hover:bg-accent/50" title="Visualizar">
                                       <Eye className="h-3.5 w-3.5 text-primary" />
                                     </button>
-                                    {d.status === "rejeitado" && (
+                                    {d.status === "rejeitado" ? (
                                       <Button
                                         size="sm"
                                         variant="destructive"
@@ -1159,6 +1162,17 @@ export function ChinaChecklistFocusMode({
                                       >
                                         <FileWarning className="h-3 w-3" />
                                         Corrigir / Parecer
+                                      </Button>
+                                    ) : (
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        className="h-6 px-2 text-[10px] gap-1"
+                                        onClick={() => setSubstituirDoc(d)}
+                                        title="Anexar parecer técnico e/ou nova versão"
+                                      >
+                                        <FileWarning className="h-3 w-3" />
+                                        Parecer / Anexos
                                       </Button>
                                     )}
                                     {d.status !== "aprovado" && d.status !== "rejeitado" && (
