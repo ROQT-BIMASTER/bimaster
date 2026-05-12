@@ -1177,35 +1177,6 @@ export function FichaCustoProdutoEditor({
                             />
                           </TableCell>
                           <TableCell>
-                            <DecimalInput
-                              value={(insumo as any).ipi_percentual ?? 0}
-                              onChange={(val) => {
-                                handleCustoChange(insumo.id, "ipi_percentual", typeof val === "string" ? val : Number(val));
-                                // Se usuário digita %, zera o valor manual para evitar dupla contagem
-                                const pct = typeof val === "string" ? parseFloat(val) || 0 : Number(val);
-                                if (pct > 0 && Number((insumo as any).ipi_valor) > 0) {
-                                  onAtualizarInsumo(insumo.id, "ipi_valor" as keyof CustoInsumo, 0);
-                                }
-                              }}
-                              className="h-9 text-right"
-                              placeholder="0.00"
-                            />
-                          </TableCell>
-                          <TableCell>
-                            <DecimalInput
-                              value={(insumo as any).ipi_valor ?? 0}
-                              onChange={(val) => {
-                                handleCustoChange(insumo.id, "ipi_valor", typeof val === "string" ? val : Number(val));
-                                // Se usuário digita valor R$, zera o % para usar o valor manual
-                                const v = typeof val === "string" ? parseFloat(val) || 0 : Number(val);
-                                if (v > 0 && Number((insumo as any).ipi_percentual) > 0) {
-                                  onAtualizarInsumo(insumo.id, "ipi_percentual" as keyof CustoInsumo, 0);
-                                }
-                              }}
-                              className="h-9 text-right"
-                            />
-                          </TableCell>
-                          <TableCell>
                             <Input
                               value={insumo.nf_referencia || ""}
                               onChange={(e) =>
