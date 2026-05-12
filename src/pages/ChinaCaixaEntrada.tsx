@@ -228,6 +228,20 @@ export default function ChinaCaixaEntrada() {
     setSelectedIds(new Set());
   };
 
+  const unreadVisibleCount = useMemo(
+    () => items.filter((i) => i.documento_id && !i.is_read).length,
+    [items],
+  );
+  const handleMarkAllRead = () => {
+    const targets = items.filter((i) => i.documento_id && !i.is_read);
+    if (targets.length === 0) {
+      toast.info("Nenhuma mensagem não lida nesta pasta.");
+      return;
+    }
+    targets.forEach((i) => toggleRead.mutate({ documento_id: i.documento_id!, read: true }));
+    toast.success(`${targets.length} mensagem(ns) marcadas como lidas.`);
+  };
+
   const subtitle = isBrasilUser
     ? t("inbox.subtitleBrasil")
     : t("inbox.subtitleChina");
