@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
@@ -75,6 +75,13 @@ export function VincularMailboxList({
 
   const allChecked = filtered.length > 0 && filtered.every((i) => selectedIds.has(i.id));
   const someChecked = selectedIds.size > 0;
+
+  // Re-renderiza a lista quando o estado de leitura local muda.
+  useSyncExternalStore(
+    subscribeVincularRead,
+    () => filtered.map((i) => (isVincularRead(i.id) ? "1" : "0")).join(""),
+    () => "",
+  );
 
   // Auto-scroll: mantém o item selecionado visível (j/k, clique, busca/filtros).
   // Aplica offset para não encostar na toolbar fixa do topo nem no rodapé.
