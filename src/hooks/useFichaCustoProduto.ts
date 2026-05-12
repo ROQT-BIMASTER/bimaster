@@ -54,6 +54,7 @@ export interface Totais {
   totalNF: number;
   totalServico: number;
   totalCondicao: number;
+  totalIPI: number;
   subtotal: number;
   markupNF: number;
   markupServico: number;
