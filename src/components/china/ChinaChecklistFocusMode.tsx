@@ -55,6 +55,12 @@ interface ChinaChecklistFocusModeProps {
   onRefresh: () => void;
   onRemoveFile: (fileId: string) => Promise<void>;
   onViewDoc: (doc: DocRecord) => void;
+  /** Abre o dialog automaticamente ao montar e foca o tipo informado. */
+  defaultOpen?: boolean;
+  /** Tipo de documento alvo para destaque/scroll quando o dialog abre. */
+  focusTipo?: string | null;
+  /** Callback após o efeito de focus ser aplicado (limpar query param, etc). */
+  onAfterFocus?: () => void;
 }
 
 const statusIcons: Record<string, React.ReactNode> = {
