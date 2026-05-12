@@ -29,6 +29,8 @@ interface Props {
   onToggleStar: (item: MailboxItem) => void;
   onBack?: () => void;
   loading?: boolean;
+  error?: string | null;
+  onRetryEnvio?: () => void;
 }
 
 export function MailboxReadingPane({
@@ -42,6 +44,8 @@ export function MailboxReadingPane({
   onToggleStar,
   onBack,
   loading,
+  error,
+  onRetryEnvio,
 }: Props) {
   const navigate = useNavigate();
   const location = useLocation();
