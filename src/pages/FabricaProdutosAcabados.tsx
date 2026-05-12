@@ -1347,6 +1347,11 @@ export default function FabricaProdutosAcabados() {
           setProdutoEdit(null);
         }}
       />
+
+      <PhotoPermissionDiagnosticsDialog
+        open={diagnosticoOpen}
+        onOpenChange={setDiagnosticoOpen}
+      />
     </DashboardLayout>
   );
 }
