@@ -47,6 +47,25 @@ export function markVincularRead(id: string) {
   listeners.forEach((l) => l());
 }
 
+export function markAllVincularRead(ids: string[]) {
+  const c = getCache();
+  let changed = false;
+  for (const id of ids) {
+    if (!c.has(id)) { c.add(id); changed = true; }
+  }
+  if (!changed) return;
+  save(c);
+  listeners.forEach((l) => l());
+}
+
+export function clearVincularRead() {
+  const c = getCache();
+  if (c.size === 0) return;
+  c.clear();
+  save(c);
+  listeners.forEach((l) => l());
+}
+
 export function subscribeVincularRead(cb: () => void): () => void {
   listeners.add(cb);
   return () => listeners.delete(cb);
