@@ -1,8 +1,9 @@
 import { useState, useMemo, useEffect } from "react";
 import { useProjetoTarefas, ProjetoTarefa } from "@/hooks/useProjetoTarefas";
+import { useTarefaDensity } from "@/hooks/useTarefaDensity";
 import { ProjetoFilters, ProjetoSort, EMPTY_FILTERS, DEFAULT_SORT } from "./ProjetoFilterSort";
 import { applyProjetoFilters, applyProjetoSort, hasActiveFilters } from "@/lib/projetoFilterUtils";
-import { getDateKey, parseLocalDate, getToday } from "@/utils/dateUtils";
+import { getDateKey, parseLocalDate } from "@/utils/dateUtils";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -11,6 +12,9 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Calendar } from "@/components/ui/calendar";
 import { CalendarioAnalisePanel } from "./CalendarioAnalisePanel";
+import { CalendarioCard } from "./calendario/CalendarioCard";
+import { MultiDayBar, MULTIDAY_LANE_HEIGHT, MULTIDAY_LANE_GAP } from "./calendario/MultiDayBar";
+import { packLanes, splitEventByWeekRow } from "@/lib/calendario/lanePacking";
 import { ChevronLeft, ChevronRight, CalendarDays, Circle, CheckCircle2, BarChart3 } from "lucide-react";
 import {
   startOfMonth, endOfMonth, startOfWeek, endOfWeek,
@@ -47,6 +51,7 @@ export function ProjetoCalendarioView({ projetoId, darkBg = false, filters = EMP
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [selectedTarefaId, setSelectedTarefaId] = useState<string | null>(null);
   const [showAnalisePanel, setShowAnalisePanel] = useState(false);
+  const { isCompact } = useTarefaDensity();
 
   // Reset internal filters when external filters become active
   const externalFiltersActive = hasActiveFilters(filters);
@@ -75,23 +80,38 @@ export function ProjetoCalendarioView({ projetoId, darkBg = false, filters = EMP
     };
   }, [currentDate, viewMode]);
 
-  // Group tasks by date key
-  const tasksByDate = useMemo(() => {
+  // Filter once
+  const filteredTarefas = useMemo(() => tarefas.filter((t) => {
+    if (!t.data_prazo) return false;
+    if (filterSecao !== "all" && t.secao_id !== filterSecao) return false;
+    if (filterStatus !== "all" && t.status !== filterStatus) return false;
+    return true;
+  }), [tarefas, filterSecao, filterStatus]);
+
+  // Single-day tasks grouped by data_prazo
+  const singleDayByDate = useMemo(() => {
     const map: Record<string, ProjetoTarefa[]> = {};
-    const filtered = tarefas.filter((t) => {
-      if (!t.data_prazo) return false;
-      if (filterSecao !== "all" && t.secao_id !== filterSecao) return false;
-      if (filterStatus !== "all" && t.status !== filterStatus) return false;
-      return true;
-    });
-    filtered.forEach((t) => {
-      const key = getDateKey(t.data_prazo);
+    filteredTarefas.forEach((t) => {
+      const start = t.data_inicio_planejada;
+      const end = t.data_prazo;
+      if (start && end && start !== end) return; // multi-dia → outra camada
+      const key = getDateKey(end!);
       if (!key) return;
       if (!map[key]) map[key] = [];
       map[key].push(t);
     });
     return map;
-  }, [tarefas, filterSecao, filterStatus]);
+  }, [filteredTarefas]);
+
+  // Multi-day tasks
+  const multiDayTasks = useMemo(() => filteredTarefas
+    .filter((t) => t.data_inicio_planejada && t.data_prazo && t.data_inicio_planejada !== t.data_prazo)
+    .map((t) => ({
+      tarefa: t,
+      start: parseLocalDate(t.data_inicio_planejada!)!,
+      end: parseLocalDate(t.data_prazo!)!,
+    }))
+    .filter((x) => x.start && x.end), [filteredTarefas]);
 
   // Compute grid days
   const days = useMemo(() => {
@@ -108,6 +128,35 @@ export function ProjetoCalendarioView({ projetoId, darkBg = false, filters = EMP
     }
   }, [currentDate, viewMode]);
 
+  const weekRows = useMemo(() => {
+    const rows: Date[][] = [];
+    for (let i = 0; i < days.length; i += 7) rows.push(days.slice(i, i + 7));
+    return rows;
+  }, [days]);
+
+  // Lane packing per week-row for multi-day bars
+  const multiDayByRow = useMemo(() => {
+    const rows: Array<Array<{ tarefa: ProjetoTarefa; startCol: number; endCol: number; lane: number; continuesLeft: boolean; continuesRight: boolean }>> = weekRows.map(() => []);
+    multiDayTasks.forEach(({ tarefa, start, end }) => {
+      const segments = splitEventByWeekRow(start, end, weekRows);
+      segments.forEach((seg) => {
+        const continuesLeft = weekRows[seg.rowIndex][seg.startCol].getTime() > start.getTime();
+        const continuesRight = weekRows[seg.rowIndex][seg.endCol].getTime() < end.getTime();
+        rows[seg.rowIndex].push({ tarefa, startCol: seg.startCol, endCol: seg.endCol, lane: 0, continuesLeft, continuesRight });
+      });
+    });
+    return rows.map((rowEvents) => {
+      const ids = rowEvents.map((e, i) => ({ id: `${e.tarefa.id}-${i}`, startCol: e.startCol, endCol: e.endCol }));
+      const packed = packLanes(ids);
+      return rowEvents.map((e, i) => ({ ...e, lane: packed.find((p) => p.event.id === `${e.tarefa.id}-${i}`)?.lane ?? 0 }));
+    });
+  }, [multiDayTasks, weekRows]);
+
+  const maxLanesByRow = useMemo(
+    () => multiDayByRow.map((row) => row.reduce((m, e) => Math.max(m, e.lane + 1), 0)),
+    [multiDayByRow],
+  );
+
   const navigate = (dir: "prev" | "next") => {
     if (viewMode === "month") {
       setCurrentDate(dir === "prev" ? subMonths(currentDate, 1) : addMonths(currentDate, 1));
@@ -121,12 +170,16 @@ export function ProjetoCalendarioView({ projetoId, darkBg = false, filters = EMP
   const txt = darkBg ? "text-white" : "text-foreground";
   const txtMuted = darkBg ? "text-white/60" : "text-muted-foreground";
   const border = darkBg ? "border-white/10" : "border-border/40";
-  const cellBg = darkBg ? "bg-white/[0.03]" : "bg-background";
-  const cellBgToday = darkBg ? "bg-white/10" : "bg-primary/5";
+  const cellBg = darkBg ? "bg-white/[0.02]" : "bg-background";
+  const cellBgWeekend = darkBg ? "bg-white/[0.01]" : "bg-muted/20";
+  const cellBgToday = darkBg
+    ? "bg-gradient-to-br from-primary/15 via-primary/5 to-transparent"
+    : "bg-gradient-to-br from-primary/10 via-primary/[0.04] to-transparent";
   const cellBgOutside = darkBg ? "bg-transparent" : "bg-muted/30";
   const btnGhost = darkBg ? "text-white hover:bg-white/10" : "";
 
-  const maxVisible = viewMode === "month" ? 3 : 20;
+  const maxVisible = isCompact ? (viewMode === "month" ? 2 : 18) : (viewMode === "month" ? 3 : 20);
+  const cellMinH = isCompact ? (viewMode === "month" ? 84 : 180) : (viewMode === "month" ? 124 : 220);
 
   // If analysis panel is open, render it full-width instead of the calendar
   if (showAnalisePanel) {
@@ -275,28 +328,101 @@ export function ProjetoCalendarioView({ projetoId, darkBg = false, filters = EMP
       <div className={cn("border rounded-lg overflow-hidden", border)}>
         <div className="grid grid-cols-7">
           {WEEKDAYS.map((d) => (
-            <div key={d} className={cn("text-center text-xs font-semibold py-2 border-b", border, darkBg ? "bg-white/5 text-white/70" : "bg-muted/50 text-muted-foreground")}>{d}</div>
+            <div key={d} className={cn("text-center text-xs font-semibold py-2 border-b tracking-wide uppercase", border, darkBg ? "bg-white/5 text-white/70" : "bg-muted/40 text-muted-foreground")}>{d}</div>
           ))}
         </div>
-        <div className="grid grid-cols-7">
-          {days.map((day, i) => {
-            const key = getDateKey(day);
-            const dayTasks = tasksByDate[key] || [];
-            const isCurrentMonth = isSameMonth(day, currentDate);
-            const today = isDateToday(day);
-            return (
-              <div key={i} className={cn("border-b border-r min-h-[100px] p-1.5 transition-colors", border, today ? cellBgToday : isCurrentMonth ? cellBg : cellBgOutside, viewMode === "week" && "min-h-[200px]")}>
-                <div className={cn("text-right mb-1")}>
-                  <span className={cn("inline-flex items-center justify-center text-xs font-medium w-6 h-6 rounded-full", today ? "bg-primary text-primary-foreground" : isCurrentMonth ? txt : txtMuted)}>{format(day, "d")}</span>
+        {weekRows.map((row, rowIdx) => {
+          const lanes = maxLanesByRow[rowIdx] ?? 0;
+          const barsHeight = lanes * (MULTIDAY_LANE_HEIGHT + MULTIDAY_LANE_GAP);
+          return (
+            <div key={rowIdx} className="relative grid grid-cols-7">
+              {row.map((day, ci) => {
+                const key = getDateKey(day);
+                const dayTasks = singleDayByDate[key] || [];
+                const isCurrentMonth = isSameMonth(day, currentDate);
+                const today = isDateToday(day);
+                const isWeekend = ci >= 5;
+                return (
+                  <div
+                    key={ci}
+                    style={{ minHeight: cellMinH }}
+                    className={cn(
+                      "border-b border-r p-1.5 transition-colors relative",
+                      border,
+                      today
+                        ? cellBgToday
+                        : !isCurrentMonth
+                          ? cellBgOutside
+                          : isWeekend
+                            ? cellBgWeekend
+                            : cellBg,
+                    )}
+                  >
+                    <div className="flex items-start justify-end mb-1">
+                      <span
+                        className={cn(
+                          "inline-flex items-center justify-center text-[11px] font-semibold w-6 h-6 rounded-full transition-all",
+                          today
+                            ? "bg-primary text-primary-foreground shadow-sm shadow-primary/30"
+                            : isCurrentMonth
+                              ? txt
+                              : txtMuted,
+                        )}
+                      >
+                        {format(day, "d")}
+                      </span>
+                    </div>
+                    {/* Spacer for multi-day bars */}
+                    {barsHeight > 0 && <div style={{ height: barsHeight + 2 }} />}
+                    <div className="space-y-0.5">
+                      {dayTasks.slice(0, maxVisible).map((t) => (
+                        <CalendarioCard
+                          key={t.id}
+                          tarefa={t}
+                          darkBg={darkBg}
+                          compact={isCompact}
+                          onClick={() => setSelectedTarefaId(t.id)}
+                        />
+                      ))}
+                      {dayTasks.length > maxVisible && (
+                        <OverflowPopover
+                          tasks={dayTasks.slice(maxVisible)}
+                          count={dayTasks.length - maxVisible}
+                          darkBg={darkBg}
+                          onClickTask={setSelectedTarefaId}
+                        />
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+              {/* Multi-day bars layer */}
+              {multiDayByRow[rowIdx]?.length > 0 && (
+                <div
+                  className="absolute left-0 right-0 pointer-events-none"
+                  style={{ top: 30 }}
+                >
+                  <div className="relative" style={{ height: barsHeight }}>
+                    {multiDayByRow[rowIdx].map((b, i) => (
+                      <div key={`${b.tarefa.id}-${i}`} className="pointer-events-auto">
+                        <MultiDayBar
+                          tarefa={b.tarefa}
+                          startCol={b.startCol}
+                          endCol={b.endCol}
+                          lane={b.lane}
+                          continuesLeft={b.continuesLeft}
+                          continuesRight={b.continuesRight}
+                          darkBg={darkBg}
+                          onClick={() => setSelectedTarefaId(b.tarefa.id)}
+                        />
+                      </div>
+                    ))}
+                  </div>
                 </div>
-                <div className="space-y-0.5">
-                  {dayTasks.slice(0, maxVisible).map((t) => (<TaskPill key={t.id} tarefa={t} darkBg={darkBg} onClick={() => setSelectedTarefaId(t.id)} />))}
-                  {dayTasks.length > maxVisible && (<OverflowPopover tasks={dayTasks.slice(maxVisible)} count={dayTasks.length - maxVisible} darkBg={darkBg} onClickTask={setSelectedTarefaId} />)}
-                </div>
-              </div>
-            );
-          })}
-        </div>
+              )}
+            </div>
+          );
+        })}
       </div>
 
       {/* Legend */}
@@ -366,7 +492,7 @@ function OverflowPopover({ tasks, count, darkBg, onClickTask }: { tasks: Projeto
       </PopoverTrigger>
       <PopoverContent className="w-64 p-2 space-y-0.5" align="start">
         {tasks.map((t) => (
-          <TaskPill key={t.id} tarefa={t} darkBg={false} onClick={() => onClickTask(t.id)} />
+          <CalendarioCard key={t.id} tarefa={t} darkBg={false} onClick={() => onClickTask(t.id)} />
         ))}
       </PopoverContent>
     </Popover>
