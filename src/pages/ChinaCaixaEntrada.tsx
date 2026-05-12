@@ -60,6 +60,7 @@ export default function ChinaCaixaEntrada() {
   const isChinaUser = true;
   const isBrasilUser = false;
   const isDesktop = useMediaQuery("(min-width: 1024px)");
+  const queryClient = useQueryClient();
 
   const folderParam = searchParams.get("folder") as MailboxFolder | null;
   const rawFolder: MailboxFolder =
