@@ -463,6 +463,34 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
     onError: (err: Error) => toast.error(err.message),
   });
 
+  const deleteSecao = useMutation({
+    mutationFn: async (secaoId: string) => {
+      const { error } = await supabase
+        .from("projeto_secoes")
+        .delete()
+        .eq("id", secaoId);
+      if (error) throw error;
+    },
+    onMutate: async (secaoId) => {
+      await queryClient.cancelQueries({ queryKey: ["projeto-tarefas-v2", projetoId] });
+      const previous = queryClient.getQueryData<ProjetoTarefasView>(["projeto-tarefas-v2", projetoId]);
+      patchView((v) => ({
+        ...v,
+        secoes: v.secoes.filter(s => s.id !== secaoId),
+        tarefas: v.tarefas.filter(t => t.secao_id !== secaoId),
+      }));
+      return { previous };
+    },
+    onError: (err: Error, _vars, context) => {
+      if (context?.previous) queryClient.setQueryData(["projeto-tarefas-v2", projetoId], context.previous);
+      toast.error("Erro ao excluir seção: " + err.message);
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2", projetoId] });
+    },
+    onSuccess: () => toast.success("Seção excluída"),
+  });
+
   const toggleSecaoBriefing = useMutation({
     mutationFn: async ({ secaoId, temBriefing }: { secaoId: string; temBriefing: boolean }) => {
       const { error } = await supabase
