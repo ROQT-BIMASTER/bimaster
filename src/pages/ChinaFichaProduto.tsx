@@ -28,6 +28,7 @@ import { ChinaProjetoChecklist } from "@/components/china/ChinaProjetoChecklist"
 import { ChinaTimeline } from "@/components/china/ChinaTimeline";
 import { ChinaPageShell } from "@/components/china/ChinaPageShell";
 import { ChinaPageHeader } from "@/components/china/ChinaPageHeader";
+import { ChinaTimelineButton } from "@/components/china/timeline/ChinaTimelineButton";
 import { useChinaUserContext } from "@/hooks/useChinaUserContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -283,6 +284,7 @@ export default function ChinaFichaProduto() {
               <ListChecks className="h-4 w-4" /> Checklist Embalagens 包装清单
             </Button>
             {/* Botão "Despachar" removido — aprovações agora vivem na aba "Aprovações" da tarefa do projeto. */}
+            <ChinaTimelineButton scope={{ submissaoId: id }} />
             <ManualFabricaDrawer screen="china-ficha-produto" />
           </>
         }

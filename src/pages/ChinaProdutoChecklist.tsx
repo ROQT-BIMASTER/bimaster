@@ -5,6 +5,7 @@ import { ListChecks, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { ChinaPageShell } from "@/components/china/ChinaPageShell";
 import { ChinaPageHeader } from "@/components/china/ChinaPageHeader";
+import { ChinaTimelineButton } from "@/components/china/timeline/ChinaTimelineButton";
 import { Card } from "@/components/ui/card";
 import { ChecklistEmbalagensTable } from "@/components/china/ChecklistEmbalagensTable";
 import { ChecklistTemplateMenu } from "@/components/china/ChecklistTemplateMenu";
@@ -134,13 +135,16 @@ export default function ChinaProdutoChecklist() {
         showBack
         backTo={`/dashboard/fabrica-china/produto/${id}`}
         actions={
-          checklist && !readOnly ? (
-            <ChecklistTemplateMenu
-              marca={submissao?.marca || null}
-              colunasAtuais={colunas}
-              onApply={handleApplyTemplate}
-            />
-          ) : null
+          <>
+            <ChinaTimelineButton scope={{ submissaoId: id }} />
+            {checklist && !readOnly && (
+              <ChecklistTemplateMenu
+                marca={submissao?.marca || null}
+                colunasAtuais={colunas}
+                onApply={handleApplyTemplate}
+              />
+            )}
+          </>
         }
       />
 

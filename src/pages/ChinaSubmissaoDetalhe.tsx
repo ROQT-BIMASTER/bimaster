@@ -23,6 +23,7 @@ import { useQuery } from "@tanstack/react-query";
 import { ManualFabricaDrawer } from "@/components/fabrica/ManualFabricaDrawer";
 import { ChinaPageShell } from "@/components/china/ChinaPageShell";
 import { ChinaPageHeader } from "@/components/china/ChinaPageHeader";
+import { ChinaTimelineButton } from "@/components/china/timeline/ChinaTimelineButton";
 import { getSignedUrl } from "@/lib/utils/storage-helper";
 import { Loader2 } from "lucide-react";
 import { useFieldVisibility } from "@/hooks/useFieldVisibility";
@@ -143,6 +144,7 @@ export default function ChinaSubmissaoDetalhe() {
                 Corrigir submissão 修正提交
               </Button>
             )}
+            <ChinaTimelineButton scope={{ submissaoId: submissao.id }} />
             <ManualFabricaDrawer screen="china-ficha-produto" />
           </>
         }
