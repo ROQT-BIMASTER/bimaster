@@ -1067,6 +1067,8 @@ export function FichaCustoProdutoEditor({
                     <TableHead className="min-w-[110px] text-right">NF (R$)</TableHead>
                     <TableHead className="min-w-[110px] text-right">Serviço (R$)</TableHead>
                     <TableHead className="min-w-[110px] text-right">Condição (R$)</TableHead>
+                    <TableHead className="min-w-[90px] text-right">IPI (%)</TableHead>
+                    <TableHead className="min-w-[110px] text-right">IPI (R$)</TableHead>
                     <TableHead className="min-w-[120px]">NF Ref.</TableHead>
                     <TableHead className="w-[80px]"></TableHead>
                   </TableRow>
