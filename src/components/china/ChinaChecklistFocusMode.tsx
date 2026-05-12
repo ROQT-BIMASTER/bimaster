@@ -891,6 +891,19 @@ export function ChinaChecklistFocusMode({
                     Submeter {selected.size} ao Brasil
                   </Button>
                 )}
+                {draftDocs.length > 0 && selected.size === 0 && (
+                  <Button
+                    variant="gradient"
+                    size="sm"
+                    disabled={submitting}
+                    onClick={() => setConfirmAllOpen(true)}
+                    className="gap-2"
+                    title="Enviar todos os rascunhos pendentes ao Brasil"
+                  >
+                    {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                    Enviar {draftDocs.length} rascunho(s) ao Brasil
+                  </Button>
+                )}
                 {/* Templates menu */}
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
