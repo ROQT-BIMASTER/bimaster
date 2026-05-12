@@ -15,6 +15,7 @@ import { cn } from "@/lib/utils";
 import { useCofreProdutoConfig, useCofreItensForSubmissao, CofreConfigItem } from "@/hooks/useCofreProdutoConfig";
 import { validateLinhaProduto } from "@/lib/validations/china-submissao";
 import { logger } from "@/lib/logger";
+import { verifyCurrentUserPassword } from "@/lib/auth/verifyCurrentUserPassword";
 
 interface ColorEntry {
   grupo: string;
@@ -64,7 +65,8 @@ interface ChinaDataValidationDialogProps {
   showPhotoUpload?: boolean;
 }
 
-const EDIT_PASSWORD = "bimaster2026";
+// EDIT_PASSWORD removido: substituído por step-up real via
+// `verifyCurrentUserPassword` (achado #1 da auditoria audit/modulo-china).
 
 export function ChinaDataValidationDialog({
   open,
