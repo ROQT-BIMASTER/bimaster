@@ -748,8 +748,16 @@ export function ChinaChecklistFocusMode({
     onError: (e: any) => toast.error(e?.message || "Erro ao excluir card"),
   });
 
-  const handleDeleteCard = (config: MergedDocType) => {
-    if (!confirm(`Excluir card "${config.labelPt}" deste checklist?`)) return;
+  const handleDeleteCard = async (config: MergedDocType) => {
+    const { confirmExclusaoTarefa } = await import("@/lib/projetos/confirmConclusao");
+    const ok = await confirmExclusaoTarefa({
+      tituloDialog: "Excluir card do checklist?",
+      acaoLabel: "Sim, excluir",
+      descricao:
+        `Você está prestes a remover o card "${config.labelPt}" deste checklist da submissão China. ` +
+        `Itens com arquivos enviados precisam ter os arquivos removidos primeiro. Esta ação afeta apenas esta submissão.`,
+    });
+    if (!ok) return;
     deleteItem.mutate(config);
   };
 
