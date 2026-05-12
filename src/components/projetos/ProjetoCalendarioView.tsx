@@ -328,28 +328,101 @@ export function ProjetoCalendarioView({ projetoId, darkBg = false, filters = EMP
       <div className={cn("border rounded-lg overflow-hidden", border)}>
         <div className="grid grid-cols-7">
           {WEEKDAYS.map((d) => (
-            <div key={d} className={cn("text-center text-xs font-semibold py-2 border-b", border, darkBg ? "bg-white/5 text-white/70" : "bg-muted/50 text-muted-foreground")}>{d}</div>
+            <div key={d} className={cn("text-center text-xs font-semibold py-2 border-b tracking-wide uppercase", border, darkBg ? "bg-white/5 text-white/70" : "bg-muted/40 text-muted-foreground")}>{d}</div>
           ))}
         </div>
-        <div className="grid grid-cols-7">
-          {days.map((day, i) => {
-            const key = getDateKey(day);
-            const dayTasks = tasksByDate[key] || [];
-            const isCurrentMonth = isSameMonth(day, currentDate);
-            const today = isDateToday(day);
-            return (
-              <div key={i} className={cn("border-b border-r min-h-[100px] p-1.5 transition-colors", border, today ? cellBgToday : isCurrentMonth ? cellBg : cellBgOutside, viewMode === "week" && "min-h-[200px]")}>
-                <div className={cn("text-right mb-1")}>
-                  <span className={cn("inline-flex items-center justify-center text-xs font-medium w-6 h-6 rounded-full", today ? "bg-primary text-primary-foreground" : isCurrentMonth ? txt : txtMuted)}>{format(day, "d")}</span>
+        {weekRows.map((row, rowIdx) => {
+          const lanes = maxLanesByRow[rowIdx] ?? 0;
+          const barsHeight = lanes * (MULTIDAY_LANE_HEIGHT + MULTIDAY_LANE_GAP);
+          return (
+            <div key={rowIdx} className="relative grid grid-cols-7">
+              {row.map((day, ci) => {
+                const key = getDateKey(day);
+                const dayTasks = singleDayByDate[key] || [];
+                const isCurrentMonth = isSameMonth(day, currentDate);
+                const today = isDateToday(day);
+                const isWeekend = ci >= 5;
+                return (
+                  <div
+                    key={ci}
+                    style={{ minHeight: cellMinH }}
+                    className={cn(
+                      "border-b border-r p-1.5 transition-colors relative",
+                      border,
+                      today
+                        ? cellBgToday
+                        : !isCurrentMonth
+                          ? cellBgOutside
+                          : isWeekend
+                            ? cellBgWeekend
+                            : cellBg,
+                    )}
+                  >
+                    <div className="flex items-start justify-end mb-1">
+                      <span
+                        className={cn(
+                          "inline-flex items-center justify-center text-[11px] font-semibold w-6 h-6 rounded-full transition-all",
+                          today
+                            ? "bg-primary text-primary-foreground shadow-sm shadow-primary/30"
+                            : isCurrentMonth
+                              ? txt
+                              : txtMuted,
+                        )}
+                      >
+                        {format(day, "d")}
+                      </span>
+                    </div>
+                    {/* Spacer for multi-day bars */}
+                    {barsHeight > 0 && <div style={{ height: barsHeight + 2 }} />}
+                    <div className="space-y-0.5">
+                      {dayTasks.slice(0, maxVisible).map((t) => (
+                        <CalendarioCard
+                          key={t.id}
+                          tarefa={t}
+                          darkBg={darkBg}
+                          compact={isCompact}
+                          onClick={() => setSelectedTarefaId(t.id)}
+                        />
+                      ))}
+                      {dayTasks.length > maxVisible && (
+                        <OverflowPopover
+                          tasks={dayTasks.slice(maxVisible)}
+                          count={dayTasks.length - maxVisible}
+                          darkBg={darkBg}
+                          onClickTask={setSelectedTarefaId}
+                        />
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+              {/* Multi-day bars layer */}
+              {multiDayByRow[rowIdx]?.length > 0 && (
+                <div
+                  className="absolute left-0 right-0 pointer-events-none"
+                  style={{ top: 30 }}
+                >
+                  <div className="relative" style={{ height: barsHeight }}>
+                    {multiDayByRow[rowIdx].map((b, i) => (
+                      <div key={`${b.tarefa.id}-${i}`} className="pointer-events-auto">
+                        <MultiDayBar
+                          tarefa={b.tarefa}
+                          startCol={b.startCol}
+                          endCol={b.endCol}
+                          lane={b.lane}
+                          continuesLeft={b.continuesLeft}
+                          continuesRight={b.continuesRight}
+                          darkBg={darkBg}
+                          onClick={() => setSelectedTarefaId(b.tarefa.id)}
+                        />
+                      </div>
+                    ))}
+                  </div>
                 </div>
-                <div className="space-y-0.5">
-                  {dayTasks.slice(0, maxVisible).map((t) => (<TaskPill key={t.id} tarefa={t} darkBg={darkBg} onClick={() => setSelectedTarefaId(t.id)} />))}
-                  {dayTasks.length > maxVisible && (<OverflowPopover tasks={dayTasks.slice(maxVisible)} count={dayTasks.length - maxVisible} darkBg={darkBg} onClickTask={setSelectedTarefaId} />)}
-                </div>
-              </div>
-            );
-          })}
-        </div>
+              )}
+            </div>
+          );
+        })}
       </div>
 
       {/* Legend */}
