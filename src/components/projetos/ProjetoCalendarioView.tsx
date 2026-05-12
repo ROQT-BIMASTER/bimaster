@@ -3,31 +3,22 @@ import { useProjetoTarefas, ProjetoTarefa } from "@/hooks/useProjetoTarefas";
 import { useTarefaDensity } from "@/hooks/useTarefaDensity";
 import { ProjetoFilters, ProjetoSort, EMPTY_FILTERS, DEFAULT_SORT } from "./ProjetoFilterSort";
 import { applyProjetoFilters, applyProjetoSort, hasActiveFilters } from "@/lib/projetoFilterUtils";
-import { getDateKey, parseLocalDate } from "@/utils/dateUtils";
+import { parseLocalDate } from "@/utils/dateUtils";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Calendar } from "@/components/ui/calendar";
 import { CalendarioAnalisePanel } from "./CalendarioAnalisePanel";
-import { CalendarioCard } from "./calendario/CalendarioCard";
-import { MultiDayBar, MULTIDAY_LANE_HEIGHT, MULTIDAY_LANE_GAP } from "./calendario/MultiDayBar";
-import { packLanes, splitEventByWeekRow } from "@/lib/calendario/lanePacking";
-import { ChevronLeft, ChevronRight, CalendarDays, Circle, CheckCircle2, BarChart3 } from "lucide-react";
-import {
-  startOfMonth, endOfMonth, startOfWeek, endOfWeek,
-  eachDayOfInterval, addMonths, subMonths, addWeeks, subWeeks,
-  format, isSameMonth, isToday as isDateToday, isSameDay,
-} from "date-fns";
+import { UnifiedCalendar } from "@/components/calendario/UnifiedCalendar";
+import { tarefaToEvent } from "@/components/calendario/types";
+import { CalendarDays, Circle, CheckCircle2, BarChart3 } from "lucide-react";
+import { format, startOfMonth, endOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 import {
   ESTAGIO_LABELS, ESTAGIO_PILL_COLORS, STATUS_ICON_CONFIG,
 } from "@/lib/projetoConstants";
-
-const WEEKDAYS = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"];
 
 interface Props {
   projetoId: string;
@@ -39,21 +30,28 @@ interface Props {
 export function ProjetoCalendarioView({ projetoId, darkBg = false, filters = EMPTY_FILTERS, sort = DEFAULT_SORT }: Props) {
   const { tarefas: rawTarefas, secoes } = useProjetoTarefas(projetoId);
 
-  // Apply external filters
   const tarefas = useMemo(() => {
     let t: typeof rawTarefas = rawTarefas;
     if (hasActiveFilters(filters)) t = applyProjetoFilters(t, filters) as typeof rawTarefas;
     return applyProjetoSort(t, sort) as typeof rawTarefas;
   }, [rawTarefas, filters, sort]);
-  const [currentDate, setCurrentDate] = useState(new Date());
-  const [viewMode, setViewMode] = useState<"month" | "week">("month");
+
   const [filterSecao, setFilterSecao] = useState<string>("all");
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [selectedTarefaId, setSelectedTarefaId] = useState<string | null>(null);
   const [showAnalisePanel, setShowAnalisePanel] = useState(false);
   const { isCompact } = useTarefaDensity();
 
-  // Reset internal filters when external filters become active
+  // Período visível (sincronizado com o UnifiedCalendar via onPeriodChange).
+  const [periodoInfo, setPeriodoInfo] = useState(() => {
+    const today = new Date();
+    return {
+      inicio: startOfMonth(today),
+      fim: endOfMonth(today),
+      label: format(today, "'Mês de' MMMM yyyy", { locale: ptBR }),
+    };
+  });
+
   const externalFiltersActive = hasActiveFilters(filters);
   useEffect(() => {
     if (externalFiltersActive) {
@@ -62,25 +60,6 @@ export function ProjetoCalendarioView({ projetoId, darkBg = false, filters = EMP
     }
   }, [externalFiltersActive]);
 
-  // Period boundaries for analysis
-  const periodoInfo = useMemo(() => {
-    if (viewMode === "month") {
-      return {
-        inicio: startOfMonth(currentDate),
-        fim: endOfMonth(currentDate),
-        label: format(currentDate, "'Mês de' MMMM yyyy", { locale: ptBR }),
-      };
-    }
-    const ws = startOfWeek(currentDate, { weekStartsOn: 1 });
-    const we = endOfWeek(currentDate, { weekStartsOn: 1 });
-    return {
-      inicio: ws,
-      fim: we,
-      label: `Semana de ${format(ws, "dd MMM", { locale: ptBR })} – ${format(we, "dd MMM", { locale: ptBR })}`,
-    };
-  }, [currentDate, viewMode]);
-
-  // Filter once
   const filteredTarefas = useMemo(() => tarefas.filter((t) => {
     if (!t.data_prazo) return false;
     if (filterSecao !== "all" && t.secao_id !== filterSecao) return false;
@@ -88,137 +67,71 @@ export function ProjetoCalendarioView({ projetoId, darkBg = false, filters = EMP
     return true;
   }), [tarefas, filterSecao, filterStatus]);
 
-  // Single-day tasks grouped by data_prazo
-  const singleDayByDate = useMemo(() => {
-    const map: Record<string, ProjetoTarefa[]> = {};
-    filteredTarefas.forEach((t) => {
-      const start = t.data_inicio_planejada;
-      const end = t.data_prazo;
-      if (start && end && start !== end) return; // multi-dia → outra camada
-      const key = getDateKey(end!);
-      if (!key) return;
-      if (!map[key]) map[key] = [];
-      map[key].push(t);
-    });
-    return map;
-  }, [filteredTarefas]);
+  const events = useMemo(() => filteredTarefas.map((t) => tarefaToEvent(t)), [filteredTarefas]);
 
-  // Multi-day tasks
-  const multiDayTasks = useMemo(() => filteredTarefas
-    .filter((t) => t.data_inicio_planejada && t.data_prazo && t.data_inicio_planejada !== t.data_prazo)
-    .map((t) => ({
-      tarefa: t,
-      start: parseLocalDate(t.data_inicio_planejada!)!,
-      end: parseLocalDate(t.data_prazo!)!,
-    }))
-    .filter((x) => x.start && x.end), [filteredTarefas]);
+  // Banner de prazos faltando
+  const totalParentTasks = tarefas.filter(t => !t.parent_tarefa_id).length;
+  const tasksWithoutDeadline = tarefas.filter(t => !t.parent_tarefa_id && !t.data_prazo).length;
+  const showDeadlineBanner = totalParentTasks > 0 && (tasksWithoutDeadline / totalParentTasks) > 0.5;
 
-  // Compute grid days
-  const days = useMemo(() => {
-    if (viewMode === "month") {
-      const monthStart = startOfMonth(currentDate);
-      const monthEnd = endOfMonth(currentDate);
-      const gridStart = startOfWeek(monthStart, { weekStartsOn: 1 });
-      const gridEnd = endOfWeek(monthEnd, { weekStartsOn: 1 });
-      return eachDayOfInterval({ start: gridStart, end: gridEnd });
-    } else {
-      const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 });
-      const weekEnd = endOfWeek(currentDate, { weekStartsOn: 1 });
-      return eachDayOfInterval({ start: weekStart, end: weekEnd });
-    }
-  }, [currentDate, viewMode]);
+  const banner = showDeadlineBanner ? (
+    <div className={cn("flex items-center gap-2 rounded-lg px-3 py-2 text-xs", "bg-warning/10 text-warning")}>
+      <CalendarDays className="h-4 w-4 flex-shrink-0" />
+      <span>{tasksWithoutDeadline} de {totalParentTasks} tarefas sem prazo — defina prazos para visualizá-las no calendário.</span>
+    </div>
+  ) : null;
 
-  const weekRows = useMemo(() => {
-    const rows: Date[][] = [];
-    for (let i = 0; i < days.length; i += 7) rows.push(days.slice(i, i + 7));
-    return rows;
-  }, [days]);
-
-  // Lane packing per week-row for multi-day bars
-  const multiDayByRow = useMemo(() => {
-    const rows: Array<Array<{ tarefa: ProjetoTarefa; startCol: number; endCol: number; lane: number; continuesLeft: boolean; continuesRight: boolean }>> = weekRows.map(() => []);
-    multiDayTasks.forEach(({ tarefa, start, end }) => {
-      const segments = splitEventByWeekRow(start, end, weekRows);
-      segments.forEach((seg) => {
-        const continuesLeft = weekRows[seg.rowIndex][seg.startCol].getTime() > start.getTime();
-        const continuesRight = weekRows[seg.rowIndex][seg.endCol].getTime() < end.getTime();
-        rows[seg.rowIndex].push({ tarefa, startCol: seg.startCol, endCol: seg.endCol, lane: 0, continuesLeft, continuesRight });
-      });
-    });
-    return rows.map((rowEvents) => {
-      const ids = rowEvents.map((e, i) => ({ id: `${e.tarefa.id}-${i}`, startCol: e.startCol, endCol: e.endCol }));
-      const packed = packLanes(ids);
-      return rowEvents.map((e, i) => ({ ...e, lane: packed.find((p) => p.event.id === `${e.tarefa.id}-${i}`)?.lane ?? 0 }));
-    });
-  }, [multiDayTasks, weekRows]);
-
-  const maxLanesByRow = useMemo(
-    () => multiDayByRow.map((row) => row.reduce((m, e) => Math.max(m, e.lane + 1), 0)),
-    [multiDayByRow],
+  const leftToolbarExtra = (
+    <Button
+      variant="outline"
+      size="sm"
+      className={cn("h-8 text-xs ml-1 gap-1.5", darkBg && "bg-white/10 border-white/20 text-white hover:bg-white/20")}
+      onClick={() => setShowAnalisePanel(true)}
+    >
+      <BarChart3 className="h-3.5 w-3.5" /> Análise
+    </Button>
   );
 
-  const navigate = (dir: "prev" | "next") => {
-    if (viewMode === "month") {
-      setCurrentDate(dir === "prev" ? subMonths(currentDate, 1) : addMonths(currentDate, 1));
-    } else {
-      setCurrentDate(dir === "prev" ? subWeeks(currentDate, 1) : addWeeks(currentDate, 1));
-    }
-  };
+  const rightToolbarExtra = hasActiveFilters(filters) ? (
+    <Badge variant="outline" className={cn("text-[10px] h-6 gap-1", darkBg && "border-white/20 text-white/70")}>
+      <CalendarDays className="h-3 w-3" /> Filtros ativos via toolbar
+    </Badge>
+  ) : (
+    <>
+      <Select value={filterSecao} onValueChange={setFilterSecao}>
+        <SelectTrigger className={cn("h-8 w-[140px] text-xs", darkBg && "bg-white/10 border-white/20 text-white")}>
+          <SelectValue placeholder="Seção" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all">Todas seções</SelectItem>
+          {secoes.map((s) => (<SelectItem key={s.id} value={s.id}>{s.nome}</SelectItem>))}
+        </SelectContent>
+      </Select>
+      <Select value={filterStatus} onValueChange={setFilterStatus}>
+        <SelectTrigger className={cn("h-8 w-[140px] text-xs", darkBg && "bg-white/10 border-white/20 text-white")}>
+          <SelectValue placeholder="Status" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all">Todos status</SelectItem>
+          <SelectItem value="pendente">Não iniciado</SelectItem>
+          <SelectItem value="em_andamento">Em andamento</SelectItem>
+          <SelectItem value="concluida">Concluído</SelectItem>
+          <SelectItem value="bloqueada">Bloqueada</SelectItem>
+        </SelectContent>
+      </Select>
+    </>
+  );
 
-  const goToday = () => setCurrentDate(new Date());
-
-  const txt = darkBg ? "text-white" : "text-foreground";
-  const txtMuted = darkBg ? "text-white/60" : "text-muted-foreground";
-  const border = darkBg ? "border-white/10" : "border-border/40";
-  const cellBg = darkBg ? "bg-white/[0.02]" : "bg-background";
-  const cellBgWeekend = darkBg ? "bg-white/[0.01]" : "bg-muted/20";
-  const cellBgToday = darkBg
-    ? "bg-gradient-to-br from-primary/15 via-primary/5 to-transparent"
-    : "bg-gradient-to-br from-primary/10 via-primary/[0.04] to-transparent";
-  const cellBgOutside = darkBg ? "bg-transparent" : "bg-muted/30";
-  const btnGhost = darkBg ? "text-white hover:bg-white/10" : "";
-
-  const maxVisible = isCompact ? (viewMode === "month" ? 2 : 18) : (viewMode === "month" ? 3 : 20);
-  const cellMinH = isCompact ? (viewMode === "month" ? 84 : 180) : (viewMode === "month" ? 124 : 220);
-
-  // If analysis panel is open, render it full-width instead of the calendar
   if (showAnalisePanel) {
     return (
       <div className="space-y-4">
-        <div className={cn("flex items-center justify-between flex-wrap gap-3")}>
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" size="icon" className={cn("h-8 w-8", btnGhost)} onClick={() => navigate("prev")}>
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <Popover>
-              <PopoverTrigger asChild>
-                <button className={cn("text-lg font-semibold capitalize min-w-[180px] text-center cursor-pointer hover:opacity-80 transition-opacity", txt)}>
-                  {viewMode === "month"
-                    ? format(currentDate, "MMMM yyyy", { locale: ptBR })
-                    : `Semana de ${format(days[0], "dd MMM", { locale: ptBR })} – ${format(days[6], "dd MMM", { locale: ptBR })}`}
-                </button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="center">
-                <Calendar
-                  mode="single"
-                  selected={currentDate}
-                  onSelect={(d) => d && setCurrentDate(d)}
-                  locale={ptBR}
-                  captionLayout="dropdown-buttons"
-                  fromYear={2020}
-                  toYear={2030}
-                  className="pointer-events-auto"
-                />
-              </PopoverContent>
-            </Popover>
-            <Button variant="ghost" size="icon" className={cn("h-8 w-8", btnGhost)} onClick={() => navigate("next")}>
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-            <div className={cn("flex rounded-md border overflow-hidden ml-2", border)}>
-              <button onClick={() => setViewMode("month")} className={cn("px-3 py-1.5 text-xs font-medium transition-colors", viewMode === "month" ? (darkBg ? "bg-white/20 text-white" : "bg-primary text-primary-foreground") : (darkBg ? "text-white/60 hover:bg-white/10" : "text-muted-foreground hover:bg-muted"))}>Mês</button>
-              <button onClick={() => setViewMode("week")} className={cn("px-3 py-1.5 text-xs font-medium transition-colors", viewMode === "week" ? (darkBg ? "bg-white/20 text-white" : "bg-primary text-primary-foreground") : (darkBg ? "text-white/60 hover:bg-white/10" : "text-muted-foreground hover:bg-muted"))}>Semana</button>
-            </div>
-          </div>
+        <div className="flex items-center justify-between">
+          <Button variant="ghost" size="sm" className={cn(darkBg && "text-white hover:bg-white/10")} onClick={() => setShowAnalisePanel(false)}>
+            ← Voltar ao calendário
+          </Button>
+          <span className={cn("text-sm font-medium", darkBg ? "text-white/70" : "text-muted-foreground")}>
+            {periodoInfo.label}
+          </span>
         </div>
         <CalendarioAnalisePanel
           projetoId={projetoId}
@@ -234,268 +147,28 @@ export function ProjetoCalendarioView({ projetoId, darkBg = false, filters = EMP
     );
   }
 
-  // Deadline warning
-  const totalParentTasks = tarefas.filter(t => !t.parent_tarefa_id).length;
-  const tasksWithoutDeadline = tarefas.filter(t => !t.parent_tarefa_id && !t.data_prazo).length;
-  const showDeadlineBanner = totalParentTasks > 0 && (tasksWithoutDeadline / totalParentTasks) > 0.5;
-
   return (
-    <div className="space-y-4">
-      {/* Deadline warning banner */}
-      {showDeadlineBanner && (
-        <div className={cn("flex items-center gap-2 rounded-lg px-3 py-2 text-xs", "bg-warning/10 text-warning")}>
-          <CalendarDays className="h-4 w-4 flex-shrink-0" />
-          <span>{tasksWithoutDeadline} de {totalParentTasks} tarefas sem prazo — defina prazos para visualizá-las no calendário.</span>
-        </div>
-      )}
-      {/* Toolbar */}
-      <div className={cn("flex items-center justify-between flex-wrap gap-3")}>
-        <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon" className={cn("h-8 w-8", btnGhost)} onClick={() => navigate("prev")}>
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <Popover>
-            <PopoverTrigger asChild>
-              <button className={cn("text-lg font-semibold capitalize min-w-[180px] text-center cursor-pointer hover:opacity-80 transition-opacity", txt)}>
-                {viewMode === "month"
-                  ? format(currentDate, "MMMM yyyy", { locale: ptBR })
-                  : `Semana de ${format(days[0], "dd MMM", { locale: ptBR })} – ${format(days[6], "dd MMM", { locale: ptBR })}`}
-              </button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="center">
-              <Calendar
-                mode="single"
-                selected={currentDate}
-                onSelect={(d) => d && setCurrentDate(d)}
-                locale={ptBR}
-                captionLayout="dropdown-buttons"
-                fromYear={2020}
-                toYear={2030}
-                className="pointer-events-auto"
-              />
-            </PopoverContent>
-          </Popover>
-          <Button variant="ghost" size="icon" className={cn("h-8 w-8", btnGhost)} onClick={() => navigate("next")}>
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-          <Button variant="outline" size="sm" className={cn("h-8 text-xs ml-2", darkBg && "bg-white/10 border-white/20 text-white hover:bg-white/20")} onClick={goToday}>
-            Hoje
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            className={cn("h-8 text-xs ml-1 gap-1.5", darkBg && "bg-white/10 border-white/20 text-white hover:bg-white/20")}
-            onClick={() => setShowAnalisePanel(true)}
-          >
-            <BarChart3 className="h-3.5 w-3.5" /> Análise
-          </Button>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <div className={cn("flex rounded-md border overflow-hidden", border)}>
-            <button onClick={() => setViewMode("month")} className={cn("px-3 py-1.5 text-xs font-medium transition-colors", viewMode === "month" ? (darkBg ? "bg-white/20 text-white" : "bg-primary text-primary-foreground") : (darkBg ? "text-white/60 hover:bg-white/10" : "text-muted-foreground hover:bg-muted"))}>Mês</button>
-            <button onClick={() => setViewMode("week")} className={cn("px-3 py-1.5 text-xs font-medium transition-colors", viewMode === "week" ? (darkBg ? "bg-white/20 text-white" : "bg-primary text-primary-foreground") : (darkBg ? "text-white/60 hover:bg-white/10" : "text-muted-foreground hover:bg-muted"))}>Semana</button>
-          </div>
-          {hasActiveFilters(filters) ? (
-            <Badge variant="outline" className={cn("text-[10px] h-6 gap-1", darkBg && "border-white/20 text-white/70")}>
-              <CalendarDays className="h-3 w-3" /> Filtros ativos via toolbar
-            </Badge>
-          ) : (
-            <>
-              <Select value={filterSecao} onValueChange={setFilterSecao}>
-                <SelectTrigger className={cn("h-8 w-[140px] text-xs", darkBg && "bg-white/10 border-white/20 text-white")}><SelectValue placeholder="Seção" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todas seções</SelectItem>
-                  {secoes.map((s) => (<SelectItem key={s.id} value={s.id}>{s.nome}</SelectItem>))}
-                </SelectContent>
-              </Select>
-              <Select value={filterStatus} onValueChange={setFilterStatus}>
-                <SelectTrigger className={cn("h-8 w-[140px] text-xs", darkBg && "bg-white/10 border-white/20 text-white")}><SelectValue placeholder="Status" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos status</SelectItem>
-                  <SelectItem value="pendente">Não iniciado</SelectItem>
-                  <SelectItem value="em_andamento">Em andamento</SelectItem>
-                  <SelectItem value="concluida">Concluído</SelectItem>
-                  <SelectItem value="bloqueada">Bloqueada</SelectItem>
-                </SelectContent>
-              </Select>
-            </>
-          )}
-        </div>
-      </div>
-
-      {/* Calendar grid */}
-      <div className={cn("border rounded-lg overflow-hidden", border)}>
-        <div className="grid grid-cols-7">
-          {WEEKDAYS.map((d) => (
-            <div key={d} className={cn("text-center text-xs font-semibold py-2 border-b tracking-wide uppercase", border, darkBg ? "bg-white/5 text-white/70" : "bg-muted/40 text-muted-foreground")}>{d}</div>
-          ))}
-        </div>
-        {weekRows.map((row, rowIdx) => {
-          const lanes = maxLanesByRow[rowIdx] ?? 0;
-          const barsHeight = lanes * (MULTIDAY_LANE_HEIGHT + MULTIDAY_LANE_GAP);
-          return (
-            <div key={rowIdx} className="relative grid grid-cols-7">
-              {row.map((day, ci) => {
-                const key = getDateKey(day);
-                const dayTasks = singleDayByDate[key] || [];
-                const isCurrentMonth = isSameMonth(day, currentDate);
-                const today = isDateToday(day);
-                const isWeekend = ci >= 5;
-                return (
-                  <div
-                    key={ci}
-                    style={{ minHeight: cellMinH }}
-                    className={cn(
-                      "border-b border-r p-1.5 transition-colors relative",
-                      border,
-                      today
-                        ? cellBgToday
-                        : !isCurrentMonth
-                          ? cellBgOutside
-                          : isWeekend
-                            ? cellBgWeekend
-                            : cellBg,
-                    )}
-                  >
-                    <div className="flex items-start justify-end mb-1">
-                      <span
-                        className={cn(
-                          "inline-flex items-center justify-center text-[11px] font-semibold w-6 h-6 rounded-full transition-all",
-                          today
-                            ? "bg-primary text-primary-foreground shadow-sm shadow-primary/30"
-                            : isCurrentMonth
-                              ? txt
-                              : txtMuted,
-                        )}
-                      >
-                        {format(day, "d")}
-                      </span>
-                    </div>
-                    {/* Spacer for multi-day bars */}
-                    {barsHeight > 0 && <div style={{ height: barsHeight + 2 }} />}
-                    <div className="space-y-0.5">
-                      {dayTasks.slice(0, maxVisible).map((t) => (
-                        <CalendarioCard
-                          key={t.id}
-                          tarefa={t}
-                          darkBg={darkBg}
-                          compact={isCompact}
-                          onClick={() => setSelectedTarefaId(t.id)}
-                        />
-                      ))}
-                      {dayTasks.length > maxVisible && (
-                        <OverflowPopover
-                          tasks={dayTasks.slice(maxVisible)}
-                          count={dayTasks.length - maxVisible}
-                          darkBg={darkBg}
-                          onClickTask={setSelectedTarefaId}
-                        />
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-              {/* Multi-day bars layer */}
-              {multiDayByRow[rowIdx]?.length > 0 && (
-                <div
-                  className="absolute left-0 right-0 pointer-events-none"
-                  style={{ top: 30 }}
-                >
-                  <div className="relative" style={{ height: barsHeight }}>
-                    {multiDayByRow[rowIdx].map((b, i) => (
-                      <div key={`${b.tarefa.id}-${i}`} className="pointer-events-auto">
-                        <MultiDayBar
-                          tarefa={b.tarefa}
-                          startCol={b.startCol}
-                          endCol={b.endCol}
-                          lane={b.lane}
-                          continuesLeft={b.continuesLeft}
-                          continuesRight={b.continuesRight}
-                          darkBg={darkBg}
-                          onClick={() => setSelectedTarefaId(b.tarefa.id)}
-                        />
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Legend */}
-      <div className={cn("flex flex-wrap gap-3 text-[10px]", txtMuted)}>
-        {Object.entries(ESTAGIO_LABELS).map(([key, label]) => (
-          <div key={key} className="flex items-center gap-1.5">
-            <div className={cn("h-2.5 w-5 rounded-sm", ESTAGIO_PILL_COLORS[key])} />
-            <span>{label}</span>
-          </div>
-        ))}
-      </div>
-
-      {/* Task detail panel */}
+    <>
+      <UnifiedCalendar
+        events={events}
+        onSelectEvent={(ev) => setSelectedTarefaId(ev.id)}
+        colorStrategy="estagio"
+        compact={isCompact}
+        darkBg={darkBg}
+        banner={banner}
+        leftToolbarExtra={leftToolbarExtra}
+        rightToolbarExtra={rightToolbarExtra}
+        onPeriodChange={setPeriodoInfo}
+      />
       {selectedTarefaId && (
-        <TaskDetailPanel tarefaId={selectedTarefaId} tarefas={tarefas} darkBg={darkBg} onClose={() => setSelectedTarefaId(null)} />
+        <TaskDetailPanel
+          tarefaId={selectedTarefaId}
+          tarefas={tarefas}
+          darkBg={darkBg}
+          onClose={() => setSelectedTarefaId(null)}
+        />
       )}
-    </div>
-  );
-}
-
-// ─── Task Pill ───
-function TaskPill({ tarefa, darkBg, onClick }: { tarefa: ProjetoTarefa; darkBg: boolean; onClick: () => void }) {
-  const stageColor = ESTAGIO_PILL_COLORS[tarefa.estagio || ""] || "bg-muted-foreground/50";
-  const cfg = STATUS_ICON_CONFIG[tarefa.status] || STATUS_ICON_CONFIG.pendente;
-  const StatusIcon = cfg.completed ? CheckCircle2 : Circle;
-  const isCompleted = cfg.completed;
-
-  return (
-    <button
-      onClick={onClick}
-      className={cn(
-        "flex items-center gap-1 w-full text-left rounded px-1.5 py-0.5 text-[11px] leading-tight transition-colors group",
-        darkBg ? "hover:bg-white/10" : "hover:bg-muted/60",
-        isCompleted && "opacity-60",
-      )}
-    >
-      <div className={cn("w-1.5 h-1.5 rounded-full shrink-0", stageColor)} />
-      <StatusIcon className={cn("h-3 w-3 shrink-0", cfg.className)} />
-      <span className={cn(
-        "truncate flex-1 font-medium",
-        darkBg ? "text-white" : "text-foreground",
-        isCompleted && "line-through",
-      )}>
-        {tarefa.titulo}
-      </span>
-      {tarefa.responsavel && (
-        <Avatar className="h-4 w-4 shrink-0">
-          <AvatarImage src={tarefa.responsavel.avatar_url || undefined} />
-          <AvatarFallback className="text-[7px]">{tarefa.responsavel.nome?.charAt(0)}</AvatarFallback>
-        </Avatar>
-      )}
-    </button>
-  );
-}
-
-// ─── Overflow "+N" Popover ───
-function OverflowPopover({ tasks, count, darkBg, onClickTask }: { tasks: ProjetoTarefa[]; count: number; darkBg: boolean; onClickTask: (id: string) => void }) {
-  return (
-    <Popover>
-      <PopoverTrigger asChild>
-        <button className={cn(
-          "text-[10px] font-medium px-1.5 py-0.5 rounded w-full text-left transition-colors",
-          darkBg ? "text-white/50 hover:text-white hover:bg-white/10" : "text-muted-foreground hover:text-foreground hover:bg-muted/50",
-        )}>
-          +{count} mais
-        </button>
-      </PopoverTrigger>
-      <PopoverContent className="w-64 p-2 space-y-0.5" align="start">
-        {tasks.map((t) => (
-          <CalendarioCard key={t.id} tarefa={t} darkBg={false} onClick={() => onClickTask(t.id)} />
-        ))}
-      </PopoverContent>
-    </Popover>
+    </>
   );
 }
 
