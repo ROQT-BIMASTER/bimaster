@@ -45712,6 +45712,17 @@ export type Database = {
         }
         Returns: string
       }
+      rpc_criar_lote_aprovacao_china: {
+        Args: {
+          p_config_id: string
+          p_documento_ids?: string[]
+          p_lote_nome: string
+          p_politica?: string
+          p_prazo_lote?: string
+          p_submissao_id: string
+        }
+        Returns: string
+      }
       rpc_definir_prazo_item: {
         Args: { p_item_id: string; p_prazo_em: string }
         Returns: undefined
