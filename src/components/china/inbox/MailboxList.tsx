@@ -37,19 +37,19 @@ function resolveTipoLabel(item: MailboxItem, t: TFn): string | null {
 
 export type ActionFilter = "mine" | "theirs" | "all";
 
-const FOLDER_TITLES: Partial<Record<MailboxFolder, string>> = {
-  inbox: "Caixa de Entrada",
-  starred: "Marcadas",
-  sent: "Enviados",
-  drafts: "Rascunhos",
-  approved: "Aprovadas",
-  rejected: "Rejeitadas",
-  trash: "Lixeira",
-  oc: "Ordens de Compra",
-  awaiting_send: "Pendentes de envio",
-  sent_brazil: "Enviadas ao Brasil — aguardando análise",
-  in_analysis: "Em análise no Brasil",
-  returned: "Retorno: ajustes solicitados",
+const FOLDER_TITLE_KEYS: Partial<Record<MailboxFolder, string>> = {
+  inbox: "inbox.sidebar.folders.inbox",
+  starred: "inbox.sidebar.folders.starred",
+  sent: "inbox.sidebar.folders.sent",
+  drafts: "inbox.sidebar.folders.drafts",
+  approved: "inbox.sidebar.folders.approved",
+  rejected: "inbox.sidebar.folders.rejected",
+  trash: "inbox.sidebar.folders.trash",
+  oc: "inbox.sidebar.folders.oc",
+  awaiting_send: "inbox.sidebar.folders.awaiting_send",
+  sent_brazil: "inbox.sidebar.folders.sent_brazil",
+  in_analysis: "inbox.sidebar.folders.in_analysis",
+  returned: "inbox.sidebar.folders.returned",
 };
 
 // Pastas onde o agrupamento por submissão não faz sentido (já são por OC ou
