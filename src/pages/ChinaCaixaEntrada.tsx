@@ -239,14 +239,24 @@ export default function ChinaCaixaEntrada() {
     () => items.filter((i) => i.documento_id && !i.is_read).length,
     [items],
   );
-  const handleMarkAllRead = () => {
+  const [isMarkingAllRead, setIsMarkingAllRead] = useState(false);
+  const handleMarkAllRead = async () => {
     const targets = items.filter((i) => i.documento_id && !i.is_read);
     if (targets.length === 0) {
       toast.info("Nenhuma mensagem não lida nesta pasta.");
       return;
     }
-    targets.forEach((i) => toggleRead.mutate({ documento_id: i.documento_id!, read: true }));
-    toast.success(`${targets.length} mensagem(ns) marcadas como lidas.`);
+    setIsMarkingAllRead(true);
+    try {
+      await Promise.all(
+        targets.map((i) =>
+          toggleRead.mutateAsync({ documento_id: i.documento_id!, read: true }).catch(() => null),
+        ),
+      );
+      toast.success(`${targets.length} mensagem(ns) marcadas como lidas.`);
+    } finally {
+      setIsMarkingAllRead(false);
+    }
   };
 
   const subtitle = isBrasilUser
