@@ -10,6 +10,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useGerarOPDaOC, useVincularOPExistente } from "@/hooks/useGerarOPDaOC";
 import { Loader2, Search } from "lucide-react";
+import { useChinaI18n } from "@/hooks/useChinaI18n";
 
 interface Props {
   open: boolean;
@@ -24,9 +25,9 @@ interface Props {
 export function GerarOPDialog({
   open, onOpenChange, ocId, ocNumero, produtoCodigo, produtoNome, qtySugerida,
 }: Props) {
+  const { t } = useChinaI18n();
   const [tab, setTab] = useState<"gerar" | "vincular">("gerar");
 
-  // Form state
   const [produtoId, setProdutoId] = useState<string>("");
   const [formulaId, setFormulaId] = useState<string>("");
   const [qty, setQty] = useState<string>(qtySugerida ? String(qtySugerida) : "");
@@ -35,7 +36,6 @@ export function GerarOPDialog({
   const [obs, setObs] = useState<string>("");
   const [search, setSearch] = useState(produtoCodigo || "");
 
-  // Vincular existente
   const [opExistenteId, setOpExistenteId] = useState<string>("");
 
   const gerar = useGerarOPDaOC();
@@ -120,7 +120,7 @@ export function GerarOPDialog({
       <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle>
-            Ordem de Produção a partir de OC {ocNumero}
+            {t("op.gerarTitulo", { ocNumero })}
             <div className="text-xs font-normal text-muted-foreground mt-1">
               {produtoCodigo} — {produtoNome}
             </div>
@@ -129,25 +129,25 @@ export function GerarOPDialog({
 
         <Tabs value={tab} onValueChange={(v) => setTab(v as any)}>
           <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="gerar">Gerar nova OP / 生成新生产单</TabsTrigger>
-            <TabsTrigger value="vincular">Vincular existente / 关联已有</TabsTrigger>
+            <TabsTrigger value="gerar">{t("op.tabGerarNova")}</TabsTrigger>
+            <TabsTrigger value="vincular">{t("op.tabVincularExistente")}</TabsTrigger>
           </TabsList>
 
           <TabsContent value="gerar" className="space-y-3 pt-3">
             <div>
-              <Label>Produto Brasil</Label>
+              <Label>{t("op.produtoBrasil")}</Label>
               <div className="flex gap-2">
                 <div className="relative flex-1">
                   <Search className="absolute left-2 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
                   <Input
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
-                    placeholder="Buscar por código, SKU ou nome…"
+                    placeholder={t("op.buscarPlaceholder")}
                     className="pl-7"
                   />
                 </div>
               </div>
-              {loadingProds && <div className="text-xs text-muted-foreground mt-1"><Loader2 className="inline h-3 w-3 animate-spin" /> Buscando…</div>}
+              {loadingProds && <div className="text-xs text-muted-foreground mt-1"><Loader2 className="inline h-3 w-3 animate-spin" /> {t("op.buscando")}</div>}
               {(produtos as any[]).length > 0 && (
                 <div className="mt-2 max-h-40 overflow-auto border border-border rounded-md divide-y divide-border">
                   {(produtos as any[]).map((p) => (
@@ -164,30 +164,30 @@ export function GerarOPDialog({
               )}
               {produtoSel && (
                 <div className="mt-1 text-xs text-emerald-600">
-                  Selecionado: {produtoSel.codigo} — {produtoSel.nome}
+                  {t("op.selecionado")}: {produtoSel.codigo} — {produtoSel.nome}
                 </div>
               )}
             </div>
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label>Quantidade</Label>
+                <Label>{t("op.quantidade")}</Label>
                 <Input type="number" min="1" value={qty} onChange={(e) => setQty(e.target.value)} />
               </div>
               <div>
-                <Label>Lote</Label>
+                <Label>{t("op.loteLabel")}</Label>
                 <Input value={lote} onChange={(e) => setLote(e.target.value)} placeholder="LDS-..." />
               </div>
               <div>
-                <Label>Data prevista</Label>
+                <Label>{t("op.dataPrevista")}</Label>
                 <Input type="date" value={dataPrevista} onChange={(e) => setDataPrevista(e.target.value)} />
               </div>
               <div>
-                <Label>Fórmula (opcional)</Label>
+                <Label>{t("op.formulaOpcional")}</Label>
                 <Select value={formulaId || "none"} onValueChange={(v) => setFormulaId(v === "none" ? "" : v)}>
-                  <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                  <SelectTrigger><SelectValue placeholder={t("op.selecione")} /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="none">— sem fórmula —</SelectItem>
+                    <SelectItem value="none">{t("op.semFormula")}</SelectItem>
                     {(formulas as any[]).map((f) => (
                       <SelectItem key={f.id} value={f.id}>{f.nome} (v{f.versao})</SelectItem>
                     ))}
@@ -197,17 +197,17 @@ export function GerarOPDialog({
             </div>
 
             <div>
-              <Label>Observações</Label>
+              <Label>{t("op.observacoes")}</Label>
               <Textarea value={obs} onChange={(e) => setObs(e.target.value)} rows={2} />
             </div>
           </TabsContent>
 
           <TabsContent value="vincular" className="space-y-3 pt-3">
             <div>
-              <Label>Produto Brasil (para listar OPs)</Label>
+              <Label>{t("op.produtoBrasilParaOPs")}</Label>
               <div className="relative">
                 <Search className="absolute left-2 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
-                <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar produto…" className="pl-7" />
+                <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t("op.buscarProduto")} className="pl-7" />
               </div>
               {(produtos as any[]).length > 0 && (
                 <div className="mt-2 max-h-32 overflow-auto border border-border rounded-md divide-y divide-border">
@@ -227,17 +227,17 @@ export function GerarOPDialog({
 
             {produtoId && (
               <div>
-                <Label>Ordem de Produção disponível</Label>
+                <Label>{t("op.opDisponivel")}</Label>
                 <Select value={opExistenteId} onValueChange={setOpExistenteId}>
-                  <SelectTrigger><SelectValue placeholder="Selecione uma OP" /></SelectTrigger>
+                  <SelectTrigger><SelectValue placeholder={t("op.selecioneOP")} /></SelectTrigger>
                   <SelectContent>
                     {(opsLivres as any[]).map((op) => (
                       <SelectItem key={op.id} value={op.id}>
-                        {op.numero} · {op.status} · plan: {op.quantidade_planejada}
+                        {op.numero} · {op.status} · {t("op.plan")}: {op.quantidade_planejada}
                       </SelectItem>
                     ))}
                     {(opsLivres as any[]).length === 0 && (
-                      <div className="px-2 py-1.5 text-xs text-muted-foreground">Nenhuma OP disponível</div>
+                      <div className="px-2 py-1.5 text-xs text-muted-foreground">{t("op.nenhumaOPDisponivel")}</div>
                     )}
                   </SelectContent>
                 </Select>
@@ -246,11 +246,11 @@ export function GerarOPDialog({
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label>Qtd. alocada (opcional)</Label>
-                <Input type="number" min="1" value={qty} onChange={(e) => setQty(e.target.value)} placeholder="= planejada da OP" />
+                <Label>{t("op.qtyAlocadaOpcional")}</Label>
+                <Input type="number" min="1" value={qty} onChange={(e) => setQty(e.target.value)} placeholder={t("op.qtyAlocadaPlaceholder")} />
               </div>
               <div>
-                <Label>Observações</Label>
+                <Label>{t("op.observacoes")}</Label>
                 <Input value={obs} onChange={(e) => setObs(e.target.value)} />
               </div>
             </div>
@@ -258,16 +258,16 @@ export function GerarOPDialog({
         </Tabs>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>{t("op.cancelar")}</Button>
           {tab === "gerar" ? (
             <Button onClick={handleGerar} disabled={!produtoId || !qty || gerar.isPending}>
               {gerar.isPending && <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" />}
-              Gerar OP
+              {t("op.gerarOP")}
             </Button>
           ) : (
             <Button onClick={handleVincular} disabled={!opExistenteId || vincular.isPending}>
               {vincular.isPending && <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" />}
-              Vincular
+              {t("op.vincular")}
             </Button>
           )}
         </DialogFooter>
