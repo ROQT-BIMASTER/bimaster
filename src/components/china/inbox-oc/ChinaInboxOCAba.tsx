@@ -20,13 +20,14 @@ import { ChinaOCReader } from "./ChinaOCReader";
 import { parseLocalDate } from "@/lib/utils/parseLocalDate";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { useChinaI18n } from "@/hooks/useChinaI18n";
 
-const TABS: { key: ChinaOCSubTab; label: string; icon: any }[] = [
-  { key: "pendente", label: "Pendente", icon: ShoppingBag },
-  { key: "producao", label: "Em produção", icon: Factory },
-  { key: "pronto_embarque", label: "Pronto p/ embarque", icon: PackageCheck },
-  { key: "embarcada", label: "Embarcada", icon: Ship },
-  { key: "concluida", label: "Concluída", icon: CheckCircle2 },
+const TABS: { key: ChinaOCSubTab; labelKey: string; icon: any }[] = [
+  { key: "pendente", labelKey: "inboxOC.tabPendente", icon: ShoppingBag },
+  { key: "producao", labelKey: "inboxOC.tabProducao", icon: Factory },
+  { key: "pronto_embarque", labelKey: "inboxOC.tabProntoEmbarque", icon: PackageCheck },
+  { key: "embarcada", labelKey: "inboxOC.tabEmbarcada", icon: Ship },
+  { key: "concluida", labelKey: "inboxOC.tabConcluida", icon: CheckCircle2 },
 ];
 
 function fmt(d: string | null) {
