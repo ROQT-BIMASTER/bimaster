@@ -89,19 +89,19 @@ describe("evaluateAwaitingSend", () => {
     expect(r.matches).toBe(false);
   });
 
-  it("submissão com status 'enviado' (legado) nunca entra", () => {
+  it("submissão 'enviado' (legado) com item rascunho/sem doc ENTRA (item novo no checklist)", () => {
     const r = evaluateAwaitingSend({ ...base, submissao_status: "enviado" });
-    expect(r.matches).toBe(false);
+    expect(r.matches).toBe(true);
   });
 
-  it("submissão com status 'enviado_brasil' nunca entra", () => {
+  it("submissão 'enviado_brasil' com item pendente ENTRA (item novo no checklist)", () => {
     const r = evaluateAwaitingSend({ ...base, submissao_status: "enviado_brasil" });
-    expect(r.matches).toBe(false);
+    expect(r.matches).toBe(true);
   });
 
-  it("submissão com status 'em_revisao' nunca entra", () => {
+  it("submissão 'em_revisao' com item pendente ENTRA (item novo no checklist)", () => {
     const r = evaluateAwaitingSend({ ...base, submissao_status: "em_revisao" });
-    expect(r.matches).toBe(false);
+    expect(r.matches).toBe(true);
   });
 
   it("config: excluir status custom impede entrada", () => {
