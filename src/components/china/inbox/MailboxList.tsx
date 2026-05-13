@@ -726,12 +726,28 @@ function GroupRow({
               </div>
             </>
           ) : (
-            <div className="mt-0.5 flex items-center gap-1.5 truncate text-[11.5px] text-muted-foreground">
+            <div className="mt-0.5 flex flex-wrap items-center gap-1.5 truncate text-[11.5px] text-muted-foreground">
               <Paperclip className="h-3 w-3 shrink-0" />
               <span className="truncate">
                 {group.docs.length} documento{group.docs.length === 1 ? "" : "s"}
                 {Pivot.tipo_documento ? ` · último: ${resolveTipoLabel(Pivot)}` : ""}
               </span>
+              {folder === "approved" && (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  className="h-5 gap-1 px-1.5 text-[10px] text-primary"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onOpenChecklist?.(group.submissao_id);
+                  }}
+                  title="Abrir página dedicada com o status completo do checklist"
+                >
+                  <ListChecks className="h-3 w-3" />
+                  Ver checklist completo
+                </Button>
+              )}
             </div>
           )}
         </div>
