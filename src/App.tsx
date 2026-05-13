@@ -31,6 +31,7 @@ import { SplashScreen } from "@/components/pwa/SplashScreen";
 import { TourProvider } from "@/components/tour";
 import { MeetingRecordingProvider } from "@/contexts/MeetingRecordingContext";
 import { InboxDrawerProvider } from "@/contexts/InboxDrawerContext";
+import { ChatDrawerProvider } from "@/components/chat/v2/ChatDrawer";
 import { InboxDrawer } from "@/components/inbox/InboxDrawer";
 import { logger } from "@/lib/logger";
 
