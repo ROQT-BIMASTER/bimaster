@@ -268,6 +268,7 @@ export function ChecklistPendingSheet({
   folder,
   onSelectItem,
   onEnviarGrupoBrasil,
+  onEnviarItemBrasil,
   onOpenSubmissao,
 }: ChecklistPendingSheetProps) {
   const navigate = useNavigate();
