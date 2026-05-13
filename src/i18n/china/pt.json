@@ -482,5 +482,15 @@
       "salvar": "Salvar prazos",
       "cancelar": "Cancelar"
     }
+  },
+  "responseTemplates": {
+    "trigger": "Modelos",
+    "headerAprovar": "Respostas rápidas — Aprovar",
+    "headerRejeitar": "Respostas rápidas — Pedir ajuste",
+    "novo": "Novo",
+    "placeholderTitulo": "Título",
+    "placeholderMensagem": "Mensagem em português",
+    "placeholderMensagemCn": "中文 (opcional)",
+    "semModelos": "Nenhum modelo. Crie o primeiro acima."
   }
 }

@@ -455,5 +455,15 @@
       "verChecklistCompleto": "View full checklist",
       "verChecklistCompletoTitle": "Open dedicated page with the complete checklist status"
     }
+  },
+  "responseTemplates": {
+    "trigger": "Templates",
+    "headerAprovar": "Quick replies — Approve",
+    "headerRejeitar": "Quick replies — Request adjustment",
+    "novo": "New",
+    "placeholderTitulo": "Title",
+    "placeholderMensagem": "Message in Portuguese",
+    "placeholderMensagemCn": "中文 (optional)",
+    "semModelos": "No templates. Create the first one above."
   }
 }

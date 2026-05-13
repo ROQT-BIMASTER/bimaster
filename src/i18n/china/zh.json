@@ -449,5 +449,15 @@
       "verChecklistCompleto": "查看完整检查清单",
       "verChecklistCompletoTitle": "打开专页，显示检查清单的完整状态"
     }
+  },
+  "responseTemplates": {
+    "trigger": "模板",
+    "headerAprovar": "快速回复 — 批准",
+    "headerRejeitar": "快速回复 — 请求修正",
+    "novo": "新建",
+    "placeholderTitulo": "标题",
+    "placeholderMensagem": "葡萄牙语消息",
+    "placeholderMensagemCn": "中文 (可选)",
+    "semModelos": "暂无模板。请在上方创建第一个。"
   }
 }
