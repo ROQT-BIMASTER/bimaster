@@ -82,7 +82,10 @@ function classifyForProgress(item: MailboxItem): keyof Omit<MailboxGroupProgress
  * já foi enviado / aprovado / rejeitado / ainda pendente (caso típico da fase
  * inicial: 17 itens, 2 enviados, 15 pendentes).
  */
-export function groupBySubmissao(items: MailboxItem[]): MailboxGroup[] {
+export function groupBySubmissao(
+  items: MailboxItem[],
+  progressSource?: MailboxItem[],
+): MailboxGroup[] {
   const map = new Map<string, MailboxGroup>();
 
   for (const it of items) {
@@ -116,12 +119,24 @@ export function groupBySubmissao(items: MailboxItem[]): MailboxGroup[] {
     }
   }
 
+  // Indexa fonte de progresso por submissão (se fornecida) para que cada grupo
+  // calcule enviados/aprovados/pendentes a partir do checklist COMPLETO da
+  // submissão, não apenas dos itens visíveis na pasta atual. Isso garante que
+  // as pastas "Pendentes de envio" e "Enviadas ao Brasil" mostrem números
+  // consistentes (ex.: 4 enviados / 25 pendentes / 29 totais em ambas).
+  const progressBySub = new Map<string, MailboxItem[]>();
+  if (progressSource && progressSource.length > 0) {
+    for (const it of progressSource) {
+      const arr = progressBySub.get(it.submissao_id) ?? [];
+      arr.push(it);
+      progressBySub.set(it.submissao_id, arr);
+    }
+  }
+
   for (const g of map.values()) {
     g.docs.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-    // Agrega progresso a partir de TODOS os documentos do checklist.
-    // Itens "fantasma" (sem documento) só contam se ainda fazem sentido como
-    // pendência — a função classifica no balde correto.
-    for (const d of g.docs) {
+    const sourceDocs = progressBySub.get(g.submissao_id) ?? g.docs;
+    for (const d of sourceDocs) {
       const bucket = classifyForProgress(d);
       g.progress[bucket] += 1;
       g.progress.total += 1;
