@@ -115,6 +115,9 @@ const ZERO_COUNTS: MailboxCounts = {
   sent_brazil: 0,
   in_analysis: 0,
   returned: 0,
+  approved_total: 0,
+  approved_partial: 0,
+  approved_empty: 0,
 };
 
 export function useChinaMailbox(folder: MailboxFolder): UseChinaMailboxResult {
