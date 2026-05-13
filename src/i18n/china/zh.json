@@ -186,6 +186,93 @@
         "in_analysis": "巴西审核中",
         "returned": "返回：需调整"
       }
+    },
+    "checklistSheet": {
+      "folder": {
+        "awaitingSend": "待发送清单",
+        "sentBrazil": "已发送至巴西的项目",
+        "inAnalysis": "巴西审核中的项目",
+        "returned": "需要调整的项目"
+      },
+      "state": {
+        "naoCriado": "未创建",
+        "pendenteEnvio": "待发送",
+        "enviado": "已发送",
+        "aprovado": "已批准",
+        "rejeitado": "已驳回"
+      },
+      "fluxo": {
+        "chinaEnvia": "中国发送",
+        "brasilEnvia": "巴西发送",
+        "outros": "其他"
+      },
+      "fallback": {
+        "itemChecklist": "清单项",
+        "itemPersonalizado": "自定义项"
+      },
+      "category": {
+        "outrosItens": "其他项目",
+        "ariaLabel": "类别 {{label}}"
+      },
+      "totals": {
+        "linha": "{{enviados}} / {{expected}}",
+        "itensEnviados": "项已发送",
+        "pendente_one": "{{count}} 项待处理",
+        "pendente_other": "{{count}} 项待处理"
+      },
+      "header": {
+        "abrirPaginaDedicada": "打开专属页面",
+        "abrirPaginaDedicadaTitle": "打开清单状态的专属页面",
+        "editarParecer": "编辑技术意见",
+        "adicionarParecer": "添加技术意见",
+        "editarParecerTitle": "编辑中国的技术意见",
+        "adicionarParecerTitle": "添加技术意见以允许发送至巴西"
+      },
+      "parecerBanner": {
+        "titulo": "技术意见待填写",
+        "descricao": "请填写本提交的技术意见,方可发送至巴西。",
+        "abrirCaixa": "打开意见框"
+      },
+      "section": {
+        "enviado_one": "已发送",
+        "enviado_other": "已发送",
+        "pendente_one": "待处理",
+        "pendente_other": "待处理",
+        "vazioCategoria": "此类别尚未创建文档。",
+        "vazioCategoriaSent": "此类别中没有项目。",
+        "verPendentes_one": "查看此类别 {{count}} 项待处理",
+        "verPendentes_other": "查看此类别 {{count}} 项待处理"
+      },
+      "row": {
+        "anexar": "附加",
+        "anexarTitle": "打开聚焦模式并定位到此项",
+        "abrirParecer": "打开意见",
+        "abrirParecerTitle": "填写技术意见以允许发送至巴西",
+        "enviarBrasil": "发送至巴西",
+        "enviarBrasilTitle": "仅将此项发送至巴西",
+        "enviarBrasilBloqueadoTitle": "请先填写技术意见再发送",
+        "abrirItem": "打开项目",
+        "selecionarAria": "选择 {{name}} 进行批量发送"
+      },
+      "footer": {
+        "abrirSubmissao": "打开提交",
+        "enviarSelecionados": "发送已选 ({{count}})",
+        "enviarSelecionadosTitle": "仅将所选项目发送至巴西",
+        "enviarTodos": "全部发送至巴西",
+        "enviarTodosTitle": "将所有就绪项目发送至巴西",
+        "enviarTodosBloqueadoTitle": "请先填写技术意见再发送"
+      },
+      "empty": "清单中没有项目。",
+      "parecerDialog": {
+        "titulo": "中国技术意见",
+        "descricao": "请填写本提交的技术意见。该意见为发送至巴西的必填项,且对巴西团队可见。",
+        "placeholder": "描述分析、监管说明及任何注意事项…",
+        "contador": "{{atual}}/{{max}}",
+        "salvar": "保存意见",
+        "salvando": "保存中…",
+        "toastOk": "技术意见已保存。",
+        "toastErr": "保存意见失败。"
+      }
     }
   },
   "timeline": {
