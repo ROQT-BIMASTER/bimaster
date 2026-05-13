@@ -63,4 +63,32 @@ describe("groupBySubmissao", () => {
     expect(groups[0].submissao_id).toBe("sub-B");
     expect(groups[1].submissao_id).toBe("sub-A");
   });
+
+  it("progress: submissão enviado_brasil com 2 docs pendentes + 15 sem-doc gera enviados=2 / pendentes=15", () => {
+    const docs = [
+      // Itens já despachados ao Brasil têm parecer da China e documento — não
+      // devem ser reclassificados como pendentes pela regra awaitingSend.
+      mk({ documento_id: "d1", submissao_id: "sub-A", submissao_status: "enviado_brasil", doc_status: "pendente", observacoes_china: "ok" }),
+      mk({ documento_id: "d2", submissao_id: "sub-A", submissao_status: "enviado_brasil", doc_status: "pendente", observacoes_china: "ok" }),
+    ];
+    // 15 itens "fantasma" sem documento — entram como pendentes pela regra awaitingSend
+    for (let i = 0; i < 15; i++) {
+      docs.push(
+        mk({
+          documento_id: null,
+          submissao_id: "sub-A",
+          submissao_status: "enviado_brasil",
+          doc_status: null,
+          tipo_documento: null,
+          observacoes_china: null,
+        }),
+      );
+    }
+    const [g] = groupBySubmissao(docs);
+    expect(g.progress.total).toBe(17);
+    expect(g.progress.enviados).toBe(2);
+    expect(g.progress.pendentes).toBe(15);
+    expect(g.progress.aprovados).toBe(0);
+    expect(g.progress.rejeitados).toBe(0);
+  });
 });

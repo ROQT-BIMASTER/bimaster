@@ -139,7 +139,7 @@ export function MailboxSidebar({ folder, counts, onSelect, onCompose, forceChina
                     </span>
                     {showSub && (
                       <span className="truncate text-[9.5px] leading-tight text-muted-foreground/70">
-                        {subCount} submissã{subCount === 1 ? "o" : "es"}
+                        em {subCount} submissã{subCount === 1 ? "o" : "es"}
                       </span>
                     )}
                   </span>

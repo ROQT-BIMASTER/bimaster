@@ -1,15 +1,16 @@
 import { useMemo, useState } from "react";
-import { Star, Paperclip, Clock, AlertTriangle, CheckCircle2, FileText, FileX2, MessageSquareOff, ChevronRight, ChevronDown, Layers, CheckCheck, ListChecks } from "lucide-react";
+import { Star, Paperclip, Clock, AlertTriangle, CheckCircle2, FileText, FileX2, MessageSquareOff, ChevronRight, ChevronDown, Layers, CheckCheck, ListChecks, Send, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import type { MailboxItem, MailboxFolder } from "@/hooks/useChinaMailbox";
 import { resolveDirection, type DirectionInfo } from "@/lib/china/inboxDirection";
 import { InboxDirectionBadge } from "./InboxDirectionBadge";
 import { useChinaUserContext } from "@/hooks/useChinaUserContext";
 import { evaluateAwaitingSend, AWAITING_SEND_REASON_LABEL } from "@/lib/china/awaitingSendRule";
-import { groupBySubmissao } from "@/lib/china/groupMailboxItems";
-import type { ChinaInboxGroupMode } from "@/hooks/useChinaInboxGroupMode";
+import { groupBySubmissao, type MailboxGroup } from "@/lib/china/groupMailboxItems";
+import { type ChinaInboxGroupMode, isGroupModeForced } from "@/hooks/useChinaInboxGroupMode";
 import { ReadStatusLegend } from "./ReadStatusLegend";
 
 export type ActionFilter = "mine" | "theirs" | "all";
@@ -49,6 +50,10 @@ interface Props {
   /** Modo de agrupamento. "flat" preserva o comportamento clássico. */
   groupMode?: ChinaInboxGroupMode;
   onGroupModeChange?: (m: ChinaInboxGroupMode) => void;
+  /** Disparado pelos CTAs de grupo na pasta "Pendentes de envio". */
+  onEnviarGrupoBrasil?: (group: MailboxGroup) => void;
+  /** Abre a submissão (deep-link) — usado por "Anexar/Adicionar parecer". */
+  onOpenSubmissao?: (submissao_id: string) => void;
 }
 
 function statusBadge(
@@ -188,17 +193,18 @@ function MailboxRow({ item, dir, folder, active, checked, onSelect, onToggleChec
         {folder === "awaiting_send" && (() => {
           const ev = evaluateAwaitingSend(item);
           if (!ev.matches) return null;
-          // Contexto de auditoria: por que este item caiu em "Pendentes de envio"?
-          // - Status final (aprovado/rejeitado) BLOQUEIA entrada → nunca chega aqui.
-          // - Submissão pai em rascunho/pendente → fluxo normal de envio.
-          // - Submissão pai em em_revisao/enviado/enviado_brasil → item NOVO aceito
-          //   apesar do pai já ter sido enviado (ex.: checklist expandido depois).
-          const parent = item.submissao_status;
-          const isNewOnSentParent =
-            parent === "em_revisao" || parent === "enviado" || parent === "enviado_brasil";
+          // Mantemos apenas as badges de motivo ACIONÁVEIS — sem documento, sem
+          // parecer. "Rascunho" só aparece quando o pai também é rascunho (caso
+          // contrário é informação redundante: o cabeçalho do grupo já diz).
+          // O contexto "item novo em submissão já enviada" é comunicado pelo
+          // cabeçalho do grupo ("Enviada ao Brasil — aguardando análise"),
+          // não mais por badge no item.
+          const parentIsRascunho = item.submissao_status === "rascunho";
+          const reasons = ev.reasons.filter((r) => r !== "rascunho" || parentIsRascunho);
+          if (reasons.length === 0) return null;
           return (
             <div className="mt-1 flex flex-wrap items-center gap-1">
-              {ev.reasons.map((r) => {
+              {reasons.map((r) => {
                 const Icon =
                   r === "sem_documento" ? FileX2 :
                   r === "sem_parecer" ? MessageSquareOff :
@@ -221,19 +227,6 @@ function MailboxRow({ item, dir, folder, active, checked, onSelect, onToggleChec
                   </Badge>
                 );
               })}
-              {isNewOnSentParent && (
-                <Badge
-                  variant="outline"
-                  className="h-4 gap-0.5 px-1.5 text-[9.5px] font-medium bg-sky-500/10 text-sky-400 border-sky-500/30"
-                  title={
-                    `Item novo aceito apesar da submissão pai estar em "${parent}". ` +
-                    `Status final (aprovado/rejeitado) bloqueia entrada — demais permitem.`
-                  }
-                >
-                  <ListChecks className="h-2.5 w-2.5" />
-                  Item novo · pai {parent === "em_revisao" ? "em análise" : "enviado"}
-                </Badge>
-              )}
             </div>
           );
         })()}
@@ -295,6 +288,8 @@ export function MailboxList({
   viewerOverride,
   groupMode = "flat",
   onGroupModeChange,
+  onEnviarGrupoBrasil,
+  onOpenSubmissao,
 }: Props) {
   const ctx = useChinaUserContext();
   const viewer = viewerOverride ?? { isBrasilUser: ctx.isBrasilUser, isChinaUser: ctx.isChinaUser };
@@ -385,7 +380,7 @@ export function MailboxList({
           {FOLDER_TITLES[folder] ?? folder}
         </span>
         <ReadStatusLegend />
-        {groupingAllowed && onGroupModeChange && (
+        {groupingAllowed && onGroupModeChange && !isGroupModeForced(folder) && (
           <div className="inline-flex items-center rounded-md border border-border/60 bg-background/40 p-0.5">
             <button
               type="button"
@@ -455,6 +450,8 @@ export function MailboxList({
               onSelect={onSelect}
               onToggleCheck={onToggleCheck}
               onToggleStar={onToggleStar}
+              onEnviarGrupoBrasil={onEnviarGrupoBrasil}
+              onOpenSubmissao={onOpenSubmissao}
             />
           ))}
       </ul>
@@ -463,7 +460,7 @@ export function MailboxList({
 }
 
 interface GroupRowProps {
-  group: ReturnType<typeof groupBySubmissao>[number];
+  group: MailboxGroup;
   dir: DirectionInfo | undefined;
   folder: MailboxFolder;
   selectedId: string | null;
@@ -471,10 +468,45 @@ interface GroupRowProps {
   onSelect: (id: string) => void;
   onToggleCheck: (id: string) => void;
   onToggleStar: (item: MailboxItem) => void;
+  onEnviarGrupoBrasil?: (group: MailboxGroup) => void;
+  onOpenSubmissao?: (submissao_id: string) => void;
 }
 
-function GroupRow({ group, dir, folder, selectedId, selectedIds, onSelect, onToggleCheck, onToggleStar }: GroupRowProps) {
-  const [expanded, setExpanded] = useState(false);
+/** Frase em linguagem natural para o status da submissão pai (cabeçalho do grupo). */
+function describeParentStatus(status: string): string {
+  switch (status) {
+    case "rascunho":
+      return "Rascunho — nada foi enviado ainda";
+    case "pendente":
+    case "em_revisao":
+    case "enviado":
+    case "enviado_brasil":
+      return "Enviada ao Brasil — aguardando análise";
+    case "aprovado":
+      return "Aprovada pelo Brasil";
+    case "rejeitado":
+      return "Rejeitada — requer ajustes";
+    default:
+      return status;
+  }
+}
+
+function GroupRow({
+  group,
+  dir,
+  folder,
+  selectedId,
+  selectedIds,
+  onSelect,
+  onToggleCheck,
+  onToggleStar,
+  onEnviarGrupoBrasil,
+  onOpenSubmissao,
+}: GroupRowProps) {
+  // Em "Pendentes de envio" abrimos o checklist por padrão para que a relação
+  // parte/todo (X de Y) fique visível sem clique extra.
+  const isAwaiting = folder === "awaiting_send";
+  const [expanded, setExpanded] = useState(isAwaiting);
   const headerActive = group.docs.some((d) => (d.documento_id ?? d.submissao_id) === selectedId);
   const checked = selectedIds.has(group.submissao_id);
   const sb = statusBadge(group.submissao_status, group.worst_status, group.docs[0]?.approval_completeness);
@@ -482,6 +514,12 @@ function GroupRow({ group, dir, folder, selectedId, selectedIds, onSelect, onTog
   const ChevronIcon = expanded ? ChevronDown : ChevronRight;
   const Pivot = group.docs[0];
   const unread = group.has_unread && folder === "inbox";
+
+  // Cálculo de progresso para a pasta "Pendentes de envio".
+  const p = group.progress;
+  const progressed = p.enviados + p.aprovados + p.em_analise + p.rejeitados;
+  const pct = p.total > 0 ? Math.round((progressed / p.total) * 100) : 0;
+  const pendingCount = p.pendentes;
 
   return (
     <>
@@ -544,19 +582,93 @@ function GroupRow({ group, dir, folder, selectedId, selectedIds, onSelect, onTog
               </span>
             )}
           </div>
-          <div className="mt-0.5 flex items-center gap-1.5 truncate text-[11.5px] text-muted-foreground">
-            <Paperclip className="h-3 w-3 shrink-0" />
-            <span className="truncate">
-              {group.docs.length} documento{group.docs.length === 1 ? "" : "s"}
-              {Pivot.tipo_documento ? ` · último: ${Pivot.tipo_documento}` : ""}
-            </span>
-          </div>
+          {isAwaiting ? (
+            <>
+              <p className="mt-0.5 text-[11px] text-muted-foreground">
+                Submissão: <span className="text-foreground/85">{describeParentStatus(group.submissao_status)}</span>
+              </p>
+              <p className="mt-0.5 text-[11px] text-muted-foreground">
+                Checklist:{" "}
+                <span className="text-foreground/90 font-medium">{progressed} de {p.total}</span>
+                {" "}itens enviados ·{" "}
+                <span className={cn("font-medium", pendingCount > 0 ? "text-amber-400" : "text-emerald-400")}>
+                  {pendingCount} pendente{pendingCount === 1 ? "" : "s"} de envio
+                </span>
+              </p>
+              <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-muted/60">
+                <div
+                  className={cn(
+                    "h-full transition-all",
+                    pct === 100 ? "bg-emerald-500" : "bg-primary",
+                  )}
+                  style={{ width: `${pct}%` }}
+                  aria-label={`${pct}% enviado`}
+                />
+              </div>
+              <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="h-6 gap-1 px-2 text-[10.5px]"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setExpanded((v) => !v);
+                  }}
+                  aria-expanded={expanded}
+                >
+                  <ListChecks className="h-3 w-3" />
+                  {expanded ? "Ocultar checklist" : `Ver checklist (${pendingCount})`}
+                </Button>
+                {pendingCount > 0 && onEnviarGrupoBrasil && (
+                  <Button
+                    type="button"
+                    size="sm"
+                    className="h-6 gap-1 px-2 text-[10.5px] bg-emerald-600 hover:bg-emerald-700 text-white"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onEnviarGrupoBrasil(group);
+                    }}
+                    title="Despachar todos os itens elegíveis desta submissão ao Brasil"
+                  >
+                    <Send className="h-3 w-3" />
+                    Enviar todos ao Brasil
+                  </Button>
+                )}
+                {onOpenSubmissao && (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    className="h-6 gap-1 px-2 text-[10.5px] text-muted-foreground"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onOpenSubmissao(group.submissao_id);
+                    }}
+                    title="Abrir a submissão completa em uma nova tela"
+                  >
+                    Abrir submissão
+                  </Button>
+                )}
+              </div>
+            </>
+          ) : (
+            <div className="mt-0.5 flex items-center gap-1.5 truncate text-[11.5px] text-muted-foreground">
+              <Paperclip className="h-3 w-3 shrink-0" />
+              <span className="truncate">
+                {group.docs.length} documento{group.docs.length === 1 ? "" : "s"}
+                {Pivot.tipo_documento ? ` · último: ${Pivot.tipo_documento}` : ""}
+              </span>
+            </div>
+          )}
         </div>
         <div className="flex shrink-0 flex-col items-end gap-1">
-          <Badge variant="outline" className={cn("h-4 px-1.5 text-[9.5px] gap-0.5 font-medium", sb.cls)}>
-            <SbIcon className="h-2.5 w-2.5" />
-            {sb.label}
-          </Badge>
+          {!isAwaiting && (
+            <Badge variant="outline" className={cn("h-4 px-1.5 text-[9.5px] gap-0.5 font-medium", sb.cls)}>
+              <SbIcon className="h-2.5 w-2.5" />
+              {sb.label}
+            </Badge>
+          )}
           <Badge variant="outline" className="h-4 px-1.5 text-[9.5px] gap-0.5 bg-muted/40 text-muted-foreground border-border">
             <Layers className="h-2.5 w-2.5" />
             {group.docs.length}

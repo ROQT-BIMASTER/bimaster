@@ -214,6 +214,42 @@ export default function ChinaCaixaEntrada() {
     enviarBrasil.reset();
     enviarBrasil.mutate(vars);
   };
+  const handleEnviarGrupoBrasil = async (group: import("@/lib/china/groupMailboxItems").MailboxGroup) => {
+    // Lista de itens elegíveis = pendentes de envio com documento anexado.
+    // Itens "sem documento" não podem ser despachados (a edge function rejeita)
+    // — esses precisam ser corrigidos individualmente.
+    const eligible = group.docs.filter(
+      (d) => d.documento_id && (d.doc_status === "rascunho" || d.submissao_status === "rascunho"),
+    );
+    if (eligible.length === 0) {
+      toast.info("Nenhum item desta submissão está pronto para envio. Anexe documentos primeiro.");
+      return;
+    }
+    const ok = await confirmConclusaoTarefa({
+      tituloDialog: `Enviar ${eligible.length} item${eligible.length === 1 ? "" : "s"} ao Brasil?`,
+      titulo: `${group.produto_codigo} — ${group.produto_nome}`,
+      descricao:
+        "Os itens elegíveis desta submissão serão despachados ao Brasil. Itens sem documento permanecem pendentes e precisam ser corrigidos individualmente.",
+      acaoLabel: `Sim, enviar ${eligible.length} ao Brasil`,
+    });
+    if (!ok) return;
+    let okCount = 0;
+    let failCount = 0;
+    for (const d of eligible) {
+      try {
+        await enviarBrasil.mutateAsync({
+          submissao_id: d.submissao_id,
+          documento_id: d.documento_id!,
+        });
+        okCount++;
+      } catch {
+        failCount++;
+      }
+    }
+    if (okCount > 0) toast.success(`${okCount} item${okCount === 1 ? "" : "s"} enviado${okCount === 1 ? "" : "s"} ao Brasil.`);
+    if (failCount > 0) toast.error(`${failCount} item${failCount === 1 ? "" : "s"} falharam no envio.`);
+    queryClient.invalidateQueries({ queryKey: ["china-mailbox-dataset"] });
+  };
   const handleRetryEnvio = () => {
     if (!lastEnvioVars) return;
     enviarBrasil.reset();
@@ -519,6 +555,8 @@ export default function ChinaCaixaEntrada() {
                   viewerOverride={{ isChinaUser, isBrasilUser }}
                   groupMode={groupMode}
                   onGroupModeChange={setGroupMode}
+                  onEnviarGrupoBrasil={handleEnviarGrupoBrasil}
+                  onOpenSubmissao={(id) => goWithReturn(`/dashboard/fabrica-china/submissao/${id}`)}
                 />
               )}
             </ResizablePanel>
@@ -588,6 +626,8 @@ export default function ChinaCaixaEntrada() {
                 viewerOverride={{ isChinaUser, isBrasilUser }}
                 groupMode={groupMode}
                 onGroupModeChange={setGroupMode}
+                onEnviarGrupoBrasil={handleEnviarGrupoBrasil}
+                onOpenSubmissao={(id) => goWithReturn(`/dashboard/fabrica-china/submissao/${id}`)}
               />
             </div>
           )}
