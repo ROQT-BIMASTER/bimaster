@@ -113,7 +113,7 @@ export function useChatActions() {
         .update({
           fixada_em: vars.fixar ? new Date().toISOString() : null,
           fixada_por: vars.fixar ? uid : null,
-        }] as any)
+        } as any)
         .eq("id", vars.id);
       if (error) throw error;
     },
@@ -138,7 +138,7 @@ export function useChatActions() {
           conversa_id: vars.conversaId,
           user_id: uid,
           emoji: vars.emoji,
-        });
+        }]);
       }
     },
     onSuccess: (_d, v) => invalidate(v.conversaId),
@@ -154,7 +154,7 @@ export function useChatActions() {
           user_id: uid,
           mensagem_id: vars.id,
           conversa_id: vars.conversaId,
-        });
+        }]);
       }
     },
     onSuccess: (_d, v) => invalidate(v.conversaId),
