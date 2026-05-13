@@ -53,7 +53,7 @@ export function PrazosPanel({ projetoId, darkBg = false }: PrazosPanelProps) {
       toast.error(error.message);
       return;
     }
-    queryClient.invalidateQueries({ queryKey: ["projeto-tarefas", projetoId] });
+    queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2", projetoId] });
     toast.success("Prazo atualizado");
   };
 

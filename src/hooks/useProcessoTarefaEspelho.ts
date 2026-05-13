@@ -294,7 +294,7 @@ export function useConcluirEspelhoComEvidencia() {
       qc.invalidateQueries({ queryKey: ["processo-tarefa-espelho"] });
       qc.invalidateQueries({ queryKey: ["processo-tarefa-espelho-by-tarefa"] });
       qc.invalidateQueries({ queryKey: ["docs-oficiais-etapa"] });
-      qc.invalidateQueries({ queryKey: ["projeto-tarefas"] });
+      qc.invalidateQueries({ queryKey: ["projeto-tarefas-v2"] });
     },
     onError: (e: any) => toast.error(e.message ?? "Erro ao concluir"),
   });
