@@ -236,9 +236,91 @@ export default function FichaRevisaoDiretoria() {
 
   const { bgStyle, BgColorButton } = usePageBgColor("ficha_revisao_diretoria");
 
+  // Modo foco: Esc fecha
+  useEffect(() => {
+    if (!fichaAberta) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setFichaAberta(null);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [fichaAberta]);
+
+  // Helpers do modo foco
+  const fichaPaiId = fichaAberta ? gradeRelMap.filhoToPai.get(fichaAberta.produto_id) : undefined;
+  const fichaPaiNome = fichaPaiId
+    ? fichasPendentes.find((f: any) => f.produto_id === fichaPaiId)?.produto?.nome
+    : undefined;
+
   return (
     <DashboardLayout>
       <div className="space-y-6 -m-4 sm:-m-6 p-4 sm:p-6 min-h-[calc(100vh-52px)]" style={bgStyle}>
+        {fichaAberta ? (
+          /* ============= MODO FOCO ============= */
+          <>
+            <div className="flex flex-wrap items-center gap-3">
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 gap-1.5"
+                onClick={() => setFichaAberta(null)}
+                title="Voltar para a lista (Esc)"
+              >
+                <ArrowLeft className="h-3.5 w-3.5" />
+                Voltar para a lista
+              </Button>
+              <div className="flex flex-col min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h1 className="text-xl font-semibold truncate">
+                    {fichaAberta.produto?.nome}
+                  </h1>
+                  <Badge variant="outline" className="font-mono text-xs">
+                    {fichaAberta.produto?.codigo}
+                  </Badge>
+                  <Badge variant="outline">v{fichaAberta.versao}</Badge>
+                  {fichaAberta.status === "aprovada" ? (
+                    <Badge className="bg-green-600 hover:bg-green-600 text-white gap-1">
+                      <CheckCircle2 className="h-3 w-3" /> Aprovada
+                    </Badge>
+                  ) : fichaAberta.status === "revisao_solicitada" ? (
+                    <Badge className="bg-orange-500 hover:bg-orange-500 text-white gap-1">
+                      <AlertTriangle className="h-3 w-3" /> Revisão Solicitada
+                    </Badge>
+                  ) : (
+                    <Badge variant="secondary" className="gap-1">
+                      <Clock className="h-3 w-3" /> Pendente
+                    </Badge>
+                  )}
+                  {fichaPaiNome && (
+                    <Badge variant="outline" className="text-blue-600 border-blue-300 gap-1">
+                      <Link2 className="h-3 w-3" /> Parte do Kit: {fichaPaiNome}
+                    </Badge>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Pressione <kbd className="px-1 py-0.5 rounded border bg-muted font-mono text-[10px]">Esc</kbd> para voltar à lista
+                </p>
+              </div>
+            </div>
+            <FichaAnalisePanel
+              ficha={fichaAberta}
+              processando={processando}
+              onAprovar={handleAprovarEClose}
+              onSolicitarRevisao={handleSolicitarRevisaoEClose}
+              onClose={() => setFichaAberta(null)}
+              fichasPendentes={fichasFiltradas}
+              gradeRelMap={gradeRelMap}
+              onSelectFicha={setFichaAberta}
+              onRefetch={refetch}
+              onCancelarAprovacao={async (motivo) => {
+                await cancelarAprovacao(fichaAberta.id, fichaAberta.config_id, motivo);
+                setFichaAberta(null);
+              }}
+            />
+          </>
+        ) : (
+          /* ============= MODO LISTA ============= */
+          <>
         <div className="flex items-center gap-3">
           <Button
             variant="outline"
@@ -508,24 +590,6 @@ export default function FichaRevisaoDiretoria() {
               </Card>
             )}
 
-            {/* Painel de Análise Inline */}
-            {fichaAberta && (
-              <FichaAnalisePanel
-                ficha={fichaAberta}
-                processando={processando}
-                onAprovar={handleAprovarEClose}
-                onSolicitarRevisao={handleSolicitarRevisaoEClose}
-                onClose={() => setFichaAberta(null)}
-                fichasPendentes={fichasFiltradas}
-                gradeRelMap={gradeRelMap}
-                onSelectFicha={setFichaAberta}
-                onRefetch={refetch}
-                onCancelarAprovacao={async (motivo) => {
-                  await cancelarAprovacao(fichaAberta.id, fichaAberta.config_id, motivo);
-                  setFichaAberta(null);
-                }}
-              />
-            )}
           </TabsContent>
 
           <TabsContent value="comunicacao" className="mt-4">
@@ -536,6 +600,8 @@ export default function FichaRevisaoDiretoria() {
             <DocumentosCofre />
           </TabsContent>
         </Tabs>
+          </>
+        )}
       </div>
     </DashboardLayout>
   );
