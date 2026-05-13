@@ -65,7 +65,7 @@ describe("ChatDrawer e2e: abrir + navegar não causa tela em branco", () => {
       screen.getByText("navegar").click();
     });
 
-    expect(screen.getByText("pagina-b")).toBeInTheDocument();
+    expect(await screen.findByText("pagina-b")).toBeInTheDocument();
 
     errSpy.mockRestore();
   });
