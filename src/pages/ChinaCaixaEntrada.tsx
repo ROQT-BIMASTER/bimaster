@@ -550,6 +550,7 @@ export default function ChinaCaixaEntrada() {
               ) : (
                 <MailboxList
                   items={items}
+                  progressItems={progressItems}
                   folder={folder}
                   selectedId={selectedId}
                   selectedIds={selectedIds}
