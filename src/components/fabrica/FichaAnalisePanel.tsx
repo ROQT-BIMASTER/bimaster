@@ -58,9 +58,10 @@ interface Props {
   gradeRelMap?: { filhoToPai: Map<string, string>; paiToFilhos: Map<string, string[]> };
   onSelectFicha?: (ficha: any) => void;
   onRefetch?: () => void;
+  onCancelarAprovacao?: (motivo: string) => Promise<void>;
 }
 
-export function FichaAnalisePanel({ ficha, processando, onAprovar, onSolicitarRevisao, onClose, fichasPendentes, gradeRelMap, onSelectFicha, onRefetch }: Props) {
+export function FichaAnalisePanel({ ficha, processando, onAprovar, onSolicitarRevisao, onClose, fichasPendentes, gradeRelMap, onSelectFicha, onRefetch, onCancelarAprovacao }: Props) {
   const [parecer, setParecer] = useState("");
   const [apontamentos, setApontamentos] = useState<ApontamentoForm[]>([]);
   const [modoRevisao, setModoRevisao] = useState(false);
