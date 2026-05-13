@@ -34,7 +34,9 @@ export function ChatDrawerProvider({ children }: { children: ReactNode }) {
   return (
     <Ctx.Provider value={{ open, setOpen, abrir }}>
       {children}
-      <ChatFloatingButton />
+      <ChatErrorBoundary name="ChatFloatingButton" fallback={null}>
+        <ChatFloatingButton />
+      </ChatErrorBoundary>
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetContent side="right" className="w-full sm:max-w-[920px] p-0 gap-0 flex flex-col">
           <div className="px-3 py-2 border-b border-border flex items-center gap-2 bg-card">
@@ -45,7 +47,11 @@ export function ChatDrawerProvider({ children }: { children: ReactNode }) {
             </Button>
           </div>
           <div className="flex-1 min-h-0">
-            {open && <ChatLayout initialConversaId={initialId} />}
+            {open && (
+              <ChatErrorBoundary name="ChatLayout">
+                <ChatLayout initialConversaId={initialId} />
+              </ChatErrorBoundary>
+            )}
           </div>
         </SheetContent>
       </Sheet>
