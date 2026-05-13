@@ -940,6 +940,7 @@ const App = () => {
                 <MeetingRecordingProvider>
                 <TourProvider>
                   <InboxDrawerProvider>
+                  <ChatDrawerProvider>
                   <TooltipProvider delayDuration={0}>
                     <Toaster />
                     <Sonner />
@@ -947,6 +948,7 @@ const App = () => {
                     <ConfirmConclusaoListener />
                     <AppContent />
                   </TooltipProvider>
+                  </ChatDrawerProvider>
                   </InboxDrawerProvider>
                 </TourProvider>
                 </MeetingRecordingProvider>
