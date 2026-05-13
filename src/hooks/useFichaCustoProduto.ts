@@ -531,15 +531,32 @@ export function useFichaCustoProduto(produtoId: string | undefined) {
   const importarCustosFilhos = useCallback(async () => {
     if (!produtoId || custosFilhos.length === 0) return;
 
+    // Remover insumos previamente importados do Kit (idempotente: re-importar atualiza valores)
+    const kitExistentes = insumos.filter((i) => i.tipo_insumo === "importado_kit");
+    if (kitExistentes.length > 0) {
+      const ids = kitExistentes.map((i) => i.id);
+      const { error: delErr } = await supabase
+        .from("fabrica_produto_custos")
+        .delete()
+        .in("id", ids);
+      if (delErr) {
+        logger.error("Erro ao limpar insumos do Kit anteriores:", delErr);
+        toast.error("Erro ao atualizar insumos do Kit");
+        return;
+      }
+      setInsumos((prev) => prev.filter((i) => i.tipo_insumo !== "importado_kit"));
+    }
+
     for (const filho of custosFilhos) {
       await adicionarInsumo({
         codigo: filho.produtoFilhoCodigo,
         nome: `${filho.produtoFilhoNome} (×${filho.quantidade})`,
         tipo_insumo: "importado_kit",
-        custo_nf: filho.custoNFLinha,
+        // IPI do unitário já embutido no NF para refletir o custo real do produto acabado
+        custo_nf: filho.custoNFLinha + filho.custoIPILinha,
         custo_servico: filho.custoServicoLinha,
         custo_condicao: filho.custoCondicaoLinha,
-        ipi_valor: filho.custoIPILinha,
+        ipi_valor: 0,
         ipi_percentual: 0,
         fornecedor: "Importado do Kit",
       });
