@@ -43,6 +43,7 @@ import type { MailboxItem, MailboxFolder } from "@/hooks/useChinaMailbox";
 import type { MailboxGroup } from "@/lib/china/groupMailboxItems";
 import { evaluateAwaitingSend } from "@/lib/china/awaitingSendRule";
 import { useMergedChinaChecklist, type MergedChecklistCategory } from "@/hooks/useMergedChinaChecklist";
+import { useChinaI18n } from "@/hooks/useChinaI18n";
 
 /** Cor de borda esquerda por estado, para leitura visual rápida da lista. */
 const STATE_BORDER: Record<string, string> = {
