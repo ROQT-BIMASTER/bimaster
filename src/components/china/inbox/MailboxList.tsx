@@ -71,6 +71,8 @@ interface Props {
   onGroupModeChange?: (m: ChinaInboxGroupMode) => void;
   /** Disparado pelos CTAs de grupo na pasta "Pendentes de envio". */
   onEnviarGrupoBrasil?: (group: MailboxGroup) => void;
+  /** Despacho individual de um item ao Brasil (botão por linha no drawer). */
+  onEnviarItemBrasil?: (item: MailboxItem) => void;
   /** Abre a submissão (deep-link) — usado por "Anexar/Adicionar parecer". */
   onOpenSubmissao?: (submissao_id: string) => void;
 }
@@ -313,6 +315,7 @@ export function MailboxList({
   groupMode = "flat",
   onGroupModeChange,
   onEnviarGrupoBrasil,
+  onEnviarItemBrasil,
   onOpenSubmissao,
 }: Props) {
   const ctx = useChinaUserContext();
@@ -496,6 +499,7 @@ export function MailboxList({
         folder={folder}
         onSelectItem={onSelect}
         onEnviarGrupoBrasil={onEnviarGrupoBrasil}
+        onEnviarItemBrasil={onEnviarItemBrasil}
         onOpenSubmissao={onOpenSubmissao}
       />
     </div>
@@ -654,17 +658,34 @@ function GroupRow({
               <p className="mt-0.5 text-[11px] text-muted-foreground">
                 Submissão: <span className="text-foreground/85">{describeParentStatus(group.submissao_status)}</span>
               </p>
-              <p
-                className="mt-0.5 text-[11px] text-muted-foreground"
-                title="Total baseado no checklist configurado (Modo Foco). Itens ainda não criados aparecem como pendentes de envio."
-              >
-                Checklist:{" "}
-                <span className="text-foreground/90 font-medium">{progressed} de {expectedTotal}</span>
-                {" "}itens enviados ·{" "}
-                <span className={cn("font-medium", pendingCount > 0 ? "text-amber-400" : "text-emerald-400")}>
-                  {pendingCount} pendente{pendingCount === 1 ? "" : "s"} de envio
-                </span>
-              </p>
+              {(() => {
+                const sentFirst = folder === "sent_brazil" || folder === "in_analysis";
+                return (
+                  <p
+                    className="mt-0.5 text-[11px] text-muted-foreground"
+                    title="Total baseado no checklist configurado (Modo Foco). Itens ainda não criados aparecem como pendentes de envio."
+                  >
+                    Checklist:{" "}
+                    {sentFirst ? (
+                      <>
+                        <span className="font-medium text-emerald-400">{progressed} enviado{progressed === 1 ? "" : "s"}</span>
+                        {" · "}
+                        <span className="text-muted-foreground">
+                          {pendingCount} ainda pendente{pendingCount === 1 ? "" : "s"}
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        <span className="text-foreground/90 font-medium">{progressed} de {expectedTotal}</span>
+                        {" itens enviados · "}
+                        <span className={cn("font-medium", pendingCount > 0 ? "text-amber-400" : "text-emerald-400")}>
+                          {pendingCount} pendente{pendingCount === 1 ? "" : "s"} de envio
+                        </span>
+                      </>
+                    )}
+                  </p>
+                );
+              })()}
               {expectedTotal > realCount && (
                 <p className="mt-0.5 text-[10px] text-muted-foreground/80">
                   {realCount} no checklist atual · {expectedTotal - realCount} ainda não criado{expectedTotal - realCount === 1 ? "" : "s"}
@@ -674,27 +695,67 @@ function GroupRow({
                 <div
                   className={cn(
                     "h-full transition-all",
-                    pct === 100 ? "bg-emerald-500" : "bg-primary",
+                    pct === 100
+                      ? "bg-emerald-500"
+                      : (folder === "sent_brazil" || folder === "in_analysis")
+                      ? "bg-emerald-500/80"
+                      : "bg-primary",
                   )}
                   style={{ width: `${pct}%` }}
                   aria-label={`${pct}% enviado`}
                 />
               </div>
               <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  className="h-6 gap-1 px-2 text-[10.5px]"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onOpenChecklist?.(group.submissao_id);
-                  }}
-                  title="Abrir lista detalhada de pendências em uma caixa lateral"
-                >
-                  <ListChecks className="h-3 w-3" />
-                  Ver checklist ({pendingCount})
-                </Button>
+                {(folder === "sent_brazil" || folder === "in_analysis") ? (
+                  <>
+                    <Button
+                      type="button"
+                      size="sm"
+                      className="h-6 gap-1 px-2 text-[10.5px] bg-emerald-600 hover:bg-emerald-700 text-white"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onOpenChecklist?.(group.submissao_id);
+                      }}
+                      title="Ver os itens já enviados ao Brasil"
+                    >
+                      <ListChecks className="h-3 w-3" />
+                      Ver enviados ({progressed})
+                    </Button>
+                    {pendingCount > 0 && (
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="ghost"
+                        className="h-6 gap-1 px-2 text-[10.5px] text-muted-foreground"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(
+                            `/dashboard/fabrica-china/produto/${group.submissao_id}/checklist-status?from=awaiting_send`,
+                            { state: { from: "/dashboard/fabrica-china/caixa-entrada" } },
+                          );
+                        }}
+                        title="Abrir página dedicada filtrando os itens ainda pendentes"
+                      >
+                        Ver pendentes ({pendingCount})
+                      </Button>
+                    )}
+                  </>
+                ) : (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className="h-6 gap-1 px-2 text-[10.5px]"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onOpenChecklist?.(group.submissao_id);
+                    }}
+                    title="Abrir lista detalhada de pendências em uma caixa lateral"
+                  >
+                    <ListChecks className="h-3 w-3" />
+                    Ver checklist ({pendingCount})
+                  </Button>
+                )}
                 {allowSendBatch && pendingCount > 0 && onEnviarGrupoBrasil && (
                   <Button
                     type="button"
