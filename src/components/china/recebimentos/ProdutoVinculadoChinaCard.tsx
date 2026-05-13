@@ -130,10 +130,10 @@ export function ProdutoVinculadoChinaCard({
                 </div>
                 <div className="mt-1 flex items-center justify-between text-[10px] text-muted-foreground">
                   <span>
-                    Pedida {oc.qty_pedida.toLocaleString("pt-BR")} · Recebida{" "}
+                    {t("recebimento.pedida")} {oc.qty_pedida.toLocaleString("pt-BR")} · {t("recebimento.recebido")}{" "}
                     {oc.qty_recebida.toLocaleString("pt-BR")} ({ocPct}%)
                   </span>
-                  <span>Saldo {oc.saldo_aberto.toLocaleString("pt-BR")}</span>
+                  <span>{t("recebimento.saldoLabel")} {oc.saldo_aberto.toLocaleString("pt-BR")}</span>
                 </div>
                 <Progress value={ocPct} className="h-1 mt-1" />
               </button>
@@ -143,7 +143,7 @@ export function ProdutoVinculadoChinaCard({
       )}
       {expanded && ocs.length === 0 && (
         <div className="border-t border-border px-3 py-2 text-[11px] text-muted-foreground">
-          Nenhuma OC para os filtros atuais.
+          {t("recebimento.nenhumaOCFiltros")}
         </div>
       )}
     </Card>
