@@ -299,35 +299,40 @@ export function UnifiedSubmissionTimeline({ submissao, ocId, onlyChinaStages, cl
   useEffect(() => {
     const sid = submissao.submissao_id;
     if (!sid) return;
+    // Helper: invalida TUDO que depende dos contadores do checklist desta
+    // submissão — resumo da timeline, dataset da Caixa de Entrada e qualquer
+    // query "china-mailbox*" — para garantir tempo real ponta-a-ponta.
+    const invalidateAll = () => {
+      qc.invalidateQueries({ queryKey: ["china-submissao-docs-resumo", sid] });
+      qc.invalidateQueries({ queryKey: ["china-mailbox-dataset"] });
+      qc.invalidateQueries({ queryKey: ["china-mailbox"] });
+    };
     const channel = supabase
       .channel(`unified-timeline-${sid}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "china_produto_documentos", filter: `submissao_id=eq.${sid}` },
-        () => qc.invalidateQueries({ queryKey: ["china-submissao-docs-resumo", sid] }),
+        invalidateAll,
       )
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "china_produto_submissoes", filter: `id=eq.${sid}` },
-        () => {
-          qc.invalidateQueries({ queryKey: ["china-mailbox"] });
-          qc.invalidateQueries({ queryKey: ["china-submissao-docs-resumo", sid] });
-        },
+        invalidateAll,
       )
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "china_checklist_custom_categorias", filter: `submissao_id=eq.${sid}` },
-        () => qc.invalidateQueries({ queryKey: ["china-submissao-docs-resumo", sid] }),
+        invalidateAll,
       )
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "china_checklist_custom_itens", filter: `submissao_id=eq.${sid}` },
-        () => qc.invalidateQueries({ queryKey: ["china-submissao-docs-resumo", sid] }),
+        invalidateAll,
       )
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "china_checklist_itens_ocultos", filter: `submissao_id=eq.${sid}` },
-        () => qc.invalidateQueries({ queryKey: ["china-submissao-docs-resumo", sid] }),
+        invalidateAll,
       )
       .subscribe();
     return () => { supabase.removeChannel(channel); };
