@@ -177,13 +177,13 @@ export default function ChinaCaixaEntrada() {
         return;
       }
       if (!items.length) return;
-      const idx = items.findIndex((i) => (i.documento_id ?? i.submissao_id) === selectedId);
+      const idx = items.findIndex((i) => itemRowId(i) === selectedId);
       if (e.key === "j") {
         const next = items[Math.min(items.length - 1, idx + 1)];
-        if (next) setSelectedId(next.documento_id ?? next.submissao_id);
+        if (next) setSelectedId(itemRowId(next));
       } else if (e.key === "k") {
         const prev = items[Math.max(0, idx - 1)];
-        if (prev) setSelectedId(prev.documento_id ?? prev.submissao_id);
+        if (prev) setSelectedId(itemRowId(prev));
       } else if (e.key === "s" && selectedItem) {
         toggleFlag.mutate({ submissao_id: selectedItem.submissao_id, flagged: !selectedItem.is_flagged });
       } else if (
