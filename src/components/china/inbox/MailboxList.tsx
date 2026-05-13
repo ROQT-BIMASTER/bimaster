@@ -551,7 +551,13 @@ function GroupRow({
   // Em "Pendentes de envio" o detalhamento é feito agora num drawer lateral
   // (ChecklistPendingSheet), não mais por expansão inline. Para outras pastas,
   // mantemos o comportamento clássico de expandir/recolher.
-  const isAwaiting = folder === "awaiting_send";
+  const useDrawer =
+    folder === "awaiting_send" ||
+    folder === "sent_brazil" ||
+    folder === "in_analysis" ||
+    folder === "returned";
+  const isAwaiting = useDrawer;
+  const allowSendBatch = folder === "awaiting_send" || folder === "returned";
   const [expanded, setExpanded] = useState(false);
   const headerActive = group.docs.some((d) => (d.documento_id ?? d.submissao_id) === selectedId);
   const checked = selectedIds.has(group.submissao_id);
