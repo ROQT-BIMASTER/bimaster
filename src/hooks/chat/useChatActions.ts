@@ -154,7 +154,7 @@ export function useChatActions() {
           user_id: uid,
           mensagem_id: vars.id,
           conversa_id: vars.conversaId,
-        });
+        }]);
       }
     },
     onSuccess: (_d, v) => invalidate(v.conversaId),
