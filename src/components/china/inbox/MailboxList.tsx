@@ -611,11 +611,15 @@ function GroupRow({
           type="button"
           onClick={(e) => {
             e.stopPropagation();
-            setExpanded((v) => !v);
+            if (isAwaiting && onOpenChecklist) {
+              onOpenChecklist(group.submissao_id);
+            } else {
+              setExpanded((v) => !v);
+            }
           }}
           className="mt-0.5 text-muted-foreground hover:text-foreground"
-          aria-label={expanded ? "Recolher" : "Expandir"}
-          aria-expanded={expanded}
+          aria-label={isAwaiting ? "Abrir checklist pendente" : expanded ? "Recolher" : "Expandir"}
+          aria-expanded={isAwaiting ? undefined : expanded}
         >
           <ChevronIcon className="h-3.5 w-3.5" />
         </button>
