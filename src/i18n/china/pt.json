@@ -103,7 +103,14 @@
       "recalcNenhuma": "Pendências recalculadas. Nenhuma normalização necessária.",
       "recalcErro": "Falha ao recalcular pendências",
       "pdfOk": "PDF exportado",
-      "pdfErro": "Falha ao exportar PDF"
+      "pdfErro": "Falha ao exportar PDF",
+      "todasLidasOk": "{{count}} mensagem(ns) marcadas como lidas.",
+      "nenhumaNaoLida": "Nenhuma mensagem não lida nesta pasta.",
+      "selecionadasLidasOk": "{{count}} item(ns) selecionado(s) marcado(s) como lido(s).",
+      "nenhumaSelecionadaNaoLida": "Nenhum item selecionado não lido.",
+      "todosVisiveisLidosOk": "{{count}} item(ns) marcado(s) como lido(s).",
+      "nenhumNaoLidoVisao": "Nenhum item não lido nesta visão.",
+      "estadoLeituraZerado": "Estado de leitura local zerado."
     },
     "empty": {
       "selectMessage": "Selecione uma mensagem para visualizar.",
