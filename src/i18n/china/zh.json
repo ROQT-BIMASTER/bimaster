@@ -708,5 +708,38 @@
     "dispensaInfo": "豁免会记录您的姓名、日期和原因。已豁免的项目计入完成度以放行 OC/OP,并保留在历史记录中。",
     "btnCancelar": "取消",
     "btnConfirmar": "确认豁免"
+  },
+  "embalagensTable": {
+    "errInformeNome": "请提供葡萄牙语名称",
+    "okMockupEnviado": "样品已上传",
+    "errUpload": "上传错误",
+    "tooltipEditarColuna": "编辑列",
+    "tooltipExcluirColuna": "删除列",
+    "tooltipAdicionarColuna": "添加列",
+    "dialogNovaColuna": "新增列",
+    "labelNomePt": "名称 (葡)*",
+    "phNomePt": "例如:主箱",
+    "labelNomeCn": "名称 (中)",
+    "btnCancelar": "取消",
+    "btnAdicionar": "添加",
+    "dialogRenomear": "重命名列",
+    "labelNomePtRen": "名称 (葡)",
+    "btnSalvar": "保存"
+  },
+  "pastaDigital": {
+    "labelAprovado": "已批准",
+    "labelRejeitado": "已拒绝",
+    "labelPendente": "待处理",
+    "labelEnviado": "已发送",
+    "labelEmRevisao": "审核中",
+    "labelRascunho": "草稿",
+    "outros": "其他",
+    "titulo": "数字档案",
+    "subtitulo": "TJSP 标准 — 由清单生成",
+    "tooltipAtualizar": "刷新",
+    "selecioneDoc": "请从树中选择一个文档",
+    "errCarregar": "无法加载文件",
+    "previewIndisponivel": "预览不可用",
+    "obsLabel": "备注:"
   }
 }

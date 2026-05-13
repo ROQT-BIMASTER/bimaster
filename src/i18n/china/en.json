@@ -714,5 +714,38 @@
     "dispensaInfo": "The waiver records your name, date and reason. Waived items count as completed for PO/MO release, but remain visible in the history.",
     "btnCancelar": "Cancel",
     "btnConfirmar": "Confirm waiver"
+  },
+  "embalagensTable": {
+    "errInformeNome": "Please provide the name in Portuguese",
+    "okMockupEnviado": "Mockup uploaded",
+    "errUpload": "Upload error",
+    "tooltipEditarColuna": "Edit column",
+    "tooltipExcluirColuna": "Delete column",
+    "tooltipAdicionarColuna": "Add column",
+    "dialogNovaColuna": "New column",
+    "labelNomePt": "Name (PT) *",
+    "phNomePt": "E.g.: Master case",
+    "labelNomeCn": "Name (CN)",
+    "btnCancelar": "Cancel",
+    "btnAdicionar": "Add",
+    "dialogRenomear": "Rename column",
+    "labelNomePtRen": "Name (PT)",
+    "btnSalvar": "Save"
+  },
+  "pastaDigital": {
+    "labelAprovado": "Approved",
+    "labelRejeitado": "Rejected",
+    "labelPendente": "Pending",
+    "labelEnviado": "Sent",
+    "labelEmRevisao": "Under Review",
+    "labelRascunho": "Draft",
+    "outros": "Others",
+    "titulo": "Digital Folder",
+    "subtitulo": "TJSP standard — generated from checklist",
+    "tooltipAtualizar": "Refresh",
+    "selecioneDoc": "Select a document from the tree",
+    "errCarregar": "Could not load the file",
+    "previewIndisponivel": "Preview not available",
+    "obsLabel": "Note:"
   }
 }

@@ -741,5 +741,38 @@
     "dispensaInfo": "A dispensa registra seu nome, data e motivo. Itens dispensados contam como concluídos para liberação de OC/OP, mas ficam visíveis no histórico.",
     "btnCancelar": "Cancelar",
     "btnConfirmar": "Confirmar dispensa"
+  },
+  "embalagensTable": {
+    "errInformeNome": "Informe o nome em português",
+    "okMockupEnviado": "Mockup enviado",
+    "errUpload": "Erro no upload",
+    "tooltipEditarColuna": "Editar coluna",
+    "tooltipExcluirColuna": "Excluir coluna",
+    "tooltipAdicionarColuna": "Adicionar coluna",
+    "dialogNovaColuna": "Nova coluna",
+    "labelNomePt": "Nome (PT) *",
+    "phNomePt": "Ex.: Caixa Master",
+    "labelNomeCn": "Nome (CN)",
+    "btnCancelar": "Cancelar",
+    "btnAdicionar": "Adicionar",
+    "dialogRenomear": "Renomear coluna",
+    "labelNomePtRen": "Nome (PT)",
+    "btnSalvar": "Salvar"
+  },
+  "pastaDigital": {
+    "labelAprovado": "Aprovado",
+    "labelRejeitado": "Rejeitado",
+    "labelPendente": "Pendente",
+    "labelEnviado": "Enviado",
+    "labelEmRevisao": "Em Revisão",
+    "labelRascunho": "Rascunho",
+    "outros": "Outros",
+    "titulo": "Pasta Digital",
+    "subtitulo": "Padrão TJSP — originado do checklist",
+    "tooltipAtualizar": "Atualizar",
+    "selecioneDoc": "Selecione um documento na árvore",
+    "errCarregar": "Não foi possível carregar o arquivo",
+    "previewIndisponivel": "Preview não disponível",
+    "obsLabel": "Observação:"
   }
 }
