@@ -16,6 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { useChinaTimelineSla } from "@/hooks/useChinaTimelineSla";
 import { computeStageDeadlines, type StageDeadline } from "@/lib/china/timelineSlaCompute";
+import { useChinaI18n } from "@/hooks/useChinaI18n";
 
 
 interface SubmissaoLite {
@@ -149,6 +150,7 @@ function ExpandableDocList({
   label?: string;
   defaultOpen?: boolean;
 }) {
+  const { t } = useChinaI18n();
   const [open, setOpen] = useState(defaultOpen);
   const filtered = rows.filter(filter);
   return (
@@ -159,7 +161,7 @@ function ExpandableDocList({
         className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground transition-colors"
       >
         {open ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
-        {open ? "Ocultar detalhamento" : `${label ?? "Ver detalhamento"} (${filtered.length})`}
+        {open ? t("timeline.common.ocultarDetalhamento") : `${label ?? t("timeline.common.verDetalhamento")} (${filtered.length})`}
       </button>
       {open && (
         <ul className="mt-1.5 space-y-1 border-l border-border/60 pl-2">
@@ -182,6 +184,7 @@ function ExpandableDocList({
 }
 
 function GroupedSentDocList({ rows }: { rows: DocRow[] }) {
+  const { t } = useChinaI18n();
   const [open, setOpen] = useState(false);
   const sent = rows.filter((r) => SENT_STATUSES.includes(r.status));
   const aprovados = sent.filter((r) => r.status === "aprovado");
@@ -196,15 +199,15 @@ function GroupedSentDocList({ rows }: { rows: DocRow[] }) {
       >
         {open ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
         {open
-          ? "Ocultar detalhamento"
-          : `Ver detalhamento (${sent.length} enviados · ${aprovados.length} aprovados · ${rejeitados.length} rejeitados)`}
+          ? t("timeline.common.ocultarDetalhamento")
+          : t("timeline.stage4.verDetalhamento", { enviados: sent.length, aprovados: aprovados.length, rejeitados: rejeitados.length })}
       </button>
       {open && (
         <div className="mt-1.5 space-y-2 border-l border-border/60 pl-2">
           {[
-            { title: "Aprovados pelo Brasil", items: aprovados, tone: "border-emerald-500/40 text-emerald-400" },
-            { title: "Aguardando retorno", items: aguardando, tone: "border-amber-500/40 text-amber-400" },
-            { title: "Rejeitados pelo Brasil", items: rejeitados, tone: "border-rose-500/40 text-rose-400" },
+            { title: t("timeline.stage4.grupoAprovados"), items: aprovados, tone: "border-emerald-500/40 text-emerald-400" },
+            { title: t("timeline.stage4.grupoAguardando"), items: aguardando, tone: "border-amber-500/40 text-amber-400" },
+            { title: t("timeline.stage4.grupoRejeitados"), items: rejeitados, tone: "border-rose-500/40 text-rose-400" },
           ].map((grp) => (
             <div key={grp.title} className="space-y-1">
               <div className="flex items-center justify-between text-[10px] uppercase tracking-wide text-muted-foreground">
@@ -212,7 +215,7 @@ function GroupedSentDocList({ rows }: { rows: DocRow[] }) {
                 <span className="tabular-nums">{grp.items.length}</span>
               </div>
               {grp.items.length === 0 ? (
-                <p className="text-[11px] italic text-muted-foreground/70">Nenhum item.</p>
+                <p className="text-[11px] italic text-muted-foreground/70">{t("timeline.stage4.nenhumItem")}</p>
               ) : (
                 <ul className="space-y-1">
                   {grp.items.map((r) => (
@@ -234,6 +237,7 @@ function GroupedSentDocList({ rows }: { rows: DocRow[] }) {
 }
 
 export function UnifiedSubmissionTimeline({ submissao, ocId, onlyChinaStages, className, onStagesComputed }: Props) {
+  const { t } = useChinaI18n();
   const qc = useQueryClient();
   const { data: docs } = useDocsResumo(submissao.submissao_id);
   const { data: ocTimeline } = useOCTimeline(ocId || null);
@@ -400,84 +404,84 @@ export function UnifiedSubmissionTimeline({ submissao, ocId, onlyChinaStages, cl
   return (
     <div className={className}>
       <div className="space-y-2">
-        <StageCard icon={FilePlus2} title="1. Submissão criada" status={stSubmissao} deadline={dl(1)}>
-          <DataRow label="Criada em" value={submissao.created_at ? fmtDate(submissao.created_at) : "—"} />
-          <DataRow label="Status atual" value={submStatus || "—"} />
-          {submissao.numero_ordem && <DataRow label="OC vinculada" value={submissao.numero_ordem} />}
+        <StageCard icon={FilePlus2} title={t("timeline.stages.1")} status={stSubmissao} deadline={dl(1)}>
+          <DataRow label={t("timeline.common.criadaEm")} value={submissao.created_at ? fmtDate(submissao.created_at) : "—"} />
+          <DataRow label={t("timeline.common.statusAtual")} value={submStatus || "—"} />
+          {submissao.numero_ordem && <DataRow label={t("timeline.common.ocVinculada")} value={submissao.numero_ordem} />}
         </StageCard>
 
-        <StageCard icon={FileText} title="2. Documentos & parecer" status={stDocs} deadline={dl(2)}>
-          <DataRow label="Documentos" value={docs?.total ?? 0} />
-          <DataRow label="Aprovados" value={docs?.aprovados ?? 0} />
-          <DataRow label="Pendentes" value={docs?.pendentes ?? 0} />
+        <StageCard icon={FileText} title={t("timeline.stages.2")} status={stDocs} deadline={dl(2)}>
+          <DataRow label={t("timeline.common.documentos")} value={docs?.total ?? 0} />
+          <DataRow label={t("timeline.common.aprovados")} value={docs?.aprovados ?? 0} />
+          <DataRow label={t("timeline.common.pendentes")} value={docs?.pendentes ?? 0} />
           {(docs?.rejeitados ?? 0) > 0 && (
-            <DataRow label="Rejeitados" value={docs?.rejeitados ?? 0} />
+            <DataRow label={t("timeline.common.rejeitados")} value={docs?.rejeitados ?? 0} />
           )}
         </StageCard>
 
-        <StageCard icon={Send} title="3. Enviada ao Brasil" status={stEnviada} deadline={dl(3)}>
+        <StageCard icon={Send} title={t("timeline.stages.3")} status={stEnviada} deadline={dl(3)}>
           <DataRow
-            label="Estado"
+            label={t("timeline.common.estado")}
             value={
               totalDocs === 0
-                ? (enviadaParaBrasil ? "Em poder do Brasil" : "Aguardando envio (rascunho)")
+                ? (enviadaParaBrasil ? t("timeline.stage3.estadoEmPoderBrasil") : t("timeline.stage3.estadoSemDocs"))
                 : allSent
-                ? "Checklist completo enviado"
+                ? t("timeline.stage3.estadoCompleto")
                 : enviadosDocs > 0
-                ? "Envio parcial em andamento"
-                : "Aguardando envio do checklist"
+                ? t("timeline.stage3.estadoParcial")
+                : t("timeline.stage3.estadoAguardando")
             }
           />
           {totalDocs > 0 && (
             <ProgressBlock
-              label="Checklist enviado ao Brasil"
+              label={t("timeline.stage3.progressoLabel")}
               current={enviadosDocs}
               total={totalDocs}
               tone={allSent ? "emerald" : "amber"}
             />
           )}
           {docs?.ultimoEm && enviadosDocs > 0 && (
-            <DataRow label="Última atividade" value={fmtDate(docs.ultimoEm)} />
+            <DataRow label={t("timeline.common.ultimaAtividade")} value={fmtDate(docs.ultimoEm)} />
           )}
           {totalDocs > 0 && (
             <ExpandableDocList
               rows={docs?.rows ?? []}
               filter={(r) => !SENT_STATUSES.includes(r.status)}
-              emptyText="Todos os itens já foram enviados ao Brasil."
-              label={allSent ? "Itens pendentes de envio" : "Faltam enviar"}
+              emptyText={t("timeline.stage3.panelTodosEnviados")}
+              label={allSent ? t("timeline.stage3.panelLabelPendentes") : t("timeline.stage3.panelLabelFaltam")}
             />
           )}
         </StageCard>
 
-        <StageCard icon={ShieldCheck} title="4. Aprovação Brasil" status={stAprovBrasil} deadline={dl(4)}>
+        <StageCard icon={ShieldCheck} title={t("timeline.stages.4")} status={stAprovBrasil} deadline={dl(4)}>
           {enviadosDocs > 0 ? (
             <>
               <ProgressBlock
-                label="Aprovados pelo Brasil"
+                label={t("timeline.stage4.progressoLabel")}
                 current={aprovDocs}
                 total={enviadosDocs}
                 tone={fullyApproved ? "emerald" : rejDocs > 0 ? "rose" : "amber"}
               />
               <div className="grid grid-cols-3 gap-2 text-[11px] pt-1">
                 <div className="rounded border border-border/60 px-1.5 py-1 text-center">
-                  <div className="text-muted-foreground text-[10px]">Enviados</div>
+                  <div className="text-muted-foreground text-[10px]">{t("timeline.stage4.kpiEnviados")}</div>
                   <div className="font-semibold tabular-nums">{enviadosDocs}</div>
                 </div>
                 <div className="rounded border border-emerald-500/30 px-1.5 py-1 text-center">
-                  <div className="text-muted-foreground text-[10px]">Aprovados</div>
+                  <div className="text-muted-foreground text-[10px]">{t("timeline.stage4.kpiAprovados")}</div>
                   <div className="font-semibold tabular-nums text-emerald-400">{aprovDocs}</div>
                 </div>
                 <div className="rounded border border-rose-500/30 px-1.5 py-1 text-center">
-                  <div className="text-muted-foreground text-[10px]">Rejeitados</div>
+                  <div className="text-muted-foreground text-[10px]">{t("timeline.stage4.kpiRejeitados")}</div>
                   <div className="font-semibold tabular-nums text-rose-400">{rejDocs}</div>
                 </div>
               </div>
             </>
           ) : (
-            <p className="text-muted-foreground italic">Aguardando envio ao Brasil.</p>
+            <p className="text-muted-foreground italic">{t("timeline.stage4.aguardandoEnvio")}</p>
           )}
           {submissao.aprovado_em && (
-            <DataRow label="Aprovada em" value={fmtDate(submissao.aprovado_em)} />
+            <DataRow label={t("timeline.common.aprovadaEm")} value={fmtDate(submissao.aprovado_em)} />
           )}
           {enviadosDocs > 0 && (
             <GroupedSentDocList rows={docs?.rows ?? []} />

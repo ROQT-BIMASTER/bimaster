@@ -243,7 +243,7 @@ export default function ChinaCaixaEntrada() {
   const handleMarkAllRead = async () => {
     const targets = items.filter((i) => i.documento_id && !i.is_read);
     if (targets.length === 0) {
-      toast.info("Nenhuma mensagem não lida nesta pasta.");
+      toast.info(t("inbox.toasts.nenhumaNaoLida"));
       return;
     }
     setIsMarkingAllRead(true);
@@ -253,7 +253,7 @@ export default function ChinaCaixaEntrada() {
           toggleRead.mutateAsync({ documento_id: i.documento_id!, read: true }).catch(() => null),
         ),
       );
-      toast.success(`${targets.length} mensagem(ns) marcadas como lidas.`);
+      toast.success(t("inbox.toasts.todasLidasOk", { count: targets.length }));
     } finally {
       setIsMarkingAllRead(false);
     }
@@ -320,14 +320,14 @@ export default function ChinaCaixaEntrada() {
               size="sm"
               onClick={handleMarkAllRead}
               disabled={unreadVisibleCount === 0 || isMarkingAllRead}
-              title="Marcar todas as mensagens visíveis como lidas"
+              title={t("inbox.actions.marcarTodasLidasTitle")}
             >
               {isMarkingAllRead ? (
                 <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
               ) : (
                 <CheckCheck className="h-4 w-4 mr-1.5" />
               )}
-              {isMarkingAllRead ? "Marcando..." : "Marcar todas como lidas"}
+              {isMarkingAllRead ? t("inbox.actions.marcando") : t("inbox.actions.marcarTodasLidas")}
               {!isMarkingAllRead && unreadVisibleCount > 0 && (
                 <span className="ml-1 text-[10px] opacity-70">({unreadVisibleCount})</span>
               )}
@@ -475,7 +475,7 @@ export default function ChinaCaixaEntrada() {
                 onToggleRead={handleToggleRead}
                 onToggleStar={handleToggleStar}
                 loading={loading}
-                error={enviarBrasil.isError ? (enviarBrasil.error as any)?.message ?? "Falha ao enviar ao Brasil." : null}
+                error={enviarBrasil.isError ? (enviarBrasil.error as any)?.message ?? t("inbox.blocks.falhaEnviarBrasil") : null}
                 onRetryEnvio={lastEnvioVars && enviarBrasil.isError ? handleRetryEnvio : undefined}
               />
             </ResizablePanel>
@@ -509,7 +509,7 @@ export default function ChinaCaixaEntrada() {
               onToggleStar={handleToggleStar}
               onBack={() => setSelectedId(null)}
               loading={loading}
-              error={enviarBrasil.isError ? (enviarBrasil.error as any)?.message ?? "Falha ao enviar ao Brasil." : null}
+              error={enviarBrasil.isError ? (enviarBrasil.error as any)?.message ?? t("inbox.blocks.falhaEnviarBrasil") : null}
               onRetryEnvio={lastEnvioVars && enviarBrasil.isError ? handleRetryEnvio : undefined}
             />
           ) : (

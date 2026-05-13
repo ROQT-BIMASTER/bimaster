@@ -86,7 +86,12 @@
       "restaurar": "Restaurar",
       "excluirDefinitivo": "Excluir definitivamente",
       "marcarComoLidos": "Marcar como lidos",
-      "limparSelecao": "Limpar"
+      "limparSelecao": "Limpar",
+      "marcarTodasLidas": "Marcar todas como lidas",
+      "marcando": "Marcando...",
+      "marcarTodasLidasTitle": "Marcar todas as mensagens visíveis como lidas",
+      "tentarNovamente": "Tentar novamente",
+      "enviandoBrasil": "Enviando ao Brasil…"
     },
     "search": {
       "placeholder": "Buscar produto, OC, arquivo (atalho: /)"
@@ -98,7 +103,14 @@
       "recalcNenhuma": "Pendências recalculadas. Nenhuma normalização necessária.",
       "recalcErro": "Falha ao recalcular pendências",
       "pdfOk": "PDF exportado",
-      "pdfErro": "Falha ao exportar PDF"
+      "pdfErro": "Falha ao exportar PDF",
+      "todasLidasOk": "{{count}} mensagem(ns) marcadas como lidas.",
+      "nenhumaNaoLida": "Nenhuma mensagem não lida nesta pasta.",
+      "selecionadasLidasOk": "{{count}} item(ns) selecionado(s) marcado(s) como lido(s).",
+      "nenhumaSelecionadaNaoLida": "Nenhum item selecionado não lido.",
+      "todosVisiveisLidosOk": "{{count}} item(ns) marcado(s) como lido(s).",
+      "nenhumNaoLidoVisao": "Nenhum item não lido nesta visão.",
+      "estadoLeituraZerado": "Estado de leitura local zerado."
     },
     "empty": {
       "selectMessage": "Selecione uma mensagem para visualizar.",
@@ -128,7 +140,23 @@
       "aprovadaPeloBrasil": "Submissão aprovada pelo Brasil",
       "aprovadaEm": "Aprovada em {{date}}.",
       "brasilSolicitouAjustes": "Brasil solicitou ajustes",
-      "conversa": "Conversa"
+      "conversa": "Conversa",
+      "falhaEnviarBrasil": "Não foi possível enviar ao Brasil."
+    },
+    "readLegend": {
+      "trigger": "O que significam os destaques de leitura?",
+      "titulo": "Indicadores de leitura",
+      "naoLida": "Título em negrito e fundo levemente destacado: mensagem ainda não lida.",
+      "lida": "Dois checks azuis: você já abriu / marcou esta mensagem como lida."
+    },
+    "readMenu": {
+      "trigger": "Mais ações de leitura",
+      "label": "Leitura",
+      "titulo": "Estado de leitura",
+      "marcarSelecionadasLidas": "Marcar selecionadas como lidas",
+      "marcarTodosLidos": "Marcar todos como lidos",
+      "limparEstado": "Limpar estado de leitura",
+      "confirmLimpar": "Limpar todas as marcações locais de leitura desta tela?"
     },
     "snooze": {
       "trigger": "Adiar",
@@ -158,6 +186,92 @@
         "in_analysis": "Em análise no Brasil",
         "returned": "Retorno: ajustes"
       }
+    }
+  },
+  "timeline": {
+    "stages": {
+      "1": "1. Submissão criada",
+      "2": "2. Documentos & parecer",
+      "3": "3. Enviada ao Brasil",
+      "4": "4. Aprovação Brasil",
+      "5": "5. Pedido (OC)",
+      "6": "6. Produção",
+      "7": "7. Embarque",
+      "8": "8. Trânsito",
+      "9": "9. Desembaraço",
+      "10": "10. Recebido no CD"
+    },
+    "stage3": {
+      "estadoSemDocs": "Aguardando envio (rascunho)",
+      "estadoEmPoderBrasil": "Em poder do Brasil",
+      "estadoCompleto": "Checklist completo enviado",
+      "estadoParcial": "Envio parcial em andamento",
+      "estadoAguardando": "Aguardando envio do checklist",
+      "progressoLabel": "Checklist enviado ao Brasil",
+      "panelTodosEnviados": "Todos os itens já foram enviados ao Brasil.",
+      "panelLabelFaltam": "Faltam enviar",
+      "panelLabelPendentes": "Itens pendentes de envio"
+    },
+    "stage4": {
+      "progressoLabel": "Aprovados pelo Brasil",
+      "aguardandoEnvio": "Aguardando envio ao Brasil.",
+      "kpiEnviados": "Enviados",
+      "kpiAprovados": "Aprovados",
+      "kpiRejeitados": "Rejeitados",
+      "grupoAprovados": "Aprovados pelo Brasil",
+      "grupoAguardando": "Aguardando retorno",
+      "grupoRejeitados": "Rejeitados pelo Brasil",
+      "nenhumItem": "Nenhum item.",
+      "verDetalhamento": "Ver detalhamento ({{enviados}} enviados · {{aprovados}} aprovados · {{rejeitados}} rejeitados)"
+    },
+    "common": {
+      "ocultarDetalhamento": "Ocultar detalhamento",
+      "verDetalhamento": "Ver detalhamento",
+      "nenhumItemPendente": "Nenhum item pendente.",
+      "criadaEm": "Criada em",
+      "statusAtual": "Status atual",
+      "ocVinculada": "OC vinculada",
+      "documentos": "Documentos",
+      "aprovados": "Aprovados",
+      "pendentes": "Pendentes",
+      "rejeitados": "Rejeitados",
+      "estado": "Estado",
+      "ultimaAtividade": "Última atividade",
+      "aprovadaEm": "Aprovada em",
+      "aguardandoOc": "Aguardando aprovação do Brasil para gerar a Ordem de Compra. As etapas abaixo serão preenchidas automaticamente conforme o pedido avançar."
+    },
+    "deadline": {
+      "vence": "Vence {{date}}",
+      "diasRestantes": "{{count}}d restantes",
+      "atrasado": "{{count}}d atrasado",
+      "concluidaNoPrazo": "Concluída no prazo",
+      "concluidaAtrasada": "Concluída em atraso",
+      "perto": "Perto do vencimento",
+      "semSla": "Sem prazo definido"
+    },
+    "sheet": {
+      "titulo": "Linha do tempo da submissão",
+      "configurarPrazos": "Configurar prazos",
+      "exportarPdf": "Exportar PDF",
+      "filtros": "Filtros",
+      "buscar": "Buscar evento",
+      "intervalo": "Intervalo",
+      "tipoEtapa": "Tipo de etapa",
+      "limparFiltros": "Limpar filtros",
+      "tabJornada": "Jornada",
+      "tabHistorico": "Histórico"
+    },
+    "sla": {
+      "titulo": "Prazos por etapa",
+      "descricao": "Defina a duração esperada de cada etapa. O início de cada etapa é a soma das anteriores a partir da criação da submissão.",
+      "aplicarSomenteSubmissao": "Aplicar só nesta submissão",
+      "aplicarTemplate": "Aplicar como template global",
+      "leadTimeTotal": "Lead time total",
+      "previsaoEntrega": "Previsão de entrega",
+      "dias": "Dias",
+      "meses": "Meses",
+      "salvar": "Salvar prazos",
+      "cancelar": "Cancelar"
     }
   }
 }

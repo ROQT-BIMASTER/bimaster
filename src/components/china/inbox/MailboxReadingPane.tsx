@@ -260,7 +260,7 @@ export function MailboxReadingPane({
                 aria-busy={loading}
               >
                 {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-                {loading ? "Enviando ao Brasil…" : t("inbox.actions.enviarBrasil")}
+                {loading ? t("inbox.actions.enviandoBrasil") : t("inbox.actions.enviarBrasil")}
               </Button>
               {error && !loading && onRetryEnvio && (
                 <Button
@@ -270,7 +270,7 @@ export function MailboxReadingPane({
                   onClick={onRetryEnvio}
                 >
                   <RotateCw className="h-4 w-4" />
-                  Tentar novamente
+                  {t("inbox.actions.tentarNovamente")}
                 </Button>
               )}
             </div>
@@ -281,7 +281,7 @@ export function MailboxReadingPane({
               >
                 <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
                 <div className="min-w-0">
-                  <p className="font-semibold">Não foi possível enviar ao Brasil.</p>
+                  <p className="font-semibold">{t("inbox.blocks.falhaEnviarBrasil")}</p>
                   <p className="mt-0.5 break-words text-rose-200/90">{error}</p>
                 </div>
               </div>

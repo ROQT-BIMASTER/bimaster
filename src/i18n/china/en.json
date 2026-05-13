@@ -86,7 +86,12 @@
       "restaurar": "Restore",
       "excluirDefinitivo": "Delete permanently",
       "marcarComoLidos": "Mark as read",
-      "limparSelecao": "Clear"
+      "limparSelecao": "Clear",
+      "marcarTodasLidas": "Mark all as read",
+      "marcando": "Marking...",
+      "marcarTodasLidasTitle": "Mark all visible messages as read",
+      "tentarNovamente": "Try again",
+      "enviandoBrasil": "Sending to Brazil…"
     },
     "search": {
       "placeholder": "Search product, PO, file (shortcut: /)"
@@ -98,7 +103,14 @@
       "recalcNenhuma": "Pending items recalculated. No normalization needed.",
       "recalcErro": "Failed to recalculate pending items",
       "pdfOk": "PDF exported",
-      "pdfErro": "Failed to export PDF"
+      "pdfErro": "Failed to export PDF",
+      "todasLidasOk": "{{count}} message(s) marked as read.",
+      "nenhumaNaoLida": "No unread messages in this folder.",
+      "selecionadasLidasOk": "{{count}} selected item(s) marked as read.",
+      "nenhumaSelecionadaNaoLida": "No selected unread items.",
+      "todosVisiveisLidosOk": "{{count}} item(s) marked as read.",
+      "nenhumNaoLidoVisao": "No unread items in this view.",
+      "estadoLeituraZerado": "Local read state cleared."
     },
     "empty": {
       "selectMessage": "Select a message to view.",
@@ -128,7 +140,23 @@
       "aprovadaPeloBrasil": "Submission approved by Brazil",
       "aprovadaEm": "Approved on {{date}}.",
       "brasilSolicitouAjustes": "Brazil requested adjustments",
-      "conversa": "Conversation"
+      "conversa": "Conversation",
+      "falhaEnviarBrasil": "Could not send to Brazil."
+    },
+    "readLegend": {
+      "trigger": "What do the read indicators mean?",
+      "titulo": "Read indicators",
+      "naoLida": "Bold title and slightly highlighted background: message not yet read.",
+      "lida": "Two blue checks: you have already opened / marked this message as read."
+    },
+    "readMenu": {
+      "trigger": "More read actions",
+      "label": "Read",
+      "titulo": "Read state",
+      "marcarSelecionadasLidas": "Mark selected as read",
+      "marcarTodosLidos": "Mark all as read",
+      "limparEstado": "Clear read state",
+      "confirmLimpar": "Clear all local read marks for this screen?"
     },
     "snooze": {
       "trigger": "Snooze",
@@ -158,6 +186,92 @@
         "in_analysis": "Under review in Brazil",
         "returned": "Returned: adjustments"
       }
+    }
+  },
+  "timeline": {
+    "stages": {
+      "1": "1. Submission created",
+      "2": "2. Documents & opinion",
+      "3": "3. Sent to Brazil",
+      "4": "4. Brazil approval",
+      "5": "5. Order (PO)",
+      "6": "6. Production",
+      "7": "7. Shipment",
+      "8": "8. Transit",
+      "9": "9. Customs clearance",
+      "10": "10. Received at DC"
+    },
+    "stage3": {
+      "estadoSemDocs": "Waiting to send (draft)",
+      "estadoEmPoderBrasil": "With Brazil",
+      "estadoCompleto": "Full checklist sent",
+      "estadoParcial": "Partial send in progress",
+      "estadoAguardando": "Waiting for checklist send",
+      "progressoLabel": "Checklist sent to Brazil",
+      "panelTodosEnviados": "All items have been sent to Brazil.",
+      "panelLabelFaltam": "Still to send",
+      "panelLabelPendentes": "Pending items"
+    },
+    "stage4": {
+      "progressoLabel": "Approved by Brazil",
+      "aguardandoEnvio": "Waiting to be sent to Brazil.",
+      "kpiEnviados": "Sent",
+      "kpiAprovados": "Approved",
+      "kpiRejeitados": "Rejected",
+      "grupoAprovados": "Approved by Brazil",
+      "grupoAguardando": "Awaiting return",
+      "grupoRejeitados": "Rejected by Brazil",
+      "nenhumItem": "No items.",
+      "verDetalhamento": "View details ({{enviados}} sent · {{aprovados}} approved · {{rejeitados}} rejected)"
+    },
+    "common": {
+      "ocultarDetalhamento": "Hide details",
+      "verDetalhamento": "View details",
+      "nenhumItemPendente": "No pending items.",
+      "criadaEm": "Created on",
+      "statusAtual": "Current status",
+      "ocVinculada": "Linked PO",
+      "documentos": "Documents",
+      "aprovados": "Approved",
+      "pendentes": "Pending",
+      "rejeitados": "Rejected",
+      "estado": "State",
+      "ultimaAtividade": "Last activity",
+      "aprovadaEm": "Approved on",
+      "aguardandoOc": "Waiting for Brazil approval to issue the Purchase Order. The stages below will be filled in automatically as the order progresses."
+    },
+    "deadline": {
+      "vence": "Due {{date}}",
+      "diasRestantes": "{{count}}d left",
+      "atrasado": "{{count}}d overdue",
+      "concluidaNoPrazo": "Completed on time",
+      "concluidaAtrasada": "Completed late",
+      "perto": "Close to deadline",
+      "semSla": "No deadline set"
+    },
+    "sheet": {
+      "titulo": "Submission timeline",
+      "configurarPrazos": "Configure deadlines",
+      "exportarPdf": "Export PDF",
+      "filtros": "Filters",
+      "buscar": "Search event",
+      "intervalo": "Range",
+      "tipoEtapa": "Stage type",
+      "limparFiltros": "Clear filters",
+      "tabJornada": "Journey",
+      "tabHistorico": "History"
+    },
+    "sla": {
+      "titulo": "Stage deadlines",
+      "descricao": "Set the expected duration of each stage. Each stage starts at the cumulative sum of the previous ones, counted from the submission creation.",
+      "aplicarSomenteSubmissao": "Apply only to this submission",
+      "aplicarTemplate": "Apply as global template",
+      "leadTimeTotal": "Total lead time",
+      "previsaoEntrega": "Delivery forecast",
+      "dias": "Days",
+      "meses": "Months",
+      "salvar": "Save deadlines",
+      "cancelar": "Cancel"
     }
   }
 }
