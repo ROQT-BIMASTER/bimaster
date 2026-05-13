@@ -16,6 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { useChinaTimelineSla } from "@/hooks/useChinaTimelineSla";
 import { computeStageDeadlines, type StageDeadline } from "@/lib/china/timelineSlaCompute";
+import { useChinaI18n } from "@/hooks/useChinaI18n";
 
 
 interface SubmissaoLite {
