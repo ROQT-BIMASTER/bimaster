@@ -3,6 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Button } from "@/components/ui/button";
 import { FileText, Image, Video, FileSpreadsheet, Save, Send, X, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useChinaI18n } from "@/hooks/useChinaI18n";
 
 interface ChinaUploadPreviewDialogProps {
   file: File | null;
@@ -34,6 +35,7 @@ export function ChinaUploadPreviewDialog({
 }: ChinaUploadPreviewDialogProps) {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [saving, setSaving] = useState<"rascunho" | "pendente" | null>(null);
+  const { t } = useChinaI18n();
 
   useEffect(() => {
     if (file && file.type.startsWith("image/")) {
@@ -65,7 +67,7 @@ export function ChinaUploadPreviewDialog({
       <DialogContent className="max-w-2xl z-[70] bg-background border-border shadow-2xl">
         <DialogHeader>
           <DialogTitle className="text-base">
-            Validar Arquivo 验证文件
+            {t("documento.uploadPreview.titulo")}
           </DialogTitle>
           <p className="text-xs text-muted-foreground mt-1">
             {tipoLabel.pt} — {tipoLabel.cn}
@@ -96,7 +98,7 @@ export function ChinaUploadPreviewDialog({
           <div className="text-center space-y-1">
             <p className="text-sm font-medium text-foreground truncate max-w-[400px]">{file.name}</p>
             <p className="text-xs text-muted-foreground">
-              {formatFileSize(file.size)} · {file.type || "arquivo"}
+              {formatFileSize(file.size)} · {file.type || t("documento.uploadPreview.arquivoGenerico")}
             </p>
           </div>
         </div>
@@ -109,7 +111,7 @@ export function ChinaUploadPreviewDialog({
             className="gap-2"
           >
             <X className="h-4 w-4" />
-            Cancelar 取消
+            {t("documento.uploadPreview.cancelar")}
           </Button>
           <Button
             variant="secondary"
@@ -118,7 +120,7 @@ export function ChinaUploadPreviewDialog({
             className="gap-2"
           >
             {saving === "rascunho" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-            Salvar Rascunho 保存草稿
+            {t("documento.uploadPreview.salvarRascunho")}
           </Button>
           <Button
             variant="gradient"
@@ -127,7 +129,7 @@ export function ChinaUploadPreviewDialog({
             className="gap-2"
           >
             {saving === "pendente" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-            Enviar ao Brasil 发送至巴西
+            {t("documento.uploadPreview.enviarBrasil")}
           </Button>
         </DialogFooter>
       </DialogContent>

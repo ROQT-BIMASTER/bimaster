@@ -501,5 +501,90 @@
     "placeholderMensagem": "葡萄牙语消息",
     "placeholderMensagemCn": "中文 (可选)",
     "semModelos": "暂无模板。请在上方创建第一个。"
+  },
+  "checklist": {
+    "tituloPreLancamento": "上市前检查清单",
+    "modulosBrasil": "巴西模块",
+    "fluxoArtes": "艺术流程",
+    "cofreProduto": "产品保险箱",
+    "composicaoInci": "INCI成分",
+    "totalItens": "总项目",
+    "obrigatorios": "必填",
+    "ingredientes": "成分",
+    "conforme": "合规",
+    "pendente": "待处理",
+    "restrito": "受限",
+    "semDados": "暂无数据",
+    "verEmAnalise": "审核中",
+    "verAprovado": "已批准",
+    "verDevolvido": "已退回",
+    "verRascunho": "草稿",
+    "secao": {
+      "criacaoIdentidade": "创作/标识",
+      "desenvolvimentoProdutos": "产品开发",
+      "desenvolvimentoEmbalagem": "包装开发",
+      "informacoesProduto": "产品信息（简报）",
+      "assuntosRegulatorios": "监管事务",
+      "criacaoArtes": "创作/艺术"
+    }
+  },
+  "documento": {
+    "slot": {
+      "labelPendente": "待上传",
+      "labelEnviado": "已发送",
+      "labelAprovado": "已批准",
+      "labelRejeitado": "已拒绝",
+      "upload": "上传"
+    },
+    "uploadPreview": {
+      "titulo": "验证文件",
+      "cancelar": "取消",
+      "salvarRascunho": "保存草稿",
+      "enviarBrasil": "发送至巴西",
+      "arquivoGenerico": "文件"
+    },
+    "preview": {
+      "naoCarregou": "无法加载文件",
+      "naoDisponivel": "此类型文件无法预览",
+      "download": "下载",
+      "abrir": "打开"
+    },
+    "contestar": {
+      "titulo": "用技术回复替换文件",
+      "descricao": "上一版本将作为历史记录归档（审计），新文件将提交至巴西重新审核。",
+      "documentoLabel": "文件：{{label}}。 ",
+      "laudoTitulo": "巴西技术报告 — 第{{n}}轮",
+      "anexosLabel": "附件：{{lista}}",
+      "parecerLabel": "技术回复 — 详细回复 *",
+      "parecerToolbar": "回复文件 · 请以正式邮件或技术报告的方式撰写",
+      "traduzir": "翻译 葡/中/英",
+      "previewTraducao": "翻译预览：",
+      "traducaoIndisponivel": "无可用翻译",
+      "novoArquivoLabel": "新主文件 *",
+      "anexosTecnicosLabel": "技术支持附件（可选）",
+      "limiteAnexos": "最多 {{max}} 个文件，每个 20MB。",
+      "removerAnexo": "移除附件",
+      "cancelar": "取消",
+      "enviar": "向巴西发送修正",
+      "enviando": "发送中…",
+      "placeholderParecer": "尊敬的巴西团队：\n\n针对收到的技术报告，详细回复如下：\n\n1. 问题分析：\n   ...\n\n2. 文件中所做的修改：\n   ...\n\n3. 技术/法规依据：\n   ...\n\n此致\n中国团队"
+    },
+    "templateMenu": {
+      "carregar": "加载模板",
+      "salvar": "另存为模板",
+      "salvos": "已保存模板",
+      "nenhum": "暂无已保存模板",
+      "global": "全局",
+      "colunas": "{{count}} 列",
+      "excluir": "删除",
+      "confirmExcluir": "删除模板「{{nome}}」？",
+      "dialogTitulo": "将检查清单另存为模板",
+      "nomeLabel": "模板名称 *",
+      "nomePlaceholder": "例如：Hello Kitty 默认",
+      "escopoMarca": "仅限品牌 <strong>{{marca}}</strong> 可用",
+      "explicacao": "将保存 {{count}} 列。单元格标记不包含在内。",
+      "cancelar": "取消",
+      "salvarBtn": "保存"
+    }
   }
 }

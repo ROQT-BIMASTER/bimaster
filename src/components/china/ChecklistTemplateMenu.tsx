@@ -21,6 +21,7 @@ import {
   type ChecklistColuna,
   type ChecklistTemplate,
 } from "@/hooks/useChinaProdutoChecklist";
+import { useChinaI18n } from "@/hooks/useChinaI18n";
 
 interface Props {
   marca: string | null;

@@ -10,6 +10,7 @@ import { useContestarComParecer, type Revisao } from "@/hooks/useChinaRevisoes";
 import { TextoComTraducao } from "./TextoComTraducao";
 import { useSalvarTraducaoRevisao } from "@/hooks/useChinaRevisoes";
 import { useTraduzirTexto, type IdiomaTraducao } from "@/hooks/useTraduzirTexto";
+import { useChinaI18n } from "@/hooks/useChinaI18n";
 
 interface Props {
   open: boolean;
@@ -43,6 +44,7 @@ export function DialogContestarDocumento({
   const contestar = useContestarComParecer();
   const salvarTraducao = useSalvarTraducaoRevisao();
   const traduzir = useTraduzirTexto();
+  const { t } = useChinaI18n();
 
   async function handleTraduzirParecer() {
     if (!parecer.trim()) return;
@@ -85,12 +87,11 @@ export function DialogContestarDocumento({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Upload className="h-5 w-5 text-primary" />
-            Substituir documento com parecer técnico
+            {t("documento.contestar.titulo")}
           </DialogTitle>
           <DialogDescription>
-            {tipoDocumentoLabel ? `Documento: ${tipoDocumentoLabel}. ` : ""}
-            A versão anterior será arquivada como histórico (auditoria) e o novo arquivo
-            entrará para nova análise do Brasil.
+            {tipoDocumentoLabel ? t("documento.contestar.documentoLabel", { label: tipoDocumentoLabel }) : ""}
+            {t("documento.contestar.descricao")}
           </DialogDescription>
         </DialogHeader>
 
@@ -99,7 +100,7 @@ export function DialogContestarDocumento({
             <div className="rounded-md border border-destructive/40 bg-destructive/5 p-3 space-y-2">
               <div className="flex items-center gap-2 text-sm font-medium text-destructive">
                 <FileWarning className="h-4 w-4" />
-                Laudo técnico do Brasil — rodada {laudoRevisao.rodada}
+                {t("documento.contestar.laudoTitulo", { n: laudoRevisao.rodada })}
               </div>
               <TextoComTraducao
                 texto={laudoRevisao.motivo_rejeicao}
@@ -117,7 +118,7 @@ export function DialogContestarDocumento({
               />
               {laudoRevisao.anexos?.length > 0 && (
                 <div className="text-xs text-muted-foreground">
-                  Anexos: {laudoRevisao.anexos.map((a) => a.nome).join(", ")}
+                  {t("documento.contestar.anexosLabel", { lista: laudoRevisao.anexos.map((a) => a.nome).join(", ") })}
                 </div>
               )}
             </div>
@@ -125,11 +126,11 @@ export function DialogContestarDocumento({
 
           <div className="space-y-2">
             <Label htmlFor="parecer" className="text-sm font-semibold">
-              Parecer técnico — resposta detalhada *
+              {t("documento.contestar.parecerLabel")}
             </Label>
             <div className="rounded-lg border bg-card shadow-sm">
               <div className="flex items-center justify-between gap-2 border-b px-3 py-1.5 text-[11px] text-muted-foreground bg-muted/40 rounded-t-lg">
-                <span>Documento de resposta · escreva como em um e-mail ou parecer formal</span>
+                <span>{t("documento.contestar.parecerToolbar")}</span>
                 <div className="flex items-center gap-2">
                   <Button
                     type="button"
@@ -140,7 +141,7 @@ export function DialogContestarDocumento({
                     disabled={!parecer.trim() || traduzir.isPending}
                   >
                     {traduzir.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Languages className="h-3 w-3" />}
-                    Traduzir PT/ZH/EN
+                    {t("documento.contestar.traduzir")}
                   </Button>
                   <span>{parecer.length}/8000</span>
                 </div>
@@ -150,7 +151,7 @@ export function DialogContestarDocumento({
                 value={parecer}
                 onChange={(e) => setParecer(e.target.value)}
                 rows={16}
-                placeholder={`Prezada equipe do Brasil,\n\nEm resposta ao laudo técnico recebido, segue o parecer detalhado:\n\n1. Análise do apontamento:\n   ...\n\n2. Alterações realizadas no documento:\n   ...\n\n3. Embasamento técnico / normativo:\n   ...\n\nAtenciosamente,\nEquipe China`}
+                placeholder={t("documento.contestar.placeholderParecer")}
                 maxLength={8000}
                 className="border-0 rounded-t-none focus-visible:ring-0 focus-visible:ring-offset-0 min-h-[320px] font-serif text-[13px] leading-relaxed resize-y"
               />
@@ -159,7 +160,7 @@ export function DialogContestarDocumento({
               <div className="rounded-lg border bg-muted/30 p-3 space-y-2">
                 <div className="flex items-center gap-1 flex-wrap">
                   <Languages className="h-3.5 w-3.5 text-muted-foreground" />
-                  <span className="text-[11px] font-medium text-muted-foreground mr-1">Pré-visualização da tradução:</span>
+                  <span className="text-[11px] font-medium text-muted-foreground mr-1">{t("documento.contestar.previewTraducao")}</span>
                   {(["pt", "zh", "en"] as IdiomaTraducao[]).map((l) => (
                     <Button
                       key={l}
@@ -175,14 +176,14 @@ export function DialogContestarDocumento({
                   ))}
                 </div>
                 <div className="text-[13px] whitespace-pre-wrap break-words bg-card border rounded p-2 max-h-48 overflow-y-auto">
-                  {traducoesPreview[idiomaPreview] || <span className="italic text-muted-foreground">Tradução indisponível</span>}
+                  {traducoesPreview[idiomaPreview] || <span className="italic text-muted-foreground">{t("documento.contestar.traducaoIndisponivel")}</span>}
                 </div>
               </div>
             )}
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="novo">Novo arquivo principal *</Label>
+            <Label htmlFor="novo">{t("documento.contestar.novoArquivoLabel")}</Label>
             <Input
               id="novo"
               type="file"
@@ -198,7 +199,7 @@ export function DialogContestarDocumento({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="emb">Anexos de embasamento técnico (opcional)</Label>
+            <Label htmlFor="emb">{t("documento.contestar.anexosTecnicosLabel")}</Label>
             <Input
               id="emb"
               type="file"
@@ -207,7 +208,7 @@ export function DialogContestarDocumento({
               accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.rtf,.odt,.ods,.odp,image/*"
             />
             <p className="text-xs text-muted-foreground">
-              Até {MAX_FILES} arquivos, 20MB cada.
+              {t("documento.contestar.limiteAnexos", { max: MAX_FILES })}
             </p>
             {anexos.length > 0 && (
               <div className="flex flex-wrap gap-2 pt-1">
@@ -219,7 +220,7 @@ export function DialogContestarDocumento({
                       type="button"
                       onClick={() => setAnexos((prev) => prev.filter((_, idx) => idx !== i))}
                       className="ml-1 hover:text-destructive"
-                      aria-label="Remover anexo"
+                      aria-label={t("documento.contestar.removerAnexo")}
                     >
                       <X className="h-3 w-3" />
                     </button>
@@ -232,13 +233,13 @@ export function DialogContestarDocumento({
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={contestar.isPending}>
-            Cancelar
+            {t("documento.contestar.cancelar")}
           </Button>
           <Button
             onClick={submit}
             disabled={!parecer.trim() || !novoArquivo || contestar.isPending}
           >
-            {contestar.isPending ? "Enviando…" : "Enviar correção ao Brasil"}
+            {contestar.isPending ? t("documento.contestar.enviando") : t("documento.contestar.enviar")}
           </Button>
         </DialogFooter>
       </DialogContent>
