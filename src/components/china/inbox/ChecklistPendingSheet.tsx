@@ -35,6 +35,8 @@ export interface ChecklistPendingSheetProps {
   folder?: MailboxFolder;
   onSelectItem?: (id: string) => void;
   onEnviarGrupoBrasil?: (group: MailboxGroup) => void;
+  /** Despacho individual de um item ao Brasil. */
+  onEnviarItemBrasil?: (item: MailboxItem) => void;
   onOpenSubmissao?: (submissao_id: string) => void;
 }
 
@@ -44,9 +46,14 @@ interface FolderConfig {
   scope: (item: MailboxItem) => boolean;
   /** Define o filtro inicial da página dedicada via query string. */
   pageFilter: "todos" | "enviados" | "pendentes" | "rejeitados" | "nao_criados";
-  /** Mostra ações "Anexar" e "Enviar ao Brasil" no item/footer. */
+  /** Mostra ações "Anexar" / "Enviar" por linha e CTA bulk no footer. */
   showAttach: boolean;
   showEnviarFooter: boolean;
+  /**
+   * "pending" → prioriza pendentes/rejeitados (ordem padrão).
+   * "sent"    → prioriza itens já enviados; pendentes vão para bloco recolhível.
+   */
+  priorityMode: "pending" | "sent";
 }
 
 const FOLDER_CONFIG: Partial<Record<MailboxFolder, FolderConfig>> = {
@@ -56,20 +63,23 @@ const FOLDER_CONFIG: Partial<Record<MailboxFolder, FolderConfig>> = {
     pageFilter: "todos",
     showAttach: true,
     showEnviarFooter: true,
+    priorityMode: "pending",
   },
   sent_brazil: {
     title: "Itens enviados ao Brasil",
-    scope: (i) => i.doc_status === "pendente" && !i.is_virtual,
+    scope: () => true,
     pageFilter: "enviados",
     showAttach: false,
     showEnviarFooter: false,
+    priorityMode: "sent",
   },
   in_analysis: {
     title: "Itens em análise no Brasil",
-    scope: (i) => i.doc_status === "enviado" || i.doc_status === "contestado",
+    scope: () => true,
     pageFilter: "enviados",
     showAttach: false,
     showEnviarFooter: false,
+    priorityMode: "sent",
   },
   returned: {
     title: "Itens com ajustes solicitados",
@@ -77,6 +87,7 @@ const FOLDER_CONFIG: Partial<Record<MailboxFolder, FolderConfig>> = {
     pageFilter: "rejeitados",
     showAttach: true,
     showEnviarFooter: true,
+    priorityMode: "pending",
   },
 };
 
