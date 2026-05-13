@@ -187,5 +187,91 @@
         "returned": "返回：需调整"
       }
     }
+  },
+  "timeline": {
+    "stages": {
+      "1": "1. 已创建提交",
+      "2": "2. 文件与意见",
+      "3": "3. 已发送至巴西",
+      "4": "4. 巴西审批",
+      "5": "5. 订单 (PO)",
+      "6": "6. 生产",
+      "7": "7. 装运",
+      "8": "8. 在途",
+      "9": "9. 清关",
+      "10": "10. 已入库"
+    },
+    "stage3": {
+      "estadoSemDocs": "等待发送 (草稿)",
+      "estadoEmPoderBrasil": "已交至巴西",
+      "estadoCompleto": "完整清单已发送",
+      "estadoParcial": "部分发送进行中",
+      "estadoAguardando": "等待发送清单",
+      "progressoLabel": "已发送至巴西的清单",
+      "panelTodosEnviados": "所有项目均已发送至巴西。",
+      "panelLabelFaltam": "尚未发送",
+      "panelLabelPendentes": "待发送项目"
+    },
+    "stage4": {
+      "progressoLabel": "巴西已批准",
+      "aguardandoEnvio": "等待发送至巴西。",
+      "kpiEnviados": "已发送",
+      "kpiAprovados": "已批准",
+      "kpiRejeitados": "已拒绝",
+      "grupoAprovados": "巴西已批准",
+      "grupoAguardando": "等待回复",
+      "grupoRejeitados": "巴西已拒绝",
+      "nenhumItem": "无项目。",
+      "verDetalhamento": "查看详情 (已发送 {{enviados}} · 已批准 {{aprovados}} · 已拒绝 {{rejeitados}})"
+    },
+    "common": {
+      "ocultarDetalhamento": "隐藏详情",
+      "verDetalhamento": "查看详情",
+      "nenhumItemPendente": "没有待办项目。",
+      "criadaEm": "创建于",
+      "statusAtual": "当前状态",
+      "ocVinculada": "关联采购单",
+      "documentos": "文件",
+      "aprovados": "已批准",
+      "pendentes": "待办",
+      "rejeitados": "已拒绝",
+      "estado": "状态",
+      "ultimaAtividade": "最近活动",
+      "aprovadaEm": "批准于",
+      "aguardandoOc": "等待巴西审批以生成采购单。下方阶段将随订单进度自动填充。"
+    },
+    "deadline": {
+      "vence": "到期 {{date}}",
+      "diasRestantes": "剩余 {{count}} 天",
+      "atrasado": "逾期 {{count}} 天",
+      "concluidaNoPrazo": "按时完成",
+      "concluidaAtrasada": "逾期完成",
+      "perto": "临近截止",
+      "semSla": "未设置截止日期"
+    },
+    "sheet": {
+      "titulo": "提交时间线",
+      "configurarPrazos": "配置截止日期",
+      "exportarPdf": "导出 PDF",
+      "filtros": "筛选",
+      "buscar": "搜索事件",
+      "intervalo": "时间范围",
+      "tipoEtapa": "阶段类型",
+      "limparFiltros": "清除筛选",
+      "tabJornada": "进程",
+      "tabHistorico": "历史"
+    },
+    "sla": {
+      "titulo": "阶段截止日期",
+      "descricao": "为每个阶段设置预期持续时间。每个阶段的开始为提交创建以来前面阶段的累计天数。",
+      "aplicarSomenteSubmissao": "仅应用于此提交",
+      "aplicarTemplate": "应用为全局模板",
+      "leadTimeTotal": "总交付周期",
+      "previsaoEntrega": "预计交付",
+      "dias": "天",
+      "meses": "月",
+      "salvar": "保存截止日期",
+      "cancelar": "取消"
+    }
   }
 }
