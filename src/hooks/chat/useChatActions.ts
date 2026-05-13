@@ -113,7 +113,7 @@ export function useChatActions() {
         .update({
           fixada_em: vars.fixar ? new Date().toISOString() : null,
           fixada_por: vars.fixar ? uid : null,
-        }] as any)
+        } as any)
         .eq("id", vars.id);
       if (error) throw error;
     },
