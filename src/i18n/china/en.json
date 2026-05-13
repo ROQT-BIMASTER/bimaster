@@ -507,5 +507,90 @@
     "placeholderMensagem": "Message in Portuguese",
     "placeholderMensagemCn": "中文 (optional)",
     "semModelos": "No templates. Create the first one above."
+  },
+  "checklist": {
+    "tituloPreLancamento": "Pre-launch checklist",
+    "modulosBrasil": "Brazil modules",
+    "fluxoArtes": "Artwork flow",
+    "cofreProduto": "Product vault",
+    "composicaoInci": "INCI composition",
+    "totalItens": "Total items",
+    "obrigatorios": "Required",
+    "ingredientes": "Ingredients",
+    "conforme": "Compliant",
+    "pendente": "Pending",
+    "restrito": "Restricted",
+    "semDados": "No data",
+    "verEmAnalise": "Under review",
+    "verAprovado": "Approved",
+    "verDevolvido": "Returned",
+    "verRascunho": "Draft",
+    "secao": {
+      "criacaoIdentidade": "Creation / Identity",
+      "desenvolvimentoProdutos": "Product development",
+      "desenvolvimentoEmbalagem": "Packaging development",
+      "informacoesProduto": "Product information (briefing)",
+      "assuntosRegulatorios": "Regulatory affairs",
+      "criacaoArtes": "Creation / Artwork"
+    }
+  },
+  "documento": {
+    "slot": {
+      "labelPendente": "Pending",
+      "labelEnviado": "Sent",
+      "labelAprovado": "Approved",
+      "labelRejeitado": "Rejected",
+      "upload": "Upload"
+    },
+    "uploadPreview": {
+      "titulo": "Validate file",
+      "cancelar": "Cancel",
+      "salvarRascunho": "Save draft",
+      "enviarBrasil": "Send to Brazil",
+      "arquivoGenerico": "file"
+    },
+    "preview": {
+      "naoCarregou": "Unable to load file",
+      "naoDisponivel": "Preview not available for this file type",
+      "download": "Download",
+      "abrir": "Open"
+    },
+    "contestar": {
+      "titulo": "Replace document with technical response",
+      "descricao": "The previous version will be archived for audit, and the new file will be submitted for a new review by Brazil.",
+      "documentoLabel": "Document: {{label}}. ",
+      "laudoTitulo": "Technical report from Brazil — round {{n}}",
+      "anexosLabel": "Attachments: {{lista}}",
+      "parecerLabel": "Technical response — detailed reply *",
+      "parecerToolbar": "Response document · write as a formal email or technical report",
+      "traduzir": "Translate PT/ZH/EN",
+      "previewTraducao": "Translation preview:",
+      "traducaoIndisponivel": "Translation unavailable",
+      "novoArquivoLabel": "New main file *",
+      "anexosTecnicosLabel": "Technical supporting attachments (optional)",
+      "limiteAnexos": "Up to {{max}} files, 20MB each.",
+      "removerAnexo": "Remove attachment",
+      "cancelar": "Cancel",
+      "enviar": "Send correction to Brazil",
+      "enviando": "Sending…",
+      "placeholderParecer": "Dear Brazil team,\n\nIn response to the received technical report, please find the detailed reply below:\n\n1. Analysis of the issue:\n   ...\n\n2. Changes made to the document:\n   ...\n\n3. Technical / regulatory basis:\n   ...\n\nBest regards,\nChina team"
+    },
+    "templateMenu": {
+      "carregar": "Load template",
+      "salvar": "Save as template",
+      "salvos": "Saved templates",
+      "nenhum": "No templates saved yet",
+      "global": "Global",
+      "colunas": "{{count}} columns",
+      "excluir": "Delete",
+      "confirmExcluir": "Delete template \"{{nome}}\"?",
+      "dialogTitulo": "Save checklist as template",
+      "nomeLabel": "Template name *",
+      "nomePlaceholder": "E.g.: Hello Kitty default",
+      "escopoMarca": "Available only for the brand <strong>{{marca}}</strong>",
+      "explicacao": "{{count}} columns will be saved. Cell markings are not included.",
+      "cancelar": "Cancel",
+      "salvarBtn": "Save"
+    }
   }
 }

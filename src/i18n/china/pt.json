@@ -534,5 +534,90 @@
     "placeholderMensagem": "Mensagem em português",
     "placeholderMensagemCn": "中文 (opcional)",
     "semModelos": "Nenhum modelo. Crie o primeiro acima."
+  },
+  "checklist": {
+    "tituloPreLancamento": "Checklist pré-lançamento",
+    "modulosBrasil": "Módulos Brasil",
+    "fluxoArtes": "Fluxo de artes",
+    "cofreProduto": "Cofre do produto",
+    "composicaoInci": "Composição INCI",
+    "totalItens": "Total de itens",
+    "obrigatorios": "Obrigatórios",
+    "ingredientes": "Ingredientes",
+    "conforme": "Conforme",
+    "pendente": "Pendente",
+    "restrito": "Restrito",
+    "semDados": "Sem dados",
+    "verEmAnalise": "Em análise",
+    "verAprovado": "Aprovado",
+    "verDevolvido": "Devolvido",
+    "verRascunho": "Rascunho",
+    "secao": {
+      "criacaoIdentidade": "Criação / Identidade",
+      "desenvolvimentoProdutos": "Desenvolvimento de produtos",
+      "desenvolvimentoEmbalagem": "Desenvolvimento de embalagem",
+      "informacoesProduto": "Informações dos produtos (briefing)",
+      "assuntosRegulatorios": "Assuntos regulatórios",
+      "criacaoArtes": "Criação / Artes"
+    }
+  },
+  "documento": {
+    "slot": {
+      "labelPendente": "Pendente",
+      "labelEnviado": "Enviado",
+      "labelAprovado": "Aprovado",
+      "labelRejeitado": "Rejeitado",
+      "upload": "Upload"
+    },
+    "uploadPreview": {
+      "titulo": "Validar arquivo",
+      "cancelar": "Cancelar",
+      "salvarRascunho": "Salvar rascunho",
+      "enviarBrasil": "Enviar ao Brasil",
+      "arquivoGenerico": "arquivo"
+    },
+    "preview": {
+      "naoCarregou": "Não foi possível carregar o arquivo",
+      "naoDisponivel": "Pré-visualização não disponível para este tipo de arquivo",
+      "download": "Baixar",
+      "abrir": "Abrir"
+    },
+    "contestar": {
+      "titulo": "Substituir documento com parecer técnico",
+      "descricao": "A versão anterior será arquivada como histórico (auditoria) e o novo arquivo entrará para nova análise do Brasil.",
+      "documentoLabel": "Documento: {{label}}. ",
+      "laudoTitulo": "Laudo técnico do Brasil — rodada {{n}}",
+      "anexosLabel": "Anexos: {{lista}}",
+      "parecerLabel": "Parecer técnico — resposta detalhada *",
+      "parecerToolbar": "Documento de resposta · escreva como em um e-mail ou parecer formal",
+      "traduzir": "Traduzir PT/ZH/EN",
+      "previewTraducao": "Pré-visualização da tradução:",
+      "traducaoIndisponivel": "Tradução indisponível",
+      "novoArquivoLabel": "Novo arquivo principal *",
+      "anexosTecnicosLabel": "Anexos de embasamento técnico (opcional)",
+      "limiteAnexos": "Até {{max}} arquivos, 20MB cada.",
+      "removerAnexo": "Remover anexo",
+      "cancelar": "Cancelar",
+      "enviar": "Enviar correção ao Brasil",
+      "enviando": "Enviando…",
+      "placeholderParecer": "Prezada equipe do Brasil,\n\nEm resposta ao laudo técnico recebido, segue o parecer detalhado:\n\n1. Análise do apontamento:\n   ...\n\n2. Alterações realizadas no documento:\n   ...\n\n3. Embasamento técnico / normativo:\n   ...\n\nAtenciosamente,\nEquipe China"
+    },
+    "templateMenu": {
+      "carregar": "Carregar template",
+      "salvar": "Salvar como template",
+      "salvos": "Templates salvos",
+      "nenhum": "Nenhum template salvo ainda",
+      "global": "Global",
+      "colunas": "{{count}} colunas",
+      "excluir": "Excluir",
+      "confirmExcluir": "Excluir template \"{{nome}}\"?",
+      "dialogTitulo": "Salvar checklist como template",
+      "nomeLabel": "Nome do template *",
+      "nomePlaceholder": "Ex.: Padrão Hello Kitty",
+      "escopoMarca": "Disponibilizar apenas para a marca <strong>{{marca}}</strong>",
+      "explicacao": "{{count}} colunas serão salvas. As marcações das células não são incluídas.",
+      "cancelar": "Cancelar",
+      "salvarBtn": "Salvar"
+    }
   }
 }
