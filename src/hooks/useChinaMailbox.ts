@@ -600,6 +600,21 @@ export function useChinaMailbox(folder: MailboxFolder): UseChinaMailboxResult {
       }
     }
 
+    // Itens virtuais entram APENAS no contador de awaiting_send (submissões
+    // já estão contadas pelo loop acima; aqui contamos itens-fantasma).
+    for (const v of virtualItems) {
+      if (!matchAwaitingSend(v)) continue;
+      // Submissão por bumpCount já estará marcada (set bloqueia duplicata),
+      // só precisamos contabilizar items.
+      bumpCount("awaiting_send", v, matchAwaitingSend);
+      // Para itens, usamos chave virtual única.
+      const k = `${v.submissao_id}:virtual:${v.tipo_documento}`;
+      if (!seenForCount.awaiting_send_items.has(k)) {
+        counts.awaiting_send_items += 1;
+        seenForCount.awaiting_send_items.add(k);
+      }
+    }
+
     // Filtro da pasta atual
     const matcher: Record<MailboxFolder, (i: MailboxItem) => boolean> = {
       inbox: matchInbox,
@@ -615,10 +630,18 @@ export function useChinaMailbox(folder: MailboxFolder): UseChinaMailboxResult {
       in_analysis: matchInAnalysis,
       returned: matchReturned,
     };
-    const items = allItems.filter(matcher[folder]);
+    const baseItems = allItems.filter(matcher[folder]);
+    // Em "Pendentes de envio", anexamos os itens VIRTUAIS para que o
+    // denominador "X de N" reflita o checklist completo (Modo Foco).
+    const items =
+      folder === "awaiting_send"
+        ? [...baseItems, ...virtualItems.filter(matchAwaitingSend)]
+        : baseItems;
     // Lista global de pendentes-por-falta-de-doc/parecer (independe da pasta atual)
-    // — usada para emitir notificações.
+    // — usada para emitir notificações. Virtuais ficam de fora para evitar
+    // spam (1 toast por tipo esperado).
     const allAwaitingPending = allItems.filter((i) => {
+      if (i.is_virtual) return false;
       const ev = evaluateAwaitingSend(i);
       if (!ev.matches) return false;
       return ev.reasons.some((r) => r === "sem_documento" || r === "sem_parecer");
