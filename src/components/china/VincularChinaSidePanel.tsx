@@ -503,6 +503,26 @@ export function VincularChinaSidePanel({
             />
           </TabsContent>
 
+          {/* Aprovação Tab */}
+          <TabsContent value="aprovacao" className="m-0 p-0 h-[calc(100vh-220px)] min-h-[400px]">
+            <VincularAprovacaoTab
+              submissaoId={submissao.id}
+              produtoNome={submissao.produto_nome}
+            />
+          </TabsContent>
+
+          {/* Timeline Tab */}
+          <TabsContent value="timeline" className="m-0 p-0 h-[calc(100vh-220px)] min-h-[400px]">
+            <VincularReadingTimeline
+              submissaoId={submissao.id}
+              onNavigateTab={(t: VincularInternalTab) => setTabValue(t)}
+              onPreviewDocumento={(docId) => {
+                const doc = (documentos as any[]).find((d) => d.id === docId);
+                if (doc) onPreviewDoc(doc);
+              }}
+            />
+          </TabsContent>
+
           {/* Processo Tab */}
           {isLinkedToProject && (
             <TabsContent value="processo" className="m-0 p-4 space-y-4">
