@@ -69,6 +69,7 @@ interface Props {
 }
 
 export function ChinaTabelaOCsPanel({ items, isLoading, onOpen }: Props) {
+  const { t } = useChinaI18n();
   const [status, setStatus] = useState<ChinaOCSubTab | "todas">("todas");
   const [search, setSearch] = useState("");
   const [sortKey, setSortKey] = useState<SortKey>("data_emissao");
