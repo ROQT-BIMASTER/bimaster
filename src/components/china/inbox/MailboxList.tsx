@@ -545,11 +545,13 @@ function GroupRow({
   onToggleStar,
   onEnviarGrupoBrasil,
   onOpenSubmissao,
+  onOpenChecklist,
 }: GroupRowProps) {
-  // Em "Pendentes de envio" abrimos o checklist por padrão para que a relação
-  // parte/todo (X de Y) fique visível sem clique extra.
+  // Em "Pendentes de envio" o detalhamento é feito agora num drawer lateral
+  // (ChecklistPendingSheet), não mais por expansão inline. Para outras pastas,
+  // mantemos o comportamento clássico de expandir/recolher.
   const isAwaiting = folder === "awaiting_send";
-  const [expanded, setExpanded] = useState(isAwaiting);
+  const [expanded, setExpanded] = useState(false);
   const headerActive = group.docs.some((d) => (d.documento_id ?? d.submissao_id) === selectedId);
   const checked = selectedIds.has(group.submissao_id);
   const sb = statusBadge(group.submissao_status, group.worst_status, group.docs[0]?.approval_completeness);
