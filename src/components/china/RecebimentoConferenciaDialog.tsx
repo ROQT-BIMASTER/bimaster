@@ -38,6 +38,7 @@ export function RecebimentoConferenciaDialog({
   numeroOC,
   embarqueId,
 }: Props) {
+  const { t } = useChinaI18n();
   const { data: itens = [] } = useChinaOrdemItens(ordemId);
   const criar = useCriarRecebimento();
   const [numeroDi, setNumeroDi] = useState("");
