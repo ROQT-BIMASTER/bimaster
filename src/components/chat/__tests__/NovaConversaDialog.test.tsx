@@ -7,6 +7,14 @@ import { supabase } from "@/integrations/supabase/client";
 
 const toastMock = vi.fn();
 
+class ResizeObserverMock {
+  observe = vi.fn();
+  unobserve = vi.fn();
+  disconnect = vi.fn();
+}
+
+globalThis.ResizeObserver = ResizeObserverMock as any;
+
 vi.mock("@/hooks/use-toast", () => ({
   useToast: () => ({ toast: toastMock }),
 }));
