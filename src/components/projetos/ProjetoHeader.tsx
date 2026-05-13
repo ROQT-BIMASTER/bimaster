@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect, useRef } from "react";
 import { Projeto } from "@/hooks/useProjetos";
 import { ProjetoTarefa } from "@/hooks/useProjetoTarefas";
 import { Button } from "@/components/ui/button";
-import { Plus, List, LayoutGrid, Calendar, CalendarDays, BarChart3, FileText, FileSpreadsheet, ShieldCheck, Sparkles, Users, UsersRound, Trash2, Target, CalendarClock, BookmarkPlus, Search, X } from "lucide-react";
+import { Plus, List, LayoutGrid, Calendar, CalendarDays, BarChart3, FileText, FileSpreadsheet, ShieldCheck, Sparkles, Users, UsersRound, Target, CalendarClock, Search, X, ChevronDown, MoreHorizontal } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
@@ -15,9 +15,9 @@ import { QuickAddTaskDialog } from "./QuickAddTaskDialog";
 import { ProjetoLixeiraDialog } from "./ProjetoLixeiraDialog";
 import { SalvarComoModeloDialog } from "./SalvarComoModeloDialog";
 import { ImpersonationSelector } from "@/components/admin/ImpersonationSelector";
-import { Separator } from "@/components/ui/separator";
-import { ProjetoDensityToggle } from "./ProjetoDensityToggle";
 import { ProjetoActiveFiltersBar } from "./ProjetoActiveFiltersBar";
+import { ProjetoSettingsMenu } from "./ProjetoSettingsMenu";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 interface ProjetoHeaderProps {
   projeto: Projeto;
@@ -39,6 +39,8 @@ interface ProjetoHeaderProps {
   lixeiraOpen?: boolean;
   onLixeiraOpenChange?: (open: boolean) => void;
   onRestaurarTarefa?: (tarefaId: string) => void;
+  bgCor?: string | null;
+  onBgCorChange?: (cor: string | null) => void;
 }
 
 const WORK_TABS = [
@@ -64,6 +66,7 @@ export function ProjetoHeader({
   teamMembers = [], secoes = [], onAddTarefa,
   tarefasExcluidas = [], tarefasExcluidasLoading, tarefasExcluidasCount,
   lixeiraOpen: lixeiraOpenProp, onLixeiraOpenChange, onRestaurarTarefa,
+  bgCor = null, onBgCorChange,
 }: ProjetoHeaderProps) {
   const textColor = darkBg ? "text-white" : customBg ? "text-black" : "";
   const textMuted = darkBg ? "text-white/70" : customBg ? "text-black/70" : "text-muted-foreground";
@@ -176,27 +179,16 @@ export function ProjetoHeader({
             >
               <BarChart3 className="h-4 w-4" />
             </Button>
-            <Button
-              variant="ghost" size="icon"
-              className={cn("h-8 w-8 rounded-full", btnHover || "hover:bg-muted")}
-              onClick={() => setSalvarModeloOpen(true)}
-              title="Salvar como modelo"
-            >
-              <BookmarkPlus className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="ghost" size="icon"
-              className={cn("h-8 w-8 rounded-full relative", btnHover || "hover:bg-muted")}
-              onClick={() => setLixeiraOpen(true)}
-              title="Lixeira"
-            >
-              <Trash2 className="h-4 w-4" />
-              {lixeiraBadgeCount > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 bg-destructive text-destructive-foreground text-[9px] font-bold rounded-full h-3.5 min-w-3.5 flex items-center justify-center px-0.5">
-                  {lixeiraBadgeCount}
-                </span>
-              )}
-            </Button>
+            <ProjetoSettingsMenu
+              projetoId={projeto.id}
+              bgCor={bgCor}
+              onBgCorChange={(c) => onBgCorChange?.(c)}
+              onAbrirMembros={() => setMembrosOpen(true)}
+              onAbrirLixeira={() => setLixeiraOpen(true)}
+              onSalvarComoModelo={() => setSalvarModeloOpen(true)}
+              lixeiraBadgeCount={lixeiraBadgeCount}
+              triggerClassName={btnHover || "hover:bg-muted"}
+            />
           </div>
         </div>
 
@@ -210,55 +202,120 @@ export function ProjetoHeader({
 
       {/* Tabs + toolbar */}
       <div className="flex items-center justify-between gap-3">
-        <div className={cn(
-          "flex items-center gap-1 rounded-lg p-1 overflow-x-auto scrollbar-hide",
-          darkBg ? "bg-white/10" : customBg ? "bg-black/10" : "bg-muted"
-        )}>
-          {/* Work tabs */}
-          {WORK_TABS.map(tab => {
-            const Icon = tab.icon;
-            return (
-              <button key={tab.value} onClick={() => onTabChange(tab.value)} className={cn(tabCls(activeTab === tab.value), "flex-shrink-0")}>
-                <Icon className="h-3.5 w-3.5" /> {tab.label}
-              </button>
-            );
-          })}
+        <div className="relative flex-1 min-w-0">
+          <div className={cn(
+            "flex items-center gap-1 rounded-lg p-1 overflow-x-auto scrollbar-hide",
+            darkBg ? "bg-white/10" : customBg ? "bg-black/10" : "bg-muted"
+          )}>
+            {/* Work tabs */}
+            {WORK_TABS.map(tab => {
+              const Icon = tab.icon;
+              return (
+                <button key={tab.value} onClick={() => onTabChange(tab.value)} className={cn(tabCls(activeTab === tab.value), "flex-shrink-0")}>
+                  <Icon className="h-3.5 w-3.5" /> {tab.label}
+                </button>
+              );
+            })}
 
-          {/* Separator */}
-          <div className={cn("w-px h-5 mx-1 flex-shrink-0", darkBg ? "bg-white/20" : customBg ? "bg-black/15" : "bg-border")} />
+            {/* Separator */}
+            <div className={cn("w-px h-5 mx-1 flex-shrink-0", darkBg ? "bg-white/20" : customBg ? "bg-black/15" : "bg-border")} />
 
-          {/* Management tabs */}
-          {MANAGE_TABS.map(tab => {
-            const Icon = tab.icon;
-            return (
-              <button key={tab.value} onClick={() => onTabChange(tab.value)} className={cn(tabCls(activeTab === tab.value), "flex-shrink-0")}>
-                <Icon className="h-3.5 w-3.5" /> {tab.label}
-              </button>
-            );
-          })}
+            {/* Management tabs */}
+            {MANAGE_TABS.map(tab => {
+              const Icon = tab.icon;
+              return (
+                <button key={tab.value} onClick={() => onTabChange(tab.value)} className={cn(tabCls(activeTab === tab.value), "flex-shrink-0")}>
+                  <Icon className="h-3.5 w-3.5" /> {tab.label}
+                </button>
+              );
+            })}
 
-          {/* Kanban de Aprovações do projeto */}
-          <button
-            onClick={() => navigate(`/dashboard/projetos/${projeto.id}/aprovacoes`)}
-            className={cn(
-              "flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md transition-colors flex-shrink-0",
-              darkBg ? "text-white/50 hover:text-white hover:bg-white/10" : customBg ? "text-black/40 hover:text-black hover:bg-black/10" : "text-muted-foreground hover:text-foreground hover:bg-muted"
-            )}
-            title="Kanban de aprovações deste projeto"
-          >
-            <ShieldCheck className="h-3.5 w-3.5" /> Aprovações
-          </button>
-          <button
-            onClick={() => navigate("/admin/templates-alcadas")}
-            className={cn(
-              "flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md transition-colors flex-shrink-0",
-              darkBg ? "text-white/50 hover:text-white hover:bg-white/10" : customBg ? "text-black/40 hover:text-black hover:bg-black/10" : "text-muted-foreground hover:text-foreground hover:bg-muted"
-            )}
-            title="Configurar fluxos de aprovação (templates de alçadas)"
-          >
-            <ShieldCheck className="h-3.5 w-3.5" /> Configurar fluxos
-          </button>
+            {/* Aprovações */}
+            <button
+              onClick={() => navigate(`/dashboard/projetos/${projeto.id}/aprovacoes`)}
+              className={cn(
+                "flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md transition-colors flex-shrink-0",
+                darkBg ? "text-white/60 hover:text-white hover:bg-white/10" : customBg ? "text-black/50 hover:text-black hover:bg-black/10" : "text-muted-foreground hover:text-foreground hover:bg-muted"
+              )}
+              title="Kanban de aprovações deste projeto"
+            >
+              <ShieldCheck className="h-3.5 w-3.5" /> Aprovações
+            </button>
+          </div>
+          {/* Fade gradients para indicar scroll */}
+          <div className={cn(
+            "pointer-events-none absolute right-0 top-0 h-full w-8 rounded-r-lg",
+            darkBg
+              ? "bg-gradient-to-l from-background/80 to-transparent"
+              : customBg
+                ? "bg-gradient-to-l from-background/60 to-transparent"
+                : "bg-gradient-to-l from-muted to-transparent"
+          )} />
         </div>
+
+        {/* Botão "Mais" — Popover com lista completa de abas para acesso garantido */}
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button
+              variant="outline"
+              size="sm"
+              className={cn("h-8 gap-1 text-xs flex-shrink-0", btnHover)}
+              title="Todas as abas"
+            >
+              <MoreHorizontal className="h-3.5 w-3.5" /> Mais
+              <ChevronDown className="h-3 w-3 opacity-60" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent align="end" className="w-56 p-1.5">
+            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider px-2 py-1">
+              Trabalho
+            </p>
+            {WORK_TABS.map(tab => {
+              const Icon = tab.icon;
+              const isActive = activeTab === tab.value;
+              return (
+                <button
+                  key={tab.value}
+                  onClick={() => onTabChange(tab.value)}
+                  className={cn(
+                    "w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm hover:bg-muted transition-colors",
+                    isActive && "bg-muted font-medium text-foreground"
+                  )}
+                >
+                  <Icon className="h-4 w-4 text-muted-foreground" />
+                  <span>{tab.label}</span>
+                </button>
+              );
+            })}
+            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider px-2 py-1 mt-1">
+              Gestão
+            </p>
+            {MANAGE_TABS.map(tab => {
+              const Icon = tab.icon;
+              const isActive = activeTab === tab.value;
+              return (
+                <button
+                  key={tab.value}
+                  onClick={() => onTabChange(tab.value)}
+                  className={cn(
+                    "w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm hover:bg-muted transition-colors",
+                    isActive && "bg-muted font-medium text-foreground"
+                  )}
+                >
+                  <Icon className="h-4 w-4 text-muted-foreground" />
+                  <span>{tab.label}</span>
+                </button>
+              );
+            })}
+            <button
+              onClick={() => navigate(`/dashboard/projetos/${projeto.id}/aprovacoes`)}
+              className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm hover:bg-muted transition-colors"
+            >
+              <ShieldCheck className="h-4 w-4 text-muted-foreground" />
+              <span>Aprovações</span>
+            </button>
+          </PopoverContent>
+        </Popover>
 
         <div className="flex items-center gap-2">
           <ImpersonationSelector />
@@ -274,7 +331,7 @@ export function ProjetoHeader({
                 onChange={(e) => onFiltersChange({ ...filters, searchTerm: e.target.value })}
                 placeholder="Buscar (/) tarefa ou anotação…"
                 className={cn(
-                  "h-8 w-[240px] pl-7 pr-7 text-xs",
+                  "h-8 w-[220px] pl-7 pr-7 text-xs",
                   darkBg && "bg-white/10 border-white/20 text-white placeholder:text-white/40",
                   customBg && "bg-black/5 border-black/15 text-black placeholder:text-black/40"
                 )}
@@ -306,7 +363,6 @@ export function ProjetoHeader({
             onSortChange={onSortChange || (() => {})}
             btnClassName={btnHover}
           />
-          <ProjetoDensityToggle className={btnHover} />
           <Button size="sm" className="h-8 text-xs gap-1.5" onClick={() => setQuickAddOpen(true)}>
             <Plus className="h-3.5 w-3.5" /> Adicionar
           </Button>

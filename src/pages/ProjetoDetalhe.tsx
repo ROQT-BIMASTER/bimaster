@@ -15,7 +15,7 @@ import { ProjetoBriefingPanel } from "@/components/projetos/ProjetoBriefingPanel
 import { ProjetoEquipeDashboard } from "@/components/projetos/ProjetoEquipeDashboard";
 import { ProjetoArquivosView } from "@/components/projetos/ProjetoArquivosView";
 import { ProjetoMetasPanel } from "@/components/projetos/ProjetoMetasPanel";
-import { ProjetoBgColorPicker } from "@/components/projetos/ProjetoBgColorPicker";
+// ProjetoBgColorPicker agora vive dentro de ProjetoSettingsMenu (acionado pela engrenagem do header)
 import { ProjetoFilters, ProjetoSort, EMPTY_FILTERS, DEFAULT_SORT } from "@/components/projetos/ProjetoFilterSort";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/dashboard/AppSidebar";
@@ -136,7 +136,7 @@ export default function ProjetoDetalhe() {
           }
         >
           <div className="p-4 sm:p-6 space-y-5">
-            {/* Back button + sidebar trigger + color picker */}
+            {/* Back button + sidebar trigger + China badge */}
             <div className="flex items-center gap-2" data-tour="pd-header">
               <SidebarTrigger />
               <ProjetoBackButton
@@ -153,7 +153,6 @@ export default function ProjetoDetalhe() {
                   Produto China: {chinaVinculo.produto_codigo}
                 </Badge>
               )}
-              <ProjetoBgColorPicker value={projeto.bg_cor ?? null} onChange={handleBgColorChange} />
             </div>
 
             <ProjetoHeader
@@ -176,6 +175,8 @@ export default function ProjetoDetalhe() {
               lixeiraOpen={lixeiraOpen}
               onLixeiraOpenChange={setLixeiraOpen}
               onRestaurarTarefa={(id) => restaurarTarefa.mutate(id)}
+              bgCor={projeto.bg_cor ?? null}
+              onBgCorChange={handleBgColorChange}
             />
 
             <ProjetoInvestimentoLovableKpi projetoId={projeto.id} darkBg={darkBg} className="max-w-sm" />
