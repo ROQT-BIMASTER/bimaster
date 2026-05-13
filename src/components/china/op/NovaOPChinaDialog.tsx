@@ -15,6 +15,7 @@ import { Loader2, Search, AlertTriangle, Factory } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCriarOPChina } from "@/hooks/useChinaOrdensProducao";
+import { useChinaI18n } from "@/hooks/useChinaI18n";
 
 interface Props {
   open: boolean;
@@ -28,6 +29,7 @@ interface Props {
  * Regras: submissão obrigatória, OC opcional. Sem OC -> notifica comprador.
  */
 export function NovaOPChinaDialog({ open, onOpenChange, defaultSubmissaoId }: Props) {
+  const { t } = useChinaI18n();
   const [search, setSearch] = useState("");
   const [submissaoId, setSubmissaoId] = useState<string>(defaultSubmissaoId || "");
   const [ocId, setOcId] = useState<string>("");
@@ -126,10 +128,10 @@ export function NovaOPChinaDialog({ open, onOpenChange, defaultSubmissaoId }: Pr
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Factory className="h-4 w-4 text-primary" />
-            Nova Ordem de Produção · 新生产订单
+            {t("op.novaOPTitulo")}
           </DialogTitle>
           <DialogDescription>
-            Submissão é obrigatória. Vincular OC é opcional — sem OC, o comprador será notificado.
+            {t("op.novaOPDesc")}
           </DialogDescription>
         </DialogHeader>
 
@@ -138,20 +140,20 @@ export function NovaOPChinaDialog({ open, onOpenChange, defaultSubmissaoId }: Pr
           {!defaultSubmissaoId && (
             <div>
               <Label className="text-xs">
-                Submissão / 提交 <span className="text-destructive">*</span>
+                {t("op.submissao")} <span className="text-destructive">*</span>
               </Label>
               <div className="relative">
                 <Search className="absolute left-2 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
                 <Input
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Buscar por nº ordem, código ou nome do produto…"
+                  placeholder={t("op.buscarSubmissaoPh")}
                   className="pl-7 h-9"
                 />
               </div>
               {loadingSubs && (
                 <div className="text-xs text-muted-foreground mt-1">
-                  <Loader2 className="inline h-3 w-3 animate-spin" /> Buscando…
+                  <Loader2 className="inline h-3 w-3 animate-spin" /> {t("op.buscando")}
                 </div>
               )}
               {(submissoes as any[]).length > 0 && (
@@ -186,24 +188,24 @@ export function NovaOPChinaDialog({ open, onOpenChange, defaultSubmissaoId }: Pr
                 {submissaoSel.numero_ordem} · {submissaoSel.produto_codigo} — {submissaoSel.produto_nome}
               </div>
               <div className="text-muted-foreground mt-0.5">
-                Qty submissão: {submissaoSel.qty_total?.toLocaleString()} · Status: {submissaoSel.status}
+                {t("op.qtySubmissao")}: {submissaoSel.qty_total?.toLocaleString()} · {t("op.statusLabel")}: {submissaoSel.status}
               </div>
             </div>
           )}
 
           {/* OC opcional */}
           <div>
-            <Label className="text-xs">Ordem de Compra (opcional) / 采购订单（可选）</Label>
+            <Label className="text-xs">{t("op.ocOpcional")}</Label>
             <Select
               value={ocId || "none"}
               onValueChange={(v) => setOcId(v === "none" ? "" : v)}
               disabled={!submissaoId}
             >
               <SelectTrigger className="h-9">
-                <SelectValue placeholder="— sem OC vinculada —" />
+                <SelectValue placeholder={t("op.semOCVinculada")} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="none">— sem OC vinculada —</SelectItem>
+                <SelectItem value="none">{t("op.semOCVinculada")}</SelectItem>
                 {(ocs as any[]).map((oc) => (
                   <SelectItem key={oc.id} value={oc.id}>
                     {oc.numero_oc} · {oc.status} · {oc.qty_produzida ?? 0}/{oc.qty_total}
@@ -215,7 +217,7 @@ export function NovaOPChinaDialog({ open, onOpenChange, defaultSubmissaoId }: Pr
               <Alert variant="default" className="mt-2 py-2">
                 <AlertTriangle className="h-3.5 w-3.5" />
                 <AlertDescription className="text-xs">
-                  Sem OC vinculada — o comprador responsável receberá uma notificação no inbox.
+                  {t("op.semOCAlerta")}
                 </AlertDescription>
               </Alert>
             )}
@@ -224,28 +226,28 @@ export function NovaOPChinaDialog({ open, onOpenChange, defaultSubmissaoId }: Pr
           {/* Quantidade / Lote / Datas */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label className="text-xs">Quantidade <span className="text-destructive">*</span></Label>
+              <Label className="text-xs">{t("op.quantidade")} <span className="text-destructive">*</span></Label>
               <Input
                 type="number" min="1" value={qty}
                 onChange={(e) => setQty(e.target.value)} className="h-9"
               />
             </div>
             <div>
-              <Label className="text-xs">Lote / 批号</Label>
+              <Label className="text-xs">{t("op.loteLabel")}</Label>
               <Input
                 value={lote} onChange={(e) => setLote(e.target.value)}
                 placeholder="LDS-…" className="h-9"
               />
             </div>
             <div>
-              <Label className="text-xs">Data início / 开始日期</Label>
+              <Label className="text-xs">{t("op.dataInicio")}</Label>
               <Input
                 type="date" value={dataInicio}
                 onChange={(e) => setDataInicio(e.target.value)} className="h-9"
               />
             </div>
             <div>
-              <Label className="text-xs">Data prevista / 预计完成</Label>
+              <Label className="text-xs">{t("op.dataPrevista")}</Label>
               <Input
                 type="date" value={dataPrevista}
                 onChange={(e) => setDataPrevista(e.target.value)} className="h-9"
@@ -254,19 +256,19 @@ export function NovaOPChinaDialog({ open, onOpenChange, defaultSubmissaoId }: Pr
           </div>
 
           <div>
-            <Label className="text-xs">Observações / 备注</Label>
+            <Label className="text-xs">{t("op.observacoes")}</Label>
             <Textarea
               value={obs} onChange={(e) => setObs(e.target.value)}
-              rows={2} placeholder="Observações bilíngues…"
+              rows={2} placeholder={t("op.obsBilingue")}
             />
           </div>
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>{t("op.cancelar")}</Button>
           <Button onClick={handleSalvar} disabled={!podeSalvar}>
             {criar.isPending && <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" />}
-            Criar OP / 创建生产单
+            {t("op.criarOP")}
           </Button>
         </DialogFooter>
       </DialogContent>
