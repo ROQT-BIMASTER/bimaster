@@ -517,7 +517,17 @@ export function UnifiedSubmissionTimeline({ submissao, ocId, onlyChinaStages, cl
 
   return (
     <TooltipProvider delayDuration={150}>
-    <div className={className}>
+    <div className={className} data-testid="unified-timeline">
+      <div
+        data-testid="timeline-resumo"
+        data-total={docs?.total ?? 0}
+        data-pendentes={docs?.pendentes ?? 0}
+        data-enviados={docs?.enviados ?? 0}
+        data-aprovados={docs?.aprovados ?? 0}
+        data-rejeitados={docs?.rejeitados ?? 0}
+        data-inconsistencia={docs?.inconsistencia ?? ""}
+        className="sr-only"
+      />
       <div className="space-y-2">
         {docs?.inconsistencia && (
           <InconsistencyBanner
