@@ -40,6 +40,7 @@ export function SubmissionTimelineSheet({ open, onOpenChange, scope, submissao, 
 
   const [stages, setStages] = useState<JourneyStageRow[]>([]);
   const [filteredEvents, setFilteredEvents] = useState<ChinaTimelineEvent[]>([]);
+  const [slaOpen, setSlaOpen] = useState(false);
 
   const handleExportPdf = () => {
     if (!submissao) {
