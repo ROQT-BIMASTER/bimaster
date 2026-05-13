@@ -1261,33 +1261,29 @@ export default function FabricaProdutosAcabados() {
                   /* Table View */
                   <div>
                     {/* Legenda dos fundos especiais */}
-                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 px-3 py-1.5 border-b border-border/50 bg-muted/20 text-[10px] text-muted-foreground">
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 px-3 py-1.5 border-b border-border/60 bg-foreground/[0.04] text-[10px] text-muted-foreground">
                       <span className="font-semibold uppercase tracking-wider">Legenda:</span>
                       <span className="inline-flex items-center gap-1.5">
-                        <span className="inline-block w-3 h-3 rounded-sm border-l-2 border-l-amber-500 bg-amber-100/80 dark:bg-amber-900/40" />
+                        <span className="inline-block w-3 h-3 rounded-sm border-l-2 border-l-amber-500 bg-amber-500/15" />
                         Em revisão
                       </span>
                       <span className="inline-flex items-center gap-1.5">
-                        <span className="inline-block w-3 h-3 rounded-sm bg-primary/10 border border-primary/30" />
+                        <span className="inline-block w-3 h-3 rounded-sm bg-primary/15 border border-primary/40" />
                         Display / Kit
                       </span>
                       <span className="inline-flex items-center gap-1.5">
-                        <span className="inline-block w-3 h-3 rounded-sm border-l-2 border-l-blue-400 bg-blue-50/60 dark:bg-blue-950/40" />
+                        <span className="inline-block w-3 h-3 rounded-sm border-l-2 border-l-blue-500 bg-blue-500/10" />
                         Item vinculado a um Kit (variante / componente)
-                      </span>
-                      <span className="inline-flex items-center gap-1.5 opacity-70">
-                        <span className="inline-block w-3 h-3 rounded-sm bg-muted/40" />
-                        Linha alternada (visual)
                       </span>
                     </div>
                     <Table
-                      wrapperClassName="overflow-visible border-0 rounded-none bg-transparent"
-                      minWidthClass="min-w-[1200px]"
+                      wrapperClassName="overflow-x-auto overflow-y-visible border-0 rounded-none bg-transparent"
+                      minWidthClass="min-w-[1100px]"
                     >
                       <TableHeader className={
                         headerStyle === "solid"
-                          ? "bg-secondary sticky top-0 z-20 backdrop-blur supports-[backdrop-filter]:bg-secondary/95 shadow-[0_1px_0_0_hsl(var(--border))]"
-                          : "bg-muted/40 sticky top-0 z-20 backdrop-blur supports-[backdrop-filter]:bg-muted/60 shadow-[0_1px_0_0_hsl(var(--border))]"
+                          ? "bg-card sticky top-0 z-20 backdrop-blur supports-[backdrop-filter]:bg-card/95 shadow-[0_1px_0_0_hsl(var(--border))]"
+                          : "bg-foreground/[0.04] sticky top-0 z-20 backdrop-blur shadow-[0_1px_0_0_hsl(var(--border))]"
                       }>
                         <TableRow className={
                           headerStyle === "solid"
@@ -1296,8 +1292,8 @@ export default function FabricaProdutosAcabados() {
                         }>
                           {(() => {
                             const headClass = headerStyle === "solid"
-                              ? "h-10 text-[10px] uppercase tracking-wider font-bold text-secondary-foreground"
-                              : "h-9 text-[10px] uppercase tracking-wider font-semibold text-muted-foreground";
+                              ? "h-10 text-[10px] uppercase tracking-wider font-bold text-foreground/80 whitespace-nowrap"
+                              : "h-9 text-[10px] uppercase tracking-wider font-semibold text-muted-foreground whitespace-nowrap";
                             return (
                               <>
                                 <TableHead className={headerStyle === "solid" ? "w-[52px] h-10" : "w-[52px] h-9"}></TableHead>
