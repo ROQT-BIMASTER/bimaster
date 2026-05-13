@@ -118,12 +118,12 @@ export function ChecklistTemplateMenu({ marca, colunasAtuais, onApply }: Props) 
       <Dialog open={saveOpen} onOpenChange={setSaveOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Salvar checklist como template 保存为模板</DialogTitle>
+            <DialogTitle>{t("documento.templateMenu.dialogTitulo")}</DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
             <div>
-              <Label>Nome do template *</Label>
-              <Input value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Ex.: Padrão Hello Kitty" />
+              <Label>{t("documento.templateMenu.nomeLabel")}</Label>
+              <Input value={nome} onChange={(e) => setNome(e.target.value)} placeholder={t("documento.templateMenu.nomePlaceholder")} />
             </div>
             {marca && (
               <div className="flex items-center gap-2">
@@ -133,19 +133,19 @@ export function ChecklistTemplateMenu({ marca, colunasAtuais, onApply }: Props) 
                   onCheckedChange={(v) => setScopeMarca(!!v)}
                 />
                 <Label htmlFor="scope-marca" className="cursor-pointer text-sm">
-                  Disponibilizar apenas para a marca <strong>{marca}</strong>
+                  <span dangerouslySetInnerHTML={{ __html: t("documento.templateMenu.escopoMarca", { marca }) }} />
                 </Label>
               </div>
             )}
             <p className="text-xs text-muted-foreground">
-              {colunasAtuais.length} colunas serão salvas. As marcações das células não são incluídas.
+              {t("documento.templateMenu.explicacao", { count: colunasAtuais.length })}
             </p>
           </div>
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setSaveOpen(false)}>Cancelar</Button>
+            <Button variant="ghost" onClick={() => setSaveOpen(false)}>{t("documento.templateMenu.cancelar")}</Button>
             <Button onClick={handleSave} disabled={save.isPending || !nome.trim()}>
               {save.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
-              Salvar
+              {t("documento.templateMenu.salvarBtn")}
             </Button>
           </DialogFooter>
         </DialogContent>
