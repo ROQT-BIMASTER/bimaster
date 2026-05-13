@@ -18,6 +18,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import type { ChinaInboxOC } from "@/hooks/useChinaInboxOCs";
 import { ChinaOCEditPanel } from "./ChinaOCEditPanel";
+import { useChinaI18n } from "@/hooks/useChinaI18n";
 
 interface Props {
   oc: ChinaInboxOC | null;
@@ -34,6 +35,7 @@ function fmtTs(d: string | null) {
 }
 
 export function ChinaOCReader({ oc, onChanged }: Props) {
+  const { t } = useChinaI18n();
   const [busy, setBusy] = useState(false);
   const [recusarOpen, setRecusarOpen] = useState(false);
   const [embarqueOpen, setEmbarqueOpen] = useState(false);
@@ -41,7 +43,7 @@ export function ChinaOCReader({ oc, onChanged }: Props) {
   if (!oc) {
     return (
       <div className="h-full flex items-center justify-center text-sm text-muted-foreground p-6 text-center">
-        Selecione uma OC à esquerda para ver detalhes e ações.
+        {t("inboxOC.selecioneOC")}
       </div>
     );
   }
@@ -51,7 +53,7 @@ export function ChinaOCReader({ oc, onChanged }: Props) {
     const { error } = await supabase.rpc("rpc_china_aceitar_oc" as any, { p_oc_id: oc.ordem_compra_id });
     setBusy(false);
     if (error) { toast.error(error.message); return; }
-    toast.success("OC aceita. Agora aparece em Em produção.");
+    toast.success(t("inboxOC.okAceita"));
     onChanged();
   };
 
@@ -66,10 +68,10 @@ export function ChinaOCReader({ oc, onChanged }: Props) {
               <FileText className="h-4 w-4 text-muted-foreground" />
               <h2 className="text-base font-semibold tabular-nums">{oc.numero_oc}</h2>
               {oc.aceita_em && (
-                <Badge variant="secondary" className="text-[10px]">Aceita</Badge>
+                <Badge variant="secondary" className="text-[10px]">{t("inboxOC.aceita")}</Badge>
               )}
               {oc.recusada_em && (
-                <Badge variant="destructive" className="text-[10px]">Recusada</Badge>
+                <Badge variant="destructive" className="text-[10px]">{t("inboxOC.recusada")}</Badge>
               )}
               {oc.has_embarque && (
                 <Badge className="text-[10px]"><Ship className="h-3 w-3 mr-1" />{oc.embarque_status}</Badge>
@@ -83,33 +85,33 @@ export function ChinaOCReader({ oc, onChanged }: Props) {
 
         <Card className="p-3 grid grid-cols-2 gap-2 text-xs">
           <div>
-            <div className="text-muted-foreground text-[10px] uppercase">Quantidade</div>
+            <div className="text-muted-foreground text-[10px] uppercase">{t("inboxOC.quantidade")}</div>
             <div className="font-semibold tabular-nums">{oc.qty_produzida} / {oc.qty_total}</div>
           </div>
           <div>
-            <div className="text-muted-foreground text-[10px] uppercase">Progresso</div>
+            <div className="text-muted-foreground text-[10px] uppercase">{t("inboxOC.progresso")}</div>
             <div className="font-semibold tabular-nums">{pct}%</div>
           </div>
           <div>
             <div className="text-muted-foreground text-[10px] uppercase flex items-center gap-1">
-              <Calendar className="h-2.5 w-2.5" /> Emissão
+              <Calendar className="h-2.5 w-2.5" /> {t("inboxOC.emissao")}
             </div>
             <div className="font-semibold">{fmtDate(oc.data_emissao)}</div>
           </div>
           <div>
             <div className="text-muted-foreground text-[10px] uppercase flex items-center gap-1">
-              <Calendar className="h-2.5 w-2.5" /> Entrega prevista
+              <Calendar className="h-2.5 w-2.5" /> {t("inboxOC.entregaPrevista")}
             </div>
             <div className="font-semibold">{fmtDate(oc.data_entrega_prevista)}</div>
           </div>
           {oc.has_embarque && (
             <>
               <div>
-                <div className="text-muted-foreground text-[10px] uppercase">Embarcado em</div>
+                <div className="text-muted-foreground text-[10px] uppercase">{t("inboxOC.embarcadoEm")}</div>
                 <div className="font-semibold">{fmtDate(oc.data_embarque)}</div>
               </div>
               <div>
-                <div className="text-muted-foreground text-[10px] uppercase">ETA</div>
+                <div className="text-muted-foreground text-[10px] uppercase">{t("inboxOC.eta")}</div>
                 <div className="font-semibold">{fmtDate(oc.data_eta)}</div>
               </div>
             </>
@@ -118,12 +120,12 @@ export function ChinaOCReader({ oc, onChanged }: Props) {
 
         {oc.aceita_em && (
           <div className="text-[11px] text-muted-foreground">
-            Aceita em {fmtTs(oc.aceita_em)}
+            {t("inboxOC.aceitaEm")} {fmtTs(oc.aceita_em)}
           </div>
         )}
         {oc.recusada_em && (
           <Card className="p-2 border-destructive/40 bg-destructive/5 text-xs">
-            <div className="font-medium">Recusada em {fmtTs(oc.recusada_em)}</div>
+            <div className="font-medium">{t("inboxOC.recusadaEm")} {fmtTs(oc.recusada_em)}</div>
             <div className="text-muted-foreground mt-0.5">{oc.motivo_recusa}</div>
           </Card>
         )}
@@ -136,25 +138,25 @@ export function ChinaOCReader({ oc, onChanged }: Props) {
             <>
               <Button size="sm" onClick={handleAceitar} disabled={busy} className="gap-1.5">
                 {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
-                Aceitar OC
+                {t("inboxOC.aceitarOC")}
               </Button>
               <Button size="sm" variant="outline" onClick={() => setRecusarOpen(true)} className="gap-1.5">
                 <X className="h-3.5 w-3.5" />
-                Recusar
+                {t("inboxOC.recusar")}
               </Button>
             </>
           )}
           {oc.aceita_em && !oc.has_embarque && (
             <Button size="sm" onClick={() => setEmbarqueOpen(true)} className="gap-1.5">
               <Ship className="h-3.5 w-3.5" />
-              Confirmar embarque
+              {t("inboxOC.confirmarEmbarque")}
             </Button>
           )}
         </div>
 
         {oc.observacoes && (
           <Card className="p-2 text-xs bg-muted/30">
-            <div className="text-muted-foreground text-[10px] uppercase mb-1">Observações da OC</div>
+            <div className="text-muted-foreground text-[10px] uppercase mb-1">{t("inboxOC.observacoesOC")}</div>
             <div className="whitespace-pre-wrap">{oc.observacoes}</div>
           </Card>
         )}
@@ -181,18 +183,19 @@ export function ChinaOCReader({ oc, onChanged }: Props) {
 function RecusarDialog({
   open, onOpenChange, ocId, onDone,
 }: { open: boolean; onOpenChange: (v: boolean) => void; ocId: string; onDone: () => void }) {
+  const { t } = useChinaI18n();
   const [motivo, setMotivo] = useState("");
   const [busy, setBusy] = useState(false);
 
   const submit = async () => {
-    if (!motivo.trim()) { toast.error("Informe o motivo da recusa."); return; }
+    if (!motivo.trim()) { toast.error(t("inboxOC.errMotivoRecusa")); return; }
     setBusy(true);
     const { error } = await supabase.rpc("rpc_china_recusar_oc" as any, {
       p_oc_id: ocId, p_motivo: motivo.trim(),
     });
     setBusy(false);
     if (error) { toast.error(error.message); return; }
-    toast.success("OC recusada.");
+    toast.success(t("inboxOC.okRecusada"));
     onDone();
     onOpenChange(false);
     setMotivo("");
@@ -202,16 +205,16 @@ function RecusarDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Recusar OC</DialogTitle>
+          <DialogTitle>{t("inboxOC.recusarTitulo")}</DialogTitle>
         </DialogHeader>
         <div className="space-y-2">
-          <Label className="text-xs">Motivo (obrigatório)</Label>
+          <Label className="text-xs">{t("inboxOC.motivoObrigatorio")}</Label>
           <Textarea value={motivo} onChange={(e) => setMotivo(e.target.value)} rows={4} />
         </div>
         <DialogFooter>
-          <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancelar</Button>
+          <Button variant="ghost" onClick={() => onOpenChange(false)}>{t("inboxOC.cancelar")}</Button>
           <Button variant="destructive" onClick={submit} disabled={busy}>
-            {busy && <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" />} Recusar
+            {busy && <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" />} {t("inboxOC.recusar")}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -222,6 +225,7 @@ function RecusarDialog({
 function ConfirmarEmbarqueDialog({
   open, onOpenChange, ocId, onDone,
 }: { open: boolean; onOpenChange: (v: boolean) => void; ocId: string; onDone: () => void }) {
+  const { t } = useChinaI18n();
   const [container, setContainer] = useState("");
   const [bl, setBl] = useState("");
   const [navio, setNavio] = useState("");
@@ -233,7 +237,7 @@ function ConfirmarEmbarqueDialog({
 
   const submit = async () => {
     if (!container.trim() || !dataEmb || !dataEta) {
-      toast.error("Container, data de embarque e ETA são obrigatórios.");
+      toast.error(t("inboxOC.errEmbarqueObrig"));
       return;
     }
     setBusy(true);
@@ -249,7 +253,7 @@ function ConfirmarEmbarqueDialog({
     });
     setBusy(false);
     if (error) { toast.error(error.message); return; }
-    toast.success("Embarque registrado. OC movida para Embarcada.");
+    toast.success(t("inboxOC.okEmbarque"));
     onDone();
     onOpenChange(false);
   };
@@ -258,42 +262,42 @@ function ConfirmarEmbarqueDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>Confirmar embarque</DialogTitle>
+          <DialogTitle>{t("inboxOC.confirmarEmbTitulo")}</DialogTitle>
         </DialogHeader>
         <div className="grid grid-cols-2 gap-3">
           <div className="col-span-2">
-            <Label className="text-xs">Nº Container *</Label>
+            <Label className="text-xs">{t("inboxOC.numContainer")} *</Label>
             <Input value={container} onChange={(e) => setContainer(e.target.value)} placeholder="MSCU1234567" />
           </div>
           <div className="col-span-2">
-            <Label className="text-xs">BL</Label>
+            <Label className="text-xs">{t("inboxOC.bl")}</Label>
             <Input value={bl} onChange={(e) => setBl(e.target.value)} />
           </div>
           <div>
-            <Label className="text-xs">Data embarque *</Label>
+            <Label className="text-xs">{t("inboxOC.dataEmbarque")} *</Label>
             <Input type="date" value={dataEmb} onChange={(e) => setDataEmb(e.target.value)} />
           </div>
           <div>
-            <Label className="text-xs">ETA *</Label>
+            <Label className="text-xs">{t("inboxOC.eta")} *</Label>
             <Input type="date" value={dataEta} onChange={(e) => setDataEta(e.target.value)} />
           </div>
           <div>
-            <Label className="text-xs">Navio</Label>
+            <Label className="text-xs">{t("inboxOC.navio")}</Label>
             <Input value={navio} onChange={(e) => setNavio(e.target.value)} />
           </div>
           <div>
-            <Label className="text-xs">Porto origem</Label>
+            <Label className="text-xs">{t("inboxOC.portoOrigem")}</Label>
             <Input value={portoOrigem} onChange={(e) => setPortoOrigem(e.target.value)} placeholder="Shanghai" />
           </div>
           <div className="col-span-2">
-            <Label className="text-xs">Porto destino</Label>
+            <Label className="text-xs">{t("inboxOC.portoDestino")}</Label>
             <Input value={portoDestino} onChange={(e) => setPortoDestino(e.target.value)} placeholder="Santos" />
           </div>
         </div>
         <DialogFooter>
-          <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancelar</Button>
+          <Button variant="ghost" onClick={() => onOpenChange(false)}>{t("inboxOC.cancelar")}</Button>
           <Button onClick={submit} disabled={busy}>
-            {busy && <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" />} Confirmar
+            {busy && <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" />} {t("inboxOC.confirmar")}
           </Button>
         </DialogFooter>
       </DialogContent>
