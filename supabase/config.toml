@@ -319,5 +319,3 @@ project_id = "aokkyrgaqjarhlywhjju"
     verify_jwt = false
 
 
-[functions.tmp-reset-claudia]
-verify_jwt = false
