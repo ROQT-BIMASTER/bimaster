@@ -181,7 +181,7 @@ export function PastaDigitalFromChecklist({ submissaoId }: PastaDigitalFromCheck
                   <CollapsibleContent>
                     <div className="ml-5 pl-3 border-l border-border/50 space-y-0.5 py-1">
                       {fase.docs.map((doc) => {
-                        const statusInfo = STATUS_ICONS[doc.status] || STATUS_ICONS.pendente;
+                        const statusInfo = STATUS_ICON_META[doc.status] || STATUS_ICON_META.pendente;
                         const StatusIcon = statusInfo.icon;
                         const isSelected = selectedDoc?.id === doc.id;
                         const isPhoto = doc.tipo_documento?.startsWith("foto_") || doc.tipo_documento === "amostra_foto";
@@ -239,7 +239,7 @@ export function PastaDigitalFromChecklist({ submissaoId }: PastaDigitalFromCheck
                     variant={selectedDoc.status === "aprovado" ? "success" : selectedDoc.status === "rejeitado" ? "destructive" : "secondary"}
                     className="text-[9px] shrink-0"
                   >
-                    {(STATUS_ICONS[selectedDoc.status] || STATUS_ICONS.pendente).label}
+                    {t((STATUS_ICON_META[selectedDoc.status] || STATUS_ICON_META.pendente).labelKey)}
                   </Badge>
                 </div>
                 {resolvedUrl && (
