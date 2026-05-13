@@ -193,17 +193,18 @@ function MailboxRow({ item, dir, folder, active, checked, onSelect, onToggleChec
         {folder === "awaiting_send" && (() => {
           const ev = evaluateAwaitingSend(item);
           if (!ev.matches) return null;
-          // Contexto de auditoria: por que este item caiu em "Pendentes de envio"?
-          // - Status final (aprovado/rejeitado) BLOQUEIA entrada → nunca chega aqui.
-          // - Submissão pai em rascunho/pendente → fluxo normal de envio.
-          // - Submissão pai em em_revisao/enviado/enviado_brasil → item NOVO aceito
-          //   apesar do pai já ter sido enviado (ex.: checklist expandido depois).
-          const parent = item.submissao_status;
-          const isNewOnSentParent =
-            parent === "em_revisao" || parent === "enviado" || parent === "enviado_brasil";
+          // Mantemos apenas as badges de motivo ACIONÁVEIS — sem documento, sem
+          // parecer. "Rascunho" só aparece quando o pai também é rascunho (caso
+          // contrário é informação redundante: o cabeçalho do grupo já diz).
+          // O contexto "item novo em submissão já enviada" é comunicado pelo
+          // cabeçalho do grupo ("Enviada ao Brasil — aguardando análise"),
+          // não mais por badge no item.
+          const parentIsRascunho = item.submissao_status === "rascunho";
+          const reasons = ev.reasons.filter((r) => r !== "rascunho" || parentIsRascunho);
+          if (reasons.length === 0) return null;
           return (
             <div className="mt-1 flex flex-wrap items-center gap-1">
-              {ev.reasons.map((r) => {
+              {reasons.map((r) => {
                 const Icon =
                   r === "sem_documento" ? FileX2 :
                   r === "sem_parecer" ? MessageSquareOff :
@@ -226,19 +227,6 @@ function MailboxRow({ item, dir, folder, active, checked, onSelect, onToggleChec
                   </Badge>
                 );
               })}
-              {isNewOnSentParent && (
-                <Badge
-                  variant="outline"
-                  className="h-4 gap-0.5 px-1.5 text-[9.5px] font-medium bg-sky-500/10 text-sky-400 border-sky-500/30"
-                  title={
-                    `Item novo aceito apesar da submissão pai estar em "${parent}". ` +
-                    `Status final (aprovado/rejeitado) bloqueia entrada — demais permitem.`
-                  }
-                >
-                  <ListChecks className="h-2.5 w-2.5" />
-                  Item novo · pai {parent === "em_revisao" ? "em análise" : "enviado"}
-                </Badge>
-              )}
             </div>
           );
         })()}
