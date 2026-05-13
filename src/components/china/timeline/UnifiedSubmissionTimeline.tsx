@@ -33,17 +33,20 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { Info } from "lucide-react";
+import { Info, AlertTriangle } from "lucide-react";
 
-function RuleHint({ text }: { text: string }) {
+function RuleHint({ text, label, ariaLabel }: { text: string; label: string; ariaLabel: string }) {
   return (
-    <div className="-mt-1 mb-1 flex items-start gap-1 text-[10.5px] leading-snug text-muted-foreground">
+    <div
+      className="-mt-1 mb-1 flex items-start gap-1 text-[10.5px] leading-snug text-muted-foreground"
+      data-testid="timeline-rule-hint"
+    >
       <Tooltip>
         <TooltipTrigger asChild>
           <button
             type="button"
             className="shrink-0 inline-flex items-center justify-center rounded-full p-0.5 text-muted-foreground/80 hover:text-foreground"
-            aria-label="Como esta contagem é calculada"
+            aria-label={ariaLabel}
           >
             <Info className="h-3 w-3" />
           </button>
@@ -52,7 +55,23 @@ function RuleHint({ text }: { text: string }) {
           {text}
         </TooltipContent>
       </Tooltip>
-      <span className="italic">Como esta contagem é calculada?</span>
+      <span className="italic">{label}</span>
+    </div>
+  );
+}
+
+function InconsistencyBanner({ title, message }: { title: string; message: string }) {
+  return (
+    <div
+      role="alert"
+      data-testid="timeline-inconsistency-banner"
+      className="flex items-start gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 px-2.5 py-2 text-[11px] text-amber-200"
+    >
+      <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5 text-amber-400" />
+      <div className="space-y-0.5">
+        <p className="font-medium leading-tight">{title}</p>
+        <p className="leading-snug text-amber-200/90">{message}</p>
+      </div>
     </div>
   );
 }
