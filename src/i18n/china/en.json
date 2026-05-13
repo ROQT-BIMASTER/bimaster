@@ -366,5 +366,94 @@
       "salvar": "Save deadlines",
       "cancelar": "Cancel"
     }
+  },
+  "mailboxList": {
+    "fallback": {
+      "itemPersonalizado": "Custom item"
+    },
+    "statusBadge": {
+      "aprovadoParcial": "Approved · partial",
+      "aprovadoSemChecklist": "Approved · no checklist",
+      "aprovadoTotal": "Approved · total",
+      "rejeitado": "Rejected",
+      "ajuste": "Adjustment",
+      "rascunho": "Draft",
+      "aguardando": "Awaiting"
+    },
+    "actionFilter": {
+      "aguardaVoce": "Awaiting you",
+      "outroLado": "Other party",
+      "tudo": "All"
+    },
+    "row": {
+      "selecionarSubmissao": "Select submission",
+      "selecionar": "Select",
+      "marcarEstrela": "Star",
+      "desmarcarEstrela": "Unstar",
+      "abrirChecklistPendente": "Open pending checklist",
+      "expandir": "Expand",
+      "recolher": "Collapse",
+      "lida": "Read",
+      "adiada": "postponed",
+      "aindaNaoCriado": "(not yet created)",
+      "semDocumentos": "No documents",
+      "motivoPrefix": "Reason: {{label}}",
+      "checklistOk": "Checklist 100% approved — releases purchase order",
+      "checklistIncompleto": "Incomplete checklist — {{count}} doc(s) not yet approved"
+    },
+    "age": {
+      "now": "now"
+    },
+    "toolbar": {
+      "selecionarTodos": "Select all",
+      "conversa_one": "{{count}} conversation",
+      "conversa_other": "{{count}} conversations",
+      "item_one": "{{count}} item",
+      "item_other": "{{count}} items",
+      "mostrarUmPorDoc": "Show one item per document",
+      "documentos": "Documents",
+      "agruparOcTitle": "Group documents by the same submission / PO",
+      "agruparOc": "Group by PO"
+    },
+    "empty": {
+      "semItens": "No items in this folder"
+    },
+    "parentStatus": {
+      "rascunho": "Draft — nothing has been sent yet",
+      "enviadaBrasil": "Sent to Brazil — awaiting review",
+      "aprovadaBrasil": "Approved by Brazil",
+      "rejeitadaAjustes": "Rejected — requires adjustments"
+    },
+    "group": {
+      "submissaoLabel": "Submission:",
+      "checklistTotalTitle": "Total based on the configured checklist (Focus Mode). Items not yet created appear as pending for submission.",
+      "checklistPrefix": "Checklist:",
+      "enviado_one": "{{count}} sent",
+      "enviado_other": "{{count}} sent",
+      "aindaPendente_one": "{{count}} still pending",
+      "aindaPendente_other": "{{count}} still pending",
+      "deTotal": "{{progressed}} of {{total}}",
+      "itensEnviados": "items sent",
+      "pendenteEnvio_one": "{{count}} pending to be sent",
+      "pendenteEnvio_other": "{{count}} pending to be sent",
+      "noChecklistAtual": "{{real}} in the current checklist · {{remaining}} not yet created",
+      "noChecklistAtualPlural": "{{real}} in the current checklist · {{remaining}} not yet created",
+      "pctEnviado": "{{pct}}% sent",
+      "verEnviados": "View sent ({{count}})",
+      "verEnviadosTitle": "View items already sent to Brazil",
+      "verPendentes": "View pending ({{count}})",
+      "verPendentesTitle": "Open dedicated page filtered to items still pending",
+      "verChecklist": "View checklist ({{count}})",
+      "verChecklistTitle": "Open detailed list of pending items in a side panel",
+      "enviarTodos": "Send all to Brazil",
+      "enviarTodosTitle": "Dispatch all eligible items from this submission to Brazil",
+      "abrirSubmissao": "Open submission",
+      "abrirSubmissaoTitle": "Open the full submission in a new screen",
+      "documento_one": "{{count}} document",
+      "documento_other": "{{count}} documents",
+      "ultimo": "last: {{label}}",
+      "verChecklistCompleto": "View full checklist",
+      "verChecklistCompletoTitle": "Open dedicated page with the complete checklist status"
+    }
   }
 }

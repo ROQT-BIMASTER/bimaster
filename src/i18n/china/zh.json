@@ -360,5 +360,94 @@
       "salvar": "保存截止日期",
       "cancelar": "取消"
     }
+  },
+  "mailboxList": {
+    "fallback": {
+      "itemPersonalizado": "自定义项目"
+    },
+    "statusBadge": {
+      "aprovadoParcial": "已批准 · 部分",
+      "aprovadoSemChecklist": "已批准 · 无检查清单",
+      "aprovadoTotal": "已批准 · 全部",
+      "rejeitado": "已拒绝",
+      "ajuste": "修正",
+      "rascunho": "草稿",
+      "aguardando": "等待中"
+    },
+    "actionFilter": {
+      "aguardaVoce": "等待您",
+      "outroLado": "对方",
+      "tudo": "全部"
+    },
+    "row": {
+      "selecionarSubmissao": "选择提交",
+      "selecionar": "选择",
+      "marcarEstrela": "标记为星标",
+      "desmarcarEstrela": "取消星标",
+      "abrirChecklistPendente": "打开未完成检查清单",
+      "expandir": "展开",
+      "recolher": "收起",
+      "lida": "已读",
+      "adiada": "已延期",
+      "aindaNaoCriado": "(尚未创建)",
+      "semDocumentos": "无文档",
+      "motivoPrefix": "原因：{{label}}",
+      "checklistOk": "检查清单 100% 已批准 — 放行采购订单",
+      "checklistIncompleto": "检查清单未完成 — {{count}} 份文档尚未批准"
+    },
+    "age": {
+      "now": "现在"
+    },
+    "toolbar": {
+      "selecionarTodos": "全选",
+      "conversa_one": "{{count}} 对话",
+      "conversa_other": "{{count}} 对话",
+      "item_one": "{{count}} 项",
+      "item_other": "{{count}} 项",
+      "mostrarUmPorDoc": "每个文档显示一项",
+      "documentos": "文档",
+      "agruparOcTitle": "按相同提交 / OC（采购订单）分组文档",
+      "agruparOc": "按 OC（采购订单）分组"
+    },
+    "empty": {
+      "semItens": "此文件夹中没有项目"
+    },
+    "parentStatus": {
+      "rascunho": "草稿 — 尚未发送任何内容",
+      "enviadaBrasil": "已发送至巴西 — 等待审核",
+      "aprovadaBrasil": "已由巴西批准",
+      "rejeitadaAjustes": "已拒绝 — 需要修正"
+    },
+    "group": {
+      "submissaoLabel": "提交：",
+      "checklistTotalTitle": "基于配置的检查清单（专注模式）的总计。尚未创建的项目将显示为待发送。",
+      "checklistPrefix": "检查清单：",
+      "enviado_one": "{{count}} 已发送",
+      "enviado_other": "{{count}} 已发送",
+      "aindaPendente_one": "{{count}} 仍未完成",
+      "aindaPendente_other": "{{count}} 仍未完成",
+      "deTotal": "{{progressed}} / {{total}}",
+      "itensEnviados": "已发送的项目",
+      "pendenteEnvio_one": "{{count}} 待发送",
+      "pendenteEnvio_other": "{{count}} 待发送",
+      "noChecklistAtual": "{{real}} 在当前检查清单 · {{remaining}} 尚未创建",
+      "noChecklistAtualPlural": "{{real}} 在当前检查清单 · {{remaining}} 尚未创建",
+      "pctEnviado": "{{pct}}% 已发送",
+      "verEnviados": "查看已发送 ({{count}})",
+      "verEnviadosTitle": "查看已发送至巴西的项目",
+      "verPendentes": "查看待处理 ({{count}})",
+      "verPendentesTitle": "打开专页，筛选出仍未完成的项目",
+      "verChecklist": "查看检查清单 ({{count}})",
+      "verChecklistTitle": "在侧边栏中打开详细的待办项列表",
+      "enviarTodos": "全部发送至巴西",
+      "enviarTodosTitle": "将此提交中所有符合条件的项目发往巴西",
+      "abrirSubmissao": "打开提交",
+      "abrirSubmissaoTitle": "在新页面中打开完整提交",
+      "documento_one": "{{count}} 文件",
+      "documento_other": "{{count}} 文件",
+      "ultimo": "最后：{{label}}",
+      "verChecklistCompleto": "查看完整检查清单",
+      "verChecklistCompletoTitle": "打开专页，显示检查清单的完整状态"
+    }
   }
 }
