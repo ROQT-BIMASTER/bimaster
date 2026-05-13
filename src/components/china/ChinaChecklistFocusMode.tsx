@@ -46,6 +46,7 @@ import { ptBR } from "date-fns/locale";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { createElement } from "react";
 import { usePageBgColor } from "@/components/shared/PageBgCustomizer";
+import { useChinaI18n } from "@/hooks/useChinaI18n";
 
 interface DocRecord {
   id: string;
