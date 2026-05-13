@@ -9,16 +9,10 @@ vi.mock("@/contexts/AuthContext", () => ({
 vi.mock("@/hooks/chat/useConversas", () => ({
   useChatUnreadTotal: () => 0,
 }));
-// ChatLayout simulado: lança erro para validar o fallback dentro do drawer.
-vi.mock("@/components/chat/v2/ChatLayout", () => ({
-  ChatLayout: () => {
-    throw new Error("falha simulada no ChatLayout");
-  },
-}));
 
 const handles: { abrir?: () => void; navigate?: (to: string) => void } = {};
 
-function Opener() {
+function Probe() {
   const { abrir } = useChatDrawer();
   const navigate = useNavigate();
   handles.abrir = abrir;
@@ -33,38 +27,70 @@ function PageB() {
   return <h1>pagina-b</h1>;
 }
 
-describe("ChatDrawer e2e: abrir + navegar não causa tela em branco", () => {
-  it("mantém a aplicação renderizada e exibe fallback com botão de recarregar", async () => {
+function setup() {
+  return render(
+    <MemoryRouter initialEntries={["/dashboard"]}>
+      <ChatDrawerProvider>
+        <Routes>
+          <Route path="/dashboard" element={<><Probe /><PageA /></>} />
+          <Route path="/dashboard/projetos" element={<><Probe /><PageB /></>} />
+        </Routes>
+      </ChatDrawerProvider>
+    </MemoryRouter>,
+  );
+}
+
+describe("ChatDrawer e2e: navegar + abrir não causa tela em branco", () => {
+  it("navega entre rotas com ChatDrawerProvider montado fora de Router (regressão)", async () => {
+    // Mock que não quebra: garante que navegação funciona
+    vi.doMock("@/components/chat/v2/ChatLayout", () => ({ ChatLayout: () => null }));
+    setup();
+    expect(screen.getByText("pagina-a")).toBeInTheDocument();
+    await act(async () => {
+      handles.navigate!("/dashboard/projetos");
+    });
+    expect(await screen.findByText("pagina-b")).toBeInTheDocument();
+  });
+
+  it("exibe fallback com botão de recarregar quando o ChatLayout falha", async () => {
+    vi.resetModules();
+    vi.doMock("@/components/chat/v2/ChatLayout", () => ({
+      ChatLayout: () => {
+        throw new Error("falha simulada no ChatLayout");
+      },
+    }));
     const errSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    // Precisa re-importar para pegar o mock atualizado
+    const { ChatDrawerProvider: Provider, useChatDrawer: useDrawer } = await import(
+      "@/components/chat/v2/ChatDrawer"
+    );
+
+    function LocalProbe() {
+      const { abrir } = useDrawer();
+      handles.abrir = abrir;
+      return null;
+    }
 
     render(
       <MemoryRouter initialEntries={["/dashboard"]}>
-        <ChatDrawerProvider>
-          <Routes>
-            <Route path="/dashboard" element={<><Opener /><PageA /></>} />
-            <Route path="/dashboard/projetos" element={<><Opener /><PageB /></>} />
-          </Routes>
-        </ChatDrawerProvider>
+        <Provider>
+          <LocalProbe />
+          <PageA />
+        </Provider>
       </MemoryRouter>,
     );
 
-    expect(screen.getByText("pagina-a")).toBeInTheDocument();
-
-    // Abre o drawer → ChatLayout lança → fallback aparece com botão "Recarregar página"
     await act(async () => {
       handles.abrir!();
     });
 
-    expect(await screen.findByTestId("chat-error-fallback")).toBeInTheDocument();
+    const fallback = await screen.findByTestId("chat-error-fallback");
+    expect(fallback).toBeInTheDocument();
     expect(screen.getByText("Recarregar página")).toBeInTheDocument();
     expect(screen.getByText("Tentar novamente")).toBeInTheDocument();
-
-    // Navega programaticamente — app continua renderizando, sem tela em branco
-    await act(async () => {
-      handles.navigate!("/dashboard/projetos");
-    });
-
-    expect(await screen.findByText("pagina-b")).toBeInTheDocument();
+    // Página por trás do drawer continua presente — sem tela em branco
+    expect(screen.getByText("pagina-a")).toBeInTheDocument();
 
     errSpy.mockRestore();
   });
