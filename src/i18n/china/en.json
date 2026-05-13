@@ -140,7 +140,23 @@
       "aprovadaPeloBrasil": "Submission approved by Brazil",
       "aprovadaEm": "Approved on {{date}}.",
       "brasilSolicitouAjustes": "Brazil requested adjustments",
-      "conversa": "Conversation"
+      "conversa": "Conversation",
+      "falhaEnviarBrasil": "Could not send to Brazil."
+    },
+    "readLegend": {
+      "trigger": "What do the read indicators mean?",
+      "titulo": "Read indicators",
+      "naoLida": "Bold title and slightly highlighted background: message not yet read.",
+      "lida": "Two blue checks: you have already opened / marked this message as read."
+    },
+    "readMenu": {
+      "trigger": "More read actions",
+      "label": "Read",
+      "titulo": "Read state",
+      "marcarSelecionadasLidas": "Mark selected as read",
+      "marcarTodosLidos": "Mark all as read",
+      "limparEstado": "Clear read state",
+      "confirmLimpar": "Clear all local read marks for this screen?"
     },
     "snooze": {
       "trigger": "Snooze",
