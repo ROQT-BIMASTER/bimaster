@@ -88,7 +88,7 @@ export default function ChinaCaixaEntrada() {
     setSearchParams(sp, { replace: true });
   };
 
-  const { items: rawItems, counts, isLoading, isFetching, refetch } = useChinaMailbox(folder);
+  const { items: rawItems, progressItems, counts, isLoading, isFetching, refetch } = useChinaMailbox(folder);
   const items = useMemo(() => {
     if (folder !== "approved" || approvalFilter === "all") return rawItems;
     return rawItems.filter((i) => i.approval_completeness === approvalFilter);
@@ -550,6 +550,7 @@ export default function ChinaCaixaEntrada() {
               ) : (
                 <MailboxList
                   items={items}
+                  progressItems={progressItems}
                   folder={folder}
                   selectedId={selectedId}
                   selectedIds={selectedIds}
@@ -622,6 +623,7 @@ export default function ChinaCaixaEntrada() {
             <div className="rounded-md border border-border bg-card/30">
               <MailboxList
                 items={items}
+                progressItems={progressItems}
                 folder={folder}
                 selectedId={selectedId}
                 selectedIds={selectedIds}

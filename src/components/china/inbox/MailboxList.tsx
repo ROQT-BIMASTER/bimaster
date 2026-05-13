@@ -58,6 +58,12 @@ const GROUP_DISABLED_FOLDERS: MailboxFolder[] = ["oc", "trash"];
 
 interface Props {
   items: MailboxItem[];
+  /**
+   * Conjunto completo (todas as pastas) usado APENAS para calcular o progresso
+   * do checklist por submissão. Garante que "Pendentes de envio" e "Enviadas
+   * ao Brasil" mostrem os mesmos números de enviados/aprovados/pendentes.
+   */
+  progressItems?: MailboxItem[];
   folder: MailboxFolder;
   selectedId: string | null;
   selectedIds: Set<string>;
@@ -298,6 +304,7 @@ function MailboxRow({ item, dir, folder, active, checked, onSelect, onToggleChec
 
 export function MailboxList({
   items,
+  progressItems,
   folder,
   selectedId,
   selectedIds,
@@ -352,8 +359,8 @@ export function MailboxList({
 
   const groups = useMemo(() => {
     if (effectiveMode !== "grouped") return [];
-    return groupBySubmissao(filtered.map((x) => x.item));
-  }, [filtered, effectiveMode]);
+    return groupBySubmissao(filtered.map((x) => x.item), progressItems);
+  }, [filtered, effectiveMode, progressItems]);
 
   const mineCount = useMemo(
     () => itemsWithDir.filter((x) => x.dir.ballOnViewer).length,

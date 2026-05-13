@@ -130,6 +130,13 @@ export interface MailboxCounts {
 
 interface UseChinaMailboxResult {
   items: MailboxItem[];
+  /**
+   * Conjunto COMPLETO de itens (reais + virtuais) entre todas as pastas.
+   * A UI usa para calcular o progresso do checklist por submissão sem ficar
+   * preso ao subset visível na pasta atual (consistência entre "Pendentes
+   * de envio" e "Enviadas ao Brasil").
+   */
+  progressItems: MailboxItem[];
   counts: MailboxCounts;
   isLoading: boolean;
   isFetching: boolean;
@@ -298,7 +305,7 @@ export function useChinaMailbox(folder: MailboxFolder): UseChinaMailboxResult {
     };
   }, [enabled, queryClient]);
 
-  const { items, counts, allAwaitingPending } = useMemo(() => {
+  const { items, counts, allAwaitingPending, progressItems } = useMemo(() => {
     const data = query.data;
     if (!data)
       return {
@@ -651,6 +658,11 @@ export function useChinaMailbox(folder: MailboxFolder): UseChinaMailboxResult {
       folder === "awaiting_send"
         ? [...baseItems, ...virtualItems.filter(matchAwaitingSend)]
         : baseItems;
+    // Conjunto COMPLETO de itens (reais + virtuais) — usado pela UI para
+    // calcular o progresso por submissão de forma consistente entre pastas
+    // (ex.: "Pendentes de envio" precisa saber quantos já foram enviados/aprovados,
+    // mesmo que esses itens não estejam visíveis na pasta atual).
+    const progressItems = [...allItems, ...virtualItems];
     // Lista global de pendentes-por-falta-de-doc/parecer (independe da pasta atual)
     // — usada para emitir notificações. Virtuais ficam de fora para evitar
     // spam (1 toast por tipo esperado).
@@ -661,7 +673,7 @@ export function useChinaMailbox(folder: MailboxFolder): UseChinaMailboxResult {
       return ev.reasons.some((r) => r === "sem_documento" || r === "sem_parecer");
     });
 
-    return { items, counts, allAwaitingPending };
+    return { items, counts, allAwaitingPending, progressItems };
   }, [query.data, folder, isBrasilUser, isChinaUser]);
 
   // Notificação: avisar a China quando um novo checklist passa a ficar pendente
@@ -707,6 +719,7 @@ export function useChinaMailbox(folder: MailboxFolder): UseChinaMailboxResult {
 
   return {
     items,
+    progressItems,
     counts,
     isLoading: query.isLoading,
     isFetching: query.isFetching,
