@@ -398,6 +398,9 @@ export function useChinaMailbox(folder: MailboxFolder): UseChinaMailboxResult {
       sent_brazil: 0,
       in_analysis: 0,
       returned: 0,
+      approved_total: 0,
+      approved_partial: 0,
+      approved_empty: 0,
     };
 
     // Contadores por SUBMISSÃO única, não por documento
@@ -414,6 +417,9 @@ export function useChinaMailbox(folder: MailboxFolder): UseChinaMailboxResult {
       sent_brazil: new Set(),
       in_analysis: new Set(),
       returned: new Set(),
+      approved_total: new Set(),
+      approved_partial: new Set(),
+      approved_empty: new Set(),
     };
 
     const bumpCount = (
