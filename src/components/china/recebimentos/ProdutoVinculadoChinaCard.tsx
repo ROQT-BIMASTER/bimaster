@@ -29,6 +29,7 @@ export function ProdutoVinculadoChinaCard({
   onToggle,
   onSelectOC,
 }: Props) {
+  const { t } = useChinaI18n();
   const recPct = pct(produto.qty_recebida, produto.qty_pedida);
   const divergencia = produto.qty_avariada + produto.qty_faltante > 0;
   const semOC = produto.qtd_ocs === 0;
