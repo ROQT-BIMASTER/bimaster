@@ -555,11 +555,12 @@ export function useFichaCustoProduto(produtoId: string | undefined) {
         codigo: filho.produtoFilhoCodigo,
         nome: `${filho.produtoFilhoNome} (×${filho.quantidade})`,
         tipo_insumo: "importado_kit",
-        // IPI do unitário já embutido no NF para refletir o custo real do produto acabado
+        // IPI do unitário já embutido no NF para refletir o custo real do produto acabado;
+        // ipi_valor é mantido como metadado para o card "IPI Saída" destacar o valor.
         custo_nf: filho.custoNFLinha + filho.custoIPILinha,
         custo_servico: filho.custoServicoLinha,
         custo_condicao: filho.custoCondicaoLinha,
-        ipi_valor: 0,
+        ipi_valor: filho.custoIPILinha,
         ipi_percentual: 0,
         fornecedor: "Importado do Kit",
       });
