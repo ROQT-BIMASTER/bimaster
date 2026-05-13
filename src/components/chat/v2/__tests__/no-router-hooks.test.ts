@@ -27,6 +27,7 @@ const ROOTS = ["src/components/chat", "src/hooks/chat"];
 
 function walk(dir: string, acc: string[] = []): string[] {
   for (const entry of readdirSync(dir)) {
+    if (entry === "__tests__" || entry.endsWith(".test.ts") || entry.endsWith(".test.tsx")) continue;
     const p = join(dir, entry);
     const st = statSync(p);
     if (st.isDirectory()) walk(p, acc);
