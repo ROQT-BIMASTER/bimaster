@@ -219,6 +219,93 @@
       "vazio": "Sem itens nesta visão.",
       "filtroPendencia": "Filtrar por pendência",
       "todas": "Todas"
+    },
+    "checklistSheet": {
+      "folder": {
+        "awaitingSend": "Checklist pendente",
+        "sentBrazil": "Itens enviados ao Brasil",
+        "inAnalysis": "Itens em análise no Brasil",
+        "returned": "Itens com ajustes solicitados"
+      },
+      "state": {
+        "naoCriado": "Não criado",
+        "pendenteEnvio": "Pendente envio",
+        "enviado": "Enviado",
+        "aprovado": "Aprovado",
+        "rejeitado": "Rejeitado"
+      },
+      "fluxo": {
+        "chinaEnvia": "China envia",
+        "brasilEnvia": "Brasil envia",
+        "outros": "Outros"
+      },
+      "fallback": {
+        "itemChecklist": "Item do checklist",
+        "itemPersonalizado": "Item personalizado"
+      },
+      "category": {
+        "outrosItens": "Outros itens",
+        "ariaLabel": "Categoria {{label}}"
+      },
+      "totals": {
+        "linha": "{{enviados}} de {{expected}}",
+        "itensEnviados": "itens enviados",
+        "pendente_one": "{{count}} pendente",
+        "pendente_other": "{{count}} pendentes"
+      },
+      "header": {
+        "abrirPaginaDedicada": "Abrir em página dedicada",
+        "abrirPaginaDedicadaTitle": "Abrir em uma página dedicada com o status do checklist",
+        "editarParecer": "Editar parecer",
+        "adicionarParecer": "Adicionar parecer",
+        "editarParecerTitle": "Editar parecer técnico da China",
+        "adicionarParecerTitle": "Adicionar parecer técnico para liberar envio ao Brasil"
+      },
+      "parecerBanner": {
+        "titulo": "Parecer técnico pendente",
+        "descricao": "Para despachar ao Brasil, registre o parecer técnico desta submissão.",
+        "abrirCaixa": "Abrir caixa de parecer"
+      },
+      "section": {
+        "enviado_one": "enviado",
+        "enviado_other": "enviados",
+        "pendente_one": "pendente",
+        "pendente_other": "pendentes",
+        "vazioCategoria": "Nenhum documento criado nesta categoria ainda.",
+        "vazioCategoriaSent": "Nenhum item nesta categoria.",
+        "verPendentes_one": "Ver {{count}} pendente desta categoria",
+        "verPendentes_other": "Ver {{count}} pendentes desta categoria"
+      },
+      "row": {
+        "anexar": "Anexar",
+        "anexarTitle": "Abrir o Modo Foco já posicionado neste item",
+        "abrirParecer": "Abrir parecer",
+        "abrirParecerTitle": "Registrar parecer técnico para liberar o envio ao Brasil",
+        "enviarBrasil": "Enviar ao Brasil",
+        "enviarBrasilTitle": "Despachar somente este item ao Brasil",
+        "enviarBrasilBloqueadoTitle": "Registre o parecer técnico antes de despachar",
+        "abrirItem": "Abrir item",
+        "selecionarAria": "Selecionar {{name}} para envio em lote"
+      },
+      "footer": {
+        "abrirSubmissao": "Abrir submissão",
+        "enviarSelecionados": "Enviar selecionados ({{count}})",
+        "enviarSelecionadosTitle": "Despachar somente os itens selecionados ao Brasil",
+        "enviarTodos": "Enviar todos ao Brasil",
+        "enviarTodosTitle": "Despachar todos os itens prontos ao Brasil",
+        "enviarTodosBloqueadoTitle": "Registre o parecer técnico antes de despachar"
+      },
+      "empty": "Nenhum item no checklist.",
+      "parecerDialog": {
+        "titulo": "Parecer técnico da China",
+        "descricao": "Registre o parecer técnico desta submissão. Ele é obrigatório para despachar os itens ao Brasil e fica visível para a equipe brasileira.",
+        "placeholder": "Descreva análise, observações regulatórias e quaisquer pontos de atenção…",
+        "contador": "{{atual}}/{{max}}",
+        "salvar": "Salvar parecer",
+        "salvando": "Salvando…",
+        "toastOk": "Parecer técnico salvo.",
+        "toastErr": "Falha ao salvar parecer."
+      }
     }
   },
   "timeline": {

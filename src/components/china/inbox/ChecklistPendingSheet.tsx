@@ -43,6 +43,7 @@ import type { MailboxItem, MailboxFolder } from "@/hooks/useChinaMailbox";
 import type { MailboxGroup } from "@/lib/china/groupMailboxItems";
 import { evaluateAwaitingSend } from "@/lib/china/awaitingSendRule";
 import { useMergedChinaChecklist, type MergedChecklistCategory } from "@/hooks/useMergedChinaChecklist";
+import { useChinaI18n } from "@/hooks/useChinaI18n";
 
 /** Cor de borda esquerda por estado, para leitura visual rápida da lista. */
 const STATE_BORDER: Record<string, string> = {
@@ -67,7 +68,8 @@ export interface ChecklistPendingSheetProps {
 }
 
 interface FolderConfig {
-  title: string;
+  /** Chave i18n para o título do drawer. */
+  titleKey: string;
   /** Filtra os docs do grupo que pertencem ao escopo desta pasta. */
   scope: (item: MailboxItem) => boolean;
   /** Define o filtro inicial da página dedicada via query string. */
@@ -84,7 +86,7 @@ interface FolderConfig {
 
 const FOLDER_CONFIG: Partial<Record<MailboxFolder, FolderConfig>> = {
   awaiting_send: {
-    title: "Checklist pendente",
+    titleKey: "inbox.checklistSheet.folder.awaitingSend",
     scope: () => true,
     pageFilter: "todos",
     showAttach: true,
@@ -92,7 +94,7 @@ const FOLDER_CONFIG: Partial<Record<MailboxFolder, FolderConfig>> = {
     priorityMode: "pending",
   },
   sent_brazil: {
-    title: "Itens enviados ao Brasil",
+    titleKey: "inbox.checklistSheet.folder.sentBrazil",
     scope: () => true,
     pageFilter: "enviados",
     showAttach: false,
@@ -100,7 +102,7 @@ const FOLDER_CONFIG: Partial<Record<MailboxFolder, FolderConfig>> = {
     priorityMode: "sent",
   },
   in_analysis: {
-    title: "Itens em análise no Brasil",
+    titleKey: "inbox.checklistSheet.folder.inAnalysis",
     scope: () => true,
     pageFilter: "enviados",
     showAttach: false,
@@ -108,7 +110,7 @@ const FOLDER_CONFIG: Partial<Record<MailboxFolder, FolderConfig>> = {
     priorityMode: "sent",
   },
   returned: {
-    title: "Itens com ajustes solicitados",
+    titleKey: "inbox.checklistSheet.folder.returned",
     scope: (i) => i.doc_status === "rejeitado",
     pageFilter: "rejeitados",
     showAttach: true,
@@ -139,30 +141,30 @@ function classifyItem(item: MailboxItem): ItemState {
 
 const STATE_META: Record<
   ItemState,
-  { label: string; icon: typeof Clock; cls: string }
+  { labelKey: string; icon: typeof Clock; cls: string }
 > = {
   nao_criado: {
-    label: "Não criado",
+    labelKey: "inbox.checklistSheet.state.naoCriado",
     icon: FileX2,
     cls: "bg-muted/40 text-muted-foreground border-border",
   },
   pendente_envio: {
-    label: "Pendente envio",
+    labelKey: "inbox.checklistSheet.state.pendenteEnvio",
     icon: Clock,
     cls: "bg-amber-500/15 text-amber-400 border-amber-500/30",
   },
   enviado: {
-    label: "Enviado",
+    labelKey: "inbox.checklistSheet.state.enviado",
     icon: Send,
     cls: "bg-primary/15 text-primary border-primary/30",
   },
   aprovado: {
-    label: "Aprovado",
+    labelKey: "inbox.checklistSheet.state.aprovado",
     icon: CheckCircle2,
     cls: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30",
   },
   rejeitado: {
-    label: "Rejeitado",
+    labelKey: "inbox.checklistSheet.state.rejeitado",
     icon: AlertTriangle,
     cls: "bg-rose-500/15 text-rose-400 border-rose-500/30",
   },
@@ -176,9 +178,12 @@ const STATE_ORDER: Record<ItemState, number> = {
   aprovado: 4,
 };
 
-function formatTipoFallback(tipo: string | null | undefined): string {
-  if (!tipo) return "Item do checklist";
-  if (tipo.startsWith("custom_")) return "Item personalizado";
+function formatTipoFallback(
+  tipo: string | null | undefined,
+  t: (k: string) => string,
+): string {
+  if (!tipo) return t("inbox.checklistSheet.fallback.itemChecklist");
+  if (tipo.startsWith("custom_")) return t("inbox.checklistSheet.fallback.itemPersonalizado");
   return tipo
     .split("_")
     .filter(Boolean)
@@ -299,6 +304,7 @@ export function ChecklistPendingSheet({
 }: ChecklistPendingSheetProps) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { t } = useChinaI18n();
   const { bgColor } = usePageBgColor();
   const merged = useMergedChinaChecklist(group?.submissao_id ?? null);
   const cfg = (folder && FOLDER_CONFIG[folder]) ?? DEFAULT_FOLDER_CONFIG;
@@ -325,12 +331,12 @@ export function ChecklistPendingSheet({
       if (error) throw error;
     },
     onSuccess: () => {
-      toast.success("Parecer técnico salvo.");
+      toast.success(t("inbox.checklistSheet.parecerDialog.toastOk"));
       queryClient.invalidateQueries({ queryKey: ["china-mailbox"] });
       queryClient.invalidateQueries({ queryKey: ["china-merged-checklist"] });
       setParecerOpen(false);
     },
-    onError: (e: any) => toast.error(e?.message || "Falha ao salvar parecer."),
+    onError: (e: any) => toast.error(e?.message || t("inbox.checklistSheet.parecerDialog.toastErr")),
   });
 
   // Aplica o escopo da pasta antes de montar as seções por categoria.
@@ -405,7 +411,7 @@ export function ChecklistPendingSheet({
           <SheetTitle className="text-sm font-semibold leading-tight">
             <span className="flex items-center gap-2">
               <ListChecks className="h-4 w-4 text-primary" />
-              {cfg.title}
+              {t(cfg.titleKey)}
             </span>
           </SheetTitle>
           <SheetDescription className="text-[12px] text-muted-foreground">
@@ -420,16 +426,16 @@ export function ChecklistPendingSheet({
             <div className="space-y-1 pt-1">
               <p className="text-[11px] text-muted-foreground">
                 <span className="font-medium text-foreground/90">
-                  {totals.enviados} de {totals.expected}
+                  {t("inbox.checklistSheet.totals.linha", { enviados: totals.enviados, expected: totals.expected })}
                 </span>{" "}
-                itens enviados ·{" "}
+                {t("inbox.checklistSheet.totals.itensEnviados")} ·{" "}
                 <span
                   className={cn(
                     "font-medium",
                     totals.pendentes > 0 ? "text-amber-400" : "text-emerald-400",
                   )}
                 >
-                  {totals.pendentes} pendente{totals.pendentes === 1 ? "" : "s"}
+                  {t("inbox.checklistSheet.totals.pendente", { count: totals.pendentes })}
                 </span>
               </p>
               <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted/60">
@@ -450,10 +456,10 @@ export function ChecklistPendingSheet({
               variant="ghost"
               className="h-6 gap-1 px-2 text-[10.5px] text-muted-foreground"
               onClick={handleOpenInPage}
-              title="Abrir em uma página dedicada com o status do checklist"
+              title={t("inbox.checklistSheet.header.abrirPaginaDedicadaTitle")}
             >
               <ExternalLink className="h-3 w-3" />
-              Abrir em página dedicada
+              {t("inbox.checklistSheet.header.abrirPaginaDedicada")}
             </Button>
             {showParecerActions && (
               <Button
@@ -465,18 +471,22 @@ export function ChecklistPendingSheet({
                   hasParecer ? "text-muted-foreground" : "text-amber-500",
                 )}
                 onClick={() => setParecerOpen(true)}
-                title={hasParecer ? "Editar parecer técnico da China" : "Adicionar parecer técnico para liberar envio ao Brasil"}
+                title={hasParecer
+                  ? t("inbox.checklistSheet.header.editarParecerTitle")
+                  : t("inbox.checklistSheet.header.adicionarParecerTitle")}
               >
                 {hasParecer ? <MessageSquareText className="h-3 w-3" /> : <MessageSquarePlus className="h-3 w-3" />}
-                {hasParecer ? "Editar parecer" : "Adicionar parecer"}
+                {hasParecer
+                  ? t("inbox.checklistSheet.header.editarParecer")
+                  : t("inbox.checklistSheet.header.adicionarParecer")}
               </Button>
             )}
           </div>
           {showParecerActions && !hasParecer && pendingCount > 0 && (
             <div className="rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-[11px] text-amber-200/90">
-              <p className="font-medium text-amber-300">Parecer técnico pendente</p>
+              <p className="font-medium text-amber-300">{t("inbox.checklistSheet.parecerBanner.titulo")}</p>
               <p className="mt-0.5 text-amber-200/80">
-                Para despachar ao Brasil, registre o parecer técnico desta submissão.
+                {t("inbox.checklistSheet.parecerBanner.descricao")}
               </p>
               <Button
                 type="button"
@@ -485,7 +495,7 @@ export function ChecklistPendingSheet({
                 onClick={() => setParecerOpen(true)}
               >
                 <MessageSquarePlus className="h-3 w-3" />
-                Abrir caixa de parecer
+                {t("inbox.checklistSheet.parecerBanner.abrirCaixa")}
               </Button>
             </div>
           )}
@@ -494,7 +504,7 @@ export function ChecklistPendingSheet({
         <div className="flex-1 overflow-y-auto">
           {sections.length === 0 && (
             <p className="p-6 text-center text-sm text-muted-foreground">
-              Nenhum item no checklist.
+              {t("inbox.checklistSheet.empty")}
             </p>
           )}
           {sections.map((section) => {
@@ -506,10 +516,10 @@ export function ChecklistPendingSheet({
                 : ListChecks;
             const fluxoLabel =
               section.fluxo === "china_envia"
-                ? "China envia"
+                ? t("inbox.checklistSheet.fluxo.chinaEnvia")
                 : section.fluxo === "brasil_envia"
-                ? "Brasil envia"
-                : "Outros";
+                ? t("inbox.checklistSheet.fluxo.brasilEnvia")
+                : t("inbox.checklistSheet.fluxo.outros");
 
             // Em pastas "enviados-first" os pendentes vão para um bloco
             // recolhível secundário; nas demais, mostramos tudo em sequência.
@@ -527,7 +537,7 @@ export function ChecklistPendingSheet({
               const name =
                 item.tipo_documento_label ??
                 merged.getDocType(item.tipo_documento || "")?.labelPt ??
-                formatTipoFallback(item.tipo_documento);
+                formatTipoFallback(item.tipo_documento, t);
               const id = rowKey(item);
               const canSendSingle =
                 !!onEnviarItemBrasil &&
@@ -562,7 +572,7 @@ export function ChecklistPendingSheet({
                           return n;
                         });
                       }}
-                      aria-label={`Selecionar ${name} para envio em lote`}
+                      aria-label={t("inbox.checklistSheet.row.selecionarAria", { name })}
                     />
                   ) : (
                     <Paperclip className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
@@ -585,7 +595,7 @@ export function ChecklistPendingSheet({
                         )}
                       >
                         <Icon className="h-2.5 w-2.5" />
-                        {meta.label}
+                        {t(meta.labelKey)}
                       </Badge>
                       {cfg.showAttach &&
                         (state === "nao_criado" ||
@@ -597,9 +607,9 @@ export function ChecklistPendingSheet({
                             variant="ghost"
                             className="h-5 gap-1 px-1.5 text-[10px] text-primary"
                             onClick={() => handleAttach(item)}
-                            title="Abrir o Modo Foco já posicionado neste item"
+                            title={t("inbox.checklistSheet.row.anexarTitle")}
                           >
-                            Anexar
+                            {t("inbox.checklistSheet.row.anexar")}
                           </Button>
                         )}
                       {showParecerActions && !hasParecer &&
@@ -610,10 +620,10 @@ export function ChecklistPendingSheet({
                             variant="outline"
                             className="h-5 gap-1 px-1.5 text-[10px] border-amber-500/40 text-amber-500 hover:bg-amber-500/10"
                             onClick={() => setParecerOpen(true)}
-                            title="Registrar parecer técnico para liberar o envio ao Brasil"
+                            title={t("inbox.checklistSheet.row.abrirParecerTitle")}
                           >
                             <MessageSquarePlus className="h-2.5 w-2.5" />
-                            Abrir parecer
+                            {t("inbox.checklistSheet.row.abrirParecer")}
                           </Button>
                         )}
                       {canSendSingle && (
@@ -625,12 +635,12 @@ export function ChecklistPendingSheet({
                           disabled={showParecerActions && !hasParecer}
                           title={
                             showParecerActions && !hasParecer
-                              ? "Registre o parecer técnico antes de despachar"
-                              : "Despachar somente este item ao Brasil"
+                              ? t("inbox.checklistSheet.row.enviarBrasilBloqueadoTitle")
+                              : t("inbox.checklistSheet.row.enviarBrasilTitle")
                           }
                         >
                           <Send className="h-2.5 w-2.5" />
-                          Enviar ao Brasil
+                          {t("inbox.checklistSheet.row.enviarBrasil")}
                         </Button>
                       )}
                       {!item.is_virtual && onSelectItem && (
@@ -641,7 +651,7 @@ export function ChecklistPendingSheet({
                           className="h-5 px-1.5 text-[10px] text-muted-foreground"
                           onClick={() => onSelectItem(id)}
                         >
-                          Abrir item
+                          {t("inbox.checklistSheet.row.abrirItem")}
                         </Button>
                       )}
                     </div>
@@ -654,7 +664,7 @@ export function ChecklistPendingSheet({
               <section
                 key={section.key}
                 className="border-b border-border/40 last:border-b-0"
-                aria-label={`Categoria ${section.labelPt}`}
+                aria-label={t("inbox.checklistSheet.category.ariaLabel", { label: section.labelPt })}
               >
                 <header className="sticky top-0 z-[1] flex items-center justify-between gap-2 bg-muted/40 px-4 py-1.5 backdrop-blur">
                   <div className="min-w-0 flex items-center gap-1.5">
@@ -676,12 +686,12 @@ export function ChecklistPendingSheet({
                     <span className="font-medium text-emerald-400">
                       {section.enviadosCount}
                     </span>
-                    <span className="text-muted-foreground/70"> enviado{section.enviadosCount === 1 ? "" : "s"}</span>
+                    <span className="text-muted-foreground/70"> {t("inbox.checklistSheet.section.enviado", { count: section.enviadosCount })}</span>
                     {section.pendentesCount > 0 && (
                       <>
                         <span className="text-muted-foreground/50"> · </span>
                         <span className="text-muted-foreground">
-                          {section.pendentesCount} pendente{section.pendentesCount === 1 ? "" : "s"}
+                          {section.pendentesCount} {t("inbox.checklistSheet.section.pendente", { count: section.pendentesCount })}
                         </span>
                       </>
                     )}
@@ -691,12 +701,12 @@ export function ChecklistPendingSheet({
                   {primaryRows.map(renderRow)}
                   {primaryRows.length === 0 && !splitSecondary && (
                     <li className="px-4 py-2 text-[11px] text-muted-foreground/80">
-                      Nenhum documento criado nesta categoria ainda.
+                      {t("inbox.checklistSheet.section.vazioCategoria")}
                     </li>
                   )}
                   {primaryRows.length === 0 && splitSecondary && secondaryRows.length === 0 && (
                     <li className="px-4 py-2 text-[11px] text-muted-foreground/80">
-                      Nenhum item nesta categoria.
+                      {t("inbox.checklistSheet.section.vazioCategoriaSent")}
                     </li>
                   )}
                 </ul>
@@ -704,7 +714,7 @@ export function ChecklistPendingSheet({
                   <details className="group border-t border-border/40 bg-muted/10">
                     <summary className="cursor-pointer list-none px-4 py-1.5 text-[10.5px] text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1">
                       <span className="transition-transform group-open:rotate-90">›</span>
-                      Ver {secondaryRows.length} pendente{secondaryRows.length === 1 ? "" : "s"} desta categoria
+                      {t("inbox.checklistSheet.section.verPendentes", { count: secondaryRows.length })}
                     </summary>
                     <ul role="list" className="divide-y divide-border/40 bg-background/40">
                       {secondaryRows.map(renderRow)}
@@ -725,7 +735,7 @@ export function ChecklistPendingSheet({
               className="h-7 gap-1 px-2 text-[11px]"
               onClick={() => onOpenSubmissao(group.submissao_id)}
             >
-              Abrir submissão
+              {t("inbox.checklistSheet.footer.abrirSubmissao")}
             </Button>
           )}
           {cfg.showEnviarFooter && selected.size > 0 && onEnviarItemBrasil && (
@@ -742,10 +752,10 @@ export function ChecklistPendingSheet({
                 items.forEach((it) => onEnviarItemBrasil(it));
                 setSelected(new Set());
               }}
-              title="Despachar somente os itens selecionados ao Brasil"
+              title={t("inbox.checklistSheet.footer.enviarSelecionadosTitle")}
             >
               <Send className="h-3 w-3" />
-              Enviar selecionados ({selected.size})
+              {t("inbox.checklistSheet.footer.enviarSelecionados", { count: selected.size })}
             </Button>
           )}
           {cfg.showEnviarFooter && selected.size === 0 && pendingCount > 0 && onEnviarGrupoBrasil && (
@@ -755,10 +765,12 @@ export function ChecklistPendingSheet({
               className="ml-auto h-7 gap-1 px-2 text-[11px] bg-emerald-600 hover:bg-emerald-700 text-white"
               onClick={() => onEnviarGrupoBrasil(group)}
               disabled={!hasParecer}
-              title={hasParecer ? "Despachar todos os itens prontos ao Brasil" : "Registre o parecer técnico antes de despachar"}
+              title={hasParecer
+                ? t("inbox.checklistSheet.footer.enviarTodosTitle")
+                : t("inbox.checklistSheet.footer.enviarTodosBloqueadoTitle")}
             >
               <Send className="h-3 w-3" />
-              Enviar todos ao Brasil
+              {t("inbox.checklistSheet.footer.enviarTodos")}
             </Button>
           )}
         </div>
@@ -769,22 +781,21 @@ export function ChecklistPendingSheet({
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-sm">
               <MessageSquarePlus className="h-4 w-4 text-primary" />
-              Parecer técnico da China
+              {t("inbox.checklistSheet.parecerDialog.titulo")}
             </DialogTitle>
             <DialogDescription className="text-[12px]">
-              Registre o parecer técnico desta submissão. Ele é obrigatório para
-              despachar os itens ao Brasil e fica visível para a equipe brasileira.
+              {t("inbox.checklistSheet.parecerDialog.descricao")}
             </DialogDescription>
           </DialogHeader>
           <Textarea
             value={parecerText}
             onChange={(e) => setParecerText(e.target.value)}
-            placeholder="Descreva análise, observações regulatórias e quaisquer pontos de atenção…"
+            placeholder={t("inbox.checklistSheet.parecerDialog.placeholder")}
             className="min-h-[160px] text-[12.5px]"
             maxLength={8000}
           />
           <p className="text-right text-[10.5px] text-muted-foreground">
-            {parecerText.length}/8000
+            {t("inbox.checklistSheet.parecerDialog.contador", { atual: parecerText.length, max: 8000 })}
           </p>
           <DialogFooter className="gap-2">
             <Button
@@ -794,7 +805,7 @@ export function ChecklistPendingSheet({
               onClick={() => setParecerOpen(false)}
               disabled={saveParecer.isPending}
             >
-              Cancelar
+              {t("common.cancelar")}
             </Button>
             <Button
               type="button"
@@ -802,7 +813,9 @@ export function ChecklistPendingSheet({
               onClick={() => saveParecer.mutate(parecerText)}
               disabled={saveParecer.isPending || parecerText.trim().length === 0}
             >
-              {saveParecer.isPending ? "Salvando…" : "Salvar parecer"}
+              {saveParecer.isPending
+                ? t("inbox.checklistSheet.parecerDialog.salvando")
+                : t("inbox.checklistSheet.parecerDialog.salvar")}
             </Button>
           </DialogFooter>
         </DialogContent>

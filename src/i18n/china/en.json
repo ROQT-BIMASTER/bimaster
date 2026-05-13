@@ -192,6 +192,93 @@
         "in_analysis": "Under review in Brazil",
         "returned": "Returned: adjustments"
       }
+    },
+    "checklistSheet": {
+      "folder": {
+        "awaitingSend": "Pending checklist",
+        "sentBrazil": "Items sent to Brazil",
+        "inAnalysis": "Items under review in Brazil",
+        "returned": "Items with requested adjustments"
+      },
+      "state": {
+        "naoCriado": "Not created",
+        "pendenteEnvio": "Pending submission",
+        "enviado": "Sent",
+        "aprovado": "Approved",
+        "rejeitado": "Rejected"
+      },
+      "fluxo": {
+        "chinaEnvia": "China sends",
+        "brasilEnvia": "Brazil sends",
+        "outros": "Others"
+      },
+      "fallback": {
+        "itemChecklist": "Checklist item",
+        "itemPersonalizado": "Custom item"
+      },
+      "category": {
+        "outrosItens": "Other items",
+        "ariaLabel": "Category {{label}}"
+      },
+      "totals": {
+        "linha": "{{enviados}} of {{expected}}",
+        "itensEnviados": "items sent",
+        "pendente_one": "{{count}} pending",
+        "pendente_other": "{{count}} pending"
+      },
+      "header": {
+        "abrirPaginaDedicada": "Open dedicated page",
+        "abrirPaginaDedicadaTitle": "Open a dedicated page with the checklist status",
+        "editarParecer": "Edit opinion",
+        "adicionarParecer": "Add opinion",
+        "editarParecerTitle": "Edit China's technical opinion",
+        "adicionarParecerTitle": "Add a technical opinion to enable submission to Brazil"
+      },
+      "parecerBanner": {
+        "titulo": "Pending technical opinion",
+        "descricao": "Register the technical opinion to dispatch this submission to Brazil.",
+        "abrirCaixa": "Open opinion box"
+      },
+      "section": {
+        "enviado_one": "sent",
+        "enviado_other": "sent",
+        "pendente_one": "pending",
+        "pendente_other": "pending",
+        "vazioCategoria": "No documents created in this category yet.",
+        "vazioCategoriaSent": "No items in this category.",
+        "verPendentes_one": "View {{count}} pending in this category",
+        "verPendentes_other": "View {{count}} pending in this category"
+      },
+      "row": {
+        "anexar": "Attach",
+        "anexarTitle": "Open Focus Mode positioned on this item",
+        "abrirParecer": "Open opinion",
+        "abrirParecerTitle": "Register a technical opinion to enable submission to Brazil",
+        "enviarBrasil": "Send to Brazil",
+        "enviarBrasilTitle": "Dispatch only this item to Brazil",
+        "enviarBrasilBloqueadoTitle": "Register the technical opinion before dispatching",
+        "abrirItem": "Open item",
+        "selecionarAria": "Select {{name}} for batch submission"
+      },
+      "footer": {
+        "abrirSubmissao": "Open submission",
+        "enviarSelecionados": "Send selected ({{count}})",
+        "enviarSelecionadosTitle": "Dispatch only the selected items to Brazil",
+        "enviarTodos": "Send all to Brazil",
+        "enviarTodosTitle": "Dispatch all ready items to Brazil",
+        "enviarTodosBloqueadoTitle": "Register the technical opinion before dispatching"
+      },
+      "empty": "No items in the checklist.",
+      "parecerDialog": {
+        "titulo": "China technical opinion",
+        "descricao": "Register the technical opinion for this submission. It is required to dispatch items to Brazil and is visible to the Brazilian team.",
+        "placeholder": "Describe analysis, regulatory remarks and any points of attention…",
+        "contador": "{{atual}}/{{max}}",
+        "salvar": "Save opinion",
+        "salvando": "Saving…",
+        "toastOk": "Technical opinion saved.",
+        "toastErr": "Failed to save opinion."
+      }
     }
   },
   "timeline": {
