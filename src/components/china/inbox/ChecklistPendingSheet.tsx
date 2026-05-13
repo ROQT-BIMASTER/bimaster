@@ -229,17 +229,67 @@ export function ChecklistPendingSheet({
   open,
   onOpenChange,
   group,
+  folder,
   onSelectItem,
   onEnviarGrupoBrasil,
   onOpenSubmissao,
 }: ChecklistPendingSheetProps) {
   const navigate = useNavigate();
   const merged = useMergedChinaChecklist(group?.submissao_id ?? null);
+  const cfg = (folder && FOLDER_CONFIG[folder]) ?? DEFAULT_FOLDER_CONFIG;
+
+  // Aplica o escopo da pasta antes de montar as seções por categoria.
+  const scopedGroup = useMemo<MailboxGroup | null>(() => {
+    if (!group) return null;
+    if (cfg === DEFAULT_FOLDER_CONFIG && (!folder || folder === "awaiting_send")) {
+      return group;
+    }
+    return { ...group, docs: group.docs.filter(cfg.scope) };
+  }, [group, cfg, folder]);
 
   const sections = useMemo(() => {
-    if (!group) return [];
-    return buildSections(group, merged.categories);
-  }, [group, merged.categories]);
+    if (!scopedGroup) return [];
+    return buildSections(scopedGroup, merged.categories);
+  }, [scopedGroup, merged.categories]);
+
+  const totals = useMemo(() => {
+    if (!group) return null;
+    const expected = Math.max(
+      group.docs[0]?.checklist_expected_total ?? 0,
+      group.progress.total,
+    );
+    const enviados =
+      group.progress.enviados +
+      group.progress.aprovados +
+      group.progress.em_analise +
+      group.progress.rejeitados;
+    const pct = expected > 0 ? Math.round((enviados / expected) * 100) : 0;
+    return {
+      enviados,
+      expected,
+      pendentes: Math.max(0, expected - enviados),
+      pct,
+    };
+  }, [group]);
+
+  if (!group) return null;
+
+  const pendingCount = totals?.pendentes ?? 0;
+
+  const handleAttach = (item: MailboxItem) => {
+    if (!item.tipo_documento) return;
+    navigate(
+      `/dashboard/fabrica-china/produto/${group.submissao_id}?focus=${encodeURIComponent(item.tipo_documento)}`,
+    );
+  };
+
+  const handleOpenInPage = () => {
+    navigate(
+      `/dashboard/fabrica-china/produto/${group.submissao_id}/checklist-status?from=${encodeURIComponent(folder ?? "awaiting_send")}`,
+      { state: { from: "/dashboard/fabrica-china/caixa-entrada" } },
+    );
+  };
+
 
   const totals = useMemo(() => {
     if (!group) return null;
