@@ -483,7 +483,7 @@ export function ChecklistPendingSheet({
               Abrir submissão
             </Button>
           )}
-          {pendingCount > 0 && onEnviarGrupoBrasil && (
+          {cfg.showEnviarFooter && pendingCount > 0 && onEnviarGrupoBrasil && (
             <Button
               type="button"
               size="sm"
