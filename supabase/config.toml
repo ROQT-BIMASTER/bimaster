@@ -6,6 +6,12 @@ project_id = "aokkyrgaqjarhlywhjju"
     function = "publish-scheduled-posts"
     schedule = "*/5 * * * *"
 
+  # Resumo automático diário do chat do projeto — 19h BRT (22h UTC).
+  # Postado como tipo='resumo_diario' em projeto_chat_messages para cada projeto ativo.
+  [[edge_runtime.schedules]]
+    function = "projeto-resumo-diario"
+    schedule = "0 22 * * *"
+
 [functions]
   [functions.admin-reset-password]
     verify_jwt = false
