@@ -83,43 +83,44 @@ interface Props {
 function statusBadge(
   submissao_status: string,
   doc_status: string | null,
-  approval_completeness?: "total" | "partial" | "empty",
+  approval_completeness: "total" | "partial" | "empty" | undefined,
+  t: TFn,
 ) {
   if (submissao_status === "aprovado") {
     if (approval_completeness === "partial") {
       return {
-        label: "Aprovado · parcial",
+        label: t("mailboxList.statusBadge.aprovadoParcial"),
         icon: AlertTriangle,
         cls: "bg-amber-500/15 text-amber-400 border-amber-500/30",
       };
     }
     if (approval_completeness === "empty") {
       return {
-        label: "Aprovado · sem checklist",
+        label: t("mailboxList.statusBadge.aprovadoSemChecklist"),
         icon: AlertTriangle,
         cls: "bg-muted/40 text-muted-foreground border-border",
       };
     }
     return {
-      label: "Aprovado · total",
+      label: t("mailboxList.statusBadge.aprovadoTotal"),
       icon: CheckCircle2,
       cls: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30",
     };
   }
   if (submissao_status === "rejeitado") {
-    return { label: "Rejeitado", icon: AlertTriangle, cls: "bg-rose-500/15 text-rose-400 border-rose-500/30" };
+    return { label: t("mailboxList.statusBadge.rejeitado"), icon: AlertTriangle, cls: "bg-rose-500/15 text-rose-400 border-rose-500/30" };
   }
   if (doc_status === "rejeitado") {
-    return { label: "Ajuste", icon: AlertTriangle, cls: "bg-amber-500/15 text-amber-400 border-amber-500/30" };
+    return { label: t("mailboxList.statusBadge.ajuste"), icon: AlertTriangle, cls: "bg-amber-500/15 text-amber-400 border-amber-500/30" };
   }
   if (submissao_status === "rascunho") {
-    return { label: "Rascunho", icon: FileText, cls: "bg-muted/40 text-muted-foreground border-border" };
+    return { label: t("mailboxList.statusBadge.rascunho"), icon: FileText, cls: "bg-muted/40 text-muted-foreground border-border" };
   }
-  return { label: "Aguardando", icon: Clock, cls: "bg-primary/15 text-primary border-primary/30" };
+  return { label: t("mailboxList.statusBadge.aguardando"), icon: Clock, cls: "bg-primary/15 text-primary border-primary/30" };
 }
 
-function relativeAge(hours: number) {
-  if (hours < 1) return "agora";
+function relativeAge(hours: number, t: TFn) {
+  if (hours < 1) return t("mailboxList.age.now");
   if (hours < 24) return `${hours}h`;
   const d = Math.floor(hours / 24);
   return `${d}d`;
