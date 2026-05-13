@@ -84,6 +84,10 @@ interface FolderConfig {
   priorityMode: "pending" | "sent";
 }
 
+// Visualização unificada do checklist em todas as pastas: mesma ordenação
+// (pendentes/rejeitados primeiro), mesmo escopo (todos os itens da submissão)
+// e mesmas ações por linha (Anexar/Enviar quando aplicável). Apenas o título
+// do drawer e o filtro inicial da página dedicada variam por pasta.
 const FOLDER_CONFIG: Partial<Record<MailboxFolder, FolderConfig>> = {
   awaiting_send: {
     titleKey: "inbox.checklistSheet.folder.awaitingSend",
@@ -97,21 +101,21 @@ const FOLDER_CONFIG: Partial<Record<MailboxFolder, FolderConfig>> = {
     titleKey: "inbox.checklistSheet.folder.sentBrazil",
     scope: () => true,
     pageFilter: "enviados",
-    showAttach: false,
-    showEnviarFooter: false,
-    priorityMode: "sent",
+    showAttach: true,
+    showEnviarFooter: true,
+    priorityMode: "pending",
   },
   in_analysis: {
     titleKey: "inbox.checklistSheet.folder.inAnalysis",
     scope: () => true,
     pageFilter: "enviados",
-    showAttach: false,
-    showEnviarFooter: false,
-    priorityMode: "sent",
+    showAttach: true,
+    showEnviarFooter: true,
+    priorityMode: "pending",
   },
   returned: {
     titleKey: "inbox.checklistSheet.folder.returned",
-    scope: (i) => i.doc_status === "rejeitado",
+    scope: () => true,
     pageFilter: "rejeitados",
     showAttach: true,
     showEnviarFooter: true,
@@ -521,15 +525,10 @@ export function ChecklistPendingSheet({
                 ? t("inbox.checklistSheet.fluxo.brasilEnvia")
                 : t("inbox.checklistSheet.fluxo.outros");
 
-            // Em pastas "enviados-first" os pendentes vão para um bloco
-            // recolhível secundário; nas demais, mostramos tudo em sequência.
-            const splitSecondary = cfg.priorityMode === "sent";
-            const primaryRows = splitSecondary
-              ? section.rows.filter((r) => SENT_STATES.has(r.state))
-              : section.rows;
-            const secondaryRows = splitSecondary
-              ? section.rows.filter((r) => !SENT_STATES.has(r.state))
-              : [];
+            // Visualização unificada: todos os itens em sequência única,
+            // ordenados pela prioridade definida em STATE_PRIORITY (pendentes
+            // e rejeitados no topo). Sem bloco recolhível por pasta.
+            const primaryRows = section.rows;
 
             const renderRow = ({ item, state }: { item: MailboxItem; state: ItemState }) => {
               const meta = STATE_META[state];
@@ -699,28 +698,12 @@ export function ChecklistPendingSheet({
                 </header>
                 <ul role="list" className="divide-y divide-border/40">
                   {primaryRows.map(renderRow)}
-                  {primaryRows.length === 0 && !splitSecondary && (
+                  {primaryRows.length === 0 && (
                     <li className="px-4 py-2 text-[11px] text-muted-foreground/80">
                       {t("inbox.checklistSheet.section.vazioCategoria")}
                     </li>
                   )}
-                  {primaryRows.length === 0 && splitSecondary && secondaryRows.length === 0 && (
-                    <li className="px-4 py-2 text-[11px] text-muted-foreground/80">
-                      {t("inbox.checklistSheet.section.vazioCategoriaSent")}
-                    </li>
-                  )}
                 </ul>
-                {splitSecondary && secondaryRows.length > 0 && (
-                  <details className="group border-t border-border/40 bg-muted/10">
-                    <summary className="cursor-pointer list-none px-4 py-1.5 text-[10.5px] text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1">
-                      <span className="transition-transform group-open:rotate-90">›</span>
-                      {t("inbox.checklistSheet.section.verPendentes", { count: secondaryRows.length })}
-                    </summary>
-                    <ul role="list" className="divide-y divide-border/40 bg-background/40">
-                      {secondaryRows.map(renderRow)}
-                    </ul>
-                  </details>
-                )}
               </section>
             );
           })}
