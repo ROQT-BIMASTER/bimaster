@@ -297,6 +297,9 @@
       },
       "empty": "Nenhum item no checklist.",
       "parecerDialog": {
+        "_": ""
+      },
+      "parecerDialogReal": {
         "titulo": "Parecer técnico da China",
         "descricao": "Registre o parecer técnico desta submissão. Ele é obrigatório para despachar os itens ao Brasil e fica visível para a equipe brasileira.",
         "placeholder": "Descreva análise, observações regulatórias e quaisquer pontos de atenção…",
