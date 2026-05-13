@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Star, Paperclip, Clock, AlertTriangle, CheckCircle2, FileText, FileX2, MessageSquareOff, ChevronRight, ChevronDown, Layers, CheckCheck, ListChecks, Send, Loader2 } from "lucide-react";
+import { Star, Paperclip, Clock, AlertTriangle, CheckCircle2, FileText, FileX2, MessageSquareOff, ChevronRight, ChevronDown, Layers, CheckCheck, ListChecks, Send } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,24 @@ import { evaluateAwaitingSend, AWAITING_SEND_REASON_LABEL } from "@/lib/china/aw
 import { groupBySubmissao, type MailboxGroup } from "@/lib/china/groupMailboxItems";
 import { type ChinaInboxGroupMode, isGroupModeForced } from "@/hooks/useChinaInboxGroupMode";
 import { ReadStatusLegend } from "./ReadStatusLegend";
+import { ChecklistPendingSheet } from "./ChecklistPendingSheet";
+
+/**
+ * Resolve o nome legível do `tipo_documento` para exibição na lista.
+ * Usa `tipo_documento_label` (vindo do merge do checklist) e cai num
+ * formatador snake_case → Title Case quando ausente.
+ */
+function resolveTipoLabel(item: MailboxItem): string | null {
+  if (item.tipo_documento_label) return item.tipo_documento_label;
+  const t = item.tipo_documento;
+  if (!t) return null;
+  if (t.startsWith("custom_")) return "Item personalizado";
+  return t
+    .split("_")
+    .filter(Boolean)
+    .map((p) => p.charAt(0).toUpperCase() + p.slice(1))
+    .join(" ");
+}
 
 export type ActionFilter = "mine" | "theirs" | "all";
 
@@ -181,7 +199,7 @@ function MailboxRow({ item, dir, folder, active, checked, onSelect, onToggleChec
             <>
               <Paperclip className="h-3 w-3 shrink-0" />
               <span className="truncate">
-                {item.tipo_documento}
+                {resolveTipoLabel(item)}
                 {item.nome_arquivo ? ` · ${item.nome_arquivo}` : ""}
                 {item.is_virtual && (
                   <span className="ml-1.5 italic text-muted-foreground/70">(ainda não criado)</span>
@@ -344,6 +362,13 @@ export function MailboxList({
   const allChecked =
     filtered.length > 0 && filtered.every(({ item: i }) => selectedIds.has(i.submissao_id));
 
+  // Drawer lateral de "Checklist pendente" — substitui a antiga expansão inline.
+  const [openChecklistFor, setOpenChecklistFor] = useState<string | null>(null);
+  const openGroup = useMemo(
+    () => groups.find((g) => g.submissao_id === openChecklistFor) ?? null,
+    [groups, openChecklistFor],
+  );
+
   return (
     <div className="flex h-full flex-col">
       {folder === "inbox" && onActionFilterChange && (
@@ -459,9 +484,18 @@ export function MailboxList({
               onToggleStar={onToggleStar}
               onEnviarGrupoBrasil={onEnviarGrupoBrasil}
               onOpenSubmissao={onOpenSubmissao}
+              onOpenChecklist={(id) => setOpenChecklistFor(id)}
             />
           ))}
       </ul>
+      <ChecklistPendingSheet
+        open={openChecklistFor !== null}
+        onOpenChange={(o) => !o && setOpenChecklistFor(null)}
+        group={openGroup}
+        onSelectItem={onSelect}
+        onEnviarGrupoBrasil={onEnviarGrupoBrasil}
+        onOpenSubmissao={onOpenSubmissao}
+      />
     </div>
   );
 }
@@ -477,6 +511,8 @@ interface GroupRowProps {
   onToggleStar: (item: MailboxItem) => void;
   onEnviarGrupoBrasil?: (group: MailboxGroup) => void;
   onOpenSubmissao?: (submissao_id: string) => void;
+  /** Abre o drawer lateral com a lista detalhada de pendências do checklist. */
+  onOpenChecklist?: (submissao_id: string) => void;
 }
 
 /** Frase em linguagem natural para o status da submissão pai (cabeçalho do grupo). */
@@ -509,11 +545,13 @@ function GroupRow({
   onToggleStar,
   onEnviarGrupoBrasil,
   onOpenSubmissao,
+  onOpenChecklist,
 }: GroupRowProps) {
-  // Em "Pendentes de envio" abrimos o checklist por padrão para que a relação
-  // parte/todo (X de Y) fique visível sem clique extra.
+  // Em "Pendentes de envio" o detalhamento é feito agora num drawer lateral
+  // (ChecklistPendingSheet), não mais por expansão inline. Para outras pastas,
+  // mantemos o comportamento clássico de expandir/recolher.
   const isAwaiting = folder === "awaiting_send";
-  const [expanded, setExpanded] = useState(isAwaiting);
+  const [expanded, setExpanded] = useState(false);
   const headerActive = group.docs.some((d) => (d.documento_id ?? d.submissao_id) === selectedId);
   const checked = selectedIds.has(group.submissao_id);
   const sb = statusBadge(group.submissao_status, group.worst_status, group.docs[0]?.approval_completeness);
@@ -573,11 +611,15 @@ function GroupRow({
           type="button"
           onClick={(e) => {
             e.stopPropagation();
-            setExpanded((v) => !v);
+            if (isAwaiting && onOpenChecklist) {
+              onOpenChecklist(group.submissao_id);
+            } else {
+              setExpanded((v) => !v);
+            }
           }}
           className="mt-0.5 text-muted-foreground hover:text-foreground"
-          aria-label={expanded ? "Recolher" : "Expandir"}
-          aria-expanded={expanded}
+          aria-label={isAwaiting ? "Abrir checklist pendente" : expanded ? "Recolher" : "Expandir"}
+          aria-expanded={isAwaiting ? undefined : expanded}
         >
           <ChevronIcon className="h-3.5 w-3.5" />
         </button>
@@ -637,12 +679,12 @@ function GroupRow({
                   className="h-6 gap-1 px-2 text-[10.5px]"
                   onClick={(e) => {
                     e.stopPropagation();
-                    setExpanded((v) => !v);
+                    onOpenChecklist?.(group.submissao_id);
                   }}
-                  aria-expanded={expanded}
+                  title="Abrir lista detalhada de pendências em uma caixa lateral"
                 >
                   <ListChecks className="h-3 w-3" />
-                  {expanded ? "Ocultar checklist" : `Ver checklist (${pendingCount})`}
+                  Ver checklist ({pendingCount})
                 </Button>
                 {pendingCount > 0 && onEnviarGrupoBrasil && (
                   <Button
@@ -681,7 +723,7 @@ function GroupRow({
               <Paperclip className="h-3 w-3 shrink-0" />
               <span className="truncate">
                 {group.docs.length} documento{group.docs.length === 1 ? "" : "s"}
-                {Pivot.tipo_documento ? ` · último: ${Pivot.tipo_documento}` : ""}
+                {Pivot.tipo_documento ? ` · último: ${resolveTipoLabel(Pivot)}` : ""}
               </span>
             </div>
           )}
@@ -702,7 +744,7 @@ function GroupRow({
           </span>
         </div>
       </li>
-      {expanded &&
+      {expanded && !isAwaiting &&
         group.docs.map((d) => {
           const id = d.is_virtual
             ? `${d.submissao_id}:virtual:${d.tipo_documento ?? "_"}`

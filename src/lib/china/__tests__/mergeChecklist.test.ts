@@ -51,6 +51,29 @@ describe("computeExpectedChecklist", () => {
     expect(exp.tipos.has("extra_custom")).toBe(true);
     expect(exp.tiposChinaEnvia.has("extra_custom")).toBe(true);
   });
+
+  it("popula labels com nomes padrão e label_pt de itens custom", () => {
+    const exp = computeExpectedChecklist(
+      [],
+      [
+        {
+          id: "i1",
+          submissao_id: "s",
+          tipo_key: "extra_custom",
+          label_pt: "Catálogo Extra",
+          label_cn: "额外目录",
+          categoria_default_key: "dados_oficiais",
+          categoria_custom_id: null,
+        },
+      ],
+      [],
+    );
+    // Padrão veio de CHINA_DOCUMENT_TYPES
+    expect(exp.labels.get("planilha_excel")?.pt).toBe("Planilha Excel");
+    // Custom veio de label_pt
+    expect(exp.labels.get("extra_custom")?.pt).toBe("Catálogo Extra");
+    expect(exp.labels.get("extra_custom")?.cn).toBe("额外目录");
+  });
 });
 
 describe("computeExpectedChecklistBatch", () => {

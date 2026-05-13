@@ -90,6 +90,12 @@ export interface MailboxItem {
    * Renderizados em "Pendentes de envio" para refletir tudo que ainda falta criar.
    */
   is_virtual?: boolean;
+  /**
+   * Nome legível do `tipo_documento` resolvido via merge do checklist
+   * (padrão de `CHINA_DOCUMENT_TYPES` ou `label_pt` do item custom).
+   * Quando ausente, a UI cai num formatador de fallback baseado em `tipo_documento`.
+   */
+  tipo_documento_label?: string;
 }
 
 export type ApprovalCompleteness = "all" | "total" | "partial" | "empty";
@@ -342,6 +348,12 @@ export function useChinaMailbox(folder: MailboxFolder): UseChinaMailboxResult {
       return subStats.get(subId)?.total ?? 0;
     };
 
+    /** Resolve label legível do tipo_documento usando o mapa do Modo Foco. */
+    const labelFor = (subId: string, tipo: string | null | undefined): string | undefined => {
+      if (!tipo) return undefined;
+      return expectedBySub.get(subId)?.labels.get(tipo)?.pt;
+    };
+
     // Construímos um item por documento; submissões sem doc viram um item "submissão".
     const allItems: MailboxItem[] = [];
     const seenSubs = new Set<string>();
@@ -385,6 +397,7 @@ export function useChinaMailbox(folder: MailboxFolder): UseChinaMailboxResult {
         checklist_rejeitados: subStats.get(sub.id)?.rejeitados ?? 0,
         approval_completeness: completenessFor(sub.id, sub.status),
         checklist_expected_total: expectedTotalFor(sub.id),
+        tipo_documento_label: labelFor(sub.id, d.tipo_documento),
       });
     }
 
@@ -467,6 +480,7 @@ export function useChinaMailbox(folder: MailboxFolder): UseChinaMailboxResult {
           approval_completeness: undefined,
           checklist_expected_total: exp.total,
           is_virtual: true,
+          tipo_documento_label: exp.labels.get(tipo)?.pt,
         });
       }
     }

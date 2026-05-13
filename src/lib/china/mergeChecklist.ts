@@ -9,6 +9,11 @@
  */
 import { CHINA_DOCUMENT_TYPES, DOCUMENT_CATEGORIES } from "@/lib/china-document-types";
 
+export interface ChecklistTipoLabel {
+  pt: string;
+  cn?: string;
+}
+
 export interface ChecklistCustomCategory {
   id: string;
   submissao_id: string;
@@ -42,6 +47,13 @@ export interface ExpectedChecklistStats {
   tiposChinaEnvia: Set<string>;
   /** Tipos esperados no fluxo Brasil envia. */
   tiposBrasilEnvia: Set<string>;
+  /**
+   * Mapa `tipo_key → { pt, cn }` com o nome configurado do item no checklist
+   * (padrão de `CHINA_DOCUMENT_TYPES` ou `label_pt`/`label_cn` do item custom).
+   * Permite à Caixa de Entrada e ao drawer de pendências mostrar o nome real
+   * em vez da chave bruta (ex.: "Faca Display" em vez de "faca_display").
+   */
+  labels: Map<string, ChecklistTipoLabel>;
 }
 
 const EMPTY: ExpectedChecklistStats = {
@@ -49,6 +61,7 @@ const EMPTY: ExpectedChecklistStats = {
   total: 0,
   tiposChinaEnvia: new Set(),
   tiposBrasilEnvia: new Set(),
+  labels: new Map(),
 };
 
 /**
@@ -89,6 +102,20 @@ export function computeExpectedChecklist(
   const tipos = new Set<string>();
   const tiposChinaEnvia = new Set<string>();
   const tiposBrasilEnvia = new Set<string>();
+  const labels = new Map<string, ChecklistTipoLabel>();
+
+  // Pré-popula labels dos tipos padrão de CHINA_DOCUMENT_TYPES.
+  for (const dt of CHINA_DOCUMENT_TYPES) {
+    labels.set(dt.tipo, { pt: dt.labelPt, cn: dt.labelCn });
+  }
+  // Sobrescreve / adiciona com labels de itens custom.
+  for (const ci of customItems) {
+    if (!ci.tipo_key) continue;
+    labels.set(ci.tipo_key, {
+      pt: ci.label_pt || ci.tipo_key,
+      cn: ci.label_cn,
+    });
+  }
 
   for (const cat of visible) {
     for (const t of cat.tipos) {
@@ -104,6 +131,7 @@ export function computeExpectedChecklist(
     total: tipos.size,
     tiposChinaEnvia,
     tiposBrasilEnvia,
+    labels,
   };
 }
 
