@@ -4,14 +4,14 @@ import { Badge } from "@/components/ui/badge";
 import { useChinaInboxCount } from "@/hooks/useChinaInbox";
 import { cn } from "@/lib/utils";
 import { SidebarMenuItem, SidebarMenuButton } from "@/components/ui/sidebar";
+import { useChinaI18n } from "@/hooks/useChinaI18n";
 
 /**
  * Item de sidebar dedicado à Caixa de Entrada China com contador dinâmico.
- * Estilo idêntico ao MenuItemLink padrão (AppSidebar) — bilingual title +
- * badge compacta à direita quando há pendências.
  */
 export function ChinaInboxSidebarItem({ colorKey }: { colorKey?: string }) {
   const count = useChinaInboxCount();
+  const { t } = useChinaI18n();
 
   return (
     <SidebarMenuItem>
@@ -33,7 +33,7 @@ export function ChinaInboxSidebarItem({ colorKey }: { colorKey?: string }) {
               count > 0 && "text-destructive animate-pulse",
             )}
           />
-          <span className="flex-1 truncate">Caixa de Entrada 收件箱</span>
+          <span className="flex-1 truncate">{t("inbox.menu.caixaEntrada")}</span>
           {count > 0 && (
             <Badge
               variant="destructive"

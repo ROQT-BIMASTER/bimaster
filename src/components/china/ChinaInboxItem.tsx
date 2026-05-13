@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { CHINA_DOCUMENT_TYPES } from "@/lib/china-document-types";
 import { ChinaQuickReject } from "./ChinaQuickReject";
 import type { ChinaInboxItem as InboxItem } from "@/hooks/useChinaInbox";
+import { useChinaI18n } from "@/hooks/useChinaI18n";
 
 interface Props {
   item: InboxItem;
@@ -25,6 +26,7 @@ interface Props {
 export function ChinaInboxItem({
   item, isBrasilUser, isChinaUser, onApprove, onReject, onView, onCorrigir, loading,
 }: Props) {
+  const { t } = useChinaI18n();
   const [rejectOpen, setRejectOpen] = useState(false);
   const cfg = CHINA_DOCUMENT_TYPES.find((t) => t.tipo === item.tipo_documento);
 
@@ -71,19 +73,19 @@ export function ChinaInboxItem({
               {isAjuste && (
                 <Badge variant="destructive" className="text-[10px] h-4 gap-1">
                   <AlertTriangle className="h-3 w-3" />
-                  Ajustar / 修正
+                  {t("inbox.item.ajustar")}
                 </Badge>
               )}
               {!isAjuste && isUrgent && (
                 <Badge className="text-[10px] h-4 gap-1 bg-warning text-warning-foreground">
                   <Clock className="h-3 w-3" />
-                  +24h
+                  {t("inbox.toolbar.mais24h")}
                 </Badge>
               )}
               {!isAjuste && !isUrgent && (
                 <Badge variant="outline" className="text-[10px] h-4 gap-1">
                   <Clock className="h-3 w-3" />
-                  {item.horas_pendentes}h
+                  {t("inbox.item.horasPendentes", { count: item.horas_pendentes })}
                 </Badge>
               )}
             </div>
@@ -104,7 +106,7 @@ export function ChinaInboxItem({
               onClick={() => onView(item)}
             >
               <Eye className="h-3.5 w-3.5 mr-1" />
-              Ver / 查看
+              {t("inbox.item.ver")}
             </Button>
 
             {isBrasilUser && !isAjuste && (
@@ -117,7 +119,7 @@ export function ChinaInboxItem({
                   onClick={() => onApprove(item)}
                 >
                   <CheckCircle2 className="h-3.5 w-3.5 mr-1" />
-                  Aprovar / 批准
+                  {t("inbox.item.aprovar")}
                 </Button>
                 <Button
                   variant="outline"
@@ -126,7 +128,7 @@ export function ChinaInboxItem({
                   onClick={() => setRejectOpen(true)}
                 >
                   <XCircle className="h-3.5 w-3.5 mr-1" />
-                  Pedir ajuste / 请求修正
+                  {t("inbox.item.pedirAjuste")}
                 </Button>
               </>
             )}
@@ -138,7 +140,7 @@ export function ChinaInboxItem({
                 className="h-7 text-xs"
                 onClick={() => onCorrigir(item)}
               >
-                Corrigir / 修正
+                {t("inbox.item.corrigir")}
               </Button>
             )}
           </div>

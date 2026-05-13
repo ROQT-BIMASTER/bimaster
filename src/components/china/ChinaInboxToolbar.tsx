@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/select";
 import { CHINA_DOCUMENT_TYPES } from "@/lib/china-document-types";
 import type { ChinaInboxItem } from "@/hooks/useChinaInbox";
+import { useChinaI18n } from "@/hooks/useChinaI18n";
 
 export type InboxViewMode = "table" | "cards";
 export type InboxUrgencia = "todos" | "24" | "48" | "72";
@@ -41,6 +42,7 @@ interface Props {
 export function ChinaInboxToolbar({
   items, filters, onFiltersChange, viewMode, onViewModeChange, isDesktop,
 }: Props) {
+  const { t } = useChinaI18n();
   // Listas derivadas — alimentam selects de OC e Tipo
   const ocs = useMemo(() => {
     const set = new Set<string>();
@@ -54,9 +56,9 @@ export function ChinaInboxToolbar({
     return Array.from(set).sort();
   }, [items]);
 
-  const tipoLabel = (t: string) => {
-    const cfg = CHINA_DOCUMENT_TYPES.find((c) => c.tipo === t);
-    return cfg ? `${cfg.labelPt} ${cfg.labelCn ?? ""}` : t;
+  const tipoLabel = (tp: string) => {
+    const cfg = CHINA_DOCUMENT_TYPES.find((c) => c.tipo === tp);
+    return cfg ? `${cfg.labelPt} ${cfg.labelCn ?? ""}` : tp;
   };
 
   const activeCount =
@@ -83,14 +85,14 @@ export function ChinaInboxToolbar({
           <Input
             value={filters.busca}
             onChange={(e) => onFiltersChange({ ...filters, busca: e.target.value })}
-            placeholder="Buscar produto, OC, arquivo / 搜索产品、采购单、文件"
+            placeholder={t("inbox.toolbar.buscarPlaceholder")}
             className="h-8 pl-8 text-xs"
           />
           {filters.busca && (
             <button
               onClick={() => onFiltersChange({ ...filters, busca: "" })}
               className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-              aria-label="Limpar busca"
+              aria-label={t("inbox.toolbar.limparBusca")}
             >
               <X className="h-3.5 w-3.5" />
             </button>
@@ -103,13 +105,13 @@ export function ChinaInboxToolbar({
           onValueChange={(v) => onFiltersChange({ ...filters, oc: v })}
         >
           <SelectTrigger className="h-8 text-xs w-full lg:w-[150px]">
-            <SelectValue placeholder="OC / 采购单" />
+            <SelectValue placeholder={t("inbox.toolbar.ocPlaceholder")} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="todos" className="text-xs">Todas as OCs / 所有</SelectItem>
+            <SelectItem value="todos" className="text-xs">{t("inbox.toolbar.todasOcs")}</SelectItem>
             {ocs.map((oc) => (
               <SelectItem key={oc} value={oc} className="text-xs">
-                OC {oc}
+                {t("inbox.toolbar.ocPlaceholder")} {oc}
               </SelectItem>
             ))}
           </SelectContent>
@@ -121,13 +123,13 @@ export function ChinaInboxToolbar({
           onValueChange={(v) => onFiltersChange({ ...filters, tipo: v })}
         >
           <SelectTrigger className="h-8 text-xs w-full lg:w-[200px]">
-            <SelectValue placeholder="Tipo / 类型" />
+            <SelectValue placeholder={t("inbox.toolbar.tipoPlaceholder")} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="todos" className="text-xs">Todos os tipos / 所有类型</SelectItem>
-            {tipos.map((t) => (
-              <SelectItem key={t} value={t} className="text-xs">
-                {tipoLabel(t)}
+            <SelectItem value="todos" className="text-xs">{t("inbox.toolbar.todosTipos")}</SelectItem>
+            {tipos.map((tp) => (
+              <SelectItem key={tp} value={tp} className="text-xs">
+                {tipoLabel(tp)}
               </SelectItem>
             ))}
           </SelectContent>
@@ -139,13 +141,13 @@ export function ChinaInboxToolbar({
           onValueChange={(v) => onFiltersChange({ ...filters, urgencia: v as InboxUrgencia })}
         >
           <SelectTrigger className="h-8 text-xs w-full lg:w-[140px]">
-            <SelectValue placeholder="Urgência" />
+            <SelectValue placeholder={t("inbox.toolbar.urgenciaPlaceholder")} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="todos" className="text-xs">Todas idades</SelectItem>
-            <SelectItem value="24" className="text-xs">+24h</SelectItem>
-            <SelectItem value="48" className="text-xs">+48h</SelectItem>
-            <SelectItem value="72" className="text-xs">+72h</SelectItem>
+            <SelectItem value="todos" className="text-xs">{t("inbox.toolbar.todasIdades")}</SelectItem>
+            <SelectItem value="24" className="text-xs">{t("inbox.toolbar.mais24h")}</SelectItem>
+            <SelectItem value="48" className="text-xs">{t("inbox.toolbar.mais48h")}</SelectItem>
+            <SelectItem value="72" className="text-xs">{t("inbox.toolbar.mais72h")}</SelectItem>
           </SelectContent>
         </Select>
 
@@ -153,7 +155,7 @@ export function ChinaInboxToolbar({
         {activeCount > 0 && (
           <Button variant="ghost" size="sm" className="h-8 text-xs gap-1" onClick={clear}>
             <X className="h-3.5 w-3.5" />
-            Limpar ({activeCount})
+            {t("inbox.toolbar.limpar", { count: activeCount })}
           </Button>
         )}
       </div>
@@ -164,7 +166,7 @@ export function ChinaInboxToolbar({
           <div className="flex items-center gap-2">
             <FilterIcon className="h-3.5 w-3.5 text-muted-foreground" />
             <span className="text-[11px] text-muted-foreground">
-              Visualização / 视图
+              {t("inbox.toolbar.visualizacao")}
             </span>
           </div>
 
@@ -177,7 +179,7 @@ export function ChinaInboxToolbar({
                 onClick={() => onFiltersChange({ ...filters, agrupar: !filters.agrupar })}
               >
                 <Layers className="h-3.5 w-3.5" />
-                Agrupar por produto / 按产品分组
+                {t("inbox.toolbar.agruparProduto")}
                 {filters.agrupar && (
                   <Badge variant="secondary" className="ml-1 h-4 text-[9px] px-1">
                     ON
@@ -194,7 +196,7 @@ export function ChinaInboxToolbar({
                 onClick={() => onViewModeChange("table")}
               >
                 <Rows3 className="h-3.5 w-3.5" />
-                Tabela
+                {t("inbox.toolbar.tabela")}
               </Button>
               <Button
                 variant={viewMode === "cards" ? "default" : "ghost"}
@@ -203,7 +205,7 @@ export function ChinaInboxToolbar({
                 onClick={() => onViewModeChange("cards")}
               >
                 <LayoutGrid className="h-3.5 w-3.5" />
-                Cards
+                {t("inbox.toolbar.cards")}
               </Button>
             </div>
           </div>

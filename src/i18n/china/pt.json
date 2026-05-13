@@ -306,6 +306,48 @@
         "toastOk": "Parecer técnico salvo.",
         "toastErr": "Falha ao salvar parecer."
       }
+    },
+    "toolbar": {
+      "buscarPlaceholder": "Buscar produto, OC, arquivo",
+      "limparBusca": "Limpar busca",
+      "ocPlaceholder": "OC",
+      "todasOcs": "Todas as OCs",
+      "tipoPlaceholder": "Tipo",
+      "todosTipos": "Todos os tipos",
+      "urgenciaPlaceholder": "Urgência",
+      "todasIdades": "Todas as idades",
+      "mais24h": "+24h",
+      "mais48h": "+48h",
+      "mais72h": "+72h",
+      "limpar": "Limpar ({{count}})",
+      "visualizacao": "Visualização",
+      "agruparProduto": "Agrupar por produto",
+      "tabela": "Tabela",
+      "cards": "Cards"
+    },
+    "item": {
+      "ajustar": "Ajustar",
+      "horasPendentes": "{{count}}h",
+      "ver": "Ver",
+      "aprovar": "Aprovar",
+      "pedirAjuste": "Pedir ajuste",
+      "corrigir": "Corrigir"
+    },
+    "decisoes": {
+      "tipoAprovado": "Aprovado",
+      "tipoRejeitado": "Rejeitado",
+      "tipoAjuste": "Ajuste solicitado",
+      "vazioTitulo": "Nenhuma decisão recebida",
+      "vazioDescricao": "As decisões do Brasil sobre esta submissão aparecerão aqui assim que forem registradas.",
+      "tituloLista": "Decisões do Brasil",
+      "atrasado": "Atrasado",
+      "diasRestantes": "{{count}}d restantes",
+      "itensPendentes": "Itens pendentes:",
+      "reenviar": "Reenviar correções",
+      "versao": "V{{n}}"
+    },
+    "menu": {
+      "caixaEntrada": "Caixa de entrada"
     }
   },
   "mailboxList": {
