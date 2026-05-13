@@ -16,6 +16,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -301,6 +302,10 @@ export function ChecklistPendingSheet({
   const { bgColor } = usePageBgColor();
   const merged = useMergedChinaChecklist(group?.submissao_id ?? null);
   const cfg = (folder && FOLDER_CONFIG[folder]) ?? DEFAULT_FOLDER_CONFIG;
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  useEffect(() => {
+    setSelected(new Set());
+  }, [group?.submissao_id, folder]);
 
   // Parecer técnico da China (campo único por submissão).
   const currentParecer = group?.docs[0]?.observacoes_china ?? "";
@@ -529,15 +534,39 @@ export function ChecklistPendingSheet({
                 !item.is_virtual &&
                 !!item.documento_id &&
                 (state === "pendente_envio" || state === "rejeitado");
+              const canBulkSelect =
+                !!onEnviarItemBrasil &&
+                hasParecer &&
+                !item.is_virtual &&
+                !!item.documento_id &&
+                (state === "pendente_envio" || state === "rejeitado");
+              const isChecked = canBulkSelect && selected.has(id);
               return (
                 <li
                   key={id}
                   className={cn(
                     "flex items-start gap-2 border-l-4 pl-3 pr-4 py-2.5 transition-colors hover:bg-muted/30",
                     STATE_BORDER[state] ?? "border-l-transparent",
+                    isChecked && "bg-emerald-500/5",
                   )}
                 >
-                  <Paperclip className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                  {canBulkSelect ? (
+                    <Checkbox
+                      className="mt-0.5"
+                      checked={isChecked}
+                      onCheckedChange={(c) => {
+                        setSelected((prev) => {
+                          const n = new Set(prev);
+                          if (c) n.add(id);
+                          else n.delete(id);
+                          return n;
+                        });
+                      }}
+                      aria-label={`Selecionar ${name} para envio em lote`}
+                    />
+                  ) : (
+                    <Paperclip className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                  )}
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-[12.5px] font-medium text-foreground">
                       {name}
@@ -687,7 +716,7 @@ export function ChecklistPendingSheet({
           })}
         </div>
 
-        <div className="sticky bottom-0 flex items-center gap-2 border-t border-border/60 bg-background/95 px-4 py-2 backdrop-blur">
+        <div className="sticky bottom-0 flex flex-wrap items-center gap-2 border-t border-border/60 bg-background/95 px-4 py-2 backdrop-blur">
           {onOpenSubmissao && (
             <Button
               type="button"
@@ -699,12 +728,34 @@ export function ChecklistPendingSheet({
               Abrir submissão
             </Button>
           )}
-          {cfg.showEnviarFooter && pendingCount > 0 && onEnviarGrupoBrasil && (
+          {cfg.showEnviarFooter && selected.size > 0 && onEnviarItemBrasil && (
+            <Button
+              type="button"
+              size="sm"
+              className="ml-auto h-7 gap-1 px-2 text-[11px] bg-emerald-600 hover:bg-emerald-700 text-white"
+              onClick={() => {
+                if (!scopedGroup) return;
+                const map = new Map(scopedGroup.docs.map((d) => [rowKey(d), d]));
+                const items = Array.from(selected)
+                  .map((k) => map.get(k))
+                  .filter((d): d is MailboxItem => !!d);
+                items.forEach((it) => onEnviarItemBrasil(it));
+                setSelected(new Set());
+              }}
+              title="Despachar somente os itens selecionados ao Brasil"
+            >
+              <Send className="h-3 w-3" />
+              Enviar selecionados ({selected.size})
+            </Button>
+          )}
+          {cfg.showEnviarFooter && selected.size === 0 && pendingCount > 0 && onEnviarGrupoBrasil && (
             <Button
               type="button"
               size="sm"
               className="ml-auto h-7 gap-1 px-2 text-[11px] bg-emerald-600 hover:bg-emerald-700 text-white"
               onClick={() => onEnviarGrupoBrasil(group)}
+              disabled={!hasParecer}
+              title={hasParecer ? "Despachar todos os itens prontos ao Brasil" : "Registre o parecer técnico antes de despachar"}
             >
               <Send className="h-3 w-3" />
               Enviar todos ao Brasil
