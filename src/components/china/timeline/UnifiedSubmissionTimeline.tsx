@@ -271,6 +271,36 @@ export function UnifiedSubmissionTimeline({ submissao, ocId, onlyChinaStages, cl
     ? "neutral"
     : saldoAberto <= 0 && qtyPedida > 0 ? "done" : qtyRecebida > 0 ? "pending" : "neutral";
 
+  // ---------- Deadlines (SLA) ----------
+  const { data: slaData } = useChinaTimelineSla(submissao.submissao_id);
+  const baseDate = parseLocalDate(submissao.created_at || null);
+  const deadlines: StageDeadline[] = useMemo(() => {
+    const sla = slaData?.effective ?? null;
+    if (!sla) return [];
+    const stagesArr = [
+      { stage: 1, st: stSubmissao, doneAt: submissao.created_at },
+      { stage: 2, st: stDocs, doneAt: docs?.ultimoEm ?? null },
+      { stage: 3, st: stEnviada, doneAt: docs?.ultimoEm ?? null },
+      { stage: 4, st: stAprovBrasil, doneAt: submissao.aprovado_em ?? null },
+      { stage: 5, st: stPedido, doneAt: oc?.data_emissao ?? null },
+      { stage: 6, st: stProducao, doneAt: oc?.data_producao_concluida ?? null },
+      { stage: 7, st: stEmbarque, doneAt: embarque?.data_embarque ?? null },
+      { stage: 8, st: stTransito, doneAt: oc?.data_chegada_porto ?? null },
+      { stage: 9, st: stDesemb, doneAt: oc?.data_desembaraco ?? null },
+      { stage: 10, st: stReceb, doneAt: oc?.data_recebimento_cd ?? null },
+    ];
+    return computeStageDeadlines({
+      base: baseDate,
+      sla,
+      stageState: stagesArr.map((s) => ({
+        stage: s.stage,
+        done: s.st === "done",
+        concluidaEm: s.doneAt ? (parseLocalDate(s.doneAt) ?? new Date(s.doneAt)) : null,
+      })),
+    });
+  }, [slaData, baseDate, stSubmissao, stDocs, stEnviada, stAprovBrasil, stPedido, stProducao, stEmbarque, stTransito, stDesemb, stReceb, docs?.ultimoEm, submissao.aprovado_em, submissao.created_at, oc, embarque]);
+  const dl = (n: number): StageDeadline | undefined => deadlines.find((d) => d.stage === n);
+
   // Notifica o pai com o snapshot atual das etapas (para exportar PDF).
   useEffect(() => {
     if (!onStagesComputed) return;
