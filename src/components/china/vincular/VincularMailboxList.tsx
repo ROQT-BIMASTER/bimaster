@@ -281,6 +281,17 @@ export function VincularMailboxList({
           </span>
         )}
         <ReadStatusLegend />
+        <Button
+          size="sm"
+          variant={groupByOrder ? "default" : "ghost"}
+          className="h-7 px-1.5 text-[11px] gap-1"
+          onClick={toggleGroupByOrder}
+          title="Agrupar por ordem (OC)"
+          aria-pressed={groupByOrder}
+        >
+          <Layers className="h-3 w-3" />
+          <span className="hidden sm:inline">Agrupar OC</span>
+        </Button>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button
