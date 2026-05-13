@@ -320,14 +320,14 @@ export default function ChinaCaixaEntrada() {
               size="sm"
               onClick={handleMarkAllRead}
               disabled={unreadVisibleCount === 0 || isMarkingAllRead}
-              title="Marcar todas as mensagens visíveis como lidas"
+              title={t("inbox.actions.marcarTodasLidasTitle")}
             >
               {isMarkingAllRead ? (
                 <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
               ) : (
                 <CheckCheck className="h-4 w-4 mr-1.5" />
               )}
-              {isMarkingAllRead ? "Marcando..." : "Marcar todas como lidas"}
+              {isMarkingAllRead ? t("inbox.actions.marcando") : t("inbox.actions.marcarTodasLidas")}
               {!isMarkingAllRead && unreadVisibleCount > 0 && (
                 <span className="ml-1 text-[10px] opacity-70">({unreadVisibleCount})</span>
               )}
