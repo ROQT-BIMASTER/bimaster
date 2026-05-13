@@ -677,7 +677,20 @@
     "btnAdicionarItem": "Add Item",
     "phNomeModelo": "E.g.: Makeup Standard, China Skincare...",
     "phDescricaoModelo": "What is this template for?",
-    "fallbackUploadFalha": "Upload failed"
+    "fallbackUploadFalha": "Upload failed",
+    "cancelar": "Cancel",
+    "custom": "Custom",
+    "modelosTitulo": "Checklist Templates",
+    "nenhumModelo": "No templates saved yet",
+    "salvarComoModelo": "Save current checklist as template",
+    "visibilidade": "Visibility",
+    "confirmExcluirModelo": "Delete template \"{{nome}}\"?",
+    "btnSalvarModelo": "Save template",
+    "escopoLabel": "Scope",
+    "nomeModeloLabel": "Template name *",
+    "descricaoModeloLabel": "Description (optional)",
+    "escopoGlobalDesc": "Available to all users",
+    "escopoPessoalDesc": "Only for you"
   },
   "governance": {
     "statusPendente": "Pending",

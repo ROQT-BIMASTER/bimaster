@@ -704,7 +704,20 @@
     "btnAdicionarItem": "Adicionar Item",
     "phNomeModelo": "Ex.: Padrão Maquiagem, Skincare China...",
     "phDescricaoModelo": "Para que serve este modelo?",
-    "fallbackUploadFalha": "Falha no upload"
+    "fallbackUploadFalha": "Falha no upload",
+    "cancelar": "Cancelar",
+    "custom": "Custom",
+    "modelosTitulo": "Modelos de Checklist",
+    "nenhumModelo": "Nenhum modelo salvo ainda",
+    "salvarComoModelo": "Salvar checklist atual como modelo",
+    "visibilidade": "Visibilidade",
+    "confirmExcluirModelo": "Excluir modelo \"{{nome}}\"?",
+    "btnSalvarModelo": "Salvar modelo",
+    "escopoLabel": "Escopo",
+    "nomeModeloLabel": "Nome do modelo *",
+    "descricaoModeloLabel": "Descrição (opcional)",
+    "escopoGlobalDesc": "Disponível para todos os usuários",
+    "escopoPessoalDesc": "Apenas para você"
   },
   "governance": {
     "statusPendente": "Pendente",

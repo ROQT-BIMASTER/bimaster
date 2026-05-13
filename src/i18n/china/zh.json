@@ -671,7 +671,20 @@
     "btnAdicionarItem": "添加项目",
     "phNomeModelo": "例如:化妆品标准、中国护肤……",
     "phDescricaoModelo": "此模板的用途是什么?",
-    "fallbackUploadFalha": "上传失败"
+    "fallbackUploadFalha": "上传失败",
+    "cancelar": "取消",
+    "custom": "自定义",
+    "modelosTitulo": "清单模板",
+    "nenhumModelo": "暂无已保存的模板",
+    "salvarComoModelo": "将当前清单保存为模板",
+    "visibilidade": "可见性",
+    "confirmExcluirModelo": "删除模板「{{nome}}」吗?",
+    "btnSalvarModelo": "保存模板",
+    "escopoLabel": "范围",
+    "nomeModeloLabel": "模板名称 *",
+    "descricaoModeloLabel": "描述(可选)",
+    "escopoGlobalDesc": "对所有用户可用",
+    "escopoPessoalDesc": "仅对您可用"
   },
   "governance": {
     "statusPendente": "待处理",
