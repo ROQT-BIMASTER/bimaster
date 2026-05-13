@@ -654,30 +654,31 @@ function GroupRow({
           {isAwaiting ? (
             <>
               <p className="mt-0.5 text-[11px] text-muted-foreground">
-                Submissão: <span className="text-foreground/85">{describeParentStatus(group.submissao_status)}</span>
+                {t("mailboxList.group.submissaoLabel")}{" "}
+                <span className="text-foreground/85">{describeParentStatus(group.submissao_status, t)}</span>
               </p>
               {(() => {
                 const sentFirst = folder === "sent_brazil" || folder === "in_analysis";
                 return (
                   <p
                     className="mt-0.5 text-[11px] text-muted-foreground"
-                    title="Total baseado no checklist configurado (Modo Foco). Itens ainda não criados aparecem como pendentes de envio."
+                    title={t("mailboxList.group.checklistTotalTitle")}
                   >
-                    Checklist:{" "}
+                    {t("mailboxList.group.checklistPrefix")}{" "}
                     {sentFirst ? (
                       <>
-                        <span className="font-medium text-emerald-400">{progressed} enviado{progressed === 1 ? "" : "s"}</span>
+                        <span className="font-medium text-emerald-400">{t("mailboxList.group.enviado", { count: progressed })}</span>
                         {" · "}
                         <span className="text-muted-foreground">
-                          {pendingCount} ainda pendente{pendingCount === 1 ? "" : "s"}
+                          {t("mailboxList.group.aindaPendente", { count: pendingCount })}
                         </span>
                       </>
                     ) : (
                       <>
-                        <span className="text-foreground/90 font-medium">{progressed} de {expectedTotal}</span>
-                        {" itens enviados · "}
+                        <span className="text-foreground/90 font-medium">{t("mailboxList.group.deTotal", { progressed, total: expectedTotal })}</span>
+                        {" "}{t("mailboxList.group.itensEnviados")}{" · "}
                         <span className={cn("font-medium", pendingCount > 0 ? "text-amber-400" : "text-emerald-400")}>
-                          {pendingCount} pendente{pendingCount === 1 ? "" : "s"} de envio
+                          {t("mailboxList.group.pendenteEnvio", { count: pendingCount })}
                         </span>
                       </>
                     )}
@@ -686,7 +687,9 @@ function GroupRow({
               })()}
               {expectedTotal > realCount && (
                 <p className="mt-0.5 text-[10px] text-muted-foreground/80">
-                  {realCount} no checklist atual · {expectedTotal - realCount} ainda não criado{expectedTotal - realCount === 1 ? "" : "s"}
+                  {(expectedTotal - realCount) === 1
+                    ? t("mailboxList.group.noChecklistAtual", { real: realCount, remaining: expectedTotal - realCount })
+                    : t("mailboxList.group.noChecklistAtualPlural", { real: realCount, remaining: expectedTotal - realCount })}
                 </p>
               )}
               <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-muted/60">
@@ -700,7 +703,7 @@ function GroupRow({
                       : "bg-primary",
                   )}
                   style={{ width: `${pct}%` }}
-                  aria-label={`${pct}% enviado`}
+                  aria-label={t("mailboxList.group.pctEnviado", { pct })}
                 />
               </div>
               <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
@@ -714,10 +717,10 @@ function GroupRow({
                         e.stopPropagation();
                         onOpenChecklist?.(group.submissao_id);
                       }}
-                      title="Ver os itens já enviados ao Brasil"
+                      title={t("mailboxList.group.verEnviadosTitle")}
                     >
                       <ListChecks className="h-3 w-3" />
-                      Ver enviados ({progressed})
+                      {t("mailboxList.group.verEnviados", { count: progressed })}
                     </Button>
                     {pendingCount > 0 && (
                       <Button
@@ -732,9 +735,9 @@ function GroupRow({
                             { state: { from: "/dashboard/fabrica-china/caixa-entrada" } },
                           );
                         }}
-                        title="Abrir página dedicada filtrando os itens ainda pendentes"
+                        title={t("mailboxList.group.verPendentesTitle")}
                       >
-                        Ver pendentes ({pendingCount})
+                        {t("mailboxList.group.verPendentes", { count: pendingCount })}
                       </Button>
                     )}
                   </>
@@ -748,10 +751,10 @@ function GroupRow({
                       e.stopPropagation();
                       onOpenChecklist?.(group.submissao_id);
                     }}
-                    title="Abrir lista detalhada de pendências em uma caixa lateral"
+                    title={t("mailboxList.group.verChecklistTitle")}
                   >
                     <ListChecks className="h-3 w-3" />
-                    Ver checklist ({pendingCount})
+                    {t("mailboxList.group.verChecklist", { count: pendingCount })}
                   </Button>
                 )}
                 {allowSendBatch && pendingCount > 0 && onEnviarGrupoBrasil && (
@@ -763,10 +766,10 @@ function GroupRow({
                       e.stopPropagation();
                       onEnviarGrupoBrasil(group);
                     }}
-                    title="Despachar todos os itens elegíveis desta submissão ao Brasil"
+                    title={t("mailboxList.group.enviarTodosTitle")}
                   >
                     <Send className="h-3 w-3" />
-                    Enviar todos ao Brasil
+                    {t("mailboxList.group.enviarTodos")}
                   </Button>
                 )}
                 {onOpenSubmissao && (
@@ -779,9 +782,9 @@ function GroupRow({
                       e.stopPropagation();
                       onOpenSubmissao(group.submissao_id);
                     }}
-                    title="Abrir a submissão completa em uma nova tela"
+                    title={t("mailboxList.group.abrirSubmissaoTitle")}
                   >
-                    Abrir submissão
+                    {t("mailboxList.group.abrirSubmissao")}
                   </Button>
                 )}
               </div>
@@ -790,8 +793,8 @@ function GroupRow({
             <div className="mt-0.5 flex flex-wrap items-center gap-1.5 truncate text-[11.5px] text-muted-foreground">
               <Paperclip className="h-3 w-3 shrink-0" />
               <span className="truncate">
-                {group.docs.length} documento{group.docs.length === 1 ? "" : "s"}
-                {Pivot.tipo_documento ? ` · último: ${resolveTipoLabel(Pivot)}` : ""}
+                {t("mailboxList.group.documento", { count: group.docs.length })}
+                {Pivot.tipo_documento ? ` · ${t("mailboxList.group.ultimo", { label: resolveTipoLabel(Pivot, t) ?? "" })}` : ""}
               </span>
               {folder === "approved" && (
                 <Button
@@ -806,10 +809,10 @@ function GroupRow({
                       { state: { from: "/dashboard/fabrica-china/caixa-entrada" } },
                     );
                   }}
-                  title="Abrir página dedicada com o status completo do checklist"
+                  title={t("mailboxList.group.verChecklistCompletoTitle")}
                 >
                   <ListChecks className="h-3 w-3" />
-                  Ver checklist completo
+                  {t("mailboxList.group.verChecklistCompleto")}
                 </Button>
               )}
             </div>
