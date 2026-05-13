@@ -50,19 +50,24 @@ const BRASIL_GROUPS: FolderGroup[] = [
 ];
 
 // Sidebar do usuário China — central de comando estilo cliente de e-mail
+// Para as pastas operacionais, exibimos a contagem de ITENS (documentos) como
+// número principal e a contagem de SUBMISSÕES como sub-linha. Isso reflete a
+// nova regra de classificação: itens novos do checklist (rascunho/sem doc/sem
+// parecer) caem em "Pendentes de envio" mesmo quando a submissão pai já está
+// em análise no Brasil — então contar só por submissão escondia volume real.
 const CHINA_GROUPS: FolderGroup[] = [
   {
     titleKey: "grupoSaida",
     folders: [
-      { key: "awaiting_send", i18nKey: "awaiting_send", icon: FileEdit, countKey: "awaiting_send", tone: "text-muted-foreground" },
-      { key: "sent_brazil", i18nKey: "sent_brazil", icon: Send, countKey: "sent_brazil", tone: "text-primary" },
+      { key: "awaiting_send", i18nKey: "awaiting_send", icon: FileEdit, countKey: "awaiting_send_items", subCountKey: "awaiting_send", tone: "text-muted-foreground" },
+      { key: "sent_brazil", i18nKey: "sent_brazil", icon: Send, countKey: "sent_brazil_items", subCountKey: "sent_brazil", tone: "text-primary" },
     ],
   },
   {
     titleKey: "grupoAcompanhamento",
     folders: [
-      { key: "in_analysis", i18nKey: "in_analysis", icon: Eye, countKey: "in_analysis", tone: "text-amber-500" },
-      { key: "returned", i18nKey: "returned", icon: RotateCcw, countKey: "returned", tone: "text-rose-500" },
+      { key: "in_analysis", i18nKey: "in_analysis", icon: Eye, countKey: "in_analysis_items", subCountKey: "in_analysis", tone: "text-amber-500" },
+      { key: "returned", i18nKey: "returned", icon: RotateCcw, countKey: "returned_items", subCountKey: "returned", tone: "text-rose-500" },
       { key: "approved", i18nKey: "approved", icon: CheckCircle2, countKey: "approved", tone: "text-emerald-500" },
     ],
   },
