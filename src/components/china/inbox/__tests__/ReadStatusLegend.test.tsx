@@ -5,8 +5,9 @@ import { ReadStatusLegend } from "../ReadStatusLegend";
 describe("ReadStatusLegend", () => {
   it("renderiza o gatilho com aria-label acessível", () => {
     render(<ReadStatusLegend />);
+    // Aceita PT/EN/ZH dependendo do idioma resolvido pelo i18n.
     const trigger = screen.getByRole("button", {
-      name: /significam os destaques de leitura/i,
+      name: /leitura|read|阅读/i,
     });
     expect(trigger).toBeInTheDocument();
   });
@@ -14,12 +15,10 @@ describe("ReadStatusLegend", () => {
   it("exibe o conteúdo da legenda ao focar o gatilho", () => {
     render(<ReadStatusLegend />);
     const trigger = screen.getByRole("button", {
-      name: /significam os destaques de leitura/i,
+      name: /leitura|read|阅读/i,
     });
-    // Radix Tooltip abre no focus além do hover.
     fireEvent.focus(trigger);
-    // O conteúdo do tooltip aparece em um portal.
-    const matches = screen.getAllByText(/Indicadores de leitura/i);
+    const matches = screen.getAllByText(/Indicadores de leitura|Read indicators|阅读标记/i);
     expect(matches.length).toBeGreaterThan(0);
   });
 });
