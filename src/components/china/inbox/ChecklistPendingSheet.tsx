@@ -172,15 +172,34 @@ interface CategorySection {
   labelCn?: string;
   fluxo: "china_envia" | "brasil_envia" | "outros";
   rows: Array<{ item: MailboxItem; state: ItemState }>;
-  enviados: number;
+  enviadosCount: number;
+  pendentesCount: number;
   total: number;
 }
+
+const SENT_STATES: ReadonlySet<ItemState> = new Set(["enviado", "aprovado", "rejeitado"]);
+
+const STATE_ORDER_PENDING: Record<ItemState, number> = {
+  rejeitado: 0,
+  pendente_envio: 1,
+  nao_criado: 2,
+  enviado: 3,
+  aprovado: 4,
+};
+
+const STATE_ORDER_SENT: Record<ItemState, number> = {
+  enviado: 0,
+  aprovado: 1,
+  rejeitado: 2,
+  pendente_envio: 3,
+  nao_criado: 4,
+};
 
 function buildSections(
   group: MailboxGroup,
   cats: MergedChecklistCategory[],
+  priorityMode: "pending" | "sent",
 ): CategorySection[] {
-  // Index categories by tipo_key → categoria
   const tipoToCat = new Map<string, MergedChecklistCategory>();
   for (const c of cats) {
     for (const t of c.tipos) tipoToCat.set(t, c);
@@ -195,20 +214,26 @@ function buildSections(
   ): CategorySection => {
     let s = byCat.get(key);
     if (!s) {
-      s = { key, labelPt, labelCn, fluxo, rows: [], enviados: 0, total: 0 };
+      s = {
+        key,
+        labelPt,
+        labelCn,
+        fluxo,
+        rows: [],
+        enviadosCount: 0,
+        pendentesCount: 0,
+        total: 0,
+      };
       byCat.set(key, s);
     }
     return s;
   };
 
-  // Pré-cria as categorias visíveis (mesmo que vazias, para refletir fielmente
-  // a configuração) e contabiliza o total esperado.
   for (const c of cats) {
     const s = ensure(c.key, c.labelPt, c.labelCn, c.fluxo);
     s.total = c.tipos.length;
   }
 
-  // Distribui os docs do grupo em suas categorias.
   for (const item of group.docs) {
     const tipo = item.tipo_documento || "";
     const cat = tipoToCat.get(tipo);
@@ -217,15 +242,15 @@ function buildSections(
       : ensure("__outros__", "Outros itens", undefined, "outros");
     const state = classifyItem(item);
     s.rows.push({ item, state });
-    if (state === "enviado" || state === "aprovado") s.enviados += 1;
+    if (SENT_STATES.has(state)) s.enviadosCount += 1;
+    else s.pendentesCount += 1;
   }
 
-  // Ordena cada seção por estado.
+  const order = priorityMode === "sent" ? STATE_ORDER_SENT : STATE_ORDER_PENDING;
   for (const s of byCat.values()) {
-    s.rows.sort((a, b) => STATE_ORDER[a.state] - STATE_ORDER[b.state]);
+    s.rows.sort((a, b) => order[a.state] - order[b.state]);
   }
 
-  // Mantém ordem: china_envia → brasil_envia → outros.
   const fluxoOrder: Record<CategorySection["fluxo"], number> = {
     china_envia: 0,
     brasil_envia: 1,
