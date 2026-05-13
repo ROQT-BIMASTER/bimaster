@@ -319,5 +319,5 @@ project_id = "aokkyrgaqjarhlywhjju"
     verify_jwt = false
 
 
-[functions._tmp-reset-claudia]
+[functions.tmp-reset-claudia]
 verify_jwt = false
