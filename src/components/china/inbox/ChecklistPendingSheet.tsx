@@ -525,15 +525,10 @@ export function ChecklistPendingSheet({
                 ? t("inbox.checklistSheet.fluxo.brasilEnvia")
                 : t("inbox.checklistSheet.fluxo.outros");
 
-            // Em pastas "enviados-first" os pendentes vão para um bloco
-            // recolhível secundário; nas demais, mostramos tudo em sequência.
-            const splitSecondary = cfg.priorityMode === "sent";
-            const primaryRows = splitSecondary
-              ? section.rows.filter((r) => SENT_STATES.has(r.state))
-              : section.rows;
-            const secondaryRows = splitSecondary
-              ? section.rows.filter((r) => !SENT_STATES.has(r.state))
-              : [];
+            // Visualização unificada: todos os itens em sequência única,
+            // ordenados pela prioridade definida em STATE_PRIORITY (pendentes
+            // e rejeitados no topo). Sem bloco recolhível por pasta.
+            const primaryRows = section.rows;
 
             const renderRow = ({ item, state }: { item: MailboxItem; state: ItemState }) => {
               const meta = STATE_META[state];
