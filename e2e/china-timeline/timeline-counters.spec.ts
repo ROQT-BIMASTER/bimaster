@@ -41,15 +41,15 @@ test.describe("@china-timeline contadores em tempo real", () => {
     await page.waitForURL(/\/dashboard/, { timeout: 30_000 });
   }
 
-  /** Lê inteiros das DataRows visíveis em uma página da Linha do Tempo. */
+  /** Lê o snapshot machine-readable do resumo da Linha do Tempo. */
   async function readTimelineCounters(page: Page) {
-    const total = await page.getByTestId("timeline-stage2-total").innerText().catch(() => "0");
-    const pendentes = await page.getByTestId("timeline-stage2-pendentes").innerText().catch(() => "0");
-    const enviados = await page.getByTestId("timeline-stage3-enviados").innerText().catch(() => "0");
+    const node = page.getByTestId("timeline-resumo");
+    await expect(node).toBeAttached({ timeout: 15_000 });
     return {
-      total: parseInt(total, 10) || 0,
-      pendentes: parseInt(pendentes, 10) || 0,
-      enviados: parseInt(enviados, 10) || 0,
+      total: parseInt((await node.getAttribute("data-total")) ?? "0", 10),
+      pendentes: parseInt((await node.getAttribute("data-pendentes")) ?? "0", 10),
+      enviados: parseInt((await node.getAttribute("data-enviados")) ?? "0", 10),
+      inconsistencia: (await node.getAttribute("data-inconsistencia")) ?? "",
     };
   }
 
