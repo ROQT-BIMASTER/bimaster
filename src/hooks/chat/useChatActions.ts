@@ -138,7 +138,7 @@ export function useChatActions() {
           conversa_id: vars.conversaId,
           user_id: uid,
           emoji: vars.emoji,
-        });
+        }]);
       }
     },
     onSuccess: (_d, v) => invalidate(v.conversaId),
