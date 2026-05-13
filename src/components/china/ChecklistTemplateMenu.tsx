@@ -30,6 +30,7 @@ interface Props {
 }
 
 export function ChecklistTemplateMenu({ marca, colunasAtuais, onApply }: Props) {
+  const { t } = useChinaI18n();
   const { data: templates = [], isLoading } = useChecklistTemplates(marca);
   const save = useSaveTemplate();
   const del = useDeleteTemplate();
