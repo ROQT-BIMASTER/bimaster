@@ -295,8 +295,35 @@ export function ChecklistPendingSheet({
   onOpenSubmissao,
 }: ChecklistPendingSheetProps) {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const merged = useMergedChinaChecklist(group?.submissao_id ?? null);
   const cfg = (folder && FOLDER_CONFIG[folder]) ?? DEFAULT_FOLDER_CONFIG;
+
+  // Parecer técnico da China (campo único por submissão).
+  const currentParecer = group?.docs[0]?.observacoes_china ?? "";
+  const [parecerOpen, setParecerOpen] = useState(false);
+  const [parecerText, setParecerText] = useState(currentParecer);
+  useEffect(() => {
+    setParecerText(currentParecer);
+  }, [currentParecer, group?.submissao_id]);
+
+  const saveParecer = useMutation({
+    mutationFn: async (texto: string) => {
+      if (!group) throw new Error("sem submissão");
+      const { error } = await supabase
+        .from("china_produto_submissoes" as any)
+        .update({ observacoes_china: texto.trim() })
+        .eq("id", group.submissao_id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Parecer técnico salvo.");
+      queryClient.invalidateQueries({ queryKey: ["china-mailbox"] });
+      queryClient.invalidateQueries({ queryKey: ["china-merged-checklist"] });
+      setParecerOpen(false);
+    },
+    onError: (e: any) => toast.error(e?.message || "Falha ao salvar parecer."),
+  });
 
   // Aplica o escopo da pasta antes de montar as seções por categoria.
   const scopedGroup = useMemo<MailboxGroup | null>(() => {
