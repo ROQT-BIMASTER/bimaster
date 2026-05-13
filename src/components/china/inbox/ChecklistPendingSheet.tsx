@@ -362,6 +362,9 @@ export function ChecklistPendingSheet({
   if (!group) return null;
 
   const pendingCount = totals?.pendentes ?? 0;
+  const hasParecer = currentParecer.trim().length > 0;
+  // Mostra ações de parecer apenas em pastas onde "enviar ao Brasil" faz sentido.
+  const showParecerActions = cfg.showEnviarFooter;
 
   const handleAttach = (item: MailboxItem) => {
     if (!item.tipo_documento) return;
