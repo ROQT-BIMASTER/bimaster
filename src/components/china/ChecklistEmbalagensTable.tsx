@@ -47,6 +47,7 @@ export function ChecklistEmbalagensTable({
   onToggleCelula,
   onSetMockup,
 }: Props) {
+  const { t } = useChinaI18n();
   const [addOpen, setAddOpen] = useState(false);
   const [newCol, setNewCol] = useState({ pt: "", cn: "" });
   const [editing, setEditing] = useState<ChecklistColuna | null>(null);
