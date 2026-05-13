@@ -15,6 +15,7 @@ import { ClipboardCheck, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { BilingualLabel } from "./BilingualLabel";
 import { useChinaOrdemItens } from "@/hooks/useChinaOrdemItens";
 import { useCriarRecebimento } from "@/hooks/useChinaRecebimentos";
+import { useChinaI18n } from "@/hooks/useChinaI18n";
 
 interface Props {
   open: boolean;
@@ -37,6 +38,7 @@ export function RecebimentoConferenciaDialog({
   numeroOC,
   embarqueId,
 }: Props) {
+  const { t } = useChinaI18n();
   const { data: itens = [] } = useChinaOrdemItens(ordemId);
   const criar = useCriarRecebimento();
   const [numeroDi, setNumeroDi] = useState("");
@@ -100,46 +102,45 @@ export function RecebimentoConferenciaDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <ClipboardCheck className="h-5 w-5 text-success" />
-            <BilingualLabel pt="Conferência de recebimento" cn="收货确认" size="md" />
+            <BilingualLabel pt={t("recebimento.titulo")} cn="收货确认" size="md" />
           </DialogTitle>
           <DialogDescription>
-            OC <strong>{numeroOC}</strong> — registre o que efetivamente chegou no Brasil.
-            Divergências geram não-conformidade automática.
+            {t("recebimento.descricao", { numero: numeroOC })}
           </DialogDescription>
         </DialogHeader>
 
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <div className="space-y-1.5">
-            <Label className="text-xs">DI</Label>
-            <Input value={numeroDi} onChange={(e) => setNumeroDi(e.target.value)} placeholder="00/000000-0" />
+            <Label className="text-xs">{t("recebimento.di")}</Label>
+            <Input value={numeroDi} onChange={(e) => setNumeroDi(e.target.value)} placeholder={t("recebimento.diPlaceholder")} />
           </div>
           <div className="space-y-1.5">
-            <Label className="text-xs">Chegada porto</Label>
+            <Label className="text-xs">{t("recebimento.chegadaPorto")}</Label>
             <Input type="date" value={dataChegada} onChange={(e) => setDataChegada(e.target.value)} />
           </div>
           <div className="space-y-1.5">
-            <Label className="text-xs">Desembaraço</Label>
+            <Label className="text-xs">{t("recebimento.desembaraco")}</Label>
             <Input type="date" value={dataDesemb} onChange={(e) => setDataDesemb(e.target.value)} />
           </div>
           <div className="space-y-1.5">
-            <Label className="text-xs">Recebimento CD</Label>
+            <Label className="text-xs">{t("recebimento.recebimentoCD")}</Label>
             <Input type="date" value={dataReceb} onChange={(e) => setDataReceb(e.target.value)} />
           </div>
         </div>
 
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <Label className="text-xs">Itens a conferir</Label>
+            <Label className="text-xs">{t("recebimento.itensConferir")}</Label>
             {totalDiv > 0 && (
               <span className="text-xs text-warning flex items-center gap-1">
                 <AlertTriangle className="h-3.5 w-3.5" />
-                Divergência total: {totalDiv}
+                {t("recebimento.divergenciaTotal", { n: totalDiv })}
               </span>
             )}
           </div>
           {linhasParaConferir.length === 0 ? (
             <div className="p-4 border border-dashed rounded-lg text-center text-sm text-muted-foreground">
-              Nada pendente para receber
+              {t("recebimento.nadaPendente")}
             </div>
           ) : (
             <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
@@ -152,9 +153,9 @@ export function RecebimentoConferenciaDialog({
                   <div key={l.id} className="p-3 border rounded-lg space-y-2">
                     <div className="flex items-center justify-between gap-2">
                       <div className="min-w-0">
-                        <p className="text-sm font-medium truncate">{l.cor_nome || l.sku || "Único"}</p>
+                        <p className="text-sm font-medium truncate">{l.cor_nome || l.sku || t("recebimento.unico")}</p>
                         <p className="text-[10px] text-muted-foreground">
-                          Esperado: <strong>{l.esperada}</strong>
+                          {t("recebimento.esperado")} <strong>{l.esperada}</strong>
                         </p>
                       </div>
                       {ok ? (
@@ -165,7 +166,7 @@ export function RecebimentoConferenciaDialog({
                     </div>
                     <div className="grid grid-cols-3 gap-2">
                       <div>
-                        <Label className="text-[10px]">Recebida</Label>
+                        <Label className="text-[10px]">{t("recebimento.recebida")}</Label>
                         <Input
                           type="number"
                           min={0}
@@ -180,7 +181,7 @@ export function RecebimentoConferenciaDialog({
                         />
                       </div>
                       <div>
-                        <Label className="text-[10px]">Avariada</Label>
+                        <Label className="text-[10px]">{t("recebimento.avariada")}</Label>
                         <Input
                           type="number"
                           min={0}
@@ -195,7 +196,7 @@ export function RecebimentoConferenciaDialog({
                         />
                       </div>
                       <div>
-                        <Label className="text-[10px]">Motivo</Label>
+                        <Label className="text-[10px]">{t("recebimento.motivo")}</Label>
                         <Input
                           value={lc.motivo || ""}
                           onChange={(e) =>
@@ -205,7 +206,7 @@ export function RecebimentoConferenciaDialog({
                             }))
                           }
                           className="h-8 text-sm"
-                          placeholder="Divergência..."
+                          placeholder={t("recebimento.motivoPlaceholder")}
                         />
                       </div>
                     </div>
@@ -217,14 +218,14 @@ export function RecebimentoConferenciaDialog({
         </div>
 
         <div className="space-y-1.5">
-          <Label className="text-xs">Observações gerais</Label>
+          <Label className="text-xs">{t("recebimento.obsGerais")}</Label>
           <Textarea value={obs} onChange={(e) => setObs(e.target.value)} rows={2} />
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>{t("recebimento.cancelar")}</Button>
           <Button onClick={handleSubmit} disabled={criar.isPending || linhasParaConferir.length === 0}>
-            {criar.isPending ? "Registrando..." : "Registrar recebimento"}
+            {criar.isPending ? t("recebimento.registrando") : t("recebimento.registrar")}
           </Button>
         </DialogFooter>
       </DialogContent>

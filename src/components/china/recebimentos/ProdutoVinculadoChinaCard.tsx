@@ -5,6 +5,7 @@ import { ChevronDown, ChevronRight, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ProdutoChinaRecebimentoKpi } from "@/hooks/useChinaProdutosRecebimentoKpis";
 import type { OcRecebimentoKpi } from "@/hooks/useChinaRecebimentoKpis";
+import { useChinaI18n } from "@/hooks/useChinaI18n";
 
 function pct(num: number, den: number) {
   if (!den) return 0;
@@ -28,6 +29,7 @@ export function ProdutoVinculadoChinaCard({
   onToggle,
   onSelectOC,
 }: Props) {
+  const { t } = useChinaI18n();
   const recPct = pct(produto.qty_recebida, produto.qty_pedida);
   const divergencia = produto.qty_avariada + produto.qty_faltante > 0;
   const semOC = produto.qtd_ocs === 0;
@@ -56,21 +58,21 @@ export function ProdutoVinculadoChinaCard({
               </div>
               <div className="mt-0.5 flex items-center gap-1.5 flex-wrap">
                 <Badge variant="outline" className="text-[10px] py-0 h-4">
-                  {produto.qtd_ocs} {produto.qtd_ocs === 1 ? "OC" : "OCs"}
+                  {produto.qtd_ocs} {produto.qtd_ocs === 1 ? t("recebimento.ocSingular") : t("recebimento.ocPlural")}
                 </Badge>
                 {produto.qtd_ocs_ativas > 0 && (
                   <Badge variant="secondary" className="text-[10px] py-0 h-4">
-                    {produto.qtd_ocs_ativas} ativa{produto.qtd_ocs_ativas > 1 ? "s" : ""}
+                    {produto.qtd_ocs_ativas} {produto.qtd_ocs_ativas > 1 ? t("recebimento.ativaPlural") : t("recebimento.ativaSingular")}
                   </Badge>
                 )}
                 {divergencia && (
                   <Badge className="bg-amber-500 text-white text-[10px] py-0 h-4">
-                    <AlertTriangle className="h-2.5 w-2.5 mr-0.5" /> divergência
+                    <AlertTriangle className="h-2.5 w-2.5 mr-0.5" /> {t("recebimento.divergencia")}
                   </Badge>
                 )}
                 {semOC && (
                   <Badge variant="outline" className="text-[10px] py-0 h-4 text-muted-foreground">
-                    sem OC
+                    {t("recebimento.semOC")}
                   </Badge>
                 )}
               </div>
@@ -82,21 +84,21 @@ export function ProdutoVinculadoChinaCard({
           <>
             <div className="mt-2 grid grid-cols-4 gap-2 text-[11px]">
               <div>
-                <div className="text-muted-foreground">Pedido</div>
+                <div className="text-muted-foreground">{t("recebimento.pedido")}</div>
                 <div className="font-medium">{produto.qty_pedida.toLocaleString("pt-BR")}</div>
               </div>
               <div>
-                <div className="text-muted-foreground">Embarcado</div>
+                <div className="text-muted-foreground">{t("recebimento.embarcado")}</div>
                 <div className="font-medium">{produto.qty_embarcada.toLocaleString("pt-BR")}</div>
               </div>
               <div>
-                <div className="text-muted-foreground">Recebido</div>
+                <div className="text-muted-foreground">{t("recebimento.recebido")}</div>
                 <div className="font-medium">
                   {produto.qty_recebida.toLocaleString("pt-BR")} ({recPct}%)
                 </div>
               </div>
               <div>
-                <div className="text-muted-foreground">Saldo</div>
+                <div className="text-muted-foreground">{t("recebimento.saldo")}</div>
                 <div className="font-semibold">{produto.qty_saldo.toLocaleString("pt-BR")}</div>
               </div>
             </div>
@@ -128,10 +130,10 @@ export function ProdutoVinculadoChinaCard({
                 </div>
                 <div className="mt-1 flex items-center justify-between text-[10px] text-muted-foreground">
                   <span>
-                    Pedida {oc.qty_pedida.toLocaleString("pt-BR")} · Recebida{" "}
+                    {t("recebimento.pedida")} {oc.qty_pedida.toLocaleString("pt-BR")} · {t("recebimento.recebido")}{" "}
                     {oc.qty_recebida.toLocaleString("pt-BR")} ({ocPct}%)
                   </span>
-                  <span>Saldo {oc.saldo_aberto.toLocaleString("pt-BR")}</span>
+                  <span>{t("recebimento.saldoLabel")} {oc.saldo_aberto.toLocaleString("pt-BR")}</span>
                 </div>
                 <Progress value={ocPct} className="h-1 mt-1" />
               </button>
@@ -141,7 +143,7 @@ export function ProdutoVinculadoChinaCard({
       )}
       {expanded && ocs.length === 0 && (
         <div className="border-t border-border px-3 py-2 text-[11px] text-muted-foreground">
-          Nenhuma OC para os filtros atuais.
+          {t("recebimento.nenhumaOCFiltros")}
         </div>
       )}
     </Card>

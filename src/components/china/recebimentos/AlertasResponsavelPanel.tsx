@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Bell, ChevronDown, ChevronUp, ExternalLink, Check } from "lucide-react";
 import { useRecebimentoAlertas, useMarcarAlertaLido, type RecebimentoAlerta } from "@/hooks/useRecebimentoAlertas";
+import { useChinaI18n } from "@/hooks/useChinaI18n";
 
 const SEV_COLOR: Record<string, string> = {
   baixa: "bg-slate-500",
@@ -11,9 +12,9 @@ const SEV_COLOR: Record<string, string> = {
   alta: "bg-orange-600",
   critica: "bg-red-600",
 };
-const TIPO_LABEL: Record<string, string> = {
-  sla_estourado: "SLA porto→CD estourado",
-  entrega_atrasada: "Entrega atrasada",
+const TIPO_KEY: Record<string, string> = {
+  sla_estourado: "recebimento.tipoSlaEstourado",
+  entrega_atrasada: "recebimento.tipoEntregaAtrasada",
 };
 
 interface Props {
@@ -21,6 +22,7 @@ interface Props {
 }
 
 export function AlertasResponsavelPanel({ onSelectOC }: Props) {
+  const { t } = useChinaI18n();
   const { data: alertas = [] } = useRecebimentoAlertas();
   const marcarLido = useMarcarAlertaLido();
   const naoLidos = alertas.filter((a) => !a.lido_em).length;
@@ -36,9 +38,9 @@ export function AlertasResponsavelPanel({ onSelectOC }: Props) {
       >
         <div className="flex items-center gap-2">
           <Bell className="h-4 w-4 text-amber-600" />
-          <span className="font-semibold text-sm">Alertas de recebimento</span>
+          <span className="font-semibold text-sm">{t("recebimento.alertasTitulo")}</span>
           <Badge className="bg-amber-600">{alertas.length}</Badge>
-          {naoLidos > 0 && <Badge className="bg-red-600">{naoLidos} não lidos</Badge>}
+          {naoLidos > 0 && <Badge className="bg-red-600">{t("recebimento.naoLidos", { n: naoLidos })}</Badge>}
         </div>
         {open ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
       </button>
@@ -54,7 +56,7 @@ export function AlertasResponsavelPanel({ onSelectOC }: Props) {
                 {a.severidade}
               </Badge>
               <div className="flex-1 min-w-0">
-                <div className="text-xs font-medium">{TIPO_LABEL[a.tipo] || a.tipo}</div>
+                <div className="text-xs font-medium">{TIPO_KEY[a.tipo] ? t(TIPO_KEY[a.tipo]) : a.tipo}</div>
                 <div className="text-xs text-muted-foreground">{a.mensagem}</div>
                 <div className="text-[10px] text-muted-foreground mt-0.5">
                   {new Date(a.criado_em).toLocaleString("pt-BR")}
@@ -80,7 +82,7 @@ export function AlertasResponsavelPanel({ onSelectOC }: Props) {
                     variant="ghost"
                     className="h-6 px-2"
                     onClick={() => marcarLido.mutate(a.id)}
-                    title="Marcar como lido"
+                    title={t("recebimento.marcarLido")}
                   >
                     <Check className="h-3 w-3" />
                   </Button>
