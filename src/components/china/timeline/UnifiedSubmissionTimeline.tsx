@@ -152,13 +152,6 @@ function useDocsResumo(submissaoId: string | null | undefined) {
     },
   });
 }
-        ultimoStatus: rows[0]?.status ?? null,
-        ultimoEm: rows[0]?.updated_at ?? rows[0]?.created_at ?? null,
-        rows,
-      };
-    },
-  });
-}
 
 function ProgressBlock({
   label, current, total, tone,
