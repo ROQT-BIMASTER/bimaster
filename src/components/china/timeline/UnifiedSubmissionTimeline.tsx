@@ -125,14 +125,20 @@ function useDocsResumo(submissaoId: string | null | undefined) {
       const universe = new Set<string>(expected.tipos);
       for (const tipo of latestByTipo.keys()) universe.add(tipo);
 
+      // Mesma classificação da Caixa de Entrada (`groupMailboxItems`):
+      // qualquer documento já anexado cujo status não seja "rascunho" conta
+      // como ENVIADO ao Brasil — inclusive status "pendente" (anexado e
+      // aguardando análise). Pendentes da etapa 3 são apenas itens do
+      // checklist sem documento anexado (ou em rascunho).
       let pendentes = 0, aprovados = 0, rejeitados = 0, enviados = 0;
       for (const tipo of universe) {
         const doc = latestByTipo.get(tipo);
-        const status = doc?.status ?? "pendente";
+        const status = doc?.status ?? null;
+        const sentToBrazil = !!doc && status !== null && status !== "rascunho";
+        if (sentToBrazil) enviados += 1;
+        else pendentes += 1;
         if (status === "aprovado") aprovados += 1;
         else if (status === "rejeitado") rejeitados += 1;
-        else pendentes += 1;
-        if (doc && SENT_STATUSES.includes(status)) enviados += 1;
       }
 
       return {
