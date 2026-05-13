@@ -184,6 +184,7 @@ function ExpandableDocList({
 }
 
 function GroupedSentDocList({ rows }: { rows: DocRow[] }) {
+  const { t } = useChinaI18n();
   const [open, setOpen] = useState(false);
   const sent = rows.filter((r) => SENT_STATUSES.includes(r.status));
   const aprovados = sent.filter((r) => r.status === "aprovado");
@@ -198,15 +199,15 @@ function GroupedSentDocList({ rows }: { rows: DocRow[] }) {
       >
         {open ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
         {open
-          ? "Ocultar detalhamento"
-          : `Ver detalhamento (${sent.length} enviados · ${aprovados.length} aprovados · ${rejeitados.length} rejeitados)`}
+          ? t("timeline.common.ocultarDetalhamento")
+          : t("timeline.stage4.verDetalhamento", { enviados: sent.length, aprovados: aprovados.length, rejeitados: rejeitados.length })}
       </button>
       {open && (
         <div className="mt-1.5 space-y-2 border-l border-border/60 pl-2">
           {[
-            { title: "Aprovados pelo Brasil", items: aprovados, tone: "border-emerald-500/40 text-emerald-400" },
-            { title: "Aguardando retorno", items: aguardando, tone: "border-amber-500/40 text-amber-400" },
-            { title: "Rejeitados pelo Brasil", items: rejeitados, tone: "border-rose-500/40 text-rose-400" },
+            { title: t("timeline.stage4.grupoAprovados"), items: aprovados, tone: "border-emerald-500/40 text-emerald-400" },
+            { title: t("timeline.stage4.grupoAguardando"), items: aguardando, tone: "border-amber-500/40 text-amber-400" },
+            { title: t("timeline.stage4.grupoRejeitados"), items: rejeitados, tone: "border-rose-500/40 text-rose-400" },
           ].map((grp) => (
             <div key={grp.title} className="space-y-1">
               <div className="flex items-center justify-between text-[10px] uppercase tracking-wide text-muted-foreground">
@@ -214,7 +215,7 @@ function GroupedSentDocList({ rows }: { rows: DocRow[] }) {
                 <span className="tabular-nums">{grp.items.length}</span>
               </div>
               {grp.items.length === 0 ? (
-                <p className="text-[11px] italic text-muted-foreground/70">Nenhum item.</p>
+                <p className="text-[11px] italic text-muted-foreground/70">{t("timeline.stage4.nenhumItem")}</p>
               ) : (
                 <ul className="space-y-1">
                   {grp.items.map((r) => (
