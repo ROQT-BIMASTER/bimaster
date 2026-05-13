@@ -130,6 +130,13 @@ export interface MailboxCounts {
 
 interface UseChinaMailboxResult {
   items: MailboxItem[];
+  /**
+   * Conjunto COMPLETO de itens (reais + virtuais) entre todas as pastas.
+   * A UI usa para calcular o progresso do checklist por submissão sem ficar
+   * preso ao subset visível na pasta atual (consistência entre "Pendentes
+   * de envio" e "Enviadas ao Brasil").
+   */
+  progressItems: MailboxItem[];
   counts: MailboxCounts;
   isLoading: boolean;
   isFetching: boolean;
