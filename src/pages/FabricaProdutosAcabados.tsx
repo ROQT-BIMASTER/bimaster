@@ -1105,7 +1105,7 @@ export default function FabricaProdutosAcabados() {
           )}
 
           {/* Main Content — único container scrollável da tabela */}
-          <div className="flex-1 min-w-0 overflow-auto">
+          <div className="flex-1 min-w-0 overflow-y-auto overflow-x-hidden">
             {/* Toggle sidebar button when closed */}
             {!filtrosAbertos && (
               <div className="mb-3">
