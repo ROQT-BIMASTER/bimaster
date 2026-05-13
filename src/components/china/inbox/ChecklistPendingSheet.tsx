@@ -716,7 +716,7 @@ export function ChecklistPendingSheet({
           })}
         </div>
 
-        <div className="sticky bottom-0 flex items-center gap-2 border-t border-border/60 bg-background/95 px-4 py-2 backdrop-blur">
+        <div className="sticky bottom-0 flex flex-wrap items-center gap-2 border-t border-border/60 bg-background/95 px-4 py-2 backdrop-blur">
           {onOpenSubmissao && (
             <Button
               type="button"
@@ -728,12 +728,34 @@ export function ChecklistPendingSheet({
               Abrir submissão
             </Button>
           )}
-          {cfg.showEnviarFooter && pendingCount > 0 && onEnviarGrupoBrasil && (
+          {cfg.showEnviarFooter && selected.size > 0 && onEnviarItemBrasil && (
+            <Button
+              type="button"
+              size="sm"
+              className="ml-auto h-7 gap-1 px-2 text-[11px] bg-emerald-600 hover:bg-emerald-700 text-white"
+              onClick={() => {
+                if (!scopedGroup) return;
+                const map = new Map(scopedGroup.docs.map((d) => [rowKey(d), d]));
+                const items = Array.from(selected)
+                  .map((k) => map.get(k))
+                  .filter((d): d is MailboxItem => !!d);
+                items.forEach((it) => onEnviarItemBrasil(it));
+                setSelected(new Set());
+              }}
+              title="Despachar somente os itens selecionados ao Brasil"
+            >
+              <Send className="h-3 w-3" />
+              Enviar selecionados ({selected.size})
+            </Button>
+          )}
+          {cfg.showEnviarFooter && selected.size === 0 && pendingCount > 0 && onEnviarGrupoBrasil && (
             <Button
               type="button"
               size="sm"
               className="ml-auto h-7 gap-1 px-2 text-[11px] bg-emerald-600 hover:bg-emerald-700 text-white"
               onClick={() => onEnviarGrupoBrasil(group)}
+              disabled={!hasParecer}
+              title={hasParecer ? "Despachar todos os itens prontos ao Brasil" : "Registre o parecer técnico antes de despachar"}
             >
               <Send className="h-3 w-3" />
               Enviar todos ao Brasil
