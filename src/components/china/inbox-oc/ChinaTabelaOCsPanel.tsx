@@ -131,32 +131,32 @@ export function ChinaTabelaOCsPanel({ items, isLoading, onOpen }: Props) {
       <div className="p-4 space-y-4">
         <div className="rounded-xl border bg-card p-4">
           <div className="mb-3">
-            <h3 className="text-sm font-semibold">Acompanhamento de OCs (Fábrica)</h3>
-            <p className="text-xs text-muted-foreground">{filtered.length} OCs</p>
+            <h3 className="text-sm font-semibold">{t("inboxOC.tabelaTitulo")}</h3>
+            <p className="text-xs text-muted-foreground">{t("inboxOC.tabelaSubtitulo", { n: filtered.length })}</p>
           </div>
           <div className="flex flex-wrap items-end gap-3">
-            <Field label="Status">
+            <Field label={t("inboxOC.filtroStatus")}>
               <Select value={status} onValueChange={(v) => setStatus(v as any)}>
                 <SelectTrigger className="h-9 w-[180px]"><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {STATUS_OPTS.map((s) => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
+                  {STATUS_OPTS.map((s) => <SelectItem key={s.value} value={s.value}>{t(s.labelKey)}</SelectItem>)}
                 </SelectContent>
               </Select>
             </Field>
-            <Field label="Buscar">
+            <Field label={t("inboxOC.filtroBuscar")}>
               <div className="relative">
                 <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
                 <Input
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  placeholder="OC, produto, SKU…"
+                  placeholder={t("inboxOC.filtroBuscarPh")}
                   className="h-9 w-[260px] pl-7"
                 />
               </div>
             </Field>
             <div className="ml-auto">
               <Button variant="outline" size="sm" className="h-9 gap-1.5" onClick={clear}>
-                <X className="h-3.5 w-3.5" /> Limpar
+                <X className="h-3.5 w-3.5" /> {t("inboxOC.limpar")}
               </Button>
             </div>
           </div>
@@ -164,31 +164,31 @@ export function ChinaTabelaOCsPanel({ items, isLoading, onOpen }: Props) {
 
         <div className="rounded-xl border bg-card overflow-hidden">
           <div className="px-4 py-3 border-b flex items-center justify-between">
-            <h3 className="text-sm font-semibold">Tabela de Ordens de Compra</h3>
-            <span className="text-[11px] text-muted-foreground">Clique nas colunas para ordenar</span>
+            <h3 className="text-sm font-semibold">{t("inboxOC.tabelaCard")}</h3>
+            <span className="text-[11px] text-muted-foreground">{t("inboxOC.tabelaHint")}</span>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-[12px]">
               <thead className="bg-muted/40 text-[10px] uppercase tracking-wider text-muted-foreground">
                 <tr>
-                  <Th onClick={() => toggleSort("numero_oc")}><span className="flex items-center gap-1">OC <SortIcon k="numero_oc" /></span></Th>
-                  <Th onClick={() => toggleSort("produto_nome")}><span className="flex items-center gap-1">Produto <SortIcon k="produto_nome" /></span></Th>
-                  <Th onClick={() => toggleSort("status")}><span className="flex items-center gap-1">Status <SortIcon k="status" /></span></Th>
-                  <Th onClick={() => toggleSort("data_emissao")} align="right"><span className="flex items-center justify-end gap-1">Emissão <SortIcon k="data_emissao" /></span></Th>
-                  <Th onClick={() => toggleSort("data_entrega_prevista")} align="right"><span className="flex items-center justify-end gap-1">Entrega <SortIcon k="data_entrega_prevista" /></span></Th>
-                  <Th onClick={() => toggleSort("qty_total")} align="right"><span className="flex items-center justify-end gap-1">Pedido <SortIcon k="qty_total" /></span></Th>
-                  <Th onClick={() => toggleSort("qty_produzida")} align="right"><span className="flex items-center justify-end gap-1">Produzido <SortIcon k="qty_produzida" /></span></Th>
-                  <Th onClick={() => toggleSort("nao_produzido")} align="right"><span className="flex items-center justify-end gap-1">Não prod. <SortIcon k="nao_produzido" /></span></Th>
-                  <Th onClick={() => toggleSort("data_embarque")} align="right"><span className="flex items-center justify-end gap-1">Embarque <SortIcon k="data_embarque" /></span></Th>
-                  <Th onClick={() => toggleSort("data_eta")} align="right"><span className="flex items-center justify-end gap-1">ETA <SortIcon k="data_eta" /></span></Th>
+                  <Th onClick={() => toggleSort("numero_oc")}><span className="flex items-center gap-1">{t("inboxOC.colOC")} <SortIcon k="numero_oc" /></span></Th>
+                  <Th onClick={() => toggleSort("produto_nome")}><span className="flex items-center gap-1">{t("inboxOC.colProduto")} <SortIcon k="produto_nome" /></span></Th>
+                  <Th onClick={() => toggleSort("status")}><span className="flex items-center gap-1">{t("inboxOC.colStatus")} <SortIcon k="status" /></span></Th>
+                  <Th onClick={() => toggleSort("data_emissao")} align="right"><span className="flex items-center justify-end gap-1">{t("inboxOC.colEmissao")} <SortIcon k="data_emissao" /></span></Th>
+                  <Th onClick={() => toggleSort("data_entrega_prevista")} align="right"><span className="flex items-center justify-end gap-1">{t("inboxOC.colEntrega")} <SortIcon k="data_entrega_prevista" /></span></Th>
+                  <Th onClick={() => toggleSort("qty_total")} align="right"><span className="flex items-center justify-end gap-1">{t("inboxOC.colPedido")} <SortIcon k="qty_total" /></span></Th>
+                  <Th onClick={() => toggleSort("qty_produzida")} align="right"><span className="flex items-center justify-end gap-1">{t("inboxOC.colProduzido")} <SortIcon k="qty_produzida" /></span></Th>
+                  <Th onClick={() => toggleSort("nao_produzido")} align="right"><span className="flex items-center justify-end gap-1">{t("inboxOC.colNaoProd")} <SortIcon k="nao_produzido" /></span></Th>
+                  <Th onClick={() => toggleSort("data_embarque")} align="right"><span className="flex items-center justify-end gap-1">{t("inboxOC.colEmbarque")} <SortIcon k="data_embarque" /></span></Th>
+                  <Th onClick={() => toggleSort("data_eta")} align="right"><span className="flex items-center justify-end gap-1">{t("inboxOC.colETA")} <SortIcon k="data_eta" /></span></Th>
                 </tr>
               </thead>
               <tbody>
                 {isLoading && (
-                  <tr><td colSpan={10} className="px-4 py-8 text-center text-muted-foreground text-xs">Carregando…</td></tr>
+                  <tr><td colSpan={10} className="px-4 py-8 text-center text-muted-foreground text-xs">{t("inboxOC.carregando")}</td></tr>
                 )}
                 {!isLoading && sorted.length === 0 && (
-                  <tr><td colSpan={10} className="px-4 py-8 text-center text-muted-foreground text-xs">Nenhuma OC encontrada.</td></tr>
+                  <tr><td colSpan={10} className="px-4 py-8 text-center text-muted-foreground text-xs">{t("inboxOC.nenhumaOCEnc")}</td></tr>
                 )}
                 {sorted.map((o) => {
                   const bucket = bucketOf(o);
