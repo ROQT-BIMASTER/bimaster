@@ -693,7 +693,7 @@ function GroupRow({
                   <ListChecks className="h-3 w-3" />
                   Ver checklist ({pendingCount})
                 </Button>
-                {pendingCount > 0 && onEnviarGrupoBrasil && (
+                {allowSendBatch && pendingCount > 0 && onEnviarGrupoBrasil && (
                   <Button
                     type="button"
                     size="sm"
