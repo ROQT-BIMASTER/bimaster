@@ -140,6 +140,7 @@ export function ChinaInboxOCAba() {
                   oc={o}
                   active={selectedId === o.ordem_compra_id}
                   onClick={() => setSelectedId(o.ordem_compra_id)}
+                  t={t}
                 />
               ))}
             </ul>
