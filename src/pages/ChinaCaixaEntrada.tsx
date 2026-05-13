@@ -199,7 +199,14 @@ export default function ChinaCaixaEntrada() {
   const handleRetryEnvio = () => {
     if (!lastEnvioVars) return;
     enviarBrasil.reset();
-    enviarBrasil.mutate(lastEnvioVars);
+    enviarBrasil.mutate(lastEnvioVars, {
+      onSettled: () => {
+        // Atualiza o contador de não lidas e a listagem assim que o retry termina,
+        // independentemente de sucesso/erro.
+        queryClient.invalidateQueries({ queryKey: ["china-mailbox-dataset"] });
+        refetch();
+      },
+    });
   };
   const handleToggleRead = (item: MailboxItem) => {
     if (!item.documento_id) return;
