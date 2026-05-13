@@ -141,30 +141,30 @@ function classifyItem(item: MailboxItem): ItemState {
 
 const STATE_META: Record<
   ItemState,
-  { label: string; icon: typeof Clock; cls: string }
+  { labelKey: string; icon: typeof Clock; cls: string }
 > = {
   nao_criado: {
-    label: "Não criado",
+    labelKey: "inbox.checklistSheet.state.naoCriado",
     icon: FileX2,
     cls: "bg-muted/40 text-muted-foreground border-border",
   },
   pendente_envio: {
-    label: "Pendente envio",
+    labelKey: "inbox.checklistSheet.state.pendenteEnvio",
     icon: Clock,
     cls: "bg-amber-500/15 text-amber-400 border-amber-500/30",
   },
   enviado: {
-    label: "Enviado",
+    labelKey: "inbox.checklistSheet.state.enviado",
     icon: Send,
     cls: "bg-primary/15 text-primary border-primary/30",
   },
   aprovado: {
-    label: "Aprovado",
+    labelKey: "inbox.checklistSheet.state.aprovado",
     icon: CheckCircle2,
     cls: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30",
   },
   rejeitado: {
-    label: "Rejeitado",
+    labelKey: "inbox.checklistSheet.state.rejeitado",
     icon: AlertTriangle,
     cls: "bg-rose-500/15 text-rose-400 border-rose-500/30",
   },
