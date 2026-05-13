@@ -3,6 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { ExternalLink, Download, Loader2, FileText } from "lucide-react";
 import { getSignedUrl } from "@/lib/utils/storage-helper";
+import { useChinaI18n } from "@/hooks/useChinaI18n";
 
 interface ChinaDocPreviewDialogProps {
   open: boolean;
