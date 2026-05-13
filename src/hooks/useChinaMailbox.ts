@@ -9,6 +9,12 @@ import {
   AWAITING_SEND_REASON_LABEL,
   type AwaitingSendReason,
 } from "@/lib/china/awaitingSendRule";
+import {
+  computeExpectedChecklistBatch,
+  type ChecklistCustomCategory,
+  type ChecklistCustomItem,
+  type ChecklistHiddenItem,
+} from "@/lib/china/mergeChecklist";
 
 export type MailboxFolder =
   | "inbox"
