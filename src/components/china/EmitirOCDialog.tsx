@@ -18,6 +18,7 @@ interface EmitirOCDialogProps {
 }
 
 export function EmitirOCDialog({ open, onOpenChange, submissao, onSuccess }: EmitirOCDialogProps) {
+  const { t } = useChinaI18n();
   const [dataEntrega, setDataEntrega] = useState("");
   const [observacoes, setObservacoes] = useState("");
   const [eanCaixaMaster, setEanCaixaMaster] = useState(submissao?.ean_caixa_master || "");
@@ -27,7 +28,7 @@ export function EmitirOCDialog({ open, onOpenChange, submissao, onSuccess }: Emi
 
   const handleEmitir = async () => {
     if (!dataEntrega) {
-      toast.error("Informe a data de entrega prevista");
+      toast.error(t("emitirOC.errInformeData"));
       return;
     }
     setLoading(true);
@@ -59,12 +60,12 @@ export function EmitirOCDialog({ open, onOpenChange, submissao, onSuccess }: Emi
 
       if (error) throw error;
 
-      toast.success(`Ordem ${numeroOC} criada como rascunho — aguardando aprovação ✏️`);
+      toast.success(t("emitirOC.okCriada", { numero: numeroOC }));
       onSuccess();
       onOpenChange(false);
     } catch (err: any) {
       logger.error(err);
-      toast.error(err.message || "Erro ao emitir OC");
+      toast.error(err.message || t("emitirOC.errEmitir"));
     } finally {
       setLoading(false);
     }
