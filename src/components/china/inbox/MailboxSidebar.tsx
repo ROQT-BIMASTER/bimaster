@@ -22,6 +22,8 @@ interface FolderDef {
   icon: typeof Inbox;
   countKey: keyof MailboxCounts;
   unreadKey?: keyof MailboxCounts;
+  /** Quando informado, exibe sub-linha "X submissões" usando essa chave como contagem de submissões. */
+  subCountKey?: keyof MailboxCounts;
   tone?: string;
 }
 
