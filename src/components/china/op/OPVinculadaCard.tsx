@@ -11,6 +11,7 @@ import { Plus, Factory, ExternalLink, Unlink, Loader2, ClipboardList } from "luc
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { useChinaI18n } from "@/hooks/useChinaI18n";
 
 const STATUS_COLOR: Record<string, string> = {
   pendente: "bg-slate-500",
@@ -19,12 +20,12 @@ const STATUS_COLOR: Record<string, string> = {
   concluida: "bg-emerald-600",
   cancelada: "bg-red-500",
 };
-const STATUS_PT: Record<string, string> = {
-  pendente: "Pendente / 待开始",
-  em_andamento: "Em produção / 生产中",
-  pausada: "Pausada / 已暂停",
-  concluida: "Concluída / 已完成",
-  cancelada: "Cancelada / 已取消",
+const STATUS_KEY: Record<string, string> = {
+  pendente: "op.stPendente",
+  em_andamento: "op.stEmAndamento",
+  pausada: "op.stPausada",
+  concluida: "op.stConcluida",
+  cancelada: "op.stCancelada",
 };
 
 interface Props {
@@ -36,6 +37,7 @@ interface Props {
 }
 
 export function OPVinculadaCard({ ocId, ocNumero, produtoCodigo, produtoNome, qtySugerida }: Props) {
+  const { t } = useChinaI18n();
   const { data: ops = [], isLoading } = useFabricaOPDaOC(ocId);
   const [openDialog, setOpenDialog] = useState(false);
   const [apontarOp, setApontarOp] = useState<{ id: string; numero: string; saldo: number } | null>(null);
@@ -47,23 +49,23 @@ export function OPVinculadaCard({ ocId, ocNumero, produtoCodigo, produtoNome, qt
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Factory className="h-4 w-4 text-primary" />
-          <h3 className="font-semibold text-sm">Ordens de Produção · 生产单</h3>
+          <h3 className="font-semibold text-sm">{t("op.ordensProducao")}</h3>
           {ops.length > 0 && <Badge variant="secondary">{ops.length}</Badge>}
         </div>
         <Button size="sm" variant="outline" onClick={() => setOpenDialog(true)}>
-          <Plus className="h-3.5 w-3.5 mr-1" /> Gerar / Vincular
+          <Plus className="h-3.5 w-3.5 mr-1" /> {t("op.gerarVincular")}
         </Button>
       </div>
 
       {isLoading && (
         <div className="text-xs text-muted-foreground flex items-center gap-2">
-          <Loader2 className="h-3 w-3 animate-spin" /> Carregando…
+          <Loader2 className="h-3 w-3 animate-spin" /> {t("op.carregando")}
         </div>
       )}
 
       {!isLoading && ops.length === 0 && (
         <div className="text-xs text-muted-foreground py-3 text-center border border-dashed border-border rounded-md">
-          Nenhuma OP vinculada. Gere uma a partir desta OC.
+          {t("op.nenhumaOP")}
         </div>
       )}
 
@@ -78,7 +80,7 @@ export function OPVinculadaCard({ ocId, ocNumero, produtoCodigo, produtoNome, qt
                 <div className="flex items-center gap-2">
                   <span className="font-mono font-semibold text-sm">{op.numero}</span>
                   <Badge className={`${STATUS_COLOR[op.status] || "bg-slate-500"} text-white`}>
-                    {STATUS_PT[op.status] || op.status}
+                    {STATUS_KEY[op.status] ? t(STATUS_KEY[op.status]) : op.status}
                   </Badge>
                 </div>
                 <div className="text-[11px] text-muted-foreground mt-0.5">
@@ -91,7 +93,7 @@ export function OPVinculadaCard({ ocId, ocNumero, produtoCodigo, produtoNome, qt
                   <Button
                     size="sm"
                     variant="ghost"
-                    title="Apontar produção"
+                    title={t("op.apontarProducao")}
                     onClick={() =>
                       setApontarOp({
                         id: op.op_id,
@@ -103,15 +105,15 @@ export function OPVinculadaCard({ ocId, ocNumero, produtoCodigo, produtoNome, qt
                     <ClipboardList className="h-3.5 w-3.5" />
                   </Button>
                 )}
-                <Button size="sm" variant="ghost" title="Abrir OP" onClick={() => navigate(`/dashboard/fabrica/ordens-producao?op=${op.op_id}`)}>
+                <Button size="sm" variant="ghost" title={t("op.abrirOP")} onClick={() => navigate(`/dashboard/fabrica/ordens-producao?op=${op.op_id}`)}>
                   <ExternalLink className="h-3.5 w-3.5" />
                 </Button>
                 <Button
                   size="sm"
                   variant="ghost"
-                  title="Desvincular"
+                  title={t("op.desvincular")}
                   onClick={() => {
-                    if (confirm(`Desvincular OP ${op.numero} desta OC?`)) {
+                    if (confirm(t("op.desvincularConfirm", { numero: op.numero }))) {
                       desvincular.mutate(op.vinculo_id);
                     }
                   }}
@@ -123,30 +125,30 @@ export function OPVinculadaCard({ ocId, ocNumero, produtoCodigo, produtoNome, qt
 
             <div>
               <div className="flex justify-between text-[11px] text-muted-foreground">
-                <span>Plan: {Number(op.quantidade_planejada).toLocaleString("pt-BR")}</span>
-                <span>Prod: {Number(op.quantidade_produzida || 0).toLocaleString("pt-BR")} ({pct}%)</span>
+                <span>{t("op.plan")}: {Number(op.quantidade_planejada).toLocaleString("pt-BR")}</span>
+                <span>{t("op.prod")}: {Number(op.quantidade_produzida || 0).toLocaleString("pt-BR")} ({pct}%)</span>
               </div>
               <Progress value={pct} className="h-1.5 mt-1" />
             </div>
 
             <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-[11px]">
-              {op.lote && <div><span className="text-muted-foreground">Lote:</span> {op.lote}</div>}
+              {op.lote && <div><span className="text-muted-foreground">{t("op.lote")}:</span> {op.lote}</div>}
               {op.data_prevista && (
                 <div>
-                  <span className="text-muted-foreground">Prevista:</span>{" "}
+                  <span className="text-muted-foreground">{t("op.prevista")}:</span>{" "}
                   {format(new Date(op.data_prevista), "dd/MM/yyyy", { locale: ptBR })}
                 </div>
               )}
               {op.eficiencia_percentual != null && (
-                <div><span className="text-muted-foreground">Eficiência:</span> {Number(op.eficiencia_percentual).toFixed(1)}%</div>
+                <div><span className="text-muted-foreground">{t("op.eficiencia")}:</span> {Number(op.eficiencia_percentual).toFixed(1)}%</div>
               )}
-              <div><span className="text-muted-foreground">Alocado:</span> {Number(op.qty_alocada).toLocaleString("pt-BR")}</div>
+              <div><span className="text-muted-foreground">{t("op.alocado")}:</span> {Number(op.qty_alocada).toLocaleString("pt-BR")}</div>
             </div>
 
             {op.apontamentos.length > 0 && (
               <details className="text-[11px]">
                 <summary className="cursor-pointer text-muted-foreground hover:text-foreground">
-                  Últimos apontamentos ({op.apontamentos.length})
+                  {t("op.ultimosApontamentos", { n: op.apontamentos.length })}
                 </summary>
                 <ul className="mt-1 space-y-0.5 pl-2">
                   {op.apontamentos.map((a) => (
