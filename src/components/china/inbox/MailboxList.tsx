@@ -699,7 +699,7 @@ function GroupRow({
               <Paperclip className="h-3 w-3 shrink-0" />
               <span className="truncate">
                 {group.docs.length} documento{group.docs.length === 1 ? "" : "s"}
-                {Pivot.tipo_documento ? ` · último: ${Pivot.tipo_documento}` : ""}
+                {Pivot.tipo_documento ? ` · último: ${resolveTipoLabel(Pivot)}` : ""}
               </span>
             </div>
           )}
