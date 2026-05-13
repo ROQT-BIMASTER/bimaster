@@ -79,23 +79,64 @@ function useDocsResumo(submissaoId: string | null | undefined) {
   return useQuery({
     queryKey: ["china-submissao-docs-resumo", submissaoId],
     enabled: !!submissaoId,
-    staleTime: 60_000,
+    staleTime: 30_000,
     queryFn: async (): Promise<DocSummary> => {
-      const { data } = await (supabase as any)
-        .from("china_produto_documentos")
-        .select("id, tipo_documento, status, nome_arquivo, arquivo_url, updated_at, created_at")
-        .eq("submissao_id", submissaoId)
-        .order("updated_at", { ascending: false });
-      const rows = (data || []) as DocRow[];
-      let pendentes = 0, aprovados = 0, rejeitados = 0, enviados = 0;
+      // 1) Documentos efetivamente anexados a esta submissão.
+      // 2) Customizações de checklist (mesma fonte usada pela Caixa de Entrada
+      //    e pelo drawer de pendências) — garante que os contadores
+      //    mostrados na linha do tempo sejam idênticos aos do checklist:
+      //    total ESPERADO (denominador), pendentes (sem anexo + status pending),
+      //    enviados, aprovados e rejeitados.
+      const [docsRes, ccRes, ciRes, hRes] = await Promise.all([
+        (supabase as any)
+          .from("china_produto_documentos")
+          .select("id, tipo_documento, status, nome_arquivo, arquivo_url, updated_at, created_at")
+          .eq("submissao_id", submissaoId)
+          .order("updated_at", { ascending: false }),
+        (supabase as any)
+          .from("china_checklist_custom_categorias")
+          .select("id, submissao_id, fluxo, label_pt, label_cn, ordem")
+          .eq("submissao_id", submissaoId),
+        (supabase as any)
+          .from("china_checklist_custom_itens")
+          .select("id, submissao_id, tipo_key, label_pt, label_cn, categoria_default_key, categoria_custom_id")
+          .eq("submissao_id", submissaoId),
+        (supabase as any)
+          .from("china_checklist_itens_ocultos")
+          .select("submissao_id, tipo_key")
+          .eq("submissao_id", submissaoId),
+      ]);
+
+      const rows = (docsRes.data || []) as DocRow[];
+      const expected = computeExpectedChecklist(
+        (ccRes.data || []) as ChecklistCustomCategory[],
+        (ciRes.data || []) as ChecklistCustomItem[],
+        (hRes.data || []) as ChecklistHiddenItem[],
+      );
+
+      // Mapa tipo → último doc (rows já vem ordenado desc por updated_at).
+      const latestByTipo = new Map<string, DocRow>();
       for (const r of rows) {
-        if (r.status === "aprovado") aprovados += 1;
-        else if (r.status === "rejeitado") rejeitados += 1;
-        else pendentes += 1;
-        if (SENT_STATUSES.includes(r.status)) enviados += 1;
+        if (!latestByTipo.has(r.tipo_documento)) latestByTipo.set(r.tipo_documento, r);
       }
+
+      // Universo unificado: tipos esperados + tipos extras já anexados (não
+      // perder vínculo com nada que esteja salvo).
+      const universe = new Set<string>(expected.tipos);
+      for (const tipo of latestByTipo.keys()) universe.add(tipo);
+
+      let pendentes = 0, aprovados = 0, rejeitados = 0, enviados = 0;
+      for (const tipo of universe) {
+        const doc = latestByTipo.get(tipo);
+        const status = doc?.status ?? "pendente";
+        if (status === "aprovado") aprovados += 1;
+        else if (status === "rejeitado") rejeitados += 1;
+        else pendentes += 1;
+        if (doc && SENT_STATUSES.includes(status)) enviados += 1;
+      }
+
       return {
-        total: rows.length,
+        total: universe.size,
         pendentes,
         aprovados,
         rejeitados,
