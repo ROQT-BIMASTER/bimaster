@@ -92,6 +92,15 @@ export interface MailboxCounts {
   approved_total: number;
   approved_partial: number;
   approved_empty: number;
+  /**
+   * Contagem de ITENS (documentos) por pasta — útil quando o usuário precisa
+   * saber "tenho 17 itens em 4 submissões". Os outros contadores acima são
+   * por SUBMISSÃO (caixa Gmail-style), o que pode confundir nas pastas China.
+   */
+  awaiting_send_items: number;
+  sent_brazil_items: number;
+  in_analysis_items: number;
+  returned_items: number;
 }
 
 interface UseChinaMailboxResult {
