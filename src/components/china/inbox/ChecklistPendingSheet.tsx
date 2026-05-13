@@ -516,10 +516,10 @@ export function ChecklistPendingSheet({
                 : ListChecks;
             const fluxoLabel =
               section.fluxo === "china_envia"
-                ? "China envia"
+                ? t("inbox.checklistSheet.fluxo.chinaEnvia")
                 : section.fluxo === "brasil_envia"
-                ? "Brasil envia"
-                : "Outros";
+                ? t("inbox.checklistSheet.fluxo.brasilEnvia")
+                : t("inbox.checklistSheet.fluxo.outros");
 
             // Em pastas "enviados-first" os pendentes vão para um bloco
             // recolhível secundário; nas demais, mostramos tudo em sequência.
@@ -537,7 +537,7 @@ export function ChecklistPendingSheet({
               const name =
                 item.tipo_documento_label ??
                 merged.getDocType(item.tipo_documento || "")?.labelPt ??
-                formatTipoFallback(item.tipo_documento);
+                formatTipoFallback(item.tipo_documento, t);
               const id = rowKey(item);
               const canSendSingle =
                 !!onEnviarItemBrasil &&
