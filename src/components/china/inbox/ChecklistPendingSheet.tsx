@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Sheet,
@@ -7,6 +7,15 @@ import {
   SheetTitle,
   SheetDescription,
 } from "@/components/ui/sheet";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -20,12 +29,26 @@ import {
   ListChecks,
   ArrowUpRight,
   ArrowDownLeft,
+  MessageSquarePlus,
+  MessageSquareText,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { MailboxItem, MailboxFolder } from "@/hooks/useChinaMailbox";
 import type { MailboxGroup } from "@/lib/china/groupMailboxItems";
 import { evaluateAwaitingSend } from "@/lib/china/awaitingSendRule";
 import { useMergedChinaChecklist, type MergedChecklistCategory } from "@/hooks/useMergedChinaChecklist";
+
+/** Cor de borda esquerda por estado, para leitura visual rápida da lista. */
+const STATE_BORDER: Record<string, string> = {
+  aprovado: "border-l-emerald-500",
+  enviado: "border-l-primary",
+  rejeitado: "border-l-rose-500",
+  pendente_envio: "border-l-amber-500",
+  nao_criado: "border-l-muted-foreground/30",
+};
 
 export interface ChecklistPendingSheetProps {
   open: boolean;
