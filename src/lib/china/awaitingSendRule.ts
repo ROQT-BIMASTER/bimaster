@@ -43,7 +43,11 @@ export const DEFAULT_AWAITING_SEND_CONFIG: AwaitingSendConfig = {
   treatRascunhoAsAwaiting: true,
   requireDocumentoAnexado: true,
   requireParecerChina: true,
-  excludeSubmissaoStatuses: ["aprovado", "rejeitado", "enviado", "enviado_brasil", "em_revisao"],
+  // Apenas status FINAIS da submissão impedem entrada em "Pendentes de envio".
+  // Itens de checklist novos (rascunho/sem doc/sem parecer) DEVEM aparecer aqui
+  // mesmo quando a submissão pai já está em `em_revisao`/`enviado_brasil`/`enviado`,
+  // porque é o único lugar onde o botão "Enviar ao Brasil" faz sentido.
+  excludeSubmissaoStatuses: ["aprovado", "rejeitado"],
   excludeDocStatuses: [],
 };
 
