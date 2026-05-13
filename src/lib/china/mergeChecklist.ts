@@ -9,6 +9,11 @@
  */
 import { CHINA_DOCUMENT_TYPES, DOCUMENT_CATEGORIES } from "@/lib/china-document-types";
 
+export interface ChecklistTipoLabel {
+  pt: string;
+  cn?: string;
+}
+
 export interface ChecklistCustomCategory {
   id: string;
   submissao_id: string;
