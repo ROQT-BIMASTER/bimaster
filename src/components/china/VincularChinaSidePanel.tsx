@@ -489,6 +489,10 @@ export function VincularChinaSidePanel({
           </TabsContent>
 
           {/* Chat Tab */}
+          <TabsContent value="timeline" className="m-0 p-0 h-[calc(100vh-220px)] min-h-[400px]">
+            <VincularReadingTimeline submissaoId={submissao.id} />
+          </TabsContent>
+
           <TabsContent value="chat" className="m-0 p-0 h-[calc(100vh-220px)] min-h-[400px]">
             <ChinaChatPanel
               key={submissao.id}
