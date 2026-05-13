@@ -240,9 +240,25 @@ export function useChinaMailbox(folder: MailboxFolder): UseChinaMailboxResult {
 
     // Submissões que já tiveram pelo menos uma rejeição em qualquer doc.
     const rejectedSubs = new Set<string>();
+    // Estatísticas de checklist por submissão (total / aprovados / pendentes / rejeitados).
+    const subStats = new Map<string, { total: number; aprovados: number; pendentes: number; rejeitados: number }>();
     for (const d of docs) {
       if (d.status === "rejeitado") rejectedSubs.add(d.submissao_id);
+      const s = subStats.get(d.submissao_id) ?? { total: 0, aprovados: 0, pendentes: 0, rejeitados: 0 };
+      s.total += 1;
+      if (d.status === "aprovado") s.aprovados += 1;
+      else if (d.status === "rejeitado") s.rejeitados += 1;
+      else s.pendentes += 1;
+      subStats.set(d.submissao_id, s);
     }
+
+    const completenessFor = (subId: string, subStatus: string): "total" | "partial" | "empty" | undefined => {
+      if (subStatus !== "aprovado") return undefined;
+      const s = subStats.get(subId);
+      if (!s || s.total === 0) return "empty";
+      if (s.aprovados === s.total) return "total";
+      return "partial";
+    };
 
     // Construímos um item por documento; submissões sem doc viram um item "submissão".
     const allItems: MailboxItem[] = [];
