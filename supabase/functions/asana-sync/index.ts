@@ -2,6 +2,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { logger } from "../_shared/logger.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { secureHandler } from "../_shared/secure-handler.ts";
+import { timingSafeEqual } from "../_shared/timing-safe.ts";
 
 
 const ASANA_API = "https://app.asana.com/api/1.0";
@@ -26,8 +27,8 @@ Deno.serve(secureHandler({ auth: "none", rateLimit: 10, rateLimitPrefix: "asana-
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const bearer = authHeader?.startsWith("Bearer ") ? authHeader.replace("Bearer ", "") : "";
     const isCron =
-      (!!cronSecret && !!expectedCronSecret && cronSecret === expectedCronSecret) ||
-      (bearer && bearer === serviceRoleKey);
+      (!!cronSecret && !!expectedCronSecret && timingSafeEqual(cronSecret, expectedCronSecret)) ||
+      (!!bearer && timingSafeEqual(bearer, serviceRoleKey));
 
     let userId: string;
     if (isCron) {

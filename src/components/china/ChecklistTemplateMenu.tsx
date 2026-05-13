@@ -133,7 +133,8 @@ export function ChecklistTemplateMenu({ marca, colunasAtuais, onApply }: Props) 
                   onCheckedChange={(v) => setScopeMarca(!!v)}
                 />
                 <Label htmlFor="scope-marca" className="cursor-pointer text-sm">
-                  <span dangerouslySetInnerHTML={{ __html: t("documento.templateMenu.escopoMarca", { marca }) }} />
+                  {t("documento.templateMenu.escopoMarcaPrefixo", "Disponibilizar apenas para a marca ")}
+                  <strong>{marca}</strong>
                 </Label>
               </div>
             )}
