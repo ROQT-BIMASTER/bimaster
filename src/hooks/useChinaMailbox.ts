@@ -90,6 +90,12 @@ export interface MailboxItem {
    * Renderizados em "Pendentes de envio" para refletir tudo que ainda falta criar.
    */
   is_virtual?: boolean;
+  /**
+   * Nome legível do `tipo_documento` resolvido via merge do checklist
+   * (padrão de `CHINA_DOCUMENT_TYPES` ou `label_pt` do item custom).
+   * Quando ausente, a UI cai num formatador de fallback baseado em `tipo_documento`.
+   */
+  tipo_documento_label?: string;
 }
 
 export type ApprovalCompleteness = "all" | "total" | "partial" | "empty";
