@@ -14,19 +14,20 @@ import {
   type ChinaOCSubTab,
   ocSubTabMatches,
 } from "@/hooks/useChinaInboxOCs";
+import { useChinaI18n } from "@/hooks/useChinaI18n";
 
 type SortKey =
   | "numero_oc" | "produto_nome" | "status" | "data_emissao" | "data_entrega_prevista"
   | "qty_total" | "qty_produzida" | "nao_produzido" | "data_embarque" | "data_eta";
 type SortDir = "asc" | "desc";
 
-const STATUS_OPTS: { value: ChinaOCSubTab | "todas"; label: string }[] = [
-  { value: "todas", label: "Todas" },
-  { value: "pendente", label: "Pendente" },
-  { value: "producao", label: "Em produção" },
-  { value: "pronto_embarque", label: "Pronto p/ embarque" },
-  { value: "embarcada", label: "Embarcada" },
-  { value: "concluida", label: "Concluída" },
+const STATUS_OPTS: { value: ChinaOCSubTab | "todas"; labelKey: string }[] = [
+  { value: "todas", labelKey: "inboxOC.todas" },
+  { value: "pendente", labelKey: "inboxOC.tabPendente" },
+  { value: "producao", labelKey: "inboxOC.tabProducao" },
+  { value: "pronto_embarque", labelKey: "inboxOC.tabProntoEmbarque" },
+  { value: "embarcada", labelKey: "inboxOC.tabEmbarcada" },
+  { value: "concluida", labelKey: "inboxOC.tabConcluida" },
 ];
 
 const STATUS_BADGE: Record<ChinaOCSubTab, string> = {
