@@ -140,13 +140,12 @@ interface RowProps {
 }
 
 function MailboxRow({ item, dir, folder, active, checked, onSelect, onToggleCheck, onToggleStar, nested }: RowProps) {
+  const { t } = useChinaI18n();
   const id = item.is_virtual
     ? `${item.submissao_id}:virtual:${item.tipo_documento ?? "_"}`
     : item.documento_id ?? item.submissao_id;
-  const sb = statusBadge(item.submissao_status, item.doc_status, item.approval_completeness);
+  const sb = statusBadge(item.submissao_status, item.doc_status, item.approval_completeness, t);
   const SbIcon = sb.icon;
-  // Padrão e-mail: enquanto não lido, título em destaque em qualquer pasta.
-  // Itens sem documento (não rastreáveis por leitura) são tratados como lidos.
   const unread = !item.is_read;
   return (
     <li
@@ -163,7 +162,7 @@ function MailboxRow({ item, dir, folder, active, checked, onSelect, onToggleChec
           checked={checked}
           onCheckedChange={() => onToggleCheck(item.submissao_id)}
           onClick={(e) => e.stopPropagation()}
-          aria-label="Selecionar"
+          aria-label={t("mailboxList.row.selecionar")}
         />
       </div>
       {!nested && (
@@ -177,7 +176,7 @@ function MailboxRow({ item, dir, folder, active, checked, onSelect, onToggleChec
             "mt-0.5 transition-colors",
             item.is_flagged ? "text-amber-400" : "text-muted-foreground/40 hover:text-amber-300",
           )}
-          aria-label={item.is_flagged ? "Desmarcar estrela" : "Marcar com estrela"}
+          aria-label={item.is_flagged ? t("mailboxList.row.desmarcarEstrela") : t("mailboxList.row.marcarEstrela")}
         >
           <Star className="h-3.5 w-3.5" fill={item.is_flagged ? "currentColor" : "none"} />
         </button>
@@ -206,29 +205,23 @@ function MailboxRow({ item, dir, folder, active, checked, onSelect, onToggleChec
             <>
               <Paperclip className="h-3 w-3 shrink-0" />
               <span className="truncate">
-                {resolveTipoLabel(item)}
+                {resolveTipoLabel(item, t)}
                 {item.nome_arquivo ? ` · ${item.nome_arquivo}` : ""}
                 {item.is_virtual && (
-                  <span className="ml-1.5 italic text-muted-foreground/70">(ainda não criado)</span>
+                  <span className="ml-1.5 italic text-muted-foreground/70">{t("mailboxList.row.aindaNaoCriado")}</span>
                 )}
               </span>
             </>
           )}
           {!item.tipo_documento && (
             <span className="truncate italic">
-              {item.observacoes_china || item.observacoes_brasil || "Sem documentos"}
+              {item.observacoes_china || item.observacoes_brasil || t("mailboxList.row.semDocumentos")}
             </span>
           )}
         </div>
         {folder === "awaiting_send" && (() => {
           const ev = evaluateAwaitingSend(item);
           if (!ev.matches) return null;
-          // Mantemos apenas as badges de motivo ACIONÁVEIS — sem documento, sem
-          // parecer. "Rascunho" só aparece quando o pai também é rascunho (caso
-          // contrário é informação redundante: o cabeçalho do grupo já diz).
-          // O contexto "item novo em submissão já enviada" é comunicado pelo
-          // cabeçalho do grupo ("Enviada ao Brasil — aguardando análise"),
-          // não mais por badge no item.
           const parentIsRascunho = item.submissao_status === "rascunho";
           const reasons = ev.reasons.filter((r) => r !== "rascunho" || parentIsRascunho);
           if (reasons.length === 0) return null;
@@ -250,7 +243,7 @@ function MailboxRow({ item, dir, folder, active, checked, onSelect, onToggleChec
                     key={r}
                     variant="outline"
                     className={cn("h-4 gap-0.5 px-1.5 text-[9.5px] font-medium", cls)}
-                    title={`Motivo: ${AWAITING_SEND_REASON_LABEL[r]}`}
+                    title={t("mailboxList.row.motivoPrefix", { label: AWAITING_SEND_REASON_LABEL[r] })}
                   >
                     <Icon className="h-2.5 w-2.5" />
                     {AWAITING_SEND_REASON_LABEL[r]}
@@ -277,8 +270,8 @@ function MailboxRow({ item, dir, folder, active, checked, onSelect, onToggleChec
             )}
             title={
               item.checklist_aprovados === item.checklist_total
-                ? "Checklist 100% aprovado — libera ordem de compra"
-                : `Checklist incompleto — ${item.checklist_total - item.checklist_aprovados} doc(s) ainda não aprovados`
+                ? t("mailboxList.row.checklistOk")
+                : t("mailboxList.row.checklistIncompleto", { count: item.checklist_total - item.checklist_aprovados })
             }
           >
             <ListChecks className="h-2.5 w-2.5" />
@@ -287,16 +280,16 @@ function MailboxRow({ item, dir, folder, active, checked, onSelect, onToggleChec
         )}
         {item.snooze_until && (
           <Badge variant="outline" className="h-4 px-1.5 text-[9.5px] gap-0.5 bg-amber-500/15 text-amber-400 border-amber-500/30">
-            <Clock className="h-2.5 w-2.5" /> adiada
+            <Clock className="h-2.5 w-2.5" /> {t("mailboxList.row.adiada")}
           </Badge>
         )}
         <span className="flex items-center gap-1 text-[10px] tabular-nums text-muted-foreground">
           {!unread && (
-            <span title="Lida" aria-label="Lida" className="inline-flex">
+            <span title={t("mailboxList.row.lida")} aria-label={t("mailboxList.row.lida")} className="inline-flex">
               <CheckCheck className="h-3 w-3 text-sky-400" />
             </span>
           )}
-          {relativeAge(item.horas_pendentes)}
+          {relativeAge(item.horas_pendentes, t)}
         </span>
       </div>
     </li>
