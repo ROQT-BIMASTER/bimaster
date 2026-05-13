@@ -534,15 +534,39 @@ export function ChecklistPendingSheet({
                 !item.is_virtual &&
                 !!item.documento_id &&
                 (state === "pendente_envio" || state === "rejeitado");
+              const canBulkSelect =
+                !!onEnviarItemBrasil &&
+                hasParecer &&
+                !item.is_virtual &&
+                !!item.documento_id &&
+                (state === "pendente_envio" || state === "rejeitado");
+              const isChecked = canBulkSelect && selected.has(id);
               return (
                 <li
                   key={id}
                   className={cn(
                     "flex items-start gap-2 border-l-4 pl-3 pr-4 py-2.5 transition-colors hover:bg-muted/30",
                     STATE_BORDER[state] ?? "border-l-transparent",
+                    isChecked && "bg-emerald-500/5",
                   )}
                 >
-                  <Paperclip className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                  {canBulkSelect ? (
+                    <Checkbox
+                      className="mt-0.5"
+                      checked={isChecked}
+                      onCheckedChange={(c) => {
+                        setSelected((prev) => {
+                          const n = new Set(prev);
+                          if (c) n.add(id);
+                          else n.delete(id);
+                          return n;
+                        });
+                      }}
+                      aria-label={`Selecionar ${name} para envio em lote`}
+                    />
+                  ) : (
+                    <Paperclip className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                  )}
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-[12.5px] font-medium text-foreground">
                       {name}
