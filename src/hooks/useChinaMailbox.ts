@@ -305,7 +305,7 @@ export function useChinaMailbox(folder: MailboxFolder): UseChinaMailboxResult {
     };
   }, [enabled, queryClient]);
 
-  const { items, counts, allAwaitingPending } = useMemo(() => {
+  const { items, counts, allAwaitingPending, progressItems } = useMemo(() => {
     const data = query.data;
     if (!data)
       return {
