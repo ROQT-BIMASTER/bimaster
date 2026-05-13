@@ -6,7 +6,33 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useChatUnreadTotal } from "@/hooks/chat/useConversas";
 import { ChatLayout } from "./ChatLayout";
 import { Badge } from "@/components/ui/badge";
-import { useLocation } from "react-router-dom";
+function usePathname() {
+  const [pathname, setPathname] = useState(() =>
+    typeof window !== "undefined" ? window.location.pathname : "/"
+  );
+  useEffect(() => {
+    const update = () => setPathname(window.location.pathname);
+    window.addEventListener("popstate", update);
+    const origPush = window.history.pushState;
+    const origReplace = window.history.replaceState;
+    window.history.pushState = function (...args) {
+      const r = origPush.apply(this, args as any);
+      update();
+      return r;
+    };
+    window.history.replaceState = function (...args) {
+      const r = origReplace.apply(this, args as any);
+      update();
+      return r;
+    };
+    return () => {
+      window.removeEventListener("popstate", update);
+      window.history.pushState = origPush;
+      window.history.replaceState = origReplace;
+    };
+  }, []);
+  return pathname;
+}
 
 interface ChatDrawerCtx {
   open: boolean;
