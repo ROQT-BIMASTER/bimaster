@@ -511,6 +511,8 @@ interface GroupRowProps {
   onToggleStar: (item: MailboxItem) => void;
   onEnviarGrupoBrasil?: (group: MailboxGroup) => void;
   onOpenSubmissao?: (submissao_id: string) => void;
+  /** Abre o drawer lateral com a lista detalhada de pendências do checklist. */
+  onOpenChecklist?: (submissao_id: string) => void;
 }
 
 /** Frase em linguagem natural para o status da submissão pai (cabeçalho do grupo). */
