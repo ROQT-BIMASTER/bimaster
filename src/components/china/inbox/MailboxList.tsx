@@ -304,6 +304,7 @@ function MailboxRow({ item, dir, folder, active, checked, onSelect, onToggleChec
 
 export function MailboxList({
   items,
+  progressItems,
   folder,
   selectedId,
   selectedIds,
