@@ -304,6 +304,7 @@ export function ChecklistPendingSheet({
 }: ChecklistPendingSheetProps) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { t } = useChinaI18n();
   const { bgColor } = usePageBgColor();
   const merged = useMergedChinaChecklist(group?.submissao_id ?? null);
   const cfg = (folder && FOLDER_CONFIG[folder]) ?? DEFAULT_FOLDER_CONFIG;
