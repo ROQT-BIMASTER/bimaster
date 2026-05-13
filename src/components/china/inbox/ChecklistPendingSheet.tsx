@@ -387,7 +387,15 @@ export function ChecklistPendingSheet({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="w-full sm:max-w-md flex flex-col p-0">
+      <SheetContent
+        side="right"
+        className="w-full sm:max-w-md flex flex-col p-0"
+        style={
+          bgColor
+            ? ({ backgroundColor: bgColor, color: "hsl(var(--foreground))", ...getBgPaletteVars(bgColor) } as React.CSSProperties)
+            : undefined
+        }
+      >
         <SheetHeader className="space-y-2 border-b border-border/60 px-4 py-3">
           <SheetTitle className="text-sm font-semibold leading-tight">
             <span className="flex items-center gap-2">
