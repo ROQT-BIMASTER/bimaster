@@ -42,19 +42,19 @@ export function SavedFiltersMenu({ current, onApply }: Props) {
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="outline" size="sm">
-            <Bookmark className="h-3.5 w-3.5 mr-1" /> Filtros salvos
+            <Bookmark className="h-3.5 w-3.5 mr-1" /> {t("recebimento.filtrosSalvos")}
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-72">
-          <DropdownMenuLabel>Aplicar</DropdownMenuLabel>
+          <DropdownMenuLabel>{t("recebimento.aplicar")}</DropdownMenuLabel>
           {isLoading && (
             <div className="px-2 py-1.5 text-xs text-muted-foreground flex items-center gap-2">
-              <Loader2 className="h-3 w-3 animate-spin" /> Carregando…
+              <Loader2 className="h-3 w-3 animate-spin" /> {t("recebimento.carregando")}
             </div>
           )}
           {!isLoading && filters.length === 0 && (
             <div className="px-2 py-1.5 text-xs text-muted-foreground">
-              Nenhum filtro salvo.
+              {t("recebimento.nenhumFiltroSalvo")}
             </div>
           )}
           {filters.map((f: SavedFilter) => (
@@ -70,34 +70,34 @@ export function SavedFiltersMenu({ current, onApply }: Props) {
               />
               <Trash2
                 className="h-3.5 w-3.5 text-muted-foreground cursor-pointer hover:text-red-500"
-                onClick={(e) => { e.stopPropagation(); if (confirm(`Remover "${f.nome}"?`)) del.mutate(f.id); }}
+                onClick={(e) => { e.stopPropagation(); if (confirm(t("recebimento.removerConfirm", { nome: f.nome }))) del.mutate(f.id); }}
               />
             </DropdownMenuItem>
           ))}
           <DropdownMenuSeparator />
           <DropdownMenuItem onSelect={(e) => { e.preventDefault(); setOpenSave(true); }}>
-            <Plus className="h-3.5 w-3.5 mr-2" /> Salvar filtro atual…
+            <Plus className="h-3.5 w-3.5 mr-2" /> {t("recebimento.salvarFiltroAtual")}
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
 
       <Dialog open={openSave} onOpenChange={setOpenSave}>
         <DialogContent className="max-w-sm">
-          <DialogHeader><DialogTitle>Salvar filtro</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{t("recebimento.salvarFiltro")}</DialogTitle></DialogHeader>
           <div className="space-y-3">
             <div>
-              <Label>Nome</Label>
-              <Input value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Ex.: OCs com divergência" />
+              <Label>{t("recebimento.nome")}</Label>
+              <Input value={nome} onChange={(e) => setNome(e.target.value)} placeholder={t("recebimento.nomePlaceholder")} />
             </div>
             <label className="flex items-center gap-2 text-sm cursor-pointer">
               <Checkbox checked={asDefault} onCheckedChange={(v) => setAsDefault(!!v)} />
-              Marcar como padrão (aplicado ao abrir a página)
+              {t("recebimento.marcarPadrao")}
             </label>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setOpenSave(false)}>Cancelar</Button>
+            <Button variant="outline" onClick={() => setOpenSave(false)}>{t("recebimento.cancelar")}</Button>
             <Button onClick={handleSave} disabled={!nome.trim() || save.isPending}>
-              {save.isPending ? "Salvando…" : "Salvar"}
+              {save.isPending ? t("recebimento.salvando") : t("recebimento.salvar")}
             </Button>
           </DialogFooter>
         </DialogContent>
