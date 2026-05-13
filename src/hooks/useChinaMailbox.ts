@@ -215,6 +215,40 @@ export function useChinaMailbox(folder: MailboxFolder): UseChinaMailboxResult {
       const snoozeMap = new Map<string, string>();
       for (const r of (snoozeRes.data || []) as any[]) snoozeMap.set(r.submissao_id, r.snooze_until);
 
+      // Customizações de checklist (Modo Foco) por submissão — usadas para
+      // calcular o total ESPERADO (denominador "X de N") e gerar itens
+      // virtuais ("fantasma") em "Pendentes de envio" quando ainda nem
+      // foram criados em `china_produto_documentos`.
+      const subIds = ((subsRes.data || []) as any[]).map((s) => s.id);
+      let customCats: ChecklistCustomCategory[] = [];
+      let customItems: ChecklistCustomItem[] = [];
+      let hidden: ChecklistHiddenItem[] = [];
+      if (subIds.length > 0) {
+        const [ccRes, ciRes, hRes] = await Promise.all([
+          (supabase as any)
+            .from("china_checklist_custom_categorias")
+            .select("id, submissao_id, fluxo, label_pt, label_cn, ordem")
+            .in("submissao_id", subIds),
+          (supabase as any)
+            .from("china_checklist_custom_itens")
+            .select("id, submissao_id, tipo_key, label_pt, label_cn, categoria_default_key, categoria_custom_id")
+            .in("submissao_id", subIds),
+          (supabase as any)
+            .from("china_checklist_itens_ocultos")
+            .select("submissao_id, tipo_key")
+            .in("submissao_id", subIds),
+        ]);
+        customCats = (ccRes.data || []) as ChecklistCustomCategory[];
+        customItems = (ciRes.data || []) as ChecklistCustomItem[];
+        hidden = (hRes.data || []) as ChecklistHiddenItem[];
+      }
+      const expectedBySub = computeExpectedChecklistBatch(
+        subIds,
+        customCats,
+        customItems,
+        hidden,
+      );
+
       return {
         uid,
         subs: (subsRes.data || []) as any[],
@@ -222,6 +256,7 @@ export function useChinaMailbox(folder: MailboxFolder): UseChinaMailboxResult {
         read: new Set<string>(((readRes.data || []) as any[]).map((r) => r.documento_id)),
         flagged: new Set<string>(((flagsRes.data || []) as any[]).map((r) => r.submissao_id)),
         snoozeMap,
+        expectedBySub,
       };
     },
   });
