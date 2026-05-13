@@ -50,6 +50,8 @@ export const NovaConversaDialog = ({ open, onOpenChange, onSuccess }: NovaConver
         .from("profiles")
         .select("id, nome, email, avatar_url")
         .neq("id", user.id)
+        .eq("status", "ativo")
+        .eq("is_honeytoken", false)
         .order("nome");
 
       if (error) throw error;
@@ -73,8 +75,7 @@ export const NovaConversaDialog = ({ open, onOpenChange, onSuccess }: NovaConver
     return usuarios.filter((u) => {
       const nome = (u.nome || "").toLowerCase();
       const email = (u.email || "").toLowerCase();
-      const cargo = ("").toLowerCase();
-      return nome.includes(termo) || email.includes(termo) || cargo.includes(termo);
+      return nome.includes(termo) || email.includes(termo);
     });
   }, [usuarios, busca]);
 
@@ -95,49 +96,13 @@ export const NovaConversaDialog = ({ open, onOpenChange, onSuccess }: NovaConver
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Usuário não autenticado");
 
-      // Verificar se já existe conversa privada entre os dois usuários
-      const { data: minhasConversas } = await supabase
-        .from("conversas_participantes")
-        .select("conversa_id")
-        .eq("usuario_id", user.id);
-
-      if (minhasConversas?.length) {
-        const ids = minhasConversas.map((c) => c.conversa_id);
-        const { data: outroParticipante } = await supabase
-          .from("conversas_participantes")
-          .select("conversa_id")
-          .in("conversa_id", ids)
-          .eq("usuario_id", usuarioSelecionado)
-          .maybeSingle();
-
-        if (outroParticipante) {
-          toast({
-            title: "Conversa já existe",
-            description: "Você já tem uma conversa com este usuário",
-          });
-          onSuccess(outroParticipante.conversa_id);
-          return;
-        }
-      }
-
-      // Criar nova conversa (criado_por é obrigatório pela RLS)
-      const { data: conversa, error: conversaError } = await supabase
-        .from("conversas")
-        .insert([{ tipo: "privada", criado_por: user.id }])
-        .select()
-        .single();
+      const { data: conversaId, error: conversaError } = await supabase.rpc(
+        "rpc_chat_criar_conversa_privada" as any,
+        { p_outro_user_id: usuarioSelecionado } as any,
+      );
 
       if (conversaError) throw conversaError;
-
-      // Adicionar participantes
-      const { error: participantesError } = await supabase
-        .from("conversas_participantes")
-        .insert([
-          { conversa_id: conversa.id, usuario_id: user.id },
-          { conversa_id: conversa.id, usuario_id: usuarioSelecionado },
-        ]);
-
-      if (participantesError) throw participantesError;
+      if (!conversaId) throw new Error("Não foi possível localizar a conversa criada");
 
       toast({
         title: "Conversa criada",
@@ -145,7 +110,7 @@ export const NovaConversaDialog = ({ open, onOpenChange, onSuccess }: NovaConver
       });
 
       setUsuarioSelecionado("");
-      onSuccess(conversa.id);
+      onSuccess(conversaId as string);
     } catch (error: any) {
       logger.error("Erro ao criar conversa:", error);
       toast({
