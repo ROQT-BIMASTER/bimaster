@@ -699,7 +699,9 @@ function GroupRow({
       </li>
       {expanded &&
         group.docs.map((d) => {
-          const id = d.documento_id ?? d.submissao_id;
+          const id = d.is_virtual
+            ? `${d.submissao_id}:virtual:${d.tipo_documento ?? "_"}`
+            : d.documento_id ?? d.submissao_id;
           return (
             <MailboxRow
               key={id}
