@@ -56,7 +56,7 @@ export function AlertasResponsavelPanel({ onSelectOC }: Props) {
                 {a.severidade}
               </Badge>
               <div className="flex-1 min-w-0">
-                <div className="text-xs font-medium">{TIPO_LABEL[a.tipo] || a.tipo}</div>
+                <div className="text-xs font-medium">{TIPO_KEY[a.tipo] ? t(TIPO_KEY[a.tipo]) : a.tipo}</div>
                 <div className="text-xs text-muted-foreground">{a.mensagem}</div>
                 <div className="text-[10px] text-muted-foreground mt-0.5">
                   {new Date(a.criado_em).toLocaleString("pt-BR")}
