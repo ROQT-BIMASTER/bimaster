@@ -38,9 +38,9 @@ export function AlertasResponsavelPanel({ onSelectOC }: Props) {
       >
         <div className="flex items-center gap-2">
           <Bell className="h-4 w-4 text-amber-600" />
-          <span className="font-semibold text-sm">Alertas de recebimento</span>
+          <span className="font-semibold text-sm">{t("recebimento.alertasTitulo")}</span>
           <Badge className="bg-amber-600">{alertas.length}</Badge>
-          {naoLidos > 0 && <Badge className="bg-red-600">{naoLidos} não lidos</Badge>}
+          {naoLidos > 0 && <Badge className="bg-red-600">{t("recebimento.naoLidos", { n: naoLidos })}</Badge>}
         </div>
         {open ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
       </button>
