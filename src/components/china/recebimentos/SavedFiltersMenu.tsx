@@ -21,6 +21,7 @@ interface Props {
 }
 
 export function SavedFiltersMenu({ current, onApply }: Props) {
+  const { t } = useChinaI18n();
   const { data: filters = [], isLoading } = useSavedFiltersRecebimento();
   const save = useSaveFilter();
   const setDefault = useSetDefaultFilter();
