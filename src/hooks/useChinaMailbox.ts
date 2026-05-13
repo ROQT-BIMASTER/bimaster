@@ -480,6 +480,7 @@ export function useChinaMailbox(folder: MailboxFolder): UseChinaMailboxResult {
           approval_completeness: undefined,
           checklist_expected_total: exp.total,
           is_virtual: true,
+          tipo_documento_label: exp.labels.get(tipo)?.pt,
         });
       }
     }
