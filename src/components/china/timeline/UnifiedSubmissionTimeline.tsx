@@ -150,6 +150,7 @@ function ExpandableDocList({
   label?: string;
   defaultOpen?: boolean;
 }) {
+  const { t } = useChinaI18n();
   const [open, setOpen] = useState(defaultOpen);
   const filtered = rows.filter(filter);
   return (
@@ -160,7 +161,7 @@ function ExpandableDocList({
         className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground transition-colors"
       >
         {open ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
-        {open ? "Ocultar detalhamento" : `${label ?? "Ver detalhamento"} (${filtered.length})`}
+        {open ? t("timeline.common.ocultarDetalhamento") : `${label ?? t("timeline.common.verDetalhamento")} (${filtered.length})`}
       </button>
       {open && (
         <ul className="mt-1.5 space-y-1 border-l border-border/60 pl-2">
