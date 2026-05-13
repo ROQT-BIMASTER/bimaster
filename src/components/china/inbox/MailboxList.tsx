@@ -519,19 +519,19 @@ interface GroupRowProps {
 }
 
 /** Frase em linguagem natural para o status da submissão pai (cabeçalho do grupo). */
-function describeParentStatus(status: string): string {
+function describeParentStatus(status: string, t: TFn): string {
   switch (status) {
     case "rascunho":
-      return "Rascunho — nada foi enviado ainda";
+      return t("mailboxList.parentStatus.rascunho");
     case "pendente":
     case "em_revisao":
     case "enviado":
     case "enviado_brasil":
-      return "Enviada ao Brasil — aguardando análise";
+      return t("mailboxList.parentStatus.enviadaBrasil");
     case "aprovado":
-      return "Aprovada pelo Brasil";
+      return t("mailboxList.parentStatus.aprovadaBrasil");
     case "rejeitado":
-      return "Rejeitada — requer ajustes";
+      return t("mailboxList.parentStatus.rejeitadaAjustes");
     default:
       return status;
   }
@@ -550,6 +550,7 @@ function GroupRow({
   onOpenSubmissao,
   onOpenChecklist,
 }: GroupRowProps) {
+  const { t } = useChinaI18n();
   // Em "Pendentes de envio" o detalhamento é feito agora num drawer lateral
   // (ChecklistPendingSheet), não mais por expansão inline. Para outras pastas,
   // mantemos o comportamento clássico de expandir/recolher.
