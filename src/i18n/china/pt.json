@@ -308,6 +308,95 @@
       }
     }
   },
+  "mailboxList": {
+    "fallback": {
+      "itemPersonalizado": "Item personalizado"
+    },
+    "statusBadge": {
+      "aprovadoParcial": "Aprovado · parcial",
+      "aprovadoSemChecklist": "Aprovado · sem checklist",
+      "aprovadoTotal": "Aprovado · total",
+      "rejeitado": "Rejeitado",
+      "ajuste": "Ajuste",
+      "rascunho": "Rascunho",
+      "aguardando": "Aguardando"
+    },
+    "actionFilter": {
+      "aguardaVoce": "Aguarda você",
+      "outroLado": "Outro lado",
+      "tudo": "Tudo"
+    },
+    "row": {
+      "selecionarSubmissao": "Selecionar submissão",
+      "selecionar": "Selecionar",
+      "marcarEstrela": "Marcar com estrela",
+      "desmarcarEstrela": "Desmarcar estrela",
+      "abrirChecklistPendente": "Abrir checklist pendente",
+      "expandir": "Expandir",
+      "recolher": "Recolher",
+      "lida": "Lida",
+      "adiada": "adiada",
+      "aindaNaoCriado": "(ainda não criado)",
+      "semDocumentos": "Sem documentos",
+      "motivoPrefix": "Motivo: {{label}}",
+      "checklistOk": "Checklist 100% aprovado — libera ordem de compra",
+      "checklistIncompleto": "Checklist incompleto — {{count}} doc(s) ainda não aprovados"
+    },
+    "age": {
+      "now": "agora"
+    },
+    "toolbar": {
+      "selecionarTodos": "Selecionar todos",
+      "conversa_one": "{{count}} conversa",
+      "conversa_other": "{{count}} conversas",
+      "item_one": "{{count}} item",
+      "item_other": "{{count}} itens",
+      "mostrarUmPorDoc": "Mostrar um item por documento",
+      "documentos": "Documentos",
+      "agruparOcTitle": "Agrupar documentos pela mesma submissão / OC",
+      "agruparOc": "Agrupar por OC"
+    },
+    "empty": {
+      "semItens": "Nenhum item nesta pasta"
+    },
+    "parentStatus": {
+      "rascunho": "Rascunho — nada foi enviado ainda",
+      "enviadaBrasil": "Enviada ao Brasil — aguardando análise",
+      "aprovadaBrasil": "Aprovada pelo Brasil",
+      "rejeitadaAjustes": "Rejeitada — requer ajustes"
+    },
+    "group": {
+      "submissaoLabel": "Submissão:",
+      "checklistTotalTitle": "Total baseado no checklist configurado (Modo Foco). Itens ainda não criados aparecem como pendentes de envio.",
+      "checklistPrefix": "Checklist:",
+      "enviado_one": "{{count}} enviado",
+      "enviado_other": "{{count}} enviados",
+      "aindaPendente_one": "{{count}} ainda pendente",
+      "aindaPendente_other": "{{count}} ainda pendentes",
+      "deTotal": "{{progressed}} de {{total}}",
+      "itensEnviados": "itens enviados",
+      "pendenteEnvio_one": "{{count}} pendente de envio",
+      "pendenteEnvio_other": "{{count}} pendentes de envio",
+      "noChecklistAtual": "{{real}} no checklist atual · {{remaining}} ainda não criado",
+      "noChecklistAtualPlural": "{{real}} no checklist atual · {{remaining}} ainda não criados",
+      "pctEnviado": "{{pct}}% enviado",
+      "verEnviados": "Ver enviados ({{count}})",
+      "verEnviadosTitle": "Ver os itens já enviados ao Brasil",
+      "verPendentes": "Ver pendentes ({{count}})",
+      "verPendentesTitle": "Abrir página dedicada filtrando os itens ainda pendentes",
+      "verChecklist": "Ver checklist ({{count}})",
+      "verChecklistTitle": "Abrir lista detalhada de pendências em uma caixa lateral",
+      "enviarTodos": "Enviar todos ao Brasil",
+      "enviarTodosTitle": "Despachar todos os itens elegíveis desta submissão ao Brasil",
+      "abrirSubmissao": "Abrir submissão",
+      "abrirSubmissaoTitle": "Abrir a submissão completa em uma nova tela",
+      "documento_one": "{{count}} documento",
+      "documento_other": "{{count}} documentos",
+      "ultimo": "último: {{label}}",
+      "verChecklistCompleto": "Ver checklist completo",
+      "verChecklistCompletoTitle": "Abrir página dedicada com o status completo do checklist"
+    }
+  },
   "timeline": {
     "stages": {
       "1": "1. Submissão criada",
@@ -393,5 +482,15 @@
       "salvar": "Salvar prazos",
       "cancelar": "Cancelar"
     }
+  },
+  "responseTemplates": {
+    "trigger": "Modelos",
+    "headerAprovar": "Respostas rápidas — Aprovar",
+    "headerRejeitar": "Respostas rápidas — Pedir ajuste",
+    "novo": "Novo",
+    "placeholderTitulo": "Título",
+    "placeholderMensagem": "Mensagem em português",
+    "placeholderMensagemCn": "中文 (opcional)",
+    "semModelos": "Nenhum modelo. Crie o primeiro acima."
   }
 }

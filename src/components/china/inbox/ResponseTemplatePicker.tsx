@@ -14,6 +14,7 @@ import {
   useSaveResponseTemplate,
   useDeleteResponseTemplate,
 } from "@/hooks/useChinaResponseTemplates";
+import { useChinaI18n } from "@/hooks/useChinaI18n";
 
 interface Props {
   tipo: "aprovar" | "rejeitar";
@@ -21,6 +22,7 @@ interface Props {
 }
 
 export function ResponseTemplatePicker({ tipo, onPick }: Props) {
+  const { t } = useChinaI18n();
   const { data: templates = [], isLoading } = useResponseTemplates(tipo);
   const save = useSaveResponseTemplate();
   const del = useDeleteResponseTemplate();
@@ -42,13 +44,13 @@ export function ResponseTemplatePicker({ tipo, onPick }: Props) {
       <PopoverTrigger asChild>
         <Button variant="outline" size="sm" className="h-7 gap-1.5 text-xs">
           <Sparkles className="h-3.5 w-3.5" />
-          Modelos
+          {t("responseTemplates.trigger")}
         </Button>
       </PopoverTrigger>
       <PopoverContent align="start" className="w-[360px] p-0">
         <div className="flex items-center justify-between border-b border-border px-3 py-2">
           <p className="text-xs font-semibold">
-            Respostas rápidas — {tipo === "aprovar" ? "Aprovar" : "Pedir ajuste"}
+            {tipo === "aprovar" ? t("responseTemplates.headerAprovar") : t("responseTemplates.headerRejeitar")}
           </p>
           <Button
             variant="ghost"
@@ -57,27 +59,27 @@ export function ResponseTemplatePicker({ tipo, onPick }: Props) {
             onClick={() => setCreating((v) => !v)}
           >
             <Plus className="mr-1 h-3 w-3" />
-            Novo
+            {t("responseTemplates.novo")}
           </Button>
         </div>
 
         {creating && (
           <div className="space-y-2 border-b border-border bg-muted/20 p-3">
             <Input
-              placeholder="Título"
+              placeholder={t("responseTemplates.placeholderTitulo")}
               value={titulo}
               onChange={(e) => setTitulo(e.target.value)}
               className="h-7 text-xs"
             />
             <Textarea
-              placeholder="Mensagem em português"
+              placeholder={t("responseTemplates.placeholderMensagem")}
               value={conteudo}
               onChange={(e) => setConteudo(e.target.value)}
               rows={2}
               className="text-xs"
             />
             <Textarea
-              placeholder="中文 (opcional)"
+              placeholder={t("responseTemplates.placeholderMensagemCn")}
               value={conteudoCn}
               onChange={(e) => setConteudoCn(e.target.value)}
               rows={2}
@@ -85,7 +87,7 @@ export function ResponseTemplatePicker({ tipo, onPick }: Props) {
             />
             <div className="flex justify-end gap-1.5">
               <Button size="sm" variant="ghost" className="h-6 text-[11px]" onClick={reset}>
-                Cancelar
+                {t("common.cancelar")}
               </Button>
               <Button
                 size="sm"
@@ -101,7 +103,7 @@ export function ResponseTemplatePicker({ tipo, onPick }: Props) {
                   reset();
                 }}
               >
-                Salvar
+                {t("common.salvar")}
               </Button>
             </div>
           </div>
@@ -110,35 +112,36 @@ export function ResponseTemplatePicker({ tipo, onPick }: Props) {
         <ScrollArea className="max-h-[280px]">
           <ul className="divide-y divide-border/60">
             {isLoading && (
-              <li className="px-3 py-4 text-center text-xs text-muted-foreground">Carregando…</li>
+              <li className="px-3 py-4 text-center text-xs text-muted-foreground">{t("common.carregando")}</li>
             )}
             {!isLoading && templates.length === 0 && (
               <li className="px-3 py-4 text-center text-xs text-muted-foreground">
-                Nenhum modelo. Crie o primeiro acima.
+                {t("responseTemplates.semModelos")}
               </li>
             )}
-            {templates.map((t) => (
-              <li key={t.id} className="group flex items-start gap-2 px-3 py-2 hover:bg-muted/40">
+            {templates.map((tpl) => (
+              <li key={tpl.id} className="group flex items-start gap-2 px-3 py-2 hover:bg-muted/40">
                 <button
                   type="button"
                   className="flex-1 text-left"
                   onClick={() => {
-                    const text = t.conteudo_cn
-                      ? `${t.conteudo}\n\n${t.conteudo_cn}`
-                      : t.conteudo;
+                    const text = tpl.conteudo_cn
+                      ? `${tpl.conteudo}\n\n${tpl.conteudo_cn}`
+                      : tpl.conteudo;
                     onPick(text);
                     setOpen(false);
                   }}
                 >
-                  <p className="text-xs font-medium text-foreground">{t.titulo}</p>
-                  <p className="line-clamp-2 text-[11px] text-muted-foreground">{t.conteudo}</p>
+                  <p className="text-xs font-medium text-foreground">{tpl.titulo}</p>
+                  <p className="line-clamp-2 text-[11px] text-muted-foreground">{tpl.conteudo}</p>
                 </button>
-                {t.usuario_id && (
+                {tpl.usuario_id && (
                   <Button
                     variant="ghost"
                     size="icon"
                     className="h-6 w-6 opacity-0 group-hover:opacity-100"
-                    onClick={() => del.mutate(t.id)}
+                    onClick={() => del.mutate(tpl.id)}
+                    aria-label={t("common.excluir")}
                   >
                     <Trash2 className="h-3 w-3 text-destructive" />
                   </Button>

@@ -14,18 +14,21 @@ import { groupBySubmissao, type MailboxGroup } from "@/lib/china/groupMailboxIte
 import { type ChinaInboxGroupMode, isGroupModeForced } from "@/hooks/useChinaInboxGroupMode";
 import { ReadStatusLegend } from "./ReadStatusLegend";
 import { ChecklistPendingSheet } from "./ChecklistPendingSheet";
+import { useChinaI18n } from "@/hooks/useChinaI18n";
+
+type TFn = (key: string, opts?: Record<string, unknown>) => string;
 
 /**
  * Resolve o nome legível do `tipo_documento` para exibição na lista.
  * Usa `tipo_documento_label` (vindo do merge do checklist) e cai num
  * formatador snake_case → Title Case quando ausente.
  */
-function resolveTipoLabel(item: MailboxItem): string | null {
+function resolveTipoLabel(item: MailboxItem, t: TFn): string | null {
   if (item.tipo_documento_label) return item.tipo_documento_label;
-  const t = item.tipo_documento;
-  if (!t) return null;
-  if (t.startsWith("custom_")) return "Item personalizado";
-  return t
+  const td = item.tipo_documento;
+  if (!td) return null;
+  if (td.startsWith("custom_")) return t("mailboxList.fallback.itemPersonalizado");
+  return td
     .split("_")
     .filter(Boolean)
     .map((p) => p.charAt(0).toUpperCase() + p.slice(1))
@@ -34,19 +37,19 @@ function resolveTipoLabel(item: MailboxItem): string | null {
 
 export type ActionFilter = "mine" | "theirs" | "all";
 
-const FOLDER_TITLES: Partial<Record<MailboxFolder, string>> = {
-  inbox: "Caixa de Entrada",
-  starred: "Marcadas",
-  sent: "Enviados",
-  drafts: "Rascunhos",
-  approved: "Aprovadas",
-  rejected: "Rejeitadas",
-  trash: "Lixeira",
-  oc: "Ordens de Compra",
-  awaiting_send: "Pendentes de envio",
-  sent_brazil: "Enviadas ao Brasil — aguardando análise",
-  in_analysis: "Em análise no Brasil",
-  returned: "Retorno: ajustes solicitados",
+const FOLDER_TITLE_KEYS: Partial<Record<MailboxFolder, string>> = {
+  inbox: "inbox.sidebar.folders.inbox",
+  starred: "inbox.sidebar.folders.starred",
+  sent: "inbox.sidebar.folders.sent",
+  drafts: "inbox.sidebar.folders.drafts",
+  approved: "inbox.sidebar.folders.approved",
+  rejected: "inbox.sidebar.folders.rejected",
+  trash: "inbox.sidebar.folders.trash",
+  oc: "inbox.sidebar.folders.oc",
+  awaiting_send: "inbox.sidebar.folders.awaiting_send",
+  sent_brazil: "inbox.sidebar.folders.sent_brazil",
+  in_analysis: "inbox.sidebar.folders.in_analysis",
+  returned: "inbox.sidebar.folders.returned",
 };
 
 // Pastas onde o agrupamento por submissão não faz sentido (já são por OC ou
@@ -80,43 +83,44 @@ interface Props {
 function statusBadge(
   submissao_status: string,
   doc_status: string | null,
-  approval_completeness?: "total" | "partial" | "empty",
+  approval_completeness: "total" | "partial" | "empty" | undefined,
+  t: TFn,
 ) {
   if (submissao_status === "aprovado") {
     if (approval_completeness === "partial") {
       return {
-        label: "Aprovado · parcial",
+        label: t("mailboxList.statusBadge.aprovadoParcial"),
         icon: AlertTriangle,
         cls: "bg-amber-500/15 text-amber-400 border-amber-500/30",
       };
     }
     if (approval_completeness === "empty") {
       return {
-        label: "Aprovado · sem checklist",
+        label: t("mailboxList.statusBadge.aprovadoSemChecklist"),
         icon: AlertTriangle,
         cls: "bg-muted/40 text-muted-foreground border-border",
       };
     }
     return {
-      label: "Aprovado · total",
+      label: t("mailboxList.statusBadge.aprovadoTotal"),
       icon: CheckCircle2,
       cls: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30",
     };
   }
   if (submissao_status === "rejeitado") {
-    return { label: "Rejeitado", icon: AlertTriangle, cls: "bg-rose-500/15 text-rose-400 border-rose-500/30" };
+    return { label: t("mailboxList.statusBadge.rejeitado"), icon: AlertTriangle, cls: "bg-rose-500/15 text-rose-400 border-rose-500/30" };
   }
   if (doc_status === "rejeitado") {
-    return { label: "Ajuste", icon: AlertTriangle, cls: "bg-amber-500/15 text-amber-400 border-amber-500/30" };
+    return { label: t("mailboxList.statusBadge.ajuste"), icon: AlertTriangle, cls: "bg-amber-500/15 text-amber-400 border-amber-500/30" };
   }
   if (submissao_status === "rascunho") {
-    return { label: "Rascunho", icon: FileText, cls: "bg-muted/40 text-muted-foreground border-border" };
+    return { label: t("mailboxList.statusBadge.rascunho"), icon: FileText, cls: "bg-muted/40 text-muted-foreground border-border" };
   }
-  return { label: "Aguardando", icon: Clock, cls: "bg-primary/15 text-primary border-primary/30" };
+  return { label: t("mailboxList.statusBadge.aguardando"), icon: Clock, cls: "bg-primary/15 text-primary border-primary/30" };
 }
 
-function relativeAge(hours: number) {
-  if (hours < 1) return "agora";
+function relativeAge(hours: number, t: TFn) {
+  if (hours < 1) return t("mailboxList.age.now");
   if (hours < 24) return `${hours}h`;
   const d = Math.floor(hours / 24);
   return `${d}d`;
@@ -136,13 +140,12 @@ interface RowProps {
 }
 
 function MailboxRow({ item, dir, folder, active, checked, onSelect, onToggleCheck, onToggleStar, nested }: RowProps) {
+  const { t } = useChinaI18n();
   const id = item.is_virtual
     ? `${item.submissao_id}:virtual:${item.tipo_documento ?? "_"}`
     : item.documento_id ?? item.submissao_id;
-  const sb = statusBadge(item.submissao_status, item.doc_status, item.approval_completeness);
+  const sb = statusBadge(item.submissao_status, item.doc_status, item.approval_completeness, t);
   const SbIcon = sb.icon;
-  // Padrão e-mail: enquanto não lido, título em destaque em qualquer pasta.
-  // Itens sem documento (não rastreáveis por leitura) são tratados como lidos.
   const unread = !item.is_read;
   return (
     <li
@@ -159,7 +162,7 @@ function MailboxRow({ item, dir, folder, active, checked, onSelect, onToggleChec
           checked={checked}
           onCheckedChange={() => onToggleCheck(item.submissao_id)}
           onClick={(e) => e.stopPropagation()}
-          aria-label="Selecionar"
+          aria-label={t("mailboxList.row.selecionar")}
         />
       </div>
       {!nested && (
@@ -173,7 +176,7 @@ function MailboxRow({ item, dir, folder, active, checked, onSelect, onToggleChec
             "mt-0.5 transition-colors",
             item.is_flagged ? "text-amber-400" : "text-muted-foreground/40 hover:text-amber-300",
           )}
-          aria-label={item.is_flagged ? "Desmarcar estrela" : "Marcar com estrela"}
+          aria-label={item.is_flagged ? t("mailboxList.row.desmarcarEstrela") : t("mailboxList.row.marcarEstrela")}
         >
           <Star className="h-3.5 w-3.5" fill={item.is_flagged ? "currentColor" : "none"} />
         </button>
@@ -202,29 +205,23 @@ function MailboxRow({ item, dir, folder, active, checked, onSelect, onToggleChec
             <>
               <Paperclip className="h-3 w-3 shrink-0" />
               <span className="truncate">
-                {resolveTipoLabel(item)}
+                {resolveTipoLabel(item, t)}
                 {item.nome_arquivo ? ` · ${item.nome_arquivo}` : ""}
                 {item.is_virtual && (
-                  <span className="ml-1.5 italic text-muted-foreground/70">(ainda não criado)</span>
+                  <span className="ml-1.5 italic text-muted-foreground/70">{t("mailboxList.row.aindaNaoCriado")}</span>
                 )}
               </span>
             </>
           )}
           {!item.tipo_documento && (
             <span className="truncate italic">
-              {item.observacoes_china || item.observacoes_brasil || "Sem documentos"}
+              {item.observacoes_china || item.observacoes_brasil || t("mailboxList.row.semDocumentos")}
             </span>
           )}
         </div>
         {folder === "awaiting_send" && (() => {
           const ev = evaluateAwaitingSend(item);
           if (!ev.matches) return null;
-          // Mantemos apenas as badges de motivo ACIONÁVEIS — sem documento, sem
-          // parecer. "Rascunho" só aparece quando o pai também é rascunho (caso
-          // contrário é informação redundante: o cabeçalho do grupo já diz).
-          // O contexto "item novo em submissão já enviada" é comunicado pelo
-          // cabeçalho do grupo ("Enviada ao Brasil — aguardando análise"),
-          // não mais por badge no item.
           const parentIsRascunho = item.submissao_status === "rascunho";
           const reasons = ev.reasons.filter((r) => r !== "rascunho" || parentIsRascunho);
           if (reasons.length === 0) return null;
@@ -246,7 +243,7 @@ function MailboxRow({ item, dir, folder, active, checked, onSelect, onToggleChec
                     key={r}
                     variant="outline"
                     className={cn("h-4 gap-0.5 px-1.5 text-[9.5px] font-medium", cls)}
-                    title={`Motivo: ${AWAITING_SEND_REASON_LABEL[r]}`}
+                    title={t("mailboxList.row.motivoPrefix", { label: AWAITING_SEND_REASON_LABEL[r] })}
                   >
                     <Icon className="h-2.5 w-2.5" />
                     {AWAITING_SEND_REASON_LABEL[r]}
@@ -273,8 +270,8 @@ function MailboxRow({ item, dir, folder, active, checked, onSelect, onToggleChec
             )}
             title={
               item.checklist_aprovados === item.checklist_total
-                ? "Checklist 100% aprovado — libera ordem de compra"
-                : `Checklist incompleto — ${item.checklist_total - item.checklist_aprovados} doc(s) ainda não aprovados`
+                ? t("mailboxList.row.checklistOk")
+                : t("mailboxList.row.checklistIncompleto", { count: item.checklist_total - item.checklist_aprovados })
             }
           >
             <ListChecks className="h-2.5 w-2.5" />
@@ -283,16 +280,16 @@ function MailboxRow({ item, dir, folder, active, checked, onSelect, onToggleChec
         )}
         {item.snooze_until && (
           <Badge variant="outline" className="h-4 px-1.5 text-[9.5px] gap-0.5 bg-amber-500/15 text-amber-400 border-amber-500/30">
-            <Clock className="h-2.5 w-2.5" /> adiada
+            <Clock className="h-2.5 w-2.5" /> {t("mailboxList.row.adiada")}
           </Badge>
         )}
         <span className="flex items-center gap-1 text-[10px] tabular-nums text-muted-foreground">
           {!unread && (
-            <span title="Lida" aria-label="Lida" className="inline-flex">
+            <span title={t("mailboxList.row.lida")} aria-label={t("mailboxList.row.lida")} className="inline-flex">
               <CheckCheck className="h-3 w-3 text-sky-400" />
             </span>
           )}
-          {relativeAge(item.horas_pendentes)}
+          {relativeAge(item.horas_pendentes, t)}
         </span>
       </div>
     </li>
@@ -318,6 +315,7 @@ export function MailboxList({
   onEnviarItemBrasil,
   onOpenSubmissao,
 }: Props) {
+  const { t } = useChinaI18n();
   const ctx = useChinaUserContext();
   const viewer = viewerOverride ?? { isBrasilUser: ctx.isBrasilUser, isChinaUser: ctx.isChinaUser };
 
@@ -378,9 +376,9 @@ export function MailboxList({
       {folder === "inbox" && onActionFilterChange && (
         <div className="flex items-center gap-1 border-b border-border bg-card/40 px-2 py-1">
           {([
-            { k: "mine" as const, label: "Aguarda você", labelCn: "等待您", count: mineCount },
-            { k: "theirs" as const, label: "Outro lado", labelCn: "对方", count: theirsCount },
-            { k: "all" as const, label: "Tudo", labelCn: "全部", count: itemsWithDir.length },
+            { k: "mine" as const, label: t("mailboxList.actionFilter.aguardaVoce"), count: mineCount },
+            { k: "theirs" as const, label: t("mailboxList.actionFilter.outroLado"), count: theirsCount },
+            { k: "all" as const, label: t("mailboxList.actionFilter.tudo"), count: itemsWithDir.length },
           ]).map((c) => (
             <button
               key={c.k}
@@ -392,7 +390,6 @@ export function MailboxList({
                   ? "bg-primary/20 text-primary border border-primary/40"
                   : "text-muted-foreground hover:bg-muted/40 border border-transparent",
               )}
-              title={c.labelCn}
             >
               {c.label}
               <span className="text-[9px] opacity-70">{c.count}</span>
@@ -404,14 +401,14 @@ export function MailboxList({
         <Checkbox
           checked={allChecked}
           onCheckedChange={onToggleAllChecks}
-          aria-label="Selecionar todos"
+          aria-label={t("mailboxList.toolbar.selecionarTodos")}
         />
         <span className="flex-1 text-[11px] text-muted-foreground">
           {effectiveMode === "grouped"
-            ? `${groups.length} conversa${groups.length === 1 ? "" : "s"} · ${filtered.length} item${filtered.length === 1 ? "" : "s"}`
-            : `${filtered.length} item${filtered.length === 1 ? "" : "s"}`}
+            ? `${t("mailboxList.toolbar.conversa", { count: groups.length })} · ${t("mailboxList.toolbar.item", { count: filtered.length })}`
+            : t("mailboxList.toolbar.item", { count: filtered.length })}
           {" · "}
-          {FOLDER_TITLES[folder] ?? folder}
+          {FOLDER_TITLE_KEYS[folder] ? t(FOLDER_TITLE_KEYS[folder]!) : folder}
         </span>
         <ReadStatusLegend />
         {groupingAllowed && onGroupModeChange && !isGroupModeForced(folder) && (
@@ -425,11 +422,11 @@ export function MailboxList({
                   ? "bg-primary/20 text-primary"
                   : "text-muted-foreground hover:text-foreground",
               )}
-              title="Mostrar um item por documento"
+              title={t("mailboxList.toolbar.mostrarUmPorDoc")}
               aria-pressed={effectiveMode === "flat"}
             >
               <FileText className="h-3 w-3" />
-              Documentos
+              {t("mailboxList.toolbar.documentos")}
             </button>
             <button
               type="button"
@@ -440,11 +437,11 @@ export function MailboxList({
                   ? "bg-primary/20 text-primary"
                   : "text-muted-foreground hover:text-foreground",
               )}
-              title="Agrupar documentos pela mesma submissão / OC"
+              title={t("mailboxList.toolbar.agruparOcTitle")}
               aria-pressed={effectiveMode === "grouped"}
             >
               <Layers className="h-3 w-3" />
-              Agrupar por OC
+              {t("mailboxList.toolbar.agruparOc")}
             </button>
           </div>
         )}
@@ -452,7 +449,7 @@ export function MailboxList({
       <ul className="flex-1 overflow-y-auto" role="list">
         {filtered.length === 0 && (
           <li className="p-8 text-center text-sm text-muted-foreground">
-            Nenhum item nesta pasta / 此文件夹中没有项目
+            {t("mailboxList.empty.semItens")}
           </li>
         )}
         {effectiveMode === "flat" &&
@@ -522,19 +519,19 @@ interface GroupRowProps {
 }
 
 /** Frase em linguagem natural para o status da submissão pai (cabeçalho do grupo). */
-function describeParentStatus(status: string): string {
+function describeParentStatus(status: string, t: TFn): string {
   switch (status) {
     case "rascunho":
-      return "Rascunho — nada foi enviado ainda";
+      return t("mailboxList.parentStatus.rascunho");
     case "pendente":
     case "em_revisao":
     case "enviado":
     case "enviado_brasil":
-      return "Enviada ao Brasil — aguardando análise";
+      return t("mailboxList.parentStatus.enviadaBrasil");
     case "aprovado":
-      return "Aprovada pelo Brasil";
+      return t("mailboxList.parentStatus.aprovadaBrasil");
     case "rejeitado":
-      return "Rejeitada — requer ajustes";
+      return t("mailboxList.parentStatus.rejeitadaAjustes");
     default:
       return status;
   }
@@ -553,6 +550,7 @@ function GroupRow({
   onOpenSubmissao,
   onOpenChecklist,
 }: GroupRowProps) {
+  const { t } = useChinaI18n();
   // Em "Pendentes de envio" o detalhamento é feito agora num drawer lateral
   // (ChecklistPendingSheet), não mais por expansão inline. Para outras pastas,
   // mantemos o comportamento clássico de expandir/recolher.
@@ -567,7 +565,7 @@ function GroupRow({
   const [expanded, setExpanded] = useState(false);
   const headerActive = group.docs.some((d) => (d.documento_id ?? d.submissao_id) === selectedId);
   const checked = selectedIds.has(group.submissao_id);
-  const sb = statusBadge(group.submissao_status, group.worst_status, group.docs[0]?.approval_completeness);
+  const sb = statusBadge(group.submissao_status, group.worst_status, group.docs[0]?.approval_completeness, t);
   const SbIcon = sb.icon;
   const ChevronIcon = expanded ? ChevronDown : ChevronRight;
   const Pivot = group.docs[0];
@@ -603,7 +601,7 @@ function GroupRow({
             checked={checked}
             onCheckedChange={() => onToggleCheck(group.submissao_id)}
             onClick={(e) => e.stopPropagation()}
-            aria-label="Selecionar submissão"
+            aria-label={t("mailboxList.row.selecionarSubmissao")}
           />
         </div>
         <button
@@ -616,7 +614,7 @@ function GroupRow({
             "mt-0.5 transition-colors",
             group.is_flagged ? "text-amber-400" : "text-muted-foreground/40 hover:text-amber-300",
           )}
-          aria-label={group.is_flagged ? "Desmarcar estrela" : "Marcar com estrela"}
+          aria-label={group.is_flagged ? t("mailboxList.row.desmarcarEstrela") : t("mailboxList.row.marcarEstrela")}
         >
           <Star className="h-3.5 w-3.5" fill={group.is_flagged ? "currentColor" : "none"} />
         </button>
@@ -631,7 +629,7 @@ function GroupRow({
             }
           }}
           className="mt-0.5 text-muted-foreground hover:text-foreground"
-          aria-label={isAwaiting ? "Abrir checklist pendente" : expanded ? "Recolher" : "Expandir"}
+          aria-label={isAwaiting ? t("mailboxList.row.abrirChecklistPendente") : expanded ? t("mailboxList.row.recolher") : t("mailboxList.row.expandir")}
           aria-expanded={isAwaiting ? undefined : expanded}
         >
           <ChevronIcon className="h-3.5 w-3.5" />
@@ -656,30 +654,31 @@ function GroupRow({
           {isAwaiting ? (
             <>
               <p className="mt-0.5 text-[11px] text-muted-foreground">
-                Submissão: <span className="text-foreground/85">{describeParentStatus(group.submissao_status)}</span>
+                {t("mailboxList.group.submissaoLabel")}{" "}
+                <span className="text-foreground/85">{describeParentStatus(group.submissao_status, t)}</span>
               </p>
               {(() => {
                 const sentFirst = folder === "sent_brazil" || folder === "in_analysis";
                 return (
                   <p
                     className="mt-0.5 text-[11px] text-muted-foreground"
-                    title="Total baseado no checklist configurado (Modo Foco). Itens ainda não criados aparecem como pendentes de envio."
+                    title={t("mailboxList.group.checklistTotalTitle")}
                   >
-                    Checklist:{" "}
+                    {t("mailboxList.group.checklistPrefix")}{" "}
                     {sentFirst ? (
                       <>
-                        <span className="font-medium text-emerald-400">{progressed} enviado{progressed === 1 ? "" : "s"}</span>
+                        <span className="font-medium text-emerald-400">{t("mailboxList.group.enviado", { count: progressed })}</span>
                         {" · "}
                         <span className="text-muted-foreground">
-                          {pendingCount} ainda pendente{pendingCount === 1 ? "" : "s"}
+                          {t("mailboxList.group.aindaPendente", { count: pendingCount })}
                         </span>
                       </>
                     ) : (
                       <>
-                        <span className="text-foreground/90 font-medium">{progressed} de {expectedTotal}</span>
-                        {" itens enviados · "}
+                        <span className="text-foreground/90 font-medium">{t("mailboxList.group.deTotal", { progressed, total: expectedTotal })}</span>
+                        {" "}{t("mailboxList.group.itensEnviados")}{" · "}
                         <span className={cn("font-medium", pendingCount > 0 ? "text-amber-400" : "text-emerald-400")}>
-                          {pendingCount} pendente{pendingCount === 1 ? "" : "s"} de envio
+                          {t("mailboxList.group.pendenteEnvio", { count: pendingCount })}
                         </span>
                       </>
                     )}
@@ -688,7 +687,9 @@ function GroupRow({
               })()}
               {expectedTotal > realCount && (
                 <p className="mt-0.5 text-[10px] text-muted-foreground/80">
-                  {realCount} no checklist atual · {expectedTotal - realCount} ainda não criado{expectedTotal - realCount === 1 ? "" : "s"}
+                  {(expectedTotal - realCount) === 1
+                    ? t("mailboxList.group.noChecklistAtual", { real: realCount, remaining: expectedTotal - realCount })
+                    : t("mailboxList.group.noChecklistAtualPlural", { real: realCount, remaining: expectedTotal - realCount })}
                 </p>
               )}
               <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-muted/60">
@@ -702,7 +703,7 @@ function GroupRow({
                       : "bg-primary",
                   )}
                   style={{ width: `${pct}%` }}
-                  aria-label={`${pct}% enviado`}
+                  aria-label={t("mailboxList.group.pctEnviado", { pct })}
                 />
               </div>
               <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
@@ -716,10 +717,10 @@ function GroupRow({
                         e.stopPropagation();
                         onOpenChecklist?.(group.submissao_id);
                       }}
-                      title="Ver os itens já enviados ao Brasil"
+                      title={t("mailboxList.group.verEnviadosTitle")}
                     >
                       <ListChecks className="h-3 w-3" />
-                      Ver enviados ({progressed})
+                      {t("mailboxList.group.verEnviados", { count: progressed })}
                     </Button>
                     {pendingCount > 0 && (
                       <Button
@@ -734,9 +735,9 @@ function GroupRow({
                             { state: { from: "/dashboard/fabrica-china/caixa-entrada" } },
                           );
                         }}
-                        title="Abrir página dedicada filtrando os itens ainda pendentes"
+                        title={t("mailboxList.group.verPendentesTitle")}
                       >
-                        Ver pendentes ({pendingCount})
+                        {t("mailboxList.group.verPendentes", { count: pendingCount })}
                       </Button>
                     )}
                   </>
@@ -750,10 +751,10 @@ function GroupRow({
                       e.stopPropagation();
                       onOpenChecklist?.(group.submissao_id);
                     }}
-                    title="Abrir lista detalhada de pendências em uma caixa lateral"
+                    title={t("mailboxList.group.verChecklistTitle")}
                   >
                     <ListChecks className="h-3 w-3" />
-                    Ver checklist ({pendingCount})
+                    {t("mailboxList.group.verChecklist", { count: pendingCount })}
                   </Button>
                 )}
                 {allowSendBatch && pendingCount > 0 && onEnviarGrupoBrasil && (
@@ -765,10 +766,10 @@ function GroupRow({
                       e.stopPropagation();
                       onEnviarGrupoBrasil(group);
                     }}
-                    title="Despachar todos os itens elegíveis desta submissão ao Brasil"
+                    title={t("mailboxList.group.enviarTodosTitle")}
                   >
                     <Send className="h-3 w-3" />
-                    Enviar todos ao Brasil
+                    {t("mailboxList.group.enviarTodos")}
                   </Button>
                 )}
                 {onOpenSubmissao && (
@@ -781,9 +782,9 @@ function GroupRow({
                       e.stopPropagation();
                       onOpenSubmissao(group.submissao_id);
                     }}
-                    title="Abrir a submissão completa em uma nova tela"
+                    title={t("mailboxList.group.abrirSubmissaoTitle")}
                   >
-                    Abrir submissão
+                    {t("mailboxList.group.abrirSubmissao")}
                   </Button>
                 )}
               </div>
@@ -792,8 +793,8 @@ function GroupRow({
             <div className="mt-0.5 flex flex-wrap items-center gap-1.5 truncate text-[11.5px] text-muted-foreground">
               <Paperclip className="h-3 w-3 shrink-0" />
               <span className="truncate">
-                {group.docs.length} documento{group.docs.length === 1 ? "" : "s"}
-                {Pivot.tipo_documento ? ` · último: ${resolveTipoLabel(Pivot)}` : ""}
+                {t("mailboxList.group.documento", { count: group.docs.length })}
+                {Pivot.tipo_documento ? ` · ${t("mailboxList.group.ultimo", { label: resolveTipoLabel(Pivot, t) ?? "" })}` : ""}
               </span>
               {folder === "approved" && (
                 <Button
@@ -808,10 +809,10 @@ function GroupRow({
                       { state: { from: "/dashboard/fabrica-china/caixa-entrada" } },
                     );
                   }}
-                  title="Abrir página dedicada com o status completo do checklist"
+                  title={t("mailboxList.group.verChecklistCompletoTitle")}
                 >
                   <ListChecks className="h-3 w-3" />
-                  Ver checklist completo
+                  {t("mailboxList.group.verChecklistCompleto")}
                 </Button>
               )}
             </div>
@@ -829,7 +830,7 @@ function GroupRow({
             {group.docs.length}
           </Badge>
           <span className="text-[10px] tabular-nums text-muted-foreground">
-            {relativeAge(group.horas_pendentes)}
+            {relativeAge(group.horas_pendentes, t)}
           </span>
         </div>
       </li>
