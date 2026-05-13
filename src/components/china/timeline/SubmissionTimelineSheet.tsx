@@ -85,6 +85,18 @@ export function SubmissionTimelineSheet({ open, onOpenChange, scope, submissao, 
                   size="sm"
                   variant="outline"
                   className="h-7 gap-1.5 text-xs"
+                  onClick={() => setSlaOpen(true)}
+                  title="Configurar prazos por etapa (SLA)"
+                >
+                  <CalendarClock className="h-3.5 w-3.5" />
+                  Prazos
+                </Button>
+              )}
+              {submissao && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-7 gap-1.5 text-xs"
                   onClick={handleExportPdf}
                   title="Exportar linha do tempo em PDF"
                 >
