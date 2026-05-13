@@ -90,15 +90,18 @@ export default function FichaRevisaoDiretoria() {
   }, [fichasPendentes, filtroMarca]);
 
   const produtos = useMemo(() => {
-    const map = new Map<string, string>();
+    const map = new Map<string, { id: string; nome: string; codigo?: string; tipo?: string }>();
     fichasPendentes.forEach((f: any) => {
       if (!f.produto) return;
       if (filtroMarca !== "all" && f.produto.marca !== filtroMarca) return;
       if (filtroLinha !== "all" && f.produto.linha !== filtroLinha) return;
-      map.set(f.produto.id, f.produto.nome);
+      const isKit = (f.produto.tipo || "").toUpperCase() === "DISPLAY";
+      if (filtroTipo === "kit" && !isKit) return;
+      if (filtroTipo === "unitario" && isKit) return;
+      map.set(f.produto.id, { id: f.produto.id, nome: f.produto.nome, codigo: f.produto.codigo, tipo: f.produto.tipo });
     });
-    return [...map.entries()].sort((a, b) => a[1].localeCompare(b[1]));
-  }, [fichasPendentes, filtroMarca, filtroLinha]);
+    return [...map.values()].sort((a, b) => a.nome.localeCompare(b.nome));
+  }, [fichasPendentes, filtroMarca, filtroLinha, filtroTipo]);
 
   // Query grade_itens para mapear Kit → Filhos
   const [gradeRelMap, setGradeRelMap] = useState<{ filhoToPai: Map<string, string>; paiToFilhos: Map<string, string[]> }>({ filhoToPai: new Map(), paiToFilhos: new Map() });
