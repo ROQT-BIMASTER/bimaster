@@ -10,6 +10,7 @@ import { useContestarComParecer, type Revisao } from "@/hooks/useChinaRevisoes";
 import { TextoComTraducao } from "./TextoComTraducao";
 import { useSalvarTraducaoRevisao } from "@/hooks/useChinaRevisoes";
 import { useTraduzirTexto, type IdiomaTraducao } from "@/hooks/useTraduzirTexto";
+import { useChinaI18n } from "@/hooks/useChinaI18n";
 
 interface Props {
   open: boolean;
