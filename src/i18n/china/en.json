@@ -103,7 +103,14 @@
       "recalcNenhuma": "Pending items recalculated. No normalization needed.",
       "recalcErro": "Failed to recalculate pending items",
       "pdfOk": "PDF exported",
-      "pdfErro": "Failed to export PDF"
+      "pdfErro": "Failed to export PDF",
+      "todasLidasOk": "{{count}} message(s) marked as read.",
+      "nenhumaNaoLida": "No unread messages in this folder.",
+      "selecionadasLidasOk": "{{count}} selected item(s) marked as read.",
+      "nenhumaSelecionadaNaoLida": "No selected unread items.",
+      "todosVisiveisLidosOk": "{{count}} item(s) marked as read.",
+      "nenhumNaoLidoVisao": "No unread items in this view.",
+      "estadoLeituraZerado": "Local read state cleared."
     },
     "empty": {
       "selectMessage": "Select a message to view.",
