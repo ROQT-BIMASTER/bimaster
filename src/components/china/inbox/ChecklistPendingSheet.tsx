@@ -572,7 +572,7 @@ export function ChecklistPendingSheet({
                           return n;
                         });
                       }}
-                      aria-label={`Selecionar ${name} para envio em lote`}
+                      aria-label={t("inbox.checklistSheet.row.selecionarAria", { name })}
                     />
                   ) : (
                     <Paperclip className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
@@ -595,7 +595,7 @@ export function ChecklistPendingSheet({
                         )}
                       >
                         <Icon className="h-2.5 w-2.5" />
-                        {meta.label}
+                        {t(meta.labelKey)}
                       </Badge>
                       {cfg.showAttach &&
                         (state === "nao_criado" ||
@@ -607,9 +607,9 @@ export function ChecklistPendingSheet({
                             variant="ghost"
                             className="h-5 gap-1 px-1.5 text-[10px] text-primary"
                             onClick={() => handleAttach(item)}
-                            title="Abrir o Modo Foco já posicionado neste item"
+                            title={t("inbox.checklistSheet.row.anexarTitle")}
                           >
-                            Anexar
+                            {t("inbox.checklistSheet.row.anexar")}
                           </Button>
                         )}
                       {showParecerActions && !hasParecer &&
@@ -620,10 +620,10 @@ export function ChecklistPendingSheet({
                             variant="outline"
                             className="h-5 gap-1 px-1.5 text-[10px] border-amber-500/40 text-amber-500 hover:bg-amber-500/10"
                             onClick={() => setParecerOpen(true)}
-                            title="Registrar parecer técnico para liberar o envio ao Brasil"
+                            title={t("inbox.checklistSheet.row.abrirParecerTitle")}
                           >
                             <MessageSquarePlus className="h-2.5 w-2.5" />
-                            Abrir parecer
+                            {t("inbox.checklistSheet.row.abrirParecer")}
                           </Button>
                         )}
                       {canSendSingle && (
@@ -635,12 +635,12 @@ export function ChecklistPendingSheet({
                           disabled={showParecerActions && !hasParecer}
                           title={
                             showParecerActions && !hasParecer
-                              ? "Registre o parecer técnico antes de despachar"
-                              : "Despachar somente este item ao Brasil"
+                              ? t("inbox.checklistSheet.row.enviarBrasilBloqueadoTitle")
+                              : t("inbox.checklistSheet.row.enviarBrasilTitle")
                           }
                         >
                           <Send className="h-2.5 w-2.5" />
-                          Enviar ao Brasil
+                          {t("inbox.checklistSheet.row.enviarBrasil")}
                         </Button>
                       )}
                       {!item.is_virtual && onSelectItem && (
@@ -651,7 +651,7 @@ export function ChecklistPendingSheet({
                           className="h-5 px-1.5 text-[10px] text-muted-foreground"
                           onClick={() => onSelectItem(id)}
                         >
-                          Abrir item
+                          {t("inbox.checklistSheet.row.abrirItem")}
                         </Button>
                       )}
                     </div>
