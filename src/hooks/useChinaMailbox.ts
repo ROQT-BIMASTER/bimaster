@@ -651,6 +651,11 @@ export function useChinaMailbox(folder: MailboxFolder): UseChinaMailboxResult {
       folder === "awaiting_send"
         ? [...baseItems, ...virtualItems.filter(matchAwaitingSend)]
         : baseItems;
+    // Conjunto COMPLETO de itens (reais + virtuais) — usado pela UI para
+    // calcular o progresso por submissão de forma consistente entre pastas
+    // (ex.: "Pendentes de envio" precisa saber quantos já foram enviados/aprovados,
+    // mesmo que esses itens não estejam visíveis na pasta atual).
+    const progressItems = [...allItems, ...virtualItems];
     // Lista global de pendentes-por-falta-de-doc/parecer (independe da pasta atual)
     // — usada para emitir notificações. Virtuais ficam de fora para evitar
     // spam (1 toast por tipo esperado).
@@ -661,7 +666,7 @@ export function useChinaMailbox(folder: MailboxFolder): UseChinaMailboxResult {
       return ev.reasons.some((r) => r === "sem_documento" || r === "sem_parecer");
     });
 
-    return { items, counts, allAwaitingPending };
+    return { items, counts, allAwaitingPending, progressItems };
   }, [query.data, folder, isBrasilUser, isChinaUser]);
 
   // Notificação: avisar a China quando um novo checklist passa a ficar pendente
