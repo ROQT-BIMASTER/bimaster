@@ -473,6 +473,7 @@ export function UnifiedSubmissionTimeline({ submissao, ocId, onlyChinaStages, cl
   ]);
 
   return (
+    <TooltipProvider delayDuration={150}>
     <div className={className}>
       <div className="space-y-2">
         <StageCard icon={FilePlus2} title={t("timeline.stages.1")} status={stSubmissao} deadline={dl(1)}>
@@ -481,7 +482,15 @@ export function UnifiedSubmissionTimeline({ submissao, ocId, onlyChinaStages, cl
           {submissao.numero_ordem && <DataRow label={t("timeline.common.ocVinculada")} value={submissao.numero_ordem} />}
         </StageCard>
 
-        <StageCard icon={FileText} title={t("timeline.stages.2")} status={stDocs} deadline={dl(2)}>
+        <StageCard
+          icon={FileText}
+          title={t("timeline.stages.2")}
+          status={stDocs}
+          deadline={dl(2)}
+          headerExtra={
+            <RuleHint text="Total esperado é o checklist mesclado (itens padrão + customizados − ocultos), idêntico ao da Caixa de Entrada. Pendentes = itens sem documento anexado ou em status rascunho." />
+          }
+        >
           <DataRow label={t("timeline.common.documentos")} value={docs?.total ?? 0} />
           <DataRow label={t("timeline.common.aprovados")} value={docs?.aprovados ?? 0} />
           <DataRow label={t("timeline.common.pendentes")} value={docs?.pendentes ?? 0} />
@@ -490,7 +499,15 @@ export function UnifiedSubmissionTimeline({ submissao, ocId, onlyChinaStages, cl
           )}
         </StageCard>
 
-        <StageCard icon={Send} title={t("timeline.stages.3")} status={stEnviada} deadline={dl(3)}>
+        <StageCard
+          icon={Send}
+          title={t("timeline.stages.3")}
+          status={stEnviada}
+          deadline={dl(3)}
+          headerExtra={
+            <RuleHint text="Conta como ENVIADO ao Brasil qualquer documento já anexado fora de rascunho — inclusive em status pendente, enviado, em revisão, contestado, aprovado ou rejeitado. Apenas itens sem anexo (ou em rascunho) ficam como pendentes." />
+          }
+        >
           <DataRow
             label={t("timeline.common.estado")}
             value={
