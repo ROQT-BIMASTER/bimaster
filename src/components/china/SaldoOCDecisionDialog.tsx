@@ -74,11 +74,11 @@ export function SaldoOCDecisionDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <RefreshCw className="h-5 w-5 text-warning" />
-            <BilingualLabel pt="Decisão sobre saldo" cn="余额决策" size="md" />
+            <BilingualLabel pt={t("saldoDecisao.titulo")} cn="余额决策" size="md" />
           </DialogTitle>
           <DialogDescription>
-            OC <strong>{numeroOC}</strong> · {item.cor_nome || "Único"} ·{" "}
-            <span className="text-warning font-semibold">{saldo} unidades em saldo</span>
+            {t("saldoDecisao.ocLabel")} <strong>{numeroOC}</strong> · {item.cor_nome || t("saldoDecisao.unico")} ·{" "}
+            <span className="text-warning font-semibold">{t("saldoDecisao.unidadesSaldo", { n: saldo })}</span>
           </DialogDescription>
         </DialogHeader>
 
@@ -95,30 +95,30 @@ export function SaldoOCDecisionDialog({
               <opt.icon className="h-4 w-4 mt-0.5 text-muted-foreground shrink-0" />
               <div className="min-w-0">
                 <p className="font-medium text-sm">
-                  {opt.pt} <span className="text-xs text-muted-foreground">{opt.cn}</span>
+                  {t(opt.labelKey)} <span className="text-xs text-muted-foreground">{opt.cn}</span>
                 </p>
-                <p className="text-xs text-muted-foreground mt-0.5">{opt.desc}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">{t(opt.descKey)}</p>
               </div>
             </Label>
           ))}
         </RadioGroup>
 
         <div className="space-y-2">
-          <Label className="text-xs">Justificativa (recomendado)</Label>
+          <Label className="text-xs">{t("saldoDecisao.justificativa")}</Label>
           <Textarea
             value={justificativa}
             onChange={(e) => setJustificativa(e.target.value)}
-            placeholder="Ex.: atraso da fábrica, falta de matéria-prima, mudança de pedido..."
+            placeholder={t("saldoDecisao.justificativaPlaceholder")}
             rows={3}
           />
         </div>
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancelar
+            {t("saldoDecisao.cancelar")}
           </Button>
           <Button onClick={handleConfirmar} disabled={registrar.isPending}>
-            {registrar.isPending ? "Registrando..." : "Confirmar decisão"}
+            {registrar.isPending ? t("saldoDecisao.registrando") : t("saldoDecisao.confirmar")}
           </Button>
         </DialogFooter>
       </DialogContent>
