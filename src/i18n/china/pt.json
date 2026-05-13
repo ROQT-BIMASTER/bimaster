@@ -491,6 +491,17 @@
       "aprovadaEm": "Aprovada em",
       "aguardandoOc": "Aguardando aprovação do Brasil para gerar a Ordem de Compra. As etapas abaixo serão preenchidas automaticamente conforme o pedido avançar."
     },
+    "rules": {
+      "label": "Como esta contagem é calculada?",
+      "aria": "Como esta contagem é calculada",
+      "stage2": "Total esperado é o checklist mesclado (itens padrão + customizados − ocultos), idêntico ao da Caixa de Entrada. Pendentes = itens sem documento anexado ou em status rascunho.",
+      "stage3": "Conta como ENVIADO ao Brasil qualquer documento já anexado fora de rascunho — inclusive em status pendente, enviado, em revisão, contestado, aprovado ou rejeitado. Apenas itens sem anexo (ou em rascunho) ficam como pendentes.",
+      "stage4": "Aprovados e rejeitados são subconjuntos dos itens já enviados ao Brasil. Itens aguardando análise continuam contabilizados em ‘Enviados’ até receberem parecer."
+    },
+    "inconsistency": {
+      "title": "Inconsistência detectada nos contadores",
+      "message": "Os totais do checklist desta submissão não batem ({{detail}}). Atualize a página; se persistir, contate o suporte."
+    },
     "deadline": {
       "vence": "Vence {{date}}",
       "diasRestantes": "{{count}}d restantes",

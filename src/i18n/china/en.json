@@ -375,6 +375,17 @@
       "aprovadaEm": "Approved on",
       "aguardandoOc": "Waiting for Brazil approval to issue the Purchase Order. The stages below will be filled in automatically as the order progresses."
     },
+    "rules": {
+      "label": "How is this count calculated?",
+      "aria": "How this count is calculated",
+      "stage2": "Expected total is the merged checklist (default + custom − hidden items), identical to the Inbox. Pending = items with no attached document or in draft status.",
+      "stage3": "Any document already attached and not in draft counts as SENT to Brazil — including pending, sent, in review, contested, approved or rejected. Only items with no attachment (or in draft) remain pending.",
+      "stage4": "Approved and rejected are subsets of items already sent to Brazil. Items awaiting analysis remain counted under ‘Sent’ until a verdict is issued."
+    },
+    "inconsistency": {
+      "title": "Inconsistency detected in counters",
+      "message": "Checklist totals for this submission do not match ({{detail}}). Refresh the page; if it persists, contact support."
+    },
     "deadline": {
       "vence": "Due {{date}}",
       "diasRestantes": "{{count}}d left",

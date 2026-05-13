@@ -33,17 +33,20 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { Info } from "lucide-react";
+import { Info, AlertTriangle } from "lucide-react";
 
-function RuleHint({ text }: { text: string }) {
+function RuleHint({ text, label, ariaLabel }: { text: string; label: string; ariaLabel: string }) {
   return (
-    <div className="-mt-1 mb-1 flex items-start gap-1 text-[10.5px] leading-snug text-muted-foreground">
+    <div
+      className="-mt-1 mb-1 flex items-start gap-1 text-[10.5px] leading-snug text-muted-foreground"
+      data-testid="timeline-rule-hint"
+    >
       <Tooltip>
         <TooltipTrigger asChild>
           <button
             type="button"
             className="shrink-0 inline-flex items-center justify-center rounded-full p-0.5 text-muted-foreground/80 hover:text-foreground"
-            aria-label="Como esta contagem é calculada"
+            aria-label={ariaLabel}
           >
             <Info className="h-3 w-3" />
           </button>
@@ -52,7 +55,23 @@ function RuleHint({ text }: { text: string }) {
           {text}
         </TooltipContent>
       </Tooltip>
-      <span className="italic">Como esta contagem é calculada?</span>
+      <span className="italic">{label}</span>
+    </div>
+  );
+}
+
+function InconsistencyBanner({ title, message }: { title: string; message: string }) {
+  return (
+    <div
+      role="alert"
+      data-testid="timeline-inconsistency-banner"
+      className="flex items-start gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 px-2.5 py-2 text-[11px] text-amber-200"
+    >
+      <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5 text-amber-400" />
+      <div className="space-y-0.5">
+        <p className="font-medium leading-tight">{title}</p>
+        <p className="leading-snug text-amber-200/90">{message}</p>
+      </div>
     </div>
   );
 }
@@ -103,6 +122,8 @@ interface DocSummary {
   ultimoStatus: string | null;
   ultimoEm: string | null;
   rows: DocRow[];
+  /** Mensagem de inconsistência detectada por validateChecklistResumo. */
+  inconsistencia: string | null;
 }
 
 const SENT_STATUSES = ["enviado", "contestado", "aprovado", "rejeitado", "em_revisao"];
@@ -169,6 +190,7 @@ function useDocsResumo(submissaoId: string | null | undefined) {
         ultimoStatus: rows[0]?.status ?? null,
         ultimoEm: rows[0]?.updated_at ?? rows[0]?.created_at ?? null,
         rows,
+        inconsistencia,
       };
     },
   });
@@ -495,8 +517,24 @@ export function UnifiedSubmissionTimeline({ submissao, ocId, onlyChinaStages, cl
 
   return (
     <TooltipProvider delayDuration={150}>
-    <div className={className}>
+    <div className={className} data-testid="unified-timeline">
+      <div
+        data-testid="timeline-resumo"
+        data-total={docs?.total ?? 0}
+        data-pendentes={docs?.pendentes ?? 0}
+        data-enviados={docs?.enviados ?? 0}
+        data-aprovados={docs?.aprovados ?? 0}
+        data-rejeitados={docs?.rejeitados ?? 0}
+        data-inconsistencia={docs?.inconsistencia ?? ""}
+        className="sr-only"
+      />
       <div className="space-y-2">
+        {docs?.inconsistencia && (
+          <InconsistencyBanner
+            title={t("timeline.inconsistency.title")}
+            message={t("timeline.inconsistency.message", { detail: docs.inconsistencia })}
+          />
+        )}
         <StageCard icon={FilePlus2} title={t("timeline.stages.1")} status={stSubmissao} deadline={dl(1)}>
           <DataRow label={t("timeline.common.criadaEm")} value={submissao.created_at ? fmtDate(submissao.created_at) : "—"} />
           <DataRow label={t("timeline.common.statusAtual")} value={submStatus || "—"} />
@@ -504,7 +542,11 @@ export function UnifiedSubmissionTimeline({ submissao, ocId, onlyChinaStages, cl
         </StageCard>
 
         <StageCard icon={FileText} title={t("timeline.stages.2")} status={stDocs} deadline={dl(2)}>
-          <RuleHint text="Total esperado é o checklist mesclado (itens padrão + customizados − ocultos), idêntico ao da Caixa de Entrada. Pendentes = itens sem documento anexado ou em status rascunho." />
+          <RuleHint
+            text={t("timeline.rules.stage2")}
+            label={t("timeline.rules.label")}
+            ariaLabel={t("timeline.rules.aria")}
+          />
           <DataRow label={t("timeline.common.documentos")} value={docs?.total ?? 0} />
           <DataRow label={t("timeline.common.aprovados")} value={docs?.aprovados ?? 0} />
           <DataRow label={t("timeline.common.pendentes")} value={docs?.pendentes ?? 0} />
@@ -514,7 +556,11 @@ export function UnifiedSubmissionTimeline({ submissao, ocId, onlyChinaStages, cl
         </StageCard>
 
         <StageCard icon={Send} title={t("timeline.stages.3")} status={stEnviada} deadline={dl(3)}>
-          <RuleHint text="Conta como ENVIADO ao Brasil qualquer documento já anexado fora de rascunho — inclusive em status pendente, enviado, em revisão, contestado, aprovado ou rejeitado. Apenas itens sem anexo (ou em rascunho) ficam como pendentes." />
+          <RuleHint
+            text={t("timeline.rules.stage3")}
+            label={t("timeline.rules.label")}
+            ariaLabel={t("timeline.rules.aria")}
+          />
           <DataRow
             label={t("timeline.common.estado")}
             value={
@@ -549,6 +595,12 @@ export function UnifiedSubmissionTimeline({ submissao, ocId, onlyChinaStages, cl
         </StageCard>
 
         <StageCard icon={ShieldCheck} title={t("timeline.stages.4")} status={stAprovBrasil} deadline={dl(4)}>
+          <RuleHint
+            text={t("timeline.rules.stage4")}
+            label={t("timeline.rules.label")}
+            ariaLabel={t("timeline.rules.aria")}
+          />
+
           {enviadosDocs > 0 ? (
             <>
               <ProgressBlock

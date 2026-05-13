@@ -13,7 +13,7 @@ import { defineConfig, devices } from "@playwright/test";
  * - test-results/         screenshots, vídeos e traces de cada falha
  */
 export default defineConfig({
-  testDir: "./e2e/aprovacoes",
+  testDir: "./e2e",
   timeout: 60_000,
   expect: { timeout: 10_000 },
   fullyParallel: false,
