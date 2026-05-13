@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Star, Paperclip, Clock, AlertTriangle, CheckCircle2, FileText, FileX2, MessageSquareOff, ChevronRight, ChevronDown, Layers, CheckCheck, ListChecks, Send, Loader2 } from "lucide-react";
+import { Star, Paperclip, Clock, AlertTriangle, CheckCircle2, FileText, FileX2, MessageSquareOff, ChevronRight, Layers, CheckCheck, ListChecks, Send } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,24 @@ import { evaluateAwaitingSend, AWAITING_SEND_REASON_LABEL } from "@/lib/china/aw
 import { groupBySubmissao, type MailboxGroup } from "@/lib/china/groupMailboxItems";
 import { type ChinaInboxGroupMode, isGroupModeForced } from "@/hooks/useChinaInboxGroupMode";
 import { ReadStatusLegend } from "./ReadStatusLegend";
+import { ChecklistPendingSheet } from "./ChecklistPendingSheet";
+
+/**
+ * Resolve o nome legível do `tipo_documento` para exibição na lista.
+ * Usa `tipo_documento_label` (vindo do merge do checklist) e cai num
+ * formatador snake_case → Title Case quando ausente.
+ */
+function resolveTipoLabel(item: MailboxItem): string | null {
+  if (item.tipo_documento_label) return item.tipo_documento_label;
+  const t = item.tipo_documento;
+  if (!t) return null;
+  if (t.startsWith("custom_")) return "Item personalizado";
+  return t
+    .split("_")
+    .filter(Boolean)
+    .map((p) => p.charAt(0).toUpperCase() + p.slice(1))
+    .join(" ");
+}
 
 export type ActionFilter = "mine" | "theirs" | "all";
 
