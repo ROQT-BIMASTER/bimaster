@@ -14,6 +14,9 @@ import { groupBySubmissao, type MailboxGroup } from "@/lib/china/groupMailboxIte
 import { type ChinaInboxGroupMode, isGroupModeForced } from "@/hooks/useChinaInboxGroupMode";
 import { ReadStatusLegend } from "./ReadStatusLegend";
 import { ChecklistPendingSheet } from "./ChecklistPendingSheet";
+import { useChinaI18n } from "@/hooks/useChinaI18n";
+
+type TFn = (key: string, opts?: Record<string, unknown>) => string;
 
 /**
  * Resolve o nome legível do `tipo_documento` para exibição na lista.
