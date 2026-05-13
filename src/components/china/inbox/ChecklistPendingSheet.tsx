@@ -408,6 +408,97 @@ export function ChecklistPendingSheet({
                 : section.fluxo === "brasil_envia"
                 ? "Brasil envia"
                 : "Outros";
+
+            // Em pastas "enviados-first" os pendentes vão para um bloco
+            // recolhível secundário; nas demais, mostramos tudo em sequência.
+            const splitSecondary = cfg.priorityMode === "sent";
+            const primaryRows = splitSecondary
+              ? section.rows.filter((r) => SENT_STATES.has(r.state))
+              : section.rows;
+            const secondaryRows = splitSecondary
+              ? section.rows.filter((r) => !SENT_STATES.has(r.state))
+              : [];
+
+            const renderRow = ({ item, state }: { item: MailboxItem; state: ItemState }) => {
+              const meta = STATE_META[state];
+              const Icon = meta.icon;
+              const name =
+                item.tipo_documento_label ??
+                merged.getDocType(item.tipo_documento || "")?.labelPt ??
+                formatTipoFallback(item.tipo_documento);
+              const id = rowKey(item);
+              const canSendSingle =
+                !!onEnviarItemBrasil &&
+                !item.is_virtual &&
+                !!item.documento_id &&
+                (state === "pendente_envio" || state === "rejeitado");
+              return (
+                <li key={id} className="flex items-start gap-2 px-4 py-2.5">
+                  <Paperclip className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-[12.5px] font-medium text-foreground">
+                      {name}
+                    </p>
+                    {item.nome_arquivo && (
+                      <p className="truncate text-[10.5px] text-muted-foreground">
+                        {item.nome_arquivo}
+                      </p>
+                    )}
+                    <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                      <Badge
+                        variant="outline"
+                        className={cn(
+                          "h-4 gap-0.5 px-1.5 text-[9.5px] font-medium",
+                          meta.cls,
+                        )}
+                      >
+                        <Icon className="h-2.5 w-2.5" />
+                        {meta.label}
+                      </Badge>
+                      {cfg.showAttach &&
+                        (state === "nao_criado" ||
+                          state === "pendente_envio" ||
+                          state === "rejeitado") && (
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="ghost"
+                            className="h-5 gap-1 px-1.5 text-[10px] text-primary"
+                            onClick={() => handleAttach(item)}
+                            title="Abrir o Modo Foco já posicionado neste item"
+                          >
+                            Anexar
+                          </Button>
+                        )}
+                      {canSendSingle && (
+                        <Button
+                          type="button"
+                          size="sm"
+                          className="h-5 gap-1 px-1.5 text-[10px] bg-emerald-600 hover:bg-emerald-700 text-white"
+                          onClick={() => onEnviarItemBrasil!(item)}
+                          title="Despachar somente este item ao Brasil"
+                        >
+                          <Send className="h-2.5 w-2.5" />
+                          Enviar ao Brasil
+                        </Button>
+                      )}
+                      {!item.is_virtual && onSelectItem && (
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="ghost"
+                          className="h-5 px-1.5 text-[10px] text-muted-foreground"
+                          onClick={() => onSelectItem(id)}
+                        >
+                          Abrir item
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </li>
+              );
+            };
+
             return (
               <section
                 key={section.key}
@@ -430,79 +521,45 @@ export function ChecklistPendingSheet({
                       </span>
                     )}
                   </div>
-                  <span className="shrink-0 text-[10px] text-muted-foreground">
-                    {section.enviados}/{Math.max(section.total, section.rows.length)}
+                  <span className="shrink-0 text-[10px] tabular-nums">
+                    <span className="font-medium text-emerald-400">
+                      {section.enviadosCount}
+                    </span>
+                    <span className="text-muted-foreground/70"> enviado{section.enviadosCount === 1 ? "" : "s"}</span>
+                    {section.pendentesCount > 0 && (
+                      <>
+                        <span className="text-muted-foreground/50"> · </span>
+                        <span className="text-muted-foreground">
+                          {section.pendentesCount} pendente{section.pendentesCount === 1 ? "" : "s"}
+                        </span>
+                      </>
+                    )}
                   </span>
                 </header>
                 <ul role="list" className="divide-y divide-border/40">
-                  {section.rows.map(({ item, state }) => {
-                    const meta = STATE_META[state];
-                    const Icon = meta.icon;
-                    const name =
-                      item.tipo_documento_label ??
-                      merged.getDocType(item.tipo_documento || "")?.labelPt ??
-                      formatTipoFallback(item.tipo_documento);
-                    const id = rowKey(item);
-                    return (
-                      <li key={id} className="flex items-start gap-2 px-4 py-2.5">
-                        <Paperclip className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate text-[12.5px] font-medium text-foreground">
-                            {name}
-                          </p>
-                          {item.nome_arquivo && (
-                            <p className="truncate text-[10.5px] text-muted-foreground">
-                              {item.nome_arquivo}
-                            </p>
-                          )}
-                          <div className="mt-1 flex flex-wrap items-center gap-1.5">
-                            <Badge
-                              variant="outline"
-                              className={cn(
-                                "h-4 gap-0.5 px-1.5 text-[9.5px] font-medium",
-                                meta.cls,
-                              )}
-                            >
-                              <Icon className="h-2.5 w-2.5" />
-                              {meta.label}
-                            </Badge>
-                            {cfg.showAttach &&
-                              (state === "nao_criado" ||
-                                state === "pendente_envio" ||
-                                state === "rejeitado") && (
-                                <Button
-                                  type="button"
-                                  size="sm"
-                                  variant="ghost"
-                                  className="h-5 gap-1 px-1.5 text-[10px] text-primary"
-                                  onClick={() => handleAttach(item)}
-                                  title="Abrir o Modo Foco já posicionado neste item"
-                                >
-                                  Anexar
-                                </Button>
-                              )}
-                            {!item.is_virtual && onSelectItem && (
-                              <Button
-                                type="button"
-                                size="sm"
-                                variant="ghost"
-                                className="h-5 px-1.5 text-[10px] text-muted-foreground"
-                                onClick={() => onSelectItem(id)}
-                              >
-                                Abrir item
-                              </Button>
-                            )}
-                          </div>
-                        </div>
-                      </li>
-                    );
-                  })}
-                  {section.rows.length === 0 && (
+                  {primaryRows.map(renderRow)}
+                  {primaryRows.length === 0 && !splitSecondary && (
                     <li className="px-4 py-2 text-[11px] text-muted-foreground/80">
                       Nenhum documento criado nesta categoria ainda.
                     </li>
                   )}
+                  {primaryRows.length === 0 && splitSecondary && secondaryRows.length === 0 && (
+                    <li className="px-4 py-2 text-[11px] text-muted-foreground/80">
+                      Nenhum item nesta categoria.
+                    </li>
+                  )}
                 </ul>
+                {splitSecondary && secondaryRows.length > 0 && (
+                  <details className="group border-t border-border/40 bg-muted/10">
+                    <summary className="cursor-pointer list-none px-4 py-1.5 text-[10.5px] text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1">
+                      <span className="transition-transform group-open:rotate-90">›</span>
+                      Ver {secondaryRows.length} pendente{secondaryRows.length === 1 ? "" : "s"} desta categoria
+                    </summary>
+                    <ul role="list" className="divide-y divide-border/40 bg-background/40">
+                      {secondaryRows.map(renderRow)}
+                    </ul>
+                  </details>
+                )}
               </section>
             );
           })}
