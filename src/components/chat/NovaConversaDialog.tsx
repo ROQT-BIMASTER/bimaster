@@ -16,7 +16,6 @@ interface Usuario {
   nome: string | null;
   email: string | null;
   avatar_url?: string | null;
-  cargo?: string | null;
 }
 
 interface NovaConversaDialogProps {
