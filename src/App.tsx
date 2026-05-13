@@ -266,6 +266,7 @@ const ChinaOrdensProducao = lazyWithRetry(() => import("./pages/ChinaOrdensProdu
 const ChinaSubmissaoDetalhe = lazyWithRetry(() => import("./pages/ChinaSubmissaoDetalhe"));
 const ChinaFichaProduto = lazyWithRetry(() => import("./pages/ChinaFichaProduto"));
 const ChinaProdutoChecklist = lazyWithRetry(() => import("./pages/ChinaProdutoChecklist"));
+const ChinaProdutoChecklistStatus = lazyWithRetry(() => import("./pages/ChinaProdutoChecklistStatus"));
 const ChinaTorreContainers = lazyWithRetry(() => import("./pages/ChinaTorreContainers"));
 const ChinaPatioProntoEmbarque = lazyWithRetry(() => import("./pages/ChinaPatioProntoEmbarque"));
 
