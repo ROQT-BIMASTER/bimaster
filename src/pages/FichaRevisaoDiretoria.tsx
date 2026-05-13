@@ -130,7 +130,10 @@ export default function FichaRevisaoDiretoria() {
     const filtered = fichasPendentes.filter((f: any) => {
       if (filtroMarca !== "all" && f.produto?.marca !== filtroMarca) return false;
       if (filtroLinha !== "all" && f.produto?.linha !== filtroLinha) return false;
-      if (filtroProduto !== "all" && f.produto?.id !== filtroProduto) return false;
+      if (produtosSelecionados.length > 0 && !produtosSelecionados.includes(f.produto?.id)) return false;
+      const isKit = (f.produto?.tipo || "").toUpperCase() === "DISPLAY";
+      if (filtroTipo === "kit" && !isKit) return false;
+      if (filtroTipo === "unitario" && isKit) return false;
       if (busca) {
         const b = busca.toLowerCase();
         if (!f.produto?.nome?.toLowerCase().includes(b) && !f.produto?.codigo?.toLowerCase().includes(b)) return false;
