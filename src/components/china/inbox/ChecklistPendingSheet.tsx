@@ -178,9 +178,12 @@ const STATE_ORDER: Record<ItemState, number> = {
   aprovado: 4,
 };
 
-function formatTipoFallback(tipo: string | null | undefined): string {
-  if (!tipo) return "Item do checklist";
-  if (tipo.startsWith("custom_")) return "Item personalizado";
+function formatTipoFallback(
+  tipo: string | null | undefined,
+  t: (k: string) => string,
+): string {
+  if (!tipo) return t("inbox.checklistSheet.fallback.itemChecklist");
+  if (tipo.startsWith("custom_")) return t("inbox.checklistSheet.fallback.itemPersonalizado");
   return tipo
     .split("_")
     .filter(Boolean)
