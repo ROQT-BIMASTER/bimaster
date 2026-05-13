@@ -90,15 +90,15 @@ export function ChinaInboxOCAba() {
           <div className="flex items-center justify-between gap-2">
             <Tabs value={tab} onValueChange={(v) => { setTab(v as ChinaOCSubTab); setSelectedId(null); }}>
               <TabsList className="h-9">
-                {TABS.map((t) => {
-                  const Icon = t.icon;
+                {TABS.map((tb) => {
+                  const Icon = tb.icon;
                   return (
-                    <TabsTrigger key={t.key} value={t.key} className="text-xs gap-1.5">
+                    <TabsTrigger key={tb.key} value={tb.key} className="text-xs gap-1.5">
                       <Icon className="h-3.5 w-3.5" />
-                      {t.label}
-                      {counts[t.key] > 0 && (
+                      {t(tb.labelKey)}
+                      {counts[tb.key] > 0 && (
                         <Badge variant="secondary" className="h-4 px-1.5 text-[10px] tabular-nums">
-                          {counts[t.key]}
+                          {counts[tb.key]}
                         </Badge>
                       )}
                     </TabsTrigger>
@@ -107,8 +107,8 @@ export function ChinaInboxOCAba() {
               </TabsList>
             </Tabs>
             <ToggleGroup type="single" value={view} onValueChange={(v) => v && setView(v as any)} size="sm">
-              <ToggleGroupItem value="lista" className="h-8 px-2 text-xs gap-1.5"><List className="h-3.5 w-3.5" />Lista</ToggleGroupItem>
-              <ToggleGroupItem value="tabela" className="h-8 px-2 text-xs gap-1.5"><TableIcon className="h-3.5 w-3.5" />Tabela</ToggleGroupItem>
+              <ToggleGroupItem value="lista" className="h-8 px-2 text-xs gap-1.5"><List className="h-3.5 w-3.5" />{t("inboxOC.viewLista")}</ToggleGroupItem>
+              <ToggleGroupItem value="tabela" className="h-8 px-2 text-xs gap-1.5"><TableIcon className="h-3.5 w-3.5" />{t("inboxOC.viewTabela")}</ToggleGroupItem>
             </ToggleGroup>
           </div>
 
@@ -116,7 +116,7 @@ export function ChinaInboxOCAba() {
             <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
             <Input
               className="pl-7 h-8 text-sm"
-              placeholder="OC, código ou produto…"
+              placeholder={t("inboxOC.buscarPlaceholder")}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
@@ -130,7 +130,7 @@ export function ChinaInboxOCAba() {
             </div>
           ) : filtered.length === 0 ? (
             <div className="text-center py-12 text-xs text-muted-foreground">
-              Nenhuma OC nesta etapa.
+              {t("inboxOC.nenhumaOC")}
             </div>
           ) : (
             <ul className="divide-y">
