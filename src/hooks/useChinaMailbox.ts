@@ -397,10 +397,7 @@ export function useChinaMailbox(folder: MailboxFolder): UseChinaMailboxResult {
         checklist_rejeitados: subStats.get(sub.id)?.rejeitados ?? 0,
         approval_completeness: completenessFor(sub.id, sub.status),
         checklist_expected_total: expectedTotalFor(sub.id),
-      });
-    }
-
-    // Submissões sem nenhum doc (rascunho típico)
+        tipo_documento_label: labelFor(sub.id, d.tipo_documento),
     for (const sub of subs) {
       if (seenSubs.has(sub.id)) continue;
       const created = new Date(sub.created_at).getTime();
