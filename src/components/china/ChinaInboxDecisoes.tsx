@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { EmptyState } from "@/components/ui/empty-state";
 import { useState } from "react";
+import { useChinaI18n } from "@/hooks/useChinaI18n";
 
 interface Props {
   submissaoId: string;
@@ -17,9 +18,9 @@ interface Props {
 }
 
 const decisionConfig = {
-  approved: { label: "Aprovado", icon: CheckCircle2, color: "text-success", bg: "bg-success/10", badge: "default" as const },
-  rejected: { label: "Rejeitado", icon: XCircle, color: "text-destructive", bg: "bg-destructive/10", badge: "destructive" as const },
-  needs_revision: { label: "Ajuste Solicitado", icon: AlertTriangle, color: "text-warning", bg: "bg-warning/10", badge: "secondary" as const },
+  approved: { labelKey: "inbox.decisoes.tipoAprovado", icon: CheckCircle2, color: "text-success", bg: "bg-success/10", badge: "default" as const },
+  rejected: { labelKey: "inbox.decisoes.tipoRejeitado", icon: XCircle, color: "text-destructive", bg: "bg-destructive/10", badge: "destructive" as const },
+  needs_revision: { labelKey: "inbox.decisoes.tipoAjuste", icon: AlertTriangle, color: "text-warning", bg: "bg-warning/10", badge: "secondary" as const },
 };
 
 export function ChinaInboxDecisoes({ submissaoId, processId, onReenviar }: Props) {
