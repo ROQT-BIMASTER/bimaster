@@ -450,6 +450,8 @@ export function MailboxList({
               onSelect={onSelect}
               onToggleCheck={onToggleCheck}
               onToggleStar={onToggleStar}
+              onEnviarGrupoBrasil={onEnviarGrupoBrasil}
+              onOpenSubmissao={onOpenSubmissao}
             />
           ))}
       </ul>
