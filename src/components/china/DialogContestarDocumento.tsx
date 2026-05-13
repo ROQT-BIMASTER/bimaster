@@ -44,6 +44,7 @@ export function DialogContestarDocumento({
   const contestar = useContestarComParecer();
   const salvarTraducao = useSalvarTraducaoRevisao();
   const traduzir = useTraduzirTexto();
+  const { t } = useChinaI18n();
 
   async function handleTraduzirParecer() {
     if (!parecer.trim()) return;
