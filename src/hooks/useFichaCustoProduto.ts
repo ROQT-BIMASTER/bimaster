@@ -233,13 +233,16 @@ export function useFichaCustoProduto(produtoId: string | undefined) {
       ? baseCondicaoMarkup * (percentualMarkup / 100) : 0;
     const markupTotal = markupNF + markupServico + markupCondicao;
 
-    // IPI Saída incide UMA ÚNICA VEZ, somente sobre o custo de NF de saída do produto
-    // baseIPI = NF + markupNF
-    // Custo Total = (NF + markupNF + IPI) + (Serviço + markupServ) + (Condição + markupCond)
+    // IPI Saída incide UMA ÚNICA VEZ sobre o NF de saída do produto.
+    // Para insumos do Kit, o IPI do unitário JÁ ESTÁ embutido no custo_nf da linha;
+    // mantemos ipi_valor como metadado e o destacamos no card "IPI Saída" sem somar
+    // novamente ao Custo Total (evita dupla contagem).
+    const kitIPIEmbutido = insumosKit.reduce((acc, i) => acc + (Number(i.ipi_valor) || 0), 0);
     const baseIPI = totalNF + markupNF;
     const pctIPISaida = Number(config?.ipi_percentual_saida) || 0;
-    const totalIPI = baseIPI * (pctIPISaida / 100);
-    const custoTotal = subtotal + markupTotal + totalIPI;
+    const ipiSaidaConfig = baseIPI * (pctIPISaida / 100);
+    const totalIPI = ipiSaidaConfig + kitIPIEmbutido;
+    const custoTotal = subtotal + markupTotal + ipiSaidaConfig;
 
     return {
       totalNF,
