@@ -297,6 +297,11 @@ export function useChinaMailbox(folder: MailboxFolder): UseChinaMailboxResult {
         is_deleted: !!sub.deleted_at,
         snooze_until: snoozedActive(sub.id),
         had_previous_rejection: rejectedSubs.has(sub.id) && d.status !== "rejeitado",
+        checklist_total: subStats.get(sub.id)?.total ?? 0,
+        checklist_aprovados: subStats.get(sub.id)?.aprovados ?? 0,
+        checklist_pendentes: subStats.get(sub.id)?.pendentes ?? 0,
+        checklist_rejeitados: subStats.get(sub.id)?.rejeitados ?? 0,
+        approval_completeness: completenessFor(sub.id, sub.status),
       });
     }
 
