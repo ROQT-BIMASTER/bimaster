@@ -36,6 +36,7 @@ function fmt(d: string | null) {
 }
 
 export function ChinaInboxOCAba() {
+  const { t } = useChinaI18n();
   const qc = useQueryClient();
   const [tab, setTab] = useState<ChinaOCSubTab>("pendente");
   const [search, setSearch] = useState("");
