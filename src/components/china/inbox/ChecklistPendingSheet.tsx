@@ -68,7 +68,8 @@ export interface ChecklistPendingSheetProps {
 }
 
 interface FolderConfig {
-  title: string;
+  /** Chave i18n para o título do drawer. */
+  titleKey: string;
   /** Filtra os docs do grupo que pertencem ao escopo desta pasta. */
   scope: (item: MailboxItem) => boolean;
   /** Define o filtro inicial da página dedicada via query string. */
@@ -85,7 +86,7 @@ interface FolderConfig {
 
 const FOLDER_CONFIG: Partial<Record<MailboxFolder, FolderConfig>> = {
   awaiting_send: {
-    title: "Checklist pendente",
+    titleKey: "inbox.checklistSheet.folder.awaitingSend",
     scope: () => true,
     pageFilter: "todos",
     showAttach: true,
@@ -93,7 +94,7 @@ const FOLDER_CONFIG: Partial<Record<MailboxFolder, FolderConfig>> = {
     priorityMode: "pending",
   },
   sent_brazil: {
-    title: "Itens enviados ao Brasil",
+    titleKey: "inbox.checklistSheet.folder.sentBrazil",
     scope: () => true,
     pageFilter: "enviados",
     showAttach: false,
@@ -101,7 +102,7 @@ const FOLDER_CONFIG: Partial<Record<MailboxFolder, FolderConfig>> = {
     priorityMode: "sent",
   },
   in_analysis: {
-    title: "Itens em análise no Brasil",
+    titleKey: "inbox.checklistSheet.folder.inAnalysis",
     scope: () => true,
     pageFilter: "enviados",
     showAttach: false,
@@ -109,7 +110,7 @@ const FOLDER_CONFIG: Partial<Record<MailboxFolder, FolderConfig>> = {
     priorityMode: "sent",
   },
   returned: {
-    title: "Itens com ajustes solicitados",
+    titleKey: "inbox.checklistSheet.folder.returned",
     scope: (i) => i.doc_status === "rejeitado",
     pageFilter: "rejeitados",
     showAttach: true,
