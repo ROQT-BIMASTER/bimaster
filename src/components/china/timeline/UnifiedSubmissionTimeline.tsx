@@ -23,6 +23,17 @@ import {
   type ChecklistCustomItem,
   type ChecklistHiddenItem,
 } from "@/lib/china/mergeChecklist";
+import {
+  summarizeChecklistResumo,
+  validateChecklistResumo,
+} from "@/lib/china/checklistResumo";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { Info } from "lucide-react";
 
 
 interface SubmissaoLite {
