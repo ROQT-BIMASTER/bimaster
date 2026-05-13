@@ -623,6 +623,7 @@ export default function ChinaCaixaEntrada() {
             <div className="rounded-md border border-border bg-card/30">
               <MailboxList
                 items={items}
+                progressItems={progressItems}
                 folder={folder}
                 selectedId={selectedId}
                 selectedIds={selectedIds}
