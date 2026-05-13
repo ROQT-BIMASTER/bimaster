@@ -1131,7 +1131,7 @@ export default function FabricaProdutosAcabados() {
                     <strong className="tabular-nums">{emRevisaoCount}</strong> em revisão
                     {mismatchEmRevisao.mismatch && (
                       <span className="text-muted-foreground ml-2">
-                        · {mismatchEmRevisao.hiddenCount} oculto(s) pelos filtros
+                        · {mismatchEmRevisao.hiddenItems.length} oculto(s) pelos filtros
                       </span>
                     )}
                   </span>
