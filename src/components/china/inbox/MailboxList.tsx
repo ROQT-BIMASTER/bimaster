@@ -565,7 +565,7 @@ function GroupRow({
   const [expanded, setExpanded] = useState(false);
   const headerActive = group.docs.some((d) => (d.documento_id ?? d.submissao_id) === selectedId);
   const checked = selectedIds.has(group.submissao_id);
-  const sb = statusBadge(group.submissao_status, group.worst_status, group.docs[0]?.approval_completeness);
+  const sb = statusBadge(group.submissao_status, group.worst_status, group.docs[0]?.approval_completeness, t);
   const SbIcon = sb.icon;
   const ChevronIcon = expanded ? ChevronDown : ChevronRight;
   const Pivot = group.docs[0];
