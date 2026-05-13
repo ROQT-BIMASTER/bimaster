@@ -1313,10 +1313,10 @@ export default function FabricaProdutosAcabados() {
                                 <TableHead className={headClass}>Custo</TableHead>
                                 <TableHead className={headClass}>Fórmula</TableHead>
                                 <TableHead className={headClass}>Un</TableHead>
-                                <TableHead className={headClass}>Status</TableHead>
-                                <TableHead className={headClass}>Responsável</TableHead>
-                                <TableHead className={headClass}>Cadastro</TableHead>
-                                <TableHead className={`${headClass} text-right`}>Ações</TableHead>
+                                <TableHead className={`${headClass} w-[90px]`}>Status</TableHead>
+                                <TableHead className={`${headClass} w-[150px]`}>Responsável</TableHead>
+                                <TableHead className={`${headClass} w-[90px]`}>Cadastro</TableHead>
+                                <TableHead className={`${headClass} w-[140px] text-right`}>Ações</TableHead>
                               </>
                             );
                           })()}
