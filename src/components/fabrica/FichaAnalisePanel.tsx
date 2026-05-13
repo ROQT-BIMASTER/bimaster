@@ -58,9 +58,10 @@ interface Props {
   gradeRelMap?: { filhoToPai: Map<string, string>; paiToFilhos: Map<string, string[]> };
   onSelectFicha?: (ficha: any) => void;
   onRefetch?: () => void;
+  onCancelarAprovacao?: (motivo: string) => Promise<void>;
 }
 
-export function FichaAnalisePanel({ ficha, processando, onAprovar, onSolicitarRevisao, onClose, fichasPendentes, gradeRelMap, onSelectFicha, onRefetch }: Props) {
+export function FichaAnalisePanel({ ficha, processando, onAprovar, onSolicitarRevisao, onClose, fichasPendentes, gradeRelMap, onSelectFicha, onRefetch, onCancelarAprovacao }: Props) {
   const [parecer, setParecer] = useState("");
   const [apontamentos, setApontamentos] = useState<ApontamentoForm[]>([]);
   const [modoRevisao, setModoRevisao] = useState(false);
@@ -80,6 +81,7 @@ export function FichaAnalisePanel({ ficha, processando, onAprovar, onSolicitarRe
   const [expandedKitInsumo, setExpandedKitInsumo] = useState<string | null>(null);
   const [expandedVinculado, setExpandedVinculado] = useState<string | null>(null);
   const [submittingFilho, setSubmittingFilho] = useState<string | null>(null);
+  const [docsByMp, setDocsByMp] = useState<Record<string, { id: string; nome: string; path: string }[]>>({});
 
   const formatarMoeda = (valor: number) =>
     valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 2, maximumFractionDigits: 6 });
@@ -106,6 +108,20 @@ export function FichaAnalisePanel({ ficha, processando, onAprovar, onSolicitarRe
           cotMap[key].push(c);
         });
         setCotacoesByInsumo(cotMap);
+
+        // Indexar documentos da revisão por materia_prima_id (para link NF Ref → doc)
+        const { data: docs } = await supabase
+          .from("fabrica_revisao_documentos" as any)
+          .select("id, nome_arquivo, arquivo_path, materia_prima_id, status, produto_id")
+          .eq("produto_id", ficha.produto_id)
+          .eq("status", "ativo");
+        const dmap: Record<string, { id: string; nome: string; path: string }[]> = {};
+        ((docs as any[]) || []).forEach((d: any) => {
+          if (!d.materia_prima_id) return;
+          if (!dmap[d.materia_prima_id]) dmap[d.materia_prima_id] = [];
+          dmap[d.materia_prima_id].push({ id: d.id, nome: d.nome_arquivo, path: d.arquivo_path });
+        });
+        setDocsByMp(dmap);
       } catch (e) { logger.error(e); }
       finally { setLoadingEvidencias(false); }
     };
@@ -506,6 +522,7 @@ export function FichaAnalisePanel({ ficha, processando, onAprovar, onSolicitarRe
                         <TableHead>Código</TableHead>
                         <TableHead>Insumo</TableHead>
                         <TableHead>Fornecedor</TableHead>
+                        <TableHead>NF Ref.</TableHead>
                         <TableHead className="text-right">NF (R$)</TableHead>
                         <TableHead className="text-right">Serviço (R$)</TableHead>
                         <TableHead className="text-right">Condição (R$)</TableHead>
@@ -567,6 +584,28 @@ export function FichaAnalisePanel({ ficha, processando, onAprovar, onSolicitarRe
                                 </div>
                               </TableCell>
                               <TableCell>{insumo.fornecedor || "-"}</TableCell>
+                              <TableCell className="font-mono text-xs">
+                                {(() => {
+                                  const docs = insumo.mp_id ? (docsByMp[insumo.mp_id] || []) : [];
+                                  const ref = insumo.nf_referencia || "";
+                                  if (docs.length > 0) {
+                                    const first = docs[0];
+                                    return (
+                                      <button
+                                        type="button"
+                                        title={`Abrir documento: ${first.nome}${docs.length > 1 ? ` (+${docs.length - 1} outros)` : ""}`}
+                                        onClick={(e) => { e.stopPropagation(); setPreviewFile({ path: first.path, name: first.nome }); }}
+                                        className="inline-flex items-center gap-1 text-primary hover:underline"
+                                      >
+                                        <FileText className="h-3 w-3" />
+                                        {ref || first.nome}
+                                        {docs.length > 1 && <Badge variant="outline" className="ml-1 text-[9px] py-0 px-1">+{docs.length - 1}</Badge>}
+                                      </button>
+                                    );
+                                  }
+                                  return ref ? <span>{ref}</span> : <span className="text-muted-foreground">-</span>;
+                                })()}
+                              </TableCell>
                               <TableCell className="text-right">{formatarMoeda(Number(insumo.custo_nf) || 0)}</TableCell>
                               <TableCell className="text-right">{formatarMoeda(Number(insumo.custo_servico) || 0)}</TableCell>
                               <TableCell className="text-right">{formatarMoeda(Number(insumo.custo_condicao) || 0)}</TableCell>
@@ -586,7 +625,7 @@ export function FichaAnalisePanel({ ficha, processando, onAprovar, onSolicitarRe
                             {/* Expanded supplier comparison */}
                             {isExpanded && hasCotacoes && (
                               <TableRow>
-                                <TableCell colSpan={versaoAnterior ? 8 : 7} className="p-0 bg-muted/30">
+                                <TableCell colSpan={versaoAnterior ? 9 : 8} className="p-0 bg-muted/30">
                                   <div className="px-6 py-3 space-y-2">
                                     <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Comparativo de Fornecedores</p>
                                     <Table>
@@ -943,7 +982,20 @@ export function FichaAnalisePanel({ ficha, processando, onAprovar, onSolicitarRe
                 </div>
               )}
               <div className="flex gap-2 justify-end">
-                {!modoRevisao ? (
+                {ficha.status === "aprovada" ? (
+                  <Button
+                    variant="destructive"
+                    disabled={processando || !onCancelarAprovacao}
+                    onClick={async () => {
+                      const motivo = window.prompt("Informe o motivo do cancelamento desta aprovação:");
+                      if (motivo === null) return;
+                      if (!motivo.trim()) { toast.error("Motivo obrigatório."); return; }
+                      await onCancelarAprovacao?.(motivo.trim());
+                    }}
+                  >
+                    <AlertTriangle className="h-4 w-4 mr-1" /> Cancelar Aprovação
+                  </Button>
+                ) : !modoRevisao ? (
                   <>
                     <Button variant="outline" onClick={() => setModoRevisao(true)}>
                       <AlertTriangle className="h-4 w-4 mr-1" /> Solicitar Revisão
