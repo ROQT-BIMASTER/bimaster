@@ -53,7 +53,27 @@ export interface MailboxItem {
   snooze_until: string | null;
   /** Houve pelo menos uma rejeição anterior nesta submissão (China teve que corrigir). */
   had_previous_rejection: boolean;
+
+  // Checklist da submissão (calculado a partir de todos os documentos da submissão)
+  /** Total de documentos no checklist da submissão. */
+  checklist_total: number;
+  /** Documentos com status `aprovado`. */
+  checklist_aprovados: number;
+  /** Documentos com status `pendente` / `enviado` (em curso). */
+  checklist_pendentes: number;
+  /** Documentos com status `rejeitado`. */
+  checklist_rejeitados: number;
+  /**
+   * Para submissões com `submissao_status === "aprovado"`:
+   *  - "total": todos os documentos do checklist estão aprovados (libera OC)
+   *  - "partial": status da submissão é aprovado mas há documentos não aprovados
+   *  - "empty": submissão aprovada sem documentos no checklist
+   * Para outras submissões: undefined.
+   */
+  approval_completeness?: "total" | "partial" | "empty";
 }
+
+export type ApprovalCompleteness = "all" | "total" | "partial" | "empty";
 
 export interface MailboxCounts {
   inbox: number;
@@ -68,6 +88,10 @@ export interface MailboxCounts {
   sent_brazil: number;
   in_analysis: number;
   returned: number;
+  // Sub-pastas de "Aprovados" — distinguem aprovação plena vs parcial.
+  approved_total: number;
+  approved_partial: number;
+  approved_empty: number;
 }
 
 interface UseChinaMailboxResult {
