@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { CHINA_DOCUMENT_TYPES } from "@/lib/china-document-types";
 import { ChinaQuickReject } from "./ChinaQuickReject";
 import type { ChinaInboxItem as InboxItem } from "@/hooks/useChinaInbox";
+import { useChinaI18n } from "@/hooks/useChinaI18n";
 
 interface Props {
   item: InboxItem;
