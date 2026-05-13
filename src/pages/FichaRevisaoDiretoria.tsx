@@ -34,12 +34,13 @@ import { ptBR } from "date-fns/locale";
 
 export default function FichaRevisaoDiretoria() {
   const navigate = useNavigate();
-  const { fichasPendentes, isLoading, processando, aprovarFicha, solicitarRevisao, refetch } = useFichaRevisaoDiretoria();
+  const { fichasPendentes, isLoading, processando, aprovarFicha, solicitarRevisao, cancelarAprovacao, refetch, statusFiltro, setStatusFiltro } = useFichaRevisaoDiretoria();
   const [fichaAberta, setFichaAberta] = useState<any | null>(null);
   const [busca, setBusca] = useState("");
   const [filtroMarca, setFiltroMarca] = useState("all");
   const [filtroLinha, setFiltroLinha] = useState("all");
-  const [filtroProduto, setFiltroProduto] = useState("all");
+  const [filtroTipo, setFiltroTipo] = useState<"todos" | "kit" | "unitario">("todos");
+  const [produtosSelecionados, setProdutosSelecionados] = useState<string[]>([]);
   const [adminOpen, setAdminOpen] = useState(true);
   const [tabAtiva, setTabAtiva] = useState("fichas");
   const [granularidade, setGranularidade] = useState<"dia" | "mes" | "ano">("dia");
@@ -89,15 +90,18 @@ export default function FichaRevisaoDiretoria() {
   }, [fichasPendentes, filtroMarca]);
 
   const produtos = useMemo(() => {
-    const map = new Map<string, string>();
+    const map = new Map<string, { id: string; nome: string; codigo?: string; tipo?: string }>();
     fichasPendentes.forEach((f: any) => {
       if (!f.produto) return;
       if (filtroMarca !== "all" && f.produto.marca !== filtroMarca) return;
       if (filtroLinha !== "all" && f.produto.linha !== filtroLinha) return;
-      map.set(f.produto.id, f.produto.nome);
+      const isKit = (f.produto.tipo || "").toUpperCase() === "DISPLAY";
+      if (filtroTipo === "kit" && !isKit) return;
+      if (filtroTipo === "unitario" && isKit) return;
+      map.set(f.produto.id, { id: f.produto.id, nome: f.produto.nome, codigo: f.produto.codigo, tipo: f.produto.tipo });
     });
-    return [...map.entries()].sort((a, b) => a[1].localeCompare(b[1]));
-  }, [fichasPendentes, filtroMarca, filtroLinha]);
+    return [...map.values()].sort((a, b) => a.nome.localeCompare(b.nome));
+  }, [fichasPendentes, filtroMarca, filtroLinha, filtroTipo]);
 
   // Query grade_itens para mapear Kit → Filhos
   const [gradeRelMap, setGradeRelMap] = useState<{ filhoToPai: Map<string, string>; paiToFilhos: Map<string, string[]> }>({ filhoToPai: new Map(), paiToFilhos: new Map() });
@@ -126,7 +130,10 @@ export default function FichaRevisaoDiretoria() {
     const filtered = fichasPendentes.filter((f: any) => {
       if (filtroMarca !== "all" && f.produto?.marca !== filtroMarca) return false;
       if (filtroLinha !== "all" && f.produto?.linha !== filtroLinha) return false;
-      if (filtroProduto !== "all" && f.produto?.id !== filtroProduto) return false;
+      if (produtosSelecionados.length > 0 && !produtosSelecionados.includes(f.produto?.id)) return false;
+      const isKit = (f.produto?.tipo || "").toUpperCase() === "DISPLAY";
+      if (filtroTipo === "kit" && !isKit) return false;
+      if (filtroTipo === "unitario" && isKit) return false;
       if (busca) {
         const b = busca.toLowerCase();
         if (!f.produto?.nome?.toLowerCase().includes(b) && !f.produto?.codigo?.toLowerCase().includes(b)) return false;
@@ -164,7 +171,7 @@ export default function FichaRevisaoDiretoria() {
       if (!placed.has(f.id)) result.push(f);
     }
     return result;
-  }, [fichasPendentes, busca, filtroMarca, filtroLinha, filtroProduto, gradeRelMap]);
+  }, [fichasPendentes, busca, filtroMarca, filtroLinha, produtosSelecionados, filtroTipo, gradeRelMap]);
 
   // Admin KPIs
   const kpis = useMemo(() => {
