@@ -596,14 +596,22 @@ function GroupRow({
               <p className="mt-0.5 text-[11px] text-muted-foreground">
                 Submissão: <span className="text-foreground/85">{describeParentStatus(group.submissao_status)}</span>
               </p>
-              <p className="mt-0.5 text-[11px] text-muted-foreground">
+              <p
+                className="mt-0.5 text-[11px] text-muted-foreground"
+                title="Total baseado no checklist configurado (Modo Foco). Itens ainda não criados aparecem como pendentes de envio."
+              >
                 Checklist:{" "}
-                <span className="text-foreground/90 font-medium">{progressed} de {p.total}</span>
+                <span className="text-foreground/90 font-medium">{progressed} de {expectedTotal}</span>
                 {" "}itens enviados ·{" "}
                 <span className={cn("font-medium", pendingCount > 0 ? "text-amber-400" : "text-emerald-400")}>
                   {pendingCount} pendente{pendingCount === 1 ? "" : "s"} de envio
                 </span>
               </p>
+              {expectedTotal > realCount && (
+                <p className="mt-0.5 text-[10px] text-muted-foreground/80">
+                  {realCount} no checklist atual · {expectedTotal - realCount} ainda não criado{expectedTotal - realCount === 1 ? "" : "s"}
+                </p>
+              )}
               <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-muted/60">
                 <div
                   className={cn(
