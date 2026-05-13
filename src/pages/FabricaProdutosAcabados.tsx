@@ -28,9 +28,10 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Plus, Search, Package, Edit, Trash2, Upload, DollarSign, FileX, Filter, Layers, X, TrendingUp, ClipboardList, HelpCircle, LayoutGrid, TableIcon, BarChart3, ChevronDown, MessageSquare, Kanban, Link2, Eye, EyeOff, User, PanelLeftClose, PanelLeftOpen, Calendar, Clock, AlertTriangle, Maximize2, Minimize2, Palette, ArrowLeft, ShieldQuestion } from "lucide-react";
+import { Plus, Search, Package, Edit, Trash2, Upload, DollarSign, FileX, Filter, Layers, X, TrendingUp, ClipboardList, HelpCircle, LayoutGrid, TableIcon, BarChart3, ChevronDown, MessageSquare, Kanban, Link2, Eye, EyeOff, User, PanelLeftClose, PanelLeftOpen, Calendar, Clock, AlertTriangle, Maximize2, Minimize2, Palette, ArrowLeft, ShieldQuestion, MoreHorizontal, BookOpen } from "lucide-react";
 import { PhotoPermissionDiagnosticsDialog } from "@/components/fabrica/PhotoPermissionDiagnosticsDialog";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { formatLocalDate, parseLocalDate } from "@/utils/dateUtils";
 import ProductThumbnail from "@/components/fabrica/ProductThumbnail";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -509,12 +510,12 @@ export default function FabricaProdutosAcabados() {
                 ? "Produto do tipo Display / Kit"
                 : undefined
         }
-        className={`${produto.oculto ? "opacity-50" : ""} ${isEmRevisao ? "bg-amber-100/80 text-amber-950 border-l-4 border-l-amber-500 [&_.text-muted-foreground]:!text-amber-900/70 dark:bg-amber-900/40 dark:text-amber-50 dark:[&_.text-muted-foreground]:!text-amber-100/75" : isDisplay ? "bg-primary/[0.04] border-l-2 border-l-primary/40" : isChild ? "border-l-2 border-l-blue-400/60" : "hover:bg-muted/30"} border-b border-border/40 transition-colors`}
+        className={`${produto.oculto ? "opacity-50" : ""} ${isEmRevisao ? "bg-amber-500/15 border-l-4 border-l-amber-500 [&_.text-muted-foreground]:!text-amber-700 dark:[&_.text-muted-foreground]:!text-amber-200" : isDisplay ? "bg-primary/[0.06] border-l-2 border-l-primary/50" : isChild ? "bg-foreground/[0.03] border-l-2 border-l-blue-500/50" : "hover:bg-foreground/[0.04]"} border-b border-border/40 transition-colors`}
       >
         <TableCell className="pr-0 py-2">
           <ProductThumbnail src={produto.foto_url} alt={produto.nome} size="sm" />
         </TableCell>
-        <TableCell className="font-mono text-[12px] py-2">{produto.codigo}</TableCell>
+        <TableCell className="font-mono text-[12px] py-2 whitespace-nowrap">{produto.codigo}</TableCell>
         <TableCell className="font-medium py-2 text-[13px]">
           <div className="flex items-center gap-1.5">
             {isDisplay && <Layers className="h-3.5 w-3.5 text-primary shrink-0" />}
@@ -682,17 +683,6 @@ export default function FabricaProdutosAcabados() {
             </div>
           </div>
           <div className="flex items-center gap-1.5">
-            <ManualFabricaDrawer screen="produtos-acabados" />
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8"
-              onClick={() => startTour(FABRICA_PRODUTOS_ACABADOS_TOUR_ID, fabricaProdutosAcabadosTourSteps)}
-              title="Tour guiado"
-            >
-              <HelpCircle className="h-4 w-4" />
-            </Button>
-            <div className="h-5 w-px bg-border mx-1" />
             <Button
               variant="ghost"
               size="icon"
@@ -727,22 +717,35 @@ export default function FabricaProdutosAcabados() {
                 </Link>
               </Button>
             )}
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-8"
-              onClick={() => setDiagnosticoOpen(true)}
-              title="Verificar permissões de upload/edição/exclusão de fotos"
-            >
-              <ShieldQuestion className="h-3.5 w-3.5 mr-1.5" />
-              Diagnóstico de fotos
-            </Button>
-            <Button variant="outline" size="sm" className="h-8" asChild>
-              <Link to="/dashboard/fabrica/auditoria-fotos">
-                <ClipboardList className="h-3.5 w-3.5 mr-1.5" />
-                Auditoria de fotos
-              </Link>
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="icon" className="h-8 w-8" title="Mais opções">
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuItem asChild>
+                  <Link to="/dashboard/fabrica/auditoria-fotos">
+                    <ClipboardList className="h-4 w-4 mr-2" />
+                    Auditoria de fotos
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setDiagnosticoOpen(true)}>
+                  <ShieldQuestion className="h-4 w-4 mr-2" />
+                  Diagnóstico de fotos
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => startTour(FABRICA_PRODUTOS_ACABADOS_TOUR_ID, fabricaProdutosAcabadosTourSteps)}>
+                  <HelpCircle className="h-4 w-4 mr-2" />
+                  Tour guiado
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="p-0">
+                  <div className="w-full">
+                    <ManualFabricaDrawer screen="produtos-acabados" />
+                  </div>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
             <Button
               size="sm"
               className="h-8"
@@ -1102,7 +1105,7 @@ export default function FabricaProdutosAcabados() {
           )}
 
           {/* Main Content — único container scrollável da tabela */}
-          <div className="flex-1 min-w-0 overflow-auto">
+          <div className="flex-1 min-w-0 overflow-y-auto overflow-x-hidden">
             {/* Toggle sidebar button when closed */}
             {!filtrosAbertos && (
               <div className="mb-3">
@@ -1114,51 +1117,44 @@ export default function FabricaProdutosAcabados() {
               </div>
             )}
 
-            {/* Alerta consolidado: produtos em revisão + mismatch de filtros */}
+            {/* Alerta compacto: produtos em revisão (esconde quando filtro já está ativo) */}
             {(() => {
               const emRevisaoCount = produtos?.filter((p) =>
                 isFichaInFamily((fichasMap.get(p.id) ?? null) as any, "em_revisao")
               ).length || 0;
-              if (emRevisaoCount === 0 && !mismatchEmRevisao.mismatch) return null;
+              if (emRevisaoCount === 0) return null;
+              if (filtroStatusFicha === "em_revisao") return null;
               return (
-                <div className="mb-3 rounded-md border-l-4 border-l-amber-500 border border-amber-500/30 bg-amber-50/80 dark:bg-amber-950/20 px-3 py-2 space-y-2">
-                  {emRevisaoCount > 0 && (
-                    <div className="flex items-center justify-between gap-3 flex-wrap">
-                      <div className="flex items-center gap-2 text-[13px] text-amber-900 dark:text-amber-100">
-                        <AlertTriangle className="h-3.5 w-3.5 text-amber-600 shrink-0" />
-                        <span>
-                          <strong className="tabular-nums">{emRevisaoCount}</strong> produto(s) com ficha em revisão (inclui "Revisão Solicitada"), destacados em âmbar.
-                        </span>
-                      </div>
-                      <div className="flex gap-1.5">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="h-7 text-xs border-amber-500/40"
-                          onClick={() =>
-                            setFiltroStatusFicha(filtroStatusFicha === "em_revisao" ? "none" : "em_revisao")
-                          }
-                        >
-                          <Filter className="h-3 w-3 mr-1" />
-                          {filtroStatusFicha === "em_revisao" ? "Limpar filtro" : "Filtrar lista"}
-                        </Button>
-                        <Button size="sm" variant="outline" className="h-7 text-xs border-amber-500/40" asChild>
-                          <Link to="/dashboard/fabrica/comunicacao-revisoes">
-                            <MessageSquare className="h-3 w-3 mr-1" />
-                            Abrir Revisões
-                          </Link>
-                        </Button>
-                      </div>
-                    </div>
-                  )}
+                <div className="mb-2 flex items-center gap-2 flex-wrap rounded-md border border-amber-500/40 bg-amber-500/10 px-2.5 py-1.5 text-[12px] text-amber-700 dark:text-amber-200">
+                  <AlertTriangle className="h-3.5 w-3.5 text-amber-500 shrink-0" />
+                  <span className="flex-1 min-w-0">
+                    <strong className="tabular-nums">{emRevisaoCount}</strong> em revisão
+                    {mismatchEmRevisao.mismatch && (
+                      <span className="text-muted-foreground ml-2">
+                        · {mismatchEmRevisao.hiddenItems.length} oculto(s) pelos filtros
+                      </span>
+                    )}
+                  </span>
                   {mismatchEmRevisao.mismatch && (
-                    <FilterMismatchAlert
-                      result={mismatchEmRevisao}
-                      kpiLabel="Em Revisão"
-                      onClearFilters={limparFiltros}
-                      hideWhenAligned
-                    />
+                    <Button size="sm" variant="ghost" className="h-6 px-2 text-[11px]" onClick={limparFiltros}>
+                      Limpar filtros
+                    </Button>
                   )}
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-6 px-2 text-[11px] border-amber-500/40 bg-transparent"
+                    onClick={() => setFiltroStatusFicha("em_revisao")}
+                  >
+                    <Filter className="h-3 w-3 mr-1" />
+                    Filtrar
+                  </Button>
+                  <Button size="sm" variant="outline" className="h-6 px-2 text-[11px] border-amber-500/40 bg-transparent" asChild>
+                    <Link to="/dashboard/fabrica/comunicacao-revisoes">
+                      <MessageSquare className="h-3 w-3 mr-1" />
+                      Revisões
+                    </Link>
+                  </Button>
                 </div>
               );
             })()}
@@ -1265,33 +1261,29 @@ export default function FabricaProdutosAcabados() {
                   /* Table View */
                   <div>
                     {/* Legenda dos fundos especiais */}
-                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 px-3 py-1.5 border-b border-border/50 bg-muted/20 text-[10px] text-muted-foreground">
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 px-3 py-1.5 border-b border-border/60 bg-foreground/[0.04] text-[10px] text-muted-foreground">
                       <span className="font-semibold uppercase tracking-wider">Legenda:</span>
                       <span className="inline-flex items-center gap-1.5">
-                        <span className="inline-block w-3 h-3 rounded-sm border-l-2 border-l-amber-500 bg-amber-100/80 dark:bg-amber-900/40" />
+                        <span className="inline-block w-3 h-3 rounded-sm border-l-2 border-l-amber-500 bg-amber-500/15" />
                         Em revisão
                       </span>
                       <span className="inline-flex items-center gap-1.5">
-                        <span className="inline-block w-3 h-3 rounded-sm bg-primary/10 border border-primary/30" />
+                        <span className="inline-block w-3 h-3 rounded-sm bg-primary/15 border border-primary/40" />
                         Display / Kit
                       </span>
                       <span className="inline-flex items-center gap-1.5">
-                        <span className="inline-block w-3 h-3 rounded-sm border-l-2 border-l-blue-400 bg-blue-50/60 dark:bg-blue-950/40" />
+                        <span className="inline-block w-3 h-3 rounded-sm border-l-2 border-l-blue-500 bg-blue-500/10" />
                         Item vinculado a um Kit (variante / componente)
-                      </span>
-                      <span className="inline-flex items-center gap-1.5 opacity-70">
-                        <span className="inline-block w-3 h-3 rounded-sm bg-muted/40" />
-                        Linha alternada (visual)
                       </span>
                     </div>
                     <Table
-                      wrapperClassName="overflow-visible border-0 rounded-none bg-transparent"
-                      minWidthClass="min-w-[1200px]"
+                      wrapperClassName="overflow-x-auto overflow-y-visible border-0 rounded-none bg-transparent"
+                      minWidthClass="min-w-[1100px]"
                     >
                       <TableHeader className={
                         headerStyle === "solid"
-                          ? "bg-secondary sticky top-0 z-20 backdrop-blur supports-[backdrop-filter]:bg-secondary/95 shadow-[0_1px_0_0_hsl(var(--border))]"
-                          : "bg-muted/40 sticky top-0 z-20 backdrop-blur supports-[backdrop-filter]:bg-muted/60 shadow-[0_1px_0_0_hsl(var(--border))]"
+                          ? "bg-card sticky top-0 z-20 backdrop-blur supports-[backdrop-filter]:bg-card/95 shadow-[0_1px_0_0_hsl(var(--border))]"
+                          : "bg-foreground/[0.04] sticky top-0 z-20 backdrop-blur shadow-[0_1px_0_0_hsl(var(--border))]"
                       }>
                         <TableRow className={
                           headerStyle === "solid"
@@ -1300,8 +1292,8 @@ export default function FabricaProdutosAcabados() {
                         }>
                           {(() => {
                             const headClass = headerStyle === "solid"
-                              ? "h-10 text-[10px] uppercase tracking-wider font-bold text-secondary-foreground"
-                              : "h-9 text-[10px] uppercase tracking-wider font-semibold text-muted-foreground";
+                              ? "h-10 text-[10px] uppercase tracking-wider font-bold text-foreground/80 whitespace-nowrap"
+                              : "h-9 text-[10px] uppercase tracking-wider font-semibold text-muted-foreground whitespace-nowrap";
                             return (
                               <>
                                 <TableHead className={headerStyle === "solid" ? "w-[52px] h-10" : "w-[52px] h-9"}></TableHead>
