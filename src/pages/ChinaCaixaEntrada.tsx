@@ -626,6 +626,8 @@ export default function ChinaCaixaEntrada() {
                 viewerOverride={{ isChinaUser, isBrasilUser }}
                 groupMode={groupMode}
                 onGroupModeChange={setGroupMode}
+                onEnviarGrupoBrasil={handleEnviarGrupoBrasil}
+                onOpenSubmissao={(id) => goWithReturn(`/dashboard/fabrica-china/submissao/${id}`)}
               />
             </div>
           )}
