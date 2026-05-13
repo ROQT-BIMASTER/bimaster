@@ -160,7 +160,7 @@ export function DialogContestarDocumento({
               <div className="rounded-lg border bg-muted/30 p-3 space-y-2">
                 <div className="flex items-center gap-1 flex-wrap">
                   <Languages className="h-3.5 w-3.5 text-muted-foreground" />
-                  <span className="text-[11px] font-medium text-muted-foreground mr-1">Pré-visualização da tradução:</span>
+                  <span className="text-[11px] font-medium text-muted-foreground mr-1">{t("documento.contestar.previewTraducao")}</span>
                   {(["pt", "zh", "en"] as IdiomaTraducao[]).map((l) => (
                     <Button
                       key={l}
@@ -176,14 +176,14 @@ export function DialogContestarDocumento({
                   ))}
                 </div>
                 <div className="text-[13px] whitespace-pre-wrap break-words bg-card border rounded p-2 max-h-48 overflow-y-auto">
-                  {traducoesPreview[idiomaPreview] || <span className="italic text-muted-foreground">Tradução indisponível</span>}
+                  {traducoesPreview[idiomaPreview] || <span className="italic text-muted-foreground">{t("documento.contestar.traducaoIndisponivel")}</span>}
                 </div>
               </div>
             )}
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="novo">Novo arquivo principal *</Label>
+            <Label htmlFor="novo">{t("documento.contestar.novoArquivoLabel")}</Label>
             <Input
               id="novo"
               type="file"
@@ -199,7 +199,7 @@ export function DialogContestarDocumento({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="emb">Anexos de embasamento técnico (opcional)</Label>
+            <Label htmlFor="emb">{t("documento.contestar.anexosTecnicosLabel")}</Label>
             <Input
               id="emb"
               type="file"
@@ -208,7 +208,7 @@ export function DialogContestarDocumento({
               accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.rtf,.odt,.ods,.odp,image/*"
             />
             <p className="text-xs text-muted-foreground">
-              Até {MAX_FILES} arquivos, 20MB cada.
+              {t("documento.contestar.limiteAnexos", { max: MAX_FILES })}
             </p>
             {anexos.length > 0 && (
               <div className="flex flex-wrap gap-2 pt-1">
@@ -220,7 +220,7 @@ export function DialogContestarDocumento({
                       type="button"
                       onClick={() => setAnexos((prev) => prev.filter((_, idx) => idx !== i))}
                       className="ml-1 hover:text-destructive"
-                      aria-label="Remover anexo"
+                      aria-label={t("documento.contestar.removerAnexo")}
                     >
                       <X className="h-3 w-3" />
                     </button>
@@ -233,13 +233,13 @@ export function DialogContestarDocumento({
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={contestar.isPending}>
-            Cancelar
+            {t("documento.contestar.cancelar")}
           </Button>
           <Button
             onClick={submit}
             disabled={!parecer.trim() || !novoArquivo || contestar.isPending}
           >
-            {contestar.isPending ? "Enviando…" : "Enviar correção ao Brasil"}
+            {contestar.isPending ? t("documento.contestar.enviando") : t("documento.contestar.enviar")}
           </Button>
         </DialogFooter>
       </DialogContent>
