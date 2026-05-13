@@ -48,6 +48,7 @@ export function SaldoOCDecisionDialog({
   numeroOC,
   item,
 }: Props) {
+  const { t } = useChinaI18n();
   const [decisao, setDecisao] = useState<DecisaoSaldo>("manter_aberta");
   const [justificativa, setJustificativa] = useState("");
   const registrar = useRegistrarDecisaoSaldo();
