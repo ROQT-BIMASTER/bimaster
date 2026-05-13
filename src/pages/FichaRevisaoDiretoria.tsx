@@ -34,12 +34,13 @@ import { ptBR } from "date-fns/locale";
 
 export default function FichaRevisaoDiretoria() {
   const navigate = useNavigate();
-  const { fichasPendentes, isLoading, processando, aprovarFicha, solicitarRevisao, refetch } = useFichaRevisaoDiretoria();
+  const { fichasPendentes, isLoading, processando, aprovarFicha, solicitarRevisao, cancelarAprovacao, refetch, statusFiltro, setStatusFiltro } = useFichaRevisaoDiretoria();
   const [fichaAberta, setFichaAberta] = useState<any | null>(null);
   const [busca, setBusca] = useState("");
   const [filtroMarca, setFiltroMarca] = useState("all");
   const [filtroLinha, setFiltroLinha] = useState("all");
-  const [filtroProduto, setFiltroProduto] = useState("all");
+  const [filtroTipo, setFiltroTipo] = useState<"todos" | "kit" | "unitario">("todos");
+  const [produtosSelecionados, setProdutosSelecionados] = useState<string[]>([]);
   const [adminOpen, setAdminOpen] = useState(true);
   const [tabAtiva, setTabAtiva] = useState("fichas");
   const [granularidade, setGranularidade] = useState<"dia" | "mes" | "ano">("dia");
