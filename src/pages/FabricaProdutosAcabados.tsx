@@ -855,6 +855,8 @@ export default function FabricaProdutosAcabados() {
         })()}
         </div>
         {/* /Bloco fixo */}
+        </div>
+        {/* /Bloco fixo */}
 
         {/* Bloco scrollável: filtros + tabela */}
         <div className="flex-1 min-h-0 flex gap-4 overflow-hidden">
