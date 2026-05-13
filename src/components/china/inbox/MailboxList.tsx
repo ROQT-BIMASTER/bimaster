@@ -50,6 +50,10 @@ interface Props {
   /** Modo de agrupamento. "flat" preserva o comportamento clássico. */
   groupMode?: ChinaInboxGroupMode;
   onGroupModeChange?: (m: ChinaInboxGroupMode) => void;
+  /** Disparado pelos CTAs de grupo na pasta "Pendentes de envio". */
+  onEnviarGrupoBrasil?: (group: MailboxGroup) => void;
+  /** Abre a submissão (deep-link) — usado por "Anexar/Adicionar parecer". */
+  onOpenSubmissao?: (submissao_id: string) => void;
 }
 
 function statusBadge(
