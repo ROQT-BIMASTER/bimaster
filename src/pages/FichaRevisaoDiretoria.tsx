@@ -590,24 +590,6 @@ export default function FichaRevisaoDiretoria() {
               </Card>
             )}
 
-            {/* Painel de Análise Inline */}
-            {fichaAberta && (
-              <FichaAnalisePanel
-                ficha={fichaAberta}
-                processando={processando}
-                onAprovar={handleAprovarEClose}
-                onSolicitarRevisao={handleSolicitarRevisaoEClose}
-                onClose={() => setFichaAberta(null)}
-                fichasPendentes={fichasFiltradas}
-                gradeRelMap={gradeRelMap}
-                onSelectFicha={setFichaAberta}
-                onRefetch={refetch}
-                onCancelarAprovacao={async (motivo) => {
-                  await cancelarAprovacao(fichaAberta.id, fichaAberta.config_id, motivo);
-                  setFichaAberta(null);
-                }}
-              />
-            )}
           </TabsContent>
 
           <TabsContent value="comunicacao" className="mt-4">
@@ -618,6 +600,8 @@ export default function FichaRevisaoDiretoria() {
             <DocumentosCofre />
           </TabsContent>
         </Tabs>
+          </>
+        )}
       </div>
     </DashboardLayout>
   );
