@@ -664,7 +664,7 @@ export function ChecklistPendingSheet({
               <section
                 key={section.key}
                 className="border-b border-border/40 last:border-b-0"
-                aria-label={`Categoria ${section.labelPt}`}
+                aria-label={t("inbox.checklistSheet.category.ariaLabel", { label: section.labelPt })}
               >
                 <header className="sticky top-0 z-[1] flex items-center justify-between gap-2 bg-muted/40 px-4 py-1.5 backdrop-blur">
                   <div className="min-w-0 flex items-center gap-1.5">
@@ -686,12 +686,12 @@ export function ChecklistPendingSheet({
                     <span className="font-medium text-emerald-400">
                       {section.enviadosCount}
                     </span>
-                    <span className="text-muted-foreground/70"> enviado{section.enviadosCount === 1 ? "" : "s"}</span>
+                    <span className="text-muted-foreground/70"> {t("inbox.checklistSheet.section.enviado", { count: section.enviadosCount })}</span>
                     {section.pendentesCount > 0 && (
                       <>
                         <span className="text-muted-foreground/50"> · </span>
                         <span className="text-muted-foreground">
-                          {section.pendentesCount} pendente{section.pendentesCount === 1 ? "" : "s"}
+                          {section.pendentesCount} {t("inbox.checklistSheet.section.pendente", { count: section.pendentesCount })}
                         </span>
                       </>
                     )}
@@ -701,12 +701,12 @@ export function ChecklistPendingSheet({
                   {primaryRows.map(renderRow)}
                   {primaryRows.length === 0 && !splitSecondary && (
                     <li className="px-4 py-2 text-[11px] text-muted-foreground/80">
-                      Nenhum documento criado nesta categoria ainda.
+                      {t("inbox.checklistSheet.section.vazioCategoria")}
                     </li>
                   )}
                   {primaryRows.length === 0 && splitSecondary && secondaryRows.length === 0 && (
                     <li className="px-4 py-2 text-[11px] text-muted-foreground/80">
-                      Nenhum item nesta categoria.
+                      {t("inbox.checklistSheet.section.vazioCategoriaSent")}
                     </li>
                   )}
                 </ul>
@@ -714,7 +714,7 @@ export function ChecklistPendingSheet({
                   <details className="group border-t border-border/40 bg-muted/10">
                     <summary className="cursor-pointer list-none px-4 py-1.5 text-[10.5px] text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1">
                       <span className="transition-transform group-open:rotate-90">›</span>
-                      Ver {secondaryRows.length} pendente{secondaryRows.length === 1 ? "" : "s"} desta categoria
+                      {t("inbox.checklistSheet.section.verPendentes", { count: secondaryRows.length })}
                     </summary>
                     <ul role="list" className="divide-y divide-border/40 bg-background/40">
                       {secondaryRows.map(renderRow)}
@@ -735,7 +735,7 @@ export function ChecklistPendingSheet({
               className="h-7 gap-1 px-2 text-[11px]"
               onClick={() => onOpenSubmissao(group.submissao_id)}
             >
-              Abrir submissão
+              {t("inbox.checklistSheet.footer.abrirSubmissao")}
             </Button>
           )}
           {cfg.showEnviarFooter && selected.size > 0 && onEnviarItemBrasil && (
@@ -752,10 +752,10 @@ export function ChecklistPendingSheet({
                 items.forEach((it) => onEnviarItemBrasil(it));
                 setSelected(new Set());
               }}
-              title="Despachar somente os itens selecionados ao Brasil"
+              title={t("inbox.checklistSheet.footer.enviarSelecionadosTitle")}
             >
               <Send className="h-3 w-3" />
-              Enviar selecionados ({selected.size})
+              {t("inbox.checklistSheet.footer.enviarSelecionados", { count: selected.size })}
             </Button>
           )}
           {cfg.showEnviarFooter && selected.size === 0 && pendingCount > 0 && onEnviarGrupoBrasil && (
@@ -765,10 +765,12 @@ export function ChecklistPendingSheet({
               className="ml-auto h-7 gap-1 px-2 text-[11px] bg-emerald-600 hover:bg-emerald-700 text-white"
               onClick={() => onEnviarGrupoBrasil(group)}
               disabled={!hasParecer}
-              title={hasParecer ? "Despachar todos os itens prontos ao Brasil" : "Registre o parecer técnico antes de despachar"}
+              title={hasParecer
+                ? t("inbox.checklistSheet.footer.enviarTodosTitle")
+                : t("inbox.checklistSheet.footer.enviarTodosBloqueadoTitle")}
             >
               <Send className="h-3 w-3" />
-              Enviar todos ao Brasil
+              {t("inbox.checklistSheet.footer.enviarTodos")}
             </Button>
           )}
         </div>
@@ -779,22 +781,21 @@ export function ChecklistPendingSheet({
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-sm">
               <MessageSquarePlus className="h-4 w-4 text-primary" />
-              Parecer técnico da China
+              {t("inbox.checklistSheet.parecerDialog.titulo")}
             </DialogTitle>
             <DialogDescription className="text-[12px]">
-              Registre o parecer técnico desta submissão. Ele é obrigatório para
-              despachar os itens ao Brasil e fica visível para a equipe brasileira.
+              {t("inbox.checklistSheet.parecerDialog.descricao")}
             </DialogDescription>
           </DialogHeader>
           <Textarea
             value={parecerText}
             onChange={(e) => setParecerText(e.target.value)}
-            placeholder="Descreva análise, observações regulatórias e quaisquer pontos de atenção…"
+            placeholder={t("inbox.checklistSheet.parecerDialog.placeholder")}
             className="min-h-[160px] text-[12.5px]"
             maxLength={8000}
           />
           <p className="text-right text-[10.5px] text-muted-foreground">
-            {parecerText.length}/8000
+            {t("inbox.checklistSheet.parecerDialog.contador", { atual: parecerText.length, max: 8000 })}
           </p>
           <DialogFooter className="gap-2">
             <Button
@@ -804,7 +805,7 @@ export function ChecklistPendingSheet({
               onClick={() => setParecerOpen(false)}
               disabled={saveParecer.isPending}
             >
-              Cancelar
+              {t("common.cancelar")}
             </Button>
             <Button
               type="button"
@@ -812,7 +813,9 @@ export function ChecklistPendingSheet({
               onClick={() => saveParecer.mutate(parecerText)}
               disabled={saveParecer.isPending || parecerText.trim().length === 0}
             >
-              {saveParecer.isPending ? "Salvando…" : "Salvar parecer"}
+              {saveParecer.isPending
+                ? t("inbox.checklistSheet.parecerDialog.salvando")
+                : t("inbox.checklistSheet.parecerDialog.salvar")}
             </Button>
           </DialogFooter>
         </DialogContent>
