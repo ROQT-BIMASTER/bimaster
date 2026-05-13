@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { render, screen, act, fireEvent } from "@testing-library/react";
+import { render, screen, act } from "@testing-library/react";
 import { MemoryRouter, Routes, Route, useNavigate } from "react-router-dom";
 import { ChatDrawerProvider, useChatDrawer } from "@/components/chat/v2/ChatDrawer";
 
@@ -16,16 +16,14 @@ vi.mock("@/components/chat/v2/ChatLayout", () => ({
   },
 }));
 
+const handles: { abrir?: () => void; navigate?: (to: string) => void } = {};
+
 function Opener() {
-  const { abrir, setOpen } = useChatDrawer();
+  const { abrir } = useChatDrawer();
   const navigate = useNavigate();
-  return (
-    <div>
-      <button onClick={() => abrir()}>abrir-chat</button>
-      <button onClick={() => setOpen(false)}>fechar-chat</button>
-      <button onClick={() => navigate("/dashboard/projetos")}>navegar</button>
-    </div>
-  );
+  handles.abrir = abrir;
+  handles.navigate = navigate;
+  return null;
 }
 
 function PageA() {
@@ -37,7 +35,6 @@ function PageB() {
 
 describe("ChatDrawer e2e: abrir + navegar não causa tela em branco", () => {
   it("mantém a aplicação renderizada e exibe fallback com botão de recarregar", async () => {
-    // silencia logs de erro do React boundary durante o teste
     const errSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 
     render(
@@ -53,20 +50,18 @@ describe("ChatDrawer e2e: abrir + navegar não causa tela em branco", () => {
 
     expect(screen.getByText("pagina-a")).toBeInTheDocument();
 
-    // Abre o drawer → ChatLayout lança → fallback aparece
+    // Abre o drawer → ChatLayout lança → fallback aparece com botão "Recarregar página"
     await act(async () => {
-      screen.getByText("abrir-chat").click();
+      handles.abrir!();
     });
 
     expect(await screen.findByTestId("chat-error-fallback")).toBeInTheDocument();
     expect(screen.getByText("Recarregar página")).toBeInTheDocument();
+    expect(screen.getByText("Tentar novamente")).toBeInTheDocument();
 
-    // Fecha o drawer e navega — app continua renderizando, sem tela em branco
+    // Navega programaticamente — app continua renderizando, sem tela em branco
     await act(async () => {
-      screen.getByText("fechar-chat").click();
-    });
-    await act(async () => {
-      screen.getByText("navegar").click();
+      handles.navigate!("/dashboard/projetos");
     });
 
     expect(await screen.findByText("pagina-b")).toBeInTheDocument();
