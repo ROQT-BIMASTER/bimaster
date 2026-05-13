@@ -322,19 +322,29 @@ export function useFichaRevisao(produtoId: string | undefined, configId: string 
 // Hook for the Diretoria review page
 export function useFichaRevisaoDiretoria() {
   const [processando, setProcessando] = useState(false);
+  const [statusFiltro, setStatusFiltro] = useState<"pendente" | "aprovada">("pendente");
   const queryClient = useQueryClient();
 
   const { data: fichasPendentes, isLoading, refetch } = useSupabaseQuery(
-    ["fichas-pendentes-diretoria"],
+    ["fichas-pendentes-diretoria", statusFiltro],
     async () => {
-      const { data, error } = await supabase
+      let q = supabase
         .from("fabrica_ficha_custo_revisoes")
         .select(`
           *,
-          produto:fabrica_produtos(id, nome, codigo, origem, marca, linha)
+          produto:fabrica_produtos(id, nome, codigo, origem, marca, linha, tipo)
         `)
-        .eq("status", "pendente")
-        .order("submetido_em", { ascending: false });
+        .order(statusFiltro === "aprovada" ? "revisado_em" : "submetido_em", { ascending: false });
+
+      if (statusFiltro === "aprovada") {
+        // Aprovadas dos últimos 60 dias
+        const since = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString();
+        q = q.eq("status", "aprovada").gte("revisado_em", since).limit(200);
+      } else {
+        q = q.eq("status", "pendente");
+      }
+
+      const { data, error } = await q;
       if (error) throw error;
       return data || [];
     },
@@ -361,7 +371,7 @@ export function useFichaRevisaoDiretoria() {
     setProcessando(true);
     try {
       const { data: user } = await supabase.auth.getUser();
-      
+
       await supabase
         .from("fabrica_ficha_custo_revisoes")
         .update({
@@ -388,6 +398,49 @@ export function useFichaRevisaoDiretoria() {
       setProcessando(false);
     }
   }, [refetch]);
+
+  const cancelarAprovacao = useCallback(
+    async (revisaoId: string, configId: string, motivo: string) => {
+      setProcessando(true);
+      try {
+        const { data: user } = await supabase.auth.getUser();
+        const nota = `\n\n[CANCELAMENTO ${new Date().toLocaleString("pt-BR")}] ${motivo || "(sem motivo informado)"}`;
+
+        // Buscar parecer atual para preservar histórico
+        const { data: atual } = await supabase
+          .from("fabrica_ficha_custo_revisoes")
+          .select("parecer")
+          .eq("id", revisaoId)
+          .maybeSingle();
+
+        await supabase
+          .from("fabrica_ficha_custo_revisoes")
+          .update({
+            status: "pendente",
+            revisado_por: user?.user?.id || null,
+            revisado_em: null,
+            parecer: ((atual?.parecer as string) || "") + nota,
+          })
+          .eq("id", revisaoId);
+
+        await supabase
+          .from("fabrica_produto_custos_config")
+          .update({
+            status_aprovacao: "em_revisao",
+            revisao_ativa_id: revisaoId,
+          })
+          .eq("id", configId);
+
+        toast.success("Aprovação cancelada — ficha voltou para a fila de pendentes.");
+        refetch();
+      } catch (err: any) {
+        toast.error("Erro ao cancelar: " + err.message);
+      } finally {
+        setProcessando(false);
+      }
+    },
+    [refetch],
+  );
 
   const solicitarRevisao = useCallback(async (
     revisaoId: string,
@@ -459,6 +512,9 @@ export function useFichaRevisaoDiretoria() {
     processando,
     aprovarFicha,
     solicitarRevisao,
+    cancelarAprovacao,
     refetch,
+    statusFiltro,
+    setStatusFiltro,
   };
 }
