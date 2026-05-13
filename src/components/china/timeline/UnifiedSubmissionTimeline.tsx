@@ -17,6 +17,12 @@ import { cn } from "@/lib/utils";
 import { useChinaTimelineSla } from "@/hooks/useChinaTimelineSla";
 import { computeStageDeadlines, type StageDeadline } from "@/lib/china/timelineSlaCompute";
 import { useChinaI18n } from "@/hooks/useChinaI18n";
+import {
+  computeExpectedChecklist,
+  type ChecklistCustomCategory,
+  type ChecklistCustomItem,
+  type ChecklistHiddenItem,
+} from "@/lib/china/mergeChecklist";
 
 
 interface SubmissaoLite {
