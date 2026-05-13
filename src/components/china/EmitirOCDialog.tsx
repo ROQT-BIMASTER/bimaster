@@ -77,7 +77,7 @@ export function EmitirOCDialog({ open, onOpenChange, submissao, onSuccess }: Emi
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <ShoppingCart className="h-5 w-5 text-primary" />
-            <BilingualLabel pt="Emitir Ordem de Compra" cn="下采购单" size="md" />
+            <BilingualLabel pt={t("emitirOC.titulo")} cn="下采购单" size="md" />
           </DialogTitle>
         </DialogHeader>
 
@@ -86,12 +86,12 @@ export function EmitirOCDialog({ open, onOpenChange, submissao, onSuccess }: Emi
             <p className="font-bold text-foreground">{submissao?.produto_codigo}</p>
             <p className="text-sm text-muted-foreground">{submissao?.produto_nome}</p>
             <p className="text-lg font-bold text-primary mt-2">
-              {qtyTotal.toLocaleString()} unidades 单位
+              {qtyTotal.toLocaleString()} {t("emitirOC.unidades")}
             </p>
           </div>
 
           <div className="space-y-2">
-            <BilingualLabel pt="Data de Entrega Prevista" cn="预计交货日期" size="sm" />
+            <BilingualLabel pt={t("emitirOC.dataEntrega")} cn="预计交货日期" size="sm" />
             <div className="relative">
               <CalendarDays className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
@@ -104,31 +104,31 @@ export function EmitirOCDialog({ open, onOpenChange, submissao, onSuccess }: Emi
           </div>
 
           <div className="space-y-2">
-            <BilingualLabel pt="EAN Caixa Master" cn="主箱EAN" size="sm" />
+            <BilingualLabel pt={t("emitirOC.eanCaixaMaster")} cn="主箱EAN" size="sm" />
             <Input
               value={eanCaixaMaster}
               onChange={(e) => setEanCaixaMaster(e.target.value)}
-              placeholder="Ex: 7898000000000"
+              placeholder={t("emitirOC.eanPlaceholder")}
               className="font-mono"
             />
           </div>
 
           <div className="space-y-2">
-            <BilingualLabel pt="Observações" cn="备注" size="sm" />
+            <BilingualLabel pt={t("emitirOC.observacoes")} cn="备注" size="sm" />
             <Textarea
               value={observacoes}
               onChange={(e) => setObservacoes(e.target.value)}
-              placeholder="Instruções especiais... 特殊说明..."
+              placeholder={t("emitirOC.obsPlaceholder")}
               rows={3}
             />
           </div>
 
           <div className="flex gap-2 justify-end">
             <Button variant="outline" onClick={() => onOpenChange(false)}>
-              Cancelar 取消
+              {t("emitirOC.cancelar")}
             </Button>
             <Button onClick={handleEmitir} disabled={loading}>
-              {loading ? "Emitindo..." : "Emitir OC 下单"}
+              {loading ? t("emitirOC.emitindo") : t("emitirOC.emitir")}
             </Button>
           </div>
         </div>
