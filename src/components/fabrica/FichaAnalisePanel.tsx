@@ -81,6 +81,7 @@ export function FichaAnalisePanel({ ficha, processando, onAprovar, onSolicitarRe
   const [expandedKitInsumo, setExpandedKitInsumo] = useState<string | null>(null);
   const [expandedVinculado, setExpandedVinculado] = useState<string | null>(null);
   const [submittingFilho, setSubmittingFilho] = useState<string | null>(null);
+  const [docsByMp, setDocsByMp] = useState<Record<string, { id: string; nome: string; path: string }[]>>({});
 
   const formatarMoeda = (valor: number) =>
     valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 2, maximumFractionDigits: 6 });
@@ -107,6 +108,20 @@ export function FichaAnalisePanel({ ficha, processando, onAprovar, onSolicitarRe
           cotMap[key].push(c);
         });
         setCotacoesByInsumo(cotMap);
+
+        // Indexar documentos da revisão por materia_prima_id (para link NF Ref → doc)
+        const { data: docs } = await supabase
+          .from("fabrica_revisao_documentos" as any)
+          .select("id, nome_arquivo, arquivo_path, materia_prima_id, status, produto_id")
+          .eq("produto_id", ficha.produto_id)
+          .eq("status", "ativo");
+        const dmap: Record<string, { id: string; nome: string; path: string }[]> = {};
+        ((docs as any[]) || []).forEach((d: any) => {
+          if (!d.materia_prima_id) return;
+          if (!dmap[d.materia_prima_id]) dmap[d.materia_prima_id] = [];
+          dmap[d.materia_prima_id].push({ id: d.id, nome: d.nome_arquivo, path: d.arquivo_path });
+        });
+        setDocsByMp(dmap);
       } catch (e) { logger.error(e); }
       finally { setLoadingEvidencias(false); }
     };
