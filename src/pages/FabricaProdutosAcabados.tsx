@@ -81,10 +81,18 @@ export default function FabricaProdutosAcabados() {
     if (typeof window === "undefined") return "solid";
     return (localStorage.getItem("pa_header_style") as "solid" | "subtle") || "solid";
   });
+  const [kpisVisiveis, setKpisVisiveis] = useState<boolean>(() => {
+    if (typeof window === "undefined") return true;
+    return localStorage.getItem("pa-kpis-visiveis") !== "false";
+  });
 
   useEffect(() => {
     localStorage.setItem("pa_header_style", headerStyle);
   }, [headerStyle]);
+
+  useEffect(() => {
+    localStorage.setItem("pa-kpis-visiveis", String(kpisVisiveis));
+  }, [kpisVisiveis]);
 
   // ESC sai do modo foco
   useEffect(() => {
