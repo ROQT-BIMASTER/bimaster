@@ -98,7 +98,7 @@ export function ChinaUploadPreviewDialog({
           <div className="text-center space-y-1">
             <p className="text-sm font-medium text-foreground truncate max-w-[400px]">{file.name}</p>
             <p className="text-xs text-muted-foreground">
-              {formatFileSize(file.size)} · {file.type || "arquivo"}
+              {formatFileSize(file.size)} · {file.type || t("documento.uploadPreview.arquivoGenerico")}
             </p>
           </div>
         </div>
@@ -111,7 +111,7 @@ export function ChinaUploadPreviewDialog({
             className="gap-2"
           >
             <X className="h-4 w-4" />
-            Cancelar 取消
+            {t("documento.uploadPreview.cancelar")}
           </Button>
           <Button
             variant="secondary"
@@ -120,7 +120,7 @@ export function ChinaUploadPreviewDialog({
             className="gap-2"
           >
             {saving === "rascunho" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-            Salvar Rascunho 保存草稿
+            {t("documento.uploadPreview.salvarRascunho")}
           </Button>
           <Button
             variant="gradient"
@@ -129,7 +129,7 @@ export function ChinaUploadPreviewDialog({
             className="gap-2"
           >
             {saving === "pendente" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-            Enviar ao Brasil 发送至巴西
+            {t("documento.uploadPreview.enviarBrasil")}
           </Button>
         </DialogFooter>
       </DialogContent>
