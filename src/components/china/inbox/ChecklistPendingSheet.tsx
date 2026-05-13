@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Sheet,
@@ -7,6 +7,15 @@ import {
   SheetTitle,
   SheetDescription,
 } from "@/components/ui/sheet";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -20,12 +29,26 @@ import {
   ListChecks,
   ArrowUpRight,
   ArrowDownLeft,
+  MessageSquarePlus,
+  MessageSquareText,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { MailboxItem, MailboxFolder } from "@/hooks/useChinaMailbox";
 import type { MailboxGroup } from "@/lib/china/groupMailboxItems";
 import { evaluateAwaitingSend } from "@/lib/china/awaitingSendRule";
 import { useMergedChinaChecklist, type MergedChecklistCategory } from "@/hooks/useMergedChinaChecklist";
+
+/** Cor de borda esquerda por estado, para leitura visual rápida da lista. */
+const STATE_BORDER: Record<string, string> = {
+  aprovado: "border-l-emerald-500",
+  enviado: "border-l-primary",
+  rejeitado: "border-l-rose-500",
+  pendente_envio: "border-l-amber-500",
+  nao_criado: "border-l-muted-foreground/30",
+};
 
 export interface ChecklistPendingSheetProps {
   open: boolean;
@@ -272,8 +295,35 @@ export function ChecklistPendingSheet({
   onOpenSubmissao,
 }: ChecklistPendingSheetProps) {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const merged = useMergedChinaChecklist(group?.submissao_id ?? null);
   const cfg = (folder && FOLDER_CONFIG[folder]) ?? DEFAULT_FOLDER_CONFIG;
+
+  // Parecer técnico da China (campo único por submissão).
+  const currentParecer = group?.docs[0]?.observacoes_china ?? "";
+  const [parecerOpen, setParecerOpen] = useState(false);
+  const [parecerText, setParecerText] = useState(currentParecer);
+  useEffect(() => {
+    setParecerText(currentParecer);
+  }, [currentParecer, group?.submissao_id]);
+
+  const saveParecer = useMutation({
+    mutationFn: async (texto: string) => {
+      if (!group) throw new Error("sem submissão");
+      const { error } = await supabase
+        .from("china_produto_submissoes" as any)
+        .update({ observacoes_china: texto.trim() })
+        .eq("id", group.submissao_id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Parecer técnico salvo.");
+      queryClient.invalidateQueries({ queryKey: ["china-mailbox"] });
+      queryClient.invalidateQueries({ queryKey: ["china-merged-checklist"] });
+      setParecerOpen(false);
+    },
+    onError: (e: any) => toast.error(e?.message || "Falha ao salvar parecer."),
+  });
 
   // Aplica o escopo da pasta antes de montar as seções por categoria.
   const scopedGroup = useMemo<MailboxGroup | null>(() => {
@@ -312,6 +362,9 @@ export function ChecklistPendingSheet({
   if (!group) return null;
 
   const pendingCount = totals?.pendentes ?? 0;
+  const hasParecer = currentParecer.trim().length > 0;
+  // Mostra ações de parecer apenas em pastas onde "enviar ao Brasil" faz sentido.
+  const showParecerActions = cfg.showEnviarFooter;
 
   const handleAttach = (item: MailboxItem) => {
     if (!item.tipo_documento) return;
@@ -386,7 +439,40 @@ export function ChecklistPendingSheet({
               <ExternalLink className="h-3 w-3" />
               Abrir em página dedicada
             </Button>
+            {showParecerActions && (
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                className={cn(
+                  "h-6 gap-1 px-2 text-[10.5px]",
+                  hasParecer ? "text-muted-foreground" : "text-amber-500",
+                )}
+                onClick={() => setParecerOpen(true)}
+                title={hasParecer ? "Editar parecer técnico da China" : "Adicionar parecer técnico para liberar envio ao Brasil"}
+              >
+                {hasParecer ? <MessageSquareText className="h-3 w-3" /> : <MessageSquarePlus className="h-3 w-3" />}
+                {hasParecer ? "Editar parecer" : "Adicionar parecer"}
+              </Button>
+            )}
           </div>
+          {showParecerActions && !hasParecer && pendingCount > 0 && (
+            <div className="rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-[11px] text-amber-200/90">
+              <p className="font-medium text-amber-300">Parecer técnico pendente</p>
+              <p className="mt-0.5 text-amber-200/80">
+                Para despachar ao Brasil, registre o parecer técnico desta submissão.
+              </p>
+              <Button
+                type="button"
+                size="sm"
+                className="mt-1.5 h-6 gap-1 px-2 text-[10.5px] bg-amber-500/90 hover:bg-amber-500 text-amber-950"
+                onClick={() => setParecerOpen(true)}
+              >
+                <MessageSquarePlus className="h-3 w-3" />
+                Abrir caixa de parecer
+              </Button>
+            </div>
+          )}
         </SheetHeader>
 
         <div className="flex-1 overflow-y-auto">
@@ -433,7 +519,13 @@ export function ChecklistPendingSheet({
                 !!item.documento_id &&
                 (state === "pendente_envio" || state === "rejeitado");
               return (
-                <li key={id} className="flex items-start gap-2 px-4 py-2.5">
+                <li
+                  key={id}
+                  className={cn(
+                    "flex items-start gap-2 border-l-4 pl-3 pr-4 py-2.5 transition-colors hover:bg-muted/30",
+                    STATE_BORDER[state] ?? "border-l-transparent",
+                  )}
+                >
                   <Paperclip className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-[12.5px] font-medium text-foreground">
@@ -590,6 +682,50 @@ export function ChecklistPendingSheet({
           )}
         </div>
       </SheetContent>
+
+      <Dialog open={parecerOpen} onOpenChange={setParecerOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-sm">
+              <MessageSquarePlus className="h-4 w-4 text-primary" />
+              Parecer técnico da China
+            </DialogTitle>
+            <DialogDescription className="text-[12px]">
+              Registre o parecer técnico desta submissão. Ele é obrigatório para
+              despachar os itens ao Brasil e fica visível para a equipe brasileira.
+            </DialogDescription>
+          </DialogHeader>
+          <Textarea
+            value={parecerText}
+            onChange={(e) => setParecerText(e.target.value)}
+            placeholder="Descreva análise, observações regulatórias e quaisquer pontos de atenção…"
+            className="min-h-[160px] text-[12.5px]"
+            maxLength={8000}
+          />
+          <p className="text-right text-[10.5px] text-muted-foreground">
+            {parecerText.length}/8000
+          </p>
+          <DialogFooter className="gap-2">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => setParecerOpen(false)}
+              disabled={saveParecer.isPending}
+            >
+              Cancelar
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              onClick={() => saveParecer.mutate(parecerText)}
+              disabled={saveParecer.isPending || parecerText.trim().length === 0}
+            >
+              {saveParecer.isPending ? "Salvando…" : "Salvar parecer"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Sheet>
   );
 }
