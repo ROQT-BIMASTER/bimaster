@@ -34,7 +34,7 @@ describe("NovaConversaDialog", () => {
       data: { user: { id: "user-1" } },
       error: null,
     });
-    (supabase.rpc as any) = vi.fn().mockResolvedValue({ data: "conversa-1", error: null });
+    (supabase as any).rpc = vi.fn().mockResolvedValue({ data: "conversa-1", error: null });
     (supabase.from as unknown as ReturnType<typeof vi.fn>).mockReturnValue(mockProfilesQuery());
   });
 
