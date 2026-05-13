@@ -520,6 +520,10 @@ export default function FichaRevisaoDiretoria() {
                 gradeRelMap={gradeRelMap}
                 onSelectFicha={setFichaAberta}
                 onRefetch={refetch}
+                onCancelarAprovacao={async (motivo) => {
+                  await cancelarAprovacao(fichaAberta.id, fichaAberta.config_id, motivo);
+                  setFichaAberta(null);
+                }}
               />
             )}
           </TabsContent>
