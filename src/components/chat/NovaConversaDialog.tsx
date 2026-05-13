@@ -48,7 +48,7 @@ export const NovaConversaDialog = ({ open, onOpenChange, onSuccess }: NovaConver
 
       const { data, error } = await supabase
         .from("profiles")
-        .select("id, nome, email, avatar_url, cargo")
+        .select("id, nome, email, avatar_url")
         .neq("id", user.id)
         .order("nome");
 
@@ -73,7 +73,7 @@ export const NovaConversaDialog = ({ open, onOpenChange, onSuccess }: NovaConver
     return usuarios.filter((u) => {
       const nome = (u.nome || "").toLowerCase();
       const email = (u.email || "").toLowerCase();
-      const cargo = (u.cargo || "").toLowerCase();
+      const cargo = ("").toLowerCase();
       return nome.includes(termo) || email.includes(termo) || cargo.includes(termo);
     });
   }, [usuarios, busca]);
@@ -220,7 +220,7 @@ export const NovaConversaDialog = ({ open, onOpenChange, onSuccess }: NovaConver
                                 {u.nome || "Sem nome"}
                               </div>
                               <div className="text-xs text-muted-foreground truncate">
-                                {u.cargo ? `${u.cargo} · ` : ""}{u.email}
+                                {""}{u.email}
                               </div>
                             </div>
                             {selecionado && <Check className="h-4 w-4 text-primary shrink-0" />}
