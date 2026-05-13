@@ -1117,51 +1117,44 @@ export default function FabricaProdutosAcabados() {
               </div>
             )}
 
-            {/* Alerta consolidado: produtos em revisão + mismatch de filtros */}
+            {/* Alerta compacto: produtos em revisão (esconde quando filtro já está ativo) */}
             {(() => {
               const emRevisaoCount = produtos?.filter((p) =>
                 isFichaInFamily((fichasMap.get(p.id) ?? null) as any, "em_revisao")
               ).length || 0;
-              if (emRevisaoCount === 0 && !mismatchEmRevisao.mismatch) return null;
+              if (emRevisaoCount === 0) return null;
+              if (filtroStatusFicha === "em_revisao") return null;
               return (
-                <div className="mb-3 rounded-md border-l-4 border-l-amber-500 border border-amber-500/30 bg-amber-50/80 dark:bg-amber-950/20 px-3 py-2 space-y-2">
-                  {emRevisaoCount > 0 && (
-                    <div className="flex items-center justify-between gap-3 flex-wrap">
-                      <div className="flex items-center gap-2 text-[13px] text-amber-900 dark:text-amber-100">
-                        <AlertTriangle className="h-3.5 w-3.5 text-amber-600 shrink-0" />
-                        <span>
-                          <strong className="tabular-nums">{emRevisaoCount}</strong> produto(s) com ficha em revisão (inclui "Revisão Solicitada"), destacados em âmbar.
-                        </span>
-                      </div>
-                      <div className="flex gap-1.5">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="h-7 text-xs border-amber-500/40"
-                          onClick={() =>
-                            setFiltroStatusFicha(filtroStatusFicha === "em_revisao" ? "none" : "em_revisao")
-                          }
-                        >
-                          <Filter className="h-3 w-3 mr-1" />
-                          {filtroStatusFicha === "em_revisao" ? "Limpar filtro" : "Filtrar lista"}
-                        </Button>
-                        <Button size="sm" variant="outline" className="h-7 text-xs border-amber-500/40" asChild>
-                          <Link to="/dashboard/fabrica/comunicacao-revisoes">
-                            <MessageSquare className="h-3 w-3 mr-1" />
-                            Abrir Revisões
-                          </Link>
-                        </Button>
-                      </div>
-                    </div>
-                  )}
+                <div className="mb-2 flex items-center gap-2 flex-wrap rounded-md border border-amber-500/40 bg-amber-500/10 px-2.5 py-1.5 text-[12px] text-amber-700 dark:text-amber-200">
+                  <AlertTriangle className="h-3.5 w-3.5 text-amber-500 shrink-0" />
+                  <span className="flex-1 min-w-0">
+                    <strong className="tabular-nums">{emRevisaoCount}</strong> em revisão
+                    {mismatchEmRevisao.mismatch && (
+                      <span className="text-muted-foreground ml-2">
+                        · {mismatchEmRevisao.hiddenCount} oculto(s) pelos filtros
+                      </span>
+                    )}
+                  </span>
                   {mismatchEmRevisao.mismatch && (
-                    <FilterMismatchAlert
-                      result={mismatchEmRevisao}
-                      kpiLabel="Em Revisão"
-                      onClearFilters={limparFiltros}
-                      hideWhenAligned
-                    />
+                    <Button size="sm" variant="ghost" className="h-6 px-2 text-[11px]" onClick={limparFiltros}>
+                      Limpar filtros
+                    </Button>
                   )}
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-6 px-2 text-[11px] border-amber-500/40 bg-transparent"
+                    onClick={() => setFiltroStatusFicha("em_revisao")}
+                  >
+                    <Filter className="h-3 w-3 mr-1" />
+                    Filtrar
+                  </Button>
+                  <Button size="sm" variant="outline" className="h-6 px-2 text-[11px] border-amber-500/40 bg-transparent" asChild>
+                    <Link to="/dashboard/fabrica/comunicacao-revisoes">
+                      <MessageSquare className="h-3 w-3 mr-1" />
+                      Revisões
+                    </Link>
+                  </Button>
                 </div>
               );
             })()}
