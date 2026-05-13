@@ -596,16 +596,16 @@ export function VincularMailboxList({
 
           if (groupedView) {
             return groupedView.map((g) => (
-              <li key={`grp-${g.key}`} className="contents">
-                <div className="sticky top-0 z-[1] flex items-center gap-2 border-b border-border/60 bg-muted/40 px-3 py-1 text-[10.5px] font-semibold uppercase tracking-wide text-muted-foreground backdrop-blur">
+              <Fragment key={`grp-${g.key}`}>
+                <li className="sticky top-0 z-[1] flex items-center gap-2 border-b border-border/60 bg-muted/40 px-3 py-1 text-[10.5px] font-semibold uppercase tracking-wide text-muted-foreground backdrop-blur">
                   <Layers className="h-3 w-3" />
                   <span>{g.label === "Sem OC" ? g.label : `OC ${g.label}`}</span>
                   <span className="ml-auto tabular-nums text-[10px] text-muted-foreground/70">
                     {g.rows.length} item{g.rows.length === 1 ? "" : "s"}
                   </span>
-                </div>
-                <ul className="contents">{g.rows.map(renderRow)}</ul>
-              </li>
+                </li>
+                {g.rows.map(renderRow)}
+              </Fragment>
             ));
           }
           return filtered.map(renderRow);
