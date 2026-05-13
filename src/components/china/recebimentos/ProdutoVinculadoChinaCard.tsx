@@ -84,21 +84,21 @@ export function ProdutoVinculadoChinaCard({
           <>
             <div className="mt-2 grid grid-cols-4 gap-2 text-[11px]">
               <div>
-                <div className="text-muted-foreground">Pedido</div>
+                <div className="text-muted-foreground">{t("recebimento.pedido")}</div>
                 <div className="font-medium">{produto.qty_pedida.toLocaleString("pt-BR")}</div>
               </div>
               <div>
-                <div className="text-muted-foreground">Embarcado</div>
+                <div className="text-muted-foreground">{t("recebimento.embarcado")}</div>
                 <div className="font-medium">{produto.qty_embarcada.toLocaleString("pt-BR")}</div>
               </div>
               <div>
-                <div className="text-muted-foreground">Recebido</div>
+                <div className="text-muted-foreground">{t("recebimento.recebido")}</div>
                 <div className="font-medium">
                   {produto.qty_recebida.toLocaleString("pt-BR")} ({recPct}%)
                 </div>
               </div>
               <div>
-                <div className="text-muted-foreground">Saldo</div>
+                <div className="text-muted-foreground">{t("recebimento.saldo")}</div>
                 <div className="font-semibold">{produto.qty_saldo.toLocaleString("pt-BR")}</div>
               </div>
             </div>
