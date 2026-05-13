@@ -331,12 +331,12 @@ export function ChecklistPendingSheet({
       if (error) throw error;
     },
     onSuccess: () => {
-      toast.success("Parecer técnico salvo.");
+      toast.success(t("inbox.checklistSheet.parecerDialog.toastOk"));
       queryClient.invalidateQueries({ queryKey: ["china-mailbox"] });
       queryClient.invalidateQueries({ queryKey: ["china-merged-checklist"] });
       setParecerOpen(false);
     },
-    onError: (e: any) => toast.error(e?.message || "Falha ao salvar parecer."),
+    onError: (e: any) => toast.error(e?.message || t("inbox.checklistSheet.parecerDialog.toastErr")),
   });
 
   // Aplica o escopo da pasta antes de montar as seções por categoria.
