@@ -122,6 +122,8 @@ interface DocSummary {
   ultimoStatus: string | null;
   ultimoEm: string | null;
   rows: DocRow[];
+  /** Mensagem de inconsistência detectada por validateChecklistResumo. */
+  inconsistencia: string | null;
 }
 
 const SENT_STATUSES = ["enviado", "contestado", "aprovado", "rejeitado", "em_revisao"];
@@ -188,6 +190,7 @@ function useDocsResumo(submissaoId: string | null | undefined) {
         ultimoStatus: rows[0]?.status ?? null,
         ultimoEm: rows[0]?.updated_at ?? rows[0]?.created_at ?? null,
         rows,
+        inconsistencia,
       };
     },
   });
