@@ -135,6 +135,14 @@ export function SubmissionTimelineSheet({ open, onOpenChange, scope, submissao, 
           </TabsContent>
         </Tabs>
       </SheetContent>
+      {submissao && (
+        <TimelineSlaConfigDialog
+          open={slaOpen}
+          onOpenChange={setSlaOpen}
+          submissaoId={submissao.submissao_id}
+          baseDate={parseLocalDate(submissao.created_at || null)}
+        />
+      )}
     </Sheet>
   );
 }
