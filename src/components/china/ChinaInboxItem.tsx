@@ -26,6 +26,7 @@ interface Props {
 export function ChinaInboxItem({
   item, isBrasilUser, isChinaUser, onApprove, onReject, onView, onCorrigir, loading,
 }: Props) {
+  const { t } = useChinaI18n();
   const [rejectOpen, setRejectOpen] = useState(false);
   const cfg = CHINA_DOCUMENT_TYPES.find((t) => t.tipo === item.tipo_documento);
 
