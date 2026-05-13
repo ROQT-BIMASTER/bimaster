@@ -318,5 +318,3 @@ project_id = "aokkyrgaqjarhlywhjju"
   [functions.china-sla-monitor]
     verify_jwt = false
 
-[functions.tmp-reset-claudia]
-verify_jwt = false
