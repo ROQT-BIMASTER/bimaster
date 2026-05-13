@@ -268,6 +268,27 @@ export function VincularMailboxList({
             <DropdownMenuSeparator />
             <DropdownMenuItem
               className="text-xs gap-2"
+              disabled={!someChecked}
+              onClick={() => {
+                const ids = filtered
+                  .filter((i) => selectedIds.has(i.id) && !isVincularRead(i.id))
+                  .map((i) => i.id);
+                if (ids.length === 0) {
+                  toast.info("Nenhum item selecionado não lido.");
+                  return;
+                }
+                markAllVincularRead(ids);
+                toast.success(`${ids.length} item(ns) selecionado(s) marcado(s) como lido(s).`);
+              }}
+            >
+              <MailOpen className="h-3.5 w-3.5" />
+              Marcar selecionadas como lidas
+              {someChecked && (
+                <span className="ml-auto text-[10px] text-muted-foreground">{selectedIds.size}</span>
+              )}
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              className="text-xs gap-2"
               onClick={() => {
                 const ids = filtered.filter((i) => !isVincularRead(i.id)).map((i) => i.id);
                 if (ids.length === 0) {

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import { buildReturnToTarget } from "@/lib/navigation/withReturnTo";
-import { Inbox, RefreshCw, Search, X, Trash2, RotateCcw, Clock, Calculator, History, Sparkles, CheckCheck } from "lucide-react";
+import { Inbox, RefreshCw, Search, X, Trash2, RotateCcw, Clock, Calculator, History, Sparkles, CheckCheck, Loader2 } from "lucide-react";
 import { SubmissionCopilotPanel } from "@/components/china/SubmissionCopilotPanel";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -199,7 +199,14 @@ export default function ChinaCaixaEntrada() {
   const handleRetryEnvio = () => {
     if (!lastEnvioVars) return;
     enviarBrasil.reset();
-    enviarBrasil.mutate(lastEnvioVars);
+    enviarBrasil.mutate(lastEnvioVars, {
+      onSettled: () => {
+        // Atualiza o contador de não lidas e a listagem assim que o retry termina,
+        // independentemente de sucesso/erro.
+        queryClient.invalidateQueries({ queryKey: ["china-mailbox-dataset"] });
+        refetch();
+      },
+    });
   };
   const handleToggleRead = (item: MailboxItem) => {
     if (!item.documento_id) return;
@@ -232,14 +239,24 @@ export default function ChinaCaixaEntrada() {
     () => items.filter((i) => i.documento_id && !i.is_read).length,
     [items],
   );
-  const handleMarkAllRead = () => {
+  const [isMarkingAllRead, setIsMarkingAllRead] = useState(false);
+  const handleMarkAllRead = async () => {
     const targets = items.filter((i) => i.documento_id && !i.is_read);
     if (targets.length === 0) {
       toast.info("Nenhuma mensagem não lida nesta pasta.");
       return;
     }
-    targets.forEach((i) => toggleRead.mutate({ documento_id: i.documento_id!, read: true }));
-    toast.success(`${targets.length} mensagem(ns) marcadas como lidas.`);
+    setIsMarkingAllRead(true);
+    try {
+      await Promise.all(
+        targets.map((i) =>
+          toggleRead.mutateAsync({ documento_id: i.documento_id!, read: true }).catch(() => null),
+        ),
+      );
+      toast.success(`${targets.length} mensagem(ns) marcadas como lidas.`);
+    } finally {
+      setIsMarkingAllRead(false);
+    }
   };
 
   const subtitle = isBrasilUser
@@ -302,12 +319,16 @@ export default function ChinaCaixaEntrada() {
               variant="outline"
               size="sm"
               onClick={handleMarkAllRead}
-              disabled={unreadVisibleCount === 0}
+              disabled={unreadVisibleCount === 0 || isMarkingAllRead}
               title="Marcar todas as mensagens visíveis como lidas"
             >
-              <CheckCheck className="h-4 w-4 mr-1.5" />
-              Marcar todas como lidas
-              {unreadVisibleCount > 0 && (
+              {isMarkingAllRead ? (
+                <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
+              ) : (
+                <CheckCheck className="h-4 w-4 mr-1.5" />
+              )}
+              {isMarkingAllRead ? "Marcando..." : "Marcar todas como lidas"}
+              {!isMarkingAllRead && unreadVisibleCount > 0 && (
                 <span className="ml-1 text-[10px] opacity-70">({unreadVisibleCount})</span>
               )}
             </Button>
