@@ -68,6 +68,7 @@ export function VincularMailboxList({
   onSelect, onFocus, onToggleCheck, onToggleAllChecks, onToggleStar, onLinkRow,
   projetos, search, onSearchChange, onBulkLink, onBulkExport,
 }: Props) {
+  const { t } = useChinaI18n();
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     if (!q) return items;
