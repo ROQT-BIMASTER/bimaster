@@ -77,7 +77,7 @@ export function ChinaDocPreviewDialog({
           ) : !resolvedUrl ? (
             <div className="flex flex-col items-center justify-center py-20 gap-2">
               <FileText className="h-10 w-10 text-muted-foreground" />
-              <p className="text-sm text-muted-foreground">Não foi possível carregar o arquivo</p>
+              <p className="text-sm text-muted-foreground">{t("documento.preview.naoCarregou")}</p>
             </div>
           ) : showImage ? (
             <img
@@ -94,7 +94,7 @@ export function ChinaDocPreviewDialog({
           ) : (
             <div className="flex flex-col items-center justify-center py-20 gap-3">
               <FileText className="h-12 w-12 text-muted-foreground" />
-              <p className="text-sm text-muted-foreground">Preview não disponível para este tipo de arquivo</p>
+              <p className="text-sm text-muted-foreground">{t("documento.preview.naoDisponivel")}</p>
             </div>
           )}
         </div>
@@ -104,13 +104,13 @@ export function ChinaDocPreviewDialog({
             <Button variant="outline" size="sm" asChild>
               <a href={resolvedUrl} download={fileName}>
                 <Download className="h-3.5 w-3.5 mr-1.5" />
-                Download
+                {t("documento.preview.download")}
               </a>
             </Button>
             <Button variant="outline" size="sm" asChild>
               <a href={resolvedUrl} target="_blank" rel="noopener noreferrer">
                 <ExternalLink className="h-3.5 w-3.5 mr-1.5" />
-                Abrir
+                {t("documento.preview.abrir")}
               </a>
             </Button>
           </div>
