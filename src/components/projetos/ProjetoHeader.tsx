@@ -66,6 +66,7 @@ export function ProjetoHeader({
   teamMembers = [], secoes = [], onAddTarefa,
   tarefasExcluidas = [], tarefasExcluidasLoading, tarefasExcluidasCount,
   lixeiraOpen: lixeiraOpenProp, onLixeiraOpenChange, onRestaurarTarefa,
+  bgCor = null, onBgCorChange,
 }: ProjetoHeaderProps) {
   const textColor = darkBg ? "text-white" : customBg ? "text-black" : "";
   const textMuted = darkBg ? "text-white/70" : customBg ? "text-black/70" : "text-muted-foreground";
