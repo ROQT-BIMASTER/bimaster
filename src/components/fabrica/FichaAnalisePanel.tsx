@@ -522,6 +522,7 @@ export function FichaAnalisePanel({ ficha, processando, onAprovar, onSolicitarRe
                         <TableHead>Código</TableHead>
                         <TableHead>Insumo</TableHead>
                         <TableHead>Fornecedor</TableHead>
+                        <TableHead>NF Ref.</TableHead>
                         <TableHead className="text-right">NF (R$)</TableHead>
                         <TableHead className="text-right">Serviço (R$)</TableHead>
                         <TableHead className="text-right">Condição (R$)</TableHead>
@@ -583,6 +584,28 @@ export function FichaAnalisePanel({ ficha, processando, onAprovar, onSolicitarRe
                                 </div>
                               </TableCell>
                               <TableCell>{insumo.fornecedor || "-"}</TableCell>
+                              <TableCell className="font-mono text-xs">
+                                {(() => {
+                                  const docs = insumo.mp_id ? (docsByMp[insumo.mp_id] || []) : [];
+                                  const ref = insumo.nf_referencia || "";
+                                  if (docs.length > 0) {
+                                    const first = docs[0];
+                                    return (
+                                      <button
+                                        type="button"
+                                        title={`Abrir documento: ${first.nome}${docs.length > 1 ? ` (+${docs.length - 1} outros)` : ""}`}
+                                        onClick={(e) => { e.stopPropagation(); setPreviewFile({ path: first.path, name: first.nome }); }}
+                                        className="inline-flex items-center gap-1 text-primary hover:underline"
+                                      >
+                                        <FileText className="h-3 w-3" />
+                                        {ref || first.nome}
+                                        {docs.length > 1 && <Badge variant="outline" className="ml-1 text-[9px] py-0 px-1">+{docs.length - 1}</Badge>}
+                                      </button>
+                                    );
+                                  }
+                                  return ref ? <span>{ref}</span> : <span className="text-muted-foreground">-</span>;
+                                })()}
+                              </TableCell>
                               <TableCell className="text-right">{formatarMoeda(Number(insumo.custo_nf) || 0)}</TableCell>
                               <TableCell className="text-right">{formatarMoeda(Number(insumo.custo_servico) || 0)}</TableCell>
                               <TableCell className="text-right">{formatarMoeda(Number(insumo.custo_condicao) || 0)}</TableCell>
