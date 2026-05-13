@@ -42,8 +42,8 @@ export function ChinaInboxDecisoes({ submissaoId, processId, onReenviar }: Props
     return (
       <EmptyState
         icon={Inbox}
-        title="Nenhuma decisão recebida"
-        description="As decisões do Brasil sobre esta submissão aparecerão aqui assim que forem registradas."
+        title={t("inbox.decisoes.vazioTitulo")}
+        description={t("inbox.decisoes.vazioDescricao")}
         className="py-8"
       />
     );
@@ -61,7 +61,7 @@ export function ChinaInboxDecisoes({ submissaoId, processId, onReenviar }: Props
     <div className="space-y-3">
       <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
         <Inbox className="h-4 w-4 text-emerald-500" />
-        Decisões do Brasil
+        {t("inbox.decisoes.tituloLista")}
         <Badge variant="outline" className="text-xs">{chinaDecisions.length}</Badge>
       </h3>
 
@@ -85,14 +85,14 @@ export function ChinaInboxDecisoes({ submissaoId, processId, onReenviar }: Props
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <Icon className={cn("h-4 w-4", config.color)} />
-                      <CardTitle className="text-sm">{config.label}</CardTitle>
-                      <Badge variant="outline" className="text-xs">V{decision.version}</Badge>
+                      <CardTitle className="text-sm">{t(config.labelKey)}</CardTitle>
+                      <Badge variant="outline" className="text-xs">{t("inbox.decisoes.versao", { n: decision.version })}</Badge>
                     </div>
                     <div className="flex items-center gap-2">
                       {decision.prazo_retorno && (
                         <Badge variant={isOverdue ? "destructive" : "outline"} className="text-xs flex items-center gap-1">
                           <Clock className="h-3 w-3" />
-                          {isOverdue ? "Atrasado" : `${daysLeft}d restantes`}
+                          {isOverdue ? t("inbox.decisoes.atrasado") : t("inbox.decisoes.diasRestantes", { count: daysLeft ?? 0 })}
                         </Badge>
                       )}
                       <span className="text-xs text-muted-foreground">
@@ -113,7 +113,7 @@ export function ChinaInboxDecisoes({ submissaoId, processId, onReenviar }: Props
 
                   {decision.items_affected && (decision.items_affected as any[]).length > 0 && (
                     <div>
-                      <p className="text-xs font-medium text-muted-foreground mb-1">Itens Pendentes:</p>
+                      <p className="text-xs font-medium text-muted-foreground mb-1">{t("inbox.decisoes.itensPendentes")}</p>
                       <ul className="space-y-1">
                         {(decision.items_affected as any[]).map((item, i) => (
                           <li key={i} className="flex items-start gap-2 text-sm">
@@ -137,7 +137,7 @@ export function ChinaInboxDecisoes({ submissaoId, processId, onReenviar }: Props
                       onClick={() => onReenviar(decision)}
                       className="mt-2"
                     >
-                      🔄 Reenviar Correções
+                      {t("inbox.decisoes.reenviar")}
                     </Button>
                   )}
                 </CardContent>
