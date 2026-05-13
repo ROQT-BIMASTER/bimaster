@@ -22,6 +22,7 @@ interface Props {
 }
 
 export function AlertasResponsavelPanel({ onSelectOC }: Props) {
+  const { t } = useChinaI18n();
   const { data: alertas = [] } = useRecebimentoAlertas();
   const marcarLido = useMarcarAlertaLido();
   const naoLidos = alertas.filter((a) => !a.lido_em).length;
