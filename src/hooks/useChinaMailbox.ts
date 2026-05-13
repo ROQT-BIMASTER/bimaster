@@ -77,6 +77,19 @@ export interface MailboxItem {
    * Para outras submissões: undefined.
    */
   approval_completeness?: "total" | "partial" | "empty";
+
+  // ── Checklist EFETIVO (Modo Foco) ──
+  /**
+   * Total de itens esperados no checklist da submissão (mesmo cálculo do
+   * Modo Foco: padrão + custom − ocultos). Permite à Caixa de Entrada
+   * mostrar "X de 29" no header do grupo, em vez de "X de 3" (somente docs já criados).
+   */
+  checklist_expected_total: number;
+  /**
+   * Itens "fantasma" — esperados pelo checklist mas ainda sem `china_produto_documentos`.
+   * Renderizados em "Pendentes de envio" para refletir tudo que ainda falta criar.
+   */
+  is_virtual?: boolean;
 }
 
 export type ApprovalCompleteness = "all" | "total" | "partial" | "empty";
