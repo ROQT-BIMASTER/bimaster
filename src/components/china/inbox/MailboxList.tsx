@@ -288,6 +288,8 @@ export function MailboxList({
   viewerOverride,
   groupMode = "flat",
   onGroupModeChange,
+  onEnviarGrupoBrasil,
+  onOpenSubmissao,
 }: Props) {
   const ctx = useChinaUserContext();
   const viewer = viewerOverride ?? { isBrasilUser: ctx.isBrasilUser, isChinaUser: ctx.isChinaUser };
