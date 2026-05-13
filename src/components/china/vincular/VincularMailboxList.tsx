@@ -259,14 +259,14 @@ export function VincularMailboxList({
               size="sm"
               variant="ghost"
               className="h-7 px-1.5 text-[11px] gap-1 text-muted-foreground"
-              title="Mais ações de leitura"
+              title={t("inbox.readMenu.trigger")}
             >
               <MoreHorizontal className="h-3 w-3" />
-              <span className="hidden sm:inline">Leitura</span>
+              <span className="hidden sm:inline">{t("inbox.readMenu.label")}</span>
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-64">
-            <DropdownMenuLabel className="text-[11px]">Estado de leitura</DropdownMenuLabel>
+            <DropdownMenuLabel className="text-[11px]">{t("inbox.readMenu.titulo")}</DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem
               className="text-xs gap-2"
@@ -276,15 +276,15 @@ export function VincularMailboxList({
                   .filter((i) => selectedIds.has(i.id) && !isVincularRead(i.id))
                   .map((i) => i.id);
                 if (ids.length === 0) {
-                  toast.info("Nenhum item selecionado não lido.");
+                  toast.info(t("inbox.toasts.nenhumaSelecionadaNaoLida"));
                   return;
                 }
                 markAllVincularRead(ids);
-                toast.success(`${ids.length} item(ns) selecionado(s) marcado(s) como lido(s).`);
+                toast.success(t("inbox.toasts.selecionadasLidasOk", { count: ids.length }));
               }}
             >
               <MailOpen className="h-3.5 w-3.5" />
-              Marcar selecionadas como lidas
+              {t("inbox.readMenu.marcarSelecionadasLidas")}
               {someChecked && (
                 <span className="ml-auto text-[10px] text-muted-foreground">{selectedIds.size}</span>
               )}
@@ -294,24 +294,24 @@ export function VincularMailboxList({
               onClick={() => {
                 const ids = filtered.filter((i) => !isVincularRead(i.id)).map((i) => i.id);
                 if (ids.length === 0) {
-                  toast.info("Nenhum item não lido nesta visão.");
+                  toast.info(t("inbox.toasts.nenhumNaoLidoVisao"));
                   return;
                 }
                 markAllVincularRead(ids);
-                toast.success(`${ids.length} item(ns) marcado(s) como lido(s).`);
+                toast.success(t("inbox.toasts.todosVisiveisLidosOk", { count: ids.length }));
               }}
             >
-              <MailOpen className="h-3.5 w-3.5" /> Marcar todos como lidos
+              <MailOpen className="h-3.5 w-3.5" /> {t("inbox.readMenu.marcarTodosLidos")}
             </DropdownMenuItem>
             <DropdownMenuItem
               className="text-xs gap-2 text-amber-300 focus:text-amber-300"
               onClick={() => {
-                if (!window.confirm("Limpar todas as marcações locais de leitura desta tela?")) return;
+                if (!window.confirm(t("inbox.readMenu.confirmLimpar"))) return;
                 clearVincularRead();
-                toast.success("Estado de leitura local zerado.");
+                toast.success(t("inbox.toasts.estadoLeituraZerado"));
               }}
             >
-              <RotateCcw className="h-3.5 w-3.5" /> Limpar estado de leitura
+              <RotateCcw className="h-3.5 w-3.5" /> {t("inbox.readMenu.limparEstado")}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
