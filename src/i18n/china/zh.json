@@ -103,7 +103,14 @@
       "recalcNenhuma": "待办已重新计算。无需标准化。",
       "recalcErro": "重新计算待办失败",
       "pdfOk": "PDF 已导出",
-      "pdfErro": "导出 PDF 失败"
+      "pdfErro": "导出 PDF 失败",
+      "todasLidasOk": "已将 {{count}} 条消息标为已读。",
+      "nenhumaNaoLida": "此文件夹中没有未读消息。",
+      "selecionadasLidasOk": "已将所选 {{count}} 项标为已读。",
+      "nenhumaSelecionadaNaoLida": "所选项目中没有未读项。",
+      "todosVisiveisLidosOk": "已将 {{count}} 项标为已读。",
+      "nenhumNaoLidoVisao": "当前视图中没有未读项。",
+      "estadoLeituraZerado": "本地阅读状态已清除。"
     },
     "empty": {
       "selectMessage": "选择一条消息以查看。",
