@@ -88,7 +88,7 @@ export default function ChinaCaixaEntrada() {
     setSearchParams(sp, { replace: true });
   };
 
-  const { items: rawItems, counts, isLoading, isFetching, refetch } = useChinaMailbox(folder);
+  const { items: rawItems, progressItems, counts, isLoading, isFetching, refetch } = useChinaMailbox(folder);
   const items = useMemo(() => {
     if (folder !== "approved" || approvalFilter === "all") return rawItems;
     return rawItems.filter((i) => i.approval_completeness === approvalFilter);
