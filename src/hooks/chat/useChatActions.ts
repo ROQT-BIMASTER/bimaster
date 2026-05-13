@@ -38,7 +38,7 @@ export function useChatActions() {
       if (!uid) throw new Error("não autenticado");
       const { data: msg, error } = await supabase
         .from("mensagens")
-        .insert({
+        .insert([{
           conversa_id: input.conversaId,
           remetente_id: uid,
           conteudo: input.conteudo,
@@ -47,7 +47,7 @@ export function useChatActions() {
           encaminhada_de_id: input.encaminhada_de_id ?? null,
           mencoes: input.mencoes ?? [],
           metadata: input.metadata ?? {},
-        })
+        }] as any)
         .select("id, conversa_id")
         .single();
       if (error) throw error;
@@ -113,7 +113,7 @@ export function useChatActions() {
         .update({
           fixada_em: vars.fixar ? new Date().toISOString() : null,
           fixada_por: vars.fixar ? uid : null,
-        })
+        }] as any)
         .eq("id", vars.id);
       if (error) throw error;
     },
@@ -133,7 +133,7 @@ export function useChatActions() {
       if (existing) {
         await supabase.from("mensagens_reacoes").delete().eq("id", existing.id);
       } else {
-        await supabase.from("mensagens_reacoes").insert({
+        await supabase.from("mensagens_reacoes").insert([{
           mensagem_id: vars.id,
           conversa_id: vars.conversaId,
           user_id: uid,
@@ -150,7 +150,7 @@ export function useChatActions() {
       if (vars.favorita) {
         await supabase.from("mensagens_favoritas").delete().eq("user_id", uid).eq("mensagem_id", vars.id);
       } else {
-        await supabase.from("mensagens_favoritas").insert({
+        await supabase.from("mensagens_favoritas").insert([{
           user_id: uid,
           mensagem_id: vars.id,
           conversa_id: vars.conversaId,
