@@ -315,6 +315,7 @@ export function MailboxList({
   onEnviarItemBrasil,
   onOpenSubmissao,
 }: Props) {
+  const { t } = useChinaI18n();
   const ctx = useChinaUserContext();
   const viewer = viewerOverride ?? { isBrasilUser: ctx.isBrasilUser, isChinaUser: ctx.isChinaUser };
 
