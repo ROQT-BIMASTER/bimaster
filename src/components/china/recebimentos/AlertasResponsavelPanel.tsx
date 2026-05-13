@@ -82,7 +82,7 @@ export function AlertasResponsavelPanel({ onSelectOC }: Props) {
                     variant="ghost"
                     className="h-6 px-2"
                     onClick={() => marcarLido.mutate(a.id)}
-                    title="Marcar como lido"
+                    title={t("recebimento.marcarLido")}
                   >
                     <Check className="h-3 w-3" />
                   </Button>
