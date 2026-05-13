@@ -84,6 +84,10 @@ interface FolderConfig {
   priorityMode: "pending" | "sent";
 }
 
+// Visualização unificada do checklist em todas as pastas: mesma ordenação
+// (pendentes/rejeitados primeiro), mesmo escopo (todos os itens da submissão)
+// e mesmas ações por linha (Anexar/Enviar quando aplicável). Apenas o título
+// do drawer e o filtro inicial da página dedicada variam por pasta.
 const FOLDER_CONFIG: Partial<Record<MailboxFolder, FolderConfig>> = {
   awaiting_send: {
     titleKey: "inbox.checklistSheet.folder.awaitingSend",
@@ -97,21 +101,21 @@ const FOLDER_CONFIG: Partial<Record<MailboxFolder, FolderConfig>> = {
     titleKey: "inbox.checklistSheet.folder.sentBrazil",
     scope: () => true,
     pageFilter: "enviados",
-    showAttach: false,
-    showEnviarFooter: false,
-    priorityMode: "sent",
+    showAttach: true,
+    showEnviarFooter: true,
+    priorityMode: "pending",
   },
   in_analysis: {
     titleKey: "inbox.checklistSheet.folder.inAnalysis",
     scope: () => true,
     pageFilter: "enviados",
-    showAttach: false,
-    showEnviarFooter: false,
-    priorityMode: "sent",
+    showAttach: true,
+    showEnviarFooter: true,
+    priorityMode: "pending",
   },
   returned: {
     titleKey: "inbox.checklistSheet.folder.returned",
-    scope: (i) => i.doc_status === "rejeitado",
+    scope: () => true,
     pageFilter: "rejeitados",
     showAttach: true,
     showEnviarFooter: true,
