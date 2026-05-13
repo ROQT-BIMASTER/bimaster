@@ -1137,7 +1137,7 @@ export default function FabricaProdutosAcabados() {
                       size="sm"
                       variant="outline"
                       className="h-6 px-2 text-[11px] border-amber-500/40 bg-transparent"
-                      onClick={() => setFiltroStatusFicha("todos")}
+                      onClick={() => setFiltroStatusFicha("none")}
                       title="Sair do filtro Em revisão"
                     >
                       <X className="h-3 w-3 mr-1" />
