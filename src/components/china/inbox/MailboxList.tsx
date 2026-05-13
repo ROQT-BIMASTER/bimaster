@@ -559,6 +559,7 @@ function GroupRow({
     folder === "returned";
   const isAwaiting = useDrawer;
   const allowSendBatch = folder === "awaiting_send" || folder === "returned";
+  const navigate = useNavigate();
   const [expanded, setExpanded] = useState(false);
   const headerActive = group.docs.some((d) => (d.documento_id ?? d.submissao_id) === selectedId);
   const checked = selectedIds.has(group.submissao_id);
