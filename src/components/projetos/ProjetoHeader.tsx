@@ -179,27 +179,16 @@ export function ProjetoHeader({
             >
               <BarChart3 className="h-4 w-4" />
             </Button>
-            <Button
-              variant="ghost" size="icon"
-              className={cn("h-8 w-8 rounded-full", btnHover || "hover:bg-muted")}
-              onClick={() => setSalvarModeloOpen(true)}
-              title="Salvar como modelo"
-            >
-              <BookmarkPlus className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="ghost" size="icon"
-              className={cn("h-8 w-8 rounded-full relative", btnHover || "hover:bg-muted")}
-              onClick={() => setLixeiraOpen(true)}
-              title="Lixeira"
-            >
-              <Trash2 className="h-4 w-4" />
-              {lixeiraBadgeCount > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 bg-destructive text-destructive-foreground text-[9px] font-bold rounded-full h-3.5 min-w-3.5 flex items-center justify-center px-0.5">
-                  {lixeiraBadgeCount}
-                </span>
-              )}
-            </Button>
+            <ProjetoSettingsMenu
+              projetoId={projeto.id}
+              bgCor={bgCor}
+              onBgCorChange={(c) => onBgCorChange?.(c)}
+              onAbrirMembros={() => setMembrosOpen(true)}
+              onAbrirLixeira={() => setLixeiraOpen(true)}
+              onSalvarComoModelo={() => setSalvarModeloOpen(true)}
+              lixeiraBadgeCount={lixeiraBadgeCount}
+              triggerClassName={btnHover || "hover:bg-muted"}
+            />
           </div>
         </div>
 
