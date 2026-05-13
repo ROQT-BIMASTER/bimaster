@@ -30,6 +30,7 @@ interface Props {
 }
 
 export function ChecklistTemplateMenu({ marca, colunasAtuais, onApply }: Props) {
+  const { t } = useChinaI18n();
   const { data: templates = [], isLoading } = useChecklistTemplates(marca);
   const save = useSaveTemplate();
   const del = useDeleteTemplate();
@@ -55,11 +56,11 @@ export function ChecklistTemplateMenu({ marca, colunasAtuais, onApply }: Props) 
           <DropdownMenuTrigger asChild>
             <Button variant="outline" size="sm" className="gap-2">
               <Bookmark className="h-4 w-4" />
-              Carregar template 加载模板
+              {t("documento.templateMenu.carregar")}
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-[320px] max-h-[400px] overflow-y-auto">
-            <DropdownMenuLabel>Templates salvos</DropdownMenuLabel>
+            <DropdownMenuLabel>{t("documento.templateMenu.salvos")}</DropdownMenuLabel>
             <DropdownMenuSeparator />
             {isLoading && (
               <div className="flex items-center justify-center py-4">
@@ -68,38 +69,38 @@ export function ChecklistTemplateMenu({ marca, colunasAtuais, onApply }: Props) 
             )}
             {!isLoading && templates.length === 0 && (
               <div className="px-2 py-3 text-xs text-muted-foreground text-center">
-                Nenhum template salvo ainda
+                {t("documento.templateMenu.nenhum")}
               </div>
             )}
-            {templates.map((t: ChecklistTemplate) => (
+            {templates.map((t2: ChecklistTemplate) => (
               <DropdownMenuItem
-                key={t.id}
+                key={t2.id}
                 onSelect={(e) => e.preventDefault()}
                 className="flex items-start justify-between gap-2 py-2"
               >
                 <button
                   className="flex-1 text-left"
-                  onClick={() => onApply(t.colunas)}
+                  onClick={() => onApply(t2.colunas)}
                 >
-                  <div className="font-medium text-sm">{t.nome}</div>
+                  <div className="font-medium text-sm">{t2.nome}</div>
                   <div className="flex items-center gap-1 mt-0.5 flex-wrap">
-                    {t.marca ? (
-                      <Badge variant="secondary" className="text-[10px] h-4">{t.marca}</Badge>
+                    {t2.marca ? (
+                      <Badge variant="secondary" className="text-[10px] h-4">{t2.marca}</Badge>
                     ) : (
-                      <Badge variant="outline" className="text-[10px] h-4">Global</Badge>
+                      <Badge variant="outline" className="text-[10px] h-4">{t("documento.templateMenu.global")}</Badge>
                     )}
                     <span className="text-[10px] text-muted-foreground">
-                      {t.colunas.length} colunas
+                      {t("documento.templateMenu.colunas", { count: t2.colunas.length })}
                     </span>
                   </div>
                 </button>
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
-                    if (confirm(`Excluir template "${t.nome}"?`)) del.mutate(t.id);
+                    if (confirm(t("documento.templateMenu.confirmExcluir", { nome: t2.nome }))) del.mutate(t2.id);
                   }}
                   className="text-destructive hover:text-destructive/70 shrink-0"
-                  title="Excluir"
+                  title={t("documento.templateMenu.excluir")}
                 >
                   <Trash2 className="h-3.5 w-3.5" />
                 </button>
@@ -110,19 +111,19 @@ export function ChecklistTemplateMenu({ marca, colunasAtuais, onApply }: Props) 
 
         <Button variant="outline" size="sm" className="gap-2" onClick={() => setSaveOpen(true)}>
           <BookmarkPlus className="h-4 w-4" />
-          Salvar como template
+          {t("documento.templateMenu.salvar")}
         </Button>
       </div>
 
       <Dialog open={saveOpen} onOpenChange={setSaveOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Salvar checklist como template 保存为模板</DialogTitle>
+            <DialogTitle>{t("documento.templateMenu.dialogTitulo")}</DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
             <div>
-              <Label>Nome do template *</Label>
-              <Input value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Ex.: Padrão Hello Kitty" />
+              <Label>{t("documento.templateMenu.nomeLabel")}</Label>
+              <Input value={nome} onChange={(e) => setNome(e.target.value)} placeholder={t("documento.templateMenu.nomePlaceholder")} />
             </div>
             {marca && (
               <div className="flex items-center gap-2">
@@ -132,19 +133,19 @@ export function ChecklistTemplateMenu({ marca, colunasAtuais, onApply }: Props) 
                   onCheckedChange={(v) => setScopeMarca(!!v)}
                 />
                 <Label htmlFor="scope-marca" className="cursor-pointer text-sm">
-                  Disponibilizar apenas para a marca <strong>{marca}</strong>
+                  <span dangerouslySetInnerHTML={{ __html: t("documento.templateMenu.escopoMarca", { marca }) }} />
                 </Label>
               </div>
             )}
             <p className="text-xs text-muted-foreground">
-              {colunasAtuais.length} colunas serão salvas. As marcações das células não são incluídas.
+              {t("documento.templateMenu.explicacao", { count: colunasAtuais.length })}
             </p>
           </div>
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setSaveOpen(false)}>Cancelar</Button>
+            <Button variant="ghost" onClick={() => setSaveOpen(false)}>{t("documento.templateMenu.cancelar")}</Button>
             <Button onClick={handleSave} disabled={save.isPending || !nome.trim()}>
               {save.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
-              Salvar
+              {t("documento.templateMenu.salvarBtn")}
             </Button>
           </DialogFooter>
         </DialogContent>
