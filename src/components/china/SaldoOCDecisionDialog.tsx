@@ -18,6 +18,7 @@ import {
   useRegistrarDecisaoSaldo,
 } from "@/hooks/useChinaSaldoDecisoes";
 import { AlertTriangle, GitBranch, X, RefreshCw, PauseCircle } from "lucide-react";
+import { useChinaI18n } from "@/hooks/useChinaI18n";
 
 interface Props {
   open: boolean;
