@@ -804,5 +804,39 @@
     "errCarregar": "Não foi possível carregar o arquivo",
     "previewIndisponivel": "Preview não disponível",
     "obsLabel": "Observação:"
+  },
+  "emitirOC": {
+    "titulo": "Emitir Ordem de Compra",
+    "unidades": "unidades",
+    "dataEntrega": "Data de Entrega Prevista",
+    "eanCaixaMaster": "EAN Caixa Master",
+    "eanPlaceholder": "Ex: 7898000000000",
+    "observacoes": "Observações",
+    "obsPlaceholder": "Instruções especiais...",
+    "cancelar": "Cancelar",
+    "emitir": "Emitir OC",
+    "emitindo": "Emitindo...",
+    "errInformeData": "Informe a data de entrega prevista",
+    "errEmitir": "Erro ao emitir OC",
+    "okCriada": "Ordem {numero} criada como rascunho — aguardando aprovação"
+  },
+  "saldoDecisao": {
+    "titulo": "Decisão sobre saldo",
+    "ocLabel": "OC",
+    "unico": "Único",
+    "unidadesSaldo": "{n} unidades em saldo",
+    "manterAberta": "Manter aberta",
+    "manterAbertaDesc": "China continua produzindo o saldo. OC permanece em aberto.",
+    "fecharParcial": "Fechar parcial",
+    "fecharParcialDesc": "Aceita apenas o que foi recebido. Saldo é descontado e a linha é fechada.",
+    "cancelarSaldo": "Cancelar saldo",
+    "cancelarSaldoDesc": "Cancela o saldo restante. Libera a China desta obrigação.",
+    "gerarNovaOC": "Gerar nova OC com saldo",
+    "gerarNovaOCDesc": "Cria uma nova OC só com o saldo, vinculada à atual.",
+    "justificativa": "Justificativa (recomendado)",
+    "justificativaPlaceholder": "Ex.: atraso da fábrica, falta de matéria-prima, mudança de pedido...",
+    "cancelar": "Cancelar",
+    "confirmar": "Confirmar decisão",
+    "registrando": "Registrando..."
   }
 }
