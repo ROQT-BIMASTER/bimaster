@@ -78,6 +78,34 @@ export function VincularMailboxList({
     });
   }, [items, search]);
 
+  // Agrupar por ordem (OC) — flag persistida em localStorage, igual à Caixa de Entrada da China.
+  const GROUP_PREF_KEY = "china:vincular:list:groupByOrder";
+  const [groupByOrder, setGroupByOrder] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    return window.localStorage.getItem(GROUP_PREF_KEY) === "1";
+  });
+  const toggleGroupByOrder = useCallback(() => {
+    setGroupByOrder((prev) => {
+      const next = !prev;
+      try { window.localStorage.setItem(GROUP_PREF_KEY, next ? "1" : "0"); } catch { /* noop */ }
+      return next;
+    });
+  }, []);
+
+  // Lista agrupada por numero_ordem mantendo a ordem original (mais recente primeiro).
+  const groupedView = useMemo(() => {
+    if (!groupByOrder) return null;
+    const map = new Map<string, { key: string; label: string; rows: MailboxRow[] }>();
+    for (const it of filtered) {
+      const key = it.numero_ordem?.trim() || "__sem_oc__";
+      const label = it.numero_ordem?.trim() || "Sem OC";
+      const g = map.get(key);
+      if (g) g.rows.push(it);
+      else map.set(key, { key, label, rows: [it] });
+    }
+    return Array.from(map.values());
+  }, [filtered, groupByOrder]);
+
   const allChecked = filtered.length > 0 && filtered.every((i) => selectedIds.has(i.id));
   const someChecked = selectedIds.size > 0;
 
