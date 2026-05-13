@@ -5,6 +5,7 @@ import { BilingualLabel } from "./BilingualLabel";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useChinaI18n } from "@/hooks/useChinaI18n";
 
 export interface DocumentSlotConfig {
   tipo: string;
@@ -23,27 +24,22 @@ export interface SlotFile {
 
 interface ChinaDocumentSlotProps {
   config: DocumentSlotConfig;
-  /** Overall status — computed from files if not provided */
   status: "none" | "pendente" | "aprovado" | "rejeitado";
-  /** @deprecated Use `files` instead */
   fileName?: string;
-  /** Multiple files for this slot */
   files?: SlotFile[];
   observacao?: string;
   onUpload: (file: File) => Promise<void>;
-  /** Remove a specific file by id */
   onRemoveFile?: (fileId: string) => void;
-  /** @deprecated Use `onRemoveFile` */
   onRemove?: () => void;
   disabled?: boolean;
 }
 
-const statusConfig = {
-  none: { color: "border-muted bg-muted/30", icon: null, label: "Pendente 待上传" },
-  pendente: { color: "border-warning bg-warning/10", icon: <Clock className="h-4 w-4 text-warning" />, label: "Enviado 已发送" },
-  aprovado: { color: "border-success bg-success/10", icon: <CheckCircle2 className="h-4 w-4 text-success" />, label: "Aprovado 已批准" },
-  rejeitado: { color: "border-destructive bg-destructive/10", icon: <XCircle className="h-4 w-4 text-destructive" />, label: "Rejeitado 已拒绝" },
-};
+const STATUS_VISUAL = {
+  none: { color: "border-muted bg-muted/30", icon: null, labelKey: "documento.slot.labelPendente" },
+  pendente: { color: "border-warning bg-warning/10", icon: <Clock className="h-4 w-4 text-warning" />, labelKey: "documento.slot.labelEnviado" },
+  aprovado: { color: "border-success bg-success/10", icon: <CheckCircle2 className="h-4 w-4 text-success" />, labelKey: "documento.slot.labelAprovado" },
+  rejeitado: { color: "border-destructive bg-destructive/10", icon: <XCircle className="h-4 w-4 text-destructive" />, labelKey: "documento.slot.labelRejeitado" },
+} as const;
 
 export function ChinaDocumentSlot({
   config,
