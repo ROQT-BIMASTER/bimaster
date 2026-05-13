@@ -46,7 +46,9 @@ export async function uploadChatAnexo(
   file: File,
 ): Promise<{ storage_path: string; file_name: string; mime_type: string; size_bytes: number; width?: number; height?: number }> {
   const safe = file.name.replace(/[^\w.\-]+/g, "_").slice(0, 80);
-  const path = `${userId}/${conversaId}/${Date.now()}_${safe}`;
+  // Ordem das pastas tem que casar com as policies do bucket chat-anexos:
+  // foldername[1] = conversa_id (checa participação), foldername[2] = uploader uid.
+  const path = `${conversaId}/${userId}/${Date.now()}_${safe}`;
   const { error } = await supabase.storage.from("chat-anexos").upload(path, file, {
     contentType: file.type || "application/octet-stream",
     upsert: false,
