@@ -222,6 +222,25 @@ function MailboxRow({ item, dir, folder, active, checked, onSelect, onToggleChec
           <SbIcon className="h-2.5 w-2.5" />
           {sb.label}
         </Badge>
+        {item.submissao_status === "aprovado" && item.checklist_total > 0 && (
+          <Badge
+            variant="outline"
+            className={cn(
+              "h-4 px-1.5 text-[9.5px] gap-0.5 font-medium",
+              item.checklist_aprovados === item.checklist_total
+                ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30"
+                : "bg-amber-500/10 text-amber-400 border-amber-500/30",
+            )}
+            title={
+              item.checklist_aprovados === item.checklist_total
+                ? "Checklist 100% aprovado — libera ordem de compra"
+                : `Checklist incompleto — ${item.checklist_total - item.checklist_aprovados} doc(s) ainda não aprovados`
+            }
+          >
+            <ListChecks className="h-2.5 w-2.5" />
+            {item.checklist_aprovados}/{item.checklist_total}
+          </Badge>
+        )}
         {item.snooze_until && (
           <Badge variant="outline" className="h-4 px-1.5 text-[9.5px] gap-0.5 bg-amber-500/15 text-amber-400 border-amber-500/30">
             <Clock className="h-2.5 w-2.5" /> adiada
