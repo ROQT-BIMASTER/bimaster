@@ -454,6 +454,13 @@ export function useChinaMailbox(folder: MailboxFolder): UseChinaMailboxResult {
       bumpCount("sent_brazil", i, matchSentBrazil);
       bumpCount("in_analysis", i, matchInAnalysis);
       bumpCount("returned", i, matchReturned);
+      // Sub-categorização da pasta "Aprovados" por completude do checklist.
+      if (matchApproved(i)) {
+        const c = i.approval_completeness;
+        if (c === "total") bumpCount("approved_total", i, () => true);
+        else if (c === "partial") bumpCount("approved_partial", i, () => true);
+        else if (c === "empty") bumpCount("approved_empty", i, () => true);
+      }
     }
 
     // Filtro da pasta atual
