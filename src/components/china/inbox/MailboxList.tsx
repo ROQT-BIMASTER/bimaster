@@ -51,9 +51,31 @@ interface Props {
   onGroupModeChange?: (m: ChinaInboxGroupMode) => void;
 }
 
-function statusBadge(submissao_status: string, doc_status: string | null) {
+function statusBadge(
+  submissao_status: string,
+  doc_status: string | null,
+  approval_completeness?: "total" | "partial" | "empty",
+) {
   if (submissao_status === "aprovado") {
-    return { label: "Aprovado", icon: CheckCircle2, cls: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30" };
+    if (approval_completeness === "partial") {
+      return {
+        label: "Aprovado · parcial",
+        icon: AlertTriangle,
+        cls: "bg-amber-500/15 text-amber-400 border-amber-500/30",
+      };
+    }
+    if (approval_completeness === "empty") {
+      return {
+        label: "Aprovado · sem checklist",
+        icon: AlertTriangle,
+        cls: "bg-muted/40 text-muted-foreground border-border",
+      };
+    }
+    return {
+      label: "Aprovado · total",
+      icon: CheckCircle2,
+      cls: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30",
+    };
   }
   if (submissao_status === "rejeitado") {
     return { label: "Rejeitado", icon: AlertTriangle, cls: "bg-rose-500/15 text-rose-400 border-rose-500/30" };
