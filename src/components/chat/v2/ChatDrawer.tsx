@@ -63,7 +63,7 @@ function ChatFloatingButton() {
   const { user } = useAuth();
   const { abrir } = useChatDrawer();
   const total = useChatUnreadTotal();
-  const pathname = usePathname();
+  const pathname = useBrowserPathname();
   const [shortcut, setShortcut] = useState(false);
 
   useEffect(() => {
