@@ -125,39 +125,33 @@ function useDocsResumo(submissaoId: string | null | undefined) {
         (hRes.data || []) as ChecklistHiddenItem[],
       );
 
-      // Mapa tipo → último doc (rows já vem ordenado desc por updated_at).
-      const latestByTipo = new Map<string, DocRow>();
-      for (const r of rows) {
-        if (!latestByTipo.has(r.tipo_documento)) latestByTipo.set(r.tipo_documento, r);
-      }
+      // Resumo via função PURA compartilhada — mesma classificação de
+      // `groupMailboxItems.classifyForProgress` (Caixa de Entrada). Garante
+      // que total/pendentes/enviados/aprovados/rejeitados batam exatamente
+      // entre a linha do tempo e a Caixa.
+      const resumo = summarizeChecklistResumo(rows, expected);
 
-      // Universo unificado: tipos esperados + tipos extras já anexados (não
-      // perder vínculo com nada que esteja salvo).
-      const universe = new Set<string>(expected.tipos);
-      for (const tipo of latestByTipo.keys()) universe.add(tipo);
-
-      // Mesma classificação da Caixa de Entrada (`groupMailboxItems`):
-      // qualquer documento já anexado cujo status não seja "rascunho" conta
-      // como ENVIADO ao Brasil — inclusive status "pendente" (anexado e
-      // aguardando análise). Pendentes da etapa 3 são apenas itens do
-      // checklist sem documento anexado (ou em rascunho).
-      let pendentes = 0, aprovados = 0, rejeitados = 0, enviados = 0;
-      for (const tipo of universe) {
-        const doc = latestByTipo.get(tipo);
-        const status = doc?.status ?? null;
-        const sentToBrazil = !!doc && status !== null && status !== "rascunho";
-        if (sentToBrazil) enviados += 1;
-        else pendentes += 1;
-        if (status === "aprovado") aprovados += 1;
-        else if (status === "rejeitado") rejeitados += 1;
+      // Validação defensiva — em produção apenas avisa no console; em testes
+      // (`vitest`) explode caso algum dia a invariante seja violada.
+      const inconsistencia = validateChecklistResumo(resumo);
+      if (inconsistencia) {
+        // eslint-disable-next-line no-console
+        console.warn(`[timeline] resumo inconsistente para ${submissaoId}: ${inconsistencia}`);
       }
 
       return {
-        total: universe.size,
-        pendentes,
-        aprovados,
-        rejeitados,
-        enviados,
+        total: resumo.total,
+        pendentes: resumo.pendentes,
+        aprovados: resumo.aprovados,
+        rejeitados: resumo.rejeitados,
+        enviados: resumo.enviados,
+        ultimoStatus: rows[0]?.status ?? null,
+        ultimoEm: rows[0]?.updated_at ?? rows[0]?.created_at ?? null,
+        rows,
+      };
+    },
+  });
+}
         ultimoStatus: rows[0]?.status ?? null,
         ultimoEm: rows[0]?.updated_at ?? rows[0]?.created_at ?? null,
         rows,
