@@ -573,13 +573,32 @@ export function ChecklistPendingSheet({
                             Anexar
                           </Button>
                         )}
+                      {showParecerActions && !hasParecer &&
+                        (state === "pendente_envio" || state === "rejeitado" || state === "nao_criado") && (
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            className="h-5 gap-1 px-1.5 text-[10px] border-amber-500/40 text-amber-500 hover:bg-amber-500/10"
+                            onClick={() => setParecerOpen(true)}
+                            title="Registrar parecer técnico para liberar o envio ao Brasil"
+                          >
+                            <MessageSquarePlus className="h-2.5 w-2.5" />
+                            Abrir parecer
+                          </Button>
+                        )}
                       {canSendSingle && (
                         <Button
                           type="button"
                           size="sm"
-                          className="h-5 gap-1 px-1.5 text-[10px] bg-emerald-600 hover:bg-emerald-700 text-white"
+                          className="h-5 gap-1 px-1.5 text-[10px] bg-emerald-600 hover:bg-emerald-700 text-white disabled:opacity-50"
                           onClick={() => onEnviarItemBrasil!(item)}
-                          title="Despachar somente este item ao Brasil"
+                          disabled={showParecerActions && !hasParecer}
+                          title={
+                            showParecerActions && !hasParecer
+                              ? "Registre o parecer técnico antes de despachar"
+                              : "Despachar somente este item ao Brasil"
+                          }
                         >
                           <Send className="h-2.5 w-2.5" />
                           Enviar ao Brasil
