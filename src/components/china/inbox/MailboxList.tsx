@@ -499,6 +499,7 @@ export function MailboxList({
         folder={folder}
         onSelectItem={onSelect}
         onEnviarGrupoBrasil={onEnviarGrupoBrasil}
+        onEnviarItemBrasil={onEnviarItemBrasil}
         onOpenSubmissao={onOpenSubmissao}
       />
     </div>
