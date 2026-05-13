@@ -216,19 +216,13 @@ export function useChatActions() {
           }
         }
       }
-      const { data: c, error } = await supabase
-        .from("conversas")
-        .insert({ tipo: "private", criado_por: uid })
-        .select("id")
-        .single();
+      const { data, error } = await supabase.rpc("rpc_chat_criar_conversa_privada" as any, {
+        p_outro_user_id: outroUserId,
+      } as any);
       if (error) throw error;
-      const { error: pErr } = await supabase.from("conversas_participantes").insert([
-        { conversa_id: c.id, usuario_id: uid, papel: "membro" },
-        { conversa_id: c.id, usuario_id: outroUserId, papel: "membro" },
-      ]);
-      if (pErr) throw pErr;
+      if (!data) throw new Error("Não foi possível localizar a conversa criada");
       qc.invalidateQueries({ queryKey: ["chat", "conversas"] });
-      return c.id;
+      return data as unknown as string;
     },
     onError: (e: any) => toast.error("Erro: " + e.message),
   });
