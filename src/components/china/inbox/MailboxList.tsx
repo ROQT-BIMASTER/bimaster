@@ -830,7 +830,7 @@ function GroupRow({
             {group.docs.length}
           </Badge>
           <span className="text-[10px] tabular-nums text-muted-foreground">
-            {relativeAge(group.horas_pendentes)}
+            {relativeAge(group.horas_pendentes, t)}
           </span>
         </div>
       </li>
