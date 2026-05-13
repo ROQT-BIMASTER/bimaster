@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef, useLayoutEffect } from "react";
 import { useSystemProfiles } from "@/hooks/useSystemProfiles";
 import { formatRelativeTime } from "@/lib/formatters";
 import { useUserRole } from "@/hooks/useUserRole";
