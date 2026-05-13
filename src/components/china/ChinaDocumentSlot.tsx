@@ -144,13 +144,13 @@ export function ChinaDocumentSlot({
         disabled={uploading}
       >
         {uploading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Upload className="h-3 w-3" />}
-        Upload
+        {t("documento.slot.upload")}
       </Button>
 
       {/* Status badge + count */}
       <div className="flex items-center gap-1 text-[10px]">
         {s.icon}
-        <span className="text-muted-foreground">{s.label}</span>
+        <span className="text-muted-foreground">{t(s.labelKey)}</span>
         {fileCount > 0 && (
           <Badge variant="secondary" className="text-[9px] px-1.5 py-0 h-4 ml-1">
             {fileCount}
