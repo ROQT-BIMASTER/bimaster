@@ -362,6 +362,13 @@ export function MailboxList({
   const allChecked =
     filtered.length > 0 && filtered.every(({ item: i }) => selectedIds.has(i.submissao_id));
 
+  // Drawer lateral de "Checklist pendente" — substitui a antiga expansão inline.
+  const [openChecklistFor, setOpenChecklistFor] = useState<string | null>(null);
+  const openGroup = useMemo(
+    () => groups.find((g) => g.submissao_id === openChecklistFor) ?? null,
+    [groups, openChecklistFor],
+  );
+
   return (
     <div className="flex h-full flex-col">
       {folder === "inbox" && onActionFilterChange && (
