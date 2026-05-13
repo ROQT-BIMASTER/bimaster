@@ -102,6 +102,20 @@ export function computeExpectedChecklist(
   const tipos = new Set<string>();
   const tiposChinaEnvia = new Set<string>();
   const tiposBrasilEnvia = new Set<string>();
+  const labels = new Map<string, ChecklistTipoLabel>();
+
+  // Pré-popula labels dos tipos padrão de CHINA_DOCUMENT_TYPES.
+  for (const dt of CHINA_DOCUMENT_TYPES) {
+    labels.set(dt.tipo, { pt: dt.labelPt, cn: dt.labelCn });
+  }
+  // Sobrescreve / adiciona com labels de itens custom.
+  for (const ci of customItems) {
+    if (!ci.tipo_key) continue;
+    labels.set(ci.tipo_key, {
+      pt: ci.label_pt || ci.tipo_key,
+      cn: ci.label_cn,
+    });
+  }
 
   for (const cat of visible) {
     for (const t of cat.tipos) {
@@ -117,6 +131,7 @@ export function computeExpectedChecklist(
     total: tipos.size,
     tiposChinaEnvia,
     tiposBrasilEnvia,
+    labels,
   };
 }
 
