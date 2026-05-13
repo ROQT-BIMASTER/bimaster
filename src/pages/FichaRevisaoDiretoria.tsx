@@ -236,6 +236,22 @@ export default function FichaRevisaoDiretoria() {
 
   const { bgStyle, BgColorButton } = usePageBgColor("ficha_revisao_diretoria");
 
+  // Modo foco: Esc fecha
+  useEffect(() => {
+    if (!fichaAberta) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setFichaAberta(null);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [fichaAberta]);
+
+  // Helpers do modo foco
+  const fichaPaiId = fichaAberta ? gradeRelMap.filhoToPai.get(fichaAberta.produto_id) : undefined;
+  const fichaPaiNome = fichaPaiId
+    ? fichasPendentes.find((f: any) => f.produto_id === fichaPaiId)?.produto?.nome
+    : undefined;
+
   return (
     <DashboardLayout>
       <div className="space-y-6 -m-4 sm:-m-6 p-4 sm:p-6 min-h-[calc(100vh-52px)]" style={bgStyle}>
