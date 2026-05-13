@@ -128,16 +128,28 @@ function ProgressBlock({
   );
 }
 
+function statusToneClass(status: string): string {
+  if (status === "aprovado") return "border-emerald-500/40 text-emerald-400";
+  if (status === "rejeitado") return "border-rose-500/40 text-rose-400";
+  if (status === "em_revisao" || status === "contestado") return "border-amber-500/40 text-amber-400";
+  if (status === "enviado") return "border-sky-500/40 text-sky-400";
+  return "border-border text-muted-foreground";
+}
+
 function ExpandableDocList({
   rows,
   filter,
   emptyText,
+  label,
+  defaultOpen = false,
 }: {
   rows: DocRow[];
   filter: (r: DocRow) => boolean;
   emptyText: string;
+  label?: string;
+  defaultOpen?: boolean;
 }) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(defaultOpen);
   const filtered = rows.filter(filter);
   return (
     <div className="mt-1.5">
@@ -147,7 +159,7 @@ function ExpandableDocList({
         className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground transition-colors"
       >
         {open ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
-        {open ? "Ocultar detalhamento" : `Ver detalhamento (${filtered.length})`}
+        {open ? "Ocultar detalhamento" : `${label ?? "Ver detalhamento"} (${filtered.length})`}
       </button>
       {open && (
         <ul className="mt-1.5 space-y-1 border-l border-border/60 pl-2">
@@ -157,13 +169,65 @@ function ExpandableDocList({
             filtered.map((r) => (
               <li key={r.id} className="flex items-center justify-between gap-2 text-[11px]">
                 <span className="truncate text-foreground/90">{r.tipo_documento}</span>
-                <Badge variant="outline" className="h-4 px-1 text-[9px] uppercase shrink-0">
+                <Badge variant="outline" className={cn("h-4 px-1 text-[9px] uppercase shrink-0", statusToneClass(r.status))}>
                   {r.status}
                 </Badge>
               </li>
             ))
           )}
         </ul>
+      )}
+    </div>
+  );
+}
+
+function GroupedSentDocList({ rows }: { rows: DocRow[] }) {
+  const [open, setOpen] = useState(false);
+  const sent = rows.filter((r) => SENT_STATUSES.includes(r.status));
+  const aprovados = sent.filter((r) => r.status === "aprovado");
+  const rejeitados = sent.filter((r) => r.status === "rejeitado");
+  const aguardando = sent.filter((r) => r.status !== "aprovado" && r.status !== "rejeitado");
+  return (
+    <div className="mt-1.5">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground transition-colors"
+      >
+        {open ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+        {open
+          ? "Ocultar detalhamento"
+          : `Ver detalhamento (${sent.length} enviados · ${aprovados.length} aprovados · ${rejeitados.length} rejeitados)`}
+      </button>
+      {open && (
+        <div className="mt-1.5 space-y-2 border-l border-border/60 pl-2">
+          {[
+            { title: "Aprovados pelo Brasil", items: aprovados, tone: "border-emerald-500/40 text-emerald-400" },
+            { title: "Aguardando retorno", items: aguardando, tone: "border-amber-500/40 text-amber-400" },
+            { title: "Rejeitados pelo Brasil", items: rejeitados, tone: "border-rose-500/40 text-rose-400" },
+          ].map((grp) => (
+            <div key={grp.title} className="space-y-1">
+              <div className="flex items-center justify-between text-[10px] uppercase tracking-wide text-muted-foreground">
+                <span>{grp.title}</span>
+                <span className="tabular-nums">{grp.items.length}</span>
+              </div>
+              {grp.items.length === 0 ? (
+                <p className="text-[11px] italic text-muted-foreground/70">Nenhum item.</p>
+              ) : (
+                <ul className="space-y-1">
+                  {grp.items.map((r) => (
+                    <li key={r.id} className="flex items-center justify-between gap-2 text-[11px]">
+                      <span className="truncate text-foreground/90">{r.tipo_documento}</span>
+                      <Badge variant="outline" className={cn("h-4 px-1 text-[9px] uppercase shrink-0", grp.tone)}>
+                        {r.status}
+                      </Badge>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          ))}
+        </div>
       )}
     </div>
   );
@@ -375,38 +439,48 @@ export function UnifiedSubmissionTimeline({ submissao, ocId, onlyChinaStages, cl
           {docs?.ultimoEm && enviadosDocs > 0 && (
             <DataRow label="Última atividade" value={fmtDate(docs.ultimoEm)} />
           )}
-          {totalDocs > 0 && !allSent && (
+          {totalDocs > 0 && (
             <ExpandableDocList
               rows={docs?.rows ?? []}
               filter={(r) => !SENT_STATUSES.includes(r.status)}
-              emptyText="Nenhum item pendente."
+              emptyText="Todos os itens já foram enviados ao Brasil."
+              label={allSent ? "Itens pendentes de envio" : "Faltam enviar"}
             />
           )}
         </StageCard>
 
         <StageCard icon={ShieldCheck} title="4. Aprovação Brasil" status={stAprovBrasil} deadline={dl(4)}>
           {enviadosDocs > 0 ? (
-            <ProgressBlock
-              label="Aprovados pelo Brasil"
-              current={aprovDocs}
-              total={enviadosDocs}
-              tone={fullyApproved ? "emerald" : rejDocs > 0 ? "rose" : "amber"}
-            />
+            <>
+              <ProgressBlock
+                label="Aprovados pelo Brasil"
+                current={aprovDocs}
+                total={enviadosDocs}
+                tone={fullyApproved ? "emerald" : rejDocs > 0 ? "rose" : "amber"}
+              />
+              <div className="grid grid-cols-3 gap-2 text-[11px] pt-1">
+                <div className="rounded border border-border/60 px-1.5 py-1 text-center">
+                  <div className="text-muted-foreground text-[10px]">Enviados</div>
+                  <div className="font-semibold tabular-nums">{enviadosDocs}</div>
+                </div>
+                <div className="rounded border border-emerald-500/30 px-1.5 py-1 text-center">
+                  <div className="text-muted-foreground text-[10px]">Aprovados</div>
+                  <div className="font-semibold tabular-nums text-emerald-400">{aprovDocs}</div>
+                </div>
+                <div className="rounded border border-rose-500/30 px-1.5 py-1 text-center">
+                  <div className="text-muted-foreground text-[10px]">Rejeitados</div>
+                  <div className="font-semibold tabular-nums text-rose-400">{rejDocs}</div>
+                </div>
+              </div>
+            </>
           ) : (
             <p className="text-muted-foreground italic">Aguardando envio ao Brasil.</p>
           )}
           {submissao.aprovado_em && (
             <DataRow label="Aprovada em" value={fmtDate(submissao.aprovado_em)} />
           )}
-          {rejDocs > 0 && (
-            <DataRow label="Rejeitados" value={rejDocs} />
-          )}
-          {enviadosDocs > 0 && (aprovDocs < enviadosDocs || rejDocs > 0) && (
-            <ExpandableDocList
-              rows={docs?.rows ?? []}
-              filter={(r) => SENT_STATUSES.includes(r.status) && r.status !== "aprovado"}
-              emptyText="Nenhum item aguardando retorno do Brasil."
-            />
+          {enviadosDocs > 0 && (
+            <GroupedSentDocList rows={docs?.rows ?? []} />
           )}
         </StageCard>
 
