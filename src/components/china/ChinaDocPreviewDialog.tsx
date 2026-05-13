@@ -32,6 +32,7 @@ export function ChinaDocPreviewDialog({
 }: ChinaDocPreviewDialogProps) {
   const [resolvedUrl, setResolvedUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const { t } = useChinaI18n();
 
   useEffect(() => {
     if (!open) {
