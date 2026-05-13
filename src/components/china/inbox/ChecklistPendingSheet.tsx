@@ -299,7 +299,7 @@ export function ChecklistPendingSheet({
           <SheetTitle className="text-sm font-semibold leading-tight">
             <span className="flex items-center gap-2">
               <ListChecks className="h-4 w-4 text-primary" />
-              Checklist pendente
+              {cfg.title}
             </span>
           </SheetTitle>
           <SheetDescription className="text-[12px] text-muted-foreground">
