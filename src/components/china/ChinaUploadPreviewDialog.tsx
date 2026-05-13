@@ -3,6 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Button } from "@/components/ui/button";
 import { FileText, Image, Video, FileSpreadsheet, Save, Send, X, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useChinaI18n } from "@/hooks/useChinaI18n";
 
 interface ChinaUploadPreviewDialogProps {
   file: File | null;
