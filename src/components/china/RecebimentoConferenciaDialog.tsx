@@ -15,6 +15,7 @@ import { ClipboardCheck, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { BilingualLabel } from "./BilingualLabel";
 import { useChinaOrdemItens } from "@/hooks/useChinaOrdemItens";
 import { useCriarRecebimento } from "@/hooks/useChinaRecebimentos";
+import { useChinaI18n } from "@/hooks/useChinaI18n";
 
 interface Props {
   open: boolean;
