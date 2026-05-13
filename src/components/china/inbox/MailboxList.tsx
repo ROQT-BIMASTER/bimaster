@@ -492,6 +492,7 @@ export function MailboxList({
         open={openChecklistFor !== null}
         onOpenChange={(o) => !o && setOpenChecklistFor(null)}
         group={openGroup}
+        folder={folder}
         onSelectItem={onSelect}
         onEnviarGrupoBrasil={onEnviarGrupoBrasil}
         onOpenSubmissao={onOpenSubmissao}
