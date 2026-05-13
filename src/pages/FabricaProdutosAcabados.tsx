@@ -515,7 +515,7 @@ export default function FabricaProdutosAcabados() {
         <TableCell className="pr-0 py-2">
           <ProductThumbnail src={produto.foto_url} alt={produto.nome} size="sm" />
         </TableCell>
-        <TableCell className="font-mono text-[12px] py-2">{produto.codigo}</TableCell>
+        <TableCell className="font-mono text-[12px] py-2 whitespace-nowrap">{produto.codigo}</TableCell>
         <TableCell className="font-medium py-2 text-[13px]">
           <div className="flex items-center gap-1.5">
             {isDisplay && <Layers className="h-3.5 w-3.5 text-primary shrink-0" />}
