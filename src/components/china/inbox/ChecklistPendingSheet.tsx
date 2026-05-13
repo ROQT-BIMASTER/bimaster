@@ -429,20 +429,21 @@ export function ChecklistPendingSheet({
                               <Icon className="h-2.5 w-2.5" />
                               {meta.label}
                             </Badge>
-                            {(state === "nao_criado" ||
-                              state === "pendente_envio" ||
-                              state === "rejeitado") && (
-                              <Button
-                                type="button"
-                                size="sm"
-                                variant="ghost"
-                                className="h-5 gap-1 px-1.5 text-[10px] text-primary"
-                                onClick={() => handleAttach(item)}
-                                title="Abrir o Modo Foco já posicionado neste item"
-                              >
-                                Anexar
-                              </Button>
-                            )}
+                            {cfg.showAttach &&
+                              (state === "nao_criado" ||
+                                state === "pendente_envio" ||
+                                state === "rejeitado") && (
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-5 gap-1 px-1.5 text-[10px] text-primary"
+                                  onClick={() => handleAttach(item)}
+                                  title="Abrir o Modo Foco já posicionado neste item"
+                                >
+                                  Anexar
+                                </Button>
+                              )}
                             {!item.is_virtual && onSelectItem && (
                               <Button
                                 type="button"
