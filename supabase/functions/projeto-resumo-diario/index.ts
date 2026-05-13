@@ -124,4 +124,4 @@ Deno.serve(secureHandler(
       headers: { "Content-Type": "application/json" },
     });
   },
-);
+));
