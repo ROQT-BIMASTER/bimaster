@@ -126,11 +126,11 @@ export function DialogContestarDocumento({
 
           <div className="space-y-2">
             <Label htmlFor="parecer" className="text-sm font-semibold">
-              Parecer técnico — resposta detalhada *
+              {t("documento.contestar.parecerLabel")}
             </Label>
             <div className="rounded-lg border bg-card shadow-sm">
               <div className="flex items-center justify-between gap-2 border-b px-3 py-1.5 text-[11px] text-muted-foreground bg-muted/40 rounded-t-lg">
-                <span>Documento de resposta · escreva como em um e-mail ou parecer formal</span>
+                <span>{t("documento.contestar.parecerToolbar")}</span>
                 <div className="flex items-center gap-2">
                   <Button
                     type="button"
@@ -141,7 +141,7 @@ export function DialogContestarDocumento({
                     disabled={!parecer.trim() || traduzir.isPending}
                   >
                     {traduzir.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Languages className="h-3 w-3" />}
-                    Traduzir PT/ZH/EN
+                    {t("documento.contestar.traduzir")}
                   </Button>
                   <span>{parecer.length}/8000</span>
                 </div>
@@ -151,7 +151,7 @@ export function DialogContestarDocumento({
                 value={parecer}
                 onChange={(e) => setParecer(e.target.value)}
                 rows={16}
-                placeholder={`Prezada equipe do Brasil,\n\nEm resposta ao laudo técnico recebido, segue o parecer detalhado:\n\n1. Análise do apontamento:\n   ...\n\n2. Alterações realizadas no documento:\n   ...\n\n3. Embasamento técnico / normativo:\n   ...\n\nAtenciosamente,\nEquipe China`}
+                placeholder={t("documento.contestar.placeholderParecer")}
                 maxLength={8000}
                 className="border-0 rounded-t-none focus-visible:ring-0 focus-visible:ring-offset-0 min-h-[320px] font-serif text-[13px] leading-relaxed resize-y"
               />
