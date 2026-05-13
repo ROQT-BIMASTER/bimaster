@@ -140,7 +140,23 @@
       "aprovadaPeloBrasil": "提交已被巴西批准",
       "aprovadaEm": "批准时间 {{date}}。",
       "brasilSolicitouAjustes": "巴西请求修改",
-      "conversa": "对话"
+      "conversa": "对话",
+      "falhaEnviarBrasil": "无法发送至巴西。"
+    },
+    "readLegend": {
+      "trigger": "阅读标记是什么意思?",
+      "titulo": "阅读标记",
+      "naoLida": "标题加粗且背景略高亮: 消息尚未阅读。",
+      "lida": "两个蓝色对勾: 您已打开 / 标记此消息为已读。"
+    },
+    "readMenu": {
+      "trigger": "更多阅读操作",
+      "label": "阅读",
+      "titulo": "阅读状态",
+      "marcarSelecionadasLidas": "将所选项标为已读",
+      "marcarTodosLidos": "全部标为已读",
+      "limparEstado": "清除阅读状态",
+      "confirmLimpar": "清除此页面的所有本地阅读标记?"
     },
     "snooze": {
       "trigger": "推迟",
