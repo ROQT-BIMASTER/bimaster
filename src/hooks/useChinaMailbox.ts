@@ -374,12 +374,12 @@ export function useChinaMailbox(folder: MailboxFolder): UseChinaMailboxResult {
       !i.is_deleted &&
       (i.submissao_status === "enviado_brasil" || i.submissao_status === "enviado") &&
       i.doc_status === "pendente";
-    // Em análise no Brasil: doc visualizado/contestado pelo Brasil
+    // Em análise no Brasil: SOMENTE itens de checklist que o Brasil já abriu/contestou.
+    // Não inclui mais a submissão inteira em `em_revisao`, porque isso fazia
+    // itens novos (rascunho) caírem aqui em vez de "Pendentes de envio".
     const matchInAnalysis = (i: MailboxItem) =>
       !i.is_deleted &&
-      (i.doc_status === "enviado" ||
-        i.doc_status === "contestado" ||
-        (i.submissao_status === "em_revisao" && i.doc_status !== "rejeitado"));
+      (i.doc_status === "enviado" || i.doc_status === "contestado");
     // Retorno: ajustes solicitados pelo Brasil
     const matchReturned = (i: MailboxItem) =>
       !i.is_deleted &&
