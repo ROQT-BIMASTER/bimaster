@@ -237,6 +237,7 @@ function GroupedSentDocList({ rows }: { rows: DocRow[] }) {
 }
 
 export function UnifiedSubmissionTimeline({ submissao, ocId, onlyChinaStages, className, onStagesComputed }: Props) {
+  const { t } = useChinaI18n();
   const qc = useQueryClient();
   const { data: docs } = useDocsResumo(submissao.submissao_id);
   const { data: ocTimeline } = useOCTimeline(ocId || null);
