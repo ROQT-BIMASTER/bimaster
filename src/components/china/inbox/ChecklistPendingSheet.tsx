@@ -22,7 +22,7 @@ import {
   ArrowDownLeft,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { MailboxItem } from "@/hooks/useChinaMailbox";
+import type { MailboxItem, MailboxFolder } from "@/hooks/useChinaMailbox";
 import type { MailboxGroup } from "@/lib/china/groupMailboxItems";
 import { evaluateAwaitingSend } from "@/lib/china/awaitingSendRule";
 import { useMergedChinaChecklist, type MergedChecklistCategory } from "@/hooks/useMergedChinaChecklist";
@@ -31,10 +31,57 @@ export interface ChecklistPendingSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   group: MailboxGroup | null;
+  /** Pasta de origem — define título, escopo e ações exibidas. */
+  folder?: MailboxFolder;
   onSelectItem?: (id: string) => void;
   onEnviarGrupoBrasil?: (group: MailboxGroup) => void;
   onOpenSubmissao?: (submissao_id: string) => void;
 }
+
+interface FolderConfig {
+  title: string;
+  /** Filtra os docs do grupo que pertencem ao escopo desta pasta. */
+  scope: (item: MailboxItem) => boolean;
+  /** Define o filtro inicial da página dedicada via query string. */
+  pageFilter: "todos" | "enviados" | "pendentes" | "rejeitados" | "nao_criados";
+  /** Mostra ações "Anexar" e "Enviar ao Brasil" no item/footer. */
+  showAttach: boolean;
+  showEnviarFooter: boolean;
+}
+
+const FOLDER_CONFIG: Partial<Record<MailboxFolder, FolderConfig>> = {
+  awaiting_send: {
+    title: "Checklist pendente",
+    scope: () => true,
+    pageFilter: "todos",
+    showAttach: true,
+    showEnviarFooter: true,
+  },
+  sent_brazil: {
+    title: "Itens enviados ao Brasil",
+    scope: (i) => i.doc_status === "pendente" && !i.is_virtual,
+    pageFilter: "enviados",
+    showAttach: false,
+    showEnviarFooter: false,
+  },
+  in_analysis: {
+    title: "Itens em análise no Brasil",
+    scope: (i) => i.doc_status === "enviado" || i.doc_status === "contestado",
+    pageFilter: "enviados",
+    showAttach: false,
+    showEnviarFooter: false,
+  },
+  returned: {
+    title: "Itens com ajustes solicitados",
+    scope: (i) => i.doc_status === "rejeitado",
+    pageFilter: "rejeitados",
+    showAttach: true,
+    showEnviarFooter: true,
+  },
+};
+
+const DEFAULT_FOLDER_CONFIG: FolderConfig = FOLDER_CONFIG.awaiting_send!;
+
 
 type ItemState =
   | "nao_criado"
