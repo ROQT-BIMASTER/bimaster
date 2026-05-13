@@ -331,6 +331,11 @@ export function useChinaMailbox(folder: MailboxFolder): UseChinaMailboxResult {
         is_deleted: !!sub.deleted_at,
         snooze_until: snoozedActive(sub.id),
         had_previous_rejection: false,
+        checklist_total: 0,
+        checklist_aprovados: 0,
+        checklist_pendentes: 0,
+        checklist_rejeitados: 0,
+        approval_completeness: completenessFor(sub.id, sub.status),
       });
     }
 
