@@ -398,6 +398,10 @@ export function useChinaMailbox(folder: MailboxFolder): UseChinaMailboxResult {
         approval_completeness: completenessFor(sub.id, sub.status),
         checklist_expected_total: expectedTotalFor(sub.id),
         tipo_documento_label: labelFor(sub.id, d.tipo_documento),
+      });
+    }
+
+    // Submissões sem nenhum doc (rascunho típico)
     for (const sub of subs) {
       if (seenSubs.has(sub.id)) continue;
       const created = new Date(sub.created_at).getTime();
