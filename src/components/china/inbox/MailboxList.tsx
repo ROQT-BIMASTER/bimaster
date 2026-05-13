@@ -71,6 +71,8 @@ interface Props {
   onGroupModeChange?: (m: ChinaInboxGroupMode) => void;
   /** Disparado pelos CTAs de grupo na pasta "Pendentes de envio". */
   onEnviarGrupoBrasil?: (group: MailboxGroup) => void;
+  /** Despacho individual de um item ao Brasil (botão por linha no drawer). */
+  onEnviarItemBrasil?: (item: MailboxItem) => void;
   /** Abre a submissão (deep-link) — usado por "Anexar/Adicionar parecer". */
   onOpenSubmissao?: (submissao_id: string) => void;
 }
