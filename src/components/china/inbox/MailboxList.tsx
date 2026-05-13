@@ -111,7 +111,7 @@ interface RowProps {
 
 function MailboxRow({ item, dir, folder, active, checked, onSelect, onToggleCheck, onToggleStar, nested }: RowProps) {
   const id = item.documento_id ?? item.submissao_id;
-  const sb = statusBadge(item.submissao_status, item.doc_status);
+  const sb = statusBadge(item.submissao_status, item.doc_status, item.approval_completeness);
   const SbIcon = sb.icon;
   // Padrão e-mail: enquanto não lido, título em destaque em qualquer pasta.
   // Itens sem documento (não rastreáveis por leitura) são tratados como lidos.
