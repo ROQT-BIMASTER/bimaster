@@ -439,38 +439,48 @@ export function UnifiedSubmissionTimeline({ submissao, ocId, onlyChinaStages, cl
           {docs?.ultimoEm && enviadosDocs > 0 && (
             <DataRow label="Última atividade" value={fmtDate(docs.ultimoEm)} />
           )}
-          {totalDocs > 0 && !allSent && (
+          {totalDocs > 0 && (
             <ExpandableDocList
               rows={docs?.rows ?? []}
               filter={(r) => !SENT_STATUSES.includes(r.status)}
-              emptyText="Nenhum item pendente."
+              emptyText="Todos os itens já foram enviados ao Brasil."
+              label={allSent ? "Itens pendentes de envio" : "Faltam enviar"}
             />
           )}
         </StageCard>
 
         <StageCard icon={ShieldCheck} title="4. Aprovação Brasil" status={stAprovBrasil} deadline={dl(4)}>
           {enviadosDocs > 0 ? (
-            <ProgressBlock
-              label="Aprovados pelo Brasil"
-              current={aprovDocs}
-              total={enviadosDocs}
-              tone={fullyApproved ? "emerald" : rejDocs > 0 ? "rose" : "amber"}
-            />
+            <>
+              <ProgressBlock
+                label="Aprovados pelo Brasil"
+                current={aprovDocs}
+                total={enviadosDocs}
+                tone={fullyApproved ? "emerald" : rejDocs > 0 ? "rose" : "amber"}
+              />
+              <div className="grid grid-cols-3 gap-2 text-[11px] pt-1">
+                <div className="rounded border border-border/60 px-1.5 py-1 text-center">
+                  <div className="text-muted-foreground text-[10px]">Enviados</div>
+                  <div className="font-semibold tabular-nums">{enviadosDocs}</div>
+                </div>
+                <div className="rounded border border-emerald-500/30 px-1.5 py-1 text-center">
+                  <div className="text-muted-foreground text-[10px]">Aprovados</div>
+                  <div className="font-semibold tabular-nums text-emerald-400">{aprovDocs}</div>
+                </div>
+                <div className="rounded border border-rose-500/30 px-1.5 py-1 text-center">
+                  <div className="text-muted-foreground text-[10px]">Rejeitados</div>
+                  <div className="font-semibold tabular-nums text-rose-400">{rejDocs}</div>
+                </div>
+              </div>
+            </>
           ) : (
             <p className="text-muted-foreground italic">Aguardando envio ao Brasil.</p>
           )}
           {submissao.aprovado_em && (
             <DataRow label="Aprovada em" value={fmtDate(submissao.aprovado_em)} />
           )}
-          {rejDocs > 0 && (
-            <DataRow label="Rejeitados" value={rejDocs} />
-          )}
-          {enviadosDocs > 0 && (aprovDocs < enviadosDocs || rejDocs > 0) && (
-            <ExpandableDocList
-              rows={docs?.rows ?? []}
-              filter={(r) => SENT_STATUSES.includes(r.status) && r.status !== "aprovado"}
-              emptyText="Nenhum item aguardando retorno do Brasil."
-            />
+          {enviadosDocs > 0 && (
+            <GroupedSentDocList rows={docs?.rows ?? []} />
           )}
         </StageCard>
 
