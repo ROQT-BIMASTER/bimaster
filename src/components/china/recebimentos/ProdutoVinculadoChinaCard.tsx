@@ -5,6 +5,7 @@ import { ChevronDown, ChevronRight, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ProdutoChinaRecebimentoKpi } from "@/hooks/useChinaProdutosRecebimentoKpis";
 import type { OcRecebimentoKpi } from "@/hooks/useChinaRecebimentoKpis";
+import { useChinaI18n } from "@/hooks/useChinaI18n";
 
 function pct(num: number, den: number) {
   if (!den) return 0;
