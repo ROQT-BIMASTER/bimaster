@@ -46,6 +46,7 @@ import { ptBR } from "date-fns/locale";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { createElement } from "react";
 import { usePageBgColor } from "@/components/shared/PageBgCustomizer";
+import { useChinaI18n } from "@/hooks/useChinaI18n";
 
 interface DocRecord {
   id: string;
@@ -123,6 +124,7 @@ export function ChinaChecklistFocusMode({
   focusTipo,
   onAfterFocus,
 }: ChinaChecklistFocusModeProps) {
+  const { t } = useChinaI18n();
   const [isOpen, setIsOpen] = useState(false);
   const { bgStyle, BgColorButton } = usePageBgColor("china_checklist_focus");
   const [activeCat, setActiveCat] = useState(DOCUMENT_CATEGORIES[0].key);
@@ -409,7 +411,7 @@ export function ChinaChecklistFocusMode({
       setSelected(new Set());
       onRefresh();
     } catch {
-      toast.error("Erro ao submeter 提交错误");
+      toast.error(t("focusMode.errSubmeter"));
     } finally {
       setSubmitting(false);
     }
@@ -424,7 +426,7 @@ export function ChinaChecklistFocusMode({
       setSelected(new Set());
       onRefresh();
     } catch {
-      toast.error("Erro ao enviar rascunhos 发送错误");
+      toast.error(t("focusMode.errEnviarRascunhos"));
     } finally {
       setSubmitting(false);
       setConfirmAllOpen(false);
@@ -436,7 +438,7 @@ export function ChinaChecklistFocusMode({
       const doc = documentos.find((d) => d.id === docId);
       if (!doc) return;
       await submitDocs([doc]);
-      toast.success("Documento enviado ao Brasil 文件已发送至巴西");
+      toast.success(t("focusMode.okEnviado"));
       setSelected((prev) => {
         const next = new Set(prev);
         next.delete(docId);
@@ -444,7 +446,7 @@ export function ChinaChecklistFocusMode({
       });
       onRefresh();
     } catch {
-      toast.error("Erro ao enviar 发送错误");
+      toast.error(t("focusMode.errEnviar"));
     } finally {
       setConfirmSingleId(null);
     }
@@ -459,30 +461,30 @@ export function ChinaChecklistFocusMode({
   const describeChecklistUploadError = (err: any): { title: string; message: string; hint?: string } => {
     const raw = (err?.message || err?.error?.message || String(err || "")).toLowerCase();
     if (raw.includes("row-level security") || raw.includes("unauthorized") || raw.includes("permission") || raw.includes("403")) {
-      return { title: "Sem permissão para enviar", message: "Você não tem permissão para anexar arquivos nesta submissão.", hint: "Confirme com o administrador o seu acesso ao módulo Fábrica/China." };
+      return { title: t("focusMode.errSemPermissaoTitle"), message: t("focusMode.errSemPermissaoMsg"), hint: t("focusMode.errSemPermissaoHint") };
     }
     if (raw.includes("jwt") || raw.includes("expired") || raw.includes("401")) {
-      return { title: "Sessão expirada", message: "Sua sessão expirou.", hint: "Faça login novamente e tente outra vez." };
+      return { title: t("focusMode.errSessaoTitle"), message: t("focusMode.errSessaoMsg"), hint: t("focusMode.errSessaoHint") };
     }
     if (raw.includes("payload too large") || raw.includes("413") || raw.includes("excede o limite")) {
-      return { title: "Arquivo muito grande", message: err?.message || "O arquivo excede o limite de 20 MB.", hint: "Compacte ou reduza o arquivo antes de enviar." };
+      return { title: t("focusMode.errArquivoGrandeTitle"), message: err?.message || t("focusMode.errArquivoGrandeMsg"), hint: t("focusMode.errArquivoGrandeHint") };
     }
     if (raw.includes("mime") || raw.includes("extens") || raw.includes("magic") || raw.includes("não é permitido") || raw.includes("não corresponde")) {
-      return { title: "Arquivo rejeitado", message: err?.message || "O tipo ou conteúdo do arquivo não é aceito neste campo.", hint: "Verifique se a extensão e o conteúdo do arquivo correspondem ao esperado (ex.: imagem JPG/PNG para campos de foto)." };
+      return { title: t("focusMode.errArquivoRejeitadoTitle"), message: err?.message || t("focusMode.errArquivoRejeitadoMsg"), hint: t("focusMode.errArquivoRejeitadoHint") };
     }
     if (raw.includes("network") || raw.includes("failed to fetch") || raw.includes("timeout")) {
-      return { title: "Falha de conexão", message: "Não foi possível concluir o envio.", hint: "Verifique sua conexão e tente novamente." };
+      return { title: t("focusMode.errConexaoTitle"), message: t("focusMode.errConexaoMsg"), hint: t("focusMode.errConexaoHint") };
     }
     if (raw.includes("bucket") && raw.includes("not found")) {
-      return { title: "Repositório indisponível", message: "O repositório de arquivos não foi encontrado.", hint: "Avise o suporte técnico." };
+      return { title: t("focusMode.errRepoTitle"), message: t("focusMode.errRepoMsg"), hint: t("focusMode.errRepoHint") };
     }
-    return { title: "Erro ao salvar arquivo", message: err?.message || "Falha inesperada ao salvar o documento.", hint: "Tente novamente; se persistir, anexe um print desta mensagem ao suporte." };
+    return { title: t("focusMode.errSalvarTitle"), message: err?.message || t("focusMode.errSalvarMsg"), hint: t("focusMode.errSalvarHint") };
   };
 
   const handleConfirmUpload = async (file: File, status: "rascunho" | "pendente") => {
     if (!previewTipo) return;
     if (!submissaoId) {
-      const info = { title: "Submissão não salva", message: "Salve os dados básicos da submissão antes de anexar arquivos.", hint: "Conclua a primeira etapa para gerar o rascunho." };
+      const info = { title: t("focusMode.errSubmissaoTitle"), message: t("focusMode.errSubmissaoMsg"), hint: t("focusMode.errSubmissaoHint") };
       setUploadErrorDialog(info);
       toast.error(info.message);
       return;
@@ -491,7 +493,7 @@ export function ChinaChecklistFocusMode({
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
-        const info = { title: "Sessão expirada", message: "Faça login novamente para continuar.", hint: undefined as string | undefined };
+        const info = { title: t("focusMode.errSessaoTitle"), message: t("focusMode.errSessaoLoginMsg"), hint: undefined as string | undefined };
         setUploadErrorDialog(info);
         toast.error(info.message);
         return;
@@ -533,7 +535,7 @@ export function ChinaChecklistFocusMode({
       }
 
       onRefresh();
-      toast.success(status === "rascunho" ? "Salvo como rascunho 已保存为草稿" : "Enviado ao Brasil 已发送至巴西");
+      toast.success(status === "rascunho" ? t("focusMode.okRascunho") : t("focusMode.okEnviadoBrasil"));
     } catch (err: any) {
       logger.error("Checklist upload exception:", err);
       const info = describeChecklistUploadError(err);
@@ -565,9 +567,9 @@ export function ChinaChecklistFocusMode({
         } as any);
       }
       onRefresh();
-      toast.success("Previsão definida 预计日期已设置");
+      toast.success(t("focusMode.okPrevisao"));
     } catch {
-      toast.error("Erro ao definir previsão");
+      toast.error(t("focusMode.errPrevisao"));
     }
   };
 
@@ -583,7 +585,7 @@ export function ChinaChecklistFocusMode({
       }
       onRefresh();
     } catch {
-      toast.error("Erro ao limpar previsão");
+      toast.error(t("focusMode.errLimparPrevisao"));
     }
   };
 
@@ -626,7 +628,7 @@ export function ChinaChecklistFocusMode({
       setAddCatOpen(false);
       setAddCatLabelPt("");
       setAddCatLabelCn("");
-      toast.success("Categoria criada!");
+      toast.success(t("focusMode.okCategoria"));
     },
   });
 
@@ -656,7 +658,7 @@ export function ChinaChecklistFocusMode({
       setAddItemOpen(false);
       setAddItemLabelPt("");
       setAddItemLabelCn("");
-      toast.success("Item adicionado ao checklist!");
+      toast.success(t("focusMode.okItemAdicionado"));
     },
   });
 
@@ -696,9 +698,9 @@ export function ChinaChecklistFocusMode({
       setEditingItemId(null);
       setAddItemLabelPt("");
       setAddItemLabelCn("");
-      toast.success("Item atualizado!");
+      toast.success(t("focusMode.okItemAtualizado"));
     },
-    onError: (e: any) => toast.error(e?.message || "Erro ao atualizar item"),
+    onError: (e: any) => toast.error(e?.message || t("focusMode.errAtualizarItem")),
   });
 
   // Delete/hide checklist item (custom => delete row; default => insert hidden row)
@@ -709,7 +711,7 @@ export function ChinaChecklistFocusMode({
         (d) => d.tipo_documento === config.tipo && d.status !== "planejado",
       );
       if (hasRealDocs) {
-        throw new Error("Existem arquivos enviados neste item. Remova-os antes de excluir o card.");
+        throw new Error(t("focusMode.errArquivosNoItem"));
       }
       // Cleanup any planejado placeholders for this tipo
       await supabase
@@ -743,9 +745,9 @@ export function ChinaChecklistFocusMode({
       queryClient.invalidateQueries({ queryKey: ["checklist-custom-items", submissaoId] });
       queryClient.invalidateQueries({ queryKey: ["checklist-hidden-items", submissaoId] });
       onRefresh();
-      toast.success("Card removido do checklist");
+      toast.success(t("focusMode.okCardRemovido"));
     },
-    onError: (e: any) => toast.error(e?.message || "Erro ao excluir card"),
+    onError: (e: any) => toast.error(e?.message || t("focusMode.errExcluirCard")),
   });
 
   const handleDeleteCard = async (config: MergedDocType) => {
@@ -769,7 +771,7 @@ export function ChinaChecklistFocusMode({
         (d) => cat.tipos.includes(d.tipo_documento) && d.status !== "planejado",
       );
       if (hasRealDocs) {
-        throw new Error("Existem arquivos enviados em itens desta categoria. Remova-os antes de excluir.");
+        throw new Error(t("focusMode.errArquivosNaCategoria"));
       }
       // Cleanup planejado placeholders for tipos in this category
       if (cat.tipos.length > 0) {
@@ -805,9 +807,9 @@ export function ChinaChecklistFocusMode({
       onRefresh();
       // Reset to first visible category
       setActiveCat(DOCUMENT_CATEGORIES[0].key);
-      toast.success("Categoria removida do checklist");
+      toast.success(t("focusMode.okCategoriaRemovida"));
     },
-    onError: (e: any) => toast.error(e?.message || "Erro ao excluir categoria"),
+    onError: (e: any) => toast.error(e?.message || t("focusMode.errExcluirCategoria")),
   });
 
   const handleDeleteCategory = async (e: React.MouseEvent, cat: MergedCategory) => {
@@ -844,7 +846,7 @@ export function ChinaChecklistFocusMode({
       if (!editCatTarget) return;
       const labelPt = editCatLabelPt.trim();
       const labelCn = editCatLabelCn.trim();
-      if (!labelPt) throw new Error("Nome é obrigatório");
+      if (!labelPt) throw new Error(t("focusMode.errNomeObrigatorio"));
       if (editCatTarget.isCustom && editCatTarget.customId) {
         const { error } = await (supabase as any)
           .from("china_checklist_custom_categorias")
@@ -865,7 +867,7 @@ export function ChinaChecklistFocusMode({
       setEditCatOpen(false);
       setEditCatTarget(null);
     },
-    onError: (e: any) => toast.error(e?.message || "Erro ao salvar"),
+    onError: (e: any) => toast.error(e?.message || t("focusMode.errSalvar")),
   });
 
   // Build template snapshot from current state
@@ -927,7 +929,7 @@ export function ChinaChecklistFocusMode({
       onRefresh();
       toast.success(`Modelo "${tpl.nome}" aplicado`);
     } catch (e: any) {
-      toast.error(e?.message || "Erro ao aplicar modelo");
+      toast.error(e?.message || t("focusMode.errAplicarModelo"));
     } finally {
       setApplyingTpl(false);
     }
@@ -970,7 +972,7 @@ export function ChinaChecklistFocusMode({
                     disabled={submitting}
                     onClick={() => setConfirmAllOpen(true)}
                     className="gap-2"
-                    title="Enviar todos os rascunhos pendentes ao Brasil"
+                    title={t("focusMode.tooltipEnviarTodos")}
                   >
                     {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                     Enviar {draftDocs.length} rascunho(s) ao Brasil
@@ -992,24 +994,24 @@ export function ChinaChecklistFocusMode({
                         Nenhum modelo salvo ainda
                       </div>
                     )}
-                    {templates.map((t) => (
+                    {templates.map((tpl) => (
                       <DropdownMenuItem
-                        key={t.id}
+                        key={tpl.id}
                         onSelect={(e) => e.preventDefault()}
                         className="flex items-start justify-between gap-2 py-2"
                       >
                         <button
                           className="flex-1 text-left"
-                          onClick={() => handleApplyTemplate(t)}
+                          onClick={() => handleApplyTemplate(tpl)}
                         >
-                          <div className="font-medium text-sm">{t.nome}</div>
+                          <div className="font-medium text-sm">{tpl.nome}</div>
                           <div className="flex items-center gap-1 mt-0.5 flex-wrap">
-                            <Badge variant={t.escopo === "global" ? "secondary" : "outline"} className="text-[10px] h-4">
-                              {t.escopo === "global" ? "Global" : "Pessoal"}
+                            <Badge variant={tpl.escopo === "global" ? "secondary" : "outline"} className="text-[10px] h-4">
+                              {tpl.escopo === "global" ? t("focusMode.escopoGlobal") : t("focusMode.escopoPessoal")}
                             </Badge>
-                            {t.descricao && (
+                            {tpl.descricao && (
                               <span className="text-[10px] text-muted-foreground truncate max-w-[180px]">
-                                {t.descricao}
+                                {tpl.descricao}
                               </span>
                             )}
                           </div>
@@ -1017,10 +1019,10 @@ export function ChinaChecklistFocusMode({
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            if (confirm(`Excluir modelo "${t.nome}"?`)) deleteTemplate.mutate(t.id);
+                            if (confirm(`Excluir modelo "${tpl.nome}"?`)) deleteTemplate.mutate(tpl.id);
                           }}
                           className="text-destructive hover:text-destructive/70 shrink-0"
-                          title="Excluir modelo"
+                          title={t("focusMode.tooltipExcluirModelo")}
                         >
                           <Trash2 className="h-3.5 w-3.5" />
                         </button>
@@ -1041,13 +1043,13 @@ export function ChinaChecklistFocusMode({
             </div>
             {/* Counter chips */}
             <div className="flex items-center gap-2 mt-2 flex-wrap">
-              <CounterChip icon={<CheckCircle2 className="h-3 w-3" />} label="Aprovados" value={counters.aprovados} colorClass="text-success bg-success/10" />
-              <CounterChip icon={<Clock className="h-3 w-3" />} label="Enviados" value={counters.enviados} colorClass="text-warning bg-warning/10" />
-              <CounterChip icon={<Save className="h-3 w-3" />} label="Rascunhos" value={counters.rascunhos} colorClass="text-muted-foreground bg-muted" />
-              <CounterChip icon={<XCircle className="h-3 w-3" />} label="Rejeitados" value={counters.rejeitados} colorClass="text-destructive bg-destructive/10" />
-              <CounterChip icon={<Upload className="h-3 w-3" />} label="Faltando" value={counters.faltando} colorClass="text-foreground bg-secondary" />
+              <CounterChip icon={<CheckCircle2 className="h-3 w-3" />} label={t("focusMode.labelAprovados")} value={counters.aprovados} colorClass="text-success bg-success/10" />
+              <CounterChip icon={<Clock className="h-3 w-3" />} label={t("focusMode.labelEnviados")} value={counters.enviados} colorClass="text-warning bg-warning/10" />
+              <CounterChip icon={<Save className="h-3 w-3" />} label={t("focusMode.labelRascunhos")} value={counters.rascunhos} colorClass="text-muted-foreground bg-muted" />
+              <CounterChip icon={<XCircle className="h-3 w-3" />} label={t("focusMode.labelRejeitados")} value={counters.rejeitados} colorClass="text-destructive bg-destructive/10" />
+              <CounterChip icon={<Upload className="h-3 w-3" />} label={t("focusMode.labelFaltando")} value={counters.faltando} colorClass="text-foreground bg-secondary" />
               {counters.comPrevisao > 0 && (
-                <CounterChip icon={<CalendarIcon className="h-3 w-3" />} label="Com Previsão" value={counters.comPrevisao} colorClass="text-primary bg-primary/10" />
+                <CounterChip icon={<CalendarIcon className="h-3 w-3" />} label={t("focusMode.labelComPrevisao")} value={counters.comPrevisao} colorClass="text-primary bg-primary/10" />
               )}
             </div>
             <div className="mt-3">
@@ -1062,8 +1064,8 @@ export function ChinaChecklistFocusMode({
               <ScrollArea className="flex-1">
                 <div className="p-2 space-y-1">
                   {[
-                    { categories: chinaEnviaCats, fluxo: "china_envia" as const, headerPt: "China Envia", headerCn: "中国发送", icon: <ArrowUpRight className="h-3.5 w-3.5" />, color: "text-primary" },
-                    { categories: brasilEnviaCats, fluxo: "brasil_envia" as const, headerPt: "Brasil Envia", headerCn: "巴西发送", icon: <ArrowDownLeft className="h-3.5 w-3.5" />, color: "text-success" },
+                    { categories: chinaEnviaCats, fluxo: "china_envia" as const, headerPt: t("focusMode.headerChinaEnvia"), headerCn: t("focusMode.headerChinaEnvia"), icon: <ArrowUpRight className="h-3.5 w-3.5" />, color: "text-primary" },
+                    { categories: brasilEnviaCats, fluxo: "brasil_envia" as const, headerPt: t("focusMode.headerBrasilEnvia"), headerCn: t("focusMode.headerBrasilEnvia"), icon: <ArrowDownLeft className="h-3.5 w-3.5" />, color: "text-success" },
                   ].map(({ categories, fluxo, headerPt, headerCn, icon, color }, idx) => (
                     <div key={headerPt}>
                       {idx > 0 && <div className="my-2 border-t border-border" />}
@@ -1074,7 +1076,7 @@ export function ChinaChecklistFocusMode({
                         <button
                           onClick={() => openAddCategory(fluxo)}
                           className="ml-auto p-0.5 rounded hover:bg-accent/50 transition-colors"
-                          title="Nova categoria"
+                          title={t("focusMode.tooltipNovaCategoria")}
                         >
                           <FolderPlus className="h-3.5 w-3.5" />
                         </button>
@@ -1090,7 +1092,7 @@ export function ChinaChecklistFocusMode({
                                 type="button"
                                 onClick={(e) => openEditCategory(e, cat)}
                                 className="p-1 rounded text-muted-foreground hover:text-primary hover:bg-primary/10"
-                                title="Editar nome da categoria"
+                                title={t("focusMode.tooltipEditarCategoria")}
                                 aria-label={`Editar categoria ${cat.labelPt}`}
                               >
                                 <Pencil className="h-3 w-3" />
@@ -1099,7 +1101,7 @@ export function ChinaChecklistFocusMode({
                                 type="button"
                                 onClick={(e) => handleDeleteCategory(e, cat)}
                                 className="p-1 rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-                                title="Excluir categoria"
+                                title={t("focusMode.tooltipExcluirCategoria")}
                                 aria-label={`Excluir categoria ${cat.labelPt}`}
                               >
                                 <Trash2 className="h-3 w-3" />
@@ -1223,7 +1225,7 @@ export function ChinaChecklistFocusMode({
                                     type="button"
                                     onClick={() => openEditItem(config.tipo)}
                                     className="p-0.5 rounded hover:bg-accent/50 text-muted-foreground hover:text-foreground shrink-0"
-                                    title="Editar descrição do item"
+                                    title={t("focusMode.tooltipEditarItem")}
                                     aria-label={`Editar descrição de ${config.labelPt}`}
                                   >
                                     <Pencil className="h-3 w-3" />
@@ -1240,7 +1242,7 @@ export function ChinaChecklistFocusMode({
                                 variant={isOverdue ? "destructive" : "default"}
                                 className="text-[9px] px-1.5 py-0 h-5 gap-1 cursor-pointer"
                                 onClick={() => previsaoDoc && handleClearPrevisao(previsaoDoc.id)}
-                                title="Clique para remover previsão"
+                                title={t("focusMode.tooltipRemoverPrevisao")}
                               >
                                 <CalendarIcon className="h-2.5 w-2.5" />
                                 {format(previsaoDate, "dd/MM", { locale: ptBR })}
@@ -1261,7 +1263,7 @@ export function ChinaChecklistFocusMode({
                               variant="ghost"
                               size="icon"
                               className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                              title="Excluir card do checklist"
+                              title={t("focusMode.tooltipExcluirCard")}
                               aria-label={`Excluir card ${config.labelPt}`}
                               disabled={deleteItem.isPending}
                               onClick={() => handleDeleteCard(config)}
@@ -1338,7 +1340,7 @@ export function ChinaChecklistFocusMode({
                                   </div>
 
                                   <div className="flex gap-0.5 shrink-0">
-                                    <button onClick={() => onViewDoc(d)} className="p-1 rounded hover:bg-accent/50" title="Visualizar">
+                                    <button onClick={() => onViewDoc(d)} className="p-1 rounded hover:bg-accent/50" title={t("focusMode.tooltipVisualizar")}>
                                       <Eye className="h-3.5 w-3.5 text-primary" />
                                     </button>
                                     {isDraft && (
@@ -1347,7 +1349,7 @@ export function ChinaChecklistFocusMode({
                                         variant="gradient"
                                         className="h-6 px-2 text-[10px] gap-1"
                                         onClick={() => setConfirmSingleId(d.id)}
-                                        title="Enviar este documento ao Brasil"
+                                        title={t("focusMode.tooltipEnviarDoc")}
                                       >
                                         <Send className="h-3 w-3" />
                                         Enviar ao Brasil
@@ -1359,7 +1361,7 @@ export function ChinaChecklistFocusMode({
                                         variant="destructive"
                                         className="h-6 px-2 text-[10px] gap-1"
                                         onClick={() => setSubstituirDoc(d)}
-                                        title="Substituir documento e enviar parecer técnico"
+                                        title={t("focusMode.tooltipSubstituir")}
                                       >
                                         <FileWarning className="h-3 w-3" />
                                         Corrigir / Parecer
@@ -1370,14 +1372,14 @@ export function ChinaChecklistFocusMode({
                                         variant="outline"
                                         className="h-6 px-2 text-[10px] gap-1"
                                         onClick={() => setSubstituirDoc(d)}
-                                        title="Anexar parecer técnico e/ou nova versão"
+                                        title={t("focusMode.tooltipAnexarParecer")}
                                       >
                                         <FileWarning className="h-3 w-3" />
                                         Parecer / Anexos
                                       </Button>
                                     )}
                                     {d.status !== "aprovado" && d.status !== "rejeitado" && (
-                                      <button onClick={() => onRemoveFile(d.id)} className="p-1 rounded hover:bg-destructive/10" title="Remover">
+                                      <button onClick={() => onRemoveFile(d.id)} className="p-1 rounded hover:bg-destructive/10" title={t("focusMode.tooltipRemover")}>
                                         <Trash2 className="h-3.5 w-3.5 text-destructive" />
                                       </button>
                                     )}
@@ -1481,7 +1483,7 @@ export function ChinaChecklistFocusMode({
                 value={addCatLabelPt}
                 onChange={(e) => setAddCatLabelPt(e.target.value)}
                 onBlur={(e) => autoTranslateToCn(e.target.value, addCatLabelCn, setAddCatLabelCn)}
-                placeholder="Ex: Certificações, Laudos Técnicos..."
+                placeholder={t("focusMode.phCategoriaPt")}
                 className="mt-1"
               />
             </div>
@@ -1490,7 +1492,7 @@ export function ChinaChecklistFocusMode({
               <Input
                 value={addCatLabelCn}
                 onChange={(e) => setAddCatLabelCn(e.target.value)}
-                placeholder="Ex: 认证文件"
+                placeholder={t("focusMode.phCategoriaCn")}
                 className="mt-1"
               />
             </div>
@@ -1530,7 +1532,7 @@ export function ChinaChecklistFocusMode({
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               {editingItemId ? <Pencil className="h-5 w-5 text-primary" /> : <Plus className="h-5 w-5 text-primary" />}
-              {editingItemId ? "Editar Item do Checklist" : "Novo Item no Checklist"}
+              {editingItemId ? t("focusMode.dialogEditarItem") : t("focusMode.dialogNovoItem")}
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-2">
@@ -1540,7 +1542,7 @@ export function ChinaChecklistFocusMode({
                 value={addItemLabelPt}
                 onChange={(e) => setAddItemLabelPt(e.target.value)}
                 onBlur={(e) => autoTranslateToCn(e.target.value, addItemLabelCn, setAddItemLabelCn)}
-                placeholder="Ex: Laudo Microbiológico, Certificado INMETRO..."
+                placeholder={t("focusMode.phItemPt")}
                 className="mt-1"
               />
             </div>
@@ -1549,7 +1551,7 @@ export function ChinaChecklistFocusMode({
               <Input
                 value={addItemLabelCn}
                 onChange={(e) => setAddItemLabelCn(e.target.value)}
-                placeholder="Ex: 微生物报告"
+                placeholder={t("focusMode.phItemCn")}
                 className="mt-1"
               />
             </div>
@@ -1567,7 +1569,7 @@ export function ChinaChecklistFocusMode({
               ) : (
                 <Plus className="h-4 w-4 mr-1" />
               )}
-              {editingItemId ? "Salvar" : "Adicionar Item"}
+              {editingItemId ? t("focusMode.btnSalvar") : t("focusMode.btnAdicionarItem")}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1634,7 +1636,7 @@ export function ChinaChecklistFocusMode({
               <Input
                 value={tplNome}
                 onChange={(e) => setTplNome(e.target.value)}
-                placeholder="Ex.: Padrão Maquiagem, Skincare China..."
+                placeholder={t("focusMode.phNomeModelo")}
                 className="mt-1"
               />
             </div>
@@ -1643,7 +1645,7 @@ export function ChinaChecklistFocusMode({
               <Input
                 value={tplDescricao}
                 onChange={(e) => setTplDescricao(e.target.value)}
-                placeholder="Para que serve este modelo?"
+                placeholder={t("focusMode.phDescricaoModelo")}
                 className="mt-1"
               />
             </div>
@@ -1761,7 +1763,7 @@ export function ChinaChecklistFocusMode({
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle className="text-destructive">
-              {uploadErrorDialog?.title || "Falha no upload"}
+              {uploadErrorDialog?.title || t("focusMode.fallbackUploadFalha")}
             </AlertDialogTitle>
             <AlertDialogDescription className="space-y-2">
               <span className="block">{uploadErrorDialog?.message}</span>
