@@ -6,11 +6,11 @@ project_id = "aokkyrgaqjarhlywhjju"
     function = "publish-scheduled-posts"
     schedule = "*/5 * * * *"
 
-  # Resumo automático diário do chat do projeto — 19h BRT (22h UTC).
-  # Postado como tipo='resumo_diario' em projeto_chat_messages para cada projeto ativo.
-  [[edge_runtime.schedules]]
-    function = "projeto-resumo-diario"
-    schedule = "0 22 * * *"
+  # Nota: [[edge_runtime.schedules]] no config.toml é honrado apenas pelo
+  # Supabase CLI em ambiente local — não dispara nada no projeto hospedado.
+  # Schedules de produção são registrados via pg_cron + net.http_post.
+  # Ex.: projeto-resumo-diario roda 0 22 * * * via cron.job (jobid 114),
+  # publish-scheduled-posts via cron.job próprio.
 
 [functions]
   [functions.admin-reset-password]
