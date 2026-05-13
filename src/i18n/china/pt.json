@@ -91,7 +91,13 @@
       "marcando": "Marcando...",
       "marcarTodasLidasTitle": "Marcar todas as mensagens visíveis como lidas",
       "tentarNovamente": "Tentar novamente",
-      "enviandoBrasil": "Enviando ao Brasil…"
+      "enviandoBrasil": "Enviando ao Brasil…",
+      "viewList": "Lista",
+      "viewSheet": "Planilha",
+      "selecionarPendentes": "Selecionar pendentes desta submissão",
+      "enviarSelecionadosBrasil": "Enviar {{count}} ao Brasil",
+      "enviandoSelecionados": "Enviando {{done}}/{{total}}…",
+      "exportarCsv": "Exportar CSV"
     },
     "search": {
       "placeholder": "Buscar produto, OC, arquivo (atalho: /)"
