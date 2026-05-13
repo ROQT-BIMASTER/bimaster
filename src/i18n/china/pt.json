@@ -91,7 +91,13 @@
       "marcando": "Marcando...",
       "marcarTodasLidasTitle": "Marcar todas as mensagens visíveis como lidas",
       "tentarNovamente": "Tentar novamente",
-      "enviandoBrasil": "Enviando ao Brasil…"
+      "enviandoBrasil": "Enviando ao Brasil…",
+      "viewList": "Lista",
+      "viewSheet": "Planilha",
+      "selecionarPendentes": "Selecionar pendentes desta submissão",
+      "enviarSelecionadosBrasil": "Enviar {{count}} ao Brasil",
+      "enviandoSelecionados": "Enviando {{done}}/{{total}}…",
+      "exportarCsv": "Exportar CSV"
     },
     "search": {
       "placeholder": "Buscar produto, OC, arquivo (atalho: /)"
@@ -172,6 +178,8 @@
       "grupoSaida": "Saída",
       "grupoAcompanhamento": "Acompanhamento",
       "grupoOutros": "Outros",
+      "subSubmissoes": "{{count}} submissões",
+      "subSubmissoesUma": "1 submissão",
       "folders": {
         "oc": "Ordens de Compra",
         "inbox": "Caixa de Entrada",
@@ -186,6 +194,31 @@
         "in_analysis": "Em análise no Brasil",
         "returned": "Retorno: ajustes"
       }
+    },
+    "group": {
+      "progress": "{{sent}}/{{total}} enviados",
+      "chips": {
+        "enviados": "Enviados",
+        "emAnalise": "Em análise",
+        "aprovados": "Aprovados",
+        "rejeitados": "Rejeitados",
+        "pendentes": "Pendentes"
+      }
+    },
+    "spreadsheet": {
+      "colunas": {
+        "submissao": "Submissão",
+        "produto": "Produto",
+        "tipoDoc": "Tipo doc",
+        "status": "Status",
+        "pendencia": "Pendência",
+        "parecer": "Parecer China",
+        "idade": "Idade",
+        "acoes": "Ações"
+      },
+      "vazio": "Sem itens nesta visão.",
+      "filtroPendencia": "Filtrar por pendência",
+      "todas": "Todas"
     }
   },
   "timeline": {

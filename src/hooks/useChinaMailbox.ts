@@ -92,6 +92,15 @@ export interface MailboxCounts {
   approved_total: number;
   approved_partial: number;
   approved_empty: number;
+  /**
+   * Contagem de ITENS (documentos) por pasta — útil quando o usuário precisa
+   * saber "tenho 17 itens em 4 submissões". Os outros contadores acima são
+   * por SUBMISSÃO (caixa Gmail-style), o que pode confundir nas pastas China.
+   */
+  awaiting_send_items: number;
+  sent_brazil_items: number;
+  in_analysis_items: number;
+  returned_items: number;
 }
 
 interface UseChinaMailboxResult {
@@ -118,6 +127,10 @@ const ZERO_COUNTS: MailboxCounts = {
   approved_total: 0,
   approved_partial: 0,
   approved_empty: 0,
+  awaiting_send_items: 0,
+  sent_brazil_items: 0,
+  in_analysis_items: 0,
+  returned_items: 0,
 };
 
 export function useChinaMailbox(folder: MailboxFolder): UseChinaMailboxResult {
@@ -385,23 +398,7 @@ export function useChinaMailbox(folder: MailboxFolder): UseChinaMailboxResult {
       !i.is_deleted &&
       (i.doc_status === "rejeitado" || i.submissao_status === "rejeitado");
 
-    const counts: MailboxCounts = {
-      inbox: 0,
-      starred: 0,
-      sent: 0,
-      drafts: 0,
-      approved: 0,
-      rejected: 0,
-      trash: 0,
-      unread_inbox: 0,
-      awaiting_send: 0,
-      sent_brazil: 0,
-      in_analysis: 0,
-      returned: 0,
-      approved_total: 0,
-      approved_partial: 0,
-      approved_empty: 0,
-    };
+    const counts: MailboxCounts = { ...ZERO_COUNTS };
 
     // Contadores por SUBMISSÃO única, não por documento
     const seenForCount: Record<keyof MailboxCounts, Set<string>> = {
@@ -420,6 +417,11 @@ export function useChinaMailbox(folder: MailboxFolder): UseChinaMailboxResult {
       approved_total: new Set(),
       approved_partial: new Set(),
       approved_empty: new Set(),
+      // Contadores por ITEM (documento) — usam set de documento_id (ou submissao_id)
+      awaiting_send_items: new Set(),
+      sent_brazil_items: new Set(),
+      in_analysis_items: new Set(),
+      returned_items: new Set(),
     };
 
     const bumpCount = (
@@ -431,6 +433,18 @@ export function useChinaMailbox(folder: MailboxFolder): UseChinaMailboxResult {
         counts[key] += 1;
         seenForCount[key].add(i.submissao_id);
       }
+    };
+
+    const bumpItemCount = (
+      key: "awaiting_send_items" | "sent_brazil_items" | "in_analysis_items" | "returned_items",
+      i: MailboxItem,
+      match: (it: MailboxItem) => boolean,
+    ) => {
+      if (!match(i)) return;
+      const k = i.documento_id ?? i.submissao_id;
+      if (seenForCount[key].has(k)) return;
+      counts[key] += 1;
+      seenForCount[key].add(k);
     };
 
     for (const i of allItems) {
@@ -454,6 +468,10 @@ export function useChinaMailbox(folder: MailboxFolder): UseChinaMailboxResult {
       bumpCount("sent_brazil", i, matchSentBrazil);
       bumpCount("in_analysis", i, matchInAnalysis);
       bumpCount("returned", i, matchReturned);
+      bumpItemCount("awaiting_send_items", i, matchAwaitingSend);
+      bumpItemCount("sent_brazil_items", i, matchSentBrazil);
+      bumpItemCount("in_analysis_items", i, matchInAnalysis);
+      bumpItemCount("returned_items", i, matchReturned);
       // Sub-categorização da pasta "Aprovados" por completude do checklist.
       if (matchApproved(i)) {
         const c = i.approval_completeness;

@@ -91,7 +91,13 @@
       "marcando": "Marking...",
       "marcarTodasLidasTitle": "Mark all visible messages as read",
       "tentarNovamente": "Try again",
-      "enviandoBrasil": "Sending to Brazil…"
+      "enviandoBrasil": "Sending to Brazil…",
+      "viewList": "List",
+      "viewSheet": "Spreadsheet",
+      "selecionarPendentes": "Select pending items in this submission",
+      "enviarSelecionadosBrasil": "Send {{count}} to Brazil",
+      "enviandoSelecionados": "Sending {{done}}/{{total}}…",
+      "exportarCsv": "Export CSV"
     },
     "search": {
       "placeholder": "Search product, PO, file (shortcut: /)"

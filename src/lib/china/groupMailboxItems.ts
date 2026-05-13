@@ -1,4 +1,20 @@
 import type { MailboxItem } from "@/hooks/useChinaMailbox";
+import { evaluateAwaitingSend } from "@/lib/china/awaitingSendRule";
+
+export interface MailboxGroupProgress {
+  /** Total de itens do checklist visíveis no grupo. */
+  total: number;
+  /** Itens já enviados ao Brasil (qualquer status posterior a rascunho/sem doc). */
+  enviados: number;
+  /** Itens que o Brasil já abriu (`enviado`/`contestado`). */
+  em_analise: number;
+  /** Itens aprovados pelo Brasil. */
+  aprovados: number;
+  /** Itens rejeitados pelo Brasil (precisam de ajuste). */
+  rejeitados: number;
+  /** Itens ainda pendentes de envio (regra `evaluateAwaitingSend`). */
+  pendentes: number;
+}
 
 export interface MailboxGroup {
   submissao_id: string;
@@ -18,6 +34,8 @@ export interface MailboxGroup {
   has_unread: boolean;
   /** Documentos da submissão, ordenados por created_at desc. */
   docs: MailboxItem[];
+  /** Agregado de progresso enviado/aprovado/pendente do checklist da submissão. */
+  progress: MailboxGroupProgress;
 }
 
 // Quanto MENOR o índice, MAIS urgente.
@@ -39,9 +57,30 @@ function pickWorst(a: string | null | undefined, b: string | null | undefined): 
   return ap <= bp ? ak : bk;
 }
 
+function emptyProgress(): MailboxGroupProgress {
+  return { total: 0, enviados: 0, em_analise: 0, aprovados: 0, rejeitados: 0, pendentes: 0 };
+}
+
+function classifyForProgress(item: MailboxItem): keyof Omit<MailboxGroupProgress, "total"> {
+  // Itens "fantasma" (submissão sem nenhum documento) só são pendentes se
+  // a regra de pendência os marca; caso contrário, aprovados/rejeitados/enviados.
+  if (item.doc_status === "aprovado") return "aprovados";
+  if (item.doc_status === "rejeitado" || item.submissao_status === "rejeitado") return "rejeitados";
+  if (item.doc_status === "enviado" || item.doc_status === "contestado") return "em_analise";
+  if (evaluateAwaitingSend(item).matches) return "pendentes";
+  if (item.doc_status === "pendente") return "enviados";
+  // fallback razoável: se já tem doc anexado e não é rascunho, considera enviado.
+  if (item.documento_id && item.doc_status && item.doc_status !== "rascunho") return "enviados";
+  return "pendentes";
+}
+
 /**
  * Agrupa itens da caixa por `submissao_id`, preservando a ordenação por
  * documento mais recente (latest_at desc). Não filtra nada — apenas reorganiza.
+ *
+ * O agregado `progress` permite à UI exibir, por submissão, quanto do checklist
+ * já foi enviado / aprovado / rejeitado / ainda pendente (caso típico da fase
+ * inicial: 17 itens, 2 enviados, 15 pendentes).
  */
 export function groupBySubmissao(items: MailboxItem[]): MailboxGroup[] {
   const map = new Map<string, MailboxGroup>();
@@ -49,7 +88,7 @@ export function groupBySubmissao(items: MailboxItem[]): MailboxGroup[] {
   for (const it of items) {
     const existing = map.get(it.submissao_id);
     if (!existing) {
-      map.set(it.submissao_id, {
+      const g: MailboxGroup = {
         submissao_id: it.submissao_id,
         produto_codigo: it.produto_codigo,
         produto_nome: it.produto_nome,
@@ -62,21 +101,31 @@ export function groupBySubmissao(items: MailboxItem[]): MailboxGroup[] {
         worst_status: pickWorst(it.doc_status, it.submissao_status),
         has_unread: !it.is_read,
         docs: [it],
-      });
-      continue;
+        progress: emptyProgress(),
+      };
+      map.set(it.submissao_id, g);
+    } else {
+      existing.docs.push(it);
+      if (new Date(it.created_at).getTime() > new Date(existing.latest_at).getTime()) {
+        existing.latest_at = it.created_at;
+        existing.horas_pendentes = Math.min(existing.horas_pendentes, it.horas_pendentes);
+      }
+      existing.worst_status = pickWorst(existing.worst_status, it.doc_status ?? it.submissao_status);
+      existing.has_unread = existing.has_unread || !it.is_read;
+      existing.is_flagged = existing.is_flagged || it.is_flagged;
     }
-    existing.docs.push(it);
-    if (new Date(it.created_at).getTime() > new Date(existing.latest_at).getTime()) {
-      existing.latest_at = it.created_at;
-      existing.horas_pendentes = Math.min(existing.horas_pendentes, it.horas_pendentes);
-    }
-    existing.worst_status = pickWorst(existing.worst_status, it.doc_status ?? it.submissao_status);
-    existing.has_unread = existing.has_unread || !it.is_read;
-    existing.is_flagged = existing.is_flagged || it.is_flagged;
   }
 
   for (const g of map.values()) {
     g.docs.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    // Agrega progresso a partir de TODOS os documentos do checklist.
+    // Itens "fantasma" (sem documento) só contam se ainda fazem sentido como
+    // pendência — a função classifica no balde correto.
+    for (const d of g.docs) {
+      const bucket = classifyForProgress(d);
+      g.progress[bucket] += 1;
+      g.progress.total += 1;
+    }
   }
 
   return Array.from(map.values()).sort(

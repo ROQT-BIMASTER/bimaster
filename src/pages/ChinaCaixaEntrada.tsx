@@ -106,7 +106,7 @@ export default function ChinaCaixaEntrada() {
   const [previewDoc, setPreviewDoc] = useState<MailboxItem | null>(null);
   const [copilotOpen, setCopilotOpen] = useState(false);
   const searchInputRef = useRef<HTMLInputElement | null>(null);
-  const [groupMode, setGroupMode] = useChinaInboxGroupMode();
+  const [groupMode, setGroupMode] = useChinaInboxGroupMode(folder);
 
   // Reset seleção ao trocar pasta
   useEffect(() => {
