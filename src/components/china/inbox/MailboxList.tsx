@@ -315,6 +315,7 @@ export function MailboxList({
   groupMode = "flat",
   onGroupModeChange,
   onEnviarGrupoBrasil,
+  onEnviarItemBrasil,
   onOpenSubmissao,
 }: Props) {
   const ctx = useChinaUserContext();
