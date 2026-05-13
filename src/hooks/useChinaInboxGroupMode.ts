@@ -48,7 +48,9 @@ function readMap(): Partial<Record<MailboxFolder, ChinaInboxGroupMode>> {
 export function useChinaInboxGroupMode(folder: MailboxFolder) {
   const [map, setMap] = useState<Partial<Record<MailboxFolder, ChinaInboxGroupMode>>>(() => readMap());
 
-  const mode: ChinaInboxGroupMode = map[folder] ?? defaultFor(folder);
+  const mode: ChinaInboxGroupMode = isGroupModeForced(folder)
+    ? "grouped"
+    : (map[folder] ?? defaultFor(folder));
 
   const setMode = useCallback(
     (next: ChinaInboxGroupMode) => {
