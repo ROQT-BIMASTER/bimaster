@@ -519,6 +519,12 @@ export function UnifiedSubmissionTimeline({ submissao, ocId, onlyChinaStages, cl
     <TooltipProvider delayDuration={150}>
     <div className={className}>
       <div className="space-y-2">
+        {docs?.inconsistencia && (
+          <InconsistencyBanner
+            title={t("timeline.inconsistency.title")}
+            message={t("timeline.inconsistency.message", { detail: docs.inconsistencia })}
+          />
+        )}
         <StageCard icon={FilePlus2} title={t("timeline.stages.1")} status={stSubmissao} deadline={dl(1)}>
           <DataRow label={t("timeline.common.criadaEm")} value={submissao.created_at ? fmtDate(submissao.created_at) : "—"} />
           <DataRow label={t("timeline.common.statusAtual")} value={submStatus || "—"} />
@@ -526,7 +532,11 @@ export function UnifiedSubmissionTimeline({ submissao, ocId, onlyChinaStages, cl
         </StageCard>
 
         <StageCard icon={FileText} title={t("timeline.stages.2")} status={stDocs} deadline={dl(2)}>
-          <RuleHint text="Total esperado é o checklist mesclado (itens padrão + customizados − ocultos), idêntico ao da Caixa de Entrada. Pendentes = itens sem documento anexado ou em status rascunho." />
+          <RuleHint
+            text={t("timeline.rules.stage2")}
+            label={t("timeline.rules.label")}
+            ariaLabel={t("timeline.rules.aria")}
+          />
           <DataRow label={t("timeline.common.documentos")} value={docs?.total ?? 0} />
           <DataRow label={t("timeline.common.aprovados")} value={docs?.aprovados ?? 0} />
           <DataRow label={t("timeline.common.pendentes")} value={docs?.pendentes ?? 0} />
@@ -536,7 +546,11 @@ export function UnifiedSubmissionTimeline({ submissao, ocId, onlyChinaStages, cl
         </StageCard>
 
         <StageCard icon={Send} title={t("timeline.stages.3")} status={stEnviada} deadline={dl(3)}>
-          <RuleHint text="Conta como ENVIADO ao Brasil qualquer documento já anexado fora de rascunho — inclusive em status pendente, enviado, em revisão, contestado, aprovado ou rejeitado. Apenas itens sem anexo (ou em rascunho) ficam como pendentes." />
+          <RuleHint
+            text={t("timeline.rules.stage3")}
+            label={t("timeline.rules.label")}
+            ariaLabel={t("timeline.rules.aria")}
+          />
           <DataRow
             label={t("timeline.common.estado")}
             value={
@@ -569,6 +583,13 @@ export function UnifiedSubmissionTimeline({ submissao, ocId, onlyChinaStages, cl
             />
           )}
         </StageCard>
+
+        <StageCard icon={ShieldCheck} title={t("timeline.stages.4")} status={stAprovBrasil} deadline={dl(4)}>
+          <RuleHint
+            text={t("timeline.rules.stage4")}
+            label={t("timeline.rules.label")}
+            ariaLabel={t("timeline.rules.aria")}
+          />
 
         <StageCard icon={ShieldCheck} title={t("timeline.stages.4")} status={stAprovBrasil} deadline={dl(4)}>
           {enviadosDocs > 0 ? (
