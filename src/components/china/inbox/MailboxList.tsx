@@ -199,7 +199,7 @@ function MailboxRow({ item, dir, folder, active, checked, onSelect, onToggleChec
             <>
               <Paperclip className="h-3 w-3 shrink-0" />
               <span className="truncate">
-                {item.tipo_documento}
+                {resolveTipoLabel(item)}
                 {item.nome_arquivo ? ` · ${item.nome_arquivo}` : ""}
                 {item.is_virtual && (
                   <span className="ml-1.5 italic text-muted-foreground/70">(ainda não criado)</span>
