@@ -155,7 +155,7 @@ export function ChinaInboxOCAba() {
   );
 }
 
-function OCListRow({ oc, active, onClick }: { oc: ChinaInboxOC; active: boolean; onClick: () => void }) {
+function OCListRow({ oc, active, onClick, t }: { oc: ChinaInboxOC; active: boolean; onClick: () => void; t: (k: string, opts?: any) => string }) {
   const pct = oc.qty_total > 0 ? Math.round((oc.qty_produzida / oc.qty_total) * 100) : 0;
   return (
     <li
@@ -167,11 +167,11 @@ function OCListRow({ oc, active, onClick }: { oc: ChinaInboxOC; active: boolean;
         <span className="text-xs font-semibold tabular-nums">{oc.numero_oc}</span>
         {oc.has_embarque && (
           <Badge variant="secondary" className="h-4 px-1.5 text-[10px]">
-            <Ship className="h-2.5 w-2.5 mr-1" />{oc.embarque_status ?? "embarcada"}
+            <Ship className="h-2.5 w-2.5 mr-1" />{oc.embarque_status ?? t("inboxOC.embarcadaBadge")}
           </Badge>
         )}
         <span className="ml-auto text-[10px] text-muted-foreground">
-          Entrega {fmt(oc.data_entrega_prevista)}
+          {t("inboxOC.entregaPrefix")} {fmt(oc.data_entrega_prevista)}
         </span>
       </div>
       <div className="mt-0.5 text-xs truncate">
