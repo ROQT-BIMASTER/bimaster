@@ -324,6 +324,9 @@ export function VincularChinaSidePanel({
             <FileText className="h-3 w-3" />Docs
             {totalPendentes > 0 && <Badge variant="destructive" className="text-[8px] h-3.5 px-1 ml-0.5">{totalPendentes}</Badge>}
           </TabsTrigger>
+          <TabsTrigger value="timeline" className="text-xs h-7 gap-1">
+            <Activity className="h-3 w-3" />Timeline
+          </TabsTrigger>
           <TabsTrigger value="chat" className="text-xs h-7 gap-1">
             <MessageSquare className="h-3 w-3" />Chat
             {chatUnread > 0 && <Badge className="text-[8px] h-3.5 px-1 ml-0.5 bg-primary text-primary-foreground">{chatUnread}</Badge>}
