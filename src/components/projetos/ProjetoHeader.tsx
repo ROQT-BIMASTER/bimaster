@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect, useRef } from "react";
 import { Projeto } from "@/hooks/useProjetos";
 import { ProjetoTarefa } from "@/hooks/useProjetoTarefas";
 import { Button } from "@/components/ui/button";
-import { Plus, List, LayoutGrid, Calendar, CalendarDays, BarChart3, FileText, FileSpreadsheet, ShieldCheck, Sparkles, Users, UsersRound, Trash2, Target, CalendarClock, BookmarkPlus, Search, X } from "lucide-react";
+import { Plus, List, LayoutGrid, Calendar, CalendarDays, BarChart3, FileText, FileSpreadsheet, ShieldCheck, Sparkles, Users, UsersRound, Target, CalendarClock, Search, X, ChevronDown, MoreHorizontal } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
@@ -15,9 +15,9 @@ import { QuickAddTaskDialog } from "./QuickAddTaskDialog";
 import { ProjetoLixeiraDialog } from "./ProjetoLixeiraDialog";
 import { SalvarComoModeloDialog } from "./SalvarComoModeloDialog";
 import { ImpersonationSelector } from "@/components/admin/ImpersonationSelector";
-import { Separator } from "@/components/ui/separator";
-import { ProjetoDensityToggle } from "./ProjetoDensityToggle";
 import { ProjetoActiveFiltersBar } from "./ProjetoActiveFiltersBar";
+import { ProjetoSettingsMenu } from "./ProjetoSettingsMenu";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 interface ProjetoHeaderProps {
   projeto: Projeto;
