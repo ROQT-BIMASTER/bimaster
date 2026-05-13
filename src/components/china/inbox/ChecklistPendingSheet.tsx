@@ -228,6 +228,7 @@ export function ChecklistPendingSheet({
   const handleOpenInPage = () => {
     navigate(
       `/dashboard/fabrica-china/produto/${group.submissao_id}/checklist-status`,
+      { state: { from: "/dashboard/fabrica-china/caixa-entrada" } },
     );
   };
 
