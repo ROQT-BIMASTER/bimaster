@@ -744,7 +744,7 @@ function GroupRow({
           </span>
         </div>
       </li>
-      {expanded &&
+      {expanded && !isAwaiting &&
         group.docs.map((d) => {
           const id = d.is_virtual
             ? `${d.submissao_id}:virtual:${d.tipo_documento ?? "_"}`
