@@ -1123,7 +1123,32 @@ export default function FabricaProdutosAcabados() {
                 isFichaInFamily((fichasMap.get(p.id) ?? null) as any, "em_revisao")
               ).length || 0;
               if (emRevisaoCount === 0) return null;
-              if (filtroStatusFicha === "em_revisao") return null;
+              if (filtroStatusFicha === "em_revisao") {
+                return (
+                  <div className="mb-2 flex items-center gap-2 flex-wrap rounded-md border border-amber-500/40 bg-amber-500/10 px-2.5 py-1.5 text-[12px] text-amber-700 dark:text-amber-200">
+                    <Filter className="h-3.5 w-3.5 text-amber-500 shrink-0" />
+                    <span className="flex-1 min-w-0">
+                      Filtro ativo: <strong>Em revisão</strong>
+                      <span className="text-muted-foreground ml-2">
+                        · mostrando {produtosFiltrados?.length || 0} de {produtos?.length || 0}
+                      </span>
+                    </span>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-6 px-2 text-[11px] border-amber-500/40 bg-transparent"
+                      onClick={() => setFiltroStatusFicha("todos")}
+                      title="Sair do filtro Em revisão"
+                    >
+                      <X className="h-3 w-3 mr-1" />
+                      Sair do filtro
+                    </Button>
+                    <Button size="sm" variant="ghost" className="h-6 px-2 text-[11px]" onClick={limparFiltros}>
+                      Limpar todos
+                    </Button>
+                  </div>
+                );
+              }
               return (
                 <div className="mb-2 flex items-center gap-2 flex-wrap rounded-md border border-amber-500/40 bg-amber-500/10 px-2.5 py-1.5 text-[12px] text-amber-700 dark:text-amber-200">
                   <AlertTriangle className="h-3.5 w-3.5 text-amber-500 shrink-0" />
