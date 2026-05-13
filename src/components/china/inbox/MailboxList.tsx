@@ -484,9 +484,18 @@ export function MailboxList({
               onToggleStar={onToggleStar}
               onEnviarGrupoBrasil={onEnviarGrupoBrasil}
               onOpenSubmissao={onOpenSubmissao}
+              onOpenChecklist={(id) => setOpenChecklistFor(id)}
             />
           ))}
       </ul>
+      <ChecklistPendingSheet
+        open={openChecklistFor !== null}
+        onOpenChange={(o) => !o && setOpenChecklistFor(null)}
+        group={openGroup}
+        onSelectItem={onSelect}
+        onEnviarGrupoBrasil={onEnviarGrupoBrasil}
+        onOpenSubmissao={onOpenSubmissao}
+      />
     </div>
   );
 }
