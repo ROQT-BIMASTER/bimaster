@@ -516,10 +516,19 @@ function GroupRow({
   const unread = group.has_unread && folder === "inbox";
 
   // Cálculo de progresso para a pasta "Pendentes de envio".
+  // Denominador = total ESPERADO pelo Modo Foco (29 no exemplo), não apenas
+  // os documentos já criados em DB. Cai no progress.total quando o checklist
+  // efetivo ainda não foi customizado (Modo Foco vazio).
   const p = group.progress;
   const progressed = p.enviados + p.aprovados + p.em_analise + p.rejeitados;
-  const pct = p.total > 0 ? Math.round((progressed / p.total) * 100) : 0;
-  const pendingCount = p.pendentes;
+  const expectedTotal = Math.max(
+    group.docs[0]?.checklist_expected_total ?? 0,
+    p.total,
+  );
+  const pct = expectedTotal > 0 ? Math.round((progressed / expectedTotal) * 100) : 0;
+  const realCount = group.docs.filter((d) => !d.is_virtual).length;
+  const expectedPending = Math.max(0, expectedTotal - progressed);
+  const pendingCount = expectedPending;
 
   return (
     <>
