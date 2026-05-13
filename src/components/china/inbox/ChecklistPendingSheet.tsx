@@ -456,7 +456,13 @@ export function ChecklistPendingSheet({
                 !!item.documento_id &&
                 (state === "pendente_envio" || state === "rejeitado");
               return (
-                <li key={id} className="flex items-start gap-2 px-4 py-2.5">
+                <li
+                  key={id}
+                  className={cn(
+                    "flex items-start gap-2 border-l-4 pl-3 pr-4 py-2.5 transition-colors hover:bg-muted/30",
+                    STATE_BORDER[state] ?? "border-l-transparent",
+                  )}
+                >
                   <Paperclip className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-[12.5px] font-medium text-foreground">
