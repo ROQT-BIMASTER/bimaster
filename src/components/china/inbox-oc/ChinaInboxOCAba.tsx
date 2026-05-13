@@ -68,8 +68,8 @@ export function ChinaInboxOCAba() {
       <div className="flex flex-col h-full">
         <div className="border-b p-3 flex items-center gap-2">
           <ToggleGroup type="single" value={view} onValueChange={(v) => v && setView(v as any)} size="sm">
-            <ToggleGroupItem value="lista" className="h-8 px-2 text-xs gap-1.5"><List className="h-3.5 w-3.5" />Lista</ToggleGroupItem>
-            <ToggleGroupItem value="tabela" className="h-8 px-2 text-xs gap-1.5"><TableIcon className="h-3.5 w-3.5" />Tabela</ToggleGroupItem>
+            <ToggleGroupItem value="lista" className="h-8 px-2 text-xs gap-1.5"><List className="h-3.5 w-3.5" />{t("inboxOC.viewLista")}</ToggleGroupItem>
+            <ToggleGroupItem value="tabela" className="h-8 px-2 text-xs gap-1.5"><TableIcon className="h-3.5 w-3.5" />{t("inboxOC.viewTabela")}</ToggleGroupItem>
           </ToggleGroup>
         </div>
         <div className="flex-1 overflow-hidden">
