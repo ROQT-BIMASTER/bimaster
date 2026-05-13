@@ -67,7 +67,7 @@ export function ChinaUploadPreviewDialog({
       <DialogContent className="max-w-2xl z-[70] bg-background border-border shadow-2xl">
         <DialogHeader>
           <DialogTitle className="text-base">
-            Validar Arquivo 验证文件
+            {t("documento.uploadPreview.titulo")}
           </DialogTitle>
           <p className="text-xs text-muted-foreground mt-1">
             {tipoLabel.pt} — {tipoLabel.cn}
