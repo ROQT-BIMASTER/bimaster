@@ -114,17 +114,25 @@ export default function ChinaCaixaEntrada() {
     setSelectedIds(new Set());
   }, [folder]);
 
+  // Helper: id estável que considera itens "fantasma" (virtuais) — múltiplos
+  // virtuais por submissão precisam de chave única (`<sub>:virtual:<tipo>`),
+  // já que `documento_id` é null em todos eles.
+  const itemRowId = (i: { is_virtual?: boolean; documento_id: string | null; submissao_id: string; tipo_documento: string | null }) =>
+    i.is_virtual
+      ? `${i.submissao_id}:virtual:${i.tipo_documento ?? "_"}`
+      : i.documento_id ?? i.submissao_id;
+
   // Auto-seleção em desktop: primeira mensagem
   useEffect(() => {
     if (!isDesktop) return;
     if (selectedId) return;
     if (items.length === 0) return;
-    setSelectedId(items[0].documento_id ?? items[0].submissao_id);
+    setSelectedId(itemRowId(items[0]));
   }, [items, isDesktop, selectedId]);
 
   const selectedItem = useMemo(() => {
     if (!selectedId) return null;
-    return items.find((i) => (i.documento_id ?? i.submissao_id) === selectedId) ?? null;
+    return items.find((i) => itemRowId(i) === selectedId) ?? null;
   }, [items, selectedId]);
 
   const setFolder = (f: MailboxFolder) => {
