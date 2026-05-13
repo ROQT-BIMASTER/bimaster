@@ -380,7 +380,7 @@ export function MailboxList({
           {FOLDER_TITLES[folder] ?? folder}
         </span>
         <ReadStatusLegend />
-        {groupingAllowed && onGroupModeChange && (
+        {groupingAllowed && onGroupModeChange && !isGroupModeForced(folder) && (
           <div className="inline-flex items-center rounded-md border border-border/60 bg-background/40 p-0.5">
             <button
               type="button"
