@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { ShoppingCart, CalendarDays } from "lucide-react";
 import { logger } from "@/lib/logger";
+import { useChinaI18n } from "@/i18n/china/useChinaI18n";
 
 interface EmitirOCDialogProps {
   open: boolean;
