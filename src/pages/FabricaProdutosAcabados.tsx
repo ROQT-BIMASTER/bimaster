@@ -81,10 +81,18 @@ export default function FabricaProdutosAcabados() {
     if (typeof window === "undefined") return "solid";
     return (localStorage.getItem("pa_header_style") as "solid" | "subtle") || "solid";
   });
+  const [kpisVisiveis, setKpisVisiveis] = useState<boolean>(() => {
+    if (typeof window === "undefined") return true;
+    return localStorage.getItem("pa-kpis-visiveis") !== "false";
+  });
 
   useEffect(() => {
     localStorage.setItem("pa_header_style", headerStyle);
   }, [headerStyle]);
+
+  useEffect(() => {
+    localStorage.setItem("pa-kpis-visiveis", String(kpisVisiveis));
+  }, [kpisVisiveis]);
 
   // ESC sai do modo foco
   useEffect(() => {
@@ -501,7 +509,7 @@ export default function FabricaProdutosAcabados() {
                 ? "Produto do tipo Display / Kit"
                 : undefined
         }
-        className={`${produto.oculto ? "opacity-50" : ""} ${isEmRevisao ? "bg-amber-100/80 text-amber-950 border-l-4 border-l-amber-500 [&_.text-muted-foreground]:!text-amber-900/70 dark:bg-amber-900/40 dark:text-amber-50 dark:[&_.text-muted-foreground]:!text-amber-100/75" : isDisplay ? "bg-primary/5" : isChild ? "bg-blue-50/30 dark:bg-blue-950/20 border-l-2 border-l-blue-400" : "even:bg-muted/20 hover:bg-muted/40"} transition-colors`}
+        className={`${produto.oculto ? "opacity-50" : ""} ${isEmRevisao ? "bg-amber-100/80 text-amber-950 border-l-4 border-l-amber-500 [&_.text-muted-foreground]:!text-amber-900/70 dark:bg-amber-900/40 dark:text-amber-50 dark:[&_.text-muted-foreground]:!text-amber-100/75" : isDisplay ? "bg-primary/[0.04] border-l-2 border-l-primary/40" : isChild ? "border-l-2 border-l-blue-400/60" : "hover:bg-muted/30"} border-b border-border/40 transition-colors`}
       >
         <TableCell className="pr-0 py-2">
           <ProductThumbnail src={produto.foto_url} alt={produto.nome} size="sm" />
@@ -686,6 +694,15 @@ export default function FabricaProdutosAcabados() {
             </Button>
             <div className="h-5 w-px bg-border mx-1" />
             <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => setKpisVisiveis(!kpisVisiveis)}
+              title={kpisVisiveis ? "Ocultar KPIs" : "Mostrar KPIs"}
+            >
+              {kpisVisiveis ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            </Button>
+            <Button
               variant={showAdminDash ? "default" : "outline"}
               size="sm"
               className="h-8"
@@ -753,7 +770,7 @@ export default function FabricaProdutosAcabados() {
         </Collapsible>
 
         {/* KPIs */}
-        {(() => {
+        {kpisVisiveis && (() => {
           const totalProdutos = produtos?.length || 0;
           const totalAtivos = produtos?.filter((p) => p.ativo).length || 0;
           const totalAcabados = produtos?.filter((p) => p.tipo === "ACABADO").length || 0;
@@ -1176,7 +1193,7 @@ export default function FabricaProdutosAcabados() {
                   </div>
                 </div>
               )}
-              <Card data-tour="pa-tabela" className={tableFocus ? "flex-1 overflow-auto rounded-none border-0" : "border-border/60"}>
+              <Card data-tour="pa-tabela" className={tableFocus ? "flex-1 overflow-auto rounded-none border-0" : "border border-border bg-card overflow-hidden shadow-sm"}>
                 <CardContent className="p-0">
                 {isLoading ? (
                   <div className="text-center py-12 text-muted-foreground text-sm">
@@ -1296,10 +1313,10 @@ export default function FabricaProdutosAcabados() {
                                 <TableHead className={headClass}>Custo</TableHead>
                                 <TableHead className={headClass}>Fórmula</TableHead>
                                 <TableHead className={headClass}>Un</TableHead>
-                                <TableHead className={headClass}>Status</TableHead>
-                                <TableHead className={headClass}>Responsável</TableHead>
-                                <TableHead className={headClass}>Cadastro</TableHead>
-                                <TableHead className={`${headClass} text-right`}>Ações</TableHead>
+                                <TableHead className={`${headClass} w-[90px]`}>Status</TableHead>
+                                <TableHead className={`${headClass} w-[150px]`}>Responsável</TableHead>
+                                <TableHead className={`${headClass} w-[90px]`}>Cadastro</TableHead>
+                                <TableHead className={`${headClass} w-[140px] text-right`}>Ações</TableHead>
                               </>
                             );
                           })()}
