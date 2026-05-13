@@ -2786,6 +2786,33 @@ export type Database = {
           },
         ]
       }
+      chat_preferencias: {
+        Row: {
+          preview: boolean
+          push: boolean
+          som: boolean
+          tema: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          preview?: boolean
+          push?: boolean
+          som?: boolean
+          tema?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          preview?: boolean
+          push?: boolean
+          som?: boolean
+          tema?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       china_categoria_responsaveis: {
         Row: {
           categoria_key: string
@@ -8568,47 +8595,83 @@ export type Database = {
       }
       conversas: {
         Row: {
+          arquivada_em: string | null
+          avatar_url: string | null
           created_at: string
+          criado_por: string | null
+          descricao: string | null
           id: string
           nome: string | null
           tipo: string
+          ultima_mensagem_em: string | null
           updated_at: string
         }
         Insert: {
+          arquivada_em?: string | null
+          avatar_url?: string | null
           created_at?: string
+          criado_por?: string | null
+          descricao?: string | null
           id?: string
           nome?: string | null
           tipo?: string
+          ultima_mensagem_em?: string | null
           updated_at?: string
         }
         Update: {
+          arquivada_em?: string | null
+          avatar_url?: string | null
           created_at?: string
+          criado_por?: string | null
+          descricao?: string | null
           id?: string
           nome?: string | null
           tipo?: string
+          ultima_mensagem_em?: string | null
           updated_at?: string
         }
         Relationships: []
       }
       conversas_participantes: {
         Row: {
+          arquivada: boolean
           conversa_id: string
           created_at: string
+          entrou_em: string
+          favorita: boolean
           id: string
+          notificacoes_on: boolean
+          papel: string
+          saiu_em: string | null
+          silenciada_ate: string | null
           ultima_leitura: string | null
           usuario_id: string
         }
         Insert: {
+          arquivada?: boolean
           conversa_id: string
           created_at?: string
+          entrou_em?: string
+          favorita?: boolean
           id?: string
+          notificacoes_on?: boolean
+          papel?: string
+          saiu_em?: string | null
+          silenciada_ate?: string | null
           ultima_leitura?: string | null
           usuario_id: string
         }
         Update: {
+          arquivada?: boolean
           conversa_id?: string
           created_at?: string
+          entrou_em?: string
+          favorita?: boolean
           id?: string
+          notificacoes_on?: boolean
+          papel?: string
+          saiu_em?: string | null
+          silenciada_ate?: string | null
           ultima_leitura?: string | null
           usuario_id?: string
         }
@@ -23393,25 +23456,55 @@ export type Database = {
           conteudo: string
           conversa_id: string
           created_at: string
+          editada_em: string | null
+          encaminhada_de_id: string | null
+          excluida_em: string | null
+          excluida_para_todos: boolean
+          fixada_em: string | null
+          fixada_por: string | null
           id: string
           lida: boolean
+          mencoes: string[]
+          metadata: Json
           remetente_id: string
+          responde_a_id: string | null
+          tipo: string
         }
         Insert: {
           conteudo: string
           conversa_id: string
           created_at?: string
+          editada_em?: string | null
+          encaminhada_de_id?: string | null
+          excluida_em?: string | null
+          excluida_para_todos?: boolean
+          fixada_em?: string | null
+          fixada_por?: string | null
           id?: string
           lida?: boolean
+          mencoes?: string[]
+          metadata?: Json
           remetente_id: string
+          responde_a_id?: string | null
+          tipo?: string
         }
         Update: {
           conteudo?: string
           conversa_id?: string
           created_at?: string
+          editada_em?: string | null
+          encaminhada_de_id?: string | null
+          excluida_em?: string | null
+          excluida_para_todos?: boolean
+          fixada_em?: string | null
+          fixada_por?: string | null
           id?: string
           lida?: boolean
+          mencoes?: string[]
+          metadata?: Json
           remetente_id?: string
+          responde_a_id?: string | null
+          tipo?: string
         }
         Relationships: [
           {
@@ -23419,6 +23512,223 @@ export type Database = {
             columns: ["conversa_id"]
             isOneToOne: false
             referencedRelation: "conversas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mensagens_encaminhada_de_id_fkey"
+            columns: ["encaminhada_de_id"]
+            isOneToOne: false
+            referencedRelation: "mensagens"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mensagens_responde_a_id_fkey"
+            columns: ["responde_a_id"]
+            isOneToOne: false
+            referencedRelation: "mensagens"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mensagens_anexos: {
+        Row: {
+          conversa_id: string
+          created_at: string
+          duration_ms: number | null
+          file_name: string
+          height: number | null
+          id: string
+          mensagem_id: string
+          mime_type: string
+          size_bytes: number
+          storage_path: string
+          thumbnail_path: string | null
+          uploader_id: string
+          width: number | null
+        }
+        Insert: {
+          conversa_id: string
+          created_at?: string
+          duration_ms?: number | null
+          file_name: string
+          height?: number | null
+          id?: string
+          mensagem_id: string
+          mime_type: string
+          size_bytes: number
+          storage_path: string
+          thumbnail_path?: string | null
+          uploader_id: string
+          width?: number | null
+        }
+        Update: {
+          conversa_id?: string
+          created_at?: string
+          duration_ms?: number | null
+          file_name?: string
+          height?: number | null
+          id?: string
+          mensagem_id?: string
+          mime_type?: string
+          size_bytes?: number
+          storage_path?: string
+          thumbnail_path?: string | null
+          uploader_id?: string
+          width?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mensagens_anexos_conversa_id_fkey"
+            columns: ["conversa_id"]
+            isOneToOne: false
+            referencedRelation: "conversas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mensagens_anexos_mensagem_id_fkey"
+            columns: ["mensagem_id"]
+            isOneToOne: false
+            referencedRelation: "mensagens"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mensagens_favoritas: {
+        Row: {
+          conversa_id: string
+          created_at: string
+          mensagem_id: string
+          user_id: string
+        }
+        Insert: {
+          conversa_id: string
+          created_at?: string
+          mensagem_id: string
+          user_id: string
+        }
+        Update: {
+          conversa_id?: string
+          created_at?: string
+          mensagem_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mensagens_favoritas_conversa_id_fkey"
+            columns: ["conversa_id"]
+            isOneToOne: false
+            referencedRelation: "conversas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mensagens_favoritas_mensagem_id_fkey"
+            columns: ["mensagem_id"]
+            isOneToOne: false
+            referencedRelation: "mensagens"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mensagens_leituras: {
+        Row: {
+          conversa_id: string
+          lida_em: string
+          mensagem_id: string
+          user_id: string
+        }
+        Insert: {
+          conversa_id: string
+          lida_em?: string
+          mensagem_id: string
+          user_id: string
+        }
+        Update: {
+          conversa_id?: string
+          lida_em?: string
+          mensagem_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mensagens_leituras_conversa_id_fkey"
+            columns: ["conversa_id"]
+            isOneToOne: false
+            referencedRelation: "conversas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mensagens_leituras_mensagem_id_fkey"
+            columns: ["mensagem_id"]
+            isOneToOne: false
+            referencedRelation: "mensagens"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mensagens_ocultas: {
+        Row: {
+          mensagem_id: string
+          oculta_em: string
+          user_id: string
+        }
+        Insert: {
+          mensagem_id: string
+          oculta_em?: string
+          user_id: string
+        }
+        Update: {
+          mensagem_id?: string
+          oculta_em?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mensagens_ocultas_mensagem_id_fkey"
+            columns: ["mensagem_id"]
+            isOneToOne: false
+            referencedRelation: "mensagens"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mensagens_reacoes: {
+        Row: {
+          conversa_id: string
+          created_at: string
+          emoji: string
+          id: string
+          mensagem_id: string
+          user_id: string
+        }
+        Insert: {
+          conversa_id: string
+          created_at?: string
+          emoji: string
+          id?: string
+          mensagem_id: string
+          user_id: string
+        }
+        Update: {
+          conversa_id?: string
+          created_at?: string
+          emoji?: string
+          id?: string
+          mensagem_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mensagens_reacoes_conversa_id_fkey"
+            columns: ["conversa_id"]
+            isOneToOne: false
+            referencedRelation: "conversas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mensagens_reacoes_mensagem_id_fkey"
+            columns: ["mensagem_id"]
+            isOneToOne: false
+            referencedRelation: "mensagens"
             referencedColumns: ["id"]
           },
         ]
@@ -45095,6 +45405,35 @@ export type Database = {
       rpc_avancar_item_aprovacao: {
         Args: { p_comentario?: string; p_decisao: string; p_item_id: string }
         Returns: Json
+      }
+      rpc_chat_adicionar_participantes: {
+        Args: { p_conversa_id: string; p_users: string[] }
+        Returns: undefined
+      }
+      rpc_chat_criar_grupo: {
+        Args: {
+          p_avatar_url?: string
+          p_descricao?: string
+          p_nome: string
+          p_participantes?: string[]
+        }
+        Returns: string
+      }
+      rpc_chat_marcar_lido: {
+        Args: { p_ate_mensagem_id?: string; p_conversa_id: string }
+        Returns: number
+      }
+      rpc_chat_promover_admin: {
+        Args: { p_conversa_id: string; p_user: string }
+        Returns: undefined
+      }
+      rpc_chat_remover_participante: {
+        Args: { p_conversa_id: string; p_user: string }
+        Returns: undefined
+      }
+      rpc_chat_sair_grupo: {
+        Args: { p_conversa_id: string }
+        Returns: undefined
       }
       rpc_china_aceitar_oc: {
         Args: { p_oc_id: string }
