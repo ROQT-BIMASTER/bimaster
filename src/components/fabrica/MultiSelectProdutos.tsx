@@ -133,7 +133,7 @@ export function MultiSelectProdutos({
                       onClick={() => toggle(p.id)}
                       className="w-full flex items-center gap-2 px-2 py-1.5 rounded text-left text-sm hover:bg-muted bg-primary/5"
                     >
-                      <Checkbox checked readOnly className="pointer-events-none" />
+                      <Checkbox checked className="pointer-events-none" />
                       <span className="flex-1 min-w-0 truncate">{p.nome}</span>
                       {p.codigo && (
                         <span className="text-[10px] font-mono text-muted-foreground">
