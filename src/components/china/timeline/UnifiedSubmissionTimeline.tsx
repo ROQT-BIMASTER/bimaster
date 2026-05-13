@@ -23,7 +23,39 @@ import {
   type ChecklistCustomItem,
   type ChecklistHiddenItem,
 } from "@/lib/china/mergeChecklist";
+import {
+  summarizeChecklistResumo,
+  validateChecklistResumo,
+} from "@/lib/china/checklistResumo";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { Info } from "lucide-react";
 
+function RuleHint({ text }: { text: string }) {
+  return (
+    <div className="-mt-1 mb-1 flex items-start gap-1 text-[10.5px] leading-snug text-muted-foreground">
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <button
+            type="button"
+            className="shrink-0 inline-flex items-center justify-center rounded-full p-0.5 text-muted-foreground/80 hover:text-foreground"
+            aria-label="Como esta contagem é calculada"
+          >
+            <Info className="h-3 w-3" />
+          </button>
+        </TooltipTrigger>
+        <TooltipContent side="top" align="start" className="max-w-[280px] text-[11px] leading-snug">
+          {text}
+        </TooltipContent>
+      </Tooltip>
+      <span className="italic">Como esta contagem é calculada?</span>
+    </div>
+  );
+}
 
 interface SubmissaoLite {
   submissao_id: string;
@@ -114,39 +146,26 @@ function useDocsResumo(submissaoId: string | null | undefined) {
         (hRes.data || []) as ChecklistHiddenItem[],
       );
 
-      // Mapa tipo → último doc (rows já vem ordenado desc por updated_at).
-      const latestByTipo = new Map<string, DocRow>();
-      for (const r of rows) {
-        if (!latestByTipo.has(r.tipo_documento)) latestByTipo.set(r.tipo_documento, r);
-      }
+      // Resumo via função PURA compartilhada — mesma classificação de
+      // `groupMailboxItems.classifyForProgress` (Caixa de Entrada). Garante
+      // que total/pendentes/enviados/aprovados/rejeitados batam exatamente
+      // entre a linha do tempo e a Caixa.
+      const resumo = summarizeChecklistResumo(rows, expected);
 
-      // Universo unificado: tipos esperados + tipos extras já anexados (não
-      // perder vínculo com nada que esteja salvo).
-      const universe = new Set<string>(expected.tipos);
-      for (const tipo of latestByTipo.keys()) universe.add(tipo);
-
-      // Mesma classificação da Caixa de Entrada (`groupMailboxItems`):
-      // qualquer documento já anexado cujo status não seja "rascunho" conta
-      // como ENVIADO ao Brasil — inclusive status "pendente" (anexado e
-      // aguardando análise). Pendentes da etapa 3 são apenas itens do
-      // checklist sem documento anexado (ou em rascunho).
-      let pendentes = 0, aprovados = 0, rejeitados = 0, enviados = 0;
-      for (const tipo of universe) {
-        const doc = latestByTipo.get(tipo);
-        const status = doc?.status ?? null;
-        const sentToBrazil = !!doc && status !== null && status !== "rascunho";
-        if (sentToBrazil) enviados += 1;
-        else pendentes += 1;
-        if (status === "aprovado") aprovados += 1;
-        else if (status === "rejeitado") rejeitados += 1;
+      // Validação defensiva — em produção apenas avisa no console; em testes
+      // (`vitest`) explode caso algum dia a invariante seja violada.
+      const inconsistencia = validateChecklistResumo(resumo);
+      if (inconsistencia) {
+        // eslint-disable-next-line no-console
+        console.warn(`[timeline] resumo inconsistente para ${submissaoId}: ${inconsistencia}`);
       }
 
       return {
-        total: universe.size,
-        pendentes,
-        aprovados,
-        rejeitados,
-        enviados,
+        total: resumo.total,
+        pendentes: resumo.pendentes,
+        aprovados: resumo.aprovados,
+        rejeitados: resumo.rejeitados,
+        enviados: resumo.enviados,
         ultimoStatus: rows[0]?.status ?? null,
         ultimoEm: rows[0]?.updated_at ?? rows[0]?.created_at ?? null,
         rows,
@@ -301,35 +320,40 @@ export function UnifiedSubmissionTimeline({ submissao, ocId, onlyChinaStages, cl
   useEffect(() => {
     const sid = submissao.submissao_id;
     if (!sid) return;
+    // Helper: invalida TUDO que depende dos contadores do checklist desta
+    // submissão — resumo da timeline, dataset da Caixa de Entrada e qualquer
+    // query "china-mailbox*" — para garantir tempo real ponta-a-ponta.
+    const invalidateAll = () => {
+      qc.invalidateQueries({ queryKey: ["china-submissao-docs-resumo", sid] });
+      qc.invalidateQueries({ queryKey: ["china-mailbox-dataset"] });
+      qc.invalidateQueries({ queryKey: ["china-mailbox"] });
+    };
     const channel = supabase
       .channel(`unified-timeline-${sid}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "china_produto_documentos", filter: `submissao_id=eq.${sid}` },
-        () => qc.invalidateQueries({ queryKey: ["china-submissao-docs-resumo", sid] }),
+        invalidateAll,
       )
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "china_produto_submissoes", filter: `id=eq.${sid}` },
-        () => {
-          qc.invalidateQueries({ queryKey: ["china-mailbox"] });
-          qc.invalidateQueries({ queryKey: ["china-submissao-docs-resumo", sid] });
-        },
+        invalidateAll,
       )
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "china_checklist_custom_categorias", filter: `submissao_id=eq.${sid}` },
-        () => qc.invalidateQueries({ queryKey: ["china-submissao-docs-resumo", sid] }),
+        invalidateAll,
       )
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "china_checklist_custom_itens", filter: `submissao_id=eq.${sid}` },
-        () => qc.invalidateQueries({ queryKey: ["china-submissao-docs-resumo", sid] }),
+        invalidateAll,
       )
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "china_checklist_itens_ocultos", filter: `submissao_id=eq.${sid}` },
-        () => qc.invalidateQueries({ queryKey: ["china-submissao-docs-resumo", sid] }),
+        invalidateAll,
       )
       .subscribe();
     return () => { supabase.removeChannel(channel); };
@@ -470,6 +494,7 @@ export function UnifiedSubmissionTimeline({ submissao, ocId, onlyChinaStages, cl
   ]);
 
   return (
+    <TooltipProvider delayDuration={150}>
     <div className={className}>
       <div className="space-y-2">
         <StageCard icon={FilePlus2} title={t("timeline.stages.1")} status={stSubmissao} deadline={dl(1)}>
@@ -479,6 +504,7 @@ export function UnifiedSubmissionTimeline({ submissao, ocId, onlyChinaStages, cl
         </StageCard>
 
         <StageCard icon={FileText} title={t("timeline.stages.2")} status={stDocs} deadline={dl(2)}>
+          <RuleHint text="Total esperado é o checklist mesclado (itens padrão + customizados − ocultos), idêntico ao da Caixa de Entrada. Pendentes = itens sem documento anexado ou em status rascunho." />
           <DataRow label={t("timeline.common.documentos")} value={docs?.total ?? 0} />
           <DataRow label={t("timeline.common.aprovados")} value={docs?.aprovados ?? 0} />
           <DataRow label={t("timeline.common.pendentes")} value={docs?.pendentes ?? 0} />
@@ -488,6 +514,7 @@ export function UnifiedSubmissionTimeline({ submissao, ocId, onlyChinaStages, cl
         </StageCard>
 
         <StageCard icon={Send} title={t("timeline.stages.3")} status={stEnviada} deadline={dl(3)}>
+          <RuleHint text="Conta como ENVIADO ao Brasil qualquer documento já anexado fora de rascunho — inclusive em status pendente, enviado, em revisão, contestado, aprovado ou rejeitado. Apenas itens sem anexo (ou em rascunho) ficam como pendentes." />
           <DataRow
             label={t("timeline.common.estado")}
             value={
@@ -628,5 +655,6 @@ export function UnifiedSubmissionTimeline({ submissao, ocId, onlyChinaStages, cl
         )}
       </div>
     </div>
+    </TooltipProvider>
   );
 }
