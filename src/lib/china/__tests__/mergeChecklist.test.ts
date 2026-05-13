@@ -59,7 +59,7 @@ describe("computeExpectedChecklistBatch", () => {
       ["sub-A", "sub-B"],
       [],
       [
-        { id: "i1", submissao_id: "sub-A", tipo_key: "extra_a" },
+        { id: "i1", submissao_id: "sub-A", tipo_key: "extra_a", categoria_default_key: "dados_oficiais", categoria_custom_id: null },
       ],
       [
         { submissao_id: "sub-B", tipo_key: "planilha_excel" },
