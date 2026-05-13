@@ -625,7 +625,7 @@ export function FichaAnalisePanel({ ficha, processando, onAprovar, onSolicitarRe
                             {/* Expanded supplier comparison */}
                             {isExpanded && hasCotacoes && (
                               <TableRow>
-                                <TableCell colSpan={versaoAnterior ? 8 : 7} className="p-0 bg-muted/30">
+                                <TableCell colSpan={versaoAnterior ? 9 : 8} className="p-0 bg-muted/30">
                                   <div className="px-6 py-3 space-y-2">
                                     <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Comparativo de Fornecedores</p>
                                     <Table>
