@@ -742,7 +742,10 @@ function GroupRow({
                   className="h-5 gap-1 px-1.5 text-[10px] text-primary"
                   onClick={(e) => {
                     e.stopPropagation();
-                    onOpenChecklist?.(group.submissao_id);
+                    navigate(
+                      `/dashboard/fabrica-china/produto/${group.submissao_id}/checklist-status?from=approved`,
+                      { state: { from: "/dashboard/fabrica-china/caixa-entrada" } },
+                    );
                   }}
                   title="Abrir página dedicada com o status completo do checklist"
                 >
