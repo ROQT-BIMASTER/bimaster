@@ -45410,6 +45410,10 @@ export type Database = {
         Args: { p_conversa_id: string; p_users: string[] }
         Returns: undefined
       }
+      rpc_chat_criar_conversa_privada: {
+        Args: { p_outro_user_id: string }
+        Returns: string
+      }
       rpc_chat_criar_grupo: {
         Args: {
           p_avatar_url?: string
