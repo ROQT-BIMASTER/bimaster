@@ -74,7 +74,25 @@ export default function ChinaCaixaEntrada() {
       : "awaiting_send";
   const folder: MailboxFolder = CHINA_FOLDER_ALIAS[rawFolder] ?? rawFolder;
 
-  const { items, counts, isLoading, isFetching, refetch } = useChinaMailbox(folder);
+  // Sub-filtro da pasta "Aprovados": all | total | partial | empty
+  const VALID_APPROVAL = ["all", "total", "partial", "empty"] as const;
+  type ApprovalSubFilter = typeof VALID_APPROVAL[number];
+  const approvalParam = (searchParams.get("approval") as ApprovalSubFilter | null) ?? "all";
+  const approvalFilter: ApprovalSubFilter = (VALID_APPROVAL as readonly string[]).includes(approvalParam)
+    ? approvalParam
+    : "all";
+  const setApprovalFilter = (a: ApprovalSubFilter) => {
+    const sp = new URLSearchParams(searchParams);
+    if (a === "all") sp.delete("approval");
+    else sp.set("approval", a);
+    setSearchParams(sp, { replace: true });
+  };
+
+  const { items: rawItems, counts, isLoading, isFetching, refetch } = useChinaMailbox(folder);
+  const items = useMemo(() => {
+    if (folder !== "approved" || approvalFilter === "all") return rawItems;
+    return rawItems.filter((i) => i.approval_completeness === approvalFilter);
+  }, [rawItems, folder, approvalFilter]);
   const toggleRead = useToggleInboxRead();
   const toggleFlag = useToggleSubmissaoFlag();
   const trash = useTrashSubmissoes();
