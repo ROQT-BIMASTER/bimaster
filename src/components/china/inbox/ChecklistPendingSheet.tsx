@@ -682,6 +682,50 @@ export function ChecklistPendingSheet({
           )}
         </div>
       </SheetContent>
+
+      <Dialog open={parecerOpen} onOpenChange={setParecerOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-sm">
+              <MessageSquarePlus className="h-4 w-4 text-primary" />
+              Parecer técnico da China
+            </DialogTitle>
+            <DialogDescription className="text-[12px]">
+              Registre o parecer técnico desta submissão. Ele é obrigatório para
+              despachar os itens ao Brasil e fica visível para a equipe brasileira.
+            </DialogDescription>
+          </DialogHeader>
+          <Textarea
+            value={parecerText}
+            onChange={(e) => setParecerText(e.target.value)}
+            placeholder="Descreva análise, observações regulatórias e quaisquer pontos de atenção…"
+            className="min-h-[160px] text-[12.5px]"
+            maxLength={8000}
+          />
+          <p className="text-right text-[10.5px] text-muted-foreground">
+            {parecerText.length}/8000
+          </p>
+          <DialogFooter className="gap-2">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => setParecerOpen(false)}
+              disabled={saveParecer.isPending}
+            >
+              Cancelar
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              onClick={() => saveParecer.mutate(parecerText)}
+              disabled={saveParecer.isPending || parecerText.trim().length === 0}
+            >
+              {saveParecer.isPending ? "Salvando…" : "Salvar parecer"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Sheet>
   );
 }
