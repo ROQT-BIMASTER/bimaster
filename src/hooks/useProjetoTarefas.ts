@@ -65,6 +65,17 @@ export interface ProjetoTarefasView {
   visibleTarefasCount: number;
 }
 
+interface ProjetoTarefasRpcPayload {
+  secoes?: ProjetoSecao[];
+  tarefas?: ProjetoTarefa[];
+  team_members?: { id: string; nome: string; avatar_url: string | null }[];
+  is_partial_view?: boolean;
+  restrict_to_own?: boolean;
+  total_secoes_projeto?: number;
+  total_tarefas_projeto?: number;
+  visible_tarefas_count?: number;
+}
+
 export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeiraOpen?: boolean }) {
   const { user } = useAuth();
   const lixeiraOpen = !!opts?.lixeiraOpen;
