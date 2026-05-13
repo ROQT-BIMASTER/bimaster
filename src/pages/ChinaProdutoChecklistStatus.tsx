@@ -625,7 +625,7 @@ export default function ChinaProdutoChecklistStatus() {
         icon={ListChecks}
         iconTone="primary"
         showBack
-        backTo={`/dashboard/fabrica-china/produto/${id}`}
+        backTo={backTo}
         actions={
           <>
             <ChinaTimelineButton scope={{ submissaoId: id }} />
