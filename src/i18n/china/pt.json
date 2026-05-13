@@ -86,7 +86,12 @@
       "restaurar": "Restaurar",
       "excluirDefinitivo": "Excluir definitivamente",
       "marcarComoLidos": "Marcar como lidos",
-      "limparSelecao": "Limpar"
+      "limparSelecao": "Limpar",
+      "marcarTodasLidas": "Marcar todas como lidas",
+      "marcando": "Marcando...",
+      "marcarTodasLidasTitle": "Marcar todas as mensagens visíveis como lidas",
+      "tentarNovamente": "Tentar novamente",
+      "enviandoBrasil": "Enviando ao Brasil…"
     },
     "search": {
       "placeholder": "Buscar produto, OC, arquivo (atalho: /)"
