@@ -273,6 +273,48 @@
         "toastOk": "技术意见已保存。",
         "toastErr": "保存意见失败。"
       }
+    },
+    "toolbar": {
+      "buscarPlaceholder": "搜索产品、采购单、文件",
+      "limparBusca": "清除搜索",
+      "ocPlaceholder": "采购单",
+      "todasOcs": "所有采购单",
+      "tipoPlaceholder": "类型",
+      "todosTipos": "所有类型",
+      "urgenciaPlaceholder": "紧急程度",
+      "todasIdades": "所有时长",
+      "mais24h": "+24小时",
+      "mais48h": "+48小时",
+      "mais72h": "+72小时",
+      "limpar": "清除 ({{count}})",
+      "visualizacao": "视图",
+      "agruparProduto": "按产品分组",
+      "tabela": "表格",
+      "cards": "卡片"
+    },
+    "item": {
+      "ajustar": "修正",
+      "horasPendentes": "{{count}}小时",
+      "ver": "查看",
+      "aprovar": "批准",
+      "pedirAjuste": "请求修正",
+      "corrigir": "修正"
+    },
+    "decisoes": {
+      "tipoAprovado": "已批准",
+      "tipoRejeitado": "已拒绝",
+      "tipoAjuste": "请求修正",
+      "vazioTitulo": "未收到决定",
+      "vazioDescricao": "巴西对此提交的决定将在登记后显示在此处。",
+      "tituloLista": "巴西的决定",
+      "atrasado": "已逾期",
+      "diasRestantes": "剩余{{count}}天",
+      "itensPendentes": "待处理项目：",
+      "reenviar": "重新发送修正",
+      "versao": "V{{n}}"
+    },
+    "menu": {
+      "caixaEntrada": "收件箱"
     }
   },
   "timeline": {

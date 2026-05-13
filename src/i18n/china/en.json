@@ -279,6 +279,48 @@
         "toastOk": "Technical opinion saved.",
         "toastErr": "Failed to save opinion."
       }
+    },
+    "toolbar": {
+      "buscarPlaceholder": "Search product, PO, file",
+      "limparBusca": "Clear search",
+      "ocPlaceholder": "PO",
+      "todasOcs": "All POs",
+      "tipoPlaceholder": "Type",
+      "todosTipos": "All types",
+      "urgenciaPlaceholder": "Urgency",
+      "todasIdades": "All ages",
+      "mais24h": "+24h",
+      "mais48h": "+48h",
+      "mais72h": "+72h",
+      "limpar": "Clear ({{count}})",
+      "visualizacao": "View",
+      "agruparProduto": "Group by product",
+      "tabela": "Table",
+      "cards": "Cards"
+    },
+    "item": {
+      "ajustar": "Fix",
+      "horasPendentes": "{{count}}h",
+      "ver": "View",
+      "aprovar": "Approve",
+      "pedirAjuste": "Request changes",
+      "corrigir": "Fix"
+    },
+    "decisoes": {
+      "tipoAprovado": "Approved",
+      "tipoRejeitado": "Rejected",
+      "tipoAjuste": "Changes requested",
+      "vazioTitulo": "No decisions received",
+      "vazioDescricao": "Brazil's decisions on this submission will appear here as soon as they are registered.",
+      "tituloLista": "Decisions from Brazil",
+      "atrasado": "Overdue",
+      "diasRestantes": "{{count}}d remaining",
+      "itensPendentes": "Pending items:",
+      "reenviar": "Resend corrections",
+      "versao": "V{{n}}"
+    },
+    "menu": {
+      "caixaEntrada": "Inbox"
     }
   },
   "timeline": {
