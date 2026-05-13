@@ -50,22 +50,26 @@ export function useConversas() {
         if (!lastByConv.has(m.conversa_id)) lastByConv.set(m.conversa_id, m);
       });
 
-      // 4) não lidas: count(mensagens) - count(leituras) onde remetente != userId
-      const { data: msgsCount } = await supabase
-        .from("mensagens")
-        .select("id, conversa_id, remetente_id")
-        .in("conversa_id", ids)
-        .neq("remetente_id", userId);
-      const { data: leituras } = await supabase
-        .from("mensagens_leituras")
-        .select("mensagem_id, conversa_id")
-        .eq("user_id", userId)
-        .in("conversa_id", ids);
-      const leiturasSet = new Set((leituras ?? []).map((l) => l.mensagem_id));
+      // 4) não lidas: count agregado por conversa.
+      //    Antes carregávamos TODAS as mensagens dos remetentes + todas as leituras
+      //    do usuário em todas as conversas, e calculávamos no cliente. Em conta com
+      //    histórico grande isso virava lento.
+      //    Agora: 1 HEAD count por conversa, em paralelo, usando ultima_leitura
+      //    como corte (que já é mantida por rpc_chat_marcar_lido).
       const unreadByConv = new Map<string, number>();
-      (msgsCount ?? []).forEach((m: any) => {
-        if (!leiturasSet.has(m.id)) unreadByConv.set(m.conversa_id, (unreadByConv.get(m.conversa_id) ?? 0) + 1);
-      });
+      await Promise.all(
+        (parts ?? []).map(async (p) => {
+          const corte = p.ultima_leitura ?? "1970-01-01T00:00:00Z";
+          const { count } = await supabase
+            .from("mensagens")
+            .select("id", { count: "exact", head: true })
+            .eq("conversa_id", p.conversa_id)
+            .neq("remetente_id", userId)
+            .gt("created_at", corte)
+            .eq("excluida_para_todos", false);
+          if (count && count > 0) unreadByConv.set(p.conversa_id, count);
+        }),
+      );
 
       // 5) outros participantes (para conversas privadas)
       const { data: outros } = await supabase
