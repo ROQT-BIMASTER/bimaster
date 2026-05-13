@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Bell, ChevronDown, ChevronUp, ExternalLink, Check } from "lucide-react";
 import { useRecebimentoAlertas, useMarcarAlertaLido, type RecebimentoAlerta } from "@/hooks/useRecebimentoAlertas";
+import { useChinaI18n } from "@/hooks/useChinaI18n";
 
 const SEV_COLOR: Record<string, string> = {
   baixa: "bg-slate-500",
@@ -11,9 +12,9 @@ const SEV_COLOR: Record<string, string> = {
   alta: "bg-orange-600",
   critica: "bg-red-600",
 };
-const TIPO_LABEL: Record<string, string> = {
-  sla_estourado: "SLA porto→CD estourado",
-  entrega_atrasada: "Entrega atrasada",
+const TIPO_KEY: Record<string, string> = {
+  sla_estourado: "recebimento.tipoSlaEstourado",
+  entrega_atrasada: "recebimento.tipoEntregaAtrasada",
 };
 
 interface Props {
