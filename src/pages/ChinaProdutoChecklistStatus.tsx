@@ -344,8 +344,23 @@ export default function ChinaProdutoChecklistStatus() {
     `/dashboard/fabrica-china/produto/${id}`;
   const merged = useMergedChinaChecklist(id);
 
+  const initialFilter = useMemo<FilterKey>(() => {
+    const from = new URLSearchParams(location.search).get("from");
+    switch (from) {
+      case "sent_brazil":
+      case "in_analysis":
+        return "enviados";
+      case "returned":
+        return "rejeitados";
+      case "awaiting_send":
+      case "approved":
+      default:
+        return "todos";
+    }
+  }, [location.search]);
+
   const [search, setSearch] = useState("");
-  const [filter, setFilter] = useState<FilterKey>("todos");
+  const [filter, setFilter] = useState<FilterKey>(initialFilter);
 
   const { data: submissao } = useQuery({
     queryKey: ["china-ficha", id],
