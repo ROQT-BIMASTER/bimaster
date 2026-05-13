@@ -1,4 +1,5 @@
 import { Progress } from "@/components/ui/progress";
+import { useChinaI18n } from "@/hooks/useChinaI18n";
 
 interface ChinaOrdemProgressProps {
   cores: { cor_nome: string; qty_pedida: number; qty_produzida: number; cor_hex?: string }[];
@@ -7,6 +8,7 @@ interface ChinaOrdemProgressProps {
 }
 
 export function ChinaOrdemProgress({ cores, qtyTotal, qtyProduzida }: ChinaOrdemProgressProps) {
+  const { t } = useChinaI18n();
   const pctTotal = qtyTotal > 0 ? Math.round((qtyProduzida / qtyTotal) * 100) : 0;
 
   return (
@@ -15,20 +17,20 @@ export function ChinaOrdemProgress({ cores, qtyTotal, qtyProduzida }: ChinaOrdem
       <div className="p-4 bg-secondary/50 rounded-xl">
         <div className="flex items-center justify-between mb-2">
           <span className="text-sm font-medium text-foreground">
-            Progresso Total 总进度
+            {t("op.progressoTotal")}
           </span>
           <span className="text-2xl font-bold text-primary">{pctTotal}%</span>
         </div>
         <Progress value={pctTotal} gradient className="h-4" />
         <p className="text-xs text-muted-foreground mt-2 text-center">
-          {qtyProduzida.toLocaleString()} / {qtyTotal.toLocaleString()} 单位
+          {qtyProduzida.toLocaleString()} / {qtyTotal.toLocaleString()} {t("op.unidades")}
         </p>
       </div>
 
       {/* Per-color progress */}
       {cores.length > 0 && (
         <div className="space-y-3">
-          <p className="text-sm font-medium text-foreground">Por Cor 按颜色</p>
+          <p className="text-sm font-medium text-foreground">{t("op.porCor")}</p>
           {cores.map((cor) => {
             const pct = cor.qty_pedida > 0
               ? Math.min(100, Math.round((cor.qty_produzida / cor.qty_pedida) * 100))
