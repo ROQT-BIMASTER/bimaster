@@ -61,9 +61,9 @@ describe("ChatDrawer e2e: abrir + navegar não causa tela em branco", () => {
     expect(await screen.findByTestId("chat-error-fallback")).toBeInTheDocument();
     expect(screen.getByText("Recarregar página")).toBeInTheDocument();
 
-    // Fecha o drawer (Esc) e navega — app continua renderizando, sem tela em branco
+    // Fecha o drawer e navega — app continua renderizando, sem tela em branco
     await act(async () => {
-      fireEvent.keyDown(document.activeElement || document.body, { key: "Escape" });
+      screen.getByText("fechar-chat").click();
     });
     await act(async () => {
       screen.getByText("navegar").click();
