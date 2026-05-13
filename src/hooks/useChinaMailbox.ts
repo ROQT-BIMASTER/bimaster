@@ -9,6 +9,12 @@ import {
   AWAITING_SEND_REASON_LABEL,
   type AwaitingSendReason,
 } from "@/lib/china/awaitingSendRule";
+import {
+  computeExpectedChecklistBatch,
+  type ChecklistCustomCategory,
+  type ChecklistCustomItem,
+  type ChecklistHiddenItem,
+} from "@/lib/china/mergeChecklist";
 
 export type MailboxFolder =
   | "inbox"
@@ -71,6 +77,19 @@ export interface MailboxItem {
    * Para outras submissões: undefined.
    */
   approval_completeness?: "total" | "partial" | "empty";
+
+  // ── Checklist EFETIVO (Modo Foco) ──
+  /**
+   * Total de itens esperados no checklist da submissão (mesmo cálculo do
+   * Modo Foco: padrão + custom − ocultos). Permite à Caixa de Entrada
+   * mostrar "X de 29" no header do grupo, em vez de "X de 3" (somente docs já criados).
+   */
+  checklist_expected_total: number;
+  /**
+   * Itens "fantasma" — esperados pelo checklist mas ainda sem `china_produto_documentos`.
+   * Renderizados em "Pendentes de envio" para refletir tudo que ainda falta criar.
+   */
+  is_virtual?: boolean;
 }
 
 export type ApprovalCompleteness = "all" | "total" | "partial" | "empty";
@@ -196,6 +215,40 @@ export function useChinaMailbox(folder: MailboxFolder): UseChinaMailboxResult {
       const snoozeMap = new Map<string, string>();
       for (const r of (snoozeRes.data || []) as any[]) snoozeMap.set(r.submissao_id, r.snooze_until);
 
+      // Customizações de checklist (Modo Foco) por submissão — usadas para
+      // calcular o total ESPERADO (denominador "X de N") e gerar itens
+      // virtuais ("fantasma") em "Pendentes de envio" quando ainda nem
+      // foram criados em `china_produto_documentos`.
+      const subIds = ((subsRes.data || []) as any[]).map((s) => s.id);
+      let customCats: ChecklistCustomCategory[] = [];
+      let customItems: ChecklistCustomItem[] = [];
+      let hidden: ChecklistHiddenItem[] = [];
+      if (subIds.length > 0) {
+        const [ccRes, ciRes, hRes] = await Promise.all([
+          (supabase as any)
+            .from("china_checklist_custom_categorias")
+            .select("id, submissao_id, fluxo, label_pt, label_cn, ordem")
+            .in("submissao_id", subIds),
+          (supabase as any)
+            .from("china_checklist_custom_itens")
+            .select("id, submissao_id, tipo_key, label_pt, label_cn, categoria_default_key, categoria_custom_id")
+            .in("submissao_id", subIds),
+          (supabase as any)
+            .from("china_checklist_itens_ocultos")
+            .select("submissao_id, tipo_key")
+            .in("submissao_id", subIds),
+        ]);
+        customCats = (ccRes.data || []) as ChecklistCustomCategory[];
+        customItems = (ciRes.data || []) as ChecklistCustomItem[];
+        hidden = (hRes.data || []) as ChecklistHiddenItem[];
+      }
+      const expectedBySub = computeExpectedChecklistBatch(
+        subIds,
+        customCats,
+        customItems,
+        hidden,
+      );
+
       return {
         uid,
         subs: (subsRes.data || []) as any[],
@@ -203,6 +256,7 @@ export function useChinaMailbox(folder: MailboxFolder): UseChinaMailboxResult {
         read: new Set<string>(((readRes.data || []) as any[]).map((r) => r.documento_id)),
         flagged: new Set<string>(((flagsRes.data || []) as any[]).map((r) => r.submissao_id)),
         snoozeMap,
+        expectedBySub,
       };
     },
   });
@@ -247,7 +301,7 @@ export function useChinaMailbox(folder: MailboxFolder): UseChinaMailboxResult {
         allAwaitingPending: [] as MailboxItem[],
       };
 
-    const { uid, subs, docs, read, flagged, snoozeMap } = data;
+    const { uid, subs, docs, read, flagged, snoozeMap, expectedBySub } = data;
     const now = Date.now();
     const subsById = new Map(subs.map((s) => [s.id, s]));
 
@@ -255,6 +309,9 @@ export function useChinaMailbox(folder: MailboxFolder): UseChinaMailboxResult {
     const rejectedSubs = new Set<string>();
     // Estatísticas de checklist por submissão (total / aprovados / pendentes / rejeitados).
     const subStats = new Map<string, { total: number; aprovados: number; pendentes: number; rejeitados: number }>();
+    // Tipos de documento JÁ criados (china_produto_documentos) por submissão —
+    // usado para descobrir o que ainda falta criar (virtuais "fantasma").
+    const realTiposBySub = new Map<string, Set<string>>();
     for (const d of docs) {
       if (d.status === "rejeitado") rejectedSubs.add(d.submissao_id);
       const s = subStats.get(d.submissao_id) ?? { total: 0, aprovados: 0, pendentes: 0, rejeitados: 0 };
@@ -263,6 +320,11 @@ export function useChinaMailbox(folder: MailboxFolder): UseChinaMailboxResult {
       else if (d.status === "rejeitado") s.rejeitados += 1;
       else s.pendentes += 1;
       subStats.set(d.submissao_id, s);
+      if (d.tipo_documento) {
+        const ts = realTiposBySub.get(d.submissao_id) ?? new Set<string>();
+        ts.add(d.tipo_documento);
+        realTiposBySub.set(d.submissao_id, ts);
+      }
     }
 
     const completenessFor = (subId: string, subStatus: string): "total" | "partial" | "empty" | undefined => {
@@ -271,6 +333,13 @@ export function useChinaMailbox(folder: MailboxFolder): UseChinaMailboxResult {
       if (!s || s.total === 0) return "empty";
       if (s.aprovados === s.total) return "total";
       return "partial";
+    };
+
+    /** Total esperado pelo Modo Foco (29 no exemplo). Cai no real se não houver checklist customizado. */
+    const expectedTotalFor = (subId: string): number => {
+      const exp = expectedBySub.get(subId);
+      if (exp && exp.total > 0) return exp.total;
+      return subStats.get(subId)?.total ?? 0;
     };
 
     // Construímos um item por documento; submissões sem doc viram um item "submissão".
@@ -315,6 +384,7 @@ export function useChinaMailbox(folder: MailboxFolder): UseChinaMailboxResult {
         checklist_pendentes: subStats.get(sub.id)?.pendentes ?? 0,
         checklist_rejeitados: subStats.get(sub.id)?.rejeitados ?? 0,
         approval_completeness: completenessFor(sub.id, sub.status),
+        checklist_expected_total: expectedTotalFor(sub.id),
       });
     }
 
@@ -349,7 +419,56 @@ export function useChinaMailbox(folder: MailboxFolder): UseChinaMailboxResult {
         checklist_pendentes: 0,
         checklist_rejeitados: 0,
         approval_completeness: completenessFor(sub.id, sub.status),
+        checklist_expected_total: expectedTotalFor(sub.id),
       });
+    }
+
+    // ── Itens VIRTUAIS ("fantasma") ──
+    // Para cada submissão NÃO finalizada, geramos um item por tipo esperado
+    // pelo Modo Foco que ainda não tem `china_produto_documentos`. Eles
+    // alimentam APENAS a pasta "Pendentes de envio" (regra `awaitingSend`
+    // os captura porque não têm documento + não têm parecer técnico).
+    const virtualItems: MailboxItem[] = [];
+    for (const sub of subs) {
+      if (sub.deleted_at) continue;
+      if (sub.status === "aprovado" || sub.status === "rejeitado") continue;
+      const exp = expectedBySub.get(sub.id);
+      if (!exp || exp.tipos.size === 0) continue;
+      const realTipos = realTiposBySub.get(sub.id) ?? new Set<string>();
+      const created = new Date(sub.created_at).getTime();
+      for (const tipo of exp.tipos) {
+        if (realTipos.has(tipo)) continue;
+        virtualItems.push({
+          documento_id: null,
+          tipo_documento: tipo,
+          doc_status: null,
+          nome_arquivo: null,
+          arquivo_path: null,
+          arquivo_url: null,
+          submissao_id: sub.id,
+          produto_codigo: sub.produto_codigo || "—",
+          produto_nome: sub.produto_nome || "—",
+          numero_ordem: sub.numero_ordem || null,
+          submissao_status: sub.status,
+          observacoes_china: null,
+          observacoes_brasil: sub.observacoes_brasil || null,
+          aprovado_em: sub.aprovado_em || null,
+          created_at: sub.created_at,
+          horas_pendentes: Math.floor((now - created) / 3_600_000),
+          is_read: true,
+          is_flagged: flagged.has(sub.id),
+          is_deleted: false,
+          snooze_until: snoozedActive(sub.id),
+          had_previous_rejection: false,
+          checklist_total: subStats.get(sub.id)?.total ?? 0,
+          checklist_aprovados: subStats.get(sub.id)?.aprovados ?? 0,
+          checklist_pendentes: subStats.get(sub.id)?.pendentes ?? 0,
+          checklist_rejeitados: subStats.get(sub.id)?.rejeitados ?? 0,
+          approval_completeness: undefined,
+          checklist_expected_total: exp.total,
+          is_virtual: true,
+        });
+      }
     }
 
     // Classificadores por pasta (aplicam à lista total para os contadores)
@@ -481,6 +600,21 @@ export function useChinaMailbox(folder: MailboxFolder): UseChinaMailboxResult {
       }
     }
 
+    // Itens virtuais entram APENAS no contador de awaiting_send (submissões
+    // já estão contadas pelo loop acima; aqui contamos itens-fantasma).
+    for (const v of virtualItems) {
+      if (!matchAwaitingSend(v)) continue;
+      // Submissão por bumpCount já estará marcada (set bloqueia duplicata),
+      // só precisamos contabilizar items.
+      bumpCount("awaiting_send", v, matchAwaitingSend);
+      // Para itens, usamos chave virtual única.
+      const k = `${v.submissao_id}:virtual:${v.tipo_documento}`;
+      if (!seenForCount.awaiting_send_items.has(k)) {
+        counts.awaiting_send_items += 1;
+        seenForCount.awaiting_send_items.add(k);
+      }
+    }
+
     // Filtro da pasta atual
     const matcher: Record<MailboxFolder, (i: MailboxItem) => boolean> = {
       inbox: matchInbox,
@@ -496,10 +630,18 @@ export function useChinaMailbox(folder: MailboxFolder): UseChinaMailboxResult {
       in_analysis: matchInAnalysis,
       returned: matchReturned,
     };
-    const items = allItems.filter(matcher[folder]);
+    const baseItems = allItems.filter(matcher[folder]);
+    // Em "Pendentes de envio", anexamos os itens VIRTUAIS para que o
+    // denominador "X de N" reflita o checklist completo (Modo Foco).
+    const items =
+      folder === "awaiting_send"
+        ? [...baseItems, ...virtualItems.filter(matchAwaitingSend)]
+        : baseItems;
     // Lista global de pendentes-por-falta-de-doc/parecer (independe da pasta atual)
-    // — usada para emitir notificações.
+    // — usada para emitir notificações. Virtuais ficam de fora para evitar
+    // spam (1 toast por tipo esperado).
     const allAwaitingPending = allItems.filter((i) => {
+      if (i.is_virtual) return false;
       const ev = evaluateAwaitingSend(i);
       if (!ev.matches) return false;
       return ev.reasons.some((r) => r === "sem_documento" || r === "sem_parecer");

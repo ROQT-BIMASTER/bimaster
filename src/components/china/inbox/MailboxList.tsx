@@ -115,7 +115,9 @@ interface RowProps {
 }
 
 function MailboxRow({ item, dir, folder, active, checked, onSelect, onToggleCheck, onToggleStar, nested }: RowProps) {
-  const id = item.documento_id ?? item.submissao_id;
+  const id = item.is_virtual
+    ? `${item.submissao_id}:virtual:${item.tipo_documento ?? "_"}`
+    : item.documento_id ?? item.submissao_id;
   const sb = statusBadge(item.submissao_status, item.doc_status, item.approval_completeness);
   const SbIcon = sb.icon;
   // Padrão e-mail: enquanto não lido, título em destaque em qualquer pasta.
@@ -181,6 +183,9 @@ function MailboxRow({ item, dir, folder, active, checked, onSelect, onToggleChec
               <span className="truncate">
                 {item.tipo_documento}
                 {item.nome_arquivo ? ` · ${item.nome_arquivo}` : ""}
+                {item.is_virtual && (
+                  <span className="ml-1.5 italic text-muted-foreground/70">(ainda não criado)</span>
+                )}
               </span>
             </>
           )}
@@ -423,7 +428,9 @@ export function MailboxList({
         )}
         {effectiveMode === "flat" &&
           filtered.map(({ item, dir }) => {
-            const id = item.documento_id ?? item.submissao_id;
+            const id = item.is_virtual
+              ? `${item.submissao_id}:virtual:${item.tipo_documento ?? "_"}`
+              : item.documento_id ?? item.submissao_id;
             return (
               <MailboxRow
                 key={id}
@@ -516,10 +523,19 @@ function GroupRow({
   const unread = group.has_unread && folder === "inbox";
 
   // Cálculo de progresso para a pasta "Pendentes de envio".
+  // Denominador = total ESPERADO pelo Modo Foco (29 no exemplo), não apenas
+  // os documentos já criados em DB. Cai no progress.total quando o checklist
+  // efetivo ainda não foi customizado (Modo Foco vazio).
   const p = group.progress;
   const progressed = p.enviados + p.aprovados + p.em_analise + p.rejeitados;
-  const pct = p.total > 0 ? Math.round((progressed / p.total) * 100) : 0;
-  const pendingCount = p.pendentes;
+  const expectedTotal = Math.max(
+    group.docs[0]?.checklist_expected_total ?? 0,
+    p.total,
+  );
+  const pct = expectedTotal > 0 ? Math.round((progressed / expectedTotal) * 100) : 0;
+  const realCount = group.docs.filter((d) => !d.is_virtual).length;
+  const expectedPending = Math.max(0, expectedTotal - progressed);
+  const pendingCount = expectedPending;
 
   return (
     <>
@@ -587,14 +603,22 @@ function GroupRow({
               <p className="mt-0.5 text-[11px] text-muted-foreground">
                 Submissão: <span className="text-foreground/85">{describeParentStatus(group.submissao_status)}</span>
               </p>
-              <p className="mt-0.5 text-[11px] text-muted-foreground">
+              <p
+                className="mt-0.5 text-[11px] text-muted-foreground"
+                title="Total baseado no checklist configurado (Modo Foco). Itens ainda não criados aparecem como pendentes de envio."
+              >
                 Checklist:{" "}
-                <span className="text-foreground/90 font-medium">{progressed} de {p.total}</span>
+                <span className="text-foreground/90 font-medium">{progressed} de {expectedTotal}</span>
                 {" "}itens enviados ·{" "}
                 <span className={cn("font-medium", pendingCount > 0 ? "text-amber-400" : "text-emerald-400")}>
                   {pendingCount} pendente{pendingCount === 1 ? "" : "s"} de envio
                 </span>
               </p>
+              {expectedTotal > realCount && (
+                <p className="mt-0.5 text-[10px] text-muted-foreground/80">
+                  {realCount} no checklist atual · {expectedTotal - realCount} ainda não criado{expectedTotal - realCount === 1 ? "" : "s"}
+                </p>
+              )}
               <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-muted/60">
                 <div
                   className={cn(
@@ -680,7 +704,9 @@ function GroupRow({
       </li>
       {expanded &&
         group.docs.map((d) => {
-          const id = d.documento_id ?? d.submissao_id;
+          const id = d.is_virtual
+            ? `${d.submissao_id}:virtual:${d.tipo_documento ?? "_"}`
+            : d.documento_id ?? d.submissao_id;
           return (
             <MailboxRow
               key={id}
