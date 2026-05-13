@@ -24,6 +24,7 @@ const decisionConfig = {
 };
 
 export function ChinaInboxDecisoes({ submissaoId, processId, onReenviar }: Props) {
+  const { t } = useChinaI18n();
   const { decisions, isLoading } = useProcessDecisions(processId, submissaoId);
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
 
