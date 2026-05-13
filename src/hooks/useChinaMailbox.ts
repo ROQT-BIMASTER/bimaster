@@ -719,6 +719,7 @@ export function useChinaMailbox(folder: MailboxFolder): UseChinaMailboxResult {
 
   return {
     items,
+    progressItems,
     counts,
     isLoading: query.isLoading,
     isFetching: query.isFetching,
