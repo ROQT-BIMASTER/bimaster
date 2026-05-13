@@ -411,7 +411,7 @@ export function ChecklistPendingSheet({
           <SheetTitle className="text-sm font-semibold leading-tight">
             <span className="flex items-center gap-2">
               <ListChecks className="h-4 w-4 text-primary" />
-              {cfg.title}
+              {t(cfg.titleKey)}
             </span>
           </SheetTitle>
           <SheetDescription className="text-[12px] text-muted-foreground">
@@ -426,16 +426,16 @@ export function ChecklistPendingSheet({
             <div className="space-y-1 pt-1">
               <p className="text-[11px] text-muted-foreground">
                 <span className="font-medium text-foreground/90">
-                  {totals.enviados} de {totals.expected}
+                  {t("inbox.checklistSheet.totals.linha", { enviados: totals.enviados, expected: totals.expected })}
                 </span>{" "}
-                itens enviados ·{" "}
+                {t("inbox.checklistSheet.totals.itensEnviados")} ·{" "}
                 <span
                   className={cn(
                     "font-medium",
                     totals.pendentes > 0 ? "text-amber-400" : "text-emerald-400",
                   )}
                 >
-                  {totals.pendentes} pendente{totals.pendentes === 1 ? "" : "s"}
+                  {t("inbox.checklistSheet.totals.pendente", { count: totals.pendentes })}
                 </span>
               </p>
               <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted/60">
@@ -456,10 +456,10 @@ export function ChecklistPendingSheet({
               variant="ghost"
               className="h-6 gap-1 px-2 text-[10.5px] text-muted-foreground"
               onClick={handleOpenInPage}
-              title="Abrir em uma página dedicada com o status do checklist"
+              title={t("inbox.checklistSheet.header.abrirPaginaDedicadaTitle")}
             >
               <ExternalLink className="h-3 w-3" />
-              Abrir em página dedicada
+              {t("inbox.checklistSheet.header.abrirPaginaDedicada")}
             </Button>
             {showParecerActions && (
               <Button
@@ -471,18 +471,22 @@ export function ChecklistPendingSheet({
                   hasParecer ? "text-muted-foreground" : "text-amber-500",
                 )}
                 onClick={() => setParecerOpen(true)}
-                title={hasParecer ? "Editar parecer técnico da China" : "Adicionar parecer técnico para liberar envio ao Brasil"}
+                title={hasParecer
+                  ? t("inbox.checklistSheet.header.editarParecerTitle")
+                  : t("inbox.checklistSheet.header.adicionarParecerTitle")}
               >
                 {hasParecer ? <MessageSquareText className="h-3 w-3" /> : <MessageSquarePlus className="h-3 w-3" />}
-                {hasParecer ? "Editar parecer" : "Adicionar parecer"}
+                {hasParecer
+                  ? t("inbox.checklistSheet.header.editarParecer")
+                  : t("inbox.checklistSheet.header.adicionarParecer")}
               </Button>
             )}
           </div>
           {showParecerActions && !hasParecer && pendingCount > 0 && (
             <div className="rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-[11px] text-amber-200/90">
-              <p className="font-medium text-amber-300">Parecer técnico pendente</p>
+              <p className="font-medium text-amber-300">{t("inbox.checklistSheet.parecerBanner.titulo")}</p>
               <p className="mt-0.5 text-amber-200/80">
-                Para despachar ao Brasil, registre o parecer técnico desta submissão.
+                {t("inbox.checklistSheet.parecerBanner.descricao")}
               </p>
               <Button
                 type="button"
@@ -491,7 +495,7 @@ export function ChecklistPendingSheet({
                 onClick={() => setParecerOpen(true)}
               >
                 <MessageSquarePlus className="h-3 w-3" />
-                Abrir caixa de parecer
+                {t("inbox.checklistSheet.parecerBanner.abrirCaixa")}
               </Button>
             </div>
           )}
@@ -500,7 +504,7 @@ export function ChecklistPendingSheet({
         <div className="flex-1 overflow-y-auto">
           {sections.length === 0 && (
             <p className="p-6 text-center text-sm text-muted-foreground">
-              Nenhum item no checklist.
+              {t("inbox.checklistSheet.empty")}
             </p>
           )}
           {sections.map((section) => {
