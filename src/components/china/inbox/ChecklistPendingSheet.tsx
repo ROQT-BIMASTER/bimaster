@@ -36,6 +36,8 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { usePageBgColor } from "@/hooks/usePageBgColor";
+import { getBgPaletteVars } from "@/lib/colorUtils";
 import type { MailboxItem, MailboxFolder } from "@/hooks/useChinaMailbox";
 import type { MailboxGroup } from "@/lib/china/groupMailboxItems";
 import { evaluateAwaitingSend } from "@/lib/china/awaitingSendRule";
@@ -296,6 +298,7 @@ export function ChecklistPendingSheet({
 }: ChecklistPendingSheetProps) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { bgColor } = usePageBgColor();
   const merged = useMergedChinaChecklist(group?.submissao_id ?? null);
   const cfg = (folder && FOLDER_CONFIG[folder]) ?? DEFAULT_FOLDER_CONFIG;
 
@@ -384,7 +387,15 @@ export function ChecklistPendingSheet({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="w-full sm:max-w-md flex flex-col p-0">
+      <SheetContent
+        side="right"
+        className="w-full sm:max-w-md flex flex-col p-0"
+        style={
+          bgColor
+            ? ({ backgroundColor: bgColor, color: "hsl(var(--foreground))", ...getBgPaletteVars(bgColor) } as React.CSSProperties)
+            : undefined
+        }
+      >
         <SheetHeader className="space-y-2 border-b border-border/60 px-4 py-3">
           <SheetTitle className="text-sm font-semibold leading-tight">
             <span className="flex items-center gap-2">
