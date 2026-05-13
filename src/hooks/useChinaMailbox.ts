@@ -341,6 +341,13 @@ export function useChinaMailbox(folder: MailboxFolder): UseChinaMailboxResult {
       return "partial";
     };
 
+    /** Total esperado pelo Modo Foco (29 no exemplo). Cai no real se não houver checklist customizado. */
+    const expectedTotalFor = (subId: string): number => {
+      const exp = expectedBySub.get(subId);
+      if (exp && exp.total > 0) return exp.total;
+      return subStats.get(subId)?.total ?? 0;
+    };
+
     /** Resolve label legível do tipo_documento usando o mapa do Modo Foco. */
     const labelFor = (subId: string, tipo: string | null | undefined): string | undefined => {
       if (!tipo) return undefined;
