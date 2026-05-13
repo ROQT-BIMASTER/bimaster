@@ -771,5 +771,39 @@
     "errCarregar": "无法加载文件",
     "previewIndisponivel": "预览不可用",
     "obsLabel": "备注:"
+  },
+  "emitirOC": {
+    "titulo": "下采购单",
+    "unidades": "单位",
+    "dataEntrega": "预计交货日期",
+    "eanCaixaMaster": "主箱EAN",
+    "eanPlaceholder": "例如: 7898000000000",
+    "observacoes": "备注",
+    "obsPlaceholder": "特殊说明...",
+    "cancelar": "取消",
+    "emitir": "下单",
+    "emitindo": "提交中...",
+    "errInformeData": "请填写预计交货日期",
+    "errEmitir": "下单失败",
+    "okCriada": "订单 {numero} 已创建为草稿 — 等待批准"
+  },
+  "saldoDecisao": {
+    "titulo": "余额决策",
+    "ocLabel": "订单",
+    "unico": "单一",
+    "unidadesSaldo": "{n} 个单位余额",
+    "manterAberta": "保持开放",
+    "manterAbertaDesc": "中方继续生产余额。订单保持开放。",
+    "fecharParcial": "部分关闭",
+    "fecharParcialDesc": "仅接受已收数量。余额被扣除,该行关闭。",
+    "cancelarSaldo": "取消余额",
+    "cancelarSaldoDesc": "取消剩余余额。解除中方此项义务。",
+    "gerarNovaOC": "创建新订单含余额",
+    "gerarNovaOCDesc": "仅以余额创建新订单,与当前订单关联。",
+    "justificativa": "理由(推荐)",
+    "justificativaPlaceholder": "例如:工厂延迟、原料短缺、订单变更...",
+    "cancelar": "取消",
+    "confirmar": "确认决策",
+    "registrando": "记录中..."
   }
 }
