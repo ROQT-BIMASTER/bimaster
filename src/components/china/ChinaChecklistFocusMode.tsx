@@ -124,6 +124,7 @@ export function ChinaChecklistFocusMode({
   focusTipo,
   onAfterFocus,
 }: ChinaChecklistFocusModeProps) {
+  const { t } = useChinaI18n();
   const [isOpen, setIsOpen] = useState(false);
   const { bgStyle, BgColorButton } = usePageBgColor("china_checklist_focus");
   const [activeCat, setActiveCat] = useState(DOCUMENT_CATEGORIES[0].key);
