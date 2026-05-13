@@ -87,12 +87,11 @@ export function DialogContestarDocumento({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Upload className="h-5 w-5 text-primary" />
-            Substituir documento com parecer técnico
+            {t("documento.contestar.titulo")}
           </DialogTitle>
           <DialogDescription>
-            {tipoDocumentoLabel ? `Documento: ${tipoDocumentoLabel}. ` : ""}
-            A versão anterior será arquivada como histórico (auditoria) e o novo arquivo
-            entrará para nova análise do Brasil.
+            {tipoDocumentoLabel ? t("documento.contestar.documentoLabel", { label: tipoDocumentoLabel }) : ""}
+            {t("documento.contestar.descricao")}
           </DialogDescription>
         </DialogHeader>
 
@@ -101,7 +100,7 @@ export function DialogContestarDocumento({
             <div className="rounded-md border border-destructive/40 bg-destructive/5 p-3 space-y-2">
               <div className="flex items-center gap-2 text-sm font-medium text-destructive">
                 <FileWarning className="h-4 w-4" />
-                Laudo técnico do Brasil — rodada {laudoRevisao.rodada}
+                {t("documento.contestar.laudoTitulo", { n: laudoRevisao.rodada })}
               </div>
               <TextoComTraducao
                 texto={laudoRevisao.motivo_rejeicao}
@@ -119,7 +118,7 @@ export function DialogContestarDocumento({
               />
               {laudoRevisao.anexos?.length > 0 && (
                 <div className="text-xs text-muted-foreground">
-                  Anexos: {laudoRevisao.anexos.map((a) => a.nome).join(", ")}
+                  {t("documento.contestar.anexosLabel", { lista: laudoRevisao.anexos.map((a) => a.nome).join(", ") })}
                 </div>
               )}
             </div>
