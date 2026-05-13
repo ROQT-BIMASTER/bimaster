@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Star, Paperclip, Clock, AlertTriangle, CheckCircle2, FileText, FileX2, MessageSquareOff, ChevronRight, ChevronDown, Layers, CheckCheck, ListChecks, Send } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
@@ -492,6 +493,7 @@ export function MailboxList({
         open={openChecklistFor !== null}
         onOpenChange={(o) => !o && setOpenChecklistFor(null)}
         group={openGroup}
+        folder={folder}
         onSelectItem={onSelect}
         onEnviarGrupoBrasil={onEnviarGrupoBrasil}
         onOpenSubmissao={onOpenSubmissao}
@@ -550,7 +552,14 @@ function GroupRow({
   // Em "Pendentes de envio" o detalhamento é feito agora num drawer lateral
   // (ChecklistPendingSheet), não mais por expansão inline. Para outras pastas,
   // mantemos o comportamento clássico de expandir/recolher.
-  const isAwaiting = folder === "awaiting_send";
+  const useDrawer =
+    folder === "awaiting_send" ||
+    folder === "sent_brazil" ||
+    folder === "in_analysis" ||
+    folder === "returned";
+  const isAwaiting = useDrawer;
+  const allowSendBatch = folder === "awaiting_send" || folder === "returned";
+  const navigate = useNavigate();
   const [expanded, setExpanded] = useState(false);
   const headerActive = group.docs.some((d) => (d.documento_id ?? d.submissao_id) === selectedId);
   const checked = selectedIds.has(group.submissao_id);
@@ -686,7 +695,7 @@ function GroupRow({
                   <ListChecks className="h-3 w-3" />
                   Ver checklist ({pendingCount})
                 </Button>
-                {pendingCount > 0 && onEnviarGrupoBrasil && (
+                {allowSendBatch && pendingCount > 0 && onEnviarGrupoBrasil && (
                   <Button
                     type="button"
                     size="sm"
@@ -719,12 +728,31 @@ function GroupRow({
               </div>
             </>
           ) : (
-            <div className="mt-0.5 flex items-center gap-1.5 truncate text-[11.5px] text-muted-foreground">
+            <div className="mt-0.5 flex flex-wrap items-center gap-1.5 truncate text-[11.5px] text-muted-foreground">
               <Paperclip className="h-3 w-3 shrink-0" />
               <span className="truncate">
                 {group.docs.length} documento{group.docs.length === 1 ? "" : "s"}
                 {Pivot.tipo_documento ? ` · último: ${resolveTipoLabel(Pivot)}` : ""}
               </span>
+              {folder === "approved" && (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  className="h-5 gap-1 px-1.5 text-[10px] text-primary"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    navigate(
+                      `/dashboard/fabrica-china/produto/${group.submissao_id}/checklist-status?from=approved`,
+                      { state: { from: "/dashboard/fabrica-china/caixa-entrada" } },
+                    );
+                  }}
+                  title="Abrir página dedicada com o status completo do checklist"
+                >
+                  <ListChecks className="h-3 w-3" />
+                  Ver checklist completo
+                </Button>
+              )}
             </div>
           )}
         </div>

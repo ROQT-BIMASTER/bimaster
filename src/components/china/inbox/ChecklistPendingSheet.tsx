@@ -22,7 +22,7 @@ import {
   ArrowDownLeft,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { MailboxItem } from "@/hooks/useChinaMailbox";
+import type { MailboxItem, MailboxFolder } from "@/hooks/useChinaMailbox";
 import type { MailboxGroup } from "@/lib/china/groupMailboxItems";
 import { evaluateAwaitingSend } from "@/lib/china/awaitingSendRule";
 import { useMergedChinaChecklist, type MergedChecklistCategory } from "@/hooks/useMergedChinaChecklist";
@@ -31,10 +31,57 @@ export interface ChecklistPendingSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   group: MailboxGroup | null;
+  /** Pasta de origem — define título, escopo e ações exibidas. */
+  folder?: MailboxFolder;
   onSelectItem?: (id: string) => void;
   onEnviarGrupoBrasil?: (group: MailboxGroup) => void;
   onOpenSubmissao?: (submissao_id: string) => void;
 }
+
+interface FolderConfig {
+  title: string;
+  /** Filtra os docs do grupo que pertencem ao escopo desta pasta. */
+  scope: (item: MailboxItem) => boolean;
+  /** Define o filtro inicial da página dedicada via query string. */
+  pageFilter: "todos" | "enviados" | "pendentes" | "rejeitados" | "nao_criados";
+  /** Mostra ações "Anexar" e "Enviar ao Brasil" no item/footer. */
+  showAttach: boolean;
+  showEnviarFooter: boolean;
+}
+
+const FOLDER_CONFIG: Partial<Record<MailboxFolder, FolderConfig>> = {
+  awaiting_send: {
+    title: "Checklist pendente",
+    scope: () => true,
+    pageFilter: "todos",
+    showAttach: true,
+    showEnviarFooter: true,
+  },
+  sent_brazil: {
+    title: "Itens enviados ao Brasil",
+    scope: (i) => i.doc_status === "pendente" && !i.is_virtual,
+    pageFilter: "enviados",
+    showAttach: false,
+    showEnviarFooter: false,
+  },
+  in_analysis: {
+    title: "Itens em análise no Brasil",
+    scope: (i) => i.doc_status === "enviado" || i.doc_status === "contestado",
+    pageFilter: "enviados",
+    showAttach: false,
+    showEnviarFooter: false,
+  },
+  returned: {
+    title: "Itens com ajustes solicitados",
+    scope: (i) => i.doc_status === "rejeitado",
+    pageFilter: "rejeitados",
+    showAttach: true,
+    showEnviarFooter: true,
+  },
+};
+
+const DEFAULT_FOLDER_CONFIG: FolderConfig = FOLDER_CONFIG.awaiting_send!;
+
 
 type ItemState =
   | "nao_criado"
@@ -182,17 +229,28 @@ export function ChecklistPendingSheet({
   open,
   onOpenChange,
   group,
+  folder,
   onSelectItem,
   onEnviarGrupoBrasil,
   onOpenSubmissao,
 }: ChecklistPendingSheetProps) {
   const navigate = useNavigate();
   const merged = useMergedChinaChecklist(group?.submissao_id ?? null);
+  const cfg = (folder && FOLDER_CONFIG[folder]) ?? DEFAULT_FOLDER_CONFIG;
+
+  // Aplica o escopo da pasta antes de montar as seções por categoria.
+  const scopedGroup = useMemo<MailboxGroup | null>(() => {
+    if (!group) return null;
+    if (cfg === DEFAULT_FOLDER_CONFIG && (!folder || folder === "awaiting_send")) {
+      return group;
+    }
+    return { ...group, docs: group.docs.filter(cfg.scope) };
+  }, [group, cfg, folder]);
 
   const sections = useMemo(() => {
-    if (!group) return [];
-    return buildSections(group, merged.categories);
-  }, [group, merged.categories]);
+    if (!scopedGroup) return [];
+    return buildSections(scopedGroup, merged.categories);
+  }, [scopedGroup, merged.categories]);
 
   const totals = useMemo(() => {
     if (!group) return null;
@@ -227,10 +285,12 @@ export function ChecklistPendingSheet({
 
   const handleOpenInPage = () => {
     navigate(
-      `/dashboard/fabrica-china/produto/${group.submissao_id}/checklist-status`,
+      `/dashboard/fabrica-china/produto/${group.submissao_id}/checklist-status?from=${encodeURIComponent(folder ?? "awaiting_send")}`,
       { state: { from: "/dashboard/fabrica-china/caixa-entrada" } },
     );
   };
+
+
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -239,7 +299,7 @@ export function ChecklistPendingSheet({
           <SheetTitle className="text-sm font-semibold leading-tight">
             <span className="flex items-center gap-2">
               <ListChecks className="h-4 w-4 text-primary" />
-              Checklist pendente
+              {cfg.title}
             </span>
           </SheetTitle>
           <SheetDescription className="text-[12px] text-muted-foreground">
@@ -369,20 +429,21 @@ export function ChecklistPendingSheet({
                               <Icon className="h-2.5 w-2.5" />
                               {meta.label}
                             </Badge>
-                            {(state === "nao_criado" ||
-                              state === "pendente_envio" ||
-                              state === "rejeitado") && (
-                              <Button
-                                type="button"
-                                size="sm"
-                                variant="ghost"
-                                className="h-5 gap-1 px-1.5 text-[10px] text-primary"
-                                onClick={() => handleAttach(item)}
-                                title="Abrir o Modo Foco já posicionado neste item"
-                              >
-                                Anexar
-                              </Button>
-                            )}
+                            {cfg.showAttach &&
+                              (state === "nao_criado" ||
+                                state === "pendente_envio" ||
+                                state === "rejeitado") && (
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-5 gap-1 px-1.5 text-[10px] text-primary"
+                                  onClick={() => handleAttach(item)}
+                                  title="Abrir o Modo Foco já posicionado neste item"
+                                >
+                                  Anexar
+                                </Button>
+                              )}
                             {!item.is_virtual && onSelectItem && (
                               <Button
                                 type="button"
@@ -422,7 +483,7 @@ export function ChecklistPendingSheet({
               Abrir submissão
             </Button>
           )}
-          {pendingCount > 0 && onEnviarGrupoBrasil && (
+          {cfg.showEnviarFooter && pendingCount > 0 && onEnviarGrupoBrasil && (
             <Button
               type="button"
               size="sm"
