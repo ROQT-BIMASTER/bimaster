@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/select";
 import { CHINA_DOCUMENT_TYPES } from "@/lib/china-document-types";
 import type { ChinaInboxItem } from "@/hooks/useChinaInbox";
+import { useChinaI18n } from "@/hooks/useChinaI18n";
 
 export type InboxViewMode = "table" | "cards";
 export type InboxUrgencia = "todos" | "24" | "48" | "72";
