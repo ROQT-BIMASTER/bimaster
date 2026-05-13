@@ -34,15 +34,29 @@ export class ChatErrorBoundary extends Component<Props, State> {
     if (this.state.hasError) {
       if (this.props.fallback !== undefined) return this.props.fallback;
       return (
-        <div className="p-4 text-xs text-muted-foreground bg-card border border-border rounded-md m-3">
-          <p className="font-medium text-foreground mb-1">Chat indisponível</p>
-          <p>Ocorreu um erro ao carregar o chat. Recarregue a página para tentar novamente.</p>
-          <button
-            onClick={this.reset}
-            className="mt-2 text-primary hover:underline"
-          >
-            Tentar novamente
-          </button>
+        <div
+          role="alert"
+          className="m-3 p-4 rounded-md border border-destructive/30 bg-destructive/5 flex flex-col items-start gap-2"
+          data-testid="chat-error-fallback"
+        >
+          <p className="text-sm font-semibold text-foreground">Chat indisponível</p>
+          <p className="text-xs text-muted-foreground">
+            Ocorreu um erro ao carregar o chat. Tente novamente ou recarregue a página.
+          </p>
+          <div className="flex gap-2 mt-1">
+            <button
+              onClick={this.reset}
+              className="text-xs px-3 py-1.5 rounded-md border border-border bg-card hover:bg-accent transition-colors"
+            >
+              Tentar novamente
+            </button>
+            <button
+              onClick={() => window.location.reload()}
+              className="text-xs px-3 py-1.5 rounded-md bg-primary text-primary-foreground hover:opacity-90 transition-opacity"
+            >
+              Recarregar página
+            </button>
+          </div>
         </div>
       );
     }
