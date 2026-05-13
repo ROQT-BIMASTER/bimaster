@@ -5581,6 +5581,75 @@ export type Database = {
           },
         ]
       }
+      china_timeline_sla: {
+        Row: {
+          created_at: string
+          id: string
+          stage_1_dias: number
+          stage_10_dias: number
+          stage_2_dias: number
+          stage_3_dias: number
+          stage_4_dias: number
+          stage_5_dias: number
+          stage_6_dias: number
+          stage_7_dias: number
+          stage_8_dias: number
+          stage_9_dias: number
+          submissao_id: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          stage_1_dias?: number
+          stage_10_dias?: number
+          stage_2_dias?: number
+          stage_3_dias?: number
+          stage_4_dias?: number
+          stage_5_dias?: number
+          stage_6_dias?: number
+          stage_7_dias?: number
+          stage_8_dias?: number
+          stage_9_dias?: number
+          submissao_id?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          stage_1_dias?: number
+          stage_10_dias?: number
+          stage_2_dias?: number
+          stage_3_dias?: number
+          stage_4_dias?: number
+          stage_5_dias?: number
+          stage_6_dias?: number
+          stage_7_dias?: number
+          stage_8_dias?: number
+          stage_9_dias?: number
+          submissao_id?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "china_timeline_sla_submissao_id_fkey"
+            columns: ["submissao_id"]
+            isOneToOne: false
+            referencedRelation: "china_produto_submissoes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "china_timeline_sla_submissao_id_fkey"
+            columns: ["submissao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_china_produto_recebimento_kpis"
+            referencedColumns: ["submissao_id"]
+          },
+        ]
+      }
       classification_auto_logs: {
         Row: {
           created_at: string

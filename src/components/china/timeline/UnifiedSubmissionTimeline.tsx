@@ -14,6 +14,8 @@ import { useOCTimeline } from "@/hooks/useOCTimeline";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { useChinaTimelineSla } from "@/hooks/useChinaTimelineSla";
+import { computeStageDeadlines, type StageDeadline } from "@/lib/china/timelineSlaCompute";
 
 
 interface SubmissaoLite {
@@ -269,6 +271,36 @@ export function UnifiedSubmissionTimeline({ submissao, ocId, onlyChinaStages, cl
     ? "neutral"
     : saldoAberto <= 0 && qtyPedida > 0 ? "done" : qtyRecebida > 0 ? "pending" : "neutral";
 
+  // ---------- Deadlines (SLA) ----------
+  const { data: slaData } = useChinaTimelineSla(submissao.submissao_id);
+  const baseDate = parseLocalDate(submissao.created_at || null);
+  const deadlines: StageDeadline[] = useMemo(() => {
+    const sla = slaData?.effective ?? null;
+    if (!sla) return [];
+    const stagesArr = [
+      { stage: 1, st: stSubmissao, doneAt: submissao.created_at },
+      { stage: 2, st: stDocs, doneAt: docs?.ultimoEm ?? null },
+      { stage: 3, st: stEnviada, doneAt: docs?.ultimoEm ?? null },
+      { stage: 4, st: stAprovBrasil, doneAt: submissao.aprovado_em ?? null },
+      { stage: 5, st: stPedido, doneAt: oc?.data_emissao ?? null },
+      { stage: 6, st: stProducao, doneAt: oc?.data_producao_concluida ?? null },
+      { stage: 7, st: stEmbarque, doneAt: embarque?.data_embarque ?? null },
+      { stage: 8, st: stTransito, doneAt: oc?.data_chegada_porto ?? null },
+      { stage: 9, st: stDesemb, doneAt: oc?.data_desembaraco ?? null },
+      { stage: 10, st: stReceb, doneAt: oc?.data_recebimento_cd ?? null },
+    ];
+    return computeStageDeadlines({
+      base: baseDate,
+      sla,
+      stageState: stagesArr.map((s) => ({
+        stage: s.stage,
+        done: s.st === "done",
+        concluidaEm: s.doneAt ? (parseLocalDate(s.doneAt) ?? new Date(s.doneAt)) : null,
+      })),
+    });
+  }, [slaData, baseDate, stSubmissao, stDocs, stEnviada, stAprovBrasil, stPedido, stProducao, stEmbarque, stTransito, stDesemb, stReceb, docs?.ultimoEm, submissao.aprovado_em, submissao.created_at, oc, embarque]);
+  const dl = (n: number): StageDeadline | undefined => deadlines.find((d) => d.stage === n);
+
   // Notifica o pai com o snapshot atual das etapas (para exportar PDF).
   useEffect(() => {
     if (!onStagesComputed) return;
@@ -304,13 +336,13 @@ export function UnifiedSubmissionTimeline({ submissao, ocId, onlyChinaStages, cl
   return (
     <div className={className}>
       <div className="space-y-2">
-        <StageCard icon={FilePlus2} title="1. Submissão criada" status={stSubmissao}>
+        <StageCard icon={FilePlus2} title="1. Submissão criada" status={stSubmissao} deadline={dl(1)}>
           <DataRow label="Criada em" value={submissao.created_at ? fmtDate(submissao.created_at) : "—"} />
           <DataRow label="Status atual" value={submStatus || "—"} />
           {submissao.numero_ordem && <DataRow label="OC vinculada" value={submissao.numero_ordem} />}
         </StageCard>
 
-        <StageCard icon={FileText} title="2. Documentos & parecer" status={stDocs}>
+        <StageCard icon={FileText} title="2. Documentos & parecer" status={stDocs} deadline={dl(2)}>
           <DataRow label="Documentos" value={docs?.total ?? 0} />
           <DataRow label="Aprovados" value={docs?.aprovados ?? 0} />
           <DataRow label="Pendentes" value={docs?.pendentes ?? 0} />
@@ -319,7 +351,7 @@ export function UnifiedSubmissionTimeline({ submissao, ocId, onlyChinaStages, cl
           )}
         </StageCard>
 
-        <StageCard icon={Send} title="3. Enviada ao Brasil" status={stEnviada}>
+        <StageCard icon={Send} title="3. Enviada ao Brasil" status={stEnviada} deadline={dl(3)}>
           <DataRow
             label="Estado"
             value={
@@ -352,7 +384,7 @@ export function UnifiedSubmissionTimeline({ submissao, ocId, onlyChinaStages, cl
           )}
         </StageCard>
 
-        <StageCard icon={ShieldCheck} title="4. Aprovação Brasil" status={stAprovBrasil}>
+        <StageCard icon={ShieldCheck} title="4. Aprovação Brasil" status={stAprovBrasil} deadline={dl(4)}>
           {enviadosDocs > 0 ? (
             <ProgressBlock
               label="Aprovados pelo Brasil"
@@ -387,7 +419,7 @@ export function UnifiedSubmissionTimeline({ submissao, ocId, onlyChinaStages, cl
               </p>
             )}
 
-            <StageCard icon={ShoppingCart} title="5. Pedido (OC)" status={stPedido}>
+            <StageCard icon={ShoppingCart} title="5. Pedido (OC)" status={stPedido} deadline={dl(5)}>
               {ocLoaded ? (
                 <>
                   <DataRow label="OC" value={oc.numero_oc || submissao.numero_ordem || "—"} />
@@ -400,7 +432,7 @@ export function UnifiedSubmissionTimeline({ submissao, ocId, onlyChinaStages, cl
               )}
             </StageCard>
 
-            <StageCard icon={Factory} title="6. Produção" status={stProducao}>
+            <StageCard icon={Factory} title="6. Produção" status={stProducao} deadline={dl(6)}>
               {ocLoaded ? (
                 <>
                   <DataRow label="Apontado" value={`${fmtNum(qtyProduzida)} un.`} />
@@ -411,7 +443,7 @@ export function UnifiedSubmissionTimeline({ submissao, ocId, onlyChinaStages, cl
               )}
             </StageCard>
 
-            <StageCard icon={Ship} title="7. Embarque" status={stEmbarque}>
+            <StageCard icon={Ship} title="7. Embarque" status={stEmbarque} deadline={dl(7)}>
               {embarque ? (
                 <>
                   <DataRow label="Modalidade" value={`${embarque.modalidade || "—"} · ${embarque.tipo_embarque || "—"}`} />
@@ -424,18 +456,18 @@ export function UnifiedSubmissionTimeline({ submissao, ocId, onlyChinaStages, cl
               )}
             </StageCard>
 
-            <StageCard icon={Compass} title="8. Trânsito" status={stTransito}>
+            <StageCard icon={Compass} title="8. Trânsito" status={stTransito} deadline={dl(8)}>
               <DataRow label="Origem" value={embarque?.porto_origem || "—"} />
               <DataRow label="Destino" value={embarque?.porto_destino || "—"} />
               <DataRow label="Chegada porto" value={fmtDate(oc?.data_chegada_porto)} />
             </StageCard>
 
-            <StageCard icon={FileCheck2} title="9. Desembaraço" status={stDesemb}>
+            <StageCard icon={FileCheck2} title="9. Desembaraço" status={stDesemb} deadline={dl(9)}>
               <DataRow label="Chegada porto" value={fmtDate(oc?.data_chegada_porto)} />
               <DataRow label="Desembaraço" value={fmtDate(oc?.data_desembaraco)} />
             </StageCard>
 
-            <StageCard icon={PackageCheck} title="10. Recebido no CD" status={stReceb}>
+            <StageCard icon={PackageCheck} title="10. Recebido no CD" status={stReceb} deadline={dl(10)}>
               {ocLoaded ? (
                 <>
                   <DataRow label="Recebido CD" value={fmtDate(oc?.data_recebimento_cd)} />

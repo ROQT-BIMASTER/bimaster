@@ -9,7 +9,9 @@ import {
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
-import { Download } from "lucide-react";
+import { Download, CalendarClock } from "lucide-react";
+import { TimelineSlaConfigDialog } from "./TimelineSlaConfigDialog";
+import { parseLocalDate } from "@/lib/utils/parseLocalDate";
 import { toast } from "sonner";
 import { UnifiedSubmissionTimeline } from "./UnifiedSubmissionTimeline";
 import { ChinaUnifiedTimelineEventsBody } from "./ChinaUnifiedTimelineEventsBody";
@@ -38,6 +40,7 @@ export function SubmissionTimelineSheet({ open, onOpenChange, scope, submissao, 
 
   const [stages, setStages] = useState<JourneyStageRow[]>([]);
   const [filteredEvents, setFilteredEvents] = useState<ChinaTimelineEvent[]>([]);
+  const [slaOpen, setSlaOpen] = useState(false);
 
   const handleExportPdf = () => {
     if (!submissao) {
@@ -82,6 +85,18 @@ export function SubmissionTimelineSheet({ open, onOpenChange, scope, submissao, 
                   size="sm"
                   variant="outline"
                   className="h-7 gap-1.5 text-xs"
+                  onClick={() => setSlaOpen(true)}
+                  title="Configurar prazos por etapa (SLA)"
+                >
+                  <CalendarClock className="h-3.5 w-3.5" />
+                  Prazos
+                </Button>
+              )}
+              {submissao && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-7 gap-1.5 text-xs"
                   onClick={handleExportPdf}
                   title="Exportar linha do tempo em PDF"
                 >
@@ -120,6 +135,14 @@ export function SubmissionTimelineSheet({ open, onOpenChange, scope, submissao, 
           </TabsContent>
         </Tabs>
       </SheetContent>
+      {submissao && (
+        <TimelineSlaConfigDialog
+          open={slaOpen}
+          onOpenChange={setSlaOpen}
+          submissaoId={submissao.submissao_id}
+          baseDate={parseLocalDate(submissao.created_at || null)}
+        />
+      )}
     </Sheet>
   );
 }
