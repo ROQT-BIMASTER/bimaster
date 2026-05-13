@@ -1,6 +1,6 @@
 import {
   Inbox, Link2, Link2Off, FileText, Send, Loader2, CheckCircle2, Globe,
-  XCircle, AlertTriangle, Star, Clock, CheckSquare,
+  XCircle, AlertTriangle, Star, Clock,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { VincularFolder, VincularFolderCounts } from "@/hooks/useVincularChinaMailboxData";
@@ -14,39 +14,32 @@ interface Props {
   total: number;
 }
 
-// Taxonomia alinhada ao brief corporativo:
-//   Operação: Pendentes, Enviados, Em Revisão, Aprovados, Reprovados, Finalizados
-//   Visões:   Todos, Marcados, Adiados
-//   Atenção:  Pendências
-type Group = "operacao" | "visoes" | "atencao";
-
 const FOLDERS: Array<{
   key: VincularFolder;
   label: string;
   icon: typeof Inbox;
   countKey: keyof VincularFolderCounts;
   tone?: string;
-  group: Group;
+  group?: "main" | "status" | "alerts";
 }> = [
-  // Operação — pipeline corporativo
-  { key: "nao_vinculadas", label: "Pendentes", icon: Link2Off, countKey: "nao_vinculadas", tone: "text-amber-400", group: "operacao" },
-  { key: "enviado_brasil", label: "Enviados", icon: Send, countKey: "enviado_brasil", tone: "text-sky-400", group: "operacao" },
-  { key: "em_revisao", label: "Em revisão", icon: Loader2, countKey: "em_revisao", tone: "text-amber-400", group: "operacao" },
-  { key: "aprovado", label: "Aprovados", icon: CheckCircle2, countKey: "aprovado", tone: "text-emerald-400", group: "operacao" },
-  { key: "rejeitado", label: "Reprovados", icon: XCircle, countKey: "rejeitado", tone: "text-rose-400", group: "operacao" },
-  { key: "vinculadas", label: "Finalizados", icon: CheckSquare, countKey: "vinculadas", tone: "text-emerald-400", group: "operacao" },
+  { key: "todas", label: "Recebidos da China", icon: Inbox, countKey: "todas", group: "main" },
+  { key: "nao_vinculadas", label: "A encaminhar", icon: Link2Off, countKey: "nao_vinculadas", tone: "text-amber-400", group: "main" },
+  { key: "vinculadas", label: "Já encaminhados", icon: Link2, countKey: "vinculadas", tone: "text-emerald-400", group: "main" },
+  { key: "estrelados", label: "Marcados", icon: Star, countKey: "estrelados", tone: "text-amber-400", group: "main" },
+  { key: "snoozed", label: "Adiados", icon: Clock, countKey: "snoozed", tone: "text-sky-400", group: "main" },
 
-  // Visões transversais
-  { key: "todas", label: "Todos os itens", icon: Inbox, countKey: "todas", group: "visoes" },
-  { key: "estrelados", label: "Marcados", icon: Star, countKey: "estrelados", tone: "text-amber-400", group: "visoes" },
-  { key: "snoozed", label: "Adiados", icon: Clock, countKey: "snoozed", tone: "text-sky-400", group: "visoes" },
+  { key: "rascunho", label: "Rascunhos", icon: FileText, countKey: "rascunho", group: "status" },
+  { key: "enviado", label: "Enviados", icon: Send, countKey: "enviado", group: "status" },
+  { key: "em_revisao", label: "Em revisão", icon: Loader2, countKey: "em_revisao", tone: "text-amber-400", group: "status" },
+  { key: "aprovado", label: "Aprovados", icon: CheckCircle2, countKey: "aprovado", tone: "text-emerald-400", group: "status" },
+  { key: "enviado_brasil", label: "Recebidos da China", icon: Globe, countKey: "enviado_brasil", tone: "text-sky-400", group: "status" },
+  { key: "rejeitado", label: "Rejeitados", icon: XCircle, countKey: "rejeitado", tone: "text-rose-400", group: "status" },
 
-  // Atenção operacional
-  { key: "pendencias", label: "Com pendências", icon: AlertTriangle, countKey: "pendencias", tone: "text-rose-400", group: "atencao" },
+  { key: "pendencias", label: "Com pendências", icon: AlertTriangle, countKey: "pendencias", tone: "text-rose-400", group: "alerts" },
 ];
 
 export function VincularMailboxSidebar({ folder, counts, onSelect, progressPct, vinculadas, total }: Props) {
-  const renderGroup = (group: Group, title: string) => (
+  const renderGroup = (group: "main" | "status" | "alerts", title: string) => (
     <div className="mb-2">
       <p className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">
         {title}
@@ -100,9 +93,9 @@ export function VincularMailboxSidebar({ folder, counts, onSelect, progressPct, 
         </div>
       </div>
       <nav className="flex-1 min-h-0 overflow-y-auto px-1.5 pt-3 pb-3">
-        {renderGroup("operacao", "Operação")}
-        {renderGroup("visoes", "Visões")}
-        {renderGroup("atencao", "Atenção")}
+        {renderGroup("main", "Bandeja")}
+        {renderGroup("status", "Status")}
+        {renderGroup("alerts", "Alertas")}
         <div className="mt-3 border-t border-border/60 px-2 pt-3 text-[10px] leading-relaxed text-muted-foreground">
           <p className="font-medium text-foreground/80">Atalhos</p>
           <p>j / k — Navegar</p>

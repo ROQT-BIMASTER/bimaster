@@ -16,6 +16,7 @@ import {
   PackageSearch,
   AlertTriangle,
   CheckCircle2,
+  Gavel,
   Activity,
   type LucideIcon,
 } from "lucide-react";
@@ -57,6 +58,10 @@ export const KIND_CONFIG: Record<string, KindConfig> = {
   nc_status: { label: "NC", icon: CheckCircle2, tint: "bg-destructive/10 text-destructive", group: "nc" },
 
   chat_mensagem: { label: "Mensagem", icon: MessageSquare, tint: "bg-muted text-foreground", group: "chat" },
+
+  aprovacao_iniciada: { label: "Aprovação iniciada", icon: Gavel, tint: "bg-primary/15 text-primary", group: "governanca" },
+  aprovacao_concluida: { label: "Aprovação concluída", icon: ShieldCheck, tint: "bg-success/15 text-success", group: "governanca" },
+  aprovacao_rejeitada: { label: "Aprovação rejeitada", icon: ShieldAlert, tint: "bg-destructive/15 text-destructive", group: "governanca" },
 };
 
 export const DEFAULT_KIND: KindConfig = {

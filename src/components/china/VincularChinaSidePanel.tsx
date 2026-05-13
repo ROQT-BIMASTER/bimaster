@@ -9,9 +9,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
 import {
   Package, FileText, Camera, AlertTriangle, CheckCircle2,
-  ExternalLink, Loader2, Link2, Gavel, MessageSquare, X, Activity
+  ExternalLink, Loader2, Link2, Gavel, MessageSquare, X, Activity, ShieldCheck
 } from "lucide-react";
 import { VincularReadingTimeline } from "@/components/china/vincular/VincularReadingTimeline";
+import { VincularAprovacaoTab } from "@/components/china/vincular/VincularAprovacaoTab";
+import type { VincularInternalTab } from "@/hooks/useVincularTimelineNav";
 import { useDocumentosDaSubmissao, useCoresDaSubmissao } from "@/hooks/useChinaDocumentoVinculos";
 import { useDespachosPorSubmissao } from "@/hooks/useDespachoDocumentos";
 import { useSubmissaoChatUnread } from "@/hooks/useSubmissaoChatUnread";
@@ -324,6 +326,9 @@ export function VincularChinaSidePanel({
             <FileText className="h-3 w-3" />Docs
             {totalPendentes > 0 && <Badge variant="destructive" className="text-[8px] h-3.5 px-1 ml-0.5">{totalPendentes}</Badge>}
           </TabsTrigger>
+          <TabsTrigger value="aprovacao" className="text-xs h-7 gap-1">
+            <ShieldCheck className="h-3 w-3" />Aprovação
+          </TabsTrigger>
           <TabsTrigger value="timeline" className="text-xs h-7 gap-1">
             <Activity className="h-3 w-3" />Timeline
           </TabsTrigger>
@@ -489,16 +494,32 @@ export function VincularChinaSidePanel({
           </TabsContent>
 
           {/* Chat Tab */}
-          <TabsContent value="timeline" className="m-0 p-0 h-[calc(100vh-220px)] min-h-[400px]">
-            <VincularReadingTimeline submissaoId={submissao.id} />
-          </TabsContent>
-
           <TabsContent value="chat" className="m-0 p-0 h-[calc(100vh-220px)] min-h-[400px]">
             <ChinaChatPanel
               key={submissao.id}
               submissaoId={submissao.id}
               produtoNome={submissao.produto_nome}
               tipoRemetente="brasil"
+            />
+          </TabsContent>
+
+          {/* Aprovação Tab */}
+          <TabsContent value="aprovacao" className="m-0 p-0 h-[calc(100vh-220px)] min-h-[400px]">
+            <VincularAprovacaoTab
+              submissaoId={submissao.id}
+              produtoNome={submissao.produto_nome}
+            />
+          </TabsContent>
+
+          {/* Timeline Tab */}
+          <TabsContent value="timeline" className="m-0 p-0 h-[calc(100vh-220px)] min-h-[400px]">
+            <VincularReadingTimeline
+              submissaoId={submissao.id}
+              onNavigateTab={(t: VincularInternalTab) => setTabValue(t)}
+              onPreviewDocumento={(docId) => {
+                const doc = (documentos as any[]).find((d) => d.id === docId);
+                if (doc) onPreviewDoc(doc);
+              }}
             />
           </TabsContent>
 
