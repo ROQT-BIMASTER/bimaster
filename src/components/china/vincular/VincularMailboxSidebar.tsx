@@ -47,6 +47,8 @@ const FOLDERS: Array<{
 
 export function VincularMailboxSidebar({ folder, counts, onSelect, progressPct, vinculadas, total }: Props) {
   const renderGroup = (group: "main" | "status" | "alerts", title: string) => (
+export function VincularMailboxSidebar({ folder, counts, onSelect, progressPct, vinculadas, total }: Props) {
+  const renderGroup = (group: Group, title: string) => (
     <div className="mb-2">
       <p className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">
         {title}
