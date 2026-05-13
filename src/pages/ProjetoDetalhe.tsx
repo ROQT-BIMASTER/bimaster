@@ -15,7 +15,7 @@ import { ProjetoBriefingPanel } from "@/components/projetos/ProjetoBriefingPanel
 import { ProjetoEquipeDashboard } from "@/components/projetos/ProjetoEquipeDashboard";
 import { ProjetoArquivosView } from "@/components/projetos/ProjetoArquivosView";
 import { ProjetoMetasPanel } from "@/components/projetos/ProjetoMetasPanel";
-import { ProjetoBgColorPicker } from "@/components/projetos/ProjetoBgColorPicker";
+// ProjetoBgColorPicker agora vive dentro de ProjetoSettingsMenu (acionado pela engrenagem do header)
 import { ProjetoFilters, ProjetoSort, EMPTY_FILTERS, DEFAULT_SORT } from "@/components/projetos/ProjetoFilterSort";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/dashboard/AppSidebar";
