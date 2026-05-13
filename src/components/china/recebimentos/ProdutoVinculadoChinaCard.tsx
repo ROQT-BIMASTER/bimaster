@@ -58,21 +58,21 @@ export function ProdutoVinculadoChinaCard({
               </div>
               <div className="mt-0.5 flex items-center gap-1.5 flex-wrap">
                 <Badge variant="outline" className="text-[10px] py-0 h-4">
-                  {produto.qtd_ocs} {produto.qtd_ocs === 1 ? "OC" : "OCs"}
+                  {produto.qtd_ocs} {produto.qtd_ocs === 1 ? t("recebimento.ocSingular") : t("recebimento.ocPlural")}
                 </Badge>
                 {produto.qtd_ocs_ativas > 0 && (
                   <Badge variant="secondary" className="text-[10px] py-0 h-4">
-                    {produto.qtd_ocs_ativas} ativa{produto.qtd_ocs_ativas > 1 ? "s" : ""}
+                    {produto.qtd_ocs_ativas} {produto.qtd_ocs_ativas > 1 ? t("recebimento.ativaPlural") : t("recebimento.ativaSingular")}
                   </Badge>
                 )}
                 {divergencia && (
                   <Badge className="bg-amber-500 text-white text-[10px] py-0 h-4">
-                    <AlertTriangle className="h-2.5 w-2.5 mr-0.5" /> divergência
+                    <AlertTriangle className="h-2.5 w-2.5 mr-0.5" /> {t("recebimento.divergencia")}
                   </Badge>
                 )}
                 {semOC && (
                   <Badge variant="outline" className="text-[10px] py-0 h-4 text-muted-foreground">
-                    sem OC
+                    {t("recebimento.semOC")}
                   </Badge>
                 )}
               </div>
