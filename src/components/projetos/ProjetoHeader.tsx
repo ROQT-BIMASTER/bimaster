@@ -39,6 +39,8 @@ interface ProjetoHeaderProps {
   lixeiraOpen?: boolean;
   onLixeiraOpenChange?: (open: boolean) => void;
   onRestaurarTarefa?: (tarefaId: string) => void;
+  bgCor?: string | null;
+  onBgCorChange?: (cor: string | null) => void;
 }
 
 const WORK_TABS = [
