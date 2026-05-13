@@ -770,7 +770,7 @@ export default function FabricaProdutosAcabados() {
         </Collapsible>
 
         {/* KPIs */}
-        {(() => {
+        {kpisVisiveis && (() => {
           const totalProdutos = produtos?.length || 0;
           const totalAtivos = produtos?.filter((p) => p.ativo).length || 0;
           const totalAcabados = produtos?.filter((p) => p.tipo === "ACABADO").length || 0;
