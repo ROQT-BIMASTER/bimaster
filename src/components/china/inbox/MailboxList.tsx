@@ -679,12 +679,12 @@ function GroupRow({
                   className="h-6 gap-1 px-2 text-[10.5px]"
                   onClick={(e) => {
                     e.stopPropagation();
-                    setExpanded((v) => !v);
+                    onOpenChecklist?.(group.submissao_id);
                   }}
-                  aria-expanded={expanded}
+                  title="Abrir lista detalhada de pendências em uma caixa lateral"
                 >
                   <ListChecks className="h-3 w-3" />
-                  {expanded ? "Ocultar checklist" : `Ver checklist (${pendingCount})`}
+                  Ver checklist ({pendingCount})
                 </Button>
                 {pendingCount > 0 && onEnviarGrupoBrasil && (
                   <Button
