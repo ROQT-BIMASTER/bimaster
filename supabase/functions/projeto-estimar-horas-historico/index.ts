@@ -22,7 +22,7 @@ interface TarefaInput {
   responsavel_nome: string | null;
 }
 
-export default secureHandler(
+Deno.serve(secureHandler(
   { auth: "jwt", rateLimit: 10, rateLimitPrefix: "projeto-estimar-horas" },
   async (req, ctx) => {
     if (!LOVABLE_API_KEY) {
@@ -172,4 +172,4 @@ export default secureHandler(
       headers: { "Content-Type": "application/json" },
     });
   },
-);
+));
