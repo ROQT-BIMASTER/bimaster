@@ -7,6 +7,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Sparkles, Loader2, Calendar, Flag, Upload, FileText, X, Image, FileSpreadsheet, Paperclip } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { logger } from "@/lib/logger";
 
 interface AITask {
   titulo: string;
@@ -83,8 +84,9 @@ export function CriarTarefasIADialog({
       setNewSecoes((result.secoes || []).map(s => ({ ...s, selected: true })));
       setTasks((result.tasks || []).map(t => ({ ...t, selected: true })));
       setStep("review");
-    } catch {
-      // error handled in hook
+    } catch (err) {
+      // toast de erro já é disparado por useProjetoIA; logger aqui é só breadcrumb
+      logger.warn("CriarTarefasIADialog.handleGenerate failed", err);
     }
   };
 
