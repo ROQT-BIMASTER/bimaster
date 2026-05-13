@@ -601,7 +601,7 @@ function GroupRow({
             checked={checked}
             onCheckedChange={() => onToggleCheck(group.submissao_id)}
             onClick={(e) => e.stopPropagation()}
-            aria-label="Selecionar submissão"
+            aria-label={t("mailboxList.row.selecionarSubmissao")}
           />
         </div>
         <button
@@ -614,7 +614,7 @@ function GroupRow({
             "mt-0.5 transition-colors",
             group.is_flagged ? "text-amber-400" : "text-muted-foreground/40 hover:text-amber-300",
           )}
-          aria-label={group.is_flagged ? "Desmarcar estrela" : "Marcar com estrela"}
+          aria-label={group.is_flagged ? t("mailboxList.row.desmarcarEstrela") : t("mailboxList.row.marcarEstrela")}
         >
           <Star className="h-3.5 w-3.5" fill={group.is_flagged ? "currentColor" : "none"} />
         </button>
@@ -629,7 +629,7 @@ function GroupRow({
             }
           }}
           className="mt-0.5 text-muted-foreground hover:text-foreground"
-          aria-label={isAwaiting ? "Abrir checklist pendente" : expanded ? "Recolher" : "Expandir"}
+          aria-label={isAwaiting ? t("mailboxList.row.abrirChecklistPendente") : expanded ? t("mailboxList.row.recolher") : t("mailboxList.row.expandir")}
           aria-expanded={isAwaiting ? undefined : expanded}
         >
           <ChevronIcon className="h-3.5 w-3.5" />
