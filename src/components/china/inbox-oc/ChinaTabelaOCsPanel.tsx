@@ -207,11 +207,11 @@ export function ChinaTabelaOCsPanel({ items, isLoading, onOpen }: Props) {
                       </td>
                       <td className="px-3 py-2">
                         <Badge className={cn("text-[10px] capitalize", STATUS_BADGE[bucket])} variant="outline">
-                          {STATUS_OPTS.find(s => s.value === bucket)?.label}
+                          {t(STATUS_OPTS.find(s => s.value === bucket)?.labelKey || "inboxOC.tabPendente")}
                         </Badge>
                         {o.has_embarque && (
                           <Badge variant="secondary" className="ml-1 h-4 px-1.5 text-[10px]">
-                            <Ship className="h-2.5 w-2.5 mr-1" />{o.embarque_status ?? "embarcada"}
+                            <Ship className="h-2.5 w-2.5 mr-1" />{o.embarque_status ?? t("inboxOC.embarcadaBadge")}
                           </Badge>
                         )}
                       </td>
