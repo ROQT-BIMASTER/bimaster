@@ -41,7 +41,7 @@ function buildMarkdown(data: string, linhas: ResumoLinha[], custoTec: number) {
   return lines.join("\n");
 }
 
-export default secureHandler(
+Deno.serve(secureHandler(
   { auth: "any", rateLimit: 30, rateLimitPrefix: "projeto-resumo-diario" },
   async (req) => {
     const admin = createClient(SUPABASE_URL, SERVICE_KEY);
@@ -124,4 +124,4 @@ export default secureHandler(
       headers: { "Content-Type": "application/json" },
     });
   },
-);
+));
