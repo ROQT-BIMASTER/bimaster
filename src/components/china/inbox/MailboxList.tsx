@@ -1,15 +1,16 @@
 import { useMemo, useState } from "react";
-import { Star, Paperclip, Clock, AlertTriangle, CheckCircle2, FileText, FileX2, MessageSquareOff, ChevronRight, ChevronDown, Layers, CheckCheck, ListChecks } from "lucide-react";
+import { Star, Paperclip, Clock, AlertTriangle, CheckCircle2, FileText, FileX2, MessageSquareOff, ChevronRight, ChevronDown, Layers, CheckCheck, ListChecks, Send, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import type { MailboxItem, MailboxFolder } from "@/hooks/useChinaMailbox";
 import { resolveDirection, type DirectionInfo } from "@/lib/china/inboxDirection";
 import { InboxDirectionBadge } from "./InboxDirectionBadge";
 import { useChinaUserContext } from "@/hooks/useChinaUserContext";
 import { evaluateAwaitingSend, AWAITING_SEND_REASON_LABEL } from "@/lib/china/awaitingSendRule";
-import { groupBySubmissao } from "@/lib/china/groupMailboxItems";
-import type { ChinaInboxGroupMode } from "@/hooks/useChinaInboxGroupMode";
+import { groupBySubmissao, type MailboxGroup } from "@/lib/china/groupMailboxItems";
+import { type ChinaInboxGroupMode, isGroupModeForced } from "@/hooks/useChinaInboxGroupMode";
 import { ReadStatusLegend } from "./ReadStatusLegend";
 
 export type ActionFilter = "mine" | "theirs" | "all";
