@@ -86,7 +86,12 @@
       "restaurar": "还原",
       "excluirDefinitivo": "永久删除",
       "marcarComoLidos": "标为已读",
-      "limparSelecao": "清除"
+      "limparSelecao": "清除",
+      "marcarTodasLidas": "全部标为已读",
+      "marcando": "标记中...",
+      "marcarTodasLidasTitle": "将所有可见消息标为已读",
+      "tentarNovamente": "重试",
+      "enviandoBrasil": "正在发送至巴西…"
     },
     "search": {
       "placeholder": "搜索产品、采购单、文件（快捷键: /)"
