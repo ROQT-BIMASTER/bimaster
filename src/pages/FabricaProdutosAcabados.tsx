@@ -683,17 +683,6 @@ export default function FabricaProdutosAcabados() {
             </div>
           </div>
           <div className="flex items-center gap-1.5">
-            <ManualFabricaDrawer screen="produtos-acabados" />
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8"
-              onClick={() => startTour(FABRICA_PRODUTOS_ACABADOS_TOUR_ID, fabricaProdutosAcabadosTourSteps)}
-              title="Tour guiado"
-            >
-              <HelpCircle className="h-4 w-4" />
-            </Button>
-            <div className="h-5 w-px bg-border mx-1" />
             <Button
               variant="ghost"
               size="icon"
@@ -728,22 +717,35 @@ export default function FabricaProdutosAcabados() {
                 </Link>
               </Button>
             )}
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-8"
-              onClick={() => setDiagnosticoOpen(true)}
-              title="Verificar permissões de upload/edição/exclusão de fotos"
-            >
-              <ShieldQuestion className="h-3.5 w-3.5 mr-1.5" />
-              Diagnóstico de fotos
-            </Button>
-            <Button variant="outline" size="sm" className="h-8" asChild>
-              <Link to="/dashboard/fabrica/auditoria-fotos">
-                <ClipboardList className="h-3.5 w-3.5 mr-1.5" />
-                Auditoria de fotos
-              </Link>
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="icon" className="h-8 w-8" title="Mais opções">
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuItem asChild>
+                  <Link to="/dashboard/fabrica/auditoria-fotos">
+                    <ClipboardList className="h-4 w-4 mr-2" />
+                    Auditoria de fotos
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setDiagnosticoOpen(true)}>
+                  <ShieldQuestion className="h-4 w-4 mr-2" />
+                  Diagnóstico de fotos
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => startTour(FABRICA_PRODUTOS_ACABADOS_TOUR_ID, fabricaProdutosAcabadosTourSteps)}>
+                  <HelpCircle className="h-4 w-4 mr-2" />
+                  Tour guiado
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="p-0">
+                  <div className="w-full">
+                    <ManualFabricaDrawer screen="produtos-acabados" />
+                  </div>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
             <Button
               size="sm"
               className="h-8"
