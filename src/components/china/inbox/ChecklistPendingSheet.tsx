@@ -698,28 +698,12 @@ export function ChecklistPendingSheet({
                 </header>
                 <ul role="list" className="divide-y divide-border/40">
                   {primaryRows.map(renderRow)}
-                  {primaryRows.length === 0 && !splitSecondary && (
+                  {primaryRows.length === 0 && (
                     <li className="px-4 py-2 text-[11px] text-muted-foreground/80">
                       {t("inbox.checklistSheet.section.vazioCategoria")}
                     </li>
                   )}
-                  {primaryRows.length === 0 && splitSecondary && secondaryRows.length === 0 && (
-                    <li className="px-4 py-2 text-[11px] text-muted-foreground/80">
-                      {t("inbox.checklistSheet.section.vazioCategoriaSent")}
-                    </li>
-                  )}
                 </ul>
-                {splitSecondary && secondaryRows.length > 0 && (
-                  <details className="group border-t border-border/40 bg-muted/10">
-                    <summary className="cursor-pointer list-none px-4 py-1.5 text-[10.5px] text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1">
-                      <span className="transition-transform group-open:rotate-90">›</span>
-                      {t("inbox.checklistSheet.section.verPendentes", { count: secondaryRows.length })}
-                    </summary>
-                    <ul role="list" className="divide-y divide-border/40 bg-background/40">
-                      {secondaryRows.map(renderRow)}
-                    </ul>
-                  </details>
-                )}
               </section>
             );
           })}
