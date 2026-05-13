@@ -83,8 +83,9 @@ export function CriarTarefasIADialog({
       setNewSecoes((result.secoes || []).map(s => ({ ...s, selected: true })));
       setTasks((result.tasks || []).map(t => ({ ...t, selected: true })));
       setStep("review");
-    } catch {
-      // error handled in hook
+    } catch (err) {
+      // toast de erro já é disparado por useProjetoIA; logger aqui é só breadcrumb
+      logger.warn("CriarTarefasIADialog.handleGenerate failed", err);
     }
   };
 

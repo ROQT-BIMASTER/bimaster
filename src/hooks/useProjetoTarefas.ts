@@ -78,16 +78,27 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
         p_projeto_id: projetoId,
       });
       if (error) throw error;
-      const payload = (data || {}) as any;
+      const payload = (data ?? {}) as Partial<ProjetoTarefasRpcPayload>;
+      if (data && typeof data === "object" && !Array.isArray(data)) {
+        // shape sanity — não joga, só registra para detectar drift de contrato da RPC
+        if (payload.secoes !== undefined && !Array.isArray(payload.secoes)) {
+          logger.warn("get_projeto_tarefas_v2: payload.secoes não é array", { payload });
+        }
+        if (payload.tarefas !== undefined && !Array.isArray(payload.tarefas)) {
+          logger.warn("get_projeto_tarefas_v2: payload.tarefas não é array", { payload });
+        }
+      } else if (data != null) {
+        logger.warn("get_projeto_tarefas_v2: payload com shape inesperado", { data });
+      }
       return {
-        secoes: (payload.secoes || []) as ProjetoSecao[],
-        tarefas: (payload.tarefas || []) as ProjetoTarefa[],
-        teamMembers: (payload.team_members || []) as { id: string; nome: string; avatar_url: string | null }[],
+        secoes: (Array.isArray(payload.secoes) ? payload.secoes : []) as ProjetoSecao[],
+        tarefas: (Array.isArray(payload.tarefas) ? payload.tarefas : []) as ProjetoTarefa[],
+        teamMembers: (Array.isArray(payload.team_members) ? payload.team_members : []) as { id: string; nome: string; avatar_url: string | null }[],
         isPartialView: !!payload.is_partial_view,
         restrictToOwn: !!payload.restrict_to_own,
-        totalSecoesProjeto: payload.total_secoes_projeto || 0,
-        totalTarefasProjeto: payload.total_tarefas_projeto || 0,
-        visibleTarefasCount: payload.visible_tarefas_count || 0,
+        totalSecoesProjeto: payload.total_secoes_projeto ?? 0,
+        totalTarefasProjeto: payload.total_tarefas_projeto ?? 0,
+        visibleTarefasCount: payload.visible_tarefas_count ?? 0,
       };
     },
     enabled: !!projetoId && !!user,
