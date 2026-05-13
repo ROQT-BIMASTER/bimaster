@@ -47,6 +47,13 @@ export interface ExpectedChecklistStats {
   tiposChinaEnvia: Set<string>;
   /** Tipos esperados no fluxo Brasil envia. */
   tiposBrasilEnvia: Set<string>;
+  /**
+   * Mapa `tipo_key → { pt, cn }` com o nome configurado do item no checklist
+   * (padrão de `CHINA_DOCUMENT_TYPES` ou `label_pt`/`label_cn` do item custom).
+   * Permite à Caixa de Entrada e ao drawer de pendências mostrar o nome real
+   * em vez da chave bruta (ex.: "Faca Display" em vez de "faca_display").
+   */
+  labels: Map<string, ChecklistTipoLabel>;
 }
 
 const EMPTY: ExpectedChecklistStats = {
@@ -54,6 +61,7 @@ const EMPTY: ExpectedChecklistStats = {
   total: 0,
   tiposChinaEnvia: new Set(),
   tiposBrasilEnvia: new Set(),
+  labels: new Map(),
 };
 
 /**
