@@ -368,7 +368,8 @@ export default function FichaRevisaoDiretoria() {
         <Tabs value={tabAtiva} onValueChange={setTabAtiva}>
           <TabsList>
             <TabsTrigger value="fichas" className="gap-1.5">
-              <ClipboardList className="h-4 w-4" /> Fichas Pendentes
+              <ClipboardList className="h-4 w-4" />
+              {statusFiltro === "aprovada" ? "Fichas Aprovadas" : "Fichas Pendentes"}
               {fichasPendentes.length > 0 && <Badge variant="secondary" className="text-xs ml-1">{fichasPendentes.length}</Badge>}
             </TabsTrigger>
             <TabsTrigger value="comunicacao" className="gap-1.5">
