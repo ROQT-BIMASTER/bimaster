@@ -591,7 +591,6 @@ export function UnifiedSubmissionTimeline({ submissao, ocId, onlyChinaStages, cl
             ariaLabel={t("timeline.rules.aria")}
           />
 
-        <StageCard icon={ShieldCheck} title={t("timeline.stages.4")} status={stAprovBrasil} deadline={dl(4)}>
           {enviadosDocs > 0 ? (
             <>
               <ProgressBlock
