@@ -17,11 +17,12 @@ vi.mock("@/components/chat/v2/ChatLayout", () => ({
 }));
 
 function Opener() {
-  const { abrir } = useChatDrawer();
+  const { abrir, setOpen } = useChatDrawer();
   const navigate = useNavigate();
   return (
     <div>
       <button onClick={() => abrir()}>abrir-chat</button>
+      <button onClick={() => setOpen(false)}>fechar-chat</button>
       <button onClick={() => navigate("/dashboard/projetos")}>navegar</button>
     </div>
   );
