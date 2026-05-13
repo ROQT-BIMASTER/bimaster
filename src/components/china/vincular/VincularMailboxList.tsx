@@ -1,11 +1,11 @@
-import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
   Star, Paperclip, Clock, AlertTriangle, Link2, Link2Off, Package,
   CheckCircle2, FileText, Send, XCircle, Loader2, Globe, Maximize2,
   MousePointerClick, Zap, MoveVertical, X, Crosshair, CheckCheck,
-  MoreHorizontal, MailOpen, RotateCcw,
+  MoreHorizontal, MailOpen, RotateCcw, Layers,
 } from "lucide-react";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
@@ -77,6 +77,34 @@ export function VincularMailboxList({
       return blob.includes(q);
     });
   }, [items, search]);
+
+  // Agrupar por ordem (OC) — flag persistida em localStorage, igual à Caixa de Entrada da China.
+  const GROUP_PREF_KEY = "china:vincular:list:groupByOrder";
+  const [groupByOrder, setGroupByOrder] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    return window.localStorage.getItem(GROUP_PREF_KEY) === "1";
+  });
+  const toggleGroupByOrder = useCallback(() => {
+    setGroupByOrder((prev) => {
+      const next = !prev;
+      try { window.localStorage.setItem(GROUP_PREF_KEY, next ? "1" : "0"); } catch { /* noop */ }
+      return next;
+    });
+  }, []);
+
+  // Lista agrupada por numero_ordem mantendo a ordem original (mais recente primeiro).
+  const groupedView = useMemo(() => {
+    if (!groupByOrder) return null;
+    const map = new Map<string, { key: string; label: string; rows: MailboxRow[] }>();
+    for (const it of filtered) {
+      const key = it.numero_ordem?.trim() || "__sem_oc__";
+      const label = it.numero_ordem?.trim() || "Sem OC";
+      const g = map.get(key);
+      if (g) g.rows.push(it);
+      else map.set(key, { key, label, rows: [it] });
+    }
+    return Array.from(map.values());
+  }, [filtered, groupByOrder]);
 
   const allChecked = filtered.length > 0 && filtered.every((i) => selectedIds.has(i.id));
   const someChecked = selectedIds.size > 0;
@@ -253,6 +281,17 @@ export function VincularMailboxList({
           </span>
         )}
         <ReadStatusLegend />
+        <Button
+          size="sm"
+          variant={groupByOrder ? "default" : "ghost"}
+          className="h-7 px-1.5 text-[11px] gap-1"
+          onClick={toggleGroupByOrder}
+          title="Agrupar por ordem (OC)"
+          aria-pressed={groupByOrder}
+        >
+          <Layers className="h-3 w-3" />
+          <span className="hidden sm:inline">Agrupar OC</span>
+        </Button>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button
@@ -416,143 +455,161 @@ export function VincularMailboxList({
             Nenhuma submissão nesta pasta
           </li>
         )}
-        {filtered.map((item) => {
-          const checked = selectedIds.has(item.id);
-          const active = selectedId === item.id;
-          const sb = statusBadge(item.status);
-          const SbIcon = sb.icon;
-          const unread = !isVincularRead(item.id);
-          const dt = item.updated_at || item.created_at;
-          return (
-            <li
-              key={item.id}
-              ref={(el) => {
-                if (el) itemRefs.current.set(item.id, el);
-                else itemRefs.current.delete(item.id);
-              }}
-              onClick={() => { markVincularRead(item.id); onSelect(item.id); }}
-              className={cn(
-                "group flex cursor-pointer items-start gap-2 border-b border-border/40 px-3 py-2 text-sm transition-colors",
-                active ? "bg-primary/10" : "hover:bg-muted/30",
-                unread && !active && "bg-card",
-              )}
-            >
-              <div className="flex flex-col items-center pt-0.5">
-                <Checkbox
-                  checked={checked}
-                  onCheckedChange={() => onToggleCheck(item.id)}
-                  onClick={(e) => e.stopPropagation()}
-                  aria-label="Selecionar"
-                />
-              </div>
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onToggleStar(item);
+        {(() => {
+          const renderRow = (item: MailboxRow) => {
+            const checked = selectedIds.has(item.id);
+            const active = selectedId === item.id;
+            const sb = statusBadge(item.status);
+            const SbIcon = sb.icon;
+            const unread = !isVincularRead(item.id);
+            const dt = item.updated_at || item.created_at;
+            return (
+              <li
+                key={item.id}
+                ref={(el) => {
+                  if (el) itemRefs.current.set(item.id, el);
+                  else itemRefs.current.delete(item.id);
                 }}
+                onClick={() => { markVincularRead(item.id); onSelect(item.id); }}
                 className={cn(
-                  "mt-0.5 transition-colors",
-                  item.is_flagged ? "text-amber-400" : "text-muted-foreground/40 hover:text-amber-300",
+                  "group flex cursor-pointer items-start gap-2 border-b border-border/40 px-3 py-2 text-sm transition-colors",
+                  active ? "bg-primary/10" : "hover:bg-muted/30",
+                  unread && !active && "bg-card",
                 )}
-                aria-label={item.is_flagged ? "Desmarcar estrela" : "Marcar com estrela"}
               >
-                <Star className="h-3.5 w-3.5" fill={item.is_flagged ? "currentColor" : "none"} />
-              </button>
-
-              <div className="min-w-0 flex-1">
-                <div className="flex items-baseline gap-2">
-                  <span className="font-mono text-[11px] font-semibold text-primary">
-                    {item.produto_codigo}
-                  </span>
-                  <span
-                    className={cn(
-                      "truncate text-[13px]",
-                      unread ? "font-semibold text-foreground" : "font-medium text-foreground/90",
-                    )}
-                  >
-                    {item.produto_nome}
-                  </span>
-                  {item.numero_ordem && (
-                    <span className="shrink-0 text-[10px] text-muted-foreground">
-                      OC {item.numero_ordem}
-                    </span>
-                  )}
+                <div className="flex flex-col items-center pt-0.5">
+                  <Checkbox
+                    checked={checked}
+                    onCheckedChange={() => onToggleCheck(item.id)}
+                    onClick={(e) => e.stopPropagation()}
+                    aria-label="Selecionar"
+                  />
                 </div>
-                <div className="mt-0.5 flex items-center gap-1.5 truncate text-[11.5px] text-muted-foreground">
-                  {item.isLinked && item.projetoNome ? (
-                    <span className="flex items-center gap-1.5 truncate">
-                      <span
-                        className="h-1.5 w-1.5 shrink-0 rounded-full"
-                        style={{ backgroundColor: item.projetoCor || "hsl(var(--primary))" }}
-                      />
-                      <span className="truncate">Encaminhado para {item.projetoNome}</span>
-                      {(item.tarefasVinculadas ?? 0) > 0 && (
-                        <span>· {item.tarefasVinculadas} tarefa{item.tarefasVinculadas === 1 ? "" : "s"}</span>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onToggleStar(item);
+                  }}
+                  className={cn(
+                    "mt-0.5 transition-colors",
+                    item.is_flagged ? "text-amber-400" : "text-muted-foreground/40 hover:text-amber-300",
+                  )}
+                  aria-label={item.is_flagged ? "Desmarcar estrela" : "Marcar com estrela"}
+                >
+                  <Star className="h-3.5 w-3.5" fill={item.is_flagged ? "currentColor" : "none"} />
+                </button>
+
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-baseline gap-2">
+                    <span className="font-mono text-[11px] font-semibold text-primary">
+                      {item.produto_codigo}
+                    </span>
+                    <span
+                      className={cn(
+                        "truncate text-[13px]",
+                        unread ? "font-semibold text-foreground" : "font-medium text-foreground/90",
                       )}
+                    >
+                      {item.produto_nome}
                     </span>
-                  ) : (
-                    <span className="flex items-center gap-1 italic text-amber-400/80">
-                      <Link2Off className="h-3 w-3" /> A encaminhar
-                    </span>
-                  )}
-                  {(item.docCount ?? 0) > 0 && (
-                    <span className="flex items-center gap-0.5">
-                      <Paperclip className="h-3 w-3" /> {item.docCount}
-                    </span>
-                  )}
-                  {(item.pendencias ?? 0) > 0 && (
-                    <Badge variant="outline" className="h-3.5 px-1 text-[9px] gap-0.5 bg-rose-500/10 text-rose-400 border-rose-500/30">
-                      {item.pendencias} pend.
+                    {item.numero_ordem && !groupByOrder && (
+                      <span className="shrink-0 text-[10px] text-muted-foreground">
+                        OC {item.numero_ordem}
+                      </span>
+                    )}
+                  </div>
+                  <div className="mt-0.5 flex items-center gap-1.5 truncate text-[11.5px] text-muted-foreground">
+                    {item.isLinked && item.projetoNome ? (
+                      <span className="flex items-center gap-1.5 truncate">
+                        <span
+                          className="h-1.5 w-1.5 shrink-0 rounded-full"
+                          style={{ backgroundColor: item.projetoCor || "hsl(var(--primary))" }}
+                        />
+                        <span className="truncate">Encaminhado para {item.projetoNome}</span>
+                        {(item.tarefasVinculadas ?? 0) > 0 && (
+                          <span>· {item.tarefasVinculadas} tarefa{item.tarefasVinculadas === 1 ? "" : "s"}</span>
+                        )}
+                      </span>
+                    ) : (
+                      <span className="flex items-center gap-1 italic text-amber-400/80">
+                        <Link2Off className="h-3 w-3" /> A encaminhar
+                      </span>
+                    )}
+                    {(item.docCount ?? 0) > 0 && (
+                      <span className="flex items-center gap-0.5">
+                        <Paperclip className="h-3 w-3" /> {item.docCount}
+                      </span>
+                    )}
+                    {(item.pendencias ?? 0) > 0 && (
+                      <Badge variant="outline" className="h-3.5 px-1 text-[9px] gap-0.5 bg-rose-500/10 text-rose-400 border-rose-500/30">
+                        {item.pendencias} pend.
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex shrink-0 flex-col items-end gap-1">
+                  <Badge variant="outline" className={cn("h-4 px-1.5 text-[9.5px] gap-0.5 font-medium", sb.cls)}>
+                    <SbIcon className="h-2.5 w-2.5" />
+                    {sb.label}
+                  </Badge>
+                  {item.snooze_until && (
+                    <Badge variant="outline" className="h-4 px-1.5 text-[9.5px] gap-0.5 bg-sky-500/15 text-sky-400 border-sky-500/30">
+                      <Clock className="h-2.5 w-2.5" /> adiada
                     </Badge>
                   )}
+                  <span className="flex items-center gap-1 text-[10px] tabular-nums text-muted-foreground">
+                    {!unread && (
+                      <span title="Lida" aria-label="Lida" className="inline-flex">
+                        <CheckCheck className="h-3 w-3 text-sky-400" />
+                      </span>
+                    )}
+                    {relativeAge(dt)}
+                  </span>
                 </div>
-              </div>
 
-              <div className="flex shrink-0 flex-col items-end gap-1">
-                <Badge variant="outline" className={cn("h-4 px-1.5 text-[9.5px] gap-0.5 font-medium", sb.cls)}>
-                  <SbIcon className="h-2.5 w-2.5" />
-                  {sb.label}
-                </Badge>
-                {item.snooze_until && (
-                  <Badge variant="outline" className="h-4 px-1.5 text-[9.5px] gap-0.5 bg-sky-500/15 text-sky-400 border-sky-500/30">
-                    <Clock className="h-2.5 w-2.5" /> adiada
-                  </Badge>
-                )}
-                <span className="flex items-center gap-1 text-[10px] tabular-nums text-muted-foreground">
-                  {!unread && (
-                    <span title="Lida" aria-label="Lida" className="inline-flex">
-                      <CheckCheck className="h-3 w-3 text-sky-400" />
-                    </span>
-                  )}
-                  {relativeAge(dt)}
-                </span>
-              </div>
-
-              <div
-                className="flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <VincularChinaRowAction
-                  rowId={item.id}
-                  rowNome={item.produto_nome}
-                  isLinked={!!item.isLinked}
-                  projetos={projetos}
-                  onLink={(pid) => onLinkRow(item, pid)}
-                />
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="h-6 w-6 p-0"
-                  onClick={() => onFocus(item)}
-                  title="Abrir em modo foco"
+                <div
+                  className="flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100"
+                  onClick={(e) => e.stopPropagation()}
                 >
-                  <Maximize2 className="h-3 w-3" />
-                </Button>
-              </div>
-            </li>
-          );
-        })}
+                  <VincularChinaRowAction
+                    rowId={item.id}
+                    rowNome={item.produto_nome}
+                    isLinked={!!item.isLinked}
+                    projetos={projetos}
+                    onLink={(pid) => onLinkRow(item, pid)}
+                  />
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-6 w-6 p-0"
+                    onClick={() => onFocus(item)}
+                    title="Abrir em modo foco"
+                  >
+                    <Maximize2 className="h-3 w-3" />
+                  </Button>
+                </div>
+              </li>
+            );
+          };
+
+          if (groupedView) {
+            return groupedView.map((g) => (
+              <Fragment key={`grp-${g.key}`}>
+                <li className="sticky top-0 z-[1] flex items-center gap-2 border-b border-border/60 bg-muted/40 px-3 py-1 text-[10.5px] font-semibold uppercase tracking-wide text-muted-foreground backdrop-blur">
+                  <Layers className="h-3 w-3" />
+                  <span>{g.label === "Sem OC" ? g.label : `OC ${g.label}`}</span>
+                  <span className="ml-auto tabular-nums text-[10px] text-muted-foreground/70">
+                    {g.rows.length} item{g.rows.length === 1 ? "" : "s"}
+                  </span>
+                </li>
+                {g.rows.map(renderRow)}
+              </Fragment>
+            ));
+          }
+          return filtered.map(renderRow);
+        })()}
       </ul>
     </div>
   );
