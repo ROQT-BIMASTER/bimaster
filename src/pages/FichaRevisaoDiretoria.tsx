@@ -453,7 +453,7 @@ export default function FichaRevisaoDiretoria() {
             ) : (
               <Card>
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-base">Fichas Pendentes ({fichasFiltradas.length})</CardTitle>
+                  <CardTitle className="text-base">{statusFiltro === "aprovada" ? "Fichas Aprovadas" : "Fichas Pendentes"} ({fichasFiltradas.length})</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <Table>
