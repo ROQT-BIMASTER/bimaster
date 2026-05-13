@@ -9,8 +9,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
 import {
   Package, FileText, Camera, AlertTriangle, CheckCircle2,
-  ExternalLink, Loader2, Link2, Gavel, MessageSquare, X
+  ExternalLink, Loader2, Link2, Gavel, MessageSquare, X, Activity, ShieldCheck
 } from "lucide-react";
+import { VincularReadingTimeline } from "@/components/china/vincular/VincularReadingTimeline";
+import { VincularAprovacaoTab } from "@/components/china/vincular/VincularAprovacaoTab";
+import type { VincularInternalTab } from "@/hooks/useVincularTimelineNav";
 import { useDocumentosDaSubmissao, useCoresDaSubmissao } from "@/hooks/useChinaDocumentoVinculos";
 import { useDespachosPorSubmissao } from "@/hooks/useDespachoDocumentos";
 import { useSubmissaoChatUnread } from "@/hooks/useSubmissaoChatUnread";
