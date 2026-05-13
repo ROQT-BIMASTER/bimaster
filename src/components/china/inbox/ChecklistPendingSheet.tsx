@@ -285,8 +285,8 @@ export function ChecklistPendingSheet({
 
   const sections = useMemo(() => {
     if (!scopedGroup) return [];
-    return buildSections(scopedGroup, merged.categories);
-  }, [scopedGroup, merged.categories]);
+    return buildSections(scopedGroup, merged.categories, cfg.priorityMode);
+  }, [scopedGroup, merged.categories, cfg.priorityMode]);
 
   const totals = useMemo(() => {
     if (!group) return null;
