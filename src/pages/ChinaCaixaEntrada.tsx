@@ -243,7 +243,7 @@ export default function ChinaCaixaEntrada() {
   const handleMarkAllRead = async () => {
     const targets = items.filter((i) => i.documento_id && !i.is_read);
     if (targets.length === 0) {
-      toast.info("Nenhuma mensagem não lida nesta pasta.");
+      toast.info(t("inbox.toasts.nenhumaNaoLida"));
       return;
     }
     setIsMarkingAllRead(true);
@@ -253,7 +253,7 @@ export default function ChinaCaixaEntrada() {
           toggleRead.mutateAsync({ documento_id: i.documento_id!, read: true }).catch(() => null),
         ),
       );
-      toast.success(`${targets.length} mensagem(ns) marcadas como lidas.`);
+      toast.success(t("inbox.toasts.todasLidasOk", { count: targets.length }));
     } finally {
       setIsMarkingAllRead(false);
     }
