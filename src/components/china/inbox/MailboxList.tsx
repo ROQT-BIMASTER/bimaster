@@ -376,9 +376,9 @@ export function MailboxList({
       {folder === "inbox" && onActionFilterChange && (
         <div className="flex items-center gap-1 border-b border-border bg-card/40 px-2 py-1">
           {([
-            { k: "mine" as const, label: "Aguarda você", labelCn: "等待您", count: mineCount },
-            { k: "theirs" as const, label: "Outro lado", labelCn: "对方", count: theirsCount },
-            { k: "all" as const, label: "Tudo", labelCn: "全部", count: itemsWithDir.length },
+            { k: "mine" as const, label: t("mailboxList.actionFilter.aguardaVoce"), count: mineCount },
+            { k: "theirs" as const, label: t("mailboxList.actionFilter.outroLado"), count: theirsCount },
+            { k: "all" as const, label: t("mailboxList.actionFilter.tudo"), count: itemsWithDir.length },
           ]).map((c) => (
             <button
               key={c.k}
@@ -390,7 +390,6 @@ export function MailboxList({
                   ? "bg-primary/20 text-primary border border-primary/40"
                   : "text-muted-foreground hover:bg-muted/40 border border-transparent",
               )}
-              title={c.labelCn}
             >
               {c.label}
               <span className="text-[9px] opacity-70">{c.count}</span>
@@ -402,14 +401,14 @@ export function MailboxList({
         <Checkbox
           checked={allChecked}
           onCheckedChange={onToggleAllChecks}
-          aria-label="Selecionar todos"
+          aria-label={t("mailboxList.toolbar.selecionarTodos")}
         />
         <span className="flex-1 text-[11px] text-muted-foreground">
           {effectiveMode === "grouped"
-            ? `${groups.length} conversa${groups.length === 1 ? "" : "s"} · ${filtered.length} item${filtered.length === 1 ? "" : "s"}`
-            : `${filtered.length} item${filtered.length === 1 ? "" : "s"}`}
+            ? `${t("mailboxList.toolbar.conversa", { count: groups.length })} · ${t("mailboxList.toolbar.item", { count: filtered.length })}`
+            : t("mailboxList.toolbar.item", { count: filtered.length })}
           {" · "}
-          {FOLDER_TITLES[folder] ?? folder}
+          {FOLDER_TITLE_KEYS[folder] ? t(FOLDER_TITLE_KEYS[folder]!) : folder}
         </span>
         <ReadStatusLegend />
         {groupingAllowed && onGroupModeChange && !isGroupModeForced(folder) && (
@@ -423,11 +422,11 @@ export function MailboxList({
                   ? "bg-primary/20 text-primary"
                   : "text-muted-foreground hover:text-foreground",
               )}
-              title="Mostrar um item por documento"
+              title={t("mailboxList.toolbar.mostrarUmPorDoc")}
               aria-pressed={effectiveMode === "flat"}
             >
               <FileText className="h-3 w-3" />
-              Documentos
+              {t("mailboxList.toolbar.documentos")}
             </button>
             <button
               type="button"
@@ -438,11 +437,11 @@ export function MailboxList({
                   ? "bg-primary/20 text-primary"
                   : "text-muted-foreground hover:text-foreground",
               )}
-              title="Agrupar documentos pela mesma submissão / OC"
+              title={t("mailboxList.toolbar.agruparOcTitle")}
               aria-pressed={effectiveMode === "grouped"}
             >
               <Layers className="h-3 w-3" />
-              Agrupar por OC
+              {t("mailboxList.toolbar.agruparOc")}
             </button>
           </div>
         )}
@@ -450,7 +449,7 @@ export function MailboxList({
       <ul className="flex-1 overflow-y-auto" role="list">
         {filtered.length === 0 && (
           <li className="p-8 text-center text-sm text-muted-foreground">
-            Nenhum item nesta pasta / 此文件夹中没有项目
+            {t("mailboxList.empty.semItens")}
           </li>
         )}
         {effectiveMode === "flat" &&
