@@ -30,39 +30,15 @@ interface Props {
 
 const OPCOES: Array<{
   value: DecisaoSaldo;
-  pt: string;
+  labelKey: string;
   cn: string;
-  desc: string;
+  descKey: string;
   icon: any;
 }> = [
-  {
-    value: "manter_aberta",
-    pt: "Manter aberta",
-    cn: "保持开放",
-    desc: "China continua produzindo o saldo. OC permanece em aberto.",
-    icon: PauseCircle,
-  },
-  {
-    value: "fechar_parcial",
-    pt: "Fechar parcial",
-    cn: "部分关闭",
-    desc: "Aceita apenas o que foi recebido. Saldo é descontado e a linha é fechada.",
-    icon: X,
-  },
-  {
-    value: "cancelar_saldo",
-    pt: "Cancelar saldo",
-    cn: "取消余额",
-    desc: "Cancela o saldo restante. Libera a China desta obrigação.",
-    icon: AlertTriangle,
-  },
-  {
-    value: "gerar_nova_oc",
-    pt: "Gerar nova OC com saldo",
-    cn: "创建新订单",
-    desc: "Cria uma nova OC só com o saldo, vinculada à atual.",
-    icon: GitBranch,
-  },
+  { value: "manter_aberta", labelKey: "saldoDecisao.manterAberta", cn: "保持开放", descKey: "saldoDecisao.manterAbertaDesc", icon: PauseCircle },
+  { value: "fechar_parcial", labelKey: "saldoDecisao.fecharParcial", cn: "部分关闭", descKey: "saldoDecisao.fecharParcialDesc", icon: X },
+  { value: "cancelar_saldo", labelKey: "saldoDecisao.cancelarSaldo", cn: "取消余额", descKey: "saldoDecisao.cancelarSaldoDesc", icon: AlertTriangle },
+  { value: "gerar_nova_oc", labelKey: "saldoDecisao.gerarNovaOC", cn: "创建新订单", descKey: "saldoDecisao.gerarNovaOCDesc", icon: GitBranch },
 ];
 
 export function SaldoOCDecisionDialog({
