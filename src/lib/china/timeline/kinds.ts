@@ -16,6 +16,7 @@ import {
   PackageSearch,
   AlertTriangle,
   CheckCircle2,
+  Gavel,
   Activity,
   type LucideIcon,
 } from "lucide-react";
