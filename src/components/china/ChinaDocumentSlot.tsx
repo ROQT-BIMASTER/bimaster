@@ -55,8 +55,8 @@ export function ChinaDocumentSlot({
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
+  const { t } = useChinaI18n();
 
-  // Determine effective status from files array
   const effectiveStatus = files && files.length > 0
     ? (files.some(f => f.status === "rejeitado") ? "rejeitado"
       : files.some(f => f.status === "pendente") ? "pendente"
@@ -64,7 +64,7 @@ export function ChinaDocumentSlot({
       : status)
     : status;
 
-  const s = statusConfig[effectiveStatus];
+  const s = STATUS_VISUAL[effectiveStatus];
   const fileCount = files?.length ?? (fileName ? 1 : 0);
 
   const handleFiles = useCallback(async (fileList: FileList) => {
