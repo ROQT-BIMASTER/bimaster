@@ -994,24 +994,24 @@ export function ChinaChecklistFocusMode({
                         Nenhum modelo salvo ainda
                       </div>
                     )}
-                    {templates.map((t) => (
+                    {templates.map((tpl) => (
                       <DropdownMenuItem
-                        key={t.id}
+                        key={tpl.id}
                         onSelect={(e) => e.preventDefault()}
                         className="flex items-start justify-between gap-2 py-2"
                       >
                         <button
                           className="flex-1 text-left"
-                          onClick={() => handleApplyTemplate(t)}
+                          onClick={() => handleApplyTemplate(tpl)}
                         >
-                          <div className="font-medium text-sm">{t.nome}</div>
+                          <div className="font-medium text-sm">{tpl.nome}</div>
                           <div className="flex items-center gap-1 mt-0.5 flex-wrap">
-                            <Badge variant={t.escopo === "global" ? "secondary" : "outline"} className="text-[10px] h-4">
-                              {t.escopo === "global" ? t("focusMode.escopoGlobal") : t("focusMode.escopoPessoal")}
+                            <Badge variant={tpl.escopo === "global" ? "secondary" : "outline"} className="text-[10px] h-4">
+                              {tpl.escopo === "global" ? t("focusMode.escopoGlobal") : t("focusMode.escopoPessoal")}
                             </Badge>
-                            {t.descricao && (
+                            {tpl.descricao && (
                               <span className="text-[10px] text-muted-foreground truncate max-w-[180px]">
-                                {t.descricao}
+                                {tpl.descricao}
                               </span>
                             )}
                           </div>
@@ -1019,7 +1019,7 @@ export function ChinaChecklistFocusMode({
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            if (confirm(`Excluir modelo "${t.nome}"?`)) deleteTemplate.mutate(t.id);
+                            if (confirm(`Excluir modelo "${tpl.nome}"?`)) deleteTemplate.mutate(tpl.id);
                           }}
                           className="text-destructive hover:text-destructive/70 shrink-0"
                           title={t("focusMode.tooltipExcluirModelo")}
