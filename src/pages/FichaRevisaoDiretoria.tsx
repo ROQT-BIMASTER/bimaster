@@ -24,6 +24,8 @@ import {
 import { useNavigate } from "react-router-dom";
 import { useFichaRevisaoDiretoria } from "@/hooks/useFichaRevisao";
 import { FichaAnalisePanel } from "@/components/fabrica/FichaAnalisePanel";
+import { MultiSelectProdutos } from "@/components/fabrica/MultiSelectProdutos";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { RevisaoChatConsolidado } from "@/components/fabrica/RevisaoChatConsolidado";
 import { DocumentosCofre } from "@/components/fabrica/DocumentosCofre";
 import { supabase } from "@/integrations/supabase/client";
@@ -378,33 +380,62 @@ export default function FichaRevisaoDiretoria() {
           </TabsList>
 
           <TabsContent value="fichas" className="mt-4 space-y-4">
+            {/* Status (Pendentes / Aprovadas) */}
+            <div className="flex flex-wrap items-center gap-3">
+              <ToggleGroup
+                type="single"
+                value={statusFiltro}
+                onValueChange={(v) => { if (v) setStatusFiltro(v as "pendente" | "aprovada"); }}
+                className="border rounded-md"
+              >
+                <ToggleGroupItem value="pendente" className="text-xs px-3 h-8 data-[state=on]:bg-primary data-[state=on]:text-primary-foreground">
+                  Pendentes
+                </ToggleGroupItem>
+                <ToggleGroupItem value="aprovada" className="text-xs px-3 h-8 data-[state=on]:bg-green-600 data-[state=on]:text-white">
+                  Aprovadas (60 dias)
+                </ToggleGroupItem>
+              </ToggleGroup>
+
+              <ToggleGroup
+                type="single"
+                value={filtroTipo}
+                onValueChange={(v) => { if (v) setFiltroTipo(v as "todos" | "kit" | "unitario"); }}
+                className="border rounded-md"
+              >
+                <ToggleGroupItem value="todos" className="text-xs px-3 h-8 data-[state=on]:bg-muted">Todos</ToggleGroupItem>
+                <ToggleGroupItem value="kit" className="text-xs px-3 h-8 data-[state=on]:bg-blue-600 data-[state=on]:text-white">Kits</ToggleGroupItem>
+                <ToggleGroupItem value="unitario" className="text-xs px-3 h-8 data-[state=on]:bg-amber-600 data-[state=on]:text-white">Unitários</ToggleGroupItem>
+              </ToggleGroup>
+            </div>
+
             {/* Filtros */}
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-2 items-start">
               <div className="relative flex-1 min-w-[200px] max-w-sm">
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input placeholder="Buscar por nome ou código..." value={busca} onChange={(e) => setBusca(e.target.value)} className="pl-9" />
               </div>
-              <Select value={filtroMarca} onValueChange={(v) => { setFiltroMarca(v); setFiltroLinha("all"); setFiltroProduto("all"); }}>
+              <Select value={filtroMarca} onValueChange={(v) => { setFiltroMarca(v); setFiltroLinha("all"); setProdutosSelecionados([]); }}>
                 <SelectTrigger className="w-[160px]"><SelectValue placeholder="Marca" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todas as Marcas</SelectItem>
                   {marcas.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}
                 </SelectContent>
               </Select>
-              <Select value={filtroLinha} onValueChange={(v) => { setFiltroLinha(v); setFiltroProduto("all"); }}>
+              <Select value={filtroLinha} onValueChange={(v) => { setFiltroLinha(v); setProdutosSelecionados([]); }}>
                 <SelectTrigger className="w-[160px]"><SelectValue placeholder="Linha" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todas as Linhas</SelectItem>
                   {linhas.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}
                 </SelectContent>
               </Select>
-              <Select value={filtroProduto} onValueChange={setFiltroProduto}>
-                <SelectTrigger className="w-[200px]"><SelectValue placeholder="Produto" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos os Produtos</SelectItem>
-                  {produtos.map(([id, nome]) => <SelectItem key={id} value={id}>{nome}</SelectItem>)}
-                </SelectContent>
-              </Select>
+              <div className="w-[280px]">
+                <MultiSelectProdutos
+                  produtos={produtos}
+                  selected={produtosSelecionados}
+                  onChange={setProdutosSelecionados}
+                  placeholder="Filtrar produtos (multi)..."
+                />
+              </div>
             </div>
 
             {isLoading ? (
