@@ -35,6 +35,7 @@ export function ChinaUploadPreviewDialog({
 }: ChinaUploadPreviewDialogProps) {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [saving, setSaving] = useState<"rascunho" | "pendente" | null>(null);
+  const { t } = useChinaI18n();
 
   useEffect(() => {
     if (file && file.type.startsWith("image/")) {
