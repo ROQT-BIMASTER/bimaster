@@ -14,6 +14,15 @@ const DEFAULT_GROUPED: MailboxFolder[] = [
   "returned",
 ];
 
+// Pastas onde o modo é FIXO em "grouped" — o toggle Documentos/Agrupar não
+// aparece. "Pendentes de envio" precisa sempre da visão por submissão para
+// expor a relação parte/todo (ex.: "2 de 17 enviados") sem confusão.
+const FORCED_GROUPED: MailboxFolder[] = ["awaiting_send"];
+
+export function isGroupModeForced(folder: MailboxFolder): boolean {
+  return FORCED_GROUPED.includes(folder);
+}
+
 function defaultFor(folder: MailboxFolder): ChinaInboxGroupMode {
   return DEFAULT_GROUPED.includes(folder) ? "grouped" : "flat";
 }
