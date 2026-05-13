@@ -53,7 +53,27 @@ export interface MailboxItem {
   snooze_until: string | null;
   /** Houve pelo menos uma rejeição anterior nesta submissão (China teve que corrigir). */
   had_previous_rejection: boolean;
+
+  // Checklist da submissão (calculado a partir de todos os documentos da submissão)
+  /** Total de documentos no checklist da submissão. */
+  checklist_total: number;
+  /** Documentos com status `aprovado`. */
+  checklist_aprovados: number;
+  /** Documentos com status `pendente` / `enviado` (em curso). */
+  checklist_pendentes: number;
+  /** Documentos com status `rejeitado`. */
+  checklist_rejeitados: number;
+  /**
+   * Para submissões com `submissao_status === "aprovado"`:
+   *  - "total": todos os documentos do checklist estão aprovados (libera OC)
+   *  - "partial": status da submissão é aprovado mas há documentos não aprovados
+   *  - "empty": submissão aprovada sem documentos no checklist
+   * Para outras submissões: undefined.
+   */
+  approval_completeness?: "total" | "partial" | "empty";
 }
+
+export type ApprovalCompleteness = "all" | "total" | "partial" | "empty";
 
 export interface MailboxCounts {
   inbox: number;
@@ -68,6 +88,10 @@ export interface MailboxCounts {
   sent_brazil: number;
   in_analysis: number;
   returned: number;
+  // Sub-pastas de "Aprovados" — distinguem aprovação plena vs parcial.
+  approved_total: number;
+  approved_partial: number;
+  approved_empty: number;
 }
 
 interface UseChinaMailboxResult {
@@ -91,6 +115,9 @@ const ZERO_COUNTS: MailboxCounts = {
   sent_brazil: 0,
   in_analysis: 0,
   returned: 0,
+  approved_total: 0,
+  approved_partial: 0,
+  approved_empty: 0,
 };
 
 export function useChinaMailbox(folder: MailboxFolder): UseChinaMailboxResult {
@@ -213,9 +240,25 @@ export function useChinaMailbox(folder: MailboxFolder): UseChinaMailboxResult {
 
     // Submissões que já tiveram pelo menos uma rejeição em qualquer doc.
     const rejectedSubs = new Set<string>();
+    // Estatísticas de checklist por submissão (total / aprovados / pendentes / rejeitados).
+    const subStats = new Map<string, { total: number; aprovados: number; pendentes: number; rejeitados: number }>();
     for (const d of docs) {
       if (d.status === "rejeitado") rejectedSubs.add(d.submissao_id);
+      const s = subStats.get(d.submissao_id) ?? { total: 0, aprovados: 0, pendentes: 0, rejeitados: 0 };
+      s.total += 1;
+      if (d.status === "aprovado") s.aprovados += 1;
+      else if (d.status === "rejeitado") s.rejeitados += 1;
+      else s.pendentes += 1;
+      subStats.set(d.submissao_id, s);
     }
+
+    const completenessFor = (subId: string, subStatus: string): "total" | "partial" | "empty" | undefined => {
+      if (subStatus !== "aprovado") return undefined;
+      const s = subStats.get(subId);
+      if (!s || s.total === 0) return "empty";
+      if (s.aprovados === s.total) return "total";
+      return "partial";
+    };
 
     // Construímos um item por documento; submissões sem doc viram um item "submissão".
     const allItems: MailboxItem[] = [];
@@ -254,6 +297,11 @@ export function useChinaMailbox(folder: MailboxFolder): UseChinaMailboxResult {
         is_deleted: !!sub.deleted_at,
         snooze_until: snoozedActive(sub.id),
         had_previous_rejection: rejectedSubs.has(sub.id) && d.status !== "rejeitado",
+        checklist_total: subStats.get(sub.id)?.total ?? 0,
+        checklist_aprovados: subStats.get(sub.id)?.aprovados ?? 0,
+        checklist_pendentes: subStats.get(sub.id)?.pendentes ?? 0,
+        checklist_rejeitados: subStats.get(sub.id)?.rejeitados ?? 0,
+        approval_completeness: completenessFor(sub.id, sub.status),
       });
     }
 
@@ -283,6 +331,11 @@ export function useChinaMailbox(folder: MailboxFolder): UseChinaMailboxResult {
         is_deleted: !!sub.deleted_at,
         snooze_until: snoozedActive(sub.id),
         had_previous_rejection: false,
+        checklist_total: 0,
+        checklist_aprovados: 0,
+        checklist_pendentes: 0,
+        checklist_rejeitados: 0,
+        approval_completeness: completenessFor(sub.id, sub.status),
       });
     }
 
@@ -345,6 +398,9 @@ export function useChinaMailbox(folder: MailboxFolder): UseChinaMailboxResult {
       sent_brazil: 0,
       in_analysis: 0,
       returned: 0,
+      approved_total: 0,
+      approved_partial: 0,
+      approved_empty: 0,
     };
 
     // Contadores por SUBMISSÃO única, não por documento
@@ -361,6 +417,9 @@ export function useChinaMailbox(folder: MailboxFolder): UseChinaMailboxResult {
       sent_brazil: new Set(),
       in_analysis: new Set(),
       returned: new Set(),
+      approved_total: new Set(),
+      approved_partial: new Set(),
+      approved_empty: new Set(),
     };
 
     const bumpCount = (
@@ -395,6 +454,13 @@ export function useChinaMailbox(folder: MailboxFolder): UseChinaMailboxResult {
       bumpCount("sent_brazil", i, matchSentBrazil);
       bumpCount("in_analysis", i, matchInAnalysis);
       bumpCount("returned", i, matchReturned);
+      // Sub-categorização da pasta "Aprovados" por completude do checklist.
+      if (matchApproved(i)) {
+        const c = i.approval_completeness;
+        if (c === "total") bumpCount("approved_total", i, () => true);
+        else if (c === "partial") bumpCount("approved_partial", i, () => true);
+        else if (c === "empty") bumpCount("approved_empty", i, () => true);
+      }
     }
 
     // Filtro da pasta atual

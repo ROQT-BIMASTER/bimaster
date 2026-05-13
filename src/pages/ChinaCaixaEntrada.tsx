@@ -74,7 +74,25 @@ export default function ChinaCaixaEntrada() {
       : "awaiting_send";
   const folder: MailboxFolder = CHINA_FOLDER_ALIAS[rawFolder] ?? rawFolder;
 
-  const { items, counts, isLoading, isFetching, refetch } = useChinaMailbox(folder);
+  // Sub-filtro da pasta "Aprovados": all | total | partial | empty
+  const VALID_APPROVAL = ["all", "total", "partial", "empty"] as const;
+  type ApprovalSubFilter = typeof VALID_APPROVAL[number];
+  const approvalParam = (searchParams.get("approval") as ApprovalSubFilter | null) ?? "all";
+  const approvalFilter: ApprovalSubFilter = (VALID_APPROVAL as readonly string[]).includes(approvalParam)
+    ? approvalParam
+    : "all";
+  const setApprovalFilter = (a: ApprovalSubFilter) => {
+    const sp = new URLSearchParams(searchParams);
+    if (a === "all") sp.delete("approval");
+    else sp.set("approval", a);
+    setSearchParams(sp, { replace: true });
+  };
+
+  const { items: rawItems, counts, isLoading, isFetching, refetch } = useChinaMailbox(folder);
+  const items = useMemo(() => {
+    if (folder !== "approved" || approvalFilter === "all") return rawItems;
+    return rawItems.filter((i) => i.approval_completeness === approvalFilter);
+  }, [rawItems, folder, approvalFilter]);
   const toggleRead = useToggleInboxRead();
   const toggleFlag = useToggleSubmissaoFlag();
   const trash = useTrashSubmissoes();
@@ -417,6 +435,47 @@ export default function ChinaCaixaEntrada() {
           </div>
         )}
       </div>
+
+      {/* Sub-filtro da pasta Aprovados — distingue aprovação plena × parcial × sem checklist */}
+      {folder === "approved" && (
+        <div className="flex flex-wrap items-center gap-1.5 rounded-md border border-border bg-card/40 px-2.5 py-1.5">
+          <span className="text-[11px] font-medium text-muted-foreground mr-1">
+            Aprovações:
+          </span>
+          {([
+            { k: "all" as const, label: "Todas", count: counts.approved, tone: "" },
+            { k: "total" as const, label: "Aprovação total", count: counts.approved_total, tone: "text-emerald-400 border-emerald-500/30 bg-emerald-500/10" },
+            { k: "partial" as const, label: "Parcial (checklist incompleto)", count: counts.approved_partial, tone: "text-amber-400 border-amber-500/30 bg-amber-500/10" },
+            { k: "empty" as const, label: "Sem checklist", count: counts.approved_empty, tone: "text-muted-foreground border-border bg-muted/30" },
+          ]).map((c) => (
+            <button
+              key={c.k}
+              type="button"
+              onClick={() => setApprovalFilter(c.k)}
+              className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] transition-colors ${
+                approvalFilter === c.k
+                  ? "bg-primary/20 text-primary border-primary/40"
+                  : c.tone || "text-muted-foreground border-border hover:bg-muted/40"
+              }`}
+              title={
+                c.k === "total"
+                  ? "Todos os documentos do checklist aprovados — libera ordem de compra"
+                  : c.k === "partial"
+                  ? "Submissão aprovada, mas com documentos do checklist ainda em aberto ou rejeitados"
+                  : c.k === "empty"
+                  ? "Submissão aprovada sem documentos no checklist"
+                  : "Mostrar todas as aprovações"
+              }
+            >
+              {c.label}
+              <span className="text-[9.5px] tabular-nums opacity-80">{c.count}</span>
+            </button>
+          ))}
+          <span className="ml-auto text-[10px] text-muted-foreground">
+            Apenas submissões com aprovação <strong>total</strong> liberam ordem de compra/produção.
+          </span>
+        </div>
+      )}
 
       {/* Layout 3 colunas (desktop) ou pilha (mobile) */}
       {isDesktop ? (

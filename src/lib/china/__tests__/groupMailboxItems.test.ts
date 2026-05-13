@@ -25,6 +25,10 @@ function mk(over: Partial<MailboxItem>): MailboxItem {
     is_deleted: false,
     snooze_until: null,
     had_previous_rejection: false,
+    checklist_total: 0,
+    checklist_aprovados: 0,
+    checklist_pendentes: 0,
+    checklist_rejeitados: 0,
     ...over,
   };
 }

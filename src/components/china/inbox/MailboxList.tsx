@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Star, Paperclip, Clock, AlertTriangle, CheckCircle2, FileText, FileX2, MessageSquareOff, ChevronRight, ChevronDown, Layers, CheckCheck } from "lucide-react";
+import { Star, Paperclip, Clock, AlertTriangle, CheckCircle2, FileText, FileX2, MessageSquareOff, ChevronRight, ChevronDown, Layers, CheckCheck, ListChecks } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -51,9 +51,31 @@ interface Props {
   onGroupModeChange?: (m: ChinaInboxGroupMode) => void;
 }
 
-function statusBadge(submissao_status: string, doc_status: string | null) {
+function statusBadge(
+  submissao_status: string,
+  doc_status: string | null,
+  approval_completeness?: "total" | "partial" | "empty",
+) {
   if (submissao_status === "aprovado") {
-    return { label: "Aprovado", icon: CheckCircle2, cls: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30" };
+    if (approval_completeness === "partial") {
+      return {
+        label: "Aprovado · parcial",
+        icon: AlertTriangle,
+        cls: "bg-amber-500/15 text-amber-400 border-amber-500/30",
+      };
+    }
+    if (approval_completeness === "empty") {
+      return {
+        label: "Aprovado · sem checklist",
+        icon: AlertTriangle,
+        cls: "bg-muted/40 text-muted-foreground border-border",
+      };
+    }
+    return {
+      label: "Aprovado · total",
+      icon: CheckCircle2,
+      cls: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30",
+    };
   }
   if (submissao_status === "rejeitado") {
     return { label: "Rejeitado", icon: AlertTriangle, cls: "bg-rose-500/15 text-rose-400 border-rose-500/30" };
@@ -89,7 +111,7 @@ interface RowProps {
 
 function MailboxRow({ item, dir, folder, active, checked, onSelect, onToggleCheck, onToggleStar, nested }: RowProps) {
   const id = item.documento_id ?? item.submissao_id;
-  const sb = statusBadge(item.submissao_status, item.doc_status);
+  const sb = statusBadge(item.submissao_status, item.doc_status, item.approval_completeness);
   const SbIcon = sb.icon;
   // Padrão e-mail: enquanto não lido, título em destaque em qualquer pasta.
   // Itens sem documento (não rastreáveis por leitura) são tratados como lidos.
@@ -200,6 +222,25 @@ function MailboxRow({ item, dir, folder, active, checked, onSelect, onToggleChec
           <SbIcon className="h-2.5 w-2.5" />
           {sb.label}
         </Badge>
+        {item.submissao_status === "aprovado" && item.checklist_total > 0 && (
+          <Badge
+            variant="outline"
+            className={cn(
+              "h-4 px-1.5 text-[9.5px] gap-0.5 font-medium",
+              item.checklist_aprovados === item.checklist_total
+                ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30"
+                : "bg-amber-500/10 text-amber-400 border-amber-500/30",
+            )}
+            title={
+              item.checklist_aprovados === item.checklist_total
+                ? "Checklist 100% aprovado — libera ordem de compra"
+                : `Checklist incompleto — ${item.checklist_total - item.checklist_aprovados} doc(s) ainda não aprovados`
+            }
+          >
+            <ListChecks className="h-2.5 w-2.5" />
+            {item.checklist_aprovados}/{item.checklist_total}
+          </Badge>
+        )}
         {item.snooze_until && (
           <Badge variant="outline" className="h-4 px-1.5 text-[9.5px] gap-0.5 bg-amber-500/15 text-amber-400 border-amber-500/30">
             <Clock className="h-2.5 w-2.5" /> adiada
@@ -415,7 +456,7 @@ function GroupRow({ group, dir, folder, selectedId, selectedIds, onSelect, onTog
   const [expanded, setExpanded] = useState(false);
   const headerActive = group.docs.some((d) => (d.documento_id ?? d.submissao_id) === selectedId);
   const checked = selectedIds.has(group.submissao_id);
-  const sb = statusBadge(group.submissao_status, group.worst_status);
+  const sb = statusBadge(group.submissao_status, group.worst_status, group.docs[0]?.approval_completeness);
   const SbIcon = sb.icon;
   const ChevronIcon = expanded ? ChevronDown : ChevronRight;
   const Pivot = group.docs[0];
