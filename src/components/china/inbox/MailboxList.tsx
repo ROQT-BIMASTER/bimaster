@@ -359,8 +359,8 @@ export function MailboxList({
 
   const groups = useMemo(() => {
     if (effectiveMode !== "grouped") return [];
-    return groupBySubmissao(filtered.map((x) => x.item));
-  }, [filtered, effectiveMode]);
+    return groupBySubmissao(filtered.map((x) => x.item), progressItems);
+  }, [filtered, effectiveMode, progressItems]);
 
   const mineCount = useMemo(
     () => itemsWithDir.filter((x) => x.dir.ballOnViewer).length,
