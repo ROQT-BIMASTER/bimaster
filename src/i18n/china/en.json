@@ -777,5 +777,39 @@
     "errCarregar": "Could not load the file",
     "previewIndisponivel": "Preview not available",
     "obsLabel": "Note:"
+  },
+  "emitirOC": {
+    "titulo": "Issue Purchase Order",
+    "unidades": "units",
+    "dataEntrega": "Expected Delivery Date",
+    "eanCaixaMaster": "Master Box EAN",
+    "eanPlaceholder": "Ex: 7898000000000",
+    "observacoes": "Notes",
+    "obsPlaceholder": "Special instructions...",
+    "cancelar": "Cancel",
+    "emitir": "Issue PO",
+    "emitindo": "Issuing...",
+    "errInformeData": "Please enter the expected delivery date",
+    "errEmitir": "Failed to issue PO",
+    "okCriada": "Order {numero} created as draft — awaiting approval"
+  },
+  "saldoDecisao": {
+    "titulo": "Balance decision",
+    "ocLabel": "PO",
+    "unico": "Single",
+    "unidadesSaldo": "{n} units pending",
+    "manterAberta": "Keep open",
+    "manterAbertaDesc": "China keeps producing the balance. PO remains open.",
+    "fecharParcial": "Partial close",
+    "fecharParcialDesc": "Only accepts what was received. Balance is deducted and the line is closed.",
+    "cancelarSaldo": "Cancel balance",
+    "cancelarSaldoDesc": "Cancels the remaining balance. Releases China from this obligation.",
+    "gerarNovaOC": "Generate new PO with balance",
+    "gerarNovaOCDesc": "Creates a new PO with just the balance, linked to the current one.",
+    "justificativa": "Justification (recommended)",
+    "justificativaPlaceholder": "Ex.: factory delay, raw material shortage, order change...",
+    "cancelar": "Cancel",
+    "confirmar": "Confirm decision",
+    "registrando": "Recording..."
   }
 }
