@@ -50,19 +50,24 @@ const BRASIL_GROUPS: FolderGroup[] = [
 ];
 
 // Sidebar do usuário China — central de comando estilo cliente de e-mail
+// Para as pastas operacionais, exibimos a contagem de ITENS (documentos) como
+// número principal e a contagem de SUBMISSÕES como sub-linha. Isso reflete a
+// nova regra de classificação: itens novos do checklist (rascunho/sem doc/sem
+// parecer) caem em "Pendentes de envio" mesmo quando a submissão pai já está
+// em análise no Brasil — então contar só por submissão escondia volume real.
 const CHINA_GROUPS: FolderGroup[] = [
   {
     titleKey: "grupoSaida",
     folders: [
-      { key: "awaiting_send", i18nKey: "awaiting_send", icon: FileEdit, countKey: "awaiting_send", tone: "text-muted-foreground" },
-      { key: "sent_brazil", i18nKey: "sent_brazil", icon: Send, countKey: "sent_brazil", tone: "text-primary" },
+      { key: "awaiting_send", i18nKey: "awaiting_send", icon: FileEdit, countKey: "awaiting_send_items", subCountKey: "awaiting_send", tone: "text-muted-foreground" },
+      { key: "sent_brazil", i18nKey: "sent_brazil", icon: Send, countKey: "sent_brazil_items", subCountKey: "sent_brazil", tone: "text-primary" },
     ],
   },
   {
     titleKey: "grupoAcompanhamento",
     folders: [
-      { key: "in_analysis", i18nKey: "in_analysis", icon: Eye, countKey: "in_analysis", tone: "text-amber-500" },
-      { key: "returned", i18nKey: "returned", icon: RotateCcw, countKey: "returned", tone: "text-rose-500" },
+      { key: "in_analysis", i18nKey: "in_analysis", icon: Eye, countKey: "in_analysis_items", subCountKey: "in_analysis", tone: "text-amber-500" },
+      { key: "returned", i18nKey: "returned", icon: RotateCcw, countKey: "returned_items", subCountKey: "returned", tone: "text-rose-500" },
       { key: "approved", i18nKey: "approved", icon: CheckCircle2, countKey: "approved", tone: "text-emerald-500" },
     ],
   },
@@ -108,28 +113,42 @@ export function MailboxSidebar({ folder, counts, onSelect, onCompose, forceChina
               const active = folder === f.key;
               const total = counts[f.countKey];
               const unread = f.unreadKey ? counts[f.unreadKey] : 0;
+              const subCount = f.subCountKey ? counts[f.subCountKey] : 0;
+              const showSub = !!f.subCountKey && total > 0 && subCount !== total;
               return (
                 <button
                   key={f.key}
                   type="button"
                   onClick={() => onSelect(f.key)}
                   className={cn(
-                    "group flex w-full items-center gap-2.5 rounded-md px-2.5 py-1.5 text-sm transition-colors",
+                    "group flex w-full items-start gap-2.5 rounded-md px-2.5 py-1.5 text-sm transition-colors",
                     active
                       ? "bg-primary/15 text-foreground font-medium"
                       : "text-muted-foreground hover:bg-muted/40 hover:text-foreground",
                   )}
+                  title={
+                    f.subCountKey
+                      ? `${total} item${total === 1 ? "" : "s"} em ${subCount} submissã${subCount === 1 ? "o" : "es"}`
+                      : undefined
+                  }
                 >
-                  <Icon className={cn("h-4 w-4 shrink-0", f.tone, active && "text-primary")} />
-                  <span className="truncate flex-1 text-left">
-                    {t(`inbox.sidebar.folders.${f.i18nKey}`)}
+                  <Icon className={cn("mt-0.5 h-4 w-4 shrink-0", f.tone, active && "text-primary")} />
+                  <span className="flex min-w-0 flex-1 flex-col text-left">
+                    <span className="truncate">
+                      {t(`inbox.sidebar.folders.${f.i18nKey}`)}
+                    </span>
+                    {showSub && (
+                      <span className="truncate text-[9.5px] leading-tight text-muted-foreground/70">
+                        {subCount} submissã{subCount === 1 ? "o" : "es"}
+                      </span>
+                    )}
                   </span>
                   {unread > 0 ? (
-                    <Badge className="h-4 px-1.5 text-[10px] bg-primary text-primary-foreground">
+                    <Badge className="mt-0.5 h-4 px-1.5 text-[10px] bg-primary text-primary-foreground">
                       {unread}
                     </Badge>
                   ) : total > 0 ? (
-                    <span className="text-[11px] text-muted-foreground tabular-nums">{total}</span>
+                    <span className="mt-0.5 text-[11px] text-muted-foreground tabular-nums">{total}</span>
                   ) : null}
                 </button>
               );

@@ -188,6 +188,14 @@ function MailboxRow({ item, dir, folder, active, checked, onSelect, onToggleChec
         {folder === "awaiting_send" && (() => {
           const ev = evaluateAwaitingSend(item);
           if (!ev.matches) return null;
+          // Contexto de auditoria: por que este item caiu em "Pendentes de envio"?
+          // - Status final (aprovado/rejeitado) BLOQUEIA entrada → nunca chega aqui.
+          // - Submissão pai em rascunho/pendente → fluxo normal de envio.
+          // - Submissão pai em em_revisao/enviado/enviado_brasil → item NOVO aceito
+          //   apesar do pai já ter sido enviado (ex.: checklist expandido depois).
+          const parent = item.submissao_status;
+          const isNewOnSentParent =
+            parent === "em_revisao" || parent === "enviado" || parent === "enviado_brasil";
           return (
             <div className="mt-1 flex flex-wrap items-center gap-1">
               {ev.reasons.map((r) => {
@@ -213,6 +221,19 @@ function MailboxRow({ item, dir, folder, active, checked, onSelect, onToggleChec
                   </Badge>
                 );
               })}
+              {isNewOnSentParent && (
+                <Badge
+                  variant="outline"
+                  className="h-4 gap-0.5 px-1.5 text-[9.5px] font-medium bg-sky-500/10 text-sky-400 border-sky-500/30"
+                  title={
+                    `Item novo aceito apesar da submissão pai estar em "${parent}". ` +
+                    `Status final (aprovado/rejeitado) bloqueia entrada — demais permitem.`
+                  }
+                >
+                  <ListChecks className="h-2.5 w-2.5" />
+                  Item novo · pai {parent === "em_revisao" ? "em análise" : "enviado"}
+                </Badge>
+              )}
             </div>
           );
         })()}

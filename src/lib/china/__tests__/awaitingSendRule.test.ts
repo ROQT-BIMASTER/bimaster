@@ -123,4 +123,38 @@ describe("evaluateAwaitingSend", () => {
     });
     expect(r.reasons).toEqual(["sem_parecer"]);
   });
+
+  // Garantia da regra: itens novos do checklist (rascunho, sem doc e sem parecer)
+  // sempre aparecem em "Pendentes de envio", independentemente do status pai —
+  // exceto quando a submissão atingiu status FINAL (aprovado/rejeitado).
+  it.each([
+    "rascunho",
+    "pendente",
+    "em_revisao",
+    "enviado",
+    "enviado_brasil",
+  ])("item novo (sem doc, sem parecer) entra mesmo com submissão pai = %s", (parent) => {
+    const r = evaluateAwaitingSend({
+      ...base,
+      submissao_status: parent,
+      documento_id: null,
+      observacoes_china: null,
+    });
+    expect(r.matches).toBe(true);
+    expect(r.reasons).toEqual(expect.arrayContaining(["sem_documento", "sem_parecer"]));
+  });
+
+  it.each(["aprovado", "rejeitado"])(
+    "item novo NÃO entra quando submissão pai está em status final = %s",
+    (parent) => {
+      const r = evaluateAwaitingSend({
+        ...base,
+        submissao_status: parent,
+        documento_id: null,
+        observacoes_china: null,
+      });
+      expect(r.matches).toBe(false);
+      expect(r.reasons).toEqual([]);
+    },
+  );
 });
