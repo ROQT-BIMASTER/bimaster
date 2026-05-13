@@ -11,18 +11,19 @@ import { CHINA_DOCUMENT_TYPES } from "@/lib/china-document-types";
 import { useMergedChinaChecklist } from "@/hooks/useMergedChinaChecklist";
 import { getSignedUrl } from "@/lib/utils/storage-helper";
 import { cn } from "@/lib/utils";
+import { useChinaI18n } from "@/hooks/useChinaI18n";
 
 interface PastaDigitalFromChecklistProps {
   submissaoId: string;
 }
 
-const STATUS_ICONS: Record<string, { icon: typeof CheckCircle2; color: string; label: string }> = {
-  aprovado: { icon: CheckCircle2, color: "text-success", label: "Aprovado" },
-  rejeitado: { icon: XCircle, color: "text-destructive", label: "Rejeitado" },
-  pendente: { icon: Clock, color: "text-warning", label: "Pendente" },
-  enviado: { icon: Clock, color: "text-primary", label: "Enviado" },
-  em_revisao: { icon: AlertCircle, color: "text-warning", label: "Em Revisão" },
-  rascunho: { icon: FileText, color: "text-muted-foreground", label: "Rascunho" },
+const STATUS_ICON_META: Record<string, { icon: typeof CheckCircle2; color: string; labelKey: string }> = {
+  aprovado: { icon: CheckCircle2, color: "text-success", labelKey: "pastaDigital.labelAprovado" },
+  rejeitado: { icon: XCircle, color: "text-destructive", labelKey: "pastaDigital.labelRejeitado" },
+  pendente: { icon: Clock, color: "text-warning", labelKey: "pastaDigital.labelPendente" },
+  enviado: { icon: Clock, color: "text-primary", labelKey: "pastaDigital.labelEnviado" },
+  em_revisao: { icon: AlertCircle, color: "text-warning", labelKey: "pastaDigital.labelEmRevisao" },
+  rascunho: { icon: FileText, color: "text-muted-foreground", labelKey: "pastaDigital.labelRascunho" },
 };
 
 function getDocTypeLabel(tipo: string) {
@@ -39,6 +40,7 @@ function isPdf(name: string) {
 }
 
 export function PastaDigitalFromChecklist({ submissaoId }: PastaDigitalFromChecklistProps) {
+  const { t } = useChinaI18n();
   const { data: documentos = [], isLoading, refetch } = useDocumentosDaSubmissao(submissaoId);
   const merged = useMergedChinaChecklist(submissaoId);
   const [expandedFases, setExpandedFases] = useState<Set<string>>(new Set(["dados_oficiais"]));
@@ -66,7 +68,7 @@ export function PastaDigitalFromChecklist({ submissaoId }: PastaDigitalFromCheck
       .filter((d: any) => !allTipos.includes(d.tipo_documento))
       .map((d: any) => ({ ...d, _page: pageCounter++ }));
     if (ungrouped.length > 0) {
-      result.push({ key: "_outros", labelPt: "Outros", labelCn: "其他", docs: ungrouped, fluxo: "china_envia" });
+      result.push({ key: "_outros", labelPt: t("pastaDigital.outros"), labelCn: t("pastaDigital.outros"), docs: ungrouped, fluxo: "china_envia" });
     }
 
     return result;
@@ -127,8 +129,8 @@ export function PastaDigitalFromChecklist({ submissaoId }: PastaDigitalFromCheck
               <FolderOpen className="h-5 w-5 text-primary" />
             </div>
             <div>
-              <BilingualLabel pt="Pasta Digital" cn="数字档案" size="md" />
-              <p className="text-[10px] text-muted-foreground mt-0.5">Padrão TJSP — originado do checklist</p>
+              <BilingualLabel pt={t("pastaDigital.titulo")} cn={t("pastaDigital.titulo")} size="md" />
+              <p className="text-[10px] text-muted-foreground mt-0.5">{t("pastaDigital.subtitulo")}</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -143,7 +145,7 @@ export function PastaDigitalFromChecklist({ submissaoId }: PastaDigitalFromCheck
                 <Clock className="h-3 w-3 mr-1" />{pendentes} pendentes
               </Badge>
             )}
-            <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => refetch()} title="Atualizar">
+            <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => refetch()} title={t("pastaDigital.tooltipAtualizar")}>
               <RefreshCw className="h-3.5 w-3.5" />
             </Button>
           </div>
@@ -223,7 +225,7 @@ export function PastaDigitalFromChecklist({ submissaoId }: PastaDigitalFromCheck
           {!selectedDoc ? (
             <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground gap-2">
               <FolderOpen className="h-10 w-10 opacity-30" />
-              <p className="text-sm">Selecione um documento na árvore</p>
+              <p className="text-sm">{t("pastaDigital.selecioneDoc")}</p>
               <p className="text-xs opacity-60">选择左侧文件查看</p>
             </div>
           ) : (
@@ -265,7 +267,7 @@ export function PastaDigitalFromChecklist({ submissaoId }: PastaDigitalFromCheck
                 ) : !resolvedUrl ? (
                   <div className="flex flex-col items-center justify-center h-full gap-2 text-muted-foreground">
                     <FileText className="h-10 w-10 opacity-30" />
-                    <p className="text-sm">Não foi possível carregar o arquivo</p>
+                    <p className="text-sm">{t("pastaDigital.errCarregar")}</p>
                   </div>
                 ) : showImage ? (
                   <img
@@ -282,7 +284,7 @@ export function PastaDigitalFromChecklist({ submissaoId }: PastaDigitalFromCheck
                 ) : (
                   <div className="flex flex-col items-center justify-center h-full gap-3 text-muted-foreground">
                     <FileText className="h-12 w-12 opacity-30" />
-                    <p className="text-sm">Preview não disponível</p>
+                    <p className="text-sm">{t("pastaDigital.previewIndisponivel")}</p>
                     <Button variant="outline" size="sm" asChild>
                       <a href={resolvedUrl} target="_blank" rel="noopener noreferrer">
                         <ExternalLink className="h-3.5 w-3.5 mr-1.5" /> Abrir externamente
@@ -295,7 +297,7 @@ export function PastaDigitalFromChecklist({ submissaoId }: PastaDigitalFromCheck
               {/* Doc info footer */}
               {selectedDoc.observacao && (
                 <div className="px-4 py-2 border-t bg-warning/5 text-[11px] text-warning">
-                  <strong>Observação:</strong> {selectedDoc.observacao}
+                  <strong>{t("pastaDigital.obsLabel")}</strong> {selectedDoc.observacao}
                 </div>
               )}
             </>
