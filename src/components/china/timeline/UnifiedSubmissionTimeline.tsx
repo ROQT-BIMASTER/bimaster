@@ -14,6 +14,8 @@ import { useOCTimeline } from "@/hooks/useOCTimeline";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { useChinaTimelineSla } from "@/hooks/useChinaTimelineSla";
+import { computeStageDeadlines, type StageDeadline } from "@/lib/china/timelineSlaCompute";
 
 
 interface SubmissaoLite {
