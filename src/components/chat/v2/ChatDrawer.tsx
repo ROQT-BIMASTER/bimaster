@@ -6,33 +6,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useChatUnreadTotal } from "@/hooks/chat/useConversas";
 import { ChatLayout } from "./ChatLayout";
 import { Badge } from "@/components/ui/badge";
-function usePathname() {
-  const [pathname, setPathname] = useState(() =>
-    typeof window !== "undefined" ? window.location.pathname : "/"
-  );
-  useEffect(() => {
-    const update = () => setPathname(window.location.pathname);
-    window.addEventListener("popstate", update);
-    const origPush = window.history.pushState;
-    const origReplace = window.history.replaceState;
-    window.history.pushState = function (...args) {
-      const r = origPush.apply(this, args as any);
-      update();
-      return r;
-    };
-    window.history.replaceState = function (...args) {
-      const r = origReplace.apply(this, args as any);
-      update();
-      return r;
-    };
-    return () => {
-      window.removeEventListener("popstate", update);
-      window.history.pushState = origPush;
-      window.history.replaceState = origReplace;
-    };
-  }, []);
-  return pathname;
-}
+import { useBrowserPathname } from "@/hooks/useBrowserPathname";
+import { ChatErrorBoundary } from "./ChatErrorBoundary";
 
 interface ChatDrawerCtx {
   open: boolean;
@@ -59,7 +34,9 @@ export function ChatDrawerProvider({ children }: { children: ReactNode }) {
   return (
     <Ctx.Provider value={{ open, setOpen, abrir }}>
       {children}
-      <ChatFloatingButton />
+      <ChatErrorBoundary name="ChatFloatingButton" fallback={null}>
+        <ChatFloatingButton />
+      </ChatErrorBoundary>
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetContent side="right" className="w-full sm:max-w-[920px] p-0 gap-0 flex flex-col">
           <div className="px-3 py-2 border-b border-border flex items-center gap-2 bg-card">
@@ -70,7 +47,11 @@ export function ChatDrawerProvider({ children }: { children: ReactNode }) {
             </Button>
           </div>
           <div className="flex-1 min-h-0">
-            {open && <ChatLayout initialConversaId={initialId} />}
+            {open && (
+              <ChatErrorBoundary name="ChatLayout">
+                <ChatLayout initialConversaId={initialId} />
+              </ChatErrorBoundary>
+            )}
           </div>
         </SheetContent>
       </Sheet>
@@ -82,7 +63,7 @@ function ChatFloatingButton() {
   const { user } = useAuth();
   const { abrir } = useChatDrawer();
   const total = useChatUnreadTotal();
-  const pathname = usePathname();
+  const pathname = useBrowserPathname();
   const [shortcut, setShortcut] = useState(false);
 
   useEffect(() => {
