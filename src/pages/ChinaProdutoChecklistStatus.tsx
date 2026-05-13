@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import {
   ListChecks,
@@ -338,6 +338,10 @@ function downloadBlob(content: BlobPart, mime: string, filename: string) {
 export default function ChinaProdutoChecklistStatus() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
+  const backTo =
+    (location.state as { from?: string } | null)?.from ??
+    `/dashboard/fabrica-china/produto/${id}`;
   const merged = useMergedChinaChecklist(id);
 
   const [search, setSearch] = useState("");
@@ -621,7 +625,7 @@ export default function ChinaProdutoChecklistStatus() {
         icon={ListChecks}
         iconTone="primary"
         showBack
-        backTo={`/dashboard/fabrica-china/produto/${id}`}
+        backTo={backTo}
         actions={
           <>
             <ChinaTimelineButton scope={{ submissaoId: id }} />
