@@ -200,8 +200,8 @@ export function ProjetoHeader({
         )}
       </div>
 
-      {/* Tabs + toolbar */}
-      <div className="flex items-center justify-between gap-3">
+      {/* Tabs row — full width para evitar corte das abas finais */}
+      <div className="flex items-center gap-2">
         <div className="relative flex-1 min-w-0">
           <div className={cn(
             "flex items-center gap-1 rounded-lg p-1 overflow-x-auto scrollbar-hide",
