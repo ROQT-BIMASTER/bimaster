@@ -425,7 +425,9 @@ export function MailboxList({
         )}
         {effectiveMode === "flat" &&
           filtered.map(({ item, dir }) => {
-            const id = item.documento_id ?? item.submissao_id;
+            const id = item.is_virtual
+              ? `${item.submissao_id}:virtual:${item.tipo_documento ?? "_"}`
+              : item.documento_id ?? item.submissao_id;
             return (
               <MailboxRow
                 key={id}
