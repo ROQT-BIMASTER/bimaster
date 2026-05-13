@@ -987,11 +987,11 @@ export function ChinaChecklistFocusMode({
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-[320px] max-h-[400px] overflow-y-auto">
-                    <DropdownMenuLabel>Modelos de Checklist</DropdownMenuLabel>
+                    <DropdownMenuLabel>{t("focusMode.modelosTitulo")}</DropdownMenuLabel>
                     <DropdownMenuSeparator />
                     {templates.length === 0 && (
                       <div className="px-2 py-3 text-xs text-muted-foreground text-center">
-                        Nenhum modelo salvo ainda
+                        {t("focusMode.nenhumModelo")}
                       </div>
                     )}
                     {templates.map((tpl) => (
@@ -1019,7 +1019,7 @@ export function ChinaChecklistFocusMode({
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            if (confirm(`Excluir modelo "${tpl.nome}"?`)) deleteTemplate.mutate(tpl.id);
+                            if (confirm(t("focusMode.confirmExcluirModelo", { nome: tpl.nome }))) deleteTemplate.mutate(tpl.id);
                           }}
                           className="text-destructive hover:text-destructive/70 shrink-0"
                           title={t("focusMode.tooltipExcluirModelo")}
@@ -1031,7 +1031,7 @@ export function ChinaChecklistFocusMode({
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onSelect={() => setTplSaveOpen(true)} className="gap-2">
                       <BookmarkPlus className="h-3.5 w-3.5 text-primary" />
-                      <span className="text-sm">Salvar checklist atual como modelo</span>
+                      <span className="text-sm">{t("focusMode.salvarComoModelo")}</span>
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
@@ -1118,7 +1118,7 @@ export function ChinaChecklistFocusMode({
                             >
                               <div className="flex items-center justify-between">
                                 <span className="truncate flex items-center gap-1">
-                                  {cat.isCustom && <Badge variant="outline" className="text-[8px] px-1 py-0 h-3.5">Custom</Badge>}
+                                  {cat.isCustom && <Badge variant="outline" className="text-[8px] px-1 py-0 h-3.5">{t("focusMode.custom")}</Badge>}
                                   {cat.labelPt}
                                 </span>
                                 <span className={cn(
@@ -1478,7 +1478,7 @@ export function ChinaChecklistFocusMode({
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div>
-              <Label className="text-xs">Nome (Português)</Label>
+              <Label className="text-xs">{t("focusMode.labelNomePt")}</Label>
               <Input
                 value={addCatLabelPt}
                 onChange={(e) => setAddCatLabelPt(e.target.value)}
@@ -1488,7 +1488,7 @@ export function ChinaChecklistFocusMode({
               />
             </div>
             <div>
-              <Label className="text-xs flex items-center gap-1">Nome (Chinês) {traduzirLabel.isPending ? <span className="text-[10px] text-muted-foreground">traduzindo…</span> : <span className="text-muted-foreground">— auto-tradução</span>}</Label>
+              <Label className="text-xs flex items-center gap-1">{t("focusMode.labelNomeCn")} {traduzirLabel.isPending ? <span className="text-[10px] text-muted-foreground">{t("focusMode.autoTraduzindo")}</span> : <span className="text-muted-foreground">— {t("focusMode.autoTrad")}</span>}</Label>
               <Input
                 value={addCatLabelCn}
                 onChange={(e) => setAddCatLabelCn(e.target.value)}
@@ -1502,25 +1502,25 @@ export function ChinaChecklistFocusMode({
                 className="cursor-pointer"
                 onClick={() => setAddCatFluxo("china_envia")}
               >
-                China Envia
+                {t("focusMode.btnChinaEnvia")}
               </Badge>
               <Badge
                 variant={addCatFluxo === "brasil_envia" ? "default" : "secondary"}
                 className="cursor-pointer"
                 onClick={() => setAddCatFluxo("brasil_envia")}
               >
-                Brasil Envia
+                {t("focusMode.btnBrasilEnvia")}
               </Badge>
             </div>
           </div>
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setAddCatOpen(false)}>Cancelar</Button>
+            <Button variant="ghost" onClick={() => setAddCatOpen(false)}>{t("focusMode.cancelar")}</Button>
             <Button
               onClick={() => createCategory.mutate()}
               disabled={!addCatLabelPt.trim() || createCategory.isPending}
             >
               {createCategory.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <FolderPlus className="h-4 w-4 mr-1" />}
-              Criar Categoria
+              {t("focusMode.btnCriarCategoria")}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1537,7 +1537,7 @@ export function ChinaChecklistFocusMode({
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div>
-              <Label className="text-xs">Nome do Item (Português)</Label>
+              <Label className="text-xs">{t("focusMode.labelNomeItemPt")}</Label>
               <Input
                 value={addItemLabelPt}
                 onChange={(e) => setAddItemLabelPt(e.target.value)}
@@ -1557,7 +1557,7 @@ export function ChinaChecklistFocusMode({
             </div>
           </div>
           <DialogFooter>
-            <Button variant="ghost" onClick={() => { setAddItemOpen(false); setEditingItemId(null); }}>Cancelar</Button>
+            <Button variant="ghost" onClick={() => { setAddItemOpen(false); setEditingItemId(null); }}>{t("focusMode.cancelar")}</Button>
             <Button
               onClick={() => (editingItemId ? updateItem.mutate() : createItem.mutate())}
               disabled={!addItemLabelPt.trim() || createItem.isPending || updateItem.isPending}
@@ -1581,7 +1581,7 @@ export function ChinaChecklistFocusMode({
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Pencil className="h-5 w-5 text-primary" />
-              Editar Categoria
+              {t("focusMode.dialogEditarCategoria")}
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-2">
@@ -1604,18 +1604,18 @@ export function ChinaChecklistFocusMode({
             </div>
             {editCatTarget && !editCatTarget.isCustom && (
               <p className="text-[10px] text-muted-foreground">
-                Esta é uma categoria padrão. O novo nome será aplicado apenas a este checklist.
+                {t("focusMode.categoriaPadrao")}
               </p>
             )}
           </div>
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setEditCatOpen(false)}>Cancelar</Button>
+            <Button variant="ghost" onClick={() => setEditCatOpen(false)}>{t("focusMode.cancelar")}</Button>
             <Button
               onClick={() => saveEditCategory.mutate()}
               disabled={!editCatLabelPt.trim() || saveEditCategory.isPending}
             >
               {saveEditCategory.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Save className="h-4 w-4 mr-1" />}
-              Salvar
+              {t("focusMode.btnSalvar")}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1627,12 +1627,12 @@ export function ChinaChecklistFocusMode({
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <BookmarkPlus className="h-5 w-5 text-primary" />
-              Salvar Modelo de Checklist
+              {t("focusMode.dialogSalvarModelo")}
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div>
-              <Label className="text-xs">Nome do modelo *</Label>
+              <Label className="text-xs">{t("focusMode.labelNomeModelo")}</Label>
               <Input
                 value={tplNome}
                 onChange={(e) => setTplNome(e.target.value)}
@@ -1641,7 +1641,7 @@ export function ChinaChecklistFocusMode({
               />
             </div>
             <div>
-              <Label className="text-xs">Descrição (opcional)</Label>
+              <Label className="text-xs">{t("focusMode.labelDescricaoModelo")}</Label>
               <Input
                 value={tplDescricao}
                 onChange={(e) => setTplDescricao(e.target.value)}
@@ -1650,36 +1650,36 @@ export function ChinaChecklistFocusMode({
               />
             </div>
             <div>
-              <Label className="text-xs">Visibilidade</Label>
+              <Label className="text-xs">{t("focusMode.visibilidade")}</Label>
               <div className="flex gap-2 mt-1">
                 <Badge
                   variant={tplEscopo === "global" ? "default" : "secondary"}
                   className="cursor-pointer"
                   onClick={() => setTplEscopo("global")}
                 >
-                  Global (todos)
+                  {t("focusMode.btnGlobalTodos")}
                 </Badge>
                 <Badge
                   variant={tplEscopo === "pessoal" ? "default" : "secondary"}
                   className="cursor-pointer"
                   onClick={() => setTplEscopo("pessoal")}
                 >
-                  Pessoal (só você)
+                  {t("focusMode.btnPessoalSoVoce")}
                 </Badge>
               </div>
             </div>
             <p className="text-[10px] text-muted-foreground">
-              O modelo guarda a estrutura de categorias, itens e nomes personalizados — não inclui arquivos enviados.
+              {t("focusMode.infoModelo")}
             </p>
           </div>
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setTplSaveOpen(false)}>Cancelar</Button>
+            <Button variant="ghost" onClick={() => setTplSaveOpen(false)}>{t("focusMode.cancelar")}</Button>
             <Button
               onClick={handleSaveTemplate}
               disabled={!tplNome.trim() || saveTemplate.isPending}
             >
               {saveTemplate.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <BookmarkPlus className="h-4 w-4 mr-1" />}
-              Salvar Modelo
+              {t("focusMode.btnSalvarModeloAcao")}
             </Button>
           </DialogFooter>
         </DialogContent>

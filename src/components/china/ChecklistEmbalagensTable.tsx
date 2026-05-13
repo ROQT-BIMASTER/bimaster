@@ -7,6 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Label } from "@/components/ui/label";
 import { uploadAndGetSignedUrl, getSignedUrl } from "@/lib/utils/storage-helper";
 import { toast } from "sonner";
+import { useChinaI18n } from "@/hooks/useChinaI18n";
 import { cn } from "@/lib/utils";
 import type { ChecklistColuna, ChecklistCelula } from "@/hooks/useChinaProdutoChecklist";
 
@@ -46,6 +47,7 @@ export function ChecklistEmbalagensTable({
   onToggleCelula,
   onSetMockup,
 }: Props) {
+  const { t } = useChinaI18n();
   const [addOpen, setAddOpen] = useState(false);
   const [newCol, setNewCol] = useState({ pt: "", cn: "" });
   const [editing, setEditing] = useState<ChecklistColuna | null>(null);
@@ -66,7 +68,7 @@ export function ChecklistEmbalagensTable({
 
   const handleAdd = () => {
     if (!newCol.pt.trim()) {
-      toast.error("Informe o nome em português");
+      toast.error(t("embalagensTable.errInformeNome"));
       return;
     }
     const key = newCol.pt
@@ -106,9 +108,9 @@ export function ChecklistEmbalagensTable({
       if (error) throw error;
       onSetMockup(activeUploadCor, path);
       if (signedUrl) setMockupUrls((p) => ({ ...p, [activeUploadCor]: signedUrl }));
-      toast.success("Mockup enviado");
+      toast.success(t("embalagensTable.okMockupEnviado"));
     } catch (e: any) {
-      toast.error(e?.message || "Erro no upload");
+      toast.error(e?.message || t("embalagensTable.errUpload"));
     } finally {
       setUploadingFor(null);
       setActiveUploadCor(null);
@@ -158,7 +160,7 @@ export function ChecklistEmbalagensTable({
                           variant="outline"
                           onClick={() => setEditing(col)}
                           className="h-7 px-2 gap-1 text-[10px] font-medium"
-                          title="Editar coluna"
+                          title={t("embalagensTable.tooltipEditarColuna")}
                           aria-label={`Editar coluna ${col.label_pt}`}
                         >
                           <Pencil className="h-3 w-3" />
@@ -174,7 +176,7 @@ export function ChecklistEmbalagensTable({
                             }
                           }}
                           className="h-7 px-2 gap-1 text-[10px] font-medium text-destructive hover:text-destructive"
-                          title="Excluir coluna"
+                          title={t("embalagensTable.tooltipExcluirColuna")}
                           aria-label={`Excluir coluna ${col.label_pt}`}
                         >
                           <X className="h-3 w-3" />
@@ -187,7 +189,7 @@ export function ChecklistEmbalagensTable({
               ))}
               {!readOnly && (
                 <th className="px-2 py-3 text-center border-b w-[60px]">
-                  <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setAddOpen(true)} title="Adicionar coluna">
+                  <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setAddOpen(true)} title={t("embalagensTable.tooltipAdicionarColuna")}>
                     <Plus className="h-4 w-4" />
                   </Button>
                 </th>
@@ -268,15 +270,15 @@ export function ChecklistEmbalagensTable({
       <Dialog open={addOpen} onOpenChange={setAddOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Nova coluna 新增列</DialogTitle>
+            <DialogTitle>{t("embalagensTable.dialogNovaColuna")}</DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
             <div>
-              <Label>Nome (PT) *</Label>
-              <Input value={newCol.pt} onChange={(e) => setNewCol((p) => ({ ...p, pt: e.target.value }))} placeholder="Ex.: Caixa Master" />
+              <Label>{t("embalagensTable.labelNomePt")}</Label>
+              <Input value={newCol.pt} onChange={(e) => setNewCol((p) => ({ ...p, pt: e.target.value }))} placeholder={t("embalagensTable.phNomePt")} />
             </div>
             <div>
-              <Label>Nome (CN)</Label>
+              <Label>{t("embalagensTable.labelNomeCn")}</Label>
               <Input value={newCol.cn} onChange={(e) => setNewCol((p) => ({ ...p, cn: e.target.value }))} placeholder="例如：主箱" />
             </div>
           </div>
@@ -291,12 +293,12 @@ export function ChecklistEmbalagensTable({
       <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Renomear coluna 重命名列</DialogTitle>
+            <DialogTitle>{t("embalagensTable.dialogRenomear")}</DialogTitle>
           </DialogHeader>
           {editing && (
             <div className="space-y-3">
               <div>
-                <Label>Nome (PT)</Label>
+                <Label>{t("embalagensTable.labelNomePtRen")}</Label>
                 <Input value={editing.label_pt} onChange={(e) => setEditing({ ...editing, label_pt: e.target.value })} />
               </div>
               <div>

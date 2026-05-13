@@ -13,42 +13,44 @@ import {
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  ChevronDown, ChevronRight, CheckCircle2, Clock, AlertTriangle, ShieldAlert,
+  ChevronDown, ChevronRight, CheckCircle2, AlertTriangle, ShieldAlert,
   Calendar as CalendarIcon, Rocket, FileWarning,
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { parseLocalDate } from "@/lib/utils/parseLocalDate";
 import { cn } from "@/lib/utils";
+import { useChinaI18n } from "@/hooks/useChinaI18n";
 
 interface Props {
   submissaoId: string;
 }
 
-const statusBadge: Record<ChecklistItemEstado["status"], { label: string; className: string }> = {
-  pendente:     { label: "Pendente",     className: "bg-muted text-foreground" },
-  em_andamento: { label: "Em andamento", className: "bg-warning/10 text-warning" },
-  concluido:    { label: "Concluído",    className: "bg-success/10 text-success" },
-  waiver:       { label: "Dispensado",   className: "bg-primary/10 text-primary" },
-};
-
-function slaInfo(prazo: string | null): { label: string; tone: "ok" | "warn" | "late" | "none" } {
-  if (!prazo) return { label: "Sem prazo", tone: "none" };
-  const today = new Date();
-  const d = parseLocalDate(prazo);
-  if (!d) return { label: "Sem prazo", tone: "none" };
-  const diff = Math.floor((d.getTime() - today.getTime()) / 86400000);
-  if (diff < 0) return { label: `Atrasado ${Math.abs(diff)}d`, tone: "late" };
-  if (diff <= 2) return { label: `Vence em ${diff}d`, tone: "warn" };
-  return { label: format(d, "dd/MM/yyyy", { locale: ptBR }), tone: "ok" };
-}
-
 export function ChecklistGovernancePanel({ submissaoId }: Props) {
+  const { t } = useChinaI18n();
   const merged = useMergedChinaChecklist(submissaoId);
   const gov = useChecklistGovernance(submissaoId);
   const [collapsed, setCollapsed] = useState(false);
   const [waiverFor, setWaiverFor] = useState<{ id: string; label: string } | null>(null);
   const [waiverMotivo, setWaiverMotivo] = useState("");
+
+  const statusBadge: Record<ChecklistItemEstado["status"], { label: string; className: string }> = {
+    pendente:     { label: t("governance.statusPendente"),    className: "bg-muted text-foreground" },
+    em_andamento: { label: t("governance.statusEmAndamento"), className: "bg-warning/10 text-warning" },
+    concluido:    { label: t("governance.statusConcluido"),   className: "bg-success/10 text-success" },
+    waiver:       { label: t("governance.statusDispensado"),  className: "bg-primary/10 text-primary" },
+  };
+
+  const slaInfo = (prazo: string | null): { label: string; tone: "ok" | "warn" | "late" | "none" } => {
+    if (!prazo) return { label: t("governance.semPrazo"), tone: "none" };
+    const today = new Date();
+    const d = parseLocalDate(prazo);
+    if (!d) return { label: t("governance.semPrazo"), tone: "none" };
+    const diff = Math.floor((d.getTime() - today.getTime()) / 86400000);
+    if (diff < 0) return { label: t("governance.atrasado", { d: Math.abs(diff) }), tone: "late" };
+    if (diff <= 2) return { label: t("governance.venceEm", { d: diff }), tone: "warn" };
+    return { label: format(d, "dd/MM/yyyy", { locale: ptBR }), tone: "ok" };
+  };
 
   const sumPesos = useMemo(
     () => gov.estados.reduce((s, e) => s + Number(e.peso_percentual || 0), 0),
@@ -91,7 +93,7 @@ export function ChecklistGovernancePanel({ submissaoId }: Props) {
       >
         <div className="flex items-center gap-3 min-w-0 flex-1">
           {collapsed ? <ChevronRight className="h-4 w-4 shrink-0" /> : <ChevronDown className="h-4 w-4 shrink-0" />}
-          <div className="text-sm font-semibold whitespace-nowrap">Conclusão da Ficha</div>
+          <div className="text-sm font-semibold whitespace-nowrap">{t("governance.titulo")}</div>
           <div className="flex-1 min-w-[120px] max-w-md">
             <Progress value={percent} className="h-2" />
           </div>
@@ -99,18 +101,18 @@ export function ChecklistGovernancePanel({ submissaoId }: Props) {
           {progresso?.itens_atrasados ? (
             <Badge variant="destructive" className="gap-1">
               <AlertTriangle className="h-3 w-3" />
-              {progresso.itens_atrasados} atrasados
+              {t("governance.atrasados", { n: progresso.itens_atrasados })}
             </Badge>
           ) : null}
           {liberado ? (
             <Badge className="bg-success/15 text-success gap-1">
-              <CheckCircle2 className="h-3 w-3" /> Liberado para OC/OP
+              <CheckCircle2 className="h-3 w-3" /> {t("governance.liberadoOC")}
             </Badge>
           ) : podeLiberar ? (
-            <Badge className="bg-success/10 text-success">Pronto para liberar</Badge>
+            <Badge className="bg-success/10 text-success">{t("governance.prontoLiberar")}</Badge>
           ) : (
             <Badge variant="secondary">
-              {progresso?.itens_pendentes ?? 0} pendentes
+              {t("governance.pendentes", { n: progresso?.itens_pendentes ?? 0 })}
             </Badge>
           )}
         </div>
@@ -122,7 +124,7 @@ export function ChecklistGovernancePanel({ submissaoId }: Props) {
             className="gap-1"
           >
             <Rocket className="h-3.5 w-3.5" />
-            {liberado ? "Liberado" : "Liberar para OC/OP"}
+            {liberado ? t("governance.btnLiberado") : t("governance.btnLiberar")}
           </Button>
         </div>
       </button>
@@ -131,7 +133,7 @@ export function ChecklistGovernancePanel({ submissaoId }: Props) {
         <div className="border-t px-4 py-3 space-y-3 max-h-[60vh] overflow-y-auto">
           <div className="flex items-center justify-between text-xs text-muted-foreground">
             <div>
-              Soma dos pesos:{" "}
+              {t("governance.somaPesos")}{" "}
               <span
                 className={cn(
                   "font-semibold tabular-nums",
@@ -141,11 +143,11 @@ export function ChecklistGovernancePanel({ submissaoId }: Props) {
                 {sumPesos.toFixed(2)}%
               </span>{" "}
               {Math.round(sumPesos) !== 100 && (
-                <span className="text-warning">— distribua até totalizar 100%</span>
+                <span className="text-warning">— {t("governance.distribua")}</span>
               )}
             </div>
             <Button size="sm" variant="ghost" onClick={normalizar}>
-              Normalizar pesos
+              {t("governance.normalizar")}
             </Button>
           </div>
 
@@ -153,11 +155,11 @@ export function ChecklistGovernancePanel({ submissaoId }: Props) {
             <table className="w-full text-xs">
               <thead className="bg-muted/40 text-[11px] uppercase text-muted-foreground">
                 <tr>
-                  <th className="text-left px-3 py-2">Item</th>
-                  <th className="text-center px-2 py-2 w-20">Peso (%)</th>
-                  <th className="text-center px-2 py-2 w-32">Prazo</th>
-                  <th className="text-center px-2 py-2 w-28">Status</th>
-                  <th className="text-right px-3 py-2 w-44">Ações</th>
+                  <th className="text-left px-3 py-2">{t("governance.thItem")}</th>
+                  <th className="text-center px-2 py-2 w-20">{t("governance.thPeso")}</th>
+                  <th className="text-center px-2 py-2 w-32">{t("governance.thPrazo")}</th>
+                  <th className="text-center px-2 py-2 w-28">{t("governance.thStatus")}</th>
+                  <th className="text-right px-3 py-2 w-44">{t("governance.thAcoes")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -166,7 +168,7 @@ export function ChecklistGovernancePanel({ submissaoId }: Props) {
                     <>
                       <tr key={`hdr-${cat.key}`} className="bg-muted/20">
                         <td colSpan={5} className="px-3 py-1.5 text-[11px] font-semibold uppercase text-muted-foreground">
-                          {cat.fluxo === "china_envia" ? "China envia" : "Brasil envia"} — {cat.labelPt}
+                          {cat.fluxo === "china_envia" ? t("governance.fluxoChinaEnvia") : t("governance.fluxoBrasilEnvia")} — {cat.labelPt}
                         </td>
                       </tr>
                       {items.map(({ estado, label, tipo }) => {
@@ -242,7 +244,7 @@ export function ChecklistGovernancePanel({ submissaoId }: Props) {
                                     className="h-7 text-[11px] gap-1"
                                     onClick={() => gov.concluirItem.mutate(estado.id)}
                                   >
-                                    <CheckCircle2 className="h-3 w-3" /> Concluir
+                                    <CheckCircle2 className="h-3 w-3" /> {t("governance.btnConcluir")}
                                   </Button>
                                 )}
                                 {estado.status !== "waiver" && estado.status !== "concluido" && (
@@ -255,7 +257,7 @@ export function ChecklistGovernancePanel({ submissaoId }: Props) {
                                       setWaiverMotivo("");
                                     }}
                                   >
-                                    <ShieldAlert className="h-3 w-3" /> Dispensar
+                                    <ShieldAlert className="h-3 w-3" /> {t("governance.btnDispensar")}
                                   </Button>
                                 )}
                               </div>
@@ -269,7 +271,7 @@ export function ChecklistGovernancePanel({ submissaoId }: Props) {
                 {grouped.every((g) => g.items.length === 0) && (
                   <tr>
                     <td colSpan={5} className="px-3 py-6 text-center text-muted-foreground">
-                      Nenhum item de checklist configurado.
+                      {t("governance.semItens")}
                     </td>
                   </tr>
                 )}
@@ -284,33 +286,32 @@ export function ChecklistGovernancePanel({ submissaoId }: Props) {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <FileWarning className="h-4 w-4 text-primary" />
-              Dispensar item do checklist
+              {t("governance.dialogDispensarTitulo")}
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
             <div className="text-sm">
-              <span className="text-muted-foreground">Item:</span>{" "}
+              <span className="text-muted-foreground">{t("governance.itemLabel")}</span>{" "}
               <span className="font-medium">{waiverFor?.label}</span>
             </div>
             <div>
               <label className="text-xs font-medium mb-1 block">
-                Justificativa <span className="text-destructive">*</span>
+                {t("governance.justificativa")} <span className="text-destructive">*</span>
               </label>
               <Textarea
                 value={waiverMotivo}
                 onChange={(e) => setWaiverMotivo(e.target.value)}
-                placeholder="Explique por que este item será dispensado (mín. 5 caracteres)"
+                placeholder={t("governance.justificativaPh")}
                 rows={4}
               />
             </div>
             <div className="text-[11px] text-muted-foreground">
-              A dispensa registra seu nome, data e motivo. Itens dispensados contam como
-              concluídos para liberação de OC/OP, mas ficam visíveis no histórico.
+              {t("governance.dispensaInfo")}
             </div>
           </div>
           <DialogFooter>
             <Button variant="ghost" onClick={() => setWaiverFor(null)}>
-              Cancelar
+              {t("governance.btnCancelar")}
             </Button>
             <Button
               disabled={waiverMotivo.trim().length < 5 || gov.aplicarWaiver.isPending}
@@ -322,7 +323,7 @@ export function ChecklistGovernancePanel({ submissaoId }: Props) {
                 );
               }}
             >
-              Confirmar dispensa
+              {t("governance.btnConfirmar")}
             </Button>
           </DialogFooter>
         </DialogContent>
