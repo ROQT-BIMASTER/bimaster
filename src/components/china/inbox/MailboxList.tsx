@@ -23,12 +23,12 @@ type TFn = (key: string, opts?: Record<string, unknown>) => string;
  * Usa `tipo_documento_label` (vindo do merge do checklist) e cai num
  * formatador snake_case → Title Case quando ausente.
  */
-function resolveTipoLabel(item: MailboxItem): string | null {
+function resolveTipoLabel(item: MailboxItem, t: TFn): string | null {
   if (item.tipo_documento_label) return item.tipo_documento_label;
-  const t = item.tipo_documento;
-  if (!t) return null;
-  if (t.startsWith("custom_")) return "Item personalizado";
-  return t
+  const td = item.tipo_documento;
+  if (!td) return null;
+  if (td.startsWith("custom_")) return t("mailboxList.fallback.itemPersonalizado");
+  return td
     .split("_")
     .filter(Boolean)
     .map((p) => p.charAt(0).toUpperCase() + p.slice(1))
