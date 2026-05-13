@@ -982,7 +982,20 @@ export function FichaAnalisePanel({ ficha, processando, onAprovar, onSolicitarRe
                 </div>
               )}
               <div className="flex gap-2 justify-end">
-                {!modoRevisao ? (
+                {ficha.status === "aprovada" ? (
+                  <Button
+                    variant="destructive"
+                    disabled={processando || !onCancelarAprovacao}
+                    onClick={async () => {
+                      const motivo = window.prompt("Informe o motivo do cancelamento desta aprovação:");
+                      if (motivo === null) return;
+                      if (!motivo.trim()) { toast.error("Motivo obrigatório."); return; }
+                      await onCancelarAprovacao?.(motivo.trim());
+                    }}
+                  >
+                    <AlertTriangle className="h-4 w-4 mr-1" /> Cancelar Aprovação
+                  </Button>
+                ) : !modoRevisao ? (
                   <>
                     <Button variant="outline" onClick={() => setModoRevisao(true)}>
                       <AlertTriangle className="h-4 w-4 mr-1" /> Solicitar Revisão
