@@ -291,43 +291,6 @@ export function ChecklistPendingSheet({
   };
 
 
-  const totals = useMemo(() => {
-    if (!group) return null;
-    const expected = Math.max(
-      group.docs[0]?.checklist_expected_total ?? 0,
-      group.progress.total,
-    );
-    const enviados =
-      group.progress.enviados +
-      group.progress.aprovados +
-      group.progress.em_analise +
-      group.progress.rejeitados;
-    const pct = expected > 0 ? Math.round((enviados / expected) * 100) : 0;
-    return {
-      enviados,
-      expected,
-      pendentes: Math.max(0, expected - enviados),
-      pct,
-    };
-  }, [group]);
-
-  if (!group) return null;
-
-  const pendingCount = totals?.pendentes ?? 0;
-
-  const handleAttach = (item: MailboxItem) => {
-    if (!item.tipo_documento) return;
-    navigate(
-      `/dashboard/fabrica-china/produto/${group.submissao_id}?focus=${encodeURIComponent(item.tipo_documento)}`,
-    );
-  };
-
-  const handleOpenInPage = () => {
-    navigate(
-      `/dashboard/fabrica-china/produto/${group.submissao_id}/checklist-status`,
-      { state: { from: "/dashboard/fabrica-china/caixa-entrada" } },
-    );
-  };
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
