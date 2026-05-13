@@ -21,6 +21,7 @@ import type { MailboxRow, VincularFolder } from "@/hooks/useVincularChinaMailbox
 import { VincularChinaRowAction } from "@/components/china/VincularChinaRowAction";
 import { isVincularRead, markVincularRead, markAllVincularRead, clearVincularRead, subscribeVincularRead } from "@/lib/china/vincularReadState";
 import { ReadStatusLegend } from "@/components/china/inbox/ReadStatusLegend";
+import { useChinaI18n } from "@/hooks/useChinaI18n";
 
 interface Props {
   items: MailboxRow[];
