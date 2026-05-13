@@ -634,5 +634,6 @@ export function UnifiedSubmissionTimeline({ submissao, ocId, onlyChinaStages, cl
         )}
       </div>
     </div>
+    </TooltipProvider>
   );
 }
