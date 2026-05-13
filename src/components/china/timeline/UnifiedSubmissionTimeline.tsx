@@ -35,6 +35,27 @@ import {
 } from "@/components/ui/tooltip";
 import { Info } from "lucide-react";
 
+function RuleHint({ text }: { text: string }) {
+  return (
+    <div className="-mt-1 mb-1 flex items-start gap-1 text-[10.5px] leading-snug text-muted-foreground">
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <button
+            type="button"
+            className="shrink-0 inline-flex items-center justify-center rounded-full p-0.5 text-muted-foreground/80 hover:text-foreground"
+            aria-label="Como esta contagem é calculada"
+          >
+            <Info className="h-3 w-3" />
+          </button>
+        </TooltipTrigger>
+        <TooltipContent side="top" align="start" className="max-w-[280px] text-[11px] leading-snug">
+          {text}
+        </TooltipContent>
+      </Tooltip>
+      <span className="italic">Como esta contagem é calculada?</span>
+    </div>
+  );
+}
 
 interface SubmissaoLite {
   submissao_id: string;
