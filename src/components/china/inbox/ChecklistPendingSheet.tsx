@@ -302,6 +302,10 @@ export function ChecklistPendingSheet({
   const { bgColor } = usePageBgColor();
   const merged = useMergedChinaChecklist(group?.submissao_id ?? null);
   const cfg = (folder && FOLDER_CONFIG[folder]) ?? DEFAULT_FOLDER_CONFIG;
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  useEffect(() => {
+    setSelected(new Set());
+  }, [group?.submissao_id, folder]);
 
   // Parecer técnico da China (campo único por submissão).
   const currentParecer = group?.docs[0]?.observacoes_china ?? "";
