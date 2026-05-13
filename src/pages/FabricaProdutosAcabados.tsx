@@ -694,6 +694,15 @@ export default function FabricaProdutosAcabados() {
             </Button>
             <div className="h-5 w-px bg-border mx-1" />
             <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => setKpisVisiveis(!kpisVisiveis)}
+              title={kpisVisiveis ? "Ocultar KPIs" : "Mostrar KPIs"}
+            >
+              {kpisVisiveis ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            </Button>
+            <Button
               variant={showAdminDash ? "default" : "outline"}
               size="sm"
               className="h-8"
