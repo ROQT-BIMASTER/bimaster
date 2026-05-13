@@ -20,13 +20,14 @@ import { ChinaOCReader } from "./ChinaOCReader";
 import { parseLocalDate } from "@/lib/utils/parseLocalDate";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { useChinaI18n } from "@/hooks/useChinaI18n";
 
-const TABS: { key: ChinaOCSubTab; label: string; icon: any }[] = [
-  { key: "pendente", label: "Pendente", icon: ShoppingBag },
-  { key: "producao", label: "Em produção", icon: Factory },
-  { key: "pronto_embarque", label: "Pronto p/ embarque", icon: PackageCheck },
-  { key: "embarcada", label: "Embarcada", icon: Ship },
-  { key: "concluida", label: "Concluída", icon: CheckCircle2 },
+const TABS: { key: ChinaOCSubTab; labelKey: string; icon: any }[] = [
+  { key: "pendente", labelKey: "inboxOC.tabPendente", icon: ShoppingBag },
+  { key: "producao", labelKey: "inboxOC.tabProducao", icon: Factory },
+  { key: "pronto_embarque", labelKey: "inboxOC.tabProntoEmbarque", icon: PackageCheck },
+  { key: "embarcada", labelKey: "inboxOC.tabEmbarcada", icon: Ship },
+  { key: "concluida", labelKey: "inboxOC.tabConcluida", icon: CheckCircle2 },
 ];
 
 function fmt(d: string | null) {
@@ -35,6 +36,7 @@ function fmt(d: string | null) {
 }
 
 export function ChinaInboxOCAba() {
+  const { t } = useChinaI18n();
   const qc = useQueryClient();
   const [tab, setTab] = useState<ChinaOCSubTab>("pendente");
   const [search, setSearch] = useState("");
@@ -66,8 +68,8 @@ export function ChinaInboxOCAba() {
       <div className="flex flex-col h-full">
         <div className="border-b p-3 flex items-center gap-2">
           <ToggleGroup type="single" value={view} onValueChange={(v) => v && setView(v as any)} size="sm">
-            <ToggleGroupItem value="lista" className="h-8 px-2 text-xs gap-1.5"><List className="h-3.5 w-3.5" />Lista</ToggleGroupItem>
-            <ToggleGroupItem value="tabela" className="h-8 px-2 text-xs gap-1.5"><TableIcon className="h-3.5 w-3.5" />Tabela</ToggleGroupItem>
+            <ToggleGroupItem value="lista" className="h-8 px-2 text-xs gap-1.5"><List className="h-3.5 w-3.5" />{t("inboxOC.viewLista")}</ToggleGroupItem>
+            <ToggleGroupItem value="tabela" className="h-8 px-2 text-xs gap-1.5"><TableIcon className="h-3.5 w-3.5" />{t("inboxOC.viewTabela")}</ToggleGroupItem>
           </ToggleGroup>
         </div>
         <div className="flex-1 overflow-hidden">
@@ -88,15 +90,15 @@ export function ChinaInboxOCAba() {
           <div className="flex items-center justify-between gap-2">
             <Tabs value={tab} onValueChange={(v) => { setTab(v as ChinaOCSubTab); setSelectedId(null); }}>
               <TabsList className="h-9">
-                {TABS.map((t) => {
-                  const Icon = t.icon;
+                {TABS.map((tb) => {
+                  const Icon = tb.icon;
                   return (
-                    <TabsTrigger key={t.key} value={t.key} className="text-xs gap-1.5">
+                    <TabsTrigger key={tb.key} value={tb.key} className="text-xs gap-1.5">
                       <Icon className="h-3.5 w-3.5" />
-                      {t.label}
-                      {counts[t.key] > 0 && (
+                      {t(tb.labelKey)}
+                      {counts[tb.key] > 0 && (
                         <Badge variant="secondary" className="h-4 px-1.5 text-[10px] tabular-nums">
-                          {counts[t.key]}
+                          {counts[tb.key]}
                         </Badge>
                       )}
                     </TabsTrigger>
@@ -105,8 +107,8 @@ export function ChinaInboxOCAba() {
               </TabsList>
             </Tabs>
             <ToggleGroup type="single" value={view} onValueChange={(v) => v && setView(v as any)} size="sm">
-              <ToggleGroupItem value="lista" className="h-8 px-2 text-xs gap-1.5"><List className="h-3.5 w-3.5" />Lista</ToggleGroupItem>
-              <ToggleGroupItem value="tabela" className="h-8 px-2 text-xs gap-1.5"><TableIcon className="h-3.5 w-3.5" />Tabela</ToggleGroupItem>
+              <ToggleGroupItem value="lista" className="h-8 px-2 text-xs gap-1.5"><List className="h-3.5 w-3.5" />{t("inboxOC.viewLista")}</ToggleGroupItem>
+              <ToggleGroupItem value="tabela" className="h-8 px-2 text-xs gap-1.5"><TableIcon className="h-3.5 w-3.5" />{t("inboxOC.viewTabela")}</ToggleGroupItem>
             </ToggleGroup>
           </div>
 
@@ -114,7 +116,7 @@ export function ChinaInboxOCAba() {
             <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
             <Input
               className="pl-7 h-8 text-sm"
-              placeholder="OC, código ou produto…"
+              placeholder={t("inboxOC.buscarPlaceholder")}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
@@ -128,7 +130,7 @@ export function ChinaInboxOCAba() {
             </div>
           ) : filtered.length === 0 ? (
             <div className="text-center py-12 text-xs text-muted-foreground">
-              Nenhuma OC nesta etapa.
+              {t("inboxOC.nenhumaOC")}
             </div>
           ) : (
             <ul className="divide-y">
@@ -138,6 +140,7 @@ export function ChinaInboxOCAba() {
                   oc={o}
                   active={selectedId === o.ordem_compra_id}
                   onClick={() => setSelectedId(o.ordem_compra_id)}
+                  t={t}
                 />
               ))}
             </ul>
@@ -152,7 +155,7 @@ export function ChinaInboxOCAba() {
   );
 }
 
-function OCListRow({ oc, active, onClick }: { oc: ChinaInboxOC; active: boolean; onClick: () => void }) {
+function OCListRow({ oc, active, onClick, t }: { oc: ChinaInboxOC; active: boolean; onClick: () => void; t: (k: string, opts?: any) => string }) {
   const pct = oc.qty_total > 0 ? Math.round((oc.qty_produzida / oc.qty_total) * 100) : 0;
   return (
     <li
@@ -164,11 +167,11 @@ function OCListRow({ oc, active, onClick }: { oc: ChinaInboxOC; active: boolean;
         <span className="text-xs font-semibold tabular-nums">{oc.numero_oc}</span>
         {oc.has_embarque && (
           <Badge variant="secondary" className="h-4 px-1.5 text-[10px]">
-            <Ship className="h-2.5 w-2.5 mr-1" />{oc.embarque_status ?? "embarcada"}
+            <Ship className="h-2.5 w-2.5 mr-1" />{oc.embarque_status ?? t("inboxOC.embarcadaBadge")}
           </Badge>
         )}
         <span className="ml-auto text-[10px] text-muted-foreground">
-          Entrega {fmt(oc.data_entrega_prevista)}
+          {t("inboxOC.entregaPrefix")} {fmt(oc.data_entrega_prevista)}
         </span>
       </div>
       <div className="mt-0.5 text-xs truncate">
