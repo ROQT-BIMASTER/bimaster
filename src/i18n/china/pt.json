@@ -140,7 +140,23 @@
       "aprovadaPeloBrasil": "Submissão aprovada pelo Brasil",
       "aprovadaEm": "Aprovada em {{date}}.",
       "brasilSolicitouAjustes": "Brasil solicitou ajustes",
-      "conversa": "Conversa"
+      "conversa": "Conversa",
+      "falhaEnviarBrasil": "Não foi possível enviar ao Brasil."
+    },
+    "readLegend": {
+      "trigger": "O que significam os destaques de leitura?",
+      "titulo": "Indicadores de leitura",
+      "naoLida": "Título em negrito e fundo levemente destacado: mensagem ainda não lida.",
+      "lida": "Dois checks azuis: você já abriu / marcou esta mensagem como lida."
+    },
+    "readMenu": {
+      "trigger": "Mais ações de leitura",
+      "label": "Leitura",
+      "titulo": "Estado de leitura",
+      "marcarSelecionadasLidas": "Marcar selecionadas como lidas",
+      "marcarTodosLidos": "Marcar todos como lidos",
+      "limparEstado": "Limpar estado de leitura",
+      "confirmLimpar": "Limpar todas as marcações locais de leitura desta tela?"
     },
     "snooze": {
       "trigger": "Adiar",
