@@ -148,7 +148,7 @@ export function MentionInput({
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
           rows={minRows}
-          className="text-sm bg-muted/30 border-border/50 resize-none flex-1"
+          className="text-sm bg-muted/30 border-border/50 resize-none flex-1 min-h-[44px] md:min-h-[80px]"
         />
         {showSendButton && (
           <Button
