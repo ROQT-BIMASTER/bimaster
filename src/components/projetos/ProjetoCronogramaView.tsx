@@ -445,9 +445,11 @@ export function ProjetoCronogramaView({ projetoId, onSelectTarefa, darkBg = fals
                               <Tooltip key={t.id}>
                                 <TooltipTrigger asChild>
                                   <button
+                                    aria-label={`${ESTAGIO_LABELS[t.estagio || ""] || "Sem estágio"} – ${t.titulo}${bar.isCompleted ? " (concluída)" : ""}`}
                                     className={cn(
                                       "absolute rounded-md h-7 flex items-center text-[11px] font-medium text-white transition-all hover:brightness-110 hover:shadow-md cursor-pointer group",
-                                      bar.isCompleted && "opacity-60"
+                                      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-1",
+                                      bar.isCompleted && "opacity-60",
                                     )}
                                     style={{
                                       left: bar.left,
@@ -460,8 +462,16 @@ export function ProjetoCronogramaView({ projetoId, onSelectTarefa, darkBg = fals
                                     {/* Background (unfilled portion - darker/dimmed) */}
                                     <div
                                       className="absolute inset-0 rounded-md"
-                                      style={{ backgroundColor: bar.color, opacity: hasProgress ? 0.35 : 1 }}
+                                      style={{
+                                        backgroundColor: bar.color,
+                                        opacity: hasProgress ? 0.35 : 1,
+                                        // Hatching para "concluída" — não depende só de cor (acessível p/ daltonismo)
+                                        backgroundImage: bar.isCompleted
+                                          ? "repeating-linear-gradient(45deg, rgba(255,255,255,0.25) 0 4px, transparent 4px 8px)"
+                                          : undefined,
+                                      }}
                                     />
+
                                     {/* Filled portion (progress) */}
                                     {hasProgress && progress.percent > 0 && (
                                       <div
