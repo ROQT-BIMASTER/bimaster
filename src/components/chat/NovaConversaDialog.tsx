@@ -14,8 +14,7 @@ import { logger } from "@/lib/logger";
 interface Usuario {
   id: string;
   nome: string | null;
-  email: string | null;
-  avatar_url?: string | null;
+  avatar_url: string | null;
 }
 
 interface NovaConversaDialogProps {
@@ -46,16 +45,16 @@ export const NovaConversaDialog = ({ open, onOpenChange, onSuccess }: NovaConver
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
+      // Diretório SECURITY DEFINER — bypassa RLS estrita de profiles
+      // e expõe apenas id+nome+avatar de usuários ativos não-honeytoken.
       const { data, error } = await supabase
-        .from("profiles")
-        .select("id, nome, email, avatar_url")
+        .from("chat_directory" as any)
+        .select("id, nome, avatar_url")
         .neq("id", user.id)
-        .eq("status", "ativo")
-        .eq("is_honeytoken", false)
         .order("nome");
 
       if (error) throw error;
-      setUsuarios(data || []);
+      setUsuarios((data as unknown as Usuario[]) || []);
     } catch (error) {
       logger.error("Erro ao carregar usuários:", error);
       toast({
@@ -72,11 +71,7 @@ export const NovaConversaDialog = ({ open, onOpenChange, onSuccess }: NovaConver
     // Suporte a menção @nome
     const termo = busca.trim().replace(/^@/, "").toLowerCase();
     if (!termo) return usuarios;
-    return usuarios.filter((u) => {
-      const nome = (u.nome || "").toLowerCase();
-      const email = (u.email || "").toLowerCase();
-      return nome.includes(termo) || email.includes(termo);
-    });
+    return usuarios.filter((u) => (u.nome || "").toLowerCase().includes(termo));
   }, [usuarios, busca]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -162,7 +157,7 @@ export const NovaConversaDialog = ({ open, onOpenChange, onSuccess }: NovaConver
                   <ul className="p-1">
                     {usuariosFiltrados.map((u) => {
                       const selecionado = usuarioSelecionado === u.id;
-                      const inicial = (u.nome || u.email || "?").charAt(0).toUpperCase();
+                      const inicial = (u.nome || "?").charAt(0).toUpperCase();
                       return (
                         <li key={u.id}>
                           <button
@@ -183,9 +178,6 @@ export const NovaConversaDialog = ({ open, onOpenChange, onSuccess }: NovaConver
                             <div className="flex-1 min-w-0">
                               <div className="text-sm font-medium truncate">
                                 {u.nome || "Sem nome"}
-                              </div>
-                              <div className="text-xs text-muted-foreground truncate">
-                                {""}{u.email}
                               </div>
                             </div>
                             {selecionado && <Check className="h-4 w-4 text-primary shrink-0" />}

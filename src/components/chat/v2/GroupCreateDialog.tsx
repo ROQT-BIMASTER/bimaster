@@ -19,7 +19,7 @@ interface Props {
   onCreated: (conversaId: string) => void;
 }
 
-interface User { id: string; nome: string | null; email: string | null }
+interface User { id: string; nome: string | null }
 
 export function GroupCreateDialog({ open, onOpenChange, onCreated }: Props) {
   const { user } = useAuth();
@@ -37,19 +37,20 @@ export function GroupCreateDialog({ open, onOpenChange, onCreated }: Props) {
       return;
     }
     (async () => {
+      // Diretório SECURITY DEFINER — bypassa RLS estrita de profiles.
       const { data } = await supabase
-        .from("profiles")
-        .select("id, nome, email")
+        .from("chat_directory" as any)
+        .select("id, nome")
         .neq("id", user?.id ?? "")
         .order("nome");
-      setUsuarios((data ?? []) as User[]);
+      setUsuarios((data ?? []) as unknown as User[]);
     })();
   }, [open, user?.id]);
 
   const filtrados = useMemo(() => {
     const q = busca.trim().toLowerCase();
     if (!q) return usuarios;
-    return usuarios.filter((u) => (u.nome ?? "").toLowerCase().includes(q) || (u.email ?? "").toLowerCase().includes(q));
+    return usuarios.filter((u) => (u.nome ?? "").toLowerCase().includes(q));
   }, [usuarios, busca]);
 
   const toggle = (id: string) => {
@@ -101,10 +102,9 @@ export function GroupCreateDialog({ open, onOpenChange, onCreated }: Props) {
                     onClick={() => toggle(u.id)}
                   >
                     <Checkbox checked={checked} onCheckedChange={() => toggle(u.id)} />
-                    <Avatar className="h-8 w-8"><AvatarFallback>{initials(u.nome, u.email)}</AvatarFallback></Avatar>
+                    <Avatar className="h-8 w-8"><AvatarFallback>{initials(u.nome)}</AvatarFallback></Avatar>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm truncate">{u.nome ?? "Sem nome"}</p>
-                      <p className="text-xs text-muted-foreground truncate">{u.email}</p>
                     </div>
                   </li>
                 );

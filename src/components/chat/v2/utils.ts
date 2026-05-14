@@ -99,7 +99,7 @@ export function formatBytes(b: number): string {
   return `${(b / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-export function nomeConversa(c: { nome: string | null; outroUsuario?: { nome: string | null; email: string | null } | null; tipo: string }): string {
+export function nomeConversa(c: { nome: string | null; outroUsuario?: { nome: string | null; email?: string | null } | null; tipo: string }): string {
   if (c.nome) return c.nome;
   if (c.outroUsuario) return c.outroUsuario.nome ?? c.outroUsuario.email ?? "Sem nome";
   return c.tipo === "group" || c.tipo === "grupo" ? "Grupo" : "Conversa";
