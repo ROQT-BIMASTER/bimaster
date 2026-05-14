@@ -25,8 +25,10 @@ async function loadMensagensBatch(conversaId: string, beforeIso: string | null):
   const replyIds = list.map((m) => m.responde_a_id).filter(Boolean) as string[];
 
   const [profsRes, anexosRes, reacoesRes, leitRes, repliesRes] = await Promise.all([
+    // chat_directory bypassa a RLS estrita de profiles — sem isso, mensagens
+    // de outros usuários apareceriam sem nome/avatar para não-admins.
     senderIds.length
-      ? supabase.from("profiles").select("id, nome, email, avatar_url").in("id", senderIds)
+      ? supabase.from("chat_directory" as any).select("id, nome, avatar_url").in("id", senderIds)
       : Promise.resolve({ data: [] as any[] }),
     supabase.from("mensagens_anexos").select("*").in("mensagem_id", ids),
     supabase.from("mensagens_reacoes").select("id, mensagem_id, emoji, user_id").in("mensagem_id", ids),
@@ -127,7 +129,7 @@ export function useConversaInfo(conversaId: string | null) {
         .is("saiu_em", null);
       const ids = (parts ?? []).map((p) => p.usuario_id);
       const { data: profs } = ids.length
-        ? await supabase.from("profiles").select("id, nome, email, avatar_url").in("id", ids)
+        ? await supabase.from("chat_directory" as any).select("id, nome, avatar_url").in("id", ids)
         : { data: [] as any[] };
       const profMap = new Map<string, any>((profs ?? []).map((p: any) => [p.id, p]));
       return {

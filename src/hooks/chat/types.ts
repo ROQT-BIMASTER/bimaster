@@ -4,8 +4,10 @@ export type ChatTipoMensagem = "texto" | "imagem" | "arquivo" | "audio" | "video
 export interface ChatProfile {
   id: string;
   nome: string | null;
-  email: string | null;
   avatar_url: string | null;
+  // email/departamento intencionalmente fora — chat_directory expõe só
+  // id/nome/avatar para respeitar a RLS estrita de profiles.
+  email?: string | null;
   departamento_id?: string | null;
 }
 

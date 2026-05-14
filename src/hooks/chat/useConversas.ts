@@ -87,9 +87,12 @@ export function useConversas() {
       });
       const profMap = new Map<string, ChatProfile>();
       if (otherIds.size) {
+        // Diretório SECURITY DEFINER — necessário porque profiles tem RLS
+        // estrita que esconde colegas dos não-admins (ver migration
+        // 20260514100000_create_chat_directory_view).
         const { data: profs } = await supabase
-          .from("profiles")
-          .select("id, nome, email, avatar_url, departamento_id")
+          .from("chat_directory" as any)
+          .select("id, nome, avatar_url")
           .in("id", Array.from(otherIds));
         (profs ?? []).forEach((p: any) => profMap.set(p.id, p));
       }

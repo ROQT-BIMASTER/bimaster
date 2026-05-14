@@ -27,6 +27,7 @@ const loginSchema = z.object({
 });
 
 const ROLE_REDIRECT_TIMEOUT = 3000;
+const PWA_UPDATE_TIMEOUT = 1500;
 
 const fetchUserRoleWithTimeout = async (userId: string): Promise<string | null> => {
   try {
@@ -42,6 +43,19 @@ const fetchUserRoleWithTimeout = async (userId: string): Promise<string | null> 
     ]);
     if (result.error) return null;
     return result.data?.role ?? null;
+  } catch {
+    return null;
+  }
+};
+
+const withTimeout = async <T,>(promise: Promise<T>, ms: number): Promise<T | null> => {
+  try {
+    return await Promise.race([
+      promise,
+      new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error("timeout")), ms)
+      ),
+    ]);
   } catch {
     return null;
   }
@@ -135,8 +149,10 @@ export const LoginForm = () => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session?.user) return;
 
-    // Força atualização do Service Worker e prepara reload limpo
-    await autoUpdateOnLogin();
+    // Força atualização do Service Worker e prepara reload limpo.
+    // Protegido por timeout: registration.update() pode pendurar sem resolver
+    // (SW em waiting/installing, rede instável) e travar o botão em "Entrando...".
+    await withTimeout(autoUpdateOnLogin(), PWA_UPDATE_TIMEOUT);
 
     // Toast discreto informando atualização para a versão mais recente
     toast({

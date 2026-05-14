@@ -1491,9 +1491,28 @@ export async function forceCleanReload(): Promise<void> {
 
 /**
  * Força limpeza completa e navega para uma rota específica após login.
+ *
+ * A limpeza de caches/SW é protegida por timeout: caches.delete e
+ * registration.unregister podem pendurar (SW corrompido, rede instável)
+ * e impedir o window.location.replace, deixando o usuário preso na tela
+ * de login com a sessão já persistida no localStorage.
  */
+const CLEAN_NAVIGATE_TIMEOUT = 2000;
+
 export async function forceCleanNavigate(targetPath: string): Promise<void> {
-  await clearAllCaches();
+  try {
+    await Promise.race([
+      clearAllCaches(),
+      new Promise<void>((resolve) =>
+        setTimeout(() => {
+          logger.warn('[Version] clearAllCaches timeout — seguindo com navegação');
+          resolve();
+        }, CLEAN_NAVIGATE_TIMEOUT)
+      ),
+    ]);
+  } catch (error) {
+    logger.error('[Version] Erro em clearAllCaches, seguindo com navegação:', error);
+  }
   localStorage.setItem(VERSION_KEY, APP_VERSION);
 
   const url = new URL(targetPath || '/dashboard', window.location.origin);
