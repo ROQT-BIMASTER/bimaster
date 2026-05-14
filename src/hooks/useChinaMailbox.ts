@@ -681,16 +681,18 @@ export function useChinaMailbox(folder: MailboxFolder): UseChinaMailboxResult {
   // evitar re-toast a cada reload da página (cada submissão notifica uma única
   // vez por sessão de uso, não por sessão de browser).
   const NOTIF_KEY = "china-inbox-awaiting-notified-v1";
-  const notifiedRef = useRef<{ initialized: boolean; seen: Set<string> }>(() => {
-    if (typeof window === "undefined") return { initialized: false, seen: new Set<string>() };
-    try {
-      const raw = window.localStorage.getItem(NOTIF_KEY);
-      const seen = raw ? new Set<string>(JSON.parse(raw)) : new Set<string>();
-      return { initialized: seen.size > 0, seen };
-    } catch {
-      return { initialized: false, seen: new Set<string>() };
-    }
-  }());
+  const notifiedRef = useRef<{ initialized: boolean; seen: Set<string> }>(
+    (() => {
+      if (typeof window === "undefined") return { initialized: false, seen: new Set<string>() };
+      try {
+        const raw = window.localStorage.getItem(NOTIF_KEY);
+        const seen = raw ? new Set<string>(JSON.parse(raw)) : new Set<string>();
+        return { initialized: seen.size > 0, seen };
+      } catch {
+        return { initialized: false, seen: new Set<string>() };
+      }
+    })(),
+  );
   useEffect(() => {
     if (!isChinaUser || !query.data) return;
     const newlyPending: { id: string; produto: string; reasons: AwaitingSendReason[] }[] = [];
