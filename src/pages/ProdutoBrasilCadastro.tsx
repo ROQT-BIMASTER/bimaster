@@ -100,8 +100,9 @@ export default function ProdutoBrasilCadastro() {
       )}
 
       {/* Main Tabbed Content */}
-      <Tabs defaultValue="identificacao" className="w-full">
+      <Tabs defaultValue="comparacao" className="w-full">
         <TabsList className="flex flex-wrap h-auto gap-1 bg-transparent p-0">
+          <TabsTrigger value="comparacao" className="text-xs data-[state=active]:bg-primary/10 rounded-full px-3 py-1.5">Comparação China × Brasil</TabsTrigger>
           <TabsTrigger value="identificacao" className="text-xs data-[state=active]:bg-primary/10 rounded-full px-3 py-1.5">Identificação</TabsTrigger>
           {canView("tab_formulacao") && (
             <TabsTrigger value="formulacao" className="text-xs data-[state=active]:bg-primary/10 rounded-full px-3 py-1.5">Formulação</TabsTrigger>
@@ -123,6 +124,10 @@ export default function ProdutoBrasilCadastro() {
           <TabsTrigger value="china" className="text-xs data-[state=active]:bg-primary/10 rounded-full px-3 py-1.5">Dados China</TabsTrigger>
           <TabsTrigger value="historico" className="text-xs data-[state=active]:bg-primary/10 rounded-full px-3 py-1.5">Histórico</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="comparacao" className="mt-4">
+          <TabComparacao produto={produto} />
+        </TabsContent>
 
         <TabsContent value="identificacao" className="mt-4">
           <TabIdentificacao produto={produto} />
