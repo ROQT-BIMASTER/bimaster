@@ -725,6 +725,13 @@ export function useChinaMailbox(folder: MailboxFolder): UseChinaMailboxResult {
     }
     notifiedRef.current.seen = seenNow;
     notifiedRef.current.initialized = true;
+    if (typeof window !== "undefined") {
+      try {
+        window.localStorage.setItem(NOTIF_KEY, JSON.stringify(Array.from(seenNow)));
+      } catch {
+        // localStorage cheio/bloqueado — silencioso
+      }
+    }
   }, [allAwaitingPending, isChinaUser, query.data]);
 
   return {
