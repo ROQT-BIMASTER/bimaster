@@ -30,9 +30,12 @@ export function CalendarioCard({ tarefa, darkBg = false, compact = false, onClic
   return (
     <button
       onClick={onClick}
+      title={tarefa.titulo}
+      aria-label={`Tarefa: ${tarefa.titulo}${isCompleted ? " (concluída)" : ""}${isLate ? " — atrasada" : ""}`}
       className={cn(
         "group flex items-center gap-1.5 w-full text-left rounded-md transition-all",
         "border border-transparent",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
         compact ? "px-1 py-0.5" : "px-1.5 py-1",
         darkBg
           ? "hover:bg-white/[0.08] hover:border-white/10 hover:shadow-md"

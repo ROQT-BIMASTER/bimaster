@@ -142,3 +142,34 @@ export const STATUS_ICON_CONFIG: Record<string, { className: string; completed: 
   concluida: { className: "text-emerald-500", completed: true },
   bloqueada: { className: "text-red-500", completed: false },
 };
+
+// ─── Unified estagio color lookup (B1 — Auditoria 2026-05) ───
+// API única que oculta os 7 mapas internos. Use sempre que possível.
+export type EstagioColorContext =
+  | "list"
+  | "kanban-badge"
+  | "kanban-accent"
+  | "cronograma-bar"
+  | "pill"
+  | "analise-dark"
+  | "analise-light";
+
+export function getEstagioColor(estagio: string | null | undefined, context: EstagioColorContext): string {
+  const key = estagio || "";
+  switch (context) {
+    case "list":
+      return ESTAGIO_COLORS_LIST[key] || "";
+    case "kanban-badge":
+      return ESTAGIO_COLORS_KANBAN[key] || "";
+    case "kanban-accent":
+      return ESTAGIO_ACCENT_KANBAN[key] || "";
+    case "cronograma-bar":
+      return ESTAGIO_COLORS_CRONOGRAMA[key] || "hsl(210, 15%, 50%)";
+    case "pill":
+      return ESTAGIO_PILL_COLORS[key] || "";
+    case "analise-dark":
+      return ESTAGIO_COLORS_ANALISE_DARK[key] || "";
+    case "analise-light":
+      return ESTAGIO_COLORS_ANALISE_LIGHT[key] || "";
+  }
+}

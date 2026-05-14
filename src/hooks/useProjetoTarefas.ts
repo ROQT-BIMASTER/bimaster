@@ -767,12 +767,13 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
       try {
         const result = supabase.removeChannel(channel) as unknown as Promise<unknown> | unknown;
         if (result && typeof (result as Promise<unknown>).catch === "function") {
-          (result as Promise<unknown>).catch(() => {
-            // canal já pode ter sido removido — ignore
+          (result as Promise<unknown>).catch((err) => {
+            // canal já pode ter sido removido — apenas auditamos para detectar leaks no longo prazo
+            logger.warn(`[useProjetoTarefas] removeChannel rejeitado (${channelName})`, { error: err });
           });
         }
-      } catch {
-        // ignore
+      } catch (err) {
+        logger.warn(`[useProjetoTarefas] removeChannel throw (${channelName})`, { error: err });
       }
     };
   }, [projetoId, user, queryClient]);
