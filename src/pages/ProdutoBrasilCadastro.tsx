@@ -24,6 +24,7 @@ import { FichaCustoImportado } from "@/components/produto-brasil/FichaCustoImpor
 import { AprovacaoSubmissaoChina } from "@/components/produto-brasil/AprovacaoSubmissaoChina";
 import { DocumentosBrasilAssinatura } from "@/components/produto-brasil/DocumentosBrasilAssinatura";
 import { PastaOficialProcessos } from "@/components/produto-brasil/PastaOficialProcessos";
+import { TabComparacao } from "@/components/produto-brasil/comparacao/TabComparacao";
 import { ProcessoAplicadoCard } from "@/components/processos/ProcessoAplicadoCard";
 import { ProcessoModulosResumoBanner } from "@/components/processos/ProcessoModulosResumoBanner";
 import { usePageBgColor } from "@/components/shared/PageBgCustomizer";
