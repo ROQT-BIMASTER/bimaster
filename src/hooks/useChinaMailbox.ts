@@ -677,12 +677,20 @@ export function useChinaMailbox(folder: MailboxFolder): UseChinaMailboxResult {
   }, [query.data, folder, isBrasilUser, isChinaUser]);
 
   // Notificação: avisar a China quando um novo checklist passa a ficar pendente
-  // de envio por falta de documento + parecer. Roda uma vez por submissão e
-  // ignora a primeira carga (snapshot inicial).
-  const notifiedRef = useRef<{ initialized: boolean; seen: Set<string> }>({
-    initialized: false,
-    seen: new Set(),
-  });
+  // de envio por falta de documento + parecer. Persiste em localStorage para
+  // evitar re-toast a cada reload da página (cada submissão notifica uma única
+  // vez por sessão de uso, não por sessão de browser).
+  const NOTIF_KEY = "china-inbox-awaiting-notified-v1";
+  const notifiedRef = useRef<{ initialized: boolean; seen: Set<string> }>(() => {
+    if (typeof window === "undefined") return { initialized: false, seen: new Set<string>() };
+    try {
+      const raw = window.localStorage.getItem(NOTIF_KEY);
+      const seen = raw ? new Set<string>(JSON.parse(raw)) : new Set<string>();
+      return { initialized: seen.size > 0, seen };
+    } catch {
+      return { initialized: false, seen: new Set<string>() };
+    }
+  }());
   useEffect(() => {
     if (!isChinaUser || !query.data) return;
     const newlyPending: { id: string; produto: string; reasons: AwaitingSendReason[] }[] = [];
