@@ -420,7 +420,11 @@ function PersonPicker({ current, members, onSelect }: {
   return (
     <Popover open={open} onOpenChange={(v) => { setOpen(v); if (!v) setSearch(""); }}>
       <PopoverTrigger asChild>
-        <button onClick={e => e.stopPropagation()} className="flex items-center gap-1.5 hover:opacity-80 transition-opacity min-w-0">
+        <button
+          onClick={e => e.stopPropagation()}
+          aria-label={current ? `Responsável: ${current.nome}. Clique para alterar` : "Atribuir responsável"}
+          className="flex items-center gap-1.5 hover:opacity-80 transition-opacity min-w-0 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-1"
+        >
           {current ? (
             <>
               <Avatar className="h-6 w-6 flex-shrink-0 ring-2 ring-primary/20">
@@ -517,8 +521,9 @@ function InlineDatePicker({ value, isOverdue, isDueToday, onChange }: {
       <PopoverTrigger asChild>
         <button
           onClick={e => e.stopPropagation()}
+          aria-label={value ? `Prazo: ${format(new Date(value), "dd/MM/yyyy")}. Clique para alterar` : "Definir prazo"}
           className={cn(
-            "flex items-center gap-1 hover:text-foreground transition-colors text-xs",
+            "flex items-center gap-1 hover:text-foreground transition-colors text-xs rounded px-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
             isOverdue ? "text-red-400 font-medium" : isDueToday ? "text-amber-400" : "text-muted-foreground"
           )}
         >
@@ -572,7 +577,11 @@ function ColaboradoresPicker({ colaboradores, members, onAdd, onRemove }: {
   return (
     <Popover open={open} onOpenChange={(v) => { setOpen(v); if (!v) setSearch(""); }}>
       <PopoverTrigger asChild>
-        <button onClick={e => e.stopPropagation()} className="flex items-center -space-x-1.5 hover:opacity-80 transition-opacity">
+        <button
+          onClick={e => e.stopPropagation()}
+          aria-label={colaboradores.length > 0 ? `${colaboradores.length} colaborador(es). Clique para gerenciar` : "Adicionar colaborador"}
+          className="flex items-center -space-x-1.5 hover:opacity-80 transition-opacity rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-1"
+        >
           {colaboradores.length > 0 ? (
             <>
               {colaboradores.slice(0, 3).map(c => (
@@ -697,7 +706,11 @@ function InlineSelector({
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <button onClick={e => e.stopPropagation()} className="focus:outline-none">
+        <button
+          onClick={e => e.stopPropagation()}
+          aria-label={hasValue ? `${placeholder}: ${display}. Clique para alterar` : `Definir ${placeholder.toLowerCase()}`}
+          className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 rounded"
+        >
           {hasValue ? (
             <Badge className={cn("text-[10px] px-2 py-0 h-5 font-medium border-0 whitespace-nowrap cursor-pointer hover:opacity-80 transition-opacity", colors[value])}>
               {display}
