@@ -28,12 +28,24 @@ E2E_PROJETO_ID=<uuid-de-projeto-com-tarefas>
 # Smoke (rápido — usar em todo PR da Fase C)
 bunx playwright test e2e/projetos/00-smoke-projetos.spec.ts --grep @smoke
 
-# Baseline visual completo
+# Baseline visual completo (todas as telas)
 bunx playwright test e2e/projetos/baseline-screenshots.spec.ts
 
 # Atualizar baselines (após mudança visual INTENCIONAL aprovada)
 bunx playwright test e2e/projetos/baseline-screenshots.spec.ts --update-snapshots
 ```
+
+### Primeira captura (PR-C0) — pular o detalhe
+
+Na **primeira rodada** do `--update-snapshots`, deixe `E2E_PROJETO_ID` **DESCONFIGURADO** e capture apenas as 5 rotas agregadas (listagem, central, minhas-tarefas, minha-equipe, relatórios). Motivo: o detalhe (kanban/lista/cronograma) é altamente sensível a edições em tarefas/datas/responsáveis de projetos ativos — sem um projeto fixture estável, a baseline vira a cada hora e gera falso positivo nos PRs C1+. As 5 rotas agregadas, em contraste, mudam pouco com edits individuais.
+
+```bash
+# Captura inicial sem detalhe
+unset E2E_PROJETO_ID   # garante que os blocos de detalhe são skipados
+bunx playwright test e2e/projetos/baseline-screenshots.spec.ts --update-snapshots
+```
+
+Depois de criar um projeto fixture (sem edição esperada durante a Fase C) e setar `E2E_PROJETO_ID`, rode um update separado para capturar baselines de detalhe — idealmente num PR `C0.1` ou junto com o primeiro refactor que toca em detalhe (`C1b` ou similar).
 
 ## Fluxo recomendado para cada PR da Fase C
 
@@ -55,3 +67,7 @@ bunx playwright test e2e/projetos/baseline-screenshots.spec.ts --update-snapshot
   ambientes headless. Aumente apenas se necessário.
 - Baselines ficam em `e2e/projetos/__screenshots__/` e devem ser
   versionadas no Git para comparação determinística no CI.
+- Antes de rodar `--update-snapshots`, dê uma passada visual rápida
+  nas PNGs geradas (30s, só procurando estado de erro/skeleton)
+  antes de commitar — uma baseline ruim contamina todos os PRs
+  seguintes da Fase C.
