@@ -469,7 +469,13 @@ export function GeradorPrecosDialog({ open, onOpenChange, tabela, onSuccess }: P
     }
   };
 
-  const linhasDisponiveis = [...new Set(produtos.map(p => p.linha).filter(Boolean) as string[])].sort();
+  const marcasDisponiveis = [...new Set(produtos.map(p => p.marca).filter(Boolean) as string[])].sort();
+  const linhasDisponiveis = [...new Set(
+    produtos
+      .filter(p => marcaFiltro === "todas" || p.marca === marcaFiltro)
+      .map(p => p.linha)
+      .filter(Boolean) as string[]
+  )].sort();
 
   const produtosFiltradosPorBusca = produtos?.filter(produto => {
     const matchBusca = !buscaProduto || 
@@ -477,8 +483,26 @@ export function GeradorPrecosDialog({ open, onOpenChange, tabela, onSuccess }: P
       produto.codigo?.toLowerCase().includes(buscaProduto.toLowerCase());
     
     const matchLinha = linhaFiltro === "todas" || produto.linha === linhaFiltro;
-    
-    return matchBusca && matchLinha;
+    const matchMarca = marcaFiltro === "todas" || produto.marca === marcaFiltro;
+    const isKit = (produto.tipo || "").toUpperCase() === "DISPLAY";
+    const matchTipo =
+      tipoFiltro === "todos" ||
+      (tipoFiltro === "kit" && isKit) ||
+      (tipoFiltro === "unitario" && !isKit);
+
+    // Filtro de data de aprovação (somente quando há ficha aprovada)
+    let matchData = true;
+    if (dataAprovacaoInicio || dataAprovacaoFim) {
+      const info = fichaStatusMap[produto.id];
+      const dataAprov = info?.dataAprovacao ? info.dataAprovacao.slice(0, 10) : null;
+      if (!dataAprov) matchData = false;
+      else {
+        if (dataAprovacaoInicio && dataAprov < dataAprovacaoInicio) matchData = false;
+        if (dataAprovacaoFim && dataAprov > dataAprovacaoFim) matchData = false;
+      }
+    }
+
+    return matchBusca && matchLinha && matchMarca && matchTipo && matchData;
   }) || [];
 
   // Apply granular access filtering
