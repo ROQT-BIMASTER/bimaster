@@ -608,6 +608,8 @@ export default function FichaRevisaoDiretoria() {
                         <TableHead>Versão</TableHead>
                         <TableHead>Status</TableHead>
                         <TableHead>{statusFiltro === "aprovada" ? "Aprovada em" : "Submetido em"}</TableHead>
+                        <TableHead>Submetido por</TableHead>
+                        <TableHead>Aprovado por</TableHead>
                         <TableHead>Custo Total</TableHead>
                         <TableHead className="text-right">Ações</TableHead>
                       </TableRow>
