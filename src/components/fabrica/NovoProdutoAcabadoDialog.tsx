@@ -668,7 +668,25 @@ export function NovoProdutoAcabadoDialog({ open, onOpenChange, produtoEdit, onSu
                       <SelectItem value="suspenso">Suspenso</SelectItem>
                     </SelectContent>
                   </Select>
+              </div>
+
+              <div className="flex items-center justify-between rounded-md border border-border bg-muted/30 px-3 py-2">
+                <div>
+                  <Label htmlFor="is_provador" className="text-sm font-medium">
+                    Produto provador (amostra)
+                  </Label>
+                  <p className="text-xs text-muted-foreground">
+                    Marque para itens de demonstração/provador. Esses produtos podem ser filtrados separadamente nas telas de fábrica, revisão de fichas e tabelas de preço.
+                  </p>
                 </div>
+                <input
+                  id="is_provador"
+                  type="checkbox"
+                  className="h-4 w-4 accent-primary"
+                  checked={!!formData.is_provador}
+                  onChange={(e) => setFormData({ ...formData, is_provador: e.target.checked })}
+                />
+              </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
