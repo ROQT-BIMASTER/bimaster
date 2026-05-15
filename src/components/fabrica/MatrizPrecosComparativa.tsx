@@ -679,9 +679,11 @@ export function MatrizPrecosComparativa() {
     setFiltroLinha("all");
     setFiltroTabela("all");
     setFiltroTipo("all");
+    setFiltroDataDe("");
+    setFiltroDataAte("");
   };
 
-  const temFiltrosAtivos = busca || filtroMarca !== "all" || filtroLinha !== "all" || filtroTabela !== "all" || filtroTipo !== "all";
+  const temFiltrosAtivos = !!(busca || filtroMarca !== "all" || filtroLinha !== "all" || filtroTabela !== "all" || filtroTipo !== "all" || filtroDataDe || filtroDataAte);
 
   const handlePrecoClick = (produtoId: string, produtoNome: string, tabelaId: string, tabelaNome: string) => {
     // Usuários com restrições de tabela não podem ver o histórico/cadeia de cálculo
