@@ -28,6 +28,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { downloadStorageBlob, triggerBlobDownload } from "@/lib/utils/storage-download";
 import { StoragePreviewDialog } from "@/components/fabrica/StoragePreviewDialog";
+import { custoTotalDoSnapshot } from "@/lib/fabrica/ficha-custo-snapshot";
 
 interface ApontamentoForm {
   insumo_id: string;
@@ -174,12 +175,13 @@ export function FichaAnalisePanel({ ficha, processando, onAprovar, onSolicitarRe
         .order("ordem");
       const insumosArr = (insumos || []) as any[];
 
-      // Calcular totais
-      let totalNF = 0, totalServico = 0, totalCondicao = 0;
+      // Calcular totais (incluindo IPI Saída — config + IPI embutido dos insumos)
+      let totalNF = 0, totalServico = 0, totalCondicao = 0, ipiInsumos = 0;
       insumosArr.forEach((i: any) => {
         totalNF += Number(i.custo_nf) || 0;
         totalServico += Number(i.custo_servico) || 0;
         totalCondicao += Number(i.custo_condicao) || 0;
+        ipiInsumos += Number(i.ipi_valor) || 0;
       });
       totalNF += Number(cfg.custo_mao_obra_nf) || 0;
       totalServico += Number(cfg.custo_mao_obra_servico) || 0;
@@ -191,7 +193,13 @@ export function FichaAnalisePanel({ ficha, processando, onAprovar, onSolicitarRe
       else if (base === "servico") baseMarkup = totalServico;
       else baseMarkup = totalNF + totalServico;
       const markupValor = baseMarkup * (perc / 100);
-      const custoTotal = totalNF + totalServico + totalCondicao + markupValor;
+      const markupNF = (base === "nf" || base === "nf_servico" || base === "total")
+        ? markupValor * (totalNF / (baseMarkup || 1))
+        : 0;
+      const pctIPISaida = Number(cfg.ipi_percentual_saida) || 0;
+      const ipiSaidaConfig = (totalNF + markupNF) * (pctIPISaida / 100);
+      const totalIPI = ipiSaidaConfig + ipiInsumos;
+      const custoTotal = totalNF + totalServico + totalCondicao + markupValor + totalIPI;
 
       // Buscar última versão
       const { data: ultimaRev } = await supabase
@@ -213,7 +221,12 @@ export function FichaAnalisePanel({ ficha, processando, onAprovar, onSolicitarRe
           status: "pendente",
           snapshot_insumos: insumosArr as any,
           snapshot_config: cfg as any,
-          snapshot_totais: { totalNF, totalServico, totalCondicao, markupNF: 0, markupServico: 0, markupCondicao: 0, custoTotal } as any,
+          snapshot_totais: {
+            totalNF, totalServico, totalCondicao,
+            markupNF, markupServico: 0, markupCondicao: 0,
+            totalIPI, ipi_percentual_saida: pctIPISaida,
+            custoTotal, ipi_incluido: true,
+          } as any,
           submetido_por: user?.user?.id || null,
           versao: novaVersao,
         });
@@ -303,7 +316,11 @@ export function FichaAnalisePanel({ ficha, processando, onAprovar, onSolicitarRe
               const mkNF = (baseMarkup === "total" || baseMarkup === "nf" || baseMarkup === "nf_servico") ? totalNF * (pctMarkup / 100) : 0;
               const mkServico = (baseMarkup === "total" || baseMarkup === "servico" || baseMarkup === "nf_servico") ? totalServico * (pctMarkup / 100) : 0;
               const mkCondicao = baseMarkup === "total" ? totalCondicao * (pctMarkup / 100) : 0;
-              const custoTotal = subtotal + mkNF + mkServico + mkCondicao;
+              const ipiInsumos = insumos.reduce((s: number, i: any) => s + (Number(i.ipi_valor) || 0), 0);
+              const pctIPISaida = Number(cfg.ipi_percentual_saida) || 0;
+              const ipiSaidaConfig = (totalNF + mkNF) * (pctIPISaida / 100);
+              const totalIPI = ipiSaidaConfig + ipiInsumos;
+              const custoTotal = subtotal + mkNF + mkServico + mkCondicao + totalIPI;
 
               vinculados.push({
                 id: `dynamic-${childId}`,
@@ -316,7 +333,8 @@ export function FichaAnalisePanel({ ficha, processando, onAprovar, onSolicitarRe
                 snapshot_totais: {
                   totalNF, totalServico, totalCondicao,
                   markupNF: mkNF, markupServico: mkServico, markupCondicao: mkCondicao,
-                  custoTotal,
+                  totalIPI, ipi_percentual_saida: pctIPISaida,
+                  custoTotal, ipi_incluido: true,
                 },
                 _dinamico: true,
               });
@@ -396,7 +414,7 @@ export function FichaAnalisePanel({ ficha, processando, onAprovar, onSolicitarRe
               </div>
               <div className="p-3 bg-primary/10 rounded text-center border-2 border-primary">
                 <p className="text-xs text-muted-foreground">Custo Total</p>
-                <p className="text-lg font-bold text-primary">{formatarMoeda(snapshotTotais.custoTotal ?? snapshotTotais.custoFinalTotal ?? 0)}</p>
+                <p className="text-lg font-bold text-primary">{formatarMoeda(custoTotalDoSnapshot(snapshotTotais))}</p>
               </div>
             </div>
 
@@ -408,7 +426,7 @@ export function FichaAnalisePanel({ ficha, processando, onAprovar, onSolicitarRe
                     <Link2 className="h-3.5 w-3.5" /> Produtos Vinculados
                   </p>
                   {produtosVinculados.map((v: any) => {
-                    const custoVinc = v.snapshot_totais?.custoTotal ?? v.snapshot_totais?.custoFinalTotal ?? 0;
+                    const custoVinc = custoTotalDoSnapshot(v.snapshot_totais);
                     const vincInsumos = (v.snapshot_insumos || []) as any[];
                     const isVincExpanded = expandedVinculado === v.id;
                     return (
@@ -792,8 +810,8 @@ export function FichaAnalisePanel({ ficha, processando, onAprovar, onSolicitarRe
                         const totais = v.snapshot_totais || {};
                         const isCurrent = v.id === ficha.id;
                         const prevVersion = historicoVersoes.find((h: any) => h.versao === v.versao - 1);
-                        const prevTotal = prevVersion?.snapshot_totais?.custoTotal ?? prevVersion?.snapshot_totais?.custoFinalTotal;
-                        const curTotal = totais.custoTotal ?? totais.custoFinalTotal ?? 0;
+                        const prevTotal = prevVersion ? custoTotalDoSnapshot(prevVersion.snapshot_totais) : 0;
+                        const curTotal = custoTotalDoSnapshot(totais);
                         const variacaoTotal = prevTotal ? ((curTotal - prevTotal) / prevTotal * 100) : null;
                         return (
                           <div key={v.id} className={`p-3 border rounded-lg flex items-center justify-between ${isCurrent ? "border-primary bg-primary/5" : ""}`}>
@@ -811,7 +829,7 @@ export function FichaAnalisePanel({ ficha, processando, onAprovar, onSolicitarRe
                               </p>
                             </div>
                             <div className="text-right">
-                              <p className="font-bold text-sm">{formatarMoeda(totais.custoTotal ?? totais.custoFinalTotal ?? 0)}</p>
+                              <p className="font-bold text-sm">{formatarMoeda(curTotal)}</p>
                               {variacaoTotal !== null && (
                                 <span className={`text-xs font-medium ${variacaoTotal > 0 ? "text-destructive" : "text-green-600"}`}>
                                   {variacaoTotal > 0 ? "+" : ""}{variacaoTotal.toFixed(1)}% vs v{v.versao - 1}
