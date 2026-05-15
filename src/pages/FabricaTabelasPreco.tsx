@@ -176,6 +176,32 @@ export default function FabricaTabelasPreco() {
     0
   ) || 0;
 
+  // Calcular profundidade na hierarquia (raiz = 0)
+  const depthMap = new Map<string, number>();
+  const computeDepth = (t: any, visited = new Set<string>()): number => {
+    if (depthMap.has(t.id)) return depthMap.get(t.id)!;
+    if (visited.has(t.id) || !t.tabela_base_id) {
+      depthMap.set(t.id, 0);
+      return 0;
+    }
+    const parent = (tabelas || []).find((p: any) => p.id === t.tabela_base_id);
+    if (!parent) { depthMap.set(t.id, 0); return 0; }
+    visited.add(t.id);
+    const d = 1 + computeDepth(parent, visited);
+    depthMap.set(t.id, d);
+    return d;
+  };
+  tabelasFiltradas.forEach((t: any) => computeDepth(t));
+
+  const tabelasOrdenadas = sortByHierarquia
+    ? [...tabelasFiltradas].sort((a: any, b: any) => {
+        const da = depthMap.get(a.id) ?? 0;
+        const db = depthMap.get(b.id) ?? 0;
+        if (da !== db) return da - db;
+        return (a.codigo || "").localeCompare(b.codigo || "");
+      })
+    : tabelasFiltradas;
+
   const handleEditarTabela = (tabela: any) => {
     setTabelaSelecionada(tabela);
     setDialogNovaTabela(true);
