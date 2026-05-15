@@ -49,6 +49,7 @@ import { toast } from "sonner";
 import { useTour } from "@/components/tour/TourProvider";
 import { FABRICA_PRODUTOS_ACABADOS_TOUR_ID, fabricaProdutosAcabadosTourSteps } from "@/components/tour/tours/fabricaProdutosAcabadosTour";
 import { ManualFabricaDrawer } from "@/components/fabrica/ManualFabricaDrawer";
+import { ProvadorBadge } from "@/components/fabrica/ProvadorBadge";
 import {
   isFichaInFamily,
   type FichaStatusFamily,
