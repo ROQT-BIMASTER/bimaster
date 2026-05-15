@@ -91,6 +91,7 @@ export function GeradorPrecosDialog({ open, onOpenChange, tabela, onSuccess }: P
       loadProdutosTabela();
       loadFichaStatus();
       loadPrecosTabelaAtual();
+      loadUltimoLoteBase();
       
       // Definir origem baseado na tabela
       if (tabela.origem_aplicavel === 'nacional') {
@@ -114,6 +115,8 @@ export function GeradorPrecosDialog({ open, onOpenChange, tabela, onSuccess }: P
       setFiltroPendentes(false);
       setFiltroAprovadas(false);
       setFiltroRecentes(false);
+      setUltimoLoteBase(null);
+      setFiltroUltimoLoteBase(false);
       setMarcaFiltro("todas");
       setLinhaFiltro("todas");
       setTipoFiltro("todos");
@@ -121,6 +124,38 @@ export function GeradorPrecosDialog({ open, onOpenChange, tabela, onSuccess }: P
       setDataAprovacaoFim("");
     }
   }, [open, tabela]);
+
+  // Carrega o último lote (versão) aprovado da tabela base.
+  // Usado para precificar exatamente os produtos do último lote aprovado upstream.
+  const loadUltimoLoteBase = async () => {
+    if (!tabela?.tabela_base_id) {
+      setUltimoLoteBase(null);
+      return;
+    }
+    try {
+      const { data, error } = await supabase
+        .from("fabrica_tabelas_preco_versoes")
+        .select("versao, aprovado_em, produto_ids_escopo")
+        .eq("tabela_id", tabela.tabela_base_id)
+        .not("aprovado_em", "is", null)
+        .order("versao", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (error) throw error;
+      if (data && Array.isArray(data.produto_ids_escopo) && data.produto_ids_escopo.length > 0) {
+        setUltimoLoteBase({
+          versao: data.versao,
+          aprovado_em: data.aprovado_em,
+          produto_ids: data.produto_ids_escopo as string[],
+        });
+      } else {
+        setUltimoLoteBase(null);
+      }
+    } catch (error) {
+      logger.error("Erro ao carregar último lote da tabela base:", error);
+      setUltimoLoteBase(null);
+    }
+  };
 
   const loadFichaStatus = async () => {
     try {
