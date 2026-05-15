@@ -30,6 +30,78 @@ export function AprovacaoCascataDialog({ open, onOpenChange, tabelaRaiz, produto
     if (open) setSelecionadas(new Set());
   }, [open, tabelaRaiz?.id]);
 
+  const escopoIds = useMemo(() => produtosEscopo.map((p) => p.produto_id), [produtosEscopo]);
+
+  // Expande kits → unidades via fabrica_produto_grade_itens.
+  // Garante que a aprovação em cascata propaga preço para os filhos do kit.
+  const { data: kitExpansao } = useQuery({
+    queryKey: ["cascata-kit-expansao", tabelaRaiz?.id, escopoIds.join(",")],
+    enabled: open && escopoIds.length > 0 && !!tabelaRaiz?.id,
+    staleTime: 30_000,
+    queryFn: async () => {
+      const { data: filhos } = await supabase
+        .from("fabrica_produto_grade_itens")
+        .select(`
+          produto_pai_id,
+          quantidade,
+          filho:fabrica_produtos!fabrica_produto_grade_itens_produto_filho_id_fkey(id, nome, codigo)
+        `)
+        .in("produto_pai_id", escopoIds);
+
+      const filhosMap = new Map<string, Array<{ id: string; nome: string; codigo: string; quantidade: number }>>();
+      const filhoIds = new Set<string>();
+      (filhos || []).forEach((row: any) => {
+        if (!row.filho) return;
+        const arr = filhosMap.get(row.produto_pai_id) || [];
+        arr.push({ id: row.filho.id, nome: row.filho.nome, codigo: row.filho.codigo, quantidade: Number(row.quantidade) || 1 });
+        filhosMap.set(row.produto_pai_id, arr);
+        filhoIds.add(row.filho.id);
+      });
+
+      // Custo raiz dos filhos (preço vigente na tabela raiz). Sem preço → herda do kit pai.
+      let precosFilhos: Record<string, number> = {};
+      if (filhoIds.size > 0 && tabelaRaiz?.id) {
+        const { data: pf } = await supabase
+          .from("fabrica_precos_produtos")
+          .select("produto_id, preco_final, custo_base")
+          .eq("tabela_id", tabelaRaiz.id)
+          .eq("ativo", true)
+          .in("produto_id", Array.from(filhoIds));
+        (pf || []).forEach((p: any) => {
+          precosFilhos[p.produto_id] = Number(p.preco_final ?? p.custo_base ?? 0) || 0;
+        });
+      }
+      return { filhosMap, precosFilhos };
+    },
+  });
+
+  // Escopo final (kits + unidades) usado na simulação E enviado ao RPC.
+  const escopoExpandido = useMemo<ProdutoEscopo[]>(() => {
+    const out: ProdutoEscopo[] = [...produtosEscopo];
+    const seen = new Set(produtosEscopo.map((p) => p.produto_id));
+    if (kitExpansao) {
+      produtosEscopo.forEach((pai) => {
+        const filhos = kitExpansao.filhosMap.get(pai.produto_id) || [];
+        filhos.forEach((f) => {
+          if (seen.has(f.id)) return;
+          seen.add(f.id);
+          out.push({
+            produto_id: f.id,
+            produto_nome: f.nome,
+            produto_codigo: f.codigo || "",
+            custo_raiz: kitExpansao.precosFilhos[f.id] ?? pai.custo_raiz,
+          });
+        });
+      });
+    }
+    return out;
+  }, [produtosEscopo, kitExpansao]);
+
+  const totalKits = useMemo(() => {
+    if (!kitExpansao) return 0;
+    return produtosEscopo.filter((p) => (kitExpansao.filhosMap.get(p.produto_id)?.length || 0) > 0).length;
+  }, [produtosEscopo, kitExpansao]);
+
   const dependentes = useMemo(
     () => (cadeia || []).filter((t) => t.nivel > 0),
     [cadeia],
@@ -46,8 +118,8 @@ export function AprovacaoCascataDialog({ open, onOpenChange, tabelaRaiz, produto
   }, [cadeia, tabelaRaiz, selecionadas]);
 
   const linhas = useMemo(
-    () => simularCascata(produtosEscopo, cadeiaSimulada),
-    [produtosEscopo, cadeiaSimulada],
+    () => simularCascata(escopoExpandido, cadeiaSimulada),
+    [escopoExpandido, cadeiaSimulada],
   );
 
   const tabelasExibidas = useMemo(
@@ -67,18 +139,20 @@ export function AprovacaoCascataDialog({ open, onOpenChange, tabelaRaiz, produto
   const aprovarMutation = useMutation({
     mutationFn: async () => {
       if (!tabelaRaiz) throw new Error("Tabela raiz ausente");
+      const ids = escopoExpandido.map((p) => p.produto_id);
       const { data, error } = await supabase.rpc("rpc_aprovar_cadeia_precos" as any, {
         p_tabela_raiz_id: tabelaRaiz.id,
         p_tabelas_dependentes: Array.from(selecionadas),
-        p_produto_ids: produtosEscopo.length ? produtosEscopo.map((p) => p.produto_id) : null,
+        p_produto_ids: ids.length ? ids : null,
       });
       if (error) throw error;
       return data;
     },
     onSuccess: (res: any) => {
-      toast.success(`Cadeia aprovada (${res?.total ?? "?"} tabela(s)).`);
+      toast.success(`Cadeia aprovada (${res?.total ?? "?"} tabela(s), ${escopoExpandido.length} produto(s)).`);
       qc.invalidateQueries({ queryKey: ["tabelas-pendentes-aprovacao"] });
       qc.invalidateQueries({ queryKey: ["fabrica-tabelas-preco"] });
+      qc.invalidateQueries({ queryKey: ["lotes-pendentes-por-tabela"] });
       onOpenChange(false);
     },
     onError: (e: any) => toast.error("Falha ao aprovar cadeia: " + (e?.message || e)),
