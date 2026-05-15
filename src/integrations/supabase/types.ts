@@ -45899,6 +45899,10 @@ export type Database = {
         Args: { p_comentario?: string; p_item_id: string }
         Returns: undefined
       }
+      rpc_submeter_tabela_para_aprovacao: {
+        Args: { p_produto_ids: string[]; p_tabela_id: string }
+        Returns: Json
+      }
       rpc_update_member_avatar: {
         Args: { _avatar_url: string; _member_id: string }
         Returns: undefined
