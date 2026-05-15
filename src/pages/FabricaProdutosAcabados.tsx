@@ -49,6 +49,7 @@ import { toast } from "sonner";
 import { useTour } from "@/components/tour/TourProvider";
 import { FABRICA_PRODUTOS_ACABADOS_TOUR_ID, fabricaProdutosAcabadosTourSteps } from "@/components/tour/tours/fabricaProdutosAcabadosTour";
 import { ManualFabricaDrawer } from "@/components/fabrica/ManualFabricaDrawer";
+import { ProvadorBadge } from "@/components/fabrica/ProvadorBadge";
 import {
   isFichaInFamily,
   type FichaStatusFamily,
@@ -69,6 +70,7 @@ export default function FabricaProdutosAcabados() {
   const [filtroMarca, setFiltroMarca] = useState("none");
   const [filtroLinha, setFiltroLinha] = useState("none");
   const [filtroTipo, setFiltroTipo] = useState("none");
+  const [filtroProvador, setFiltroProvador] = useState<"todos" | "venda" | "provador">("todos");
   const [filtroStatusFicha, setFiltroStatusFicha] = useState<"none" | FichaStatusFamily>("none");
   const [agrupamentoAtivo, setAgrupamentoAtivo] = useState(false);
   const [viewMode, setViewMode] = useState<"tabela" | "cards" | "kanban">("tabela");
@@ -244,13 +246,14 @@ export default function FabricaProdutosAcabados() {
     return linhas as string[];
   }, [produtos]);
 
-  const temFiltrosAtivos = filtroMarca !== "none" || filtroLinha !== "none" || filtroTipo !== "none" || filtroStatusFicha !== "none" || !!dataInicio || !!dataFim;
+  const temFiltrosAtivos = filtroMarca !== "none" || filtroLinha !== "none" || filtroTipo !== "none" || filtroStatusFicha !== "none" || filtroProvador !== "todos" || !!dataInicio || !!dataFim;
 
   const limparFiltros = () => {
     setFiltroMarca("none");
     setFiltroLinha("none");
     setFiltroTipo("none");
     setFiltroStatusFicha("none");
+    setFiltroProvador("todos");
     setDataInicio("");
     setDataFim("");
     setBusca("");
@@ -282,6 +285,11 @@ export default function FabricaProdutosAcabados() {
       const matchMarca = filtroMarca === "none" || p.marca === filtroMarca;
       const matchLinha = filtroLinha === "none" || p.linha === filtroLinha;
       const matchTipo = filtroTipo === "none" || p.tipo === filtroTipo;
+      const isProv = !!(p as any).is_provador;
+      const matchProvador =
+        filtroProvador === "todos" ||
+        (filtroProvador === "venda" && !isProv) ||
+        (filtroProvador === "provador" && isProv);
       const matchVisibilidade = mostrarOcultos || !p.oculto;
       const createdDate = p.created_at ? new Date(p.created_at) : null;
       const matchDataInicio = !parsedInicio || (createdDate && createdDate >= parsedInicio);
@@ -298,7 +306,7 @@ export default function FabricaProdutosAcabados() {
       const familyAlvo: FichaStatusFamily | "none" =
         filtroStatusFicha === "none" ? "none" : (filtroStatusFicha as FichaStatusFamily);
       const matchStatusFicha = isFichaInFamily(statusFichaProduto ?? null, familyAlvo);
-      return matchBusca && matchMarca && matchLinha && matchTipo && matchVisibilidade && matchDataInicio && matchDataFim && matchStatusFicha;
+      return matchBusca && matchMarca && matchLinha && matchTipo && matchProvador && matchVisibilidade && matchDataInicio && matchDataFim && matchStatusFicha;
     });
     if (!filtered) return [];
 
@@ -337,7 +345,7 @@ export default function FabricaProdutosAcabados() {
       }
     }
     return result;
-  }, [produtos, busca, filtroMarca, filtroLinha, filtroTipo, filtroStatusFicha, fichasMap, mostrarOcultos, dataInicio, dataFim, paiParaFilhosMap]);
+  }, [produtos, busca, filtroMarca, filtroLinha, filtroTipo, filtroProvador, filtroStatusFicha, fichasMap, mostrarOcultos, dataInicio, dataFim, paiParaFilhosMap]);
 
   // Comparativo KPI "Em Revisão" vs lista filtrada — alerta quando algum
   // filtro ativo está escondendo itens contados no KPI.
@@ -516,7 +524,14 @@ export default function FabricaProdutosAcabados() {
         <TableCell className="pr-0 py-2">
           <ProductThumbnail src={produto.foto_url} alt={produto.nome} size="sm" />
         </TableCell>
-        <TableCell className="font-mono text-[12px] py-2 whitespace-nowrap">{produto.codigo}</TableCell>
+        <TableCell className="font-mono text-[12px] py-2 whitespace-nowrap">
+          {produto.is_provador && (
+            <div className="mb-0.5">
+              <ProvadorBadge />
+            </div>
+          )}
+          {produto.codigo}
+        </TableCell>
         <TableCell className="font-medium py-2 text-[13px]">
           <div className="flex items-center gap-1.5">
             {isDisplay && <Layers className="h-3.5 w-3.5 text-primary shrink-0" />}
@@ -974,6 +989,21 @@ export default function FabricaProdutosAcabados() {
                       <SelectItem value="rascunho">Rascunho</SelectItem>
                       <SelectItem value="em_revisao">Em Revisão (+ Solicitada)</SelectItem>
                       <SelectItem value="aprovada">Aprovada</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Tipo de produto (venda x provador) */}
+                <div className="space-y-1">
+                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground/80 font-medium">Uso do produto</div>
+                  <Select value={filtroProvador} onValueChange={(v) => setFiltroProvador(v as any)}>
+                    <SelectTrigger className="h-8 text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="todos">Todos</SelectItem>
+                      <SelectItem value="venda">Apenas venda</SelectItem>
+                      <SelectItem value="provador">Apenas provadores</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

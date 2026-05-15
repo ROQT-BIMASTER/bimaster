@@ -28,6 +28,7 @@ import { MultiSelectProdutos } from "@/components/fabrica/MultiSelectProdutos";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { RevisaoChatConsolidado } from "@/components/fabrica/RevisaoChatConsolidado";
 import { DocumentosCofre } from "@/components/fabrica/DocumentosCofre";
+import { ProvadorBadge } from "@/components/fabrica/ProvadorBadge";
 import { supabase } from "@/integrations/supabase/client";
 import { custoTotalDoSnapshot } from "@/lib/fabrica/ficha-custo-snapshot";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
@@ -43,6 +44,7 @@ export default function FichaRevisaoDiretoria() {
   const [filtroMarca, setFiltroMarca] = useState("all");
   const [filtroLinha, setFiltroLinha] = useState("all");
   const [filtroTipo, setFiltroTipo] = useState<"todos" | "kit" | "unitario">("todos");
+  const [filtroProvador, setFiltroProvador] = useState<"todos" | "venda" | "provador">("todos");
   const [produtosSelecionados, setProdutosSelecionados] = useState<string[]>([]);
   const [adminOpen, setAdminOpen] = useState(true);
   const [tabAtiva, setTabAtiva] = useState("fichas");
@@ -163,6 +165,9 @@ export default function FichaRevisaoDiretoria() {
       const isKit = (f.produto?.tipo || "").toUpperCase() === "DISPLAY";
       if (filtroTipo === "kit" && !isKit) return false;
       if (filtroTipo === "unitario" && isKit) return false;
+      const isProv = !!f.produto?.is_provador;
+      if (filtroProvador === "venda" && isProv) return false;
+      if (filtroProvador === "provador" && !isProv) return false;
       if (busca) {
         const b = busca.toLowerCase();
         if (!f.produto?.nome?.toLowerCase().includes(b) && !f.produto?.codigo?.toLowerCase().includes(b)) return false;
@@ -207,7 +212,7 @@ export default function FichaRevisaoDiretoria() {
       if (!placed.has(f.id)) result.push(f);
     }
     return result;
-  }, [fichasPendentes, busca, filtroMarca, filtroLinha, produtosSelecionados, filtroTipo, gradeRelMap, listDateFrom, listDateTo, statusFiltro]);
+  }, [fichasPendentes, busca, filtroMarca, filtroLinha, produtosSelecionados, filtroTipo, filtroProvador, gradeRelMap, listDateFrom, listDateTo, statusFiltro]);
 
   // Admin KPIs
   const kpis = useMemo(() => {
@@ -523,6 +528,18 @@ export default function FichaRevisaoDiretoria() {
                 <ToggleGroupItem value="kit" className="text-xs px-3 h-8 data-[state=on]:bg-blue-600 data-[state=on]:text-white">Kits</ToggleGroupItem>
                 <ToggleGroupItem value="unitario" className="text-xs px-3 h-8 data-[state=on]:bg-amber-600 data-[state=on]:text-white">Unitários</ToggleGroupItem>
               </ToggleGroup>
+
+              <ToggleGroup
+                type="single"
+                value={filtroProvador}
+                onValueChange={(v) => { if (v) setFiltroProvador(v as "todos" | "venda" | "provador"); }}
+                className="border rounded-md"
+                title="Filtrar por uso do produto"
+              >
+                <ToggleGroupItem value="todos" className="text-xs px-3 h-8 data-[state=on]:bg-muted">Uso: todos</ToggleGroupItem>
+                <ToggleGroupItem value="venda" className="text-xs px-3 h-8 data-[state=on]:bg-emerald-600 data-[state=on]:text-white">Venda</ToggleGroupItem>
+                <ToggleGroupItem value="provador" className="text-xs px-3 h-8 data-[state=on]:bg-amber-600 data-[state=on]:text-white">Provadores</ToggleGroupItem>
+              </ToggleGroup>
             </div>
 
             {/* Filtros */}
@@ -653,7 +670,12 @@ export default function FichaRevisaoDiretoria() {
                               )}
                               {ficha.produto?.nome}
                             </TableCell>
-                            <TableCell className="font-mono">{ficha.produto?.codigo}</TableCell>
+                            <TableCell className="font-mono">
+                              {ficha.produto?.is_provador && (
+                                <div className="mb-0.5"><ProvadorBadge /></div>
+                              )}
+                              {ficha.produto?.codigo}
+                            </TableCell>
                             <TableCell><Badge variant="outline">v{ficha.versao}</Badge></TableCell>
                             <TableCell>{statusBadge}</TableCell>
                             <TableCell>{dataExibida}</TableCell>

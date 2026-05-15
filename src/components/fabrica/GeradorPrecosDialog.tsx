@@ -23,6 +23,7 @@ import { Loader2, CheckCircle2, Factory, Ship, AlertTriangle, Check, FileText, L
 import { useUserPriceTableAccess } from "@/hooks/useUserPriceTableAccess";
 import { useVisibilityBlocks } from "@/hooks/useVisibilityBlocks";
 import { GeradorPrecosFichaInfo } from "./GeradorPrecosFichaInfo";
+import { ProvadorBadge } from "./ProvadorBadge";
 import { format, differenceInDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -726,6 +727,24 @@ export function GeradorPrecosDialog({ open, onOpenChange, tabela, onSuccess }: P
                   </ToggleGroupItem>
                 </ToggleGroup>
 
+                <ToggleGroup
+                  type="single"
+                  value={usoFiltro}
+                  onValueChange={(v) => v && setUsoFiltro(v as "todos" | "venda" | "provador")}
+                  className="border rounded-md"
+                  title="Por padrão, provadores ficam ocultos para evitar precificá-los junto dos produtos de venda."
+                >
+                  <ToggleGroupItem value="venda" className="text-xs px-3 h-8 data-[state=on]:bg-emerald-600 data-[state=on]:text-white">
+                    Apenas venda
+                  </ToggleGroupItem>
+                  <ToggleGroupItem value="todos" className="text-xs px-3 h-8 data-[state=on]:bg-muted">
+                    Mostrar todos
+                  </ToggleGroupItem>
+                  <ToggleGroupItem value="provador" className="text-xs px-3 h-8 data-[state=on]:bg-amber-600 data-[state=on]:text-white">
+                    Só provadores
+                  </ToggleGroupItem>
+                </ToggleGroup>
+
                 <Input
                   placeholder="Buscar produto..."
                   value={buscaProduto}
@@ -915,6 +934,9 @@ export function GeradorPrecosDialog({ open, onOpenChange, tabela, onSuccess }: P
                             />
                           </td>
                           <td className="px-2 py-1.5 font-mono text-[11px] text-muted-foreground whitespace-nowrap">
+                            {(produto as any).is_provador && (
+                              <div className="mb-0.5"><ProvadorBadge /></div>
+                            )}
                             {produto.codigo || "—"}
                           </td>
                           <td className="px-2 py-1.5">
