@@ -16,7 +16,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Plus, DollarSign, Package, TrendingUp, Edit, Eye, Trash2, BarChart3, List, Percent, Bell, Grid3X3, HelpCircle, Shield, ListTodo, Layers } from "lucide-react";
+import { Plus, DollarSign, Package, TrendingUp, Edit, Eye, Trash2, BarChart3, List, Percent, Bell, Grid3X3, HelpCircle, Shield, ListTodo, Layers, Table as TableIcon, LayoutGrid, ChevronDown, ChevronUp } from "lucide-react";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { useScreenPermissions } from "@/hooks/useScreenPermissions";
 import { useUserPriceTableAccess } from "@/hooks/useUserPriceTableAccess";
 import { NovaTabelaPrecoDialog } from "@/components/fabrica/NovaTabelaPrecoDialog";
