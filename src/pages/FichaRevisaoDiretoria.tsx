@@ -28,6 +28,7 @@ import { MultiSelectProdutos } from "@/components/fabrica/MultiSelectProdutos";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { RevisaoChatConsolidado } from "@/components/fabrica/RevisaoChatConsolidado";
 import { DocumentosCofre } from "@/components/fabrica/DocumentosCofre";
+import { ProvadorBadge } from "@/components/fabrica/ProvadorBadge";
 import { supabase } from "@/integrations/supabase/client";
 import { custoTotalDoSnapshot } from "@/lib/fabrica/ficha-custo-snapshot";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
