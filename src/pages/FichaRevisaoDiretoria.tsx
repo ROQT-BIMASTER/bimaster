@@ -207,7 +207,7 @@ export default function FichaRevisaoDiretoria() {
       if (!placed.has(f.id)) result.push(f);
     }
     return result;
-  }, [fichasPendentes, busca, filtroMarca, filtroLinha, produtosSelecionados, filtroTipo, gradeRelMap]);
+  }, [fichasPendentes, busca, filtroMarca, filtroLinha, produtosSelecionados, filtroTipo, gradeRelMap, listDateFrom, listDateTo, statusFiltro]);
 
   // Admin KPIs
   const kpis = useMemo(() => {
