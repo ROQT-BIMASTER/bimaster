@@ -21,6 +21,14 @@ import { calcularPrecosProdutos, formatarMoeda, buscarCustoFichaProduto, CustoCo
 import { Loader2, CheckCircle2, Factory, Ship, AlertTriangle, Check, FileText, Lock, LockOpen, DollarSign, ArrowRight } from "lucide-react";
 import { useUserPriceTableAccess } from "@/hooks/useUserPriceTableAccess";
 import { useVisibilityBlocks } from "@/hooks/useVisibilityBlocks";
+import { GeradorPrecosFichaInfo } from "./GeradorPrecosFichaInfo";
+import { format, differenceInDays } from "date-fns";
+import { ptBR } from "date-fns/locale";
+
+interface FichaStatusInfo {
+  status: "aprovada" | "em_revisao" | "revisao_solicitada" | "rascunho" | "sem_ficha";
+  dataAprovacao: string | null;
+}
 
 interface ProdutoData {
   id: string;
