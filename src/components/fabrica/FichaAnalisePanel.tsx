@@ -557,6 +557,7 @@ export function FichaAnalisePanel({ ficha, processando, onAprovar, onSolicitarRe
                         <TableHead className="text-right">NF (R$)</TableHead>
                         <TableHead className="text-right">Serviço (R$)</TableHead>
                         <TableHead className="text-right">Condição (R$)</TableHead>
+                        <TableHead className="text-right">IPI (R$)</TableHead>
                         {versaoAnterior && <TableHead className="text-right">Δ%</TableHead>}
                       </TableRow>
                     </TableHeader>
@@ -572,6 +573,12 @@ export function FichaAnalisePanel({ ficha, processando, onAprovar, onSolicitarRe
                         const hasCotacoes = cotacoes.length > 0;
                         const isImportadoKit = insumo.tipo_insumo === "importado_kit";
                         const isKitExpanded = expandedKitInsumo === insumo.id;
+                        const ipiInsumo = isImportadoKit
+                          ? (() => {
+                              const child = vinculadosDinamicos.find((v: any) => v.relacao === "filho" && (v.nome === insumo.nome || v.codigo === insumo.codigo));
+                              return child ? ipiDoSnapshot(child.snapshot_totais) : 0;
+                            })()
+                          : 0;
 
                         // Find lowest total cost among cotações
                         const cotacoesComTotal = cotacoes.map(c => ({
@@ -640,6 +647,9 @@ export function FichaAnalisePanel({ ficha, processando, onAprovar, onSolicitarRe
                               <TableCell className="text-right">{formatarMoeda(Number(insumo.custo_nf) || 0)}</TableCell>
                               <TableCell className="text-right">{formatarMoeda(Number(insumo.custo_servico) || 0)}</TableCell>
                               <TableCell className="text-right">{formatarMoeda(Number(insumo.custo_condicao) || 0)}</TableCell>
+                              <TableCell className="text-right">
+                                {ipiInsumo > 0 ? formatarMoeda(ipiInsumo) : <span className="text-muted-foreground">-</span>}
+                              </TableCell>
                               {versaoAnterior && (
                                 <TableCell className="text-right">
                                   {variacao !== null ? (
@@ -656,7 +666,7 @@ export function FichaAnalisePanel({ ficha, processando, onAprovar, onSolicitarRe
                             {/* Expanded supplier comparison */}
                             {isExpanded && hasCotacoes && (
                               <TableRow>
-                                <TableCell colSpan={versaoAnterior ? 9 : 8} className="p-0 bg-muted/30">
+                                <TableCell colSpan={versaoAnterior ? 10 : 9} className="p-0 bg-muted/30">
                                   <div className="px-6 py-3 space-y-2">
                                     <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Comparativo de Fornecedores</p>
                                     <Table>
