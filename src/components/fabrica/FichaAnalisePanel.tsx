@@ -557,6 +557,7 @@ export function FichaAnalisePanel({ ficha, processando, onAprovar, onSolicitarRe
                         <TableHead className="text-right">NF (R$)</TableHead>
                         <TableHead className="text-right">Serviço (R$)</TableHead>
                         <TableHead className="text-right">Condição (R$)</TableHead>
+                        <TableHead className="text-right">IPI (R$)</TableHead>
                         {versaoAnterior && <TableHead className="text-right">Δ%</TableHead>}
                       </TableRow>
                     </TableHeader>
