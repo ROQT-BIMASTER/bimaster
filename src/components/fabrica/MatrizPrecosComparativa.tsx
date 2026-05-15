@@ -1127,7 +1127,17 @@ export function MatrizPrecosComparativa() {
               </SelectContent>
             </Select>
 
-            {temFiltrosAtivos && (
+            <Select value={filtroTipo} onValueChange={(v) => setFiltroTipo(v as "all" | "kit" | "unidade")}>
+              <SelectTrigger className="w-[140px]">
+                <SelectValue placeholder="Tipo" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os Tipos</SelectItem>
+                <SelectItem value="kit">Kits</SelectItem>
+                <SelectItem value="unidade">Unidades</SelectItem>
+              </SelectContent>
+            </Select>
+
               <Button variant="ghost" size="sm" onClick={limparFiltros}>
                 <X className="h-4 w-4 mr-1" />
                 Limpar
