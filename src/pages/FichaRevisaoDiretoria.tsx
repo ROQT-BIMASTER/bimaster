@@ -527,6 +527,18 @@ export default function FichaRevisaoDiretoria() {
                 <ToggleGroupItem value="kit" className="text-xs px-3 h-8 data-[state=on]:bg-blue-600 data-[state=on]:text-white">Kits</ToggleGroupItem>
                 <ToggleGroupItem value="unitario" className="text-xs px-3 h-8 data-[state=on]:bg-amber-600 data-[state=on]:text-white">Unitários</ToggleGroupItem>
               </ToggleGroup>
+
+              <ToggleGroup
+                type="single"
+                value={filtroProvador}
+                onValueChange={(v) => { if (v) setFiltroProvador(v as "todos" | "venda" | "provador"); }}
+                className="border rounded-md"
+                title="Filtrar por uso do produto"
+              >
+                <ToggleGroupItem value="todos" className="text-xs px-3 h-8 data-[state=on]:bg-muted">Uso: todos</ToggleGroupItem>
+                <ToggleGroupItem value="venda" className="text-xs px-3 h-8 data-[state=on]:bg-emerald-600 data-[state=on]:text-white">Venda</ToggleGroupItem>
+                <ToggleGroupItem value="provador" className="text-xs px-3 h-8 data-[state=on]:bg-amber-600 data-[state=on]:text-white">Provadores</ToggleGroupItem>
+              </ToggleGroup>
             </div>
 
             {/* Filtros */}
