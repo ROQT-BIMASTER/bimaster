@@ -640,6 +640,21 @@ export function GeradorPrecosDialog({ open, onOpenChange, tabela, onSuccess }: P
             </div>
           )}
 
+          {/* Painel de orientação para Ficha de Custo */}
+          {isFichaMode && (
+            <GeradorPrecosFichaInfo
+              totalAprovadas={totalAprovadas}
+              totalPendentesPrecificacao={totalPendentesPrecificacao}
+              filtroPendentes={filtroPendentes}
+              filtroAprovadas={filtroAprovadas}
+              filtroRecentes={filtroRecentes}
+              onToggleFiltroPendentes={() => setFiltroPendentes((v) => !v)}
+              onToggleFiltroAprovadas={() => setFiltroAprovadas((v) => !v)}
+              onToggleFiltroRecentes={() => setFiltroRecentes((v) => !v)}
+              onSelecionarPendentes={handleSelecionarPendentes}
+            />
+          )}
+
           {/* Lista de Produtos */}
           <div>
             <div className="flex items-center justify-between mb-2">
