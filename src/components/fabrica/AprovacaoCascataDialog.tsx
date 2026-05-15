@@ -294,7 +294,7 @@ export function AprovacaoCascataDialog({ open, onOpenChange, tabelaRaiz, produto
         </div>
 
         {/* Planilha de simulação lado a lado */}
-        {tabelasExibidas.length > 1 && linhas.length > 0 && (
+        {tabelasExibidas.length >= 1 && linhas.length > 0 && (
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <p className="text-sm font-medium">Pré-visualização (planilha)</p>
