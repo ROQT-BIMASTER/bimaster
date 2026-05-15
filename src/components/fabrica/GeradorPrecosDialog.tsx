@@ -759,28 +759,50 @@ export function GeradorPrecosDialog({ open, onOpenChange, tabela, onSuccess }: P
             />
           )}
 
-          {/* Filtro: último lote aprovado da tabela base (precificar exatamente o que veio do upstream) */}
-          {ultimoLoteBase && (
-            <div className="flex items-center gap-2 p-2 rounded-md border bg-blue-50/50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800">
-              <Checkbox
-                id="filtro-ultimo-lote-base"
-                checked={filtroUltimoLoteBase}
-                onCheckedChange={(c) => {
-                  const v = !!c;
-                  setFiltroUltimoLoteBase(v);
-                  if (v && ultimoLoteBase) {
-                    // Pré-seleciona automaticamente os produtos do último lote da base
-                    setProdutosSelecionados(ultimoLoteBase.produto_ids);
-                  }
-                }}
-              />
-              <Label htmlFor="filtro-ultimo-lote-base" className="text-sm cursor-pointer flex-1">
-                Apenas produtos do <strong>último lote aprovado da tabela base</strong>
-                <span className="ml-2 text-xs text-muted-foreground">
-                  (v{ultimoLoteBase.versao} · {ultimoLoteBase.produto_ids.length} produto(s)
-                  {ultimoLoteBase.aprovado_em && ` · aprovado em ${format(new Date(ultimoLoteBase.aprovado_em), "dd/MM/yyyy", { locale: ptBR })}`})
-                </span>
-              </Label>
+          {/* Filtro: lotes aprovados (da tabela base, ou da própria tabela se for raiz) */}
+          {lotesDisponiveis.length > 0 && (
+            <div className="flex items-center gap-3 p-2 rounded-md border bg-blue-50/50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800 flex-wrap">
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="filtro-ultimo-lote-base"
+                  checked={filtroUltimoLoteBase}
+                  onCheckedChange={(c) => {
+                    const v = !!c;
+                    setFiltroUltimoLoteBase(v);
+                    if (v && loteSelecionado) {
+                      setProdutosSelecionados(loteSelecionado.produto_ids);
+                    }
+                  }}
+                />
+                <Label htmlFor="filtro-ultimo-lote-base" className="text-sm cursor-pointer">
+                  Filtrar por <strong>lote aprovado {origemLotes === "base" ? "da tabela base" : "desta tabela"}</strong>
+                </Label>
+              </div>
+              <div className="flex items-center gap-2">
+                <Label className="text-xs text-muted-foreground">Lote:</Label>
+                <Select
+                  value={loteSelecionadoVersao}
+                  onValueChange={(v) => {
+                    setLoteSelecionadoVersao(v);
+                    if (filtroUltimoLoteBase) {
+                      const lote = lotesDisponiveis.find((l) => String(l.versao) === v);
+                      if (lote) setProdutosSelecionados(lote.produto_ids);
+                    }
+                  }}
+                >
+                  <SelectTrigger className="h-8 w-[280px]">
+                    <SelectValue placeholder="Selecionar lote" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {lotesDisponiveis.map((l, idx) => (
+                      <SelectItem key={l.versao} value={String(l.versao)}>
+                        {idx === 0 ? "Último · " : ""}v{l.versao} · {l.produto_ids.length} produto(s)
+                        {l.aprovado_em ? ` · ${format(new Date(l.aprovado_em), "dd/MM/yyyy", { locale: ptBR })}` : ""}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           )}
 
