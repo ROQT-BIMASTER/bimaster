@@ -211,6 +211,19 @@ export function ConfiguracaoEmpresaDialog() {
               />
               <Label htmlFor="iva_dual_habilitado">Habilitar IVA Dual (CBS/IBS) — Reforma Tributária</Label>
             </div>
+            <div className="col-span-2 flex items-center space-x-2">
+              <Checkbox
+                id="incluir_ipi_no_custo"
+                checked={formData.incluir_ipi_no_custo}
+                onCheckedChange={(checked) => setFormData({ ...formData, incluir_ipi_no_custo: checked as boolean })}
+              />
+              <Label htmlFor="incluir_ipi_no_custo" className="leading-snug">
+                Incluir IPI Saída no custo enviado para Tabelas de Preço
+                <span className="block text-xs text-muted-foreground font-normal">
+                  Quando ativado, o custo da ficha (após aprovada) usado na precificação contempla o IPI Saída configurado por produto.
+                </span>
+              </Label>
+            </div>
             <div className="col-span-2">
               <Label>Observações</Label>
               <Textarea
