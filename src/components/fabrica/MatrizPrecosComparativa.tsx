@@ -608,7 +608,7 @@ export function MatrizPrecosComparativa() {
     });
 
     return resultado;
-  }, [precosData, tabelas, busca, ordenarPor, ordenarAsc, filtroMarca, filtroLinha, filtroTabela, filtroTipo, baseMargemCalculo, precosOrigem, isPrivilegedUser, isProductBlocked, kitComponentes]);
+  }, [precosData, tabelas, busca, ordenarPor, ordenarAsc, filtroMarca, filtroLinha, filtroTabela, filtroTipo, filtroDataDe, filtroDataAte, baseMargemCalculo, precosOrigem, tabelaOrigem, isPrivilegedUser, isProductBlocked, kitComponentes]);
 
   // Agrupar dados se habilitado
   const dadosAgrupados = useMemo(() => {
