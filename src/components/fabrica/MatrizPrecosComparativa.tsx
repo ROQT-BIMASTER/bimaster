@@ -658,7 +658,7 @@ export function MatrizPrecosComparativa() {
     setFiltroTabela("all");
   };
 
-  const temFiltrosAtivos = busca || filtroMarca !== "all" || filtroLinha !== "all" || filtroTabela !== "all";
+  const temFiltrosAtivos = busca || filtroMarca !== "all" || filtroLinha !== "all" || filtroTabela !== "all" || filtroTipo !== "all";
 
   const handlePrecoClick = (produtoId: string, produtoNome: string, tabelaId: string, tabelaNome: string) => {
     // Usuários com restrições de tabela não podem ver o histórico/cadeia de cálculo
