@@ -733,18 +733,29 @@ export function GeradorPrecosDialog({ open, onOpenChange, tabela, onSuccess }: P
             {loadingProdutos ? (
               <div className="text-center py-4 text-muted-foreground">Carregando produtos...</div>
             ) : (
-              <div className="border rounded-lg max-h-64 overflow-y-auto">
-                <table className="w-full">
-                  <thead className="bg-muted/50 sticky top-0">
+              <div className="border rounded-lg max-h-[55vh] overflow-auto">
+                <table className="w-full text-xs">
+                  <thead className="bg-muted/70 sticky top-0 z-10 text-[11px] uppercase tracking-wide text-muted-foreground">
                     <tr>
-                      <th className="p-2 text-left w-12"></th>
-                      <th className="p-2 text-left">Produto</th>
+                      <th className="px-2 py-2 text-left w-10"></th>
+                      <th className="px-2 py-2 text-left w-32">Código</th>
+                      <th className="px-2 py-2 text-left">Produto</th>
+                      <th className="px-2 py-2 text-left w-32">Linha</th>
+                      <th className="px-2 py-2 text-center w-16">Origem</th>
+                      {isFichaMode && (
+                        <>
+                          <th className="px-2 py-2 text-left w-36">Status Ficha</th>
+                          <th className="px-2 py-2 text-center w-24">Aprovada em</th>
+                          <th className="px-2 py-2 text-center w-32">Preço atual</th>
+                        </>
+                      )}
                       {fonteCusto === "manual" && (
-                        <th className="p-2 text-left w-32">Custo Base (R$)</th>
+                        <th className="px-2 py-2 text-left w-32">Custo Base (R$)</th>
                       )}
                       {fonteCusto === "preco_final" && (
-                        <th className="p-2 text-left w-40">Preço Desejado (R$)</th>
+                        <th className="px-2 py-2 text-left w-36">Preço Desejado (R$)</th>
                       )}
+                      <th className="px-2 py-2 text-center w-12"></th>
                     </tr>
                   </thead>
                   <tbody>
@@ -752,86 +763,164 @@ export function GeradorPrecosDialog({ open, onOpenChange, tabela, onSuccess }: P
                       const blocked = isProductBlocked(produto.linha, produto.id);
                       const productBlock = getBlockForProduct(produto.id);
                       const lineBlock = produto.linha ? getBlockForLine(produto.linha) : undefined;
-                      const activeBlock = productBlock || lineBlock;
+                      const fichaInfo = getFichaInfo(produto.id);
+                      const pendente = isPendentePrecificacao(produto.id);
+                      const jaTem = produtosComPrecoNaTabela.has(produto.id);
+                      const isSelected = produtosSelecionados.includes(produto.id);
 
                       return (
-                      <tr key={produto.id} className={`border-t ${blocked ? 'bg-red-50 dark:bg-red-950/20' : ''}`}>
-                        <td className="p-2">
-                          <Checkbox
-                            checked={produtosSelecionados.includes(produto.id)}
-                            onCheckedChange={(checked) => handleToggleProduto(produto.id, checked as boolean)}
-                          />
-                        </td>
-                        <td className="p-2">
-                          <div className="flex items-center gap-2">
-                            <div className="flex-1">
-                              <div className="font-medium">{produto.nome}</div>
-                              <div className="text-sm text-muted-foreground">{produto.codigo}</div>
+                        <tr
+                          key={produto.id}
+                          className={`border-t transition-colors hover:bg-muted/40 ${
+                            blocked ? "bg-red-50 dark:bg-red-950/20" : ""
+                          } ${isSelected ? "bg-primary/5" : ""} ${
+                            pendente && isFichaMode ? "border-l-2 border-l-orange-500" : ""
+                          }`}
+                        >
+                          <td className="px-2 py-1.5">
+                            <Checkbox
+                              checked={isSelected}
+                              onCheckedChange={(checked) => handleToggleProduto(produto.id, checked as boolean)}
+                            />
+                          </td>
+                          <td className="px-2 py-1.5 font-mono text-[11px] text-muted-foreground whitespace-nowrap">
+                            {produto.codigo || "—"}
+                          </td>
+                          <td className="px-2 py-1.5">
+                            <div className="flex items-center gap-1.5">
+                              <span className="font-medium truncate max-w-[280px]" title={produto.nome}>
+                                {produto.nome}
+                              </span>
+                              {blocked && (
+                                <Badge variant="destructive" className="text-[10px] px-1 py-0">
+                                  <Lock className="h-3 w-3 mr-0.5" />
+                                  {lineBlock ? "Linha" : "Bloq"}
+                                </Badge>
+                              )}
+                              {produtosNaTabelaBase.includes(produto.id) && (
+                                <Badge variant="secondary" className="text-[10px] px-1 py-0">
+                                  <CheckCircle2 className="h-3 w-3 mr-0.5" />
+                                  Base
+                                </Badge>
+                              )}
                             </div>
-                            {blocked && (
-                              <Badge variant="destructive" className="text-[10px] px-1.5 py-0">
-                                <Lock className="h-3 w-3 mr-0.5" />
-                                Bloqueado{lineBlock ? ' (Linha)' : ''}
+                          </td>
+                          <td className="px-2 py-1.5 text-muted-foreground truncate max-w-[120px]" title={produto.linha || ""}>
+                            {produto.linha || "—"}
+                          </td>
+                          <td className="px-2 py-1.5 text-center">
+                            {produto.origem ? (
+                              <Badge
+                                variant="outline"
+                                className={`inline-flex items-center gap-1 text-[10px] px-1.5 py-0 ${
+                                  produto.origem === "nacional"
+                                    ? "border-green-300 text-green-700"
+                                    : "border-blue-300 text-blue-700"
+                                }`}
+                              >
+                                {produto.origem === "nacional" ? (
+                                  <Factory className="h-3 w-3" />
+                                ) : (
+                                  <Ship className="h-3 w-3" />
+                                )}
+                                {produto.origem === "nacional" ? "Nac" : "Imp"}
                               </Badge>
+                            ) : (
+                              <span className="text-muted-foreground">—</span>
                             )}
-                            {produto.origem && (
-                              <Badge variant="outline" className={`flex items-center gap-1 ${
-                                produto.origem === 'nacional' ? 'border-green-300 text-green-700' : 'border-blue-300 text-blue-700'
-                              }`}>
-                                {produto.origem === 'nacional' ? <Factory className="h-3 w-3" /> : <Ship className="h-3 w-3" />}
-                                {produto.origem === 'nacional' ? 'Nac' : 'Imp'}
-                              </Badge>
-                            )}
-                            {produtosNaTabelaBase.includes(produto.id) && (
-                              <Badge variant="secondary" className="flex items-center gap-1">
-                                <CheckCircle2 className="h-3 w-3" />
-                                Na tabela base
-                              </Badge>
-                            )}
-                            {isFichaMode && (() => {
-                              const info = getFichaInfo(produto.id);
-                              const pendente = isPendentePrecificacao(produto.id);
-                              const jaTem = produtosComPrecoNaTabela.has(produto.id);
-                              return (
-                                <>
-                                  {info.status === "aprovada" && info.dataAprovacao && (
-                                    <Badge
-                                      variant="outline"
-                                      className="border-green-300 text-green-700 dark:text-green-400 flex items-center gap-1 text-[10px]"
-                                    >
-                                      <CheckCircle2 className="h-3 w-3" />
-                                      Ficha aprovada{" "}
-                                      {format(new Date(info.dataAprovacao), "dd/MM", { locale: ptBR })}
-                                    </Badge>
-                                  )}
-                                  {info.status !== "aprovada" && info.status !== "sem_ficha" && (
-                                    <Badge variant="outline" className="text-[10px] text-amber-700 border-amber-300">
-                                      Ficha em revisão
-                                    </Badge>
-                                  )}
-                                  {info.status === "sem_ficha" && (
-                                    <Badge variant="outline" className="text-[10px] text-muted-foreground">
-                                      Sem ficha
-                                    </Badge>
-                                  )}
-                                  {pendente && (
-                                    <Badge className="bg-orange-500 hover:bg-orange-500 text-white text-[10px]">
-                                      Precificar
-                                    </Badge>
-                                  )}
-                                  {jaTem && (
-                                    <Badge variant="secondary" className="text-[10px]">
-                                      Já precificado
-                                    </Badge>
-                                  )}
-                                </>
-                              );
-                            })()}
+                          </td>
+                          {isFichaMode && (
+                            <>
+                              <td className="px-2 py-1.5">
+                                {fichaInfo.status === "aprovada" && (
+                                  <Badge
+                                    variant="outline"
+                                    className="border-green-300 text-green-700 dark:text-green-400 text-[10px] px-1.5 py-0"
+                                  >
+                                    <CheckCircle2 className="h-3 w-3 mr-0.5" />
+                                    Aprovada
+                                  </Badge>
+                                )}
+                                {(fichaInfo.status === "em_revisao" ||
+                                  fichaInfo.status === "revisao_solicitada") && (
+                                  <Badge
+                                    variant="outline"
+                                    className="text-[10px] px-1.5 py-0 text-amber-700 border-amber-300"
+                                  >
+                                    Em revisão
+                                  </Badge>
+                                )}
+                                {fichaInfo.status === "rascunho" && (
+                                  <Badge
+                                    variant="outline"
+                                    className="text-[10px] px-1.5 py-0 text-muted-foreground"
+                                  >
+                                    Rascunho
+                                  </Badge>
+                                )}
+                                {fichaInfo.status === "sem_ficha" && (
+                                  <span className="text-muted-foreground text-[11px]">Sem ficha</span>
+                                )}
+                              </td>
+                              <td className="px-2 py-1.5 text-center text-[11px] text-muted-foreground whitespace-nowrap">
+                                {fichaInfo.dataAprovacao
+                                  ? format(new Date(fichaInfo.dataAprovacao), "dd/MM/yyyy", { locale: ptBR })
+                                  : "—"}
+                              </td>
+                              <td className="px-2 py-1.5 text-center">
+                                {pendente ? (
+                                  <Badge className="bg-orange-500 hover:bg-orange-500 text-white text-[10px] px-1.5 py-0">
+                                    Precificar
+                                  </Badge>
+                                ) : jaTem ? (
+                                  <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                                    <CheckCircle2 className="h-3 w-3 mr-0.5" />
+                                    Já tem
+                                  </Badge>
+                                ) : (
+                                  <span className="text-muted-foreground">—</span>
+                                )}
+                              </td>
+                            </>
+                          )}
+                          {fonteCusto === "manual" && (
+                            <td className="px-2 py-1.5">
+                              <Input
+                                type="number"
+                                step="0.01"
+                                placeholder="0.00"
+                                value={custosManual[produto.id] || ""}
+                                onChange={(e) =>
+                                  setCustosManual({ ...custosManual, [produto.id]: e.target.value })
+                                }
+                                disabled={!isSelected}
+                                className="h-7 text-xs"
+                              />
+                            </td>
+                          )}
+                          {fonteCusto === "preco_final" && (
+                            <td className="px-2 py-1.5">
+                              <div className="flex items-center gap-1">
+                                <span className="text-[10px] text-muted-foreground">R$</span>
+                                <Input
+                                  type="text"
+                                  placeholder="0,00"
+                                  value={precosManual[produto.id] || ""}
+                                  onChange={(e) =>
+                                    setPrecosManual({ ...precosManual, [produto.id]: e.target.value })
+                                  }
+                                  disabled={!isSelected}
+                                  className="h-7 text-xs w-24"
+                                />
+                              </div>
+                            </td>
+                          )}
+                          <td className="px-2 py-1.5 text-center">
                             {hasFullAccess && (
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                className="h-7 w-7"
+                                className="h-6 w-6"
                                 disabled={isBlocking || isUnblocking}
                                 onClick={(e) => {
                                   e.stopPropagation();
@@ -850,42 +939,20 @@ export function GeradorPrecosDialog({ open, onOpenChange, tabela, onSuccess }: P
                                 ) : null}
                               </Button>
                             )}
-                          </div>
-                        </td>
-                        {fonteCusto === "manual" && (
-                          <td className="p-2">
-                            <Input
-                              type="number"
-                              step="0.01"
-                              placeholder="0.00"
-                              value={custosManual[produto.id] || ""}
-                              onChange={(e) =>
-                                setCustosManual({ ...custosManual, [produto.id]: e.target.value })
-                              }
-                              disabled={!produtosSelecionados.includes(produto.id)}
-                            />
                           </td>
-                        )}
-                        {fonteCusto === "preco_final" && (
-                          <td className="p-2">
-                            <div className="flex items-center gap-1">
-                              <span className="text-xs text-muted-foreground">R$</span>
-                              <Input
-                                type="text"
-                                placeholder="0,00"
-                                value={precosManual[produto.id] || ""}
-                                onChange={(e) =>
-                                  setPrecosManual({ ...precosManual, [produto.id]: e.target.value })
-                                }
-                                disabled={!produtosSelecionados.includes(produto.id)}
-                                className="w-28"
-                              />
-                            </div>
-                          </td>
-                        )}
-                      </tr>
+                        </tr>
                       );
                     })}
+                    {produtosFiltrados.length === 0 && (
+                      <tr>
+                        <td
+                          colSpan={isFichaMode ? 9 : 6}
+                          className="text-center py-8 text-muted-foreground text-xs"
+                        >
+                          Nenhum produto encontrado com os filtros atuais.
+                        </td>
+                      </tr>
+                    )}
                   </tbody>
                 </table>
               </div>
