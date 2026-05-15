@@ -378,7 +378,10 @@ export function useFichaRevisaoDiretoria() {
     try {
       const { data: user } = await supabase.auth.getUser();
 
-      await supabase
+      // .select() força o PostgREST a devolver as linhas afetadas — se RLS
+      // bloquear o UPDATE, a query retorna [] sem error HTTP; sem isso, a UI
+      // mostrava "Ficha aprovada" mesmo quando nada era gravado.
+      const { data: revUpd, error: revErr } = await supabase
         .from("fabrica_ficha_custo_revisoes")
         .update({
           status: "aprovada",
@@ -386,20 +389,31 @@ export function useFichaRevisaoDiretoria() {
           revisado_em: new Date().toISOString(),
           parecer,
         })
-        .eq("id", revisaoId);
+        .eq("id", revisaoId)
+        .select("id");
+      if (revErr) throw revErr;
+      if (!revUpd || revUpd.length === 0) {
+        throw new Error("Sem permissão para aprovar esta revisão (RLS bloqueou o update).");
+      }
 
-      await supabase
+      const { data: cfgUpd, error: cfgErr } = await supabase
         .from("fabrica_produto_custos_config")
         .update({
           status_aprovacao: "aprovada",
           revisao_ativa_id: null,
         })
-        .eq("id", configId);
+        .eq("id", configId)
+        .select("id");
+      if (cfgErr) throw cfgErr;
+      if (!cfgUpd || cfgUpd.length === 0) {
+        throw new Error("Sem permissão para atualizar a configuração da ficha (RLS bloqueou o update).");
+      }
 
       toast.success("Ficha aprovada com sucesso!");
       refetch();
     } catch (err: any) {
-      toast.error("Erro ao aprovar: " + err.message);
+      logger.error("[useFichaRevisaoDiretoria] aprovarFicha falhou:", err);
+      toast.error("Erro ao aprovar: " + (err?.message || "desconhecido"));
     } finally {
       setProcessando(false);
     }
@@ -419,7 +433,7 @@ export function useFichaRevisaoDiretoria() {
           .eq("id", revisaoId)
           .maybeSingle();
 
-        await supabase
+        const { data: revUpd, error: revErr } = await supabase
           .from("fabrica_ficha_custo_revisoes")
           .update({
             status: "pendente",
@@ -427,20 +441,31 @@ export function useFichaRevisaoDiretoria() {
             revisado_em: null,
             parecer: ((atual?.parecer as string) || "") + nota,
           })
-          .eq("id", revisaoId);
+          .eq("id", revisaoId)
+          .select("id");
+        if (revErr) throw revErr;
+        if (!revUpd || revUpd.length === 0) {
+          throw new Error("Sem permissão para cancelar esta aprovação (RLS bloqueou o update).");
+        }
 
-        await supabase
+        const { data: cfgUpd, error: cfgErr } = await supabase
           .from("fabrica_produto_custos_config")
           .update({
             status_aprovacao: "em_revisao",
             revisao_ativa_id: revisaoId,
           })
-          .eq("id", configId);
+          .eq("id", configId)
+          .select("id");
+        if (cfgErr) throw cfgErr;
+        if (!cfgUpd || cfgUpd.length === 0) {
+          throw new Error("Sem permissão para atualizar a configuração da ficha (RLS bloqueou o update).");
+        }
 
         toast.success("Aprovação cancelada — ficha voltou para a fila de pendentes.");
         refetch();
       } catch (err: any) {
-        toast.error("Erro ao cancelar: " + err.message);
+        logger.error("[useFichaRevisaoDiretoria] cancelarAprovacao falhou:", err);
+        toast.error("Erro ao cancelar: " + (err?.message || "desconhecido"));
       } finally {
         setProcessando(false);
       }
@@ -460,7 +485,7 @@ export function useFichaRevisaoDiretoria() {
       const { data: user } = await supabase.auth.getUser();
 
       // Atualizar revisão
-      await supabase
+      const { data: revUpd, error: revErr } = await supabase
         .from("fabrica_ficha_custo_revisoes")
         .update({
           status: "revisao_solicitada",
@@ -468,7 +493,12 @@ export function useFichaRevisaoDiretoria() {
           revisado_em: new Date().toISOString(),
           parecer,
         })
-        .eq("id", revisaoId);
+        .eq("id", revisaoId)
+        .select("id");
+      if (revErr) throw revErr;
+      if (!revUpd || revUpd.length === 0) {
+        throw new Error("Sem permissão para solicitar revisão (RLS bloqueou o update).");
+      }
 
       // Inserir apontamentos
       if (itens.length > 0) {
@@ -498,15 +528,21 @@ export function useFichaRevisaoDiretoria() {
       }
 
       // Atualizar config
-      await supabase
+      const { data: cfgUpd, error: cfgErr } = await supabase
         .from("fabrica_produto_custos_config")
         .update({ status_aprovacao: "revisao_solicitada" })
-        .eq("id", configId);
+        .eq("id", configId)
+        .select("id");
+      if (cfgErr) throw cfgErr;
+      if (!cfgUpd || cfgUpd.length === 0) {
+        throw new Error("Sem permissão para atualizar a configuração da ficha (RLS bloqueou o update).");
+      }
 
       toast.success("Revisão solicitada com sucesso!");
       refetch();
     } catch (err: any) {
-      toast.error("Erro: " + err.message);
+      logger.error("[useFichaRevisaoDiretoria] solicitarRevisao falhou:", err);
+      toast.error("Erro: " + (err?.message || "desconhecido"));
     } finally {
       setProcessando(false);
     }
