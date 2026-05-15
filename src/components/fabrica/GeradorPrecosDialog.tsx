@@ -576,6 +576,11 @@ export function GeradorPrecosDialog({ open, onOpenChange, tabela, onSuccess }: P
 
   const produtosFiltrados = useMemo(() => {
     let lista = [...produtosFiltradosBase];
+    // Filtro: apenas produtos do último lote aprovado da tabela base
+    if (filtroUltimoLoteBase && ultimoLoteBase) {
+      const set = new Set(ultimoLoteBase.produto_ids);
+      lista = lista.filter((p) => set.has(p.id));
+    }
     if (isFichaMode) {
       if (filtroPendentes) lista = lista.filter((p) => isPendentePrecificacao(p.id));
       if (filtroAprovadas) lista = lista.filter((p) => getFichaInfo(p.id).status === "aprovada");
@@ -592,7 +597,7 @@ export function GeradorPrecosDialog({ open, onOpenChange, tabela, onSuccess }: P
     }
     return lista;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [produtosFiltradosBase, isFichaMode, filtroPendentes, filtroAprovadas, filtroRecentes, fichaStatusMap, produtosComPrecoNaTabela]);
+  }, [produtosFiltradosBase, isFichaMode, filtroPendentes, filtroAprovadas, filtroRecentes, filtroUltimoLoteBase, ultimoLoteBase, fichaStatusMap, produtosComPrecoNaTabela]);
 
   const totalAprovadas = useMemo(
     () => produtosFiltradosBase.filter((p) => getFichaInfo(p.id).status === "aprovada").length,
