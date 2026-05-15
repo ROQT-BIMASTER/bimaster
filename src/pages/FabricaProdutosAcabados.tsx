@@ -284,6 +284,11 @@ export default function FabricaProdutosAcabados() {
       const matchMarca = filtroMarca === "none" || p.marca === filtroMarca;
       const matchLinha = filtroLinha === "none" || p.linha === filtroLinha;
       const matchTipo = filtroTipo === "none" || p.tipo === filtroTipo;
+      const isProv = !!(p as any).is_provador;
+      const matchProvador =
+        filtroProvador === "todos" ||
+        (filtroProvador === "venda" && !isProv) ||
+        (filtroProvador === "provador" && isProv);
       const matchVisibilidade = mostrarOcultos || !p.oculto;
       const createdDate = p.created_at ? new Date(p.created_at) : null;
       const matchDataInicio = !parsedInicio || (createdDate && createdDate >= parsedInicio);
