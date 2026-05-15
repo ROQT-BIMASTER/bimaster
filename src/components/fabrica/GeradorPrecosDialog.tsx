@@ -366,45 +366,20 @@ export function GeradorPrecosDialog({ open, onOpenChange, tabela, onSuccess }: P
         }
       }
 
-      // (Versões são criadas automaticamente por trigger ao mudar status para pending_approval)
-
-      // SEMPRE atualizar para pending_approval e ativar
-      const { error: statusError } = await supabase
-        .from("fabrica_tabelas_preco")
-        .update({ 
-          status: 'pending_approval',
-          ativo: true
-        })
-        .eq("id", tabela.id);
-
-      if (statusError) {
-        logger.error("Erro ao atualizar status:", statusError);
-        throw statusError;
+      // Submissão atômica: registra escopo + dispara trigger de versão na mesma transação.
+      const escopoIds = Array.from(
+        new Set(precosCalculados.map((p) => p.produto_id).filter(Boolean))
+      );
+      if (escopoIds.length === 0) {
+        throw new Error("Nenhum produto no escopo para submeter à aprovação");
       }
-
-      // Persistir o escopo real submetido na versão recém-criada (RPC SECURITY DEFINER:
-      // já reescreve o snapshot só com os produtos enviados e converte uuid[] corretamente).
-      try {
-        const escopoIds = Array.from(
-          new Set(precosCalculados.map((p) => p.produto_id).filter(Boolean))
-        );
-        const { data: ultimaVersao } = await supabase
-          .from("fabrica_tabelas_preco_versoes")
-          .select("id")
-          .eq("tabela_id", tabela.id)
-          .order("versao", { ascending: false })
-          .limit(1)
-          .maybeSingle();
-        if (ultimaVersao?.id && escopoIds.length > 0) {
-          const { error: rpcErr } = await supabase.rpc(
-            "rpc_registrar_escopo_versao" as any,
-            { p_versao_id: ultimaVersao.id, p_produto_ids: escopoIds }
-          );
-          if (rpcErr) throw rpcErr;
-        }
-      } catch (e) {
-        logger.error("Falha ao registrar escopo da versão:", e);
-        throw e;
+      const { error: submitErr } = await supabase.rpc(
+        "rpc_submeter_tabela_para_aprovacao" as any,
+        { p_tabela_id: tabela.id, p_produto_ids: escopoIds }
+      );
+      if (submitErr) {
+        logger.error("Erro ao submeter tabela para aprovação:", submitErr);
+        throw submitErr;
       }
 
       // Registrar na auditoria
