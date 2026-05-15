@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { RevisaoChatPanel } from "@/components/fabrica/RevisaoChatPanel";
 import { DocumentosTab } from "@/components/fabrica/DocumentosTab";
+import { TrilhaAuditoriaTab } from "@/components/fabrica/TrilhaAuditoriaTab";
 import { InsumosOrigemPanel } from "@/components/fabrica/InsumosOrigemPanel";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -541,6 +542,7 @@ export function FichaAnalisePanel({ ficha, processando, onAprovar, onSolicitarRe
                 <TabsTrigger value="evidencias" className="text-xs">Evidências ({evidencias.length})</TabsTrigger>
                 <TabsTrigger value="requisitos" className="text-xs">Requisitos ({requisitosStatus.length})</TabsTrigger>
                 <TabsTrigger value="historico" className="text-xs gap-1"><History className="h-3 w-3" /> Histórico</TabsTrigger>
+                <TabsTrigger value="trilha" className="text-xs gap-1"><ShieldCheck className="h-3 w-3" /> Trilha</TabsTrigger>
                 <TabsTrigger value="documentos" className="text-xs gap-1"><FileText className="h-3 w-3" /> Documentos</TabsTrigger>
               </TabsList>
 
@@ -854,6 +856,10 @@ export function FichaAnalisePanel({ ficha, processando, onAprovar, onSolicitarRe
                     </div>
                   </ScrollArea>
                 )}
+              </TabsContent>
+
+              <TabsContent value="trilha" className="mt-3">
+                <TrilhaAuditoriaTab revisaoId={ficha.id} />
               </TabsContent>
 
               <TabsContent value="documentos" className="mt-3">

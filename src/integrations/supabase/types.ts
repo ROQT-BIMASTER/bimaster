@@ -13501,6 +13501,48 @@ export type Database = {
           },
         ]
       }
+      fabrica_ficha_revisoes_audit_log: {
+        Row: {
+          acao: string
+          config_id: string | null
+          created_at: string
+          detalhes: Json | null
+          id: string
+          produto_id: string | null
+          revisao_id: string
+          status_anterior: string | null
+          status_novo: string | null
+          user_id: string | null
+          user_nome: string | null
+        }
+        Insert: {
+          acao: string
+          config_id?: string | null
+          created_at?: string
+          detalhes?: Json | null
+          id?: string
+          produto_id?: string | null
+          revisao_id: string
+          status_anterior?: string | null
+          status_novo?: string | null
+          user_id?: string | null
+          user_nome?: string | null
+        }
+        Update: {
+          acao?: string
+          config_id?: string | null
+          created_at?: string
+          detalhes?: Json | null
+          id?: string
+          produto_id?: string | null
+          revisao_id?: string
+          status_anterior?: string | null
+          status_novo?: string | null
+          user_id?: string | null
+          user_nome?: string | null
+        }
+        Relationships: []
+      }
       fabrica_formula_alteracoes: {
         Row: {
           data_alteracao: string | null

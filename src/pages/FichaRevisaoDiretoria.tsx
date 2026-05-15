@@ -50,10 +50,17 @@ export default function FichaRevisaoDiretoria() {
   const [dateFrom, setDateFrom] = useState<Date | undefined>(subDays(new Date(), 30));
   const [dateTo, setDateTo] = useState<Date | undefined>(new Date());
 
+  // Filtro de data da LISTA de fichas (independente do gráfico)
+  const [listDateFrom, setListDateFrom] = useState<Date | undefined>(undefined);
+  const [listDateTo, setListDateTo] = useState<Date | undefined>(undefined);
+
   // Admin dashboard data
   const [allRevisoes, setAllRevisoes] = useState<any[]>([]);
   const [loadingAdmin, setLoadingAdmin] = useState(true);
   const [msgCount, setMsgCount] = useState(0);
+
+  // Mapa user_id -> nome (para colunas Submetido por / Aprovado por)
+  const [profilesMap, setProfilesMap] = useState<Record<string, string>>({});
 
   useEffect(() => {
     const loadAdmin = async () => {
@@ -72,6 +79,25 @@ export default function FichaRevisaoDiretoria() {
     };
     loadAdmin();
   }, [fichaAberta]);
+
+  // Carrega nomes dos usuários referenciados nas fichas (submetido_por / revisado_por)
+  useEffect(() => {
+    const ids = new Set<string>();
+    fichasPendentes.forEach((f: any) => {
+      if (f.submetido_por) ids.add(f.submetido_por);
+      if (f.revisado_por) ids.add(f.revisado_por);
+    });
+    const missing = [...ids].filter(id => !profilesMap[id]);
+    if (missing.length === 0) return;
+    supabase.from("profiles").select("id, nome").in("id", missing).then(({ data }) => {
+      if (!data) return;
+      setProfilesMap(prev => {
+        const next = { ...prev };
+        data.forEach((p: any) => { next[p.id] = p.nome || p.id; });
+        return next;
+      });
+    });
+  }, [fichasPendentes, profilesMap]);
 
   const formatarMoeda = (valor: number) =>
     valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 2, maximumFractionDigits: 6 });
@@ -141,6 +167,13 @@ export default function FichaRevisaoDiretoria() {
         const b = busca.toLowerCase();
         if (!f.produto?.nome?.toLowerCase().includes(b) && !f.produto?.codigo?.toLowerCase().includes(b)) return false;
       }
+      // Filtro de data: usa data de aprovação se aprovada, senão submissão
+      const refDateStr = statusFiltro === "aprovada" ? (f.revisado_em || f.submetido_em) : f.submetido_em;
+      if (refDateStr) {
+        const d = new Date(refDateStr);
+        if (listDateFrom && d < startOfDay(listDateFrom)) return false;
+        if (listDateTo && d > new Date(listDateTo.getFullYear(), listDateTo.getMonth(), listDateTo.getDate(), 23, 59, 59)) return false;
+      }
       return true;
     });
 
@@ -174,7 +207,7 @@ export default function FichaRevisaoDiretoria() {
       if (!placed.has(f.id)) result.push(f);
     }
     return result;
-  }, [fichasPendentes, busca, filtroMarca, filtroLinha, produtosSelecionados, filtroTipo, gradeRelMap]);
+  }, [fichasPendentes, busca, filtroMarca, filtroLinha, produtosSelecionados, filtroTipo, gradeRelMap, listDateFrom, listDateTo, statusFiltro]);
 
   // Admin KPIs
   const kpis = useMemo(() => {
@@ -520,6 +553,34 @@ export default function FichaRevisaoDiretoria() {
                   placeholder="Filtrar produtos (multi)..."
                 />
               </div>
+              {/* Filtro de data da lista */}
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="sm" className={cn("h-9 text-xs gap-1.5", !listDateFrom && "text-muted-foreground")}>
+                    <CalendarIcon className="h-3.5 w-3.5" />
+                    {listDateFrom ? format(listDateFrom, "dd/MM/yyyy") : "Data de"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar mode="single" selected={listDateFrom} onSelect={setListDateFrom} initialFocus className="p-3 pointer-events-auto" locale={ptBR} />
+                </PopoverContent>
+              </Popover>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="sm" className={cn("h-9 text-xs gap-1.5", !listDateTo && "text-muted-foreground")}>
+                    <CalendarIcon className="h-3.5 w-3.5" />
+                    {listDateTo ? format(listDateTo, "dd/MM/yyyy") : "Data até"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar mode="single" selected={listDateTo} onSelect={setListDateTo} initialFocus className="p-3 pointer-events-auto" locale={ptBR} />
+                </PopoverContent>
+              </Popover>
+              {(listDateFrom || listDateTo) && (
+                <Button variant="ghost" size="sm" className="h-9 text-xs" onClick={() => { setListDateFrom(undefined); setListDateTo(undefined); }}>
+                  Limpar datas
+                </Button>
+              )}
             </div>
 
             {isLoading ? (
@@ -547,6 +608,8 @@ export default function FichaRevisaoDiretoria() {
                         <TableHead>Versão</TableHead>
                         <TableHead>Status</TableHead>
                         <TableHead>{statusFiltro === "aprovada" ? "Aprovada em" : "Submetido em"}</TableHead>
+                        <TableHead>Submetido por</TableHead>
+                        <TableHead>Aprovado por</TableHead>
                         <TableHead>Custo Total</TableHead>
                         <TableHead className="text-right">Ações</TableHead>
                       </TableRow>
@@ -594,6 +657,16 @@ export default function FichaRevisaoDiretoria() {
                             <TableCell><Badge variant="outline">v{ficha.versao}</Badge></TableCell>
                             <TableCell>{statusBadge}</TableCell>
                             <TableCell>{dataExibida}</TableCell>
+                            <TableCell className="text-xs">
+                              {ficha.submetido_por
+                                ? <span title={ficha.submetido_em ? new Date(ficha.submetido_em).toLocaleString("pt-BR") : ""}>{profilesMap[ficha.submetido_por] || "—"}</span>
+                                : <span className="text-muted-foreground">—</span>}
+                            </TableCell>
+                            <TableCell className="text-xs">
+                              {ficha.revisado_por && ficha.status === "aprovada"
+                                ? <span title={ficha.revisado_em ? new Date(ficha.revisado_em).toLocaleString("pt-BR") : ""}>{profilesMap[ficha.revisado_por] || "—"}</span>
+                                : <span className="text-muted-foreground">—</span>}
+                            </TableCell>
                             <TableCell className="font-semibold">{formatarMoeda(custoTotalDoSnapshot(ficha.snapshot_totais))}</TableCell>
                             <TableCell className="text-right">
                               <Button size="sm" variant={fichaAberta?.id === ficha.id ? "default" : "outline"} onClick={() => setFichaAberta(fichaAberta?.id === ficha.id ? null : ficha)}>
