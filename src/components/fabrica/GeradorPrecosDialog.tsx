@@ -530,7 +530,7 @@ export function GeradorPrecosDialog({ open, onOpenChange, tabela, onSuccess }: P
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-[1280px] w-[95vw] max-h-[92vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Gerar Preços - {tabela.nome}</DialogTitle>
           <p className="text-sm text-muted-foreground">
