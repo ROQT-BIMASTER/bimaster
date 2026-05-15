@@ -379,12 +379,37 @@ export function MatrizPrecosComparativa() {
           preco_limitado,
           preco_original_calculado,
           motivo_limite,
-          produto:fabrica_produtos!inner(id, nome, codigo, categoria, marca, linha)
+          produto:fabrica_produtos!inner(id, nome, codigo, categoria, marca, linha, tipo, itens_display)
         `)
         .eq("ativo", true);
 
       if (error) throw error;
       return data;
+    },
+  });
+
+  // Componentes (kit → unidades) — vinculação visual e cascata
+  const { data: kitComponentes } = useQuery({
+    queryKey: ["fabrica-kit-componentes-matriz"],
+    staleTime: 60_000,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("fabrica_produto_grade_itens")
+        .select(`
+          produto_pai_id,
+          quantidade,
+          filho:fabrica_produtos!fabrica_produto_grade_itens_produto_filho_id_fkey(id, nome, codigo)
+        `);
+      if (error) throw error;
+      const map = new Map<string, Array<{ id: string; nome: string; codigo: string; quantidade: number }>>();
+      (data || []).forEach((row: any) => {
+        const filho = row.filho;
+        if (!filho) return;
+        const arr = map.get(row.produto_pai_id) || [];
+        arr.push({ id: filho.id, nome: filho.nome, codigo: filho.codigo, quantidade: Number(row.quantidade) || 1 });
+        map.set(row.produto_pai_id, arr);
+      });
+      return map;
     },
   });
 
