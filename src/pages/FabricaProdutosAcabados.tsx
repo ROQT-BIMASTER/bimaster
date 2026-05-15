@@ -305,7 +305,7 @@ export default function FabricaProdutosAcabados() {
       const familyAlvo: FichaStatusFamily | "none" =
         filtroStatusFicha === "none" ? "none" : (filtroStatusFicha as FichaStatusFamily);
       const matchStatusFicha = isFichaInFamily(statusFichaProduto ?? null, familyAlvo);
-      return matchBusca && matchMarca && matchLinha && matchTipo && matchVisibilidade && matchDataInicio && matchDataFim && matchStatusFicha;
+      return matchBusca && matchMarca && matchLinha && matchTipo && matchProvador && matchVisibilidade && matchDataInicio && matchDataFim && matchStatusFicha;
     });
     if (!filtered) return [];
 
