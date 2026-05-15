@@ -656,6 +656,7 @@ export function MatrizPrecosComparativa() {
     setFiltroMarca("all");
     setFiltroLinha("all");
     setFiltroTabela("all");
+    setFiltroTipo("all");
   };
 
   const temFiltrosAtivos = busca || filtroMarca !== "all" || filtroLinha !== "all" || filtroTabela !== "all" || filtroTipo !== "all";
