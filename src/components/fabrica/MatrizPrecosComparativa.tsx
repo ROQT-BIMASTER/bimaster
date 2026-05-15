@@ -501,12 +501,18 @@ export function MatrizPrecosComparativa() {
             componentesCount: componentes.length,
             componentes,
           },
+          dataFabrica: null,
           precos: {},
         });
       }
 
       const row = produtosMap.get(produtoId)!;
-      
+
+      // Captura a data da tabela Fábrica (origem) como referência de cadastro do produto
+      if (tabelaOrigem && preco.tabela_id === tabelaOrigem.id && preco.data_atualizacao) {
+        row.dataFabrica = preco.data_atualizacao;
+      }
+
       // Calcular margem baseado na opção selecionada
       let margemCalculada = preco.margem_lucro_percentual || 0;
       
