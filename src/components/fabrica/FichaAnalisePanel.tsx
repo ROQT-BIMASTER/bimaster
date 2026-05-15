@@ -573,6 +573,12 @@ export function FichaAnalisePanel({ ficha, processando, onAprovar, onSolicitarRe
                         const hasCotacoes = cotacoes.length > 0;
                         const isImportadoKit = insumo.tipo_insumo === "importado_kit";
                         const isKitExpanded = expandedKitInsumo === insumo.id;
+                        const ipiInsumo = isImportadoKit
+                          ? (() => {
+                              const child = vinculadosDinamicos.find((v: any) => v.relacao === "filho" && (v.nome === insumo.nome || v.codigo === insumo.codigo));
+                              return child ? ipiDoSnapshot(child.snapshot_totais) : 0;
+                            })()
+                          : 0;
 
                         // Find lowest total cost among cotações
                         const cotacoesComTotal = cotacoes.map(c => ({
