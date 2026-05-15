@@ -77,6 +77,13 @@ export function GeradorPrecosDialog({ open, onOpenChange, tabela, onSuccess }: P
   const [filtroPendentes, setFiltroPendentes] = useState(false);
   const [filtroAprovadas, setFiltroAprovadas] = useState(false);
   const [filtroRecentes, setFiltroRecentes] = useState(false);
+  // Último lote aprovado da tabela base (para precificar exatamente o que foi aprovado lá)
+  const [ultimoLoteBase, setUltimoLoteBase] = useState<{
+    versao: number;
+    aprovado_em: string | null;
+    produto_ids: string[];
+  } | null>(null);
+  const [filtroUltimoLoteBase, setFiltroUltimoLoteBase] = useState(false);
 
   useEffect(() => {
     if (open && tabela) {
@@ -84,6 +91,7 @@ export function GeradorPrecosDialog({ open, onOpenChange, tabela, onSuccess }: P
       loadProdutosTabela();
       loadFichaStatus();
       loadPrecosTabelaAtual();
+      loadUltimoLoteBase();
       
       // Definir origem baseado na tabela
       if (tabela.origem_aplicavel === 'nacional') {
@@ -107,6 +115,8 @@ export function GeradorPrecosDialog({ open, onOpenChange, tabela, onSuccess }: P
       setFiltroPendentes(false);
       setFiltroAprovadas(false);
       setFiltroRecentes(false);
+      setUltimoLoteBase(null);
+      setFiltroUltimoLoteBase(false);
       setMarcaFiltro("todas");
       setLinhaFiltro("todas");
       setTipoFiltro("todos");
@@ -114,6 +124,38 @@ export function GeradorPrecosDialog({ open, onOpenChange, tabela, onSuccess }: P
       setDataAprovacaoFim("");
     }
   }, [open, tabela]);
+
+  // Carrega o último lote (versão) aprovado da tabela base.
+  // Usado para precificar exatamente os produtos do último lote aprovado upstream.
+  const loadUltimoLoteBase = async () => {
+    if (!tabela?.tabela_base_id) {
+      setUltimoLoteBase(null);
+      return;
+    }
+    try {
+      const { data, error } = await supabase
+        .from("fabrica_tabelas_preco_versoes")
+        .select("versao, aprovado_em, produto_ids_escopo")
+        .eq("tabela_id", tabela.tabela_base_id)
+        .not("aprovado_em", "is", null)
+        .order("versao", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (error) throw error;
+      if (data && Array.isArray(data.produto_ids_escopo) && data.produto_ids_escopo.length > 0) {
+        setUltimoLoteBase({
+          versao: data.versao,
+          aprovado_em: data.aprovado_em,
+          produto_ids: data.produto_ids_escopo as string[],
+        });
+      } else {
+        setUltimoLoteBase(null);
+      }
+    } catch (error) {
+      logger.error("Erro ao carregar último lote da tabela base:", error);
+      setUltimoLoteBase(null);
+    }
+  };
 
   const loadFichaStatus = async () => {
     try {
@@ -534,6 +576,11 @@ export function GeradorPrecosDialog({ open, onOpenChange, tabela, onSuccess }: P
 
   const produtosFiltrados = useMemo(() => {
     let lista = [...produtosFiltradosBase];
+    // Filtro: apenas produtos do último lote aprovado da tabela base
+    if (filtroUltimoLoteBase && ultimoLoteBase) {
+      const set = new Set(ultimoLoteBase.produto_ids);
+      lista = lista.filter((p) => set.has(p.id));
+    }
     if (isFichaMode) {
       if (filtroPendentes) lista = lista.filter((p) => isPendentePrecificacao(p.id));
       if (filtroAprovadas) lista = lista.filter((p) => getFichaInfo(p.id).status === "aprovada");
@@ -550,7 +597,7 @@ export function GeradorPrecosDialog({ open, onOpenChange, tabela, onSuccess }: P
     }
     return lista;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [produtosFiltradosBase, isFichaMode, filtroPendentes, filtroAprovadas, filtroRecentes, fichaStatusMap, produtosComPrecoNaTabela]);
+  }, [produtosFiltradosBase, isFichaMode, filtroPendentes, filtroAprovadas, filtroRecentes, filtroUltimoLoteBase, ultimoLoteBase, fichaStatusMap, produtosComPrecoNaTabela]);
 
   const totalAprovadas = useMemo(
     () => produtosFiltradosBase.filter((p) => getFichaInfo(p.id).status === "aprovada").length,
@@ -697,6 +744,31 @@ export function GeradorPrecosDialog({ open, onOpenChange, tabela, onSuccess }: P
               onToggleFiltroRecentes={() => setFiltroRecentes((v) => !v)}
               onSelecionarPendentes={handleSelecionarPendentes}
             />
+          )}
+
+          {/* Filtro: último lote aprovado da tabela base (precificar exatamente o que veio do upstream) */}
+          {ultimoLoteBase && (
+            <div className="flex items-center gap-2 p-2 rounded-md border bg-blue-50/50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800">
+              <Checkbox
+                id="filtro-ultimo-lote-base"
+                checked={filtroUltimoLoteBase}
+                onCheckedChange={(c) => {
+                  const v = !!c;
+                  setFiltroUltimoLoteBase(v);
+                  if (v && ultimoLoteBase) {
+                    // Pré-seleciona automaticamente os produtos do último lote da base
+                    setProdutosSelecionados(ultimoLoteBase.produto_ids);
+                  }
+                }}
+              />
+              <Label htmlFor="filtro-ultimo-lote-base" className="text-sm cursor-pointer flex-1">
+                Apenas produtos do <strong>último lote aprovado da tabela base</strong>
+                <span className="ml-2 text-xs text-muted-foreground">
+                  (v{ultimoLoteBase.versao} · {ultimoLoteBase.produto_ids.length} produto(s)
+                  {ultimoLoteBase.aprovado_em && ` · aprovado em ${format(new Date(ultimoLoteBase.aprovado_em), "dd/MM/yyyy", { locale: ptBR })}`})
+                </span>
+              </Label>
+            </div>
           )}
 
           {/* Lista de Produtos */}
