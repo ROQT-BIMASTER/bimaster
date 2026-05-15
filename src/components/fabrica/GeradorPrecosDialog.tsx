@@ -382,6 +382,29 @@ export function GeradorPrecosDialog({ open, onOpenChange, tabela, onSuccess }: P
         throw statusError;
       }
 
+      // Persistir escopo real submetido (lista de produtos com preço calculado)
+      // na versão recém-criada pelo trigger ao mudar status para pending_approval.
+      try {
+        const escopoIds = Array.from(
+          new Set(precosCalculados.map((p) => p.produto_id).filter(Boolean))
+        );
+        const { data: ultimaVersao } = await supabase
+          .from("fabrica_tabelas_preco_versoes")
+          .select("id")
+          .eq("tabela_id", tabela.id)
+          .order("versao", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (ultimaVersao?.id) {
+          await supabase
+            .from("fabrica_tabelas_preco_versoes")
+            .update({ produto_ids_escopo: escopoIds } as any)
+            .eq("id", ultimaVersao.id);
+        }
+      } catch (e) {
+        logger.error("Falha ao persistir escopo da versão:", e);
+      }
+
       // Registrar na auditoria
       const { error: auditoriaError } = await supabase
         .from("fabrica_tabelas_preco_auditoria")
