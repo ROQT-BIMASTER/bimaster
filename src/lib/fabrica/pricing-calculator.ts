@@ -229,14 +229,8 @@ export async function buscarCustoFichaProduto(produtoId: string): Promise<{
 
   if (insumosError) return null;
 
-  // Flag por empresa: incluir IPI no custo enviado para Tabelas de Preço.
-  // Default seguro = false (mantém comportamento atual quando flag não estiver setada).
-  const { data: empresaCfg } = await supabase
-    .from("fabrica_empresa_config")
-    .select("incluir_ipi_no_custo")
-    .limit(1)
-    .maybeSingle();
-  const incluirIPI = Boolean((empresaCfg as any)?.incluir_ipi_no_custo);
+  // Tabelas de preço devem receber o custo final aprovado da ficha, sempre com IPI.
+  const incluirIPI = true;
 
   // Calcular totais (mesma lógica do useFichaCustoProduto, sem ramo Display+Kit)
   const totalNFInsumos = insumos?.reduce((acc, i) => acc + (Number(i.custo_nf) || 0), 0) || 0;
@@ -270,7 +264,7 @@ export async function buscarCustoFichaProduto(produtoId: string): Promise<{
   const ipiSaidaConfig = baseIPI * (pctIPISaida / 100);
   const totalIPI = ipiSaidaConfig + kitIPIEmbutido;
 
-  const custoTotal = incluirIPI ? subtotal + markup + totalIPI : subtotal + markup;
+  const custoTotal = subtotal + markup + totalIPI;
 
   return {
     custoTotal,
