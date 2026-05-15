@@ -50,10 +50,17 @@ export default function FichaRevisaoDiretoria() {
   const [dateFrom, setDateFrom] = useState<Date | undefined>(subDays(new Date(), 30));
   const [dateTo, setDateTo] = useState<Date | undefined>(new Date());
 
+  // Filtro de data da LISTA de fichas (independente do gráfico)
+  const [listDateFrom, setListDateFrom] = useState<Date | undefined>(undefined);
+  const [listDateTo, setListDateTo] = useState<Date | undefined>(undefined);
+
   // Admin dashboard data
   const [allRevisoes, setAllRevisoes] = useState<any[]>([]);
   const [loadingAdmin, setLoadingAdmin] = useState(true);
   const [msgCount, setMsgCount] = useState(0);
+
+  // Mapa user_id -> nome (para colunas Submetido por / Aprovado por)
+  const [profilesMap, setProfilesMap] = useState<Record<string, string>>({});
 
   useEffect(() => {
     const loadAdmin = async () => {
@@ -72,6 +79,25 @@ export default function FichaRevisaoDiretoria() {
     };
     loadAdmin();
   }, [fichaAberta]);
+
+  // Carrega nomes dos usuários referenciados nas fichas (submetido_por / revisado_por)
+  useEffect(() => {
+    const ids = new Set<string>();
+    fichasPendentes.forEach((f: any) => {
+      if (f.submetido_por) ids.add(f.submetido_por);
+      if (f.revisado_por) ids.add(f.revisado_por);
+    });
+    const missing = [...ids].filter(id => !profilesMap[id]);
+    if (missing.length === 0) return;
+    supabase.from("profiles").select("id, nome").in("id", missing).then(({ data }) => {
+      if (!data) return;
+      setProfilesMap(prev => {
+        const next = { ...prev };
+        data.forEach((p: any) => { next[p.id] = p.nome || p.id; });
+        return next;
+      });
+    });
+  }, [fichasPendentes, profilesMap]);
 
   const formatarMoeda = (valor: number) =>
     valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 2, maximumFractionDigits: 6 });
