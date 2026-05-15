@@ -167,6 +167,13 @@ export default function FichaRevisaoDiretoria() {
         const b = busca.toLowerCase();
         if (!f.produto?.nome?.toLowerCase().includes(b) && !f.produto?.codigo?.toLowerCase().includes(b)) return false;
       }
+      // Filtro de data: usa data de aprovação se aprovada, senão submissão
+      const refDateStr = statusFiltro === "aprovada" ? (f.revisado_em || f.submetido_em) : f.submetido_em;
+      if (refDateStr) {
+        const d = new Date(refDateStr);
+        if (listDateFrom && d < startOfDay(listDateFrom)) return false;
+        if (listDateTo && d > new Date(listDateTo.getFullYear(), listDateTo.getMonth(), listDateTo.getDate(), 23, 59, 59)) return false;
+      }
       return true;
     });
 
