@@ -174,12 +174,14 @@ export function FichaAnalisePanel({ ficha, processando, onAprovar, onSolicitarRe
         .order("ordem");
       const insumosArr = (insumos || []) as any[];
 
-      // Calcular totais
+      // Calcular totais (com IPI Saída embutido em custoTotal)
       let totalNF = 0, totalServico = 0, totalCondicao = 0;
+      let kitIPI = 0;
       insumosArr.forEach((i: any) => {
         totalNF += Number(i.custo_nf) || 0;
         totalServico += Number(i.custo_servico) || 0;
         totalCondicao += Number(i.custo_condicao) || 0;
+        kitIPI += Number(i.ipi_valor) || 0;
       });
       totalNF += Number(cfg.custo_mao_obra_nf) || 0;
       totalServico += Number(cfg.custo_mao_obra_servico) || 0;
@@ -191,7 +193,12 @@ export function FichaAnalisePanel({ ficha, processando, onAprovar, onSolicitarRe
       else if (base === "servico") baseMarkup = totalServico;
       else baseMarkup = totalNF + totalServico;
       const markupValor = baseMarkup * (perc / 100);
-      const custoTotal = totalNF + totalServico + totalCondicao + markupValor;
+      const markupNF = base === "nf" || base === "nf_servico" || base === "total"
+        ? markupValor * (totalNF / (baseMarkup || 1))
+        : 0;
+      const ipiPctSaida = Number((cfg as any)?.ipi_percentual_saida) || 0;
+      const totalIPI = (totalNF + markupNF) * (ipiPctSaida / 100) + kitIPI;
+      const custoTotal = totalNF + totalServico + totalCondicao + markupValor + totalIPI;
 
       // Buscar última versão
       const { data: ultimaRev } = await supabase
@@ -213,7 +220,14 @@ export function FichaAnalisePanel({ ficha, processando, onAprovar, onSolicitarRe
           status: "pendente",
           snapshot_insumos: insumosArr as any,
           snapshot_config: cfg as any,
-          snapshot_totais: { totalNF, totalServico, totalCondicao, markupNF: 0, markupServico: 0, markupCondicao: 0, custoTotal } as any,
+          snapshot_totais: {
+            totalNF, totalServico, totalCondicao,
+            markupNF, markupServico: 0, markupCondicao: 0,
+            totalIPI,
+            ipi_percentual_saida: ipiPctSaida,
+            ipi_incluido: true,
+            custoTotal,
+          } as any,
           submetido_por: user?.user?.id || null,
           versao: novaVersao,
         });
