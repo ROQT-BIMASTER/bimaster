@@ -31,6 +31,9 @@ import { Label } from "@/components/ui/label";
 import { SimuladorImpactoPrecos } from "@/components/fabrica/SimuladorImpactoPrecos";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { uniqueChannelName } from "@/lib/realtime/channelName";
+import { AprovacaoCascataDialog } from "@/components/fabrica/AprovacaoCascataDialog";
+import { OrigemCustoHistorico } from "@/components/fabrica/OrigemCustoHistorico";
+import { Workflow, History as HistoryIcon } from "lucide-react";
 
 export default function FabricaAprovacaoPrecos() {
   const queryClient = useQueryClient();
