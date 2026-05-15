@@ -976,6 +976,45 @@ export default function FabricaAprovacaoPrecos() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Aprovar/Rejeitar LOTE específico */}
+      <AlertDialog open={!!loteAcao} onOpenChange={(o) => { if (!o) { setLoteAcao(null); setSenhaLote(""); setMotivoLote(""); } }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {loteAcao?.tipo === "aprovar" ? "Aprovar lote" : "Rejeitar lote"}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {loteAcao?.descricao}. {loteAcao?.tipo === "aprovar"
+                ? "Esta ação aprova apenas os produtos deste lote. Confirme sua senha."
+                : "O lote será descartado e os produtos voltam para a fila de submissão. Informe motivo e senha."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="py-2 space-y-3">
+            {loteAcao?.tipo === "rejeitar" && (
+              <div>
+                <Label htmlFor="motivo-lote">Motivo</Label>
+                <Textarea id="motivo-lote" rows={3} value={motivoLote} onChange={(e) => setMotivoLote(e.target.value)} />
+              </div>
+            )}
+            <div>
+              <Label htmlFor="senha-lote">Sua senha</Label>
+              <Input id="senha-lote" type="password" autoComplete="current-password" value={senhaLote} onChange={(e) => setSenhaLote(e.target.value)} />
+            </div>
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => { e.preventDefault(); loteMutation.mutate(); }}
+              disabled={!senhaLote.trim() || (loteAcao?.tipo === "rejeitar" && !motivoLote.trim()) || loteMutation.isPending}
+              className={loteAcao?.tipo === "aprovar" ? "bg-green-600 hover:bg-green-700" : "bg-red-600 hover:bg-red-700"}
+            >
+              {loteMutation.isPending ? "Processando..." : loteAcao?.tipo === "aprovar" ? "Aprovar" : "Rejeitar"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
     </DashboardLayout>
   );
 }
