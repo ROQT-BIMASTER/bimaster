@@ -45,6 +45,8 @@ export default function FabricaAprovacaoPrecos() {
   const [showRejeitar, setShowRejeitar] = useState(false);
   const [showAprovar, setShowAprovar] = useState(false);
   const [motivoRejeicao, setMotivoRejeicao] = useState("");
+  const [senhaAprovar, setSenhaAprovar] = useState("");
+  const [senhaRejeitar, setSenhaRejeitar] = useState("");
   const [showImpacto, setShowImpacto] = useState(false);
   const [showCascata, setShowCascata] = useState(false);
   const [showOrigem, setShowOrigem] = useState<{ produtoId: string; nome: string; custo: number } | null>(null);
