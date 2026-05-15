@@ -49,6 +49,7 @@ export default function FabricaAprovacaoPrecos() {
   const [senhaRejeitar, setSenhaRejeitar] = useState("");
   const [showImpacto, setShowImpacto] = useState(false);
   const [showCascata, setShowCascata] = useState(false);
+  const [cascataEscopo, setCascataEscopo] = useState<Array<{ produto_id: string; produto_nome: string; produto_codigo: string; custo_raiz: number }>>([]);
   const [showOrigem, setShowOrigem] = useState<{ produtoId: string; nome: string; custo: number } | null>(null);
   const [loteAcao, setLoteAcao] = useState<{ tipo: "aprovar" | "rejeitar"; loteId: string; descricao: string } | null>(null);
   const [senhaLote, setSenhaLote] = useState("");
@@ -605,7 +606,18 @@ export default function FabricaAprovacaoPrecos() {
                                 size="sm"
                                 variant="outline"
                                 className="text-primary"
-                                onClick={() => { setTabelaSelecionada(tabela); setVersaoSelecionada({ id: lote.id, versao: lote.versao, precos_snapshot: [], produto_ids_escopo: lote.produtos.map(p => p.id) } as any); setShowCascata(true); }}
+                                onClick={() => {
+                                  setTabelaSelecionada(tabela);
+                                  setCascataEscopo(
+                                    lote.produtos.map((p) => ({
+                                      produto_id: p.id,
+                                      produto_nome: p.nome,
+                                      produto_codigo: p.codigo || "",
+                                      custo_raiz: Number(p.preco_final ?? p.custo_base ?? 0) || 0,
+                                    })),
+                                  );
+                                  setShowCascata(true);
+                                }}
                               >
                                 <Workflow className="h-4 w-4 mr-1" />
                                 Cascata
@@ -948,14 +960,9 @@ export default function FabricaAprovacaoPrecos() {
       {/* Aprovação em cascata */}
       <AprovacaoCascataDialog
         open={showCascata}
-        onOpenChange={(v) => { setShowCascata(v); if (!v) setTabelaSelecionada(null); }}
+        onOpenChange={(v) => { setShowCascata(v); if (!v) { setTabelaSelecionada(null); setCascataEscopo([]); } }}
         tabelaRaiz={tabelaSelecionada ? { id: tabelaSelecionada.id, nome: tabelaSelecionada.nome } : null}
-        produtosEscopo={(precosVersao || []).map((p: any) => ({
-          produto_id: p.produto_id,
-          produto_nome: p.produto_nome || "",
-          produto_codigo: p.produto_codigo || "",
-          custo_raiz: Number(p.preco_final ?? p.custo_base) || 0,
-        }))}
+        produtosEscopo={cascataEscopo}
       />
 
       {/* Origem do custo */}
