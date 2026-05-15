@@ -993,6 +993,21 @@ export default function FabricaProdutosAcabados() {
                   </Select>
                 </div>
 
+                {/* Tipo de produto (venda x provador) */}
+                <div className="space-y-1">
+                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground/80 font-medium">Uso do produto</div>
+                  <Select value={filtroProvador} onValueChange={(v) => setFiltroProvador(v as any)}>
+                    <SelectTrigger className="h-8 text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="todos">Todos</SelectItem>
+                      <SelectItem value="venda">Apenas venda</SelectItem>
+                      <SelectItem value="provador">Apenas provadores</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
                 {/* Data de Cadastro */}
                 <div className="space-y-1">
                   <div className="text-[10px] uppercase tracking-wider text-muted-foreground/80 font-medium flex items-center gap-1">
