@@ -857,6 +857,10 @@ export function FichaAnalisePanel({ ficha, processando, onAprovar, onSolicitarRe
                 )}
               </TabsContent>
 
+              <TabsContent value="trilha" className="mt-3">
+                <TrilhaAuditoriaTab revisaoId={ficha.id} />
+              </TabsContent>
+
               <TabsContent value="documentos" className="mt-3">
                 <DocumentosTab produtoId={ficha.produto_id} />
               </TabsContent>
