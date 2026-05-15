@@ -788,6 +788,45 @@ export function GeradorPrecosDialog({ open, onOpenChange, tabela, onSuccess }: P
                                 Na tabela base
                               </Badge>
                             )}
+                            {isFichaMode && (() => {
+                              const info = getFichaInfo(produto.id);
+                              const pendente = isPendentePrecificacao(produto.id);
+                              const jaTem = produtosComPrecoNaTabela.has(produto.id);
+                              return (
+                                <>
+                                  {info.status === "aprovada" && info.dataAprovacao && (
+                                    <Badge
+                                      variant="outline"
+                                      className="border-green-300 text-green-700 dark:text-green-400 flex items-center gap-1 text-[10px]"
+                                    >
+                                      <CheckCircle2 className="h-3 w-3" />
+                                      Ficha aprovada{" "}
+                                      {format(new Date(info.dataAprovacao), "dd/MM", { locale: ptBR })}
+                                    </Badge>
+                                  )}
+                                  {info.status !== "aprovada" && info.status !== "sem_ficha" && (
+                                    <Badge variant="outline" className="text-[10px] text-amber-700 border-amber-300">
+                                      Ficha em revisão
+                                    </Badge>
+                                  )}
+                                  {info.status === "sem_ficha" && (
+                                    <Badge variant="outline" className="text-[10px] text-muted-foreground">
+                                      Sem ficha
+                                    </Badge>
+                                  )}
+                                  {pendente && (
+                                    <Badge className="bg-orange-500 hover:bg-orange-500 text-white text-[10px]">
+                                      Precificar
+                                    </Badge>
+                                  )}
+                                  {jaTem && (
+                                    <Badge variant="secondary" className="text-[10px]">
+                                      Já precificado
+                                    </Badge>
+                                  )}
+                                </>
+                              );
+                            })()}
                             {hasFullAccess && (
                               <Button
                                 variant="ghost"
