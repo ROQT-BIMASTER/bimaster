@@ -346,7 +346,8 @@ export function AprovacaoCascataDialog({ open, onOpenChange, tabelaRaiz, produto
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
           <Button
             className="bg-emerald-600 hover:bg-emerald-700"
-            disabled={invalidos.length > 0 || aprovarMutation.isPending}
+            disabled={invalidos.length > 0 || aprovarMutation.isPending || escopoExpandido.length === 0}
+            title={escopoExpandido.length === 0 ? "Escopo vazio — rejeite o lote e reenvie pela tela de geração" : undefined}
             onClick={() => aprovarMutation.mutate()}
           >
             <CheckCircle2 className="h-4 w-4 mr-2" />
