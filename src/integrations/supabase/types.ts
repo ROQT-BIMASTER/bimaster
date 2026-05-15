@@ -17287,6 +17287,7 @@ export type Database = {
           created_by: string | null
           id: string
           precos_snapshot: Json
+          produto_ids_escopo: string[] | null
           tabela_id: string
           versao: number
         }
@@ -17297,6 +17298,7 @@ export type Database = {
           created_by?: string | null
           id?: string
           precos_snapshot: Json
+          produto_ids_escopo?: string[] | null
           tabela_id: string
           versao: number
         }
@@ -17307,6 +17309,7 @@ export type Database = {
           created_by?: string | null
           id?: string
           precos_snapshot?: Json
+          produto_ids_escopo?: string[] | null
           tabela_id?: string
           versao?: number
         }
@@ -44235,6 +44238,21 @@ export type Database = {
         Args: { p_cidade: string; p_uf: string }
         Returns: string
       }
+      fn_cadeia_tabelas_jusante: {
+        Args: { p_root: string }
+        Returns: {
+          codigo: string
+          id: string
+          nivel: number
+          nome: string
+          ordem: number
+          status: string
+          tabela_base_id: string
+          tipo_base: string
+          tipo_markup: string
+          valor_markup: number
+        }[]
+      }
       fn_calcular_cobertura_mercado: { Args: never; Returns: undefined }
       fn_criar_titulo_com_parcelas: {
         Args: {
@@ -45438,6 +45456,14 @@ export type Database = {
           isOneToOne: false
           isSetofReturn: true
         }
+      }
+      rpc_aprovar_cadeia_precos: {
+        Args: {
+          p_produto_ids: string[]
+          p_tabela_raiz_id: string
+          p_tabelas_dependentes: string[]
+        }
+        Returns: Json
       }
       rpc_avancar_etapa_aprovacao: {
         Args: {
