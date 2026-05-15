@@ -145,11 +145,16 @@ export default function FabricaAprovacaoPrecos() {
       };
       if (ids.length === 0) return {} as Record<string, Lote[]>;
 
+      // Corte: somente lotes criados após o reset de 15/05/2026 18:50 BRT (21:50 UTC).
+      // Lotes anteriores foram encerrados em massa para reiniciar o fluxo sob as novas regras
+      // (escopo explícito + cascata controlada). Não devem reaparecer na tela.
+      const CUTOFF_NOVAS_APROVACOES = "2026-05-15T21:50:00Z";
       const { data: versoes } = await supabase
         .from("fabrica_tabelas_preco_versoes")
         .select("id, tabela_id, versao, precos_snapshot, produto_ids_escopo, created_at, created_by, aprovado_em")
         .in("tabela_id", ids)
         .is("aprovado_em", null)
+        .gte("created_at", CUTOFF_NOVAS_APROVACOES)
         .order("versao", { ascending: false });
 
       const todosProdutoIds = new Set<string>();
