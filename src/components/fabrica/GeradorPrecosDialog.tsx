@@ -135,35 +135,38 @@ export function GeradorPrecosDialog({ open, onOpenChange, tabela, onSuccess }: P
     }
   }, [open, tabela]);
 
-  // Carrega o último lote (versão) aprovado da tabela base.
-  // Usado para precificar exatamente os produtos do último lote aprovado upstream.
+  // Carrega os lotes (versões) aprovados disponíveis para filtragem.
+  // Prioriza a tabela base; se não houver tabela base (tabela raiz), usa as versões da própria tabela.
+  // Permite ao usuário escolher qualquer lote aprovado anterior, não só o mais recente.
   const loadUltimoLoteBase = async () => {
-    if (!tabela?.tabela_base_id) {
-      setUltimoLoteBase(null);
+    if (!tabela?.id) {
+      setLotesDisponiveis([]);
       return;
     }
+    const tabelaAlvoId = tabela?.tabela_base_id || tabela.id;
+    const origem: "base" | "propria" = tabela?.tabela_base_id ? "base" : "propria";
     try {
       const { data, error } = await supabase
         .from("fabrica_tabelas_preco_versoes")
         .select("versao, aprovado_em, produto_ids_escopo")
-        .eq("tabela_id", tabela.tabela_base_id)
+        .eq("tabela_id", tabelaAlvoId)
         .not("aprovado_em", "is", null)
         .order("versao", { ascending: false })
-        .limit(1)
-        .maybeSingle();
+        .limit(20);
       if (error) throw error;
-      if (data && Array.isArray(data.produto_ids_escopo) && data.produto_ids_escopo.length > 0) {
-        setUltimoLoteBase({
-          versao: data.versao,
-          aprovado_em: data.aprovado_em,
-          produto_ids: data.produto_ids_escopo as string[],
-        });
-      } else {
-        setUltimoLoteBase(null);
-      }
+      const lotes: LoteOpcao[] = (data || [])
+        .filter((d: any) => Array.isArray(d.produto_ids_escopo) && d.produto_ids_escopo.length > 0)
+        .map((d: any) => ({
+          versao: d.versao,
+          aprovado_em: d.aprovado_em,
+          produto_ids: d.produto_ids_escopo as string[],
+          origem,
+        }));
+      setLotesDisponiveis(lotes);
+      if (lotes.length > 0) setLoteSelecionadoVersao(String(lotes[0].versao));
     } catch (error) {
-      logger.error("Erro ao carregar último lote da tabela base:", error);
-      setUltimoLoteBase(null);
+      logger.error("Erro ao carregar lotes aprovados:", error);
+      setLotesDisponiveis([]);
     }
   };
 
