@@ -29,6 +29,7 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { RevisaoChatConsolidado } from "@/components/fabrica/RevisaoChatConsolidado";
 import { DocumentosCofre } from "@/components/fabrica/DocumentosCofre";
 import { supabase } from "@/integrations/supabase/client";
+import { custoTotalDoSnapshot } from "@/lib/fabrica/ficha-custo-snapshot";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { ChartContainer } from "@/components/ui/chart";
 import { format, startOfDay, startOfMonth, startOfYear, subDays } from "date-fns";
@@ -593,7 +594,7 @@ export default function FichaRevisaoDiretoria() {
                             <TableCell><Badge variant="outline">v{ficha.versao}</Badge></TableCell>
                             <TableCell>{statusBadge}</TableCell>
                             <TableCell>{dataExibida}</TableCell>
-                            <TableCell className="font-semibold">{formatarMoeda(ficha.snapshot_totais?.custoTotal ?? ficha.snapshot_totais?.custoFinalTotal ?? 0)}</TableCell>
+                            <TableCell className="font-semibold">{formatarMoeda(custoTotalDoSnapshot(ficha.snapshot_totais))}</TableCell>
                             <TableCell className="text-right">
                               <Button size="sm" variant={fichaAberta?.id === ficha.id ? "default" : "outline"} onClick={() => setFichaAberta(fichaAberta?.id === ficha.id ? null : ficha)}>
                                 <Eye className="h-4 w-4 mr-1" /> {fichaAberta?.id === ficha.id ? "Fechar" : "Analisar"}
