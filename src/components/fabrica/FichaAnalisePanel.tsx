@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { RevisaoChatPanel } from "@/components/fabrica/RevisaoChatPanel";
 import { DocumentosTab } from "@/components/fabrica/DocumentosTab";
+import { TrilhaAuditoriaTab } from "@/components/fabrica/TrilhaAuditoriaTab";
 import { InsumosOrigemPanel } from "@/components/fabrica/InsumosOrigemPanel";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
