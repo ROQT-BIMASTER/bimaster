@@ -77,13 +77,22 @@ export function GeradorPrecosDialog({ open, onOpenChange, tabela, onSuccess }: P
   const [filtroPendentes, setFiltroPendentes] = useState(false);
   const [filtroAprovadas, setFiltroAprovadas] = useState(false);
   const [filtroRecentes, setFiltroRecentes] = useState(false);
-  // Último lote aprovado da tabela base (para precificar exatamente o que foi aprovado lá)
-  const [ultimoLoteBase, setUltimoLoteBase] = useState<{
+  // Lotes aprovados disponíveis para filtragem (da tabela base, ou da própria tabela se for raiz)
+  type LoteOpcao = {
     versao: number;
     aprovado_em: string | null;
     produto_ids: string[];
-  } | null>(null);
+    origem: "base" | "propria";
+  };
+  const [lotesDisponiveis, setLotesDisponiveis] = useState<LoteOpcao[]>([]);
+  const [loteSelecionadoVersao, setLoteSelecionadoVersao] = useState<string>(""); // "" = nenhum
   const [filtroUltimoLoteBase, setFiltroUltimoLoteBase] = useState(false);
+  const loteSelecionado = useMemo(
+    () => lotesDisponiveis.find((l) => String(l.versao) === loteSelecionadoVersao) || null,
+    [lotesDisponiveis, loteSelecionadoVersao],
+  );
+  const ultimoLoteBase = lotesDisponiveis[0] || null;
+  const origemLotes: "base" | "propria" | null = ultimoLoteBase?.origem ?? null;
 
   useEffect(() => {
     if (open && tabela) {
