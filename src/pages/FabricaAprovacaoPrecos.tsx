@@ -291,16 +291,19 @@ export default function FabricaAprovacaoPrecos() {
       queryClient.invalidateQueries({ queryKey: ["tabelas-preco"] });
       queryClient.invalidateQueries({ queryKey: ["fabrica-tabelas-preco"] });
       setShowAprovar(false);
+      setSenhaAprovar("");
       setTabelaSelecionada(null);
     },
     onError: (error: any) => {
-      toast.error("Erro ao aprovar tabela: " + error.message);
+      toast.error(error.message || "Erro ao aprovar tabela");
     },
   });
 
   // Rejeitar tabela
   const rejeitarMutation = useMutation({
     mutationFn: async () => {
+      const ok = await verifyCurrentUserPassword(senhaRejeitar);
+      if (!ok) throw new Error("Senha incorreta. Confirme sua identidade para rejeitar.");
       const { data: user } = await supabase.auth.getUser();
 
       // Atualizar status da tabela
