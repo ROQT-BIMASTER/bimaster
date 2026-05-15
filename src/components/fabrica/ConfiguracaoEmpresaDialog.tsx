@@ -27,6 +27,7 @@ export function ConfiguracaoEmpresaDialog() {
     regime_apuracao_pis_cofins: "cumulativo",
     contribuinte_ipi: false,
     iva_dual_habilitado: false,
+    incluir_ipi_no_custo: false,
     observacoes: "",
   });
 
