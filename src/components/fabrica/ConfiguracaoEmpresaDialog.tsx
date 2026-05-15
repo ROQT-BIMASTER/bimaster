@@ -58,6 +58,7 @@ export function ConfiguracaoEmpresaDialog() {
           regime_apuracao_pis_cofins: data.regime_apuracao_pis_cofins || "cumulativo",
           contribuinte_ipi: data.contribuinte_ipi || false,
           iva_dual_habilitado: data.iva_dual_habilitado || false,
+          incluir_ipi_no_custo: (data as any).incluir_ipi_no_custo || false,
           observacoes: data.observacoes || "",
         });
       }
