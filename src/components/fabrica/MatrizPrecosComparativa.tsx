@@ -297,6 +297,9 @@ export function MatrizPrecosComparativa() {
   const [filtroLinha, setFiltroLinha] = useState<string>("all");
   const [filtroTabela, setFiltroTabela] = useState<string>("all");
   const [filtroTipo, setFiltroTipo] = useState<"all" | "kit" | "unidade">("all");
+  // Filtro de data de cadastro na tabela Fábrica (origem)
+  const [filtroDataDe, setFiltroDataDe] = useState<string>("");
+  const [filtroDataAte, setFiltroDataAte] = useState<string>("");
   
   // Agrupamento
   const [agruparHabilitado, setAgruparHabilitado] = useState(false);
