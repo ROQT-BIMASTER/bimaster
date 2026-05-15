@@ -142,6 +142,8 @@ interface Produto {
 
 interface MatrizRow {
   produto: Produto;
+  /** Data em que o produto foi cadastrado/atualizado na tabela Fábrica (origem). */
+  dataFabrica: string | null;
   precos: Record<string, { preco: number; custo: number; margem: number; limitado?: boolean; precoOriginal?: number; motivoLimite?: string } | null>;
 }
 
