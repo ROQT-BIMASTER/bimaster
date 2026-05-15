@@ -36,6 +36,8 @@ interface ProdutoData {
   nome: string;
   origem: string | null;
   linha: string | null;
+  marca: string | null;
+  tipo: string | null;
 }
 
 interface Props {
