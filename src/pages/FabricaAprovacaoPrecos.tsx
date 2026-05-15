@@ -606,7 +606,18 @@ export default function FabricaAprovacaoPrecos() {
                                 size="sm"
                                 variant="outline"
                                 className="text-primary"
-                                onClick={() => { setTabelaSelecionada(tabela); setVersaoSelecionada({ id: lote.id, versao: lote.versao, precos_snapshot: [], produto_ids_escopo: lote.produtos.map(p => p.id) } as any); setShowCascata(true); }}
+                                onClick={() => {
+                                  setTabelaSelecionada(tabela);
+                                  setCascataEscopo(
+                                    lote.produtos.map((p) => ({
+                                      produto_id: p.id,
+                                      produto_nome: p.nome,
+                                      produto_codigo: p.codigo || "",
+                                      custo_raiz: Number(p.preco_final ?? p.custo_base ?? 0) || 0,
+                                    })),
+                                  );
+                                  setShowCascata(true);
+                                }}
                               >
                                 <Workflow className="h-4 w-4 mr-1" />
                                 Cascata
