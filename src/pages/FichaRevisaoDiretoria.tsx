@@ -43,6 +43,7 @@ export default function FichaRevisaoDiretoria() {
   const [filtroMarca, setFiltroMarca] = useState("all");
   const [filtroLinha, setFiltroLinha] = useState("all");
   const [filtroTipo, setFiltroTipo] = useState<"todos" | "kit" | "unitario">("todos");
+  const [filtroProvador, setFiltroProvador] = useState<"todos" | "venda" | "provador">("todos");
   const [produtosSelecionados, setProdutosSelecionados] = useState<string[]>([]);
   const [adminOpen, setAdminOpen] = useState(true);
   const [tabAtiva, setTabAtiva] = useState("fichas");
