@@ -132,9 +132,15 @@ export function ComposicaoCustoTooltip({ composicao }: ComposicaoCustoTooltipPro
           </span>
           <span className="font-mono text-green-600">+{formatarMoeda(data.totais.markup)}</span>
         </div>
+        {data.totais.inclui_ipi && Number(data.totais.ipi_valor) > 0 && (
+          <div className="flex justify-between text-xs">
+            <span className="text-muted-foreground">IPI Saída ({Number(data.totais.ipi_percentual) || 0}%)</span>
+            <span className="font-mono text-amber-600">+{formatarMoeda(Number(data.totais.ipi_valor))}</span>
+          </div>
+        )}
         <Separator className="my-1" />
         <div className="flex justify-between text-sm font-semibold">
-          <span>Custo Total</span>
+          <span>Custo Total{data.totais.inclui_ipi ? " (com IPI)" : ""}</span>
           <span className="font-mono text-primary">{formatarMoeda(data.totais.custo_total)}</span>
         </div>
       </div>
