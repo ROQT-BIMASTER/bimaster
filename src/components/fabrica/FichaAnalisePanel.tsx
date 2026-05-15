@@ -375,7 +375,7 @@ export function FichaAnalisePanel({ ficha, processando, onAprovar, onSolicitarRe
           {/* LEFT: Data */}
           <div className="lg:col-span-2 space-y-4">
             {/* KPIs do snapshot */}
-            <div className="grid grid-cols-4 gap-3">
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
               <div className="p-3 bg-muted rounded text-center">
                 <p className="text-xs text-muted-foreground">NF</p>
                 <p className="font-bold text-sm">{formatarMoeda((snapshotTotais.totalNF || 0) + (snapshotTotais.markupNF || 0))}</p>
@@ -387,6 +387,12 @@ export function FichaAnalisePanel({ ficha, processando, onAprovar, onSolicitarRe
               <div className="p-3 bg-muted rounded text-center">
                 <p className="text-xs text-muted-foreground">Condição</p>
                 <p className="font-bold text-sm">{formatarMoeda((snapshotTotais.totalCondicao || 0) + (snapshotTotais.markupCondicao || 0))}</p>
+              </div>
+              <div className="p-3 bg-amber-50 dark:bg-amber-950/20 rounded text-center border border-amber-300/60">
+                <p className="text-xs text-muted-foreground">
+                  IPI Saída ({Number(snapshotTotais.ipi_percentual_saida ?? snapshotConfig?.ipi_percentual_saida ?? 0)}%)
+                </p>
+                <p className="font-bold text-sm">{formatarMoeda(Number(snapshotTotais.totalIPI) || 0)}</p>
               </div>
               <div className="p-3 bg-primary/10 rounded text-center border-2 border-primary">
                 <p className="text-xs text-muted-foreground">Custo Total</p>
