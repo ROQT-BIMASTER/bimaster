@@ -54,6 +54,9 @@ export default function FabricaTabelasPreco() {
   const [tabelaOverrides, setTabelaOverrides] = useState<any>(null);
   const [tabelaSelecionada, setTabelaSelecionada] = useState<any>(null);
   const [activeTab, setActiveTab] = useState("lista");
+  const [viewMode, setViewMode] = useState<"cards" | "table">("table");
+  const [showCadeia, setShowCadeia] = useState(false);
+  const [sortByHierarquia, setSortByHierarquia] = useState(true);
 
   const { data: tabelas, isLoading, refetch } = useQuery({
     queryKey: ["fabrica-tabelas-preco"],
