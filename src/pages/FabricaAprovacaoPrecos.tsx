@@ -50,6 +50,9 @@ export default function FabricaAprovacaoPrecos() {
   const [showImpacto, setShowImpacto] = useState(false);
   const [showCascata, setShowCascata] = useState(false);
   const [showOrigem, setShowOrigem] = useState<{ produtoId: string; nome: string; custo: number } | null>(null);
+  const [loteAcao, setLoteAcao] = useState<{ tipo: "aprovar" | "rejeitar"; loteId: string; descricao: string } | null>(null);
+  const [senhaLote, setSenhaLote] = useState("");
+  const [motivoLote, setMotivoLote] = useState("");
 
   // Realtime: escutar mudanças nas tabelas de preço
   useEffect(() => {
