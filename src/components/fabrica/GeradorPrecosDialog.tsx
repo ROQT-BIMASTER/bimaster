@@ -77,6 +77,13 @@ export function GeradorPrecosDialog({ open, onOpenChange, tabela, onSuccess }: P
   const [filtroPendentes, setFiltroPendentes] = useState(false);
   const [filtroAprovadas, setFiltroAprovadas] = useState(false);
   const [filtroRecentes, setFiltroRecentes] = useState(false);
+  // Último lote aprovado da tabela base (para precificar exatamente o que foi aprovado lá)
+  const [ultimoLoteBase, setUltimoLoteBase] = useState<{
+    versao: number;
+    aprovado_em: string | null;
+    produto_ids: string[];
+  } | null>(null);
+  const [filtroUltimoLoteBase, setFiltroUltimoLoteBase] = useState(false);
 
   useEffect(() => {
     if (open && tabela) {
