@@ -161,7 +161,7 @@ export function GeradorPrecosDialog({ open, onOpenChange, tabela, onSuccess }: P
       // Buscar apenas produtos acabados finalizados
       let query = supabase
         .from("fabrica_produtos")
-        .select("id, codigo, nome, origem, linha, marca, tipo")
+        .select("id, codigo, nome, origem, linha, marca, tipo, is_provador")
         .eq("tipo", "ACABADO")
         .eq("ativo", true);
 
