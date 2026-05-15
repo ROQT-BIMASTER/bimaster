@@ -45465,6 +45465,7 @@ export type Database = {
         }
         Returns: Json
       }
+      rpc_aprovar_lote_versao: { Args: { p_versao_id: string }; Returns: Json }
       rpc_avancar_etapa_aprovacao: {
         Args: {
           p_comentario?: string
@@ -45881,6 +45882,14 @@ export type Database = {
       rpc_recalcular_alertas_china: {
         Args: { _submissao_id: string }
         Returns: number
+      }
+      rpc_registrar_escopo_versao: {
+        Args: { p_produto_ids: string[]; p_versao_id: string }
+        Returns: undefined
+      }
+      rpc_rejeitar_lote_versao: {
+        Args: { p_motivo: string; p_versao_id: string }
+        Returns: Json
       }
       rpc_revogar_oficializacao_cofre: {
         Args: { p_item_id: string; p_motivo?: string }
