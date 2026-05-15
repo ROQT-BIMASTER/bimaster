@@ -49,6 +49,7 @@ export default function FabricaAprovacaoPrecos() {
   const [senhaRejeitar, setSenhaRejeitar] = useState("");
   const [showImpacto, setShowImpacto] = useState(false);
   const [showCascata, setShowCascata] = useState(false);
+  const [cascataEscopo, setCascataEscopo] = useState<Array<{ produto_id: string; produto_nome: string; produto_codigo: string; custo_raiz: number }>>([]);
   const [showOrigem, setShowOrigem] = useState<{ produtoId: string; nome: string; custo: number } | null>(null);
   const [loteAcao, setLoteAcao] = useState<{ tipo: "aprovar" | "rejeitar"; loteId: string; descricao: string } | null>(null);
   const [senhaLote, setSenhaLote] = useState("");
