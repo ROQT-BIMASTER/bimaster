@@ -50,6 +50,9 @@ export default function FabricaAprovacaoPrecos() {
   const [showImpacto, setShowImpacto] = useState(false);
   const [showCascata, setShowCascata] = useState(false);
   const [showOrigem, setShowOrigem] = useState<{ produtoId: string; nome: string; custo: number } | null>(null);
+  const [loteAcao, setLoteAcao] = useState<{ tipo: "aprovar" | "rejeitar"; loteId: string; descricao: string } | null>(null);
+  const [senhaLote, setSenhaLote] = useState("");
+  const [motivoLote, setMotivoLote] = useState("");
 
   // Realtime: escutar mudanças nas tabelas de preço
   useEffect(() => {
@@ -123,27 +126,35 @@ export default function FabricaAprovacaoPrecos() {
     }
   }, [queryError]);
 
-  // Buscar a versão mais recente (com escopo + nomes de produtos) de cada tabela pendente,
-  // para exibir o preview do que está realmente sendo submetido em cada card.
-  const { data: previewPorTabela } = useQuery({
-    queryKey: ["preview-tabelas-pendentes", (tabelasPendentes || []).map((t: any) => t.id).join(",")],
+  // Buscar TODOS os lotes (versões) pendentes de cada tabela. Cada submissão = 1 lote.
+  const { data: lotesPorTabela } = useQuery({
+    queryKey: ["lotes-pendentes-por-tabela", (tabelasPendentes || []).map((t: any) => t.id).join(",")],
     queryFn: async () => {
       const ids = (tabelasPendentes || []).map((t: any) => t.id);
-      if (ids.length === 0) return {} as Record<string, { produtos: { id: string; nome: string; codigo: string | null }[]; total: number; escopoExplicito: boolean }>;
+      type Lote = {
+        id: string;
+        tabela_id: string;
+        versao: number;
+        created_at: string;
+        created_by: string | null;
+        criador_nome: string | null;
+        produtos: { id: string; nome: string; codigo: string | null; preco_final: number | null; custo_base: number | null }[];
+        total: number;
+        escopoExplicito: boolean;
+      };
+      if (ids.length === 0) return {} as Record<string, Lote[]>;
 
       const { data: versoes } = await supabase
         .from("fabrica_tabelas_preco_versoes")
-        .select("id, tabela_id, versao, precos_snapshot, produto_ids_escopo, created_at")
+        .select("id, tabela_id, versao, precos_snapshot, produto_ids_escopo, created_at, created_by, aprovado_em")
         .in("tabela_id", ids)
+        .is("aprovado_em", null)
         .order("versao", { ascending: false });
 
-      const ultimaPorTabela = new Map<string, any>();
-      (versoes || []).forEach((v: any) => {
-        if (!ultimaPorTabela.has(v.tabela_id)) ultimaPorTabela.set(v.tabela_id, v);
-      });
-
       const todosProdutoIds = new Set<string>();
-      ultimaPorTabela.forEach((v: any) => {
+      const criadorIds = new Set<string>();
+      (versoes || []).forEach((v: any) => {
+        if (v.created_by) criadorIds.add(v.created_by);
         const escopo = (v.produto_ids_escopo as string[] | null) || null;
         if (escopo && escopo.length > 0) {
           escopo.forEach((id) => id && todosProdutoIds.add(id));
@@ -152,21 +163,48 @@ export default function FabricaAprovacaoPrecos() {
         }
       });
 
-      const { data: produtos } = todosProdutoIds.size > 0
-        ? await supabase.from("fabrica_produtos").select("id, nome, codigo").in("id", Array.from(todosProdutoIds))
-        : { data: [] as any[] };
+      const [{ data: produtos }, { data: perfis }] = await Promise.all([
+        todosProdutoIds.size > 0
+          ? supabase.from("fabrica_produtos").select("id, nome, codigo").in("id", Array.from(todosProdutoIds))
+          : Promise.resolve({ data: [] as any[] }),
+        criadorIds.size > 0
+          ? supabase.from("profiles").select("id, nome").in("id", Array.from(criadorIds))
+          : Promise.resolve({ data: [] as any[] }),
+      ]);
       const prodMap = new Map<string, { id: string; nome: string; codigo: string | null }>(
         (produtos || []).map((p: any) => [p.id, { id: p.id, nome: p.nome, codigo: p.codigo }])
       );
+      const perfilMap = new Map<string, string>((perfis || []).map((p: any) => [p.id, p.nome]));
 
-      const result: Record<string, { produtos: { id: string; nome: string; codigo: string | null }[]; total: number; escopoExplicito: boolean }> = {};
-      ultimaPorTabela.forEach((v: any, tabelaId: string) => {
+      const result: Record<string, Lote[]> = {};
+      (versoes || []).forEach((v: any) => {
         const escopo = (v.produto_ids_escopo as string[] | null) || null;
-        const ids = escopo && escopo.length > 0
+        const snapshot = (v.precos_snapshot as any[]) || [];
+        const idsEscopo = escopo && escopo.length > 0
           ? escopo
-          : Array.from(new Set((v.precos_snapshot as any[] || []).map((p: any) => p?.produto_id).filter(Boolean)));
-        const produtos = ids.map((id) => prodMap.get(id) || { id, nome: id, codigo: null });
-        result[tabelaId] = { produtos, total: produtos.length, escopoExplicito: !!(escopo && escopo.length > 0) };
+          : Array.from(new Set(snapshot.map((p: any) => p?.produto_id).filter(Boolean)));
+        const snapshotMap = new Map(snapshot.map((p: any) => [p.produto_id, p]));
+        const lote: Lote = {
+          id: v.id,
+          tabela_id: v.tabela_id,
+          versao: v.versao,
+          created_at: v.created_at,
+          created_by: v.created_by,
+          criador_nome: v.created_by ? perfilMap.get(v.created_by) || null : null,
+          produtos: idsEscopo.map((id) => {
+            const meta = prodMap.get(id) || { id, nome: id, codigo: null };
+            const snap = snapshotMap.get(id);
+            return {
+              ...meta,
+              preco_final: snap?.preco_final ?? null,
+              custo_base: snap?.custo_base ?? null,
+            };
+          }),
+          total: idsEscopo.length,
+          escopoExplicito: !!(escopo && escopo.length > 0),
+        };
+        if (!result[v.tabela_id]) result[v.tabela_id] = [];
+        result[v.tabela_id].push(lote);
       });
       return result;
     },
@@ -389,6 +427,40 @@ export default function FabricaAprovacaoPrecos() {
     },
   });
 
+  // Mutation por LOTE (versão): aprovação ou rejeição cirúrgica que age só naquela submissão.
+  const loteMutation = useMutation({
+    mutationFn: async () => {
+      if (!loteAcao) throw new Error("Sem lote selecionado");
+      const ok = await verifyCurrentUserPassword(senhaLote);
+      if (!ok) throw new Error("Senha incorreta. Confirme sua identidade para prosseguir.");
+      if (loteAcao.tipo === "aprovar") {
+        const { error } = await supabase.rpc("rpc_aprovar_lote_versao" as any, {
+          p_versao_id: loteAcao.loteId,
+        });
+        if (error) throw error;
+      } else {
+        if (!motivoLote.trim()) throw new Error("Informe o motivo da rejeição.");
+        const { error } = await supabase.rpc("rpc_rejeitar_lote_versao" as any, {
+          p_versao_id: loteAcao.loteId,
+          p_motivo: motivoLote,
+        });
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      toast.success(loteAcao?.tipo === "aprovar" ? "Lote aprovado" : "Lote rejeitado");
+      queryClient.invalidateQueries({ queryKey: ["tabelas-pendentes-aprovacao"] });
+      queryClient.invalidateQueries({ queryKey: ["lotes-pendentes-por-tabela"] });
+      queryClient.invalidateQueries({ queryKey: ["tabelas-preco"] });
+      queryClient.invalidateQueries({ queryKey: ["fabrica-tabelas-preco"] });
+      setLoteAcao(null);
+      setSenhaLote("");
+      setMotivoLote("");
+    },
+    onError: (error: any) => {
+      toast.error(error.message || "Erro ao processar lote");
+    },
+  });
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "pending_approval":
@@ -467,42 +539,12 @@ export default function FabricaAprovacaoPrecos() {
                         {tabela.tipo_markup === "multiplicador" && `x${tabela.valor_markup}`}
                         {tabela.tipo_markup === "valor_fixo" && `+${formatarMoeda(tabela.valor_markup)}`}
                       </p>
-                      {previewPorTabela && previewPorTabela[tabela.id] && (
-                        <div className="mt-3 rounded-md border bg-muted/40 p-3">
-                          <div className="flex items-center justify-between mb-2">
-                            <span className="text-xs font-medium text-foreground">
-                              Produto(s) submetido(s) ({previewPorTabela[tabela.id].total})
-                            </span>
-                            {!previewPorTabela[tabela.id].escopoExplicito && (
-                              <Badge variant="outline" className="text-[10px] text-amber-600 border-amber-300">
-                                Escopo legado — pode incluir produtos antigos. Rejeite e reenvie para corrigir.
-                              </Badge>
-                            )}
-                          </div>
-                          <div className="flex flex-wrap gap-1.5">
-                            {previewPorTabela[tabela.id].produtos.slice(0, 12).map((p) => (
-                              <Badge key={p.id} variant="secondary" className="text-xs font-normal">
-                                {p.nome}
-                                {p.codigo && <span className="ml-1 text-muted-foreground">({p.codigo})</span>}
-                              </Badge>
-                            ))}
-                            {previewPorTabela[tabela.id].total > 12 && (
-                              <Badge variant="outline" className="text-xs">
-                                +{previewPorTabela[tabela.id].total - 12} mais
-                              </Badge>
-                            )}
-                          </div>
-                        </div>
-                      )}
                     </div>
                     <div className="flex gap-2">
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => {
-                          setTabelaSelecionada(tabela);
-                          setShowImpacto(true);
-                        }}
+                        onClick={() => { setTabelaSelecionada(tabela); setShowImpacto(true); }}
                       >
                         <BarChart3 className="h-4 w-4 mr-2" />
                         Ver Impacto
@@ -510,49 +552,104 @@ export default function FabricaAprovacaoPrecos() {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => {
-                          setTabelaSelecionada(tabela);
-                        }}
+                        onClick={() => { setTabelaSelecionada(tabela); }}
                       >
                         <FileText className="h-4 w-4 mr-2" />
                         Ver Histórico
                       </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="text-red-600 hover:text-red-700"
-                        onClick={() => {
-                          setTabelaSelecionada(tabela);
-                          setShowRejeitar(true);
-                        }}
-                      >
-                        <XCircle className="h-4 w-4 mr-2" />
-                        Rejeitar
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="text-primary"
-                        onClick={() => {
-                          setTabelaSelecionada(tabela);
-                          setShowCascata(true);
-                        }}
-                      >
-                        <Workflow className="h-4 w-4 mr-2" />
-                        Aprovar em Cascata
-                      </Button>
-                      <Button
-                        size="sm"
-                        className="bg-green-600 hover:bg-green-700"
-                        onClick={() => {
-                          setTabelaSelecionada(tabela);
-                          setShowAprovar(true);
-                        }}
-                      >
-                        <CheckCircle2 className="h-4 w-4 mr-2" />
-                        Aprovar
-                      </Button>
                     </div>
+                  </div>
+
+                  {/* Lotes (versões pendentes) — uma submissão = um lote */}
+                  <div className="mt-4 space-y-3">
+                    {(lotesPorTabela?.[tabela.id] || []).length === 0 ? (
+                      <div className="rounded-md border border-dashed p-4 text-sm text-muted-foreground">
+                        Nenhum lote registrado para esta tabela. Pode ser uma submissão antiga — abra "Ver Histórico".
+                      </div>
+                    ) : (
+                      (lotesPorTabela?.[tabela.id] || []).map((lote) => (
+                        <div key={lote.id} className="rounded-lg border bg-card p-3">
+                          <div className="flex items-start justify-between gap-3 mb-2">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <Badge variant="outline">Lote v{lote.versao}</Badge>
+                                <span className="text-xs text-muted-foreground">
+                                  {new Date(lote.created_at).toLocaleString("pt-BR")}
+                                </span>
+                                {lote.criador_nome && (
+                                  <span className="text-xs text-muted-foreground">
+                                    · Submetido por <span className="font-medium text-foreground">{lote.criador_nome}</span>
+                                  </span>
+                                )}
+                                <Badge variant="secondary" className="text-xs">
+                                  {lote.total} produto{lote.total !== 1 ? "s" : ""}
+                                </Badge>
+                                {!lote.escopoExplicito && (
+                                  <Badge variant="outline" className="text-[10px] text-amber-600 border-amber-300">
+                                    Escopo legado — rejeite e reenvie
+                                  </Badge>
+                                )}
+                              </div>
+                            </div>
+                            <div className="flex gap-2 shrink-0">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="text-red-600 hover:text-red-700"
+                                onClick={() => setLoteAcao({ tipo: "rejeitar", loteId: lote.id, descricao: `${tabela.nome} · v${lote.versao} (${lote.total} produto${lote.total !== 1 ? "s" : ""})` })}
+                              >
+                                <XCircle className="h-4 w-4 mr-1" />
+                                Rejeitar lote
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="text-primary"
+                                onClick={() => { setTabelaSelecionada(tabela); setVersaoSelecionada({ id: lote.id, versao: lote.versao, precos_snapshot: [], produto_ids_escopo: lote.produtos.map(p => p.id) } as any); setShowCascata(true); }}
+                              >
+                                <Workflow className="h-4 w-4 mr-1" />
+                                Cascata
+                              </Button>
+                              <Button
+                                size="sm"
+                                className="bg-green-600 hover:bg-green-700"
+                                onClick={() => setLoteAcao({ tipo: "aprovar", loteId: lote.id, descricao: `${tabela.nome} · v${lote.versao} (${lote.total} produto${lote.total !== 1 ? "s" : ""})` })}
+                              >
+                                <CheckCircle2 className="h-4 w-4 mr-1" />
+                                Aprovar lote
+                              </Button>
+                            </div>
+                          </div>
+                          <div className="rounded border bg-muted/30 overflow-hidden">
+                            <table className="w-full text-xs">
+                              <thead className="bg-muted/60">
+                                <tr className="text-left">
+                                  <th className="p-2">Produto</th>
+                                  <th className="p-2 text-right">Custo Base</th>
+                                  <th className="p-2 text-right">Preço Final</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {lote.produtos.map((p) => (
+                                  <tr key={p.id} className="border-t">
+                                    <td className="p-2">
+                                      <span className="font-medium">{p.nome}</span>
+                                      {p.codigo && <span className="ml-1 text-muted-foreground">({p.codigo})</span>}
+                                    </td>
+                                    <td className="p-2 text-right">
+                                      {p.custo_base != null ? formatarMoeda(Number(p.custo_base)) : "—"}
+                                    </td>
+                                    <td className="p-2 text-right font-semibold">
+                                      {p.preco_final != null ? formatarMoeda(Number(p.preco_final)) : "—"}
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      ))
+                    )}
                   </div>
                 </CardHeader>
               </Card>
@@ -879,6 +976,45 @@ export default function FabricaAprovacaoPrecos() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Aprovar/Rejeitar LOTE específico */}
+      <AlertDialog open={!!loteAcao} onOpenChange={(o) => { if (!o) { setLoteAcao(null); setSenhaLote(""); setMotivoLote(""); } }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {loteAcao?.tipo === "aprovar" ? "Aprovar lote" : "Rejeitar lote"}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {loteAcao?.descricao}. {loteAcao?.tipo === "aprovar"
+                ? "Esta ação aprova apenas os produtos deste lote. Confirme sua senha."
+                : "O lote será descartado e os produtos voltam para a fila de submissão. Informe motivo e senha."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="py-2 space-y-3">
+            {loteAcao?.tipo === "rejeitar" && (
+              <div>
+                <Label htmlFor="motivo-lote">Motivo</Label>
+                <Textarea id="motivo-lote" rows={3} value={motivoLote} onChange={(e) => setMotivoLote(e.target.value)} />
+              </div>
+            )}
+            <div>
+              <Label htmlFor="senha-lote">Sua senha</Label>
+              <Input id="senha-lote" type="password" autoComplete="current-password" value={senhaLote} onChange={(e) => setSenhaLote(e.target.value)} />
+            </div>
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => { e.preventDefault(); loteMutation.mutate(); }}
+              disabled={!senhaLote.trim() || (loteAcao?.tipo === "rejeitar" && !motivoLote.trim()) || loteMutation.isPending}
+              className={loteAcao?.tipo === "aprovar" ? "bg-green-600 hover:bg-green-700" : "bg-red-600 hover:bg-red-700"}
+            >
+              {loteMutation.isPending ? "Processando..." : loteAcao?.tipo === "aprovar" ? "Aprovar" : "Rejeitar"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
     </DashboardLayout>
   );
 }
