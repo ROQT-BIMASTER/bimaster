@@ -635,6 +635,13 @@ export default function FabricaAprovacaoPrecos() {
                         <td className="p-3 text-right text-green-600">
                           {(preco.margem_lucro_percentual ?? preco.margem_lucro ?? 0).toFixed(2)}%
                         </td>
+                        <td className="p-3 text-center">
+                          <Button size="sm" variant="ghost" onClick={() =>
+                            setShowOrigem({ produtoId: preco.produto_id, nome: preco.produto_nome, custo: Number(preco.custo_base) || 0 })
+                          }>
+                            <HistoryIcon className="h-4 w-4" />
+                          </Button>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
