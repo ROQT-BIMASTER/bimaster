@@ -253,6 +253,7 @@ export function NovoProdutoAcabadoDialog({ open, onOpenChange, produtoEdit, onSu
         ativo: formData.ativo,
         origem: formData.origem,
         tipo_rotulagem: formData.tipo_rotulagem.trim() || null,
+        is_provador: !!formData.is_provador,
         created_by: user.id,
       };
 
