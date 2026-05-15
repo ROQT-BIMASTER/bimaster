@@ -735,6 +735,38 @@ export default function FabricaAprovacaoPrecos() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Aprovação em cascata */}
+      <AprovacaoCascataDialog
+        open={showCascata}
+        onOpenChange={(v) => { setShowCascata(v); if (!v) setTabelaSelecionada(null); }}
+        tabelaRaiz={tabelaSelecionada ? { id: tabelaSelecionada.id, nome: tabelaSelecionada.nome } : null}
+        produtosEscopo={(precosVersao || []).map((p: any) => ({
+          produto_id: p.produto_id,
+          produto_nome: p.produto_nome || "",
+          produto_codigo: p.produto_codigo || "",
+          custo_raiz: Number(p.preco_final ?? p.custo_base) || 0,
+        }))}
+      />
+
+      {/* Origem do custo */}
+      <Dialog open={!!showOrigem} onOpenChange={(v) => !v && setShowOrigem(null)}>
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Origem do Custo — {showOrigem?.nome}</DialogTitle>
+            <DialogDescription>
+              Histórico de referências que originaram o custo desse produto.
+            </DialogDescription>
+          </DialogHeader>
+          {showOrigem && (
+            <OrigemCustoHistorico
+              produtoId={showOrigem.produtoId}
+              produtoNome={showOrigem.nome}
+              custoPropostoAtual={showOrigem.custo}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 }
