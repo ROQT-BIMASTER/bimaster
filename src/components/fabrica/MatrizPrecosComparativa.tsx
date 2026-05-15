@@ -1138,6 +1138,7 @@ export function MatrizPrecosComparativa() {
               </SelectContent>
             </Select>
 
+            {temFiltrosAtivos && (
               <Button variant="ghost" size="sm" onClick={limparFiltros}>
                 <X className="h-4 w-4 mr-1" />
                 Limpar
