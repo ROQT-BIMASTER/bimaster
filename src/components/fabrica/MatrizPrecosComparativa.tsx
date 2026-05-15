@@ -970,7 +970,14 @@ export function MatrizPrecosComparativa() {
       <TableRow key={row.produto.id} className="hover:bg-muted/30">
         <TableCell className="sticky left-0 z-10 bg-background font-medium">
           <div>
-            <span className="block">{row.produto.nome}</span>
+            <span className="block">
+              {row.produto.nome}
+              {(row.produto.componentesCount || 0) > 0 && (
+                <Badge variant="secondary" className="ml-2 text-[10px]" title={(row.produto.componentes || []).map(c => `${c.quantidade}x ${c.nome} (${c.codigo})`).join("\n")}>
+                  Kit · {row.produto.componentesCount}
+                </Badge>
+              )}
+            </span>
             {row.produto.categoria && (
               <span className="text-xs text-muted-foreground">
                 {row.produto.categoria}
