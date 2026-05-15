@@ -544,7 +544,8 @@ export default function FichaRevisaoDiretoria() {
                         <TableHead>Produto</TableHead>
                         <TableHead>Código</TableHead>
                         <TableHead>Versão</TableHead>
-                        <TableHead>Submetido em</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>{statusFiltro === "aprovada" ? "Aprovada em" : "Submetido em"}</TableHead>
                         <TableHead>Custo Total</TableHead>
                         <TableHead className="text-right">Ações</TableHead>
                       </TableRow>
@@ -555,6 +556,22 @@ export default function FichaRevisaoDiretoria() {
                         const paiNaLista = paiProdutoId && fichasFiltradas.some((f: any) => f.produto_id === paiProdutoId);
                         const isFilho = !!paiNaLista;
                         const paiNome = isFilho ? fichasFiltradas.find((f: any) => f.produto_id === paiProdutoId)?.produto?.nome : null;
+                        const statusBadge = ficha.status === "aprovada" ? (
+                          <Badge className="bg-green-600 hover:bg-green-600 text-white gap-1">
+                            <CheckCircle2 className="h-3 w-3" /> Aprovada
+                          </Badge>
+                        ) : ficha.status === "revisao_solicitada" ? (
+                          <Badge className="bg-orange-500 hover:bg-orange-500 text-white gap-1">
+                            <AlertTriangle className="h-3 w-3" /> Revisão Solicitada
+                          </Badge>
+                        ) : (
+                          <Badge variant="secondary" className="gap-1">
+                            <Clock className="h-3 w-3" /> Pendente
+                          </Badge>
+                        );
+                        const dataExibida = statusFiltro === "aprovada" && ficha.revisado_em
+                          ? new Date(ficha.revisado_em).toLocaleDateString("pt-BR")
+                          : new Date(ficha.submetido_em).toLocaleDateString("pt-BR");
 
                         return (
                           <TableRow
@@ -574,7 +591,8 @@ export default function FichaRevisaoDiretoria() {
                             </TableCell>
                             <TableCell className="font-mono">{ficha.produto?.codigo}</TableCell>
                             <TableCell><Badge variant="outline">v{ficha.versao}</Badge></TableCell>
-                            <TableCell>{new Date(ficha.submetido_em).toLocaleDateString("pt-BR")}</TableCell>
+                            <TableCell>{statusBadge}</TableCell>
+                            <TableCell>{dataExibida}</TableCell>
                             <TableCell className="font-semibold">{formatarMoeda(ficha.snapshot_totais?.custoTotal ?? ficha.snapshot_totais?.custoFinalTotal ?? 0)}</TableCell>
                             <TableCell className="text-right">
                               <Button size="sm" variant={fichaAberta?.id === ficha.id ? "default" : "outline"} onClick={() => setFichaAberta(fichaAberta?.id === ficha.id ? null : ficha)}>

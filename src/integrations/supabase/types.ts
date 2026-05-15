@@ -13263,6 +13263,7 @@ export type Database = {
           created_at: string | null
           created_by: string | null
           id: string
+          incluir_ipi_no_custo: boolean
           inscricao_estadual: string | null
           iva_dual_habilitado: boolean | null
           observacoes: string | null
@@ -13279,6 +13280,7 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           id?: string
+          incluir_ipi_no_custo?: boolean
           inscricao_estadual?: string | null
           iva_dual_habilitado?: boolean | null
           observacoes?: string | null
@@ -13295,6 +13297,7 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           id?: string
+          incluir_ipi_no_custo?: boolean
           inscricao_estadual?: string | null
           iva_dual_habilitado?: boolean | null
           observacoes?: string | null

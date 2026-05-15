@@ -17,6 +17,12 @@ export interface CustoComposicao {
     subtotal: number;
     markup: number;
     custo_total: number;
+    /** % de IPI Saída aplicado (informativo). */
+    ipi_percentual?: number;
+    /** Valor de IPI já incluído no custo_total quando incluir_ipi_no_custo=true. */
+    ipi_valor?: number;
+    /** Indica se o custo_total já contempla IPI. */
+    inclui_ipi?: boolean;
   };
 }
 
@@ -205,7 +211,7 @@ export async function buscarCustoFichaProduto(produtoId: string): Promise<{
   composicao: CustoComposicao | null;
   configId: string | null;
 } | null> {
-  // Buscar configuração da ficha de custo
+  // Buscar configuração da ficha de custo (inclui IPI Saída + base de markup)
   const { data: config, error: configError } = await supabase
     .from("fabrica_produto_custos_config")
     .select("*")
@@ -214,19 +220,29 @@ export async function buscarCustoFichaProduto(produtoId: string): Promise<{
 
   if (configError || !config) return null;
 
-  // Buscar insumos da ficha de custo
+  // Buscar insumos da ficha de custo (inclui IPI embutido em Kit)
   const { data: insumos, error: insumosError } = await supabase
     .from("fabrica_produto_custos")
-    .select("codigo, nome, fornecedor, tipo_insumo, custo_nf, custo_servico, custo_condicao")
+    .select("codigo, nome, fornecedor, tipo_insumo, custo_nf, custo_servico, custo_condicao, ipi_valor")
     .eq("produto_id", produtoId)
     .order("ordem");
 
   if (insumosError) return null;
 
-  // Calcular totais (mesma lógica do useFichaCustoProduto)
+  // Flag por empresa: incluir IPI no custo enviado para Tabelas de Preço.
+  // Default seguro = false (mantém comportamento atual quando flag não estiver setada).
+  const { data: empresaCfg } = await supabase
+    .from("fabrica_empresa_config")
+    .select("incluir_ipi_no_custo")
+    .limit(1)
+    .maybeSingle();
+  const incluirIPI = Boolean((empresaCfg as any)?.incluir_ipi_no_custo);
+
+  // Calcular totais (mesma lógica do useFichaCustoProduto, sem ramo Display+Kit)
   const totalNFInsumos = insumos?.reduce((acc, i) => acc + (Number(i.custo_nf) || 0), 0) || 0;
   const totalServicoInsumos = insumos?.reduce((acc, i) => acc + (Number(i.custo_servico) || 0), 0) || 0;
   const totalCondicaoInsumos = insumos?.reduce((acc, i) => acc + (Number(i.custo_condicao) || 0), 0) || 0;
+  const kitIPIEmbutido = insumos?.reduce((acc, i) => acc + (Number((i as any).ipi_valor) || 0), 0) || 0;
 
   // Adicionar M.O.
   const moNF = Number(config.custo_mao_obra_nf) || 0;
@@ -238,10 +254,23 @@ export async function buscarCustoFichaProduto(produtoId: string): Promise<{
 
   const subtotal = totalNF + totalServico + totalCondicao;
 
-  // Markup
+  // Markup (respeitando base_calculo_markup)
   const percentualMarkup = Number(config.percentual_markup) || 0;
-  const markup = subtotal * (percentualMarkup / 100);
-  const custoTotal = subtotal + markup;
+  const baseMarkup = (config as any).base_calculo_markup || "total";
+  const markupNF = (baseMarkup === "total" || baseMarkup === "nf" || baseMarkup === "nf_servico")
+    ? totalNF * (percentualMarkup / 100) : 0;
+  const markupServico = (baseMarkup === "total" || baseMarkup === "servico" || baseMarkup === "nf_servico")
+    ? totalServico * (percentualMarkup / 100) : 0;
+  const markupCondicao = baseMarkup === "total" ? totalCondicao * (percentualMarkup / 100) : 0;
+  const markup = markupNF + markupServico + markupCondicao;
+
+  // IPI Saída (incide sobre NF + markupNF) + IPI já embutido em insumos Kit
+  const pctIPISaida = Number((config as any).ipi_percentual_saida) || 0;
+  const baseIPI = totalNF + markupNF;
+  const ipiSaidaConfig = baseIPI * (pctIPISaida / 100);
+  const totalIPI = ipiSaidaConfig + kitIPIEmbutido;
+
+  const custoTotal = incluirIPI ? subtotal + markup + totalIPI : subtotal + markup;
 
   return {
     custoTotal,
@@ -257,7 +286,14 @@ export async function buscarCustoFichaProduto(produtoId: string): Promise<{
       mao_obra_nf: moNF,
       mao_obra_servico: moServico,
       markup_percentual: percentualMarkup,
-      totais: { subtotal, markup, custo_total: custoTotal }
+      totais: {
+        subtotal,
+        markup,
+        custo_total: custoTotal,
+        ipi_percentual: pctIPISaida,
+        ipi_valor: totalIPI,
+        inclui_ipi: incluirIPI,
+      },
     },
     configId: config.id
   };

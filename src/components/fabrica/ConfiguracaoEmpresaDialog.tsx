@@ -27,6 +27,7 @@ export function ConfiguracaoEmpresaDialog() {
     regime_apuracao_pis_cofins: "cumulativo",
     contribuinte_ipi: false,
     iva_dual_habilitado: false,
+    incluir_ipi_no_custo: false,
     observacoes: "",
   });
 
@@ -57,6 +58,7 @@ export function ConfiguracaoEmpresaDialog() {
           regime_apuracao_pis_cofins: data.regime_apuracao_pis_cofins || "cumulativo",
           contribuinte_ipi: data.contribuinte_ipi || false,
           iva_dual_habilitado: data.iva_dual_habilitado || false,
+          incluir_ipi_no_custo: (data as any).incluir_ipi_no_custo || false,
           observacoes: data.observacoes || "",
         });
       }
@@ -208,6 +210,19 @@ export function ConfiguracaoEmpresaDialog() {
                 onCheckedChange={(checked) => setFormData({ ...formData, iva_dual_habilitado: checked as boolean })}
               />
               <Label htmlFor="iva_dual_habilitado">Habilitar IVA Dual (CBS/IBS) — Reforma Tributária</Label>
+            </div>
+            <div className="col-span-2 flex items-center space-x-2">
+              <Checkbox
+                id="incluir_ipi_no_custo"
+                checked={formData.incluir_ipi_no_custo}
+                onCheckedChange={(checked) => setFormData({ ...formData, incluir_ipi_no_custo: checked as boolean })}
+              />
+              <Label htmlFor="incluir_ipi_no_custo" className="leading-snug">
+                Incluir IPI Saída no custo enviado para Tabelas de Preço
+                <span className="block text-xs text-muted-foreground font-normal">
+                  Quando ativado, o custo da ficha (após aprovada) usado na precificação contempla o IPI Saída configurado por produto.
+                </span>
+              </Label>
             </div>
             <div className="col-span-2">
               <Label>Observações</Label>
