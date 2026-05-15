@@ -132,6 +132,12 @@ interface Produto {
   categoria: string | null;
   marca: string | null;
   linha: string | null;
+  tipo?: string | null;
+  itens_display?: number | null;
+  /** Quantidade de componentes filhos (kit). 0 = unidade. */
+  componentesCount?: number;
+  /** Detalhe dos componentes para tooltip. */
+  componentes?: Array<{ id: string; nome: string; codigo: string; quantidade: number }>;
 }
 
 interface MatrizRow {
