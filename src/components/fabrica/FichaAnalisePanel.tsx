@@ -28,7 +28,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { downloadStorageBlob, triggerBlobDownload } from "@/lib/utils/storage-download";
 import { StoragePreviewDialog } from "@/components/fabrica/StoragePreviewDialog";
-import { custoTotalDoSnapshot } from "@/lib/fabrica/ficha-custo-snapshot";
+import { custoTotalDoSnapshot, ipiDoSnapshot } from "@/lib/fabrica/ficha-custo-snapshot";
 
 interface ApontamentoForm {
   insumo_id: string;
