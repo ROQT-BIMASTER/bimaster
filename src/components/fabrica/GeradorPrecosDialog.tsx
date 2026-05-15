@@ -726,6 +726,24 @@ export function GeradorPrecosDialog({ open, onOpenChange, tabela, onSuccess }: P
                   </ToggleGroupItem>
                 </ToggleGroup>
 
+                <ToggleGroup
+                  type="single"
+                  value={usoFiltro}
+                  onValueChange={(v) => v && setUsoFiltro(v as "todos" | "venda" | "provador")}
+                  className="border rounded-md"
+                  title="Por padrão, provadores ficam ocultos para evitar precificá-los junto dos produtos de venda."
+                >
+                  <ToggleGroupItem value="venda" className="text-xs px-3 h-8 data-[state=on]:bg-emerald-600 data-[state=on]:text-white">
+                    Apenas venda
+                  </ToggleGroupItem>
+                  <ToggleGroupItem value="todos" className="text-xs px-3 h-8 data-[state=on]:bg-muted">
+                    Mostrar todos
+                  </ToggleGroupItem>
+                  <ToggleGroupItem value="provador" className="text-xs px-3 h-8 data-[state=on]:bg-amber-600 data-[state=on]:text-white">
+                    Só provadores
+                  </ToggleGroupItem>
+                </ToggleGroup>
+
                 <Input
                   placeholder="Buscar produto..."
                   value={buscaProduto}
