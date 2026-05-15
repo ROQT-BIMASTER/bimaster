@@ -164,6 +164,9 @@ export default function FichaRevisaoDiretoria() {
       const isKit = (f.produto?.tipo || "").toUpperCase() === "DISPLAY";
       if (filtroTipo === "kit" && !isKit) return false;
       if (filtroTipo === "unitario" && isKit) return false;
+      const isProv = !!f.produto?.is_provador;
+      if (filtroProvador === "venda" && isProv) return false;
+      if (filtroProvador === "provador" && !isProv) return false;
       if (busca) {
         const b = busca.toLowerCase();
         if (!f.produto?.nome?.toLowerCase().includes(b) && !f.produto?.codigo?.toLowerCase().includes(b)) return false;
