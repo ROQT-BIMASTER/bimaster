@@ -39,6 +39,7 @@ interface ProdutoData {
   linha: string | null;
   marca: string | null;
   tipo: string | null;
+  is_provador?: boolean | null;
 }
 
 interface Props {
@@ -67,6 +68,7 @@ export function GeradorPrecosDialog({ open, onOpenChange, tabela, onSuccess }: P
   const [linhaFiltro, setLinhaFiltro] = useState<string>("todas");
   const [marcaFiltro, setMarcaFiltro] = useState<string>("todas");
   const [tipoFiltro, setTipoFiltro] = useState<"todos" | "kit" | "unitario">("todos");
+  const [usoFiltro, setUsoFiltro] = useState<"todos" | "venda" | "provador">("venda");
   const [dataAprovacaoInicio, setDataAprovacaoInicio] = useState<string>("");
   const [dataAprovacaoFim, setDataAprovacaoFim] = useState<string>("");
   const [fichaStatusMap, setFichaStatusMap] = useState<Record<string, FichaStatusInfo>>({});
@@ -159,7 +161,7 @@ export function GeradorPrecosDialog({ open, onOpenChange, tabela, onSuccess }: P
       // Buscar apenas produtos acabados finalizados
       let query = supabase
         .from("fabrica_produtos")
-        .select("id, codigo, nome, origem, linha, marca, tipo")
+        .select("id, codigo, nome, origem, linha, marca, tipo, is_provador")
         .eq("tipo", "ACABADO")
         .eq("ativo", true);
 
@@ -490,6 +492,11 @@ export function GeradorPrecosDialog({ open, onOpenChange, tabela, onSuccess }: P
       tipoFiltro === "todos" ||
       (tipoFiltro === "kit" && isKit) ||
       (tipoFiltro === "unitario" && !isKit);
+    const isProv = !!(produto as any).is_provador;
+    const matchUso =
+      usoFiltro === "todos" ||
+      (usoFiltro === "provador" && isProv) ||
+      (usoFiltro === "venda" && !isProv);
 
     // Filtro de data de aprovação (somente quando há ficha aprovada)
     let matchData = true;

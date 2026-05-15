@@ -16248,6 +16248,7 @@ export type Database = {
           formula_id: string | null
           foto_url: string | null
           id: string
+          is_provador: boolean
           itens_display: number | null
           lead_time_dias: number | null
           linha: string | null
@@ -16291,6 +16292,7 @@ export type Database = {
           formula_id?: string | null
           foto_url?: string | null
           id?: string
+          is_provador?: boolean
           itens_display?: number | null
           lead_time_dias?: number | null
           linha?: string | null
@@ -16334,6 +16336,7 @@ export type Database = {
           formula_id?: string | null
           foto_url?: string | null
           id?: string
+          is_provador?: boolean
           itens_display?: number | null
           lead_time_dias?: number | null
           linha?: string | null

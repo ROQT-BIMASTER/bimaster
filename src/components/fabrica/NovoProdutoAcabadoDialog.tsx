@@ -83,6 +83,7 @@ export function NovoProdutoAcabadoDialog({ open, onOpenChange, produtoEdit, onSu
     ativo: true,
     origem: "nacional",
     tipo_rotulagem: "",
+    is_provador: false,
   });
 
   const [gradeItems, setGradeItems] = useState<any[]>([]);
@@ -150,6 +151,7 @@ export function NovoProdutoAcabadoDialog({ open, onOpenChange, produtoEdit, onSu
         ativo: produtoEdit.ativo ?? true,
         origem: produtoEdit.origem || "nacional",
         tipo_rotulagem: produtoEdit.tipo_rotulagem || "",
+        is_provador: produtoEdit.is_provador ?? false,
       });
 
       // Load grade items for DISPLAY products
@@ -211,6 +213,7 @@ export function NovoProdutoAcabadoDialog({ open, onOpenChange, produtoEdit, onSu
         ativo: true,
         origem: "nacional",
         tipo_rotulagem: "",
+        is_provador: false,
       });
       setGradeItems([]);
       setGradeItems([]);
@@ -250,6 +253,7 @@ export function NovoProdutoAcabadoDialog({ open, onOpenChange, produtoEdit, onSu
         ativo: formData.ativo,
         origem: formData.origem,
         tipo_rotulagem: formData.tipo_rotulagem.trim() || null,
+        is_provador: !!formData.is_provador,
         created_by: user.id,
       };
 
@@ -665,6 +669,24 @@ export function NovoProdutoAcabadoDialog({ open, onOpenChange, produtoEdit, onSu
                     </SelectContent>
                   </Select>
                 </div>
+              </div>
+
+              <div className="flex items-center justify-between rounded-md border border-border bg-muted/30 px-3 py-2">
+                <div>
+                  <Label htmlFor="is_provador" className="text-sm font-medium">
+                    Produto provador (amostra)
+                  </Label>
+                  <p className="text-xs text-muted-foreground">
+                    Marque para itens de demonstração/provador. Esses produtos podem ser filtrados separadamente nas telas de fábrica, revisão de fichas e tabelas de preço.
+                  </p>
+                </div>
+                <input
+                  id="is_provador"
+                  type="checkbox"
+                  className="h-4 w-4 accent-primary"
+                  checked={!!formData.is_provador}
+                  onChange={(e) => setFormData({ ...formData, is_provador: e.target.checked })}
+                />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
