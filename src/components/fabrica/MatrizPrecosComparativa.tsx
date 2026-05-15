@@ -581,7 +581,17 @@ export function MatrizPrecosComparativa() {
       });
     }
 
-    // Ordenar
+    // Filtrar por intervalo de data de cadastro na tabela Fábrica
+    if (filtroDataDe || filtroDataAte) {
+      const tsDe = filtroDataDe ? new Date(filtroDataDe + "T00:00:00").getTime() : -Infinity;
+      const tsAte = filtroDataAte ? new Date(filtroDataAte + "T23:59:59").getTime() : Infinity;
+      resultado = resultado.filter((row) => {
+        if (!row.dataFabrica) return false;
+        const ts = new Date(row.dataFabrica).getTime();
+        return ts >= tsDe && ts <= tsAte;
+      });
+    }
+
     resultado.sort((a, b) => {
       let comparacao = 0;
 
