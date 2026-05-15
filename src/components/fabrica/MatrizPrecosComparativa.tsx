@@ -1010,7 +1010,14 @@ export function MatrizPrecosComparativa() {
           </div>
         </TableCell>
         <TableCell className="sticky left-[200px] z-10 bg-background font-mono text-sm">
-          {row.produto.codigo}
+          <div className="flex flex-col gap-0.5">
+            <span>{row.produto.codigo}</span>
+            {row.dataFabrica && (
+              <span className="text-[10px] font-sans text-muted-foreground" title="Cadastrado/atualizado na tabela Fábrica">
+                {new Date(row.dataFabrica).toLocaleDateString("pt-BR")}
+              </span>
+            )}
+          </div>
         </TableCell>
         {tabelasOrdenadas.map((tabela) => {
           const preco = row.precos[tabela.id];
