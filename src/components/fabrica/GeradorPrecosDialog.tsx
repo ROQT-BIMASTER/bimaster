@@ -471,9 +471,60 @@ export function GeradorPrecosDialog({ open, onOpenChange, tabela, onSuccess }: P
   }) || [];
 
   // Apply granular access filtering
-  const produtosFiltrados = tabela?.id 
+  const produtosFiltradosBase = tabela?.id 
     ? filterProductsByAccess(tabela.id, produtosFiltradosPorBusca) 
     : produtosFiltradosPorBusca;
+
+  // Helpers e filtros específicos para Ficha de Custo
+  const isFichaMode = fonteCusto === "ficha_custo";
+  const getFichaInfo = (produtoId: string): FichaStatusInfo =>
+    fichaStatusMap[produtoId] || { status: "sem_ficha", dataAprovacao: null };
+  const isAprovadaRecente = (info: FichaStatusInfo) =>
+    info.status === "aprovada" &&
+    info.dataAprovacao &&
+    differenceInDays(new Date(), new Date(info.dataAprovacao)) <= 30;
+  const isPendentePrecificacao = (produtoId: string) => {
+    const info = getFichaInfo(produtoId);
+    return info.status === "aprovada" && !produtosComPrecoNaTabela.has(produtoId);
+  };
+
+  const produtosFiltrados = useMemo(() => {
+    let lista = [...produtosFiltradosBase];
+    if (isFichaMode) {
+      if (filtroPendentes) lista = lista.filter((p) => isPendentePrecificacao(p.id));
+      if (filtroAprovadas) lista = lista.filter((p) => getFichaInfo(p.id).status === "aprovada");
+      if (filtroRecentes) lista = lista.filter((p) => isAprovadaRecente(getFichaInfo(p.id)));
+      // Ordena: pendentes primeiro, depois aprovadas mais recentes
+      lista.sort((a, b) => {
+        const ap = isPendentePrecificacao(a.id) ? 0 : 1;
+        const bp = isPendentePrecificacao(b.id) ? 0 : 1;
+        if (ap !== bp) return ap - bp;
+        const da = getFichaInfo(a.id).dataAprovacao || "";
+        const db = getFichaInfo(b.id).dataAprovacao || "";
+        return db.localeCompare(da);
+      });
+    }
+    return lista;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [produtosFiltradosBase, isFichaMode, filtroPendentes, filtroAprovadas, filtroRecentes, fichaStatusMap, produtosComPrecoNaTabela]);
+
+  const totalAprovadas = useMemo(
+    () => produtosFiltradosBase.filter((p) => getFichaInfo(p.id).status === "aprovada").length,
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [produtosFiltradosBase, fichaStatusMap],
+  );
+  const totalPendentesPrecificacao = useMemo(
+    () => produtosFiltradosBase.filter((p) => isPendentePrecificacao(p.id)).length,
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [produtosFiltradosBase, fichaStatusMap, produtosComPrecoNaTabela],
+  );
+
+  const handleSelecionarPendentes = () => {
+    const ids = produtosFiltradosBase.filter((p) => isPendentePrecificacao(p.id)).map((p) => p.id);
+    setProdutosSelecionados(ids);
+    setFiltroPendentes(true);
+  };
+
 
   if (!tabela) return null;
 
