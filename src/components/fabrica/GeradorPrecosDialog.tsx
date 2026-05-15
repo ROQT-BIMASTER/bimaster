@@ -72,6 +72,8 @@ export function GeradorPrecosDialog({ open, onOpenChange, tabela, onSuccess }: P
     if (open && tabela) {
       loadProdutos();
       loadProdutosTabela();
+      loadFichaStatus();
+      loadPrecosTabelaAtual();
       
       // Definir origem baseado na tabela
       if (tabela.origem_aplicavel === 'nacional') {
@@ -90,8 +92,54 @@ export function GeradorPrecosDialog({ open, onOpenChange, tabela, onSuccess }: P
       setPrecosManual({});
       setBuscaProduto("");
       setOrigemSelecionada(null);
+      setFichaStatusMap({});
+      setProdutosComPrecoNaTabela(new Set());
+      setFiltroPendentes(false);
+      setFiltroAprovadas(false);
+      setFiltroRecentes(false);
     }
   }, [open, tabela]);
+
+  const loadFichaStatus = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("fabrica_produto_custos_config")
+        .select("produto_id, status_aprovacao, updated_at");
+      if (error) throw error;
+      const map: Record<string, FichaStatusInfo> = {};
+      (data || []).forEach((row: any) => {
+        if (!row.produto_id) return;
+        const status = (row.status_aprovacao || "rascunho") as FichaStatusInfo["status"];
+        // Mantém o registro mais recente por produto
+        const existing = map[row.produto_id];
+        const dataAprovacao = status === "aprovada" ? row.updated_at : null;
+        if (!existing || (dataAprovacao && (!existing.dataAprovacao || dataAprovacao > existing.dataAprovacao))) {
+          map[row.produto_id] = { status, dataAprovacao };
+        } else if (existing.status !== "aprovada" && status === "aprovada") {
+          map[row.produto_id] = { status, dataAprovacao };
+        }
+      });
+      setFichaStatusMap(map);
+    } catch (error) {
+      logger.error("Erro ao carregar status das fichas:", error);
+    }
+  };
+
+  const loadPrecosTabelaAtual = async () => {
+    if (!tabela?.id) return;
+    try {
+      const { data, error } = await supabase
+        .from("fabrica_precos_produtos")
+        .select("produto_id")
+        .eq("tabela_id", tabela.id)
+        .eq("ativo", true);
+      if (error) throw error;
+      setProdutosComPrecoNaTabela(new Set((data || []).map((r: any) => r.produto_id)));
+    } catch (error) {
+      logger.error("Erro ao carregar preços existentes:", error);
+    }
+  };
+
 
   const loadProdutos = async () => {
     setLoadingProdutos(true);
