@@ -151,6 +151,7 @@ export function NovoProdutoAcabadoDialog({ open, onOpenChange, produtoEdit, onSu
         ativo: produtoEdit.ativo ?? true,
         origem: produtoEdit.origem || "nacional",
         tipo_rotulagem: produtoEdit.tipo_rotulagem || "",
+        is_provador: produtoEdit.is_provador ?? false,
       });
 
       // Load grade items for DISPLAY products
