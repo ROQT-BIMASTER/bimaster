@@ -123,27 +123,35 @@ export default function FabricaAprovacaoPrecos() {
     }
   }, [queryError]);
 
-  // Buscar a versão mais recente (com escopo + nomes de produtos) de cada tabela pendente,
-  // para exibir o preview do que está realmente sendo submetido em cada card.
-  const { data: previewPorTabela } = useQuery({
-    queryKey: ["preview-tabelas-pendentes", (tabelasPendentes || []).map((t: any) => t.id).join(",")],
+  // Buscar TODOS os lotes (versões) pendentes de cada tabela. Cada submissão = 1 lote.
+  const { data: lotesPorTabela } = useQuery({
+    queryKey: ["lotes-pendentes-por-tabela", (tabelasPendentes || []).map((t: any) => t.id).join(",")],
     queryFn: async () => {
       const ids = (tabelasPendentes || []).map((t: any) => t.id);
-      if (ids.length === 0) return {} as Record<string, { produtos: { id: string; nome: string; codigo: string | null }[]; total: number; escopoExplicito: boolean }>;
+      type Lote = {
+        id: string;
+        tabela_id: string;
+        versao: number;
+        created_at: string;
+        created_by: string | null;
+        criador_nome: string | null;
+        produtos: { id: string; nome: string; codigo: string | null; preco_final: number | null; custo_base: number | null }[];
+        total: number;
+        escopoExplicito: boolean;
+      };
+      if (ids.length === 0) return {} as Record<string, Lote[]>;
 
       const { data: versoes } = await supabase
         .from("fabrica_tabelas_preco_versoes")
-        .select("id, tabela_id, versao, precos_snapshot, produto_ids_escopo, created_at")
+        .select("id, tabela_id, versao, precos_snapshot, produto_ids_escopo, created_at, created_by, aprovado_em")
         .in("tabela_id", ids)
+        .is("aprovado_em", null)
         .order("versao", { ascending: false });
 
-      const ultimaPorTabela = new Map<string, any>();
-      (versoes || []).forEach((v: any) => {
-        if (!ultimaPorTabela.has(v.tabela_id)) ultimaPorTabela.set(v.tabela_id, v);
-      });
-
       const todosProdutoIds = new Set<string>();
-      ultimaPorTabela.forEach((v: any) => {
+      const criadorIds = new Set<string>();
+      (versoes || []).forEach((v: any) => {
+        if (v.created_by) criadorIds.add(v.created_by);
         const escopo = (v.produto_ids_escopo as string[] | null) || null;
         if (escopo && escopo.length > 0) {
           escopo.forEach((id) => id && todosProdutoIds.add(id));
@@ -152,21 +160,48 @@ export default function FabricaAprovacaoPrecos() {
         }
       });
 
-      const { data: produtos } = todosProdutoIds.size > 0
-        ? await supabase.from("fabrica_produtos").select("id, nome, codigo").in("id", Array.from(todosProdutoIds))
-        : { data: [] as any[] };
+      const [{ data: produtos }, { data: perfis }] = await Promise.all([
+        todosProdutoIds.size > 0
+          ? supabase.from("fabrica_produtos").select("id, nome, codigo").in("id", Array.from(todosProdutoIds))
+          : Promise.resolve({ data: [] as any[] }),
+        criadorIds.size > 0
+          ? supabase.from("profiles").select("id, nome").in("id", Array.from(criadorIds))
+          : Promise.resolve({ data: [] as any[] }),
+      ]);
       const prodMap = new Map<string, { id: string; nome: string; codigo: string | null }>(
         (produtos || []).map((p: any) => [p.id, { id: p.id, nome: p.nome, codigo: p.codigo }])
       );
+      const perfilMap = new Map<string, string>((perfis || []).map((p: any) => [p.id, p.nome]));
 
-      const result: Record<string, { produtos: { id: string; nome: string; codigo: string | null }[]; total: number; escopoExplicito: boolean }> = {};
-      ultimaPorTabela.forEach((v: any, tabelaId: string) => {
+      const result: Record<string, Lote[]> = {};
+      (versoes || []).forEach((v: any) => {
         const escopo = (v.produto_ids_escopo as string[] | null) || null;
-        const ids = escopo && escopo.length > 0
+        const snapshot = (v.precos_snapshot as any[]) || [];
+        const idsEscopo = escopo && escopo.length > 0
           ? escopo
-          : Array.from(new Set((v.precos_snapshot as any[] || []).map((p: any) => p?.produto_id).filter(Boolean)));
-        const produtos = ids.map((id) => prodMap.get(id) || { id, nome: id, codigo: null });
-        result[tabelaId] = { produtos, total: produtos.length, escopoExplicito: !!(escopo && escopo.length > 0) };
+          : Array.from(new Set(snapshot.map((p: any) => p?.produto_id).filter(Boolean)));
+        const snapshotMap = new Map(snapshot.map((p: any) => [p.produto_id, p]));
+        const lote: Lote = {
+          id: v.id,
+          tabela_id: v.tabela_id,
+          versao: v.versao,
+          created_at: v.created_at,
+          created_by: v.created_by,
+          criador_nome: v.created_by ? perfilMap.get(v.created_by) || null : null,
+          produtos: idsEscopo.map((id) => {
+            const meta = prodMap.get(id) || { id, nome: id, codigo: null };
+            const snap = snapshotMap.get(id);
+            return {
+              ...meta,
+              preco_final: snap?.preco_final ?? null,
+              custo_base: snap?.custo_base ?? null,
+            };
+          }),
+          total: idsEscopo.length,
+          escopoExplicito: !!(escopo && escopo.length > 0),
+        };
+        if (!result[v.tabela_id]) result[v.tabela_id] = [];
+        result[v.tabela_id].push(lote);
       });
       return result;
     },
