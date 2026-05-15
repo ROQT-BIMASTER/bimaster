@@ -934,6 +934,9 @@ export function GeradorPrecosDialog({ open, onOpenChange, tabela, onSuccess }: P
                             />
                           </td>
                           <td className="px-2 py-1.5 font-mono text-[11px] text-muted-foreground whitespace-nowrap">
+                            {(produto as any).is_provador && (
+                              <div className="mb-0.5"><ProvadorBadge /></div>
+                            )}
                             {produto.codigo || "—"}
                           </td>
                           <td className="px-2 py-1.5">
