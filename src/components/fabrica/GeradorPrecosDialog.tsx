@@ -746,6 +746,31 @@ export function GeradorPrecosDialog({ open, onOpenChange, tabela, onSuccess }: P
             />
           )}
 
+          {/* Filtro: último lote aprovado da tabela base (precificar exatamente o que veio do upstream) */}
+          {ultimoLoteBase && (
+            <div className="flex items-center gap-2 p-2 rounded-md border bg-blue-50/50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800">
+              <Checkbox
+                id="filtro-ultimo-lote-base"
+                checked={filtroUltimoLoteBase}
+                onCheckedChange={(c) => {
+                  const v = !!c;
+                  setFiltroUltimoLoteBase(v);
+                  if (v && ultimoLoteBase) {
+                    // Pré-seleciona automaticamente os produtos do último lote da base
+                    setProdutosSelecionados(ultimoLoteBase.produto_ids);
+                  }
+                }}
+              />
+              <Label htmlFor="filtro-ultimo-lote-base" className="text-sm cursor-pointer flex-1">
+                Apenas produtos do <strong>último lote aprovado da tabela base</strong>
+                <span className="ml-2 text-xs text-muted-foreground">
+                  (v{ultimoLoteBase.versao} · {ultimoLoteBase.produto_ids.length} produto(s)
+                  {ultimoLoteBase.aprovado_em && ` · aprovado em ${format(new Date(ultimoLoteBase.aprovado_em), "dd/MM/yyyy", { locale: ptBR })}`})
+                </span>
+              </Label>
+            </div>
+          )}
+
           {/* Lista de Produtos */}
           <div>
             <div className="flex items-center justify-between mb-2 gap-3 flex-wrap">
