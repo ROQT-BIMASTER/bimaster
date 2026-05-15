@@ -218,11 +218,28 @@ export function AprovacaoCascataDialog({ open, onOpenChange, tabelaRaiz, produto
           </DialogDescription>
         </DialogHeader>
 
-        {!produtosEscopo.length && (
+        {!produtosEscopo.length ? (
           <Card>
             <CardContent className="p-3 text-sm text-muted-foreground">
               Nenhum produto resolvido no escopo da submissão. A cascata aprovará
               <strong> todos os produtos vigentes </strong> da tabela base.
+            </CardContent>
+          </Card>
+        ) : (
+          <Card>
+            <CardContent className="p-3 text-sm space-y-1">
+              <div className="flex items-center gap-2 flex-wrap">
+                <Badge variant="secondary">{produtosEscopo.length} produto(s) submetido(s)</Badge>
+                {totalKits > 0 && (
+                  <Badge variant="outline" className="text-primary border-primary">
+                    {totalKits} kit(s) → expandindo {escopoExpandido.length - produtosEscopo.length} unidade(s) filha(s)
+                  </Badge>
+                )}
+                <Badge variant="outline">Total cascata: {escopoExpandido.length} item(s)</Badge>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                A aprovação propaga preços de cada item submetido (e dos componentes unitários, no caso de kits) por toda a cadeia selecionada.
+              </p>
             </CardContent>
           </Card>
         )}
