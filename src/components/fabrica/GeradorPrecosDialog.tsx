@@ -590,8 +590,8 @@ export function GeradorPrecosDialog({ open, onOpenChange, tabela, onSuccess }: P
   const produtosFiltrados = useMemo(() => {
     let lista = [...produtosFiltradosBase];
     // Filtro: apenas produtos do último lote aprovado da tabela base
-    if (filtroUltimoLoteBase && ultimoLoteBase) {
-      const set = new Set(ultimoLoteBase.produto_ids);
+    if (filtroUltimoLoteBase && loteSelecionado) {
+      const set = new Set(loteSelecionado.produto_ids);
       lista = lista.filter((p) => set.has(p.id));
     }
     if (isFichaMode) {
