@@ -124,7 +124,8 @@ export function GeradorPrecosDialog({ open, onOpenChange, tabela, onSuccess }: P
       setFiltroPendentes(false);
       setFiltroAprovadas(false);
       setFiltroRecentes(false);
-      setUltimoLoteBase(null);
+      setLotesDisponiveis([]);
+      setLoteSelecionadoVersao("");
       setFiltroUltimoLoteBase(false);
       setMarcaFiltro("todas");
       setLinhaFiltro("todas");
