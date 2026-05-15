@@ -467,6 +467,33 @@ export default function FabricaAprovacaoPrecos() {
                         {tabela.tipo_markup === "multiplicador" && `x${tabela.valor_markup}`}
                         {tabela.tipo_markup === "valor_fixo" && `+${formatarMoeda(tabela.valor_markup)}`}
                       </p>
+                      {previewPorTabela && previewPorTabela[tabela.id] && (
+                        <div className="mt-3 rounded-md border bg-muted/40 p-3">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-xs font-medium text-foreground">
+                              Produto(s) submetido(s) ({previewPorTabela[tabela.id].total})
+                            </span>
+                            {!previewPorTabela[tabela.id].escopoExplicito && (
+                              <Badge variant="outline" className="text-[10px] text-amber-600 border-amber-300">
+                                Escopo legado — pode incluir produtos antigos. Rejeite e reenvie para corrigir.
+                              </Badge>
+                            )}
+                          </div>
+                          <div className="flex flex-wrap gap-1.5">
+                            {previewPorTabela[tabela.id].produtos.slice(0, 12).map((p) => (
+                              <Badge key={p.id} variant="secondary" className="text-xs font-normal">
+                                {p.nome}
+                                {p.codigo && <span className="ml-1 text-muted-foreground">({p.codigo})</span>}
+                              </Badge>
+                            ))}
+                            {previewPorTabela[tabela.id].total > 12 && (
+                              <Badge variant="outline" className="text-xs">
+                                +{previewPorTabela[tabela.id].total - 12} mais
+                              </Badge>
+                            )}
+                          </div>
+                        </div>
+                      )}
                     </div>
                     <div className="flex gap-2">
                       <Button
