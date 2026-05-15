@@ -379,6 +379,7 @@ export function MatrizPrecosComparativa() {
           preco_limitado,
           preco_original_calculado,
           motivo_limite,
+          data_atualizacao,
           produto:fabrica_produtos!inner(id, nome, codigo, categoria, marca, linha, tipo, itens_display)
         `)
         .eq("ativo", true);
