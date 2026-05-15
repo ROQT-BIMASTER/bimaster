@@ -692,19 +692,31 @@ export default function FabricaAprovacaoPrecos() {
       </Dialog>
 
       {/* Dialog de Aprovação */}
-      <AlertDialog open={showAprovar} onOpenChange={setShowAprovar}>
+      <AlertDialog open={showAprovar} onOpenChange={(o) => { setShowAprovar(o); if (!o) setSenhaAprovar(""); }}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Aprovar Tabela de Preços</AlertDialogTitle>
             <AlertDialogDescription>
               Tem certeza que deseja aprovar a tabela "{tabelaSelecionada?.nome}"?
-              Esta ação não pode ser desfeita.
+              Esta ação não pode ser desfeita. Confirme sua senha para prosseguir.
             </AlertDialogDescription>
           </AlertDialogHeader>
+          <div className="py-2 space-y-2">
+            <Label htmlFor="senha-aprovar">Sua senha</Label>
+            <Input
+              id="senha-aprovar"
+              type="password"
+              autoComplete="current-password"
+              value={senhaAprovar}
+              onChange={(e) => setSenhaAprovar(e.target.value)}
+              placeholder="Confirme sua identidade"
+            />
+          </div>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction
-              onClick={() => aprovarMutation.mutate()}
+              onClick={(e) => { e.preventDefault(); aprovarMutation.mutate(); }}
+              disabled={!senhaAprovar.trim() || aprovarMutation.isPending}
               className="bg-green-600 hover:bg-green-700"
             >
               {aprovarMutation.isPending ? "Aprovando..." : "Aprovar"}
@@ -714,30 +726,43 @@ export default function FabricaAprovacaoPrecos() {
       </AlertDialog>
 
       {/* Dialog de Rejeição */}
-      <AlertDialog open={showRejeitar} onOpenChange={setShowRejeitar}>
+      <AlertDialog open={showRejeitar} onOpenChange={(o) => { setShowRejeitar(o); if (!o) setSenhaRejeitar(""); }}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Rejeitar Tabela de Preços</AlertDialogTitle>
             <AlertDialogDescription>
               A tabela "{tabelaSelecionada?.nome}" retornará para status de rascunho.
-              Por favor, informe o motivo da rejeição:
+              Por favor, informe o motivo da rejeição e confirme sua senha.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <div className="py-4">
-            <Label htmlFor="motivo">Motivo da Rejeição</Label>
-            <Textarea
-              id="motivo"
-              value={motivoRejeicao}
-              onChange={(e) => setMotivoRejeicao(e.target.value)}
-              placeholder="Ex: Preços muito altos, revisar margem do produto X..."
-              rows={4}
-            />
+          <div className="py-4 space-y-3">
+            <div>
+              <Label htmlFor="motivo">Motivo da Rejeição</Label>
+              <Textarea
+                id="motivo"
+                value={motivoRejeicao}
+                onChange={(e) => setMotivoRejeicao(e.target.value)}
+                placeholder="Ex: Preços muito altos, revisar margem do produto X..."
+                rows={4}
+              />
+            </div>
+            <div>
+              <Label htmlFor="senha-rejeitar">Sua senha</Label>
+              <Input
+                id="senha-rejeitar"
+                type="password"
+                autoComplete="current-password"
+                value={senhaRejeitar}
+                onChange={(e) => setSenhaRejeitar(e.target.value)}
+                placeholder="Confirme sua identidade"
+              />
+            </div>
           </div>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction
-              onClick={() => rejeitarMutation.mutate()}
-              disabled={!motivoRejeicao.trim()}
+              onClick={(e) => { e.preventDefault(); rejeitarMutation.mutate(); }}
+              disabled={!motivoRejeicao.trim() || !senhaRejeitar.trim() || rejeitarMutation.isPending}
               className="bg-red-600 hover:bg-red-700"
             >
               {rejeitarMutation.isPending ? "Rejeitando..." : "Rejeitar"}
