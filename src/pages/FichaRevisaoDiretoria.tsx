@@ -670,7 +670,12 @@ export default function FichaRevisaoDiretoria() {
                               )}
                               {ficha.produto?.nome}
                             </TableCell>
-                            <TableCell className="font-mono">{ficha.produto?.codigo}</TableCell>
+                            <TableCell className="font-mono">
+                              {ficha.produto?.is_provador && (
+                                <div className="mb-0.5"><ProvadorBadge /></div>
+                              )}
+                              {ficha.produto?.codigo}
+                            </TableCell>
                             <TableCell><Badge variant="outline">v{ficha.versao}</Badge></TableCell>
                             <TableCell>{statusBadge}</TableCell>
                             <TableCell>{dataExibida}</TableCell>
