@@ -154,11 +154,30 @@ export function AprovacaoCascataDialog({ open, onOpenChange, tabelaRaiz, produto
       return data;
     },
     onSuccess: (res: any) => {
-      toast.success(`Cadeia aprovada (${res?.total ?? "?"} tabela(s), ${escopoExpandido.length} produto(s)).`);
+      const aprovadas = Array.isArray(res?.tabelas_aprovadas) ? res.tabelas_aprovadas : [];
+      const falhas = Array.isArray(res?.tabelas_falhadas) ? res.tabelas_falhadas : [];
+      const total = res?.total ?? aprovadas.length;
+      const escopo = res?.escopo_size ?? escopoExpandido.length;
+
+      if (falhas.length > 0) {
+        const nomesFalha = falhas
+          .map((f: any) => {
+            const nome = (cadeia || []).find((c) => c.id === f.tabela_id)?.nome ?? f.tabela_id;
+            return `${nome}: ${f.erro}`;
+          })
+          .join("\n");
+        toast.warning(
+          `Cascata parcial: ${total} tabela(s) aprovada(s), ${falhas.length} falhou.`,
+          { description: nomesFalha, duration: 12_000 },
+        );
+      } else {
+        toast.success(`Cadeia aprovada (${total} tabela(s), ${escopo} produto(s)).`);
+      }
+
       qc.invalidateQueries({ queryKey: ["tabelas-pendentes-aprovacao"] });
       qc.invalidateQueries({ queryKey: ["fabrica-tabelas-preco"] });
       qc.invalidateQueries({ queryKey: ["lotes-pendentes-por-tabela"] });
-      onOpenChange(false);
+      if (falhas.length === 0) onOpenChange(false);
     },
     onError: (e: any) => toast.error("Falha ao aprovar cadeia: " + (e?.message || e)),
   });
