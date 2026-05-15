@@ -44,6 +44,8 @@ export default function FabricaAprovacaoPrecos() {
   const [showAprovar, setShowAprovar] = useState(false);
   const [motivoRejeicao, setMotivoRejeicao] = useState("");
   const [showImpacto, setShowImpacto] = useState(false);
+  const [showCascata, setShowCascata] = useState(false);
+  const [showOrigem, setShowOrigem] = useState<{ produtoId: string; nome: string; custo: number } | null>(null);
 
   // Realtime: escutar mudanças nas tabelas de preço
   useEffect(() => {
