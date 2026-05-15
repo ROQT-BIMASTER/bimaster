@@ -539,42 +539,12 @@ export default function FabricaAprovacaoPrecos() {
                         {tabela.tipo_markup === "multiplicador" && `x${tabela.valor_markup}`}
                         {tabela.tipo_markup === "valor_fixo" && `+${formatarMoeda(tabela.valor_markup)}`}
                       </p>
-                      {previewPorTabela && previewPorTabela[tabela.id] && (
-                        <div className="mt-3 rounded-md border bg-muted/40 p-3">
-                          <div className="flex items-center justify-between mb-2">
-                            <span className="text-xs font-medium text-foreground">
-                              Produto(s) submetido(s) ({previewPorTabela[tabela.id].total})
-                            </span>
-                            {!previewPorTabela[tabela.id].escopoExplicito && (
-                              <Badge variant="outline" className="text-[10px] text-amber-600 border-amber-300">
-                                Escopo legado — pode incluir produtos antigos. Rejeite e reenvie para corrigir.
-                              </Badge>
-                            )}
-                          </div>
-                          <div className="flex flex-wrap gap-1.5">
-                            {previewPorTabela[tabela.id].produtos.slice(0, 12).map((p) => (
-                              <Badge key={p.id} variant="secondary" className="text-xs font-normal">
-                                {p.nome}
-                                {p.codigo && <span className="ml-1 text-muted-foreground">({p.codigo})</span>}
-                              </Badge>
-                            ))}
-                            {previewPorTabela[tabela.id].total > 12 && (
-                              <Badge variant="outline" className="text-xs">
-                                +{previewPorTabela[tabela.id].total - 12} mais
-                              </Badge>
-                            )}
-                          </div>
-                        </div>
-                      )}
                     </div>
                     <div className="flex gap-2">
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => {
-                          setTabelaSelecionada(tabela);
-                          setShowImpacto(true);
-                        }}
+                        onClick={() => { setTabelaSelecionada(tabela); setShowImpacto(true); }}
                       >
                         <BarChart3 className="h-4 w-4 mr-2" />
                         Ver Impacto
@@ -582,49 +552,104 @@ export default function FabricaAprovacaoPrecos() {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => {
-                          setTabelaSelecionada(tabela);
-                        }}
+                        onClick={() => { setTabelaSelecionada(tabela); }}
                       >
                         <FileText className="h-4 w-4 mr-2" />
                         Ver Histórico
                       </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="text-red-600 hover:text-red-700"
-                        onClick={() => {
-                          setTabelaSelecionada(tabela);
-                          setShowRejeitar(true);
-                        }}
-                      >
-                        <XCircle className="h-4 w-4 mr-2" />
-                        Rejeitar
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="text-primary"
-                        onClick={() => {
-                          setTabelaSelecionada(tabela);
-                          setShowCascata(true);
-                        }}
-                      >
-                        <Workflow className="h-4 w-4 mr-2" />
-                        Aprovar em Cascata
-                      </Button>
-                      <Button
-                        size="sm"
-                        className="bg-green-600 hover:bg-green-700"
-                        onClick={() => {
-                          setTabelaSelecionada(tabela);
-                          setShowAprovar(true);
-                        }}
-                      >
-                        <CheckCircle2 className="h-4 w-4 mr-2" />
-                        Aprovar
-                      </Button>
                     </div>
+                  </div>
+
+                  {/* Lotes (versões pendentes) — uma submissão = um lote */}
+                  <div className="mt-4 space-y-3">
+                    {(lotesPorTabela?.[tabela.id] || []).length === 0 ? (
+                      <div className="rounded-md border border-dashed p-4 text-sm text-muted-foreground">
+                        Nenhum lote registrado para esta tabela. Pode ser uma submissão antiga — abra "Ver Histórico".
+                      </div>
+                    ) : (
+                      (lotesPorTabela?.[tabela.id] || []).map((lote) => (
+                        <div key={lote.id} className="rounded-lg border bg-card p-3">
+                          <div className="flex items-start justify-between gap-3 mb-2">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <Badge variant="outline">Lote v{lote.versao}</Badge>
+                                <span className="text-xs text-muted-foreground">
+                                  {new Date(lote.created_at).toLocaleString("pt-BR")}
+                                </span>
+                                {lote.criador_nome && (
+                                  <span className="text-xs text-muted-foreground">
+                                    · Submetido por <span className="font-medium text-foreground">{lote.criador_nome}</span>
+                                  </span>
+                                )}
+                                <Badge variant="secondary" className="text-xs">
+                                  {lote.total} produto{lote.total !== 1 ? "s" : ""}
+                                </Badge>
+                                {!lote.escopoExplicito && (
+                                  <Badge variant="outline" className="text-[10px] text-amber-600 border-amber-300">
+                                    Escopo legado — rejeite e reenvie
+                                  </Badge>
+                                )}
+                              </div>
+                            </div>
+                            <div className="flex gap-2 shrink-0">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="text-red-600 hover:text-red-700"
+                                onClick={() => setLoteAcao({ tipo: "rejeitar", loteId: lote.id, descricao: `${tabela.nome} · v${lote.versao} (${lote.total} produto${lote.total !== 1 ? "s" : ""})` })}
+                              >
+                                <XCircle className="h-4 w-4 mr-1" />
+                                Rejeitar lote
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="text-primary"
+                                onClick={() => { setTabelaSelecionada(tabela); setVersaoSelecionada({ id: lote.id, versao: lote.versao, precos_snapshot: [], produto_ids_escopo: lote.produtos.map(p => p.id) } as any); setShowCascata(true); }}
+                              >
+                                <Workflow className="h-4 w-4 mr-1" />
+                                Cascata
+                              </Button>
+                              <Button
+                                size="sm"
+                                className="bg-green-600 hover:bg-green-700"
+                                onClick={() => setLoteAcao({ tipo: "aprovar", loteId: lote.id, descricao: `${tabela.nome} · v${lote.versao} (${lote.total} produto${lote.total !== 1 ? "s" : ""})` })}
+                              >
+                                <CheckCircle2 className="h-4 w-4 mr-1" />
+                                Aprovar lote
+                              </Button>
+                            </div>
+                          </div>
+                          <div className="rounded border bg-muted/30 overflow-hidden">
+                            <table className="w-full text-xs">
+                              <thead className="bg-muted/60">
+                                <tr className="text-left">
+                                  <th className="p-2">Produto</th>
+                                  <th className="p-2 text-right">Custo Base</th>
+                                  <th className="p-2 text-right">Preço Final</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {lote.produtos.map((p) => (
+                                  <tr key={p.id} className="border-t">
+                                    <td className="p-2">
+                                      <span className="font-medium">{p.nome}</span>
+                                      {p.codigo && <span className="ml-1 text-muted-foreground">({p.codigo})</span>}
+                                    </td>
+                                    <td className="p-2 text-right">
+                                      {p.custo_base != null ? formatarMoeda(Number(p.custo_base)) : "—"}
+                                    </td>
+                                    <td className="p-2 text-right font-semibold">
+                                      {p.preco_final != null ? formatarMoeda(Number(p.preco_final)) : "—"}
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      ))
+                    )}
                   </div>
                 </CardHeader>
               </Card>
