@@ -142,6 +142,8 @@ interface Produto {
 
 interface MatrizRow {
   produto: Produto;
+  /** Data em que o produto foi cadastrado/atualizado na tabela Fábrica (origem). */
+  dataFabrica: string | null;
   precos: Record<string, { preco: number; custo: number; margem: number; limitado?: boolean; precoOriginal?: number; motivoLimite?: string } | null>;
 }
 
@@ -295,6 +297,9 @@ export function MatrizPrecosComparativa() {
   const [filtroLinha, setFiltroLinha] = useState<string>("all");
   const [filtroTabela, setFiltroTabela] = useState<string>("all");
   const [filtroTipo, setFiltroTipo] = useState<"all" | "kit" | "unidade">("all");
+  // Filtro de data de cadastro na tabela Fábrica (origem)
+  const [filtroDataDe, setFiltroDataDe] = useState<string>("");
+  const [filtroDataAte, setFiltroDataAte] = useState<string>("");
   
   // Agrupamento
   const [agruparHabilitado, setAgruparHabilitado] = useState(false);
@@ -379,6 +384,7 @@ export function MatrizPrecosComparativa() {
           preco_limitado,
           preco_original_calculado,
           motivo_limite,
+          data_atualizacao,
           produto:fabrica_produtos!inner(id, nome, codigo, categoria, marca, linha, tipo, itens_display)
         `)
         .eq("ativo", true);
@@ -498,12 +504,18 @@ export function MatrizPrecosComparativa() {
             componentesCount: componentes.length,
             componentes,
           },
+          dataFabrica: null,
           precos: {},
         });
       }
 
       const row = produtosMap.get(produtoId)!;
-      
+
+      // Captura a data da tabela Fábrica (origem) como referência de cadastro do produto
+      if (tabelaOrigem && preco.tabela_id === tabelaOrigem.id && preco.data_atualizacao) {
+        row.dataFabrica = preco.data_atualizacao;
+      }
+
       // Calcular margem baseado na opção selecionada
       let margemCalculada = preco.margem_lucro_percentual || 0;
       
@@ -569,7 +581,17 @@ export function MatrizPrecosComparativa() {
       });
     }
 
-    // Ordenar
+    // Filtrar por intervalo de data de cadastro na tabela Fábrica
+    if (filtroDataDe || filtroDataAte) {
+      const tsDe = filtroDataDe ? new Date(filtroDataDe + "T00:00:00").getTime() : -Infinity;
+      const tsAte = filtroDataAte ? new Date(filtroDataAte + "T23:59:59").getTime() : Infinity;
+      resultado = resultado.filter((row) => {
+        if (!row.dataFabrica) return false;
+        const ts = new Date(row.dataFabrica).getTime();
+        return ts >= tsDe && ts <= tsAte;
+      });
+    }
+
     resultado.sort((a, b) => {
       let comparacao = 0;
 
@@ -586,7 +608,7 @@ export function MatrizPrecosComparativa() {
     });
 
     return resultado;
-  }, [precosData, tabelas, busca, ordenarPor, ordenarAsc, filtroMarca, filtroLinha, filtroTabela, filtroTipo, baseMargemCalculo, precosOrigem, isPrivilegedUser, isProductBlocked, kitComponentes]);
+  }, [precosData, tabelas, busca, ordenarPor, ordenarAsc, filtroMarca, filtroLinha, filtroTabela, filtroTipo, filtroDataDe, filtroDataAte, baseMargemCalculo, precosOrigem, tabelaOrigem, isPrivilegedUser, isProductBlocked, kitComponentes]);
 
   // Agrupar dados se habilitado
   const dadosAgrupados = useMemo(() => {
@@ -657,9 +679,11 @@ export function MatrizPrecosComparativa() {
     setFiltroLinha("all");
     setFiltroTabela("all");
     setFiltroTipo("all");
+    setFiltroDataDe("");
+    setFiltroDataAte("");
   };
 
-  const temFiltrosAtivos = busca || filtroMarca !== "all" || filtroLinha !== "all" || filtroTabela !== "all" || filtroTipo !== "all";
+  const temFiltrosAtivos = !!(busca || filtroMarca !== "all" || filtroLinha !== "all" || filtroTabela !== "all" || filtroTipo !== "all" || filtroDataDe || filtroDataAte);
 
   const handlePrecoClick = (produtoId: string, produtoNome: string, tabelaId: string, tabelaNome: string) => {
     // Usuários com restrições de tabela não podem ver o histórico/cadeia de cálculo
@@ -986,7 +1010,14 @@ export function MatrizPrecosComparativa() {
           </div>
         </TableCell>
         <TableCell className="sticky left-[200px] z-10 bg-background font-mono text-sm">
-          {row.produto.codigo}
+          <div className="flex flex-col gap-0.5">
+            <span>{row.produto.codigo}</span>
+            {row.dataFabrica && (
+              <span className="text-[10px] font-sans text-muted-foreground" title="Cadastrado/atualizado na tabela Fábrica">
+                {new Date(row.dataFabrica).toLocaleDateString("pt-BR")}
+              </span>
+            )}
+          </div>
         </TableCell>
         {tabelasOrdenadas.map((tabela) => {
           const preco = row.precos[tabela.id];
@@ -1144,6 +1175,29 @@ export function MatrizPrecosComparativa() {
                 <SelectItem value="unidade">Unidades</SelectItem>
               </SelectContent>
             </Select>
+
+            {/* Período de cadastro na tabela Fábrica */}
+            <div className="flex items-center gap-1.5 pl-2 border-l">
+              <Label htmlFor="filtro-data-de" className="text-xs text-muted-foreground whitespace-nowrap">
+                Cadastro Fábrica:
+              </Label>
+              <Input
+                id="filtro-data-de"
+                type="date"
+                value={filtroDataDe}
+                onChange={(e) => setFiltroDataDe(e.target.value)}
+                className="w-[150px] h-9"
+                title="Data inicial (cadastro na tabela Fábrica)"
+              />
+              <span className="text-xs text-muted-foreground">até</span>
+              <Input
+                type="date"
+                value={filtroDataAte}
+                onChange={(e) => setFiltroDataAte(e.target.value)}
+                className="w-[150px] h-9"
+                title="Data final (cadastro na tabela Fábrica)"
+              />
+            </div>
 
             {temFiltrosAtivos && (
               <Button variant="ghost" size="sm" onClick={limparFiltros}>
