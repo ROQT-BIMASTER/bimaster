@@ -647,6 +647,9 @@ export function FichaAnalisePanel({ ficha, processando, onAprovar, onSolicitarRe
                               <TableCell className="text-right">{formatarMoeda(Number(insumo.custo_nf) || 0)}</TableCell>
                               <TableCell className="text-right">{formatarMoeda(Number(insumo.custo_servico) || 0)}</TableCell>
                               <TableCell className="text-right">{formatarMoeda(Number(insumo.custo_condicao) || 0)}</TableCell>
+                              <TableCell className="text-right">
+                                {ipiInsumo > 0 ? formatarMoeda(ipiInsumo) : <span className="text-muted-foreground">-</span>}
+                              </TableCell>
                               {versaoAnterior && (
                                 <TableCell className="text-right">
                                   {variacao !== null ? (
@@ -663,7 +666,7 @@ export function FichaAnalisePanel({ ficha, processando, onAprovar, onSolicitarRe
                             {/* Expanded supplier comparison */}
                             {isExpanded && hasCotacoes && (
                               <TableRow>
-                                <TableCell colSpan={versaoAnterior ? 9 : 8} className="p-0 bg-muted/30">
+                                <TableCell colSpan={versaoAnterior ? 10 : 9} className="p-0 bg-muted/30">
                                   <div className="px-6 py-3 space-y-2">
                                     <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Comparativo de Fornecedores</p>
                                     <Table>
