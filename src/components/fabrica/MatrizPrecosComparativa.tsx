@@ -484,6 +484,7 @@ export function MatrizPrecosComparativa() {
       const produto = preco.produto as Produto;
 
       if (!produtosMap.has(produtoId)) {
+        const componentes = kitComponentes?.get(produto.id) || [];
         produtosMap.set(produtoId, {
           produto: {
             id: produto.id,
@@ -492,6 +493,10 @@ export function MatrizPrecosComparativa() {
             categoria: produto.categoria,
             marca: produto.marca || null,
             linha: produto.linha || null,
+            tipo: (produto as any).tipo || null,
+            itens_display: (produto as any).itens_display || null,
+            componentesCount: componentes.length,
+            componentes,
           },
           precos: {},
         });
