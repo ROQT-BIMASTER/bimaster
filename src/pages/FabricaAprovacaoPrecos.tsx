@@ -31,6 +31,9 @@ import { Label } from "@/components/ui/label";
 import { SimuladorImpactoPrecos } from "@/components/fabrica/SimuladorImpactoPrecos";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { uniqueChannelName } from "@/lib/realtime/channelName";
+import { AprovacaoCascataDialog } from "@/components/fabrica/AprovacaoCascataDialog";
+import { OrigemCustoHistorico } from "@/components/fabrica/OrigemCustoHistorico";
+import { Workflow, History as HistoryIcon } from "lucide-react";
 
 export default function FabricaAprovacaoPrecos() {
   const queryClient = useQueryClient();
@@ -41,6 +44,8 @@ export default function FabricaAprovacaoPrecos() {
   const [showAprovar, setShowAprovar] = useState(false);
   const [motivoRejeicao, setMotivoRejeicao] = useState("");
   const [showImpacto, setShowImpacto] = useState(false);
+  const [showCascata, setShowCascata] = useState(false);
+  const [showOrigem, setShowOrigem] = useState<{ produtoId: string; nome: string; custo: number } | null>(null);
 
   // Realtime: escutar mudanças nas tabelas de preço
   useEffect(() => {
@@ -146,10 +151,18 @@ export default function FabricaAprovacaoPrecos() {
     queryKey: ["precos-versao", versaoSelecionada?.id, tabelaSelecionada?.tabela_base_id],
     queryFn: async () => {
       if (!versaoSelecionada?.precos_snapshot) return [];
-      
-      const snapshot = versaoSelecionada.precos_snapshot as any[];
+
+      let snapshot = versaoSelecionada.precos_snapshot as any[];
       if (!snapshot.length) return snapshot;
-      
+
+      // FIX: filtrar pelo escopo real submetido (produto_ids_escopo).
+      // Snapshots legados não têm esse campo — fallback para todos.
+      const escopo = (versaoSelecionada as any).produto_ids_escopo as string[] | null | undefined;
+      if (escopo && escopo.length > 0) {
+        const set = new Set(escopo);
+        snapshot = snapshot.filter((p: any) => set.has(p.produto_id));
+      }
+
       // Buscar IDs dos produtos do snapshot
       const produtoIds = snapshot.map((p: any) => p.produto_id).filter(Boolean);
       
@@ -431,6 +444,18 @@ export default function FabricaAprovacaoPrecos() {
                       </Button>
                       <Button
                         size="sm"
+                        variant="outline"
+                        className="text-primary"
+                        onClick={() => {
+                          setTabelaSelecionada(tabela);
+                          setShowCascata(true);
+                        }}
+                      >
+                        <Workflow className="h-4 w-4 mr-2" />
+                        Aprovar em Cascata
+                      </Button>
+                      <Button
+                        size="sm"
                         className="bg-green-600 hover:bg-green-700"
                         onClick={() => {
                           setTabelaSelecionada(tabela);
@@ -589,6 +614,7 @@ export default function FabricaAprovacaoPrecos() {
                       <th className="p-3 text-right">Custo Base</th>
                       <th className="p-3 text-right">Preço Final</th>
                       <th className="p-3 text-right">Margem</th>
+                      <th className="p-3 text-center">Origem</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -608,6 +634,13 @@ export default function FabricaAprovacaoPrecos() {
                         <td className="p-3 text-right font-semibold">{formatarMoeda(preco.preco_final)}</td>
                         <td className="p-3 text-right text-green-600">
                           {(preco.margem_lucro_percentual ?? preco.margem_lucro ?? 0).toFixed(2)}%
+                        </td>
+                        <td className="p-3 text-center">
+                          <Button size="sm" variant="ghost" onClick={() =>
+                            setShowOrigem({ produtoId: preco.produto_id, nome: preco.produto_nome, custo: Number(preco.custo_base) || 0 })
+                          }>
+                            <HistoryIcon className="h-4 w-4" />
+                          </Button>
                         </td>
                       </tr>
                     ))}
@@ -702,6 +735,38 @@ export default function FabricaAprovacaoPrecos() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Aprovação em cascata */}
+      <AprovacaoCascataDialog
+        open={showCascata}
+        onOpenChange={(v) => { setShowCascata(v); if (!v) setTabelaSelecionada(null); }}
+        tabelaRaiz={tabelaSelecionada ? { id: tabelaSelecionada.id, nome: tabelaSelecionada.nome } : null}
+        produtosEscopo={(precosVersao || []).map((p: any) => ({
+          produto_id: p.produto_id,
+          produto_nome: p.produto_nome || "",
+          produto_codigo: p.produto_codigo || "",
+          custo_raiz: Number(p.preco_final ?? p.custo_base) || 0,
+        }))}
+      />
+
+      {/* Origem do custo */}
+      <Dialog open={!!showOrigem} onOpenChange={(v) => !v && setShowOrigem(null)}>
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Origem do Custo — {showOrigem?.nome}</DialogTitle>
+            <DialogDescription>
+              Histórico de referências que originaram o custo desse produto.
+            </DialogDescription>
+          </DialogHeader>
+          {showOrigem && (
+            <OrigemCustoHistorico
+              produtoId={showOrigem.produtoId}
+              produtoNome={showOrigem.nome}
+              custoPropostoAtual={showOrigem.custo}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 }
