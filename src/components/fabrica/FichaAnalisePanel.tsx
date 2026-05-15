@@ -541,6 +541,7 @@ export function FichaAnalisePanel({ ficha, processando, onAprovar, onSolicitarRe
                 <TabsTrigger value="evidencias" className="text-xs">Evidências ({evidencias.length})</TabsTrigger>
                 <TabsTrigger value="requisitos" className="text-xs">Requisitos ({requisitosStatus.length})</TabsTrigger>
                 <TabsTrigger value="historico" className="text-xs gap-1"><History className="h-3 w-3" /> Histórico</TabsTrigger>
+                <TabsTrigger value="trilha" className="text-xs gap-1"><ShieldCheck className="h-3 w-3" /> Trilha</TabsTrigger>
                 <TabsTrigger value="documentos" className="text-xs gap-1"><FileText className="h-3 w-3" /> Documentos</TabsTrigger>
               </TabsList>
 
