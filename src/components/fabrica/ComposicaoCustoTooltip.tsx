@@ -16,6 +16,9 @@ interface TotaisComposicao {
   subtotal: number;
   markup: number;
   custo_total: number;
+  ipi_percentual?: number;
+  ipi_valor?: number;
+  inclui_ipi?: boolean;
 }
 
 export interface ComposicaoCustoData {
