@@ -241,6 +241,8 @@ export default function FabricaAprovacaoPrecos() {
   // Aprovar tabela
   const aprovarMutation = useMutation({
     mutationFn: async () => {
+      const ok = await verifyCurrentUserPassword(senhaAprovar);
+      if (!ok) throw new Error("Senha incorreta. Confirme sua identidade para aprovar.");
       const { data: user } = await supabase.auth.getUser();
 
       // Atualizar status da tabela
