@@ -151,10 +151,18 @@ export default function FabricaAprovacaoPrecos() {
     queryKey: ["precos-versao", versaoSelecionada?.id, tabelaSelecionada?.tabela_base_id],
     queryFn: async () => {
       if (!versaoSelecionada?.precos_snapshot) return [];
-      
-      const snapshot = versaoSelecionada.precos_snapshot as any[];
+
+      let snapshot = versaoSelecionada.precos_snapshot as any[];
       if (!snapshot.length) return snapshot;
-      
+
+      // FIX: filtrar pelo escopo real submetido (produto_ids_escopo).
+      // Snapshots legados não têm esse campo — fallback para todos.
+      const escopo = (versaoSelecionada as any).produto_ids_escopo as string[] | null | undefined;
+      if (escopo && escopo.length > 0) {
+        const set = new Set(escopo);
+        snapshot = snapshot.filter((p: any) => set.has(p.produto_id));
+      }
+
       // Buscar IDs dos produtos do snapshot
       const produtoIds = snapshot.map((p: any) => p.produto_id).filter(Boolean);
       
