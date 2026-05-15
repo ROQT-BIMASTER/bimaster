@@ -436,6 +436,18 @@ export default function FabricaAprovacaoPrecos() {
                       </Button>
                       <Button
                         size="sm"
+                        variant="outline"
+                        className="text-primary"
+                        onClick={() => {
+                          setTabelaSelecionada(tabela);
+                          setShowCascata(true);
+                        }}
+                      >
+                        <Workflow className="h-4 w-4 mr-2" />
+                        Aprovar em Cascata
+                      </Button>
+                      <Button
+                        size="sm"
                         className="bg-green-600 hover:bg-green-700"
                         onClick={() => {
                           setTabelaSelecionada(tabela);
