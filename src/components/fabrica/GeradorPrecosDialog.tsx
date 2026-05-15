@@ -21,6 +21,14 @@ import { calcularPrecosProdutos, formatarMoeda, buscarCustoFichaProduto, CustoCo
 import { Loader2, CheckCircle2, Factory, Ship, AlertTriangle, Check, FileText, Lock, LockOpen, DollarSign, ArrowRight } from "lucide-react";
 import { useUserPriceTableAccess } from "@/hooks/useUserPriceTableAccess";
 import { useVisibilityBlocks } from "@/hooks/useVisibilityBlocks";
+import { GeradorPrecosFichaInfo } from "./GeradorPrecosFichaInfo";
+import { format, differenceInDays } from "date-fns";
+import { ptBR } from "date-fns/locale";
+
+interface FichaStatusInfo {
+  status: "aprovada" | "em_revisao" | "revisao_solicitada" | "rascunho" | "sem_ficha";
+  dataAprovacao: string | null;
+}
 
 interface ProdutoData {
   id: string;
@@ -54,11 +62,18 @@ export function GeradorPrecosDialog({ open, onOpenChange, tabela, onSuccess }: P
   const [buscaProduto, setBuscaProduto] = useState("");
   const [origemSelecionada, setOrigemSelecionada] = useState<'nacional' | 'importado' | null>(null);
   const [linhaFiltro, setLinhaFiltro] = useState<string>("todas");
+  const [fichaStatusMap, setFichaStatusMap] = useState<Record<string, FichaStatusInfo>>({});
+  const [produtosComPrecoNaTabela, setProdutosComPrecoNaTabela] = useState<Set<string>>(new Set());
+  const [filtroPendentes, setFiltroPendentes] = useState(false);
+  const [filtroAprovadas, setFiltroAprovadas] = useState(false);
+  const [filtroRecentes, setFiltroRecentes] = useState(false);
 
   useEffect(() => {
     if (open && tabela) {
       loadProdutos();
       loadProdutosTabela();
+      loadFichaStatus();
+      loadPrecosTabelaAtual();
       
       // Definir origem baseado na tabela
       if (tabela.origem_aplicavel === 'nacional') {
@@ -77,8 +92,54 @@ export function GeradorPrecosDialog({ open, onOpenChange, tabela, onSuccess }: P
       setPrecosManual({});
       setBuscaProduto("");
       setOrigemSelecionada(null);
+      setFichaStatusMap({});
+      setProdutosComPrecoNaTabela(new Set());
+      setFiltroPendentes(false);
+      setFiltroAprovadas(false);
+      setFiltroRecentes(false);
     }
   }, [open, tabela]);
+
+  const loadFichaStatus = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("fabrica_produto_custos_config")
+        .select("produto_id, status_aprovacao, updated_at");
+      if (error) throw error;
+      const map: Record<string, FichaStatusInfo> = {};
+      (data || []).forEach((row: any) => {
+        if (!row.produto_id) return;
+        const status = (row.status_aprovacao || "rascunho") as FichaStatusInfo["status"];
+        // Mantém o registro mais recente por produto
+        const existing = map[row.produto_id];
+        const dataAprovacao = status === "aprovada" ? row.updated_at : null;
+        if (!existing || (dataAprovacao && (!existing.dataAprovacao || dataAprovacao > existing.dataAprovacao))) {
+          map[row.produto_id] = { status, dataAprovacao };
+        } else if (existing.status !== "aprovada" && status === "aprovada") {
+          map[row.produto_id] = { status, dataAprovacao };
+        }
+      });
+      setFichaStatusMap(map);
+    } catch (error) {
+      logger.error("Erro ao carregar status das fichas:", error);
+    }
+  };
+
+  const loadPrecosTabelaAtual = async () => {
+    if (!tabela?.id) return;
+    try {
+      const { data, error } = await supabase
+        .from("fabrica_precos_produtos")
+        .select("produto_id")
+        .eq("tabela_id", tabela.id)
+        .eq("ativo", true);
+      if (error) throw error;
+      setProdutosComPrecoNaTabela(new Set((data || []).map((r: any) => r.produto_id)));
+    } catch (error) {
+      logger.error("Erro ao carregar preços existentes:", error);
+    }
+  };
+
 
   const loadProdutos = async () => {
     setLoadingProdutos(true);
@@ -410,9 +471,60 @@ export function GeradorPrecosDialog({ open, onOpenChange, tabela, onSuccess }: P
   }) || [];
 
   // Apply granular access filtering
-  const produtosFiltrados = tabela?.id 
+  const produtosFiltradosBase = tabela?.id 
     ? filterProductsByAccess(tabela.id, produtosFiltradosPorBusca) 
     : produtosFiltradosPorBusca;
+
+  // Helpers e filtros específicos para Ficha de Custo
+  const isFichaMode = fonteCusto === "ficha_custo";
+  const getFichaInfo = (produtoId: string): FichaStatusInfo =>
+    fichaStatusMap[produtoId] || { status: "sem_ficha", dataAprovacao: null };
+  const isAprovadaRecente = (info: FichaStatusInfo) =>
+    info.status === "aprovada" &&
+    info.dataAprovacao &&
+    differenceInDays(new Date(), new Date(info.dataAprovacao)) <= 30;
+  const isPendentePrecificacao = (produtoId: string) => {
+    const info = getFichaInfo(produtoId);
+    return info.status === "aprovada" && !produtosComPrecoNaTabela.has(produtoId);
+  };
+
+  const produtosFiltrados = useMemo(() => {
+    let lista = [...produtosFiltradosBase];
+    if (isFichaMode) {
+      if (filtroPendentes) lista = lista.filter((p) => isPendentePrecificacao(p.id));
+      if (filtroAprovadas) lista = lista.filter((p) => getFichaInfo(p.id).status === "aprovada");
+      if (filtroRecentes) lista = lista.filter((p) => isAprovadaRecente(getFichaInfo(p.id)));
+      // Ordena: pendentes primeiro, depois aprovadas mais recentes
+      lista.sort((a, b) => {
+        const ap = isPendentePrecificacao(a.id) ? 0 : 1;
+        const bp = isPendentePrecificacao(b.id) ? 0 : 1;
+        if (ap !== bp) return ap - bp;
+        const da = getFichaInfo(a.id).dataAprovacao || "";
+        const db = getFichaInfo(b.id).dataAprovacao || "";
+        return db.localeCompare(da);
+      });
+    }
+    return lista;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [produtosFiltradosBase, isFichaMode, filtroPendentes, filtroAprovadas, filtroRecentes, fichaStatusMap, produtosComPrecoNaTabela]);
+
+  const totalAprovadas = useMemo(
+    () => produtosFiltradosBase.filter((p) => getFichaInfo(p.id).status === "aprovada").length,
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [produtosFiltradosBase, fichaStatusMap],
+  );
+  const totalPendentesPrecificacao = useMemo(
+    () => produtosFiltradosBase.filter((p) => isPendentePrecificacao(p.id)).length,
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [produtosFiltradosBase, fichaStatusMap, produtosComPrecoNaTabela],
+  );
+
+  const handleSelecionarPendentes = () => {
+    const ids = produtosFiltradosBase.filter((p) => isPendentePrecificacao(p.id)).map((p) => p.id);
+    setProdutosSelecionados(ids);
+    setFiltroPendentes(true);
+  };
+
 
   if (!tabela) return null;
 
@@ -526,6 +638,21 @@ export function GeradorPrecosDialog({ open, onOpenChange, tabela, onSuccess }: P
                 </p>
               </div>
             </div>
+          )}
+
+          {/* Painel de orientação para Ficha de Custo */}
+          {isFichaMode && (
+            <GeradorPrecosFichaInfo
+              totalAprovadas={totalAprovadas}
+              totalPendentesPrecificacao={totalPendentesPrecificacao}
+              filtroPendentes={filtroPendentes}
+              filtroAprovadas={filtroAprovadas}
+              filtroRecentes={filtroRecentes}
+              onToggleFiltroPendentes={() => setFiltroPendentes((v) => !v)}
+              onToggleFiltroAprovadas={() => setFiltroAprovadas((v) => !v)}
+              onToggleFiltroRecentes={() => setFiltroRecentes((v) => !v)}
+              onSelecionarPendentes={handleSelecionarPendentes}
+            />
           )}
 
           {/* Lista de Produtos */}
@@ -661,6 +788,45 @@ export function GeradorPrecosDialog({ open, onOpenChange, tabela, onSuccess }: P
                                 Na tabela base
                               </Badge>
                             )}
+                            {isFichaMode && (() => {
+                              const info = getFichaInfo(produto.id);
+                              const pendente = isPendentePrecificacao(produto.id);
+                              const jaTem = produtosComPrecoNaTabela.has(produto.id);
+                              return (
+                                <>
+                                  {info.status === "aprovada" && info.dataAprovacao && (
+                                    <Badge
+                                      variant="outline"
+                                      className="border-green-300 text-green-700 dark:text-green-400 flex items-center gap-1 text-[10px]"
+                                    >
+                                      <CheckCircle2 className="h-3 w-3" />
+                                      Ficha aprovada{" "}
+                                      {format(new Date(info.dataAprovacao), "dd/MM", { locale: ptBR })}
+                                    </Badge>
+                                  )}
+                                  {info.status !== "aprovada" && info.status !== "sem_ficha" && (
+                                    <Badge variant="outline" className="text-[10px] text-amber-700 border-amber-300">
+                                      Ficha em revisão
+                                    </Badge>
+                                  )}
+                                  {info.status === "sem_ficha" && (
+                                    <Badge variant="outline" className="text-[10px] text-muted-foreground">
+                                      Sem ficha
+                                    </Badge>
+                                  )}
+                                  {pendente && (
+                                    <Badge className="bg-orange-500 hover:bg-orange-500 text-white text-[10px]">
+                                      Precificar
+                                    </Badge>
+                                  )}
+                                  {jaTem && (
+                                    <Badge variant="secondary" className="text-[10px]">
+                                      Já precificado
+                                    </Badge>
+                                  )}
+                                </>
+                              );
+                            })()}
                             {hasFullAccess && (
                               <Button
                                 variant="ghost"
