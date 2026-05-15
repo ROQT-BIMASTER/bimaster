@@ -559,6 +559,16 @@ export function MatrizPrecosComparativa() {
       resultado = resultado.filter(row => row.precos[filtroTabela] !== undefined);
     }
 
+    // Filtrar por tipo (kit vs unidade)
+    if (filtroTipo !== "all") {
+      resultado = resultado.filter(row => {
+        const isKit = (row.produto.componentesCount || 0) > 0
+          || row.produto.tipo === "DISPLAY"
+          || (row.produto.itens_display || 0) > 1;
+        return filtroTipo === "kit" ? isKit : !isKit;
+      });
+    }
+
     // Ordenar
     resultado.sort((a, b) => {
       let comparacao = 0;
