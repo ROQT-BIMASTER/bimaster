@@ -245,13 +245,14 @@ export default function FabricaProdutosAcabados() {
     return linhas as string[];
   }, [produtos]);
 
-  const temFiltrosAtivos = filtroMarca !== "none" || filtroLinha !== "none" || filtroTipo !== "none" || filtroStatusFicha !== "none" || !!dataInicio || !!dataFim;
+  const temFiltrosAtivos = filtroMarca !== "none" || filtroLinha !== "none" || filtroTipo !== "none" || filtroStatusFicha !== "none" || filtroProvador !== "todos" || !!dataInicio || !!dataFim;
 
   const limparFiltros = () => {
     setFiltroMarca("none");
     setFiltroLinha("none");
     setFiltroTipo("none");
     setFiltroStatusFicha("none");
+    setFiltroProvador("todos");
     setDataInicio("");
     setDataFim("");
     setBusca("");
