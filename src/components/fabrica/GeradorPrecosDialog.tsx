@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { calcularPrecosProdutos, formatarMoeda, buscarCustoFichaProduto, CustoComposicao, reverseMarkup, calcularMargemLucro, formatarMarkupLabel } from "@/lib/fabrica/pricing-calculator";
@@ -36,6 +37,8 @@ interface ProdutoData {
   nome: string;
   origem: string | null;
   linha: string | null;
+  marca: string | null;
+  tipo: string | null;
 }
 
 interface Props {
@@ -62,6 +65,10 @@ export function GeradorPrecosDialog({ open, onOpenChange, tabela, onSuccess }: P
   const [buscaProduto, setBuscaProduto] = useState("");
   const [origemSelecionada, setOrigemSelecionada] = useState<'nacional' | 'importado' | null>(null);
   const [linhaFiltro, setLinhaFiltro] = useState<string>("todas");
+  const [marcaFiltro, setMarcaFiltro] = useState<string>("todas");
+  const [tipoFiltro, setTipoFiltro] = useState<"todos" | "kit" | "unitario">("todos");
+  const [dataAprovacaoInicio, setDataAprovacaoInicio] = useState<string>("");
+  const [dataAprovacaoFim, setDataAprovacaoFim] = useState<string>("");
   const [fichaStatusMap, setFichaStatusMap] = useState<Record<string, FichaStatusInfo>>({});
   const [produtosComPrecoNaTabela, setProdutosComPrecoNaTabela] = useState<Set<string>>(new Set());
   const [filtroPendentes, setFiltroPendentes] = useState(false);
@@ -97,6 +104,11 @@ export function GeradorPrecosDialog({ open, onOpenChange, tabela, onSuccess }: P
       setFiltroPendentes(false);
       setFiltroAprovadas(false);
       setFiltroRecentes(false);
+      setMarcaFiltro("todas");
+      setLinhaFiltro("todas");
+      setTipoFiltro("todos");
+      setDataAprovacaoInicio("");
+      setDataAprovacaoFim("");
     }
   }, [open, tabela]);
 
@@ -147,7 +159,7 @@ export function GeradorPrecosDialog({ open, onOpenChange, tabela, onSuccess }: P
       // Buscar apenas produtos acabados finalizados
       let query = supabase
         .from("fabrica_produtos")
-        .select("id, codigo, nome, origem, linha")
+        .select("id, codigo, nome, origem, linha, marca, tipo")
         .eq("tipo", "ACABADO")
         .eq("ativo", true);
 
@@ -458,7 +470,13 @@ export function GeradorPrecosDialog({ open, onOpenChange, tabela, onSuccess }: P
     }
   };
 
-  const linhasDisponiveis = [...new Set(produtos.map(p => p.linha).filter(Boolean) as string[])].sort();
+  const marcasDisponiveis = [...new Set(produtos.map(p => p.marca).filter(Boolean) as string[])].sort();
+  const linhasDisponiveis = [...new Set(
+    produtos
+      .filter(p => marcaFiltro === "todas" || p.marca === marcaFiltro)
+      .map(p => p.linha)
+      .filter(Boolean) as string[]
+  )].sort();
 
   const produtosFiltradosPorBusca = produtos?.filter(produto => {
     const matchBusca = !buscaProduto || 
@@ -466,8 +484,26 @@ export function GeradorPrecosDialog({ open, onOpenChange, tabela, onSuccess }: P
       produto.codigo?.toLowerCase().includes(buscaProduto.toLowerCase());
     
     const matchLinha = linhaFiltro === "todas" || produto.linha === linhaFiltro;
-    
-    return matchBusca && matchLinha;
+    const matchMarca = marcaFiltro === "todas" || produto.marca === marcaFiltro;
+    const isKit = (produto.tipo || "").toUpperCase() === "DISPLAY";
+    const matchTipo =
+      tipoFiltro === "todos" ||
+      (tipoFiltro === "kit" && isKit) ||
+      (tipoFiltro === "unitario" && !isKit);
+
+    // Filtro de data de aprovação (somente quando há ficha aprovada)
+    let matchData = true;
+    if (dataAprovacaoInicio || dataAprovacaoFim) {
+      const info = fichaStatusMap[produto.id];
+      const dataAprov = info?.dataAprovacao ? info.dataAprovacao.slice(0, 10) : null;
+      if (!dataAprov) matchData = false;
+      else {
+        if (dataAprovacaoInicio && dataAprov < dataAprovacaoInicio) matchData = false;
+        if (dataAprovacaoFim && dataAprov > dataAprovacaoFim) matchData = false;
+      }
+    }
+
+    return matchBusca && matchLinha && matchMarca && matchTipo && matchData;
   }) || [];
 
   // Apply granular access filtering
@@ -657,19 +693,65 @@ export function GeradorPrecosDialog({ open, onOpenChange, tabela, onSuccess }: P
 
           {/* Lista de Produtos */}
           <div>
-            <div className="flex items-center justify-between mb-2">
-              <Label>Produtos</Label>
-              <div className="flex items-center gap-3">
+            <div className="flex items-center justify-between mb-2 gap-3 flex-wrap">
+              <Label className="shrink-0">Produtos</Label>
+              <div className="flex items-center gap-2 flex-wrap">
+                <ToggleGroup
+                  type="single"
+                  value={tipoFiltro}
+                  onValueChange={(v) => v && setTipoFiltro(v as "todos" | "kit" | "unitario")}
+                  className="border rounded-md"
+                >
+                  <ToggleGroupItem value="todos" className="text-xs px-3 h-8">
+                    Todos
+                  </ToggleGroupItem>
+                  <ToggleGroupItem
+                    value="unitario"
+                    className="text-xs px-3 h-8 data-[state=on]:bg-amber-600 data-[state=on]:text-white"
+                  >
+                    Unitários
+                  </ToggleGroupItem>
+                  <ToggleGroupItem
+                    value="kit"
+                    className="text-xs px-3 h-8 data-[state=on]:bg-blue-600 data-[state=on]:text-white"
+                  >
+                    Kits
+                  </ToggleGroupItem>
+                </ToggleGroup>
+
                 <Input
                   placeholder="Buscar produto..."
                   value={buscaProduto}
                   onChange={(e) => setBuscaProduto(e.target.value)}
-                  className="w-48"
+                  className="w-44 h-8 text-xs"
                 />
+
+                {marcasDisponiveis.length > 0 && (
+                  <Select
+                    value={marcaFiltro}
+                    onValueChange={(v) => {
+                      setMarcaFiltro(v);
+                      setLinhaFiltro("todas");
+                    }}
+                  >
+                    <SelectTrigger className="w-36 h-8 text-xs">
+                      <SelectValue placeholder="Marca" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="todas">Todas as marcas</SelectItem>
+                      {marcasDisponiveis.map((m) => (
+                        <SelectItem key={m} value={m}>
+                          {m}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+
                 {linhasDisponiveis.length > 0 && (
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1">
                     <Select value={linhaFiltro} onValueChange={setLinhaFiltro}>
-                      <SelectTrigger className="w-44">
+                      <SelectTrigger className="w-36 h-8 text-xs">
                         <SelectValue placeholder="Linha" />
                       </SelectTrigger>
                       <SelectContent>
@@ -688,34 +770,76 @@ export function GeradorPrecosDialog({ open, onOpenChange, tabela, onSuccess }: P
                       <Button
                         variant="outline"
                         size="sm"
-                        className="h-9 whitespace-nowrap"
+                        className="h-8 px-2 whitespace-nowrap text-xs"
                         disabled={isBlocking || isUnblocking}
                         onClick={() => {
                           const block = getBlockForLine(linhaFiltro);
-                          if (block) {
-                            unblock(block.id);
-                          } else {
-                            blockLine(linhaFiltro);
-                          }
+                          if (block) unblock(block.id);
+                          else blockLine(linhaFiltro);
                         }}
                       >
                         {getBlockForLine(linhaFiltro) ? (
-                          <><LockOpen className="h-3.5 w-3.5 mr-1 text-green-600" /> Desbloquear Linha</>
+                          <><LockOpen className="h-3.5 w-3.5 mr-1 text-green-600" /> Desbloquear</>
                         ) : (
-                          <><Lock className="h-3.5 w-3.5 mr-1 text-red-500" /> Bloquear Linha</>
+                          <><Lock className="h-3.5 w-3.5 mr-1 text-red-500" /> Bloquear</>
                         )}
                       </Button>
                     )}
                   </div>
                 )}
-                <div className="flex items-center space-x-2">
+
+                {isFichaMode && (
+                  <div className="flex items-center gap-1">
+                    <span className="text-[11px] text-muted-foreground">Aprovada:</span>
+                    <Input
+                      type="date"
+                      value={dataAprovacaoInicio}
+                      onChange={(e) => setDataAprovacaoInicio(e.target.value)}
+                      className="w-36 h-8 text-xs"
+                      title="Data inicial"
+                    />
+                    <span className="text-[11px] text-muted-foreground">até</span>
+                    <Input
+                      type="date"
+                      value={dataAprovacaoFim}
+                      onChange={(e) => setDataAprovacaoFim(e.target.value)}
+                      className="w-36 h-8 text-xs"
+                      title="Data final"
+                    />
+                  </div>
+                )}
+
+                {(marcaFiltro !== "todas" ||
+                  linhaFiltro !== "todas" ||
+                  tipoFiltro !== "todos" ||
+                  dataAprovacaoInicio ||
+                  dataAprovacaoFim ||
+                  buscaProduto) && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 text-xs"
+                    onClick={() => {
+                      setMarcaFiltro("todas");
+                      setLinhaFiltro("todas");
+                      setTipoFiltro("todos");
+                      setDataAprovacaoInicio("");
+                      setDataAprovacaoFim("");
+                      setBuscaProduto("");
+                    }}
+                  >
+                    Limpar
+                  </Button>
+                )}
+
+                <div className="flex items-center space-x-2 pl-2 border-l">
                   <Checkbox
                     id="selecionar_todos"
                     checked={produtosSelecionados.length === produtosFiltrados.length && produtosFiltrados.length > 0}
                     onCheckedChange={handleSelecionarTodos}
                   />
-                  <Label htmlFor="selecionar_todos" className="font-normal cursor-pointer whitespace-nowrap">
-                    Selecionar todos
+                  <Label htmlFor="selecionar_todos" className="font-normal cursor-pointer whitespace-nowrap text-xs">
+                    Selecionar todos ({produtosFiltrados.length})
                   </Label>
                 </div>
               </div>
