@@ -357,7 +357,7 @@ export function useFichaRevisaoDiretoria() {
         .from("fabrica_ficha_custo_revisoes")
         .select(`
           *,
-          produto:fabrica_produtos(id, nome, codigo, origem, marca, linha, tipo)
+          produto:fabrica_produtos(id, nome, codigo, origem, marca, linha, tipo, is_provador)
         `)
         .order(statusFiltro === "aprovada" ? "revisado_em" : "submetido_em", { ascending: false });
 
