@@ -3,6 +3,7 @@ import { useSystemProfiles } from "@/hooks/useSystemProfiles";
 import { formatRelativeTime } from "@/lib/formatters";
 import { useUserRole } from "@/hooks/useUserRole";
 import { supabase } from "@/integrations/supabase/client";
+import { custoTotalDoSnapshot } from "@/lib/fabrica/ficha-custo-snapshot";
 import { useSupabaseQuery } from "@/hooks/useSupabaseQuery";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { usePageBgColor } from "@/components/shared/PageBgCustomizer";
@@ -210,8 +211,8 @@ export default function FabricaProdutosAcabados() {
     revisoes.forEach((r: any) => {
       if (!map.has(r.produto_id) && r.snapshot_totais) {
         const totais = typeof r.snapshot_totais === 'string' ? JSON.parse(r.snapshot_totais) : r.snapshot_totais;
-        const custo = totais?.custoTotal ?? totais?.custoFinalTotal;
-        if (custo) map.set(r.produto_id, Number(custo));
+        const custo = custoTotalDoSnapshot(totais);
+        if (custo) map.set(r.produto_id, custo);
       }
     });
     return map;
