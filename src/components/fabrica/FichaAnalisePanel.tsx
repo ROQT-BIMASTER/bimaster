@@ -28,7 +28,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { downloadStorageBlob, triggerBlobDownload } from "@/lib/utils/storage-download";
 import { StoragePreviewDialog } from "@/components/fabrica/StoragePreviewDialog";
-import { custoTotalDoSnapshot } from "@/lib/fabrica/ficha-custo-snapshot";
+import { custoTotalDoSnapshot, ipiDoSnapshot } from "@/lib/fabrica/ficha-custo-snapshot";
 
 interface ApontamentoForm {
   insumo_id: string;
@@ -502,7 +502,7 @@ export function FichaAnalisePanel({ ficha, processando, onAprovar, onSolicitarRe
                                 </TableBody>
                               </Table>
                             </div>
-                            <div className="grid grid-cols-4 gap-2 mt-2">
+                            <div className="grid grid-cols-5 gap-2 mt-2">
                               <div className="p-2 bg-muted rounded text-center">
                                 <p className="text-[10px] text-muted-foreground">NF</p>
                                 <p className="font-bold text-xs">{formatarMoeda((v.snapshot_totais?.totalNF || 0) + (v.snapshot_totais?.markupNF || 0))}</p>
@@ -514,6 +514,10 @@ export function FichaAnalisePanel({ ficha, processando, onAprovar, onSolicitarRe
                               <div className="p-2 bg-muted rounded text-center">
                                 <p className="text-[10px] text-muted-foreground">Condição</p>
                                 <p className="font-bold text-xs">{formatarMoeda((v.snapshot_totais?.totalCondicao || 0) + (v.snapshot_totais?.markupCondicao || 0))}</p>
+                              </div>
+                              <div className="p-2 bg-muted rounded text-center">
+                                <p className="text-[10px] text-muted-foreground">IPI</p>
+                                <p className="font-bold text-xs">{formatarMoeda(ipiDoSnapshot(v.snapshot_totais))}</p>
                               </div>
                               <div className="p-2 bg-primary/10 rounded text-center border border-primary/30">
                                 <p className="text-[10px] text-muted-foreground">Custo Total</p>
