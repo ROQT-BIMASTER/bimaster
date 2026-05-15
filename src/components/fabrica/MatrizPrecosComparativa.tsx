@@ -1176,6 +1176,29 @@ export function MatrizPrecosComparativa() {
               </SelectContent>
             </Select>
 
+            {/* Período de cadastro na tabela Fábrica */}
+            <div className="flex items-center gap-1.5 pl-2 border-l">
+              <Label htmlFor="filtro-data-de" className="text-xs text-muted-foreground whitespace-nowrap">
+                Cadastro Fábrica:
+              </Label>
+              <Input
+                id="filtro-data-de"
+                type="date"
+                value={filtroDataDe}
+                onChange={(e) => setFiltroDataDe(e.target.value)}
+                className="w-[150px] h-9"
+                title="Data inicial (cadastro na tabela Fábrica)"
+              />
+              <span className="text-xs text-muted-foreground">até</span>
+              <Input
+                type="date"
+                value={filtroDataAte}
+                onChange={(e) => setFiltroDataAte(e.target.value)}
+                className="w-[150px] h-9"
+                title="Data final (cadastro na tabela Fábrica)"
+              />
+            </div>
+
             {temFiltrosAtivos && (
               <Button variant="ghost" size="sm" onClick={limparFiltros}>
                 <X className="h-4 w-4 mr-1" />
