@@ -39,6 +39,7 @@ interface ProdutoData {
   linha: string | null;
   marca: string | null;
   tipo: string | null;
+  is_provador?: boolean | null;
 }
 
 interface Props {
