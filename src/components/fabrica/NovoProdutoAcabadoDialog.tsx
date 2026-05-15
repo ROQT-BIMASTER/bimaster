@@ -213,6 +213,7 @@ export function NovoProdutoAcabadoDialog({ open, onOpenChange, produtoEdit, onSu
         ativo: true,
         origem: "nacional",
         tipo_rotulagem: "",
+        is_provador: false,
       });
       setGradeItems([]);
       setGradeItems([]);
