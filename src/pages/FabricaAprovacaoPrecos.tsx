@@ -330,11 +330,12 @@ export default function FabricaAprovacaoPrecos() {
       queryClient.invalidateQueries({ queryKey: ["tabelas-preco"] });
       queryClient.invalidateQueries({ queryKey: ["fabrica-tabelas-preco"] });
       setShowRejeitar(false);
+      setSenhaRejeitar("");
       setTabelaSelecionada(null);
       setMotivoRejeicao("");
     },
     onError: (error: any) => {
-      toast.error("Erro ao rejeitar tabela: " + error.message);
+      toast.error(error.message || "Erro ao rejeitar tabela");
     },
   });
 
