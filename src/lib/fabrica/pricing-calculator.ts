@@ -17,6 +17,12 @@ export interface CustoComposicao {
     subtotal: number;
     markup: number;
     custo_total: number;
+    /** % de IPI Saída aplicado (informativo). */
+    ipi_percentual?: number;
+    /** Valor de IPI já incluído no custo_total quando incluir_ipi_no_custo=true. */
+    ipi_valor?: number;
+    /** Indica se o custo_total já contempla IPI. */
+    inclui_ipi?: boolean;
   };
 }
 
