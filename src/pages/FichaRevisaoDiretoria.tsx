@@ -657,6 +657,16 @@ export default function FichaRevisaoDiretoria() {
                             <TableCell><Badge variant="outline">v{ficha.versao}</Badge></TableCell>
                             <TableCell>{statusBadge}</TableCell>
                             <TableCell>{dataExibida}</TableCell>
+                            <TableCell className="text-xs">
+                              {ficha.submetido_por
+                                ? <span title={ficha.submetido_em ? new Date(ficha.submetido_em).toLocaleString("pt-BR") : ""}>{profilesMap[ficha.submetido_por] || "—"}</span>
+                                : <span className="text-muted-foreground">—</span>}
+                            </TableCell>
+                            <TableCell className="text-xs">
+                              {ficha.revisado_por && ficha.status === "aprovada"
+                                ? <span title={ficha.revisado_em ? new Date(ficha.revisado_em).toLocaleString("pt-BR") : ""}>{profilesMap[ficha.revisado_por] || "—"}</span>
+                                : <span className="text-muted-foreground">—</span>}
+                            </TableCell>
                             <TableCell className="font-semibold">{formatarMoeda(custoTotalDoSnapshot(ficha.snapshot_totais))}</TableCell>
                             <TableCell className="text-right">
                               <Button size="sm" variant={fichaAberta?.id === ficha.id ? "default" : "outline"} onClick={() => setFichaAberta(fichaAberta?.id === ficha.id ? null : ficha)}>
