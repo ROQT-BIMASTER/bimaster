@@ -64,6 +64,10 @@ export function GeradorPrecosDialog({ open, onOpenChange, tabela, onSuccess }: P
   const [buscaProduto, setBuscaProduto] = useState("");
   const [origemSelecionada, setOrigemSelecionada] = useState<'nacional' | 'importado' | null>(null);
   const [linhaFiltro, setLinhaFiltro] = useState<string>("todas");
+  const [marcaFiltro, setMarcaFiltro] = useState<string>("todas");
+  const [tipoFiltro, setTipoFiltro] = useState<"todos" | "kit" | "unitario">("todos");
+  const [dataAprovacaoInicio, setDataAprovacaoInicio] = useState<string>("");
+  const [dataAprovacaoFim, setDataAprovacaoFim] = useState<string>("");
   const [fichaStatusMap, setFichaStatusMap] = useState<Record<string, FichaStatusInfo>>({});
   const [produtosComPrecoNaTabela, setProdutosComPrecoNaTabela] = useState<Set<string>>(new Set());
   const [filtroPendentes, setFiltroPendentes] = useState(false);
