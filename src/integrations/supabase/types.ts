@@ -45469,6 +45469,14 @@ export type Database = {
         Returns: Json
       }
       rpc_aprovar_lote_versao: { Args: { p_versao_id: string }; Returns: Json }
+      rpc_aprovar_lote_versao_parcial: {
+        Args: {
+          p_motivo_rejeicao?: string
+          p_produto_ids_aprovados: string[]
+          p_versao_id: string
+        }
+        Returns: Json
+      }
       rpc_avancar_etapa_aprovacao: {
         Args: {
           p_comentario?: string
