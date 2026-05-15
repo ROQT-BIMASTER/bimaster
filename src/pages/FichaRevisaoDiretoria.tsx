@@ -33,7 +33,6 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { ChartContainer } from "@/components/ui/chart";
 import { format, startOfDay, startOfMonth, startOfYear, subDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { custoTotalDoSnapshot } from "@/lib/fabrica/ficha-custo-snapshot";
 
 export default function FichaRevisaoDiretoria() {
   const navigate = useNavigate();
@@ -594,7 +593,7 @@ export default function FichaRevisaoDiretoria() {
                             <TableCell><Badge variant="outline">v{ficha.versao}</Badge></TableCell>
                             <TableCell>{statusBadge}</TableCell>
                             <TableCell>{dataExibida}</TableCell>
-                            <TableCell className="font-semibold">{formatarMoeda(custoTotalDoSnapshot(ficha.snapshot_totais))}</TableCell>
+                            <TableCell className="font-semibold">{formatarMoeda(ficha.snapshot_totais?.custoTotal ?? ficha.snapshot_totais?.custoFinalTotal ?? 0)}</TableCell>
                             <TableCell className="text-right">
                               <Button size="sm" variant={fichaAberta?.id === ficha.id ? "default" : "outline"} onClick={() => setFichaAberta(fichaAberta?.id === ficha.id ? null : ficha)}>
                                 <Eye className="h-4 w-4 mr-1" /> {fichaAberta?.id === ficha.id ? "Fechar" : "Analisar"}

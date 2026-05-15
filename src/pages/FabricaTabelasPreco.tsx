@@ -16,9 +16,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Plus, DollarSign, Package, TrendingUp, Edit, Eye, Trash2, BarChart3, List, Percent, Bell, Grid3X3, HelpCircle, Shield, ListTodo, Layers, Table as TableIcon, LayoutGrid, ChevronDown, ChevronUp } from "lucide-react";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { Plus, DollarSign, Package, TrendingUp, Edit, Eye, Trash2, BarChart3, List, Percent, Bell, Grid3X3, HelpCircle, Shield, ListTodo, Layers } from "lucide-react";
 import { useScreenPermissions } from "@/hooks/useScreenPermissions";
 import { useUserPriceTableAccess } from "@/hooks/useUserPriceTableAccess";
 import { NovaTabelaPrecoDialog } from "@/components/fabrica/NovaTabelaPrecoDialog";
@@ -54,9 +52,6 @@ export default function FabricaTabelasPreco() {
   const [tabelaOverrides, setTabelaOverrides] = useState<any>(null);
   const [tabelaSelecionada, setTabelaSelecionada] = useState<any>(null);
   const [activeTab, setActiveTab] = useState("lista");
-  const [viewMode, setViewMode] = useState<"cards" | "table">("table");
-  const [showCadeia, setShowCadeia] = useState(false);
-  const [sortByHierarquia, setSortByHierarquia] = useState(true);
 
   const { data: tabelas, isLoading, refetch } = useQuery({
     queryKey: ["fabrica-tabelas-preco"],
@@ -175,32 +170,6 @@ export default function FabricaTabelasPreco() {
     (acc, t) => acc + (t.precos_count?.[0]?.count || 0),
     0
   ) || 0;
-
-  // Calcular profundidade na hierarquia (raiz = 0)
-  const depthMap = new Map<string, number>();
-  const computeDepth = (t: any, visited = new Set<string>()): number => {
-    if (depthMap.has(t.id)) return depthMap.get(t.id)!;
-    if (visited.has(t.id) || !t.tabela_base_id) {
-      depthMap.set(t.id, 0);
-      return 0;
-    }
-    const parent = (tabelas || []).find((p: any) => p.id === t.tabela_base_id);
-    if (!parent) { depthMap.set(t.id, 0); return 0; }
-    visited.add(t.id);
-    const d = 1 + computeDepth(parent, visited);
-    depthMap.set(t.id, d);
-    return d;
-  };
-  tabelasFiltradas.forEach((t: any) => computeDepth(t));
-
-  const tabelasOrdenadas = sortByHierarquia
-    ? [...tabelasFiltradas].sort((a: any, b: any) => {
-        const da = depthMap.get(a.id) ?? 0;
-        const db = depthMap.get(b.id) ?? 0;
-        if (da !== db) return da - db;
-        return (a.codigo || "").localeCompare(b.codigo || "");
-      })
-    : tabelasFiltradas;
 
   const handleEditarTabela = (tabela: any) => {
     setTabelaSelecionada(tabela);
@@ -372,113 +341,32 @@ export default function FabricaTabelasPreco() {
             </div>
 
             {/* Visualização em Cascata */}
-            {showCadeia && (
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0">
-                  <CardTitle>Cadeia de Precificação</CardTitle>
-                  <Button variant="ghost" size="sm" onClick={() => setShowCadeia(false)}>
-                    <ChevronUp className="h-4 w-4 mr-1" />Ocultar
-                  </Button>
-                </CardHeader>
-                <CardContent>
-                  <CadeiaPrecificacaoVisual tabelas={tabelasFiltradas} />
-                </CardContent>
-              </Card>
-            )}
+            <Card>
+              <CardHeader>
+                <CardTitle>Cadeia de Precificação</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <CadeiaPrecificacaoVisual tabelas={tabelasFiltradas} />
+              </CardContent>
+            </Card>
 
             {/* Lista de Tabelas */}
             <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 gap-2 flex-wrap">
+              <CardHeader>
                 <CardTitle>Todas as Tabelas</CardTitle>
-                <div className="flex items-center gap-2">
-                  {!showCadeia && (
-                    <Button variant="outline" size="sm" onClick={() => setShowCadeia(true)}>
-                      <ChevronDown className="h-4 w-4 mr-1" />Mostrar cadeia
-                    </Button>
-                  )}
-                  <Button
-                    variant={sortByHierarquia ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setSortByHierarquia(v => !v)}
-                    title="Ordenar por hierarquia (raiz → derivadas)"
-                  >
-                    <Layers className="h-4 w-4 mr-1" />Hierarquia
-                  </Button>
-                  <ToggleGroup type="single" value={viewMode} onValueChange={(v) => v && setViewMode(v as any)} size="sm">
-                    <ToggleGroupItem value="table" aria-label="Tabela"><TableIcon className="h-4 w-4" /></ToggleGroupItem>
-                    <ToggleGroupItem value="cards" aria-label="Cards"><LayoutGrid className="h-4 w-4" /></ToggleGroupItem>
-                  </ToggleGroup>
-                </div>
               </CardHeader>
               <CardContent>
                 {isLoading ? (
                   <div className="text-center py-8 text-muted-foreground">Carregando...</div>
-                ) : tabelasOrdenadas.length === 0 ? (
+                ) : tabelasFiltradas.length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground">
                     Nenhuma tabela de preço disponível
                   </div>
-                ) : viewMode === "table" ? (
-                  <div className="overflow-x-auto">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead className="w-[280px]">Tabela</TableHead>
-                          <TableHead>Código</TableHead>
-                          <TableHead>Status</TableHead>
-                          <TableHead>Aprovação</TableHead>
-                          <TableHead>Base</TableHead>
-                          <TableHead>Markup</TableHead>
-                          <TableHead className="text-right">Produtos</TableHead>
-                          <TableHead className="text-right">Ações</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {tabelasOrdenadas.map((tabela: any) => {
-                          const depth = depthMap.get(tabela.id) ?? 0;
-                          return (
-                            <TableRow key={tabela.id} className="text-xs">
-                              <TableCell className="py-2">
-                                <div className="flex items-center gap-2" style={{ paddingLeft: sortByHierarquia ? depth * 16 : 0 }}>
-                                  {sortByHierarquia && depth > 0 && <span className="text-muted-foreground">↳</span>}
-                                  <div>
-                                    <div className="font-medium">{tabela.nome}</div>
-                                    {tabela.descricao && <div className="text-muted-foreground text-[11px]">{tabela.descricao}</div>}
-                                  </div>
-                                </div>
-                              </TableCell>
-                              <TableCell className="py-2"><Badge variant="outline">{tabela.codigo}</Badge></TableCell>
-                              <TableCell className="py-2">
-                                <Badge variant={tabela.ativo ? "default" : "secondary"}>{tabela.ativo ? "Ativa" : "Inativa"}</Badge>
-                              </TableCell>
-                              <TableCell className="py-2">
-                                {tabela.status === 'draft' && <Badge variant="secondary">Rascunho</Badge>}
-                                {tabela.status === 'pending_approval' && <Badge className="bg-yellow-500">Aguardando</Badge>}
-                                {tabela.status === 'approved' && <Badge className="bg-green-600">Aprovada</Badge>}
-                              </TableCell>
-                              <TableCell className="py-2">{tabela.tipo_base === "custo_producao" ? "Custo de Produção" : tabela.tabela_base?.nome || "Manual"}</TableCell>
-                              <TableCell className="py-2">{getTipoMarkupLabel(tabela.tipo_markup, tabela.valor_markup)}</TableCell>
-                              <TableCell className="py-2 text-right">{tabela.precos_count?.[0]?.count || 0}</TableCell>
-                              <TableCell className="py-2 text-right">
-                                <div className="flex items-center justify-end gap-1">
-                                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleVisualizarPrecos(tabela)} title="Ver Preços"><Eye className="h-4 w-4" /></Button>
-                                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleGerarPrecos(tabela)} title="Gerar"><DollarSign className="h-4 w-4" /></Button>
-                                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setTabelaOverrides(tabela); setDialogOverrides(true); }} title="Overrides"><Layers className="h-4 w-4" /></Button>
-                                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleEditarTabela(tabela)} title="Editar"><Edit className="h-4 w-4" /></Button>
-                                  <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => handleExcluirTabela(tabela)} title="Excluir"><Trash2 className="h-4 w-4" /></Button>
-                                </div>
-                              </TableCell>
-                            </TableRow>
-                          );
-                        })}
-                      </TableBody>
-                    </Table>
-                  </div>
                 ) : (
                   <div className="space-y-4">
-                    {tabelasOrdenadas.map((tabela: any) => (
+                    {tabelasFiltradas.map((tabela) => (
                       <Card key={tabela.id} className="border-l-4" style={{
-                        borderLeftColor: tabela.ativo ? 'hsl(var(--primary))' : 'hsl(var(--muted))',
-                        marginLeft: sortByHierarquia ? (depthMap.get(tabela.id) ?? 0) * 24 : 0,
+                        borderLeftColor: tabela.ativo ? 'hsl(var(--primary))' : 'hsl(var(--muted))'
                       }}>
                         <CardContent className="p-4">
                           <div className="flex items-center justify-between">

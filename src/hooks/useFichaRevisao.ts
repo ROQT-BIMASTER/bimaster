@@ -109,12 +109,11 @@ export function useFichaRevisao(produtoId: string | undefined, configId: string 
 
   // Função auxiliar para calcular totais simples de uma ficha
   const calcularTotaisSimples = (insumosArr: any[], configObj: any) => {
-    let totalNF = 0, totalServico = 0, totalCondicao = 0, ipiInsumos = 0;
+    let totalNF = 0, totalServico = 0, totalCondicao = 0;
     insumosArr.forEach((i: any) => {
       totalNF += Number(i.custo_nf) || 0;
       totalServico += Number(i.custo_servico) || 0;
       totalCondicao += Number(i.custo_condicao) || 0;
-      ipiInsumos += Number(i.ipi_valor) || 0;
     });
     totalNF += Number(configObj.custo_mao_obra_nf) || 0;
     totalServico += Number(configObj.custo_mao_obra_servico) || 0;
@@ -128,15 +127,9 @@ export function useFichaRevisao(produtoId: string | undefined, configId: string 
     else baseMarkup = totalNF + totalServico;
 
     const markupValor = baseMarkup * (perc / 100);
-    const markupNF = base === "nf" || base === "nf_servico" || base === "total"
-      ? markupValor * (totalNF / (baseMarkup || 1))
-      : 0;
-    const pctIPISaida = Number(configObj?.ipi_percentual_saida) || 0;
-    const ipiSaidaConfig = (totalNF + markupNF) * (pctIPISaida / 100);
-    const totalIPI = ipiSaidaConfig + ipiInsumos;
-    const custoTotal = totalNF + totalServico + totalCondicao + markupValor + totalIPI;
+    const custoTotal = totalNF + totalServico + totalCondicao + markupValor;
 
-    return { totalNF, totalServico, totalCondicao, markupNF, markupServico: 0, markupCondicao: 0, totalIPI, ipi_percentual_saida: pctIPISaida, custoTotal };
+    return { totalNF, totalServico, totalCondicao, markupNF: base === "nf" || base === "nf_servico" || base === "total" ? markupValor * (totalNF / (baseMarkup || 1)) : 0, markupServico: 0, markupCondicao: 0, custoTotal };
   };
 
   // Função auxiliar para submeter uma única ficha
@@ -185,11 +178,6 @@ export function useFichaRevisao(produtoId: string | undefined, configId: string 
           custoTotal: totaisObj.custoTotal ?? totaisObj.custoFinalTotal ?? 0,
           totalIPI: Number((totaisObj as any).totalIPI) || 0,
           ipi_percentual_saida: Number((configObj as any)?.ipi_percentual_saida) || 0,
-          // useFichaCustoProduto.totais.custoTotal já compreende totalIPI (ver
-          // useFichaCustoProduto.ts onde custoTotal = subtotal + markup + totalIPI).
-          // calcularTotaisSimples também passa a embutir IPI no custoTotal a
-          // partir desta versão.
-          ipi_incluido: true,
           alteracoes_pendentes: alteracoesPendentes,
         } as any,
         submetido_por: userId, versao: novaVersao,
