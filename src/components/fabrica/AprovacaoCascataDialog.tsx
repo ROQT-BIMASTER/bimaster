@@ -139,11 +139,16 @@ export function AprovacaoCascataDialog({ open, onOpenChange, tabelaRaiz, produto
   const aprovarMutation = useMutation({
     mutationFn: async () => {
       if (!tabelaRaiz) throw new Error("Tabela raiz ausente");
-      const ids = escopoExpandido.map((p) => p.produto_id);
+      const ids = escopoExpandido.map((p) => p.produto_id).filter(Boolean);
+      if (ids.length === 0) {
+        throw new Error(
+          "Escopo vazio. Rejeite este lote e reenvie pela tela de geração de preços para garantir que apenas os produtos selecionados sejam aprovados."
+        );
+      }
       const { data, error } = await supabase.rpc("rpc_aprovar_cadeia_precos" as any, {
         p_tabela_raiz_id: tabelaRaiz.id,
         p_tabelas_dependentes: Array.from(selecionadas),
-        p_produto_ids: ids.length ? ids : null,
+        p_produto_ids: ids,
       });
       if (error) throw error;
       return data;
@@ -341,7 +346,8 @@ export function AprovacaoCascataDialog({ open, onOpenChange, tabelaRaiz, produto
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
           <Button
             className="bg-emerald-600 hover:bg-emerald-700"
-            disabled={invalidos.length > 0 || aprovarMutation.isPending}
+            disabled={invalidos.length > 0 || aprovarMutation.isPending || escopoExpandido.length === 0}
+            title={escopoExpandido.length === 0 ? "Escopo vazio — rejeite o lote e reenvie pela tela de geração" : undefined}
             onClick={() => aprovarMutation.mutate()}
           >
             <CheckCircle2 className="h-4 w-4 mr-2" />
