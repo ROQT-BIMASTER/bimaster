@@ -492,6 +492,11 @@ export function GeradorPrecosDialog({ open, onOpenChange, tabela, onSuccess }: P
       tipoFiltro === "todos" ||
       (tipoFiltro === "kit" && isKit) ||
       (tipoFiltro === "unitario" && !isKit);
+    const isProv = !!(produto as any).is_provador;
+    const matchUso =
+      usoFiltro === "todos" ||
+      (usoFiltro === "provador" && isProv) ||
+      (usoFiltro === "venda" && !isProv);
 
     // Filtro de data de aprovação (somente quando há ficha aprovada)
     let matchData = true;
