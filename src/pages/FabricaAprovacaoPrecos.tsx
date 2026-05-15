@@ -461,8 +461,7 @@ export default function FabricaAprovacaoPrecos() {
       toast.error(error.message || "Erro ao processar lote");
     },
   });
-
-
+  const getStatusBadge = (status: string) => {
     switch (status) {
       case "pending_approval":
         return <Badge variant="outline" className="gap-1"><Clock className="h-3 w-3" />Pendente</Badge>;
