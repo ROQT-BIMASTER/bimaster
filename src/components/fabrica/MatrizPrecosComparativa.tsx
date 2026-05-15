@@ -132,6 +132,12 @@ interface Produto {
   categoria: string | null;
   marca: string | null;
   linha: string | null;
+  tipo?: string | null;
+  itens_display?: number | null;
+  /** Quantidade de componentes filhos (kit). 0 = unidade. */
+  componentesCount?: number;
+  /** Detalhe dos componentes para tooltip. */
+  componentes?: Array<{ id: string; nome: string; codigo: string; quantidade: number }>;
 }
 
 interface MatrizRow {
@@ -288,6 +294,7 @@ export function MatrizPrecosComparativa() {
   const [filtroMarca, setFiltroMarca] = useState<string>("all");
   const [filtroLinha, setFiltroLinha] = useState<string>("all");
   const [filtroTabela, setFiltroTabela] = useState<string>("all");
+  const [filtroTipo, setFiltroTipo] = useState<"all" | "kit" | "unidade">("all");
   
   // Agrupamento
   const [agruparHabilitado, setAgruparHabilitado] = useState(false);
@@ -372,12 +379,37 @@ export function MatrizPrecosComparativa() {
           preco_limitado,
           preco_original_calculado,
           motivo_limite,
-          produto:fabrica_produtos!inner(id, nome, codigo, categoria, marca, linha)
+          produto:fabrica_produtos!inner(id, nome, codigo, categoria, marca, linha, tipo, itens_display)
         `)
         .eq("ativo", true);
 
       if (error) throw error;
       return data;
+    },
+  });
+
+  // Componentes (kit → unidades) — vinculação visual e cascata
+  const { data: kitComponentes } = useQuery({
+    queryKey: ["fabrica-kit-componentes-matriz"],
+    staleTime: 60_000,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("fabrica_produto_grade_itens")
+        .select(`
+          produto_pai_id,
+          quantidade,
+          filho:fabrica_produtos!fabrica_produto_grade_itens_produto_filho_id_fkey(id, nome, codigo)
+        `);
+      if (error) throw error;
+      const map = new Map<string, Array<{ id: string; nome: string; codigo: string; quantidade: number }>>();
+      (data || []).forEach((row: any) => {
+        const filho = row.filho;
+        if (!filho) return;
+        const arr = map.get(row.produto_pai_id) || [];
+        arr.push({ id: filho.id, nome: filho.nome, codigo: filho.codigo, quantidade: Number(row.quantidade) || 1 });
+        map.set(row.produto_pai_id, arr);
+      });
+      return map;
     },
   });
 
@@ -452,6 +484,7 @@ export function MatrizPrecosComparativa() {
       const produto = preco.produto as Produto;
 
       if (!produtosMap.has(produtoId)) {
+        const componentes = kitComponentes?.get(produto.id) || [];
         produtosMap.set(produtoId, {
           produto: {
             id: produto.id,
@@ -460,6 +493,10 @@ export function MatrizPrecosComparativa() {
             categoria: produto.categoria,
             marca: produto.marca || null,
             linha: produto.linha || null,
+            tipo: (produto as any).tipo || null,
+            itens_display: (produto as any).itens_display || null,
+            componentesCount: componentes.length,
+            componentes,
           },
           precos: {},
         });
@@ -522,6 +559,16 @@ export function MatrizPrecosComparativa() {
       resultado = resultado.filter(row => row.precos[filtroTabela] !== undefined);
     }
 
+    // Filtrar por tipo (kit vs unidade)
+    if (filtroTipo !== "all") {
+      resultado = resultado.filter(row => {
+        const isKit = (row.produto.componentesCount || 0) > 0
+          || row.produto.tipo === "DISPLAY"
+          || (row.produto.itens_display || 0) > 1;
+        return filtroTipo === "kit" ? isKit : !isKit;
+      });
+    }
+
     // Ordenar
     resultado.sort((a, b) => {
       let comparacao = 0;
@@ -539,7 +586,7 @@ export function MatrizPrecosComparativa() {
     });
 
     return resultado;
-  }, [precosData, tabelas, busca, ordenarPor, ordenarAsc, filtroMarca, filtroLinha, filtroTabela, baseMargemCalculo, precosOrigem, isPrivilegedUser, isProductBlocked]);
+  }, [precosData, tabelas, busca, ordenarPor, ordenarAsc, filtroMarca, filtroLinha, filtroTabela, filtroTipo, baseMargemCalculo, precosOrigem, isPrivilegedUser, isProductBlocked, kitComponentes]);
 
   // Agrupar dados se habilitado
   const dadosAgrupados = useMemo(() => {
@@ -609,9 +656,10 @@ export function MatrizPrecosComparativa() {
     setFiltroMarca("all");
     setFiltroLinha("all");
     setFiltroTabela("all");
+    setFiltroTipo("all");
   };
 
-  const temFiltrosAtivos = busca || filtroMarca !== "all" || filtroLinha !== "all" || filtroTabela !== "all";
+  const temFiltrosAtivos = busca || filtroMarca !== "all" || filtroLinha !== "all" || filtroTabela !== "all" || filtroTipo !== "all";
 
   const handlePrecoClick = (produtoId: string, produtoNome: string, tabelaId: string, tabelaNome: string) => {
     // Usuários com restrições de tabela não podem ver o histórico/cadeia de cálculo
@@ -922,7 +970,14 @@ export function MatrizPrecosComparativa() {
       <TableRow key={row.produto.id} className="hover:bg-muted/30">
         <TableCell className="sticky left-0 z-10 bg-background font-medium">
           <div>
-            <span className="block">{row.produto.nome}</span>
+            <span className="block">
+              {row.produto.nome}
+              {(row.produto.componentesCount || 0) > 0 && (
+                <Badge variant="secondary" className="ml-2 text-[10px]" title={(row.produto.componentes || []).map(c => `${c.quantidade}x ${c.nome} (${c.codigo})`).join("\n")}>
+                  Kit · {row.produto.componentesCount}
+                </Badge>
+              )}
+            </span>
             {row.produto.categoria && (
               <span className="text-xs text-muted-foreground">
                 {row.produto.categoria}
@@ -1076,6 +1131,17 @@ export function MatrizPrecosComparativa() {
                 {tabelas?.map(t => (
                   <SelectItem key={t.id} value={t.id}>{t.nome}</SelectItem>
                 ))}
+              </SelectContent>
+            </Select>
+
+            <Select value={filtroTipo} onValueChange={(v) => setFiltroTipo(v as "all" | "kit" | "unidade")}>
+              <SelectTrigger className="w-[140px]">
+                <SelectValue placeholder="Tipo" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os Tipos</SelectItem>
+                <SelectItem value="kit">Kits</SelectItem>
+                <SelectItem value="unidade">Unidades</SelectItem>
               </SelectContent>
             </Select>
 
