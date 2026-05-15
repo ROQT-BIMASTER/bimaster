@@ -610,7 +610,7 @@ export function GeradorPrecosDialog({ open, onOpenChange, tabela, onSuccess }: P
     }
     return lista;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [produtosFiltradosBase, isFichaMode, filtroPendentes, filtroAprovadas, filtroRecentes, filtroUltimoLoteBase, ultimoLoteBase, fichaStatusMap, produtosComPrecoNaTabela]);
+  }, [produtosFiltradosBase, isFichaMode, filtroPendentes, filtroAprovadas, filtroRecentes, filtroUltimoLoteBase, loteSelecionado, fichaStatusMap, produtosComPrecoNaTabela]);
 
   const totalAprovadas = useMemo(
     () => produtosFiltradosBase.filter((p) => getFichaInfo(p.id).status === "aprovada").length,
