@@ -23,6 +23,7 @@ import { Loader2, CheckCircle2, Factory, Ship, AlertTriangle, Check, FileText, L
 import { useUserPriceTableAccess } from "@/hooks/useUserPriceTableAccess";
 import { useVisibilityBlocks } from "@/hooks/useVisibilityBlocks";
 import { GeradorPrecosFichaInfo } from "./GeradorPrecosFichaInfo";
+import { ProvadorBadge } from "./ProvadorBadge";
 import { format, differenceInDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
