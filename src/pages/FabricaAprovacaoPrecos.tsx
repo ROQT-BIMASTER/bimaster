@@ -614,6 +614,7 @@ export default function FabricaAprovacaoPrecos() {
                       <th className="p-3 text-right">Custo Base</th>
                       <th className="p-3 text-right">Preço Final</th>
                       <th className="p-3 text-right">Margem</th>
+                      <th className="p-3 text-center">Origem</th>
                     </tr>
                   </thead>
                   <tbody>
