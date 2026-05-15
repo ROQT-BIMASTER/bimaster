@@ -427,7 +427,42 @@ export default function FabricaAprovacaoPrecos() {
     },
   });
 
-  const getStatusBadge = (status: string) => {
+  // Mutation por LOTE (versão): aprovação ou rejeição cirúrgica que age só naquela submissão.
+  const loteMutation = useMutation({
+    mutationFn: async () => {
+      if (!loteAcao) throw new Error("Sem lote selecionado");
+      const ok = await verifyCurrentUserPassword(senhaLote);
+      if (!ok) throw new Error("Senha incorreta. Confirme sua identidade para prosseguir.");
+      if (loteAcao.tipo === "aprovar") {
+        const { error } = await supabase.rpc("rpc_aprovar_lote_versao" as any, {
+          p_versao_id: loteAcao.loteId,
+        });
+        if (error) throw error;
+      } else {
+        if (!motivoLote.trim()) throw new Error("Informe o motivo da rejeição.");
+        const { error } = await supabase.rpc("rpc_rejeitar_lote_versao" as any, {
+          p_versao_id: loteAcao.loteId,
+          p_motivo: motivoLote,
+        });
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      toast.success(loteAcao?.tipo === "aprovar" ? "Lote aprovado" : "Lote rejeitado");
+      queryClient.invalidateQueries({ queryKey: ["tabelas-pendentes-aprovacao"] });
+      queryClient.invalidateQueries({ queryKey: ["lotes-pendentes-por-tabela"] });
+      queryClient.invalidateQueries({ queryKey: ["tabelas-preco"] });
+      queryClient.invalidateQueries({ queryKey: ["fabrica-tabelas-preco"] });
+      setLoteAcao(null);
+      setSenhaLote("");
+      setMotivoLote("");
+    },
+    onError: (error: any) => {
+      toast.error(error.message || "Erro ao processar lote");
+    },
+  });
+
+
     switch (status) {
       case "pending_approval":
         return <Badge variant="outline" className="gap-1"><Clock className="h-3 w-3" />Pendente</Badge>;
