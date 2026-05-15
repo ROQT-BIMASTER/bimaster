@@ -123,6 +123,56 @@ export default function FabricaAprovacaoPrecos() {
     }
   }, [queryError]);
 
+  // Buscar a versão mais recente (com escopo + nomes de produtos) de cada tabela pendente,
+  // para exibir o preview do que está realmente sendo submetido em cada card.
+  const { data: previewPorTabela } = useQuery({
+    queryKey: ["preview-tabelas-pendentes", (tabelasPendentes || []).map((t: any) => t.id).join(",")],
+    queryFn: async () => {
+      const ids = (tabelasPendentes || []).map((t: any) => t.id);
+      if (ids.length === 0) return {} as Record<string, { produtos: { id: string; nome: string; codigo: string | null }[]; total: number; escopoExplicito: boolean }>;
+
+      const { data: versoes } = await supabase
+        .from("fabrica_tabelas_preco_versoes")
+        .select("id, tabela_id, versao, precos_snapshot, produto_ids_escopo, created_at")
+        .in("tabela_id", ids)
+        .order("versao", { ascending: false });
+
+      const ultimaPorTabela = new Map<string, any>();
+      (versoes || []).forEach((v: any) => {
+        if (!ultimaPorTabela.has(v.tabela_id)) ultimaPorTabela.set(v.tabela_id, v);
+      });
+
+      const todosProdutoIds = new Set<string>();
+      ultimaPorTabela.forEach((v: any) => {
+        const escopo = (v.produto_ids_escopo as string[] | null) || null;
+        if (escopo && escopo.length > 0) {
+          escopo.forEach((id) => id && todosProdutoIds.add(id));
+        } else if (Array.isArray(v.precos_snapshot)) {
+          v.precos_snapshot.forEach((p: any) => p?.produto_id && todosProdutoIds.add(p.produto_id));
+        }
+      });
+
+      const { data: produtos } = todosProdutoIds.size > 0
+        ? await supabase.from("fabrica_produtos").select("id, nome, codigo").in("id", Array.from(todosProdutoIds))
+        : { data: [] as any[] };
+      const prodMap = new Map<string, { id: string; nome: string; codigo: string | null }>(
+        (produtos || []).map((p: any) => [p.id, { id: p.id, nome: p.nome, codigo: p.codigo }])
+      );
+
+      const result: Record<string, { produtos: { id: string; nome: string; codigo: string | null }[]; total: number; escopoExplicito: boolean }> = {};
+      ultimaPorTabela.forEach((v: any, tabelaId: string) => {
+        const escopo = (v.produto_ids_escopo as string[] | null) || null;
+        const ids = escopo && escopo.length > 0
+          ? escopo
+          : Array.from(new Set((v.precos_snapshot as any[] || []).map((p: any) => p?.produto_id).filter(Boolean)));
+        const produtos = ids.map((id) => prodMap.get(id) || { id, nome: id, codigo: null });
+        result[tabelaId] = { produtos, total: produtos.length, escopoExplicito: !!(escopo && escopo.length > 0) };
+      });
+      return result;
+    },
+    enabled: !!tabelasPendentes && tabelasPendentes.length > 0,
+  });
+
   // Buscar histórico de versões de uma tabela
   const { data: versoes } = useQuery({
     queryKey: ["versoes-tabela", tabelaSelecionada?.id],
@@ -417,6 +467,33 @@ export default function FabricaAprovacaoPrecos() {
                         {tabela.tipo_markup === "multiplicador" && `x${tabela.valor_markup}`}
                         {tabela.tipo_markup === "valor_fixo" && `+${formatarMoeda(tabela.valor_markup)}`}
                       </p>
+                      {previewPorTabela && previewPorTabela[tabela.id] && (
+                        <div className="mt-3 rounded-md border bg-muted/40 p-3">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-xs font-medium text-foreground">
+                              Produto(s) submetido(s) ({previewPorTabela[tabela.id].total})
+                            </span>
+                            {!previewPorTabela[tabela.id].escopoExplicito && (
+                              <Badge variant="outline" className="text-[10px] text-amber-600 border-amber-300">
+                                Escopo legado — pode incluir produtos antigos. Rejeite e reenvie para corrigir.
+                              </Badge>
+                            )}
+                          </div>
+                          <div className="flex flex-wrap gap-1.5">
+                            {previewPorTabela[tabela.id].produtos.slice(0, 12).map((p) => (
+                              <Badge key={p.id} variant="secondary" className="text-xs font-normal">
+                                {p.nome}
+                                {p.codigo && <span className="ml-1 text-muted-foreground">({p.codigo})</span>}
+                              </Badge>
+                            ))}
+                            {previewPorTabela[tabela.id].total > 12 && (
+                              <Badge variant="outline" className="text-xs">
+                                +{previewPorTabela[tabela.id].total - 12} mais
+                              </Badge>
+                            )}
+                          </div>
+                        </div>
+                      )}
                     </div>
                     <div className="flex gap-2">
                       <Button
