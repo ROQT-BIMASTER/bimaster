@@ -372,32 +372,113 @@ export default function FabricaTabelasPreco() {
             </div>
 
             {/* Visualização em Cascata */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Cadeia de Precificação</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <CadeiaPrecificacaoVisual tabelas={tabelasFiltradas} />
-              </CardContent>
-            </Card>
+            {showCadeia && (
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0">
+                  <CardTitle>Cadeia de Precificação</CardTitle>
+                  <Button variant="ghost" size="sm" onClick={() => setShowCadeia(false)}>
+                    <ChevronUp className="h-4 w-4 mr-1" />Ocultar
+                  </Button>
+                </CardHeader>
+                <CardContent>
+                  <CadeiaPrecificacaoVisual tabelas={tabelasFiltradas} />
+                </CardContent>
+              </Card>
+            )}
 
             {/* Lista de Tabelas */}
             <Card>
-              <CardHeader>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 gap-2 flex-wrap">
                 <CardTitle>Todas as Tabelas</CardTitle>
+                <div className="flex items-center gap-2">
+                  {!showCadeia && (
+                    <Button variant="outline" size="sm" onClick={() => setShowCadeia(true)}>
+                      <ChevronDown className="h-4 w-4 mr-1" />Mostrar cadeia
+                    </Button>
+                  )}
+                  <Button
+                    variant={sortByHierarquia ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setSortByHierarquia(v => !v)}
+                    title="Ordenar por hierarquia (raiz → derivadas)"
+                  >
+                    <Layers className="h-4 w-4 mr-1" />Hierarquia
+                  </Button>
+                  <ToggleGroup type="single" value={viewMode} onValueChange={(v) => v && setViewMode(v as any)} size="sm">
+                    <ToggleGroupItem value="table" aria-label="Tabela"><TableIcon className="h-4 w-4" /></ToggleGroupItem>
+                    <ToggleGroupItem value="cards" aria-label="Cards"><LayoutGrid className="h-4 w-4" /></ToggleGroupItem>
+                  </ToggleGroup>
+                </div>
               </CardHeader>
               <CardContent>
                 {isLoading ? (
                   <div className="text-center py-8 text-muted-foreground">Carregando...</div>
-                ) : tabelasFiltradas.length === 0 ? (
+                ) : tabelasOrdenadas.length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground">
                     Nenhuma tabela de preço disponível
                   </div>
+                ) : viewMode === "table" ? (
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="w-[280px]">Tabela</TableHead>
+                          <TableHead>Código</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead>Aprovação</TableHead>
+                          <TableHead>Base</TableHead>
+                          <TableHead>Markup</TableHead>
+                          <TableHead className="text-right">Produtos</TableHead>
+                          <TableHead className="text-right">Ações</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {tabelasOrdenadas.map((tabela: any) => {
+                          const depth = depthMap.get(tabela.id) ?? 0;
+                          return (
+                            <TableRow key={tabela.id} className="text-xs">
+                              <TableCell className="py-2">
+                                <div className="flex items-center gap-2" style={{ paddingLeft: sortByHierarquia ? depth * 16 : 0 }}>
+                                  {sortByHierarquia && depth > 0 && <span className="text-muted-foreground">↳</span>}
+                                  <div>
+                                    <div className="font-medium">{tabela.nome}</div>
+                                    {tabela.descricao && <div className="text-muted-foreground text-[11px]">{tabela.descricao}</div>}
+                                  </div>
+                                </div>
+                              </TableCell>
+                              <TableCell className="py-2"><Badge variant="outline">{tabela.codigo}</Badge></TableCell>
+                              <TableCell className="py-2">
+                                <Badge variant={tabela.ativo ? "default" : "secondary"}>{tabela.ativo ? "Ativa" : "Inativa"}</Badge>
+                              </TableCell>
+                              <TableCell className="py-2">
+                                {tabela.status === 'draft' && <Badge variant="secondary">Rascunho</Badge>}
+                                {tabela.status === 'pending_approval' && <Badge className="bg-yellow-500">Aguardando</Badge>}
+                                {tabela.status === 'approved' && <Badge className="bg-green-600">Aprovada</Badge>}
+                              </TableCell>
+                              <TableCell className="py-2">{tabela.tipo_base === "custo_producao" ? "Custo de Produção" : tabela.tabela_base?.nome || "Manual"}</TableCell>
+                              <TableCell className="py-2">{getTipoMarkupLabel(tabela.tipo_markup, tabela.valor_markup)}</TableCell>
+                              <TableCell className="py-2 text-right">{tabela.precos_count?.[0]?.count || 0}</TableCell>
+                              <TableCell className="py-2 text-right">
+                                <div className="flex items-center justify-end gap-1">
+                                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleVisualizarPrecos(tabela)} title="Ver Preços"><Eye className="h-4 w-4" /></Button>
+                                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleGerarPrecos(tabela)} title="Gerar"><DollarSign className="h-4 w-4" /></Button>
+                                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setTabelaOverrides(tabela); setDialogOverrides(true); }} title="Overrides"><Layers className="h-4 w-4" /></Button>
+                                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleEditarTabela(tabela)} title="Editar"><Edit className="h-4 w-4" /></Button>
+                                  <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => handleExcluirTabela(tabela)} title="Excluir"><Trash2 className="h-4 w-4" /></Button>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  </div>
                 ) : (
                   <div className="space-y-4">
-                    {tabelasFiltradas.map((tabela) => (
+                    {tabelasOrdenadas.map((tabela: any) => (
                       <Card key={tabela.id} className="border-l-4" style={{
-                        borderLeftColor: tabela.ativo ? 'hsl(var(--primary))' : 'hsl(var(--muted))'
+                        borderLeftColor: tabela.ativo ? 'hsl(var(--primary))' : 'hsl(var(--muted))',
+                        marginLeft: sortByHierarquia ? (depthMap.get(tabela.id) ?? 0) * 24 : 0,
                       }}>
                         <CardContent className="p-4">
                           <div className="flex items-center justify-between">
