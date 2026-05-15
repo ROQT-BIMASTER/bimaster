@@ -553,6 +553,34 @@ export default function FichaRevisaoDiretoria() {
                   placeholder="Filtrar produtos (multi)..."
                 />
               </div>
+              {/* Filtro de data da lista */}
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="sm" className={cn("h-9 text-xs gap-1.5", !listDateFrom && "text-muted-foreground")}>
+                    <CalendarIcon className="h-3.5 w-3.5" />
+                    {listDateFrom ? format(listDateFrom, "dd/MM/yyyy") : "Data de"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar mode="single" selected={listDateFrom} onSelect={setListDateFrom} initialFocus className="p-3 pointer-events-auto" locale={ptBR} />
+                </PopoverContent>
+              </Popover>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="sm" className={cn("h-9 text-xs gap-1.5", !listDateTo && "text-muted-foreground")}>
+                    <CalendarIcon className="h-3.5 w-3.5" />
+                    {listDateTo ? format(listDateTo, "dd/MM/yyyy") : "Data até"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar mode="single" selected={listDateTo} onSelect={setListDateTo} initialFocus className="p-3 pointer-events-auto" locale={ptBR} />
+                </PopoverContent>
+              </Popover>
+              {(listDateFrom || listDateTo) && (
+                <Button variant="ghost" size="sm" className="h-9 text-xs" onClick={() => { setListDateFrom(undefined); setListDateTo(undefined); }}>
+                  Limpar datas
+                </Button>
+              )}
             </div>
 
             {isLoading ? (
