@@ -294,6 +294,7 @@ export function MatrizPrecosComparativa() {
   const [filtroMarca, setFiltroMarca] = useState<string>("all");
   const [filtroLinha, setFiltroLinha] = useState<string>("all");
   const [filtroTabela, setFiltroTabela] = useState<string>("all");
+  const [filtroTipo, setFiltroTipo] = useState<"all" | "kit" | "unidade">("all");
   
   // Agrupamento
   const [agruparHabilitado, setAgruparHabilitado] = useState(false);
