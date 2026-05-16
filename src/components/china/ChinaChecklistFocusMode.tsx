@@ -650,13 +650,17 @@ export function ChinaChecklistFocusMode({
   const createCategory = useMutation({
     mutationFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
+      const tr = await autoTranslateLabel(
+        { pt: addCatLabelPt.trim(), cn: addCatLabelCn.trim(), en: addCatLabelEn.trim() },
+        { context: "Nome de categoria de checklist (China-Brasil)" },
+      );
       const { error } = await (supabase
         .from("china_checklist_custom_categorias" as any)
         .insert({
           submissao_id: submissaoId,
-          label_pt: addCatLabelPt.trim(),
-          label_cn: addCatLabelCn.trim(),
-          label_en: (addCatLabelEn.trim() || addCatLabelPt.trim()),
+          label_pt: tr.pt,
+          label_cn: tr.cn,
+          label_en: tr.en,
           fluxo: addCatFluxo,
           ordem: customCategories.length,
           created_by: user?.id,
