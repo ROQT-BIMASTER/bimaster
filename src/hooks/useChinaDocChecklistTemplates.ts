@@ -286,6 +286,7 @@ export async function aplicarTemplateNaSubmissao(
       categoria_key: o.categoria_key,
       label_pt: o.label_pt,
       label_cn: o.label_cn,
+      label_en: o.label_en || o.label_pt,
       created_by: userId,
     }));
     await (supabase as any)
