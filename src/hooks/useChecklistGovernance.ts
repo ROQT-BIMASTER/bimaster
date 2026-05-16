@@ -97,13 +97,20 @@ export function useChecklistGovernance(submissaoId: string | null | undefined) {
     }
     if (expected.length === 0) return;
 
+    const expectedKeys = new Set(
+      expected.map((e) => `${e.fluxo}|${e.categoria_key}|${e.item_key}`),
+    );
     const existing = new Set(
       estados.data.map((e) => `${e.fluxo}|${e.categoria_key}|${e.item_key}`),
     );
     const missing = expected.filter(
       (e) => !existing.has(`${e.fluxo}|${e.categoria_key}|${e.item_key}`),
     );
-    if (missing.length === 0) return;
+    const orphanIds = estados.data
+      .filter((e) => !expectedKeys.has(`${e.fluxo}|${e.categoria_key}|${e.item_key}`))
+      .map((e) => e.id);
+
+    if (missing.length === 0 && orphanIds.length === 0) return;
 
     // Distribuir peso para os novos: se já existia algum estado, novos vêm com 0
     // (usuário ajusta manualmente). Caso contrário, divide 100/N.
@@ -111,23 +118,29 @@ export function useChecklistGovernance(submissaoId: string | null | undefined) {
       estados.data.length === 0 ? Math.floor((100 / expected.length) * 100) / 100 : 0;
 
     (async () => {
-      const { error } = await (supabase as any)
-        .from("china_checklist_item_estado")
-        .insert(
-          missing.map((m) => ({
-            submissao_id: submissaoId,
-            fluxo: m.fluxo,
-            categoria_key: m.categoria_key,
-            item_key: m.item_key,
-            peso_percentual: pesoDefault,
-            obrigatorio: true,
-            status: "pendente",
-          })),
-        );
-      if (!error) {
-        qc.invalidateQueries({ queryKey: ["checklist-item-estado", submissaoId] });
-        qc.invalidateQueries({ queryKey: ["checklist-progresso", submissaoId] });
+      if (orphanIds.length > 0) {
+        await (supabase as any)
+          .from("china_checklist_item_estado")
+          .delete()
+          .in("id", orphanIds);
       }
+      if (missing.length > 0) {
+        await (supabase as any)
+          .from("china_checklist_item_estado")
+          .insert(
+            missing.map((m) => ({
+              submissao_id: submissaoId,
+              fluxo: m.fluxo,
+              categoria_key: m.categoria_key,
+              item_key: m.item_key,
+              peso_percentual: pesoDefault,
+              obrigatorio: true,
+              status: "pendente",
+            })),
+          );
+      }
+      qc.invalidateQueries({ queryKey: ["checklist-item-estado", submissaoId] });
+      qc.invalidateQueries({ queryKey: ["checklist-progresso", submissaoId] });
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [enabled, merged.categories, estados.data, estados.isLoading, merged.isLoading]);

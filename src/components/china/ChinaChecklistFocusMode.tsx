@@ -918,14 +918,18 @@ export function ChinaChecklistFocusMode({
   };
 
   const handleApplyTemplate = async (tpl: { id: string; nome: string; estrutura: TemplateEstrutura }) => {
-    if (!confirm(`Aplicar o modelo "${tpl.nome}" a este checklist? Itens já existentes não serão removidos.`)) return;
+    if (!confirm(`Aplicar o modelo "${tpl.nome}"?\n\nA estrutura atual será SUBSTITUÍDA pela do modelo. Categorias e itens que já têm documentos anexados (ex.: planilha inicial) serão preservados. Arquivos enviados nunca são apagados.`)) return;
     setApplyingTpl(true);
     try {
       await aplicarTemplateNaSubmissao(submissaoId, tpl.estrutura);
-      await queryClient.invalidateQueries({ queryKey: ["checklist-custom-cats", submissaoId] });
-      await queryClient.invalidateQueries({ queryKey: ["checklist-custom-items", submissaoId] });
-      await queryClient.invalidateQueries({ queryKey: ["checklist-hidden-items", submissaoId] });
-      await queryClient.invalidateQueries({ queryKey: ["china-cat-overrides", submissaoId] });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["checklist-custom-cats", submissaoId] }),
+        queryClient.invalidateQueries({ queryKey: ["checklist-custom-items", submissaoId] }),
+        queryClient.invalidateQueries({ queryKey: ["checklist-hidden-items", submissaoId] }),
+        queryClient.invalidateQueries({ queryKey: ["china-cat-overrides", submissaoId] }),
+        queryClient.invalidateQueries({ queryKey: ["checklist-item-estado", submissaoId] }),
+        queryClient.invalidateQueries({ queryKey: ["checklist-progresso", submissaoId] }),
+      ]);
       onRefresh();
       toast.success(`Modelo "${tpl.nome}" aplicado`);
     } catch (e: any) {
@@ -943,7 +947,7 @@ export function ChinaChecklistFocusMode({
         Modo Foco 聚焦模式
       </Button>
 
-      <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      <Dialog open={isOpen} onOpenChange={(o) => { setIsOpen(o); if (!o) onRefresh(); }}>
         <DialogContent
           className="max-w-[98vw] w-[98vw] h-[95vh] max-h-[95vh] p-0 overflow-hidden flex flex-col"
           style={bgStyle}
