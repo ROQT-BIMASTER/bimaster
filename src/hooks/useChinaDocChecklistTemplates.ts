@@ -492,9 +492,9 @@ async function reconciliarEstadoChecklist(
 
   for (let i = 0; i < expected.length; i++) {
     const tup = expected[i];
-    const key = `${tup.fluxo}|${tup.categoria_key}|${tup.item_key}`;
+    const key: string = `${tup.fluxo}|${tup.categoria_key}|${tup.item_key}`;
     const g = govByKey.get(key);
-    const existing = existingByKey.get(key);
+    const existing = existingByKey.get(key as any);
     const novoPeso = pesos[i];
 
     if (existing) {
