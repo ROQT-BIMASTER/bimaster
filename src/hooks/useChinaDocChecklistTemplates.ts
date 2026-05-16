@@ -215,21 +215,42 @@ export async function aplicarTemplateNaSubmissao(
     catKeyMap.set(cat.key, data.id);
   }
 
-  // 2) Criar itens custom
+  // 2) Criar itens custom (pulando duplicatas por label dentro da categoria preservada)
   const customItens = estrutura.itens.filter((i) => i.custom);
   for (const item of customItens) {
     const targetCat = estrutura.categorias.find((c) => c.key === item.categoria_key);
     const isCustomCat = targetCat?.custom ?? false;
-    const novoTipoKey = `custom_${Date.now()}_${item.label_pt
+    const catCustomId = isCustomCat ? catKeyMap.get(item.categoria_key) || null : null;
+
+    // Se a categoria-alvo é uma preservada, evita recriar item com mesmo label
+    if (catCustomId) {
+      const jaExiste = itensPreservados.some(
+        (p) => p.categoria_custom_id === catCustomId,
+      );
+      if (jaExiste) {
+        // checa por label
+        const { data: existentes } = await (supabase as any)
+          .from("china_checklist_custom_itens")
+          .select("id,label_pt")
+          .eq("submissao_id", submissaoId)
+          .eq("categoria_custom_id", catCustomId);
+        const dup = ((existentes || []) as any[]).some(
+          (e) => e.label_pt.trim().toLowerCase() === item.label_pt.trim().toLowerCase(),
+        );
+        if (dup) continue;
+      }
+    }
+
+    const novoTipoKey = `custom_${Date.now()}_${Math.random().toString(36).slice(2, 7)}_${item.label_pt
       .toLowerCase()
       .replace(/\s+/g, "_")
-      .substring(0, 30)}`;
+      .substring(0, 24)}`;
 
     const { error } = await (supabase as any)
       .from("china_checklist_custom_itens")
       .insert({
         submissao_id: submissaoId,
-        categoria_custom_id: isCustomCat ? catKeyMap.get(item.categoria_key) || null : null,
+        categoria_custom_id: catCustomId,
         categoria_default_key: isCustomCat ? null : item.categoria_key,
         tipo_key: novoTipoKey,
         label_pt: item.label_pt,
