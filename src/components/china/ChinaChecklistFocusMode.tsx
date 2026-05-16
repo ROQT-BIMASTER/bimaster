@@ -16,6 +16,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { BilingualLabel } from "./BilingualLabel";
 import { TrilingualLabel } from "./TrilingualLabel";
 import { pickLabel } from "@/lib/china/pickLabel";
+import { parseLocalDate } from "@/lib/utils/parseLocalDate";
 import { ChinaUploadPreviewDialog } from "./ChinaUploadPreviewDialog";
 import {
   Maximize2, X, Send, Save, Upload, Loader2, CheckCircle2, Clock, XCircle,
@@ -958,11 +959,51 @@ export function ChinaChecklistFocusMode({
 
   const handleSaveTemplate = async () => {
     if (!tplNome.trim()) return;
+    const estrutura = buildEstruturaSnapshot();
+
+    // Captura governança atual (peso, obrigatoriedade, prazo) para que o modelo
+    // reproduza essa configuração ao ser aplicado em outra submissão.
+    try {
+      const { data: estados } = await (supabase as any)
+        .from("china_checklist_item_estado")
+        .select("fluxo,categoria_key,item_key,peso_percentual,obrigatorio,prazo_data")
+        .eq("submissao_id", submissaoId);
+      const byKey = new Map<string, any>();
+      ((estados || []) as any[]).forEach((e) =>
+        byKey.set(`${e.fluxo}|${e.categoria_key}|${e.item_key}`, e),
+      );
+      const hoje = new Date();
+      estrutura.itens = estrutura.itens.map((it) => {
+        const cat = estrutura.categorias.find((c) => c.key === it.categoria_key);
+        if (!cat) return it;
+        const catKey = cat.custom ? it.categoria_key : cat.key;
+        // No snapshot a chave do estado usa o catKey atual (custom_<id> ou key padrão)
+        const stateCatKey = cat.custom ? cat.key : cat.key;
+        const est = byKey.get(`${cat.fluxo}|${stateCatKey}|${it.tipo_key}`);
+        if (!est) return it;
+        let prazo_dias: number | null | undefined = undefined;
+        if (est.prazo_data) {
+          const d = parseLocalDate(est.prazo_data);
+          if (d) {
+            prazo_dias = Math.round((d.getTime() - hoje.getTime()) / 86400000);
+          }
+        }
+        return {
+          ...it,
+          peso_percentual: typeof est.peso_percentual === "number" ? Number(est.peso_percentual) : undefined,
+          obrigatorio: typeof est.obrigatorio === "boolean" ? est.obrigatorio : undefined,
+          prazo_dias,
+        };
+      });
+    } catch {
+      // se falhar, salva o modelo sem governança (compatível com versão anterior)
+    }
+
     await saveTemplate.mutateAsync({
       nome: tplNome.trim(),
       descricao: tplDescricao.trim() || undefined,
       escopo: tplEscopo,
-      estrutura: buildEstruturaSnapshot(),
+      estrutura,
     });
     setTplSaveOpen(false);
     setTplNome("");

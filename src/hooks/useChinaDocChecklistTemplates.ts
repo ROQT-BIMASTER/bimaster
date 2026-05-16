@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { CHINA_DOCUMENT_TYPES, DOCUMENT_CATEGORIES } from "@/lib/china-document-types";
 
 export interface DocChecklistTemplate {
   id: string;
@@ -35,6 +36,11 @@ export interface TemplateItem {
   custom: boolean;
   accept?: string | null;
   multiple?: boolean;
+  /** governança opcional capturada no momento do salvamento do modelo */
+  peso_percentual?: number;
+  obrigatorio?: boolean;
+  /** dias relativos à data de aplicação do template */
+  prazo_dias?: number | null;
 }
 
 export interface TemplateEstrutura {
@@ -219,6 +225,9 @@ export async function aplicarTemplateNaSubmissao(
   }
 
   // 2) Criar itens custom (pulando duplicatas por label dentro da categoria preservada)
+  // Mapa template.tipo_key -> tipo_key efetivo no banco (necessário para reconciliar
+  // pesos depois, já que itens custom recebem chaves novas a cada aplicação).
+  const tipoKeyMap = new Map<string, string>();
   const customItens = estrutura.itens.filter((i) => i.custom);
   for (const item of customItens) {
     const targetCat = estrutura.categorias.find((c) => c.key === item.categoria_key);
@@ -234,13 +243,16 @@ export async function aplicarTemplateNaSubmissao(
         // checa por label
         const { data: existentes } = await (supabase as any)
           .from("china_checklist_custom_itens")
-          .select("id,label_pt")
+          .select("id,tipo_key,label_pt")
           .eq("submissao_id", submissaoId)
           .eq("categoria_custom_id", catCustomId);
-        const dup = ((existentes || []) as any[]).some(
+        const dup = ((existentes || []) as any[]).find(
           (e) => e.label_pt.trim().toLowerCase() === item.label_pt.trim().toLowerCase(),
         );
-        if (dup) continue;
+        if (dup) {
+          tipoKeyMap.set(item.tipo_key, dup.tipo_key);
+          continue;
+        }
       }
     }
 
@@ -264,6 +276,7 @@ export async function aplicarTemplateNaSubmissao(
         created_by: userId,
       });
     if (error) throw error;
+    tipoKeyMap.set(item.tipo_key, novoTipoKey);
   }
 
   // 3) Ocultos
@@ -292,6 +305,227 @@ export async function aplicarTemplateNaSubmissao(
     await (supabase as any)
       .from("china_checklist_cat_overrides")
       .upsert(rows, { onConflict: "submissao_id,categoria_key" });
+  }
+
+  // 5) Reconciliar china_checklist_item_estado (Conclusão da Ficha)
+  // Garante que a soma dos pesos = 100% após aplicar o modelo, preservando
+  // status/concluido/waiver de itens já trabalhados.
+  await reconciliarEstadoChecklist(submissaoId, estrutura, catKeyMap, tipoKeyMap);
+}
+
+/**
+ * Reconciliação síncrona das linhas de governança em china_checklist_item_estado
+ * após aplicar um template. Garante:
+ *  - Remoção de órfãs (estados cujas chaves não pertencem mais à estrutura).
+ *  - Upsert dos itens esperados, aplicando peso/obrigatorio/prazo do template
+ *    quando o modelo trouxer; senão, distribuição igualitária para que a soma
+ *    dos pesos seja exatamente 100,00%.
+ *  - Status, datas de conclusão e dados de waiver dos itens existentes são
+ *    preservados (jamais regredidos).
+ */
+async function reconciliarEstadoChecklist(
+  submissaoId: string,
+  estrutura: TemplateEstrutura,
+  catKeyMap: Map<string, string>,
+  tipoKeyMap: Map<string, string>,
+) {
+  // a) Estrutura efetiva atual no banco
+  const [catsCustomRes, itensCustomRes, ocultosRes, estadosRes] = await Promise.all([
+    (supabase as any)
+      .from("china_checklist_custom_categorias")
+      .select("id,fluxo")
+      .eq("submissao_id", submissaoId),
+    (supabase as any)
+      .from("china_checklist_custom_itens")
+      .select("tipo_key,categoria_custom_id,categoria_default_key")
+      .eq("submissao_id", submissaoId),
+    (supabase as any)
+      .from("china_checklist_itens_ocultos")
+      .select("tipo_key")
+      .eq("submissao_id", submissaoId),
+    (supabase as any)
+      .from("china_checklist_item_estado")
+      .select("id,fluxo,categoria_key,item_key,peso_percentual,obrigatorio,prazo_data")
+      .eq("submissao_id", submissaoId),
+  ]);
+
+  const catsCustom = (catsCustomRes.data || []) as Array<{ id: string; fluxo: string }>;
+  const itensCustom = (itensCustomRes.data || []) as Array<{
+    tipo_key: string;
+    categoria_custom_id: string | null;
+    categoria_default_key: string | null;
+  }>;
+  const hiddenSet = new Set<string>(
+    ((ocultosRes.data || []) as Array<{ tipo_key: string }>).map((o) => o.tipo_key),
+  );
+  const estadosAtuais = (estadosRes.data || []) as Array<{
+    id: string;
+    fluxo: string;
+    categoria_key: string;
+    item_key: string;
+    peso_percentual: number;
+    obrigatorio: boolean;
+    prazo_data: string | null;
+  }>;
+
+  const customCatFluxo = new Map(catsCustom.map((c) => [c.id, c.fluxo] as const));
+
+  // b) Construir lista de tuplas esperadas (fluxo, categoria_key, item_key)
+  type Tupla = { fluxo: string; categoria_key: string; item_key: string };
+  const expected: Tupla[] = [];
+
+  // b.1) Itens padrão
+  for (const cat of DOCUMENT_CATEGORIES) {
+    if (hiddenSet.has(`cat:${cat.key}`)) continue;
+    for (const tipo of cat.tipos) {
+      if (hiddenSet.has(tipo)) continue;
+      expected.push({ fluxo: cat.fluxo, categoria_key: cat.key, item_key: tipo });
+    }
+  }
+  // b.2) Itens custom (categoria custom ou ligados a categoria padrão)
+  for (const it of itensCustom) {
+    if (hiddenSet.has(it.tipo_key)) continue;
+    let fluxo: string | undefined;
+    let categoria_key: string | undefined;
+    if (it.categoria_custom_id) {
+      fluxo = customCatFluxo.get(it.categoria_custom_id);
+      categoria_key = `custom_${it.categoria_custom_id}`;
+    } else if (it.categoria_default_key) {
+      const dCat = DOCUMENT_CATEGORIES.find((c) => c.key === it.categoria_default_key);
+      fluxo = dCat?.fluxo;
+      categoria_key = it.categoria_default_key;
+    }
+    if (!fluxo || !categoria_key) continue;
+    if (hiddenSet.has(`cat:${categoria_key}`)) continue;
+    expected.push({ fluxo, categoria_key, item_key: it.tipo_key });
+  }
+
+  if (expected.length === 0) return;
+
+  // c) Mapa de governança do template (peso/obrig/prazo) por chave efetiva
+  const govByKey = new Map<
+    string,
+    { peso?: number; obrigatorio?: boolean; prazo_dias?: number | null }
+  >();
+  for (const ti of estrutura.itens) {
+    const tCat = estrutura.categorias.find((c) => c.key === ti.categoria_key);
+    const isCustomCat = tCat?.custom ?? false;
+    const fluxo = tCat?.fluxo;
+    if (!fluxo) continue;
+    const catKey = isCustomCat
+      ? `custom_${catKeyMap.get(ti.categoria_key) ?? ""}`
+      : ti.categoria_key;
+    const itemKey = ti.custom ? tipoKeyMap.get(ti.tipo_key) : ti.tipo_key;
+    if (!itemKey) continue;
+    govByKey.set(`${fluxo}|${catKey}|${itemKey}`, {
+      peso: typeof ti.peso_percentual === "number" ? ti.peso_percentual : undefined,
+      obrigatorio: ti.obrigatorio,
+      prazo_dias: ti.prazo_dias ?? null,
+    });
+  }
+
+  // d) Distribuição de pesos:
+  //    - Itens com peso explícito no template mantêm esse valor.
+  //    - Os demais dividem o restante igualmente. Último absorve o resíduo
+  //      para garantir soma exata de 100,00.
+  const explicit: number[] = [];
+  const semPeso: number[] = [];
+  expected.forEach((tup, idx) => {
+    const g = govByKey.get(`${tup.fluxo}|${tup.categoria_key}|${tup.item_key}`);
+    if (g && typeof g.peso === "number") explicit.push(idx);
+    else semPeso.push(idx);
+  });
+
+  const somaExplicit = explicit.reduce((s, idx) => {
+    const tup = expected[idx];
+    const g = govByKey.get(`${tup.fluxo}|${tup.categoria_key}|${tup.item_key}`);
+    return s + (g?.peso || 0);
+  }, 0);
+
+  const restante = Math.max(0, 100 - somaExplicit);
+  const pesoBase = semPeso.length > 0
+    ? Math.floor((restante / semPeso.length) * 100) / 100
+    : 0;
+
+  const pesos: number[] = expected.map((_, i) => {
+    const tup = expected[i];
+    const g = govByKey.get(`${tup.fluxo}|${tup.categoria_key}|${tup.item_key}`);
+    if (g && typeof g.peso === "number") return g.peso;
+    return pesoBase;
+  });
+
+  // Resíduo: ajusta o ÚLTIMO item sem peso explícito para fechar em 100,00.
+  if (semPeso.length > 0) {
+    const somaAtual = pesos.reduce((s, p) => s + p, 0);
+    const diff = Math.round((100 - somaAtual) * 100) / 100;
+    if (diff !== 0) {
+      const lastIdx = semPeso[semPeso.length - 1];
+      pesos[lastIdx] = Math.round((pesos[lastIdx] + diff) * 100) / 100;
+    }
+  }
+
+  // e) Diff com estado atual
+  const expectedKeys = new Set(expected.map((t) => `${t.fluxo}|${t.categoria_key}|${t.item_key}`));
+  const existingByKey = new Map(
+    estadosAtuais.map((e) => [`${e.fluxo}|${e.categoria_key}|${e.item_key}`, e] as const),
+  );
+
+  // e.1) Apaga órfãs
+  const orphanIds = estadosAtuais
+    .filter((e) => !expectedKeys.has(`${e.fluxo}|${e.categoria_key}|${e.item_key}`))
+    .map((e) => e.id);
+  if (orphanIds.length > 0) {
+    await (supabase as any)
+      .from("china_checklist_item_estado")
+      .delete()
+      .in("id", orphanIds);
+  }
+
+  // e.2) Updates (linhas que já existem) — preserva status/concluido/waiver
+  const hoje = new Date();
+  const formatDate = (d: Date) => {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const dd = String(d.getDate()).padStart(2, "0");
+    return `${y}-${m}-${dd}`;
+  };
+
+  for (let i = 0; i < expected.length; i++) {
+    const tup = expected[i];
+    const key: string = `${tup.fluxo}|${tup.categoria_key}|${tup.item_key}`;
+    const g = govByKey.get(key);
+    const existing = existingByKey.get(key as any);
+    const novoPeso = pesos[i];
+
+    if (existing) {
+      const patch: Record<string, unknown> = { peso_percentual: novoPeso };
+      if (typeof g?.obrigatorio === "boolean") patch.obrigatorio = g.obrigatorio;
+      if (g && g.prazo_dias != null) {
+        const d = new Date(hoje);
+        d.setDate(d.getDate() + g.prazo_dias);
+        patch.prazo_data = formatDate(d);
+      }
+      await (supabase as any)
+        .from("china_checklist_item_estado")
+        .update(patch)
+        .eq("id", existing.id);
+    } else {
+      const row: Record<string, unknown> = {
+        submissao_id: submissaoId,
+        fluxo: tup.fluxo,
+        categoria_key: tup.categoria_key,
+        item_key: tup.item_key,
+        peso_percentual: novoPeso,
+        obrigatorio: typeof g?.obrigatorio === "boolean" ? g.obrigatorio : true,
+        status: "pendente",
+      };
+      if (g && g.prazo_dias != null) {
+        const d = new Date(hoje);
+        d.setDate(d.getDate() + g.prazo_dias);
+        row.prazo_data = formatDate(d);
+      }
+      await (supabase as any).from("china_checklist_item_estado").insert(row);
+    }
   }
 }
 
