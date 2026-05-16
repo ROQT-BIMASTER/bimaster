@@ -530,7 +530,7 @@ export default function ChinaCaixaEntrada() {
                 folder={folder}
                 counts={counts}
                 onSelect={setFolder}
-                onCompose={() => goWithReturn("/dashboard/fabrica-china/nova-submissao")}
+                onCompose={() => goWithReturn("/dashboard/fabrica-china/nova")}
                 forceChinaLayout
               />
             </ResizablePanel>
