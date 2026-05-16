@@ -225,6 +225,9 @@ export async function aplicarTemplateNaSubmissao(
   }
 
   // 2) Criar itens custom (pulando duplicatas por label dentro da categoria preservada)
+  // Mapa template.tipo_key -> tipo_key efetivo no banco (necessário para reconciliar
+  // pesos depois, já que itens custom recebem chaves novas a cada aplicação).
+  const tipoKeyMap = new Map<string, string>();
   const customItens = estrutura.itens.filter((i) => i.custom);
   for (const item of customItens) {
     const targetCat = estrutura.categorias.find((c) => c.key === item.categoria_key);
@@ -240,13 +243,16 @@ export async function aplicarTemplateNaSubmissao(
         // checa por label
         const { data: existentes } = await (supabase as any)
           .from("china_checklist_custom_itens")
-          .select("id,label_pt")
+          .select("id,tipo_key,label_pt")
           .eq("submissao_id", submissaoId)
           .eq("categoria_custom_id", catCustomId);
-        const dup = ((existentes || []) as any[]).some(
+        const dup = ((existentes || []) as any[]).find(
           (e) => e.label_pt.trim().toLowerCase() === item.label_pt.trim().toLowerCase(),
         );
-        if (dup) continue;
+        if (dup) {
+          tipoKeyMap.set(item.tipo_key, dup.tipo_key);
+          continue;
+        }
       }
     }
 
