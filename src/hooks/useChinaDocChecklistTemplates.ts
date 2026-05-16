@@ -35,6 +35,11 @@ export interface TemplateItem {
   custom: boolean;
   accept?: string | null;
   multiple?: boolean;
+  /** governança opcional capturada no momento do salvamento do modelo */
+  peso_percentual?: number;
+  obrigatorio?: boolean;
+  /** dias relativos à data de aplicação do template */
+  prazo_dias?: number | null;
 }
 
 export interface TemplateEstrutura {
