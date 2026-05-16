@@ -43,7 +43,7 @@ export function useChinaUserContext(): ChinaUserContext {
         .eq("id", profile.departamento_id)
         .single();
 
-      const isChinaUser = dept?.nome?.toLowerCase() === "china";
+      const isChinaUser = (dept?.nome ?? "").toLowerCase().includes("china");
 
       return {
         isChinaUser,

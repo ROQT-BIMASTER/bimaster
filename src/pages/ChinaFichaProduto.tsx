@@ -422,17 +422,19 @@ export default function ChinaFichaProduto() {
           </Card>
         )}
 
-        {/* Approval Panel Button */}
-        <Card className="p-4">
-          <div className="flex items-center justify-between">
-            <BilingualLabel pt="Painel de Aprovação e Acompanhamento" cn="审批与跟踪面板" size="md" />
-            <Button onClick={() => setPainelAprovacaoOpen(true)} className="gap-2">
-              <Eye className="h-4 w-4" /> Abrir Painel 打开面板
-            </Button>
-          </div>
-        </Card>
+        {/* Approval Panel Button — somente usuários Brasil */}
+        {isBrasilUser && (
+          <Card className="p-4">
+            <div className="flex items-center justify-between">
+              <BilingualLabel pt="Painel de Aprovação e Acompanhamento" cn="审批与跟踪面板" size="md" />
+              <Button onClick={() => setPainelAprovacaoOpen(true)} className="gap-2">
+                <Eye className="h-4 w-4" /> Abrir Painel 打开面板
+              </Button>
+            </div>
+          </Card>
+        )}
 
-        {painelAprovacaoOpen && (
+        {painelAprovacaoOpen && isBrasilUser && (
           <ChinaPainelAprovacao
             submissaoId={id!}
             produtoNome={`${submissao.produto_codigo} — ${submissao.produto_nome}`}
