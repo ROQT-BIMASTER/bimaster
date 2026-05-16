@@ -17,6 +17,8 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Textarea } from "@/components/ui/textarea";
 import { BilingualLabel } from "@/components/china/BilingualLabel";
+import { TrilingualLabel } from "@/components/china/TrilingualLabel";
+import { BackfillTranslationsButton } from "@/components/china/BackfillTranslationsButton";
 import { ChinaGradeView } from "@/components/china/ChinaGradeView";
 import { ChinaDocumentSlot } from "@/components/china/ChinaDocumentSlot";
 import { CHINA_DOCUMENT_TYPES, DOCUMENT_CATEGORIES, MANDATORY_DOCS, STATUS_LABELS } from "@/lib/china-document-types";
@@ -453,36 +455,39 @@ export default function ChinaFichaProduto() {
 
         {/* Documents Summary + Focus Mode */}
         <Card className="p-6 space-y-4">
-          <div className="flex items-center justify-between">
-            <BilingualLabel pt="Documentos" cn="文件" size="md" />
-            <ChinaChecklistFocusMode
-              submissaoId={id!}
-              documentos={documentos as any}
-              onUpload={handleDocUpload}
-              onRefresh={() => queryClient.invalidateQueries({ queryKey: ["china-ficha-docs", id] })}
-              onRemoveFile={async (fileId) => {
-                const { confirmExclusaoTarefa } = await import("@/lib/projetos/confirmConclusao");
-                const ok = await confirmExclusaoTarefa({
-                  tituloDialog: "Excluir documento?",
-                  acaoLabel: "Sim, excluir",
-                  descricao:
-                    "Você está prestes a excluir definitivamente este documento da ficha. " +
-                    "O arquivo deixará de aparecer para a equipe China e Brasil. Esta ação não pode ser desfeita.",
-                });
-                if (!ok) return;
-                await supabase.from("china_produto_documentos" as any).delete().eq("id", fileId);
-                queryClient.invalidateQueries({ queryKey: ["china-ficha-docs", id] });
-                toast.success("Documento removido 文件已删除");
-              }}
-              onViewDoc={handleViewDoc}
-            />
+          <div className="flex items-center justify-between gap-2">
+            <TrilingualLabel pt="Documentos" zh="文件" en="Documents" size="md" />
+            <div className="flex items-center gap-2">
+              <BackfillTranslationsButton submissaoId={id!} />
+              <ChinaChecklistFocusMode
+                submissaoId={id!}
+                documentos={documentos as any}
+                onUpload={handleDocUpload}
+                onRefresh={() => queryClient.invalidateQueries({ queryKey: ["china-ficha-docs", id] })}
+                onRemoveFile={async (fileId) => {
+                  const { confirmExclusaoTarefa } = await import("@/lib/projetos/confirmConclusao");
+                  const ok = await confirmExclusaoTarefa({
+                    tituloDialog: "Excluir documento?",
+                    acaoLabel: "Sim, excluir",
+                    descricao:
+                      "Você está prestes a excluir definitivamente este documento da ficha. " +
+                      "O arquivo deixará de aparecer para a equipe China e Brasil. Esta ação não pode ser desfeita.",
+                  });
+                  if (!ok) return;
+                  await supabase.from("china_produto_documentos" as any).delete().eq("id", fileId);
+                  queryClient.invalidateQueries({ queryKey: ["china-ficha-docs", id] });
+                  toast.success("Documento removido 文件已删除");
+                }}
+                onViewDoc={handleViewDoc}
+              />
+            </div>
           </div>
 
           {/* Compact summary table — split by flow */}
           {[
-            { categories: merged.categoriesChinaEnvia, headerPt: "China Envia ao Brasil", headerCn: "中国发送至巴西", icon: <ArrowUpRight className="h-4 w-4" />, color: "bg-primary/10 text-primary border-primary/30" },
-            { categories: merged.categoriesBrasilEnvia, headerPt: "Brasil Envia à China", headerCn: "巴西发送至中国", icon: <ArrowDownLeft className="h-4 w-4" />, color: "bg-success/10 text-success border-success/30" },
-          ].map(({ categories, headerPt, headerCn, icon, color }) => (
+            { categories: merged.categoriesChinaEnvia, headerPt: "China Envia ao Brasil", headerCn: "中国发送至巴西", headerEn: "China Sends to Brazil", icon: <ArrowUpRight className="h-4 w-4" />, color: "bg-primary/10 text-primary border-primary/30" },
+            { categories: merged.categoriesBrasilEnvia, headerPt: "Brasil Envia à China", headerCn: "巴西发送至中国", headerEn: "Brazil Sends to China", icon: <ArrowDownLeft className="h-4 w-4" />, color: "bg-success/10 text-success border-success/30" },
+          ].map(({ categories, headerPt, headerCn, headerEn, icon, color }) => (
             <div key={headerPt} className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
@@ -490,8 +495,7 @@ export default function ChinaFichaProduto() {
                     <th colSpan={5} className={`text-left px-4 py-3 font-bold text-sm border ${color} rounded-t-lg`}>
                       <div className="flex items-center gap-2">
                         {icon}
-                        <span>{headerPt}</span>
-                        <span className="font-normal text-xs opacity-75">{headerCn}</span>
+                        <TrilingualLabel pt={headerPt} zh={headerCn} en={headerEn} size="sm" inline />
                       </div>
                     </th>
                   </tr>
