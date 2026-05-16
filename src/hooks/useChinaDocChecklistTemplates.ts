@@ -310,6 +310,7 @@ export function useCategoriaOverrides(submissaoId: string | undefined) {
         categoria_key: string;
         label_pt: string;
         label_cn: string;
+        label_en?: string;
       }>;
     },
   });
