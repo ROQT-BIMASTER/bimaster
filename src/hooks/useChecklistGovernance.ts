@@ -112,10 +112,24 @@ export function useChecklistGovernance(submissaoId: string | null | undefined) {
 
     if (missing.length === 0 && orphanIds.length === 0) return;
 
-    // Distribuir peso para os novos: se já existia algum estado, novos vêm com 0
-    // (usuário ajusta manualmente). Caso contrário, divide 100/N.
-    const pesoDefault =
-      estados.data.length === 0 ? Math.floor((100 / expected.length) * 100) / 100 : 0;
+    // Distribuir peso para os novos:
+    //  - sem estados ainda → divide 100/N entre todos.
+    //  - já há estados, soma < 100 e existem itens novos → distribui o gap
+    //    (100 - soma) entre os novos para manter a soma total = 100,00.
+    //  - já há estados e soma == 100 → novos entram com 0 (usuário ajusta).
+    const somaAtual = estados.data.reduce(
+      (s, e) => s + Number(e.peso_percentual || 0),
+      0,
+    );
+    let pesoDefault: number;
+    if (estados.data.length === 0) {
+      pesoDefault = Math.floor((100 / expected.length) * 100) / 100;
+    } else if (missing.length > 0 && somaAtual < 100) {
+      pesoDefault =
+        Math.floor(((100 - somaAtual) / missing.length) * 100) / 100;
+    } else {
+      pesoDefault = 0;
+    }
 
     (async () => {
       if (orphanIds.length > 0) {
