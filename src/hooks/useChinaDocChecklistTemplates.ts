@@ -106,8 +106,9 @@ export function useDeleteDocChecklistTemplate() {
 }
 
 /**
- * Aplica um template a uma submissão: cria categorias custom, itens custom e
- * registra ocultos + overrides. Não apaga conteúdo já enviado.
+ * Aplica um template a uma submissão: SUBSTITUI a estrutura existente.
+ * Preserva apenas categorias/itens custom que já possuem documentos
+ * anexados (ex.: a planilha inicial de cadastro). Nunca apaga arquivos.
  */
 export async function aplicarTemplateNaSubmissao(
   submissaoId: string,
@@ -116,11 +117,88 @@ export async function aplicarTemplateNaSubmissao(
   const { data: { user } } = await supabase.auth.getUser();
   const userId = user?.id;
 
-  // 1) Criar categorias custom
+  // 0) Reset com preservação por documento
+  // 0.a) Tipos com documento anexado (qualquer status != planejado)
+  const { data: docs } = await (supabase as any)
+    .from("china_produto_documentos")
+    .select("tipo_documento,status")
+    .eq("submissao_id", submissaoId);
+  const tiposComDoc = new Set<string>(
+    ((docs || []) as any[])
+      .filter((d) => d.status !== "planejado")
+      .map((d) => d.tipo_documento),
+  );
+
+  // 0.b) Itens custom atuais — apaga os que NÃO têm documento
+  const { data: itensAtuais } = await (supabase as any)
+    .from("china_checklist_custom_itens")
+    .select("id,tipo_key,categoria_custom_id")
+    .eq("submissao_id", submissaoId);
+  const itensRemover = ((itensAtuais || []) as any[])
+    .filter((i) => !tiposComDoc.has(i.tipo_key));
+  if (itensRemover.length > 0) {
+    await (supabase as any)
+      .from("china_checklist_custom_itens")
+      .delete()
+      .in("id", itensRemover.map((i) => i.id));
+  }
+  const itensPreservados = ((itensAtuais || []) as any[])
+    .filter((i) => tiposComDoc.has(i.tipo_key));
+  const catCustomIdsPreservadas = new Set<string>(
+    itensPreservados.map((i) => i.categoria_custom_id).filter(Boolean),
+  );
+
+  // 0.c) Categorias custom sem itens preservados → apaga
+  const { data: catsAtuais } = await (supabase as any)
+    .from("china_checklist_custom_categorias")
+    .select("id,label_pt,fluxo")
+    .eq("submissao_id", submissaoId);
+  const catsRemover = ((catsAtuais || []) as any[])
+    .filter((c) => !catCustomIdsPreservadas.has(c.id));
+  if (catsRemover.length > 0) {
+    await (supabase as any)
+      .from("china_checklist_custom_categorias")
+      .delete()
+      .in("id", catsRemover.map((c) => c.id));
+  }
+
+  // 0.d) Limpa ocultos e overrides (serão reaplicados pelo template)
+  await (supabase as any)
+    .from("china_checklist_itens_ocultos")
+    .delete()
+    .eq("submissao_id", submissaoId);
+  await (supabase as any)
+    .from("china_checklist_cat_overrides")
+    .delete()
+    .eq("submissao_id", submissaoId);
+
+  // Set de label+fluxo das categorias preservadas (dedup ao aplicar template)
+  const catsPreservadasKey = new Set<string>(
+    ((catsAtuais || []) as any[])
+      .filter((c) => catCustomIdsPreservadas.has(c.id))
+      .map((c) => `${c.fluxo}|${c.label_pt.trim().toLowerCase()}`),
+  );
+  const tiposPreservados = new Set<string>(itensPreservados.map((i) => i.tipo_key));
+
+  // 1) Criar categorias custom (pulando duplicatas com preservadas)
   const customCats = estrutura.categorias.filter((c) => c.custom);
   const catKeyMap = new Map<string, string>(); // template key -> novo customId
 
   for (const cat of customCats) {
+    const dedupKey = `${cat.fluxo}|${cat.label_pt.trim().toLowerCase()}`;
+    if (catsPreservadasKey.has(dedupKey)) {
+      // já existe categoria preservada equivalente — reaproveita o id
+      const preservada = ((catsAtuais || []) as any[]).find(
+        (c) =>
+          catCustomIdsPreservadas.has(c.id) &&
+          c.fluxo === cat.fluxo &&
+          c.label_pt.trim().toLowerCase() === cat.label_pt.trim().toLowerCase(),
+      );
+      if (preservada) {
+        catKeyMap.set(cat.key, preservada.id);
+        continue;
+      }
+    }
     const { data, error } = await (supabase as any)
       .from("china_checklist_custom_categorias")
       .insert({
