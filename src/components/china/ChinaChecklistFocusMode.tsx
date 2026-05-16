@@ -16,6 +16,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { BilingualLabel } from "./BilingualLabel";
 import { TrilingualLabel } from "./TrilingualLabel";
 import { pickLabel } from "@/lib/china/pickLabel";
+import { autoTranslateLabel } from "@/lib/china/autoTranslateLabels";
 import { parseLocalDate } from "@/lib/utils/parseLocalDate";
 import { ChinaUploadPreviewDialog } from "./ChinaUploadPreviewDialog";
 import {
@@ -649,13 +650,17 @@ export function ChinaChecklistFocusMode({
   const createCategory = useMutation({
     mutationFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
+      const tr = await autoTranslateLabel(
+        { pt: addCatLabelPt.trim(), cn: addCatLabelCn.trim(), en: addCatLabelEn.trim() },
+        { context: "Nome de categoria de checklist (China-Brasil)" },
+      );
       const { error } = await (supabase
         .from("china_checklist_custom_categorias" as any)
         .insert({
           submissao_id: submissaoId,
-          label_pt: addCatLabelPt.trim(),
-          label_cn: addCatLabelCn.trim(),
-          label_en: (addCatLabelEn.trim() || addCatLabelPt.trim()),
+          label_pt: tr.pt,
+          label_cn: tr.cn,
+          label_en: tr.en,
           fluxo: addCatFluxo,
           ordem: customCategories.length,
           created_by: user?.id,
@@ -677,6 +682,10 @@ export function ChinaChecklistFocusMode({
     mutationFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
       const tipoKey = `custom_${Date.now()}_${addItemLabelPt.trim().toLowerCase().replace(/\s+/g, "_")}`;
+      const tr = await autoTranslateLabel(
+        { pt: addItemLabelPt.trim(), cn: addItemLabelCn.trim(), en: addItemLabelEn.trim() },
+        { context: "Nome de item de checklist (documento China-Brasil)" },
+      );
       const { error } = await (supabase
         .from("china_checklist_custom_itens" as any)
         .insert({
@@ -684,9 +693,9 @@ export function ChinaChecklistFocusMode({
           categoria_custom_id: addItemCustomCatId || null,
           categoria_default_key: addItemCustomCatId ? null : addItemCatKey,
           tipo_key: tipoKey,
-          label_pt: addItemLabelPt.trim(),
-          label_cn: addItemLabelCn.trim(),
-          label_en: (addItemLabelEn.trim() || addItemLabelPt.trim()),
+          label_pt: tr.pt,
+          label_cn: tr.cn,
+          label_en: tr.en,
           accept: null,
           multiple: true,
           created_by: user?.id,
@@ -727,12 +736,16 @@ export function ChinaChecklistFocusMode({
   const updateItem = useMutation({
     mutationFn: async () => {
       if (!editingItemId) return;
+      const tr = await autoTranslateLabel(
+        { pt: addItemLabelPt.trim(), cn: addItemLabelCn.trim(), en: addItemLabelEn.trim() },
+        { context: "Nome de item de checklist (documento China-Brasil)" },
+      );
       const { error } = await (supabase
         .from("china_checklist_custom_itens" as any)
         .update({
-          label_pt: addItemLabelPt.trim(),
-          label_cn: addItemLabelCn.trim(),
-          label_en: (addItemLabelEn.trim() || addItemLabelPt.trim()),
+          label_pt: tr.pt,
+          label_cn: tr.cn,
+          label_en: tr.en,
         })
         .eq("id", editingItemId) as any);
       if (error) throw error;
@@ -892,9 +905,16 @@ export function ChinaChecklistFocusMode({
   const saveEditCategory = useMutation({
     mutationFn: async () => {
       if (!editCatTarget) return;
-      const labelPt = editCatLabelPt.trim();
-      const labelCn = editCatLabelCn.trim();
-      const labelEn = editCatLabelEn.trim() || labelPt;
+      if (!editCatLabelPt.trim() && !editCatLabelCn.trim() && !editCatLabelEn.trim()) {
+        throw new Error(t("focusMode.errNomeObrigatorio"));
+      }
+      const tr = await autoTranslateLabel(
+        { pt: editCatLabelPt.trim(), cn: editCatLabelCn.trim(), en: editCatLabelEn.trim() },
+        { context: "Nome de categoria de checklist (China-Brasil)" },
+      );
+      const labelPt = tr.pt;
+      const labelCn = tr.cn;
+      const labelEn = tr.en;
       if (!labelPt) throw new Error(t("focusMode.errNomeObrigatorio"));
       if (editCatTarget.isCustom && editCatTarget.customId) {
         const { error } = await (supabase as any)
