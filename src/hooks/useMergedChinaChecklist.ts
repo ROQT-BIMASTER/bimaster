@@ -28,6 +28,7 @@ export interface MergedChecklistCategory {
   key: string;
   labelPt: string;
   labelCn: string;
+  labelEn?: string;
   tipos: string[];
   fluxo: "china_envia" | "brasil_envia";
   isCustom: boolean;
