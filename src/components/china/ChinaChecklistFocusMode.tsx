@@ -190,11 +190,13 @@ export function ChinaChecklistFocusMode({
   const [addCatFluxo, setAddCatFluxo] = useState<"china_envia" | "brasil_envia">("china_envia");
   const [addCatLabelPt, setAddCatLabelPt] = useState("");
   const [addCatLabelCn, setAddCatLabelCn] = useState("");
+  const [addCatLabelEn, setAddCatLabelEn] = useState("");
   const [addItemOpen, setAddItemOpen] = useState(false);
   const [addItemCatKey, setAddItemCatKey] = useState("");
   const [addItemCustomCatId, setAddItemCustomCatId] = useState<string | null>(null);
   const [addItemLabelPt, setAddItemLabelPt] = useState("");
   const [addItemLabelCn, setAddItemLabelCn] = useState("");
+  const [addItemLabelEn, setAddItemLabelEn] = useState("");
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
 
   // Edit category dialog
@@ -202,16 +204,30 @@ export function ChinaChecklistFocusMode({
   const [editCatTarget, setEditCatTarget] = useState<MergedCategory | null>(null);
   const [editCatLabelPt, setEditCatLabelPt] = useState("");
   const [editCatLabelCn, setEditCatLabelCn] = useState("");
+  const [editCatLabelEn, setEditCatLabelEn] = useState("");
 
   const traduzirLabel = useTraduzirTexto();
-  const autoTranslateToCn = useCallback(
-    async (textoPt: string, current: string, setter: (v: string) => void) => {
-      const t = textoPt.trim();
-      if (!t || current.trim()) return;
+  /**
+   * Preenche automaticamente os campos vazios (ZH/EN) a partir do texto digitado.
+   * Detecta origem por presença de caractere CJK; assume PT por padrão.
+   */
+  const autoTranslateLabels = useCallback(
+    async (
+      texto: string,
+      cnGetter: string, cnSetter: (v: string) => void,
+      enGetter: string, enSetter: (v: string) => void,
+    ) => {
+      const t = texto.trim();
+      if (!t) return;
+      const origem: "pt" | "zh" | "en" = /[\u4e00-\u9fff]/.test(t) ? "zh" : "pt";
+      // Não traduz se ambos os destinos já estão preenchidos
+      if (cnGetter.trim() && enGetter.trim()) return;
       try {
-        const r = await traduzirLabel.mutateAsync({ texto: t, origem: "pt" });
+        const r = await traduzirLabel.mutateAsync({ texto: t, origem });
         const zh = r?.traducoes?.zh;
-        if (zh && !current.trim()) setter(zh);
+        const en = r?.traducoes?.en;
+        if (zh && !cnGetter.trim()) cnSetter(zh);
+        if (en && !enGetter.trim()) enSetter(en);
       } catch {
         // erro já notificado em useTraduzirTexto
       }
