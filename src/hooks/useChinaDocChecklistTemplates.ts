@@ -258,6 +258,7 @@ export async function aplicarTemplateNaSubmissao(
         tipo_key: novoTipoKey,
         label_pt: item.label_pt,
         label_cn: item.label_cn,
+        label_en: item.label_en || item.label_pt,
         accept: item.accept || "image/*,.pdf",
         multiple: item.multiple ?? true,
         created_by: userId,
