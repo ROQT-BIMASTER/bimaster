@@ -893,11 +893,12 @@ export function ChinaChecklistFocusMode({
       if (!editCatTarget) return;
       const labelPt = editCatLabelPt.trim();
       const labelCn = editCatLabelCn.trim();
+      const labelEn = editCatLabelEn.trim() || labelPt;
       if (!labelPt) throw new Error(t("focusMode.errNomeObrigatorio"));
       if (editCatTarget.isCustom && editCatTarget.customId) {
         const { error } = await (supabase as any)
           .from("china_checklist_custom_categorias")
-          .update({ label_pt: labelPt, label_cn: labelCn })
+          .update({ label_pt: labelPt, label_cn: labelCn, label_en: labelEn })
           .eq("id", editCatTarget.customId);
         if (error) throw error;
         queryClient.invalidateQueries({ queryKey: ["checklist-custom-cats", submissaoId] });
@@ -907,6 +908,7 @@ export function ChinaChecklistFocusMode({
           categoriaKey: editCatTarget.key,
           labelPt,
           labelCn,
+          labelEn,
         });
       }
     },
@@ -923,6 +925,7 @@ export function ChinaChecklistFocusMode({
       key: c.key,
       label_pt: c.labelPt,
       label_cn: c.labelCn || "",
+      label_en: (c as any).labelEn || c.labelPt,
       fluxo: c.fluxo,
       ordem: idx,
       custom: !!c.isCustom,
@@ -935,6 +938,7 @@ export function ChinaChecklistFocusMode({
           tipo_key: d.tipo,
           label_pt: d.labelPt,
           label_cn: d.labelCn || "",
+          label_en: (d as any).labelEn || d.labelPt,
           categoria_key: cat?.key || "",
           custom: !!d.isCustom,
           accept: d.accept || null,
@@ -947,6 +951,7 @@ export function ChinaChecklistFocusMode({
       categoria_key: o.categoria_key,
       label_pt: o.label_pt,
       label_cn: o.label_cn || "",
+      label_en: (o as any).label_en || o.label_pt,
     }));
     return { categorias, itens, ocultos, overrides_categoria };
   };
