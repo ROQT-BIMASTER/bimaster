@@ -1651,7 +1651,7 @@ export function ChinaChecklistFocusMode({
               <Input
                 value={editCatLabelPt}
                 onChange={(e) => setEditCatLabelPt(e.target.value)}
-                onBlur={(e) => autoTranslateToCn(e.target.value, editCatLabelCn, setEditCatLabelCn)}
+                onBlur={(e) => autoTranslateLabels(e.target.value, editCatLabelCn, setEditCatLabelCn, editCatLabelEn, setEditCatLabelEn)}
                 className="mt-1"
               />
             </div>
@@ -1660,6 +1660,15 @@ export function ChinaChecklistFocusMode({
               <Input
                 value={editCatLabelCn}
                 onChange={(e) => setEditCatLabelCn(e.target.value)}
+                onBlur={(e) => autoTranslateLabels(e.target.value, editCatLabelCn, setEditCatLabelCn, editCatLabelEn, setEditCatLabelEn)}
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <Label className="text-xs">Name (English)</Label>
+              <Input
+                value={editCatLabelEn}
+                onChange={(e) => setEditCatLabelEn(e.target.value)}
                 className="mt-1"
               />
             </div>
