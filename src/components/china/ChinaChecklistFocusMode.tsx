@@ -285,13 +285,19 @@ export function ChinaChecklistFocusMode({
   // Merge categories: default + custom
   const allCategories = useMemo(() => {
     const defaultCats: MergedCategory[] = DOCUMENT_CATEGORIES.map(c => ({
-      ...c,
+      key: c.key,
+      labelPt: c.labelPt,
+      labelCn: c.labelCn,
+      labelEn: c.labelEn || c.labelPt,
+      tipos: c.tipos,
+      fluxo: c.fluxo,
       isCustom: false,
     }));
     const customCats: MergedCategory[] = customCategories.map((c: any) => ({
       key: `custom_${c.id}`,
       labelPt: c.label_pt,
       labelCn: c.label_cn || "",
+      labelEn: c.label_en || c.label_pt || "",
       tipos: customItems.filter((i: any) => i.categoria_custom_id === c.id).map((i: any) => i.tipo_key),
       fluxo: c.fluxo,
       isCustom: true,
@@ -302,11 +308,21 @@ export function ChinaChecklistFocusMode({
 
   // Merge doc types: default + custom items added to default categories
   const allDocTypes = useMemo(() => {
-    const defaults: MergedDocType[] = CHINA_DOCUMENT_TYPES.map(d => ({ ...d, isCustom: false }));
+    const defaults: MergedDocType[] = CHINA_DOCUMENT_TYPES.map(d => ({
+      tipo: d.tipo,
+      labelPt: d.labelPt,
+      labelCn: d.labelCn,
+      labelEn: d.labelEn || d.labelPt,
+      icon: d.icon,
+      accept: d.accept,
+      multiple: d.multiple,
+      isCustom: false,
+    }));
     const customs: MergedDocType[] = customItems.map((i: any) => ({
       tipo: i.tipo_key,
       labelPt: i.label_pt,
       labelCn: i.label_cn || "",
+      labelEn: i.label_en || i.label_pt || "",
       icon: createElement(FileText, { className: "h-5 w-5 text-muted-foreground" }),
       accept: i.accept || undefined,
       multiple: i.multiple || false,
@@ -321,11 +337,12 @@ export function ChinaChecklistFocusMode({
       const ov = overrideMap.get(cat.key);
       const labelPt = ov?.label_pt || cat.labelPt;
       const labelCn = ov?.label_cn ?? cat.labelCn;
-      if (cat.isCustom) return { ...cat, labelPt, labelCn };
+      const labelEn = ov?.label_en || cat.labelEn;
+      if (cat.isCustom) return { ...cat, labelPt, labelCn, labelEn };
       const extraItems = customItems
         .filter((i: any) => i.categoria_default_key === cat.key && !i.categoria_custom_id)
         .map((i: any) => i.tipo_key);
-      return { ...cat, labelPt, labelCn, tipos: [...cat.tipos, ...extraItems] };
+      return { ...cat, labelPt, labelCn, labelEn, tipos: [...cat.tipos, ...extraItems] };
     });
   }, [allCategories, customItems, overrideMap]);
 
