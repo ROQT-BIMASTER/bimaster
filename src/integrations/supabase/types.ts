@@ -4030,6 +4030,99 @@ export type Database = {
           },
         ]
       }
+      china_label_traducao_log: {
+        Row: {
+          contexto: string | null
+          created_at: string
+          duracao_ms: number | null
+          entidade: string | null
+          entidade_id: string | null
+          erro_msg: string | null
+          id: string
+          modelo_usado: string | null
+          payload_resposta: Json | null
+          status: string
+          submissao_id: string | null
+          texto_origem: string
+          user_id: string | null
+        }
+        Insert: {
+          contexto?: string | null
+          created_at?: string
+          duracao_ms?: number | null
+          entidade?: string | null
+          entidade_id?: string | null
+          erro_msg?: string | null
+          id?: string
+          modelo_usado?: string | null
+          payload_resposta?: Json | null
+          status: string
+          submissao_id?: string | null
+          texto_origem: string
+          user_id?: string | null
+        }
+        Update: {
+          contexto?: string | null
+          created_at?: string
+          duracao_ms?: number | null
+          entidade?: string | null
+          entidade_id?: string | null
+          erro_msg?: string | null
+          id?: string
+          modelo_usado?: string | null
+          payload_resposta?: Json | null
+          status?: string
+          submissao_id?: string | null
+          texto_origem?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      china_label_traducoes: {
+        Row: {
+          contexto: string | null
+          created_at: string
+          fonte: string
+          hash: string
+          hits: number
+          idioma_origem: string
+          label_cn: string
+          label_en: string
+          label_pt: string
+          modelo_usado: string | null
+          texto_origem: string
+          updated_at: string
+        }
+        Insert: {
+          contexto?: string | null
+          created_at?: string
+          fonte?: string
+          hash: string
+          hits?: number
+          idioma_origem: string
+          label_cn?: string
+          label_en?: string
+          label_pt?: string
+          modelo_usado?: string | null
+          texto_origem: string
+          updated_at?: string
+        }
+        Update: {
+          contexto?: string | null
+          created_at?: string
+          fonte?: string
+          hash?: string
+          hits?: number
+          idioma_origem?: string
+          label_cn?: string
+          label_en?: string
+          label_pt?: string
+          modelo_usado?: string | null
+          texto_origem?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       china_nao_conformidades: {
         Row: {
           aberta_por: string | null
@@ -45922,6 +46015,59 @@ export type Database = {
       rpc_submeter_tabela_para_aprovacao: {
         Args: { p_produto_ids: string[]; p_tabela_id: string }
         Returns: Json
+      }
+      rpc_translation_cache_get_batch: {
+        Args: { p_hashes: string[] }
+        Returns: {
+          contexto: string | null
+          created_at: string
+          fonte: string
+          hash: string
+          hits: number
+          idioma_origem: string
+          label_cn: string
+          label_en: string
+          label_pt: string
+          modelo_usado: string | null
+          texto_origem: string
+          updated_at: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "china_label_traducoes"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      rpc_translation_cache_put: {
+        Args: {
+          p_contexto: string
+          p_fonte: string
+          p_hash: string
+          p_idioma_origem: string
+          p_label_cn: string
+          p_label_en: string
+          p_label_pt: string
+          p_modelo: string
+          p_texto_origem: string
+        }
+        Returns: undefined
+      }
+      rpc_translation_log_write: {
+        Args: {
+          p_contexto: string
+          p_duracao_ms: number
+          p_entidade: string
+          p_entidade_id: string
+          p_erro_msg: string
+          p_modelo: string
+          p_payload: Json
+          p_status: string
+          p_submissao_id: string
+          p_texto_origem: string
+          p_user_id: string
+        }
+        Returns: string
       }
       rpc_update_member_avatar: {
         Args: { _avatar_url: string; _member_id: string }
