@@ -17,6 +17,8 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Textarea } from "@/components/ui/textarea";
 import { BilingualLabel } from "@/components/china/BilingualLabel";
+import { TrilingualLabel } from "@/components/china/TrilingualLabel";
+import { BackfillTranslationsButton } from "@/components/china/BackfillTranslationsButton";
 import { ChinaGradeView } from "@/components/china/ChinaGradeView";
 import { ChinaDocumentSlot } from "@/components/china/ChinaDocumentSlot";
 import { CHINA_DOCUMENT_TYPES, DOCUMENT_CATEGORIES, MANDATORY_DOCS, STATUS_LABELS } from "@/lib/china-document-types";
