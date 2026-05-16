@@ -104,7 +104,7 @@ export function CofreSubmissaoDialog({ submissaoId, produtoNome, open, onOpenCha
         if (cat.tipos.includes(tipo)) { catKey = cat.key; break; }
       }
       if (!grouped[catKey]) {
-        const cat = DOCUMENT_CATEGORIES.find(c => c.key === catKey) || { key: "_outros", labelPt: "Outros", labelCn: "其他", tipos: [], fluxo: "china_envia" as const };
+        const cat = DOCUMENT_CATEGORIES.find(c => c.key === catKey) || { key: "_outros", labelPt: "Outros", labelCn: "其他", labelEn: "Others", tipos: [] as string[], fluxo: "china_envia" as const };
         grouped[catKey] = { category: cat, revisoes: [] };
       }
       grouped[catKey].revisoes.push({ ...rev, doc });
