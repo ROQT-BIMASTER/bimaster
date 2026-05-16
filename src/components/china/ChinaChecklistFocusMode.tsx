@@ -736,12 +736,16 @@ export function ChinaChecklistFocusMode({
   const updateItem = useMutation({
     mutationFn: async () => {
       if (!editingItemId) return;
+      const tr = await autoTranslateLabel(
+        { pt: addItemLabelPt.trim(), cn: addItemLabelCn.trim(), en: addItemLabelEn.trim() },
+        { context: "Nome de item de checklist (documento China-Brasil)" },
+      );
       const { error } = await (supabase
         .from("china_checklist_custom_itens" as any)
         .update({
-          label_pt: addItemLabelPt.trim(),
-          label_cn: addItemLabelCn.trim(),
-          label_en: (addItemLabelEn.trim() || addItemLabelPt.trim()),
+          label_pt: tr.pt,
+          label_cn: tr.cn,
+          label_en: tr.en,
         })
         .eq("id", editingItemId) as any);
       if (error) throw error;
