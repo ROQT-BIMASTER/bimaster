@@ -28,6 +28,7 @@ export interface MergedChecklistCategory {
   key: string;
   labelPt: string;
   labelCn: string;
+  labelEn?: string;
   tipos: string[];
   fluxo: "china_envia" | "brasil_envia";
   isCustom: boolean;
@@ -110,13 +111,13 @@ export function useMergedChinaChecklist(
   const overrides = useQuery({
     queryKey: ["china-cat-overrides", submissaoId],
     enabled,
-    queryFn: async () => {
+      queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("china_checklist_cat_overrides")
-        .select("categoria_key,label_pt,label_cn")
+        .select("categoria_key,label_pt,label_cn,label_en")
         .eq("submissao_id", submissaoId);
       if (error) throw error;
-      return (data || []) as { categoria_key: string; label_pt: string; label_cn: string }[];
+      return (data || []) as { categoria_key: string; label_pt: string; label_cn: string; label_en?: string }[];
     },
   });
 
@@ -152,6 +153,7 @@ export function useMergedChinaChecklist(
         key: cat.key,
         labelPt: ov?.label_pt || cat.labelPt,
         labelCn: ov?.label_cn ?? cat.labelCn,
+        labelEn: ov?.label_en || undefined,
         tipos: [...cat.tipos, ...extras],
         fluxo: cat.fluxo,
         isCustom: false,
@@ -162,6 +164,7 @@ export function useMergedChinaChecklist(
       key: `custom_${c.id}`,
       labelPt: c.label_pt,
       labelCn: c.label_cn || "",
+      labelEn: c.label_en || undefined,
       tipos: cItens
         .filter((i: any) => i.categoria_custom_id === c.id)
         .map((i: any) => i.tipo_key),

@@ -538,10 +538,12 @@ export default function ChinaFichaProduto() {
                         )}
                       >
                         <td className="px-4 py-3">
-                          <div>
-                            <p className="font-medium text-foreground text-sm">{cat.labelPt}</p>
-                            <p className="text-[10px] text-muted-foreground">{cat.labelCn}</p>
-                          </div>
+                          <TrilingualLabel
+                            pt={cat.labelPt}
+                            zh={cat.labelCn}
+                            en={(cat as any).labelEn}
+                            size="sm"
+                          />
                         </td>
                         <td className="px-4 py-3 text-center">
                           <span className="font-semibold text-foreground">{catFilled}</span>
