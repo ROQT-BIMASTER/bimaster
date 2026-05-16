@@ -106,30 +106,40 @@ export function useChecklistGovernance(submissaoId: string | null | undefined) {
     const missing = expected.filter(
       (e) => !existing.has(`${e.fluxo}|${e.categoria_key}|${e.item_key}`),
     );
-    const orphanIds = estados.data
-      .filter((e) => !expectedKeys.has(`${e.fluxo}|${e.categoria_key}|${e.item_key}`))
-      .map((e) => e.id);
+    const orphanRows = estados.data.filter(
+      (e) => !expectedKeys.has(`${e.fluxo}|${e.categoria_key}|${e.item_key}`),
+    );
+    const orphanIds = orphanRows.map((e) => e.id);
 
     if (missing.length === 0 && orphanIds.length === 0) return;
 
-    // Distribuir peso para os novos:
-    //  - sem estados ainda → divide 100/N entre todos.
-    //  - já há estados, soma < 100 e existem itens novos → distribui o gap
-    //    (100 - soma) entre os novos para manter a soma total = 100,00.
-    //  - já há estados e soma == 100 → novos entram com 0 (usuário ajusta).
-    const somaAtual = estados.data.reduce(
+    // Sobreviventes = estados que continuam na nova estrutura
+    const sobreviventes = estados.data.filter((e) =>
+      expectedKeys.has(`${e.fluxo}|${e.categoria_key}|${e.item_key}`),
+    );
+    const somaSobreviventes = sobreviventes.reduce(
       (s, e) => s + Number(e.peso_percentual || 0),
       0,
     );
-    let pesoDefault: number;
-    if (estados.data.length === 0) {
-      pesoDefault = Math.floor((100 / expected.length) * 100) / 100;
-    } else if (missing.length > 0 && somaAtual < 100) {
-      pesoDefault =
-        Math.floor(((100 - somaAtual) / missing.length) * 100) / 100;
-    } else {
-      pesoDefault = 0;
-    }
+
+    // Política:
+    //  - Primeira vez (sem estado) → 100/N igual a todos.
+    //  - Estrutura mudou e a soma resultante (sobreviventes + novos a 0)
+    //    não fecha em 100% → redistribui igualitário (excluir antigos,
+    //    constar apenas o atual). Garante "Soma = 100%" automaticamente.
+    //  - Caso raro em que sobreviventes já totalizam 100% → novos entram com 0
+    //    (usuário ajusta manualmente).
+    const estructuraMudou = orphanIds.length > 0 || missing.length > 0;
+    const somaFecharia100 = Math.abs(somaSobreviventes - 100) < 0.5 && missing.length === 0;
+    const redistribuirIgual =
+      estados.data.length === 0 ||
+      (estructuraMudou && !(Math.abs(somaSobreviventes - 100) < 0.5 && missing.length === 0));
+
+    const pesoIgual = expected.length > 0
+      ? Math.floor((100 / expected.length) * 100) / 100
+      : 0;
+    // Resíduo de centavos vai para o último item para fechar exatamente 100,00
+    const residuo = Math.round((100 - pesoIgual * expected.length) * 100) / 100;
 
     (async () => {
       if (orphanIds.length > 0) {
@@ -138,7 +148,51 @@ export function useChecklistGovernance(submissaoId: string | null | undefined) {
           .delete()
           .in("id", orphanIds);
       }
-      if (missing.length > 0) {
+
+      if (redistribuirIgual) {
+        // Atualiza sobreviventes para o peso igualitário
+        for (let i = 0; i < sobreviventes.length; i++) {
+          const e = sobreviventes[i];
+          const expectedIdx = expected.findIndex(
+            (x) => `${x.fluxo}|${x.categoria_key}|${x.item_key}` ===
+              `${e.fluxo}|${e.categoria_key}|${e.item_key}`,
+          );
+          const isLast = expectedIdx === expected.length - 1;
+          const novoPeso = isLast ? Math.round((pesoIgual + residuo) * 100) / 100 : pesoIgual;
+          if (Number(e.peso_percentual || 0) !== novoPeso) {
+            await (supabase as any)
+              .from("china_checklist_item_estado")
+              .update({ peso_percentual: novoPeso })
+              .eq("id", e.id);
+          }
+        }
+        // Insere novos com o mesmo peso igualitário
+        if (missing.length > 0) {
+          await (supabase as any)
+            .from("china_checklist_item_estado")
+            .insert(
+              missing.map((m) => {
+                const expectedIdx = expected.findIndex(
+                  (x) => `${x.fluxo}|${x.categoria_key}|${x.item_key}` ===
+                    `${m.fluxo}|${m.categoria_key}|${m.item_key}`,
+                );
+                const isLast = expectedIdx === expected.length - 1;
+                const peso = isLast ? Math.round((pesoIgual + residuo) * 100) / 100 : pesoIgual;
+                return {
+                  submissao_id: submissaoId,
+                  fluxo: m.fluxo,
+                  categoria_key: m.categoria_key,
+                  item_key: m.item_key,
+                  peso_percentual: peso,
+                  obrigatorio: true,
+                  status: "pendente",
+                };
+              }),
+            );
+        }
+      } else if (missing.length > 0) {
+        // Caso de sobreviventes já fechando 100% → novos com 0
+        const pesoDefault = somaFecharia100 ? 0 : Math.max(0, Math.floor(((100 - somaSobreviventes) / missing.length) * 100) / 100);
         await (supabase as any)
           .from("china_checklist_item_estado")
           .insert(
@@ -153,6 +207,7 @@ export function useChecklistGovernance(submissaoId: string | null | undefined) {
             })),
           );
       }
+
       qc.invalidateQueries({ queryKey: ["checklist-item-estado", submissaoId] });
       qc.invalidateQueries({ queryKey: ["checklist-progresso", submissaoId] });
     })();
