@@ -14,6 +14,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { BilingualLabel } from "./BilingualLabel";
+import { TrilingualLabel } from "./TrilingualLabel";
+import { pickLabel } from "@/lib/china/pickLabel";
 import { ChinaUploadPreviewDialog } from "./ChinaUploadPreviewDialog";
 import {
   Maximize2, X, Send, Save, Upload, Loader2, CheckCircle2, Clock, XCircle,
@@ -96,6 +98,7 @@ interface MergedCategory {
   key: string;
   labelPt: string;
   labelCn: string;
+  labelEn: string;
   tipos: string[];
   fluxo: "china_envia" | "brasil_envia";
   isCustom?: boolean;
@@ -107,6 +110,7 @@ interface MergedDocType {
   tipo: string;
   labelPt: string;
   labelCn: string;
+  labelEn: string;
   icon?: React.ReactNode;
   accept?: string;
   multiple?: boolean;
@@ -186,11 +190,13 @@ export function ChinaChecklistFocusMode({
   const [addCatFluxo, setAddCatFluxo] = useState<"china_envia" | "brasil_envia">("china_envia");
   const [addCatLabelPt, setAddCatLabelPt] = useState("");
   const [addCatLabelCn, setAddCatLabelCn] = useState("");
+  const [addCatLabelEn, setAddCatLabelEn] = useState("");
   const [addItemOpen, setAddItemOpen] = useState(false);
   const [addItemCatKey, setAddItemCatKey] = useState("");
   const [addItemCustomCatId, setAddItemCustomCatId] = useState<string | null>(null);
   const [addItemLabelPt, setAddItemLabelPt] = useState("");
   const [addItemLabelCn, setAddItemLabelCn] = useState("");
+  const [addItemLabelEn, setAddItemLabelEn] = useState("");
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
 
   // Edit category dialog
@@ -198,16 +204,30 @@ export function ChinaChecklistFocusMode({
   const [editCatTarget, setEditCatTarget] = useState<MergedCategory | null>(null);
   const [editCatLabelPt, setEditCatLabelPt] = useState("");
   const [editCatLabelCn, setEditCatLabelCn] = useState("");
+  const [editCatLabelEn, setEditCatLabelEn] = useState("");
 
   const traduzirLabel = useTraduzirTexto();
-  const autoTranslateToCn = useCallback(
-    async (textoPt: string, current: string, setter: (v: string) => void) => {
-      const t = textoPt.trim();
-      if (!t || current.trim()) return;
+  /**
+   * Preenche automaticamente os campos vazios (ZH/EN) a partir do texto digitado.
+   * Detecta origem por presença de caractere CJK; assume PT por padrão.
+   */
+  const autoTranslateLabels = useCallback(
+    async (
+      texto: string,
+      cnGetter: string, cnSetter: (v: string) => void,
+      enGetter: string, enSetter: (v: string) => void,
+    ) => {
+      const t = texto.trim();
+      if (!t) return;
+      const origem: "pt" | "zh" | "en" = /[\u4e00-\u9fff]/.test(t) ? "zh" : "pt";
+      // Não traduz se ambos os destinos já estão preenchidos
+      if (cnGetter.trim() && enGetter.trim()) return;
       try {
-        const r = await traduzirLabel.mutateAsync({ texto: t, origem: "pt" });
+        const r = await traduzirLabel.mutateAsync({ texto: t, origem });
         const zh = r?.traducoes?.zh;
-        if (zh && !current.trim()) setter(zh);
+        const en = r?.traducoes?.en;
+        if (zh && !cnGetter.trim()) cnSetter(zh);
+        if (en && !enGetter.trim()) enSetter(en);
       } catch {
         // erro já notificado em useTraduzirTexto
       }
@@ -281,13 +301,19 @@ export function ChinaChecklistFocusMode({
   // Merge categories: default + custom
   const allCategories = useMemo(() => {
     const defaultCats: MergedCategory[] = DOCUMENT_CATEGORIES.map(c => ({
-      ...c,
+      key: c.key,
+      labelPt: c.labelPt,
+      labelCn: c.labelCn,
+      labelEn: c.labelEn || c.labelPt,
+      tipos: c.tipos,
+      fluxo: c.fluxo,
       isCustom: false,
     }));
     const customCats: MergedCategory[] = customCategories.map((c: any) => ({
       key: `custom_${c.id}`,
       labelPt: c.label_pt,
       labelCn: c.label_cn || "",
+      labelEn: c.label_en || c.label_pt || "",
       tipos: customItems.filter((i: any) => i.categoria_custom_id === c.id).map((i: any) => i.tipo_key),
       fluxo: c.fluxo,
       isCustom: true,
@@ -298,11 +324,21 @@ export function ChinaChecklistFocusMode({
 
   // Merge doc types: default + custom items added to default categories
   const allDocTypes = useMemo(() => {
-    const defaults: MergedDocType[] = CHINA_DOCUMENT_TYPES.map(d => ({ ...d, isCustom: false }));
+    const defaults: MergedDocType[] = CHINA_DOCUMENT_TYPES.map(d => ({
+      tipo: d.tipo,
+      labelPt: d.labelPt,
+      labelCn: d.labelCn,
+      labelEn: d.labelEn || d.labelPt,
+      icon: d.icon,
+      accept: d.accept,
+      multiple: d.multiple,
+      isCustom: false,
+    }));
     const customs: MergedDocType[] = customItems.map((i: any) => ({
       tipo: i.tipo_key,
       labelPt: i.label_pt,
       labelCn: i.label_cn || "",
+      labelEn: i.label_en || i.label_pt || "",
       icon: createElement(FileText, { className: "h-5 w-5 text-muted-foreground" }),
       accept: i.accept || undefined,
       multiple: i.multiple || false,
@@ -317,11 +353,12 @@ export function ChinaChecklistFocusMode({
       const ov = overrideMap.get(cat.key);
       const labelPt = ov?.label_pt || cat.labelPt;
       const labelCn = ov?.label_cn ?? cat.labelCn;
-      if (cat.isCustom) return { ...cat, labelPt, labelCn };
+      const labelEn = ov?.label_en || cat.labelEn;
+      if (cat.isCustom) return { ...cat, labelPt, labelCn, labelEn };
       const extraItems = customItems
         .filter((i: any) => i.categoria_default_key === cat.key && !i.categoria_custom_id)
         .map((i: any) => i.tipo_key);
-      return { ...cat, labelPt, labelCn, tipos: [...cat.tipos, ...extraItems] };
+      return { ...cat, labelPt, labelCn, labelEn, tipos: [...cat.tipos, ...extraItems] };
     });
   }, [allCategories, customItems, overrideMap]);
 
@@ -617,6 +654,7 @@ export function ChinaChecklistFocusMode({
           submissao_id: submissaoId,
           label_pt: addCatLabelPt.trim(),
           label_cn: addCatLabelCn.trim(),
+          label_en: (addCatLabelEn.trim() || addCatLabelPt.trim()),
           fluxo: addCatFluxo,
           ordem: customCategories.length,
           created_by: user?.id,
@@ -628,6 +666,7 @@ export function ChinaChecklistFocusMode({
       setAddCatOpen(false);
       setAddCatLabelPt("");
       setAddCatLabelCn("");
+      setAddCatLabelEn("");
       toast.success(t("focusMode.okCategoria"));
     },
   });
@@ -646,6 +685,7 @@ export function ChinaChecklistFocusMode({
           tipo_key: tipoKey,
           label_pt: addItemLabelPt.trim(),
           label_cn: addItemLabelCn.trim(),
+          label_en: (addItemLabelEn.trim() || addItemLabelPt.trim()),
           accept: null,
           multiple: true,
           created_by: user?.id,
@@ -658,6 +698,7 @@ export function ChinaChecklistFocusMode({
       setAddItemOpen(false);
       setAddItemLabelPt("");
       setAddItemLabelCn("");
+      setAddItemLabelEn("");
       toast.success(t("focusMode.okItemAdicionado"));
     },
   });
@@ -668,6 +709,7 @@ export function ChinaChecklistFocusMode({
     setAddItemCustomCatId(customCatId || null);
     setAddItemLabelPt("");
     setAddItemLabelCn("");
+    setAddItemLabelEn("");
     setAddItemOpen(true);
   };
 
@@ -677,6 +719,7 @@ export function ChinaChecklistFocusMode({
     setEditingItemId(item.id);
     setAddItemLabelPt(item.label_pt || "");
     setAddItemLabelCn(item.label_cn || "");
+    setAddItemLabelEn(item.label_en || "");
     setAddItemOpen(true);
   };
 
@@ -688,6 +731,7 @@ export function ChinaChecklistFocusMode({
         .update({
           label_pt: addItemLabelPt.trim(),
           label_cn: addItemLabelCn.trim(),
+          label_en: (addItemLabelEn.trim() || addItemLabelPt.trim()),
         })
         .eq("id", editingItemId) as any);
       if (error) throw error;
@@ -698,6 +742,7 @@ export function ChinaChecklistFocusMode({
       setEditingItemId(null);
       setAddItemLabelPt("");
       setAddItemLabelCn("");
+      setAddItemLabelEn("");
       toast.success(t("focusMode.okItemAtualizado"));
     },
     onError: (e: any) => toast.error(e?.message || t("focusMode.errAtualizarItem")),
@@ -1486,7 +1531,7 @@ export function ChinaChecklistFocusMode({
               <Input
                 value={addCatLabelPt}
                 onChange={(e) => setAddCatLabelPt(e.target.value)}
-                onBlur={(e) => autoTranslateToCn(e.target.value, addCatLabelCn, setAddCatLabelCn)}
+                onBlur={(e) => autoTranslateLabels(e.target.value, addCatLabelCn, setAddCatLabelCn, addCatLabelEn, setAddCatLabelEn)}
                 placeholder={t("focusMode.phCategoriaPt")}
                 className="mt-1"
               />
@@ -1496,7 +1541,17 @@ export function ChinaChecklistFocusMode({
               <Input
                 value={addCatLabelCn}
                 onChange={(e) => setAddCatLabelCn(e.target.value)}
+                onBlur={(e) => autoTranslateLabels(e.target.value, addCatLabelCn, setAddCatLabelCn, addCatLabelEn, setAddCatLabelEn)}
                 placeholder={t("focusMode.phCategoriaCn")}
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <Label className="text-xs">Name (English)</Label>
+              <Input
+                value={addCatLabelEn}
+                onChange={(e) => setAddCatLabelEn(e.target.value)}
+                placeholder="Category name in English"
                 className="mt-1"
               />
             </div>
@@ -1545,7 +1600,7 @@ export function ChinaChecklistFocusMode({
               <Input
                 value={addItemLabelPt}
                 onChange={(e) => setAddItemLabelPt(e.target.value)}
-                onBlur={(e) => autoTranslateToCn(e.target.value, addItemLabelCn, setAddItemLabelCn)}
+                onBlur={(e) => autoTranslateLabels(e.target.value, addItemLabelCn, setAddItemLabelCn, addItemLabelEn, setAddItemLabelEn)}
                 placeholder={t("focusMode.phItemPt")}
                 className="mt-1"
               />
@@ -1555,7 +1610,17 @@ export function ChinaChecklistFocusMode({
               <Input
                 value={addItemLabelCn}
                 onChange={(e) => setAddItemLabelCn(e.target.value)}
+                onBlur={(e) => autoTranslateLabels(e.target.value, addItemLabelCn, setAddItemLabelCn, addItemLabelEn, setAddItemLabelEn)}
                 placeholder={t("focusMode.phItemCn")}
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <Label className="text-xs">Name (English)</Label>
+              <Input
+                value={addItemLabelEn}
+                onChange={(e) => setAddItemLabelEn(e.target.value)}
+                placeholder="Item name in English"
                 className="mt-1"
               />
             </div>
@@ -1594,7 +1659,7 @@ export function ChinaChecklistFocusMode({
               <Input
                 value={editCatLabelPt}
                 onChange={(e) => setEditCatLabelPt(e.target.value)}
-                onBlur={(e) => autoTranslateToCn(e.target.value, editCatLabelCn, setEditCatLabelCn)}
+                onBlur={(e) => autoTranslateLabels(e.target.value, editCatLabelCn, setEditCatLabelCn, editCatLabelEn, setEditCatLabelEn)}
                 className="mt-1"
               />
             </div>
@@ -1603,6 +1668,15 @@ export function ChinaChecklistFocusMode({
               <Input
                 value={editCatLabelCn}
                 onChange={(e) => setEditCatLabelCn(e.target.value)}
+                onBlur={(e) => autoTranslateLabels(e.target.value, editCatLabelCn, setEditCatLabelCn, editCatLabelEn, setEditCatLabelEn)}
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <Label className="text-xs">Name (English)</Label>
+              <Input
+                value={editCatLabelEn}
+                onChange={(e) => setEditCatLabelEn(e.target.value)}
                 className="mt-1"
               />
             </div>

@@ -11,6 +11,7 @@ export interface DocumentSlotConfig {
   tipo: string;
   labelPt: string;
   labelCn: string;
+  labelEn?: string;
   icon?: React.ReactNode;
   accept?: string;
   multiple?: boolean;

@@ -18,6 +18,7 @@ export interface TemplateCategoria {
   key: string;
   label_pt: string;
   label_cn: string;
+  label_en?: string;
   fluxo: "china_envia" | "brasil_envia";
   ordem: number;
   /** se true, esta categoria é nova (não existia nas defaults) */
@@ -28,6 +29,7 @@ export interface TemplateItem {
   tipo_key: string;
   label_pt: string;
   label_cn: string;
+  label_en?: string;
   categoria_key: string;
   /** se true, item é custom; se false, é item padrão e só serve para indicar visibilidade */
   custom: boolean;
@@ -41,7 +43,7 @@ export interface TemplateEstrutura {
   /** chaves de itens/categorias padrão a esconder neste template (cat:KEY ou tipo_KEY) */
   ocultos: string[];
   /** overrides de label de categorias padrão */
-  overrides_categoria: { categoria_key: string; label_pt: string; label_cn: string }[];
+  overrides_categoria: { categoria_key: string; label_pt: string; label_cn: string; label_en?: string }[];
 }
 
 export function useDocChecklistTemplates() {
@@ -205,6 +207,7 @@ export async function aplicarTemplateNaSubmissao(
         submissao_id: submissaoId,
         label_pt: cat.label_pt,
         label_cn: cat.label_cn,
+        label_en: cat.label_en || cat.label_pt,
         fluxo: cat.fluxo,
         ordem: cat.ordem,
         created_by: userId,
@@ -255,6 +258,7 @@ export async function aplicarTemplateNaSubmissao(
         tipo_key: novoTipoKey,
         label_pt: item.label_pt,
         label_cn: item.label_cn,
+        label_en: item.label_en || item.label_pt,
         accept: item.accept || "image/*,.pdf",
         multiple: item.multiple ?? true,
         created_by: userId,
@@ -282,6 +286,7 @@ export async function aplicarTemplateNaSubmissao(
       categoria_key: o.categoria_key,
       label_pt: o.label_pt,
       label_cn: o.label_cn,
+      label_en: o.label_en || o.label_pt,
       created_by: userId,
     }));
     await (supabase as any)
@@ -305,6 +310,7 @@ export function useCategoriaOverrides(submissaoId: string | undefined) {
         categoria_key: string;
         label_pt: string;
         label_cn: string;
+        label_en?: string;
       }>;
     },
   });
@@ -318,6 +324,7 @@ export function useUpsertCategoriaOverride() {
       categoriaKey: string;
       labelPt: string;
       labelCn: string;
+      labelEn?: string;
     }) => {
       const { data: { user } } = await supabase.auth.getUser();
       const { error } = await (supabase as any)
@@ -328,6 +335,7 @@ export function useUpsertCategoriaOverride() {
             categoria_key: params.categoriaKey,
             label_pt: params.labelPt,
             label_cn: params.labelCn,
+            label_en: params.labelEn || params.labelPt,
             created_by: user?.id,
           },
           { onConflict: "submissao_id,categoria_key" },
