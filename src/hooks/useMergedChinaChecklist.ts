@@ -153,6 +153,7 @@ export function useMergedChinaChecklist(
         key: cat.key,
         labelPt: ov?.label_pt || cat.labelPt,
         labelCn: ov?.label_cn ?? cat.labelCn,
+        labelEn: ov?.label_en || undefined,
         tipos: [...cat.tipos, ...extras],
         fluxo: cat.fluxo,
         isCustom: false,
@@ -163,6 +164,7 @@ export function useMergedChinaChecklist(
       key: `custom_${c.id}`,
       labelPt: c.label_pt,
       labelCn: c.label_cn || "",
+      labelEn: c.label_en || undefined,
       tipos: cItens
         .filter((i: any) => i.categoria_custom_id === c.id)
         .map((i: any) => i.tipo_key),
