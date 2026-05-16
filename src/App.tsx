@@ -661,7 +661,7 @@ function AppContent() {
 
             {/* Compras (Internacionais e Nacionais) */}
             <Route path="/dashboard/compras-internacionais" element={<Navigate to="/dashboard/compras-internacionais/inbox" replace />} />
-            <Route path="/dashboard/compras-internacionais/inbox" element={<ModuleRoute moduleCode="china"><CompradorInbox /></ModuleRoute>} />
+            <Route path="/dashboard/compras-internacionais/inbox" element={<ModuleRoute moduleCode="china"><ScreenProtectedRoute screenCode="compras_inbox_comprador"><CompradorInbox /></ScreenProtectedRoute></ModuleRoute>} />
             <Route path="/dashboard/compras-nacionais" element={<ModuleRoute moduleCode="fabrica"><ComprasNacionais /></ModuleRoute>} />
             {/* Painel Executivo — protegido por módulo + tela central_inteligencia */}
             <Route path="/dashboard/painel-executivo" element={<ModuleRoute moduleCode="central_inteligencia"><ScreenProtectedRoute screenCode="ci_executivo"><PainelExecutivo /></ScreenProtectedRoute></ModuleRoute>} />
