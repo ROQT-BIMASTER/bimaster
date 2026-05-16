@@ -905,9 +905,16 @@ export function ChinaChecklistFocusMode({
   const saveEditCategory = useMutation({
     mutationFn: async () => {
       if (!editCatTarget) return;
-      const labelPt = editCatLabelPt.trim();
-      const labelCn = editCatLabelCn.trim();
-      const labelEn = editCatLabelEn.trim() || labelPt;
+      if (!editCatLabelPt.trim() && !editCatLabelCn.trim() && !editCatLabelEn.trim()) {
+        throw new Error(t("focusMode.errNomeObrigatorio"));
+      }
+      const tr = await autoTranslateLabel(
+        { pt: editCatLabelPt.trim(), cn: editCatLabelCn.trim(), en: editCatLabelEn.trim() },
+        { context: "Nome de categoria de checklist (China-Brasil)" },
+      );
+      const labelPt = tr.pt;
+      const labelCn = tr.cn;
+      const labelEn = tr.en;
       if (!labelPt) throw new Error(t("focusMode.errNomeObrigatorio"));
       if (editCatTarget.isCustom && editCatTarget.customId) {
         const { error } = await (supabase as any)
