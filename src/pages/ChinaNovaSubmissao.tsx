@@ -909,7 +909,7 @@ export default function ChinaNovaSubmissao() {
                 上传Excel表格或产品照片/截图。AI将自动提取所有信息。
               </p>
 
-               {!parsedData && !manualMode ? (
+               {!parsedData ? (
                 <div className="w-full max-w-lg space-y-4">
                   {/* Excel Upload */}
                   <div className="relative">
