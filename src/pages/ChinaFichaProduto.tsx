@@ -485,9 +485,9 @@ export default function ChinaFichaProduto() {
 
           {/* Compact summary table — split by flow */}
           {[
-            { categories: merged.categoriesChinaEnvia, headerPt: "China Envia ao Brasil", headerCn: "中国发送至巴西", icon: <ArrowUpRight className="h-4 w-4" />, color: "bg-primary/10 text-primary border-primary/30" },
-            { categories: merged.categoriesBrasilEnvia, headerPt: "Brasil Envia à China", headerCn: "巴西发送至中国", icon: <ArrowDownLeft className="h-4 w-4" />, color: "bg-success/10 text-success border-success/30" },
-          ].map(({ categories, headerPt, headerCn, icon, color }) => (
+            { categories: merged.categoriesChinaEnvia, headerPt: "China Envia ao Brasil", headerCn: "中国发送至巴西", headerEn: "China Sends to Brazil", icon: <ArrowUpRight className="h-4 w-4" />, color: "bg-primary/10 text-primary border-primary/30" },
+            { categories: merged.categoriesBrasilEnvia, headerPt: "Brasil Envia à China", headerCn: "巴西发送至中国", headerEn: "Brazil Sends to China", icon: <ArrowDownLeft className="h-4 w-4" />, color: "bg-success/10 text-success border-success/30" },
+          ].map(({ categories, headerPt, headerCn, headerEn, icon, color }) => (
             <div key={headerPt} className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
@@ -495,8 +495,7 @@ export default function ChinaFichaProduto() {
                     <th colSpan={5} className={`text-left px-4 py-3 font-bold text-sm border ${color} rounded-t-lg`}>
                       <div className="flex items-center gap-2">
                         {icon}
-                        <span>{headerPt}</span>
-                        <span className="font-normal text-xs opacity-75">{headerCn}</span>
+                        <TrilingualLabel pt={headerPt} zh={headerCn} en={headerEn} size="sm" inline />
                       </div>
                     </th>
                   </tr>
