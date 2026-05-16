@@ -324,6 +324,7 @@ export function useUpsertCategoriaOverride() {
       categoriaKey: string;
       labelPt: string;
       labelCn: string;
+      labelEn?: string;
     }) => {
       const { data: { user } } = await supabase.auth.getUser();
       const { error } = await (supabase as any)
@@ -334,6 +335,7 @@ export function useUpsertCategoriaOverride() {
             categoria_key: params.categoriaKey,
             label_pt: params.labelPt,
             label_cn: params.labelCn,
+            label_en: params.labelEn || params.labelPt,
             created_by: user?.id,
           },
           { onConflict: "submissao_id,categoria_key" },
