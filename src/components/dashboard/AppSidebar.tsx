@@ -992,7 +992,9 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
         return (
           <ModuleSubmenu icon={Globe} title="Fábrica China 中国工厂" colorKey="china">
             <ChinaInboxSidebarItem colorKey="china" />
-            <MenuItemLink to="/dashboard/compras-internacionais/inbox" icon={Inbox} title="Inbox do Comprador 采购员收件箱" colorKey="china" />
+            {(isAdmin || hasPermission("compras_inbox_comprador")) && (
+              <MenuItemLink to="/dashboard/compras-internacionais/inbox" icon={Inbox} title="Inbox do Comprador 采购员收件箱" colorKey="china" />
+            )}
             <MenuItemLink to="/dashboard/fabrica-china" icon={Home} title="Painel 面板" colorKey="china" end />
             <MenuItemLink to="/dashboard/fabrica-china/nova" icon={Upload} title="Nova Submissão 新提交" colorKey="china" />
             <MenuItemLink to="/dashboard/fabrica-china/recebimentos" icon={Package} title="Submissões 提交" colorKey="china" />
