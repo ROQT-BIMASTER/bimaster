@@ -1592,7 +1592,7 @@ export function ChinaChecklistFocusMode({
               <Input
                 value={addItemLabelPt}
                 onChange={(e) => setAddItemLabelPt(e.target.value)}
-                onBlur={(e) => autoTranslateToCn(e.target.value, addItemLabelCn, setAddItemLabelCn)}
+                onBlur={(e) => autoTranslateLabels(e.target.value, addItemLabelCn, setAddItemLabelCn, addItemLabelEn, setAddItemLabelEn)}
                 placeholder={t("focusMode.phItemPt")}
                 className="mt-1"
               />
@@ -1602,7 +1602,17 @@ export function ChinaChecklistFocusMode({
               <Input
                 value={addItemLabelCn}
                 onChange={(e) => setAddItemLabelCn(e.target.value)}
+                onBlur={(e) => autoTranslateLabels(e.target.value, addItemLabelCn, setAddItemLabelCn, addItemLabelEn, setAddItemLabelEn)}
                 placeholder={t("focusMode.phItemCn")}
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <Label className="text-xs">Name (English)</Label>
+              <Input
+                value={addItemLabelEn}
+                onChange={(e) => setAddItemLabelEn(e.target.value)}
+                placeholder="Item name in English"
                 className="mt-1"
               />
             </div>
