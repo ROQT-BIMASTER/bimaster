@@ -2944,6 +2944,7 @@ export type Database = {
           created_by: string | null
           id: string
           label_cn: string | null
+          label_en: string | null
           label_pt: string
           submissao_id: string
           updated_at: string
@@ -2954,6 +2955,7 @@ export type Database = {
           created_by?: string | null
           id?: string
           label_cn?: string | null
+          label_en?: string | null
           label_pt: string
           submissao_id: string
           updated_at?: string
@@ -2964,6 +2966,7 @@ export type Database = {
           created_by?: string | null
           id?: string
           label_cn?: string | null
+          label_en?: string | null
           label_pt?: string
           submissao_id?: string
           updated_at?: string
@@ -2992,6 +2995,7 @@ export type Database = {
           fluxo: string
           id: string
           label_cn: string | null
+          label_en: string | null
           label_pt: string
           obrigatorio: boolean
           ordem: number
@@ -3005,6 +3009,7 @@ export type Database = {
           fluxo?: string
           id?: string
           label_cn?: string | null
+          label_en?: string | null
           label_pt: string
           obrigatorio?: boolean
           ordem?: number
@@ -3018,6 +3023,7 @@ export type Database = {
           fluxo?: string
           id?: string
           label_cn?: string | null
+          label_en?: string | null
           label_pt?: string
           obrigatorio?: boolean
           ordem?: number
@@ -3051,6 +3057,7 @@ export type Database = {
           created_by: string | null
           id: string
           label_cn: string | null
+          label_en: string | null
           label_pt: string
           multiple: boolean | null
           obrigatorio: boolean
@@ -3067,6 +3074,7 @@ export type Database = {
           created_by?: string | null
           id?: string
           label_cn?: string | null
+          label_en?: string | null
           label_pt: string
           multiple?: boolean | null
           obrigatorio?: boolean
@@ -3083,6 +3091,7 @@ export type Database = {
           created_by?: string | null
           id?: string
           label_cn?: string | null
+          label_en?: string | null
           label_pt?: string
           multiple?: boolean | null
           obrigatorio?: boolean
