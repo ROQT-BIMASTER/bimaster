@@ -1308,7 +1308,12 @@ export default function ChinaNovaSubmissao() {
             open={validationOpen}
             onOpenChange={(open) => {
               setValidationOpen(open);
-              if (!open) setPendingAiData(null);
+              if (!open) {
+                setPendingAiData(null);
+                // Se o usuário fechou o dialog sem confirmar o lançamento manual,
+                // volta para a tela de escolha (Excel / Imagem / Manual).
+                if (manualMode && !parsedData) setManualMode(false);
+              }
             }}
             initialData={pendingAiData}
             onConfirm={handleValidationConfirm}
