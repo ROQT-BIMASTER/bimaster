@@ -682,6 +682,10 @@ export function ChinaChecklistFocusMode({
     mutationFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
       const tipoKey = `custom_${Date.now()}_${addItemLabelPt.trim().toLowerCase().replace(/\s+/g, "_")}`;
+      const tr = await autoTranslateLabel(
+        { pt: addItemLabelPt.trim(), cn: addItemLabelCn.trim(), en: addItemLabelEn.trim() },
+        { context: "Nome de item de checklist (documento China-Brasil)" },
+      );
       const { error } = await (supabase
         .from("china_checklist_custom_itens" as any)
         .insert({
@@ -689,9 +693,9 @@ export function ChinaChecklistFocusMode({
           categoria_custom_id: addItemCustomCatId || null,
           categoria_default_key: addItemCustomCatId ? null : addItemCatKey,
           tipo_key: tipoKey,
-          label_pt: addItemLabelPt.trim(),
-          label_cn: addItemLabelCn.trim(),
-          label_en: (addItemLabelEn.trim() || addItemLabelPt.trim()),
+          label_pt: tr.pt,
+          label_cn: tr.cn,
+          label_en: tr.en,
           accept: null,
           multiple: true,
           created_by: user?.id,
