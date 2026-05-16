@@ -98,6 +98,7 @@ interface MergedCategory {
   key: string;
   labelPt: string;
   labelCn: string;
+  labelEn: string;
   tipos: string[];
   fluxo: "china_envia" | "brasil_envia";
   isCustom?: boolean;
@@ -109,6 +110,7 @@ interface MergedDocType {
   tipo: string;
   labelPt: string;
   labelCn: string;
+  labelEn: string;
   icon?: React.ReactNode;
   accept?: string;
   multiple?: boolean;
