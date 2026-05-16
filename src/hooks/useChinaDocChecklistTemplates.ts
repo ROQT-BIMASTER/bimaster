@@ -562,15 +562,19 @@ export function useUpsertCategoriaOverride() {
       labelEn?: string;
     }) => {
       const { data: { user } } = await supabase.auth.getUser();
+      const tr = await autoTranslateLabel(
+        { pt: params.labelPt, cn: params.labelCn, en: params.labelEn || "" },
+        { context: "Nome de categoria de checklist (China-Brasil)" },
+      );
       const { error } = await (supabase as any)
         .from("china_checklist_cat_overrides")
         .upsert(
           {
             submissao_id: params.submissaoId,
             categoria_key: params.categoriaKey,
-            label_pt: params.labelPt,
-            label_cn: params.labelCn,
-            label_en: params.labelEn || params.labelPt,
+            label_pt: tr.pt,
+            label_cn: tr.cn,
+            label_en: tr.en,
             created_by: user?.id,
           },
           { onConflict: "submissao_id,categoria_key" },
