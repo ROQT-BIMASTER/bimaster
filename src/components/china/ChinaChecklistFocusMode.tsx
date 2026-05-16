@@ -16,6 +16,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { BilingualLabel } from "./BilingualLabel";
 import { TrilingualLabel } from "./TrilingualLabel";
 import { pickLabel } from "@/lib/china/pickLabel";
+import { autoTranslateLabel } from "@/lib/china/autoTranslateLabels";
 import { parseLocalDate } from "@/lib/utils/parseLocalDate";
 import { ChinaUploadPreviewDialog } from "./ChinaUploadPreviewDialog";
 import {
