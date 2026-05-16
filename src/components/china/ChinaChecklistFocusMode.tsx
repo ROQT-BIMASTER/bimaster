@@ -654,6 +654,7 @@ export function ChinaChecklistFocusMode({
           submissao_id: submissaoId,
           label_pt: addCatLabelPt.trim(),
           label_cn: addCatLabelCn.trim(),
+          label_en: (addCatLabelEn.trim() || addCatLabelPt.trim()),
           fluxo: addCatFluxo,
           ordem: customCategories.length,
           created_by: user?.id,
@@ -665,6 +666,7 @@ export function ChinaChecklistFocusMode({
       setAddCatOpen(false);
       setAddCatLabelPt("");
       setAddCatLabelCn("");
+      setAddCatLabelEn("");
       toast.success(t("focusMode.okCategoria"));
     },
   });
@@ -683,6 +685,7 @@ export function ChinaChecklistFocusMode({
           tipo_key: tipoKey,
           label_pt: addItemLabelPt.trim(),
           label_cn: addItemLabelCn.trim(),
+          label_en: (addItemLabelEn.trim() || addItemLabelPt.trim()),
           accept: null,
           multiple: true,
           created_by: user?.id,
