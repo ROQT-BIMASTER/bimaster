@@ -947,7 +947,7 @@ export function ChinaChecklistFocusMode({
         Modo Foco 聚焦模式
       </Button>
 
-      <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      <Dialog open={isOpen} onOpenChange={(o) => { setIsOpen(o); if (!o) onRefresh(); }}>
         <DialogContent
           className="max-w-[98vw] w-[98vw] h-[95vh] max-h-[95vh] p-0 overflow-hidden flex flex-col"
           style={bgStyle}
