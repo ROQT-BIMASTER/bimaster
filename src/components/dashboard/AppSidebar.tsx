@@ -1403,7 +1403,9 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
         <SidebarGroup className="py-1">
           <SidebarGroupContent>
             <SidebarMenu className="space-y-0.5 px-2">
-              <MenuItemLink to="/dashboard/relatorios" icon={BarChart3} title="Relatórios" />
+              {(isAdmin || hasPermission("relatorios")) && (
+                <MenuItemLink to="/dashboard/relatorios" icon={BarChart3} title="Relatórios" />
+              )}
               <MenuItemLink to="/dashboard/chat" icon={MessageCircle} title="Chat" />
               <MenuItemLink to="/dashboard/instalar-app" icon={needRefresh ? RefreshCw : Download} title={needRefresh ? "Atualizar App" : t("nav.install_app")} />
             </SidebarMenu>
