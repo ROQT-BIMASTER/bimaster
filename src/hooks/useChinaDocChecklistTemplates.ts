@@ -207,6 +207,7 @@ export async function aplicarTemplateNaSubmissao(
         submissao_id: submissaoId,
         label_pt: cat.label_pt,
         label_cn: cat.label_cn,
+        label_en: cat.label_en || cat.label_pt,
         fluxo: cat.fluxo,
         ordem: cat.ordem,
         created_by: userId,
