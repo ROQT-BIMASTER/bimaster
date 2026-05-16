@@ -455,29 +455,32 @@ export default function ChinaFichaProduto() {
 
         {/* Documents Summary + Focus Mode */}
         <Card className="p-6 space-y-4">
-          <div className="flex items-center justify-between">
-            <BilingualLabel pt="Documentos" cn="文件" size="md" />
-            <ChinaChecklistFocusMode
-              submissaoId={id!}
-              documentos={documentos as any}
-              onUpload={handleDocUpload}
-              onRefresh={() => queryClient.invalidateQueries({ queryKey: ["china-ficha-docs", id] })}
-              onRemoveFile={async (fileId) => {
-                const { confirmExclusaoTarefa } = await import("@/lib/projetos/confirmConclusao");
-                const ok = await confirmExclusaoTarefa({
-                  tituloDialog: "Excluir documento?",
-                  acaoLabel: "Sim, excluir",
-                  descricao:
-                    "Você está prestes a excluir definitivamente este documento da ficha. " +
-                    "O arquivo deixará de aparecer para a equipe China e Brasil. Esta ação não pode ser desfeita.",
-                });
-                if (!ok) return;
-                await supabase.from("china_produto_documentos" as any).delete().eq("id", fileId);
-                queryClient.invalidateQueries({ queryKey: ["china-ficha-docs", id] });
-                toast.success("Documento removido 文件已删除");
-              }}
-              onViewDoc={handleViewDoc}
-            />
+          <div className="flex items-center justify-between gap-2">
+            <TrilingualLabel pt="Documentos" zh="文件" en="Documents" size="md" />
+            <div className="flex items-center gap-2">
+              <BackfillTranslationsButton submissaoId={id!} />
+              <ChinaChecklistFocusMode
+                submissaoId={id!}
+                documentos={documentos as any}
+                onUpload={handleDocUpload}
+                onRefresh={() => queryClient.invalidateQueries({ queryKey: ["china-ficha-docs", id] })}
+                onRemoveFile={async (fileId) => {
+                  const { confirmExclusaoTarefa } = await import("@/lib/projetos/confirmConclusao");
+                  const ok = await confirmExclusaoTarefa({
+                    tituloDialog: "Excluir documento?",
+                    acaoLabel: "Sim, excluir",
+                    descricao:
+                      "Você está prestes a excluir definitivamente este documento da ficha. " +
+                      "O arquivo deixará de aparecer para a equipe China e Brasil. Esta ação não pode ser desfeita.",
+                  });
+                  if (!ok) return;
+                  await supabase.from("china_produto_documentos" as any).delete().eq("id", fileId);
+                  queryClient.invalidateQueries({ queryKey: ["china-ficha-docs", id] });
+                  toast.success("Documento removido 文件已删除");
+                }}
+                onViewDoc={handleViewDoc}
+              />
+            </div>
           </div>
 
           {/* Compact summary table — split by flow */}
