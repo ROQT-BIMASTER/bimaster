@@ -276,6 +276,7 @@ export async function aplicarTemplateNaSubmissao(
         created_by: userId,
       });
     if (error) throw error;
+    tipoKeyMap.set(item.tipo_key, novoTipoKey);
   }
 
   // 3) Ocultos
