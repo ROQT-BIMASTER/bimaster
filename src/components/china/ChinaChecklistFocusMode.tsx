@@ -698,6 +698,7 @@ export function ChinaChecklistFocusMode({
       setAddItemOpen(false);
       setAddItemLabelPt("");
       setAddItemLabelCn("");
+      setAddItemLabelEn("");
       toast.success(t("focusMode.okItemAdicionado"));
     },
   });
@@ -708,6 +709,7 @@ export function ChinaChecklistFocusMode({
     setAddItemCustomCatId(customCatId || null);
     setAddItemLabelPt("");
     setAddItemLabelCn("");
+    setAddItemLabelEn("");
     setAddItemOpen(true);
   };
 
@@ -717,6 +719,7 @@ export function ChinaChecklistFocusMode({
     setEditingItemId(item.id);
     setAddItemLabelPt(item.label_pt || "");
     setAddItemLabelCn(item.label_cn || "");
+    setAddItemLabelEn(item.label_en || "");
     setAddItemOpen(true);
   };
 
@@ -728,6 +731,7 @@ export function ChinaChecklistFocusMode({
         .update({
           label_pt: addItemLabelPt.trim(),
           label_cn: addItemLabelCn.trim(),
+          label_en: (addItemLabelEn.trim() || addItemLabelPt.trim()),
         })
         .eq("id", editingItemId) as any);
       if (error) throw error;
@@ -738,6 +742,7 @@ export function ChinaChecklistFocusMode({
       setEditingItemId(null);
       setAddItemLabelPt("");
       setAddItemLabelCn("");
+      setAddItemLabelEn("");
       toast.success(t("focusMode.okItemAtualizado"));
     },
     onError: (e: any) => toast.error(e?.message || t("focusMode.errAtualizarItem")),
