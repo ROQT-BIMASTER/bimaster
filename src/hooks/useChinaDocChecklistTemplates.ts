@@ -18,6 +18,7 @@ export interface TemplateCategoria {
   key: string;
   label_pt: string;
   label_cn: string;
+  label_en?: string;
   fluxo: "china_envia" | "brasil_envia";
   ordem: number;
   /** se true, esta categoria é nova (não existia nas defaults) */
@@ -28,6 +29,7 @@ export interface TemplateItem {
   tipo_key: string;
   label_pt: string;
   label_cn: string;
+  label_en?: string;
   categoria_key: string;
   /** se true, item é custom; se false, é item padrão e só serve para indicar visibilidade */
   custom: boolean;
@@ -41,7 +43,7 @@ export interface TemplateEstrutura {
   /** chaves de itens/categorias padrão a esconder neste template (cat:KEY ou tipo_KEY) */
   ocultos: string[];
   /** overrides de label de categorias padrão */
-  overrides_categoria: { categoria_key: string; label_pt: string; label_cn: string }[];
+  overrides_categoria: { categoria_key: string; label_pt: string; label_cn: string; label_en?: string }[];
 }
 
 export function useDocChecklistTemplates() {
