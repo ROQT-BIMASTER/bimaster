@@ -875,6 +875,7 @@ export function ChinaChecklistFocusMode({
     setAddCatFluxo(fluxo);
     setAddCatLabelPt("");
     setAddCatLabelCn("");
+    setAddCatLabelEn("");
     setAddCatOpen(true);
   };
 
@@ -883,6 +884,7 @@ export function ChinaChecklistFocusMode({
     setEditCatTarget(cat);
     setEditCatLabelPt(cat.labelPt);
     setEditCatLabelCn(cat.labelCn || "");
+    setEditCatLabelEn((cat as any).labelEn || "");
     setEditCatOpen(true);
   };
 
