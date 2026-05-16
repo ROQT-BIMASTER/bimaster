@@ -111,13 +111,13 @@ export function useMergedChinaChecklist(
   const overrides = useQuery({
     queryKey: ["china-cat-overrides", submissaoId],
     enabled,
-    queryFn: async () => {
+      queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("china_checklist_cat_overrides")
-        .select("categoria_key,label_pt,label_cn")
+        .select("categoria_key,label_pt,label_cn,label_en")
         .eq("submissao_id", submissaoId);
       if (error) throw error;
-      return (data || []) as { categoria_key: string; label_pt: string; label_cn: string }[];
+      return (data || []) as { categoria_key: string; label_pt: string; label_cn: string; label_en?: string }[];
     },
   });
 
