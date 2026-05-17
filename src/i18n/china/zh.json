@@ -216,9 +216,15 @@
       },
       "totals": {
         "linha": "{{enviados}} / {{expected}}",
-        "itensEnviados": "项已发送",
+        "itensEnviados": "项已发送至巴西",
         "pendente_one": "{{count}} 项待处理",
-        "pendente_other": "{{count}} 项待处理"
+        "pendente_other": "{{count}} 项待处理",
+        "anexados_one": "{{count}} 项已附件（草稿）",
+        "anexados_other": "{{count}} 项已附件（草稿）",
+        "anexadosTitle": "文件已上传,等待发送至巴西",
+        "naoCriado_one": "{{count}} 项尚未创建",
+        "naoCriado_other": "{{count}} 项尚未创建",
+        "completo": "清单已完成"
       },
       "header": {
         "abrirPaginaDedicada": "打开专属页面",

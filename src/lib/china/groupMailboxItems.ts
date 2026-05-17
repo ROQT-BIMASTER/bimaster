@@ -14,6 +14,13 @@ export interface MailboxGroupProgress {
   rejeitados: number;
   /** Itens ainda pendentes de envio (regra `evaluateAwaitingSend`). */
   pendentes: number;
+  /**
+   * Sub-contagem de `pendentes`: itens que JÁ TÊM documento anexado
+   * (`documento_id` preenchido) mas ainda não foram despachados ao Brasil
+   * — tipicamente em rascunho ou sem parecer técnico da China.
+   * Usado pela UI para distinguir "ainda não criado" de "anexado em rascunho".
+   */
+  anexados_rascunho: number;
 }
 
 export interface MailboxGroup {
@@ -58,7 +65,7 @@ function pickWorst(a: string | null | undefined, b: string | null | undefined): 
 }
 
 function emptyProgress(): MailboxGroupProgress {
-  return { total: 0, enviados: 0, em_analise: 0, aprovados: 0, rejeitados: 0, pendentes: 0 };
+  return { total: 0, enviados: 0, em_analise: 0, aprovados: 0, rejeitados: 0, pendentes: 0, anexados_rascunho: 0 };
 }
 
 function classifyForProgress(item: MailboxItem): keyof Omit<MailboxGroupProgress, "total"> {
@@ -140,6 +147,11 @@ export function groupBySubmissao(
       const bucket = classifyForProgress(d);
       g.progress[bucket] += 1;
       g.progress.total += 1;
+      // Sub-contagem: pendentes que já têm documento anexado (rascunho ou
+      // aguardando parecer). Não soma no total — é só uma visão analítica.
+      if (bucket === "pendentes" && d.documento_id) {
+        g.progress.anexados_rascunho += 1;
+      }
     }
   }
 
