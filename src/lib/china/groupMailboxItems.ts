@@ -14,6 +14,13 @@ export interface MailboxGroupProgress {
   rejeitados: number;
   /** Itens ainda pendentes de envio (regra `evaluateAwaitingSend`). */
   pendentes: number;
+  /**
+   * Sub-contagem de `pendentes`: itens que JÁ TÊM documento anexado
+   * (`documento_id` preenchido) mas ainda não foram despachados ao Brasil
+   * — tipicamente em rascunho ou sem parecer técnico da China.
+   * Usado pela UI para distinguir "ainda não criado" de "anexado em rascunho".
+   */
+  anexados_rascunho: number;
 }
 
 export interface MailboxGroup {
