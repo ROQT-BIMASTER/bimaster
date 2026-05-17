@@ -222,9 +222,15 @@
       },
       "totals": {
         "linha": "{{enviados}} of {{expected}}",
-        "itensEnviados": "items sent",
+        "itensEnviados": "items sent to Brazil",
         "pendente_one": "{{count}} pending",
-        "pendente_other": "{{count}} pending"
+        "pendente_other": "{{count}} pending",
+        "anexados_one": "{{count}} attached (draft)",
+        "anexados_other": "{{count}} attached (draft)",
+        "anexadosTitle": "Documents already attached, awaiting dispatch to Brazil",
+        "naoCriado_one": "{{count}} not yet created",
+        "naoCriado_other": "{{count}} not yet created",
+        "completo": "Checklist complete"
       },
       "header": {
         "abrirPaginaDedicada": "Open dedicated page",
