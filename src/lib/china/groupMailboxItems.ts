@@ -147,6 +147,11 @@ export function groupBySubmissao(
       const bucket = classifyForProgress(d);
       g.progress[bucket] += 1;
       g.progress.total += 1;
+      // Sub-contagem: pendentes que já têm documento anexado (rascunho ou
+      // aguardando parecer). Não soma no total — é só uma visão analítica.
+      if (bucket === "pendentes" && d.documento_id) {
+        g.progress.anexados_rascunho += 1;
+      }
     }
   }
 
