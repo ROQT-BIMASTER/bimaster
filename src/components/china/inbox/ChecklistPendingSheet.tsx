@@ -369,10 +369,16 @@ export function ChecklistPendingSheet({
       group.progress.em_analise +
       group.progress.rejeitados;
     const pct = expected > 0 ? Math.round((enviados / expected) * 100) : 0;
+    const pendentes = Math.max(0, expected - enviados);
+    // Anexados em rascunho/sem parecer: usuário já fez upload, falta despachar.
+    const anexadosRascunho = Math.min(pendentes, group.progress.anexados_rascunho ?? 0);
+    const naoCriados = Math.max(0, pendentes - anexadosRascunho);
     return {
       enviados,
       expected,
-      pendentes: Math.max(0, expected - enviados),
+      pendentes,
+      anexadosRascunho,
+      naoCriados,
       pct,
     };
   }, [group]);
