@@ -65,7 +65,7 @@ function pickWorst(a: string | null | undefined, b: string | null | undefined): 
 }
 
 function emptyProgress(): MailboxGroupProgress {
-  return { total: 0, enviados: 0, em_analise: 0, aprovados: 0, rejeitados: 0, pendentes: 0 };
+  return { total: 0, enviados: 0, em_analise: 0, aprovados: 0, rejeitados: 0, pendentes: 0, anexados_rascunho: 0 };
 }
 
 function classifyForProgress(item: MailboxItem): keyof Omit<MailboxGroupProgress, "total"> {
