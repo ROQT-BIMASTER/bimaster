@@ -434,21 +434,42 @@ export function ChecklistPendingSheet({
           </SheetDescription>
           {totals && (
             <div className="space-y-1 pt-1">
-              <p className="text-[11px] text-muted-foreground">
+              <p className="text-[11px] text-muted-foreground flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
                 <span className="font-medium text-foreground/90">
                   {t("inbox.checklistSheet.totals.linha", { enviados: totals.enviados, expected: totals.expected })}
-                </span>{" "}
-                {t("inbox.checklistSheet.totals.itensEnviados")} ·{" "}
-                <span
-                  className={cn(
-                    "font-medium",
-                    totals.pendentes > 0 ? "text-amber-400" : "text-emerald-400",
-                  )}
-                >
-                  {t("inbox.checklistSheet.totals.pendente", { count: totals.pendentes })}
                 </span>
+                <span>{t("inbox.checklistSheet.totals.itensEnviados")}</span>
+                {totals.anexadosRascunho > 0 && (
+                  <>
+                    <span aria-hidden>·</span>
+                    <span className="font-medium text-amber-400" title={t("inbox.checklistSheet.totals.anexadosTitle")}>
+                      {t("inbox.checklistSheet.totals.anexados", { count: totals.anexadosRascunho })}
+                    </span>
+                  </>
+                )}
+                {totals.naoCriados > 0 && (
+                  <>
+                    <span aria-hidden>·</span>
+                    <span
+                      className={cn(
+                        "font-medium",
+                        totals.naoCriados > 0 ? "text-muted-foreground" : "text-emerald-400",
+                      )}
+                    >
+                      {t("inbox.checklistSheet.totals.naoCriado", { count: totals.naoCriados })}
+                    </span>
+                  </>
+                )}
+                {totals.naoCriados === 0 && totals.anexadosRascunho === 0 && totals.enviados === totals.expected && totals.expected > 0 && (
+                  <>
+                    <span aria-hidden>·</span>
+                    <span className="font-medium text-emerald-400">
+                      {t("inbox.checklistSheet.totals.completo")}
+                    </span>
+                  </>
+                )}
               </p>
-              <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted/60">
+              <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted/60 flex">
                 <div
                   className={cn(
                     "h-full transition-all",
@@ -456,6 +477,13 @@ export function ChecklistPendingSheet({
                   )}
                   style={{ width: `${totals.pct}%` }}
                 />
+                {totals.anexadosRascunho > 0 && totals.expected > 0 && (
+                  <div
+                    className="h-full bg-amber-400/70 transition-all"
+                    style={{ width: `${Math.round((totals.anexadosRascunho / totals.expected) * 100)}%` }}
+                    title={t("inbox.checklistSheet.totals.anexadosTitle")}
+                  />
+                )}
               </div>
             </div>
           )}
