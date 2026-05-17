@@ -92,4 +92,21 @@ describe("groupBySubmissao", () => {
     expect(g.progress.aprovados).toBe(0);
     expect(g.progress.rejeitados).toBe(0);
   });
+
+  it("anexados_rascunho: docs com documento_id em rascunho/sem parecer contam como sub-bucket", () => {
+    const docs = [
+      // 3 itens com documento anexado mas em rascunho (sem parecer) → pendentes + anexados_rascunho
+      mk({ documento_id: "d1", submissao_id: "sub-A", submissao_status: "rascunho", doc_status: "rascunho", observacoes_china: null }),
+      mk({ documento_id: "d2", submissao_id: "sub-A", submissao_status: "rascunho", doc_status: "rascunho", observacoes_china: null }),
+      mk({ documento_id: "d3", submissao_id: "sub-A", submissao_status: "rascunho", doc_status: "rascunho", observacoes_china: null }),
+      // 2 itens "fantasma" sem documento → pendentes mas NÃO contam em anexados_rascunho
+      mk({ documento_id: null, submissao_id: "sub-A", submissao_status: "rascunho", doc_status: null, tipo_documento: null, observacoes_china: null }),
+      mk({ documento_id: null, submissao_id: "sub-A", submissao_status: "rascunho", doc_status: null, tipo_documento: null, observacoes_china: null }),
+    ];
+    const [g] = groupBySubmissao(docs);
+    expect(g.progress.total).toBe(5);
+    expect(g.progress.pendentes).toBe(5);
+    expect(g.progress.anexados_rascunho).toBe(3);
+    expect(g.progress.enviados).toBe(0);
+  });
 });
