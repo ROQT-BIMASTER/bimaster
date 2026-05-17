@@ -249,9 +249,15 @@
       },
       "totals": {
         "linha": "{{enviados}} de {{expected}}",
-        "itensEnviados": "itens enviados",
+        "itensEnviados": "itens enviados ao Brasil",
         "pendente_one": "{{count}} pendente",
-        "pendente_other": "{{count}} pendentes"
+        "pendente_other": "{{count}} pendentes",
+        "anexados_one": "{{count}} anexado (rascunho)",
+        "anexados_other": "{{count}} anexados (rascunho)",
+        "anexadosTitle": "Documentos já anexados, aguardando despacho ao Brasil",
+        "naoCriado_one": "{{count}} ainda não criado",
+        "naoCriado_other": "{{count}} ainda não criados",
+        "completo": "Checklist completo"
       },
       "header": {
         "abrirPaginaDedicada": "Abrir em página dedicada",
