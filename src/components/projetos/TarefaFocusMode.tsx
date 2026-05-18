@@ -1,3 +1,4 @@
+import { secureDownload } from "@/lib/utils/secure-download";
 import { useState, useRef, useEffect, useMemo } from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";

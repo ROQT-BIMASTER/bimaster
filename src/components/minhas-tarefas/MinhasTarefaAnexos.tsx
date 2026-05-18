@@ -1,3 +1,4 @@
+import { secureDownload } from "@/lib/utils/secure-download";
 import { useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Paperclip, Upload, Download, Trash2, File, FileText, Image } from "lucide-react";
