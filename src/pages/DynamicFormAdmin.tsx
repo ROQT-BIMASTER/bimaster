@@ -12,7 +12,7 @@ import { FormShareDialog } from "@/components/forms/FormShareDialog";
 import { logger } from "@/lib/logger";
 import {
   Plus, Edit2, Trash2, Share2, BarChart3, Copy, Loader2, FileText,
-  ClipboardList, Eye,
+  ClipboardList, Eye, Link2, ExternalLink,
 } from "lucide-react";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel,
