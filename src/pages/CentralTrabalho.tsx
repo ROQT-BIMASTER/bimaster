@@ -192,6 +192,18 @@ export default function CentralTrabalho({ defaultTab }: Props) {
       : null;
   }, [activeTab, tarefasFilter]);
 
+  // Lightweight tab counters (reuses the same cached query as KPIs and HojeTab).
+  const { data: tarefas = [] } = useMinhasTarefas();
+  const tabCounts = useMemo(() => {
+    const now = startOfDay(new Date());
+    const pendentes = tarefas.filter((t) => t.status !== "concluida");
+    const hojeC = pendentes.filter((t) => {
+      const p = parseLocalDate(t.data_prazo);
+      return p && (isToday(p) || isBefore(startOfDay(p), now));
+    });
+    return { hoje: hojeC.length, pendentes: pendentes.length };
+  }, [tarefas]);
+
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-background">
