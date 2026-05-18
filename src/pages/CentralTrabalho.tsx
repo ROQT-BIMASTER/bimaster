@@ -202,7 +202,7 @@ export default function CentralTrabalho({ defaultTab }: Props) {
           }
         >
           <div className="p-4 sm:p-6 w-full space-y-4">
-            <Breadcrumb className="min-h-[28px] flex items-center overflow-x-auto [&::-webkit-scrollbar]:hidden">
+            <Breadcrumb className="hidden lg:flex min-h-[24px] items-center overflow-x-auto [&::-webkit-scrollbar]:hidden">
               <BreadcrumbList className="flex-nowrap">
                 <BreadcrumbItem>
                   <BreadcrumbLink asChild>
@@ -220,27 +220,11 @@ export default function CentralTrabalho({ defaultTab }: Props) {
                 </BreadcrumbItem>
                 <BreadcrumbSeparator />
                 <BreadcrumbItem>
-                  <BreadcrumbLink asChild>
-                    <Link to="/dashboard/projetos/central">Central de Trabalho</Link>
-                  </BreadcrumbLink>
-                </BreadcrumbItem>
-                <BreadcrumbSeparator />
-                <BreadcrumbItem>
-                  <BreadcrumbPage className="capitalize">
-                    {activeTab === "hoje" && "Hoje"}
-                    {activeTab === "tarefas" && (
-                      <>
-                        Minhas tarefas
-                        {tarefasFilter === "atrasadas" && " · Atrasadas"}
-                        {tarefasFilter === "hoje" && " · Hoje"}
-                      </>
-                    )}
-                    {activeTab === "delegadas" && "Delegadas por mim"}
-                    {activeTab === "inbox" && "Notificações"}
-                  </BreadcrumbPage>
+                  <BreadcrumbPage>Central de Trabalho</BreadcrumbPage>
                 </BreadcrumbItem>
               </BreadcrumbList>
             </Breadcrumb>
+
 
             <CentralHeader
               bgColor={bgColor}
