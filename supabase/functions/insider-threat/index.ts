@@ -22,6 +22,11 @@ function userClient(authHeader: string) {
 }
 
 Deno.serve(secureHandler(
+  {
+    auth: "jwt",
+    rateLimit: 60,
+    rateLimitPrefix: "insider-threat",
+  },
   async (req, ctx) => {
     const authHeader = req.headers.get("authorization") || "";
     const sb = userClient(authHeader);
