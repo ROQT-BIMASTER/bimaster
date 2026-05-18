@@ -8,10 +8,9 @@ import type { ChatMensagem } from "@/hooks/chat/types";
 import { useChatActions } from "@/hooks/chat/useChatActions";
 import { uploadChatAnexo, formatBytes } from "./utils";
 import { CameraCaptureButton } from "./CameraCaptureButton";
+import { EmojiPicker } from "./EmojiPicker";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-
-const EMOJIS = ["😀","😁","😂","🤣","😊","😍","🥰","😎","🤔","😅","🙃","😢","😭","😡","👍","👎","👏","🙏","🔥","💯","❤️","💔","✅","❌","🎉","🚀","⭐","💡","📌","📎"];
 
 interface Props {
   conversaId: string;
@@ -127,16 +126,8 @@ export function MessageInput({ conversaId, responderA, onClearReply, onTyping }:
           <PopoverTrigger asChild>
             <Button size="icon" variant="ghost" className="h-9 w-9 shrink-0"><Smile className="h-4 w-4" /></Button>
           </PopoverTrigger>
-          <PopoverContent side="top" align="start" className="w-64 p-2">
-            <div className="grid grid-cols-8 gap-1">
-              {EMOJIS.map((e) => (
-                <button
-                  key={e}
-                  className="h-7 w-7 rounded hover:bg-muted text-base leading-none"
-                  onClick={() => setTxt((t) => t + e)}
-                >{e}</button>
-              ))}
-            </div>
+          <PopoverContent side="top" align="start" className="w-auto p-0">
+            <EmojiPicker onPick={(e) => setTxt((t) => t + e)} />
           </PopoverContent>
         </Popover>
         <Textarea
