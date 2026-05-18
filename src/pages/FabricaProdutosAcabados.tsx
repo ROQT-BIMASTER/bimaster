@@ -64,6 +64,8 @@ export default function FabricaProdutosAcabados() {
   const { data: systemProfiles } = useSystemProfiles();
   const { startTour, hasSeenTour } = useTour();
   const [dialogNovo, setDialogNovo] = useState(false);
+  const [dialogNovoCenario, setDialogNovoCenario] = useState(false);
+  const [abaModulo, setAbaModulo] = useState<"oficiais" | "cenarios">("oficiais");
   const [diagnosticoOpen, setDiagnosticoOpen] = useState(false);
   const [produtoEdit, setProdutoEdit] = useState<any>(null);
   const [busca, setBusca] = useState("");
