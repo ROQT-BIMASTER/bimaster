@@ -24,8 +24,19 @@ export function ProjetoChatTab({ projetoId, highlightMsgId = null }: Props) {
   const { membros } = useProjetoMembros(projetoId);
   const [text, setText] = useState("");
   const endRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages.length]);
+
+  useEffect(() => {
+    if (!highlightMsgId) return;
+    const el = containerRef.current?.querySelector<HTMLElement>(`[data-msg-id="${highlightMsgId}"]`);
+    if (!el) return;
+    el.scrollIntoView({ behavior: "smooth", block: "center" });
+    el.classList.add("ring-2", "ring-primary", "rounded-md");
+    const t = setTimeout(() => el.classList.remove("ring-2", "ring-primary", "rounded-md"), 2500);
+    return () => clearTimeout(t);
+  }, [highlightMsgId, messages.length]);
 
   const mentionUsers = (membros || []).map((m) => ({
     id: m.user_id,
