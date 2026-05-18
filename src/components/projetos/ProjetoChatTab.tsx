@@ -15,9 +15,10 @@ import { useProjetoMembros } from "@/hooks/useProjetoMembros";
 
 interface Props {
   projetoId: string;
+  highlightMsgId?: string | null;
 }
 
-export function ProjetoChatTab({ projetoId }: Props) {
+export function ProjetoChatTab({ projetoId, highlightMsgId = null }: Props) {
   const { messages, isLoading, sendMessage, gerarResumoHoje } = useProjetoChat(projetoId);
   const { user } = useAuth();
   const { membros } = useProjetoMembros(projetoId);
