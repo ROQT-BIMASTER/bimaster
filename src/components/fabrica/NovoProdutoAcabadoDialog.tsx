@@ -38,6 +38,11 @@ interface Props {
   onOpenChange: (open: boolean) => void;
   produtoEdit?: any;
   onSuccess: () => void;
+  /** Quando informado, o produto é criado em modo cenário e linkado ao grupo. */
+  cenarioContext?: {
+    grupo_cenario_id: string;
+    cenario_label: string;
+  } | null;
 }
 
 export function NovoProdutoAcabadoDialog({ open, onOpenChange, produtoEdit, onSuccess }: Props) {
