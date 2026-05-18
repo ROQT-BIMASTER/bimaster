@@ -73,6 +73,8 @@ project_id = "aokkyrgaqjarhlywhjju"
     verify_jwt = false
   [functions.contas-receber-api]
     verify_jwt = false
+  [functions.chat-sofia-command]
+    verify_jwt = true
   [functions.chat-traducao]
     verify_jwt = true
   [functions.create-admin-users]
