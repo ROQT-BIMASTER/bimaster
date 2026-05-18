@@ -641,12 +641,21 @@ export function KanbanAprovacoes({
             <p className="text-xl font-semibold">{kpis.hoje}</p>
           </Card>
         </button>
-        <Card className="p-3 bg-card/70 backdrop-blur-sm">
-          <p className="text-[10px] text-muted-foreground uppercase">Finalizadas</p>
-          <p className="text-xl font-semibold text-muted-foreground">
-            {kpis.finalizados}
-          </p>
-        </Card>
+        <button
+          type="button"
+          onClick={() => setStatusFiltro(statusFiltro === "finalizadas" ? "all" : "finalizadas")}
+          className="text-left"
+        >
+          <Card className={cn(
+            "p-3 bg-card/70 backdrop-blur-sm transition hover:border-primary/40 hover:bg-card",
+            statusFiltro === "finalizadas" && "border-primary/60",
+          )}>
+            <p className="text-[10px] text-muted-foreground uppercase">Finalizadas</p>
+            <p className="text-xl font-semibold text-muted-foreground">
+              {kpis.finalizados}
+            </p>
+          </Card>
+        </button>
       </div>
 
       {isLoading && (
