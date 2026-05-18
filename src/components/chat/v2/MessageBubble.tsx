@@ -12,6 +12,7 @@ import { initials, formatHora } from "./utils";
 import { AnexoView } from "./AnexoView";
 import { ForwardMessageDialog } from "./ForwardMessageDialog";
 import { TaskMentionCard } from "./TaskMentionCard";
+import { AprovacaoCard } from "./AprovacaoCard";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -86,6 +87,23 @@ export function MessageBubble({ m, uid, isGrupo, onReply, participantesCount }: 
       <div className={cn("flex w-full", mine ? "justify-end" : "justify-start")}>
         <div className="max-w-[70%] px-3 py-2 rounded-2xl bg-muted/60 text-xs italic text-muted-foreground">
           Mensagem apagada
+        </div>
+      </div>
+    );
+  }
+
+  // Mensagem é um pedido de aprovação inline — renderiza card especial
+  // em vez do balão normal. metadata.aprovacao_id é definido pela RPC
+  // rpc_chat_aprovacao_criar.
+  const aprovacaoId = (m.metadata as any)?.aprovacao_id as string | undefined;
+  if (aprovacaoId) {
+    return (
+      <div className={cn("flex w-full gap-2", mine ? "justify-end" : "justify-start")}>
+        <div className="max-w-[88%] md:max-w-[520px] w-full">
+          <AprovacaoCard aprovacaoId={aprovacaoId} viewerUid={uid} mine={mine} />
+          <p className={cn("text-[10px] mt-1", mine ? "text-right text-muted-foreground" : "text-muted-foreground")}>
+            {formatHora(m.created_at)}
+          </p>
         </div>
       </div>
     );
