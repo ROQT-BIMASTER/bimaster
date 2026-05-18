@@ -355,7 +355,6 @@ export function MessageBubble({ m, uid, isGrupo, onReply, participantesCount }: 
             ))}
           </div>
         )}
-      </div>
         {tarefaVinculada && (
           <Link
             to={`/dashboard/projetos/${tarefaProjetoId}?tarefa=${tarefaVinculada}`}
