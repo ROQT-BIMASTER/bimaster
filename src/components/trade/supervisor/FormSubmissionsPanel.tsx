@@ -12,10 +12,13 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "@/hooks/use-toast";
 import { buildDynamicFormPublicUrl, buildTeamFormTokenUrl } from "@/lib/constants/publicDomain";
+import { DynamicFormResponsesDialog } from "./DynamicFormResponsesDialog";
+import { useState } from "react";
 
 export function FormSubmissionsPanel() {
   const { tokens, submissions, isLoadingTokens, isLoadingSubmissions, revokeToken, deleteToken } = useTeamFormTokens();
   const navigate = useNavigate();
+  const [selectedForm, setSelectedForm] = useState<{ id: string; name: string } | null>(null);
 
   const dynamicFormsQuery = useQuery({
     queryKey: ["my-dynamic-forms-with-counts"],
