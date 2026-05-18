@@ -72,7 +72,11 @@ export interface ChatMensagem {
   metadata: Record<string, unknown>;
   created_at: string;
   remetente?: ChatProfile | null;
-  responde_a?: Pick<ChatMensagem, "id" | "conteudo" | "remetente_id" | "tipo"> | null;
+  responde_a?:
+    | (Pick<ChatMensagem, "id" | "conteudo" | "remetente_id" | "tipo"> & {
+        remetente?: ChatProfile | null;
+      })
+    | null;
   anexos?: ChatAnexo[];
   reacoes?: ChatReacao[];
   leituras?: ChatLeitura[];
