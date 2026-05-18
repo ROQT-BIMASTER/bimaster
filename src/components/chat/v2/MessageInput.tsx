@@ -417,6 +417,14 @@ export function MessageInput({ conversaId, responderA, onClearReply, onTyping }:
         </Button>
       </div>
       <NovaAprovacaoDialog open={aprovacaoOpen} onOpenChange={setAprovacaoOpen} conversaId={conversaId} />
+      <UrgentSendDialog
+        open={urgenteOpen}
+        onOpenChange={setUrgenteOpen}
+        conversaId={conversaId}
+        conteudoInicial={txt}
+        respondeAId={responderA?.id ?? null}
+        onSent={() => { setTxt(""); onClearReply(); }}
+      />
     </div>
   );
 }
