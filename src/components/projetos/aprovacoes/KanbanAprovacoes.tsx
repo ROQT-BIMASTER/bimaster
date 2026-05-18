@@ -437,6 +437,7 @@ export function KanbanAprovacoes({
     (tarefaFiltro !== "all" ? 1 : 0) +
     (pipelineFiltro !== "all" ? 1 : 0) +
     (prazoFiltro !== "all" ? 1 : 0) +
+    (statusFiltro !== "all" ? 1 : 0) +
     (buscaDebounced ? 1 : 0);
 
   function limparFiltros() {
@@ -444,6 +445,7 @@ export function KanbanAprovacoes({
     setTarefaFiltro("all");
     setPipelineFiltro("all");
     setPrazoFiltro("all");
+    setStatusFiltro("all");
     setBusca("");
   }
 
