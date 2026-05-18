@@ -18,6 +18,9 @@ import { Link } from "react-router-dom";
 import { usePageBgColor } from "@/hooks/usePageBgColor";
 import { getBgPaletteVars } from "@/lib/colorUtils";
 import { useProjetoAtividades } from "@/hooks/useProjetoAtividades";
+import { useMinhasTarefas } from "@/hooks/useMinhasTarefas";
+import { parseLocalDate } from "@/lib/utils/parseLocalDate";
+import { isToday, isBefore, startOfDay } from "date-fns";
 import { useCentralPreferences } from "@/hooks/useCentralPreferences";
 import { ProjetoOnboardingCard } from "@/components/projetos/ProjetoOnboardingCard";
 import { ProjetoShortcutsDialog } from "@/components/projetos/ProjetoShortcutsDialog";
@@ -189,6 +192,18 @@ export default function CentralTrabalho({ defaultTab }: Props) {
       : null;
   }, [activeTab, tarefasFilter]);
 
+  // Lightweight tab counters (reuses the same cached query as KPIs and HojeTab).
+  const { data: tarefas = [] } = useMinhasTarefas();
+  const tabCounts = useMemo(() => {
+    const now = startOfDay(new Date());
+    const pendentes = tarefas.filter((t) => t.status !== "concluida");
+    const hojeC = pendentes.filter((t) => {
+      const p = parseLocalDate(t.data_prazo);
+      return p && (isToday(p) || isBefore(startOfDay(p), now));
+    });
+    return { hoje: hojeC.length, pendentes: pendentes.length };
+  }, [tarefas]);
+
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-background">
@@ -202,7 +217,7 @@ export default function CentralTrabalho({ defaultTab }: Props) {
           }
         >
           <div className="p-4 sm:p-6 w-full space-y-4">
-            <Breadcrumb className="min-h-[28px] flex items-center overflow-x-auto [&::-webkit-scrollbar]:hidden">
+            <Breadcrumb className="hidden lg:flex min-h-[24px] items-center overflow-x-auto [&::-webkit-scrollbar]:hidden">
               <BreadcrumbList className="flex-nowrap">
                 <BreadcrumbItem>
                   <BreadcrumbLink asChild>
@@ -220,27 +235,11 @@ export default function CentralTrabalho({ defaultTab }: Props) {
                 </BreadcrumbItem>
                 <BreadcrumbSeparator />
                 <BreadcrumbItem>
-                  <BreadcrumbLink asChild>
-                    <Link to="/dashboard/projetos/central">Central de Trabalho</Link>
-                  </BreadcrumbLink>
-                </BreadcrumbItem>
-                <BreadcrumbSeparator />
-                <BreadcrumbItem>
-                  <BreadcrumbPage className="capitalize">
-                    {activeTab === "hoje" && "Hoje"}
-                    {activeTab === "tarefas" && (
-                      <>
-                        Minhas tarefas
-                        {tarefasFilter === "atrasadas" && " · Atrasadas"}
-                        {tarefasFilter === "hoje" && " · Hoje"}
-                      </>
-                    )}
-                    {activeTab === "delegadas" && "Delegadas por mim"}
-                    {activeTab === "inbox" && "Notificações"}
-                  </BreadcrumbPage>
+                  <BreadcrumbPage>Central de Trabalho</BreadcrumbPage>
                 </BreadcrumbItem>
               </BreadcrumbList>
             </Breadcrumb>
+
 
             <CentralHeader
               bgColor={bgColor}
@@ -303,10 +302,13 @@ export default function CentralTrabalho({ defaultTab }: Props) {
             />
             <ProjetoShortcutsDialog />
 
-            <CentralKPIs
-              activeTab={activeTab}
-              onNavigate={isResetting ? () => {} : setTab}
-            />
+            {/* KPIs only on tabs where they don't duplicate visible content. */}
+            {(activeTab === "tarefas" || activeTab === "delegadas") && (
+              <CentralKPIs
+                activeTab={activeTab}
+                onNavigate={isResetting ? () => {} : setTab}
+              />
+            )}
 
             <Tabs
               value={activeTab}
@@ -319,10 +321,16 @@ export default function CentralTrabalho({ defaultTab }: Props) {
                 <TabsTrigger value="hoje" className="gap-1.5 h-8 px-3" disabled={isResetting}>
                   <CalendarDays className="h-3.5 w-3.5" />
                   Hoje
+                  {tabCounts.hoje > 0 && (
+                    <span className="text-[10px] text-muted-foreground ml-1">{tabCounts.hoje}</span>
+                  )}
                 </TabsTrigger>
                 <TabsTrigger value="tarefas" className="gap-1.5 h-8 px-3" disabled={isResetting}>
                   <ListChecks className="h-3.5 w-3.5" />
                   Minhas tarefas
+                  {tabCounts.pendentes > 0 && (
+                    <span className="text-[10px] text-muted-foreground ml-1">{tabCounts.pendentes}</span>
+                  )}
                 </TabsTrigger>
                 <TabsTrigger value="delegadas" className="gap-1.5 h-8 px-3" disabled={isResetting}>
                   <Send className="h-3.5 w-3.5" />
@@ -358,7 +366,11 @@ export default function CentralTrabalho({ defaultTab }: Props) {
                 )}
 
                 <TabsContent value="hoje" className="mt-4">
-                  <HojeTab onGoToTarefas={() => !isResetting && setTab("tarefas")} />
+                  <HojeTab
+                    onGoToTarefas={(filter) =>
+                      !isResetting && setTab("tarefas", filter)
+                    }
+                  />
                 </TabsContent>
 
                 <TabsContent value="tarefas" className="mt-4">
@@ -377,6 +389,7 @@ export default function CentralTrabalho({ defaultTab }: Props) {
                 </TabsContent>
               </div>
             </Tabs>
+
           </div>
         </main>
       </div>
