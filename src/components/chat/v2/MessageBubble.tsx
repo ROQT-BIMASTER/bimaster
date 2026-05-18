@@ -149,12 +149,20 @@ export function MessageBubble({ m, uid, isGrupo, onReply, participantesCount }: 
         )}
         <div className={cn(
           "relative px-3 py-2 rounded-2xl shadow-sm",
+          m.tipo === "urgente" && "ring-2 ring-destructive ring-offset-1 ring-offset-background",
           isSofia
             ? "bg-violet-500/10 border border-violet-500/30 rounded-bl-sm text-foreground"
             : mine
               ? "bg-emerald-600 text-white rounded-br-sm"
               : "bg-card border border-border rounded-bl-sm",
         )}>
+          {m.tipo === "urgente" && (
+            <div className="flex items-center gap-1 mb-1 text-[10px] font-bold uppercase tracking-wider text-destructive">
+              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              Urgente
+              {(m.metadata as any)?.motivo && <span className="font-normal normal-case opacity-80">• {(m.metadata as any).motivo}</span>}
+            </div>
+          )}
           {m.responde_a && (
             <div className={cn(
               "border-l-2 pl-2 mb-1.5 text-xs opacity-80 max-w-full",

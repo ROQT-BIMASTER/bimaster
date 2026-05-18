@@ -1,5 +1,5 @@
 export type ChatTipoConversa = "private" | "group" | "privada" | "grupo";
-export type ChatTipoMensagem = "texto" | "imagem" | "arquivo" | "audio" | "video" | "sistema";
+export type ChatTipoMensagem = "texto" | "imagem" | "arquivo" | "audio" | "video" | "sistema" | "urgente";
 
 export interface ChatProfile {
   id: string;

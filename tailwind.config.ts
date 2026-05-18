@@ -154,6 +154,11 @@ export default {
           "0%, 100%": { transform: "translateY(0)" },
           "50%": { transform: "translateY(-3px)" },
         },
+        "shake": {
+          "0%, 100%": { transform: "translateX(0)" },
+          "10%, 30%, 50%, 70%, 90%": { transform: "translateX(-6px)" },
+          "20%, 40%, 60%, 80%": { transform: "translateX(6px)" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -170,6 +175,7 @@ export default {
         "shimmer": "shimmer 2s linear infinite",
         "spin-slow": "spin-slow 8s linear infinite",
         "bounce-soft": "bounce-soft 2s ease-in-out infinite",
+        "shake": "shake 0.6s ease-in-out",
       },
       transitionTimingFunction: {
         'spring': 'cubic-bezier(0.175, 0.885, 0.32, 1.275)',

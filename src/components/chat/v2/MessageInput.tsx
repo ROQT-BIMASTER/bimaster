@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Paperclip, Smile, Send, X, Reply, Loader2, Image as ImageIcon, ClipboardCheck } from "lucide-react";
+import { Paperclip, Smile, Send, X, Reply, Loader2, Image as ImageIcon, ClipboardCheck, AlertOctagon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ChatMensagem } from "@/hooks/chat/types";
 import { useChatActions } from "@/hooks/chat/useChatActions";
@@ -13,6 +13,7 @@ import { MentionAutocomplete, type MentionMember } from "./MentionAutocomplete";
 import { TaskMentionAutocomplete, type TaskMention } from "./TaskMentionAutocomplete";
 import { SofiaCommandPopover, type SofiaCommand } from "./SofiaCommandPopover";
 import { NovaAprovacaoDialog } from "./NovaAprovacaoDialog";
+import { UrgentSendDialog } from "./UrgentSendDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
@@ -44,6 +45,7 @@ export function MessageInput({ conversaId, responderA, onClearReply, onTyping }:
   const [sofiaState, setSofiaState] = useState<{ query: string } | null>(null);
   const [sofiaLoading, setSofiaLoading] = useState(false);
   const [aprovacaoOpen, setAprovacaoOpen] = useState(false);
+  const [urgenteOpen, setUrgenteOpen] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const taRef = useRef<HTMLTextAreaElement>(null);
   const { sendMessage } = useChatActions();
@@ -373,6 +375,17 @@ export function MessageInput({ conversaId, responderA, onClearReply, onTyping }:
         >
           <ClipboardCheck className="h-4 w-4" />
         </Button>
+        <Button
+          size="icon"
+          variant="ghost"
+          className="h-9 w-9 shrink-0 text-destructive hover:bg-destructive/10 hover:text-destructive"
+          onClick={() => setUrgenteOpen(true)}
+          disabled={uploading || sofiaLoading}
+          title="Chamar atenção (mensagem urgente)"
+          aria-label="Chamar atenção da equipe"
+        >
+          <AlertOctagon className="h-4 w-4" />
+        </Button>
         <Popover>
           <PopoverTrigger asChild>
             <Button size="icon" variant="ghost" className="h-9 w-9 shrink-0"><Smile className="h-4 w-4" /></Button>
@@ -404,6 +417,14 @@ export function MessageInput({ conversaId, responderA, onClearReply, onTyping }:
         </Button>
       </div>
       <NovaAprovacaoDialog open={aprovacaoOpen} onOpenChange={setAprovacaoOpen} conversaId={conversaId} />
+      <UrgentSendDialog
+        open={urgenteOpen}
+        onOpenChange={setUrgenteOpen}
+        conversaId={conversaId}
+        conteudoInicial={txt}
+        respondeAId={responderA?.id ?? null}
+        onSent={() => { setTxt(""); onClearReply(); }}
+      />
     </div>
   );
 }
