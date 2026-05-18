@@ -4,13 +4,20 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { MoreVertical, Reply, Smile, Pin, Pencil, Trash2, Star, Copy, CornerUpRight, Check, CheckCheck } from "lucide-react";
+import { MoreVertical, Reply, Smile, Pin, Pencil, Trash2, Star, Copy, CornerUpRight, Check, CheckCheck, Languages, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ChatMensagem } from "@/hooks/chat/types";
 import { useChatActions } from "@/hooks/chat/useChatActions";
 import { initials, formatHora } from "./utils";
 import { AnexoView } from "./AnexoView";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+
+const IDIOMAS = [
+  { code: "pt", label: "Português", flag: "🇧🇷" },
+  { code: "en", label: "English", flag: "🇺🇸" },
+  { code: "cn", label: "中文", flag: "🇨🇳" },
+] as const;
 
 const REACTION_SET = ["👍", "❤️", "😂", "😮", "😢", "🙏", "🔥"];
 
@@ -28,6 +35,29 @@ export function MessageBubble({ m, uid, isGrupo, onReply, participantesCount }: 
   const actions = useChatActions();
   const [editing, setEditing] = useState(false);
   const [editTxt, setEditTxt] = useState(m.conteudo);
+  const [traducao, setTraducao] = useState<{ idioma: string; texto: string } | null>(null);
+  const [translating, setTranslating] = useState(false);
+
+  const traduzir = async (idioma: string) => {
+    if (!m.conteudo || m.conteudo.trim().length < 2) {
+      toast.error("Mensagem sem texto para traduzir");
+      return;
+    }
+    setTranslating(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("chat-traducao", {
+        body: { mensagem_id: m.id, idioma },
+      });
+      if (error) throw error;
+      const texto = (data as any)?.texto as string | undefined;
+      if (!texto) throw new Error("Resposta vazia");
+      setTraducao({ idioma, texto });
+    } catch (e: any) {
+      toast.error("Erro ao traduzir: " + (e?.message ?? ""));
+    } finally {
+      setTranslating(false);
+    }
+  };
 
   const reacoesAgrupadas = useMemo(() => {
     const map = new Map<string, { count: number; mine: boolean }>();
@@ -109,6 +139,33 @@ export function MessageBubble({ m, uid, isGrupo, onReply, participantesCount }: 
             <p className="text-sm whitespace-pre-wrap break-words leading-snug">{m.conteudo}</p>
           )}
 
+          {/* Bloco de tradução — só aparece após o usuário clicar em Traduzir.
+              Cache no banco garante que mesma mensagem+idioma não recompila IA. */}
+          {(traducao || translating) && (
+            <div className={cn(
+              "mt-2 pt-2 border-t text-sm whitespace-pre-wrap break-words leading-snug",
+              mine ? "border-white/30 text-white/95" : "border-border text-foreground/95",
+            )}>
+              <div className={cn("flex items-center justify-between mb-1 text-[10px]", mine ? "text-white/70" : "text-muted-foreground")}>
+                <span className="flex items-center gap-1">
+                  {translating ? <Loader2 className="h-3 w-3 animate-spin" /> : <Languages className="h-3 w-3" />}
+                  {translating
+                    ? "Traduzindo..."
+                    : `Traduzido (${IDIOMAS.find((i) => i.code === traducao?.idioma)?.flag ?? ""} ${traducao?.idioma.toUpperCase() ?? ""})`}
+                </span>
+                {traducao && !translating && (
+                  <button
+                    onClick={() => setTraducao(null)}
+                    className="underline opacity-80 hover:opacity-100"
+                  >
+                    Ocultar
+                  </button>
+                )}
+              </div>
+              {traducao?.texto}
+            </div>
+          )}
+
           <div className={cn("flex items-center gap-1 justify-end mt-0.5 text-[10px]", mine ? "text-white/70" : "text-muted-foreground")}>
             {m.editada_em && <span>editada</span>}
             {m.fixada_em && <Pin className="h-2.5 w-2.5" />}
@@ -152,6 +209,20 @@ export function MessageBubble({ m, uid, isGrupo, onReply, participantesCount }: 
                 <DropdownMenuItem onClick={() => actions.togglePin.mutate({ id: m.id, conversaId: m.conversa_id, fixar: !m.fixada_em })}>
                   <Pin className="h-4 w-4 mr-2" /> {m.fixada_em ? "Desafixar" : "Fixar"}
                 </DropdownMenuItem>
+                {m.conteudo && m.conteudo.trim().length >= 2 && (
+                  <>
+                    <DropdownMenuSeparator />
+                    {IDIOMAS.map((i) => (
+                      <DropdownMenuItem
+                        key={i.code}
+                        onClick={() => traduzir(i.code)}
+                        disabled={translating}
+                      >
+                        <Languages className="h-4 w-4 mr-2" /> Traduzir para {i.flag} {i.label}
+                      </DropdownMenuItem>
+                    ))}
+                  </>
+                )}
                 {mine && (
                   <>
                     <DropdownMenuSeparator />
