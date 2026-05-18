@@ -292,6 +292,13 @@ export function NovoProdutoAcabadoDialog({ open, onOpenChange, produtoEdit, onSu
           itens_display: formData.tipo === "DISPLAY"
             ? gradeItems.reduce((s, i) => s + i.quantidade, 0)
             : null,
+          ...(cenarioContext
+            ? {
+                modo: "cenario",
+                grupo_cenario_id: cenarioContext.grupo_cenario_id,
+                cenario_label: cenarioContext.cenario_label,
+              }
+            : {}),
         };
         const { data, error } = await supabase
           .from("fabrica_produtos")
