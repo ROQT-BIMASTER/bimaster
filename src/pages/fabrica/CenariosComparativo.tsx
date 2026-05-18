@@ -215,22 +215,25 @@ export default function CenariosComparativo() {
                     </div>
                   </div>
 
-                  <div className="mt-auto flex gap-2 pt-2">
+                  <div className="mt-auto flex flex-col gap-1.5 pt-2">
+                    <Button
+                      variant="default"
+                      size="sm"
+                      className="w-full"
+                      onClick={() => navigate(`/dashboard/fabrica/produtos/${produto.id}/custos`)}
+                      title="Abrir ficha de custo: lance insumos manualmente ou pela IA, igual aos produtos acabados"
+                    >
+                      <Sparkles className="h-3.5 w-3.5 mr-1.5" />
+                      Lançar insumos (IA)
+                    </Button>
                     <Button
                       variant="outline"
                       size="sm"
-                      className="flex-1"
-                      onClick={() => navigate(`/dashboard/fabrica/produtos/${produto.id}/custos`)}
-                    >
-                      Ficha
-                    </Button>
-                    <Button
-                      size="sm"
-                      className="flex-1"
+                      className="w-full"
                       onClick={() => { setVencedor(produto); setPromoverOpen(true); }}
                     >
                       <Trophy className="h-3.5 w-3.5 mr-1.5" />
-                      Escolher
+                      Escolher como oficial
                     </Button>
                   </div>
                 </Card>
