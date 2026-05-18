@@ -8,6 +8,7 @@ import { Ban, CheckCircle2, Clock, Copy, FileText, Trash2, Users } from "lucide-
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "@/hooks/use-toast";
+import { buildTeamFormTokenUrl } from "@/lib/constants/publicDomain";
 
 export function FormSubmissionsPanel() {
   const { tokens, submissions, isLoadingTokens, isLoadingSubmissions, revokeToken, deleteToken } = useTeamFormTokens();
@@ -66,7 +67,7 @@ export function FormSubmissionsPanel() {
                             size="icon"
                             className="h-6 w-6"
                             onClick={() => {
-                              const link = `https://china.bimaster.online/formulario-equipe?token=${(t as any).token_plain}`;
+                              const link = buildTeamFormTokenUrl((t as any).token_plain);
                               navigator.clipboard.writeText(link);
                               toast({ title: "Link copiado!" });
                             }}
