@@ -30,12 +30,15 @@ export function useInboxScope(): {
     queryKey: ["inbox-scope-tipos", user?.id],
     enabled: !!user && !fullView,
     staleTime: 5 * 60 * 1000,
+    retry: false,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("projetos")
         .select("tipo")
         .limit(500);
-      if (error) throw error;
+      // Silencioso: usuários sem acesso a projetos (ex.: usuário China)
+      // não devem gerar ruído no console nem retries. Tratamos como escopo "generico".
+      if (error) return [] as string[];
       return (data ?? []).map((r) => r.tipo as string);
     },
   });
