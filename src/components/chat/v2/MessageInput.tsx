@@ -45,6 +45,7 @@ export function MessageInput({ conversaId, responderA, onClearReply, onTyping }:
   const [sofiaState, setSofiaState] = useState<{ query: string } | null>(null);
   const [sofiaLoading, setSofiaLoading] = useState(false);
   const [aprovacaoOpen, setAprovacaoOpen] = useState(false);
+  const [urgenteOpen, setUrgenteOpen] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const taRef = useRef<HTMLTextAreaElement>(null);
   const { sendMessage } = useChatActions();
