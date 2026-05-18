@@ -9,6 +9,7 @@ import { useChatActions } from "@/hooks/chat/useChatActions";
 import { uploadChatAnexo, formatBytes } from "./utils";
 import { CameraCaptureButton } from "./CameraCaptureButton";
 import { EmojiPicker } from "./EmojiPicker";
+import { MentionAutocomplete, type MentionMember } from "./MentionAutocomplete";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 
@@ -25,11 +26,64 @@ export function MessageInput({ conversaId, responderA, onClearReply, onTyping }:
   const [txt, setTxt] = useState("");
   const [files, setFiles] = useState<File[]>([]);
   const [uploading, setUploading] = useState(false);
+  /** uuids dos usuários mencionados nesta mensagem (vai junto no sendMessage). */
+  const [mentions, setMentions] = useState<string[]>([]);
+  /** Quando != null, o popover de @ autocomplete está aberto.
+   *  query = o texto após o `@` (filtro). startIdx = posição do `@` no `txt`. */
+  const [mentionState, setMentionState] = useState<{ query: string; startIdx: number } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const taRef = useRef<HTMLTextAreaElement>(null);
   const { sendMessage } = useChatActions();
 
   useEffect(() => { taRef.current?.focus(); }, [conversaId, responderA]);
+
+  // Reset mentions ao trocar de conversa
+  useEffect(() => { setMentions([]); setMentionState(null); }, [conversaId]);
+
+  /** Detecta se o cursor está dentro de uma menção ativa.
+   *  Regra: o último `@` antes do cursor sem espaço/quebra de linha entre
+   *  ele e o cursor abre o popover. Query = caracteres do `@+1` até o cursor. */
+  const checkMentionContext = (text: string, caret: number) => {
+    const before = text.slice(0, caret);
+    const atIdx = before.lastIndexOf("@");
+    if (atIdx === -1) return null;
+    // Se há espaço/linebreak entre @ e cursor, não é mais menção
+    const fragment = before.slice(atIdx + 1);
+    if (/[\s\n]/.test(fragment)) return null;
+    // Evita @ em meio a palavra (ex: email@dominio) — só ativa se antes
+    // do @ for início, espaço ou quebra de linha
+    const charBefore = atIdx > 0 ? before[atIdx - 1] : "";
+    if (charBefore && !/[\s\n]/.test(charBefore)) return null;
+    return { query: fragment, startIdx: atIdx };
+  };
+
+  const onTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const value = e.target.value;
+    setTxt(value);
+    const caret = e.target.selectionStart ?? value.length;
+    setMentionState(checkMentionContext(value, caret));
+  };
+
+  const pickMention = (m: MentionMember) => {
+    if (!mentionState) return;
+    const nome = (m.nome ?? "Usuário").replace(/\s+/g, " ").trim();
+    // Substitui o `@query` por `@Nome ` no texto
+    const antes = txt.slice(0, mentionState.startIdx);
+    const depois = txt.slice(mentionState.startIdx + 1 + mentionState.query.length);
+    const novo = `${antes}@${nome} ${depois}`;
+    setTxt(novo);
+    // Adiciona uuid em mentions (sem duplicar)
+    setMentions((prev) => (prev.includes(m.id) ? prev : [...prev, m.id]));
+    setMentionState(null);
+    // Foca de novo no textarea, posicionando o cursor após o `@Nome `
+    requestAnimationFrame(() => {
+      if (taRef.current) {
+        const pos = antes.length + 1 + nome.length + 1; // @ + nome + espaço
+        taRef.current.focus();
+        taRef.current.setSelectionRange(pos, pos);
+      }
+    });
+  };
 
   const enviar = async () => {
     const conteudo = txt.trim();
@@ -57,9 +111,12 @@ export function MessageInput({ conversaId, responderA, onClearReply, onTyping }:
         tipo: tipo as any,
         responde_a_id: responderA?.id ?? null,
         anexos: anexosMeta,
+        mencoes: mentions.length ? mentions : undefined,
       });
       setTxt("");
       setFiles([]);
+      setMentions([]);
+      setMentionState(null);
       onClearReply();
     } catch (e: any) {
       toast.error("Falha ao enviar: " + (e?.message ?? ""));
@@ -69,7 +126,13 @@ export function MessageInput({ conversaId, responderA, onClearReply, onTyping }:
   };
 
   const onKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === "Enter" && !e.shiftKey) {
+    // Escape fecha o popover de menção
+    if (e.key === "Escape" && mentionState) {
+      e.preventDefault();
+      setMentionState(null);
+      return;
+    }
+    if (e.key === "Enter" && !e.shiftKey && !mentionState) {
       e.preventDefault();
       enviar();
     } else {
@@ -83,7 +146,21 @@ export function MessageInput({ conversaId, responderA, onClearReply, onTyping }:
   };
 
   return (
-    <div className="border-t border-border bg-card">
+    <div className="border-t border-border bg-card relative">
+      {/* Popover de @ autocomplete — fica posicionado acima do textarea.
+          Não tenta pixel-perfect na posição do @ no texto; pra v1 é
+          aceitável estar acima do input inteiro. */}
+      {mentionState && (
+        <div className="absolute bottom-full left-0 mb-1 ml-12 z-50 bg-popover border border-border rounded-md shadow-lg">
+          <MentionAutocomplete
+            conversaId={conversaId}
+            query={mentionState.query}
+            ownUid={uid}
+            onPick={pickMention}
+          />
+        </div>
+      )}
+
       {responderA && (
         <div className="px-3 py-2 border-b border-border flex items-start gap-2 bg-muted/40">
           <Reply className="h-4 w-4 text-primary shrink-0 mt-0.5" />
@@ -133,13 +210,18 @@ export function MessageInput({ conversaId, responderA, onClearReply, onTyping }:
         <Textarea
           ref={taRef}
           value={txt}
-          onChange={(e) => setTxt(e.target.value)}
+          onChange={onTextChange}
           onKeyDown={onKeyDown}
+          onClick={(e) => {
+            // Re-checa contexto ao clicar (caso usuário mova cursor)
+            const ta = e.currentTarget;
+            setMentionState(checkMentionContext(ta.value, ta.selectionStart ?? ta.value.length));
+          }}
           onPaste={(e) => {
             const items = Array.from(e.clipboardData?.files ?? []);
             if (items.length) { e.preventDefault(); addFiles(e.clipboardData.files); }
           }}
-          placeholder="Digite uma mensagem..."
+          placeholder="Digite uma mensagem... (use @ para mencionar)"
           rows={1}
           className={cn("resize-none min-h-[40px] max-h-32 py-2.5 leading-snug")}
         />
