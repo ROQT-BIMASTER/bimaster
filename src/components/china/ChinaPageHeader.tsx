@@ -87,7 +87,10 @@ export function ChinaPageHeader({
           )}
         </div>
       </div>
-      {actions && <div className="flex items-center gap-2 shrink-0">{actions}</div>}
+      <div className="flex items-center gap-2 shrink-0">
+        <span className="hidden sm:inline-flex"><ImpersonationSelector /></span>
+        {actions}
+      </div>
     </div>
   );
 }
