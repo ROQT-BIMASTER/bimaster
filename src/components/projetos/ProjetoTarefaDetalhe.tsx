@@ -1227,6 +1227,7 @@ export function ProjetoTarefaDetalhe({
                   comentarios={comentarios}
                   addComentario={addComentario}
                   teamMembers={teamMembers}
+                  highlightCommentId={highlightCommentId}
                 />
               </div>
             </ScrollArea>
