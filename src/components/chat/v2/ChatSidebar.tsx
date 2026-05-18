@@ -167,8 +167,15 @@ function SidebarPessoasContent({
           <TabsTrigger value="todas" className="text-xs px-1">Todas</TabsTrigger>
           <TabsTrigger value="nao_lidas" className="text-xs px-1">Não lidas</TabsTrigger>
           <TabsTrigger value="grupos" className="text-xs px-1">Grupos</TabsTrigger>
-          <TabsTrigger value="favoritas" className="text-xs px-1">★</TabsTrigger>
+          <TabsTrigger value="favoritas" className="text-xs px-1" title="Favoritas">★</TabsTrigger>
           <TabsTrigger value="arquivadas" className="text-xs px-1">Arq.</TabsTrigger>
+        </TabsList>
+        {/* Segunda linha de filtros: foco/urgência/conteúdo.
+            Mantida separada para não comprimir os filtros primários. */}
+        <TabsList className="grid grid-cols-3 h-8 w-full mt-1.5">
+          <TabsTrigger value="mencoes" className="text-xs px-1" title="Conversas com menção a mim">@ Menções</TabsTrigger>
+          <TabsTrigger value="urgentes" className="text-xs px-1" title="Conversas com mensagem urgente">Urgentes</TabsTrigger>
+          <TabsTrigger value="anexos" className="text-xs px-1" title="Conversas com anexo recente">Anexos</TabsTrigger>
         </TabsList>
       </Tabs>
 
