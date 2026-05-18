@@ -111,8 +111,7 @@ export function ProjetoArquivosView({ projetoId, darkBg = false }: ProjetoArquiv
   }, [anexos, search]);
 
   const handleDownload = async (anexo: Anexo) => {
-    const { data } = await supabase.storage.from("projeto-anexos").createSignedUrl(anexo.storage_path, 300);
-    if (data?.signedUrl) window.open(data.signedUrl, "_blank");
+    await secureDownload(anexo.storage_path, anexo.nome, "projeto-anexos");
   };
 
   const textColor = darkBg ? "text-white" : "";

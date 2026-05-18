@@ -339,8 +339,7 @@ export function ProjetoTarefaDetalhe({
 
 
   const handleDownload = async (anexo: any) => {
-    const url = await getAnexoUrl(anexo.storage_path);
-    if (url) window.open(url, "_blank");
+    await secureDownload(anexo.storage_path, anexo.nome, "projeto-anexos");
   };
 
   const handleAddSubtarefa = () => {

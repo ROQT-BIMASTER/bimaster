@@ -88,21 +88,14 @@ export function CofreOficialTab({ produtoId, projetoId, isReadOnly }: CofreOfici
   });
 
   const handleDownload = async (doc: any) => {
-    const { data } = await supabase.storage
-      .from("projeto-anexos")
-      .createSignedUrl(doc.arquivo_path, 3600);
-    if (data?.signedUrl) {
-      window.open(data.signedUrl, "_blank");
-      await logDocAudit({
-        documentoId: doc.id,
-        produtoId,
-        projetoId,
-        acao: "download",
-        detalhes: { nome_arquivo: doc.nome_arquivo },
-      });
-    } else {
-      toast.error("Erro ao gerar link de download");
-    }
+    await secureDownload(doc.arquivo_path, doc.nome_arquivo, "projeto-anexos");
+    await logDocAudit({
+      documentoId: doc.id,
+      produtoId,
+      projetoId,
+      acao: "download",
+      detalhes: { nome_arquivo: doc.nome_arquivo },
+    });
   };
 
   return (

@@ -35,8 +35,7 @@ export function MinhasTarefaAnexos({ anexos, uploadAnexo, deleteAnexo, getAnexoU
   };
 
   const handleDownload = async (anexo: MinhaTarefaAnexo) => {
-    const url = await getAnexoUrl(anexo.storage_path);
-    if (url) window.open(url, "_blank");
+    await secureDownload(anexo.storage_path, anexo.nome, "projeto-anexos");
   };
 
   return (
