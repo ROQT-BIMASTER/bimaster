@@ -2,7 +2,9 @@
 # scripts/recovery/backup-pre-restore.sh
 # Snapshot completo PRÉ-RESTORE: dump JSON + download de todos arquivos.
 # Saída: /mnt/documents/backup-pre-restore-<timestamp>/
-set -euo pipefail
+set -uo pipefail
+
+urlencode() { python3 -c "import sys,urllib.parse;print(urllib.parse.quote(sys.argv[1],safe='/'))" "$1"; }
 
 TS=$(date -u +%Y%m%dT%H%M%SZ)
 OUT="/mnt/documents/backup-pre-restore-${TS}"
