@@ -13,7 +13,10 @@
 
 # Backend / banco
 /supabase/                              @bimaster/backend
+/supabase/migrations/                   @bimaster/backend @bimaster/security
 /docs/security/                         @bimaster/security
+/SECURITY.md                            @bimaster/security
+/scripts/ci/guard-destructive-migrations.sh @bimaster/security @bimaster/eng
 /SECURITY.md                            @bimaster/security
 
 # Módulos de negócio
