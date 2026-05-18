@@ -61,6 +61,7 @@ export default function FabricaFiscal() {
           tipo,
           ativo
         `)
+        .eq("modo", "oficial")
         .order("nome");
 
       if (searchTerm) {
