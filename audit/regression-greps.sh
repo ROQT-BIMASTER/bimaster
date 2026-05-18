@@ -379,6 +379,28 @@ check      "Lookup trade_chart_of_accounts em crud-handlers (>=2)" "$(grep -c 't
 APP_322=$(grep -cE "APP_VERSION = '3\.(2\.([2-9]|[1-9][0-9]+)|([3-9]|[1-9][0-9]+)\.[0-9]+)'" $VER || true)
 check "APP_VERSION 3.2.2+" "$APP_322" 1
 
+echo "=== Invariante pós-incidente 2026-05-16 — DELETE/TRUNCATE em fabrica_* exige override explícito ==="
+# Qualquer migration NOVA contendo DELETE/TRUNCATE em tabelas fabrica_* sem o
+# token "-- ALLOW-DESTRUCTIVE-FABRICA" no mesmo arquivo é regressão.
+# Excluímos a própria migration do incidente (já registrada como aplicada).
+INCIDENT_FILE="supabase/migrations/20260516012327_27afd69a-5146-41b7-93c7-94767d668835.sql"
+DESTR_FILES=$(grep -rilE "(delete from|truncate)[[:space:]]+(public\.)?fabrica_" supabase/migrations 2>/dev/null \
+  | grep -v "$INCIDENT_FILE" || true)
+BAD=0
+if [ -n "$DESTR_FILES" ]; then
+  while IFS= read -r f; do
+    if ! grep -q "ALLOW-DESTRUCTIVE-FABRICA" "$f"; then
+      echo "FAIL  $f contém DELETE/TRUNCATE em fabrica_* sem token ALLOW-DESTRUCTIVE-FABRICA"
+      BAD=1
+    fi
+  done <<< "$DESTR_FILES"
+fi
+if [ "$BAD" -eq 0 ]; then
+  echo "OK   Nenhuma migration nova faz DELETE/TRUNCATE em fabrica_* sem override."
+else
+  fail=1
+fi
+
 echo
 if [ "$fail" -eq 0 ]; then
   echo "ALL OK — invariantes preservados. Pode prosseguir com bump."
