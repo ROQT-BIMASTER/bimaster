@@ -51,7 +51,7 @@ const FabricaModule = () => {
     queryFn: async () => {
       try {
         const mpsRes = await supabase.from("fabrica_materias_primas").select("id", { count: "exact", head: true });
-        const produtosRes = await supabase.from("fabrica_produtos").select("id", { count: "exact", head: true });
+        const produtosRes = await supabase.from("fabrica_produtos").select("id", { count: "exact", head: true }).eq("modo", "oficial");
         const ordensRes = await supabase.from("fabrica_ordens_producao").select("id", { count: "exact", head: true });
         const maquinasRes = await supabase.from("fabrica_maquinas").select("id", { count: "exact", head: true });
 
