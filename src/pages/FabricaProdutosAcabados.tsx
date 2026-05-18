@@ -788,17 +788,23 @@ export default function FabricaProdutosAcabados() {
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-            <Button
-              size="sm"
-              className="h-8"
-              onClick={() => {
-                setProdutoEdit(null);
-                setDialogNovo(true);
-              }}
-            >
-              <Plus className="h-3.5 w-3.5 mr-1.5" />
-              Novo Produto
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button size="sm" className="h-8">
+                  <Plus className="h-3.5 w-3.5 mr-1.5" />
+                  Novo
+                  <ChevronDown className="h-3.5 w-3.5 ml-1" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuItem onClick={() => { setProdutoEdit(null); setDialogNovo(true); }}>
+                  <Package className="h-4 w-4 mr-2" /> Novo Produto Acabado
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setDialogNovoCenario(true)}>
+                  <Layers className="h-4 w-4 mr-2" /> Novo Cenário (simulação)
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
 
