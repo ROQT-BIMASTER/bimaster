@@ -1,3 +1,4 @@
+import { secureDownload } from "@/lib/utils/secure-download";
 import { useState, useRef, useEffect, useMemo } from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -215,8 +216,7 @@ export function TarefaFocusMode({
   };
 
   const handleDownload = async (anexo: any) => {
-    const url = await getAnexoUrl(anexo.storage_path);
-    if (url) window.open(url, "_blank");
+    await secureDownload(anexo.storage_path, anexo.nome, "projeto-anexos");
   };
 
   const handleAddSubtarefa = () => {

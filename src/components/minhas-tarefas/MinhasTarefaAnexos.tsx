@@ -1,3 +1,4 @@
+import { secureDownload } from "@/lib/utils/secure-download";
 import { useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Paperclip, Upload, Download, Trash2, File, FileText, Image } from "lucide-react";
@@ -35,8 +36,7 @@ export function MinhasTarefaAnexos({ anexos, uploadAnexo, deleteAnexo, getAnexoU
   };
 
   const handleDownload = async (anexo: MinhaTarefaAnexo) => {
-    const url = await getAnexoUrl(anexo.storage_path);
-    if (url) window.open(url, "_blank");
+    await secureDownload(anexo.storage_path, anexo.nome, "projeto-anexos");
   };
 
   return (

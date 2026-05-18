@@ -1,3 +1,4 @@
+import { secureDownload } from "@/lib/utils/secure-download";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
@@ -81,7 +82,7 @@ export function ItemAprovacaoDrawer({ item, open, onOpenChange }: Props) {
               variant="outline"
               size="sm"
               className="w-full"
-              onClick={() => window.open(item.documento_url!, "_blank")}
+              onClick={() => secureDownload(item.documento_url!, undefined, "projeto-anexos")}
             >
               <ExternalLink className="h-3.5 w-3.5 mr-2" /> Abrir documento
             </Button>

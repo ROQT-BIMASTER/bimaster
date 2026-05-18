@@ -1,3 +1,4 @@
+import { secureDownload } from "@/lib/utils/secure-download";
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -339,8 +340,7 @@ export function ProjetoTarefaDetalhe({
 
 
   const handleDownload = async (anexo: any) => {
-    const url = await getAnexoUrl(anexo.storage_path);
-    if (url) window.open(url, "_blank");
+    await secureDownload(anexo.storage_path, anexo.nome, "projeto-anexos");
   };
 
   const handleAddSubtarefa = () => {
