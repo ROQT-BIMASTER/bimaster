@@ -394,7 +394,7 @@ export function MessageInput({ conversaId, responderA, onClearReply, onTyping }:
             <Button size="icon" variant="ghost" className="h-9 w-9 shrink-0"><Smile className="h-4 w-4" /></Button>
           </PopoverTrigger>
           <PopoverContent side="top" align="start" className="w-auto p-0">
-            <EmojiPicker onPick={(e) => setTxt((t) => t + e)} />
+            <EmojiPicker onPick={(e) => setTxt(txt + e)} />
           </PopoverContent>
         </Popover>
         <Textarea
