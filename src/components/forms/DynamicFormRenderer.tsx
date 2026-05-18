@@ -162,32 +162,6 @@ export function DynamicFormRenderer({ formId, tokenId, userId, onSubmitSuccess }
 
     setSubmitting(true);
     try {
-      // Generate response id client-side so we don't depend on a SELECT-after-INSERT
-      // (anonymous submitters have INSERT but not SELECT on dynamic_form_responses).
-      const responseId =
-        typeof crypto !== "undefined" && "randomUUID" in crypto
-          ? crypto.randomUUID()
-          : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
-
-      const { error: respErr } = await supabase
-        .from("dynamic_form_responses")
-        .insert({
-          id: responseId,
-          form_id: formId,
-          token_id: tokenId || null,
-          user_id: userId || null,
-          metadata: {
-            submitted_at: new Date().toISOString(),
-            user_agent: navigator.userAgent,
-          },
-        } as any);
-
-      if (respErr) throw respErr;
-
-      // Create answers — checkbox values are stored sorted by value for
-      // consistency (independent of click order); display order in the renderer
-      // follows the field's options array. Skip empty optional fields because
-      // `dynamic_form_answers.value` is NOT NULL.
       const answers = fields
         .map((f) => {
           let v = values[f.id];
@@ -197,16 +171,23 @@ export function DynamicFormRenderer({ formId, tokenId, userId, onSubmitSuccess }
           if (f.field_type === "checkbox" && Array.isArray(v)) {
             v = [...v].sort((a: string, b: string) => a.localeCompare(b, "pt-BR"));
           }
-          return { response_id: responseId, field_id: f.id, value: v };
+          return { field_id: f.id, value: v };
         })
-        .filter((a): a is { response_id: string; field_id: string; value: any } => a !== null);
+        .filter((a): a is { field_id: string; value: any } => a !== null);
 
-      if (answers.length > 0) {
-        const { error: ansErr } = await supabase
-          .from("dynamic_form_answers")
-          .insert(answers as any);
-        if (ansErr) throw ansErr;
-      }
+      const { data: responseId, error: submitErr } = await (supabase as any).rpc(
+        "submit_dynamic_form_response",
+        {
+          p_form_id: formId,
+          p_token_id: tokenId || null,
+          p_answers: answers,
+          p_metadata: {
+            user_agent: navigator.userAgent,
+          },
+        }
+      );
+
+      if (submitErr) throw submitErr;
 
       setSubmitted(true);
       toast.success("Formulário enviado com sucesso!");
