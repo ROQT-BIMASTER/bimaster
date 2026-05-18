@@ -32,6 +32,8 @@ import { ChinaProjetoChecklist } from "@/components/china/ChinaProjetoChecklist"
 import { ChinaTimeline } from "@/components/china/ChinaTimeline";
 import { ChinaPageShell } from "@/components/china/ChinaPageShell";
 import { Skeleton } from "@/components/ui/skeleton";
+import { DocumentoHistoricoDialog } from "@/components/china/DocumentoHistoricoDialog";
+import { History } from "lucide-react";
 import { ChinaPageHeader } from "@/components/china/ChinaPageHeader";
 import { ChinaTimelineButton } from "@/components/china/timeline/ChinaTimelineButton";
 import { useChinaUserContext } from "@/hooks/useChinaUserContext";
@@ -1094,6 +1096,9 @@ function TransferenciasOficiaisSection({ submissaoId, documentos, isBrasilUser, 
   const oficiais = documentos.filter(
     (d: any) => d.oficializado === true && d.assinado_por
   );
+  // Estado do dialog de histórico — abre por id de documento clicado
+  const [historicoDocId, setHistoricoDocId] = useState<string | null>(null);
+  const [historicoLabel, setHistoricoLabel] = useState<string>("");
 
   const docTypeLabel = (tipo: string) => {
     const found = CHINA_DOCUMENT_TYPES.find(t => t.tipo === tipo);
@@ -1141,6 +1146,16 @@ function TransferenciasOficiaisSection({ submissaoId, documentos, isBrasilUser, 
               )}
             </div>
             <Badge variant="success" className="text-[10px]">Oficial</Badge>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7"
+              onClick={() => { setHistoricoDocId(doc.id); setHistoricoLabel(docTypeLabel(doc.tipo_documento)); }}
+              title="Ver versões anteriores"
+              aria-label="Ver historico"
+            >
+              <History className="h-3.5 w-3.5" />
+            </Button>
             {doc.arquivo_url && (
               <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => window.open(doc.arquivo_url, "_blank")}>
                 <Download className="h-3.5 w-3.5" />
@@ -1149,6 +1164,15 @@ function TransferenciasOficiaisSection({ submissaoId, documentos, isBrasilUser, 
           </div>
         ))}
       </div>
+
+      {historicoDocId && (
+        <DocumentoHistoricoDialog
+          open={!!historicoDocId}
+          onOpenChange={(v) => { if (!v) setHistoricoDocId(null); }}
+          documentoId={historicoDocId}
+          tipoDocumentoLabel={historicoLabel}
+        />
+      )}
 
       {eanCaixaMaster && (
         <div className="flex items-center gap-2 p-3 rounded-lg bg-card border">
