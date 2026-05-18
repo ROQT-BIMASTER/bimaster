@@ -315,6 +315,13 @@ export function FormSubmissionsPanel() {
           )}
         </CardContent>
       </Card>
+
+      <DynamicFormResponsesDialog
+        formId={selectedForm?.id ?? null}
+        formName={selectedForm?.name ?? ""}
+        open={!!selectedForm}
+        onOpenChange={(o) => !o && setSelectedForm(null)}
+      />
     </div>
   );
 }
