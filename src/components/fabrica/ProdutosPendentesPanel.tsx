@@ -51,6 +51,7 @@ export default function ProdutosPendentesPanel({
         .in("tipo", ["ACABADO", "INTER"])
         .eq("status_lancamento", "pendente")
         .eq("ativo", true)
+        .eq("modo", "oficial")
         .order("created_at", { ascending: false });
 
       if (error) throw error;
