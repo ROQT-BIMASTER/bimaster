@@ -48,6 +48,16 @@ export function ProjetoListView({ projetoId, darkBg = false, filters = EMPTY_FIL
   const currentUserId = user?.id ?? null;
   const canDeleteSecao = !!projeto && (isAdmin || projeto.criador_id === currentUserId);
   const [selectedTarefaId, setSelectedTarefaId] = useState<string | null>(null);
+  // Abre detalhe automaticamente quando deep-link de menção entrega initialTarefaId
+  // (espera as tarefas carregarem para garantir que existe).
+  useEffect(() => {
+    if (!initialTarefaId) return;
+    if (tarefasLoading) return;
+    if (tarefas.some(t => t.id === initialTarefaId)) {
+      setSelectedTarefaId(initialTarefaId);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialTarefaId, tarefasLoading]);
   // Derive the live tarefa from the freshest `tarefas` array so the detail Sheet
   // reflects optimistic updates and realtime invalidations without remounting.
   const selectedTarefa = useMemo(() => {
