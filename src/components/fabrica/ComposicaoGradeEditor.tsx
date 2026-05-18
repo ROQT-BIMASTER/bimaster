@@ -141,6 +141,7 @@ export function ComposicaoGradeEditor({ produtoPaiId, items, onChange }: Composi
         .from("fabrica_produtos")
         .select("id, nome, codigo, codigo_barras_ean, foto_url, linha, marca, categoria")
         .eq("ativo", true)
+        .eq("modo", "oficial")
         .neq("tipo", "MP")
         .neq("tipo", "DISPLAY")
         .order("nome");
