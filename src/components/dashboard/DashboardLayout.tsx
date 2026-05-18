@@ -147,6 +147,8 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   return (
     <SidebarProvider>
       <InboxKeyboardShortcut />
+      <ChatGlobalNotifiers />
+      <UrgentMessageBanner />
       {/* Banner de impersonação - sempre visível no topo */}
       <ImpersonationBanner />
       <MfaGate />
