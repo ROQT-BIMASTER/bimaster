@@ -174,8 +174,7 @@ Qual categoria DRE é mais adequada?`;
     logger.error("Erro na classificação DRE:", error);
     return new Response(
       JSON.stringify({ 
-        error: error.message || "Erro ao classificar conta",
-        details: error.toString()
+        error: error.message || "Erro ao classificar conta"
       }),
       { status: 500, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
     );

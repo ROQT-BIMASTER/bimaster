@@ -199,8 +199,7 @@ Retorne a resposta em formato JSON estruturado com todas as informações.`
     logger.error('Erro na função analyze-shelf-photos:', error);
     return new Response(
       JSON.stringify({ 
-        error: error.message || 'Erro ao processar análise',
-        details: error.toString()
+        error: error.message || 'Erro ao processar análise'
       }),
       { 
         status: 500, 

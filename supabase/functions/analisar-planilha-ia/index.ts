@@ -290,8 +290,7 @@ Retorne um JSON com a seguinte estrutura:
     logger.error("❌ Erro na função:", error);
     return new Response(
       JSON.stringify({ 
-        error: error?.message || "Erro ao processar dados",
-        details: error?.toString()
+        error: error?.message || "Erro ao processar dados"
       }),
       { 
         status: 500, 

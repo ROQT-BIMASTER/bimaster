@@ -277,8 +277,7 @@ Em qual conta contábil e departamento esta transação se encaixa melhor?`;
     logger.error("Erro no processamento:", error);
     return new Response(
       JSON.stringify({ 
-        error: error.message || "Erro ao processar transações",
-        details: error.toString()
+        error: error.message || "Erro ao processar transações"
       }),
       { 
         status: 500, 

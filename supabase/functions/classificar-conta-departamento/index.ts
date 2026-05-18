@@ -361,8 +361,7 @@ Qual departamento é mais adequado para esta conta?`;
     logger.error("Erro na classificação:", error);
     return new Response(
       JSON.stringify({ 
-        error: error.message || "Erro ao classificar conta",
-        details: error.toString()
+        error: error.message || "Erro ao classificar conta"
       }),
       { 
         status: 500, 
