@@ -1,0 +1,36 @@
+name: guard-destructive-migrations
+on:
+  push:
+    branches: [main]
+  pull_request:
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Identify new migrations vs base
+        id: diff
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            BASE="${{ github.event.pull_request.base.sha }}"
+            HEAD="${{ github.event.pull_request.head.sha }}"
+          else
+            BASE="${{ github.event.before }}"
+            HEAD="${{ github.sha }}"
+          fi
+          if [ -z "$BASE" ] || [ "$BASE" = "0000000000000000000000000000000000000000" ]; then
+            echo "files=" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          NEW=$(git diff --name-only --diff-filter=A "$BASE" "$HEAD" -- 'supabase/migrations/*.sql' | tr '\n' ' ')
+          echo "files=$NEW" >> $GITHUB_OUTPUT
+      - name: Guard
+        run: |
+          chmod +x scripts/ci/guard-destructive-migrations.sh
+          if [ -n "${{ steps.diff.outputs.files }}" ]; then
+            bash scripts/ci/guard-destructive-migrations.sh ${{ steps.diff.outputs.files }}
+          else
+            echo "Nenhuma migration nova para validar."
+          fi
