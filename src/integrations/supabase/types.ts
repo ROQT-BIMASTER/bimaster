@@ -45947,6 +45947,14 @@ export type Database = {
       icms_tipo_credito: { Args: { p_cst: string }; Returns: string }
       importar_clientes: { Args: { p_clientes: Json }; Returns: Json }
       inbox_arquivar_lote: { Args: { p_ids: string[] }; Returns: number }
+      inbox_backfill_inicial: {
+        Args: never
+        Returns: {
+          aprovacoes: number
+          atribuidas: number
+          delegadas: number
+        }[]
+      }
       inbox_emit: {
         Args: {
           p_action_url?: string
