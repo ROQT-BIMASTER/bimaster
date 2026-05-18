@@ -46,6 +46,10 @@ export function MessageBubble({ m, uid, isGrupo, onReply, participantesCount }: 
   const [traducao, setTraducao] = useState<{ idioma: string; texto: string } | null>(null);
   const [translating, setTranslating] = useState(false);
   const [forwardOpen, setForwardOpen] = useState(false);
+  const [criarTarefaOpen, setCriarTarefaOpen] = useState(false);
+  const tarefaVinculada = (m.metadata as any)?.tarefa_id as string | undefined;
+  const tarefaTitulo = (m.metadata as any)?.tarefa_titulo as string | undefined;
+  const tarefaProjetoId = (m.metadata as any)?.projeto_id as string | undefined;
 
   const traduzir = async (idioma: string) => {
     if (!m.conteudo || m.conteudo.trim().length < 2) {
