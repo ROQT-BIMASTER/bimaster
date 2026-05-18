@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { BilingualLabel } from "@/components/china/BilingualLabel";
 import { ProjetoBgColorPicker } from "@/components/projetos/ProjetoBgColorPicker";
+import { ImpersonationSelector } from "@/components/admin/ImpersonationSelector";
 import { usePageBgColor } from "@/hooks/usePageBgColor";
 import { cn } from "@/lib/utils";
 import type { LucideIcon } from "lucide-react";
