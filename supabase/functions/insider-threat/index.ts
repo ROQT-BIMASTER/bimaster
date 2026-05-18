@@ -129,8 +129,4 @@ Deno.serve(secureHandler(
 
     return Response.json({ error: "unknown_op" }, { status: 400 });
   },
-  {
-    auth: "jwt",
-    rateLimit: { requests: 60, windowSeconds: 60 },
-  },
 ));
