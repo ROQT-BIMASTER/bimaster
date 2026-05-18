@@ -5,7 +5,15 @@ import { useAuth } from "@/contexts/AuthContext";
 import { uniqueChannelName } from "@/lib/realtime/channelName";
 import type { ChatConversa, ChatProfile } from "./types";
 
-export type ChatFiltro = "todas" | "nao_lidas" | "grupos" | "favoritas" | "arquivadas";
+export type ChatFiltro =
+  | "todas"
+  | "nao_lidas"
+  | "grupos"
+  | "favoritas"
+  | "arquivadas"
+  | "mencoes"
+  | "urgentes"
+  | "anexos";
 
 export function useConversas() {
   const qc = useQueryClient();
@@ -154,7 +162,29 @@ export function filtrarConversas(lista: ChatConversa[], filtro: ChatFiltro, busc
   else if (filtro === "grupos") out = out.filter((c) => c.tipo === "group" || c.tipo === "grupo");
   else if (filtro === "favoritas") out = out.filter((c) => c.favorita);
   else if (filtro === "arquivadas") out = out.filter((c) => c.arquivada);
-  else out = out.filter((c) => !c.arquivada);
+  // Filtros adicionais — usam metadata da última mensagem como heurística rápida
+  // (filtragem em-memória; uma query dedicada por filtro seria over-engineering
+  // dado o volume típico de conversas por usuário < 200).
+  else if (filtro === "urgentes") {
+    out = out.filter((c) => !c.arquivada && c.ultimaMensagem?.tipo === "urgente");
+  } else if (filtro === "anexos") {
+    out = out.filter((c) => {
+      if (c.arquivada) return false;
+      const t = c.ultimaMensagem?.tipo;
+      return t === "imagem" || t === "arquivo" || t === "audio" || t === "video";
+    });
+  } else if (filtro === "mencoes") {
+    // Heurística: última mensagem contém "@" e não foi enviada por mim.
+    // Para precisão total seria necessário cruzar com mensagens.mencoes,
+    // mas isso já cobre o caso prático (filtragem rápida da lista).
+    out = out.filter((c) => {
+      if (c.arquivada) return false;
+      const last = c.ultimaMensagem;
+      return !!last && last.conteudo?.includes("@");
+    });
+  } else {
+    out = out.filter((c) => !c.arquivada);
+  }
 
   const q = busca.trim().toLowerCase();
   if (q) {

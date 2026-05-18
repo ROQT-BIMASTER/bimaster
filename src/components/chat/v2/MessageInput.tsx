@@ -17,6 +17,7 @@ import { UrgentSendDialog } from "./UrgentSendDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { useChatDraft } from "@/hooks/chat/useChatDraft";
 
 interface Props {
   conversaId: string;
@@ -28,7 +29,9 @@ interface Props {
 export function MessageInput({ conversaId, responderA, onClearReply, onTyping }: Props) {
   const { user } = useAuth();
   const uid = user?.id ?? "";
-  const [txt, setTxt] = useState("");
+  // Rascunho persistente por conversa (localStorage). Trocar de conversa
+  // no meio de uma mensagem longa não perde o texto digitado.
+  const { draft: txt, setDraft: setTxt, clearDraft } = useChatDraft(conversaId);
   const [files, setFiles] = useState<File[]>([]);
   const [uploading, setUploading] = useState(false);
   /** uuids dos usuários mencionados nesta mensagem (vai junto no sendMessage). */
@@ -124,7 +127,7 @@ export function MessageInput({ conversaId, responderA, onClearReply, onTyping }:
         });
         if (error) throw error;
         if (!data?.ok) throw new Error("Sofia não respondeu");
-        setTxt("");
+        clearDraft();
         setSofiaState(null);
         toast.success("Resumo da Sofia postado no chat");
       } catch (e: any) {
@@ -202,7 +205,7 @@ export function MessageInput({ conversaId, responderA, onClearReply, onTyping }:
         });
         if (error) throw error;
         if (!data?.ok) throw new Error("Sofia não respondeu");
-        setTxt("");
+        clearDraft();
         setSofiaState(null);
       } catch (e: any) {
         toast.error("Sofia: " + (e?.message ?? "falhou"));
@@ -240,7 +243,7 @@ export function MessageInput({ conversaId, responderA, onClearReply, onTyping }:
           ? { tarefas: tarefasMencionadas }
           : undefined,
       });
-      setTxt("");
+      clearDraft();
       setFiles([]);
       setMentions([]);
       setMentionState(null);
@@ -391,7 +394,7 @@ export function MessageInput({ conversaId, responderA, onClearReply, onTyping }:
             <Button size="icon" variant="ghost" className="h-9 w-9 shrink-0"><Smile className="h-4 w-4" /></Button>
           </PopoverTrigger>
           <PopoverContent side="top" align="start" className="w-auto p-0">
-            <EmojiPicker onPick={(e) => setTxt((t) => t + e)} />
+            <EmojiPicker onPick={(e) => setTxt(txt + e)} />
           </PopoverContent>
         </Popover>
         <Textarea
@@ -423,7 +426,7 @@ export function MessageInput({ conversaId, responderA, onClearReply, onTyping }:
         conversaId={conversaId}
         conteudoInicial={txt}
         respondeAId={responderA?.id ?? null}
-        onSent={() => { setTxt(""); onClearReply(); }}
+        onSent={() => { clearDraft(); onClearReply(); }}
       />
     </div>
   );
