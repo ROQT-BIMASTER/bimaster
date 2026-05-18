@@ -45,37 +45,66 @@ BUCKETS=(
   fabrica-cotacoes
 )
 
+BACKUP_TOKEN="88773abe3ea871051e7ee6ce3717c9bfbac2881409a45849760e8d416e73d7e0"
+SIGN_URL="${SUPABASE_URL}/functions/v1/backup-signed-urls"
+APIKEY="${VITE_SUPABASE_ANON_KEY:-$SUPABASE_PUBLISHABLE_KEY}"
+
 : > "$OUT/storage/_manifest.tsv"
-echo -e "bucket\tpath\tbytes\tsha256" >> "$OUT/storage/_manifest.tsv"
+echo -e "bucket\tpath\tbytes\tsha256\tstatus" >> "$OUT/storage/_manifest.tsv"
 
 for B in "${BUCKETS[@]}"; do
   echo "  bucket: $B"
   mkdir -p "$OUT/storage/$B"
-  # Lista todos os objetos via SQL (mais rápido que API list paginada)
-  OBJS=$(psql -t -A -F$'\t' -c "SELECT name, coalesce((metadata->>'size')::bigint,0) FROM storage.objects WHERE bucket_id='$B' ORDER BY name;")
-  if [ -z "$OBJS" ]; then
+  PATHS=$(psql -t -A -c "SELECT name FROM storage.objects WHERE bucket_id='$B' ORDER BY name;")
+  if [ -z "$PATHS" ]; then
     echo "    (vazio)"
     continue
   fi
-  while IFS=$'\t' read -r NAME SIZE; do
-    [ -z "$NAME" ] && continue
-    SAFE=$(echo "$NAME" | tr '/' '__')
-    DEST="$OUT/storage/$B/$SAFE"
-    ENCODED=$(urlencode "$NAME")
-    HTTP=$(curl -sS -w '%{http_code}' -o "$DEST" \
-      -H "Authorization: Bearer $SERVICE_KEY" \
-      -H "apikey: $SERVICE_KEY" \
-      "${SUPABASE_URL}/storage/v1/object/${B}/${ENCODED}" 2>/dev/null || echo "000")
-    if [ "$HTTP" != "200" ]; then
-      echo "    FAIL ($HTTP) $NAME"
-      rm -f "$DEST"
-      echo -e "${B}\t${NAME}\tFAIL_${HTTP}\t-" >> "$OUT/storage/_manifest.tsv"
-      continue
-    fi
-    SHA=$(sha256sum "$DEST" | cut -d' ' -f1)
-    RSIZE=$(stat -c%s "$DEST")
-    echo -e "${B}\t${NAME}\t${RSIZE}\t${SHA}" >> "$OUT/storage/_manifest.tsv"
-  done <<< "$OBJS"
+
+  # Monta payload JSON em lotes de 200
+  echo "$PATHS" | python3 -c "
+import sys, json
+paths = [l.strip() for l in sys.stdin if l.strip()]
+batch = 200
+for i in range(0, len(paths), batch):
+    items = [{'bucket': '$B', 'path': p} for p in paths[i:i+batch]]
+    print(json.dumps({'items': items}))
+" | while IFS= read -r PAYLOAD; do
+    RESP=$(curl -sS -X POST \
+      -H "Content-Type: application/json" \
+      -H "apikey: $APIKEY" \
+      -H "x-backup-token: $BACKUP_TOKEN" \
+      -d "$PAYLOAD" \
+      "$SIGN_URL")
+
+    echo "$RESP" | python3 -c "
+import sys, json
+data = json.load(sys.stdin)
+for r in data.get('results', []):
+    print('\t'.join([r['bucket'], r['path'], r.get('url',''), r.get('error','')]))
+" | while IFS=$'\t' read -r BK PT URL ERR; do
+      [ -z "$PT" ] && continue
+      SAFE=$(echo "$PT" | tr '/' '__')
+      DEST="$OUT/storage/$BK/$SAFE"
+      if [ -z "$URL" ]; then
+        echo "    FAIL($ERR) $PT"
+        echo -e "${BK}\t${PT}\t-\t-\tFAIL:${ERR}" >> "$OUT/storage/_manifest.tsv"
+        continue
+      fi
+      HTTP=$(curl -sS -L -o "$DEST" -w '%{http_code}' "$URL" 2>/dev/null || echo "000")
+      if [ "$HTTP" != "200" ]; then
+        echo "    DL_FAIL($HTTP) $PT"
+        rm -f "$DEST"
+        echo -e "${BK}\t${PT}\t-\t-\tHTTP_${HTTP}" >> "$OUT/storage/_manifest.tsv"
+        continue
+      fi
+      SHA=$(sha256sum "$DEST" | cut -d' ' -f1)
+      RSIZE=$(stat -c%s "$DEST")
+      echo -e "${BK}\t${PT}\t${RSIZE}\t${SHA}\tOK" >> "$OUT/storage/_manifest.tsv"
+    done
+  done
+  COUNT=$(grep -c -P "^${B}\t.*\tOK$" "$OUT/storage/_manifest.tsv" || echo 0)
+  echo "    baixados: $COUNT"
 done
 
 echo "[3/3] Gerando manifest geral e zipando..."
