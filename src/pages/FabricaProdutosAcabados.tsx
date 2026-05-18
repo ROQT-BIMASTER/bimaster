@@ -45,6 +45,8 @@ import type { StatusAprovacao } from "@/hooks/useFichaRevisao";
 import { Link, useNavigate } from "react-router-dom";
 import { useScreenPermissions } from "@/hooks/useScreenPermissions";
 import { NovoProdutoAcabadoDialog } from "@/components/fabrica/NovoProdutoAcabadoDialog";
+import { NovoCenarioDialog } from "@/components/fabrica/cenarios/NovoCenarioDialog";
+import { CenariosList } from "@/components/fabrica/cenarios/CenariosList";
 import { toast } from "sonner";
 import { useTour } from "@/components/tour/TourProvider";
 import { FABRICA_PRODUTOS_ACABADOS_TOUR_ID, fabricaProdutosAcabadosTourSteps } from "@/components/tour/tours/fabricaProdutosAcabadosTour";
