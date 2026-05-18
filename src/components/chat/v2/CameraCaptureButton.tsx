@@ -233,7 +233,15 @@ function CameraDialog({
     const mimeType = mimeCandidates.find((m) => MediaRecorder.isTypeSupported(m)) ?? "video/webm";
 
     try {
-      const recorder = new MediaRecorder(streamRef.current, { mimeType });
+      // Bitrate limitado a ~1.5 Mbps de vídeo + 96 kbps de áudio.
+      // 30s × ~1.6 Mbps ≈ 6 MB → folgadamente dentro do limite de 20 MB
+      // do bucket chat-anexos (utils.ts), mesmo em codecs menos eficientes
+      // (vp8). Sem isso, MediaRecorder pode usar default alto e ultrapassar.
+      const recorder = new MediaRecorder(streamRef.current, {
+        mimeType,
+        videoBitsPerSecond: 1_500_000,
+        audioBitsPerSecond: 96_000,
+      });
       recorder.ondataavailable = (e) => {
         if (e.data && e.data.size > 0) chunksRef.current.push(e.data);
       };
