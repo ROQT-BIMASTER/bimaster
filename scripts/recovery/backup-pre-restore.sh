@@ -61,11 +61,11 @@ for B in "${BUCKETS[@]}"; do
     [ -z "$NAME" ] && continue
     SAFE=$(echo "$NAME" | tr '/' '__')
     DEST="$OUT/storage/$B/$SAFE"
-    # Download via service role
+    ENCODED=$(urlencode "$NAME")
     HTTP=$(curl -sS -w '%{http_code}' -o "$DEST" \
       -H "Authorization: Bearer $SERVICE_KEY" \
       -H "apikey: $SERVICE_KEY" \
-      "${SUPABASE_URL}/storage/v1/object/${B}/${NAME}")
+      "${SUPABASE_URL}/storage/v1/object/${B}/${ENCODED}" 2>/dev/null || echo "000")
     if [ "$HTTP" != "200" ]; then
       echo "    FAIL ($HTTP) $NAME"
       rm -f "$DEST"
