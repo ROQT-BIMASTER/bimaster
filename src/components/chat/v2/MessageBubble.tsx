@@ -10,6 +10,7 @@ import type { ChatMensagem } from "@/hooks/chat/types";
 import { useChatActions } from "@/hooks/chat/useChatActions";
 import { initials, formatHora } from "./utils";
 import { AnexoView } from "./AnexoView";
+import { ForwardMessageDialog } from "./ForwardMessageDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -37,6 +38,7 @@ export function MessageBubble({ m, uid, isGrupo, onReply, participantesCount }: 
   const [editTxt, setEditTxt] = useState(m.conteudo);
   const [traducao, setTraducao] = useState<{ idioma: string; texto: string } | null>(null);
   const [translating, setTranslating] = useState(false);
+  const [forwardOpen, setForwardOpen] = useState(false);
 
   const traduzir = async (idioma: string) => {
     if (!m.conteudo || m.conteudo.trim().length < 2) {
@@ -225,6 +227,9 @@ export function MessageBubble({ m, uid, isGrupo, onReply, participantesCount }: 
               </DropdownMenuTrigger>
               <DropdownMenuContent align={mine ? "end" : "start"}>
                 <DropdownMenuItem onClick={() => onReply(m)}><Reply className="h-4 w-4 mr-2" /> Responder</DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => setTimeout(() => setForwardOpen(true), 0)}>
+                  <CornerUpRight className="h-4 w-4 mr-2" /> Encaminhar
+                </DropdownMenuItem>
                 <DropdownMenuItem onClick={copiar}><Copy className="h-4 w-4 mr-2" /> Copiar</DropdownMenuItem>
                 <DropdownMenuItem onClick={() => actions.toggleFavorita.mutate({ id: m.id, conversaId: m.conversa_id, favorita: !!m.favorita })}>
                   <Star className="h-4 w-4 mr-2" /> {m.favorita ? "Remover favorito" : "Favoritar"}
@@ -285,6 +290,7 @@ export function MessageBubble({ m, uid, isGrupo, onReply, participantesCount }: 
           </div>
         )}
       </div>
+      <ForwardMessageDialog open={forwardOpen} onOpenChange={setForwardOpen} m={m} />
     </div>
   );
 }
