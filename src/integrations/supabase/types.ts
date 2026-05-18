@@ -2800,6 +2800,63 @@ export type Database = {
           },
         ]
       }
+      chat_aprovacoes: {
+        Row: {
+          conversa_id: string
+          created_at: string
+          decidido_em: string | null
+          decidido_por: string | null
+          descricao: string | null
+          id: string
+          mensagem_id: string | null
+          motivo: string | null
+          solicitante_id: string
+          status: string
+          titulo: string
+        }
+        Insert: {
+          conversa_id: string
+          created_at?: string
+          decidido_em?: string | null
+          decidido_por?: string | null
+          descricao?: string | null
+          id?: string
+          mensagem_id?: string | null
+          motivo?: string | null
+          solicitante_id: string
+          status?: string
+          titulo: string
+        }
+        Update: {
+          conversa_id?: string
+          created_at?: string
+          decidido_em?: string | null
+          decidido_por?: string | null
+          descricao?: string | null
+          id?: string
+          mensagem_id?: string | null
+          motivo?: string | null
+          solicitante_id?: string
+          status?: string
+          titulo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_aprovacoes_conversa_id_fkey"
+            columns: ["conversa_id"]
+            isOneToOne: false
+            referencedRelation: "conversas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chat_aprovacoes_mensagem_id_fkey"
+            columns: ["mensagem_id"]
+            isOneToOne: false
+            referencedRelation: "mensagens"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       chat_preferencias: {
         Row: {
           preview: boolean
@@ -5041,6 +5098,59 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_china_produto_recebimento_kpis"
             referencedColumns: ["submissao_id"]
+          },
+        ]
+      }
+      china_produto_documentos_historico: {
+        Row: {
+          acao: string | null
+          arquivo_path: string | null
+          arquivo_url: string | null
+          documento_id: string | null
+          id: string
+          nome_arquivo: string | null
+          observacao: string | null
+          status: string
+          submissao_id: string
+          tipo_documento: string
+          versionado_em: string
+          versionado_por: string | null
+        }
+        Insert: {
+          acao?: string | null
+          arquivo_path?: string | null
+          arquivo_url?: string | null
+          documento_id?: string | null
+          id?: string
+          nome_arquivo?: string | null
+          observacao?: string | null
+          status: string
+          submissao_id: string
+          tipo_documento: string
+          versionado_em?: string
+          versionado_por?: string | null
+        }
+        Update: {
+          acao?: string | null
+          arquivo_path?: string | null
+          arquivo_url?: string | null
+          documento_id?: string | null
+          id?: string
+          nome_arquivo?: string | null
+          observacao?: string | null
+          status?: string
+          submissao_id?: string
+          tipo_documento?: string
+          versionado_em?: string
+          versionado_por?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "china_produto_documentos_historico_documento_id_fkey"
+            columns: ["documento_id"]
+            isOneToOne: false
+            referencedRelation: "china_produto_documentos"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -23929,6 +24039,7 @@ export type Database = {
           metadata: Json
           remetente_id: string
           responde_a_id: string | null
+          search_vector: unknown
           tipo: string
         }
         Insert: {
@@ -23947,6 +24058,7 @@ export type Database = {
           metadata?: Json
           remetente_id: string
           responde_a_id?: string | null
+          search_vector?: unknown
           tipo?: string
         }
         Update: {
@@ -23965,6 +24077,7 @@ export type Database = {
           metadata?: Json
           remetente_id?: string
           responde_a_id?: string | null
+          search_vector?: unknown
           tipo?: string
         }
         Relationships: [
@@ -41527,6 +41640,27 @@ export type Database = {
         }
         Relationships: []
       }
+      user_presence_status: {
+        Row: {
+          mensagem: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          mensagem?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          mensagem?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_price_table_access: {
         Row: {
           can_approve: boolean | null
@@ -45985,11 +46119,25 @@ export type Database = {
         Returns: number
       }
       notificar_espelhos_pendentes_sem_doc: { Args: never; Returns: number }
+      notify_china_oc_sla: {
+        Args: never
+        Returns: {
+          alertas: number
+          submissao_id: string
+        }[]
+      }
       notify_task_deadlines: {
         Args: never
         Returns: {
           bucket: string
           total: number
+        }[]
+      }
+      notify_task_deadlines_chat: {
+        Args: never
+        Returns: {
+          postado: boolean
+          projeto_id: string
         }[]
       }
       pis_cofins_gera_credito: { Args: { p_cst: string }; Returns: boolean }
@@ -46195,6 +46343,14 @@ export type Database = {
         Args: { p_conversa_id: string; p_users: string[] }
         Returns: undefined
       }
+      rpc_chat_aprovacao_criar: {
+        Args: { p_conversa_id: string; p_descricao?: string; p_titulo: string }
+        Returns: string
+      }
+      rpc_chat_aprovacao_decidir: {
+        Args: { p_aprovacao_id: string; p_motivo?: string; p_status: string }
+        Returns: undefined
+      }
       rpc_chat_criar_conversa_privada: {
         Args: { p_outro_user_id: string }
         Returns: string
@@ -46223,6 +46379,19 @@ export type Database = {
       rpc_chat_sair_grupo: {
         Args: { p_conversa_id: string }
         Returns: undefined
+      }
+      rpc_chat_search: {
+        Args: { p_limit?: number; p_query: string }
+        Returns: {
+          conteudo: string
+          conversa_id: string
+          created_at: string
+          headline: string
+          id: string
+          rank: number
+          remetente_id: string
+          tipo: string
+        }[]
       }
       rpc_china_aceitar_oc: {
         Args: { p_oc_id: string }
@@ -46483,6 +46652,13 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      rpc_china_submissoes_unread: {
+        Args: never
+        Returns: {
+          submissao_id: string
+          total: number
+        }[]
       }
       rpc_clonar_fluxo_para_projeto: {
         Args: { p_nome?: string; p_projeto_id: string; p_template_id: string }
