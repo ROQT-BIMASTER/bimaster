@@ -55,7 +55,26 @@ export function TarefaComentariosSection({ comentarios, addComentario, teamMembe
   );
 
   const total = ordered.length;
-  // Se houver mais que PAGE_SIZE, mostramos os mais recentes (últimos N) por padrão.
+  // Se o comentário destacado está fora da janela visível, expande até cobri-lo.
+  useEffect(() => {
+    if (!highlightCommentId) return;
+    const idx = ordered.findIndex(c => c.id === highlightCommentId);
+    if (idx === -1) return;
+    const needed = total - idx;
+    if (needed > visibleCount) setVisibleCount(needed);
+  }, [highlightCommentId, ordered, total, visibleCount]);
+
+  // Scroll/destaque visual após render.
+  useEffect(() => {
+    if (!highlightCommentId) return;
+    const el = containerRef.current?.querySelector<HTMLElement>(`[data-comentario-id="${highlightCommentId}"]`);
+    if (!el) return;
+    el.scrollIntoView({ behavior: "smooth", block: "center" });
+    el.classList.add("ring-2", "ring-primary", "rounded-md");
+    const t = setTimeout(() => el.classList.remove("ring-2", "ring-primary", "rounded-md"), 2500);
+    return () => clearTimeout(t);
+  }, [highlightCommentId, visibleCount, ordered.length]);
+
   const sliceStart = Math.max(0, total - visibleCount);
   const visible = ordered.slice(sliceStart);
   const hiddenCount = sliceStart;
