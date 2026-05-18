@@ -1,17 +1,53 @@
 import { useTeamFormTokens } from "@/hooks/useTeamFormTokens";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Ban, CheckCircle2, Clock, Copy, FileText, Trash2, Users } from "lucide-react";
+import { Ban, BarChart3, CheckCircle2, Clock, Copy, ExternalLink, FileText, Layers, Trash2, Users } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "@/hooks/use-toast";
-import { buildTeamFormTokenUrl } from "@/lib/constants/publicDomain";
+import { buildDynamicFormPublicUrl, buildTeamFormTokenUrl } from "@/lib/constants/publicDomain";
 
 export function FormSubmissionsPanel() {
   const { tokens, submissions, isLoadingTokens, isLoadingSubmissions, revokeToken, deleteToken } = useTeamFormTokens();
+  const navigate = useNavigate();
+
+  const dynamicFormsQuery = useQuery({
+    queryKey: ["my-dynamic-forms-with-counts"],
+    queryFn: async () => {
+      const { data: u } = await supabase.auth.getUser();
+      const uid = u?.user?.id;
+      if (!uid) return [] as Array<{ id: string; name: string; status: string; created_at: string; response_count: number; last_response_at: string | null }>;
+      const { data: forms, error } = await supabase
+        .from("dynamic_forms")
+        .select("id, name, status, created_at")
+        .eq("created_by", uid)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      const ids = (forms || []).map((f) => f.id);
+      let responses: Array<{ form_id: string; created_at: string }> = [];
+      if (ids.length > 0) {
+        const { data: rs } = await supabase
+          .from("dynamic_form_responses")
+          .select("form_id, created_at")
+          .in("form_id", ids);
+        responses = rs || [];
+      }
+      return (forms || []).map((f) => {
+        const rs = responses.filter((r) => r.form_id === f.id);
+        const last = rs.reduce<string | null>(
+          (acc, r) => (!acc || r.created_at > acc ? r.created_at : acc),
+          null,
+        );
+        return { ...f, response_count: rs.length, last_response_at: last };
+      });
+    },
+  });
 
   if (isLoadingTokens || isLoadingSubmissions) {
     return <Skeleton className="h-64 w-full" />;
@@ -26,8 +62,99 @@ export function FormSubmissionsPanel() {
 
   return (
     <div className="space-y-6">
+      {/* Formulários Personalizados (Dynamic Forms) */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center gap-2">
+            <Layers className="h-5 w-5 text-primary" />
+            Formulários Personalizados
+          </CardTitle>
+          <CardDescription>
+            Formulários criados por você no Builder. Respostas chegam aqui em tempo real.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {dynamicFormsQuery.isLoading ? (
+            <Skeleton className="h-24 w-full" />
+          ) : (dynamicFormsQuery.data || []).length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-4">
+              Nenhum formulário personalizado criado. Use o botão "Formulário Personalizado" acima.
+            </p>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Nome</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-center">Respostas</TableHead>
+                  <TableHead>Última resposta</TableHead>
+                  <TableHead>Link Público</TableHead>
+                  <TableHead></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {(dynamicFormsQuery.data || []).map((f) => {
+                  const publicUrl = buildDynamicFormPublicUrl(f.id);
+                  return (
+                    <TableRow key={f.id}>
+                      <TableCell className="font-medium">{f.name}</TableCell>
+                      <TableCell>
+                        {f.status === "active" ? (
+                          <Badge className="bg-green-600 hover:bg-green-700">Ativo</Badge>
+                        ) : (
+                          <Badge variant="secondary">{f.status}</Badge>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-center font-semibold">{f.response_count}</TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {f.last_response_at
+                          ? format(new Date(f.last_response_at), "dd/MM HH:mm", { locale: ptBR })
+                          : "—"}
+                      </TableCell>
+                      <TableCell>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 gap-1"
+                          onClick={() => {
+                            navigator.clipboard.writeText(publicUrl);
+                            toast({ title: "Link copiado!" });
+                          }}
+                        >
+                          <Copy className="h-3 w-3" />
+                          Copiar
+                        </Button>
+                      </TableCell>
+                      <TableCell className="flex items-center gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => navigate(`/dashboard/trade/formularios/dashboard?form=${f.id}`)}
+                          title="Ver respostas"
+                        >
+                          <BarChart3 className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => window.open(publicUrl, "_blank")}
+                          title="Abrir formulário"
+                        >
+                          <ExternalLink className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Tokens */}
       <Card>
+
         <CardHeader>
           <CardTitle className="text-lg flex items-center gap-2">
             <FileText className="h-5 w-5 text-primary" />
