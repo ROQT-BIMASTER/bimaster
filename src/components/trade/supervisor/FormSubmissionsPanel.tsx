@@ -8,6 +8,7 @@ import { Ban, CheckCircle2, Clock, Copy, FileText, Trash2, Users } from "lucide-
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "@/hooks/use-toast";
+import { buildTeamFormTokenUrl } from "@/lib/constants/publicDomain";
 
 export function FormSubmissionsPanel() {
   const { tokens, submissions, isLoadingTokens, isLoadingSubmissions, revokeToken, deleteToken } = useTeamFormTokens();
