@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Search, MessageSquarePlus, Users, MoreVertical, Star, Archive, BellOff, Plus, Pin, VolumeX, Package, MessageCircle } from "lucide-react";
+import { Search, MessageSquarePlus, Users, MoreVertical, Star, Archive, BellOff, Plus, Pin, VolumeX, Package, MessageCircle, SearchCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useConversas, filtrarConversas, type ChatFiltro } from "@/hooks/chat/useConversas";
 import { useGlobalPresence } from "@/hooks/chat/useChatPresence";
@@ -16,6 +16,7 @@ import { initials, formatRelativo, nomeConversa } from "./utils";
 import type { ChatConversa } from "@/hooks/chat/types";
 import { NovaConversaDialog } from "../NovaConversaDialog";
 import { GroupCreateDialog } from "./GroupCreateDialog";
+import { ChatSearchDialog } from "./ChatSearchDialog";
 import type { ChatModo } from "./ChatLayout";
 
 interface Props {
@@ -87,6 +88,7 @@ function SidebarPessoasContent({
   const [filtro, setFiltro] = useState<ChatFiltro>("todas");
   const [novaOpen, setNovaOpen] = useState(false);
   const [grupoOpen, setGrupoOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
   const { data: conversas = [], isLoading } = useConversas();
   const { online } = useGlobalPresence();
   const actions = useChatActions();
@@ -100,6 +102,16 @@ function SidebarPessoasContent({
         <h3 className="font-semibold text-sm flex-1">
           Conversas {totalNaoLidas > 0 && <Badge variant="secondary" className="ml-1">{totalNaoLidas}</Badge>}
         </h3>
+        <Button
+          size="icon"
+          variant="ghost"
+          className="h-8 w-8"
+          onClick={() => setSearchOpen(true)}
+          title="Buscar nas mensagens (todas as conversas)"
+          aria-label="Busca global"
+        >
+          <SearchCheck className="h-4 w-4" />
+        </Button>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button size="icon" variant="ghost" className="h-8 w-8">
@@ -175,6 +187,7 @@ function SidebarPessoasContent({
 
       <NovaConversaDialog open={novaOpen} onOpenChange={setNovaOpen} onSuccess={(id) => { setNovaOpen(false); onSelectConversa(id); }} />
       <GroupCreateDialog open={grupoOpen} onOpenChange={setGrupoOpen} onCreated={(id) => { setGrupoOpen(false); onSelectConversa(id); }} />
+      <ChatSearchDialog open={searchOpen} onOpenChange={setSearchOpen} onSelectConversa={onSelectConversa} />
     </>
   );
 }
