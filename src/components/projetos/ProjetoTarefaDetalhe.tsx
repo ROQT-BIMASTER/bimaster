@@ -122,10 +122,12 @@ interface ProjetoTarefaDetalheProps {
   secoes?: ProjetoSecaoType[];
   onMoveTarefa?: (tarefaId: string, secaoOrigemId: string, secaoDestinoId: string) => void;
   projetoIdOverride?: string;
+  /** Comentário a destacar/rolar (vindo de deep-link de menção). */
+  highlightCommentId?: string | null;
 }
 
 export function ProjetoTarefaDetalhe({
-  tarefa, open, onOpenChange, onUpdate, onToggle, onAddSubtarefa, secoes = [], onMoveTarefa, projetoIdOverride,
+  tarefa, open, onOpenChange, onUpdate, onToggle, onAddSubtarefa, secoes = [], onMoveTarefa, projetoIdOverride, highlightCommentId = null,
 }: ProjetoTarefaDetalheProps) {
   const navigate = useNavigate();
   const { id: routeProjetoId } = useParams<{ id: string }>();
@@ -1225,6 +1227,7 @@ export function ProjetoTarefaDetalhe({
                   comentarios={comentarios}
                   addComentario={addComentario}
                   teamMembers={teamMembers}
+                  highlightCommentId={highlightCommentId}
                 />
               </div>
             </ScrollArea>

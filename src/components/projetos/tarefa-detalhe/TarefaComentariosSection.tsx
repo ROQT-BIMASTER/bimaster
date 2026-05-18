@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { MentionInput } from "../MentionInput";
@@ -37,13 +37,16 @@ interface TarefaComentariosSectionProps {
   comentarios: Comentario[];
   addComentario: { mutate: (data: { conteudo: string; mentions: string[] }) => void };
   teamMembers: TeamMember[];
+  /** Comentário a destacar/rolar (deep-link de menção). */
+  highlightCommentId?: string | null;
 }
 
 const PAGE_SIZE = 10;
 
-export function TarefaComentariosSection({ comentarios, addComentario, teamMembers }: TarefaComentariosSectionProps) {
+export function TarefaComentariosSection({ comentarios, addComentario, teamMembers, highlightCommentId = null }: TarefaComentariosSectionProps) {
   const [commentValue, setCommentValue] = useState("");
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   // Comentários mais recentes primeiro são paginados; exibimos cronológicos crescentes
   const ordered = useMemo(
@@ -52,7 +55,26 @@ export function TarefaComentariosSection({ comentarios, addComentario, teamMembe
   );
 
   const total = ordered.length;
-  // Se houver mais que PAGE_SIZE, mostramos os mais recentes (últimos N) por padrão.
+  // Se o comentário destacado está fora da janela visível, expande até cobri-lo.
+  useEffect(() => {
+    if (!highlightCommentId) return;
+    const idx = ordered.findIndex(c => c.id === highlightCommentId);
+    if (idx === -1) return;
+    const needed = total - idx;
+    if (needed > visibleCount) setVisibleCount(needed);
+  }, [highlightCommentId, ordered, total, visibleCount]);
+
+  // Scroll/destaque visual após render.
+  useEffect(() => {
+    if (!highlightCommentId) return;
+    const el = containerRef.current?.querySelector<HTMLElement>(`[data-comentario-id="${highlightCommentId}"]`);
+    if (!el) return;
+    el.scrollIntoView({ behavior: "smooth", block: "center" });
+    el.classList.add("ring-2", "ring-primary", "rounded-md");
+    const t = setTimeout(() => el.classList.remove("ring-2", "ring-primary", "rounded-md"), 2500);
+    return () => clearTimeout(t);
+  }, [highlightCommentId, visibleCount, ordered.length]);
+
   const sliceStart = Math.max(0, total - visibleCount);
   const visible = ordered.slice(sliceStart);
   const hiddenCount = sliceStart;
@@ -81,9 +103,9 @@ export function TarefaComentariosSection({ comentarios, addComentario, teamMembe
         </div>
       )}
 
-      <div className="space-y-3 mb-3">
+      <div ref={containerRef} className="space-y-3 mb-3">
         {visible.map(c => (
-          <div key={c.id} className="flex gap-2">
+          <div key={c.id} data-comentario-id={c.id} className="flex gap-2 p-1 transition-shadow">
             <Avatar className="h-7 w-7 flex-shrink-0">
               <AvatarImage src={c.autor?.avatar_url || undefined} />
               <AvatarFallback className="text-[9px] bg-primary/20 text-primary">

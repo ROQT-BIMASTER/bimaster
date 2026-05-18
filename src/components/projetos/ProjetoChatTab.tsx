@@ -15,16 +15,28 @@ import { useProjetoMembros } from "@/hooks/useProjetoMembros";
 
 interface Props {
   projetoId: string;
+  highlightMsgId?: string | null;
 }
 
-export function ProjetoChatTab({ projetoId }: Props) {
+export function ProjetoChatTab({ projetoId, highlightMsgId = null }: Props) {
   const { messages, isLoading, sendMessage, gerarResumoHoje } = useProjetoChat(projetoId);
   const { user } = useAuth();
   const { membros } = useProjetoMembros(projetoId);
   const [text, setText] = useState("");
   const endRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages.length]);
+
+  useEffect(() => {
+    if (!highlightMsgId) return;
+    const el = containerRef.current?.querySelector<HTMLElement>(`[data-msg-id="${highlightMsgId}"]`);
+    if (!el) return;
+    el.scrollIntoView({ behavior: "smooth", block: "center" });
+    el.classList.add("ring-2", "ring-primary", "rounded-md");
+    const t = setTimeout(() => el.classList.remove("ring-2", "ring-primary", "rounded-md"), 2500);
+    return () => clearTimeout(t);
+  }, [highlightMsgId, messages.length]);
 
   const mentionUsers = (membros || []).map((m) => ({
     id: m.user_id,
@@ -58,7 +70,7 @@ export function ProjetoChatTab({ projetoId }: Props) {
       </div>
 
       <ScrollArea className="flex-1 px-4 py-3">
-        <div className="space-y-3">
+        <div ref={containerRef} className="space-y-3">
           {isLoading && <p className="text-xs text-muted-foreground text-center py-4">Carregando...</p>}
           {!isLoading && messages.length === 0 && (
             <p className="text-xs text-muted-foreground text-center py-8">
@@ -69,7 +81,7 @@ export function ProjetoChatTab({ projetoId }: Props) {
             const isMe = m.user_id === user?.id;
             const isSystem = m.tipo === "resumo_diario" || m.tipo === "sistema";
             return (
-              <div key={m.id} className={cn("flex gap-2", isMe && !isSystem && "flex-row-reverse")}>
+              <div key={m.id} data-msg-id={m.id} className={cn("flex gap-2 transition-shadow", isMe && !isSystem && "flex-row-reverse")}>
                 <Avatar className="h-7 w-7 flex-shrink-0">
                   {isSystem ? (
                     <AvatarFallback className="bg-primary/15 text-primary text-[10px]">

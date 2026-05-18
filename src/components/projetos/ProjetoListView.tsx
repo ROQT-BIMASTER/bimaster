@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useProjetoTarefas, ProjetoTarefa } from "@/hooks/useProjetoTarefas";
 import { useProjeto } from "@/hooks/useProjetos";
 import { useMetasProgress } from "@/hooks/useMetasProgress";
@@ -26,9 +26,13 @@ interface ProjetoListViewProps {
   darkBg?: boolean;
   filters?: ProjetoFilters;
   sort?: ProjetoSort;
+  /** Abre automaticamente o detalhe desta tarefa (usado por deep-link de menção). */
+  initialTarefaId?: string | null;
+  /** Comentário a destacar/rolar dentro da tarefa aberta. */
+  highlightCommentId?: string | null;
 }
 
-export function ProjetoListView({ projetoId, darkBg = false, filters = EMPTY_FILTERS, sort = DEFAULT_SORT }: ProjetoListViewProps) {
+export function ProjetoListView({ projetoId, darkBg = false, filters = EMPTY_FILTERS, sort = DEFAULT_SORT, initialTarefaId = null, highlightCommentId = null }: ProjetoListViewProps) {
   const {
     secoes, tarefas, tarefasPorSecao, ghostsPorSecao,
     secoesLoading, tarefasLoading,
@@ -44,6 +48,16 @@ export function ProjetoListView({ projetoId, darkBg = false, filters = EMPTY_FIL
   const currentUserId = user?.id ?? null;
   const canDeleteSecao = !!projeto && (isAdmin || projeto.criador_id === currentUserId);
   const [selectedTarefaId, setSelectedTarefaId] = useState<string | null>(null);
+  // Abre detalhe automaticamente quando deep-link de menção entrega initialTarefaId
+  // (espera as tarefas carregarem para garantir que existe).
+  useEffect(() => {
+    if (!initialTarefaId) return;
+    if (tarefasLoading) return;
+    if (tarefas.some(t => t.id === initialTarefaId)) {
+      setSelectedTarefaId(initialTarefaId);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialTarefaId, tarefasLoading]);
   // Derive the live tarefa from the freshest `tarefas` array so the detail Sheet
   // reflects optimistic updates and realtime invalidations without remounting.
   const selectedTarefa = useMemo(() => {
@@ -322,6 +336,7 @@ export function ProjetoListView({ projetoId, darkBg = false, filters = EMPTY_FIL
         onAddSubtarefa={handleAddSubtarefa}
         secoes={secoes}
         onMoveTarefa={handleMoveTarefa}
+        highlightCommentId={selectedTarefaId === initialTarefaId ? highlightCommentId : null}
       />
     </>
   );

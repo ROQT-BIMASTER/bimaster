@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Projeto } from "@/hooks/useProjetos";
@@ -48,7 +48,24 @@ export default function ProjetoDetalhe() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState("lista");
+  const [searchParams, setSearchParams] = useSearchParams();
+  // Deep-link de notificações de menção: ?tarefa=ID&comentario=ID ou ?tab=chat&mensagem=ID
+  const deepTarefaId = searchParams.get("tarefa");
+  const deepComentarioId = searchParams.get("comentario");
+  const deepTab = searchParams.get("tab");
+  const deepMensagemId = searchParams.get("mensagem");
+  const [activeTab, setActiveTab] = useState(deepTab === "chat" ? "chat" : "lista");
+
+  // Limpa os params da URL depois de consumi-los para que reload/share não dispare de novo.
+  useEffect(() => {
+    if (!deepTarefaId && !deepComentarioId && !deepTab && !deepMensagemId) return;
+    const next = new URLSearchParams(searchParams);
+    next.delete("tarefa"); next.delete("comentario"); next.delete("tab"); next.delete("mensagem");
+    // pequeno delay garante que os filhos consigam ler antes da limpeza
+    const t = setTimeout(() => setSearchParams(next, { replace: true }), 50);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const [lixeiraOpen, setLixeiraOpen] = useState(false);
   const [copilotOpen, setCopilotOpen] = useState(false);
   const { tarefas, secoes, teamMembers, createTarefa, softDeleteTarefa, restaurarTarefa, tarefasExcluidas, tarefasExcluidasLoading, tarefasExcluidasCount } = useProjetoTarefas(id, { lixeiraOpen });
@@ -197,7 +214,7 @@ export default function ProjetoDetalhe() {
               darkBg ? "bg-white/5 border-white/10" : customBg ? "bg-white/60 border-black/10 backdrop-blur-sm" : "bg-card border-border"
             )}>
               <div className="p-4">
-                {activeTab === "lista" && <ProjetoListView projetoId={projeto.id} darkBg={darkBg} filters={filters} sort={sort} />}
+                {activeTab === "lista" && <ProjetoListView projetoId={projeto.id} darkBg={darkBg} filters={filters} sort={sort} initialTarefaId={deepTarefaId} highlightCommentId={deepComentarioId} />}
                 {activeTab === "quadro" && <ProjetoKanbanView projetoId={projeto.id} darkBg={darkBg} filters={filters} sort={sort} />}
                 {activeTab === "cronograma" && <ProjetoCronogramaView projetoId={projeto.id} darkBg={darkBg} filters={filters} sort={sort} />}
                 {activeTab === "calendario" && <ProjetoCalendarioView projetoId={projeto.id} darkBg={darkBg} filters={filters} sort={sort} />}
@@ -206,7 +223,7 @@ export default function ProjetoDetalhe() {
                 {activeTab === "painel" && <ProjetoEquipeDashboard projetoId={projeto.id} darkBg={darkBg} />}
                 {activeTab === "equipe" && <ProjetoEquipeDashboard projetoId={projeto.id} darkBg={darkBg} />}
                 {activeTab === "metas" && <ProjetoMetasPanel projetoId={projeto.id} darkBg={darkBg} />}
-                {activeTab === "chat" && <ProjetoChatTab projetoId={projeto.id} />}
+                {activeTab === "chat" && <ProjetoChatTab projetoId={projeto.id} highlightMsgId={deepMensagemId} />}
                 {activeTab === "arquivos" && <ProjetoArquivosView projetoId={projeto.id} darkBg={darkBg} />}
               </div>
             </div>
