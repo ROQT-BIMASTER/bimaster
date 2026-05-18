@@ -10,6 +10,7 @@ import { uploadChatAnexo, formatBytes } from "./utils";
 import { CameraCaptureButton } from "./CameraCaptureButton";
 import { EmojiPicker } from "./EmojiPicker";
 import { MentionAutocomplete, type MentionMember } from "./MentionAutocomplete";
+import { TaskMentionAutocomplete, type TaskMention } from "./TaskMentionAutocomplete";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 
@@ -31,6 +32,10 @@ export function MessageInput({ conversaId, responderA, onClearReply, onTyping }:
   /** Quando != null, o popover de @ autocomplete está aberto.
    *  query = o texto após o `@` (filtro). startIdx = posição do `@` no `txt`. */
   const [mentionState, setMentionState] = useState<{ query: string; startIdx: number } | null>(null);
+  /** Tarefas mencionadas via /tarefa — vão em metadata.tarefas no sendMessage. */
+  const [tarefasMencionadas, setTarefasMencionadas] = useState<{ id: string; label: string }[]>([]);
+  /** Popover de /tarefa autocomplete. startIdx é a posição do `/` no texto. */
+  const [taskMentionState, setTaskMentionState] = useState<{ query: string; startIdx: number; length: number } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const taRef = useRef<HTMLTextAreaElement>(null);
   const { sendMessage } = useChatActions();
@@ -38,7 +43,12 @@ export function MessageInput({ conversaId, responderA, onClearReply, onTyping }:
   useEffect(() => { taRef.current?.focus(); }, [conversaId, responderA]);
 
   // Reset mentions ao trocar de conversa
-  useEffect(() => { setMentions([]); setMentionState(null); }, [conversaId]);
+  useEffect(() => {
+    setMentions([]);
+    setMentionState(null);
+    setTarefasMencionadas([]);
+    setTaskMentionState(null);
+  }, [conversaId]);
 
   /** Detecta se o cursor está dentro de uma menção ativa.
    *  Regra: o último `@` antes do cursor sem espaço/quebra de linha entre
@@ -57,11 +67,48 @@ export function MessageInput({ conversaId, responderA, onClearReply, onTyping }:
     return { query: fragment, startIdx: atIdx };
   };
 
+  /** Detecta `/tarefa <query>` antes do cursor (mesma regra do @, mas com
+   *  prefixo de comando). Aceita query vazia (popover lista tarefas recentes). */
+  const checkTaskMentionContext = (text: string, caret: number) => {
+    const before = text.slice(0, caret);
+    const idx = before.lastIndexOf("/tarefa");
+    if (idx === -1) return null;
+    const charBefore = idx > 0 ? before[idx - 1] : "";
+    if (charBefore && !/[\s\n]/.test(charBefore)) return null;
+    const fragment = before.slice(idx + "/tarefa".length);
+    // Aceita: vazio (acabou de digitar `/tarefa`) ou começando com espaço
+    if (fragment && !/^\s/.test(fragment)) return null;
+    if (/\n/.test(fragment)) return null;
+    return { query: fragment.trim(), startIdx: idx, length: "/tarefa".length + fragment.length };
+  };
+
   const onTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const value = e.target.value;
     setTxt(value);
     const caret = e.target.selectionStart ?? value.length;
     setMentionState(checkMentionContext(value, caret));
+    setTaskMentionState(checkTaskMentionContext(value, caret));
+  };
+
+  const pickTask = (t: TaskMention) => {
+    if (!taskMentionState) return;
+    // Substitui o `/tarefa <query>` por `[#tarefa: titulo]` no texto
+    const antes = txt.slice(0, taskMentionState.startIdx);
+    const depois = txt.slice(taskMentionState.startIdx + taskMentionState.length);
+    const marker = `[#tarefa: ${t.titulo}] `;
+    const novo = `${antes}${marker}${depois}`;
+    setTxt(novo);
+    setTarefasMencionadas((prev) =>
+      prev.some((p) => p.id === t.id) ? prev : [...prev, { id: t.id, label: t.titulo }],
+    );
+    setTaskMentionState(null);
+    requestAnimationFrame(() => {
+      if (taRef.current) {
+        const pos = antes.length + marker.length;
+        taRef.current.focus();
+        taRef.current.setSelectionRange(pos, pos);
+      }
+    });
   };
 
   const pickMention = (m: MentionMember) => {
@@ -112,11 +159,16 @@ export function MessageInput({ conversaId, responderA, onClearReply, onTyping }:
         responde_a_id: responderA?.id ?? null,
         anexos: anexosMeta,
         mencoes: mentions.length ? mentions : undefined,
+        metadata: tarefasMencionadas.length
+          ? { tarefas: tarefasMencionadas }
+          : undefined,
       });
       setTxt("");
       setFiles([]);
       setMentions([]);
       setMentionState(null);
+      setTarefasMencionadas([]);
+      setTaskMentionState(null);
       onClearReply();
     } catch (e: any) {
       toast.error("Falha ao enviar: " + (e?.message ?? ""));
@@ -126,13 +178,14 @@ export function MessageInput({ conversaId, responderA, onClearReply, onTyping }:
   };
 
   const onKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    // Escape fecha o popover de menção
-    if (e.key === "Escape" && mentionState) {
+    // Escape fecha popovers de menção (user ou tarefa)
+    if (e.key === "Escape" && (mentionState || taskMentionState)) {
       e.preventDefault();
       setMentionState(null);
+      setTaskMentionState(null);
       return;
     }
-    if (e.key === "Enter" && !e.shiftKey && !mentionState) {
+    if (e.key === "Enter" && !e.shiftKey && !mentionState && !taskMentionState) {
       e.preventDefault();
       enviar();
     } else {
@@ -160,6 +213,14 @@ export function MessageInput({ conversaId, responderA, onClearReply, onTyping }:
           />
         </div>
       )}
+      {taskMentionState && !mentionState && (
+        <div className="absolute bottom-full left-0 mb-1 ml-12 z-50 bg-popover border border-border rounded-md shadow-lg">
+          <TaskMentionAutocomplete
+            query={taskMentionState.query}
+            onPick={pickTask}
+          />
+        </div>
+      )}
 
       {responderA && (
         <div className="px-3 py-2 border-b border-border flex items-start gap-2 bg-muted/40">
@@ -180,6 +241,24 @@ export function MessageInput({ conversaId, responderA, onClearReply, onTyping }:
               <span className="max-w-[160px] truncate">{f.name}</span>
               <span className="text-muted-foreground">{formatBytes(f.size)}</span>
               <button onClick={() => setFiles((p) => p.filter((_, j) => j !== i))} className="hover:text-destructive">
+                <X className="h-3 w-3" />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {tarefasMencionadas.length > 0 && (
+        <div className="px-3 py-2 border-b border-border flex flex-wrap gap-2">
+          {tarefasMencionadas.map((t) => (
+            <div key={t.id} className="flex items-center gap-1.5 bg-primary/10 text-primary rounded-md px-2 py-1 text-xs">
+              <span>📋</span>
+              <span className="max-w-[180px] truncate">{t.label}</span>
+              <button
+                onClick={() => setTarefasMencionadas((prev) => prev.filter((p) => p.id !== t.id))}
+                className="hover:text-destructive"
+                aria-label="Remover menção de tarefa"
+              >
                 <X className="h-3 w-3" />
               </button>
             </div>
@@ -221,7 +300,7 @@ export function MessageInput({ conversaId, responderA, onClearReply, onTyping }:
             const items = Array.from(e.clipboardData?.files ?? []);
             if (items.length) { e.preventDefault(); addFiles(e.clipboardData.files); }
           }}
-          placeholder="Digite uma mensagem... (use @ para mencionar)"
+          placeholder="Digite uma mensagem... (@ menciona pessoa, /tarefa anexa tarefa)"
           rows={1}
           className={cn("resize-none min-h-[40px] max-h-32 py-2.5 leading-snug")}
         />
