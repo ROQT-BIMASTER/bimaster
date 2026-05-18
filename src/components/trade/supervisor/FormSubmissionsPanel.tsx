@@ -62,8 +62,99 @@ export function FormSubmissionsPanel() {
 
   return (
     <div className="space-y-6">
+      {/* Formulários Personalizados (Dynamic Forms) */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center gap-2">
+            <Layers className="h-5 w-5 text-primary" />
+            Formulários Personalizados
+          </CardTitle>
+          <CardDescription>
+            Formulários criados por você no Builder. Respostas chegam aqui em tempo real.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {dynamicFormsQuery.isLoading ? (
+            <Skeleton className="h-24 w-full" />
+          ) : (dynamicFormsQuery.data || []).length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-4">
+              Nenhum formulário personalizado criado. Use o botão "Formulário Personalizado" acima.
+            </p>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Nome</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-center">Respostas</TableHead>
+                  <TableHead>Última resposta</TableHead>
+                  <TableHead>Link Público</TableHead>
+                  <TableHead></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {(dynamicFormsQuery.data || []).map((f) => {
+                  const publicUrl = buildDynamicFormPublicUrl(f.id);
+                  return (
+                    <TableRow key={f.id}>
+                      <TableCell className="font-medium">{f.name}</TableCell>
+                      <TableCell>
+                        {f.status === "active" ? (
+                          <Badge className="bg-green-600 hover:bg-green-700">Ativo</Badge>
+                        ) : (
+                          <Badge variant="secondary">{f.status}</Badge>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-center font-semibold">{f.response_count}</TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {f.last_response_at
+                          ? format(new Date(f.last_response_at), "dd/MM HH:mm", { locale: ptBR })
+                          : "—"}
+                      </TableCell>
+                      <TableCell>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 gap-1"
+                          onClick={() => {
+                            navigator.clipboard.writeText(publicUrl);
+                            toast({ title: "Link copiado!" });
+                          }}
+                        >
+                          <Copy className="h-3 w-3" />
+                          Copiar
+                        </Button>
+                      </TableCell>
+                      <TableCell className="flex items-center gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => navigate(`/dashboard/trade/formularios/dashboard?form=${f.id}`)}
+                          title="Ver respostas"
+                        >
+                          <BarChart3 className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => window.open(publicUrl, "_blank")}
+                          title="Abrir formulário"
+                        >
+                          <ExternalLink className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Tokens */}
       <Card>
+
         <CardHeader>
           <CardTitle className="text-lg flex items-center gap-2">
             <FileText className="h-5 w-5 text-primary" />
