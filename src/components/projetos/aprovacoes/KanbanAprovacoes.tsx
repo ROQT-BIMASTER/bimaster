@@ -674,7 +674,11 @@ export function KanbanAprovacoes({
         </Card>
       )}
 
-      {!isLoading && allPipelines.length > 0 && (
+      {!isLoading && allPipelines.length > 0 && escopo === "pessoal" && itens.length === 0 && filtrosAtivos === 0 && (
+        <AprovacoesEmptyState />
+      )}
+
+      {!isLoading && allPipelines.length > 0 && !(escopo === "pessoal" && itens.length === 0 && filtrosAtivos === 0) && (
         <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
           <div className="flex gap-3 overflow-x-auto pb-3">
             {colunasVisiveis.map((k) => {
