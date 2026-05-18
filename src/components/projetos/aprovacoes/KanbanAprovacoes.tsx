@@ -306,11 +306,18 @@ export function KanbanAprovacoes({
     return Array.from(m.entries()).map(([id, nome]) => ({ id, nome }));
   }, [itens]);
 
-  const [projetoFiltro, setProjetoFiltro] = useState<string>("all");
-  const [tarefaFiltro, setTarefaFiltro] = useState<string>("all");
-  const [busca, setBusca] = useState<string>("");
-  const [buscaDebounced, setBuscaDebounced] = useState<string>("");
-  const [prazoFiltro, setPrazoFiltro] = useState<"all" | "hoje" | "atrasadas" | "7dias" | "sem_prazo">("all");
+  // URL state: filtros persistem na URL (?prazo=atrasadas&projeto=...&...)
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [projetoFiltro, setProjetoFiltro] = useState<string>(() => searchParams.get("projeto") || "all");
+  const [tarefaFiltro, setTarefaFiltro] = useState<string>(() => searchParams.get("tarefa") || "all");
+  const [busca, setBusca] = useState<string>(() => searchParams.get("q") || "");
+  const [buscaDebounced, setBuscaDebounced] = useState<string>(busca.trim().toLowerCase());
+  const [prazoFiltro, setPrazoFiltro] = useState<"all" | "hoje" | "atrasadas" | "7dias" | "sem_prazo">(
+    () => (searchParams.get("prazo") as any) || "all",
+  );
+  const [statusFiltro, setStatusFiltro] = useState<"all" | "ativos" | "finalizadas">(
+    () => (searchParams.get("status") as any) || "all",
+  );
   const buscaRef = useRef<HTMLInputElement>(null);
 
   // Debounce busca
@@ -318,6 +325,27 @@ export function KanbanAprovacoes({
     const t = setTimeout(() => setBuscaDebounced(busca.trim().toLowerCase()), 300);
     return () => clearTimeout(t);
   }, [busca]);
+
+  // Sincroniza filtros com URL (replace, sem poluir histórico)
+  useEffect(() => {
+    const next = new URLSearchParams(searchParams);
+    const set = (k: string, v: string, def: string) => {
+      if (v && v !== def) next.set(k, v);
+      else next.delete(k);
+    };
+    set("projeto", projetoFiltro, "all");
+    set("tarefa", tarefaFiltro, "all");
+    set("prazo", prazoFiltro, "all");
+    set("status", statusFiltro, "all");
+    set("q", buscaDebounced, "");
+    if (pipelineFiltro && pipelineFiltro !== "all") next.set("pipeline", pipelineFiltro);
+    else next.delete("pipeline");
+    if (next.toString() !== searchParams.toString()) {
+      setSearchParams(next, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projetoFiltro, tarefaFiltro, prazoFiltro, statusFiltro, buscaDebounced, pipelineFiltro]);
+
 
   // Atalho "/" para focar busca
   useEffect(() => {
