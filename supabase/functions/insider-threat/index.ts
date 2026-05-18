@@ -22,6 +22,11 @@ function userClient(authHeader: string) {
 }
 
 Deno.serve(secureHandler(
+  {
+    auth: "jwt",
+    rateLimit: 60,
+    rateLimitPrefix: "insider-threat",
+  },
   async (req, ctx) => {
     const authHeader = req.headers.get("authorization") || "";
     const sb = userClient(authHeader);
@@ -123,9 +128,5 @@ Deno.serve(secureHandler(
     }
 
     return Response.json({ error: "unknown_op" }, { status: 400 });
-  },
-  {
-    auth: "jwt",
-    rateLimit: { requests: 60, windowSeconds: 60 },
   },
 ));

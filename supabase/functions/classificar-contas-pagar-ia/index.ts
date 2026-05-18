@@ -280,8 +280,7 @@ ${planoContas?.map(p => `- ${p.code} ${p.name} (${p.account_type})`).join("\n") 
     logger.error("Erro na classificação:", error);
     return new Response(
       JSON.stringify({ 
-        error: error?.message || "Erro desconhecido",
-        details: error?.toString() || "Erro ao processar requisição"
+        error: error?.message || "Erro desconhecido"
       }),
       { status: 500, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
     );
