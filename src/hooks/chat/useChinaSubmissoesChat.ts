@@ -77,22 +77,16 @@ export function useChinaSubmissoesChat() {
         }
       });
 
-      // 3) Não-lidas — carrega `lida_por` de todas as mensagens das submissões
-      //    e conta no cliente. Funciona pra ~200 submissões / ~poucos milhares
-      //    de mensagens. Se ficar lento, vira RPC com agregação no banco.
-      const { data: allMsgs } = await supabase
-        .from("china_chat_mensagens")
-        .select("id, submissao_id, lida_por, usuario_id")
-        .in("submissao_id", ids);
+      // 3) Não-lidas — agregação no banco via RPC (SECURITY DEFINER).
+      //    Antes carregávamos lida_por de todas mensagens e contávamos no
+      //    cliente; bug latente em escala. PR #48 trocou por
+      //    rpc_china_submissoes_unread que faz GROUP BY no Postgres.
+      const { data: unreadRows } = await supabase
+        .rpc("rpc_china_submissoes_unread" as any);
 
       const unreadBySub = new Map<string, number>();
-      (allMsgs ?? []).forEach((m: any) => {
-        // Não conta as próprias mensagens
-        if (m.usuario_id === userId) return;
-        const lidaPor = Array.isArray(m.lida_por) ? m.lida_por : [];
-        if (!lidaPor.includes(userId)) {
-          unreadBySub.set(m.submissao_id, (unreadBySub.get(m.submissao_id) ?? 0) + 1);
-        }
+      (unreadRows ?? []).forEach((r: any) => {
+        unreadBySub.set(r.submissao_id, r.total ?? 0);
       });
 
       // 4) Monta e ordena: por última mensagem (desc), depois updated_at.
