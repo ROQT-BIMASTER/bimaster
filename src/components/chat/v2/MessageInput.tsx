@@ -127,7 +127,7 @@ export function MessageInput({ conversaId, responderA, onClearReply, onTyping }:
         });
         if (error) throw error;
         if (!data?.ok) throw new Error("Sofia não respondeu");
-        setTxt("");
+        clearDraft();
         setSofiaState(null);
         toast.success("Resumo da Sofia postado no chat");
       } catch (e: any) {
@@ -205,7 +205,7 @@ export function MessageInput({ conversaId, responderA, onClearReply, onTyping }:
         });
         if (error) throw error;
         if (!data?.ok) throw new Error("Sofia não respondeu");
-        setTxt("");
+        clearDraft();
         setSofiaState(null);
       } catch (e: any) {
         toast.error("Sofia: " + (e?.message ?? "falhou"));
@@ -243,7 +243,7 @@ export function MessageInput({ conversaId, responderA, onClearReply, onTyping }:
           ? { tarefas: tarefasMencionadas }
           : undefined,
       });
-      setTxt("");
+      clearDraft();
       setFiles([]);
       setMentions([]);
       setMentionState(null);
@@ -426,7 +426,7 @@ export function MessageInput({ conversaId, responderA, onClearReply, onTyping }:
         conversaId={conversaId}
         conteudoInicial={txt}
         respondeAId={responderA?.id ?? null}
-        onSent={() => { setTxt(""); onClearReply(); }}
+        onSent={() => { clearDraft(); onClearReply(); }}
       />
     </div>
   );
