@@ -11,6 +11,7 @@ import { useChatActions } from "@/hooks/chat/useChatActions";
 import { initials, formatHora } from "./utils";
 import { AnexoView } from "./AnexoView";
 import { ForwardMessageDialog } from "./ForwardMessageDialog";
+import { TaskMentionCard } from "./TaskMentionCard";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -144,6 +145,19 @@ export function MessageBubble({ m, uid, isGrupo, onReply, participantesCount }: 
               {(m.anexos ?? []).map((a) => <AnexoView key={a.id} anexo={a} mine={mine} />)}
             </div>
           )}
+
+          {/* Cards de tarefas mencionadas via /tarefa — lidos do metadata */}
+          {(() => {
+            const tarefas = (m.metadata as any)?.tarefas;
+            if (!Array.isArray(tarefas) || tarefas.length === 0) return null;
+            return (
+              <div className="space-y-1.5 mb-1">
+                {tarefas.map((t: { id: string }) => (
+                  <TaskMentionCard key={t.id} tarefaId={t.id} mine={mine} />
+                ))}
+              </div>
+            );
+          })()}
 
           {editing ? (
             <div className="space-y-1.5 min-w-[220px]">
