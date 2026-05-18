@@ -4,8 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { MoreVertical, Reply, Smile, Pin, Pencil, Trash2, Star, Copy, CornerUpRight, Check, CheckCheck, Languages, Loader2, ListPlus, ExternalLink } from "lucide-react";
+import { MoreVertical, Reply, Smile, Pin, Pencil, Trash2, Star, Copy, CornerUpRight, Check, CheckCheck, Languages, Loader2, ListPlus, ExternalLink, Info } from "lucide-react";
 import { CriarTarefaDoChatDialog } from "./CriarTarefaDoChatDialog";
+import { MessageInfoDialog } from "./MessageInfoDialog";
 import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import type { ChatMensagem } from "@/hooks/chat/types";
@@ -47,6 +48,7 @@ export function MessageBubble({ m, uid, isGrupo, onReply, participantesCount }: 
   const [translating, setTranslating] = useState(false);
   const [forwardOpen, setForwardOpen] = useState(false);
   const [criarTarefaOpen, setCriarTarefaOpen] = useState(false);
+  const [infoOpen, setInfoOpen] = useState(false);
   const tarefaVinculada = (m.metadata as any)?.tarefa_id as string | undefined;
   const tarefaTitulo = (m.metadata as any)?.tarefa_titulo as string | undefined;
   const tarefaProjetoId = (m.metadata as any)?.projeto_id as string | undefined;
@@ -83,10 +85,14 @@ export function MessageBubble({ m, uid, isGrupo, onReply, participantesCount }: 
     return Array.from(map.entries());
   }, [m.reacoes, uid]);
 
+  // Status estilo WhatsApp:
+  //  - sem leituras de outros => 1 check (enviada)
+  //  - 1+ leitura de outro, mas nem todos no grupo => 2 checks cinza (entregue/lida parcial)
+  //  - todos os outros leram => 2 checks azuis (lida)
   const totalLeituras = (m.leituras ?? []).filter((l) => l.user_id !== uid).length;
-  const lidaPorTodos = isGrupo
-    ? totalLeituras >= Math.max(0, participantesCount - 1)
-    : totalLeituras >= 1;
+  const necessarias = isGrupo ? Math.max(0, participantesCount - 1) : 1;
+  const lidaPorTodos = necessarias > 0 && totalLeituras >= necessarias;
+  const lidaPorAlguem = totalLeituras > 0 && !lidaPorTodos;
 
   if (m.excluida_para_todos) {
     return (
@@ -258,9 +264,21 @@ export function MessageBubble({ m, uid, isGrupo, onReply, participantesCount }: 
             <span title={new Date(m.created_at).toLocaleString("pt-BR")}>
               {formatHora(m.created_at)}
             </span>
-            {mine && (lidaPorTodos
-              ? <CheckCheck className="h-3 w-3 text-sky-200" />
-              : <Check className="h-3 w-3" />)}
+            {mine && (
+              <button
+                type="button"
+                onClick={() => setInfoOpen(true)}
+                title="Dados da mensagem"
+                className="inline-flex items-center hover:opacity-100 opacity-90"
+                aria-label="Dados da mensagem"
+              >
+                {lidaPorTodos
+                  ? <CheckCheck className="h-3 w-3 text-sky-300" />
+                  : lidaPorAlguem
+                    ? <CheckCheck className="h-3 w-3" />
+                    : <Check className="h-3 w-3" />}
+              </button>
+            )}
           </div>
 
           <div className={cn(
