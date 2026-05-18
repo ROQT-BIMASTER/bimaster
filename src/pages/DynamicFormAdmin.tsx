@@ -220,7 +220,7 @@ export default function DynamicFormAdmin() {
 
               {/* Link público sempre visível */}
               {form.status === "active" && (() => {
-                const publicUrl = `${window.location.origin}/formulario-dinamico?form=${form.id}`;
+                const publicUrl = buildDynamicFormPublicUrl(form.id);
                 return (
                   <div className="mt-2 ml-6 flex items-center gap-1.5 rounded-md border border-border bg-muted/40 px-2 py-1">
                     <Link2 className="h-3 w-3 text-muted-foreground shrink-0" />
