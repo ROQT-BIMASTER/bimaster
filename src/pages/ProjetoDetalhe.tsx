@@ -48,7 +48,24 @@ export default function ProjetoDetalhe() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState("lista");
+  const [searchParams, setSearchParams] = useSearchParams();
+  // Deep-link de notificações de menção: ?tarefa=ID&comentario=ID ou ?tab=chat&mensagem=ID
+  const deepTarefaId = searchParams.get("tarefa");
+  const deepComentarioId = searchParams.get("comentario");
+  const deepTab = searchParams.get("tab");
+  const deepMensagemId = searchParams.get("mensagem");
+  const [activeTab, setActiveTab] = useState(deepTab === "chat" ? "chat" : "lista");
+
+  // Limpa os params da URL depois de consumi-los para que reload/share não dispare de novo.
+  useEffect(() => {
+    if (!deepTarefaId && !deepComentarioId && !deepTab && !deepMensagemId) return;
+    const next = new URLSearchParams(searchParams);
+    next.delete("tarefa"); next.delete("comentario"); next.delete("tab"); next.delete("mensagem");
+    // pequeno delay garante que os filhos consigam ler antes da limpeza
+    const t = setTimeout(() => setSearchParams(next, { replace: true }), 50);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const [lixeiraOpen, setLixeiraOpen] = useState(false);
   const [copilotOpen, setCopilotOpen] = useState(false);
   const { tarefas, secoes, teamMembers, createTarefa, softDeleteTarefa, restaurarTarefa, tarefasExcluidas, tarefasExcluidasLoading, tarefasExcluidasCount } = useProjetoTarefas(id, { lixeiraOpen });
