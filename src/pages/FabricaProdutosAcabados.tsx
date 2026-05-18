@@ -1447,6 +1447,12 @@ export default function FabricaProdutosAcabados() {
         }}
       />
 
+      <NovoCenarioDialog
+        open={dialogNovoCenario}
+        onOpenChange={setDialogNovoCenario}
+        onSuccess={() => { setAbaModulo("cenarios"); }}
+      />
+
       <PhotoPermissionDiagnosticsDialog
         open={diagnosticoOpen}
         onOpenChange={setDiagnosticoOpen}
