@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import {
   DndContext,
   PointerSensor,
@@ -7,6 +8,7 @@ import {
   type DragEndEvent,
   useDroppable,
 } from "@dnd-kit/core";
+import { useQueryClient } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -33,6 +35,9 @@ import {
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
+import { uniqueChannelName } from "@/lib/realtime/channelName";
+import { logger } from "@/lib/logger";
 import {
   useKanbanAprovacoes,
   type EscopoKanban,
@@ -49,6 +54,7 @@ import { KanbanConfigSheet } from "./KanbanConfigSheet";
 import { CardAprovacao } from "./kanban/CardAprovacao";
 import { JornadaDrawer } from "./kanban/JornadaDrawer";
 import { MoverColunaDialog } from "./kanban/MoverColunaDialog";
+import { AprovacoesEmptyState } from "./AprovacoesEmptyState";
 
 interface Props {
   escopo: EscopoKanban["escopo"];
