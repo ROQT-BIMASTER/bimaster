@@ -103,8 +103,13 @@ export function MessageBubble({ m, uid, isGrupo, onReply, participantesCount }: 
         </Avatar>
       )}
       <div className={cn("max-w-[72%] md:max-w-[640px] flex flex-col", mine ? "items-end" : "items-start")}>
-        {isGrupo && !mine && (
-          <span className="text-[11px] font-medium text-primary px-3 mb-0.5">{m.remetente?.nome ?? m.remetente?.email ?? "Usuário"}</span>
+        {/* Nome do remetente aparece em CADA mensagem não-própria, em DMs e
+            em grupos (parecido com o Teams; WhatsApp clássico mostra só em
+            grupo, mas o usuário pediu nome explícito em qualquer caso). */}
+        {!mine && (
+          <span className="text-[11px] font-medium text-primary px-3 mb-0.5">
+            {m.remetente?.nome ?? m.remetente?.email ?? "Usuário"}
+          </span>
         )}
         <div className={cn(
           "relative px-3 py-2 rounded-2xl shadow-sm",
@@ -114,10 +119,21 @@ export function MessageBubble({ m, uid, isGrupo, onReply, participantesCount }: 
         )}>
           {m.responde_a && (
             <div className={cn(
-              "border-l-2 pl-2 mb-1.5 text-xs opacity-80 max-w-full truncate",
+              "border-l-2 pl-2 mb-1.5 text-xs opacity-80 max-w-full",
               mine ? "border-white/60" : "border-primary",
             )}>
-              {m.responde_a.conteudo || (m.responde_a.tipo === "imagem" ? "📷 Foto" : "Anexo")}
+              {/* Quem mandou a mensagem original — estilo WhatsApp */}
+              <div className={cn(
+                "font-semibold truncate",
+                mine ? "text-white/90" : "text-primary",
+              )}>
+                {m.responde_a.remetente?.nome
+                  ?? m.responde_a.remetente?.email
+                  ?? (m.responde_a.remetente_id === uid ? "Você" : "Usuário")}
+              </div>
+              <div className="truncate">
+                {m.responde_a.conteudo || (m.responde_a.tipo === "imagem" ? "📷 Foto" : "Anexo")}
+              </div>
             </div>
           )}
 
@@ -167,9 +183,16 @@ export function MessageBubble({ m, uid, isGrupo, onReply, participantesCount }: 
           )}
 
           <div className={cn("flex items-center gap-1 justify-end mt-0.5 text-[10px]", mine ? "text-white/70" : "text-muted-foreground")}>
-            {m.editada_em && <span>editada</span>}
+            {m.editada_em && (
+              <span title={`Editada em ${new Date(m.editada_em).toLocaleString("pt-BR")}`}>
+                editada
+              </span>
+            )}
             {m.fixada_em && <Pin className="h-2.5 w-2.5" />}
-            <span>{formatHora(m.created_at)}</span>
+            {/* Tooltip nativo (title) com data completa — hover mostra dd/MM/yyyy HH:mm */}
+            <span title={new Date(m.created_at).toLocaleString("pt-BR")}>
+              {formatHora(m.created_at)}
+            </span>
             {mine && (lidaPorTodos
               ? <CheckCheck className="h-3 w-3 text-sky-200" />
               : <Check className="h-3 w-3" />)}

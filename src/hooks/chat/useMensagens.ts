@@ -59,16 +59,44 @@ async function loadMensagensBatch(conversaId: string, beforeIso: string | null):
   });
   const replyMap = new Map<string, any>((repliesRes.data ?? []).map((r: any) => [r.id, r]));
 
-  return list.map((m) => ({
-    ...m,
-    mencoes: (m.mencoes as any) ?? [],
-    metadata: (m.metadata as any) ?? {},
-    remetente: profMap.get(m.remetente_id) ?? null,
-    responde_a: m.responde_a_id ? replyMap.get(m.responde_a_id) ?? null : null,
-    anexos: anexosMap.get(m.id) ?? [],
-    reacoes: reacoesMap.get(m.id) ?? [],
-    leituras: leitMap.get(m.id) ?? [],
-  }));
+  // Resolve profiles dos remetentes das mensagens citadas (responde_a)
+  // que ainda não estão no profMap (ex: usuário enviou no passado mas
+  // não nas últimas 50 mensagens). Sem isso, o quote do reply mostraria
+  // só o conteúdo sem identificar quem mandou.
+  const replySenderIds = Array.from(
+    new Set(
+      (repliesRes.data ?? [])
+        .map((r: any) => r.remetente_id)
+        .filter((id: string | null) => id && !profMap.has(id)),
+    ),
+  ) as string[];
+  if (replySenderIds.length) {
+    const { data: extraProfs } = await supabase
+      .from("chat_directory" as any)
+      .select("id, nome, avatar_url")
+      .in("id", replySenderIds);
+    (extraProfs ?? []).forEach((p: any) => profMap.set(p.id, p));
+  }
+
+  return list.map((m) => {
+    const replyRaw = m.responde_a_id ? replyMap.get(m.responde_a_id) : null;
+    const respondeA = replyRaw
+      ? {
+          ...replyRaw,
+          remetente: profMap.get(replyRaw.remetente_id) ?? null,
+        }
+      : null;
+    return {
+      ...m,
+      mencoes: (m.mencoes as any) ?? [],
+      metadata: (m.metadata as any) ?? {},
+      remetente: profMap.get(m.remetente_id) ?? null,
+      responde_a: respondeA,
+      anexos: anexosMap.get(m.id) ?? [],
+      reacoes: reacoesMap.get(m.id) ?? [],
+      leituras: leitMap.get(m.id) ?? [],
+    };
+  });
 }
 
 export function useMensagens(conversaId: string | null) {
