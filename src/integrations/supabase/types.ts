@@ -46950,6 +46950,15 @@ export type Database = {
         }
         Returns: string
       }
+      submit_dynamic_form_response: {
+        Args: {
+          p_answers?: Json
+          p_form_id: string
+          p_metadata?: Json
+          p_token_id?: string
+        }
+        Returns: string
+      }
       suggest_classification_from_history: {
         Args: { p_fornecedor?: string; p_historico: string }
         Returns: {
