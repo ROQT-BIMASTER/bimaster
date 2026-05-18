@@ -1,17 +1,53 @@
 import { useTeamFormTokens } from "@/hooks/useTeamFormTokens";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Ban, CheckCircle2, Clock, Copy, FileText, Trash2, Users } from "lucide-react";
+import { Ban, BarChart3, CheckCircle2, Clock, Copy, ExternalLink, FileText, Layers, Trash2, Users } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "@/hooks/use-toast";
-import { buildTeamFormTokenUrl } from "@/lib/constants/publicDomain";
+import { buildDynamicFormPublicUrl, buildTeamFormTokenUrl } from "@/lib/constants/publicDomain";
 
 export function FormSubmissionsPanel() {
   const { tokens, submissions, isLoadingTokens, isLoadingSubmissions, revokeToken, deleteToken } = useTeamFormTokens();
+  const navigate = useNavigate();
+
+  const dynamicFormsQuery = useQuery({
+    queryKey: ["my-dynamic-forms-with-counts"],
+    queryFn: async () => {
+      const { data: u } = await supabase.auth.getUser();
+      const uid = u?.user?.id;
+      if (!uid) return [] as Array<{ id: string; name: string; status: string; created_at: string; response_count: number; last_response_at: string | null }>;
+      const { data: forms, error } = await supabase
+        .from("dynamic_forms")
+        .select("id, name, status, created_at")
+        .eq("created_by", uid)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      const ids = (forms || []).map((f) => f.id);
+      let responses: Array<{ form_id: string; created_at: string }> = [];
+      if (ids.length > 0) {
+        const { data: rs } = await supabase
+          .from("dynamic_form_responses")
+          .select("form_id, created_at")
+          .in("form_id", ids);
+        responses = rs || [];
+      }
+      return (forms || []).map((f) => {
+        const rs = responses.filter((r) => r.form_id === f.id);
+        const last = rs.reduce<string | null>(
+          (acc, r) => (!acc || r.created_at > acc ? r.created_at : acc),
+          null,
+        );
+        return { ...f, response_count: rs.length, last_response_at: last };
+      });
+    },
+  });
 
   if (isLoadingTokens || isLoadingSubmissions) {
     return <Skeleton className="h-64 w-full" />;
