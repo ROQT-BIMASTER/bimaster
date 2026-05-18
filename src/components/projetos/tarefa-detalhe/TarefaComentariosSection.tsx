@@ -37,13 +37,16 @@ interface TarefaComentariosSectionProps {
   comentarios: Comentario[];
   addComentario: { mutate: (data: { conteudo: string; mentions: string[] }) => void };
   teamMembers: TeamMember[];
+  /** Comentário a destacar/rolar (deep-link de menção). */
+  highlightCommentId?: string | null;
 }
 
 const PAGE_SIZE = 10;
 
-export function TarefaComentariosSection({ comentarios, addComentario, teamMembers }: TarefaComentariosSectionProps) {
+export function TarefaComentariosSection({ comentarios, addComentario, teamMembers, highlightCommentId = null }: TarefaComentariosSectionProps) {
   const [commentValue, setCommentValue] = useState("");
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   // Comentários mais recentes primeiro são paginados; exibimos cronológicos crescentes
   const ordered = useMemo(
