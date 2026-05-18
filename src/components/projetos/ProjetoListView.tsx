@@ -26,9 +26,13 @@ interface ProjetoListViewProps {
   darkBg?: boolean;
   filters?: ProjetoFilters;
   sort?: ProjetoSort;
+  /** Abre automaticamente o detalhe desta tarefa (usado por deep-link de menção). */
+  initialTarefaId?: string | null;
+  /** Comentário a destacar/rolar dentro da tarefa aberta. */
+  highlightCommentId?: string | null;
 }
 
-export function ProjetoListView({ projetoId, darkBg = false, filters = EMPTY_FILTERS, sort = DEFAULT_SORT }: ProjetoListViewProps) {
+export function ProjetoListView({ projetoId, darkBg = false, filters = EMPTY_FILTERS, sort = DEFAULT_SORT, initialTarefaId = null, highlightCommentId = null }: ProjetoListViewProps) {
   const {
     secoes, tarefas, tarefasPorSecao, ghostsPorSecao,
     secoesLoading, tarefasLoading,
