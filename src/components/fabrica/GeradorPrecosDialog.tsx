@@ -219,7 +219,8 @@ export function GeradorPrecosDialog({ open, onOpenChange, tabela, onSuccess }: P
         .from("fabrica_produtos")
         .select("id, codigo, nome, origem, linha, marca, tipo, is_provador")
         .eq("tipo", "ACABADO")
-        .eq("ativo", true);
+        .eq("ativo", true)
+        .eq("modo", "oficial");
 
       // Filtrar por origem se a tabela especificar
       if (tabela?.origem_aplicavel && tabela.origem_aplicavel !== 'ambos') {
