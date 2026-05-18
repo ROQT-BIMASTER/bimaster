@@ -41507,6 +41507,60 @@ export type Database = {
           },
         ]
       }
+      user_chat_permissions: {
+        Row: {
+          motivo_restricao: string | null
+          pode_enviar_urgente: boolean
+          updated_at: string
+          updated_by: string | null
+          user_id: string
+        }
+        Insert: {
+          motivo_restricao?: string | null
+          pode_enviar_urgente?: boolean
+          updated_at?: string
+          updated_by?: string | null
+          user_id: string
+        }
+        Update: {
+          motivo_restricao?: string | null
+          pode_enviar_urgente?: boolean
+          updated_at?: string
+          updated_by?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_chat_preferences: {
+        Row: {
+          horario_silencioso_fim: string | null
+          horario_silencioso_inicio: string | null
+          som_mencoes: boolean
+          som_mensagens: boolean
+          som_urgentes: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          horario_silencioso_fim?: string | null
+          horario_silencioso_inicio?: string | null
+          som_mencoes?: boolean
+          som_mensagens?: boolean
+          som_urgentes?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          horario_silencioso_fim?: string | null
+          horario_silencioso_inicio?: string | null
+          som_mencoes?: boolean
+          som_mensagens?: boolean
+          som_urgentes?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_cnpj: {
         Row: {
           cnpj: string
@@ -46766,6 +46820,15 @@ export type Database = {
             }
             Returns: string
           }
+      rpc_enviar_mensagem_urgente: {
+        Args: {
+          p_conteudo: string
+          p_conversa_id: string
+          p_motivo: string
+          p_responde_a_id?: string
+        }
+        Returns: string
+      }
       rpc_fechar_container: {
         Args: { p_embarque_id: string }
         Returns: undefined
