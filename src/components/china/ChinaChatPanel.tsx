@@ -764,7 +764,13 @@ export function ChinaChatPanel({ submissaoId, produtoNome, tipoRemetente, refere
                     />
 
                     {(msg.anexos || []).map((a, i) => (
-                      <ChatAttachmentChip key={i} anexo={a} isLightBg={isLightBg} />
+                      <ChatAttachmentChip
+                        key={i}
+                        anexo={a}
+                        isLightBg={isLightBg}
+                        mensagemId={msg.id}
+                        submissaoId={submissaoId}
+                      />
                     ))}
 
                     {!isFinalizado && !isIa && (
