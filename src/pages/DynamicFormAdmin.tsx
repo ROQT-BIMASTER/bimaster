@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { FormShareDialog } from "@/components/forms/FormShareDialog";
+import { buildDynamicFormPublicUrl } from "@/lib/constants/publicDomain";
 import { logger } from "@/lib/logger";
 import {
   Plus, Edit2, Trash2, Share2, BarChart3, Copy, Loader2, FileText,
