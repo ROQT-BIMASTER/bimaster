@@ -88,11 +88,28 @@ done
 SQL_COUNTS="${SQL_COUNTS%UNION ALL } ORDER BY tabela;"
 psql "$RESTORE_DB_URL" -c "$SQL_COUNTS" | tee /tmp/fabrica_br_restore_counts_before.txt
 
-echo "==> Extraindo dump para ${OUT} ..."
+echo "==> Extraindo dump (INSERT por linha, para permitir ON CONFLICT DO NOTHING) ..."
 pg_dump --data-only --no-owner --no-privileges \
   --disable-triggers \
+  --inserts --rows-per-insert=1 \
   "${TABLE_ARGS[@]}" \
-  "$RESTORE_DB_URL" > "$OUT"
+  "$RESTORE_DB_URL" > "${OUT}.raw"
+
+echo "==> Reescrevendo INSERTs como ON CONFLICT DO NOTHING (merge conservador) ..."
+# Cada INSERT ocupa exatamente uma linha por causa de --rows-per-insert=1,
+# então um sed simples é suficiente e seguro.
+sed -E 's/^(INSERT INTO public\.[a-zA-Z_]+ .* VALUES \(.*\));$/\1) ON CONFLICT DO NOTHING;/' \
+  "${OUT}.raw" > "$OUT"
+
+# Sanidade: número de INSERTs preservado
+RAW=$(grep -c '^INSERT INTO public\.' "${OUT}.raw" || true)
+FIN=$(grep -c '^INSERT INTO public\.' "$OUT" || true)
+echo "==> INSERTs no dump bruto: $RAW | no dump final: $FIN"
+if [[ "$RAW" != "$FIN" ]]; then
+  echo "ERRO: contagem de INSERTs divergente. Abortando." >&2
+  exit 1
+fi
 
 echo "==> Pronto. Dump: ${OUT}"
 echo "==> Snapshot de contagens: /tmp/fabrica_br_restore_counts_before.txt"
+echo "==> Estratégia: registros antigos só serão inseridos se o id não existir hoje."

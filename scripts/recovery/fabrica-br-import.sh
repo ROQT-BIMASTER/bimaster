@@ -19,7 +19,7 @@ if [[ ! -s "$DUMP_FILE" ]]; then
   exit 1
 fi
 
-echo "==> Contagens ATUAIS em produção (devem estar zeradas para tabelas afetadas):"
+echo "==> Contagens ATUAIS em produção (registros existentes serão PRESERVADOS, dump usa ON CONFLICT DO NOTHING):"
 psql "$PROD_DB_URL" -c "
 SELECT 'fabrica_produtos' t, count(*) FROM public.fabrica_produtos
 UNION ALL SELECT 'fabrica_materias_primas', count(*) FROM public.fabrica_materias_primas
@@ -30,13 +30,19 @@ UNION ALL SELECT 'fabrica_ordens_producao', count(*) FROM public.fabrica_ordens_
 UNION ALL SELECT 'fabrica_fornecedores (preservar)', count(*) FROM public.fabrica_fornecedores
 ORDER BY t;"
 
-read -r -p "Aplicar dump ${DUMP_FILE} em produção? Digite RESTORE para confirmar: " ans
+# Sanidade: dump precisa estar no formato ON CONFLICT DO NOTHING
+if ! grep -q 'ON CONFLICT DO NOTHING' "$DUMP_FILE"; then
+  echo "ERRO: $DUMP_FILE não contém 'ON CONFLICT DO NOTHING'. Regenere com fabrica-br-extract.sh atualizado." >&2
+  exit 1
+fi
+
+read -r -p "Aplicar dump ${DUMP_FILE} em produção (merge por id, não sobrescreve)? Digite RESTORE para confirmar: " ans
 if [[ "$ans" != "RESTORE" ]]; then
   echo "Cancelado."
   exit 1
 fi
 
-echo "==> Aplicando dump dentro de uma transação..."
+echo "==> Aplicando dump dentro de uma transação (session_replication_role=replica para ignorar FKs/ordens) ..."
 psql "$PROD_DB_URL" -v ON_ERROR_STOP=1 <<SQL
 BEGIN;
 SET LOCAL session_replication_role = replica;
