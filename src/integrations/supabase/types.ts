@@ -978,6 +978,13 @@ export type Database = {
             foreignKeyName: "ap_data_source_config_updated_by_fkey"
             columns: ["updated_by"]
             isOneToOne: false
+            referencedRelation: "chat_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ap_data_source_config_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -1720,6 +1727,13 @@ export type Database = {
             columns: ["prospect_id"]
             isOneToOne: false
             referencedRelation: "prospects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "atividades_vendedor_id_fkey"
+            columns: ["vendedor_id"]
+            isOneToOne: false
+            referencedRelation: "chat_directory"
             referencedColumns: ["id"]
           },
           {
@@ -7012,6 +7026,13 @@ export type Database = {
             foreignKeyName: "competitor_intelligence_supervisor_id_fkey"
             columns: ["supervisor_id"]
             isOneToOne: false
+            referencedRelation: "chat_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "competitor_intelligence_supervisor_id_fkey"
+            columns: ["supervisor_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -7028,6 +7049,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "team_performance_view"
             referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "competitor_intelligence_vendedor_id_fkey"
+            columns: ["vendedor_id"]
+            isOneToOne: false
+            referencedRelation: "chat_directory"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "competitor_intelligence_vendedor_id_fkey"
@@ -8823,6 +8851,13 @@ export type Database = {
             foreignKeyName: "corporate_event_access_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
+            referencedRelation: "chat_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "corporate_event_access_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -8839,6 +8874,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "team_performance_view"
             referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "corporate_event_access_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "chat_directory"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "corporate_event_access_user_id_fkey"
@@ -8980,6 +9022,13 @@ export type Database = {
             foreignKeyName: "corporate_event_expenses_approved_by_fkey"
             columns: ["approved_by"]
             isOneToOne: false
+            referencedRelation: "chat_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "corporate_event_expenses_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -8996,6 +9045,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "team_performance_view"
             referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "corporate_event_expenses_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "chat_directory"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "corporate_event_expenses_created_by_fkey"
@@ -9030,6 +9086,13 @@ export type Database = {
             columns: ["event_id"]
             isOneToOne: false
             referencedRelation: "corporate_events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "corporate_event_expenses_financial_approved_by_fkey"
+            columns: ["financial_approved_by"]
+            isOneToOne: false
+            referencedRelation: "chat_directory"
             referencedColumns: ["id"]
           },
           {
@@ -9137,6 +9200,13 @@ export type Database = {
             foreignKeyName: "corporate_events_approved_by_fkey"
             columns: ["approved_by"]
             isOneToOne: false
+            referencedRelation: "chat_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "corporate_events_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -9165,6 +9235,13 @@ export type Database = {
             foreignKeyName: "corporate_events_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
+            referencedRelation: "chat_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "corporate_events_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -9187,6 +9264,13 @@ export type Database = {
             columns: ["empresa_id"]
             isOneToOne: false
             referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "corporate_events_responsible_user_id_fkey"
+            columns: ["responsible_user_id"]
+            isOneToOne: false
+            referencedRelation: "chat_directory"
             referencedColumns: ["id"]
           },
           {
@@ -10775,6 +10859,13 @@ export type Database = {
             foreignKeyName: "equipe_membros_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
+            referencedRelation: "chat_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "equipe_membros_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -10839,6 +10930,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "mv_analise_departamentos"
             referencedColumns: ["departamento_id"]
+          },
+          {
+            foreignKeyName: "equipes_projetos_lider_id_fkey"
+            columns: ["lider_id"]
+            isOneToOne: false
+            referencedRelation: "chat_directory"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "equipes_projetos_lider_id_fkey"
@@ -12059,6 +12157,13 @@ export type Database = {
             foreignKeyName: "fabrica_acoes_corretivas_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
+            referencedRelation: "chat_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_acoes_corretivas_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -12081,6 +12186,13 @@ export type Database = {
             columns: ["nao_conformidade_id"]
             isOneToOne: false
             referencedRelation: "fabrica_nao_conformidades"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_acoes_corretivas_responsavel_id_fkey"
+            columns: ["responsavel_id"]
+            isOneToOne: false
+            referencedRelation: "chat_directory"
             referencedColumns: ["id"]
           },
           {
@@ -12241,6 +12353,13 @@ export type Database = {
             foreignKeyName: "fabrica_apontamentos_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
+            referencedRelation: "chat_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_apontamentos_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -12263,6 +12382,13 @@ export type Database = {
             columns: ["maquina_id"]
             isOneToOne: false
             referencedRelation: "fabrica_maquinas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_apontamentos_operador_id_fkey"
+            columns: ["operador_id"]
+            isOneToOne: false
+            referencedRelation: "chat_directory"
             referencedColumns: ["id"]
           },
           {
@@ -12686,6 +12812,13 @@ export type Database = {
             columns: ["mp_id"]
             isOneToOne: false
             referencedRelation: "fabrica_materias_primas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_compras_responsavel_id_fkey"
+            columns: ["responsavel_id"]
+            isOneToOne: false
+            referencedRelation: "chat_directory"
             referencedColumns: ["id"]
           },
           {
@@ -13708,6 +13841,13 @@ export type Database = {
             foreignKeyName: "fabrica_formula_alteracoes_usuario_id_fkey"
             columns: ["usuario_id"]
             isOneToOne: false
+            referencedRelation: "chat_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_formula_alteracoes_usuario_id_fkey"
+            columns: ["usuario_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -13860,6 +14000,13 @@ export type Database = {
             foreignKeyName: "fabrica_formula_versoes_alterado_por_fkey"
             columns: ["alterado_por"]
             isOneToOne: false
+            referencedRelation: "chat_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_formula_versoes_alterado_por_fkey"
+            columns: ["alterado_por"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -13876,6 +14023,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "team_performance_view"
             referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "fabrica_formula_versoes_aprovada_por_fkey"
+            columns: ["aprovada_por"]
+            isOneToOne: false
+            referencedRelation: "chat_directory"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "fabrica_formula_versoes_aprovada_por_fkey"
@@ -14230,6 +14384,13 @@ export type Database = {
             foreignKeyName: "fabrica_inspecoes_qualidade_aprovado_por_fkey"
             columns: ["aprovado_por"]
             isOneToOne: false
+            referencedRelation: "chat_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_inspecoes_qualidade_aprovado_por_fkey"
+            columns: ["aprovado_por"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -14246,6 +14407,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "team_performance_view"
             referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "fabrica_inspecoes_qualidade_inspetor_id_fkey"
+            columns: ["inspetor_id"]
+            isOneToOne: false
+            referencedRelation: "chat_directory"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "fabrica_inspecoes_qualidade_inspetor_id_fkey"
@@ -14814,6 +14982,13 @@ export type Database = {
             foreignKeyName: "fabrica_markup_overrides_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
+            referencedRelation: "chat_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_markup_overrides_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -15316,6 +15491,13 @@ export type Database = {
             foreignKeyName: "fabrica_nao_conformidades_detectado_por_fkey"
             columns: ["detectado_por"]
             isOneToOne: false
+            referencedRelation: "chat_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_nao_conformidades_detectado_por_fkey"
+            columns: ["detectado_por"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -15773,6 +15955,13 @@ export type Database = {
             foreignKeyName: "fabrica_paradas_operador_responsavel_id_fkey"
             columns: ["operador_responsavel_id"]
             isOneToOne: false
+            referencedRelation: "chat_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_paradas_operador_responsavel_id_fkey"
+            columns: ["operador_responsavel_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -15920,6 +16109,13 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "fabrica_planos_inspecao_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "chat_directory"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "fabrica_planos_inspecao_created_by_fkey"
             columns: ["created_by"]
@@ -16595,6 +16791,13 @@ export type Database = {
             foreignKeyName: "fabrica_refugos_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
+            referencedRelation: "chat_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_refugos_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -16617,6 +16820,13 @@ export type Database = {
             columns: ["lote_id"]
             isOneToOne: false
             referencedRelation: "fabrica_lotes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_refugos_operador_id_fkey"
+            columns: ["operador_id"]
+            isOneToOne: false
+            referencedRelation: "chat_directory"
             referencedColumns: ["id"]
           },
           {
@@ -16859,6 +17069,13 @@ export type Database = {
             foreignKeyName: "fabrica_retrabalhos_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
+            referencedRelation: "chat_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_retrabalhos_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -16888,6 +17105,13 @@ export type Database = {
             columns: ["nao_conformidade_id"]
             isOneToOne: false
             referencedRelation: "fabrica_nao_conformidades"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_retrabalhos_operador_responsavel_id_fkey"
+            columns: ["operador_responsavel_id"]
+            isOneToOne: false
+            referencedRelation: "chat_directory"
             referencedColumns: ["id"]
           },
           {
@@ -17320,6 +17544,13 @@ export type Database = {
             foreignKeyName: "fabrica_tabelas_preco_aprovado_por_fkey"
             columns: ["aprovado_por"]
             isOneToOne: false
+            referencedRelation: "chat_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_tabelas_preco_aprovado_por_fkey"
+            columns: ["aprovado_por"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -17419,6 +17650,13 @@ export type Database = {
           versao?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "fabrica_tabelas_preco_versoes_aprovado_por_fkey"
+            columns: ["aprovado_por"]
+            isOneToOne: false
+            referencedRelation: "chat_directory"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "fabrica_tabelas_preco_versoes_aprovado_por_fkey"
             columns: ["aprovado_por"]
@@ -17693,6 +17931,13 @@ export type Database = {
             foreignKeyName: "fabrica_timesheets_aprovado_por_fkey"
             columns: ["aprovado_por"]
             isOneToOne: false
+            referencedRelation: "chat_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_timesheets_aprovado_por_fkey"
+            columns: ["aprovado_por"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -17709,6 +17954,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "team_performance_view"
             referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "fabrica_timesheets_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "chat_directory"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "fabrica_timesheets_created_by_fkey"
@@ -21136,6 +21388,13 @@ export type Database = {
             foreignKeyName: "internal_tickets_criado_por_fkey"
             columns: ["criado_por"]
             isOneToOne: false
+            referencedRelation: "chat_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "internal_tickets_criado_por_fkey"
+            columns: ["criado_por"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -21158,6 +21417,13 @@ export type Database = {
             columns: ["prospect_id"]
             isOneToOne: false
             referencedRelation: "prospects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "internal_tickets_responsavel_id_fkey"
+            columns: ["responsavel_id"]
+            isOneToOne: false
+            referencedRelation: "chat_directory"
             referencedColumns: ["id"]
           },
           {
@@ -21741,6 +22007,13 @@ export type Database = {
             foreignKeyName: "lancamentos_materiais_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
+            referencedRelation: "chat_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lancamentos_materiais_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -21824,6 +22097,13 @@ export type Database = {
             foreignKeyName: "lancamentos_produtos_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
+            referencedRelation: "chat_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lancamentos_produtos_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -21846,6 +22126,13 @@ export type Database = {
             columns: ["produto_id"]
             isOneToOne: false
             referencedRelation: "fabrica_produtos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lancamentos_produtos_responsavel_id_fkey"
+            columns: ["responsavel_id"]
+            isOneToOne: false
+            referencedRelation: "chat_directory"
             referencedColumns: ["id"]
           },
           {
@@ -22011,6 +22298,13 @@ export type Database = {
             foreignKeyName: "lancamentos_tarefas_marketing_responsavel_id_fkey"
             columns: ["responsavel_id"]
             isOneToOne: false
+            referencedRelation: "chat_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lancamentos_tarefas_marketing_responsavel_id_fkey"
+            columns: ["responsavel_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -22061,6 +22355,13 @@ export type Database = {
             columns: ["prospect_id"]
             isOneToOne: false
             referencedRelation: "prospects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_activity_logs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "chat_directory"
             referencedColumns: ["id"]
           },
           {
@@ -22164,6 +22465,13 @@ export type Database = {
             columns: ["prospect_id"]
             isOneToOne: false
             referencedRelation: "prospects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_subtasks_responsavel_id_fkey"
+            columns: ["responsavel_id"]
+            isOneToOne: false
+            referencedRelation: "chat_directory"
             referencedColumns: ["id"]
           },
           {
@@ -23886,6 +24194,35 @@ export type Database = {
           },
         ]
       }
+      mensagens_traducoes: {
+        Row: {
+          created_at: string
+          idioma: string
+          mensagem_id: string
+          texto: string
+        }
+        Insert: {
+          created_at?: string
+          idioma: string
+          mensagem_id: string
+          texto: string
+        }
+        Update: {
+          created_at?: string
+          idioma?: string
+          mensagem_id?: string
+          texto?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mensagens_traducoes_mensagem_id_fkey"
+            columns: ["mensagem_id"]
+            isOneToOne: false
+            referencedRelation: "mensagens"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       metas_vendas: {
         Row: {
           created_at: string
@@ -24222,6 +24559,13 @@ export type Database = {
             foreignKeyName: "municipios_vendedor_id_fkey"
             columns: ["vendedor_id"]
             isOneToOne: false
+            referencedRelation: "chat_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "municipios_vendedor_id_fkey"
+            columns: ["vendedor_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -24266,6 +24610,13 @@ export type Database = {
             columns: ["municipio_id"]
             isOneToOne: false
             referencedRelation: "municipios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "municipios_usuarios_usuario_id_fkey"
+            columns: ["usuario_id"]
+            isOneToOne: false
+            referencedRelation: "chat_directory"
             referencedColumns: ["id"]
           },
           {
@@ -25377,6 +25728,13 @@ export type Database = {
             foreignKeyName: "photos_supervisor_id_fkey"
             columns: ["supervisor_id"]
             isOneToOne: false
+            referencedRelation: "chat_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "photos_supervisor_id_fkey"
+            columns: ["supervisor_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -25393,6 +25751,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "team_performance_view"
             referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "photos_vendedor_id_fkey"
+            columns: ["vendedor_id"]
+            isOneToOne: false
+            referencedRelation: "chat_directory"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "photos_vendedor_id_fkey"
@@ -27572,6 +27937,13 @@ export type Database = {
           projeto_tarefa_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "processo_evidencia_audit_alterado_por_fkey"
+            columns: ["alterado_por"]
+            isOneToOne: false
+            referencedRelation: "chat_directory"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "processo_evidencia_audit_alterado_por_fkey"
             columns: ["alterado_por"]
@@ -30194,6 +30566,13 @@ export type Database = {
             foreignKeyName: "profile_dedupe_candidates_profile_canonical_id_fkey"
             columns: ["profile_canonical_id"]
             isOneToOne: false
+            referencedRelation: "chat_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profile_dedupe_candidates_profile_canonical_id_fkey"
+            columns: ["profile_canonical_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -30215,6 +30594,13 @@ export type Database = {
             foreignKeyName: "profile_dedupe_candidates_profile_duplicate_id_fkey"
             columns: ["profile_duplicate_id"]
             isOneToOne: false
+            referencedRelation: "chat_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profile_dedupe_candidates_profile_duplicate_id_fkey"
+            columns: ["profile_duplicate_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -30231,6 +30617,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "team_performance_view"
             referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "profile_dedupe_candidates_resolved_by_fkey"
+            columns: ["resolved_by"]
+            isOneToOne: false
+            referencedRelation: "chat_directory"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "profile_dedupe_candidates_resolved_by_fkey"
@@ -30370,6 +30763,13 @@ export type Database = {
             foreignKeyName: "profiles_gerente_id_fkey"
             columns: ["gerente_id"]
             isOneToOne: false
+            referencedRelation: "chat_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profiles_gerente_id_fkey"
+            columns: ["gerente_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -30386,6 +30786,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "team_performance_view"
             referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "profiles_supervisor_id_fkey"
+            columns: ["supervisor_id"]
+            isOneToOne: false
+            referencedRelation: "chat_directory"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "profiles_supervisor_id_fkey"
@@ -32997,6 +33404,13 @@ export type Database = {
             foreignKeyName: "promotion_execution_supervisor_id_fkey"
             columns: ["supervisor_id"]
             isOneToOne: false
+            referencedRelation: "chat_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "promotion_execution_supervisor_id_fkey"
+            columns: ["supervisor_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -33013,6 +33427,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "team_performance_view"
             referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "promotion_execution_vendedor_id_fkey"
+            columns: ["vendedor_id"]
+            isOneToOne: false
+            referencedRelation: "chat_directory"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "promotion_execution_vendedor_id_fkey"
@@ -33327,6 +33748,13 @@ export type Database = {
             foreignKeyName: "prospects_supervisor_id_fkey"
             columns: ["supervisor_id"]
             isOneToOne: false
+            referencedRelation: "chat_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "prospects_supervisor_id_fkey"
+            columns: ["supervisor_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -33343,6 +33771,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "team_performance_view"
             referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "prospects_vendedor_id_fkey"
+            columns: ["vendedor_id"]
+            isOneToOne: false
+            referencedRelation: "chat_directory"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "prospects_vendedor_id_fkey"
@@ -35218,6 +35653,13 @@ export type Database = {
             foreignKeyName: "shelf_measurements_supervisor_id_fkey"
             columns: ["supervisor_id"]
             isOneToOne: false
+            referencedRelation: "chat_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shelf_measurements_supervisor_id_fkey"
+            columns: ["supervisor_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -35234,6 +35676,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "team_performance_view"
             referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "shelf_measurements_vendedor_id_fkey"
+            columns: ["vendedor_id"]
+            isOneToOne: false
+            referencedRelation: "chat_directory"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "shelf_measurements_vendedor_id_fkey"
@@ -35404,6 +35853,13 @@ export type Database = {
             foreignKeyName: "shelf_share_supervisor_id_fkey"
             columns: ["supervisor_id"]
             isOneToOne: false
+            referencedRelation: "chat_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shelf_share_supervisor_id_fkey"
+            columns: ["supervisor_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -35420,6 +35876,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "team_performance_view"
             referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "shelf_share_vendedor_id_fkey"
+            columns: ["vendedor_id"]
+            isOneToOne: false
+            referencedRelation: "chat_directory"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "shelf_share_vendedor_id_fkey"
@@ -36607,6 +37070,13 @@ export type Database = {
             foreignKeyName: "store_products_supervisor_id_fkey"
             columns: ["supervisor_id"]
             isOneToOne: false
+            referencedRelation: "chat_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_products_supervisor_id_fkey"
+            columns: ["supervisor_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -36623,6 +37093,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "team_performance_view"
             referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "store_products_vendedor_id_fkey"
+            columns: ["vendedor_id"]
+            isOneToOne: false
+            referencedRelation: "chat_directory"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "store_products_vendedor_id_fkey"
@@ -37647,6 +38124,13 @@ export type Database = {
             foreignKeyName: "team_form_submissions_vinculado_user_id_fkey"
             columns: ["vinculado_user_id"]
             isOneToOne: false
+            referencedRelation: "chat_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_form_submissions_vinculado_user_id_fkey"
+            columns: ["vinculado_user_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -37710,6 +38194,13 @@ export type Database = {
           use_count?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "team_form_tokens_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "chat_directory"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "team_form_tokens_created_by_fkey"
             columns: ["created_by"]
@@ -37786,6 +38277,13 @@ export type Database = {
           whatsapp?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "team_member_details_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "chat_directory"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "team_member_details_user_id_fkey"
             columns: ["user_id"]
@@ -38644,6 +39142,13 @@ export type Database = {
             foreignKeyName: "trade_budgets_approved_by_fkey"
             columns: ["approved_by"]
             isOneToOne: false
+            referencedRelation: "chat_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trade_budgets_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -38666,6 +39171,13 @@ export type Database = {
             columns: ["empresa_id"]
             isOneToOne: false
             referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trade_budgets_requested_by_fkey"
+            columns: ["requested_by"]
+            isOneToOne: false
+            referencedRelation: "chat_directory"
             referencedColumns: ["id"]
           },
           {
@@ -40087,6 +40599,13 @@ export type Database = {
             foreignKeyName: "trade_investments_supervisor_id_fkey"
             columns: ["supervisor_id"]
             isOneToOne: false
+            referencedRelation: "chat_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trade_investments_supervisor_id_fkey"
+            columns: ["supervisor_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -40103,6 +40622,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "team_performance_view"
             referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "trade_investments_vendedor_id_fkey"
+            columns: ["vendedor_id"]
+            isOneToOne: false
+            referencedRelation: "chat_directory"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "trade_investments_vendedor_id_fkey"
@@ -40416,6 +40942,13 @@ export type Database = {
             columns: ["level_id"]
             isOneToOne: false
             referencedRelation: "trade_approval_levels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trade_user_approval_levels_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "chat_directory"
             referencedColumns: ["id"]
           },
           {
@@ -41302,6 +41835,13 @@ export type Database = {
             foreignKeyName: "usuario_permissoes_modulos_usuario_id_fkey"
             columns: ["usuario_id"]
             isOneToOne: false
+            referencedRelation: "chat_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "usuario_permissoes_modulos_usuario_id_fkey"
+            columns: ["usuario_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -41411,6 +41951,13 @@ export type Database = {
           vendedor_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "vendedor_territorios_vendedor_id_fkey"
+            columns: ["vendedor_id"]
+            isOneToOne: false
+            referencedRelation: "chat_directory"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "vendedor_territorios_vendedor_id_fkey"
             columns: ["vendedor_id"]
@@ -41649,6 +42196,13 @@ export type Database = {
           weather?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "visits_atribuido_por_fkey"
+            columns: ["atribuido_por"]
+            isOneToOne: false
+            referencedRelation: "chat_directory"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "visits_atribuido_por_fkey"
             columns: ["atribuido_por"]
@@ -42055,6 +42609,24 @@ export type Database = {
         }
         Relationships: []
       }
+      chat_directory: {
+        Row: {
+          avatar_url: string | null
+          id: string | null
+          nome: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          id?: string | null
+          nome?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          id?: string | null
+          nome?: string | null
+        }
+        Relationships: []
+      }
       clientes_safe: {
         Row: {
           celular_masked: string | null
@@ -42426,6 +42998,13 @@ export type Database = {
             foreignKeyName: "profiles_gerente_id_fkey"
             columns: ["gerente_id"]
             isOneToOne: false
+            referencedRelation: "chat_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profiles_gerente_id_fkey"
+            columns: ["gerente_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -42442,6 +43021,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "team_performance_view"
             referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "profiles_supervisor_id_fkey"
+            columns: ["supervisor_id"]
+            isOneToOne: false
+            referencedRelation: "chat_directory"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "profiles_supervisor_id_fkey"
@@ -42986,6 +43572,13 @@ export type Database = {
             foreignKeyName: "team_member_details_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: true
+            referencedRelation: "chat_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_member_details_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -43022,6 +43615,13 @@ export type Database = {
           visits_this_month: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "profiles_supervisor_id_fkey"
+            columns: ["supervisor_id"]
+            isOneToOne: false
+            referencedRelation: "chat_directory"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "profiles_supervisor_id_fkey"
             columns: ["supervisor_id"]
@@ -45836,6 +46436,16 @@ export type Database = {
           p_marco: string
           p_motivo?: string
           p_oc_id: string
+        }
+        Returns: string
+      }
+      rpc_china_promover_anexo_ao_checklist: {
+        Args: {
+          p_anexo_path: string
+          p_mensagem_id: string
+          p_novo_arquivo_path: string
+          p_novo_nome_arquivo: string
+          p_tipo_documento: string
         }
         Returns: string
       }
