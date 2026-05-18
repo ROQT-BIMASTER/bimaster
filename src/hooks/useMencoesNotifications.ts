@@ -5,17 +5,18 @@ import { useEffect } from "react";
 import { toast } from "sonner";
 import { uniqueChannelName } from "@/lib/realtime/channelName";
 
-export const MENCAO_TYPES = ["task_mention", "chat_mention", "process_mention"] as const;
+export const MENCAO_TYPES = ["task_mention", "chat_mention", "process_mention", "chat_urgent"] as const;
 
 const SOUND_PREF_KEY = "mencoes:som";
 const MENTION_SOUND_URL = "/sounds/mention.mp3";
+const URGENT_SOUND_URL = "/sounds/urgent.wav";
 
-function playMentionSound() {
+function playMentionSound(urgent = false) {
   try {
     if (typeof window === "undefined") return;
     if (localStorage.getItem(SOUND_PREF_KEY) === "off") return;
-    const audio = new Audio(MENTION_SOUND_URL);
-    audio.volume = 0.5;
+    const audio = new Audio(urgent ? URGENT_SOUND_URL : MENTION_SOUND_URL);
+    audio.volume = urgent ? 0.65 : 0.5;
     void audio.play().catch(() => {/* autoplay pode ser bloqueado antes da 1ª interação */});
   } catch {/* noop */}
 }
