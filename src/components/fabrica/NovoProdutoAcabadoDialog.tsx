@@ -452,8 +452,15 @@ export function NovoProdutoAcabadoDialog({ open, onOpenChange, produtoEdit, onSu
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className={cn("max-h-[90vh] overflow-y-auto", mode === "choose" ? "max-w-lg" : "max-w-4xl")} onInteractOutside={(e) => e.preventDefault()} onPointerDownOutside={(e) => e.preventDefault()}>
         <DialogHeader>
-          <DialogTitle>
-            {produtoEdit ? "Editar Produto Acabado" : "Novo Produto Acabado"}
+          <DialogTitle className="flex items-center gap-2">
+            {produtoEdit
+              ? "Editar Produto Acabado"
+              : cenarioContext
+                ? `Novo Cenário — ${cenarioContext.cenario_label}`
+                : "Novo Produto Acabado"}
+            {cenarioContext && (
+              <Badge variant="outline" className="ml-2">Simulação</Badge>
+            )}
           </DialogTitle>
         </DialogHeader>
 
