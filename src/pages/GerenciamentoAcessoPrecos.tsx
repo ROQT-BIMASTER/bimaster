@@ -158,7 +158,7 @@ export default function GerenciamentoAcessoPrecos() {
         supabase.from("fabrica_tabelas_preco").select("id, codigo, nome, status").order("codigo"),
         supabase.from("profiles").select("id, nome, email").order("nome"),
         supabase.from("user_price_table_access").select("*").order("granted_at", { ascending: false }),
-        supabase.from("fabrica_produtos").select("id, nome, codigo, linha").eq("tipo", "ACABADO").eq("ativo", true).order("nome"),
+        supabase.from("fabrica_produtos").select("id, nome, codigo, linha").eq("tipo", "ACABADO").eq("ativo", true).eq("modo", "oficial").order("nome"),
       ]);
 
       if (tablesRes.error) throw tablesRes.error;

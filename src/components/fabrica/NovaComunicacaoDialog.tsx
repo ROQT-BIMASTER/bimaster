@@ -56,6 +56,7 @@ export function NovaComunicacaoDialog({ open, onOpenChange, onCriada }: NovaComu
         .from("fabrica_produtos")
         .select("id, nome, codigo, marca, linha")
         .eq("ativo", true)
+        .eq("modo", "oficial")
         .eq("tipo", "ACABADO")
         .order("nome");
       setProdutos((data as Produto[]) || []);

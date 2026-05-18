@@ -152,6 +152,7 @@ export default function ImportarProdutosAcabados() {
       const { data: userData } = await supabase.auth.getUser();
       const produtosWithUser = produtos.map(p => ({
         ...p,
+        modo: "oficial",
         created_by: userData.user?.id
       }));
 
@@ -247,6 +248,7 @@ export default function ImportarProdutosAcabados() {
       const { data: userData } = await supabase.auth.getUser();
       const produtosWithUser = produtos.map((p: any) => ({
         ...p,
+        modo: "oficial",
         created_by: userData.user?.id
       }));
 

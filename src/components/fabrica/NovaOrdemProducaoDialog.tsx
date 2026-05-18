@@ -49,6 +49,7 @@ export function NovaOrdemProducaoDialog({
         .from("fabrica_produtos")
         .select("*")
         .eq("ativo", true)
+        .eq("modo", "oficial")
         .order("nome");
 
       if (error) throw error;

@@ -39,6 +39,7 @@ export function SimuladorProdutoSelector({
         .from('fabrica_produtos')
         .select('id, codigo, nome, categoria')
         .eq('ativo', true)
+        .eq('modo', 'oficial')
         .order('nome');
       
       if (error) throw error;

@@ -86,6 +86,7 @@ export default function NovoLancamentoDialog({ open, onOpenChange, lancamento, o
         .from("fabrica_produtos")
         .select("id, nome, codigo")
         .eq("ativo", true)
+        .eq("modo", "oficial")
         .in("tipo", ["ACABADO", "INTER"])
         .order("nome");
       if (error) throw error;

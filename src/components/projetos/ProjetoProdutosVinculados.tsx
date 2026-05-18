@@ -59,6 +59,7 @@ export function ProjetoProdutosVinculados({ projetoId, isCoordinator }: ProjetoP
         .select("id, codigo, nome, sku, foto_url")
         .or(`nome.ilike.%${q}%,codigo.ilike.%${q}%,sku.ilike.%${q}%`)
         .eq("ativo", true)
+        .eq("modo", "oficial")
         .limit(10);
       return data || [];
     },

@@ -31,6 +31,7 @@ export default function NovoPlanoInspecaoDialog({ open, onClose }: NovoPlanoInsp
         .from("fabrica_produtos")
         .select("*")
         .eq("ativo", true)
+        .eq("modo", "oficial")
         .order("nome");
 
       if (error) throw error;

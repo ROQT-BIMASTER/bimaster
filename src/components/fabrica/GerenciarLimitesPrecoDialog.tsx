@@ -110,6 +110,7 @@ export function GerenciarLimitesPrecoDialog({ open, onOpenChange }: Props) {
           categoria
         `)
         .eq('ativo', true)
+        .eq('modo', 'oficial')
         .or('tipo.eq.ACABADO,tipo.eq.acabado')
         .order('categoria', { ascending: true, nullsFirst: false })
         .order('nome');
