@@ -99,8 +99,14 @@ export function FormSubmissionsPanel() {
                 {(dynamicFormsQuery.data || []).map((f) => {
                   const publicUrl = buildDynamicFormPublicUrl(f.id);
                   return (
-                    <TableRow key={f.id}>
-                      <TableCell className="font-medium">{f.name}</TableCell>
+                    <TableRow
+                      key={f.id}
+                      className="cursor-pointer hover:bg-muted/50"
+                      onClick={() => setSelectedForm({ id: f.id, name: f.name })}
+                    >
+                      <TableCell className="font-medium text-primary underline-offset-2 hover:underline">
+                        {f.name}
+                      </TableCell>
                       <TableCell>
                         {f.status === "active" ? (
                           <Badge className="bg-green-600 hover:bg-green-700">Ativo</Badge>
