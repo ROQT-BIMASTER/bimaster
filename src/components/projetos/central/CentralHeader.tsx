@@ -133,12 +133,12 @@ export function CentralHeader({
               </Tooltip>
             </TooltipProvider>
           )}
-          <div className="min-w-0">
-            <h1 className="text-xl font-semibold text-foreground flex items-center gap-2 truncate">
+          <div className="min-w-0 hidden sm:block">
+            <h1 className="text-base sm:text-xl font-semibold text-foreground flex items-center gap-2 truncate">
               <LayoutDashboard className="h-5 w-5 text-primary shrink-0" />
               <span className="truncate">
-                {getGreeting()}
-                {firstName ? `, ${firstName}` : ""}
+                <span className="hidden sm:inline">{getGreeting()}</span>
+                {firstName ? <span className="sm:before:content-[',_']">{firstName}</span> : null}
               </span>
               <span className="hidden md:inline text-xs font-normal text-muted-foreground capitalize ml-2">
                 · {today}
