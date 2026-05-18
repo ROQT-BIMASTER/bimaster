@@ -120,7 +120,7 @@ export function FormSubmissionsPanel() {
                           ? format(new Date(f.last_response_at), "dd/MM HH:mm", { locale: ptBR })
                           : "—"}
                       </TableCell>
-                      <TableCell>
+                      <TableCell onClick={(e) => e.stopPropagation()}>
                         <Button
                           variant="ghost"
                           size="sm"
@@ -134,12 +134,12 @@ export function FormSubmissionsPanel() {
                           Copiar
                         </Button>
                       </TableCell>
-                      <TableCell className="flex items-center gap-1">
+                      <TableCell className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => navigate(`/dashboard/trade/formularios/dashboard?form=${f.id}`)}
-                          title="Ver respostas"
+                          onClick={() => setSelectedForm({ id: f.id, name: f.name })}
+                          title="Ver lançamentos"
                         >
                           <BarChart3 className="h-4 w-4" />
                         </Button>
