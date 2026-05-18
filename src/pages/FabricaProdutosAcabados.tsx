@@ -810,6 +810,22 @@ export default function FabricaProdutosAcabados() {
           </div>
         </div>
 
+        {/* Abas: Oficiais vs Cenários */}
+        <div className="flex gap-1 rounded-md border p-0.5 w-fit">
+          <Button size="sm" variant={abaModulo === "oficiais" ? "default" : "ghost"} className="h-7" onClick={() => setAbaModulo("oficiais")}>
+            <Package className="h-3.5 w-3.5 mr-1.5" /> Oficiais
+          </Button>
+          <Button size="sm" variant={abaModulo === "cenarios" ? "default" : "ghost"} className="h-7" onClick={() => setAbaModulo("cenarios")}>
+            <Layers className="h-3.5 w-3.5 mr-1.5" /> Cenários (simulação)
+          </Button>
+        </div>
+
+        {abaModulo === "cenarios" && (
+          <div className="pb-4"><CenariosList /></div>
+        )}
+
+
+
         {/* Dashboard Administrativo */}
         <Collapsible open={showAdminDash} onOpenChange={setShowAdminDash}>
           <CollapsibleContent className="data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0">
