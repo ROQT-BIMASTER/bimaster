@@ -2884,6 +2884,61 @@ export type Database = {
         }
         Relationships: []
       }
+      chat_tarefas_origem: {
+        Row: {
+          agente_id: string | null
+          contexto: Json
+          conversa_id: string
+          created_at: string
+          criado_por: string
+          id: string
+          mensagem_id: string
+          tarefa_id: string
+        }
+        Insert: {
+          agente_id?: string | null
+          contexto?: Json
+          conversa_id: string
+          created_at?: string
+          criado_por: string
+          id?: string
+          mensagem_id: string
+          tarefa_id: string
+        }
+        Update: {
+          agente_id?: string | null
+          contexto?: Json
+          conversa_id?: string
+          created_at?: string
+          criado_por?: string
+          id?: string
+          mensagem_id?: string
+          tarefa_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_tarefas_origem_conversa_id_fkey"
+            columns: ["conversa_id"]
+            isOneToOne: false
+            referencedRelation: "conversas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chat_tarefas_origem_mensagem_id_fkey"
+            columns: ["mensagem_id"]
+            isOneToOne: false
+            referencedRelation: "mensagens"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chat_tarefas_origem_tarefa_id_fkey"
+            columns: ["tarefa_id"]
+            isOneToOne: false
+            referencedRelation: "projeto_tarefas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       china_categoria_responsaveis: {
         Row: {
           categoria_key: string

@@ -4,7 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { MoreVertical, Reply, Smile, Pin, Pencil, Trash2, Star, Copy, CornerUpRight, Check, CheckCheck, Languages, Loader2 } from "lucide-react";
+import { MoreVertical, Reply, Smile, Pin, Pencil, Trash2, Star, Copy, CornerUpRight, Check, CheckCheck, Languages, Loader2, ListPlus, ExternalLink } from "lucide-react";
+import { CriarTarefaDoChatDialog } from "./CriarTarefaDoChatDialog";
+import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import type { ChatMensagem } from "@/hooks/chat/types";
 import { useChatActions } from "@/hooks/chat/useChatActions";
@@ -44,6 +46,10 @@ export function MessageBubble({ m, uid, isGrupo, onReply, participantesCount }: 
   const [traducao, setTraducao] = useState<{ idioma: string; texto: string } | null>(null);
   const [translating, setTranslating] = useState(false);
   const [forwardOpen, setForwardOpen] = useState(false);
+  const [criarTarefaOpen, setCriarTarefaOpen] = useState(false);
+  const tarefaVinculada = (m.metadata as any)?.tarefa_id as string | undefined;
+  const tarefaTitulo = (m.metadata as any)?.tarefa_titulo as string | undefined;
+  const tarefaProjetoId = (m.metadata as any)?.projeto_id as string | undefined;
 
   const traduzir = async (idioma: string) => {
     if (!m.conteudo || m.conteudo.trim().length < 2) {
@@ -288,6 +294,9 @@ export function MessageBubble({ m, uid, isGrupo, onReply, participantesCount }: 
                   <CornerUpRight className="h-4 w-4 mr-2" /> Encaminhar
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={copiar}><Copy className="h-4 w-4 mr-2" /> Copiar</DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => setTimeout(() => setCriarTarefaOpen(true), 0)}>
+                  <ListPlus className="h-4 w-4 mr-2" /> Criar tarefa no projeto
+                </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => actions.toggleFavorita.mutate({ id: m.id, conversaId: m.conversa_id, favorita: !!m.favorita })}>
                   <Star className="h-4 w-4 mr-2" /> {m.favorita ? "Remover favorito" : "Favoritar"}
                 </DropdownMenuItem>
@@ -346,8 +355,19 @@ export function MessageBubble({ m, uid, isGrupo, onReply, participantesCount }: 
             ))}
           </div>
         )}
+        {tarefaVinculada && (
+          <Link
+            to={`/dashboard/projetos/${tarefaProjetoId}?tarefa=${tarefaVinculada}`}
+            className="mt-1 inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full bg-primary/10 text-primary hover:bg-primary/20 border border-primary/20"
+          >
+            <ListPlus className="h-3 w-3" />
+            Tarefa vinculada{tarefaTitulo ? `: ${tarefaTitulo.slice(0, 40)}` : ""}
+            <ExternalLink className="h-3 w-3 ml-0.5" />
+          </Link>
+        )}
       </div>
       <ForwardMessageDialog open={forwardOpen} onOpenChange={setForwardOpen} m={m} />
+      <CriarTarefaDoChatDialog open={criarTarefaOpen} onOpenChange={setCriarTarefaOpen} mensagem={m} />
     </div>
   );
 }
