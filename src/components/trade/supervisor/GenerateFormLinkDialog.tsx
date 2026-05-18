@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useTeamFormTokens } from "@/hooks/useTeamFormTokens";
+import { buildTeamFormTokenUrl } from "@/lib/constants/publicDomain";
 import { Copy, ExternalLink, Link2, Loader2, Check } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
