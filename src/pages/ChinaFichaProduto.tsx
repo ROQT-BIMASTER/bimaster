@@ -31,6 +31,7 @@ import { useChinaProjetosVinculados, useCriarProjetoChina } from "@/hooks/useChi
 import { ChinaProjetoChecklist } from "@/components/china/ChinaProjetoChecklist";
 import { ChinaTimeline } from "@/components/china/ChinaTimeline";
 import { ChinaPageShell } from "@/components/china/ChinaPageShell";
+import { Skeleton } from "@/components/ui/skeleton";
 import { ChinaPageHeader } from "@/components/china/ChinaPageHeader";
 import { ChinaTimelineButton } from "@/components/china/timeline/ChinaTimelineButton";
 import { useChinaUserContext } from "@/hooks/useChinaUserContext";
@@ -245,10 +246,23 @@ export default function ChinaFichaProduto() {
   };
 
   if (isLoading) {
+    // Skeleton estruturado em vez de Loader2 generico — usuario percebe
+    // a forma da pagina enquanto carrega (header, info card, grade,
+    // documentos). Reduz percepcao de lentidao.
     return (
       <ChinaPageShell>
-        <div className="flex items-center justify-center py-24">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        <div className="space-y-4 py-2">
+          <div className="flex items-center gap-3">
+            <Skeleton className="h-16 w-16 rounded" />
+            <div className="flex-1 space-y-2">
+              <Skeleton className="h-6 w-72" />
+              <Skeleton className="h-4 w-40" />
+            </div>
+            <Skeleton className="h-9 w-32" />
+          </div>
+          <Skeleton className="h-32 w-full" />
+          <Skeleton className="h-48 w-full" />
+          <Skeleton className="h-64 w-full" />
         </div>
       </ChinaPageShell>
     );

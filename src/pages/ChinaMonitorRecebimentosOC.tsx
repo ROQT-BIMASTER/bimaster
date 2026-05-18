@@ -12,7 +12,8 @@ import {
   DropdownMenu, DropdownMenuTrigger, DropdownMenuContent,
   DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import { Search, Loader2, Clock, Truck, FileDown, ExternalLink, AlertOctagon } from "lucide-react";
+import { Search, Loader2, Clock, Truck, FileDown, ExternalLink, AlertOctagon, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useChinaRecebimentoKpis } from "@/hooks/useChinaRecebimentoKpis";
 import { useChinaProdutosRecebimentoKpis } from "@/hooks/useChinaProdutosRecebimentoKpis";
 import { ProdutoVinculadoChinaCard } from "@/components/china/recebimentos/ProdutoVinculadoChinaCard";
@@ -28,11 +29,33 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 
+/** Badge de SLA: cor + ICONE + texto + tooltip. Antes era so cor — falha
+ *  WCAG pra daltonicos. Tooltip explica a categoria pra novos usuarios. */
 function slaBadge(dias: number | null) {
-  if (dias == null) return <Badge variant="outline">—</Badge>;
-  if (dias <= 7) return <Badge className="bg-emerald-600">{dias}d</Badge>;
-  if (dias <= 15) return <Badge className="bg-amber-500">{dias}d</Badge>;
-  return <Badge className="bg-red-500">{dias}d</Badge>;
+  if (dias == null) return <Badge variant="outline" title="Prazo nao definido">—</Badge>;
+
+  const cat = dias <= 7
+    ? { label: "OK",       icon: <CheckCircle2 className="h-3 w-3" />, cls: "bg-emerald-600 hover:bg-emerald-600", help: "Dentro do prazo (ate 7 dias)" }
+    : dias <= 15
+    ? { label: "Aviso",    icon: <AlertTriangle className="h-3 w-3" />, cls: "bg-amber-500 hover:bg-amber-500", help: "Atencao: faltam 8-15 dias" }
+    : { label: "Critico",  icon: <AlertOctagon className="h-3 w-3" />, cls: "bg-red-500 hover:bg-red-500",   help: "Critico: mais de 15 dias ou atrasado" };
+
+  return (
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Badge className={cn(cat.cls, "gap-1 cursor-help")}>
+            {cat.icon}
+            <span>{dias}d</span>
+            <span className="text-[10px] font-medium opacity-90">· {cat.label}</span>
+          </Badge>
+        </TooltipTrigger>
+        <TooltipContent side="top" className="text-xs">
+          {cat.help}
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
 }
 
 export default function ChinaMonitorRecebimentosOC() {
