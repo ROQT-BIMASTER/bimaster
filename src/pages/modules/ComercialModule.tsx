@@ -64,7 +64,8 @@ const ComercialModule = () => {
           .select("id", { count: "exact", head: true })
           .in("tipo", ["ACABADO", "INTER"])
           .eq("status_lancamento", "pendente")
-          .eq("ativo", true);
+          .eq("ativo", true)
+          .eq("modo", "oficial");
 
         return {
           proximosLancamentos,
