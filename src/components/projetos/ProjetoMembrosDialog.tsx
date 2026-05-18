@@ -120,10 +120,13 @@ export function ProjetoMembrosDialog({ open, onOpenChange, projetoId, projetoTip
     queryKey: ["search_profiles", search],
     queryFn: async () => {
       if (search.length < 2) return [];
+      // chat_directory bypassa RLS estrita de profiles (precisa pra que
+      // nao-admins consigam buscar colegas pra adicionar ao projeto).
+      // Email sumiu — busca eh so por nome.
       const { data, error } = await supabase
-        .from("profiles")
-        .select("id, nome, avatar_url, email")
-        .or(`nome.ilike.%${search}%,email.ilike.%${search}%`)
+        .from("chat_directory" as any)
+        .select("id, nome, avatar_url")
+        .ilike("nome", `%${search}%`)
         .limit(10);
       if (error) throw error;
       return data;
@@ -142,8 +145,8 @@ export function ProjetoMembrosDialog({ open, onOpenChange, projetoId, projetoTip
     if (search.length < 2) return membros;
     const q = search.toLowerCase();
     return membros.filter(m =>
-      m.profile?.nome?.toLowerCase().includes(q) ||
-      m.profile?.email?.toLowerCase().includes(q)
+      m.profile?.nome?.toLowerCase().includes(q)
+      // email saiu do chat_directory — busca apenas por nome agora
     );
   }, [membros, search]);
 
@@ -245,7 +248,9 @@ export function ProjetoMembrosDialog({ open, onOpenChange, projetoId, projetoTip
                         </Avatar>
                         <div>
                           <p className="text-sm font-medium leading-none">{profile.nome}</p>
-                          <p className="text-xs text-muted-foreground">{profile.email}</p>
+                          {profile.email && (
+                            <p className="text-xs text-muted-foreground">{profile.email}</p>
+                          )}
                         </div>
                       </div>
                       <Button
@@ -296,7 +301,9 @@ export function ProjetoMembrosDialog({ open, onOpenChange, projetoId, projetoTip
 
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium truncate">{membro.profile?.nome || "Usuário"}</p>
-                        <p className="text-xs text-muted-foreground truncate">{membro.profile?.email}</p>
+                        {membro.profile?.email && (
+                          <p className="text-xs text-muted-foreground truncate">{membro.profile.email}</p>
+                        )}
                       </div>
 
                       {isCoordinator && membro.user_id !== user?.id ? (

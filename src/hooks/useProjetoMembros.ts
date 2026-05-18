@@ -14,7 +14,10 @@ export interface ProjetoMembro {
     id: string;
     nome: string;
     avatar_url: string | null;
-    email: string | null;
+    // email saiu do chat_directory por questao de privacidade (RLS estrita
+    // de profiles). Mantido como opcional para call-sites que ainda
+    // referenciam — vai vir undefined.
+    email?: string | null;
   };
   secoes_ids?: string[];
 }
@@ -37,9 +40,13 @@ export function useProjetoMembros(projetoId: string | undefined) {
       if (error) throw error;
 
       const userIds = membrosData.map((m: any) => m.user_id);
+      // chat_directory (security_invoker=off) bypassa RLS estrita de profiles
+      // pra que nao-admins consigam resolver nome/avatar dos COLEGAS de
+      // projeto. Sem isso, nao-admins viam null nos itens do MentionInput
+      // e da tela de membros (bug latente desde a RLS de 2026-01-21).
       const { data: profiles } = await supabase
-        .from("profiles")
-        .select("id, nome, avatar_url, email")
+        .from("chat_directory" as any)
+        .select("id, nome, avatar_url")
         .in("id", userIds);
 
       const membroIds = membrosData.map((m: any) => m.id);
