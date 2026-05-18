@@ -164,7 +164,8 @@ export default function FabricaLancamentos() {
         .select("id", { count: "exact", head: true })
         .in("tipo", ["ACABADO", "INTER"])
         .eq("status_lancamento", "pendente")
-        .eq("ativo", true);
+        .eq("ativo", true)
+        .eq("modo", "oficial");
 
       if (error) throw error;
       return count || 0;
