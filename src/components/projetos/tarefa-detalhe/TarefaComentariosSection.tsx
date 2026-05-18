@@ -103,9 +103,9 @@ export function TarefaComentariosSection({ comentarios, addComentario, teamMembe
         </div>
       )}
 
-      <div className="space-y-3 mb-3">
+      <div ref={containerRef} className="space-y-3 mb-3">
         {visible.map(c => (
-          <div key={c.id} className="flex gap-2">
+          <div key={c.id} data-comentario-id={c.id} className="flex gap-2 p-1 transition-shadow">
             <Avatar className="h-7 w-7 flex-shrink-0">
               <AvatarImage src={c.autor?.avatar_url || undefined} />
               <AvatarFallback className="text-[9px] bg-primary/20 text-primary">
