@@ -336,6 +336,7 @@ export function ProjetoListView({ projetoId, darkBg = false, filters = EMPTY_FIL
         onAddSubtarefa={handleAddSubtarefa}
         secoes={secoes}
         onMoveTarefa={handleMoveTarefa}
+        highlightCommentId={selectedTarefaId === initialTarefaId ? highlightCommentId : null}
       />
     </>
   );
