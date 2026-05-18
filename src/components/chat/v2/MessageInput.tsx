@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Paperclip, Smile, Send, X, Reply, Loader2, Image as ImageIcon } from "lucide-react";
+import { Paperclip, Smile, Send, X, Reply, Loader2, Image as ImageIcon, ClipboardCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ChatMensagem } from "@/hooks/chat/types";
 import { useChatActions } from "@/hooks/chat/useChatActions";
@@ -12,6 +12,7 @@ import { EmojiPicker } from "./EmojiPicker";
 import { MentionAutocomplete, type MentionMember } from "./MentionAutocomplete";
 import { TaskMentionAutocomplete, type TaskMention } from "./TaskMentionAutocomplete";
 import { SofiaCommandPopover, type SofiaCommand } from "./SofiaCommandPopover";
+import { NovaAprovacaoDialog } from "./NovaAprovacaoDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
@@ -42,6 +43,7 @@ export function MessageInput({ conversaId, responderA, onClearReply, onTyping }:
    *  começa com `/` e ainda não casa com `/tarefa` (que tem popover próprio). */
   const [sofiaState, setSofiaState] = useState<{ query: string } | null>(null);
   const [sofiaLoading, setSofiaLoading] = useState(false);
+  const [aprovacaoOpen, setAprovacaoOpen] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const taRef = useRef<HTMLTextAreaElement>(null);
   const { sendMessage } = useChatActions();
@@ -360,6 +362,17 @@ export function MessageInput({ conversaId, responderA, onClearReply, onTyping }:
           <Paperclip className="h-4 w-4" />
         </Button>
         <CameraCaptureButton onCapture={(file) => setFiles((prev) => [...prev, file].slice(0, 10))} disabled={uploading} />
+        <Button
+          size="icon"
+          variant="ghost"
+          className="h-9 w-9 shrink-0"
+          onClick={() => setAprovacaoOpen(true)}
+          disabled={uploading || sofiaLoading}
+          title="Solicitar aprovação"
+          aria-label="Solicitar aprovação"
+        >
+          <ClipboardCheck className="h-4 w-4" />
+        </Button>
         <Popover>
           <PopoverTrigger asChild>
             <Button size="icon" variant="ghost" className="h-9 w-9 shrink-0"><Smile className="h-4 w-4" /></Button>
@@ -382,7 +395,7 @@ export function MessageInput({ conversaId, responderA, onClearReply, onTyping }:
             const items = Array.from(e.clipboardData?.files ?? []);
             if (items.length) { e.preventDefault(); addFiles(e.clipboardData.files); }
           }}
-          placeholder="Digite uma mensagem... (@ pessoa · /tarefa · /sofia · /resumir)"
+          placeholder="Digite... (@ pessoa · /tarefa · /sofia · /resumir · 📋 aprovação no menu)"
           rows={1}
           className={cn("resize-none min-h-[40px] max-h-32 py-2.5 leading-snug")}
         />
@@ -390,6 +403,7 @@ export function MessageInput({ conversaId, responderA, onClearReply, onTyping }:
           {uploading || sofiaLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
         </Button>
       </div>
+      <NovaAprovacaoDialog open={aprovacaoOpen} onOpenChange={setAprovacaoOpen} conversaId={conversaId} />
     </div>
   );
 }
