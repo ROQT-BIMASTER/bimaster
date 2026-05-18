@@ -56,7 +56,7 @@ export default function MeusModelosProjeto() {
 
   return (
     <div
-      className="container max-w-6xl py-6 space-y-6"
+      className="w-full px-6 py-6 space-y-6"
       style={
         bgColor
           ? ({
