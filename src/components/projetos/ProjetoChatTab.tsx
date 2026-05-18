@@ -70,7 +70,7 @@ export function ProjetoChatTab({ projetoId, highlightMsgId = null }: Props) {
       </div>
 
       <ScrollArea className="flex-1 px-4 py-3">
-        <div className="space-y-3">
+        <div ref={containerRef} className="space-y-3">
           {isLoading && <p className="text-xs text-muted-foreground text-center py-4">Carregando...</p>}
           {!isLoading && messages.length === 0 && (
             <p className="text-xs text-muted-foreground text-center py-8">
@@ -81,7 +81,7 @@ export function ProjetoChatTab({ projetoId, highlightMsgId = null }: Props) {
             const isMe = m.user_id === user?.id;
             const isSystem = m.tipo === "resumo_diario" || m.tipo === "sistema";
             return (
-              <div key={m.id} className={cn("flex gap-2", isMe && !isSystem && "flex-row-reverse")}>
+              <div key={m.id} data-msg-id={m.id} className={cn("flex gap-2 transition-shadow", isMe && !isSystem && "flex-row-reverse")}>
                 <Avatar className="h-7 w-7 flex-shrink-0">
                   {isSystem ? (
                     <AvatarFallback className="bg-primary/15 text-primary text-[10px]">
