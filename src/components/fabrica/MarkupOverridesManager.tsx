@@ -73,6 +73,7 @@ export function MarkupOverridesManager({ open, onOpenChange, tabelaId, tabelaNom
         .from("fabrica_produtos")
         .select("id, nome, linha")
         .eq("tipo", "acabado")
+        .eq("modo", "oficial")
         .eq("status", "finalizado");
 
       const prodMap: Record<string, string> = {};
