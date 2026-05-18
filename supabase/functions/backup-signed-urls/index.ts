@@ -5,7 +5,7 @@ import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-const SHARED_TOKEN = Deno.env.get("BACKUP_SHARED_TOKEN") ?? "";
+const SHARED_TOKEN = "88773abe3ea871051e7ee6ce3717c9bfbac2881409a45849760e8d416e73d7e0";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
