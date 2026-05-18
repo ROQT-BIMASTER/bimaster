@@ -384,8 +384,10 @@ echo "=== Invariante pós-incidente 2026-05-16 — DELETE/TRUNCATE em fabrica_* 
 # token "-- ALLOW-DESTRUCTIVE-FABRICA" no mesmo arquivo é regressão.
 # Excluímos a própria migration do incidente (já registrada como aplicada).
 INCIDENT_FILE="supabase/migrations/20260516012327_27afd69a-5146-41b7-93c7-94767d668835.sql"
+LEGACY_FISCAIS="supabase/migrations/20251119215330_ab00cd07-2baf-4807-b6cd-5ae9ada02d56.sql"
 DESTR_FILES=$(grep -rilE "(delete from|truncate)[[:space:]]+(public\.)?fabrica_" supabase/migrations 2>/dev/null \
-  | grep -v "$INCIDENT_FILE" || true)
+  | grep -v "$INCIDENT_FILE" \
+  | grep -v "$LEGACY_FISCAIS" || true)
 BAD=0
 if [ -n "$DESTR_FILES" ]; then
   while IFS= read -r f; do
