@@ -21,8 +21,9 @@ import {
 } from "recharts";
 import {
   ClipboardList, BarChart3, Users, CalendarDays, CheckCircle2,
-  Sparkles, Loader2, ArrowLeft, ChevronDown, ChevronUp,
+  Sparkles, Loader2, ArrowLeft, ChevronDown, ChevronUp, FileSpreadsheet,
 } from "lucide-react";
+import { exportToExcel } from "@/utils/excelExport";
 
 const COLORS = [
   "hsl(var(--primary))",
