@@ -35,9 +35,7 @@ export function GenerateFormLinkDialog() {
     setGeneratedToken(tokenValue);
   };
 
-  const formLink = generatedToken
-    ? `https://china.bimaster.online/formulario-equipe?token=${generatedToken}`
-    : "";
+  const formLink = generatedToken ? buildTeamFormTokenUrl(generatedToken) : "";
 
   const handleCopy = async () => {
     await navigator.clipboard.writeText(formLink);
