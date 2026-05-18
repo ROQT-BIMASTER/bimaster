@@ -162,10 +162,17 @@ export function DynamicFormRenderer({ formId, tokenId, userId, onSubmitSuccess }
 
     setSubmitting(true);
     try {
-      // Create response
-      const { data: response, error: respErr } = await supabase
+      // Generate response id client-side so we don't depend on a SELECT-after-INSERT
+      // (anonymous submitters have INSERT but not SELECT on dynamic_form_responses).
+      const responseId =
+        typeof crypto !== "undefined" && "randomUUID" in crypto
+          ? crypto.randomUUID()
+          : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+
+      const { error: respErr } = await supabase
         .from("dynamic_form_responses")
         .insert({
+          id: responseId,
           form_id: formId,
           token_id: tokenId || null,
           user_id: userId || null,
@@ -173,9 +180,7 @@ export function DynamicFormRenderer({ formId, tokenId, userId, onSubmitSuccess }
             submitted_at: new Date().toISOString(),
             user_agent: navigator.userAgent,
           },
-        } as any)
-        .select("id")
-        .single();
+        } as any);
 
       if (respErr) throw respErr;
 
@@ -187,7 +192,7 @@ export function DynamicFormRenderer({ formId, tokenId, userId, onSubmitSuccess }
         if (f.field_type === "checkbox" && Array.isArray(v)) {
           v = [...v].sort((a: string, b: string) => a.localeCompare(b, "pt-BR"));
         }
-        return { response_id: response.id, field_id: f.id, value: v };
+        return { response_id: responseId, field_id: f.id, value: v };
       });
 
       const { error: ansErr } = await supabase
@@ -198,10 +203,11 @@ export function DynamicFormRenderer({ formId, tokenId, userId, onSubmitSuccess }
 
       setSubmitted(true);
       toast.success("Formulário enviado com sucesso!");
-      onSubmitSuccess?.(response.id);
+      onSubmitSuccess?.(responseId);
     } catch (err: any) {
       logger.error("Submit error:", err);
-      toast.error("Erro ao enviar formulário");
+      const detail = err?.message || err?.error_description || "tente novamente";
+      toast.error(`Erro ao enviar formulário: ${detail}`);
     } finally {
       setSubmitting(false);
     }

@@ -21,8 +21,9 @@ import {
 } from "recharts";
 import {
   ClipboardList, BarChart3, Users, CalendarDays, CheckCircle2,
-  Sparkles, Loader2, ArrowLeft, ChevronDown, ChevronUp,
+  Sparkles, Loader2, ArrowLeft, ChevronDown, ChevronUp, FileSpreadsheet,
 } from "lucide-react";
+import { exportToExcel } from "@/utils/excelExport";
 
 const COLORS = [
   "hsl(var(--primary))",
@@ -182,8 +183,58 @@ export default function DynamicFormDashboard() {
 
   function formatValue(val: any): string {
     if (val === null || val === undefined) return "—";
-    if (typeof val === "object") return JSON.stringify(val);
+    if (Array.isArray(val)) return val.join(", ");
+    if (typeof val === "object") {
+      // Address-like objects
+      if (val.cep || val.logradouro || val.cidade) {
+        return [val.logradouro, val.numero, val.bairro, val.cidade, val.uf, val.cep]
+          .filter(Boolean)
+          .join(", ");
+      }
+      return JSON.stringify(val);
+    }
     return String(val);
+  }
+
+  async function handleExportExcel() {
+    try {
+      const orderedFields = [...fields].sort((a, b) => a.order_index - b.order_index);
+      const columns = [
+        { header: "Data de envio", key: "data_envio", width: 20 },
+        { header: "ID da resposta", key: "response_id", width: 38 },
+        { header: "Usuário", key: "user_id", width: 38 },
+        ...orderedFields.map((f) => ({
+          header: f.label,
+          key: `f_${f.id}`,
+          width: 24,
+        })),
+      ];
+      const data = responses.map((r) => {
+        const row: Record<string, any> = {
+          data_envio: r.created_at
+            ? new Date(r.created_at).toLocaleString("pt-BR", {
+                timeZone: "America/Sao_Paulo",
+              })
+            : "—",
+          response_id: r.id,
+          user_id: r.user_id || "—",
+        };
+        orderedFields.forEach((f) => {
+          row[`f_${f.id}`] = formatValue(r.answers[f.id]);
+        });
+        return row;
+      });
+      await exportToExcel(data, {
+        filename: `formulario_${formName || "respostas"}`,
+        sheetName: "Respostas",
+        columns,
+        includeTimestamp: true,
+      });
+      toast.success("Excel exportado");
+    } catch (err) {
+      logger.error("Export error:", err);
+      toast.error("Erro ao exportar Excel");
+    }
   }
 
   if (!formId) {
@@ -215,14 +266,25 @@ export default function DynamicFormDashboard() {
                 {loading ? "Carregando..." : formName}
               </h1>
             </div>
-            <Button
-              onClick={handleAiAnalysis}
-              disabled={aiLoading || responses.length === 0}
-              className="gap-2"
-            >
-              <Sparkles className="h-4 w-4" />
-              Análise IA
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                onClick={handleExportExcel}
+                disabled={responses.length === 0}
+                className="gap-2"
+              >
+                <FileSpreadsheet className="h-4 w-4" />
+                Exportar Excel
+              </Button>
+              <Button
+                onClick={handleAiAnalysis}
+                disabled={aiLoading || responses.length === 0}
+                className="gap-2"
+              >
+                <Sparkles className="h-4 w-4" />
+                Análise IA
+              </Button>
+            </div>
           </div>
         </div>
 
