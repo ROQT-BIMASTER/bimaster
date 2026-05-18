@@ -338,6 +338,9 @@ export function MessageBubble({ m, uid, isGrupo, onReply, participantesCount }: 
                 {mine && (
                   <>
                     <DropdownMenuSeparator />
+                    <DropdownMenuItem onSelect={() => setTimeout(() => setInfoOpen(true), 0)}>
+                      <Info className="h-4 w-4 mr-2" /> Dados da mensagem
+                    </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => { setEditTxt(m.conteudo); setEditing(true); }}>
                       <Pencil className="h-4 w-4 mr-2" /> Editar
                     </DropdownMenuItem>
@@ -386,6 +389,7 @@ export function MessageBubble({ m, uid, isGrupo, onReply, participantesCount }: 
       </div>
       <ForwardMessageDialog open={forwardOpen} onOpenChange={setForwardOpen} m={m} />
       <CriarTarefaDoChatDialog open={criarTarefaOpen} onOpenChange={setCriarTarefaOpen} mensagem={m} />
+      {mine && <MessageInfoDialog open={infoOpen} onOpenChange={setInfoOpen} mensagem={m} uid={uid} />}
     </div>
   );
 }
