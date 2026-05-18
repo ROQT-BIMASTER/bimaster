@@ -5,8 +5,9 @@ import {
   ArrowLeft, Package, Eye, CheckCircle2, XCircle, Clock, Loader2,
   ShoppingCart, Upload, Barcode, Download, FileText, TrendingUp,
   FolderOpen, Briefcase, ExternalLink, PenLine, Lock, Trash2, ShieldAlert, PackageCheck,
-  Send, Users, Link2, UserPlus, X, ListChecks
+  Send, Users, Link2, UserPlus, X, ListChecks, MessageCircle
 } from "lucide-react";
+import { useSubmissaoChatUnread } from "@/hooks/useSubmissaoChatUnread";
 import { useAuditChinaVinculo } from "@/hooks/useAuditChinaVinculo";
 import { AuditChinaVinculoBadge } from "@/components/china/AuditChinaVinculoBadge";
 import { TAREFAS_POR_SECAO } from "@/hooks/useChinaProjeto";
@@ -61,6 +62,9 @@ export default function ChinaFichaProduto() {
   const { backTo, backLabel } = useResolvedBackTo("/dashboard/fabrica-china/recebimentos");
   const queryClient = useQueryClient();
   const { isBrasilUser, isChinaUser } = useChinaUserContext();
+  // Mensagens nao lidas do chat desta submissao — pulsa badge no header
+  // do chat pra equipe nao perder reply do outro lado.
+  const chatUnread = useSubmissaoChatUnread(id);
   // ADV-6: Field visibility for cost/margin fields
   const { isFieldVisible } = useFieldVisibility("china_ficha");
   // ADV-7: UI permissions for component-level control
@@ -579,7 +583,20 @@ export default function ChinaFichaProduto() {
         {/* Transferências Oficiais ao Brasil */}
         <TransferenciasOficiaisSection submissaoId={id!} documentos={documentos} isBrasilUser={isBrasilUser} eanCaixaMaster={submissao.ean_caixa_master} />
 
-        {/* Chat China ↔ Brasil */}
+        {/* Chat China ↔ Brasil — com badge de não-lidas pra equipe não
+            perder reply do outro lado. Badge desaparece quando o chat
+            marca mensagens como lidas (lida_por populado pelo ChinaChatPanel). */}
+        <div className="flex items-center justify-between mb-2 sticky top-0 bg-background/95 backdrop-blur-sm py-1.5 z-10">
+          <h2 className="text-sm font-semibold flex items-center gap-2">
+            <MessageCircle className="h-4 w-4 text-primary" />
+            Chat China ↔ Brasil
+            {chatUnread > 0 && (
+              <Badge className="bg-red-500 text-white animate-pulse h-5 min-w-5 px-1.5 text-[10px]">
+                {chatUnread} {chatUnread === 1 ? "nova" : "novas"}
+              </Badge>
+            )}
+          </h2>
+        </div>
         <ChinaChatPanel
           submissaoId={id!}
           produtoNome={`${submissao.produto_codigo} — ${submissao.produto_nome}`}
