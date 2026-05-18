@@ -220,7 +220,7 @@ export default function CenariosComparativo() {
                       variant="outline"
                       size="sm"
                       className="flex-1"
-                      onClick={() => navigate(`/dashboard/fabrica/ficha-custo/${produto.id}`)}
+                      onClick={() => navigate(`/dashboard/fabrica/produtos/${produto.id}/custos`)}
                     >
                       Ficha
                     </Button>
