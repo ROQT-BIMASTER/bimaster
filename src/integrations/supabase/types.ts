@@ -45035,6 +45035,10 @@ export type Database = {
       }
       dmetaphone: { Args: { "": string }; Returns: string }
       dmetaphone_alt: { Args: { "": string }; Returns: string }
+      dynamic_form_answer_insert_allowed: {
+        Args: { _field_id: string; _response_id: string }
+        Returns: boolean
+      }
       encrypt_token: { Args: { p_token: string }; Returns: string }
       enfileirar_cobrancas_automaticas: { Args: never; Returns: number }
       enqueue_email: {
