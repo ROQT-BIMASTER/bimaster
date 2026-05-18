@@ -412,8 +412,14 @@ export function KanbanAprovacoes({
       });
     }
 
+    if (statusFiltro === "ativos") {
+      arr = arr.filter((i) => i.status === "em_andamento");
+    } else if (statusFiltro === "finalizadas") {
+      arr = arr.filter((i) => ["aprovado", "rejeitado", "encaminhado", "cancelado"].includes(i.status));
+    }
+
     return arr;
-  }, [itensFiltrados, projetoFiltro, tarefaFiltro, buscaDebounced, prazoFiltro]);
+  }, [itensFiltrados, projetoFiltro, tarefaFiltro, buscaDebounced, prazoFiltro, statusFiltro]);
 
   // Re-distribui considerando filtros
   const itensPorColunaFinal = useMemo(() => {
