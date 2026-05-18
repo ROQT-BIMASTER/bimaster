@@ -45,7 +45,7 @@ interface Props {
   } | null;
 }
 
-export function NovoProdutoAcabadoDialog({ open, onOpenChange, produtoEdit, onSuccess }: Props) {
+export function NovoProdutoAcabadoDialog({ open, onOpenChange, produtoEdit, onSuccess, cenarioContext }: Props) {
   // Mode: "choose" (new product only), "ai", "form"
   const [mode, setMode] = useState<"choose" | "ai" | "form">("choose");
   const [aiFilledFields, setAiFilledFields] = useState<Set<string>>(new Set());
