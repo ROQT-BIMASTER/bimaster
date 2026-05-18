@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useProjetoTarefas, ProjetoTarefa } from "@/hooks/useProjetoTarefas";
 import { useProjeto } from "@/hooks/useProjetos";
 import { useMetasProgress } from "@/hooks/useMetasProgress";
