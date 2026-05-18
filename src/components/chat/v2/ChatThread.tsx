@@ -9,6 +9,7 @@ import { useMensagens, useConversaInfo } from "@/hooks/chat/useMensagens";
 import { useChatRoomPresence, useGlobalPresence } from "@/hooks/chat/useChatPresence";
 import { useChatActions } from "@/hooks/chat/useChatActions";
 import { useConversas } from "@/hooks/chat/useConversas";
+import { usePresenceStatusMap, PRESENCE_STATUS_INFO } from "@/hooks/chat/usePresenceStatus";
 import { useAuth } from "@/contexts/AuthContext";
 import { initials, formatDataChip, nomeConversa } from "./utils";
 import { MessageBubble } from "./MessageBubble";
@@ -41,6 +42,16 @@ export function ChatThread({ conversaId, onShowInfo }: Props) {
   const nome = conv ? nomeConversa(conv) : "";
   const isOnline = !isGrupo && conv?.outroUsuario ? online.has(conv.outroUsuario.id) : false;
   const participantesCount = conv?.participantes_count ?? (info?.participantes?.length ?? 0);
+
+  // Status declarado do outro user (DM) — usa pra label e cor da bolinha
+  const otherIds = useMemo(
+    () => (!isGrupo && conv?.outroUsuario?.id ? [conv.outroUsuario.id] : []),
+    [isGrupo, conv?.outroUsuario?.id],
+  );
+  const { data: statusMap } = usePresenceStatusMap(otherIds);
+  const statusDeclarado = !isGrupo && conv?.outroUsuario?.id
+    ? statusMap?.get(conv.outroUsuario.id)?.status
+    : undefined;
 
   const visiveis = useMemo(() => {
     if (!busca) return mensagens;
@@ -103,14 +114,27 @@ export function ChatThread({ conversaId, onShowInfo }: Props) {
                 {isGrupo ? <Users className="h-4 w-4" /> : initials(conv.outroUsuario?.nome, conv.outroUsuario?.email)}
               </AvatarFallback>
             </Avatar>
-            {!isGrupo && isOnline && <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full bg-emerald-500 ring-2 ring-card" />}
+            {!isGrupo && (() => {
+              if (statusDeclarado && statusDeclarado in PRESENCE_STATUS_INFO) {
+                const info = PRESENCE_STATUS_INFO[statusDeclarado as keyof typeof PRESENCE_STATUS_INFO];
+                return <span className={cn("absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full ring-2 ring-card", info.color)} title={info.label} />;
+              }
+              if (isOnline) return <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full bg-emerald-500 ring-2 ring-card" title="Online" />;
+              return null;
+            })()}
           </div>
           <div className="min-w-0">
             <h3 className="text-sm font-semibold truncate">{nome}</h3>
             <p className="text-[11px] text-muted-foreground truncate">
               {digitandoUserIds.length > 0
                 ? <span className="text-primary">digitando...</span>
-                : isGrupo ? `${participantesCount} participantes` : isOnline ? "Online" : "Offline"}
+                : isGrupo
+                  ? `${participantesCount} participantes`
+                  : statusDeclarado && statusDeclarado in PRESENCE_STATUS_INFO
+                    ? <span className={PRESENCE_STATUS_INFO[statusDeclarado as keyof typeof PRESENCE_STATUS_INFO].textColor}>
+                        {PRESENCE_STATUS_INFO[statusDeclarado as keyof typeof PRESENCE_STATUS_INFO].label}
+                      </span>
+                    : isOnline ? "Online" : "Offline"}
             </p>
           </div>
         </button>

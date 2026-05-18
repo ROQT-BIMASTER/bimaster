@@ -17,6 +17,8 @@ import type { ChatConversa } from "@/hooks/chat/types";
 import { NovaConversaDialog } from "../NovaConversaDialog";
 import { GroupCreateDialog } from "./GroupCreateDialog";
 import { ChatSearchDialog } from "./ChatSearchDialog";
+import { PresenceStatusPicker } from "./PresenceStatusPicker";
+import { usePresenceStatusMap, PRESENCE_STATUS_INFO } from "@/hooks/chat/usePresenceStatus";
 import type { ChatModo } from "./ChatLayout";
 
 interface Props {
@@ -39,6 +41,13 @@ export function ChatSidebar({
 }: Props) {
   return (
     <aside className={cn("flex flex-col h-full bg-card border-r border-border", className)}>
+      {/* Status declarado de presença (Disponível/Ocupado/Em reunião/...).
+          Persiste entre sessões e é visível pra todos no chat via bolinha
+          colorida no avatar. */}
+      <div className="px-3 pt-2 pb-1 border-b border-border">
+        <PresenceStatusPicker compact />
+      </div>
+
       {/* Toggle Pessoas / Submissões — só aparece se usuário tem contexto China.
           Visualmente ocupa o topo da sidebar pra ser o primeiro elemento que
           o usuário interage. Comportamento: muda a fonte de dados (useConversas
@@ -95,6 +104,14 @@ function SidebarPessoasContent({
 
   const filtradas = useMemo(() => filtrarConversas(conversas, filtro, busca), [conversas, filtro, busca]);
   const totalNaoLidas = conversas.reduce((s, c) => s + (c.naoLidas || 0), 0);
+
+  // Status declarado de cada outro user pra mostrar bolinha colorida no
+  // avatar — sobrepõe o online/offline do Realtime Presence quando setado.
+  const outrosIds = useMemo(
+    () => conversas.map((c) => c.outroUsuario?.id).filter((x): x is string => !!x),
+    [conversas],
+  );
+  const { data: statusMap } = usePresenceStatusMap(outrosIds);
 
   return (
     <>
@@ -169,6 +186,7 @@ function SidebarPessoasContent({
               c={c}
               ativa={c.id === conversaSelecionada}
               online={c.outroUsuario ? online.has(c.outroUsuario.id) : false}
+              statusDeclarado={c.outroUsuario ? statusMap?.get(c.outroUsuario.id)?.status : undefined}
               onSelect={() => onSelectConversa(c.id)}
               onToggleFav={() =>
                 actions.setParticipanteFlag.mutate({ conversaId: c.id, patch: { favorita: !c.favorita } })
@@ -193,11 +211,13 @@ function SidebarPessoasContent({
 }
 
 function ConversaItem({
-  c, ativa, online, onSelect, onToggleFav, onToggleArq, onMute,
+  c, ativa, online, statusDeclarado, onSelect, onToggleFav, onToggleArq, onMute,
 }: {
   c: ChatConversa;
   ativa: boolean;
   online: boolean;
+  /** Status declarado do outro usuário (Disponível/Ocupado/Em reunião/...). */
+  statusDeclarado?: string;
   onSelect: () => void;
   onToggleFav: () => void;
   onToggleArq: () => void;
@@ -231,9 +251,29 @@ function ConversaItem({
               {isGrupo ? <Users className="h-5 w-5" /> : initials(c.outroUsuario?.nome, c.outroUsuario?.email)}
             </AvatarFallback>
           </Avatar>
-          {!isGrupo && online && (
-            <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-emerald-500 ring-2 ring-card" />
-          )}
+          {!isGrupo && (() => {
+            // Status declarado tem prioridade sobre online/offline real-time:
+            // se user setou "Ausente", não queremos mostrar bolinha verde só
+            // porque a tab dele está aberta.
+            if (statusDeclarado && statusDeclarado in PRESENCE_STATUS_INFO) {
+              const info = PRESENCE_STATUS_INFO[statusDeclarado as keyof typeof PRESENCE_STATUS_INFO];
+              return (
+                <span
+                  className={cn("absolute bottom-0 right-0 h-3 w-3 rounded-full ring-2 ring-card", info.color)}
+                  title={info.label}
+                />
+              );
+            }
+            if (online) {
+              return (
+                <span
+                  className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-emerald-500 ring-2 ring-card"
+                  title="Online"
+                />
+              );
+            }
+            return null;
+          })()}
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between gap-2">
