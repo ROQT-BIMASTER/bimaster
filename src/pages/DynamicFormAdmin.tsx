@@ -5,6 +5,7 @@ import { ModuleBreadcrumb } from "@/components/navigation/ModuleBreadcrumb";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -12,7 +13,7 @@ import { FormShareDialog } from "@/components/forms/FormShareDialog";
 import { logger } from "@/lib/logger";
 import {
   Plus, Edit2, Trash2, Share2, BarChart3, Copy, Loader2, FileText,
-  ClipboardList, Eye,
+  ClipboardList, Eye, Link2, ExternalLink,
 } from "lucide-react";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel,
@@ -215,6 +216,49 @@ export default function DynamicFormAdmin() {
                   </Badge>
                 )}
               </div>
+
+              {/* Link público sempre visível */}
+              {form.status === "active" && (() => {
+                const publicUrl = `${window.location.origin}/formulario-dinamico?form=${form.id}`;
+                return (
+                  <div className="mt-2 ml-6 flex items-center gap-1.5 rounded-md border border-border bg-muted/40 px-2 py-1">
+                    <Link2 className="h-3 w-3 text-muted-foreground shrink-0" />
+                    <Input
+                      readOnly
+                      value={publicUrl}
+                      onFocus={(e) => e.currentTarget.select()}
+                      className="h-6 border-0 bg-transparent px-1 text-xs font-mono shadow-none focus-visible:ring-0"
+                    />
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="ghost"
+                      className="h-6 w-6 shrink-0"
+                      title="Copiar link"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigator.clipboard.writeText(publicUrl);
+                        toast.success("Link copiado!");
+                      }}
+                    >
+                      <Copy className="h-3 w-3" />
+                    </Button>
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="ghost"
+                      className="h-6 w-6 shrink-0"
+                      title="Abrir link"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        window.open(publicUrl, "_blank", "noopener,noreferrer");
+                      }}
+                    >
+                      <ExternalLink className="h-3 w-3" />
+                    </Button>
+                  </div>
+                );
+              })()}
             </div>
 
             {showActions && (
