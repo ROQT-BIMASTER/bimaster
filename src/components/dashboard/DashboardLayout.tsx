@@ -32,6 +32,13 @@ import { usePageTracking } from "@/hooks/usePageTracking";
 import { TermsAcceptanceModal } from "@/components/auth/TermsAcceptanceModal";
 import { FloatingRecordingBar } from "@/components/meetings/FloatingRecordingBar";
 import { useInboxDrawer } from "@/contexts/InboxDrawerContext";
+import { useChatSoundNotifications } from "@/hooks/chat/useChatSoundNotifications";
+import { UrgentMessageBanner } from "@/components/chat/v2/UrgentMessageBanner";
+
+function ChatGlobalNotifiers() {
+  useChatSoundNotifications();
+  return null;
+}
 
 /** Atalho global "i" para abrir a Caixa de Entrada */
 function InboxKeyboardShortcut() {
