@@ -27,6 +27,7 @@ import { getSignedUrl } from "@/lib/utils/storage-helper";
 import { useChinaUserContext } from "@/hooks/useChinaUserContext";
 import { toast } from "sonner";
 import { uniqueChannelName } from "@/lib/realtime/channelName";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function ChinaOrdemDetalhe() {
   const { id } = useParams<{ id: string }>();
@@ -225,10 +226,23 @@ export default function ChinaOrdemDetalhe() {
   const isApproved = ordem && !["rascunho", "rejeitada"].includes(ordem.status);
 
   if (isLoading) {
+    // Skeleton estruturado em vez de spinner generico — usuario ve onde
+    // cada bloco vai aparecer (header, KPIs, tabs) e percebe progresso.
     return (
       <ChinaPageShell>
-        <div className="flex items-center justify-center py-24">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        <div className="space-y-4 py-2">
+          <div className="space-y-2">
+            <Skeleton className="h-7 w-64" />
+            <Skeleton className="h-4 w-40" />
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <Skeleton className="h-20" />
+            <Skeleton className="h-20" />
+            <Skeleton className="h-20" />
+            <Skeleton className="h-20" />
+          </div>
+          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-64 w-full" />
         </div>
       </ChinaPageShell>
     );
