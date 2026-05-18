@@ -12,10 +12,13 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "@/hooks/use-toast";
 import { buildDynamicFormPublicUrl, buildTeamFormTokenUrl } from "@/lib/constants/publicDomain";
+import { DynamicFormResponsesDialog } from "./DynamicFormResponsesDialog";
+import { useState } from "react";
 
 export function FormSubmissionsPanel() {
   const { tokens, submissions, isLoadingTokens, isLoadingSubmissions, revokeToken, deleteToken } = useTeamFormTokens();
   const navigate = useNavigate();
+  const [selectedForm, setSelectedForm] = useState<{ id: string; name: string } | null>(null);
 
   const dynamicFormsQuery = useQuery({
     queryKey: ["my-dynamic-forms-with-counts"],
@@ -96,8 +99,14 @@ export function FormSubmissionsPanel() {
                 {(dynamicFormsQuery.data || []).map((f) => {
                   const publicUrl = buildDynamicFormPublicUrl(f.id);
                   return (
-                    <TableRow key={f.id}>
-                      <TableCell className="font-medium">{f.name}</TableCell>
+                    <TableRow
+                      key={f.id}
+                      className="cursor-pointer hover:bg-muted/50"
+                      onClick={() => setSelectedForm({ id: f.id, name: f.name })}
+                    >
+                      <TableCell className="font-medium text-primary underline-offset-2 hover:underline">
+                        {f.name}
+                      </TableCell>
                       <TableCell>
                         {f.status === "active" ? (
                           <Badge className="bg-green-600 hover:bg-green-700">Ativo</Badge>
@@ -111,7 +120,7 @@ export function FormSubmissionsPanel() {
                           ? format(new Date(f.last_response_at), "dd/MM HH:mm", { locale: ptBR })
                           : "—"}
                       </TableCell>
-                      <TableCell>
+                      <TableCell onClick={(e) => e.stopPropagation()}>
                         <Button
                           variant="ghost"
                           size="sm"
@@ -125,12 +134,12 @@ export function FormSubmissionsPanel() {
                           Copiar
                         </Button>
                       </TableCell>
-                      <TableCell className="flex items-center gap-1">
+                      <TableCell className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => navigate(`/dashboard/trade/formularios/dashboard?form=${f.id}`)}
-                          title="Ver respostas"
+                          onClick={() => setSelectedForm({ id: f.id, name: f.name })}
+                          title="Ver lançamentos"
                         >
                           <BarChart3 className="h-4 w-4" />
                         </Button>
@@ -306,6 +315,13 @@ export function FormSubmissionsPanel() {
           )}
         </CardContent>
       </Card>
+
+      <DynamicFormResponsesDialog
+        formId={selectedForm?.id ?? null}
+        formName={selectedForm?.name ?? ""}
+        open={!!selectedForm}
+        onOpenChange={(o) => !o && setSelectedForm(null)}
+      />
     </div>
   );
 }
