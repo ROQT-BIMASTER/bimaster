@@ -72,13 +72,15 @@ export function useMencoesNotifications() {
         (payload) => {
           const row = payload.new as MencaoItem | undefined;
           if (row && (MENCAO_TYPES as readonly string[]).includes(row.type)) {
-            playMentionSound();
-            toast(row.title || "Você foi mencionado", {
-              description: row.message?.substring(0, 140),
-              duration: 15000,
+            const isUrgent = row.type === "chat_urgent";
+            playMentionSound(isUrgent);
+            toast(row.title || (isUrgent ? "Mensagem urgente" : "Você foi mencionado"), {
+              description: row.message?.substring(0, 200),
+              duration: isUrgent ? 60000 : 15000,
+              className: isUrgent ? "border-destructive border-2" : undefined,
               action: row.action_url
                 ? {
-                    label: "Abrir",
+                    label: isUrgent ? "Abrir agora" : "Abrir",
                     onClick: () => { window.location.href = row.action_url!; },
                   }
                 : undefined,
