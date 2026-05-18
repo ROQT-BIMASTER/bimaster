@@ -201,11 +201,12 @@ export function DynamicFormRenderer({ formId, tokenId, userId, onSubmitSuccess }
         })
         .filter((a): a is { response_id: string; field_id: string; value: any } => a !== null);
 
-      const { error: ansErr } = await supabase
-        .from("dynamic_form_answers")
-        .insert(answers as any);
-
-      if (ansErr) throw ansErr;
+      if (answers.length > 0) {
+        const { error: ansErr } = await supabase
+          .from("dynamic_form_answers")
+          .insert(answers as any);
+        if (ansErr) throw ansErr;
+      }
 
       setSubmitted(true);
       toast.success("Formulário enviado com sucesso!");
