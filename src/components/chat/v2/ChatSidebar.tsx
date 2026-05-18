@@ -47,10 +47,14 @@ export function ChatSidebar({ conversaSelecionada, onSelectConversa, className }
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={() => setNovaOpen(true)}>
+            {/* onSelect (não onClick) + setTimeout(0) é o padrão Radix para
+                abrir Dialog a partir de DropdownMenu. onClick direto pode
+                bloquear o Dialog de montar por causa do foco que o
+                Dropdown libera no mesmo tick. */}
+            <DropdownMenuItem onSelect={() => setTimeout(() => setNovaOpen(true), 0)}>
               <MessageSquarePlus className="h-4 w-4 mr-2" /> Nova conversa
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setGrupoOpen(true)}>
+            <DropdownMenuItem onSelect={() => setTimeout(() => setGrupoOpen(true), 0)}>
               <Users className="h-4 w-4 mr-2" /> Novo grupo
             </DropdownMenuItem>
           </DropdownMenuContent>
