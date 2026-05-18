@@ -375,6 +375,17 @@ export function MessageInput({ conversaId, responderA, onClearReply, onTyping }:
         >
           <ClipboardCheck className="h-4 w-4" />
         </Button>
+        <Button
+          size="icon"
+          variant="ghost"
+          className="h-9 w-9 shrink-0 text-destructive hover:bg-destructive/10 hover:text-destructive"
+          onClick={() => setUrgenteOpen(true)}
+          disabled={uploading || sofiaLoading}
+          title="Chamar atenção (mensagem urgente)"
+          aria-label="Chamar atenção da equipe"
+        >
+          <AlertOctagon className="h-4 w-4" />
+        </Button>
         <Popover>
           <PopoverTrigger asChild>
             <Button size="icon" variant="ghost" className="h-9 w-9 shrink-0"><Smile className="h-4 w-4" /></Button>
