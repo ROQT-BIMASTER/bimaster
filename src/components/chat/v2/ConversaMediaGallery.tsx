@@ -31,7 +31,7 @@ export function ConversaMediaGallery({ conversaId }: { conversaId: string }) {
       const ids = (msgs ?? []).map((m) => m.id);
       if (ids.length === 0) return [];
       const { data: anexos, error: aErr } = await supabase
-        .from("chat_anexos")
+        .from("mensagens_anexos")
         .select("id, mensagem_id, file_name, storage_path, mime_type, size_bytes, width, height, duration_ms, thumbnail_path")
         .in("mensagem_id", ids)
         .order("created_at", { ascending: false })
