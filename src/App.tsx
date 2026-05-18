@@ -192,6 +192,7 @@ const FabricaParadas = lazyWithRetry(() => import("./pages/FabricaParadas"));
 const FabricaMaquinas = lazyWithRetry(() => import("./pages/FabricaMaquinas"));
 const FabricaOperadores = lazyWithRetry(() => import("./pages/FabricaOperadores"));
 const FabricaProdutosAcabados = lazyWithRetry(() => import("./pages/FabricaProdutosAcabados"));
+const CenariosComparativo = lazyWithRetry(() => import("./pages/fabrica/CenariosComparativo"));
 const FabricaAuditoriaFotos = lazyWithRetry(() => import("./pages/FabricaAuditoriaFotos"));
 const FichaCustoProduto = lazyWithRetry(() => import("./pages/FichaCustoProduto"));
 const ImportarProdutosAcabados = lazyWithRetry(() => import("./pages/ImportarProdutosAcabados"));
