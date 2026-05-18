@@ -90,7 +90,10 @@ export function ChatThread({ conversaId, onShowInfo }: Props) {
   if (!conv) return <div className="flex-1 flex items-center justify-center text-muted-foreground">Conversa não encontrada</div>;
 
   return (
-    <div className="flex flex-col h-full bg-[hsl(var(--muted))]/30 min-w-0">
+    // flex-1 garante que o ChatThread ocupa todo o espaço disponível dentro
+    // do `<div className="flex-1 min-w-0 flex">` do ChatLayout. Sem isso, o
+    // ChatThread fica com largura intrínseca (~310px) e deixa o resto vazio.
+    <div className="flex-1 flex flex-col h-full bg-[hsl(var(--muted))]/30 min-w-0">
       <header className="px-4 py-2.5 border-b border-border bg-card flex items-center gap-3 shrink-0">
         <button onClick={onShowInfo} className="flex items-center gap-3 flex-1 min-w-0 text-left hover:opacity-80">
           <div className="relative">

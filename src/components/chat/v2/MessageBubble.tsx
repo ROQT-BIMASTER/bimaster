@@ -72,7 +72,7 @@ export function MessageBubble({ m, uid, isGrupo, onReply, participantesCount }: 
           <AvatarFallback className="text-[10px]">{initials(m.remetente?.nome, m.remetente?.email)}</AvatarFallback>
         </Avatar>
       )}
-      <div className={cn("max-w-[72%] flex flex-col", mine ? "items-end" : "items-start")}>
+      <div className={cn("max-w-[72%] md:max-w-[640px] flex flex-col", mine ? "items-end" : "items-start")}>
         {isGrupo && !mine && (
           <span className="text-[11px] font-medium text-primary px-3 mb-0.5">{m.remetente?.nome ?? m.remetente?.email ?? "Usuário"}</span>
         )}
