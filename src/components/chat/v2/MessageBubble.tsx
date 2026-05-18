@@ -294,6 +294,9 @@ export function MessageBubble({ m, uid, isGrupo, onReply, participantesCount }: 
                   <CornerUpRight className="h-4 w-4 mr-2" /> Encaminhar
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={copiar}><Copy className="h-4 w-4 mr-2" /> Copiar</DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => setTimeout(() => setCriarTarefaOpen(true), 0)}>
+                  <ListPlus className="h-4 w-4 mr-2" /> Criar tarefa no projeto
+                </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => actions.toggleFavorita.mutate({ id: m.id, conversaId: m.conversa_id, favorita: !!m.favorita })}>
                   <Star className="h-4 w-4 mr-2" /> {m.favorita ? "Remover favorito" : "Favoritar"}
                 </DropdownMenuItem>
