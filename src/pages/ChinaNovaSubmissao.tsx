@@ -30,6 +30,7 @@ import { useResolvedBackTo } from "@/lib/navigation/withReturnTo";
 import { saveDraftWithRetry, type DraftSaveStatus } from "@/lib/china/draftRetry";
 import { DraftStatusIndicator } from "@/components/china/DraftStatusIndicator";
 import { ResumeDraftBanner } from "@/components/china/ResumeDraftBanner";
+import { Progress } from "@/components/ui/progress";
 
 const STEPS = [
   { labelPt: "Dados do Produto", labelCn: "产品数据", icon: FileSpreadsheet },
@@ -766,7 +767,21 @@ export default function ChinaNovaSubmissao() {
         }
       />
 
-        {/* Step Indicator */}
+        {/* Step Indicator com barra de progresso visual.
+            Barra mostra o avanço continuo + label "Etapa N de M" pra
+            reduzir abandono de formularios longos. Os botoes abaixo
+            continuam funcionais (navegacao livre apos ter submissao). */}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between text-xs text-muted-foreground px-1">
+            <span className="font-medium">
+              Etapa {step + 1} de {STEPS.length} — {STEPS[step]?.labelPt}
+            </span>
+            <span>{Math.round(((step + 1) / STEPS.length) * 100)}% completo</span>
+          </div>
+          <Progress value={((step + 1) / STEPS.length) * 100} className="h-1.5" />
+        </div>
+
+        {/* Step Indicator botoes (mantidos pra navegacao livre) */}
         <div className="flex items-center gap-2">
           {STEPS.map((s, i) => (
             <div key={i} className="flex items-center gap-2">
