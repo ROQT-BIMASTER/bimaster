@@ -38,9 +38,14 @@ interface Props {
   onOpenChange: (open: boolean) => void;
   produtoEdit?: any;
   onSuccess: () => void;
+  /** Quando informado, o produto é criado em modo cenário e linkado ao grupo. */
+  cenarioContext?: {
+    grupo_cenario_id: string;
+    cenario_label: string;
+  } | null;
 }
 
-export function NovoProdutoAcabadoDialog({ open, onOpenChange, produtoEdit, onSuccess }: Props) {
+export function NovoProdutoAcabadoDialog({ open, onOpenChange, produtoEdit, onSuccess, cenarioContext }: Props) {
   // Mode: "choose" (new product only), "ai", "form"
   const [mode, setMode] = useState<"choose" | "ai" | "form">("choose");
   const [aiFilledFields, setAiFilledFields] = useState<Set<string>>(new Set());
@@ -287,6 +292,13 @@ export function NovoProdutoAcabadoDialog({ open, onOpenChange, produtoEdit, onSu
           itens_display: formData.tipo === "DISPLAY"
             ? gradeItems.reduce((s, i) => s + i.quantidade, 0)
             : null,
+          ...(cenarioContext
+            ? {
+                modo: "cenario",
+                grupo_cenario_id: cenarioContext.grupo_cenario_id,
+                cenario_label: cenarioContext.cenario_label,
+              }
+            : {}),
         };
         const { data, error } = await supabase
           .from("fabrica_produtos")
@@ -440,8 +452,15 @@ export function NovoProdutoAcabadoDialog({ open, onOpenChange, produtoEdit, onSu
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className={cn("max-h-[90vh] overflow-y-auto", mode === "choose" ? "max-w-lg" : "max-w-4xl")} onInteractOutside={(e) => e.preventDefault()} onPointerDownOutside={(e) => e.preventDefault()}>
         <DialogHeader>
-          <DialogTitle>
-            {produtoEdit ? "Editar Produto Acabado" : "Novo Produto Acabado"}
+          <DialogTitle className="flex items-center gap-2">
+            {produtoEdit
+              ? "Editar Produto Acabado"
+              : cenarioContext
+                ? `Novo Cenário — ${cenarioContext.cenario_label}`
+                : "Novo Produto Acabado"}
+            {cenarioContext && (
+              <Badge variant="outline" className="ml-2">Simulação</Badge>
+            )}
           </DialogTitle>
         </DialogHeader>
 

@@ -16643,6 +16643,7 @@ export type Database = {
         Row: {
           ativo: boolean | null
           categoria: string | null
+          cenario_label: string | null
           codigo: string
           codigo_barras_ean: string | null
           codigo_legado: string | null
@@ -16655,6 +16656,7 @@ export type Database = {
           fabricante: string | null
           formula_id: string | null
           foto_url: string | null
+          grupo_cenario_id: string | null
           id: string
           is_provador: boolean
           itens_display: number | null
@@ -16662,6 +16664,7 @@ export type Database = {
           linha: string | null
           marca: string | null
           modelo: string | null
+          modo: string
           modo_foco: boolean | null
           ncm: string | null
           nome: string
@@ -16671,6 +16674,9 @@ export type Database = {
           preco_maximo: number | null
           preco_minimo: number | null
           processo_anvisa: string | null
+          promovido_de_grupo_id: string | null
+          promovido_em: string | null
+          promovido_por: string | null
           rendimento: number | null
           sku: string | null
           status: string | null
@@ -16687,6 +16693,7 @@ export type Database = {
         Insert: {
           ativo?: boolean | null
           categoria?: string | null
+          cenario_label?: string | null
           codigo: string
           codigo_barras_ean?: string | null
           codigo_legado?: string | null
@@ -16699,6 +16706,7 @@ export type Database = {
           fabricante?: string | null
           formula_id?: string | null
           foto_url?: string | null
+          grupo_cenario_id?: string | null
           id?: string
           is_provador?: boolean
           itens_display?: number | null
@@ -16706,6 +16714,7 @@ export type Database = {
           linha?: string | null
           marca?: string | null
           modelo?: string | null
+          modo?: string
           modo_foco?: boolean | null
           ncm?: string | null
           nome: string
@@ -16715,6 +16724,9 @@ export type Database = {
           preco_maximo?: number | null
           preco_minimo?: number | null
           processo_anvisa?: string | null
+          promovido_de_grupo_id?: string | null
+          promovido_em?: string | null
+          promovido_por?: string | null
           rendimento?: number | null
           sku?: string | null
           status?: string | null
@@ -16731,6 +16743,7 @@ export type Database = {
         Update: {
           ativo?: boolean | null
           categoria?: string | null
+          cenario_label?: string | null
           codigo?: string
           codigo_barras_ean?: string | null
           codigo_legado?: string | null
@@ -16743,6 +16756,7 @@ export type Database = {
           fabricante?: string | null
           formula_id?: string | null
           foto_url?: string | null
+          grupo_cenario_id?: string | null
           id?: string
           is_provador?: boolean
           itens_display?: number | null
@@ -16750,6 +16764,7 @@ export type Database = {
           linha?: string | null
           marca?: string | null
           modelo?: string | null
+          modo?: string
           modo_foco?: boolean | null
           ncm?: string | null
           nome?: string
@@ -16759,6 +16774,9 @@ export type Database = {
           preco_maximo?: number | null
           preco_minimo?: number | null
           processo_anvisa?: string | null
+          promovido_de_grupo_id?: string | null
+          promovido_em?: string | null
+          promovido_por?: string | null
           rendimento?: number | null
           sku?: string | null
           status?: string | null
@@ -46786,6 +46804,8 @@ export type Database = {
         }
         Returns: string
       }
+      rpc_promover_cenario: { Args: { p_produto_id: string }; Returns: string }
+      rpc_reabrir_cenario: { Args: { p_produto_id: string }; Returns: string }
       rpc_recalcular_alertas_china: {
         Args: { _submissao_id: string }
         Returns: number

@@ -45,6 +45,8 @@ import type { StatusAprovacao } from "@/hooks/useFichaRevisao";
 import { Link, useNavigate } from "react-router-dom";
 import { useScreenPermissions } from "@/hooks/useScreenPermissions";
 import { NovoProdutoAcabadoDialog } from "@/components/fabrica/NovoProdutoAcabadoDialog";
+import { NovoCenarioDialog } from "@/components/fabrica/cenarios/NovoCenarioDialog";
+import { CenariosList } from "@/components/fabrica/cenarios/CenariosList";
 import { toast } from "sonner";
 import { useTour } from "@/components/tour/TourProvider";
 import { FABRICA_PRODUTOS_ACABADOS_TOUR_ID, fabricaProdutosAcabadosTourSteps } from "@/components/tour/tours/fabricaProdutosAcabadosTour";
@@ -64,6 +66,8 @@ export default function FabricaProdutosAcabados() {
   const { data: systemProfiles } = useSystemProfiles();
   const { startTour, hasSeenTour } = useTour();
   const [dialogNovo, setDialogNovo] = useState(false);
+  const [dialogNovoCenario, setDialogNovoCenario] = useState(false);
+  const [abaModulo, setAbaModulo] = useState<"oficiais" | "cenarios">("oficiais");
   const [diagnosticoOpen, setDiagnosticoOpen] = useState(false);
   const [produtoEdit, setProdutoEdit] = useState<any>(null);
   const [busca, setBusca] = useState("");
@@ -127,6 +131,7 @@ export default function FabricaProdutosAcabados() {
           unidade:fabrica_unidades_medida(sigla, nome)
         `)
         .in("tipo", ["ACABADO", "INTER", "DISPLAY"])
+        .eq("modo", "oficial")
         .or('origem.is.null,origem.neq.importado')
         .order("created_at", { ascending: false });
 
@@ -785,19 +790,41 @@ export default function FabricaProdutosAcabados() {
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-            <Button
-              size="sm"
-              className="h-8"
-              onClick={() => {
-                setProdutoEdit(null);
-                setDialogNovo(true);
-              }}
-            >
-              <Plus className="h-3.5 w-3.5 mr-1.5" />
-              Novo Produto
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button size="sm" className="h-8">
+                  <Plus className="h-3.5 w-3.5 mr-1.5" />
+                  Novo
+                  <ChevronDown className="h-3.5 w-3.5 ml-1" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuItem onClick={() => { setProdutoEdit(null); setDialogNovo(true); }}>
+                  <Package className="h-4 w-4 mr-2" /> Novo Produto Acabado
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setDialogNovoCenario(true)}>
+                  <Layers className="h-4 w-4 mr-2" /> Novo Cenário (simulação)
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
+
+        {/* Abas: Oficiais vs Cenários */}
+        <div className="flex gap-1 rounded-md border p-0.5 w-fit">
+          <Button size="sm" variant={abaModulo === "oficiais" ? "default" : "ghost"} className="h-7" onClick={() => setAbaModulo("oficiais")}>
+            <Package className="h-3.5 w-3.5 mr-1.5" /> Oficiais
+          </Button>
+          <Button size="sm" variant={abaModulo === "cenarios" ? "default" : "ghost"} className="h-7" onClick={() => setAbaModulo("cenarios")}>
+            <Layers className="h-3.5 w-3.5 mr-1.5" /> Cenários (simulação)
+          </Button>
+        </div>
+
+        {abaModulo === "cenarios" && (
+          <div className="pb-4"><CenariosList /></div>
+        )}
+
+
 
         {/* Dashboard Administrativo */}
         <Collapsible open={showAdminDash} onOpenChange={setShowAdminDash}>
@@ -1434,6 +1461,12 @@ export default function FabricaProdutosAcabados() {
           refetch();
           setProdutoEdit(null);
         }}
+      />
+
+      <NovoCenarioDialog
+        open={dialogNovoCenario}
+        onOpenChange={setDialogNovoCenario}
+        onSuccess={() => { setAbaModulo("cenarios"); }}
       />
 
       <PhotoPermissionDiagnosticsDialog
