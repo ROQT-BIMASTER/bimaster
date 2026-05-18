@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useGrupoCenario, type CenarioProduto } from "@/hooks/useGrupoCenarios";
-import { ArrowLeft, Trophy, Layers, TrendingDown, TrendingUp, Plus } from "lucide-react";
+import { ArrowLeft, Trophy, Layers, TrendingDown, TrendingUp, Plus, Sparkles } from "lucide-react";
 import { formatCurrency } from "@/lib/formatters";
 import { PromoverCenarioDialog } from "@/components/fabrica/cenarios/PromoverCenarioDialog";
 import { NovoCenarioDialog } from "@/components/fabrica/cenarios/NovoCenarioDialog";
