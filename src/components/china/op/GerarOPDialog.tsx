@@ -48,6 +48,7 @@ export function GerarOPDialog({
       const { data, error } = await supabase
         .from("fabrica_produtos" as any)
         .select("id, codigo, nome, formula_id")
+        .eq("modo", "oficial")
         .or(`codigo.ilike.%${search}%,nome.ilike.%${search}%,sku.ilike.%${search}%`)
         .limit(20);
       if (error) throw error;
