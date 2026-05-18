@@ -158,7 +158,10 @@ export function KanbanAprovacoes({
 
   const { data, isLoading } = useKanbanAprovacoes(input);
   const [drawerItem, setDrawerItem] = useState<KanbanItem | null>(null);
-  const [pipelineFiltro, setPipelineFiltro] = useState<string>("all");
+  const [pipelineFiltro, setPipelineFiltro] = useState<string>(() => {
+    const sp = new URLSearchParams(window.location.search);
+    return sp.get("pipeline") || "all";
+  });
   const [configOpen, setConfigOpen] = useState(false);
 
   const allPipelines: KanbanPipeline[] = data?.pipelines || [];
