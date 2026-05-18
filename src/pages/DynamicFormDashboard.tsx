@@ -266,14 +266,25 @@ export default function DynamicFormDashboard() {
                 {loading ? "Carregando..." : formName}
               </h1>
             </div>
-            <Button
-              onClick={handleAiAnalysis}
-              disabled={aiLoading || responses.length === 0}
-              className="gap-2"
-            >
-              <Sparkles className="h-4 w-4" />
-              Análise IA
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                onClick={handleExportExcel}
+                disabled={responses.length === 0}
+                className="gap-2"
+              >
+                <FileSpreadsheet className="h-4 w-4" />
+                Exportar Excel
+              </Button>
+              <Button
+                onClick={handleAiAnalysis}
+                disabled={aiLoading || responses.length === 0}
+                className="gap-2"
+              >
+                <Sparkles className="h-4 w-4" />
+                Análise IA
+              </Button>
+            </div>
           </div>
         </div>
 
