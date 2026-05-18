@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -104,6 +104,43 @@ function SidebarPessoasContent({
 
   const filtradas = useMemo(() => filtrarConversas(conversas, filtro, busca), [conversas, filtro, busca]);
   const totalNaoLidas = conversas.reduce((s, c) => s + (c.naoLidas || 0), 0);
+
+  // Atalhos de teclado globais para produtividade:
+  //  - Cmd/Ctrl+K: abre a busca global (mesma UX do command palette)
+  //  - Alt+ArrowDown / Alt+ArrowUp: pula para a próxima/anterior conversa
+  //    NÃO LIDA na ordem atual de filtragem. Útil pra processar inbox.
+  // Ignora quando o foco está em campo de input/textarea/contenteditable.
+  useEffect(() => {
+    const isTypingTarget = (el: EventTarget | null) => {
+      if (!(el instanceof HTMLElement)) return false;
+      const tag = el.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return true;
+      if (el.isContentEditable) return true;
+      return false;
+    };
+    const handler = (e: KeyboardEvent) => {
+      const mod = e.metaKey || e.ctrlKey;
+      if (mod && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setSearchOpen(true);
+        return;
+      }
+      if (e.altKey && (e.key === "ArrowDown" || e.key === "ArrowUp")) {
+        if (isTypingTarget(e.target)) return;
+        const naoLidas = filtradas.filter((c) => c.naoLidas > 0);
+        if (naoLidas.length === 0) return;
+        e.preventDefault();
+        const currentIdx = naoLidas.findIndex((c) => c.id === conversaSelecionada);
+        const delta = e.key === "ArrowDown" ? 1 : -1;
+        const nextIdx = currentIdx === -1
+          ? (delta === 1 ? 0 : naoLidas.length - 1)
+          : (currentIdx + delta + naoLidas.length) % naoLidas.length;
+        onSelectConversa(naoLidas[nextIdx].id);
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [filtradas, conversaSelecionada, onSelectConversa]);
 
   // Status declarado de cada outro user pra mostrar bolinha colorida no
   // avatar — sobrepõe o online/offline do Realtime Presence quando setado.
