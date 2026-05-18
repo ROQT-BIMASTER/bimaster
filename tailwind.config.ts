@@ -175,6 +175,7 @@ export default {
         "shimmer": "shimmer 2s linear infinite",
         "spin-slow": "spin-slow 8s linear infinite",
         "bounce-soft": "bounce-soft 2s ease-in-out infinite",
+        "shake": "shake 0.6s ease-in-out",
       },
       transitionTimingFunction: {
         'spring': 'cubic-bezier(0.175, 0.885, 0.32, 1.275)',
