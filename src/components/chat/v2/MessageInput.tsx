@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import type { ChatMensagem } from "@/hooks/chat/types";
 import { useChatActions } from "@/hooks/chat/useChatActions";
 import { uploadChatAnexo, formatBytes } from "./utils";
+import { CameraCaptureButton } from "./CameraCaptureButton";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 
@@ -118,9 +119,10 @@ export function MessageInput({ conversaId, responderA, onClearReply, onTyping }:
           className="hidden"
           onChange={(e) => { addFiles(e.target.files); e.currentTarget.value = ""; }}
         />
-        <Button size="icon" variant="ghost" className="h-9 w-9 shrink-0" onClick={() => fileRef.current?.click()}>
+        <Button size="icon" variant="ghost" className="h-9 w-9 shrink-0" onClick={() => fileRef.current?.click()} title="Anexar arquivo" aria-label="Anexar arquivo">
           <Paperclip className="h-4 w-4" />
         </Button>
+        <CameraCaptureButton onCapture={(file) => setFiles((prev) => [...prev, file].slice(0, 10))} disabled={uploading} />
         <Popover>
           <PopoverTrigger asChild>
             <Button size="icon" variant="ghost" className="h-9 w-9 shrink-0"><Smile className="h-4 w-4" /></Button>
