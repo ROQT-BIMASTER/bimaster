@@ -33,7 +33,10 @@ interface Props {
 }
 
 export function MessageBubble({ m, uid, isGrupo, onReply, participantesCount }: Props) {
-  const mine = m.remetente_id === uid;
+  // Mensagens da Sofia (metadata.sofia=true) são renderizadas como vindas dela,
+  // NÃO do remetente_id (que tecnicamente é o user que invocou /sofia ou /resumir).
+  const isSofia = (m.metadata as any)?.sofia === true;
+  const mine = !isSofia && m.remetente_id === uid;
   const actions = useChatActions();
   const [editing, setEditing] = useState(false);
   const [editTxt, setEditTxt] = useState(m.conteudo);
@@ -100,25 +103,39 @@ export function MessageBubble({ m, uid, isGrupo, onReply, participantesCount }: 
   return (
     <div className={cn("group flex w-full gap-2", mine ? "justify-end" : "justify-start")}>
       {!mine && (
-        <Avatar className="h-7 w-7 mt-auto shrink-0">
-          <AvatarImage src={m.remetente?.avatar_url ?? undefined} />
-          <AvatarFallback className="text-[10px]">{initials(m.remetente?.nome, m.remetente?.email)}</AvatarFallback>
+        <Avatar className={cn("h-7 w-7 mt-auto shrink-0", isSofia && "ring-2 ring-violet-500/40")}>
+          {isSofia ? (
+            <AvatarFallback className="bg-violet-500/15 text-violet-700 dark:text-violet-300 text-[10px]">
+              <Languages className="h-3.5 w-3.5" aria-label="Sofia" />
+            </AvatarFallback>
+          ) : (
+            <>
+              <AvatarImage src={m.remetente?.avatar_url ?? undefined} />
+              <AvatarFallback className="text-[10px]">{initials(m.remetente?.nome, m.remetente?.email)}</AvatarFallback>
+            </>
+          )}
         </Avatar>
       )}
       <div className={cn("max-w-[72%] md:max-w-[640px] flex flex-col", mine ? "items-end" : "items-start")}>
         {/* Nome do remetente aparece em CADA mensagem não-própria, em DMs e
             em grupos (parecido com o Teams; WhatsApp clássico mostra só em
-            grupo, mas o usuário pediu nome explícito em qualquer caso). */}
+            grupo, mas o usuário pediu nome explícito em qualquer caso).
+            Mensagens da Sofia usam nome fixo e cor violeta. */}
         {!mine && (
-          <span className="text-[11px] font-medium text-primary px-3 mb-0.5">
-            {m.remetente?.nome ?? m.remetente?.email ?? "Usuário"}
+          <span className={cn(
+            "text-[11px] font-medium px-3 mb-0.5",
+            isSofia ? "text-violet-600 dark:text-violet-400" : "text-primary",
+          )}>
+            {isSofia ? "Sofia" : (m.remetente?.nome ?? m.remetente?.email ?? "Usuário")}
           </span>
         )}
         <div className={cn(
           "relative px-3 py-2 rounded-2xl shadow-sm",
-          mine
-            ? "bg-emerald-600 text-white rounded-br-sm"
-            : "bg-card border border-border rounded-bl-sm",
+          isSofia
+            ? "bg-violet-500/10 border border-violet-500/30 rounded-bl-sm text-foreground"
+            : mine
+              ? "bg-emerald-600 text-white rounded-br-sm"
+              : "bg-card border border-border rounded-bl-sm",
         )}>
           {m.responde_a && (
             <div className={cn(

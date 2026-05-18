@@ -11,6 +11,8 @@ import { CameraCaptureButton } from "./CameraCaptureButton";
 import { EmojiPicker } from "./EmojiPicker";
 import { MentionAutocomplete, type MentionMember } from "./MentionAutocomplete";
 import { TaskMentionAutocomplete, type TaskMention } from "./TaskMentionAutocomplete";
+import { SofiaCommandPopover, type SofiaCommand } from "./SofiaCommandPopover";
+import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 
@@ -36,6 +38,10 @@ export function MessageInput({ conversaId, responderA, onClearReply, onTyping }:
   const [tarefasMencionadas, setTarefasMencionadas] = useState<{ id: string; label: string }[]>([]);
   /** Popover de /tarefa autocomplete. startIdx é a posição do `/` no texto. */
   const [taskMentionState, setTaskMentionState] = useState<{ query: string; startIdx: number; length: number } | null>(null);
+  /** Popover de comandos da Sofia (/sofia, /resumir). Aberto quando o texto
+   *  começa com `/` e ainda não casa com `/tarefa` (que tem popover próprio). */
+  const [sofiaState, setSofiaState] = useState<{ query: string } | null>(null);
+  const [sofiaLoading, setSofiaLoading] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const taRef = useRef<HTMLTextAreaElement>(null);
   const { sendMessage } = useChatActions();
@@ -48,6 +54,7 @@ export function MessageInput({ conversaId, responderA, onClearReply, onTyping }:
     setMentionState(null);
     setTarefasMencionadas([]);
     setTaskMentionState(null);
+    setSofiaState(null);
   }, [conversaId]);
 
   /** Detecta se o cursor está dentro de uma menção ativa.
@@ -82,12 +89,55 @@ export function MessageInput({ conversaId, responderA, onClearReply, onTyping }:
     return { query: fragment.trim(), startIdx: idx, length: "/tarefa".length + fragment.length };
   };
 
+  /** Detecta comando da Sofia: o texto inteiro começa com `/` e NÃO é `/tarefa`. */
+  const checkSofiaContext = (text: string): { query: string } | null => {
+    if (!text.startsWith("/")) return null;
+    // /tarefa tem seu próprio popover — não conflita
+    if (text.startsWith("/tarefa") && (text.length === "/tarefa".length || /[\s]/.test(text["/tarefa".length]))) return null;
+    // Primeira linha sem espaço extra = só o nome do comando ou comando+arg
+    const firstSpace = text.indexOf(" ");
+    const cmdToken = firstSpace === -1 ? text : text.slice(0, firstSpace);
+    return { query: cmdToken.replace(/^\//, "") };
+  };
+
   const onTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const value = e.target.value;
     setTxt(value);
     const caret = e.target.selectionStart ?? value.length;
     setMentionState(checkMentionContext(value, caret));
     setTaskMentionState(checkTaskMentionContext(value, caret));
+    setSofiaState(checkSofiaContext(value));
+  };
+
+  /** Executa um comando da Sofia. /resumir é imediato; /sofia precisa de prompt. */
+  const executarSofia = async (cmd: SofiaCommand) => {
+    if (cmd.immediate) {
+      // /resumir — chama direto sem precisar de prompt
+      setSofiaLoading(true);
+      try {
+        const { data, error } = await supabase.functions.invoke("chat-sofia-command", {
+          body: { conversa_id: conversaId, command: cmd.key },
+        });
+        if (error) throw error;
+        if (!data?.ok) throw new Error("Sofia não respondeu");
+        setTxt("");
+        setSofiaState(null);
+        toast.success("Resumo da Sofia postado no chat");
+      } catch (e: any) {
+        toast.error("Sofia: " + (e?.message ?? "falhou"));
+      } finally {
+        setSofiaLoading(false);
+      }
+      return;
+    }
+    // /sofia — preenche o texto pro usuário continuar digitando
+    setTxt(cmd.label + " ");
+    setSofiaState(null);
+    requestAnimationFrame(() => {
+      taRef.current?.focus();
+      const pos = cmd.label.length + 1;
+      taRef.current?.setSelectionRange(pos, pos);
+    });
   };
 
   const pickTask = (t: TaskMention) => {
@@ -135,6 +185,29 @@ export function MessageInput({ conversaId, responderA, onClearReply, onTyping }:
   const enviar = async () => {
     const conteudo = txt.trim();
     if (!conteudo && files.length === 0) return;
+
+    // Intercepta /sofia <prompt> — chama edge function em vez de enviar
+    // como mensagem normal (a Sofia entra como resposta automática).
+    if (conteudo.startsWith("/sofia ")) {
+      const prompt = conteudo.slice("/sofia ".length).trim();
+      if (!prompt) return toast.error("Digite a pergunta após /sofia");
+      setSofiaLoading(true);
+      try {
+        const { data, error } = await supabase.functions.invoke("chat-sofia-command", {
+          body: { conversa_id: conversaId, command: "sofia", prompt },
+        });
+        if (error) throw error;
+        if (!data?.ok) throw new Error("Sofia não respondeu");
+        setTxt("");
+        setSofiaState(null);
+      } catch (e: any) {
+        toast.error("Sofia: " + (e?.message ?? "falhou"));
+      } finally {
+        setSofiaLoading(false);
+      }
+      return;
+    }
+
     setUploading(true);
     try {
       const anexosMeta = [];
@@ -178,11 +251,12 @@ export function MessageInput({ conversaId, responderA, onClearReply, onTyping }:
   };
 
   const onKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    // Escape fecha popovers de menção (user ou tarefa)
-    if (e.key === "Escape" && (mentionState || taskMentionState)) {
+    // Escape fecha popovers de menção / sofia
+    if (e.key === "Escape" && (mentionState || taskMentionState || sofiaState)) {
       e.preventDefault();
       setMentionState(null);
       setTaskMentionState(null);
+      setSofiaState(null);
       return;
     }
     if (e.key === "Enter" && !e.shiftKey && !mentionState && !taskMentionState) {
@@ -218,6 +292,14 @@ export function MessageInput({ conversaId, responderA, onClearReply, onTyping }:
           <TaskMentionAutocomplete
             query={taskMentionState.query}
             onPick={pickTask}
+          />
+        </div>
+      )}
+      {sofiaState && !mentionState && !taskMentionState && (
+        <div className="absolute bottom-full left-0 mb-1 ml-12 z-50 bg-popover border border-border rounded-md shadow-lg">
+          <SofiaCommandPopover
+            query={sofiaState.query}
+            onPick={executarSofia}
           />
         </div>
       )}
@@ -300,12 +382,12 @@ export function MessageInput({ conversaId, responderA, onClearReply, onTyping }:
             const items = Array.from(e.clipboardData?.files ?? []);
             if (items.length) { e.preventDefault(); addFiles(e.clipboardData.files); }
           }}
-          placeholder="Digite uma mensagem... (@ menciona pessoa, /tarefa anexa tarefa)"
+          placeholder="Digite uma mensagem... (@ pessoa · /tarefa · /sofia · /resumir)"
           rows={1}
           className={cn("resize-none min-h-[40px] max-h-32 py-2.5 leading-snug")}
         />
-        <Button onClick={enviar} disabled={uploading || (!txt.trim() && files.length === 0)} size="icon" className="h-9 w-9 shrink-0 rounded-full">
-          {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+        <Button onClick={enviar} disabled={uploading || sofiaLoading || (!txt.trim() && files.length === 0)} size="icon" className="h-9 w-9 shrink-0 rounded-full">
+          {uploading || sofiaLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
         </Button>
       </div>
     </div>
