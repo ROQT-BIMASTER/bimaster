@@ -203,7 +203,7 @@ export function DynamicFormRenderer({ formId, tokenId, userId, onSubmitSuccess }
 
       setSubmitted(true);
       toast.success("Formulário enviado com sucesso!");
-      onSubmitSuccess?.(response.id);
+      onSubmitSuccess?.(responseId);
     } catch (err: any) {
       logger.error("Submit error:", err);
       toast.error("Erro ao enviar formulário");
