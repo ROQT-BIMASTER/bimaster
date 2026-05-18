@@ -13,6 +13,7 @@ import { MentionAutocomplete, type MentionMember } from "./MentionAutocomplete";
 import { TaskMentionAutocomplete, type TaskMention } from "./TaskMentionAutocomplete";
 import { SofiaCommandPopover, type SofiaCommand } from "./SofiaCommandPopover";
 import { NovaAprovacaoDialog } from "./NovaAprovacaoDialog";
+import { UrgentSendDialog } from "./UrgentSendDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
