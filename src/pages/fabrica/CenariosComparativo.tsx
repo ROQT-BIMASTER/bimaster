@@ -35,6 +35,8 @@ function useCustosDoGrupo(produtoIds: string[]) {
   return useQuery({
     queryKey: ["fabrica-cenarios-custos", produtoIds.slice().sort().join(",")],
     enabled: produtoIds.length > 0,
+    staleTime: 0,
+    refetchOnMount: "always",
     queryFn: async (): Promise<Map<string, ProdutoCustosAgg>> => {
       const { data, error } = await supabase
         .from("fabrica_produto_custos")
