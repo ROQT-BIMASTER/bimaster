@@ -287,10 +287,13 @@ export default function CentralTrabalho({ defaultTab }: Props) {
             />
             <ProjetoShortcutsDialog />
 
-            <CentralKPIs
-              activeTab={activeTab}
-              onNavigate={isResetting ? () => {} : setTab}
-            />
+            {/* KPIs only on tabs where they don't duplicate visible content. */}
+            {(activeTab === "tarefas" || activeTab === "delegadas") && (
+              <CentralKPIs
+                activeTab={activeTab}
+                onNavigate={isResetting ? () => {} : setTab}
+              />
+            )}
 
             <Tabs
               value={activeTab}
@@ -303,10 +306,16 @@ export default function CentralTrabalho({ defaultTab }: Props) {
                 <TabsTrigger value="hoje" className="gap-1.5 h-8 px-3" disabled={isResetting}>
                   <CalendarDays className="h-3.5 w-3.5" />
                   Hoje
+                  {tabCounts.hoje > 0 && (
+                    <span className="text-[10px] text-muted-foreground ml-1">{tabCounts.hoje}</span>
+                  )}
                 </TabsTrigger>
                 <TabsTrigger value="tarefas" className="gap-1.5 h-8 px-3" disabled={isResetting}>
                   <ListChecks className="h-3.5 w-3.5" />
                   Minhas tarefas
+                  {tabCounts.pendentes > 0 && (
+                    <span className="text-[10px] text-muted-foreground ml-1">{tabCounts.pendentes}</span>
+                  )}
                 </TabsTrigger>
                 <TabsTrigger value="delegadas" className="gap-1.5 h-8 px-3" disabled={isResetting}>
                   <Send className="h-3.5 w-3.5" />
@@ -342,7 +351,11 @@ export default function CentralTrabalho({ defaultTab }: Props) {
                 )}
 
                 <TabsContent value="hoje" className="mt-4">
-                  <HojeTab onGoToTarefas={() => !isResetting && setTab("tarefas")} />
+                  <HojeTab
+                    onGoToTarefas={(filter) =>
+                      !isResetting && setTab("tarefas", filter)
+                    }
+                  />
                 </TabsContent>
 
                 <TabsContent value="tarefas" className="mt-4">
@@ -361,6 +374,7 @@ export default function CentralTrabalho({ defaultTab }: Props) {
                 </TabsContent>
               </div>
             </Tabs>
+
           </div>
         </main>
       </div>
