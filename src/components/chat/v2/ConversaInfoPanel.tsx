@@ -10,6 +10,7 @@ import { useChatActions } from "@/hooks/chat/useChatActions";
 import { useGlobalPresence } from "@/hooks/chat/useChatPresence";
 import { useAuth } from "@/contexts/AuthContext";
 import { initials, nomeConversa } from "./utils";
+import { ConversaMediaGallery } from "./ConversaMediaGallery";
 
 interface Props {
   conversaId: string;
@@ -135,6 +136,8 @@ export function ConversaInfoPanel({ conversaId, onClose, className }: Props) {
             </Button>
           </div>
         )}
+
+        <ConversaMediaGallery conversaId={conversaId} />
       </ScrollArea>
     </aside>
   );
