@@ -157,12 +157,36 @@ export function KanbanAprovacoes({
   }, [escopo, user?.id, projetoId, secaoId, prefs.modo_visao]);
 
   const { data, isLoading } = useKanbanAprovacoes(input);
+  const qc = useQueryClient();
   const [drawerItem, setDrawerItem] = useState<KanbanItem | null>(null);
   const [pipelineFiltro, setPipelineFiltro] = useState<string>(() => {
     const sp = new URLSearchParams(window.location.search);
     return sp.get("pipeline") || "all";
   });
   const [configOpen, setConfigOpen] = useState(false);
+
+  // Realtime: invalida a query quando algum item/histórico do escopo muda.
+  useEffect(() => {
+    if (!user?.id) return;
+    const channel = supabase
+      .channel(uniqueChannelName(`kanban-aprovacoes:${user.id}`))
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "aprovacao_documento_itens" },
+        () => qc.invalidateQueries({ queryKey: ["kanban-aprovacoes"] }),
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "fluxo_aprovacao_historico" },
+        () => qc.invalidateQueries({ queryKey: ["kanban-aprovacoes"] }),
+      )
+      .subscribe((status, err) => {
+        if (err) logger.error("[KanbanAprovacoes] realtime error", { error: err });
+      });
+    return () => {
+      supabase.removeChannel(channel).catch(() => undefined);
+    };
+  }, [user?.id, qc]);
 
   const allPipelines: KanbanPipeline[] = data?.pipelines || [];
   const itens: KanbanItem[] = data?.itens || [];
