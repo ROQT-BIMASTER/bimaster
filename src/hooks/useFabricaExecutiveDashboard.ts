@@ -60,7 +60,7 @@ export function useFabricaExecutiveDashboard() {
         precosRes,
         tabelasRes
       ] = await Promise.all([
-        supabase.from("fabrica_produtos").select("id", { count: "exact", head: true }).eq("ativo", true),
+        supabase.from("fabrica_produtos").select("id", { count: "exact", head: true }).eq("ativo", true).eq("modo", "oficial"),
         supabase.from("fabrica_materias_primas").select("id", { count: "exact", head: true }).eq("status", "ativo"),
         supabase.from("fabrica_formulas").select("id", { count: "exact", head: true }).eq("ativa", true),
         supabase.from("fabrica_ordens_producao").select("id", { count: "exact", head: true }).in("status", ["planejada", "em_andamento"]),
