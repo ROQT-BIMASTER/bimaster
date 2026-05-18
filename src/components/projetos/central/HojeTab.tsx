@@ -79,7 +79,7 @@ function TarefaRow({ tarefa, onToggle }: { tarefa: MinaTarefa; onToggle: (id: st
 }
 
 interface Props {
-  onGoToTarefas: () => void;
+  onGoToTarefas: (filter?: "atrasadas" | "hoje" | "sem_data") => void;
 }
 
 export function HojeTab({ onGoToTarefas }: Props) {
