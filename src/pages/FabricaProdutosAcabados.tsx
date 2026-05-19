@@ -640,6 +640,28 @@ export default function FabricaProdutosAcabados() {
         </TableCell>
         <TableCell className="font-medium py-2 text-[13px]">
           <div className="flex items-center gap-1.5">
+            {produto.is_sugestao && concorrentesCount > 0 && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggleSugestaoExpand(produto.id);
+                }}
+                className="shrink-0 h-5 w-5 inline-flex items-center justify-center rounded hover:bg-violet-500/15 text-violet-600 dark:text-violet-300"
+                title={
+                  expandAllConcorrentes || expandedSugestoes.has(produto.id) || !!produto.vencedor_produto_id
+                    ? "Recolher concorrentes"
+                    : `Mostrar ${concorrentesCount} concorrente${concorrentesCount > 1 ? "s" : ""}`
+                }
+                aria-label="Alternar concorrentes"
+              >
+                {expandAllConcorrentes || expandedSugestoes.has(produto.id) || !!produto.vencedor_produto_id ? (
+                  <ChevronDown className="h-3.5 w-3.5" />
+                ) : (
+                  <ChevronRight className="h-3.5 w-3.5" />
+                )}
+              </button>
+            )}
             {isDisplay && <Layers className="h-3.5 w-3.5 text-primary shrink-0" />}
             {isChild && (
               <span className="text-blue-500 shrink-0 flex items-center gap-1 mr-1">
