@@ -302,7 +302,11 @@ export default function FabricaProdutosAcabados() {
     const parsedFim = dataFim ? parseLocalDate(dataFim) : null;
     if (parsedFim) parsedFim.setHours(23, 59, 59, 999);
 
-    const filtered = produtos?.filter((p) => {
+    // Concorrentes (sugestao_pai_id != null) NÃO entram nos filtros/contagens
+    // como linha solta — são renderizados embaixo do produto Sugestão pai.
+    const baseProdutos = produtos?.filter((p: any) => !p.sugestao_pai_id) ?? [];
+
+    const filtered = baseProdutos.filter((p) => {
       const matchBusca =
         p.nome.toLowerCase().includes(busca.toLowerCase()) ||
         p.codigo.toLowerCase().includes(busca.toLowerCase());
@@ -318,9 +322,6 @@ export default function FabricaProdutosAcabados() {
       const createdDate = p.created_at ? new Date(p.created_at) : null;
       const matchDataInicio = !parsedInicio || (createdDate && createdDate >= parsedInicio);
       const matchDataFim = !parsedFim || (createdDate && createdDate <= parsedFim);
-      // Filtro por status da ficha — usa famílias centralizadas em
-      // src/lib/status-families.ts. "em_revisao" cobre tanto "em_revisao"
-      // quanto "revisao_solicitada" automaticamente.
       const statusFichaProduto = fichasMap.get(p.id) as
         | "rascunho"
         | "em_revisao"
@@ -343,11 +344,17 @@ export default function FabricaProdutosAcabados() {
       // Se é filho e o pai está na lista, pular (será inserido após o pai)
       if (filhoParaPaiMap.has(p.id) && filteredIds.has(filhoParaPaiMap.get(p.id)!)) {
         if (childrenPlaced.has(p.id)) continue;
-        // Não adicionar agora, será adicionado quando o pai for processado
         continue;
       }
       if (childrenPlaced.has(p.id)) continue;
       result.push(p);
+      // Concorrentes da Sugestão logo após
+      if (p.is_sugestao) {
+        const concorrentes = sugestaoParaConcorrentesMap.get(p.id);
+        if (concorrentes && concorrentes.length > 0) {
+          for (const c of concorrentes) result.push(c);
+        }
+      }
       // Se é pai (Display), inserir filhos logo após
       const childIds = paiParaFilhosMap.get(p.id);
       if (childIds) {
@@ -369,7 +376,7 @@ export default function FabricaProdutosAcabados() {
       }
     }
     return result;
-  }, [produtos, busca, filtroMarca, filtroLinha, filtroTipo, filtroProvador, filtroStatusFicha, fichasMap, mostrarOcultos, dataInicio, dataFim, paiParaFilhosMap]);
+  }, [produtos, busca, filtroMarca, filtroLinha, filtroTipo, filtroProvador, filtroStatusFicha, fichasMap, mostrarOcultos, dataInicio, dataFim, paiParaFilhosMap, sugestaoParaConcorrentesMap]);
 
   // Comparativo KPI "Em Revisão" vs lista filtrada — alerta quando algum
   // filtro ativo está escondendo itens contados no KPI.
