@@ -82,6 +82,58 @@ export function JornadaDrawer({ item, pipeline, open, onOpenChange }: Props) {
     if (!open) setComentario("");
   }, [open]);
 
+  // Atalhos de teclado no drawer: A=aprovar, R=rejeitar, D=devolver. Esc já é tratado pelo Sheet.
+  useEffect(() => {
+    if (!open || !item) return;
+    const aberto = item.status === "em_andamento";
+    const isResponsavel = item.responsavel_atual_id === user?.id;
+    if (!aberto || !isResponsavel) return;
+    const isEncaminhamento = item.etapa_tipo === "encaminhamento";
+    const podeDevolver = (item.etapa_ordem ?? 1) > 1;
+
+    const onKey = (e: KeyboardEvent) => {
+      // Ignora se o usuário está digitando em campo de texto
+      const tag = (e.target as HTMLElement | null)?.tagName;
+      const editing =
+        tag === "INPUT" ||
+        tag === "TEXTAREA" ||
+        (e.target as HTMLElement | null)?.isContentEditable;
+      if (editing) return;
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      const k = e.key.toLowerCase();
+      if (k === "a" && !isEncaminhamento) {
+        e.preventDefault();
+        void avancar
+          .mutateAsync({ itemId: item.id, decisao: "aprovado", comentario: comentario || undefined })
+          .then(() => {
+            setComentario("");
+            onOpenChange(false);
+          })
+          .catch(() => undefined);
+      } else if (k === "r") {
+        e.preventDefault();
+        void avancar
+          .mutateAsync({ itemId: item.id, decisao: "rejeitado", comentario: comentario || undefined })
+          .then(() => {
+            setComentario("");
+            onOpenChange(false);
+          })
+          .catch(() => undefined);
+      } else if (k === "d" && podeDevolver) {
+        e.preventDefault();
+        void solicitarRevisao
+          .mutateAsync({ itemId: item.id, comentario: comentario || undefined })
+          .then(() => {
+            setComentario("");
+            onOpenChange(false);
+          })
+          .catch(() => undefined);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open, item, user?.id, comentario, avancar, solicitarRevisao, onOpenChange]);
+
   // histórico de decisões deste item / lote raiz
   const { data: historico = [] } = useQuery({
     queryKey: ["item-aprovacao-historico", item?.id],
