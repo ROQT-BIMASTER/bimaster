@@ -538,19 +538,50 @@ export default function FabricaProdutosAcabados() {
     const parentId = filhoParaPaiMap.get(produto.id);
     const parentProduct = isChild && produtos ? produtos.find(p => p.id === parentId) : null;
 
+    // Concorrente de Sugestão
+    const isConcorrente = !!produto.sugestao_pai_id;
+    const sugestaoPai = isConcorrente && produtos
+      ? produtos.find((p: any) => p.id === produto.sugestao_pai_id)
+      : null;
+    const isVencedor = isConcorrente && sugestaoPai?.vencedor_produto_id === produto.id;
+    const custoPai = sugestaoPai ? (custoTotalMap.get(sugestaoPai.id) ?? sugestaoPai.custo_unitario) : null;
+    const deltaCustoPct =
+      isConcorrente && custoTotal != null && custoPai != null && custoPai > 0
+        ? ((custoTotal - custoPai) / custoPai) * 100
+        : null;
+
+    // Contagem de concorrentes (se o produto é Sugestão)
+    const concorrentesCount = produto.is_sugestao
+      ? (sugestaoParaConcorrentesMap.get(produto.id)?.length ?? 0)
+      : 0;
+
     return (
       <TableRow
         key={produto.id}
         title={
           isEmRevisao
             ? "Ficha em revisão — aguardando ajustes"
-            : isChild && parentProduct
-              ? `Item vinculado ao Kit ${parentProduct.codigo}`
-              : isDisplay
-                ? "Produto do tipo Display / Kit"
-                : undefined
+            : isConcorrente && sugestaoPai
+              ? `Concorrente da Sugestão ${sugestaoPai.codigo}`
+              : isChild && parentProduct
+                ? `Item vinculado ao Kit ${parentProduct.codigo}`
+                : isDisplay
+                  ? "Produto do tipo Display / Kit"
+                  : undefined
         }
-        className={`${produto.oculto ? "opacity-50" : ""} ${isEmRevisao ? "bg-amber-500/15 border-l-4 border-l-amber-500 [&_.text-muted-foreground]:!text-amber-700 dark:[&_.text-muted-foreground]:!text-amber-200" : isDisplay ? "bg-primary/[0.06] border-l-2 border-l-primary/50" : isChild ? "bg-foreground/[0.03] border-l-2 border-l-blue-500/50" : "hover:bg-foreground/[0.04]"} border-b border-border/40 transition-colors`}
+        className={`${produto.oculto ? "opacity-50" : ""} ${
+          isEmRevisao
+            ? "bg-amber-500/15 border-l-4 border-l-amber-500 [&_.text-muted-foreground]:!text-amber-700 dark:[&_.text-muted-foreground]:!text-amber-200"
+            : isConcorrente
+              ? `bg-violet-500/[0.06] border-l-2 ${isVencedor ? "border-l-emerald-500" : "border-l-violet-500/60"}`
+              : produto.is_sugestao
+                ? "bg-violet-500/[0.04] border-l-2 border-l-violet-500"
+                : isDisplay
+                  ? "bg-primary/[0.06] border-l-2 border-l-primary/50"
+                  : isChild
+                    ? "bg-foreground/[0.03] border-l-2 border-l-blue-500/50"
+                    : "hover:bg-foreground/[0.04]"
+        } border-b border-border/40 transition-colors`}
       >
         <TableCell className="pr-0 py-2">
           <ProductThumbnail src={produto.foto_url} alt={produto.nome} size="sm" />
@@ -559,6 +590,26 @@ export default function FabricaProdutosAcabados() {
           {produto.is_provador && (
             <div className="mb-0.5">
               <ProvadorBadge />
+            </div>
+          )}
+          {produto.is_sugestao && (
+            <div className="mb-0.5">
+              <Badge className="text-[9px] px-1.5 py-0 bg-violet-600 text-white hover:bg-violet-700">
+                Sugestão{concorrentesCount > 0 ? ` · ${concorrentesCount}` : ""}
+              </Badge>
+            </div>
+          )}
+          {isConcorrente && (
+            <div className="mb-0.5">
+              {isVencedor ? (
+                <Badge className="text-[9px] px-1.5 py-0 bg-emerald-600 text-white hover:bg-emerald-700">
+                  Vencedor
+                </Badge>
+              ) : (
+                <Badge variant="outline" className="text-[9px] px-1.5 py-0 border-violet-500/60 text-violet-700 dark:text-violet-300">
+                  Em disputa
+                </Badge>
+              )}
             </div>
           )}
           {produto.codigo}
@@ -572,11 +623,36 @@ export default function FabricaProdutosAcabados() {
                 <Link2 className="h-3 w-3" />
               </span>
             )}
-            <span className={isChild ? "pl-4" : ""}>{produto.nome}</span>
+            {isConcorrente && (
+              <span className="text-violet-500 shrink-0 flex items-center gap-1 mr-1">
+                <span className="text-muted-foreground">↳</span>
+                <Link2 className="h-3 w-3" />
+              </span>
+            )}
+            <span className={isChild || isConcorrente ? "pl-4" : ""}>{produto.nome}</span>
           </div>
           {isChild && parentProduct && (
             <div className="text-[10px] text-blue-500 mt-0.5 pl-9">
               Kit: {parentProduct.codigo}
+            </div>
+          )}
+          {isConcorrente && sugestaoPai && (
+            <div className="text-[10px] text-violet-600 dark:text-violet-400 mt-0.5 pl-9 flex items-center gap-2">
+              <span>Sugestão: {sugestaoPai.codigo}</span>
+              {deltaCustoPct != null && (
+                <span
+                  className={`tabular-nums font-medium ${
+                    deltaCustoPct < 0
+                      ? "text-emerald-600 dark:text-emerald-400"
+                      : deltaCustoPct > 0
+                        ? "text-destructive"
+                        : "text-muted-foreground"
+                  }`}
+                >
+                  {deltaCustoPct > 0 ? "+" : ""}
+                  {deltaCustoPct.toFixed(1)}% vs Sugestão
+                </span>
+              )}
             </div>
           )}
         </TableCell>
