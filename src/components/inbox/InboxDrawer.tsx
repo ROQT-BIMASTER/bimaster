@@ -10,7 +10,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
 import {
   Inbox, Send, Eye, UserCheck, Search, Archive, Clock, Star,
-  CheckCheck, ExternalLink, FolderKanban, Workflow, Palette,
+  CheckCheck, FolderKanban, Workflow, Palette,
   Globe2, ShieldCheck, FlaskConical, Package, Layers
 } from "lucide-react";
 import { useMemo, useState, useEffect, useRef } from "react";
