@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import {
   DndContext,
   PointerSensor,
@@ -7,6 +8,7 @@ import {
   type DragEndEvent,
   useDroppable,
 } from "@dnd-kit/core";
+import { useQueryClient } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -33,6 +35,9 @@ import {
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
+import { uniqueChannelName } from "@/lib/realtime/channelName";
+import { logger } from "@/lib/logger";
 import {
   useKanbanAprovacoes,
   type EscopoKanban,
@@ -49,6 +54,7 @@ import { KanbanConfigSheet } from "./KanbanConfigSheet";
 import { CardAprovacao } from "./kanban/CardAprovacao";
 import { JornadaDrawer } from "./kanban/JornadaDrawer";
 import { MoverColunaDialog } from "./kanban/MoverColunaDialog";
+import { AprovacoesEmptyState } from "./AprovacoesEmptyState";
 
 interface Props {
   escopo: EscopoKanban["escopo"];
@@ -151,9 +157,36 @@ export function KanbanAprovacoes({
   }, [escopo, user?.id, projetoId, secaoId, prefs.modo_visao]);
 
   const { data, isLoading } = useKanbanAprovacoes(input);
+  const qc = useQueryClient();
   const [drawerItem, setDrawerItem] = useState<KanbanItem | null>(null);
-  const [pipelineFiltro, setPipelineFiltro] = useState<string>("all");
+  const [pipelineFiltro, setPipelineFiltro] = useState<string>(() => {
+    const sp = new URLSearchParams(window.location.search);
+    return sp.get("pipeline") || "all";
+  });
   const [configOpen, setConfigOpen] = useState(false);
+
+  // Realtime: invalida a query quando algum item/histórico do escopo muda.
+  useEffect(() => {
+    if (!user?.id) return;
+    const channel = supabase
+      .channel(uniqueChannelName(`kanban-aprovacoes:${user.id}`))
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "aprovacao_documento_itens" },
+        () => qc.invalidateQueries({ queryKey: ["kanban-aprovacoes"] }),
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "fluxo_aprovacao_historico" },
+        () => qc.invalidateQueries({ queryKey: ["kanban-aprovacoes"] }),
+      )
+      .subscribe((status, err) => {
+        if (err) logger.error("[KanbanAprovacoes] realtime error", { error: err });
+      });
+    return () => {
+      supabase.removeChannel(channel).catch(() => undefined);
+    };
+  }, [user?.id, qc]);
 
   const allPipelines: KanbanPipeline[] = data?.pipelines || [];
   const itens: KanbanItem[] = data?.itens || [];
@@ -300,11 +333,18 @@ export function KanbanAprovacoes({
     return Array.from(m.entries()).map(([id, nome]) => ({ id, nome }));
   }, [itens]);
 
-  const [projetoFiltro, setProjetoFiltro] = useState<string>("all");
-  const [tarefaFiltro, setTarefaFiltro] = useState<string>("all");
-  const [busca, setBusca] = useState<string>("");
-  const [buscaDebounced, setBuscaDebounced] = useState<string>("");
-  const [prazoFiltro, setPrazoFiltro] = useState<"all" | "hoje" | "atrasadas" | "7dias" | "sem_prazo">("all");
+  // URL state: filtros persistem na URL (?prazo=atrasadas&projeto=...&...)
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [projetoFiltro, setProjetoFiltro] = useState<string>(() => searchParams.get("projeto") || "all");
+  const [tarefaFiltro, setTarefaFiltro] = useState<string>(() => searchParams.get("tarefa") || "all");
+  const [busca, setBusca] = useState<string>(() => searchParams.get("q") || "");
+  const [buscaDebounced, setBuscaDebounced] = useState<string>(busca.trim().toLowerCase());
+  const [prazoFiltro, setPrazoFiltro] = useState<"all" | "hoje" | "atrasadas" | "7dias" | "sem_prazo">(
+    () => (searchParams.get("prazo") as any) || "all",
+  );
+  const [statusFiltro, setStatusFiltro] = useState<"all" | "ativos" | "finalizadas">(
+    () => (searchParams.get("status") as any) || "all",
+  );
   const buscaRef = useRef<HTMLInputElement>(null);
 
   // Debounce busca
@@ -312,6 +352,27 @@ export function KanbanAprovacoes({
     const t = setTimeout(() => setBuscaDebounced(busca.trim().toLowerCase()), 300);
     return () => clearTimeout(t);
   }, [busca]);
+
+  // Sincroniza filtros com URL (replace, sem poluir histórico)
+  useEffect(() => {
+    const next = new URLSearchParams(searchParams);
+    const set = (k: string, v: string, def: string) => {
+      if (v && v !== def) next.set(k, v);
+      else next.delete(k);
+    };
+    set("projeto", projetoFiltro, "all");
+    set("tarefa", tarefaFiltro, "all");
+    set("prazo", prazoFiltro, "all");
+    set("status", statusFiltro, "all");
+    set("q", buscaDebounced, "");
+    if (pipelineFiltro && pipelineFiltro !== "all") next.set("pipeline", pipelineFiltro);
+    else next.delete("pipeline");
+    if (next.toString() !== searchParams.toString()) {
+      setSearchParams(next, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projetoFiltro, tarefaFiltro, prazoFiltro, statusFiltro, buscaDebounced, pipelineFiltro]);
+
 
   // Atalho "/" para focar busca
   useEffect(() => {
@@ -375,8 +436,14 @@ export function KanbanAprovacoes({
       });
     }
 
+    if (statusFiltro === "ativos") {
+      arr = arr.filter((i) => i.status === "em_andamento");
+    } else if (statusFiltro === "finalizadas") {
+      arr = arr.filter((i) => ["aprovado", "rejeitado", "encaminhado", "cancelado"].includes(i.status));
+    }
+
     return arr;
-  }, [itensFiltrados, projetoFiltro, tarefaFiltro, buscaDebounced, prazoFiltro]);
+  }, [itensFiltrados, projetoFiltro, tarefaFiltro, buscaDebounced, prazoFiltro, statusFiltro]);
 
   // Re-distribui considerando filtros
   const itensPorColunaFinal = useMemo(() => {
@@ -394,6 +461,7 @@ export function KanbanAprovacoes({
     (tarefaFiltro !== "all" ? 1 : 0) +
     (pipelineFiltro !== "all" ? 1 : 0) +
     (prazoFiltro !== "all" ? 1 : 0) +
+    (statusFiltro !== "all" ? 1 : 0) +
     (buscaDebounced ? 1 : 0);
 
   function limparFiltros() {
@@ -401,6 +469,7 @@ export function KanbanAprovacoes({
     setTarefaFiltro("all");
     setPipelineFiltro("all");
     setPrazoFiltro("all");
+    setStatusFiltro("all");
     setBusca("");
   }
 
@@ -572,12 +641,21 @@ export function KanbanAprovacoes({
             <p className="text-xl font-semibold">{kpis.hoje}</p>
           </Card>
         </button>
-        <Card className="p-3 bg-card/70 backdrop-blur-sm">
-          <p className="text-[10px] text-muted-foreground uppercase">Finalizadas</p>
-          <p className="text-xl font-semibold text-muted-foreground">
-            {kpis.finalizados}
-          </p>
-        </Card>
+        <button
+          type="button"
+          onClick={() => setStatusFiltro(statusFiltro === "finalizadas" ? "all" : "finalizadas")}
+          className="text-left"
+        >
+          <Card className={cn(
+            "p-3 bg-card/70 backdrop-blur-sm transition hover:border-primary/40 hover:bg-card",
+            statusFiltro === "finalizadas" && "border-primary/60",
+          )}>
+            <p className="text-[10px] text-muted-foreground uppercase">Finalizadas</p>
+            <p className="text-xl font-semibold text-muted-foreground">
+              {kpis.finalizados}
+            </p>
+          </Card>
+        </button>
       </div>
 
       {isLoading && (
@@ -596,7 +674,11 @@ export function KanbanAprovacoes({
         </Card>
       )}
 
-      {!isLoading && allPipelines.length > 0 && (
+      {!isLoading && allPipelines.length > 0 && escopo === "pessoal" && itens.length === 0 && filtrosAtivos === 0 && (
+        <AprovacoesEmptyState />
+      )}
+
+      {!isLoading && allPipelines.length > 0 && !(escopo === "pessoal" && itens.length === 0 && filtrosAtivos === 0) && (
         <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
           <div className="flex gap-3 overflow-x-auto pb-3">
             {colunasVisiveis.map((k) => {
