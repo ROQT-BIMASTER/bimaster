@@ -126,7 +126,15 @@ export function InboxDrawer() {
     [items, selectedId]
   );
 
-  // Atalhos j/k/e
+  const previewHandleRef = useRef<PreviewHandle | null>(null);
+
+  function avancarParaProximo(currentId: string) {
+    const idx = items.findIndex((i) => i.id === currentId);
+    const next = items[idx + 1] ?? items[idx - 1] ?? null;
+    setSelectedId(next?.id ?? null);
+  }
+
+  // Atalhos j/k/e + a (ação primária) / r (rejeitar) / c (comentar)
   useEffect(() => {
     if (!open) return;
     const handler = (e: KeyboardEvent) => {
@@ -141,6 +149,18 @@ export function InboxDrawer() {
       if (e.key === "e" && selectedItem) {
         e.preventDefault();
         arquivar([selectedItem.id]);
+      }
+      if (e.key === "a" && selectedItem) {
+        e.preventDefault();
+        previewHandleRef.current?.triggerPrimary();
+      }
+      if (e.key === "r" && selectedItem) {
+        e.preventDefault();
+        previewHandleRef.current?.triggerReject();
+      }
+      if (e.key === "c" && selectedItem) {
+        e.preventDefault();
+        previewHandleRef.current?.focusComment();
       }
     };
     window.addEventListener("keydown", handler);
