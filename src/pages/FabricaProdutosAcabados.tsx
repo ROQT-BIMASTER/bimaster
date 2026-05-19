@@ -366,10 +366,16 @@ export default function FabricaProdutosAcabados() {
       }
       if (childrenPlaced.has(p.id)) continue;
       result.push(p);
-      // Concorrentes da Sugestão logo após
+      // Concorrentes da Sugestão logo após (colapsado por padrão).
+      // Mostra quando: toggle global ativo, linha expandida manualmente,
+      // ou a disputa já tem vencedor promovido (feedback de resultado).
       if (p.is_sugestao) {
         const concorrentes = sugestaoParaConcorrentesMap.get(p.id);
-        if (concorrentes && concorrentes.length > 0) {
+        const deveExpandir =
+          expandAllConcorrentes ||
+          expandedSugestoes.has(p.id) ||
+          !!p.vencedor_produto_id;
+        if (deveExpandir && concorrentes && concorrentes.length > 0) {
           for (const c of concorrentes) result.push(c);
         }
       }
