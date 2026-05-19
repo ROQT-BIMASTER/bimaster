@@ -53,7 +53,9 @@ Deno.serve(secureHandler({ auth: "none", rateLimit: 10, rateLimitPrefix: "asana-
     const body = await req.json();
     const { path, pat, workspace_gid, project_gids, phase, log_id: existingLogId } = body;
 
-    const asanaPat = pat || Deno.env.get("ASANA_PAT");
+    const asanaPatRaw = pat || Deno.env.get("ASANA_PAT") || "";
+    // Strip whitespace and any non-ASCII chars (smart quotes, zero-width, etc.) that break HTTP header ByteString
+    const asanaPat = asanaPatRaw.replace(/[^\x21-\x7E]/g, "");
     if (!asanaPat && path !== "/status") return json({ error: "Token do Asana não configurado" }, 400);
 
     switch (path) {
