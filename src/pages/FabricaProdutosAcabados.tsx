@@ -85,6 +85,24 @@ export default function FabricaProdutosAcabados() {
   const [dataInicio, setDataInicio] = useState("");
   const [dataFim, setDataFim] = useState("");
   const [tableFocus, setTableFocus] = useState(false);
+  // Expansão de concorrentes vinculados a Sugestões (colapsados por padrão).
+  const [expandedSugestoes, setExpandedSugestoes] = useState<Set<string>>(new Set());
+  const [expandAllConcorrentes, setExpandAllConcorrentes] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    return localStorage.getItem("fabrica:produtos:expandConcorrentes") === "1";
+  });
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    localStorage.setItem("fabrica:produtos:expandConcorrentes", expandAllConcorrentes ? "1" : "0");
+  }, [expandAllConcorrentes]);
+  const toggleSugestaoExpand = (id: string) => {
+    setExpandedSugestoes((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
   const [headerStyle, setHeaderStyle] = useState<"solid" | "subtle">(() => {
     if (typeof window === "undefined") return "solid";
     return (localStorage.getItem("pa_header_style") as "solid" | "subtle") || "solid";
