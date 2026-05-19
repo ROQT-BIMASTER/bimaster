@@ -1271,6 +1271,7 @@ export function ProjetoTarefaDetalhe({
           onToggle={onToggle}
           secoes={secoes}
           onMoveTarefa={onMoveTarefa}
+          projetoIdOverride={projetoId || (selectedSubtarefa as any).projeto_id}
         />
       )}
       {/* Focus Mode */}
