@@ -1152,19 +1152,79 @@ export function ProjetoTarefaDetalhe({
                                 ))}
                               </SelectContent>
                             </Select>
-                            {/* Responsável */}
-                            {st.responsavel ? (
-                              <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
-                                <Avatar className="h-4 w-4">
-                                  <AvatarImage src={st.responsavel.avatar_url || undefined} />
-                                  <AvatarFallback className="text-[7px] bg-primary/20 text-primary">
-                                    {st.responsavel.nome?.substring(0, 2).toUpperCase()}
-                                  </AvatarFallback>
-                                </Avatar>
-                                <span className="truncate max-w-[60px]">{st.responsavel.nome?.split(" ")[0]}</span>
-                              </div>
-                            ) : null}
-                            {/* Data prazo */}
+                            {/* Responsável (clicável para atribuir/trocar) */}
+                            <Popover>
+                              <PopoverTrigger asChild>
+                                <button
+                                  type="button"
+                                  className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground rounded px-1 py-0.5 hover:bg-muted/40 transition-colors"
+                                >
+                                  {st.responsavel ? (
+                                    <>
+                                      <Avatar className="h-4 w-4">
+                                        <AvatarImage src={st.responsavel.avatar_url || undefined} />
+                                        <AvatarFallback className="text-[7px] bg-primary/20 text-primary">
+                                          {st.responsavel.nome?.substring(0, 2).toUpperCase()}
+                                        </AvatarFallback>
+                                      </Avatar>
+                                      <span className="truncate max-w-[60px]">{st.responsavel.nome?.split(" ")[0]}</span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Plus className="h-3 w-3" />
+                                      <span>Responsável</span>
+                                    </>
+                                  )}
+                                </button>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-56 p-1" align="start">
+                                <div className="max-h-64 overflow-y-auto space-y-0.5">
+                                  {user && (
+                                    <button
+                                      type="button"
+                                      onClick={() => onUpdate(st.id, { responsavel_id: user.id } as any)}
+                                      className="w-full text-left text-xs px-2 py-1.5 rounded hover:bg-accent flex items-center gap-2"
+                                    >
+                                      <Plus className="h-3 w-3" />
+                                      Atribuir a mim
+                                    </button>
+                                  )}
+                                  {projetoMembros.length > 0 && <Separator className="my-1" />}
+                                  {projetoMembros.map(m => (
+                                    <button
+                                      key={m.id}
+                                      type="button"
+                                      onClick={() => onUpdate(st.id, { responsavel_id: m.user_id } as any)}
+                                      className={cn(
+                                        "w-full text-left text-xs px-2 py-1.5 rounded hover:bg-accent flex items-center gap-2",
+                                        st.responsavel_id === m.user_id && "bg-accent/60"
+                                      )}
+                                    >
+                                      <Avatar className="h-5 w-5">
+                                        <AvatarImage src={m.profile?.avatar_url || undefined} />
+                                        <AvatarFallback className="text-[8px] bg-primary/20 text-primary">
+                                          {m.profile?.nome?.substring(0, 2).toUpperCase() || "?"}
+                                        </AvatarFallback>
+                                      </Avatar>
+                                      <span className="truncate">{m.profile?.nome || "Membro"}</span>
+                                    </button>
+                                  ))}
+                                  {st.responsavel && (
+                                    <>
+                                      <Separator className="my-1" />
+                                      <button
+                                        type="button"
+                                        onClick={() => onUpdate(st.id, { responsavel_id: null } as any)}
+                                        className="w-full text-left text-xs px-2 py-1.5 rounded hover:bg-destructive/10 text-destructive flex items-center gap-2"
+                                      >
+                                        <X className="h-3 w-3" />
+                                        Remover responsável
+                                      </button>
+                                    </>
+                                  )}
+                                </div>
+                              </PopoverContent>
+                            </Popover>
                             {st.data_prazo && (
                               <span className={cn("text-[10px] px-1.5 py-0.5 rounded",
                                 new Date(st.data_prazo) < new Date() && st.status !== "concluida"
