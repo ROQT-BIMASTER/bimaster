@@ -172,6 +172,22 @@ export default function FabricaProdutosAcabados() {
     return { filhoParaPaiMap: filhoParaPai, paiParaFilhosMap: paiParaFilhos };
   }, [gradeItens]);
 
+  // Mapa Sugestão -> Concorrentes (via sugestao_pai_id)
+  const sugestaoParaConcorrentesMap = useMemo(() => {
+    const m = new Map<string, any[]>();
+    produtos?.forEach((p: any) => {
+      if (p.sugestao_pai_id) {
+        if (!m.has(p.sugestao_pai_id)) m.set(p.sugestao_pai_id, []);
+        m.get(p.sugestao_pai_id)!.push(p);
+      }
+    });
+    // ordena por custo asc (vencedor primeiro, depois menores custos)
+    m.forEach((arr, k) => {
+      arr.sort((a, b) => (a.custo_unitario ?? Infinity) - (b.custo_unitario ?? Infinity));
+    });
+    return m;
+  }, [produtos]);
+
   const { data: fichasConfig } = useSupabaseQuery(
     ["fabrica-produtos-fichas-config"],
     async () => {
