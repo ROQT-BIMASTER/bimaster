@@ -13,7 +13,7 @@ import {
   CheckCheck, ExternalLink, FolderKanban, Workflow, Palette,
   Globe2, ShieldCheck, FlaskConical, Package, Layers
 } from "lucide-react";
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -26,6 +26,7 @@ import {
 import { useInboxScope, type InboxScope } from "@/hooks/useInboxScope";
 import { useScreenPermissions } from "@/hooks/useScreenPermissions";
 import { useInboxScopeAudit } from "@/hooks/useInboxScopeAudit";
+import { getRichPreview, GenericPreview, type PreviewHandle } from "@/components/inbox/preview/previewRegistry";
 
 // Origens visíveis por escopo. "produto" e "hibrido" veem todas;
 // "generico" vê apenas Projetos (+ Aprovações se permitido).
