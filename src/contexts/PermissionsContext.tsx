@@ -250,16 +250,26 @@ export const PermissionsProvider = ({ children }: { children: ReactNode }) => {
       if (!isMountedRef.current) return;
 
       if (event === "SIGNED_IN") {
-        // SIGNED_IN pode significar troca de usuário — reset agressivo para evitar
-        // leakage de permissões entre contas. Mostra loader até revalidar.
-        globalPermissionsCache = null;
-        try { localStorage.removeItem(LOCAL_STORAGE_KEY); } catch {}
-        setModules([]);
-        setScreens([]);
-        setRole(null);
-        setIsAdmin(false);
-        setLoading(true);
-        fetchPermissions(true);
+        // SIGNED_IN pode significar (a) login novo / troca de usuário OU
+        // (b) Supabase re-emitindo o evento ao retomar aba/reconectar para o
+        // MESMO usuário. Só fazer reset agressivo quando o user.id mudou —
+        // caso contrário revalida em background (igual TOKEN_REFRESHED) para
+        // não piscar "Acesso Negado" enquanto o refetch roda.
+        const newUserId = newSession?.user?.id;
+        const sameUser = newUserId && globalPermissionsCache?.userId === newUserId;
+        if (sameUser) {
+          fetchPermissions(true);
+        } else {
+          globalPermissionsCache = null;
+          try { localStorage.removeItem(LOCAL_STORAGE_KEY); } catch {}
+          setModules([]);
+          setScreens([]);
+          setRole(null);
+          setIsAdmin(false);
+          setLoading(true);
+          fetchPermissions(true);
+        }
+
       } else if (event === "TOKEN_REFRESHED") {
         // TOKEN_REFRESHED é só renovação automática do JWT do MESMO usuário.
         // Antes zerávamos modules/screens + setLoading(true) → ProtectedRoute
