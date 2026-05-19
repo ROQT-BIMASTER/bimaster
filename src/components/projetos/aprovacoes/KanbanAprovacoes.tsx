@@ -697,6 +697,8 @@ export function KanbanAprovacoes({
                         item={it}
                         pipeline={pipelineMap.get(it.pipeline_id)}
                         onOpen={setDrawerItem}
+                        currentUserId={user?.id}
+                        onQuickAction={(item, destino) => setPendingMove({ item, destino })}
                       />
                     ))
                   )}
