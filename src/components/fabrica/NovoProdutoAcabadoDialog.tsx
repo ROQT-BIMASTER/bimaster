@@ -713,6 +713,37 @@ export function NovoProdutoAcabadoDialog({ open, onOpenChange, produtoEdit, onSu
                 />
               </div>
 
+              <div className="flex items-center justify-between rounded-md border border-border bg-muted/30 px-3 py-2">
+                <div>
+                  <Label htmlFor="is_sugestao" className="text-sm font-medium">
+                    Produto sugestão (cabeça de disputa)
+                  </Label>
+                  <p className="text-xs text-muted-foreground">
+                    Marque para usar este produto como cabeça de uma simulação. Você poderá vincular outros produtos como concorrentes e, ao escolher o vencedor, os demais ficam ocultos dentro deste cadastro.
+                  </p>
+                </div>
+                <input
+                  id="is_sugestao"
+                  type="checkbox"
+                  className="h-4 w-4 accent-primary"
+                  checked={!!formData.is_sugestao}
+                  disabled={formData.tipo === "DISPLAY"}
+                  onChange={(e) => setFormData({ ...formData, is_sugestao: e.target.checked })}
+                />
+              </div>
+
+              {formData.is_sugestao && produtoEdit?.id && (
+                <SugestaoConcorrentesPanel
+                  sugestaoId={produtoEdit.id}
+                  vencedorId={produtoEdit.vencedor_produto_id ?? null}
+                />
+              )}
+              {formData.is_sugestao && !produtoEdit?.id && (
+                <div className="rounded-md border border-dashed bg-muted/30 p-3 text-xs text-muted-foreground">
+                  Salve o produto primeiro para poder vincular concorrentes.
+                </div>
+              )}
+
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="categoria">Categoria</Label>
