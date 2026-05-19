@@ -57,6 +57,12 @@ export function ProdutoCard({
               {produto.modo_foco && (
                 <Badge variant="warning" className="text-[10px] px-1.5 py-0">Modo Foco</Badge>
               )}
+              {produto.is_sugestao && (
+                <Badge className="text-[10px] px-1.5 py-0 bg-violet-600 text-white hover:bg-violet-700">Sugestão</Badge>
+              )}
+              {produto.is_provador && (
+                <Badge className="text-[10px] px-1.5 py-0 bg-amber-500 text-white hover:bg-amber-600">Provador</Badge>
+              )}
               <Badge variant={produto.ativo ? "default" : "secondary"} className="text-[10px] px-1.5 py-0">
                 {produto.ativo ? "Ativo" : "Inativo"}
               </Badge>
