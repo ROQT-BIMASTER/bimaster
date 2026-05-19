@@ -538,44 +538,32 @@ export function InboxDrawer() {
                   </div>
                 </div>
 
-                <ScrollArea className="flex-1">
-                  <div className="p-4 space-y-4">
-                    {selectedItem.resumo && (
-                      <div className="text-sm leading-relaxed text-foreground whitespace-pre-wrap">
-                        {selectedItem.resumo}
-                      </div>
-                    )}
-                    {selectedItem.metadata && Object.keys(selectedItem.metadata).length > 0 && (
-                      <div className="rounded-md border bg-muted/30 p-3">
-                        <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-2">
-                          Detalhes
-                        </p>
-                        <dl className="text-xs space-y-1">
-                          {Object.entries(selectedItem.metadata).slice(0, 8).map(([k, v]) => (
-                            <div key={k} className="flex gap-2">
-                              <dt className="text-muted-foreground capitalize min-w-[100px]">{k.replace(/_/g, " ")}:</dt>
-                              <dd className="font-medium text-foreground truncate">{String(v)}</dd>
-                            </div>
-                          ))}
-                        </dl>
-                      </div>
-                    )}
-                  </div>
-                </ScrollArea>
-
-                <div className="border-t p-3 flex items-center gap-2 bg-muted/20">
-                  {selectedItem.action_url && (
-                    <Button onClick={() => handleNavegar(selectedItem)} className="gap-2">
-                      <ExternalLink className="h-4 w-4" />
-                      Abrir {ORIGEM_META[selectedItem.origem]?.label ?? "item"}
-                    </Button>
-                  )}
-                  {!selectedItem.lido_em && selectedItem.modo_leitura !== "acao" && (
-                    <Button variant="outline" onClick={() => marcarLido([selectedItem.id])}>
-                      Marcar como lido
-                    </Button>
-                  )}
-                </div>
+                {(() => {
+                  const Rich = getRichPreview(selectedItem);
+                  const handleResolved = () => {
+                    const id = selectedItem.id;
+                    arquivar([id]);
+                    avancarParaProximo(id);
+                  };
+                  if (Rich) {
+                    return (
+                      <Rich
+                        key={selectedItem.id}
+                        ref={previewHandleRef as any}
+                        item={selectedItem}
+                        onOpen={() => handleNavegar(selectedItem)}
+                        onResolved={handleResolved}
+                      />
+                    );
+                  }
+                  return (
+                    <GenericPreview
+                      key={selectedItem.id}
+                      item={selectedItem}
+                      onOpen={() => handleNavegar(selectedItem)}
+                    />
+                  );
+                })()}
               </>
             )}
           </section>
