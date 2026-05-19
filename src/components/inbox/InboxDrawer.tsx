@@ -238,6 +238,12 @@ export function InboxDrawer() {
             <span>navegar</span>
             <kbd className="px-1.5 py-0.5 rounded border bg-muted font-mono text-[10px] ml-1">e</kbd>
             <span>arquivar</span>
+            <kbd className="px-1.5 py-0.5 rounded border bg-muted font-mono text-[10px] ml-1">a</kbd>
+            <span>aprovar</span>
+            <kbd className="px-1.5 py-0.5 rounded border bg-muted font-mono text-[10px] ml-1">r</kbd>
+            <span>rejeitar</span>
+            <kbd className="px-1.5 py-0.5 rounded border bg-muted font-mono text-[10px] ml-1">c</kbd>
+            <span>comentar</span>
           </div>
         </div>
 
