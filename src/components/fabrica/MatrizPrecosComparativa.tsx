@@ -87,8 +87,35 @@ import { useVisibilityBlocks } from "@/hooks/useVisibilityBlocks";
 import { useUserRole } from "@/hooks/useUserRole";
 
 // Keys para localStorage
-const STORAGE_KEY_COLUMN_ORDER = "fabrica-matriz-column-order";
+const STORAGE_KEY_COLUMN_ORDER = "fabrica-matriz-column-order-v2";
 const STORAGE_KEY_COLUMN_COLORS = "fabrica-matriz-column-colors";
+
+// Ordena tabelas por hierarquia: raízes primeiro, depois filhas logo após sua base (DFS)
+function ordenarPorHierarquia(tabelas: TabelaPreco[]): TabelaPreco[] {
+  const filhosPorPai = new Map<string | null, TabelaPreco[]>();
+  tabelas.forEach((t) => {
+    const k = t.tabela_base_id ?? null;
+    const arr = filhosPorPai.get(k) || [];
+    arr.push(t);
+    filhosPorPai.set(k, arr);
+  });
+  const ordenar = (lista: TabelaPreco[]) =>
+    [...lista].sort((a, b) => (a.codigo || "").localeCompare(b.codigo || "", undefined, { numeric: true }));
+  const resultado: TabelaPreco[] = [];
+  const visitar = (pai: string | null) => {
+    ordenar(filhosPorPai.get(pai) || []).forEach((t) => {
+      resultado.push(t);
+      visitar(t.id);
+    });
+  };
+  visitar(null);
+  // Garante que tabelas órfãs (base inexistente) não fiquem de fora
+  const idsIncluidos = new Set(resultado.map((t) => t.id));
+  tabelas.forEach((t) => {
+    if (!idsIncluidos.has(t.id)) resultado.push(t);
+  });
+  return resultado;
+}
 
 // Cores predefinidas para colunas
 const COLUMN_COLORS = [
@@ -365,7 +392,7 @@ export function MatrizPrecosComparativa() {
   // Inicializar ordem das colunas quando tabelas carregam (se não houver ordem salva)
   useEffect(() => {
     if (tabelas && initialized && columnOrder.length === 0) {
-      setColumnOrder(tabelas.map(t => t.id));
+      setColumnOrder(ordenarPorHierarquia(tabelas).map(t => t.id));
     }
   }, [tabelas, initialized, columnOrder.length]);
 
@@ -444,7 +471,7 @@ export function MatrizPrecosComparativa() {
     // Filtrar tabelas baseado nas permissões do usuário
     const tabelasPermitidas = filterTablesByAccess(tabelas);
     
-    if (columnOrder.length === 0) return tabelasPermitidas;
+    if (columnOrder.length === 0) return ordenarPorHierarquia(tabelasPermitidas);
     
     // Usar ordem salva, filtrando IDs que não existem mais
     const ordenadas = columnOrder
