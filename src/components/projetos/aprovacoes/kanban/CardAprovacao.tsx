@@ -1,5 +1,7 @@
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import {
   FileText,
   ChevronRight,
@@ -7,6 +9,9 @@ import {
   Clock,
   GitBranch,
   Workflow,
+  Check,
+  X,
+  Undo2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useDraggable } from "@dnd-kit/core";
@@ -35,9 +40,11 @@ interface Props {
   item: KanbanItem;
   pipeline?: KanbanPipeline;
   onOpen: (item: KanbanItem) => void;
+  currentUserId?: string;
+  onQuickAction?: (item: KanbanItem, destino: "aprovado" | "rejeitado" | "em_revisao") => void;
 }
 
-export function CardAprovacao({ item, pipeline, onOpen }: Props) {
+export function CardAprovacao({ item, pipeline, onOpen, currentUserId, onQuickAction }: Props) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: item.id,
     data: { item },
@@ -53,6 +60,19 @@ export function CardAprovacao({ item, pipeline, onOpen }: Props) {
   const atual = idx >= 0 ? idx + 1 : 0;
   const isEncaminhamento = item.etapa_tipo === "encaminhamento";
 
+  const podeAgirRapido =
+    !!onQuickAction &&
+    !!currentUserId &&
+    item.status === "em_andamento" &&
+    item.responsavel_atual_id === currentUserId;
+  const podeDevolver = podeAgirRapido && (item.etapa_ordem ?? 1) > 1;
+
+  function quick(e: React.MouseEvent, destino: "aprovado" | "rejeitado" | "em_revisao") {
+    e.stopPropagation();
+    e.preventDefault();
+    onQuickAction?.(item, destino);
+  }
+
   return (
     <Card
       ref={setNodeRef}
@@ -60,7 +80,7 @@ export function CardAprovacao({ item, pipeline, onOpen }: Props) {
       {...listeners}
       onClick={() => onOpen(item)}
       className={cn(
-        "p-2.5 cursor-pointer hover:border-primary/40 transition border-l-[3px] bg-card/80 backdrop-blur-sm",
+        "group relative p-2.5 cursor-pointer hover:border-primary/40 transition border-l-[3px] bg-card/80 backdrop-blur-sm",
         pipelineColor(item.pipeline_id),
         isDragging && "opacity-50",
       )}
@@ -121,6 +141,64 @@ export function CardAprovacao({ item, pipeline, onOpen }: Props) {
           )
         )}
       </div>
+
+      {/* Quick actions — visíveis no hover, apenas para o responsável atual */}
+      {podeAgirRapido && !isEncaminhamento && (
+        <TooltipProvider delayDuration={150}>
+          <div
+            className="absolute top-1.5 right-1.5 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition bg-card/95 backdrop-blur-sm rounded-md border shadow-sm p-0.5"
+            onPointerDown={(e) => e.stopPropagation()}
+          >
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  type="button"
+                  size="icon"
+                  variant="ghost"
+                  className="h-6 w-6 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-500/10"
+                  onClick={(e) => quick(e, "aprovado")}
+                  aria-label="Aprovar"
+                >
+                  <Check className="h-3.5 w-3.5" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="top" className="text-[10px]">Aprovar</TooltipContent>
+            </Tooltip>
+            {podeDevolver && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="ghost"
+                    className="h-6 w-6 text-amber-600 hover:text-amber-700 hover:bg-amber-500/10"
+                    onClick={(e) => quick(e, "em_revisao")}
+                    aria-label="Devolver para revisão"
+                  >
+                    <Undo2 className="h-3.5 w-3.5" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="top" className="text-[10px]">Devolver</TooltipContent>
+              </Tooltip>
+            )}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  type="button"
+                  size="icon"
+                  variant="ghost"
+                  className="h-6 w-6 text-destructive hover:bg-destructive/10"
+                  onClick={(e) => quick(e, "rejeitado")}
+                  aria-label="Rejeitar"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="top" className="text-[10px]">Rejeitar</TooltipContent>
+            </Tooltip>
+          </div>
+        </TooltipProvider>
+      )}
     </Card>
   );
 }
