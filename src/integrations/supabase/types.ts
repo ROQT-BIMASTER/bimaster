@@ -16969,6 +16969,7 @@ export type Database = {
           grupo_cenario_id: string | null
           id: string
           is_provador: boolean
+          is_sugestao: boolean
           itens_display: number | null
           lead_time_dias: number | null
           linha: string | null
@@ -16995,6 +16996,7 @@ export type Database = {
           status: string | null
           status_lancamento: string | null
           subcategoria: string | null
+          sugestao_pai_id: string | null
           tempo_producao_minutos: number | null
           tipo: string | null
           tipo_rotulagem: string | null
@@ -17002,6 +17004,7 @@ export type Database = {
           unidade_medida_id: string | null
           updated_at: string | null
           updated_by: string | null
+          vencedor_produto_id: string | null
           versao: string | null
           versao_variacao: string | null
         }
@@ -17026,6 +17029,7 @@ export type Database = {
           grupo_cenario_id?: string | null
           id?: string
           is_provador?: boolean
+          is_sugestao?: boolean
           itens_display?: number | null
           lead_time_dias?: number | null
           linha?: string | null
@@ -17052,6 +17056,7 @@ export type Database = {
           status?: string | null
           status_lancamento?: string | null
           subcategoria?: string | null
+          sugestao_pai_id?: string | null
           tempo_producao_minutos?: number | null
           tipo?: string | null
           tipo_rotulagem?: string | null
@@ -17059,6 +17064,7 @@ export type Database = {
           unidade_medida_id?: string | null
           updated_at?: string | null
           updated_by?: string | null
+          vencedor_produto_id?: string | null
           versao?: string | null
           versao_variacao?: string | null
         }
@@ -17083,6 +17089,7 @@ export type Database = {
           grupo_cenario_id?: string | null
           id?: string
           is_provador?: boolean
+          is_sugestao?: boolean
           itens_display?: number | null
           lead_time_dias?: number | null
           linha?: string | null
@@ -17109,6 +17116,7 @@ export type Database = {
           status?: string | null
           status_lancamento?: string | null
           subcategoria?: string | null
+          sugestao_pai_id?: string | null
           tempo_producao_minutos?: number | null
           tipo?: string | null
           tipo_rotulagem?: string | null
@@ -17116,6 +17124,7 @@ export type Database = {
           unidade_medida_id?: string | null
           updated_at?: string | null
           updated_by?: string | null
+          vencedor_produto_id?: string | null
           versao?: string | null
           versao_variacao?: string | null
         }
@@ -17149,11 +17158,53 @@ export type Database = {
             referencedColumns: ["provador_id"]
           },
           {
+            foreignKeyName: "fabrica_produtos_sugestao_pai_id_fkey"
+            columns: ["sugestao_pai_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_produtos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_produtos_sugestao_pai_id_fkey"
+            columns: ["sugestao_pai_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fabrica_provadores_custo"
+            referencedColumns: ["pai_id"]
+          },
+          {
+            foreignKeyName: "fabrica_produtos_sugestao_pai_id_fkey"
+            columns: ["sugestao_pai_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fabrica_provadores_custo"
+            referencedColumns: ["provador_id"]
+          },
+          {
             foreignKeyName: "fabrica_produtos_unidade_medida_id_fkey"
             columns: ["unidade_medida_id"]
             isOneToOne: false
             referencedRelation: "fabrica_unidades_medida"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_produtos_vencedor_produto_id_fkey"
+            columns: ["vencedor_produto_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_produtos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_produtos_vencedor_produto_id_fkey"
+            columns: ["vencedor_produto_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fabrica_provadores_custo"
+            referencedColumns: ["pai_id"]
+          },
+          {
+            foreignKeyName: "fabrica_produtos_vencedor_produto_id_fkey"
+            columns: ["vencedor_produto_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fabrica_provadores_custo"
+            referencedColumns: ["provador_id"]
           },
         ]
       }
@@ -47275,6 +47326,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      rpc_desvincular_concorrente_sugestao: {
+        Args: { p_concorrente_id: string }
+        Returns: undefined
+      }
       rpc_desvincular_op_da_oc: {
         Args: { p_vinculo_id: string }
         Returns: undefined
@@ -47357,7 +47412,15 @@ export type Database = {
         Returns: string
       }
       rpc_promover_cenario: { Args: { p_produto_id: string }; Returns: string }
+      rpc_promover_vencedor_sugestao: {
+        Args: { p_sugestao_id: string; p_vencedor_id: string }
+        Returns: undefined
+      }
       rpc_reabrir_cenario: { Args: { p_produto_id: string }; Returns: string }
+      rpc_reabrir_disputa_sugestao: {
+        Args: { p_sugestao_id: string }
+        Returns: undefined
+      }
       rpc_recalcular_alertas_china: {
         Args: { _submissao_id: string }
         Returns: number
@@ -47437,6 +47500,10 @@ export type Database = {
       }
       rpc_update_member_avatar: {
         Args: { _avatar_url: string; _member_id: string }
+        Returns: undefined
+      }
+      rpc_vincular_concorrente_sugestao: {
+        Args: { p_concorrente_id: string; p_sugestao_id: string }
         Returns: undefined
       }
       rpc_vincular_op_existente: {
