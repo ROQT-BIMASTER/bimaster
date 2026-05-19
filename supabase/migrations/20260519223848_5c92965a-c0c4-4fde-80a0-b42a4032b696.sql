@@ -1,0 +1,1 @@
+DELETE FROM fabrica_produto_custos WHERE produto_id IN (SELECT id FROM fabrica_produtos WHERE codigo LIKE 'WE%' OR codigo LIKE 'TR%');
