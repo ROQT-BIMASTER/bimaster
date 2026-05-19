@@ -10,10 +10,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
 import {
   Inbox, Send, Eye, UserCheck, Search, Archive, Clock, Star,
-  CheckCheck, ExternalLink, FolderKanban, Workflow, Palette,
+  CheckCheck, FolderKanban, Workflow, Palette,
   Globe2, ShieldCheck, FlaskConical, Package, Layers
 } from "lucide-react";
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -26,6 +26,7 @@ import {
 import { useInboxScope, type InboxScope } from "@/hooks/useInboxScope";
 import { useScreenPermissions } from "@/hooks/useScreenPermissions";
 import { useInboxScopeAudit } from "@/hooks/useInboxScopeAudit";
+import { getRichPreview, GenericPreview, type PreviewHandle } from "@/components/inbox/preview/previewRegistry";
 
 // Origens visíveis por escopo. "produto" e "hibrido" veem todas;
 // "generico" vê apenas Projetos (+ Aprovações se permitido).
@@ -125,7 +126,15 @@ export function InboxDrawer() {
     [items, selectedId]
   );
 
-  // Atalhos j/k/e
+  const previewHandleRef = useRef<PreviewHandle | null>(null);
+
+  function avancarParaProximo(currentId: string) {
+    const idx = items.findIndex((i) => i.id === currentId);
+    const next = items[idx + 1] ?? items[idx - 1] ?? null;
+    setSelectedId(next?.id ?? null);
+  }
+
+  // Atalhos j/k/e + a (ação primária) / r (rejeitar) / c (comentar)
   useEffect(() => {
     if (!open) return;
     const handler = (e: KeyboardEvent) => {
@@ -140,6 +149,18 @@ export function InboxDrawer() {
       if (e.key === "e" && selectedItem) {
         e.preventDefault();
         arquivar([selectedItem.id]);
+      }
+      if (e.key === "a" && selectedItem) {
+        e.preventDefault();
+        previewHandleRef.current?.triggerPrimary();
+      }
+      if (e.key === "r" && selectedItem) {
+        e.preventDefault();
+        previewHandleRef.current?.triggerReject();
+      }
+      if (e.key === "c" && selectedItem) {
+        e.preventDefault();
+        previewHandleRef.current?.focusComment();
       }
     };
     window.addEventListener("keydown", handler);
@@ -217,6 +238,12 @@ export function InboxDrawer() {
             <span>navegar</span>
             <kbd className="px-1.5 py-0.5 rounded border bg-muted font-mono text-[10px] ml-1">e</kbd>
             <span>arquivar</span>
+            <kbd className="px-1.5 py-0.5 rounded border bg-muted font-mono text-[10px] ml-1">a</kbd>
+            <span>aprovar</span>
+            <kbd className="px-1.5 py-0.5 rounded border bg-muted font-mono text-[10px] ml-1">r</kbd>
+            <span>rejeitar</span>
+            <kbd className="px-1.5 py-0.5 rounded border bg-muted font-mono text-[10px] ml-1">c</kbd>
+            <span>comentar</span>
           </div>
         </div>
 
@@ -511,44 +538,32 @@ export function InboxDrawer() {
                   </div>
                 </div>
 
-                <ScrollArea className="flex-1">
-                  <div className="p-4 space-y-4">
-                    {selectedItem.resumo && (
-                      <div className="text-sm leading-relaxed text-foreground whitespace-pre-wrap">
-                        {selectedItem.resumo}
-                      </div>
-                    )}
-                    {selectedItem.metadata && Object.keys(selectedItem.metadata).length > 0 && (
-                      <div className="rounded-md border bg-muted/30 p-3">
-                        <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-2">
-                          Detalhes
-                        </p>
-                        <dl className="text-xs space-y-1">
-                          {Object.entries(selectedItem.metadata).slice(0, 8).map(([k, v]) => (
-                            <div key={k} className="flex gap-2">
-                              <dt className="text-muted-foreground capitalize min-w-[100px]">{k.replace(/_/g, " ")}:</dt>
-                              <dd className="font-medium text-foreground truncate">{String(v)}</dd>
-                            </div>
-                          ))}
-                        </dl>
-                      </div>
-                    )}
-                  </div>
-                </ScrollArea>
-
-                <div className="border-t p-3 flex items-center gap-2 bg-muted/20">
-                  {selectedItem.action_url && (
-                    <Button onClick={() => handleNavegar(selectedItem)} className="gap-2">
-                      <ExternalLink className="h-4 w-4" />
-                      Abrir {ORIGEM_META[selectedItem.origem]?.label ?? "item"}
-                    </Button>
-                  )}
-                  {!selectedItem.lido_em && selectedItem.modo_leitura !== "acao" && (
-                    <Button variant="outline" onClick={() => marcarLido([selectedItem.id])}>
-                      Marcar como lido
-                    </Button>
-                  )}
-                </div>
+                {(() => {
+                  const Rich = getRichPreview(selectedItem);
+                  const handleResolved = () => {
+                    const id = selectedItem.id;
+                    arquivar([id]);
+                    avancarParaProximo(id);
+                  };
+                  if (Rich) {
+                    return (
+                      <Rich
+                        key={selectedItem.id}
+                        ref={previewHandleRef as any}
+                        item={selectedItem}
+                        onOpen={() => handleNavegar(selectedItem)}
+                        onResolved={handleResolved}
+                      />
+                    );
+                  }
+                  return (
+                    <GenericPreview
+                      key={selectedItem.id}
+                      item={selectedItem}
+                      onOpen={() => handleNavegar(selectedItem)}
+                    />
+                  );
+                })()}
               </>
             )}
           </section>
