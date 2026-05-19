@@ -29,7 +29,7 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Plus, Search, Package, Edit, Trash2, Upload, DollarSign, FileX, Filter, Layers, X, TrendingUp, ClipboardList, HelpCircle, LayoutGrid, TableIcon, BarChart3, ChevronDown, MessageSquare, Kanban, Link2, Eye, EyeOff, User, PanelLeftClose, PanelLeftOpen, Calendar, Clock, AlertTriangle, Maximize2, Minimize2, Palette, ArrowLeft, ShieldQuestion, MoreHorizontal, BookOpen } from "lucide-react";
+import { Plus, Search, Package, Edit, Trash2, Upload, DollarSign, FileX, Filter, Layers, X, TrendingUp, ClipboardList, HelpCircle, LayoutGrid, TableIcon, BarChart3, ChevronDown, ChevronRight, ChevronsDownUp, ChevronsUpDown, MessageSquare, Kanban, Link2, Eye, EyeOff, User, PanelLeftClose, PanelLeftOpen, Calendar, Clock, AlertTriangle, Maximize2, Minimize2, Palette, ArrowLeft, ShieldQuestion, MoreHorizontal, BookOpen } from "lucide-react";
 import { PhotoPermissionDiagnosticsDialog } from "@/components/fabrica/PhotoPermissionDiagnosticsDialog";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
@@ -85,6 +85,24 @@ export default function FabricaProdutosAcabados() {
   const [dataInicio, setDataInicio] = useState("");
   const [dataFim, setDataFim] = useState("");
   const [tableFocus, setTableFocus] = useState(false);
+  // Expansão de concorrentes vinculados a Sugestões (colapsados por padrão).
+  const [expandedSugestoes, setExpandedSugestoes] = useState<Set<string>>(new Set());
+  const [expandAllConcorrentes, setExpandAllConcorrentes] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    return localStorage.getItem("fabrica:produtos:expandConcorrentes") === "1";
+  });
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    localStorage.setItem("fabrica:produtos:expandConcorrentes", expandAllConcorrentes ? "1" : "0");
+  }, [expandAllConcorrentes]);
+  const toggleSugestaoExpand = (id: string) => {
+    setExpandedSugestoes((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
   const [headerStyle, setHeaderStyle] = useState<"solid" | "subtle">(() => {
     if (typeof window === "undefined") return "solid";
     return (localStorage.getItem("pa_header_style") as "solid" | "subtle") || "solid";
@@ -348,10 +366,16 @@ export default function FabricaProdutosAcabados() {
       }
       if (childrenPlaced.has(p.id)) continue;
       result.push(p);
-      // Concorrentes da Sugestão logo após
+      // Concorrentes da Sugestão logo após (colapsado por padrão).
+      // Mostra quando: toggle global ativo, linha expandida manualmente,
+      // ou a disputa já tem vencedor promovido (feedback de resultado).
       if (p.is_sugestao) {
         const concorrentes = sugestaoParaConcorrentesMap.get(p.id);
-        if (concorrentes && concorrentes.length > 0) {
+        const deveExpandir =
+          expandAllConcorrentes ||
+          expandedSugestoes.has(p.id) ||
+          !!p.vencedor_produto_id;
+        if (deveExpandir && concorrentes && concorrentes.length > 0) {
           for (const c of concorrentes) result.push(c);
         }
       }
@@ -376,7 +400,7 @@ export default function FabricaProdutosAcabados() {
       }
     }
     return result;
-  }, [produtos, busca, filtroMarca, filtroLinha, filtroTipo, filtroProvador, filtroStatusFicha, fichasMap, mostrarOcultos, dataInicio, dataFim, paiParaFilhosMap, sugestaoParaConcorrentesMap]);
+  }, [produtos, busca, filtroMarca, filtroLinha, filtroTipo, filtroProvador, filtroStatusFicha, fichasMap, mostrarOcultos, dataInicio, dataFim, paiParaFilhosMap, sugestaoParaConcorrentesMap, expandAllConcorrentes, expandedSugestoes]);
 
   // Comparativo KPI "Em Revisão" vs lista filtrada — alerta quando algum
   // filtro ativo está escondendo itens contados no KPI.
@@ -616,6 +640,28 @@ export default function FabricaProdutosAcabados() {
         </TableCell>
         <TableCell className="font-medium py-2 text-[13px]">
           <div className="flex items-center gap-1.5">
+            {produto.is_sugestao && concorrentesCount > 0 && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggleSugestaoExpand(produto.id);
+                }}
+                className="shrink-0 h-5 w-5 inline-flex items-center justify-center rounded hover:bg-violet-500/15 text-violet-600 dark:text-violet-300"
+                title={
+                  expandAllConcorrentes || expandedSugestoes.has(produto.id) || !!produto.vencedor_produto_id
+                    ? "Recolher concorrentes"
+                    : `Mostrar ${concorrentesCount} concorrente${concorrentesCount > 1 ? "s" : ""}`
+                }
+                aria-label="Alternar concorrentes"
+              >
+                {expandAllConcorrentes || expandedSugestoes.has(produto.id) || !!produto.vencedor_produto_id ? (
+                  <ChevronDown className="h-3.5 w-3.5" />
+                ) : (
+                  <ChevronRight className="h-3.5 w-3.5" />
+                )}
+              </button>
+            )}
             {isDisplay && <Layers className="h-3.5 w-3.5 text-primary shrink-0" />}
             {isChild && (
               <span className="text-blue-500 shrink-0 flex items-center gap-1 mr-1">
@@ -1362,6 +1408,69 @@ export default function FabricaProdutosAcabados() {
                       <MessageSquare className="h-3 w-3 mr-1" />
                       Revisões
                     </Link>
+                  </Button>
+                </div>
+              );
+            })()}
+
+            {/* Barra de controle de concorrentes — aparece só quando há Sugestões com disputa */}
+            {(() => {
+              const sugestoesComDisputa = (produtos || []).filter(
+                (p: any) => p.is_sugestao && (sugestaoParaConcorrentesMap.get(p.id)?.length ?? 0) > 0
+              );
+              const totalConcorrentes = sugestoesComDisputa.reduce(
+                (acc: number, p: any) => acc + (sugestaoParaConcorrentesMap.get(p.id)?.length ?? 0),
+                0
+              );
+              if (sugestoesComDisputa.length === 0) return null;
+              const algumExpandido =
+                expandAllConcorrentes ||
+                sugestoesComDisputa.some((p: any) => expandedSugestoes.has(p.id));
+              return (
+                <div className="mb-2 flex items-center gap-2 flex-wrap rounded-md border border-violet-500/30 bg-violet-500/[0.06] px-2.5 py-1.5 text-[12px] text-violet-700 dark:text-violet-200">
+                  <Layers className="h-3.5 w-3.5 text-violet-500 shrink-0" />
+                  <span className="flex-1 min-w-0">
+                    <strong className="tabular-nums">{sugestoesComDisputa.length}</strong>{" "}
+                    {sugestoesComDisputa.length === 1 ? "sugestão" : "sugestões"}
+                    <span className="text-muted-foreground ml-2">
+                      · <strong className="tabular-nums">{totalConcorrentes}</strong> em disputa
+                    </span>
+                  </span>
+                  {algumExpandido && !expandAllConcorrentes && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-6 px-2 text-[11px]"
+                      onClick={() => setExpandedSugestoes(new Set())}
+                    >
+                      Recolher individuais
+                    </Button>
+                  )}
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-6 px-2 text-[11px] border-violet-500/40 bg-transparent"
+                    onClick={() => {
+                      setExpandAllConcorrentes((v) => !v);
+                      if (expandAllConcorrentes) setExpandedSugestoes(new Set());
+                    }}
+                    title={
+                      expandAllConcorrentes
+                        ? "Recolher todos os concorrentes"
+                        : "Expandir todos os concorrentes"
+                    }
+                  >
+                    {expandAllConcorrentes ? (
+                      <>
+                        <ChevronsDownUp className="h-3 w-3 mr-1" />
+                        Recolher concorrentes
+                      </>
+                    ) : (
+                      <>
+                        <ChevronsUpDown className="h-3 w-3 mr-1" />
+                        Expandir concorrentes
+                      </>
+                    )}
                   </Button>
                 </div>
               );
