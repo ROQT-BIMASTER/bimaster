@@ -32,6 +32,7 @@ import { ProdutoHistoricoTimeline } from "@/components/fabrica/ProdutoHistoricoT
 import { CadastroIAStep } from "@/components/fabrica/CadastroIAStep";
 import { logAuditAction } from "@/lib/auditLog";
 import { Badge } from "@/components/ui/badge";
+import { SugestaoConcorrentesPanel } from "@/components/fabrica/SugestaoConcorrentesPanel";
 
 interface Props {
   open: boolean;
@@ -89,6 +90,7 @@ export function NovoProdutoAcabadoDialog({ open, onOpenChange, produtoEdit, onSu
     origem: "nacional",
     tipo_rotulagem: "",
     is_provador: false,
+    is_sugestao: false,
   });
 
   const [gradeItems, setGradeItems] = useState<any[]>([]);
@@ -157,6 +159,7 @@ export function NovoProdutoAcabadoDialog({ open, onOpenChange, produtoEdit, onSu
         origem: produtoEdit.origem || "nacional",
         tipo_rotulagem: produtoEdit.tipo_rotulagem || "",
         is_provador: produtoEdit.is_provador ?? false,
+        is_sugestao: produtoEdit.is_sugestao ?? false,
       });
 
       // Load grade items for DISPLAY products
@@ -219,6 +222,7 @@ export function NovoProdutoAcabadoDialog({ open, onOpenChange, produtoEdit, onSu
         origem: "nacional",
         tipo_rotulagem: "",
         is_provador: false,
+        is_sugestao: false,
       });
       setGradeItems([]);
       setGradeItems([]);
@@ -259,6 +263,7 @@ export function NovoProdutoAcabadoDialog({ open, onOpenChange, produtoEdit, onSu
         origem: formData.origem,
         tipo_rotulagem: formData.tipo_rotulagem.trim() || null,
         is_provador: !!formData.is_provador,
+        is_sugestao: !!formData.is_sugestao,
         created_by: user.id,
       };
 
