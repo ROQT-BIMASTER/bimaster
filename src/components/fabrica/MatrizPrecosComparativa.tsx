@@ -392,7 +392,7 @@ export function MatrizPrecosComparativa() {
   // Inicializar ordem das colunas quando tabelas carregam (se não houver ordem salva)
   useEffect(() => {
     if (tabelas && initialized && columnOrder.length === 0) {
-      setColumnOrder(tabelas.map(t => t.id));
+      setColumnOrder(ordenarPorHierarquia(tabelas).map(t => t.id));
     }
   }, [tabelas, initialized, columnOrder.length]);
 
