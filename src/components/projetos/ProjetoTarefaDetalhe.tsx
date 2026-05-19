@@ -40,6 +40,7 @@ import { ProjetoTarefaTimeline } from "./ProjetoTarefaTimeline";
 import { TarefaAcessoHistorico } from "./TarefaAcessoHistorico";
 import { VisibilidadeDebugDialog } from "./VisibilidadeDebugDialog";
 import { useUserRole } from "@/hooks/useUserRole";
+import { useProjetoMembros } from "@/hooks/useProjetoMembros";
 import { ProjetoTarefaDependencias } from "./ProjetoTarefaDependencias";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
