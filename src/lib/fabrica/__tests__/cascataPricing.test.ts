@@ -29,6 +29,18 @@ describe("cascataPricing", () => {
     expect(aplicarMarkup(10, "valor_fixo", 2.5)).toBe(12.5);
   });
 
+  it("aplicarMarkup margem_pct (preco = base / (1 - margem))", () => {
+    // margem 40% sobre custo 60 → preço 100
+    expect(aplicarMarkup(60, "margem_pct", 40)).toBeCloseTo(100, 4);
+    // margem 100% é inválida → 0 (evita divisão por zero)
+    expect(aplicarMarkup(10, "margem_pct", 100)).toBe(0);
+  });
+
+  it("aplicarMarkup desconto_pct (preco = base * (1 - desc))", () => {
+    expect(aplicarMarkup(100, "desconto_pct", 10)).toBeCloseTo(90, 4);
+    expect(aplicarMarkup(100, "desconto_pct", 0)).toBe(100);
+  });
+
   it("aplicarMarkup retorna 0 para custo inválido (regressão PL/pgSQL divisão por zero)", () => {
     expect(aplicarMarkup(0, "percentual", 25)).toBe(0);
     expect(aplicarMarkup(-1, "multiplicador", 2)).toBe(0);
