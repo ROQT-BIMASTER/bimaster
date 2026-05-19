@@ -124,6 +124,9 @@ export default function FabricaProdutosAcabados() {
   const { data: produtos, isLoading, refetch } = useSupabaseQuery(
     ["fabrica-produtos-acabados"],
     async () => {
+      // Traz oficiais + concorrentes (sugestao_pai_id IS NOT NULL) para que
+      // a tela principal mostre a disputa logo abaixo do produto Sugestão.
+      // Arquivados (modo='arquivado') continuam fora.
       const { data, error } = await supabase
         .from("fabrica_produtos")
         .select(`
@@ -131,7 +134,7 @@ export default function FabricaProdutosAcabados() {
           unidade:fabrica_unidades_medida(sigla, nome)
         `)
         .in("tipo", ["ACABADO", "INTER", "DISPLAY"])
-        .eq("modo", "oficial")
+        .or('modo.eq.oficial,sugestao_pai_id.not.is.null')
         .or('origem.is.null,origem.neq.importado')
         .order("created_at", { ascending: false });
 
