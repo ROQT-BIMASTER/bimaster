@@ -463,7 +463,15 @@ export function JornadaDrawer({ item, pipeline, open, onOpenChange }: Props) {
             <>
               <Separator />
               <div className="space-y-2">
-                <p className="text-xs font-semibold">Sua decisão</p>
+                <div className="flex items-center justify-between">
+                  <p className="text-xs font-semibold">Sua decisão</p>
+                  <p className="text-[10px] text-muted-foreground">
+                    Atalhos:{" "}
+                    <kbd className="px-1 py-0.5 rounded border bg-muted text-[9px] font-mono">A</kbd> aprovar ·{" "}
+                    <kbd className="px-1 py-0.5 rounded border bg-muted text-[9px] font-mono">R</kbd> rejeitar ·{" "}
+                    <kbd className="px-1 py-0.5 rounded border bg-muted text-[9px] font-mono">D</kbd> devolver
+                  </p>
+                </div>
                 <Textarea
                   placeholder="Comentário (opcional)"
                   value={comentario}
