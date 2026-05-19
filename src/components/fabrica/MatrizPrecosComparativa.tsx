@@ -471,7 +471,7 @@ export function MatrizPrecosComparativa() {
     // Filtrar tabelas baseado nas permissões do usuário
     const tabelasPermitidas = filterTablesByAccess(tabelas);
     
-    if (columnOrder.length === 0) return tabelasPermitidas;
+    if (columnOrder.length === 0) return ordenarPorHierarquia(tabelasPermitidas);
     
     // Usar ordem salva, filtrando IDs que não existem mais
     const ordenadas = columnOrder
