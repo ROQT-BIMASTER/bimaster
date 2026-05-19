@@ -77,6 +77,13 @@ export const PermissionsProvider = ({ children }: { children: ReactNode }) => {
           setScreens(fallback.screens);
           setRole(fallback.role);
           setIsAdmin(fallback.isAdmin);
+        } else if (permissionsReady && modules.length > 0) {
+          // UX: Aba retomada após inatividade — timers do JS ficaram suspensos e
+          // o timeout disparou antes do refetch completar. Como já tínhamos
+          // permissões válidas carregadas, preservar o estado visível e deixar
+          // o próximo fetchPermissions (disparado por SIGNED_IN/TOKEN_REFRESHED)
+          // revalidar em background. Evita flash de "Acesso Negado".
+          logger.log("[PermissionsContext] Safety timeout — preserving loaded permissions (tab resume)");
         } else {
           // SECURITY: Clear any stale state from previous user
           logger.log("[PermissionsContext] No valid fallback - clearing stale state");
@@ -90,7 +97,8 @@ export const PermissionsProvider = ({ children }: { children: ReactNode }) => {
     }, SAFETY_TIMEOUT);
     
     return () => clearTimeout(timeout);
-  }, [loading]);
+  }, [loading, permissionsReady, modules.length]);
+
 
   const fetchPermissions = useCallback(async (forceRefresh = false) => {
     // Prevent duplicate concurrent fetches
