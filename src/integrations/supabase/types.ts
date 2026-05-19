@@ -12441,6 +12441,20 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "fabrica_alertas_precos_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fabrica_provadores_custo"
+            referencedColumns: ["pai_id"]
+          },
+          {
+            foreignKeyName: "fabrica_alertas_precos_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fabrica_provadores_custo"
+            referencedColumns: ["provador_id"]
+          },
+          {
             foreignKeyName: "fabrica_alertas_precos_tabela_id_fkey"
             columns: ["tabela_id"]
             isOneToOne: false
@@ -13295,6 +13309,20 @@ export type Database = {
             referencedRelation: "fabrica_produtos"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "fabrica_custos_origem_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fabrica_provadores_custo"
+            referencedColumns: ["pai_id"]
+          },
+          {
+            foreignKeyName: "fabrica_custos_origem_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fabrica_provadores_custo"
+            referencedColumns: ["provador_id"]
+          },
         ]
       }
       fabrica_custos_producao: {
@@ -13899,6 +13927,20 @@ export type Database = {
             referencedRelation: "fabrica_produtos"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "fabrica_ficha_custo_revisoes_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fabrica_provadores_custo"
+            referencedColumns: ["pai_id"]
+          },
+          {
+            foreignKeyName: "fabrica_ficha_custo_revisoes_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fabrica_provadores_custo"
+            referencedColumns: ["provador_id"]
+          },
         ]
       }
       fabrica_ficha_revisoes_audit_log: {
@@ -14293,6 +14335,20 @@ export type Database = {
             referencedRelation: "fabrica_produtos"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "fabrica_formulas_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fabrica_provadores_custo"
+            referencedColumns: ["pai_id"]
+          },
+          {
+            foreignKeyName: "fabrica_formulas_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fabrica_provadores_custo"
+            referencedColumns: ["provador_id"]
+          },
         ]
       }
       fabrica_fornecedores: {
@@ -14476,6 +14532,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "fabrica_produtos"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_historico_precos_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fabrica_provadores_custo"
+            referencedColumns: ["pai_id"]
+          },
+          {
+            foreignKeyName: "fabrica_historico_precos_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fabrica_provadores_custo"
+            referencedColumns: ["provador_id"]
           },
           {
             foreignKeyName: "fabrica_historico_precos_tabela_id_fkey"
@@ -14920,6 +14990,20 @@ export type Database = {
             referencedRelation: "fabrica_produtos"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "fabrica_itens_nf_saida_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fabrica_provadores_custo"
+            referencedColumns: ["pai_id"]
+          },
+          {
+            foreignKeyName: "fabrica_itens_nf_saida_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fabrica_provadores_custo"
+            referencedColumns: ["provador_id"]
+          },
         ]
       }
       fabrica_limites_preco_tabela: {
@@ -14969,6 +15053,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "fabrica_produtos"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_limites_preco_tabela_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fabrica_provadores_custo"
+            referencedColumns: ["pai_id"]
+          },
+          {
+            foreignKeyName: "fabrica_limites_preco_tabela_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fabrica_provadores_custo"
+            referencedColumns: ["provador_id"]
           },
           {
             foreignKeyName: "fabrica_limites_preco_tabela_tabela_id_fkey"
@@ -15177,6 +15275,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "fabrica_produtos"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_markup_overrides_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fabrica_provadores_custo"
+            referencedColumns: ["pai_id"]
+          },
+          {
+            foreignKeyName: "fabrica_markup_overrides_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fabrica_provadores_custo"
+            referencedColumns: ["provador_id"]
           },
           {
             foreignKeyName: "fabrica_markup_overrides_tabela_id_fkey"
@@ -15599,6 +15711,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "fabrica_produtos"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_mp_cotacoes_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fabrica_provadores_custo"
+            referencedColumns: ["pai_id"]
+          },
+          {
+            foreignKeyName: "fabrica_mp_cotacoes_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fabrica_provadores_custo"
+            referencedColumns: ["provador_id"]
           },
         ]
       }
@@ -16066,6 +16192,20 @@ export type Database = {
             referencedRelation: "fabrica_produtos"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "fabrica_ordens_producao_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fabrica_provadores_custo"
+            referencedColumns: ["pai_id"]
+          },
+          {
+            foreignKeyName: "fabrica_ordens_producao_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fabrica_provadores_custo"
+            referencedColumns: ["provador_id"]
+          },
         ]
       }
       fabrica_paradas: {
@@ -16309,6 +16449,20 @@ export type Database = {
             referencedRelation: "fabrica_produtos"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "fabrica_planos_inspecao_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fabrica_provadores_custo"
+            referencedColumns: ["pai_id"]
+          },
+          {
+            foreignKeyName: "fabrica_planos_inspecao_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fabrica_provadores_custo"
+            referencedColumns: ["provador_id"]
+          },
         ]
       }
       fabrica_precos_produtos: {
@@ -16331,6 +16485,7 @@ export type Database = {
           preco_manual: number | null
           preco_original_calculado: number | null
           produto_id: string
+          status_preco: string | null
           tabela_id: string
         }
         Insert: {
@@ -16352,6 +16507,7 @@ export type Database = {
           preco_manual?: number | null
           preco_original_calculado?: number | null
           produto_id: string
+          status_preco?: string | null
           tabela_id: string
         }
         Update: {
@@ -16373,6 +16529,7 @@ export type Database = {
           preco_manual?: number | null
           preco_original_calculado?: number | null
           produto_id?: string
+          status_preco?: string | null
           tabela_id?: string
         }
         Relationships: [
@@ -16403,6 +16560,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "fabrica_produtos"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_precos_produtos_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fabrica_provadores_custo"
+            referencedColumns: ["pai_id"]
+          },
+          {
+            foreignKeyName: "fabrica_precos_produtos_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fabrica_provadores_custo"
+            referencedColumns: ["provador_id"]
           },
           {
             foreignKeyName: "fabrica_precos_produtos_tabela_id_fkey"
@@ -16457,10 +16628,13 @@ export type Database = {
       fabrica_produto_custos: {
         Row: {
           codigo: string
+          codigo_fornecedor: string | null
+          codigo_insumo: string | null
           created_at: string | null
           created_by: string | null
           custo_condicao: number | null
           custo_nf: number | null
+          custo_nf_made_in: number
           custo_servico: number | null
           fornecedor: string | null
           id: string
@@ -16470,16 +16644,20 @@ export type Database = {
           nf_referencia: string | null
           nome: string
           ordem: number | null
+          origem_preco: string | null
           produto_id: string
           tipo_insumo: string | null
           updated_at: string | null
         }
         Insert: {
           codigo: string
+          codigo_fornecedor?: string | null
+          codigo_insumo?: string | null
           created_at?: string | null
           created_by?: string | null
           custo_condicao?: number | null
           custo_nf?: number | null
+          custo_nf_made_in?: number
           custo_servico?: number | null
           fornecedor?: string | null
           id?: string
@@ -16489,16 +16667,20 @@ export type Database = {
           nf_referencia?: string | null
           nome: string
           ordem?: number | null
+          origem_preco?: string | null
           produto_id: string
           tipo_insumo?: string | null
           updated_at?: string | null
         }
         Update: {
           codigo?: string
+          codigo_fornecedor?: string | null
+          codigo_insumo?: string | null
           created_at?: string | null
           created_by?: string | null
           custo_condicao?: number | null
           custo_nf?: number | null
+          custo_nf_made_in?: number
           custo_servico?: number | null
           fornecedor?: string | null
           id?: string
@@ -16508,6 +16690,7 @@ export type Database = {
           nf_referencia?: string | null
           nome?: string
           ordem?: number | null
+          origem_preco?: string | null
           produto_id?: string
           tipo_insumo?: string | null
           updated_at?: string | null
@@ -16526,6 +16709,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "fabrica_produtos"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_produto_custos_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fabrica_provadores_custo"
+            referencedColumns: ["pai_id"]
+          },
+          {
+            foreignKeyName: "fabrica_produto_custos_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fabrica_provadores_custo"
+            referencedColumns: ["provador_id"]
           },
         ]
       }
@@ -16587,6 +16784,20 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "fabrica_produto_custos_config_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: true
+            referencedRelation: "vw_fabrica_provadores_custo"
+            referencedColumns: ["pai_id"]
+          },
+          {
+            foreignKeyName: "fabrica_produto_custos_config_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: true
+            referencedRelation: "vw_fabrica_provadores_custo"
+            referencedColumns: ["provador_id"]
+          },
+          {
             foreignKeyName: "fk_revisao_ativa"
             columns: ["revisao_ativa_id"]
             isOneToOne: false
@@ -16635,11 +16846,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "fabrica_produto_grade_itens_produto_filho_id_fkey"
+            columns: ["produto_filho_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fabrica_provadores_custo"
+            referencedColumns: ["pai_id"]
+          },
+          {
+            foreignKeyName: "fabrica_produto_grade_itens_produto_filho_id_fkey"
+            columns: ["produto_filho_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fabrica_provadores_custo"
+            referencedColumns: ["provador_id"]
+          },
+          {
             foreignKeyName: "fabrica_produto_grade_itens_produto_pai_id_fkey"
             columns: ["produto_pai_id"]
             isOneToOne: false
             referencedRelation: "fabrica_produtos"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_produto_grade_itens_produto_pai_id_fkey"
+            columns: ["produto_pai_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fabrica_provadores_custo"
+            referencedColumns: ["pai_id"]
+          },
+          {
+            foreignKeyName: "fabrica_produto_grade_itens_produto_pai_id_fkey"
+            columns: ["produto_pai_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fabrica_provadores_custo"
+            referencedColumns: ["provador_id"]
           },
         ]
       }
@@ -16686,6 +16925,20 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "fabrica_produto_visibility_blocks_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fabrica_provadores_custo"
+            referencedColumns: ["pai_id"]
+          },
+          {
+            foreignKeyName: "fabrica_produto_visibility_blocks_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fabrica_provadores_custo"
+            referencedColumns: ["provador_id"]
+          },
+          {
             foreignKeyName: "fabrica_produto_visibility_blocks_tabela_id_fkey"
             columns: ["tabela_id"]
             isOneToOne: false
@@ -16701,6 +16954,7 @@ export type Database = {
           cenario_label: string | null
           codigo: string
           codigo_barras_ean: string | null
+          codigo_erp: string | null
           codigo_legado: string | null
           created_at: string | null
           created_by: string | null
@@ -16709,6 +16963,7 @@ export type Database = {
           descricao_completa: string | null
           descricao_curta: string | null
           fabricante: string | null
+          ficha_id: string | null
           formula_id: string | null
           foto_url: string | null
           grupo_cenario_id: string | null
@@ -16725,7 +16980,9 @@ export type Database = {
           nome: string
           nome_comercial: string | null
           oculto: boolean
+          oficial: boolean
           origem: string | null
+          parametros_fiscais: Json
           preco_maximo: number | null
           preco_minimo: number | null
           processo_anvisa: string | null
@@ -16734,15 +16991,18 @@ export type Database = {
           promovido_por: string | null
           rendimento: number | null
           sku: string | null
+          sku_pai_id: string | null
           status: string | null
           status_lancamento: string | null
           subcategoria: string | null
           tempo_producao_minutos: number | null
           tipo: string | null
           tipo_rotulagem: string | null
+          tipo_sku: Database["public"]["Enums"]["fabrica_tipo_sku"]
           unidade_medida_id: string | null
           updated_at: string | null
           updated_by: string | null
+          versao: string | null
           versao_variacao: string | null
         }
         Insert: {
@@ -16751,6 +17011,7 @@ export type Database = {
           cenario_label?: string | null
           codigo: string
           codigo_barras_ean?: string | null
+          codigo_erp?: string | null
           codigo_legado?: string | null
           created_at?: string | null
           created_by?: string | null
@@ -16759,6 +17020,7 @@ export type Database = {
           descricao_completa?: string | null
           descricao_curta?: string | null
           fabricante?: string | null
+          ficha_id?: string | null
           formula_id?: string | null
           foto_url?: string | null
           grupo_cenario_id?: string | null
@@ -16775,7 +17037,9 @@ export type Database = {
           nome: string
           nome_comercial?: string | null
           oculto?: boolean
+          oficial?: boolean
           origem?: string | null
+          parametros_fiscais?: Json
           preco_maximo?: number | null
           preco_minimo?: number | null
           processo_anvisa?: string | null
@@ -16784,15 +17048,18 @@ export type Database = {
           promovido_por?: string | null
           rendimento?: number | null
           sku?: string | null
+          sku_pai_id?: string | null
           status?: string | null
           status_lancamento?: string | null
           subcategoria?: string | null
           tempo_producao_minutos?: number | null
           tipo?: string | null
           tipo_rotulagem?: string | null
+          tipo_sku?: Database["public"]["Enums"]["fabrica_tipo_sku"]
           unidade_medida_id?: string | null
           updated_at?: string | null
           updated_by?: string | null
+          versao?: string | null
           versao_variacao?: string | null
         }
         Update: {
@@ -16801,6 +17068,7 @@ export type Database = {
           cenario_label?: string | null
           codigo?: string
           codigo_barras_ean?: string | null
+          codigo_erp?: string | null
           codigo_legado?: string | null
           created_at?: string | null
           created_by?: string | null
@@ -16809,6 +17077,7 @@ export type Database = {
           descricao_completa?: string | null
           descricao_curta?: string | null
           fabricante?: string | null
+          ficha_id?: string | null
           formula_id?: string | null
           foto_url?: string | null
           grupo_cenario_id?: string | null
@@ -16825,7 +17094,9 @@ export type Database = {
           nome?: string
           nome_comercial?: string | null
           oculto?: boolean
+          oficial?: boolean
           origem?: string | null
+          parametros_fiscais?: Json
           preco_maximo?: number | null
           preco_minimo?: number | null
           processo_anvisa?: string | null
@@ -16834,15 +17105,18 @@ export type Database = {
           promovido_por?: string | null
           rendimento?: number | null
           sku?: string | null
+          sku_pai_id?: string | null
           status?: string | null
           status_lancamento?: string | null
           subcategoria?: string | null
           tempo_producao_minutos?: number | null
           tipo?: string | null
           tipo_rotulagem?: string | null
+          tipo_sku?: Database["public"]["Enums"]["fabrica_tipo_sku"]
           unidade_medida_id?: string | null
           updated_at?: string | null
           updated_by?: string | null
+          versao?: string | null
           versao_variacao?: string | null
         }
         Relationships: [
@@ -16852,6 +17126,27 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "fabrica_formulas"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_produtos_sku_pai_id_fkey"
+            columns: ["sku_pai_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_produtos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_produtos_sku_pai_id_fkey"
+            columns: ["sku_pai_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fabrica_provadores_custo"
+            referencedColumns: ["pai_id"]
+          },
+          {
+            foreignKeyName: "fabrica_produtos_sku_pai_id_fkey"
+            columns: ["sku_pai_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fabrica_provadores_custo"
+            referencedColumns: ["provador_id"]
           },
           {
             foreignKeyName: "fabrica_produtos_unidade_medida_id_fkey"
@@ -16900,6 +17195,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "fabrica_produtos"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_produtos_historico_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fabrica_provadores_custo"
+            referencedColumns: ["pai_id"]
+          },
+          {
+            foreignKeyName: "fabrica_produtos_historico_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fabrica_provadores_custo"
+            referencedColumns: ["provador_id"]
           },
         ]
       }
@@ -17666,6 +17975,7 @@ export type Database = {
           ordem: number | null
           origem_aplicavel: string | null
           owner_cnpj: string | null
+          permite_preco_manual: boolean
           status: string
           tabela_base_id: string | null
           tipo_base: string
@@ -17690,6 +18000,7 @@ export type Database = {
           ordem?: number | null
           origem_aplicavel?: string | null
           owner_cnpj?: string | null
+          permite_preco_manual?: boolean
           status?: string
           tabela_base_id?: string | null
           tipo_base?: string
@@ -17714,6 +18025,7 @@ export type Database = {
           ordem?: number | null
           origem_aplicavel?: string | null
           owner_cnpj?: string | null
+          permite_preco_manual?: boolean
           status?: string
           tabela_base_id?: string | null
           tipo_base?: string
@@ -17946,6 +18258,20 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "fabrica_tarefas_ajuste_preco_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fabrica_provadores_custo"
+            referencedColumns: ["pai_id"]
+          },
+          {
+            foreignKeyName: "fabrica_tarefas_ajuste_preco_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fabrica_provadores_custo"
+            referencedColumns: ["provador_id"]
+          },
+          {
             foreignKeyName: "fabrica_tarefas_ajuste_preco_tabela_id_fkey"
             columns: ["tabela_id"]
             isOneToOne: false
@@ -17965,6 +18291,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "fabrica_produtos"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_produto"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fabrica_provadores_custo"
+            referencedColumns: ["pai_id"]
+          },
+          {
+            foreignKeyName: "fk_produto"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fabrica_provadores_custo"
+            referencedColumns: ["provador_id"]
           },
           {
             foreignKeyName: "fk_tabela"
@@ -22310,6 +22650,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "fabrica_produtos"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lancamentos_produtos_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fabrica_provadores_custo"
+            referencedColumns: ["pai_id"]
+          },
+          {
+            foreignKeyName: "lancamentos_produtos_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fabrica_provadores_custo"
+            referencedColumns: ["provador_id"]
           },
           {
             foreignKeyName: "lancamentos_produtos_responsavel_id_fkey"
@@ -32236,6 +32590,20 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "projeto_produto_vinculos_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fabrica_provadores_custo"
+            referencedColumns: ["pai_id"]
+          },
+          {
+            foreignKeyName: "projeto_produto_vinculos_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fabrica_provadores_custo"
+            referencedColumns: ["provador_id"]
+          },
+          {
             foreignKeyName: "projeto_produto_vinculos_projeto_id_fkey"
             columns: ["projeto_id"]
             isOneToOne: false
@@ -33212,6 +33580,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "fabrica_produtos"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projeto_tarefas_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fabrica_provadores_custo"
+            referencedColumns: ["pai_id"]
+          },
+          {
+            foreignKeyName: "projeto_tarefas_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fabrica_provadores_custo"
+            referencedColumns: ["provador_id"]
           },
           {
             foreignKeyName: "projeto_tarefas_projeto_id_fkey"
@@ -41837,6 +42219,20 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "user_price_table_access_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fabrica_provadores_custo"
+            referencedColumns: ["pai_id"]
+          },
+          {
+            foreignKeyName: "user_price_table_access_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fabrica_provadores_custo"
+            referencedColumns: ["provador_id"]
+          },
+          {
             foreignKeyName: "user_price_table_access_tabela_id_fkey"
             columns: ["tabela_id"]
             isOneToOne: false
@@ -44400,6 +44796,22 @@ export type Database = {
         }
         Relationships: []
       }
+      vw_fabrica_provadores_custo: {
+        Row: {
+          custo_fabrica: number | null
+          custo_pai: number | null
+          oficial: boolean | null
+          pai_codigo: string | null
+          pai_id: string | null
+          pai_nome: string | null
+          pct_do_pai: number | null
+          provador_codigo: string | null
+          provador_id: string | null
+          provador_nome: string | null
+          tipo_sku: Database["public"]["Enums"]["fabrica_tipo_sku"] | null
+        }
+        Relationships: []
+      }
       vw_op_pronto_embarque: {
         Row: {
           data_fim: string | null
@@ -44438,6 +44850,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "fabrica_produtos"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_ordens_producao_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fabrica_provadores_custo"
+            referencedColumns: ["pai_id"]
+          },
+          {
+            foreignKeyName: "fabrica_ordens_producao_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fabrica_provadores_custo"
+            referencedColumns: ["provador_id"]
           },
         ]
       }
@@ -45276,6 +45702,10 @@ export type Database = {
             }
             Returns: string
           }
+      fn_fabrica_recalc_custo_final: {
+        Args: { p_produto_id: string }
+        Returns: number
+      }
       fn_get_cidades_sem_match: { Args: never; Returns: Json }
       fn_get_municipios_intelligence: {
         Args: {
@@ -47241,6 +47671,11 @@ export type Database = {
         | "etiqueta_teste"
         | "display"
       client_category: "A" | "B" | "C" | "D"
+      fabrica_tipo_sku:
+        | "produto"
+        | "provador"
+        | "produto_sugestao"
+        | "provador_sugestao"
       fluxo_arte_etapa:
         | "criacao"
         | "embalagem"
@@ -47448,6 +47883,12 @@ export const Constants = {
         "display",
       ],
       client_category: ["A", "B", "C", "D"],
+      fabrica_tipo_sku: [
+        "produto",
+        "provador",
+        "produto_sugestao",
+        "provador_sugestao",
+      ],
       fluxo_arte_etapa: [
         "criacao",
         "embalagem",

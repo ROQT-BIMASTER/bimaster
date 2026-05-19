@@ -3,9 +3,16 @@ import type { TabelaCadeiaItem } from "@/hooks/useCadeiaTabelas";
 /**
  * Aplica markup a um custo dado o tipo configurado na tabela.
  */
+export type TipoMarkup =
+  | "percentual"
+  | "multiplicador"
+  | "valor_fixo"
+  | "margem_pct"
+  | "desconto_pct";
+
 export function aplicarMarkup(
   custo: number,
-  tipo: "percentual" | "multiplicador" | "valor_fixo",
+  tipo: TipoMarkup,
   valor: number,
 ): number {
   if (!Number.isFinite(custo) || custo <= 0) return 0;
@@ -16,6 +23,14 @@ export function aplicarMarkup(
       return custo * valor;
     case "valor_fixo":
       return custo + valor;
+    case "margem_pct": {
+      // preco = base / (1 - margem). valor em pontos percentuais.
+      const m = valor / 100;
+      if (m >= 1) return 0;
+      return custo / (1 - m);
+    }
+    case "desconto_pct":
+      return custo * (1 - valor / 100);
   }
 }
 

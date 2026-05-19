@@ -8,7 +8,7 @@ export interface TabelaCadeiaItem {
   status: string;
   tabela_base_id: string | null;
   tipo_base: string;
-  tipo_markup: "percentual" | "multiplicador" | "valor_fixo";
+  tipo_markup: "percentual" | "multiplicador" | "valor_fixo" | "margem_pct" | "desconto_pct";
   valor_markup: number;
   ordem: number;
   nivel: number;

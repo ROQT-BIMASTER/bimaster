@@ -1,0 +1,1 @@
+ALTER VIEW public.vw_fabrica_provadores_custo SET (security_invoker = true);
