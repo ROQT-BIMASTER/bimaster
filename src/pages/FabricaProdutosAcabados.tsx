@@ -1413,6 +1413,69 @@ export default function FabricaProdutosAcabados() {
               );
             })()}
 
+            {/* Barra de controle de concorrentes — aparece só quando há Sugestões com disputa */}
+            {(() => {
+              const sugestoesComDisputa = (produtos || []).filter(
+                (p: any) => p.is_sugestao && (sugestaoParaConcorrentesMap.get(p.id)?.length ?? 0) > 0
+              );
+              const totalConcorrentes = sugestoesComDisputa.reduce(
+                (acc: number, p: any) => acc + (sugestaoParaConcorrentesMap.get(p.id)?.length ?? 0),
+                0
+              );
+              if (sugestoesComDisputa.length === 0) return null;
+              const algumExpandido =
+                expandAllConcorrentes ||
+                sugestoesComDisputa.some((p: any) => expandedSugestoes.has(p.id));
+              return (
+                <div className="mb-2 flex items-center gap-2 flex-wrap rounded-md border border-violet-500/30 bg-violet-500/[0.06] px-2.5 py-1.5 text-[12px] text-violet-700 dark:text-violet-200">
+                  <Layers className="h-3.5 w-3.5 text-violet-500 shrink-0" />
+                  <span className="flex-1 min-w-0">
+                    <strong className="tabular-nums">{sugestoesComDisputa.length}</strong>{" "}
+                    {sugestoesComDisputa.length === 1 ? "sugestão" : "sugestões"}
+                    <span className="text-muted-foreground ml-2">
+                      · <strong className="tabular-nums">{totalConcorrentes}</strong> em disputa
+                    </span>
+                  </span>
+                  {algumExpandido && !expandAllConcorrentes && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-6 px-2 text-[11px]"
+                      onClick={() => setExpandedSugestoes(new Set())}
+                    >
+                      Recolher individuais
+                    </Button>
+                  )}
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-6 px-2 text-[11px] border-violet-500/40 bg-transparent"
+                    onClick={() => {
+                      setExpandAllConcorrentes((v) => !v);
+                      if (expandAllConcorrentes) setExpandedSugestoes(new Set());
+                    }}
+                    title={
+                      expandAllConcorrentes
+                        ? "Recolher todos os concorrentes"
+                        : "Expandir todos os concorrentes"
+                    }
+                  >
+                    {expandAllConcorrentes ? (
+                      <>
+                        <ChevronsDownUp className="h-3 w-3 mr-1" />
+                        Recolher concorrentes
+                      </>
+                    ) : (
+                      <>
+                        <ChevronsUpDown className="h-3 w-3 mr-1" />
+                        Expandir concorrentes
+                      </>
+                    )}
+                  </Button>
+                </div>
+              );
+            })()}
+
             <div className={tableFocus ? "fixed inset-0 z-[60] bg-background flex flex-col" : ""}>
               {tableFocus && (
                 <div className="flex items-center justify-between px-4 h-12 border-b border-border bg-card shrink-0">
