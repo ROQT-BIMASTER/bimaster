@@ -32,6 +32,7 @@ import { ProdutoHistoricoTimeline } from "@/components/fabrica/ProdutoHistoricoT
 import { CadastroIAStep } from "@/components/fabrica/CadastroIAStep";
 import { logAuditAction } from "@/lib/auditLog";
 import { Badge } from "@/components/ui/badge";
+import { SugestaoConcorrentesPanel } from "@/components/fabrica/SugestaoConcorrentesPanel";
 
 interface Props {
   open: boolean;
@@ -89,6 +90,7 @@ export function NovoProdutoAcabadoDialog({ open, onOpenChange, produtoEdit, onSu
     origem: "nacional",
     tipo_rotulagem: "",
     is_provador: false,
+    is_sugestao: false,
   });
 
   const [gradeItems, setGradeItems] = useState<any[]>([]);
@@ -157,6 +159,7 @@ export function NovoProdutoAcabadoDialog({ open, onOpenChange, produtoEdit, onSu
         origem: produtoEdit.origem || "nacional",
         tipo_rotulagem: produtoEdit.tipo_rotulagem || "",
         is_provador: produtoEdit.is_provador ?? false,
+        is_sugestao: produtoEdit.is_sugestao ?? false,
       });
 
       // Load grade items for DISPLAY products
@@ -219,6 +222,7 @@ export function NovoProdutoAcabadoDialog({ open, onOpenChange, produtoEdit, onSu
         origem: "nacional",
         tipo_rotulagem: "",
         is_provador: false,
+        is_sugestao: false,
       });
       setGradeItems([]);
       setGradeItems([]);
@@ -259,6 +263,7 @@ export function NovoProdutoAcabadoDialog({ open, onOpenChange, produtoEdit, onSu
         origem: formData.origem,
         tipo_rotulagem: formData.tipo_rotulagem.trim() || null,
         is_provador: !!formData.is_provador,
+        is_sugestao: !!formData.is_sugestao,
         created_by: user.id,
       };
 
@@ -707,6 +712,37 @@ export function NovoProdutoAcabadoDialog({ open, onOpenChange, produtoEdit, onSu
                   onChange={(e) => setFormData({ ...formData, is_provador: e.target.checked })}
                 />
               </div>
+
+              <div className="flex items-center justify-between rounded-md border border-border bg-muted/30 px-3 py-2">
+                <div>
+                  <Label htmlFor="is_sugestao" className="text-sm font-medium">
+                    Produto sugestão (cabeça de disputa)
+                  </Label>
+                  <p className="text-xs text-muted-foreground">
+                    Marque para usar este produto como cabeça de uma simulação. Você poderá vincular outros produtos como concorrentes e, ao escolher o vencedor, os demais ficam ocultos dentro deste cadastro.
+                  </p>
+                </div>
+                <input
+                  id="is_sugestao"
+                  type="checkbox"
+                  className="h-4 w-4 accent-primary"
+                  checked={!!formData.is_sugestao}
+                  disabled={formData.tipo === "DISPLAY"}
+                  onChange={(e) => setFormData({ ...formData, is_sugestao: e.target.checked })}
+                />
+              </div>
+
+              {formData.is_sugestao && produtoEdit?.id && (
+                <SugestaoConcorrentesPanel
+                  sugestaoId={produtoEdit.id}
+                  vencedorId={produtoEdit.vencedor_produto_id ?? null}
+                />
+              )}
+              {formData.is_sugestao && !produtoEdit?.id && (
+                <div className="rounded-md border border-dashed bg-muted/30 p-3 text-xs text-muted-foreground">
+                  Salve o produto primeiro para poder vincular concorrentes.
+                </div>
+              )}
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
