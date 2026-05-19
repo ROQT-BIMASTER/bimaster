@@ -77,6 +77,13 @@ export const PermissionsProvider = ({ children }: { children: ReactNode }) => {
           setScreens(fallback.screens);
           setRole(fallback.role);
           setIsAdmin(fallback.isAdmin);
+        } else if (permissionsReady && modules.length > 0) {
+          // UX: Aba retomada após inatividade — timers do JS ficaram suspensos e
+          // o timeout disparou antes do refetch completar. Como já tínhamos
+          // permissões válidas carregadas, preservar o estado visível e deixar
+          // o próximo fetchPermissions (disparado por SIGNED_IN/TOKEN_REFRESHED)
+          // revalidar em background. Evita flash de "Acesso Negado".
+          logger.log("[PermissionsContext] Safety timeout — preserving loaded permissions (tab resume)");
         } else {
           // SECURITY: Clear any stale state from previous user
           logger.log("[PermissionsContext] No valid fallback - clearing stale state");
@@ -90,7 +97,8 @@ export const PermissionsProvider = ({ children }: { children: ReactNode }) => {
     }, SAFETY_TIMEOUT);
     
     return () => clearTimeout(timeout);
-  }, [loading]);
+  }, [loading, permissionsReady, modules.length]);
+
 
   const fetchPermissions = useCallback(async (forceRefresh = false) => {
     // Prevent duplicate concurrent fetches
@@ -242,16 +250,26 @@ export const PermissionsProvider = ({ children }: { children: ReactNode }) => {
       if (!isMountedRef.current) return;
 
       if (event === "SIGNED_IN") {
-        // SIGNED_IN pode significar troca de usuário — reset agressivo para evitar
-        // leakage de permissões entre contas. Mostra loader até revalidar.
-        globalPermissionsCache = null;
-        try { localStorage.removeItem(LOCAL_STORAGE_KEY); } catch {}
-        setModules([]);
-        setScreens([]);
-        setRole(null);
-        setIsAdmin(false);
-        setLoading(true);
-        fetchPermissions(true);
+        // SIGNED_IN pode significar (a) login novo / troca de usuário OU
+        // (b) Supabase re-emitindo o evento ao retomar aba/reconectar para o
+        // MESMO usuário. Só fazer reset agressivo quando o user.id mudou —
+        // caso contrário revalida em background (igual TOKEN_REFRESHED) para
+        // não piscar "Acesso Negado" enquanto o refetch roda.
+        const newUserId = newSession?.user?.id;
+        const sameUser = newUserId && globalPermissionsCache?.userId === newUserId;
+        if (sameUser) {
+          fetchPermissions(true);
+        } else {
+          globalPermissionsCache = null;
+          try { localStorage.removeItem(LOCAL_STORAGE_KEY); } catch {}
+          setModules([]);
+          setScreens([]);
+          setRole(null);
+          setIsAdmin(false);
+          setLoading(true);
+          fetchPermissions(true);
+        }
+
       } else if (event === "TOKEN_REFRESHED") {
         // TOKEN_REFRESHED é só renovação automática do JWT do MESMO usuário.
         // Antes zerávamos modules/screens + setLoading(true) → ProtectedRoute
