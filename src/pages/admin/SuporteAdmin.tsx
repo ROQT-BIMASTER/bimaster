@@ -151,16 +151,16 @@ export default function SuporteAdmin() {
   }, [ticketsPeriodo, busca, filtroCategoria]);
 
   const kpis = useMemo(() => {
-    const abertos = tickets.filter((t) => t.status !== "resolvido").length;
-    const escalados = tickets.filter((t) => t.status === "escalado").length;
-    const resolvidos = tickets.filter((t) => t.status === "resolvido").length;
-    const criticos = tickets.filter((t) => t.prioridade === "critica" && t.status !== "resolvido").length;
-    const atrasados = tickets.filter((t) => {
+    const abertos = ticketsPeriodo.filter((t) => t.status !== "resolvido").length;
+    const escalados = ticketsPeriodo.filter((t) => t.status === "escalado").length;
+    const resolvidos = ticketsPeriodo.filter((t) => t.status === "resolvido").length;
+    const criticos = ticketsPeriodo.filter((t) => t.prioridade === "critica" && t.status !== "resolvido").length;
+    const atrasados = ticketsPeriodo.filter((t) => {
       const i = slaInfo(t as any);
       return i?.tone === "destructive";
     }).length;
     return { abertos, escalados, resolvidos, criticos, atrasados };
-  }, [tickets]);
+  }, [ticketsPeriodo]);
 
   const charts = useMemo(() => {
     const porCategoria = new Map<string, number>();
