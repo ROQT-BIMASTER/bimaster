@@ -95,6 +95,43 @@ export default function FabricaProdutosAcabados() {
     if (typeof window === "undefined") return;
     localStorage.setItem("fabrica:produtos:expandConcorrentes", expandAllConcorrentes ? "1" : "0");
   }, [expandAllConcorrentes]);
+
+  // Ordenação por coluna (estilo Power BI: asc -> desc -> none)
+  type SortColumn =
+    | "codigo" | "nome" | "tipo" | "origem" | "ficha"
+    | "custo" | "formula" | "un" | "status" | "responsavel" | "cadastro";
+  type SortDir = "asc" | "desc" | null;
+  interface SortConfig { column: SortColumn | null; direction: SortDir; }
+  const [sortConfig, setSortConfig] = useState<SortConfig>(() => {
+    if (typeof window === "undefined") return { column: null, direction: null };
+    try {
+      const raw = localStorage.getItem("fabrica:produtos:sort");
+      if (!raw) return { column: null, direction: null };
+      const parsed = JSON.parse(raw);
+      if (parsed && parsed.column && (parsed.direction === "asc" || parsed.direction === "desc")) {
+        return parsed as SortConfig;
+      }
+    } catch { /* noop */ }
+    return { column: null, direction: null };
+  });
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      if (sortConfig.column && sortConfig.direction) {
+        localStorage.setItem("fabrica:produtos:sort", JSON.stringify(sortConfig));
+      } else {
+        localStorage.removeItem("fabrica:produtos:sort");
+      }
+    } catch { /* noop */ }
+  }, [sortConfig]);
+  const toggleSort = (column: SortColumn) => {
+    setSortConfig((prev) => {
+      if (prev.column !== column) return { column, direction: "asc" };
+      if (prev.direction === "asc") return { column, direction: "desc" };
+      return { column: null, direction: null };
+    });
+  };
+
   const toggleSugestaoExpand = (id: string) => {
     setExpandedSugestoes((prev) => {
       const next = new Set(prev);
