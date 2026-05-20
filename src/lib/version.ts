@@ -1525,3 +1525,35 @@ export async function forceCleanNavigate(targetPath: string): Promise<void> {
   url.searchParams.set('v', Date.now().toString());
   window.location.replace(url.toString());
 }
+
+// ============================================================================
+// Heartbeat de versão (Fase 2 — quebra do deadlock de cache)
+// ============================================================================
+// Lê <meta name="app-version"> do index.html servido pela rede (sem cache),
+// que é injetado em build time por appVersionMetaPlugin em vite.config.ts.
+// Como index.html é NetworkFirst + Cache-Control no-cache (Cloudflare),
+// essa meta tag sempre reflete o deploy mais recente — mesmo quando o
+// bundle JS no Service Worker está preso na versão antiga.
+//
+// Uso seguro: falha silenciosa em qualquer erro de rede/parse; nunca
+// quebra a UI; apenas retorna null.
+export async function getDeployedVersionFromHtml(): Promise<string | null> {
+  try {
+    const res = await fetch('/index.html', {
+      cache: 'no-store',
+      credentials: 'same-origin',
+    });
+    if (!res.ok) return null;
+    const html = await res.text();
+    const m = html.match(/<meta\s+name=["']app-version["']\s+content=["']([^"']+)["']/i);
+    return m ? m[1] : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Retorna true se a versão remota for diferente (não vazia) da local. */
+export function isVersionMismatch(remote: string | null): boolean {
+  if (!remote || remote === 'unknown') return false;
+  return remote !== APP_VERSION;
+}
