@@ -314,6 +314,7 @@ const SecurityHardeningCenterV2 = lazyWithRetry(() => import("./pages/admin/secu
 const MfaSettingsPage = lazyWithRetry(() => import("./pages/security/MfaSettingsPage"));
 const VisibilidadeTarefas = lazyWithRetry(() => import("./pages/admin/VisibilidadeTarefas"));
 const VersoesClientes = lazyWithRetry(() => import("./pages/admin/VersoesClientes"));
+const SuporteAdmin = lazyWithRetry(() => import("./pages/admin/SuporteAdmin"));
 const VisibilidadeProjetosAjuda = lazyWithRetry(() => import("./pages/ajuda/VisibilidadeProjetos"));
 const PoliticaPrivacidade = lazyWithRetry(() => import("./pages/PoliticaPrivacidade"));
 const TermosDeUso = lazyWithRetry(() => import("./pages/TermosDeUso"));
