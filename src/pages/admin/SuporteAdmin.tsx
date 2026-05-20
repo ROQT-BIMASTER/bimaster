@@ -30,6 +30,7 @@ interface Ticket {
   conversa_id: string;
   status: Status;
   prioridade: string | null;
+  categoria: string | null;
   titulo: string | null;
   resumo: string | null;
   projeto_tarefa_id: string | null;
@@ -41,6 +42,21 @@ interface Ticket {
   prazo_resposta_em: string | null;
   owner?: { nome: string | null; avatar_url: string | null } | null;
 }
+
+const CATEGORIA_LABEL: Record<string, string> = {
+  bug: "Bug",
+  duvida_uso: "Dúvida de uso",
+  solicitacao_acesso: "Acesso",
+  solicitacao_funcionalidade: "Nova feature",
+  integracao: "Integração",
+  financeiro: "Financeiro",
+  performance: "Performance",
+  dados_inconsistentes: "Dados",
+  outro: "Outro",
+};
+
+const CHART_COLORS = ["hsl(var(--primary))", "#f59e0b", "#ef4444", "#10b981", "#8b5cf6", "#06b6d4", "#ec4899", "#84cc16", "#64748b"];
+
 
 function slaInfo(t: { prazo_resposta_em: string | null; status: string }) {
   if (!t.prazo_resposta_em || t.status === "resolvido") return null;
