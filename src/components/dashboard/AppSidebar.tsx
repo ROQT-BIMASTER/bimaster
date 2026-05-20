@@ -2,7 +2,7 @@ import {
   Home, Users, Building2, LogOut, Settings, Upload, Shield, 
   LayoutGrid, CheckSquare, MapPin, MessageSquare, Activity, Clock,
   Store, Calendar, Camera, Tag, TrendingUp, Brain, ChevronDown, ChevronRight, ChevronUp, Image, ClipboardCheck, DollarSign, FileText, Download, Phone, Trophy, BarChart3, Sparkles, Package, Factory, Receipt, Layers, Cog, UserCircle, AlertCircle, AlertTriangle, Pause, Wrench, List, Bot, Wallet, Grid3X3, Briefcase, Rocket, PartyPopper, CreditCard, Pickaxe, Compass, Ticket, FolderKanban, Inbox, Mic, Globe, ShoppingCart, Send, Landmark, Palette, FlaskConical, Scale, Network, Key, Megaphone, BarChart2, UserCheck, Target, RefreshCw, X,
-  ShieldCheck, HeartPulse, Eye, GitCompare, Database, Footprints, MessageCircle, Share2, Wand2, CalendarDays, Workflow, Ship, AlertOctagon
+  ShieldCheck, HeartPulse, Eye, GitCompare, Database, Footprints, MessageCircle, Share2, Wand2, CalendarDays, Workflow, Ship, AlertOctagon, LifeBuoy
 } from "lucide-react";
 import { ThemeSelectorPopover } from "@/components/theme/ThemeSelectorPopover";
 import { LanguagePreferencePopover } from "@/components/profile/LanguagePreferencePopover";
@@ -1511,6 +1511,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
                     <MenuItemLink to="/dashboard/integracao-erp" icon={Key} title="Portal ERP" />
                   )}
                   <MenuItemLink to="/dashboard/admin-api-support" icon={MessageCircle} title="Suporte API" />
+                  <MenuItemLink to="/admin/suporte" icon={LifeBuoy} title="Central de Suporte" />
                   <MenuItemLink to="/dashboard/integracoes/asana" icon={RefreshCw} title="Asana Sync" />
                   <MenuItemLink to="/dashboard/integracoes/shipsgo" icon={Ship} title="Integração ShipsGo" />
                   <MenuItemLink to="/dashboard/estoque/sync-erp" icon={RefreshCw} title="Sync Estoque ERP" />
