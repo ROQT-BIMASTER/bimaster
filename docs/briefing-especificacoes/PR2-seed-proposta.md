@@ -99,6 +99,7 @@ itens:
 tipo: evento
 empresa_id: null
 marca: null
+tipo_uso: canonical
 fonte_spec: docs/briefing-especificacoes/01-fluxo-de-conversa.md#catálogo-padrão-de-brindes-para-evento
 itens:
   - { chave: lenco,                  nome: "Lenço" }
