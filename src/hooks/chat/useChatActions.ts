@@ -33,6 +33,8 @@ export function useChatActions() {
     if (conversaId) qc.invalidateQueries({ queryKey: ["chat", "mensagens", conversaId] });
   };
 
+  const SUPORTE_CONV_ID = "3daf9772-404f-42f4-adbf-8a2566d91870";
+
   const sendMessage = useMutation({
     mutationFn: async (input: SendMessageInput) => {
       if (!uid) throw new Error("não autenticado");
@@ -67,6 +69,16 @@ export function useChatActions() {
         const { error: aErr } = await supabase.from("mensagens_anexos").insert(rows);
         if (aErr) throw aErr;
       }
+
+      // Dispara o agente Ruby Rose imediatamente após envio no canal Suporte.
+      // Fire-and-forget: não bloqueia UI nem falha o envio se a IA estiver indisponível.
+      // Mais confiável que o Realtime, que pode estar CLOSED ou montado em outra rota.
+      if (input.conversaId === SUPORTE_CONV_ID) {
+        supabase.functions
+          .invoke("suporte-agente", { body: { mensagem_id: msg.id } })
+          .catch((err) => console.warn("[suporte-agente] invoke falhou:", err));
+      }
+
       return msg;
     },
     onSuccess: (m) => invalidate(m.conversa_id),

@@ -231,9 +231,23 @@ Deno.serve(secureHandler(
     if (msg.conversa_id !== SUPORTE_CONV_ID) return new Response(JSON.stringify({ ok: false, skip: "outra conversa" }), { headers: cors });
     if (msg.remetente_id === BOT_USER_ID) return new Response(JSON.stringify({ ok: false, skip: "bot" }), { headers: cors });
 
+    // Idempotência: se já existe resposta do bot referenciando esta mensagem, sai.
+    const { data: jaRespondida } = await sb
+      .from("mensagens")
+      .select("id")
+      .eq("conversa_id", SUPORTE_CONV_ID)
+      .eq("remetente_id", BOT_USER_ID)
+      .contains("metadata", { replies_to: parsed.data.mensagem_id })
+      .limit(1)
+      .maybeSingle();
+    if (jaRespondida) {
+      return new Response(JSON.stringify({ ok: true, skip: "ja_respondida" }), { headers: cors });
+    }
+
     const ownerId = msg.remetente_id;
     const ticket = await getOrCreateTicket(sb, ownerId);
     await sb.from("mensagens").update({ ticket_id: ticket.id }).eq("id", msg.id);
+
 
     const history = await loadHistory(sb, ownerId);
     const messages: any[] = [
@@ -282,7 +296,7 @@ Deno.serve(secureHandler(
       visibilidade: "privada_suporte",
       ticket_owner_id: ownerId,
       ticket_id: ticket.id,
-      metadata: { tipo: "resposta_agente" },
+      metadata: { tipo: "resposta_agente", replies_to: parsed.data.mensagem_id },
     });
 
     await sb.from("suporte_tickets").update({ ultima_interacao_em: new Date().toISOString() }).eq("id", ticket.id);
