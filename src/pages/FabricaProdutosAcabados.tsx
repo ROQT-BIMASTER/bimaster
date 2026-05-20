@@ -1699,24 +1699,55 @@ export default function FabricaProdutosAcabados() {
                             const headClass = headerStyle === "solid"
                               ? "h-10 text-[10px] uppercase tracking-wider font-bold text-foreground/80 whitespace-nowrap"
                               : "h-9 text-[10px] uppercase tracking-wider font-semibold text-muted-foreground whitespace-nowrap";
+                            const sortable = (
+                              col: SortColumn,
+                              label: string,
+                              extraClass = "",
+                              align: "left" | "right" = "left",
+                            ) => {
+                              const active = sortConfig.column === col;
+                              const dir = active ? sortConfig.direction : null;
+                              const ariaSort: "ascending" | "descending" | "none" =
+                                dir === "asc" ? "ascending" : dir === "desc" ? "descending" : "none";
+                              const Icon = dir === "asc" ? ArrowUp : dir === "desc" ? ArrowDown : ArrowUpDown;
+                              return (
+                                <TableHead
+                                  className={`${headClass} ${extraClass} cursor-pointer select-none hover:bg-muted/50 transition-colors`}
+                                  aria-sort={ariaSort}
+                                >
+                                  <button
+                                    type="button"
+                                    onClick={() => toggleSort(col)}
+                                    className={`group inline-flex items-center gap-1 w-full ${align === "right" ? "justify-end" : "justify-start"} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded`}
+                                    aria-label={`Ordenar por ${label}${dir === "asc" ? ", crescente" : dir === "desc" ? ", decrescente" : ""}`}
+                                  >
+                                    <span>{label}</span>
+                                    <Icon
+                                      className={`h-3 w-3 transition-opacity ${active ? "opacity-100 text-foreground" : "opacity-0 group-hover:opacity-60"}`}
+                                    />
+                                  </button>
+                                </TableHead>
+                              );
+                            };
                             return (
                               <>
                                 <TableHead className={headerStyle === "solid" ? "w-[52px] h-10" : "w-[52px] h-9"}></TableHead>
-                                <TableHead className={headClass}>Código</TableHead>
-                                <TableHead className={headClass}>Nome</TableHead>
-                                <TableHead className={headClass}>Tipo</TableHead>
-                                <TableHead className={headClass}>Origem</TableHead>
-                                <TableHead className={headClass}>Ficha</TableHead>
-                                <TableHead className={headClass}>Custo</TableHead>
-                                <TableHead className={headClass}>Fórmula</TableHead>
-                                <TableHead className={headClass}>Un</TableHead>
-                                <TableHead className={`${headClass} w-[90px]`}>Status</TableHead>
-                                <TableHead className={`${headClass} w-[150px]`}>Responsável</TableHead>
-                                <TableHead className={`${headClass} w-[90px]`}>Cadastro</TableHead>
+                                {sortable("codigo", "Código")}
+                                {sortable("nome", "Nome")}
+                                {sortable("tipo", "Tipo")}
+                                {sortable("origem", "Origem")}
+                                {sortable("ficha", "Ficha")}
+                                {sortable("custo", "Custo")}
+                                {sortable("formula", "Fórmula")}
+                                {sortable("un", "Un")}
+                                {sortable("status", "Status", "w-[90px]")}
+                                {sortable("responsavel", "Responsável", "w-[150px]")}
+                                {sortable("cadastro", "Cadastro", "w-[90px]")}
                                 <TableHead className={`${headClass} w-[140px] text-right`}>Ações</TableHead>
                               </>
                             );
                           })()}
+
                         </TableRow>
                       </TableHeader>
                       <TableBody>
