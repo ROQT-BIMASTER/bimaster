@@ -82,15 +82,15 @@ itens:
   - { chave: wobbler,             nome: "Wobbler",                     dimensoes_padrao: "15x10cm" }
   - { chave: stopper,             nome: "Stopper",                     dimensoes_padrao: "20x5cm" }
   - { chave: faixa_gondola,       nome: "Faixa de Gôndola Personalizada", dimensoes_padrao: "90x4cm" }
-  - { chave: regua_gondola,       nome: "Régua de Gôndola Personalizada", dimensoes_padrao: null }   # (ambíguo — confirmar) spec diz "Varia por tipo de gôndola"
-  - { chave: display_balcao,      nome: "Display de Balcão",           dimensoes_padrao: null }      # (ambíguo — confirmar) spec diz "Varia (solicitar ao solicitante)"
-  - { chave: display_rolo,        nome: "Display de Rolo",             dimensoes_padrao: null }      # (ambíguo — confirmar) ausente da tabela de padrões
-  - { chave: clip_strip,          nome: "Clip Strip",                  dimensoes_padrao: null }      # (ambíguo — confirmar) ausente da tabela de padrões
+  - { chave: regua_gondola,       nome: "Régua de Gôndola Personalizada", dimensoes_padrao: null }   # spec 03 declara "Varia / Custom" — sempre perguntar (ratificado no review)
+  - { chave: display_balcao,      nome: "Display de Balcão",           dimensoes_padrao: null }      # spec 03 declara "Varia / solicitar" — sempre perguntar (ratificado no review)
+  - { chave: display_rolo,        nome: "Display de Rolo",             dimensoes_padrao: null }      # ausente da tabela de padrões — sempre perguntar (ratificado no review)
+  - { chave: clip_strip,          nome: "Clip Strip",                  dimensoes_padrao: null }      # ausente da tabela de padrões — sempre perguntar (ratificado no review)
   - { chave: cubo_promocional,    nome: "Cubo Promocional",            dimensoes_padrao: "30x30x30cm" }
   - { chave: totem,               nome: "Totem",                       dimensoes_padrao: "60x180cm" }
-  - { chave: glorifier,           nome: "Glorifier",                   dimensoes_padrao: null }      # (ambíguo — confirmar) spec diz "Custom por produto"
-  - { chave: tag,                 nome: "Tag",                         dimensoes_padrao: null }      # (ambíguo — confirmar) ausente da tabela de padrões
-  - { chave: plotagem_loja,       nome: "Plotagem de Loja",            dimensoes_padrao: null }      # (ambíguo — confirmar) spec diz "Custom por espaço"
+  - { chave: glorifier,           nome: "Glorifier",                   dimensoes_padrao: null }      # spec 03 declara "Custom por produto" — sempre perguntar (ratificado no review)
+  - { chave: tag,                 nome: "Tag",                         dimensoes_padrao: null }      # ausente da tabela de padrões — sempre perguntar (ratificado no review)
+  - { chave: plotagem_loja,       nome: "Plotagem de Loja",            dimensoes_padrao: null }      # spec 03 declara "Custom por espaço" — sempre perguntar (ratificado no review)
 ```
 
 ## 1.2 Evento
