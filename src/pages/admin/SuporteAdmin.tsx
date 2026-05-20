@@ -12,7 +12,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { LifeBuoy, Search, AlertTriangle, Clock, CheckCircle2, MessageSquare, User, Wrench, FileText, Lightbulb, Flag, Send, TimerReset, ArrowLeft, BarChart3, Tag } from "lucide-react";
+import { LifeBuoy, Search, AlertTriangle, Clock, CheckCircle2, MessageSquare, User, Wrench, FileText, Lightbulb, Flag, Send, TimerReset, ArrowLeft, BarChart3, Tag, Hash, Eye, Timer } from "lucide-react";
 import { formatDistanceToNow, format, subDays, startOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { AnexoView } from "@/components/chat/v2/AnexoView";
