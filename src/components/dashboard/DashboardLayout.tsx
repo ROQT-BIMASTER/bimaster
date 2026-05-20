@@ -33,10 +33,14 @@ import { TermsAcceptanceModal } from "@/components/auth/TermsAcceptanceModal";
 import { FloatingRecordingBar } from "@/components/meetings/FloatingRecordingBar";
 import { useInboxDrawer } from "@/contexts/InboxDrawerContext";
 import { useChatSoundNotifications } from "@/hooks/chat/useChatSoundNotifications";
+import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { UrgentMessageBanner } from "@/components/chat/v2/UrgentMessageBanner";
 
 function ChatGlobalNotifiers() {
   useChatSoundNotifications();
+  // Monta hook de notificações nativas globalmente: assim quem já concedeu
+  // permissão recebe alerta de menção/urgente/mensagem em qualquer rota.
+  usePushNotifications();
   return null;
 }
 

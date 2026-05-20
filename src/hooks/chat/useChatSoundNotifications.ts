@@ -24,6 +24,10 @@ function playPlim() {
     const audio = new Audio(SOUND_URL);
     audio.volume = 0.35;
     void audio.play().catch(() => {/* noop */});
+    // Vibração curta no mobile (Android Chrome). iOS Safari ignora.
+    if (typeof navigator !== "undefined" && "vibrate" in navigator) {
+      try { navigator.vibrate(120); } catch {/* noop */}
+    }
   } catch {/* noop */}
 }
 

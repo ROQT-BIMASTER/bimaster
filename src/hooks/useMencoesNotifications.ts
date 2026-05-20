@@ -18,6 +18,12 @@ function playMentionSound(urgent = false) {
     const audio = new Audio(urgent ? URGENT_SOUND_URL : MENTION_SOUND_URL);
     audio.volume = urgent ? 0.65 : 0.5;
     void audio.play().catch(() => {/* autoplay pode ser bloqueado antes da 1ª interação */});
+    // Vibração no mobile: urgente = padrão longo, menção comum = curto.
+    if (typeof navigator !== "undefined" && "vibrate" in navigator) {
+      try {
+        navigator.vibrate(urgent ? [400, 100, 400, 100, 400] : [200, 100, 200]);
+      } catch {/* noop */}
+    }
   } catch {/* noop */}
 }
 
