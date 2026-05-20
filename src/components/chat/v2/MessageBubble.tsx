@@ -132,7 +132,7 @@ export function MessageBubble({ m, uid, isGrupo, onReply, participantesCount }: 
   };
 
   return (
-    <div className={cn("group flex w-full gap-2", mine ? "justify-end" : "justify-start")}>
+    <div id={`msg-${m.id}`} className={cn("group flex w-full gap-2", mine ? "justify-end" : "justify-start")}>
       {!mine && (
         <Avatar className={cn("h-7 w-7 mt-auto shrink-0", isSofia && "ring-2 ring-violet-500/40")}>
           {isSofia ? (
