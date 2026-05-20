@@ -130,16 +130,25 @@ export default function SuporteAdmin() {
     refetchInterval: 30_000,
   });
 
+  const ticketsPeriodo = useMemo(() => {
+    if (filtroPeriodo === "todos") return tickets;
+    const dias = parseInt(filtroPeriodo, 10);
+    const limite = subDays(new Date(), dias).getTime();
+    return tickets.filter((t) => new Date(t.created_at).getTime() >= limite);
+  }, [tickets, filtroPeriodo]);
+
   const filtrados = useMemo(() => {
     const q = busca.trim().toLowerCase();
-    if (!q) return tickets;
-    return tickets.filter(
-      (t) =>
+    return ticketsPeriodo.filter((t) => {
+      if (filtroCategoria !== "todas" && (t.categoria ?? "outro") !== filtroCategoria) return false;
+      if (!q) return true;
+      return (
         (t.titulo ?? "").toLowerCase().includes(q) ||
         (t.resumo ?? "").toLowerCase().includes(q) ||
-        (t.owner?.nome ?? "").toLowerCase().includes(q),
-    );
-  }, [tickets, busca]);
+        (t.owner?.nome ?? "").toLowerCase().includes(q)
+      );
+    });
+  }, [ticketsPeriodo, busca, filtroCategoria]);
 
   const kpis = useMemo(() => {
     const abertos = tickets.filter((t) => t.status !== "resolvido").length;
