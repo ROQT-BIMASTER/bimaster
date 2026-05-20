@@ -12,7 +12,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { LifeBuoy, Search, AlertTriangle, Clock, CheckCircle2, MessageSquare, User, Wrench, FileText, Lightbulb, Flag, Send, TimerReset, ArrowLeft, BarChart3, Tag } from "lucide-react";
+import { LifeBuoy, Search, AlertTriangle, Clock, CheckCircle2, MessageSquare, User, Wrench, FileText, Lightbulb, Flag, Send, TimerReset, ArrowLeft, BarChart3, Tag, Hash, Eye, Timer } from "lucide-react";
 import { formatDistanceToNow, format, subDays, startOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { AnexoView } from "@/components/chat/v2/AnexoView";
@@ -493,6 +493,8 @@ function TicketDrawer({ ticket, onClose }: { ticket: Ticket | null; onClose: () 
               )}
             </div>
 
+            <UserProtocolPreview ticket={ticket} />
+
             {ticket.resumo && (
               <div className="text-sm bg-muted/40 rounded-md p-3 leading-relaxed">{ticket.resumo}</div>
             )}
@@ -782,3 +784,75 @@ function AdmTiPanel({ ticket }: { ticket: Ticket }) {
     </div>
   );
 }
+
+function formatProto(ticketId: string, createdAt: string) {
+  const d = new Date(createdAt);
+  const ymd = `${d.getUTCFullYear()}${String(d.getUTCMonth() + 1).padStart(2, "0")}${String(d.getUTCDate()).padStart(2, "0")}`;
+  return `RR-${ymd}-${ticketId.replace(/-/g, "").slice(0, 6).toUpperCase()}`;
+}
+
+function formatDur(ms: number) {
+  const abs = Math.abs(ms);
+  const d = Math.floor(abs / 86_400_000);
+  const h = Math.floor((abs % 86_400_000) / 3_600_000);
+  const m = Math.floor((abs % 3_600_000) / 60_000);
+  if (d > 0) return `${d}d ${h}h`;
+  if (h > 0) return `${h}h ${String(m).padStart(2, "0")}m`;
+  return `${m}m`;
+}
+
+function UserProtocolPreview({ ticket }: { ticket: Ticket }) {
+  const protocolo = formatProto(ticket.id, ticket.created_at);
+  const resolved = !!ticket.resolved_at || ticket.status === "resolvido";
+  const target = ticket.prazo_resposta_em ? new Date(ticket.prazo_resposta_em) : null;
+  const now = Date.now();
+  const diffMs = target ? target.getTime() - now : 0;
+  const atrasado = !resolved && target && diffMs < 0;
+  const absH = Math.floor(Math.abs(diffMs) / 3_600_000);
+  const absM = Math.floor((Math.abs(diffMs) % 3_600_000) / 60_000);
+  const resolutionMs = resolved && ticket.resolved_at
+    ? new Date(ticket.resolved_at).getTime() - new Date(ticket.created_at).getTime()
+    : null;
+
+  return (
+    <div className="rounded-md border border-dashed border-border bg-muted/30 p-3 space-y-2">
+      <div className="flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground uppercase tracking-wide">
+        <Eye className="h-3.5 w-3.5" />
+        Visão do usuário — barra "Meus protocolos"
+      </div>
+      <div className="rounded-md border border-border bg-background px-2 py-1.5 text-[11px] flex items-center gap-2">
+        <Hash className="h-3 w-3 text-muted-foreground shrink-0" />
+        <span className="font-mono font-medium tracking-tight shrink-0">{protocolo}</span>
+        <span className="truncate text-muted-foreground flex-1">
+          {ticket.titulo ?? ticket.resumo ?? "—"}
+        </span>
+        {resolved ? (
+          <span className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400 shrink-0">
+            <CheckCircle2 className="h-3 w-3" /> Resolvido
+            {resolutionMs !== null && (
+              <span className="inline-flex items-center gap-1 ml-1 opacity-80">
+                <Timer className="h-3 w-3" /> em {formatDur(resolutionMs)}
+              </span>
+            )}
+          </span>
+        ) : target ? (
+          <span className={cn(
+            "inline-flex items-center gap-1 shrink-0 tabular-nums",
+            atrasado ? "text-red-600 dark:text-red-400" : "text-foreground",
+          )}>
+            {atrasado ? <AlertTriangle className="h-3 w-3" /> : <Clock className="h-3 w-3" />}
+            {atrasado
+              ? `Atrasado ${absH}h${String(absM).padStart(2, "0")}`
+              : `${absH}h${String(absM).padStart(2, "0")}`}
+          </span>
+        ) : (
+          <span className="text-muted-foreground shrink-0">Sem prazo</span>
+        )}
+      </div>
+      <div className="text-[10px] text-muted-foreground">
+        Exatamente como aparece em <span className="font-mono">/dashboard/chat</span> na barra acima do chat do usuário.
+      </div>
+    </div>
+  );
+}
+
