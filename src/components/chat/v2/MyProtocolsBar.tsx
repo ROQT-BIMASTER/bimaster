@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ChevronDown, ChevronUp, Hash, Clock, CheckCircle2, AlertTriangle, Reply } from "lucide-react";
+import { ChevronDown, ChevronUp, Hash, Clock, CheckCircle2, AlertTriangle, Reply, Timer } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const SUPORTE_CONV_ID = "3daf9772-404f-42f4-adbf-8a2566d91870";
@@ -33,6 +33,16 @@ function countdown(target: Date, now: Date) {
   const h = Math.floor(abs / 3_600_000);
   const m = Math.floor((abs % 3_600_000) / 60_000);
   return { atrasado: ms < 0, h, m };
+}
+
+function formatDur(ms: number) {
+  const abs = Math.abs(ms);
+  const d = Math.floor(abs / 86_400_000);
+  const h = Math.floor((abs % 86_400_000) / 3_600_000);
+  const m = Math.floor((abs % 3_600_000) / 60_000);
+  if (d > 0) return `${d}d ${h}h`;
+  if (h > 0) return `${h}h ${String(m).padStart(2, "0")}m`;
+  return `${m}m`;
 }
 
 interface Props {
@@ -178,6 +188,12 @@ export function MyProtocolsBar({ conversaId }: Props) {
                   {resolved ? (
                     <span className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400 shrink-0">
                       <CheckCircle2 className="h-3 w-3" /> Resolvido
+                      {p.resolvedAt && (
+                        <span className="inline-flex items-center gap-1 ml-1 opacity-80">
+                          <Timer className="h-3 w-3" />
+                          em {formatDur(new Date(p.resolvedAt).getTime() - new Date(p.createdAt).getTime())}
+                        </span>
+                      )}
                     </span>
                   ) : cd ? (
                     <span className={cn(
