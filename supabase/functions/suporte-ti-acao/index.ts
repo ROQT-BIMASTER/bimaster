@@ -180,6 +180,7 @@ Deno.serve(secureHandler(
           parecer_id: parecerRow.id,
           autor_ti: ctx.userId,
           protocolo: proto,
+          resolvido_em: new Date().toISOString(),
         },
       });
 
