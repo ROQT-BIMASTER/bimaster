@@ -259,6 +259,7 @@ export function MessageBubble({ m, uid, isGrupo, onReply, participantesCount }: 
               protocolo={(m.metadata as any).protocolo}
               prazoEm={(m.metadata as any).prazo_em ?? null}
               resolvidoEm={(m.metadata as any).resolvido_em ?? null}
+              iniciadoEm={(m as any).created_at ?? null}
               mine={mine}
             />
           )}
