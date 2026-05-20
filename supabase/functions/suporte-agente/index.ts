@@ -296,7 +296,7 @@ Deno.serve(secureHandler(
       visibilidade: "privada_suporte",
       ticket_owner_id: ownerId,
       ticket_id: ticket.id,
-      metadata: { tipo: "resposta_agente" },
+      metadata: { tipo: "resposta_agente", replies_to: parsed.data.mensagem_id },
     });
 
     await sb.from("suporte_tickets").update({ ultima_interacao_em: new Date().toISOString() }).eq("id", ticket.id);
