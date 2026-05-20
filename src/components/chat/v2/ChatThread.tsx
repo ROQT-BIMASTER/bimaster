@@ -14,6 +14,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { initials, formatDataChip, nomeConversa } from "./utils";
 import { MessageBubble } from "./MessageBubble";
 import { MessageInput } from "./MessageInput";
+import { MyProtocolsBar } from "./MyProtocolsBar";
 import type { ChatMensagem } from "@/hooks/chat/types";
 
 interface Props {
