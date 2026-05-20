@@ -38490,6 +38490,53 @@ export type Database = {
         }
         Relationships: []
       }
+      suporte_pareceres_ti: {
+        Row: {
+          autor_id: string
+          created_at: string
+          id: string
+          metadata: Json
+          parecer: string
+          plano_correcao: string | null
+          prazo_estimado: string | null
+          ticket_id: string
+          tipo: string
+          titulo: string | null
+        }
+        Insert: {
+          autor_id: string
+          created_at?: string
+          id?: string
+          metadata?: Json
+          parecer: string
+          plano_correcao?: string | null
+          prazo_estimado?: string | null
+          ticket_id: string
+          tipo: string
+          titulo?: string | null
+        }
+        Update: {
+          autor_id?: string
+          created_at?: string
+          id?: string
+          metadata?: Json
+          parecer?: string
+          plano_correcao?: string | null
+          prazo_estimado?: string | null
+          ticket_id?: string
+          tipo?: string
+          titulo?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "suporte_pareceres_ti_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "suporte_tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       suporte_tickets: {
         Row: {
           conversa_id: string
@@ -38497,11 +38544,13 @@ export type Database = {
           escalado_em: string | null
           id: string
           owner_id: string
+          prazo_resposta_em: string | null
           prioridade: string
           projeto_tarefa_id: string | null
           resolved_at: string | null
           resumo: string | null
           sentimento: string | null
+          sla_horas: number
           status: string
           titulo: string | null
           ultima_interacao_em: string
@@ -38513,11 +38562,13 @@ export type Database = {
           escalado_em?: string | null
           id?: string
           owner_id: string
+          prazo_resposta_em?: string | null
           prioridade?: string
           projeto_tarefa_id?: string | null
           resolved_at?: string | null
           resumo?: string | null
           sentimento?: string | null
+          sla_horas?: number
           status?: string
           titulo?: string | null
           ultima_interacao_em?: string
@@ -38529,11 +38580,13 @@ export type Database = {
           escalado_em?: string | null
           id?: string
           owner_id?: string
+          prazo_resposta_em?: string | null
           prioridade?: string
           projeto_tarefa_id?: string | null
           resolved_at?: string | null
           resumo?: string | null
           sentimento?: string | null
+          sla_horas?: number
           status?: string
           titulo?: string | null
           ultima_interacao_em?: string
