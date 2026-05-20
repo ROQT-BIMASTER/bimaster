@@ -74,6 +74,18 @@ export function ChatThread({ conversaId, onShowInfo }: Props) {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [mensagens.length]);
 
+  // Responder a partir de um protocolo (MyProtocolsBar dispara evento custom)
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail as { mensagemId: string };
+      const alvo = mensagens.find((m) => m.id === detail.mensagemId);
+      if (alvo) setResponderA(alvo);
+    };
+    window.addEventListener("suporte:reply-protocolo", handler);
+    return () => window.removeEventListener("suporte:reply-protocolo", handler);
+  }, [mensagens]);
+
+
   // detectar scroll fora do bottom
   useEffect(() => {
     const el = scrollRef.current?.querySelector<HTMLDivElement>("[data-radix-scroll-area-viewport]");
