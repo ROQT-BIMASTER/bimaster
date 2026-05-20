@@ -2403,6 +2403,120 @@ export type Database = {
           },
         ]
       }
+      briefing_campos_obrigatorios: {
+        Row: {
+          ativo: boolean
+          campo: string
+          created_at: string
+          empresa_id: number
+          id: string
+          peso: number
+          tipo: string
+        }
+        Insert: {
+          ativo?: boolean
+          campo: string
+          created_at?: string
+          empresa_id: number
+          id?: string
+          peso?: number
+          tipo: string
+        }
+        Update: {
+          ativo?: boolean
+          campo?: string
+          created_at?: string
+          empresa_id?: number
+          id?: string
+          peso?: number
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "briefing_campos_obrigatorios_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      briefing_catalogos_padrao: {
+        Row: {
+          created_at: string
+          empresa_id: number
+          id: string
+          itens: Json
+          marca: string | null
+          tipo: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          empresa_id: number
+          id?: string
+          itens?: Json
+          marca?: string | null
+          tipo: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          empresa_id?: number
+          id?: string
+          itens?: Json
+          marca?: string | null
+          tipo?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "briefing_catalogos_padrao_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      briefing_defaults: {
+        Row: {
+          campo: string
+          created_at: string
+          empresa_id: number
+          id: string
+          tipo: string
+          updated_at: string
+          valor_padrao: Json
+        }
+        Insert: {
+          campo: string
+          created_at?: string
+          empresa_id: number
+          id?: string
+          tipo: string
+          updated_at?: string
+          valor_padrao: Json
+        }
+        Update: {
+          campo?: string
+          created_at?: string
+          empresa_id?: number
+          id?: string
+          tipo?: string
+          updated_at?: string
+          valor_padrao?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "briefing_defaults_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       briefing_mensagens: {
         Row: {
           briefing_id: string
@@ -2485,51 +2599,76 @@ export type Database = {
       }
       briefings: {
         Row: {
+          codigo: string | null
+          completeness_score: number
           completude: number
           created_at: string
           empresa_id: number | null
           id: string
+          intake_demanda_id: string | null
           payload: Json
+          posicao_no_lote: number | null
           projeto_id: string | null
           status: string
           template_id: string | null
           tipo: string
+          tipo_legado: string | null
           titulo: string
+          total_no_lote: number | null
           ultimo_export_em: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
+          codigo?: string | null
+          completeness_score?: number
           completude?: number
           created_at?: string
           empresa_id?: number | null
           id?: string
+          intake_demanda_id?: string | null
           payload?: Json
+          posicao_no_lote?: number | null
           projeto_id?: string | null
           status?: string
           template_id?: string | null
           tipo: string
+          tipo_legado?: string | null
           titulo?: string
+          total_no_lote?: number | null
           ultimo_export_em?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
+          codigo?: string | null
+          completeness_score?: number
           completude?: number
           created_at?: string
           empresa_id?: number | null
           id?: string
+          intake_demanda_id?: string | null
           payload?: Json
+          posicao_no_lote?: number | null
           projeto_id?: string | null
           status?: string
           template_id?: string | null
           tipo?: string
+          tipo_legado?: string | null
           titulo?: string
+          total_no_lote?: number | null
           ultimo_export_em?: string | null
           updated_at?: string
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "briefings_intake_demanda_fk"
+            columns: ["intake_demanda_id"]
+            isOneToOne: false
+            referencedRelation: "intake_demandas"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "briefings_template_id_fkey"
             columns: ["template_id"]
@@ -2538,6 +2677,30 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      briefings_audit: {
+        Row: {
+          briefing_id: string
+          changed_at: string
+          changed_by: string | null
+          diff: Json
+          id: string
+        }
+        Insert: {
+          briefing_id: string
+          changed_at?: string
+          changed_by?: string | null
+          diff: Json
+          id?: string
+        }
+        Update: {
+          briefing_id?: string
+          changed_at?: string
+          changed_by?: string | null
+          diff?: Json
+          id?: string
+        }
+        Relationships: []
       }
       campaign_briefings: {
         Row: {
@@ -21803,6 +21966,53 @@ export type Database = {
           username?: string
         }
         Relationships: []
+      }
+      intake_demandas: {
+        Row: {
+          codigo: string
+          confirmed_at: string | null
+          created_at: string
+          descricao_original: string | null
+          empresa_id: number | null
+          id: string
+          solicitante_id: string
+          status: string
+          tipo: string
+          total_briefings: number
+        }
+        Insert: {
+          codigo: string
+          confirmed_at?: string | null
+          created_at?: string
+          descricao_original?: string | null
+          empresa_id?: number | null
+          id?: string
+          solicitante_id: string
+          status?: string
+          tipo: string
+          total_briefings?: number
+        }
+        Update: {
+          codigo?: string
+          confirmed_at?: string | null
+          created_at?: string
+          descricao_original?: string | null
+          empresa_id?: number | null
+          id?: string
+          solicitante_id?: string
+          status?: string
+          tipo?: string
+          total_briefings?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "intake_demandas_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       integration_configs: {
         Row: {
@@ -45679,6 +45889,14 @@ export type Database = {
         }
         Returns: Json
       }
+      calc_briefing_status: {
+        Args: { p_payload: Json; p_tipo: string }
+        Returns: string
+      }
+      calc_completeness: {
+        Args: { p_empresa_id: number; p_payload: Json; p_tipo: string }
+        Returns: number
+      }
       calcular_custo_entrada: {
         Args: {
           p_outras_despesas?: number
@@ -46377,6 +46595,8 @@ export type Database = {
             Args: { p_ano?: number; p_empresa_id: string; p_mes?: number }
             Returns: Json
           }
+      gen_codigo_briefing: { Args: never; Returns: string }
+      gen_codigo_intake_demanda: { Args: never; Returns: string }
       gerar_creditos_tributarios: {
         Args: { p_item_nf_id: string }
         Returns: Json
@@ -47761,6 +47981,10 @@ export type Database = {
         }
         Returns: string
       }
+      rpc_criar_lote_briefings: {
+        Args: { p_intake_demanda_id: string; p_itens: Json }
+        Returns: Json
+      }
       rpc_definir_prazo_item: {
         Args: { p_item_id: string; p_prazo_em: string }
         Returns: undefined
@@ -47836,6 +48060,10 @@ export type Database = {
           numero: string
           op_id: string
         }[]
+      }
+      rpc_lookup_catalogo: {
+        Args: { p_empresa_id: number; p_marca: string; p_tipo: string }
+        Returns: Json
       }
       rpc_mover_item_coluna: {
         Args: { p_coluna: string; p_comentario?: string; p_item_id: string }
