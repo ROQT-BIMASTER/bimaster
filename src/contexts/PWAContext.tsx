@@ -245,6 +245,7 @@ export function PWAProvider({ children }: { children: React.ReactNode }) {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
       clearTimeout(heartbeatBoot);
+      try { unsubscribePin(); } catch { /* noop */ }
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       if ('serviceWorker' in navigator) {
         navigator.serviceWorker.removeEventListener('controllerchange', handleControllerChange);
