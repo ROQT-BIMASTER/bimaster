@@ -61,26 +61,36 @@ NULLs vieram do seed que acabou de ser apagado).
 Itens marcados `inferido_de_pergunta: true` quando a lista veio de uma pergunta da
 spec 02 (não de catálogo declarado explicitamente).
 
+**`tipo_uso`** (por catálogo, não por item):
+- `canonical` — lista finita e técnica. PR3: agente sugere essa lista quando solicitante não sabe; PR4: validação aceita só valores do catálogo.
+- `ui_suggestion` — tipos amplos com variação aceitável. PR3/PR4: aceita texto livre, catálogo serve só como autocomplete.
+
+**Escopo da `chave`**: identificador composto por `(empresa_id, marca, tipo, chave)`.
+Chaves repetidas entre tipos diferentes (ex.: `totem` em PDV e em Evento; `email_marketing`
+em Campanha e em E-commerce; `backdrop` em Evento e em Material Interno) **não são colisão**
+e PR3/PR4 nunca devem tratar `chave` como identificador global.
+
 ## 1.1 PDV
 
 ```yaml
 tipo: pdv
 empresa_id: null
 marca: null
+tipo_uso: canonical
 fonte_spec: docs/briefing-especificacoes/01-fluxo-de-conversa.md#catálogo-padrão-de-materiais-pdv
 itens:
   - { chave: wobbler,             nome: "Wobbler",                     dimensoes_padrao: "15x10cm" }
   - { chave: stopper,             nome: "Stopper",                     dimensoes_padrao: "20x5cm" }
   - { chave: faixa_gondola,       nome: "Faixa de Gôndola Personalizada", dimensoes_padrao: "90x4cm" }
-  - { chave: regua_gondola,       nome: "Régua de Gôndola Personalizada", dimensoes_padrao: null }   # (ambíguo — confirmar) spec diz "Varia por tipo de gôndola"
-  - { chave: display_balcao,      nome: "Display de Balcão",           dimensoes_padrao: null }      # (ambíguo — confirmar) spec diz "Varia (solicitar ao solicitante)"
-  - { chave: display_rolo,        nome: "Display de Rolo",             dimensoes_padrao: null }      # (ambíguo — confirmar) ausente da tabela de padrões
-  - { chave: clip_strip,          nome: "Clip Strip",                  dimensoes_padrao: null }      # (ambíguo — confirmar) ausente da tabela de padrões
+  - { chave: regua_gondola,       nome: "Régua de Gôndola Personalizada", dimensoes_padrao: null }   # spec 03 declara "Varia / Custom" — sempre perguntar (ratificado no review)
+  - { chave: display_balcao,      nome: "Display de Balcão",           dimensoes_padrao: null }      # spec 03 declara "Varia / solicitar" — sempre perguntar (ratificado no review)
+  - { chave: display_rolo,        nome: "Display de Rolo",             dimensoes_padrao: null }      # ausente da tabela de padrões — sempre perguntar (ratificado no review)
+  - { chave: clip_strip,          nome: "Clip Strip",                  dimensoes_padrao: null }      # ausente da tabela de padrões — sempre perguntar (ratificado no review)
   - { chave: cubo_promocional,    nome: "Cubo Promocional",            dimensoes_padrao: "30x30x30cm" }
   - { chave: totem,               nome: "Totem",                       dimensoes_padrao: "60x180cm" }
-  - { chave: glorifier,           nome: "Glorifier",                   dimensoes_padrao: null }      # (ambíguo — confirmar) spec diz "Custom por produto"
-  - { chave: tag,                 nome: "Tag",                         dimensoes_padrao: null }      # (ambíguo — confirmar) ausente da tabela de padrões
-  - { chave: plotagem_loja,       nome: "Plotagem de Loja",            dimensoes_padrao: null }      # (ambíguo — confirmar) spec diz "Custom por espaço"
+  - { chave: glorifier,           nome: "Glorifier",                   dimensoes_padrao: null }      # spec 03 declara "Custom por produto" — sempre perguntar (ratificado no review)
+  - { chave: tag,                 nome: "Tag",                         dimensoes_padrao: null }      # ausente da tabela de padrões — sempre perguntar (ratificado no review)
+  - { chave: plotagem_loja,       nome: "Plotagem de Loja",            dimensoes_padrao: null }      # spec 03 declara "Custom por espaço" — sempre perguntar (ratificado no review)
 ```
 
 ## 1.2 Evento
@@ -89,6 +99,7 @@ itens:
 tipo: evento
 empresa_id: null
 marca: null
+tipo_uso: canonical
 fonte_spec: docs/briefing-especificacoes/01-fluxo-de-conversa.md#catálogo-padrão-de-brindes-para-evento
 itens:
   - { chave: lenco,                  nome: "Lenço" }
@@ -115,6 +126,7 @@ itens:
 tipo: embalagem
 empresa_id: null
 marca: null
+tipo_uso: canonical
 fonte_spec: docs/briefing-especificacoes/02-perguntas-por-tipo.md#2-embalagem  # §2 P3
 inferido_de_pergunta: true
 itens:
@@ -133,6 +145,7 @@ itens:
 tipo: campanha
 empresa_id: null
 marca: null
+tipo_uso: canonical
 fonte_spec: docs/briefing-especificacoes/02-perguntas-por-tipo.md#4-campanha--kv  # §4 P5
 inferido_de_pergunta: true
 itens:
@@ -152,6 +165,7 @@ itens:
 tipo: ecommerce
 empresa_id: null
 marca: null
+tipo_uso: canonical
 fonte_spec: docs/briefing-especificacoes/02-perguntas-por-tipo.md#5-e-commerce  # §5 P2
 inferido_de_pergunta: true
 itens:
@@ -169,6 +183,7 @@ itens:
 tipo: presskit
 empresa_id: null
 marca: null
+tipo_uso: canonical
 fonte_spec: docs/briefing-especificacoes/02-perguntas-por-tipo.md#6-press-kit  # §6 P3
 inferido_de_pergunta: true
 itens:
@@ -186,6 +201,7 @@ itens:
 tipo: catalogo
 empresa_id: null
 marca: null
+tipo_uso: ui_suggestion
 fonte_spec: docs/briefing-especificacoes/02-perguntas-por-tipo.md#7-catálogo--book  # §7 P1
 inferido_de_pergunta: true
 itens:
@@ -201,6 +217,7 @@ itens:
 tipo: material_interno
 empresa_id: null
 marca: null
+tipo_uso: ui_suggestion
 fonte_spec: docs/briefing-especificacoes/02-perguntas-por-tipo.md#8-material-interno  # §8 P1
 inferido_de_pergunta: true
 itens:
@@ -232,7 +249,7 @@ campos_universais:
   - { nome: solicitante,        tipo_dado: text,   obrigatorio: true,  origem: auto }
   - { nome: data_solicitacao,   tipo_dado: timestamp, obrigatorio: true, origem: auto }
   - { nome: prazo_entrega,      tipo_dado: date,   obrigatorio: true }
-  - { nome: prioridade,         tipo_dado: select, obrigatorio: true,  valores: [Crítica, Alta, Média, Baixa], default: "Média" }
+  - { nome: prioridade,         tipo_dado: select, obrigatorio: true,  valores: [Crítica, Alta, Média, Baixa] }   # valor inicial vem de briefing_defaults (fonte única)
   - { nome: demand_type,        tipo_dado: select, obrigatorio: true,  valores: [pdv, embalagem, evento, campanha, ecommerce, presskit, catalogo, material_interno], origem: auto }
   - { nome: status,             tipo_dado: select, obrigatorio: true,  valores: [Pronto, Aguardando Faca, Aguardando Medidas, Aguardando KV, Aguardando Regulatório], origem: derivado_calc_briefing_status }
 ```
@@ -417,24 +434,65 @@ Lista plana. `tipo: "*"` é wildcard — na conversão para SQL, expande em 8 IN
 
 # 4. Obrigatórios — `briefing_campos_obrigatorios`
 
-Regra de extração aplicada (confirmada no plano):
+Regra de extração aplicada (confirmada no review):
 
 - Spec coluna "Sim"             → peso **10** + `motivo`
 - Spec coluna "Condicional"     → peso **10** + `motivo` condicional explícito
 - Spec coluna "Não" mas campo aparece em 03 → peso **1** (só afeta `completeness_score`)
-- `marca`, `prazo_entrega`      → peso **10** em **todos os 8 tipos** (cabeçalho universal + regra "prazo é sempre obrigatório")
-- `kv_referencia`               → peso **10** em `pdv` e `campanha` (regra explícita), peso **10** em `evento` (spec 03 marca Sim)
+- Universais (`marca`, `prazo_entrega`, `titulo`) → peso **10** em **todos os 8 tipos**
+- `linha_colecao` → peso variável por tipo (ver tabela 4.0.b) — **não é universal peso 10**
+- `kv_referencia` → peso **10** em `pdv` e `campanha`; peso **1** em `evento` (eventos institucionais sem campanha-pai usam identidade da marca como fallback)
 
 `empresa_id: null` em todos.
 
-## 4.0 Universais (replicar para os 8 tipos na conversão SQL)
+## 4.0.a Universais peso 10 (expandidos: 3 campos × 8 tipos = 24 entradas)
+
+> Expansão literal para auditoria mecânica no SQL. Não usar wildcard `tipo: "*"` —
+> a função `calc_completeness` (PR1) filtra `WHERE tipo = p_tipo` e não trata literal `*`.
 
 ```yaml
-# Para cada tipo em [pdv, embalagem, evento, campanha, ecommerce, presskit, catalogo, material_interno]:
-- { tipo: <each>, campo: marca,          peso: 10, motivo: "Sem marca, briefing não é atribuível a designer" }
-- { tipo: <each>, campo: linha_colecao,  peso: 10, motivo: "Linha/coleção é eixo de organização dos assets criativos" }
-- { tipo: <each>, campo: prazo_entrega,  peso: 10, motivo: "Sem prazo a demanda não entra na fila de priorização (62% das tarefas históricas sem prazo)" }
-- { tipo: <each>, campo: titulo,         peso: 10, motivo: "Título é a chave de identificação do briefing no fluxo" }
+# marca (8)
+- { tipo: pdv,              campo: marca, peso: 10, motivo: "Sem marca, briefing não é atribuível a designer" }
+- { tipo: embalagem,        campo: marca, peso: 10, motivo: "Sem marca, briefing não é atribuível a designer" }
+- { tipo: evento,           campo: marca, peso: 10, motivo: "Sem marca, briefing não é atribuível a designer" }
+- { tipo: campanha,         campo: marca, peso: 10, motivo: "Sem marca, briefing não é atribuível a designer" }
+- { tipo: ecommerce,        campo: marca, peso: 10, motivo: "Sem marca, briefing não é atribuível a designer" }
+- { tipo: presskit,         campo: marca, peso: 10, motivo: "Sem marca, briefing não é atribuível a designer" }
+- { tipo: catalogo,         campo: marca, peso: 10, motivo: "Sem marca, briefing não é atribuível a designer" }
+- { tipo: material_interno, campo: marca, peso: 10, motivo: "Sem marca, briefing não é atribuível a designer" }
+
+# prazo_entrega (8)
+- { tipo: pdv,              campo: prazo_entrega, peso: 10, motivo: "Sem prazo a demanda não entra na fila de priorização (62% das tarefas históricas sem prazo)" }
+- { tipo: embalagem,        campo: prazo_entrega, peso: 10, motivo: "Sem prazo a demanda não entra na fila de priorização (62% das tarefas históricas sem prazo)" }
+- { tipo: evento,           campo: prazo_entrega, peso: 10, motivo: "Sem prazo a demanda não entra na fila de priorização (62% das tarefas históricas sem prazo)" }
+- { tipo: campanha,         campo: prazo_entrega, peso: 10, motivo: "Sem prazo a demanda não entra na fila de priorização (62% das tarefas históricas sem prazo)" }
+- { tipo: ecommerce,        campo: prazo_entrega, peso: 10, motivo: "Sem prazo a demanda não entra na fila de priorização (62% das tarefas históricas sem prazo)" }
+- { tipo: presskit,         campo: prazo_entrega, peso: 10, motivo: "Sem prazo a demanda não entra na fila de priorização (62% das tarefas históricas sem prazo)" }
+- { tipo: catalogo,         campo: prazo_entrega, peso: 10, motivo: "Sem prazo a demanda não entra na fila de priorização (62% das tarefas históricas sem prazo)" }
+- { tipo: material_interno, campo: prazo_entrega, peso: 10, motivo: "Sem prazo a demanda não entra na fila de priorização (62% das tarefas históricas sem prazo)" }
+
+# titulo (8)
+- { tipo: pdv,              campo: titulo, peso: 10, motivo: "Título é a chave de identificação do briefing no fluxo" }
+- { tipo: embalagem,        campo: titulo, peso: 10, motivo: "Título é a chave de identificação do briefing no fluxo" }
+- { tipo: evento,           campo: titulo, peso: 10, motivo: "Título é a chave de identificação do briefing no fluxo" }
+- { tipo: campanha,         campo: titulo, peso: 10, motivo: "Título é a chave de identificação do briefing no fluxo" }
+- { tipo: ecommerce,        campo: titulo, peso: 10, motivo: "Título é a chave de identificação do briefing no fluxo" }
+- { tipo: presskit,         campo: titulo, peso: 10, motivo: "Título é a chave de identificação do briefing no fluxo" }
+- { tipo: catalogo,         campo: titulo, peso: 10, motivo: "Título é a chave de identificação do briefing no fluxo" }
+- { tipo: material_interno, campo: titulo, peso: 10, motivo: "Título é a chave de identificação do briefing no fluxo" }
+```
+
+## 4.0.b `linha_colecao` por tipo (peso variável)
+
+```yaml
+- { tipo: pdv,              campo: linha_colecao, peso: 10, motivo: "Material PDV é sempre de uma linha específica" }
+- { tipo: embalagem,        campo: linha_colecao, peso: 10, motivo: "SKU pertence a uma linha" }
+- { tipo: evento,           campo: linha_colecao, peso: 1 }   # evento institucional pode não ter linha
+- { tipo: campanha,         campo: linha_colecao, peso: 10, motivo: "Campanha sempre amarrada a uma linha" }
+- { tipo: ecommerce,        campo: linha_colecao, peso: 1 }   # banner promocional genérico pode não ter
+- { tipo: presskit,         campo: linha_colecao, peso: 10, motivo: "Press kit é sempre de lançamento/linha" }
+- { tipo: catalogo,         campo: linha_colecao, peso: 1 }   # book trade multi-marca não tem linha única
+- { tipo: material_interno, campo: linha_colecao, peso: 1 }   # institucional não tem linha
 ```
 
 ## 4.1 PDV
@@ -468,7 +526,7 @@ Regra de extração aplicada (confirmada no plano):
 - { tipo: evento, campo: evento_nome,    peso: 10, motivo: "Identifica o evento de destino do material" }
 - { tipo: evento, campo: evento_data,    peso: 10, motivo: "Define prazo absoluto de produção (não pode passar)" }
 - { tipo: evento, campo: brinde_type,    peso: 10, motivo: "Define a peça a produzir" }
-- { tipo: evento, campo: kv_referencia,  peso: 10, motivo: "Sem KV o designer não inicia (spec 03 marca obrigatório)" }
+- { tipo: evento, campo: kv_referencia,  peso: 1 }   # rebaixado no review: eventos institucionais (Beauty Show, feiras, brindes) usam identidade da marca como fallback
 - { tipo: evento, campo: dimensoes,      peso: 1 }
 - { tipo: evento, campo: quantidade,     peso: 1 }
 - { tipo: evento, campo: conceito_tema,  peso: 1 }
@@ -528,22 +586,28 @@ Regra de extração aplicada (confirmada no plano):
 
 ---
 
-# Pontos abertos para o review
+# Decisões do review (todas resolvidas)
 
-1. **4 dimensões PDV ambíguas** (Régua de Gôndola, Display de Balcão, Glorifier,
-   Plotagem de Loja) — manter sem default e sempre perguntar, ou definir um valor?
-2. **Display de Rolo, Clip Strip, Tag** — ausentes da tabela "Dimensões padrão" da
-   spec 03. Tratar como "sempre perguntar" ou propor padrão razoável?
-3. **6 catálogos `inferido_de_pergunta: true`** (Embalagem, Campanha, E-commerce,
-   Press Kit, Catálogo, Material Interno) — promover a catálogo canônico ou manter
-   apenas como sugestão de UI sem peso de validação?
-4. **`produto_sku` (Embalagem)** — validação `HB-xxx` por regex agora ou diferir
-   para PR futuro?
-5. **`linha_colecao` peso 10 universal** — em alguns tipos (Material Interno,
-   Catálogo cross-marca) pode não ser sempre aplicável. Manter ou rebaixar para
-   peso 1 nesses tipos?
-6. **`evento.kv_referencia` peso 10** — spec 03 marca obrigatório, mas eventos
-   genéricos sem campanha-pai podem não ter KV. Confirmar.
+1. **4 dimensões PDV ambíguas** (Régua, Display Balcão, Glorifier, Plotagem) →
+   sem default, sempre perguntar. Critério: spec não declara, não inventamos.
+2. **Display de Rolo, Clip Strip, Tag** → mesmo tratamento, sem default.
+3. **6 catálogos `inferido_de_pergunta`** → distinção via campo `tipo_uso`:
+   `canonical` para Embalagem, Campanha, E-commerce, Press Kit; `ui_suggestion`
+   para Catálogo e Material Interno.
+4. **`produto_sku` regex `HB-xxx`** → diferido para PR futuro (registrar issue
+   no GitHub com label `debt`).
+5. **`linha_colecao` peso 10 universal** → rebaixado, agora variável por tipo
+   (ver seção 4.0.b). Sai dos universais (que ficam com 3 campos × 8 tipos = 24).
+6. **`evento.kv_referencia` peso 10** → rebaixado para peso 1 (eventos
+   institucionais usam identidade da marca como fallback).
+
+Ajustes estruturais aplicados:
+- 4.0.a expandido literalmente em 24 entradas (não usa wildcard `<each>` nem
+  `tipo: "*"` — `calc_completeness` filtra por `tipo` literal).
+- `default: "Média"` removido do template `prioridade` (fica só em
+  `briefing_defaults`, fonte única).
+- Escopo da `chave` documentado como `(empresa_id, marca, tipo, chave)` —
+  PR3/PR4 não devem tratar `chave` como identificador global.
 
 Lembrete: peso 10 bloqueia botão "Concluir lote" no PR4. Peso 1–9 só afeta
 `completeness_score`.
