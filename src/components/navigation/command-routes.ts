@@ -23,6 +23,7 @@ export const commandRoutes: CommandRoute[] = [
   { title: "Auditoria", path: "/dashboard/auditoria", module: "Admin", icon: "Shield", screenCode: "auditoria", keywords: ["logs", "audit"] },
   { title: "Demandas Internas", path: "/dashboard/demandas", module: "Admin", icon: "Ticket", screenCode: "admin" },
   { title: "Relatórios", path: "/dashboard/relatorios", module: "Geral", icon: "FileText", screenCode: "relatorios" },
+  { title: "Briefings", path: "/dashboard/briefings", module: "Geral", icon: "Sparkles", screenCode: "briefings_agente", keywords: ["brief", "agente", "ia"] },
 
   // --- Prospects (CRM) ---
   { title: "Prospects — Módulo", path: "/dashboard/prospects", module: "Prospects", icon: "Users", moduleCode: "prospects" },
