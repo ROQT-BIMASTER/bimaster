@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Session, User } from "@supabase/supabase-js";
 import { offlineManager } from "@/lib/utils/offline-manager";
 import { logger } from "@/lib/logger";
+import { reportClientVersion } from "@/lib/version-telemetry";
 
 interface AuthContextType {
   session: Session | null;
