@@ -251,6 +251,25 @@ export default function SuporteAdmin() {
                     ))}
                   </SelectContent>
                 </Select>
+                <Select value={filtroCategoria} onValueChange={setFiltroCategoria}>
+                  <SelectTrigger className="w-40 h-9"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todas">Todas categorias</SelectItem>
+                    {Object.entries(CATEGORIA_LABEL).map(([k, v]) => (
+                      <SelectItem key={k} value={k}>{v}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select value={filtroPeriodo} onValueChange={(v) => setFiltroPeriodo(v as any)}>
+                  <SelectTrigger className="w-32 h-9"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="7">Últimos 7d</SelectItem>
+                    <SelectItem value="14">Últimos 14d</SelectItem>
+                    <SelectItem value="30">Últimos 30d</SelectItem>
+                    <SelectItem value="90">Últimos 90d</SelectItem>
+                    <SelectItem value="todos">Tudo</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </CardHeader>
             <CardContent>
