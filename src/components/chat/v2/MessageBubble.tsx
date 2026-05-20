@@ -15,6 +15,7 @@ import { initials, formatHora } from "./utils";
 import { AnexoView } from "./AnexoView";
 import { ForwardMessageDialog } from "./ForwardMessageDialog";
 import { TaskMentionCard } from "./TaskMentionCard";
+import { ProtocolCountdown } from "./ProtocolCountdown";
 import { AprovacaoCard } from "./AprovacaoCard";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
