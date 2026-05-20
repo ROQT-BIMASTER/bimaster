@@ -10,6 +10,8 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft, MessageSquare, Package } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { EnablePushBanner } from "@/components/notifications/EnablePushBanner";
+import { useSuporteAgenteTrigger } from "@/hooks/useSuporteAgenteTrigger";
+import { useAuth } from "@/contexts/AuthContext";
 
 /** Modo do chat: pessoas (conversas/grupos) ou submissões China. */
 export type ChatModo = "pessoas" | "submissoes";
