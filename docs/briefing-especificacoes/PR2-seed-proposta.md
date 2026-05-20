@@ -76,6 +76,7 @@ e PR3/PR4 nunca devem tratar `chave` como identificador global.
 tipo: pdv
 empresa_id: null
 marca: null
+tipo_uso: canonical
 fonte_spec: docs/briefing-especificacoes/01-fluxo-de-conversa.md#catálogo-padrão-de-materiais-pdv
 itens:
   - { chave: wobbler,             nome: "Wobbler",                     dimensoes_padrao: "15x10cm" }
