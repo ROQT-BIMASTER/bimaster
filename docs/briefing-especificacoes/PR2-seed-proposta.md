@@ -434,24 +434,65 @@ Lista plana. `tipo: "*"` é wildcard — na conversão para SQL, expande em 8 IN
 
 # 4. Obrigatórios — `briefing_campos_obrigatorios`
 
-Regra de extração aplicada (confirmada no plano):
+Regra de extração aplicada (confirmada no review):
 
 - Spec coluna "Sim"             → peso **10** + `motivo`
 - Spec coluna "Condicional"     → peso **10** + `motivo` condicional explícito
 - Spec coluna "Não" mas campo aparece em 03 → peso **1** (só afeta `completeness_score`)
-- `marca`, `prazo_entrega`      → peso **10** em **todos os 8 tipos** (cabeçalho universal + regra "prazo é sempre obrigatório")
-- `kv_referencia`               → peso **10** em `pdv` e `campanha` (regra explícita), peso **10** em `evento` (spec 03 marca Sim)
+- Universais (`marca`, `prazo_entrega`, `titulo`) → peso **10** em **todos os 8 tipos**
+- `linha_colecao` → peso variável por tipo (ver tabela 4.0.b) — **não é universal peso 10**
+- `kv_referencia` → peso **10** em `pdv` e `campanha`; peso **1** em `evento` (eventos institucionais sem campanha-pai usam identidade da marca como fallback)
 
 `empresa_id: null` em todos.
 
-## 4.0 Universais (replicar para os 8 tipos na conversão SQL)
+## 4.0.a Universais peso 10 (expandidos: 3 campos × 8 tipos = 24 entradas)
+
+> Expansão literal para auditoria mecânica no SQL. Não usar wildcard `tipo: "*"` —
+> a função `calc_completeness` (PR1) filtra `WHERE tipo = p_tipo` e não trata literal `*`.
 
 ```yaml
-# Para cada tipo em [pdv, embalagem, evento, campanha, ecommerce, presskit, catalogo, material_interno]:
-- { tipo: <each>, campo: marca,          peso: 10, motivo: "Sem marca, briefing não é atribuível a designer" }
-- { tipo: <each>, campo: linha_colecao,  peso: 10, motivo: "Linha/coleção é eixo de organização dos assets criativos" }
-- { tipo: <each>, campo: prazo_entrega,  peso: 10, motivo: "Sem prazo a demanda não entra na fila de priorização (62% das tarefas históricas sem prazo)" }
-- { tipo: <each>, campo: titulo,         peso: 10, motivo: "Título é a chave de identificação do briefing no fluxo" }
+# marca (8)
+- { tipo: pdv,              campo: marca, peso: 10, motivo: "Sem marca, briefing não é atribuível a designer" }
+- { tipo: embalagem,        campo: marca, peso: 10, motivo: "Sem marca, briefing não é atribuível a designer" }
+- { tipo: evento,           campo: marca, peso: 10, motivo: "Sem marca, briefing não é atribuível a designer" }
+- { tipo: campanha,         campo: marca, peso: 10, motivo: "Sem marca, briefing não é atribuível a designer" }
+- { tipo: ecommerce,        campo: marca, peso: 10, motivo: "Sem marca, briefing não é atribuível a designer" }
+- { tipo: presskit,         campo: marca, peso: 10, motivo: "Sem marca, briefing não é atribuível a designer" }
+- { tipo: catalogo,         campo: marca, peso: 10, motivo: "Sem marca, briefing não é atribuível a designer" }
+- { tipo: material_interno, campo: marca, peso: 10, motivo: "Sem marca, briefing não é atribuível a designer" }
+
+# prazo_entrega (8)
+- { tipo: pdv,              campo: prazo_entrega, peso: 10, motivo: "Sem prazo a demanda não entra na fila de priorização (62% das tarefas históricas sem prazo)" }
+- { tipo: embalagem,        campo: prazo_entrega, peso: 10, motivo: "Sem prazo a demanda não entra na fila de priorização (62% das tarefas históricas sem prazo)" }
+- { tipo: evento,           campo: prazo_entrega, peso: 10, motivo: "Sem prazo a demanda não entra na fila de priorização (62% das tarefas históricas sem prazo)" }
+- { tipo: campanha,         campo: prazo_entrega, peso: 10, motivo: "Sem prazo a demanda não entra na fila de priorização (62% das tarefas históricas sem prazo)" }
+- { tipo: ecommerce,        campo: prazo_entrega, peso: 10, motivo: "Sem prazo a demanda não entra na fila de priorização (62% das tarefas históricas sem prazo)" }
+- { tipo: presskit,         campo: prazo_entrega, peso: 10, motivo: "Sem prazo a demanda não entra na fila de priorização (62% das tarefas históricas sem prazo)" }
+- { tipo: catalogo,         campo: prazo_entrega, peso: 10, motivo: "Sem prazo a demanda não entra na fila de priorização (62% das tarefas históricas sem prazo)" }
+- { tipo: material_interno, campo: prazo_entrega, peso: 10, motivo: "Sem prazo a demanda não entra na fila de priorização (62% das tarefas históricas sem prazo)" }
+
+# titulo (8)
+- { tipo: pdv,              campo: titulo, peso: 10, motivo: "Título é a chave de identificação do briefing no fluxo" }
+- { tipo: embalagem,        campo: titulo, peso: 10, motivo: "Título é a chave de identificação do briefing no fluxo" }
+- { tipo: evento,           campo: titulo, peso: 10, motivo: "Título é a chave de identificação do briefing no fluxo" }
+- { tipo: campanha,         campo: titulo, peso: 10, motivo: "Título é a chave de identificação do briefing no fluxo" }
+- { tipo: ecommerce,        campo: titulo, peso: 10, motivo: "Título é a chave de identificação do briefing no fluxo" }
+- { tipo: presskit,         campo: titulo, peso: 10, motivo: "Título é a chave de identificação do briefing no fluxo" }
+- { tipo: catalogo,         campo: titulo, peso: 10, motivo: "Título é a chave de identificação do briefing no fluxo" }
+- { tipo: material_interno, campo: titulo, peso: 10, motivo: "Título é a chave de identificação do briefing no fluxo" }
+```
+
+## 4.0.b `linha_colecao` por tipo (peso variável)
+
+```yaml
+- { tipo: pdv,              campo: linha_colecao, peso: 10, motivo: "Material PDV é sempre de uma linha específica" }
+- { tipo: embalagem,        campo: linha_colecao, peso: 10, motivo: "SKU pertence a uma linha" }
+- { tipo: evento,           campo: linha_colecao, peso: 1 }   # evento institucional pode não ter linha
+- { tipo: campanha,         campo: linha_colecao, peso: 10, motivo: "Campanha sempre amarrada a uma linha" }
+- { tipo: ecommerce,        campo: linha_colecao, peso: 1 }   # banner promocional genérico pode não ter
+- { tipo: presskit,         campo: linha_colecao, peso: 10, motivo: "Press kit é sempre de lançamento/linha" }
+- { tipo: catalogo,         campo: linha_colecao, peso: 1 }   # book trade multi-marca não tem linha única
+- { tipo: material_interno, campo: linha_colecao, peso: 1 }   # institucional não tem linha
 ```
 
 ## 4.1 PDV
