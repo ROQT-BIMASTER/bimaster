@@ -2379,6 +2379,142 @@ export type Database = {
           },
         ]
       }
+      briefing_mensagens: {
+        Row: {
+          briefing_id: string
+          content: string
+          created_at: string
+          id: string
+          model: string | null
+          proposals: Json
+          role: string
+          sources: Json
+          tool_calls: Json | null
+        }
+        Insert: {
+          briefing_id: string
+          content?: string
+          created_at?: string
+          id?: string
+          model?: string | null
+          proposals?: Json
+          role: string
+          sources?: Json
+          tool_calls?: Json | null
+        }
+        Update: {
+          briefing_id?: string
+          content?: string
+          created_at?: string
+          id?: string
+          model?: string | null
+          proposals?: Json
+          role?: string
+          sources?: Json
+          tool_calls?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "briefing_mensagens_briefing_id_fkey"
+            columns: ["briefing_id"]
+            isOneToOne: false
+            referencedRelation: "briefings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      briefing_templates: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          descricao: string | null
+          id: string
+          nome: string
+          secoes: Json
+          tipo: string
+          updated_at: string
+          versao: number
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          nome: string
+          secoes?: Json
+          tipo: string
+          updated_at?: string
+          versao?: number
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          nome?: string
+          secoes?: Json
+          tipo?: string
+          updated_at?: string
+          versao?: number
+        }
+        Relationships: []
+      }
+      briefings: {
+        Row: {
+          completude: number
+          created_at: string
+          empresa_id: number | null
+          id: string
+          payload: Json
+          projeto_id: string | null
+          status: string
+          template_id: string | null
+          tipo: string
+          titulo: string
+          ultimo_export_em: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          completude?: number
+          created_at?: string
+          empresa_id?: number | null
+          id?: string
+          payload?: Json
+          projeto_id?: string | null
+          status?: string
+          template_id?: string | null
+          tipo: string
+          titulo?: string
+          ultimo_export_em?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          completude?: number
+          created_at?: string
+          empresa_id?: number | null
+          id?: string
+          payload?: Json
+          projeto_id?: string | null
+          status?: string
+          template_id?: string | null
+          tipo?: string
+          titulo?: string
+          ultimo_export_em?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "briefings_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "briefing_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       campaign_briefings: {
         Row: {
           agency_client_id: string
