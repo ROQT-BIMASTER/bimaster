@@ -201,6 +201,7 @@ itens:
 tipo: catalogo
 empresa_id: null
 marca: null
+tipo_uso: ui_suggestion
 fonte_spec: docs/briefing-especificacoes/02-perguntas-por-tipo.md#7-catálogo--book  # §7 P1
 inferido_de_pergunta: true
 itens:
