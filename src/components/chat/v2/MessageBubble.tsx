@@ -15,6 +15,7 @@ import { initials, formatHora } from "./utils";
 import { AnexoView } from "./AnexoView";
 import { ForwardMessageDialog } from "./ForwardMessageDialog";
 import { TaskMentionCard } from "./TaskMentionCard";
+import { ProtocolCountdown } from "./ProtocolCountdown";
 import { AprovacaoCard } from "./AprovacaoCard";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -251,6 +252,15 @@ export function MessageBubble({ m, uid, isGrupo, onReply, participantesCount }: 
               </div>
               {traducao?.texto}
             </div>
+          )}
+
+          {(m.metadata as any)?.protocolo && (
+            <ProtocolCountdown
+              protocolo={(m.metadata as any).protocolo}
+              prazoEm={(m.metadata as any).prazo_em ?? null}
+              resolvidoEm={(m.metadata as any).resolvido_em ?? null}
+              mine={mine}
+            />
           )}
 
           {m.visibilidade === "privada_suporte" && (
