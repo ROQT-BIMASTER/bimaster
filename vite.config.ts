@@ -111,6 +111,8 @@ export default defineConfig(({ mode }) => ({
         // a versão nova em até ~2 minutos após o deploy.
         skipWaiting: true,
         clientsClaim: true,
+        // Adiciona handlers de Web Push (push + notificationclick) ao SW gerado.
+        importScripts: ['/push-handler.js'],
         runtimeCaching: [
           // Navegação SPA: NetworkFirst para HTML — assim o cliente sempre
           // tenta puxar o index.html novo (com hashes de bundle atualizados);
