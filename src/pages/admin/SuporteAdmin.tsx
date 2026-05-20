@@ -181,34 +181,50 @@ export default function SuporteAdmin() {
             <div className="py-12 text-center text-sm text-muted-foreground">Nenhum ticket no filtro atual.</div>
           ) : (
             <div className="divide-y divide-border">
-              {filtrados.map((t) => (
-                <button
-                  key={t.id}
-                  onClick={() => setTicketSel(t)}
-                  className="w-full flex items-center gap-3 py-3 px-2 hover:bg-muted/50 rounded-md text-left transition"
-                >
-                  <div className="h-9 w-9 rounded-full bg-muted flex items-center justify-center shrink-0">
-                    <User className="h-4 w-4 text-muted-foreground" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-0.5">
-                      <span className="font-medium text-sm truncate">
-                        {t.titulo ?? "Ticket sem título definido"}
-                      </span>
-                      <Badge variant="outline" className={STATUS_COLOR[t.status]}>{STATUS_LABEL[t.status]}</Badge>
-                      {t.prioridade && (
-                        <Badge variant="secondary" className={PRIO_COLOR[t.prioridade] ?? ""}>{t.prioridade}</Badge>
-                      )}
+              {filtrados.map((t) => {
+                const sla = slaInfo(t);
+                return (
+                  <button
+                    key={t.id}
+                    onClick={() => setTicketSel(t)}
+                    className="w-full flex items-center gap-3 py-3 px-2 hover:bg-muted/50 rounded-md text-left transition"
+                  >
+                    <div className="h-9 w-9 rounded-full bg-muted flex items-center justify-center shrink-0">
+                      <User className="h-4 w-4 text-muted-foreground" />
                     </div>
-                    <div className="text-xs text-muted-foreground truncate">
-                      {t.owner?.nome ?? "Usuário"} · {t.resumo ?? "Sem resumo"}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-0.5 flex-wrap">
+                        <span className="font-medium text-sm truncate">
+                          {t.titulo ?? "Ticket sem título definido"}
+                        </span>
+                        <Badge variant="outline" className={STATUS_COLOR[t.status]}>{STATUS_LABEL[t.status]}</Badge>
+                        {t.prioridade && (
+                          <Badge variant="secondary" className={PRIO_COLOR[t.prioridade] ?? ""}>{t.prioridade}</Badge>
+                        )}
+                        {sla && (
+                          <Badge
+                            variant="outline"
+                            className={cn(
+                              "gap-1",
+                              sla.tone === "destructive" && "bg-destructive/10 text-destructive border-destructive/30",
+                              sla.tone === "warning" && "bg-amber-500/10 text-amber-700 border-amber-500/30",
+                              sla.tone === "muted" && "bg-muted text-muted-foreground",
+                            )}
+                          >
+                            <TimerReset className="h-3 w-3" /> {sla.label}
+                          </Badge>
+                        )}
+                      </div>
+                      <div className="text-xs text-muted-foreground truncate">
+                        {t.owner?.nome ?? "Usuário"} · {t.resumo ?? "Sem resumo"}
+                      </div>
                     </div>
-                  </div>
-                  <div className="text-[11px] text-muted-foreground whitespace-nowrap">
-                    {formatDistanceToNow(new Date(t.ultima_interacao_em ?? t.created_at), { addSuffix: true, locale: ptBR })}
-                  </div>
-                </button>
-              ))}
+                    <div className="text-[11px] text-muted-foreground whitespace-nowrap">
+                      {formatDistanceToNow(new Date(t.ultima_interacao_em ?? t.created_at), { addSuffix: true, locale: ptBR })}
+                    </div>
+                  </button>
+                );
+              })}
             </div>
           )}
         </CardContent>
