@@ -95,6 +95,22 @@ const TOOLS = [
   {
     type: "function",
     function: {
+      name: "definir_titulo_categoria",
+      description: "Define ou refina título, categoria e prioridade do ticket atual para tabulação. Use logo no início do atendimento.",
+      parameters: {
+        type: "object",
+        properties: {
+          titulo: { type: "string", description: "Frase curta (até 80 chars) descrevendo o problema." },
+          categoria: { type: "string", enum: [...CATEGORIAS] },
+          prioridade: { type: "string", enum: ["baixa", "media", "alta", "critica"] },
+        },
+        required: ["titulo", "categoria"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
       name: "criar_tarefa_suporte",
       description: "Cria uma tarefa no projeto Suporte com o resumo do ticket. Use quando o problema está bem caracterizado.",
       parameters: {
@@ -103,6 +119,7 @@ const TOOLS = [
           titulo: { type: "string" },
           descricao: { type: "string", description: "Resumo do problema + passos já tentados." },
           prioridade: { type: "string", enum: ["baixa", "media", "alta", "critica"] },
+          categoria: { type: "string", enum: [...CATEGORIAS] },
         },
         required: ["titulo", "descricao", "prioridade"],
       },
