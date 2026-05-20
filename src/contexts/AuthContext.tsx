@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Session, User } from "@supabase/supabase-js";
 import { offlineManager } from "@/lib/utils/offline-manager";
 import { logger } from "@/lib/logger";
+import { reportClientVersion } from "@/lib/version-telemetry";
 
 interface AuthContextType {
   session: Session | null;
@@ -204,6 +205,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setSession(newSession);
         if (newSession?.user) {
           currentUserIdRef.current = newSession.user.id;
+          // Telemetria de versão (fire-and-forget, throttled, silencioso).
+          try { reportClientVersion(newSession.user.id); } catch { /* noop */ }
           
           // If checkAuth is still running, skip — it will handle approval
           if (authCheckInProgressRef.current) {
