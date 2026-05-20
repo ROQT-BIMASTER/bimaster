@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ChevronDown, ChevronUp, Hash, Clock, CheckCircle2, AlertTriangle, Reply } from "lucide-react";
+import { ChevronDown, ChevronUp, Hash, Clock, CheckCircle2, AlertTriangle, Reply, Timer } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const SUPORTE_CONV_ID = "3daf9772-404f-42f4-adbf-8a2566d91870";
