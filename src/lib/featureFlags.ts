@@ -34,3 +34,16 @@ export const isLazyDrawerEnabled = () => flag("VITE_FF_LAZY_DRAWER", "ff_lazy_dr
 /** D3 — Cálculo de `ordem` no servidor via RPC `inserir_projeto_tarefa`. */
 export const isServerSideOrderingEnabled = () =>
   flag("VITE_FF_SERVER_SIDE_ORDERING", "ff_server_side_ordering");
+
+/**
+ * PWA Heartbeat — quando true, o PWAContext compara periodicamente o
+ * `APP_VERSION` do bundle atual com a meta `<meta name="app-version">`
+ * do `index.html` servido pela rede. Em caso de divergência, dispara o
+ * toast "Nova versão disponível" mesmo se o Service Worker estiver
+ * preso servindo bundle antigo. Default: false (apenas loga).
+ *
+ * Ativar por usuário piloto: `localStorage.setItem('ff_pwa_heartbeat', '1')`.
+ * Ativar globalmente em build: `VITE_FF_PWA_HEARTBEAT=1`.
+ */
+export const isPwaHeartbeatEnabled = () =>
+  flag("VITE_FF_PWA_HEARTBEAT", "ff_pwa_heartbeat");

@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
-import { checkAndUpdateVersion, APP_VERSION, forceCleanReload } from '@/lib/version';
+import { checkAndUpdateVersion, APP_VERSION, forceCleanReload, getDeployedVersionFromHtml, isVersionMismatch } from '@/lib/version';
+import { isPwaHeartbeatEnabled } from '@/lib/featureFlags';
 import { logger } from "@/lib/logger";
 
 interface PWAState {
@@ -154,13 +155,33 @@ export function PWAProvider({ children }: { children: React.ReactNode }) {
       navigator.serviceWorker.addEventListener('controllerchange', handleControllerChange);
     }
 
+    // Heartbeat de versão (Fase 2): compara meta tag do index.html remoto
+    // com APP_VERSION do bundle atual. Quebra o deadlock quando o SW está
+    // preso servindo bundle antigo. Falha de rede é silenciosa.
+    let notifiedForVersion: string | null = null;
+    const runHeartbeat = async () => {
+      try {
+        const remote = await getDeployedVersionFromHtml();
+        if (!isVersionMismatch(remote)) return;
+        if (notifiedForVersion === remote) return;
+        notifiedForVersion = remote;
+        logger.log(`[PWA] Heartbeat: divergência detectada ${APP_VERSION} → ${remote}`);
+        if (isPwaHeartbeatEnabled() && mountedRef.current) {
+          setState(prev => ({ ...prev, needRefresh: true }));
+        }
+      } catch { /* noop */ }
+    };
+
     // Quando o usuário volta à aba, checar atualização imediatamente
     const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible' && swRegistrationRef) {
-        swRegistrationRef.update().catch(() => { /* noop */ });
+      if (document.visibilityState === 'visible') {
+        if (swRegistrationRef) swRegistrationRef.update().catch(() => { /* noop */ });
+        void runHeartbeat();
       }
     };
     document.addEventListener('visibilitychange', handleVisibilityChange);
+    // Primeiro heartbeat ~10s após mount (deixa boot acomodar)
+    const heartbeatBoot = setTimeout(() => { void runHeartbeat(); }, 10_000);
 
     // Event listeners
     const handleBeforeInstallPrompt = (e: Event) => {
@@ -209,6 +230,7 @@ export function PWAProvider({ children }: { children: React.ReactNode }) {
       window.removeEventListener('appinstalled', handleAppInstalled);
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
+      clearTimeout(heartbeatBoot);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       if ('serviceWorker' in navigator) {
         navigator.serviceWorker.removeEventListener('controllerchange', handleControllerChange);
