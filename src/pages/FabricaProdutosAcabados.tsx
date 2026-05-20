@@ -390,6 +390,57 @@ export default function FabricaProdutosAcabados() {
     });
     if (!filtered) return [];
 
+    // Ordenação por coluna (mantém hierarquia: ordena só pais; filhos/concorrentes
+    // continuam injetados logo abaixo do respectivo pai pelo passo seguinte).
+    if (sortConfig.column && sortConfig.direction) {
+      const dir = sortConfig.direction === "asc" ? 1 : -1;
+      const col = sortConfig.column;
+      const getStr = (p: any): string => {
+        switch (col) {
+          case "codigo": return p.codigo ?? "";
+          case "nome": return p.nome ?? "";
+          case "tipo": return p.tipo ?? "";
+          case "origem": return p.origem ?? "";
+          case "ficha": return (fichasMap.get(p.id) as string) ?? "";
+          case "un": return p.tipo === "DISPLAY" ? "Display" : (p.unidade?.sigla ?? "");
+          case "status": return p.ativo ? "Ativo" : "Inativo";
+          case "formula": return p.formula_id ? "Vinculada" : "";
+          case "responsavel": {
+            const nome = p.updated_by ? (profilesMap.get(p.updated_by) || profilesMap.get(p.created_by)) : profilesMap.get(p.created_by);
+            return nome ?? "";
+          }
+          default: return "";
+        }
+      };
+      const getNum = (p: any): number | null => {
+        if (col === "custo") {
+          const v = custoTotalMap.get(p.id) ?? p.custo_unitario;
+          return v == null ? null : Number(v);
+        }
+        if (col === "cadastro") {
+          return p.created_at ? new Date(p.created_at).getTime() : null;
+        }
+        return null;
+      };
+      const isNumeric = col === "custo" || col === "cadastro";
+      filtered.sort((a, b) => {
+        if (isNumeric) {
+          const av = getNum(a); const bv = getNum(b);
+          if (av == null && bv == null) return 0;
+          if (av == null) return 1; // nulos sempre ao final
+          if (bv == null) return -1;
+          return (av - bv) * dir;
+        }
+        const av = getStr(a); const bv = getStr(b);
+        if (!av && !bv) return 0;
+        if (!av) return 1;
+        if (!bv) return -1;
+        return av.localeCompare(bv, "pt-BR", { numeric: true, sensitivity: "base" }) * dir;
+      });
+    }
+
+
+
     // Reordenar: posicionar filhos imediatamente após seus pais
     const filteredIds = new Set(filtered.map(p => p.id));
     const childrenPlaced = new Set<string>();
