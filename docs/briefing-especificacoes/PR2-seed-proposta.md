@@ -526,7 +526,7 @@ Regra de extração aplicada (confirmada no review):
 - { tipo: evento, campo: evento_nome,    peso: 10, motivo: "Identifica o evento de destino do material" }
 - { tipo: evento, campo: evento_data,    peso: 10, motivo: "Define prazo absoluto de produção (não pode passar)" }
 - { tipo: evento, campo: brinde_type,    peso: 10, motivo: "Define a peça a produzir" }
-- { tipo: evento, campo: kv_referencia,  peso: 10, motivo: "Sem KV o designer não inicia (spec 03 marca obrigatório)" }
+- { tipo: evento, campo: kv_referencia,  peso: 1 }   # rebaixado no review: eventos institucionais (Beauty Show, feiras, brindes) usam identidade da marca como fallback
 - { tipo: evento, campo: dimensoes,      peso: 1 }
 - { tipo: evento, campo: quantidade,     peso: 1 }
 - { tipo: evento, campo: conceito_tema,  peso: 1 }
