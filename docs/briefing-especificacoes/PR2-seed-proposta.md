@@ -586,22 +586,28 @@ Regra de extração aplicada (confirmada no review):
 
 ---
 
-# Pontos abertos para o review
+# Decisões do review (todas resolvidas)
 
-1. **4 dimensões PDV ambíguas** (Régua de Gôndola, Display de Balcão, Glorifier,
-   Plotagem de Loja) — manter sem default e sempre perguntar, ou definir um valor?
-2. **Display de Rolo, Clip Strip, Tag** — ausentes da tabela "Dimensões padrão" da
-   spec 03. Tratar como "sempre perguntar" ou propor padrão razoável?
-3. **6 catálogos `inferido_de_pergunta: true`** (Embalagem, Campanha, E-commerce,
-   Press Kit, Catálogo, Material Interno) — promover a catálogo canônico ou manter
-   apenas como sugestão de UI sem peso de validação?
-4. **`produto_sku` (Embalagem)** — validação `HB-xxx` por regex agora ou diferir
-   para PR futuro?
-5. **`linha_colecao` peso 10 universal** — em alguns tipos (Material Interno,
-   Catálogo cross-marca) pode não ser sempre aplicável. Manter ou rebaixar para
-   peso 1 nesses tipos?
-6. **`evento.kv_referencia` peso 10** — spec 03 marca obrigatório, mas eventos
-   genéricos sem campanha-pai podem não ter KV. Confirmar.
+1. **4 dimensões PDV ambíguas** (Régua, Display Balcão, Glorifier, Plotagem) →
+   sem default, sempre perguntar. Critério: spec não declara, não inventamos.
+2. **Display de Rolo, Clip Strip, Tag** → mesmo tratamento, sem default.
+3. **6 catálogos `inferido_de_pergunta`** → distinção via campo `tipo_uso`:
+   `canonical` para Embalagem, Campanha, E-commerce, Press Kit; `ui_suggestion`
+   para Catálogo e Material Interno.
+4. **`produto_sku` regex `HB-xxx`** → diferido para PR futuro (registrar issue
+   no GitHub com label `debt`).
+5. **`linha_colecao` peso 10 universal** → rebaixado, agora variável por tipo
+   (ver seção 4.0.b). Sai dos universais (que ficam com 3 campos × 8 tipos = 24).
+6. **`evento.kv_referencia` peso 10** → rebaixado para peso 1 (eventos
+   institucionais usam identidade da marca como fallback).
+
+Ajustes estruturais aplicados:
+- 4.0.a expandido literalmente em 24 entradas (não usa wildcard `<each>` nem
+  `tipo: "*"` — `calc_completeness` filtra por `tipo` literal).
+- `default: "Média"` removido do template `prioridade` (fica só em
+  `briefing_defaults`, fonte única).
+- Escopo da `chave` documentado como `(empresa_id, marca, tipo, chave)` —
+  PR3/PR4 não devem tratar `chave` como identificador global.
 
 Lembrete: peso 10 bloqueia botão "Concluir lote" no PR4. Peso 1–9 só afeta
 `completeness_score`.
