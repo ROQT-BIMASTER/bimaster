@@ -1406,6 +1406,9 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
               {(isAdmin || hasPermission("relatorios")) && (
                 <MenuItemLink to="/dashboard/relatorios" icon={BarChart3} title="Relatórios" />
               )}
+              {(isAdmin || hasPermission("briefings_agente")) && (
+                <MenuItemLink to="/dashboard/briefings" icon={Sparkles} title="Briefings" />
+              )}
               <MenuItemLink to="/dashboard/chat" icon={MessageCircle} title="Chat" />
               <MenuItemLink to="/dashboard/instalar-app" icon={needRefresh ? RefreshCw : Download} title={needRefresh ? "Atualizar App" : t("nav.install_app")} />
             </SidebarMenu>
