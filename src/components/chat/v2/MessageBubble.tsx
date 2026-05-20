@@ -254,6 +254,15 @@ export function MessageBubble({ m, uid, isGrupo, onReply, participantesCount }: 
             </div>
           )}
 
+          {(m.metadata as any)?.protocolo && (
+            <ProtocolCountdown
+              protocolo={(m.metadata as any).protocolo}
+              prazoEm={(m.metadata as any).prazo_em ?? null}
+              resolvidoEm={(m.metadata as any).resolvido_em ?? null}
+              mine={mine}
+            />
+          )}
+
           {m.visibilidade === "privada_suporte" && (
             <div className={cn(
               "mt-1 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium border",
