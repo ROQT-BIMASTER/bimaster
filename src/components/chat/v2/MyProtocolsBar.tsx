@@ -35,6 +35,16 @@ function countdown(target: Date, now: Date) {
   return { atrasado: ms < 0, h, m };
 }
 
+function formatDur(ms: number) {
+  const abs = Math.abs(ms);
+  const d = Math.floor(abs / 86_400_000);
+  const h = Math.floor((abs % 86_400_000) / 3_600_000);
+  const m = Math.floor((abs % 3_600_000) / 60_000);
+  if (d > 0) return `${d}d ${h}h`;
+  if (h > 0) return `${h}h ${String(m).padStart(2, "0")}m`;
+  return `${m}m`;
+}
+
 interface Props {
   conversaId: string;
 }
