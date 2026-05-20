@@ -29,7 +29,7 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Plus, Search, Package, Edit, Trash2, Upload, DollarSign, FileX, Filter, Layers, X, TrendingUp, ClipboardList, HelpCircle, LayoutGrid, TableIcon, BarChart3, ChevronDown, ChevronRight, ChevronsDownUp, ChevronsUpDown, MessageSquare, Kanban, Link2, Eye, EyeOff, User, PanelLeftClose, PanelLeftOpen, Calendar, Clock, AlertTriangle, Maximize2, Minimize2, Palette, ArrowLeft, ShieldQuestion, MoreHorizontal, BookOpen } from "lucide-react";
+import { Plus, Search, Package, Edit, Trash2, Upload, DollarSign, FileX, Filter, Layers, X, TrendingUp, ClipboardList, HelpCircle, LayoutGrid, TableIcon, BarChart3, ChevronDown, ChevronRight, ChevronsDownUp, ChevronsUpDown, MessageSquare, Kanban, Link2, Eye, EyeOff, User, PanelLeftClose, PanelLeftOpen, Calendar, Clock, AlertTriangle, Maximize2, Minimize2, Palette, ArrowLeft, ShieldQuestion, MoreHorizontal, BookOpen, ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
 import { PhotoPermissionDiagnosticsDialog } from "@/components/fabrica/PhotoPermissionDiagnosticsDialog";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
@@ -95,6 +95,43 @@ export default function FabricaProdutosAcabados() {
     if (typeof window === "undefined") return;
     localStorage.setItem("fabrica:produtos:expandConcorrentes", expandAllConcorrentes ? "1" : "0");
   }, [expandAllConcorrentes]);
+
+  // Ordenação por coluna (estilo Power BI: asc -> desc -> none)
+  type SortColumn =
+    | "codigo" | "nome" | "tipo" | "origem" | "ficha"
+    | "custo" | "formula" | "un" | "status" | "responsavel" | "cadastro";
+  type SortDir = "asc" | "desc" | null;
+  interface SortConfig { column: SortColumn | null; direction: SortDir; }
+  const [sortConfig, setSortConfig] = useState<SortConfig>(() => {
+    if (typeof window === "undefined") return { column: null, direction: null };
+    try {
+      const raw = localStorage.getItem("fabrica:produtos:sort");
+      if (!raw) return { column: null, direction: null };
+      const parsed = JSON.parse(raw);
+      if (parsed && parsed.column && (parsed.direction === "asc" || parsed.direction === "desc")) {
+        return parsed as SortConfig;
+      }
+    } catch { /* noop */ }
+    return { column: null, direction: null };
+  });
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      if (sortConfig.column && sortConfig.direction) {
+        localStorage.setItem("fabrica:produtos:sort", JSON.stringify(sortConfig));
+      } else {
+        localStorage.removeItem("fabrica:produtos:sort");
+      }
+    } catch { /* noop */ }
+  }, [sortConfig]);
+  const toggleSort = (column: SortColumn) => {
+    setSortConfig((prev) => {
+      if (prev.column !== column) return { column, direction: "asc" };
+      if (prev.direction === "asc") return { column, direction: "desc" };
+      return { column: null, direction: null };
+    });
+  };
+
   const toggleSugestaoExpand = (id: string) => {
     setExpandedSugestoes((prev) => {
       const next = new Set(prev);
@@ -353,6 +390,57 @@ export default function FabricaProdutosAcabados() {
     });
     if (!filtered) return [];
 
+    // Ordenação por coluna (mantém hierarquia: ordena só pais; filhos/concorrentes
+    // continuam injetados logo abaixo do respectivo pai pelo passo seguinte).
+    if (sortConfig.column && sortConfig.direction) {
+      const dir = sortConfig.direction === "asc" ? 1 : -1;
+      const col = sortConfig.column;
+      const getStr = (p: any): string => {
+        switch (col) {
+          case "codigo": return p.codigo ?? "";
+          case "nome": return p.nome ?? "";
+          case "tipo": return p.tipo ?? "";
+          case "origem": return p.origem ?? "";
+          case "ficha": return (fichasMap.get(p.id) as string) ?? "";
+          case "un": return p.tipo === "DISPLAY" ? "Display" : (p.unidade?.sigla ?? "");
+          case "status": return p.ativo ? "Ativo" : "Inativo";
+          case "formula": return p.formula_id ? "Vinculada" : "";
+          case "responsavel": {
+            const nome = p.updated_by ? (profilesMap.get(p.updated_by) || profilesMap.get(p.created_by)) : profilesMap.get(p.created_by);
+            return nome ?? "";
+          }
+          default: return "";
+        }
+      };
+      const getNum = (p: any): number | null => {
+        if (col === "custo") {
+          const v = custoTotalMap.get(p.id) ?? p.custo_unitario;
+          return v == null ? null : Number(v);
+        }
+        if (col === "cadastro") {
+          return p.created_at ? new Date(p.created_at).getTime() : null;
+        }
+        return null;
+      };
+      const isNumeric = col === "custo" || col === "cadastro";
+      filtered.sort((a, b) => {
+        if (isNumeric) {
+          const av = getNum(a); const bv = getNum(b);
+          if (av == null && bv == null) return 0;
+          if (av == null) return 1; // nulos sempre ao final
+          if (bv == null) return -1;
+          return (av - bv) * dir;
+        }
+        const av = getStr(a); const bv = getStr(b);
+        if (!av && !bv) return 0;
+        if (!av) return 1;
+        if (!bv) return -1;
+        return av.localeCompare(bv, "pt-BR", { numeric: true, sensitivity: "base" }) * dir;
+      });
+    }
+
+
+
     // Reordenar: posicionar filhos imediatamente após seus pais
     const filteredIds = new Set(filtered.map(p => p.id));
     const childrenPlaced = new Set<string>();
@@ -400,7 +488,7 @@ export default function FabricaProdutosAcabados() {
       }
     }
     return result;
-  }, [produtos, busca, filtroMarca, filtroLinha, filtroTipo, filtroProvador, filtroStatusFicha, fichasMap, mostrarOcultos, dataInicio, dataFim, paiParaFilhosMap, sugestaoParaConcorrentesMap, expandAllConcorrentes, expandedSugestoes]);
+  }, [produtos, busca, filtroMarca, filtroLinha, filtroTipo, filtroProvador, filtroStatusFicha, fichasMap, mostrarOcultos, dataInicio, dataFim, paiParaFilhosMap, sugestaoParaConcorrentesMap, expandAllConcorrentes, expandedSugestoes, sortConfig, custoTotalMap, profilesMap]);
 
   // Comparativo KPI "Em Revisão" vs lista filtrada — alerta quando algum
   // filtro ativo está escondendo itens contados no KPI.
@@ -1611,24 +1699,55 @@ export default function FabricaProdutosAcabados() {
                             const headClass = headerStyle === "solid"
                               ? "h-10 text-[10px] uppercase tracking-wider font-bold text-foreground/80 whitespace-nowrap"
                               : "h-9 text-[10px] uppercase tracking-wider font-semibold text-muted-foreground whitespace-nowrap";
+                            const sortable = (
+                              col: SortColumn,
+                              label: string,
+                              extraClass = "",
+                              align: "left" | "right" = "left",
+                            ) => {
+                              const active = sortConfig.column === col;
+                              const dir = active ? sortConfig.direction : null;
+                              const ariaSort: "ascending" | "descending" | "none" =
+                                dir === "asc" ? "ascending" : dir === "desc" ? "descending" : "none";
+                              const Icon = dir === "asc" ? ArrowUp : dir === "desc" ? ArrowDown : ArrowUpDown;
+                              return (
+                                <TableHead
+                                  className={`${headClass} ${extraClass} cursor-pointer select-none hover:bg-muted/50 transition-colors`}
+                                  aria-sort={ariaSort}
+                                >
+                                  <button
+                                    type="button"
+                                    onClick={() => toggleSort(col)}
+                                    className={`group inline-flex items-center gap-1 w-full ${align === "right" ? "justify-end" : "justify-start"} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded`}
+                                    aria-label={`Ordenar por ${label}${dir === "asc" ? ", crescente" : dir === "desc" ? ", decrescente" : ""}`}
+                                  >
+                                    <span>{label}</span>
+                                    <Icon
+                                      className={`h-3 w-3 transition-opacity ${active ? "opacity-100 text-foreground" : "opacity-0 group-hover:opacity-60"}`}
+                                    />
+                                  </button>
+                                </TableHead>
+                              );
+                            };
                             return (
                               <>
                                 <TableHead className={headerStyle === "solid" ? "w-[52px] h-10" : "w-[52px] h-9"}></TableHead>
-                                <TableHead className={headClass}>Código</TableHead>
-                                <TableHead className={headClass}>Nome</TableHead>
-                                <TableHead className={headClass}>Tipo</TableHead>
-                                <TableHead className={headClass}>Origem</TableHead>
-                                <TableHead className={headClass}>Ficha</TableHead>
-                                <TableHead className={headClass}>Custo</TableHead>
-                                <TableHead className={headClass}>Fórmula</TableHead>
-                                <TableHead className={headClass}>Un</TableHead>
-                                <TableHead className={`${headClass} w-[90px]`}>Status</TableHead>
-                                <TableHead className={`${headClass} w-[150px]`}>Responsável</TableHead>
-                                <TableHead className={`${headClass} w-[90px]`}>Cadastro</TableHead>
+                                {sortable("codigo", "Código")}
+                                {sortable("nome", "Nome")}
+                                {sortable("tipo", "Tipo")}
+                                {sortable("origem", "Origem")}
+                                {sortable("ficha", "Ficha")}
+                                {sortable("custo", "Custo")}
+                                {sortable("formula", "Fórmula")}
+                                {sortable("un", "Un")}
+                                {sortable("status", "Status", "w-[90px]")}
+                                {sortable("responsavel", "Responsável", "w-[150px]")}
+                                {sortable("cadastro", "Cadastro", "w-[90px]")}
                                 <TableHead className={`${headClass} w-[140px] text-right`}>Ações</TableHead>
                               </>
                             );
                           })()}
+
                         </TableRow>
                       </TableHeader>
                       <TableBody>
