@@ -97,6 +97,8 @@ export default function SuporteAdmin() {
   const navigate = useNavigate();
   const { bgColor, setBgColor, darkBg } = usePageBgColor("suporte-admin");
   const [filtroStatus, setFiltroStatus] = useState<Status | "todos">("todos");
+  const [filtroCategoria, setFiltroCategoria] = useState<string>("todas");
+  const [filtroPeriodo, setFiltroPeriodo] = useState<"7" | "14" | "30" | "90" | "todos">("30");
   const [busca, setBusca] = useState("");
   const [ticketSel, setTicketSel] = useState<Ticket | null>(null);
   const [aba, setAba] = useState<"tickets" | "graficos">("tickets");
@@ -128,34 +130,43 @@ export default function SuporteAdmin() {
     refetchInterval: 30_000,
   });
 
+  const ticketsPeriodo = useMemo(() => {
+    if (filtroPeriodo === "todos") return tickets;
+    const dias = parseInt(filtroPeriodo, 10);
+    const limite = subDays(new Date(), dias).getTime();
+    return tickets.filter((t) => new Date(t.created_at).getTime() >= limite);
+  }, [tickets, filtroPeriodo]);
+
   const filtrados = useMemo(() => {
     const q = busca.trim().toLowerCase();
-    if (!q) return tickets;
-    return tickets.filter(
-      (t) =>
+    return ticketsPeriodo.filter((t) => {
+      if (filtroCategoria !== "todas" && (t.categoria ?? "outro") !== filtroCategoria) return false;
+      if (!q) return true;
+      return (
         (t.titulo ?? "").toLowerCase().includes(q) ||
         (t.resumo ?? "").toLowerCase().includes(q) ||
-        (t.owner?.nome ?? "").toLowerCase().includes(q),
-    );
-  }, [tickets, busca]);
+        (t.owner?.nome ?? "").toLowerCase().includes(q)
+      );
+    });
+  }, [ticketsPeriodo, busca, filtroCategoria]);
 
   const kpis = useMemo(() => {
-    const abertos = tickets.filter((t) => t.status !== "resolvido").length;
-    const escalados = tickets.filter((t) => t.status === "escalado").length;
-    const resolvidos = tickets.filter((t) => t.status === "resolvido").length;
-    const criticos = tickets.filter((t) => t.prioridade === "critica" && t.status !== "resolvido").length;
-    const atrasados = tickets.filter((t) => {
+    const abertos = ticketsPeriodo.filter((t) => t.status !== "resolvido").length;
+    const escalados = ticketsPeriodo.filter((t) => t.status === "escalado").length;
+    const resolvidos = ticketsPeriodo.filter((t) => t.status === "resolvido").length;
+    const criticos = ticketsPeriodo.filter((t) => t.prioridade === "critica" && t.status !== "resolvido").length;
+    const atrasados = ticketsPeriodo.filter((t) => {
       const i = slaInfo(t as any);
       return i?.tone === "destructive";
     }).length;
     return { abertos, escalados, resolvidos, criticos, atrasados };
-  }, [tickets]);
+  }, [ticketsPeriodo]);
 
   const charts = useMemo(() => {
     const porCategoria = new Map<string, number>();
     const porStatus = new Map<string, number>();
     const porPrioridade = new Map<string, number>();
-    tickets.forEach((t) => {
+    ticketsPeriodo.forEach((t) => {
       const cat = t.categoria ?? "outro";
       porCategoria.set(cat, (porCategoria.get(cat) ?? 0) + 1);
       porStatus.set(t.status, (porStatus.get(t.status) ?? 0) + 1);
@@ -165,11 +176,12 @@ export default function SuporteAdmin() {
 
     const evolucao: { dia: string; abertos: number; resolvidos: number }[] = [];
     const hoje = startOfDay(new Date());
-    for (let i = 13; i >= 0; i--) {
+    const dias = filtroPeriodo === "todos" ? 30 : Math.min(parseInt(filtroPeriodo, 10), 60);
+    for (let i = dias - 1; i >= 0; i--) {
       const d = subDays(hoje, i);
       const key = format(d, "dd/MM");
-      const abertos = tickets.filter((t) => format(startOfDay(new Date(t.created_at)), "dd/MM") === key).length;
-      const resolvidos = tickets.filter((t) => t.resolved_at && format(startOfDay(new Date(t.resolved_at)), "dd/MM") === key).length;
+      const abertos = ticketsPeriodo.filter((t) => format(startOfDay(new Date(t.created_at)), "dd/MM") === key).length;
+      const resolvidos = ticketsPeriodo.filter((t) => t.resolved_at && format(startOfDay(new Date(t.resolved_at)), "dd/MM") === key).length;
       evolucao.push({ dia: key, abertos, resolvidos });
     }
 
@@ -179,7 +191,7 @@ export default function SuporteAdmin() {
       prioridade: Array.from(porPrioridade.entries()).map(([k, v]) => ({ nome: k, value: v })),
       evolucao,
     };
-  }, [tickets]);
+  }, [ticketsPeriodo, filtroPeriodo]);
 
   return (
     <div
@@ -237,6 +249,25 @@ export default function SuporteAdmin() {
                     {(Object.keys(STATUS_LABEL) as Status[]).map((s) => (
                       <SelectItem key={s} value={s}>{STATUS_LABEL[s]}</SelectItem>
                     ))}
+                  </SelectContent>
+                </Select>
+                <Select value={filtroCategoria} onValueChange={setFiltroCategoria}>
+                  <SelectTrigger className="w-40 h-9"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todas">Todas categorias</SelectItem>
+                    {Object.entries(CATEGORIA_LABEL).map(([k, v]) => (
+                      <SelectItem key={k} value={k}>{v}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select value={filtroPeriodo} onValueChange={(v) => setFiltroPeriodo(v as any)}>
+                  <SelectTrigger className="w-32 h-9"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="7">Últimos 7d</SelectItem>
+                    <SelectItem value="14">Últimos 14d</SelectItem>
+                    <SelectItem value="30">Últimos 30d</SelectItem>
+                    <SelectItem value="90">Últimos 90d</SelectItem>
+                    <SelectItem value="todos">Tudo</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -353,7 +384,7 @@ export default function SuporteAdmin() {
             </Card>
 
             <Card>
-              <CardHeader><CardTitle className="text-sm">Evolução (14 dias)</CardTitle></CardHeader>
+              <CardHeader><CardTitle className="text-sm">Evolução ({filtroPeriodo === "todos" ? "30 dias" : `${filtroPeriodo} dias`})</CardTitle></CardHeader>
               <CardContent className="h-64">
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={charts.evolucao}>
