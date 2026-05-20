@@ -3,6 +3,9 @@ on:
   push:
     branches: [main]
   pull_request:
+    paths-ignore:
+      - 'docs/**'
+      - '**/*.md'
 jobs:
   run:
     runs-on: ubuntu-latest
