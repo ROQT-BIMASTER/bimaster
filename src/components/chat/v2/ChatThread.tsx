@@ -14,6 +14,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { initials, formatDataChip, nomeConversa } from "./utils";
 import { MessageBubble } from "./MessageBubble";
 import { MessageInput } from "./MessageInput";
+import { MyProtocolsBar } from "./MyProtocolsBar";
 import type { ChatMensagem } from "@/hooks/chat/types";
 
 interface Props {
@@ -72,6 +73,18 @@ export function ChatThread({ conversaId, onShowInfo }: Props) {
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [mensagens.length]);
+
+  // Responder a partir de um protocolo (MyProtocolsBar dispara evento custom)
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail as { mensagemId: string };
+      const alvo = mensagens.find((m) => m.id === detail.mensagemId);
+      if (alvo) setResponderA(alvo);
+    };
+    window.addEventListener("suporte:reply-protocolo", handler);
+    return () => window.removeEventListener("suporte:reply-protocolo", handler);
+  }, [mensagens]);
+
 
   // detectar scroll fora do bottom
   useEffect(() => {
@@ -169,6 +182,9 @@ export function ChatThread({ conversaId, onShowInfo }: Props) {
           </DropdownMenuContent>
         </DropdownMenu>
       </header>
+
+      <MyProtocolsBar conversaId={conversaId} />
+
 
       {busca !== null && (
         <div className="px-3 py-2 border-b border-border bg-card flex items-center gap-2">
