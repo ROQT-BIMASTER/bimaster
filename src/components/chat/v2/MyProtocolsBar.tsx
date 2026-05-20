@@ -188,6 +188,12 @@ export function MyProtocolsBar({ conversaId }: Props) {
                   {resolved ? (
                     <span className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400 shrink-0">
                       <CheckCircle2 className="h-3 w-3" /> Resolvido
+                      {p.resolvedAt && (
+                        <span className="inline-flex items-center gap-1 ml-1 opacity-80">
+                          <Timer className="h-3 w-3" />
+                          em {formatDur(new Date(p.resolvedAt).getTime() - new Date(p.createdAt).getTime())}
+                        </span>
+                      )}
                     </span>
                   ) : cd ? (
                     <span className={cn(
