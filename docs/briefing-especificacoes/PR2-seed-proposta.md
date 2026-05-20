@@ -145,6 +145,7 @@ itens:
 tipo: campanha
 empresa_id: null
 marca: null
+tipo_uso: canonical
 fonte_spec: docs/briefing-especificacoes/02-perguntas-por-tipo.md#4-campanha--kv  # §4 P5
 inferido_de_pergunta: true
 itens:
