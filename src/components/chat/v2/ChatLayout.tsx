@@ -134,26 +134,27 @@ export function ChatLayout({ initialConversaId = null, className, defaultShowInf
   }
 
   return (
-    <div className={cn("flex h-full w-full bg-background overflow-hidden", className)}>
-      <ChatSidebar
-        conversaSelecionada={conversaId}
-        onSelectConversa={(id) => { setConversaId(id); }}
-        modo={modo}
-        onModoChange={trocarModo}
-        podeAlternarModo={podeAlternarModo}
-        className="w-[320px] shrink-0"
-      />
-      <div className="flex-1 min-w-0 flex">
-        {renderPainelCentro()}
-        {/* Painel de info só faz sentido pra conversas de pessoas.
-            Em submissões, o ChinaChatPanel já tem seu próprio header detalhado. */}
-        {modo === "pessoas" && showInfo && conversaId && (
-          <ConversaInfoPanel
-            conversaId={conversaId}
-            onClose={() => setShowInfo(false)}
-            className="w-[300px] shrink-0"
-          />
-        )}
+    <div className={cn("flex flex-col h-full w-full bg-background overflow-hidden", className)}>
+      <EnablePushBanner />
+      <div className="flex flex-1 min-h-0 w-full overflow-hidden">
+        <ChatSidebar
+          conversaSelecionada={conversaId}
+          onSelectConversa={(id) => { setConversaId(id); }}
+          modo={modo}
+          onModoChange={trocarModo}
+          podeAlternarModo={podeAlternarModo}
+          className="w-[320px] shrink-0"
+        />
+        <div className="flex-1 min-w-0 flex">
+          {renderPainelCentro()}
+          {modo === "pessoas" && showInfo && conversaId && (
+            <ConversaInfoPanel
+              conversaId={conversaId}
+              onClose={() => setShowInfo(false)}
+              className="w-[300px] shrink-0"
+            />
+          )}
+        </div>
       </div>
     </div>
   );

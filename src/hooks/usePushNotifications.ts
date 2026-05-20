@@ -175,7 +175,6 @@ export const usePushNotifications = () => {
           await showNotification('Nova mensagem', {
             body,
             tag: `conv-${row.conversa_id}`, // colapsa por conversa (WhatsApp-like)
-            renotify: false,
             data: { url: `/dashboard/chat?c=${row.conversa_id}` },
             vibrate: [120, 60, 120],
           });
