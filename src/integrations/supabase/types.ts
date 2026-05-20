@@ -6168,6 +6168,30 @@ export type Database = {
           },
         ]
       }
+      client_version_telemetry: {
+        Row: {
+          app_version: string
+          created_at: string
+          last_seen: string
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          app_version: string
+          created_at?: string
+          last_seen?: string
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          app_version?: string
+          created_at?: string
+          last_seen?: string
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       cliente_caracteristicas: {
         Row: {
           campo: string
