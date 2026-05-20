@@ -38539,6 +38539,7 @@ export type Database = {
       }
       suporte_tickets: {
         Row: {
+          categoria: string | null
           conversa_id: string
           created_at: string
           escalado_em: string | null
@@ -38557,6 +38558,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          categoria?: string | null
           conversa_id: string
           created_at?: string
           escalado_em?: string | null
@@ -38575,6 +38577,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          categoria?: string | null
           conversa_id?: string
           created_at?: string
           escalado_em?: string | null
