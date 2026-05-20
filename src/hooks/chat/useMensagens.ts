@@ -10,7 +10,7 @@ const PAGE = 50;
 async function loadMensagensBatch(conversaId: string, beforeIso: string | null): Promise<ChatMensagem[]> {
   let q = supabase
     .from("mensagens")
-    .select("id, conversa_id, remetente_id, conteudo, tipo, responde_a_id, encaminhada_de_id, editada_em, excluida_em, excluida_para_todos, fixada_em, mencoes, metadata, created_at")
+    .select("id, conversa_id, remetente_id, conteudo, tipo, responde_a_id, encaminhada_de_id, editada_em, excluida_em, excluida_para_todos, fixada_em, mencoes, metadata, created_at, visibilidade, ticket_owner_id, ticket_id")
     .eq("conversa_id", conversaId)
     .order("created_at", { ascending: false })
     .limit(PAGE);

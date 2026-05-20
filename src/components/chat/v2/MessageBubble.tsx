@@ -253,7 +253,19 @@ export function MessageBubble({ m, uid, isGrupo, onReply, participantesCount }: 
             </div>
           )}
 
+          {m.visibilidade === "privada_suporte" && (
+            <div className={cn(
+              "mt-1 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium border",
+              mine
+                ? "bg-white/15 text-white/90 border-white/20"
+                : "bg-primary/10 text-primary border-primary/20",
+            )} title="Conversa privada de suporte — apenas você e a equipe Ruby Rose podem ver">
+              <Info className="h-2.5 w-2.5" />
+              Privado · só você e o suporte
+            </div>
+          )}
           <div className={cn("flex items-center gap-1 justify-end mt-0.5 text-[10px]", mine ? "text-white/70" : "text-muted-foreground")}>
+
             {m.editada_em && (
               <span title={`Editada em ${new Date(m.editada_em).toLocaleString("pt-BR")}`}>
                 editada

@@ -71,6 +71,9 @@ export interface ChatMensagem {
   mencoes: string[];
   metadata: Record<string, unknown>;
   created_at: string;
+  visibilidade?: "broadcast" | "privada_suporte" | null;
+  ticket_owner_id?: string | null;
+  ticket_id?: string | null;
   remetente?: ChatProfile | null;
   responde_a?:
     | (Pick<ChatMensagem, "id" | "conteudo" | "remetente_id" | "tipo"> & {

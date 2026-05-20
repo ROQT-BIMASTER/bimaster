@@ -314,6 +314,7 @@ const SecurityHardeningCenterV2 = lazyWithRetry(() => import("./pages/admin/secu
 const MfaSettingsPage = lazyWithRetry(() => import("./pages/security/MfaSettingsPage"));
 const VisibilidadeTarefas = lazyWithRetry(() => import("./pages/admin/VisibilidadeTarefas"));
 const VersoesClientes = lazyWithRetry(() => import("./pages/admin/VersoesClientes"));
+const SuporteAdmin = lazyWithRetry(() => import("./pages/admin/SuporteAdmin"));
 const VisibilidadeProjetosAjuda = lazyWithRetry(() => import("./pages/ajuda/VisibilidadeProjetos"));
 const PoliticaPrivacidade = lazyWithRetry(() => import("./pages/PoliticaPrivacidade"));
 const TermosDeUso = lazyWithRetry(() => import("./pages/TermosDeUso"));
@@ -712,6 +713,7 @@ function AppContent() {
             <Route path="/dashboard/aprovacao-artes/configuracao" element={<ModuleRoute moduleCode="aprovacao_artes"><ScreenProtectedRoute screenCode="aprovacao_artes_config"><FluxoAprovacaoConfig /></ScreenProtectedRoute></ModuleRoute>} />
             <Route path="/admin/templates-alcadas" element={<ScreenRoute screenCode="admin"><FluxoAprovacaoConfig /></ScreenRoute>} />
             <Route path="/admin/versoes-clientes" element={<ScreenRoute screenCode="admin"><VersoesClientes /></ScreenRoute>} />
+            <Route path="/admin/suporte" element={<ScreenRoute screenCode="admin"><SuporteAdmin /></ScreenRoute>} />
 
 
             {/* Módulo Checklist Composição */}
