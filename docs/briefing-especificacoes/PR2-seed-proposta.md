@@ -13,6 +13,23 @@ Quando uma célula é ambígua na spec, marco como `(ambíguo — confirmar)`.
 
 ## Pré-requisitos de schema (vão na migration do passo 7, não agora)
 
+> **Nota PR2.5 — alinhamento dos CHECKs de `tipo` (pré-requisito deste PR2):**
+> O PR1 atualizou `briefing_templates.tipo` para os 4 novos tipos
+> (`marketing|criativo|produto|trade`), mas deixou os CHECKs antigos em
+> `briefings`, `briefing_catalogos_padrao`, `briefing_defaults` e
+> `briefing_campos_obrigatorios` (lista `{pdv, embalagem, evento, campanha,
+> ecommerce, presskit, catalogo, material_interno}`). Isto bloqueia tanto a UI
+> atual de `/dashboard/briefings` quanto os INSERTs do seed deste PR2.
+> Resolvido em PR2.5 (`<timestamp>_pr2_5_align_tipo_checks.sql`): DROP+ADD do
+> CHECK nas 4 tabelas para a mesma lista nova, e migração do único registro
+> legado em `briefings` (`tipo='campanha'` → `'marketing'`). O seed deste PR2
+> assume os 4 novos tipos como domínio único válido.
+>
+> A reorganização dos `briefing_templates` em si para os 4 novos tipos
+> permanece adiada para o PR3 (consumido pelo agente, não pelo seed).
+
+
+
 Cenário A confirmado contra o schema atual: `briefing_catalogos_padrao.empresa_id`,
 `briefing_defaults.empresa_id` e `briefing_campos_obrigatorios.empresa_id` são
 `integer NOT NULL`. Como a decisão é semear com `empresa_id = NULL` (catálogo global),
