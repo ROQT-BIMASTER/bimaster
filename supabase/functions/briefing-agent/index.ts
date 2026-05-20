@@ -142,12 +142,12 @@ function escolherModelo(message: string): string {
 async function getUserModules(admin: any, userId: string): Promise<Set<string>> {
   try {
     const { data } = await admin
-      .from("user_module_permissions")
-      .select("module_code")
-      .eq("user_id", userId);
+      .from("usuario_permissoes_modulos")
+      .select("modulos_sistema!inner(codigo)")
+      .eq("usuario_id", userId);
     const set = new Set<string>();
-    for (const r of (data ?? []) as Array<{ module_code: string }>) {
-      set.add(r.module_code);
+    for (const r of (data ?? []) as Array<{ modulos_sistema: { codigo: string } }>) {
+      if (r.modulos_sistema?.codigo) set.add(r.modulos_sistema.codigo);
     }
     return set;
   } catch {
