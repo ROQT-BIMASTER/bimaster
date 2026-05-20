@@ -31,9 +31,10 @@ export async function registerPushSubscription(): Promise<boolean> {
 
     let sub = await reg.pushManager.getSubscription();
     if (!sub) {
+      const key = urlBase64ToUint8Array(VAPID_PUBLIC_KEY);
       sub = await reg.pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+        applicationServerKey: key.buffer.slice(key.byteOffset, key.byteOffset + key.byteLength) as ArrayBuffer,
       });
     }
 
