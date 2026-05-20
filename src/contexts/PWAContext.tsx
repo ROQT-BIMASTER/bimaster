@@ -184,6 +184,19 @@ export function PWAProvider({ children }: { children: React.ReactNode }) {
     // Primeiro heartbeat ~10s após mount (deixa boot acomodar)
     const heartbeatBoot = setTimeout(() => { void runHeartbeat(); }, 10_000);
 
+    // Kill switch remoto (Fase 4): pull inicial + push Realtime.
+    // Só age se a flag pwa_heartbeat estiver ligada (mesma flag da Fase 2/4
+    // para rollout unificado e zero risco).
+    const handlePin = (pin: ReleasePin) => {
+      if (!isBelowPin(pin)) return;
+      logger.log(`[PWA] Release pin ativo: ${APP_VERSION} < ${pin.min_version}`);
+      if (isPwaHeartbeatEnabled() && mountedRef.current) {
+        setState(prev => ({ ...prev, needRefresh: true }));
+      }
+    };
+    void fetchLatestPin().then((pin) => { if (pin) handlePin(pin); });
+    const unsubscribePin = subscribeToReleasePins(handlePin);
+
     // Event listeners
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault();
