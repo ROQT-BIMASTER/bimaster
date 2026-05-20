@@ -141,6 +141,7 @@ Deno.serve(secureHandler(
           parecer_id: parecerRow.id,
           autor_ti: ctx.userId,
           protocolo: proto,
+          prazo_em: p.prazo_estimado ?? new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
         },
       });
       await sb.from("suporte_tickets").update({
