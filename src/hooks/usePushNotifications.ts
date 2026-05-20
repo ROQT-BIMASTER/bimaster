@@ -16,6 +16,7 @@ import { toast } from 'sonner';
 import { logger } from "@/lib/logger";
 import { uniqueChannelName } from "@/lib/realtime/channelName";
 import { useAuth } from "@/contexts/AuthContext";
+import { registerPushSubscription } from "@/lib/push/registerPushSubscription";
 
 interface PushNotificationState {
   isSupported: boolean;
@@ -55,6 +56,11 @@ export const usePushNotifications = () => {
         isSupported: true,
         permission: Notification.permission
       }));
+      // Se já temos permissão concedida, re-registra a subscription
+      // (idempotente — apenas atualiza last_seen_at).
+      if (Notification.permission === 'granted') {
+        void registerPushSubscription();
+      }
     }
   }, []);
 
@@ -85,6 +91,9 @@ export const usePushNotifications = () => {
       const permission = await Notification.requestPermission();
       setState(prev => ({ ...prev, permission }));
       if (permission === 'granted') {
+        // Registra subscription Web Push para receber notificações com app fechado.
+        const ok = await registerPushSubscription();
+        setState(prev => ({ ...prev, isSubscribed: ok }));
         toast.success('Notificações ativadas');
         return true;
       } else if (permission === 'denied') {
