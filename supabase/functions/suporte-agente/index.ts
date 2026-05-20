@@ -345,6 +345,7 @@ Deno.serve(secureHandler(
     }
 
 
+    const prazoEm = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
     await sb.from("mensagens").insert({
       conversa_id: SUPORTE_CONV_ID,
       remetente_id: BOT_USER_ID,
@@ -353,7 +354,13 @@ Deno.serve(secureHandler(
       visibilidade: "privada_suporte",
       ticket_owner_id: ownerId,
       ticket_id: ticket.id,
-      metadata: { tipo: "resposta_agente", replies_to: parsed.data.mensagem_id },
+      metadata: {
+        tipo: "resposta_agente",
+        replies_to: parsed.data.mensagem_id,
+        protocolo,
+        sla_horas: 24,
+        prazo_em: prazoEm,
+      },
     });
 
     await sb.from("suporte_tickets").update({ ultima_interacao_em: new Date().toISOString() }).eq("id", ticket.id);
