@@ -165,6 +165,7 @@ itens:
 tipo: ecommerce
 empresa_id: null
 marca: null
+tipo_uso: canonical
 fonte_spec: docs/briefing-especificacoes/02-perguntas-por-tipo.md#5-e-commerce  # §5 P2
 inferido_de_pergunta: true
 itens:
