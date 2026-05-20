@@ -247,6 +247,7 @@ async function execTool(
       titulo: String(args.titulo).slice(0, 200),
       resumo: String(args.descricao).slice(0, 1000),
       prioridade: String(args.prioridade),
+      categoria: args.categoria ? String(args.categoria) : undefined,
       status: "em_atendimento",
     }).eq("id", ticketId);
     return { ok: true, tarefa_id: tarefa.id };
