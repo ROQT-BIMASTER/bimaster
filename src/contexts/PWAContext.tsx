@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { checkAndUpdateVersion, APP_VERSION, forceCleanReload, getDeployedVersionFromHtml, isVersionMismatch } from '@/lib/version';
 import { isPwaHeartbeatEnabled } from '@/lib/featureFlags';
+import { fetchLatestPin, subscribeToReleasePins, isBelowPin, type ReleasePin } from '@/lib/releasePin';
 import { logger } from "@/lib/logger";
 
 interface PWAState {
@@ -183,6 +184,19 @@ export function PWAProvider({ children }: { children: React.ReactNode }) {
     // Primeiro heartbeat ~10s após mount (deixa boot acomodar)
     const heartbeatBoot = setTimeout(() => { void runHeartbeat(); }, 10_000);
 
+    // Kill switch remoto (Fase 4): pull inicial + push Realtime.
+    // Só age se a flag pwa_heartbeat estiver ligada (mesma flag da Fase 2/4
+    // para rollout unificado e zero risco).
+    const handlePin = (pin: ReleasePin) => {
+      if (!isBelowPin(pin)) return;
+      logger.log(`[PWA] Release pin ativo: ${APP_VERSION} < ${pin.min_version}`);
+      if (isPwaHeartbeatEnabled() && mountedRef.current) {
+        setState(prev => ({ ...prev, needRefresh: true }));
+      }
+    };
+    void fetchLatestPin().then((pin) => { if (pin) handlePin(pin); });
+    const unsubscribePin = subscribeToReleasePins(handlePin);
+
     // Event listeners
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault();
@@ -231,6 +245,7 @@ export function PWAProvider({ children }: { children: React.ReactNode }) {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
       clearTimeout(heartbeatBoot);
+      try { unsubscribePin(); } catch { /* noop */ }
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       if ('serviceWorker' in navigator) {
         navigator.serviceWorker.removeEventListener('controllerchange', handleControllerChange);

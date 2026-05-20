@@ -1294,6 +1294,30 @@ export type Database = {
         }
         Relationships: []
       }
+      app_release_pins: {
+        Row: {
+          criado_em: string
+          criado_por: string
+          id: string
+          mensagem: string | null
+          min_version: string
+        }
+        Insert: {
+          criado_em?: string
+          criado_por: string
+          id?: string
+          mensagem?: string | null
+          min_version: string
+        }
+        Update: {
+          criado_em?: string
+          criado_por?: string
+          id?: string
+          mensagem?: string | null
+          min_version?: string
+        }
+        Relationships: []
+      }
       aprovacao_documento_itens: {
         Row: {
           comentario_atual: string | null

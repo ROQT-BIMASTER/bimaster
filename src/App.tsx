@@ -313,6 +313,7 @@ const SecurityHardeningCenter = lazyWithRetry(() => import("./pages/admin/securi
 const SecurityHardeningCenterV2 = lazyWithRetry(() => import("./pages/admin/security/SecurityHardeningCenterV2"));
 const MfaSettingsPage = lazyWithRetry(() => import("./pages/security/MfaSettingsPage"));
 const VisibilidadeTarefas = lazyWithRetry(() => import("./pages/admin/VisibilidadeTarefas"));
+const VersoesClientes = lazyWithRetry(() => import("./pages/admin/VersoesClientes"));
 const VisibilidadeProjetosAjuda = lazyWithRetry(() => import("./pages/ajuda/VisibilidadeProjetos"));
 const PoliticaPrivacidade = lazyWithRetry(() => import("./pages/PoliticaPrivacidade"));
 const TermosDeUso = lazyWithRetry(() => import("./pages/TermosDeUso"));
@@ -710,6 +711,8 @@ function AppContent() {
             {/* Templates de Alçadas de Aprovação (configuração admin do motor reutilizado pelo Kanban dentro da tarefa) */}
             <Route path="/dashboard/aprovacao-artes/configuracao" element={<ModuleRoute moduleCode="aprovacao_artes"><ScreenProtectedRoute screenCode="aprovacao_artes_config"><FluxoAprovacaoConfig /></ScreenProtectedRoute></ModuleRoute>} />
             <Route path="/admin/templates-alcadas" element={<ScreenRoute screenCode="admin"><FluxoAprovacaoConfig /></ScreenRoute>} />
+            <Route path="/admin/versoes-clientes" element={<ScreenRoute screenCode="admin"><VersoesClientes /></ScreenRoute>} />
+
 
             {/* Módulo Checklist Composição */}
             <Route path="/dashboard/composicao" element={<ModuleRoute moduleCode="composicao"><ScreenProtectedRoute screenCode="composicao_checklist"><ChecklistComposicao /></ScreenProtectedRoute></ModuleRoute>} />
