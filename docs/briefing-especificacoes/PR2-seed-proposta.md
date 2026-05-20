@@ -126,6 +126,7 @@ itens:
 tipo: embalagem
 empresa_id: null
 marca: null
+tipo_uso: canonical
 fonte_spec: docs/briefing-especificacoes/02-perguntas-por-tipo.md#2-embalagem  # §2 P3
 inferido_de_pergunta: true
 itens:
