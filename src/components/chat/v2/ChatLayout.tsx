@@ -9,6 +9,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, MessageSquare, Package } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { EnablePushBanner } from "@/components/notifications/EnablePushBanner";
 
 /** Modo do chat: pessoas (conversas/grupos) ou submissões China. */
 export type ChatModo = "pessoas" | "submissoes";
