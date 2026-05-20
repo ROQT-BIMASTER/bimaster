@@ -231,7 +231,21 @@ function TicketDrawer({ ticket, onClose }: { ticket: Ticket | null; onClose: () 
         .order("created_at", { ascending: true })
         .limit(200);
       if (error) throw error;
-      return data ?? [];
+      const msgs = data ?? [];
+      const ids = msgs.map((m: any) => m.id);
+      let anexosMap = new Map<string, any[]>();
+      if (ids.length) {
+        const { data: anexos } = await supabase
+          .from("mensagens_anexos" as any)
+          .select("*")
+          .in("mensagem_id", ids);
+        for (const a of (anexos ?? []) as any[]) {
+          const arr = anexosMap.get(a.mensagem_id) ?? [];
+          arr.push(a);
+          anexosMap.set(a.mensagem_id, arr);
+        }
+      }
+      return msgs.map((m: any) => ({ ...m, anexos: anexosMap.get(m.id) ?? [] }));
     },
   });
 
@@ -261,23 +275,31 @@ function TicketDrawer({ ticket, onClose }: { ticket: Ticket | null; onClose: () 
               {isLoading ? (
                 <Skeleton className="h-32 w-full" />
               ) : (
-                <div className="space-y-2 max-h-[50vh] overflow-y-auto pr-1">
-                  {mensagens.map((m: any) => (
-                    <div
-                      key={m.id}
-                      className={`text-sm rounded-lg px-3 py-2 ${
-                        m.remetente_id === ticket.owner_id
-                          ? "bg-muted/60"
-                          : "bg-primary/10 border border-primary/20"
-                      }`}
-                    >
-                      <div className="text-[10px] text-muted-foreground mb-1">
-                        {m.remetente_id === ticket.owner_id ? "Usuário" : "Equipe Ruby Rose"} ·{" "}
-                        {new Date(m.created_at).toLocaleString("pt-BR")}
+                <div className="space-y-2 max-h-[60vh] overflow-y-auto pr-1">
+                  {mensagens.map((m: any) => {
+                    const mine = m.remetente_id !== ticket.owner_id;
+                    return (
+                      <div
+                        key={m.id}
+                        className={`text-sm rounded-lg px-3 py-2 ${
+                          mine ? "bg-primary/10 border border-primary/20" : "bg-muted/60"
+                        }`}
+                      >
+                        <div className="text-[10px] text-muted-foreground mb-1">
+                          {mine ? "Equipe Ruby Rose" : "Usuário"} ·{" "}
+                          {new Date(m.created_at).toLocaleString("pt-BR")}
+                        </div>
+                        {m.conteudo && <div className="whitespace-pre-wrap">{m.conteudo}</div>}
+                        {m.anexos && m.anexos.length > 0 && (
+                          <div className="mt-2 flex flex-col gap-2">
+                            {m.anexos.map((a: any) => (
+                              <AnexoView key={a.id} anexo={a} mine={mine} />
+                            ))}
+                          </div>
+                        )}
                       </div>
-                      <div className="whitespace-pre-wrap">{m.conteudo}</div>
-                    </div>
-                  ))}
+                    );
+                  })}
                   {mensagens.length === 0 && (
                     <div className="text-xs text-muted-foreground py-4 text-center">Nenhuma mensagem ainda.</div>
                   )}
