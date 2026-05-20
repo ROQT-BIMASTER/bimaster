@@ -217,6 +217,7 @@ itens:
 tipo: material_interno
 empresa_id: null
 marca: null
+tipo_uso: ui_suggestion
 fonte_spec: docs/briefing-especificacoes/02-perguntas-por-tipo.md#8-material-interno  # §8 P1
 inferido_de_pergunta: true
 itens:
