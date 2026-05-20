@@ -210,6 +210,19 @@ async function execTool(
     return { resultados: filtered.slice(0, 3) };
   }
 
+  if (name === "definir_titulo_categoria") {
+    const titulo = String(args.titulo ?? "").slice(0, 200);
+    const categoria = String(args.categoria ?? "outro");
+    const prioridade = args.prioridade ? String(args.prioridade) : undefined;
+    const patch: Record<string, unknown> = {};
+    if (titulo) patch.titulo = titulo;
+    if (categoria) patch.categoria = categoria;
+    if (prioridade) patch.prioridade = prioridade;
+    if (Object.keys(patch).length) {
+      await sb.from("suporte_tickets").update(patch).eq("id", ticketId);
+    }
+    return { ok: true, ...patch };
+
   if (name === "criar_tarefa_suporte") {
     const { data: projeto } = await sb.from("projetos").select("id").eq("nome", PROJETO_SUPORTE_NOME).eq("tipo", "generico").maybeSingle();
     if (!projeto) return { erro: "projeto Suporte não encontrado" };
