@@ -166,7 +166,7 @@ export default function SuporteAdmin() {
     const porCategoria = new Map<string, number>();
     const porStatus = new Map<string, number>();
     const porPrioridade = new Map<string, number>();
-    tickets.forEach((t) => {
+    ticketsPeriodo.forEach((t) => {
       const cat = t.categoria ?? "outro";
       porCategoria.set(cat, (porCategoria.get(cat) ?? 0) + 1);
       porStatus.set(t.status, (porStatus.get(t.status) ?? 0) + 1);
@@ -176,11 +176,12 @@ export default function SuporteAdmin() {
 
     const evolucao: { dia: string; abertos: number; resolvidos: number }[] = [];
     const hoje = startOfDay(new Date());
-    for (let i = 13; i >= 0; i--) {
+    const dias = filtroPeriodo === "todos" ? 30 : Math.min(parseInt(filtroPeriodo, 10), 60);
+    for (let i = dias - 1; i >= 0; i--) {
       const d = subDays(hoje, i);
       const key = format(d, "dd/MM");
-      const abertos = tickets.filter((t) => format(startOfDay(new Date(t.created_at)), "dd/MM") === key).length;
-      const resolvidos = tickets.filter((t) => t.resolved_at && format(startOfDay(new Date(t.resolved_at)), "dd/MM") === key).length;
+      const abertos = ticketsPeriodo.filter((t) => format(startOfDay(new Date(t.created_at)), "dd/MM") === key).length;
+      const resolvidos = ticketsPeriodo.filter((t) => t.resolved_at && format(startOfDay(new Date(t.resolved_at)), "dd/MM") === key).length;
       evolucao.push({ dia: key, abertos, resolvidos });
     }
 
@@ -190,7 +191,7 @@ export default function SuporteAdmin() {
       prioridade: Array.from(porPrioridade.entries()).map(([k, v]) => ({ nome: k, value: v })),
       evolucao,
     };
-  }, [tickets]);
+  }, [ticketsPeriodo, filtroPeriodo]);
 
   return (
     <div
