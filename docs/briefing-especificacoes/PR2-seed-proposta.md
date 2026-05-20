@@ -249,7 +249,7 @@ campos_universais:
   - { nome: solicitante,        tipo_dado: text,   obrigatorio: true,  origem: auto }
   - { nome: data_solicitacao,   tipo_dado: timestamp, obrigatorio: true, origem: auto }
   - { nome: prazo_entrega,      tipo_dado: date,   obrigatorio: true }
-  - { nome: prioridade,         tipo_dado: select, obrigatorio: true,  valores: [Crítica, Alta, Média, Baixa], default: "Média" }
+  - { nome: prioridade,         tipo_dado: select, obrigatorio: true,  valores: [Crítica, Alta, Média, Baixa] }   # valor inicial vem de briefing_defaults (fonte única)
   - { nome: demand_type,        tipo_dado: select, obrigatorio: true,  valores: [pdv, embalagem, evento, campanha, ecommerce, presskit, catalogo, material_interno], origem: auto }
   - { nome: status,             tipo_dado: select, obrigatorio: true,  valores: [Pronto, Aguardando Faca, Aguardando Medidas, Aguardando KV, Aguardando Regulatório], origem: derivado_calc_briefing_status }
 ```
