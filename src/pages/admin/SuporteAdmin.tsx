@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -11,12 +12,15 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { LifeBuoy, Search, AlertTriangle, Clock, CheckCircle2, MessageSquare, User, Wrench, FileText, Lightbulb, Flag, Send, TimerReset } from "lucide-react";
-import { formatDistanceToNow } from "date-fns";
+import { LifeBuoy, Search, AlertTriangle, Clock, CheckCircle2, MessageSquare, User, Wrench, FileText, Lightbulb, Flag, Send, TimerReset, ArrowLeft, BarChart3, Tag } from "lucide-react";
+import { formatDistanceToNow, format, subDays, startOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { AnexoView } from "@/components/chat/v2/AnexoView";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { usePageBgColor } from "@/hooks/usePageBgColor";
+import { ProjetoBgColorPicker } from "@/components/projetos/ProjetoBgColorPicker";
+import { BarChart, Bar, XAxis, YAxis, Tooltip as RTooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, CartesianGrid, Legend } from "recharts";
 
 type Status = "novo" | "em_triagem" | "em_atendimento" | "aguardando_usuario" | "escalado" | "resolvido";
 
