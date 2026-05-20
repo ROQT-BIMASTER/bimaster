@@ -121,7 +121,11 @@ export default function SuporteAdmin() {
     const escalados = tickets.filter((t) => t.status === "escalado").length;
     const resolvidos = tickets.filter((t) => t.status === "resolvido").length;
     const criticos = tickets.filter((t) => t.prioridade === "critica" && t.status !== "resolvido").length;
-    return { abertos, escalados, resolvidos, criticos };
+    const atrasados = tickets.filter((t) => {
+      const i = slaInfo(t as any);
+      return i?.tone === "destructive";
+    }).length;
+    return { abertos, escalados, resolvidos, criticos, atrasados };
   }, [tickets]);
 
   return (
@@ -132,12 +136,13 @@ export default function SuporteAdmin() {
         </div>
         <div>
           <h1 className="text-2xl font-semibold">Central de Suporte</h1>
-          <p className="text-sm text-muted-foreground">Tickets gerados pela equipe Ruby Rose no canal interno.</p>
+          <p className="text-sm text-muted-foreground">Tickets do canal interno com monitoramento de SLA e parecer da equipe de TI.</p>
         </div>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
         <KpiCard icon={<MessageSquare className="h-4 w-4" />} label="Abertos" value={kpis.abertos} tone="primary" />
+        <KpiCard icon={<TimerReset className="h-4 w-4" />} label="Atrasados (SLA)" value={kpis.atrasados} tone="destructive" />
         <KpiCard icon={<AlertTriangle className="h-4 w-4" />} label="Críticos" value={kpis.criticos} tone="destructive" />
         <KpiCard icon={<Clock className="h-4 w-4" />} label="Escalados" value={kpis.escalados} tone="warning" />
         <KpiCard icon={<CheckCircle2 className="h-4 w-4" />} label="Resolvidos" value={kpis.resolvidos} tone="success" />
