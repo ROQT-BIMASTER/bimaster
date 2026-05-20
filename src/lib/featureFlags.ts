@@ -38,12 +38,33 @@ export const isServerSideOrderingEnabled = () =>
 /**
  * PWA Heartbeat — quando true, o PWAContext compara periodicamente o
  * `APP_VERSION` do bundle atual com a meta `<meta name="app-version">`
- * do `index.html` servido pela rede. Em caso de divergência, dispara o
+ * do `index.html` servido pela rede, e escuta `app_release_pins` via
+ * Realtime. Em caso de divergência ou pin remoto ativo, dispara o
  * toast "Nova versão disponível" mesmo se o Service Worker estiver
- * preso servindo bundle antigo. Default: false (apenas loga).
+ * preso servindo bundle antigo.
  *
- * Ativar por usuário piloto: `localStorage.setItem('ff_pwa_heartbeat', '1')`.
- * Ativar globalmente em build: `VITE_FF_PWA_HEARTBEAT=1`.
+ * **Default a partir da v3.4.96: LIGADO** (após validação em produção).
+ * O toast é não-destrutivo (usuário escolhe "Atualizar agora" ou "Depois"),
+ * não força reload, não altera permissões nem sessão.
+ *
+ * Para desligar globalmente (rollback): `VITE_FF_PWA_HEARTBEAT=0` no build.
+ * Para desligar por usuário: `localStorage.setItem('ff_pwa_heartbeat', '0')`.
  */
-export const isPwaHeartbeatEnabled = () =>
-  flag("VITE_FF_PWA_HEARTBEAT", "ff_pwa_heartbeat");
+export const isPwaHeartbeatEnabled = (): boolean => {
+  // Override explícito por localStorage tem prioridade (permite desligar individualmente).
+  try {
+    if (typeof window !== "undefined") {
+      const ls = window.localStorage.getItem("ff_pwa_heartbeat");
+      if (ls === "0") return false;
+      if (ls === "1") return true;
+    }
+  } catch { /* noop */ }
+  // Env var explícita ("0" desliga, "1"/"true" liga).
+  try {
+    const v = (import.meta.env as Record<string, string | undefined>).VITE_FF_PWA_HEARTBEAT;
+    if (v === "0" || v === "false") return false;
+    if (v === "1" || v === "true") return true;
+  } catch { /* noop */ }
+  // Default: ligado.
+  return true;
+};
