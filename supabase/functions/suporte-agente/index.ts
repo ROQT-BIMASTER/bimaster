@@ -28,17 +28,32 @@ TÉCNICAS DE ATENDIMENTO (HEARD + 5 Whys)
 4. RESOLVE: dê o próximo passo claro.
 5. DIAGNOSE: 1 pergunta por turno (nunca questionário). Use os 5 porquês para vagueza.
 
-REGRAS
-- Faça UMA pergunta por mensagem. Resposta curta (máx. 4 linhas).
+REGRAS DE RESPOSTA (obrigatórias)
+- SEMPRE responda. Nunca deixe o usuário sem resposta.
+- Faça UMA pergunta por mensagem. Resposta curta (máx. 5 linhas).
+- Toda mensagem deve terminar perguntando se o usuário precisa de mais alguma coisa
+  (variações: "Posso ajudar com mais alguma coisa?", "Tem mais algum ponto que possamos resolver agora?").
 - Peça print apenas quando agregar (erro visual, layout quebrado, mensagem específica).
 - Nunca peça senha, token, CPF completo.
+
+ESCALONAMENTO E REGISTRO
 - Se sentimento negativo OU usuário pede humano OU 2 turnos sem evoluir: use tool escalar_para_admin.
 - Quando o problema estiver claro, use criar_tarefa_suporte para registrar.
-- Quando resolvido, use marcar_ticket_resolvido.
+- Quando a tarefa for criada OU o ticket escalado, na MESMA resposta:
+  1. Agradeça o contato.
+  2. Informe: "Sua demanda foi direcionada à nossa equipe técnica."
+  3. Informe o PROTOCOLO exatamente como recebido na mensagem do sistema (campo PROTOCOLO).
+  4. Informe o prazo: "Prazo de retorno: até 24 horas úteis."
+  5. Termine perguntando: "Posso ajudar com mais alguma coisa?"
+- Quando o usuário sinalizar que está resolvido OU se despedir: use marcar_ticket_resolvido e finalize
+  agradecendo o contato + reforce o PROTOCOLO + prazo de 24h úteis caso precise retomar.
+
+CONHECIMENTO
 - Se a dúvida for sobre uso, busque na base de conhecimento antes de responder.
 
 PRIVACIDADE (LGPD)
 - Na primeira mensagem do dia, informe: "Esta conversa pode ser revisada para melhoria do atendimento."`;
+
 
 const TOOLS = [
   {
@@ -248,22 +263,33 @@ Deno.serve(secureHandler(
     const ticket = await getOrCreateTicket(sb, ownerId);
     await sb.from("mensagens").update({ ticket_id: ticket.id }).eq("id", msg.id);
 
+    // Protocolo determinístico por ticket: RR-YYYYMMDD-XXXXXX
+    const created = new Date(ticket.created_at);
+    const yyyymmdd = `${created.getUTCFullYear()}${String(created.getUTCMonth() + 1).padStart(2, "0")}${String(created.getUTCDate()).padStart(2, "0")}`;
+    const protocolo = `RR-${yyyymmdd}-${String(ticket.id).replace(/-/g, "").slice(0, 6).toUpperCase()}`;
+    const SLA_TEXTO = "Prazo de retorno: até 24 horas úteis.";
 
     const history = await loadHistory(sb, ownerId);
     const messages: any[] = [
       { role: "system", content: SYSTEM_PROMPT },
+      {
+        role: "system",
+        content: `CONTEXTO DESTA INTERAÇÃO\nPROTOCOLO: ${protocolo}\nSLA: ${SLA_TEXTO}\nUse esse protocolo literal quando precisar informá-lo ao usuário.`,
+      },
       ...history,
     ];
 
     // Loop de tools (máx 4 iterações)
     let finalText = "";
+    let usouRegistroOuEscalonamento = false;
+    let aiFalhou = false;
     for (let i = 0; i < 4; i++) {
       const r = await callAIGateway({
         model: "google/gemini-3-flash-preview",
         messages,
         tools: TOOLS as any,
       });
-      if (r.kind !== "ok") return aiGatewayErrorResponse(r, cors);
+      if (r.kind !== "ok") { aiFalhou = true; break; }
 
       const choice = r.data.choices?.[0]?.message;
       if (!choice) break;
@@ -278,6 +304,9 @@ Deno.serve(secureHandler(
         let args: Record<string, unknown> = {};
         try { args = JSON.parse(tc.function.arguments || "{}"); } catch { /* noop */ }
         const result = await execTool(sb, ticket.id, ownerId, tc.function.name, args);
+        if (tc.function.name === "criar_tarefa_suporte" || tc.function.name === "escalar_para_admin") {
+          usouRegistroOuEscalonamento = true;
+        }
         messages.push({
           role: "tool",
           tool_call_id: tc.id,
@@ -286,7 +315,35 @@ Deno.serve(secureHandler(
       }
     }
 
-    if (!finalText) finalText = "Estou verificando aqui e já te retorno.";
+    // Fallback: nunca deixa o usuário sem resposta.
+    if (!finalText) {
+      finalText = [
+        "Obrigada pelo contato. Recebi sua mensagem e já estou verificando aqui.",
+        `Sua demanda foi direcionada à nossa equipe técnica. Protocolo: ${protocolo}.`,
+        SLA_TEXTO,
+        "Posso ajudar com mais alguma coisa?",
+      ].join(" ");
+    } else {
+      // Garantia: se a IA registrou tarefa/escalou e esqueceu de citar protocolo/SLA, anexa.
+      const faltaProtocolo = !finalText.includes(protocolo);
+      const faltaSla = !/24\s*h(oras)?/i.test(finalText);
+      if (usouRegistroOuEscalonamento && (faltaProtocolo || faltaSla)) {
+        finalText += `\n\nSua demanda foi direcionada à nossa equipe técnica. Protocolo: ${protocolo}. ${SLA_TEXTO}`;
+      }
+      // Garantia: sempre encerrar perguntando se precisa de mais algo.
+      if (!/mais alguma coisa|mais algum ponto|posso ajudar com mais/i.test(finalText)) {
+        finalText += "\n\nPosso ajudar com mais alguma coisa?";
+      }
+      if (aiFalhou) {
+        finalText = [
+          "Obrigada pelo contato. Recebi sua mensagem e já estou verificando aqui.",
+          `Sua demanda foi direcionada à nossa equipe técnica. Protocolo: ${protocolo}.`,
+          SLA_TEXTO,
+          "Posso ajudar com mais alguma coisa?",
+        ].join(" ");
+      }
+    }
+
 
     await sb.from("mensagens").insert({
       conversa_id: SUPORTE_CONV_ID,
