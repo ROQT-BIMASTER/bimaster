@@ -183,6 +183,9 @@ export function ChatThread({ conversaId, onShowInfo }: Props) {
         </DropdownMenu>
       </header>
 
+      <MyProtocolsBar conversaId={conversaId} />
+
+
       {busca !== null && (
         <div className="px-3 py-2 border-b border-border bg-card flex items-center gap-2">
           <Search className="h-4 w-4 text-muted-foreground" />
