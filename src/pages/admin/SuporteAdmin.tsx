@@ -12,6 +12,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { LifeBuoy, Search, AlertTriangle, Clock, CheckCircle2, MessageSquare, User } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { AnexoView } from "@/components/chat/v2/AnexoView";
 
 type Status = "novo" | "em_triagem" | "em_atendimento" | "aguardando_usuario" | "escalado" | "resolvido";
 
