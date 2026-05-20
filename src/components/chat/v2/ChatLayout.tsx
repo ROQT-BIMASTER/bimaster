@@ -30,6 +30,8 @@ export function ChatLayout({ initialConversaId = null, className, defaultShowInf
   const isMobile = useIsMobile();
   const { isChinaUser, isBrasilUser } = useChinaUserContext();
   const { data: submissoes = [] } = useChinaSubmissoesChat();
+  const { user } = useAuth();
+  useSuporteAgenteTrigger(user?.id);
 
   // Quando seleciona uma submissão, precisamos do nome do produto para
   // passar ao ChinaChatPanel. Pego direto da lista carregada pelo hook.
