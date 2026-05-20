@@ -94,9 +94,12 @@ const PRIO_COLOR: Record<string, string> = {
 };
 
 export default function SuporteAdmin() {
+  const navigate = useNavigate();
+  const { bgColor, setBgColor, darkBg } = usePageBgColor("suporte-admin");
   const [filtroStatus, setFiltroStatus] = useState<Status | "todos">("todos");
   const [busca, setBusca] = useState("");
   const [ticketSel, setTicketSel] = useState<Ticket | null>(null);
+  const [aba, setAba] = useState<"tickets" | "graficos">("tickets");
 
   const { data: tickets = [], isLoading } = useQuery({
     queryKey: ["suporte-admin-tickets", filtroStatus],
@@ -106,7 +109,7 @@ export default function SuporteAdmin() {
         .select("*")
         .order("ultima_interacao_em", { ascending: false, nullsFirst: false })
         .order("created_at", { ascending: false })
-        .limit(200);
+        .limit(500);
       if (filtroStatus !== "todos") q = q.eq("status", filtroStatus);
       const { data, error } = await q;
       if (error) throw error;
@@ -148,19 +151,58 @@ export default function SuporteAdmin() {
     return { abertos, escalados, resolvidos, criticos, atrasados };
   }, [tickets]);
 
+  const charts = useMemo(() => {
+    const porCategoria = new Map<string, number>();
+    const porStatus = new Map<string, number>();
+    const porPrioridade = new Map<string, number>();
+    tickets.forEach((t) => {
+      const cat = t.categoria ?? "outro";
+      porCategoria.set(cat, (porCategoria.get(cat) ?? 0) + 1);
+      porStatus.set(t.status, (porStatus.get(t.status) ?? 0) + 1);
+      const p = t.prioridade ?? "media";
+      porPrioridade.set(p, (porPrioridade.get(p) ?? 0) + 1);
+    });
+
+    const evolucao: { dia: string; abertos: number; resolvidos: number }[] = [];
+    const hoje = startOfDay(new Date());
+    for (let i = 13; i >= 0; i--) {
+      const d = subDays(hoje, i);
+      const key = format(d, "dd/MM");
+      const abertos = tickets.filter((t) => format(startOfDay(new Date(t.created_at)), "dd/MM") === key).length;
+      const resolvidos = tickets.filter((t) => t.resolved_at && format(startOfDay(new Date(t.resolved_at)), "dd/MM") === key).length;
+      evolucao.push({ dia: key, abertos, resolvidos });
+    }
+
+    return {
+      categoria: Array.from(porCategoria.entries()).map(([k, v]) => ({ nome: CATEGORIA_LABEL[k] ?? k, value: v })),
+      status: Array.from(porStatus.entries()).map(([k, v]) => ({ nome: STATUS_LABEL[k as Status] ?? k, value: v })),
+      prioridade: Array.from(porPrioridade.entries()).map(([k, v]) => ({ nome: k, value: v })),
+      evolucao,
+    };
+  }, [tickets]);
+
   return (
-    <div className="container mx-auto p-6 max-w-7xl">
-      <div className="flex items-center gap-3 mb-6">
+    <div
+      className="min-h-screen w-full p-4 md:p-6 transition-colors"
+      style={bgColor ? { backgroundColor: bgColor } : undefined}
+    >
+      <div className="flex items-center gap-3 mb-4 flex-wrap">
+        <Button variant="ghost" size="sm" onClick={() => navigate(-1)} className={cn("gap-1.5", darkBg && "text-white hover:bg-white/10")}>
+          <ArrowLeft className="h-4 w-4" /> Voltar
+        </Button>
         <div className="p-2 rounded-xl bg-primary/10">
           <LifeBuoy className="h-6 w-6 text-primary" />
         </div>
-        <div>
-          <h1 className="text-2xl font-semibold">Central de Suporte</h1>
-          <p className="text-sm text-muted-foreground">Tickets do canal interno com monitoramento de SLA e parecer da equipe de TI.</p>
+        <div className="flex-1 min-w-0">
+          <h1 className={cn("text-2xl font-semibold", darkBg && "text-white")}>Central de Suporte</h1>
+          <p className={cn("text-sm", darkBg ? "text-white/70" : "text-muted-foreground")}>
+            Tickets do canal interno com monitoramento de SLA, tabulação automática e parecer da equipe de TI.
+          </p>
         </div>
+        <ProjetoBgColorPicker value={bgColor} onChange={setBgColor} />
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-4">
         <KpiCard icon={<MessageSquare className="h-4 w-4" />} label="Abertos" value={kpis.abertos} tone="primary" />
         <KpiCard icon={<TimerReset className="h-4 w-4" />} label="Atrasados (SLA)" value={kpis.atrasados} tone="destructive" />
         <KpiCard icon={<AlertTriangle className="h-4 w-4" />} label="Críticos" value={kpis.criticos} tone="destructive" />
@@ -168,92 +210,173 @@ export default function SuporteAdmin() {
         <KpiCard icon={<CheckCircle2 className="h-4 w-4" />} label="Resolvidos" value={kpis.resolvidos} tone="success" />
       </div>
 
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between gap-4 flex-wrap">
-          <CardTitle className="text-base">Tickets</CardTitle>
-          <div className="flex items-center gap-2 flex-wrap">
-            <div className="relative">
-              <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                value={busca}
-                onChange={(e) => setBusca(e.target.value)}
-                placeholder="Buscar título, resumo, usuário…"
-                className="pl-8 w-64 h-9"
-              />
-            </div>
-            <Select value={filtroStatus} onValueChange={(v) => setFiltroStatus(v as any)}>
-              <SelectTrigger className="w-44 h-9"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todos">Todos os status</SelectItem>
-                {(Object.keys(STATUS_LABEL) as Status[]).map((s) => (
-                  <SelectItem key={s} value={s}>{STATUS_LABEL[s]}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <div className="space-y-2">
-              {Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-16 w-full" />)}
-            </div>
-          ) : filtrados.length === 0 ? (
-            <div className="py-12 text-center text-sm text-muted-foreground">Nenhum ticket no filtro atual.</div>
-          ) : (
-            <div className="divide-y divide-border">
-              {filtrados.map((t) => {
-                const sla = slaInfo(t);
-                return (
-                  <button
-                    key={t.id}
-                    onClick={() => setTicketSel(t)}
-                    className="w-full flex items-center gap-3 py-3 px-2 hover:bg-muted/50 rounded-md text-left transition"
-                  >
-                    <div className="h-9 w-9 rounded-full bg-muted flex items-center justify-center shrink-0">
-                      <User className="h-4 w-4 text-muted-foreground" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-0.5 flex-wrap">
-                        <span className="font-medium text-sm truncate">
-                          {t.titulo ?? "Ticket sem título definido"}
-                        </span>
-                        <Badge variant="outline" className={STATUS_COLOR[t.status]}>{STATUS_LABEL[t.status]}</Badge>
-                        {t.prioridade && (
-                          <Badge variant="secondary" className={PRIO_COLOR[t.prioridade] ?? ""}>{t.prioridade}</Badge>
-                        )}
-                        {sla && (
-                          <Badge
-                            variant="outline"
-                            className={cn(
-                              "gap-1",
-                              sla.tone === "destructive" && "bg-destructive/10 text-destructive border-destructive/30",
-                              sla.tone === "warning" && "bg-amber-500/10 text-amber-700 border-amber-500/30",
-                              sla.tone === "muted" && "bg-muted text-muted-foreground",
+      <Tabs value={aba} onValueChange={(v) => setAba(v as any)}>
+        <TabsList>
+          <TabsTrigger value="tickets" className="gap-1.5"><MessageSquare className="h-3.5 w-3.5" /> Tickets</TabsTrigger>
+          <TabsTrigger value="graficos" className="gap-1.5"><BarChart3 className="h-3.5 w-3.5" /> Gráficos</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="tickets" className="mt-3">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between gap-4 flex-wrap">
+              <CardTitle className="text-base">Tickets ({filtrados.length})</CardTitle>
+              <div className="flex items-center gap-2 flex-wrap">
+                <div className="relative">
+                  <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    value={busca}
+                    onChange={(e) => setBusca(e.target.value)}
+                    placeholder="Buscar título, resumo, usuário…"
+                    className="pl-8 w-64 h-9"
+                  />
+                </div>
+                <Select value={filtroStatus} onValueChange={(v) => setFiltroStatus(v as any)}>
+                  <SelectTrigger className="w-44 h-9"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todos">Todos os status</SelectItem>
+                    {(Object.keys(STATUS_LABEL) as Status[]).map((s) => (
+                      <SelectItem key={s} value={s}>{STATUS_LABEL[s]}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {isLoading ? (
+                <div className="space-y-2">
+                  {Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-16 w-full" />)}
+                </div>
+              ) : filtrados.length === 0 ? (
+                <div className="py-12 text-center text-sm text-muted-foreground">Nenhum ticket no filtro atual.</div>
+              ) : (
+                <div className="divide-y divide-border">
+                  {filtrados.map((t) => {
+                    const sla = slaInfo(t);
+                    return (
+                      <button
+                        key={t.id}
+                        onClick={() => setTicketSel(t)}
+                        className="w-full flex items-center gap-3 py-3 px-2 hover:bg-muted/50 rounded-md text-left transition"
+                      >
+                        <div className="h-9 w-9 rounded-full bg-muted flex items-center justify-center shrink-0">
+                          <User className="h-4 w-4 text-muted-foreground" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-0.5 flex-wrap">
+                            <span className="font-medium text-sm truncate">
+                              {t.titulo ?? "Ticket sem título definido"}
+                            </span>
+                            <Badge variant="outline" className={STATUS_COLOR[t.status]}>{STATUS_LABEL[t.status]}</Badge>
+                            {t.categoria && (
+                              <Badge variant="outline" className="gap-1 bg-card">
+                                <Tag className="h-3 w-3" /> {CATEGORIA_LABEL[t.categoria] ?? t.categoria}
+                              </Badge>
                             )}
-                          >
-                            <TimerReset className="h-3 w-3" /> {sla.label}
-                          </Badge>
-                        )}
-                      </div>
-                      <div className="text-xs text-muted-foreground truncate">
-                        {t.owner?.nome ?? "Usuário"} · {t.resumo ?? "Sem resumo"}
-                      </div>
-                    </div>
-                    <div className="text-[11px] text-muted-foreground whitespace-nowrap">
-                      {formatDistanceToNow(new Date(t.ultima_interacao_em ?? t.created_at), { addSuffix: true, locale: ptBR })}
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                            {t.prioridade && (
+                              <Badge variant="secondary" className={PRIO_COLOR[t.prioridade] ?? ""}>{t.prioridade}</Badge>
+                            )}
+                            {sla && (
+                              <Badge
+                                variant="outline"
+                                className={cn(
+                                  "gap-1",
+                                  sla.tone === "destructive" && "bg-destructive/10 text-destructive border-destructive/30",
+                                  sla.tone === "warning" && "bg-amber-500/10 text-amber-700 border-amber-500/30",
+                                  sla.tone === "muted" && "bg-muted text-muted-foreground",
+                                )}
+                              >
+                                <TimerReset className="h-3 w-3" /> {sla.label}
+                              </Badge>
+                            )}
+                          </div>
+                          <div className="text-xs text-muted-foreground truncate">
+                            {t.owner?.nome ?? "Usuário"} · {t.resumo ?? "Sem resumo"}
+                          </div>
+                        </div>
+                        <div className="text-[11px] text-muted-foreground whitespace-nowrap">
+                          {formatDistanceToNow(new Date(t.ultima_interacao_em ?? t.created_at), { addSuffix: true, locale: ptBR })}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="graficos" className="mt-3">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <Card>
+              <CardHeader><CardTitle className="text-sm">Tickets por categoria</CardTitle></CardHeader>
+              <CardContent className="h-64">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie data={charts.categoria} dataKey="value" nameKey="nome" outerRadius={80} label>
+                      {charts.categoria.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
+                    </Pie>
+                    <RTooltip />
+                    <Legend />
+                  </PieChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader><CardTitle className="text-sm">Tickets por status</CardTitle></CardHeader>
+              <CardContent className="h-64">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={charts.status}>
+                    <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
+                    <XAxis dataKey="nome" fontSize={11} />
+                    <YAxis fontSize={11} allowDecimals={false} />
+                    <RTooltip />
+                    <Bar dataKey="value" fill="hsl(var(--primary))" radius={[6, 6, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader><CardTitle className="text-sm">Por prioridade</CardTitle></CardHeader>
+              <CardContent className="h-64">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={charts.prioridade}>
+                    <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
+                    <XAxis dataKey="nome" fontSize={11} />
+                    <YAxis fontSize={11} allowDecimals={false} />
+                    <RTooltip />
+                    <Bar dataKey="value" fill="#f59e0b" radius={[6, 6, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader><CardTitle className="text-sm">Evolução (14 dias)</CardTitle></CardHeader>
+              <CardContent className="h-64">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={charts.evolucao}>
+                    <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
+                    <XAxis dataKey="dia" fontSize={11} />
+                    <YAxis fontSize={11} allowDecimals={false} />
+                    <RTooltip />
+                    <Legend />
+                    <Line type="monotone" dataKey="abertos" stroke="hsl(var(--primary))" strokeWidth={2} name="Abertos" />
+                    <Line type="monotone" dataKey="resolvidos" stroke="#10b981" strokeWidth={2} name="Resolvidos" />
+                  </LineChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+      </Tabs>
 
       <TicketDrawer ticket={ticketSel} onClose={() => setTicketSel(null)} />
     </div>
   );
 }
+
 
 function KpiCard({ icon, label, value, tone }: { icon: React.ReactNode; label: string; value: number; tone: "primary" | "destructive" | "warning" | "success" }) {
   const toneClass = {
