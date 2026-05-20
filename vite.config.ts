@@ -1,8 +1,52 @@
-import { defineConfig } from "vite";
+import { defineConfig, type Plugin } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
+import { readFileSync } from "fs";
 import { componentTagger } from "lovable-tagger";
 import { VitePWA } from 'vite-plugin-pwa';
+
+/**
+ * Injeta `<meta name="app-version" content="X.Y.Z">` no index.html em
+ * build/serve time, lendo APP_VERSION direto de src/lib/version.ts.
+ *
+ * Como index.html é servido com NetworkFirst (workbox) e Cache-Control
+ * no-cache (Cloudflare Worker), essa meta tag sempre reflete o deploy
+ * mais recente — mesmo quando o bundle JS no SW está preso na versão
+ * antiga. Usada pelo heartbeat de versão em src/lib/version.ts para
+ * quebrar o deadlock de cache.
+ *
+ * Aditivo e seguro: só adiciona uma meta tag. Falha de leitura cai para
+ * "unknown" sem quebrar o build.
+ */
+function appVersionMetaPlugin(): Plugin {
+  let cachedVersion: string | null = null;
+  const readVersion = (): string => {
+    if (cachedVersion) return cachedVersion;
+    try {
+      const file = readFileSync(
+        path.resolve(__dirname, "src/lib/version.ts"),
+        "utf8",
+      );
+      const m = file.match(/APP_VERSION\s*=\s*['"]([^'"]+)['"]/);
+      cachedVersion = m ? m[1] : "unknown";
+    } catch {
+      cachedVersion = "unknown";
+    }
+    return cachedVersion;
+  };
+  return {
+    name: "app-version-meta",
+    transformIndexHtml: {
+      order: "pre",
+      handler(html) {
+        const v = readVersion();
+        const tag = `<meta name="app-version" content="${v}">`;
+        if (html.includes('name="app-version"')) return html;
+        return html.replace(/<\/head>/i, `  ${tag}\n  </head>`);
+      },
+    },
+  };
+}
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
@@ -12,6 +56,7 @@ export default defineConfig(({ mode }) => ({
   },
   plugins: [
     react(),
+    appVersionMetaPlugin(),
     VitePWA({
       registerType: 'autoUpdate',
       injectRegister: false,
