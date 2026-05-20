@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { checkAndUpdateVersion, APP_VERSION, forceCleanReload, getDeployedVersionFromHtml, isVersionMismatch } from '@/lib/version';
 import { isPwaHeartbeatEnabled } from '@/lib/featureFlags';
+import { fetchLatestPin, subscribeToReleasePins, isBelowPin, type ReleasePin } from '@/lib/releasePin';
 import { logger } from "@/lib/logger";
 
 interface PWAState {
