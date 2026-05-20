@@ -493,6 +493,8 @@ function TicketDrawer({ ticket, onClose }: { ticket: Ticket | null; onClose: () 
               )}
             </div>
 
+            <UserProtocolPreview ticket={ticket} />
+
             {ticket.resumo && (
               <div className="text-sm bg-muted/40 rounded-md p-3 leading-relaxed">{ticket.resumo}</div>
             )}
