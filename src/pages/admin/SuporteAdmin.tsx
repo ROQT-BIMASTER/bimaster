@@ -33,7 +33,19 @@ interface Ticket {
   escalado_em: string | null;
   resolved_at: string | null;
   created_at: string;
+  sla_horas: number | null;
+  prazo_resposta_em: string | null;
   owner?: { nome: string | null; avatar_url: string | null } | null;
+}
+
+function slaInfo(t: { prazo_resposta_em: string | null; status: string }) {
+  if (!t.prazo_resposta_em || t.status === "resolvido") return null;
+  const prazo = new Date(t.prazo_resposta_em).getTime();
+  const now = Date.now();
+  const diffH = (prazo - now) / 3_600_000;
+  if (diffH < 0) return { label: `Atrasado ${Math.ceil(-diffH)}h`, tone: "destructive" as const };
+  if (diffH < 4) return { label: `${Math.ceil(diffH)}h restantes`, tone: "warning" as const };
+  return { label: `${Math.ceil(diffH)}h restantes`, tone: "muted" as const };
 }
 
 const STATUS_LABEL: Record<Status, string> = {
