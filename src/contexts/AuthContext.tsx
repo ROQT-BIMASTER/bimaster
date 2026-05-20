@@ -205,6 +205,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setSession(newSession);
         if (newSession?.user) {
           currentUserIdRef.current = newSession.user.id;
+          // Telemetria de versão (fire-and-forget, throttled, silencioso).
+          try { reportClientVersion(newSession.user.id); } catch { /* noop */ }
           
           // If checkAuth is still running, skip — it will handle approval
           if (authCheckInProgressRef.current) {
