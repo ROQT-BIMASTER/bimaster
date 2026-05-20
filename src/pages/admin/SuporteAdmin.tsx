@@ -384,7 +384,7 @@ export default function SuporteAdmin() {
             </Card>
 
             <Card>
-              <CardHeader><CardTitle className="text-sm">Evolução (14 dias)</CardTitle></CardHeader>
+              <CardHeader><CardTitle className="text-sm">Evolução ({filtroPeriodo === "todos" ? "30 dias" : `${filtroPeriodo} dias`})</CardTitle></CardHeader>
               <CardContent className="h-64">
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={charts.evolucao}>
