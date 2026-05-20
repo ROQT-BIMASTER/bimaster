@@ -183,6 +183,7 @@ itens:
 tipo: presskit
 empresa_id: null
 marca: null
+tipo_uso: canonical
 fonte_spec: docs/briefing-especificacoes/02-perguntas-por-tipo.md#6-press-kit  # §6 P3
 inferido_de_pergunta: true
 itens:
