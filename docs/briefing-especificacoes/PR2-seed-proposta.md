@@ -61,6 +61,15 @@ NULLs vieram do seed que acabou de ser apagado).
 Itens marcados `inferido_de_pergunta: true` quando a lista veio de uma pergunta da
 spec 02 (não de catálogo declarado explicitamente).
 
+**`tipo_uso`** (por catálogo, não por item):
+- `canonical` — lista finita e técnica. PR3: agente sugere essa lista quando solicitante não sabe; PR4: validação aceita só valores do catálogo.
+- `ui_suggestion` — tipos amplos com variação aceitável. PR3/PR4: aceita texto livre, catálogo serve só como autocomplete.
+
+**Escopo da `chave`**: identificador composto por `(empresa_id, marca, tipo, chave)`.
+Chaves repetidas entre tipos diferentes (ex.: `totem` em PDV e em Evento; `email_marketing`
+em Campanha e em E-commerce; `backdrop` em Evento e em Material Interno) **não são colisão**
+e PR3/PR4 nunca devem tratar `chave` como identificador global.
+
 ## 1.1 PDV
 
 ```yaml
