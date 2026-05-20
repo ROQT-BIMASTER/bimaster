@@ -97,6 +97,8 @@ export default function SuporteAdmin() {
   const navigate = useNavigate();
   const { bgColor, setBgColor, darkBg } = usePageBgColor("suporte-admin");
   const [filtroStatus, setFiltroStatus] = useState<Status | "todos">("todos");
+  const [filtroCategoria, setFiltroCategoria] = useState<string>("todas");
+  const [filtroPeriodo, setFiltroPeriodo] = useState<"7" | "14" | "30" | "90" | "todos">("30");
   const [busca, setBusca] = useState("");
   const [ticketSel, setTicketSel] = useState<Ticket | null>(null);
   const [aba, setAba] = useState<"tickets" | "graficos">("tickets");
