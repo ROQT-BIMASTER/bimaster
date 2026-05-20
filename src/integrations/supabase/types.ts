@@ -24702,7 +24702,10 @@ export type Database = {
           remetente_id: string
           responde_a_id: string | null
           search_vector: unknown
+          ticket_id: string | null
+          ticket_owner_id: string | null
           tipo: string
+          visibilidade: string
         }
         Insert: {
           conteudo: string
@@ -24721,7 +24724,10 @@ export type Database = {
           remetente_id: string
           responde_a_id?: string | null
           search_vector?: unknown
+          ticket_id?: string | null
+          ticket_owner_id?: string | null
           tipo?: string
+          visibilidade?: string
         }
         Update: {
           conteudo?: string
@@ -24740,7 +24746,10 @@ export type Database = {
           remetente_id?: string
           responde_a_id?: string | null
           search_vector?: unknown
+          ticket_id?: string | null
+          ticket_owner_id?: string | null
           tipo?: string
+          visibilidade?: string
         }
         Relationships: [
           {
@@ -38413,6 +38422,171 @@ export type Database = {
         }
         Relationships: []
       }
+      suporte_csat: {
+        Row: {
+          comentario: string | null
+          created_at: string
+          id: string
+          score: number
+          ticket_id: string
+          user_id: string
+        }
+        Insert: {
+          comentario?: string | null
+          created_at?: string
+          id?: string
+          score: number
+          ticket_id: string
+          user_id: string
+        }
+        Update: {
+          comentario?: string | null
+          created_at?: string
+          id?: string
+          score?: number
+          ticket_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "suporte_csat_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "suporte_tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      suporte_kb: {
+        Row: {
+          ativo: boolean
+          conteudo: string
+          created_at: string
+          id: string
+          modulo: string
+          palavras_chave: string[]
+          titulo: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          conteudo: string
+          created_at?: string
+          id?: string
+          modulo: string
+          palavras_chave?: string[]
+          titulo: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          conteudo?: string
+          created_at?: string
+          id?: string
+          modulo?: string
+          palavras_chave?: string[]
+          titulo?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      suporte_tickets: {
+        Row: {
+          conversa_id: string
+          created_at: string
+          escalado_em: string | null
+          id: string
+          owner_id: string
+          prioridade: string
+          projeto_tarefa_id: string | null
+          resolved_at: string | null
+          resumo: string | null
+          sentimento: string | null
+          status: string
+          titulo: string | null
+          ultima_interacao_em: string
+          updated_at: string
+        }
+        Insert: {
+          conversa_id: string
+          created_at?: string
+          escalado_em?: string | null
+          id?: string
+          owner_id: string
+          prioridade?: string
+          projeto_tarefa_id?: string | null
+          resolved_at?: string | null
+          resumo?: string | null
+          sentimento?: string | null
+          status?: string
+          titulo?: string | null
+          ultima_interacao_em?: string
+          updated_at?: string
+        }
+        Update: {
+          conversa_id?: string
+          created_at?: string
+          escalado_em?: string | null
+          id?: string
+          owner_id?: string
+          prioridade?: string
+          projeto_tarefa_id?: string | null
+          resolved_at?: string | null
+          resumo?: string | null
+          sentimento?: string | null
+          status?: string
+          titulo?: string | null
+          ultima_interacao_em?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "suporte_tickets_conversa_id_fkey"
+            columns: ["conversa_id"]
+            isOneToOne: false
+            referencedRelation: "conversas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      suporte_tickets_audit: {
+        Row: {
+          acao: string
+          created_at: string
+          id: string
+          modelo_ia: string | null
+          payload: Json
+          resultado: string | null
+          ticket_id: string | null
+        }
+        Insert: {
+          acao: string
+          created_at?: string
+          id?: string
+          modelo_ia?: string | null
+          payload?: Json
+          resultado?: string | null
+          ticket_id?: string | null
+        }
+        Update: {
+          acao?: string
+          created_at?: string
+          id?: string
+          modelo_ia?: string | null
+          payload?: Json
+          resultado?: string | null
+          ticket_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "suporte_tickets_audit_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "suporte_tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       supplier_payment_exceptions: {
         Row: {
           allows_exceptions: boolean
@@ -47948,6 +48122,7 @@ export type Database = {
         | "cliente"
         | "gerente"
         | "consultor"
+        | "suporte"
       checklist_arte_tipo:
         | "etiqueta_bula"
         | "etiqueta_fundo"
@@ -48158,6 +48333,7 @@ export const Constants = {
         "cliente",
         "gerente",
         "consultor",
+        "suporte",
       ],
       checklist_arte_tipo: [
         "etiqueta_bula",
