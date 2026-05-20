@@ -1401,7 +1401,12 @@ import { logger } from "@/lib/logger";
 // substituindo `auth.uid() IS NOT NULL` por `check_user_access` por módulo
 // (china/fabrica/financeiro) + `has_role(admin|supervisor)`. Sem mudança
 // de schema, SDK ou OpenAPI público — força limpeza de cache do cliente.
-export const APP_VERSION = '3.4.91';
+// 3.4.92 — Briefings Hub: novo módulo /dashboard/briefings com agente IA
+// híbrido (chat + canvas) para Marketing, Criativo, Produto e Trade, usando
+// `internal_lookup` com whitelist por módulo (respeita permissões do usuário
+// via `usuario_permissoes_modulos`) e `atualizar_canvas`. Sem mudança de
+// SDK/OpenAPI público — bump força limpeza de cache.
+export const APP_VERSION = '3.4.92';
 
 // Chave para armazenar versão no localStorage
 const VERSION_KEY = 'app_version';
