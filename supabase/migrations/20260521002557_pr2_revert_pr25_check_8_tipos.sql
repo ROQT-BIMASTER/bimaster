@@ -14,11 +14,29 @@
 -- literais dos 8 tipos), e o documento PR2-seed-proposta.md inteiro. Foi
 -- aplicada sem checkpoint humano.
 --
--- Esta migration restaura o estado pós-PR1 nas 4 tabelas afetadas.
+-- Esta migration restaura o estado pós-PR1 nas 4 tabelas afetadas. Inclui
+-- também uma limpeza inicial (Parte 0) de um briefing de teste criado pós-PR2.5
+-- com tipo v1 e sem tipo_legado, que não tem mapping canônico aplicável e
+-- travaria o guard.
 -- briefing_templates NÃO é tocada (decisão Q1 do review do PR2, opção C):
 -- a migração 4→8 dessa tabela fica para o PR3.
 
 BEGIN;
+
+-- ============================================================
+-- 0) Limpeza de briefing de teste criado pós-PR2.5
+-- ============================================================
+-- A linha 0c08612a-1894-47db-a0fc-a56a716e0e66 ('teste 03', tipo='trade',
+-- tipo_legado=NULL) foi inserida em 2026-05-20 23:48, depois da PR2.5 ter
+-- sido aplicada. É briefing de teste do diagnóstico do agente atual, sem
+-- payload ou valor de produção. Removida explicitamente porque não tem
+-- mapping canônico (tipo_legado NULL) e travaria o guard da Parte 2.
+-- Triplo filtro defensivo (id + tipo + tipo_legado): se a linha tiver mudado
+-- de estado entre o diagnóstico e a aplicação, o DELETE não toca nada.
+DELETE FROM public.briefings
+ WHERE id = '0c08612a-1894-47db-a0fc-a56a716e0e66'
+   AND tipo = 'trade'
+   AND tipo_legado IS NULL;
 
 -- ============================================================
 -- 1) Inverter o UPDATE de dados da PR2.5 em `briefings`
@@ -136,6 +154,11 @@ COMMIT;
 --   CHECK (tipo IN ('marketing','criativo','produto','trade'));
 -- UPDATE public.briefings SET tipo='marketing' WHERE tipo='campanha';
 -- COMMIT;
+--
+-- Para reverter o DELETE da Parte 0:
+-- INSERT INTO briefings (id, tipo, tipo_legado, titulo, ...) VALUES (...);
+-- NOTA: estado pré-DELETE não recuperável a partir desta migration (sem
+-- snapshot dos dados). Se necessário, restaurar de backup do Supabase.
 --
 -- NÃO RECOMENDADO. Derrubaria o seed do PR2 caso ele já tenha rodado em cima
 -- deste revert, e re-introduziria a divergência com README/PR1/specs.
