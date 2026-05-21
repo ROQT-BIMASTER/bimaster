@@ -30,6 +30,8 @@ interface Props {
   onModoChange: (modo: ChatModo) => void;
   /** Se false, o toggle Pessoas/Submissões fica oculto (usuário sem contexto China). */
   podeAlternarModo: boolean;
+  /** Se true, a aba "Briefing" aparece (usuário tem acesso a briefings). */
+  podeVerBriefings?: boolean;
 }
 
 export function ChatSidebar({
@@ -39,7 +41,11 @@ export function ChatSidebar({
   modo,
   onModoChange,
   podeAlternarModo,
+  podeVerBriefings = false,
 }: Props) {
+  // Quantas abas mostrar: pessoas é sempre; submissões e briefings são opt-in.
+  const tabsCount = 1 + (podeAlternarModo ? 1 : 0) + (podeVerBriefings ? 1 : 0);
+  const showToggle = tabsCount > 1;
   return (
     <aside className={cn("flex flex-col h-full bg-card border-r border-border", className)}>
       {/* Status declarado de presença (Disponível/Ocupado/Em reunião/...).
@@ -49,20 +55,31 @@ export function ChatSidebar({
         <PresenceStatusPicker compact />
       </div>
 
-      {/* Toggle Pessoas / Submissões — só aparece se usuário tem contexto China.
-          Visualmente ocupa o topo da sidebar pra ser o primeiro elemento que
-          o usuário interage. Comportamento: muda a fonte de dados (useConversas
-          vs useChinaSubmissoesChat) e o painel central (ChatThread vs ChinaChatPanel). */}
-      {podeAlternarModo && (
+      {/* Toggle Pessoas / Submissões / Briefing — só aparece o que o usuário
+          tem direito de ver. Visualmente ocupa o topo da sidebar pra ser o
+          primeiro elemento que o usuário interage. */}
+      {showToggle && (
         <div className="px-3 pt-3 pb-2 border-b border-border">
           <Tabs value={modo} onValueChange={(v) => onModoChange(v as ChatModo)}>
-            <TabsList className="grid grid-cols-2 h-8 w-full">
+            <TabsList
+              className={cn(
+                "h-8 w-full",
+                tabsCount === 3 ? "grid grid-cols-3" : "grid grid-cols-2",
+              )}
+            >
               <TabsTrigger value="pessoas" className="text-xs gap-1.5">
                 <MessageCircle className="h-3.5 w-3.5" /> Pessoas
               </TabsTrigger>
-              <TabsTrigger value="submissoes" className="text-xs gap-1.5">
-                <Package className="h-3.5 w-3.5" /> Submissões
-              </TabsTrigger>
+              {podeAlternarModo && (
+                <TabsTrigger value="submissoes" className="text-xs gap-1.5">
+                  <Package className="h-3.5 w-3.5" /> Submissões
+                </TabsTrigger>
+              )}
+              {podeVerBriefings && (
+                <TabsTrigger value="briefings" className="text-xs gap-1.5">
+                  <FileText className="h-3.5 w-3.5" /> Briefing
+                </TabsTrigger>
+              )}
             </TabsList>
           </Tabs>
         </div>
@@ -70,6 +87,11 @@ export function ChatSidebar({
 
       {modo === "submissoes" ? (
         <SidebarSubmissoesContent
+          conversaSelecionada={conversaSelecionada}
+          onSelectConversa={onSelectConversa}
+        />
+      ) : modo === "briefings" ? (
+        <SidebarBriefingsContent
           conversaSelecionada={conversaSelecionada}
           onSelectConversa={onSelectConversa}
         />
