@@ -46,46 +46,47 @@ export function BriefingHeader({
   const status = getStatusBadge(briefing.status);
 
   return (
-    <div className="border-b bg-background">
+    <div className={`border-b transition-colors ${projetoNome ? "bg-primary/5" : "bg-background"}`}>
       <div className="px-4 py-3 flex items-center gap-3">
         <Button variant="ghost" size="icon-sm" onClick={onVoltar}>
           <ArrowLeft className="h-4 w-4" />
         </Button>
 
         <div
-          className={`h-10 w-10 rounded-xl flex items-center justify-center text-sm font-semibold shrink-0 ${tipo.bg} ${tipo.fg}`}
+          className={`h-11 w-11 rounded-xl flex items-center justify-center text-base font-semibold shrink-0 ${tipo.bg} ${tipo.fg}`}
           aria-hidden
         >
           {tipo.label.charAt(0).toUpperCase()}
         </div>
 
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            <h1 className="text-base font-semibold truncate">{briefing.titulo}</h1>
-            <Badge variant="outline" className={`text-[10px] uppercase ${tipo.fg} border-current`}>
+          <div className="flex items-center gap-2 flex-wrap">
+            <h1 className="text-lg font-semibold truncate">{briefing.titulo}</h1>
+            <Badge variant="outline" className={`text-xs uppercase ${tipo.fg} border-current`}>
               {tipo.label}
             </Badge>
             {projetoNome && (
               <button
                 type="button"
                 onClick={onAbrirProjeto}
-                className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[11px] text-muted-foreground hover:bg-muted/80 hover:text-foreground transition-colors"
+                className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-2.5 py-1 text-sm font-medium text-primary hover:bg-primary/20 transition-colors"
                 title="Abrir projeto vinculado"
               >
-                <Link2 className="h-3 w-3" />
-                <span className="truncate max-w-[180px]">{projetoNome}</span>
+                <Link2 className="h-3.5 w-3.5" />
+                <span className="truncate max-w-[220px]">{projetoNome}</span>
               </button>
             )}
           </div>
-          <div className="mt-1 flex items-center gap-3">
+          <div className="mt-1.5 flex items-center gap-3">
             <div className="flex-1 max-w-xs">
-              <Progress value={briefing.completude} className="h-1" />
+              <Progress value={briefing.completude} className="h-1.5" />
             </div>
-            <span className="text-xs text-muted-foreground tabular-nums">
+            <span className="text-sm text-muted-foreground tabular-nums">
               {briefing.completude}% completo
             </span>
           </div>
         </div>
+
 
         <Badge className={`${status.className} border-0`}>{status.label}</Badge>
 
