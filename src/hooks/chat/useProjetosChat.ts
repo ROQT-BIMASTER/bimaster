@@ -154,13 +154,22 @@ export function useProjetosChat() {
         projetoId: string,
         item: { texto: string; autor: string | null; created_at: string; mentions?: string[]; user_id?: string | null; fonte: "chat" | "tarefa"; tarefa_titulo?: string | null },
       ) => {
-        const lr = lastReadBy.get(projetoId);
-        const isNovo = lr ? item.created_at > lr : false;
-        if (isNovo && item.user_id && item.user_id !== userId) {
+        // Fallback: usuários sem registro em projeto_membros (admins/gerentes
+        // sem membership formal) tratam "nunca lido" como epoch para que
+        // não-lidos e menções apareçam normalmente.
+        const lr = lastReadBy.get(projetoId) ?? "1970-01-01T00:00:00Z";
+        const isNovo = item.created_at > lr;
+        const ehDeOutro = !!item.user_id && item.user_id !== userId;
+        if (isNovo && ehDeOutro) {
           naoLidosByProj.set(projetoId, (naoLidosByProj.get(projetoId) ?? 0) + 1);
-          if (Array.isArray(item.mentions) && item.mentions.includes(userId)) {
-            mencoesByProj.set(projetoId, (mencoesByProj.get(projetoId) ?? 0) + 1);
-          }
+        }
+        const ehMencaoAMim =
+          ehDeOutro &&
+          item.created_at > lr &&
+          Array.isArray(item.mentions) &&
+          item.mentions.includes(userId);
+        if (ehMencaoAMim) {
+          mencoesByProj.set(projetoId, (mencoesByProj.get(projetoId) ?? 0) + 1);
         }
         const current = lastByProj.get(projetoId);
         if (!current || item.created_at > current.created_at) {
