@@ -49,6 +49,11 @@ export default function BriefingWorkspace() {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const coments = useBriefingComentarios(briefing?.id);
+  const { membros: briefingMembros } = useBriefingMembros(briefing?.id);
+  const mentionMembers = useMemo(
+    () => (briefingMembros ?? []).map((m) => ({ user_id: m.user_id, nome: m.profile?.nome ?? null })),
+    [briefingMembros],
+  );
 
   // Deep-link vindo do Chat (?campo=...&comentario=...): rola até o campo
   // assim que ele estiver renderizado. Roda só uma vez por valor de campo.
