@@ -21,6 +21,8 @@ import { VincularProjetoDialog } from "@/components/briefings/VincularProjetoDia
 import { EnviarAprovacaoDialog } from "@/components/briefings/EnviarAprovacaoDialog";
 import { AprovacaoTimeline } from "@/components/briefings/AprovacaoTimeline";
 import { ExportarBriefingDialog } from "@/components/briefings/export/ExportarBriefingDialog";
+import { CofreTab } from "@/components/briefings/cofre/CofreTab";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
 export default function BriefingWorkspace() {
   const { id } = useParams<{ id: string }>();
@@ -215,48 +217,59 @@ export default function BriefingWorkspace() {
               <AprovacaoTimeline briefingId={briefing.id} refreshKey={aprovRefresh} />
             )}
 
-            <div className="sticky top-0 -mx-2 px-2 py-2 bg-muted/30 backdrop-blur-sm flex items-center justify-between z-10">
-              <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                Canvas do briefing
-              </h2>
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <div className="relative h-6 w-6">
-                  <svg viewBox="0 0 24 24" className="h-6 w-6 -rotate-90">
-                    <circle cx="12" cy="12" r="9" className="fill-none stroke-muted" strokeWidth="3" />
-                    <circle
-                      cx="12"
-                      cy="12"
-                      r="9"
-                      className="fill-none stroke-primary transition-all"
-                      strokeWidth="3"
-                      strokeDasharray={`${(2 * Math.PI * 9 * briefing.completude) / 100} ${2 * Math.PI * 9}`}
-                      strokeLinecap="round"
-                    />
-                  </svg>
-                </div>
-                <span className="tabular-nums">
-                  {camposPreenchidos}/{sections.length} campos
-                </span>
-              </div>
-            </div>
+            <Tabs defaultValue="canvas">
+              <TabsList className="bg-card">
+                <TabsTrigger value="canvas" className="text-xs">Canvas</TabsTrigger>
+                <TabsTrigger value="cofre" className="text-xs">Cofre de documentos</TabsTrigger>
+              </TabsList>
 
-            {sections.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
-                Este tipo de briefing ainda não tem template configurado.
-              </p>
-            ) : (
-              sections.map((s) => (
-                <BriefingCanvasField
-                  key={s.key}
-                  section={s}
-                  value={localPayload[s.key] ?? ""}
-                  readOnly={readOnly}
-                  onChange={(v) => setLocalPayload((p) => ({ ...p, [s.key]: v }))}
-                  onBlurSave={(v) => salvarCampo(s.key, v)}
-                  onAskAgent={pedirAjudaAoAgente}
-                />
-              ))
-            )}
+              <TabsContent value="canvas" className="mt-4 space-y-5">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    Canvas do briefing
+                  </h2>
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <div className="relative h-6 w-6">
+                      <svg viewBox="0 0 24 24" className="h-6 w-6 -rotate-90">
+                        <circle cx="12" cy="12" r="9" className="fill-none stroke-muted" strokeWidth="3" />
+                        <circle
+                          cx="12" cy="12" r="9"
+                          className="fill-none stroke-primary transition-all"
+                          strokeWidth="3"
+                          strokeDasharray={`${(2 * Math.PI * 9 * briefing.completude) / 100} ${2 * Math.PI * 9}`}
+                          strokeLinecap="round"
+                        />
+                      </svg>
+                    </div>
+                    <span className="tabular-nums">
+                      {camposPreenchidos}/{sections.length} campos
+                    </span>
+                  </div>
+                </div>
+
+                {sections.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">
+                    Este tipo de briefing ainda não tem template configurado.
+                  </p>
+                ) : (
+                  sections.map((s) => (
+                    <BriefingCanvasField
+                      key={s.key}
+                      section={s}
+                      value={localPayload[s.key] ?? ""}
+                      readOnly={readOnly}
+                      onChange={(v) => setLocalPayload((p) => ({ ...p, [s.key]: v }))}
+                      onBlurSave={(v) => salvarCampo(s.key, v)}
+                      onAskAgent={pedirAjudaAoAgente}
+                    />
+                  ))
+                )}
+              </TabsContent>
+
+              <TabsContent value="cofre" className="mt-4">
+                <CofreTab briefingId={briefing.id} tipoBriefing={briefing.tipo} />
+              </TabsContent>
+            </Tabs>
           </div>
         </ScrollArea>
       </div>

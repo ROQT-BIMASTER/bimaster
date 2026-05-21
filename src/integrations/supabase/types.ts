@@ -2520,6 +2520,164 @@ export type Database = {
           },
         ]
       }
+      briefing_doc_checklist_itens: {
+        Row: {
+          categoria: string
+          created_at: string
+          descricao: string | null
+          id: string
+          nome: string
+          obrigatorio: boolean
+          ordem: number
+          template_id: string
+        }
+        Insert: {
+          categoria?: string
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          nome: string
+          obrigatorio?: boolean
+          ordem?: number
+          template_id: string
+        }
+        Update: {
+          categoria?: string
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          nome?: string
+          obrigatorio?: boolean
+          ordem?: number
+          template_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "briefing_doc_checklist_itens_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "briefing_doc_checklist_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      briefing_doc_checklist_templates: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          created_by: string | null
+          descricao: string | null
+          id: string
+          nome: string
+          tipo_briefing: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          created_by?: string | null
+          descricao?: string | null
+          id?: string
+          nome: string
+          tipo_briefing: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          created_by?: string | null
+          descricao?: string | null
+          id?: string
+          nome?: string
+          tipo_briefing?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      briefing_documentos: {
+        Row: {
+          briefing_id: string
+          categoria: string
+          created_at: string
+          created_by: string
+          data_entrega: string | null
+          descricao: string | null
+          enviado_notion_em: string | null
+          fornecedor_id: string | null
+          fornecedor_nome: string | null
+          id: string
+          lote: string | null
+          mime_type: string | null
+          nome: string
+          notion_file_url: string | null
+          notion_page_id: string | null
+          status: Database["public"]["Enums"]["briefing_doc_status"]
+          storage_path: string | null
+          tamanho_bytes: number | null
+          template_item_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          briefing_id: string
+          categoria?: string
+          created_at?: string
+          created_by: string
+          data_entrega?: string | null
+          descricao?: string | null
+          enviado_notion_em?: string | null
+          fornecedor_id?: string | null
+          fornecedor_nome?: string | null
+          id?: string
+          lote?: string | null
+          mime_type?: string | null
+          nome: string
+          notion_file_url?: string | null
+          notion_page_id?: string | null
+          status?: Database["public"]["Enums"]["briefing_doc_status"]
+          storage_path?: string | null
+          tamanho_bytes?: number | null
+          template_item_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          briefing_id?: string
+          categoria?: string
+          created_at?: string
+          created_by?: string
+          data_entrega?: string | null
+          descricao?: string | null
+          enviado_notion_em?: string | null
+          fornecedor_id?: string | null
+          fornecedor_nome?: string | null
+          id?: string
+          lote?: string | null
+          mime_type?: string | null
+          nome?: string
+          notion_file_url?: string | null
+          notion_page_id?: string | null
+          status?: Database["public"]["Enums"]["briefing_doc_status"]
+          storage_path?: string | null
+          tamanho_bytes?: number | null
+          template_item_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "briefing_documentos_briefing_id_fkey"
+            columns: ["briefing_id"]
+            isOneToOne: false
+            referencedRelation: "briefings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "briefing_documentos_template_item_id_fkey"
+            columns: ["template_item_id"]
+            isOneToOne: false
+            referencedRelation: "briefing_doc_checklist_itens"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       briefing_export_presets: {
         Row: {
           config: Json
@@ -48581,6 +48739,7 @@ export type Database = {
         | "gerente"
         | "consultor"
         | "suporte"
+      briefing_doc_status: "pendente" | "recebido" | "aprovado" | "rejeitado"
       checklist_arte_tipo:
         | "etiqueta_bula"
         | "etiqueta_fundo"
@@ -48793,6 +48952,7 @@ export const Constants = {
         "consultor",
         "suporte",
       ],
+      briefing_doc_status: ["pendente", "recebido", "aprovado", "rejeitado"],
       checklist_arte_tipo: [
         "etiqueta_bula",
         "etiqueta_fundo",
