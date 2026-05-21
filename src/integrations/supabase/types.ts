@@ -2520,6 +2520,36 @@ export type Database = {
           },
         ]
       }
+      briefing_export_presets: {
+        Row: {
+          config: Json
+          created_at: string
+          id: string
+          is_default: boolean
+          nome: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          config?: Json
+          created_at?: string
+          id?: string
+          is_default?: boolean
+          nome?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          config?: Json
+          created_at?: string
+          id?: string
+          is_default?: boolean
+          nome?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       briefing_mensagens: {
         Row: {
           briefing_id: string
