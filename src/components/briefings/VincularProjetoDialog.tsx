@@ -67,7 +67,7 @@ export function VincularProjetoDialog({
       let q1 = supabase
         .from("projetos")
         .select(baseSelect)
-        .eq("criado_por", uid)
+        .eq("criador_id", uid)
         .order("nome")
         .limit(30);
       if (termo) q1 = q1.ilike("nome", `%${termo}%`);
