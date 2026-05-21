@@ -355,7 +355,7 @@ export function BriefingChatPanel({ briefingId }: Props) {
 
       {/* Composer comentário geral */}
       <div className="border-t border-border bg-card p-3">
-        <div className="rounded-lg border border-border bg-background focus-within:ring-1 focus-within:ring-primary/30 p-2">
+        <div className="rounded-xl border border-border bg-background focus-within:border-briefing/50 focus-within:ring-2 focus-within:ring-briefing/15 transition-colors p-2">
           <Textarea
             value={novoComentario}
             onChange={(e) => setNovoComentario(e.target.value)}
@@ -373,7 +373,12 @@ export function BriefingChatPanel({ briefingId }: Props) {
             <span className="text-[10px] text-muted-foreground px-1.5 flex items-center gap-1">
               <AtSign className="h-3 w-3" /> Para mencionar com @, use o painel do campo
             </span>
-            <Button size="sm" disabled={enviando || !novoComentario.trim()} onClick={enviarComentario} className="gap-1.5">
+            <Button
+              size="sm"
+              disabled={enviando || !novoComentario.trim()}
+              onClick={enviarComentario}
+              className="gap-1.5 bg-briefing text-briefing-foreground hover:bg-briefing/90"
+            >
               <Send className="h-3.5 w-3.5" /> Enviar
             </Button>
           </div>
@@ -384,6 +389,24 @@ export function BriefingChatPanel({ briefingId }: Props) {
 }
 
 // ---------------------------------------------------------------------------
+function EmptyState({
+  icon,
+  title,
+  hint,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  hint?: string;
+}) {
+  return (
+    <div className="flex flex-col items-center justify-center text-center py-10 px-6 gap-2">
+      <div className="text-briefing/40">{icon}</div>
+      <p className="text-sm font-medium text-foreground">{title}</p>
+      {hint && <p className="text-xs text-muted-foreground max-w-[280px]">{hint}</p>}
+    </div>
+  );
+}
+
 function ComentarioCard({
   c, authorNome, campoLabel, isMe, mencionaMe, onOpen,
 }: {
@@ -398,23 +421,26 @@ function ComentarioCard({
     <button
       onClick={onOpen}
       className={cn(
-        "w-full text-left rounded-md border bg-card hover:bg-muted/50 transition-colors p-3 space-y-1.5",
+        "w-full text-left rounded-lg border bg-card hover:bg-briefing-soft/30 transition-colors p-3 space-y-1.5 shadow-sm",
+        "border-l-2 border-l-briefing/30",
         c.resolved && "opacity-60",
-        mencionaMe && "border-amber-500/60",
+        mencionaMe && "border-l-amber-500 bg-amber-500/[0.04]",
       )}
     >
       <div className="flex items-center gap-2 flex-wrap">
-        <Avatar className="h-5 w-5">
-          <AvatarFallback className="text-[9px]">{initials(authorNome)}</AvatarFallback>
+        <Avatar className={cn("h-5 w-5", mencionaMe && "ring-2 ring-amber-500/40")}>
+          <AvatarFallback className="text-[9px] bg-briefing/15 text-briefing">
+            {initials(authorNome)}
+          </AvatarFallback>
         </Avatar>
         <span className="text-[12px] font-medium truncate">
           {isMe ? "Você" : authorNome ?? "Usuário"}
         </span>
-        <Badge variant="secondary" className="text-[9px] px-1 py-0">
+        <Badge variant="outline" className="text-[9px] px-1 py-0 bg-briefing/5 text-briefing border-briefing/20">
           {c.campo_key === "__geral__" ? "Geral" : campoLabel}
         </Badge>
         {mencionaMe && (
-          <Badge className="text-[9px] px-1 py-0 bg-amber-500 hover:bg-amber-500">@ você</Badge>
+          <Badge className="text-[9px] px-1 py-0 bg-amber-500 hover:bg-amber-500 text-white">@ você</Badge>
         )}
         {c.resolved && (
           <Badge variant="outline" className="text-[9px] px-1 py-0">resolvido</Badge>
