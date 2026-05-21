@@ -5,6 +5,9 @@
 export const NOTION_VERSION = "2022-06-28";
 export const NOTION_API = "https://api.notion.com/v1";
 
+/** Heading text that marks the start of the user-editable zone in the mirror page. */
+export const FREE_ZONE_START_LABEL = "Anotações livres (sincronizadas com bimaster)";
+
 export interface NotionResult<T> {
   ok: boolean;
   status: number;

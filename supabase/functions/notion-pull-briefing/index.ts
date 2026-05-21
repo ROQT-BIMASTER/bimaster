@@ -6,8 +6,7 @@ import { z } from "https://esm.sh/zod@3.23.8";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { secureHandler } from "../_shared/secure-handler.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
-import { listAllChildren, notion, richTextToPlain, type NotionPage } from "../_shared/notion-client.ts";
-import { FREE_ZONE_START_LABEL } from "../notion-export-briefing/blocks.ts";
+import { listAllChildren, notion, richTextToPlain, FREE_ZONE_START_LABEL, type NotionPage } from "../_shared/notion-client.ts";
 
 const BodySchema = z.object({ briefing_id: z.string().uuid() }).strict();
 
