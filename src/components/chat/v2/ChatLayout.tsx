@@ -32,6 +32,7 @@ export function ChatLayout({ initialConversaId = null, className, defaultShowInf
   const isMobile = useIsMobile();
   const { isChinaUser, isBrasilUser } = useChinaUserContext();
   const { data: submissoes = [] } = useChinaSubmissoesChat();
+  const podeVerBriefings = useTemAcessoBriefings();
   const { user } = useAuth();
   useSuporteAgenteTrigger(user?.id);
 
