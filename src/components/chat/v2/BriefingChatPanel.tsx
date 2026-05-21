@@ -49,7 +49,8 @@ export function BriefingChatPanel({ briefingId }: Props) {
   const { briefing, sections, messages, loading } = useBriefingChat(briefingId);
   const coments = useBriefingComentarios(briefingId);
   const { membros } = useBriefingMembros(briefingId);
-  const [tab, setTab] = useState<"resumo" | "atividade">("atividade");
+  const [tab, setTab] = useState<"resumo" | "comentarios" | "ia">("comentarios");
+  const [filtroComent, setFiltroComent] = useState<"todos" | "abertos" | "mencionam">("todos");
   const [novoComentario, setNovoComentario] = useState("");
   const [enviando, setEnviando] = useState(false);
 
