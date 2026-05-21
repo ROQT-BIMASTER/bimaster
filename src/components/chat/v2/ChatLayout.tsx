@@ -143,6 +143,7 @@ export function ChatLayout({ initialConversaId = null, className, defaultShowInf
             modo={modo}
             onModoChange={trocarModo}
             podeAlternarModo={podeAlternarModo}
+            podeVerBriefings={podeVerBriefings}
             className="w-full"
           />
         ) : (
@@ -169,6 +170,7 @@ export function ChatLayout({ initialConversaId = null, className, defaultShowInf
           modo={modo}
           onModoChange={trocarModo}
           podeAlternarModo={podeAlternarModo}
+          podeVerBriefings={podeVerBriefings}
           className="w-[320px] shrink-0"
         />
         <div className="flex-1 min-w-0 flex">
