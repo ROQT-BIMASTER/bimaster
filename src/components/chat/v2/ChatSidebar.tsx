@@ -71,21 +71,30 @@ export function ChatSidebar({
           <Tabs value={modo} onValueChange={(v) => onModoChange(v as ChatModo)}>
             <TabsList
               className={cn(
-                "h-8 w-full",
-                tabsCount === 3 ? "grid grid-cols-3" : "grid grid-cols-2",
+                "h-8 w-full grid",
+                tabsCount === 4
+                  ? "grid-cols-4"
+                  : tabsCount === 3
+                    ? "grid-cols-3"
+                    : "grid-cols-2",
               )}
             >
-              <TabsTrigger value="pessoas" className="text-xs gap-1.5">
+              <TabsTrigger value="pessoas" className="text-[11px] gap-1">
                 <MessageCircle className="h-3.5 w-3.5" /> Pessoas
               </TabsTrigger>
               {podeAlternarModo && (
-                <TabsTrigger value="submissoes" className="text-xs gap-1.5">
+                <TabsTrigger value="submissoes" className="text-[11px] gap-1">
                   <Package className="h-3.5 w-3.5" /> Submissões
                 </TabsTrigger>
               )}
               {podeVerBriefings && (
-                <TabsTrigger value="briefings" className="text-xs gap-1.5">
+                <TabsTrigger value="briefings" className="text-[11px] gap-1">
                   <FileText className="h-3.5 w-3.5" /> Briefing
+                </TabsTrigger>
+              )}
+              {podeVerProjetos && (
+                <TabsTrigger value="projetos" className="text-[11px] gap-1">
+                  <Briefcase className="h-3.5 w-3.5" /> Projetos
                 </TabsTrigger>
               )}
             </TabsList>
@@ -100,6 +109,11 @@ export function ChatSidebar({
         />
       ) : modo === "briefings" ? (
         <SidebarBriefingsContent
+          conversaSelecionada={conversaSelecionada}
+          onSelectConversa={onSelectConversa}
+        />
+      ) : modo === "projetos" ? (
+        <SidebarProjetosContent
           conversaSelecionada={conversaSelecionada}
           onSelectConversa={onSelectConversa}
         />
