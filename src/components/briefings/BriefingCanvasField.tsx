@@ -15,6 +15,8 @@ interface Props {
   onAskAgent: (label: string) => void;
   commentsSlot?: ReactNode;
   hasOpenComments?: boolean;
+  /** id html para deep-link/scrollIntoView vindo do Chat. */
+  anchorId?: string;
 }
 
 export function BriefingCanvasField({
@@ -26,6 +28,7 @@ export function BriefingCanvasField({
   onAskAgent,
   commentsSlot,
   hasOpenComments,
+  anchorId,
 }: Props) {
   const [savedAt, setSavedAt] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
