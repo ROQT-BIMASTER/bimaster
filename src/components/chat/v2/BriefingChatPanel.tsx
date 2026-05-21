@@ -29,6 +29,7 @@ import { marcarBriefingLido } from "@/hooks/chat/useBriefingsChat";
 import { initials, formatRelativo } from "./utils";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { resolveMentionsFromText } from "@/lib/briefings/resolveMentions";
 
 interface Props {
   briefingId: string;
