@@ -282,6 +282,13 @@ export default function BriefingWorkspace() {
           setAprovRefresh((x) => x + 1);
         }}
       />
+
+      <ExportarBriefingDialog
+        open={exportDialogOpen}
+        onOpenChange={setExportDialogOpen}
+        briefing={briefing}
+        projetoNome={projetoNome}
+      />
     </div>
   );
 }
