@@ -60,6 +60,26 @@ export function ChatLayout({ initialConversaId = null, className, defaultShowInf
   };
 
   const renderPainelCentro = () => {
+    if (modo === "projetos") {
+      if (!conversaId) {
+        return (
+          <div className="flex-1 flex flex-col items-center justify-center text-center px-6">
+            <Briefcase className="h-16 w-16 text-muted-foreground/40 mb-4" />
+            <h3 className="text-lg font-semibold">Selecione um projeto</h3>
+            <p className="text-sm text-muted-foreground max-w-sm mt-1">
+              Escolha um projeto na lista para ver o chat geral, comentários das
+              tarefas e menções a você.
+            </p>
+          </div>
+        );
+      }
+      return (
+        <div className="flex-1 min-w-0 flex">
+          <ProjetoChatPanel projetoId={conversaId} />
+        </div>
+      );
+    }
+
     if (modo === "briefings") {
       if (!conversaId) {
         return (
