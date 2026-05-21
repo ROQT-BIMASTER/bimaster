@@ -57,6 +57,8 @@ import { TarefaComentariosSection } from "./tarefa-detalhe/TarefaComentariosSect
 import { TarefaNotasPessoaisSection } from "./tarefa-detalhe/TarefaNotasPessoaisSection";
 import { TarefaChatPanel } from "./tarefa-detalhe/TarefaChatPanel";
 import { TarefaResponsavelSeguidoresEditor } from "./tarefa-detalhe/TarefaResponsavelSeguidoresEditor";
+import { SubtarefaResponsavelPicker } from "./tarefa-detalhe/SubtarefaResponsavelPicker";
+
 import { TarefaChinaDocsSection } from "./tarefa-detalhe/TarefaChinaDocsSection";
 import { TarefaProcessoSection } from "./tarefa-detalhe/TarefaProcessoSection";
 import { TarefaAprovacoesSection } from "./aprovacoes/TarefaAprovacoesSection";
