@@ -190,7 +190,7 @@ export default function BriefingsHome() {
   };
 
   return (
-    <div className="container max-w-[1400px] py-8 space-y-6">
+    <div className="w-full px-6 py-8 space-y-6 min-h-screen" style={bgStyle}>
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-semibold tracking-tight">Briefings</h1>
@@ -198,13 +198,15 @@ export default function BriefingsHome() {
             Crie briefings profissionais com apoio de um agente de IA.
           </p>
         </div>
-        <Dialog open={openNew} onOpenChange={setOpenNew}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="h-4 w-4 mr-2" /> Novo briefing
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-2xl">
+        <div className="flex items-center gap-2">
+          <BgColorButton />
+          <Dialog open={openNew} onOpenChange={setOpenNew}>
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="h-4 w-4 mr-2" /> Novo briefing
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-2xl">
             <DialogHeader>
               <DialogTitle>Novo briefing</DialogTitle>
             </DialogHeader>
