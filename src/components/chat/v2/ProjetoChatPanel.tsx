@@ -21,7 +21,10 @@ import {
   AtSign,
   Briefcase,
   ListTodo,
+  Paperclip,
+  FolderLock,
 } from "lucide-react";
+import { ProjetoCofreUploadDialog } from "@/components/projetos/cofre/ProjetoCofreUploadDialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
