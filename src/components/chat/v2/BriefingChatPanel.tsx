@@ -52,7 +52,9 @@ const STATUS_TONE: Record<string, string> = {
 };
 
 export function BriefingChatPanel({ briefingId }: Props) {
-  const navigate = useNavigate();
+  // useNavigate não pode ser usado aqui: o Chat é montado em um drawer
+  // global, possivelmente fora do <Router>. Usamos navegação direta.
+  const navigate = (url: string) => { window.location.assign(url); };
   const { user } = useAuth();
   const { briefing, sections, messages, loading } = useBriefingChat(briefingId);
   const coments = useBriefingComentarios(briefingId);
