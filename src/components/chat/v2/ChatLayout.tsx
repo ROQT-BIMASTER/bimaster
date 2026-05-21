@@ -3,18 +3,20 @@ import { ChatSidebar } from "./ChatSidebar";
 import { ChatThread } from "./ChatThread";
 import { ConversaInfoPanel } from "./ConversaInfoPanel";
 import { ChinaChatPanel } from "@/components/china/ChinaChatPanel";
+import { BriefingChatPanel } from "./BriefingChatPanel";
 import { useChinaUserContext } from "@/hooks/useChinaUserContext";
 import { useChinaSubmissoesChat } from "@/hooks/chat/useChinaSubmissoesChat";
+import { useTemAcessoBriefings } from "@/hooks/chat/useTemAcessoBriefings";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, MessageSquare, Package } from "lucide-react";
+import { ArrowLeft, MessageSquare, Package, FileText } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { EnablePushBanner } from "@/components/notifications/EnablePushBanner";
 import { useSuporteAgenteTrigger } from "@/hooks/useSuporteAgenteTrigger";
 import { useAuth } from "@/contexts/AuthContext";
 
-/** Modo do chat: pessoas (conversas/grupos) ou submissões China. */
-export type ChatModo = "pessoas" | "submissoes";
+/** Modo do chat: pessoas (conversas/grupos), submissões China ou briefings. */
+export type ChatModo = "pessoas" | "submissoes" | "briefings";
 
 interface Props {
   initialConversaId?: string | null;
@@ -30,6 +32,7 @@ export function ChatLayout({ initialConversaId = null, className, defaultShowInf
   const isMobile = useIsMobile();
   const { isChinaUser, isBrasilUser } = useChinaUserContext();
   const { data: submissoes = [] } = useChinaSubmissoesChat();
+  const podeVerBriefings = useTemAcessoBriefings();
   const { user } = useAuth();
   useSuporteAgenteTrigger(user?.id);
 
@@ -54,6 +57,25 @@ export function ChatLayout({ initialConversaId = null, className, defaultShowInf
   };
 
   const renderPainelCentro = () => {
+    if (modo === "briefings") {
+      if (!conversaId) {
+        return (
+          <div className="flex-1 flex flex-col items-center justify-center text-center px-6">
+            <FileText className="h-16 w-16 text-muted-foreground/40 mb-4" />
+            <h3 className="text-lg font-semibold">Selecione um briefing</h3>
+            <p className="text-sm text-muted-foreground max-w-sm mt-1">
+              Escolha um briefing na lista para ver atividade, comentários e menções a você.
+            </p>
+          </div>
+        );
+      }
+      return (
+        <div className="flex-1 min-w-0 flex">
+          <BriefingChatPanel briefingId={conversaId} />
+        </div>
+      );
+    }
+
     if (modo === "submissoes") {
       if (!conversaId) {
         return (
@@ -121,6 +143,7 @@ export function ChatLayout({ initialConversaId = null, className, defaultShowInf
             modo={modo}
             onModoChange={trocarModo}
             podeAlternarModo={podeAlternarModo}
+            podeVerBriefings={podeVerBriefings}
             className="w-full"
           />
         ) : (
@@ -147,6 +170,7 @@ export function ChatLayout({ initialConversaId = null, className, defaultShowInf
           modo={modo}
           onModoChange={trocarModo}
           podeAlternarModo={podeAlternarModo}
+          podeVerBriefings={podeVerBriefings}
           className="w-[320px] shrink-0"
         />
         <div className="flex-1 min-w-0 flex">

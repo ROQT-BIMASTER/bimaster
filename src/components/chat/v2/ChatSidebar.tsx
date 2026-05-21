@@ -6,12 +6,13 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Search, MessageSquarePlus, Users, MoreVertical, Star, Archive, BellOff, Plus, Pin, VolumeX, Package, MessageCircle, SearchCheck } from "lucide-react";
+import { Search, MessageSquarePlus, Users, MoreVertical, Star, Archive, BellOff, Plus, Pin, VolumeX, Package, MessageCircle, SearchCheck, FileText, AtSign } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useConversas, filtrarConversas, type ChatFiltro } from "@/hooks/chat/useConversas";
 import { useGlobalPresence } from "@/hooks/chat/useChatPresence";
 import { useChatActions } from "@/hooks/chat/useChatActions";
 import { useChinaSubmissoesChat, filtrarSubmissoesChat, type ChinaSubmissaoChatItem } from "@/hooks/chat/useChinaSubmissoesChat";
+import { useBriefingsChat, filtrarBriefingsChat, type BriefingChatItem } from "@/hooks/chat/useBriefingsChat";
 import { initials, formatRelativo, nomeConversa } from "./utils";
 import type { ChatConversa } from "@/hooks/chat/types";
 import { NovaConversaDialog } from "../NovaConversaDialog";
@@ -29,6 +30,8 @@ interface Props {
   onModoChange: (modo: ChatModo) => void;
   /** Se false, o toggle Pessoas/Submissões fica oculto (usuário sem contexto China). */
   podeAlternarModo: boolean;
+  /** Se true, a aba "Briefing" aparece (usuário tem acesso a briefings). */
+  podeVerBriefings?: boolean;
 }
 
 export function ChatSidebar({
@@ -38,7 +41,11 @@ export function ChatSidebar({
   modo,
   onModoChange,
   podeAlternarModo,
+  podeVerBriefings = false,
 }: Props) {
+  // Quantas abas mostrar: pessoas é sempre; submissões e briefings são opt-in.
+  const tabsCount = 1 + (podeAlternarModo ? 1 : 0) + (podeVerBriefings ? 1 : 0);
+  const showToggle = tabsCount > 1;
   return (
     <aside className={cn("flex flex-col h-full bg-card border-r border-border", className)}>
       {/* Status declarado de presença (Disponível/Ocupado/Em reunião/...).
@@ -48,20 +55,31 @@ export function ChatSidebar({
         <PresenceStatusPicker compact />
       </div>
 
-      {/* Toggle Pessoas / Submissões — só aparece se usuário tem contexto China.
-          Visualmente ocupa o topo da sidebar pra ser o primeiro elemento que
-          o usuário interage. Comportamento: muda a fonte de dados (useConversas
-          vs useChinaSubmissoesChat) e o painel central (ChatThread vs ChinaChatPanel). */}
-      {podeAlternarModo && (
+      {/* Toggle Pessoas / Submissões / Briefing — só aparece o que o usuário
+          tem direito de ver. Visualmente ocupa o topo da sidebar pra ser o
+          primeiro elemento que o usuário interage. */}
+      {showToggle && (
         <div className="px-3 pt-3 pb-2 border-b border-border">
           <Tabs value={modo} onValueChange={(v) => onModoChange(v as ChatModo)}>
-            <TabsList className="grid grid-cols-2 h-8 w-full">
+            <TabsList
+              className={cn(
+                "h-8 w-full",
+                tabsCount === 3 ? "grid grid-cols-3" : "grid grid-cols-2",
+              )}
+            >
               <TabsTrigger value="pessoas" className="text-xs gap-1.5">
                 <MessageCircle className="h-3.5 w-3.5" /> Pessoas
               </TabsTrigger>
-              <TabsTrigger value="submissoes" className="text-xs gap-1.5">
-                <Package className="h-3.5 w-3.5" /> Submissões
-              </TabsTrigger>
+              {podeAlternarModo && (
+                <TabsTrigger value="submissoes" className="text-xs gap-1.5">
+                  <Package className="h-3.5 w-3.5" /> Submissões
+                </TabsTrigger>
+              )}
+              {podeVerBriefings && (
+                <TabsTrigger value="briefings" className="text-xs gap-1.5">
+                  <FileText className="h-3.5 w-3.5" /> Briefing
+                </TabsTrigger>
+              )}
             </TabsList>
           </Tabs>
         </div>
@@ -69,6 +87,11 @@ export function ChatSidebar({
 
       {modo === "submissoes" ? (
         <SidebarSubmissoesContent
+          conversaSelecionada={conversaSelecionada}
+          onSelectConversa={onSelectConversa}
+        />
+      ) : modo === "briefings" ? (
+        <SidebarBriefingsContent
           conversaSelecionada={conversaSelecionada}
           onSelectConversa={onSelectConversa}
         />
@@ -479,6 +502,146 @@ function SubmissaoItem({
           {s.numero_ordem && (
             <p className="text-[10px] text-muted-foreground mt-0.5 truncate">OC {s.numero_ordem}</p>
           )}
+        </div>
+      </button>
+    </li>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// MODO "BRIEFINGS" — lista briefings acessíveis com comentários/menções
+// ---------------------------------------------------------------------------
+
+function SidebarBriefingsContent({
+  conversaSelecionada,
+  onSelectConversa,
+}: {
+  conversaSelecionada: string | null;
+  onSelectConversa: (id: string) => void;
+}) {
+  const [busca, setBusca] = useState("");
+  const [filtro, setFiltro] = useState<"todos" | "nao_lidos" | "mencoes" | "resolvidos">("todos");
+  const { data: briefings = [], isLoading } = useBriefingsChat();
+  const filtradas = useMemo(
+    () => filtrarBriefingsChat(briefings, busca, filtro),
+    [briefings, busca, filtro],
+  );
+  const totalNaoLidas = briefings.reduce((s, b) => s + (b.naoLidos || 0), 0);
+  const totalMencoes = briefings.reduce((s, b) => s + (b.mencoesAbertas || 0), 0);
+
+  return (
+    <>
+      <header className="px-3 py-3 border-b border-border flex items-center gap-2">
+        <h3 className="font-semibold text-sm flex-1">
+          Briefings {totalNaoLidas > 0 && <Badge variant="secondary" className="ml-1">{totalNaoLidas}</Badge>}
+        </h3>
+      </header>
+
+      <div className="px-3 py-2 border-b border-border space-y-2">
+        <div className="relative">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            value={busca}
+            onChange={(e) => setBusca(e.target.value)}
+            placeholder="Buscar briefing ou trecho…"
+            className="pl-8 h-9"
+          />
+        </div>
+        <Tabs value={filtro} onValueChange={(v) => setFiltro(v as any)}>
+          <TabsList className="grid grid-cols-4 h-7 w-full">
+            <TabsTrigger value="todos" className="text-[11px] px-1">Todos</TabsTrigger>
+            <TabsTrigger value="nao_lidos" className="text-[11px] px-1">
+              Não lidos {totalNaoLidas > 0 && <span className="ml-0.5">({totalNaoLidas})</span>}
+            </TabsTrigger>
+            <TabsTrigger value="mencoes" className="text-[11px] px-1">
+              @ {totalMencoes > 0 && <span>({totalMencoes})</span>}
+            </TabsTrigger>
+            <TabsTrigger value="resolvidos" className="text-[11px] px-1">Aprov.</TabsTrigger>
+          </TabsList>
+        </Tabs>
+      </div>
+
+      <ScrollArea className="flex-1">
+        {isLoading && <p className="text-xs text-muted-foreground p-4">Carregando...</p>}
+        {!isLoading && filtradas.length === 0 && (
+          <div className="p-6 text-center text-xs text-muted-foreground">
+            Nenhum briefing encontrado.
+          </div>
+        )}
+        <ul className="py-1">
+          {filtradas.map((b) => (
+            <BriefingItem
+              key={b.id}
+              b={b}
+              ativa={b.id === conversaSelecionada}
+              onSelect={() => onSelectConversa(b.id)}
+            />
+          ))}
+        </ul>
+      </ScrollArea>
+    </>
+  );
+}
+
+function BriefingItem({
+  b, ativa, onSelect,
+}: {
+  b: BriefingChatItem;
+  ativa: boolean;
+  onSelect: () => void;
+}) {
+  const last = b.ultimaAtividade;
+  const previewTxt = last
+    ? last.fonte === "comentario"
+      ? `${last.autor_nome ?? "Alguém"}: ${last.texto}`
+      : `🤖 ${last.texto || "Atualização da IA"}`
+    : "Sem atividade ainda";
+  const temMencao = b.mencoesAbertas > 0;
+
+  return (
+    <li>
+      <button
+        onClick={onSelect}
+        className={cn(
+          "w-full text-left px-3 py-2.5 flex items-center gap-3 hover:bg-muted/50 transition-colors relative",
+          ativa && "bg-muted",
+        )}
+      >
+        <div className="relative shrink-0">
+          <Avatar className="h-11 w-11">
+            <AvatarFallback className="bg-blue-500/15 text-blue-700 dark:text-blue-300">
+              <FileText className="h-5 w-5" />
+            </AvatarFallback>
+          </Avatar>
+          {temMencao && (
+            <span
+              className="absolute -top-0.5 -right-0.5 h-4 w-4 rounded-full bg-amber-500 ring-2 ring-card flex items-center justify-center"
+              title={`${b.mencoesAbertas} menção(ões) a você`}
+            >
+              <AtSign className="h-2.5 w-2.5 text-white" />
+            </span>
+          )}
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center justify-between gap-2">
+            <span className={cn("truncate text-sm", b.naoLidos > 0 && "font-semibold")}>{b.titulo}</span>
+            <span className="text-[10px] text-muted-foreground shrink-0">
+              {last?.created_at ? formatRelativo(last.created_at) : ""}
+            </span>
+          </div>
+          <div className="flex items-center justify-between gap-2 mt-0.5">
+            <span className={cn("truncate text-xs text-muted-foreground", b.naoLidos > 0 && "text-foreground")}>
+              {previewTxt}
+            </span>
+            <div className="flex items-center gap-1 shrink-0">
+              {b.naoLidos > 0 && (
+                <Badge className="h-4 min-w-4 px-1 text-[10px] rounded-full bg-emerald-600 hover:bg-emerald-600">{b.naoLidos}</Badge>
+              )}
+            </div>
+          </div>
+          <p className="text-[10px] text-muted-foreground mt-0.5 truncate">
+            {b.tipo} · {b.completude}%
+          </p>
         </div>
       </button>
     </li>

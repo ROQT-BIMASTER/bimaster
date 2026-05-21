@@ -2779,6 +2779,7 @@ export type Database = {
           briefing_id: string
           created_at: string
           id: string
+          last_read_at: string
           papel: string
           user_id: string
         }
@@ -2786,6 +2787,7 @@ export type Database = {
           briefing_id: string
           created_at?: string
           id?: string
+          last_read_at?: string
           papel?: string
           user_id: string
         }
@@ -2793,6 +2795,7 @@ export type Database = {
           briefing_id?: string
           created_at?: string
           id?: string
+          last_read_at?: string
           papel?: string
           user_id?: string
         }
@@ -48119,6 +48122,10 @@ export type Database = {
       rpc_avancar_item_aprovacao: {
         Args: { p_comentario?: string; p_decisao: string; p_item_id: string }
         Returns: Json
+      }
+      rpc_briefing_marcar_lido: {
+        Args: { p_briefing_id: string }
+        Returns: undefined
       }
       rpc_cancelar_aprovacao_briefing: {
         Args: { p_briefing_id: string }

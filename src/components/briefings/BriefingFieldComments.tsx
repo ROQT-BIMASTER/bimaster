@@ -24,6 +24,10 @@ interface Props {
   authors: Record<string, { nome: string | null; avatar: string | null }>;
   currentUserId: string | null;
   readOnly?: boolean;
+  /** Se definido, abre a popover automaticamente uma vez (deep-link). */
+  defaultOpen?: boolean;
+  /** Se definido, destaca visualmente o comentário com este id. */
+  highlightCommentId?: string | null;
   onAdd: (p: { campo_key: string; body: string; parent_id?: string | null }) => Promise<void>;
   onUpdate: (id: string, body: string) => Promise<void>;
   onRemove: (id: string) => Promise<void>;
@@ -40,10 +44,11 @@ function initials(name: string | null | undefined) {
 export function BriefingFieldComments({
   briefingId, campoKey, campoLabel,
   comentarios, authors, currentUserId, readOnly,
+  defaultOpen, highlightCommentId,
   onAdd, onUpdate, onRemove, onToggleResolved, onRework, onReworkApplied,
 }: Props) {
   void briefingId;
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(!!defaultOpen);
   const [showResolved, setShowResolved] = useState(false);
   const [newBody, setNewBody] = useState("");
   const [replyTo, setReplyTo] = useState<string | null>(null);
@@ -167,6 +172,7 @@ export function BriefingFieldComments({
                   c.resolved && "opacity-60",
                   c.ai_status === "applied" && "border-emerald-500/40 bg-emerald-500/5",
                   c.ai_status === "proposed" && "border-primary/40 bg-primary/5",
+                  highlightCommentId === c.id && "ring-2 ring-amber-500/70",
                 )}
               >
                 <div className="flex items-start gap-2">

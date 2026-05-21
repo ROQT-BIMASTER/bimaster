@@ -15,6 +15,8 @@ interface Props {
   onAskAgent: (label: string) => void;
   commentsSlot?: ReactNode;
   hasOpenComments?: boolean;
+  /** id html para deep-link/scrollIntoView vindo do Chat. */
+  anchorId?: string;
 }
 
 export function BriefingCanvasField({
@@ -26,6 +28,7 @@ export function BriefingCanvasField({
   onAskAgent,
   commentsSlot,
   hasOpenComments,
+  anchorId,
 }: Props) {
   const [savedAt, setSavedAt] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
@@ -50,10 +53,13 @@ export function BriefingCanvasField({
   };
 
   return (
-    <div className={cn(
-      "group space-y-1.5 rounded-md transition-colors",
-      hasOpenComments && "border-l-2 border-amber-500/70 pl-2 -ml-2",
-    )}>
+    <div
+      id={anchorId}
+      className={cn(
+        "group space-y-1.5 rounded-md transition-colors scroll-mt-20",
+        hasOpenComments && "border-l-2 border-amber-500/70 pl-2 -ml-2",
+      )}
+    >
       <div className="flex items-center justify-between">
         <Label className="flex items-center gap-1.5 text-sm">
           {filled ? (

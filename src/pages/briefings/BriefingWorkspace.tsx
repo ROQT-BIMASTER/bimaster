@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { Sparkles } from "lucide-react";
 import { useBriefingChat } from "@/hooks/useBriefingChat";
 import { Button } from "@/components/ui/button";
@@ -31,6 +31,9 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 export default function BriefingWorkspace() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const deepLinkCampo = searchParams.get("campo");
+  const deepLinkComentario = searchParams.get("comentario");
   const { briefing, sections, messages, loading, sending, enviar, recarregar } =
     useBriefingChat(id);
   const [input, setInput] = useState("");
@@ -45,6 +48,17 @@ export default function BriefingWorkspace() {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const coments = useBriefingComentarios(briefing?.id);
+
+  // Deep-link vindo do Chat (?campo=...&comentario=...): rola até o campo
+  // assim que ele estiver renderizado. Roda só uma vez por valor de campo.
+  useEffect(() => {
+    if (!deepLinkCampo || loading) return;
+    const t = setTimeout(() => {
+      const el = document.getElementById(`briefing-campo-${deepLinkCampo}`);
+      if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 250);
+    return () => clearTimeout(t);
+  }, [deepLinkCampo, loading]);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setCurrentUserId(data.user?.id ?? null));
@@ -286,6 +300,7 @@ export default function BriefingWorkspace() {
                       <BriefingCanvasField
                         key={s.key}
                         section={s}
+                        anchorId={`briefing-campo-${s.key}`}
                         value={localPayload[s.key] ?? ""}
                         readOnly={readOnly}
                         onChange={(v) => setLocalPayload((p) => ({ ...p, [s.key]: v }))}
@@ -301,6 +316,8 @@ export default function BriefingWorkspace() {
                             authors={coments.authors}
                             currentUserId={currentUserId}
                             readOnly={readOnly}
+                            defaultOpen={deepLinkCampo === s.key}
+                            highlightCommentId={deepLinkCampo === s.key ? deepLinkComentario : null}
                             onAdd={coments.add}
                             onUpdate={coments.updateBody}
                             onRemove={coments.remove}
