@@ -14,7 +14,7 @@ export interface BriefingMsg {
 
 export interface Briefing {
   id: string;
-  tipo: "marketing" | "criativo" | "produto" | "trade";
+  tipo: string;
   titulo: string;
   status: string;
   payload: Record<string, string>;
