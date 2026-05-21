@@ -131,6 +131,7 @@ export default function BriefingWorkspace() {
             ? () => navigate(`/dashboard/projetos/${briefing.projeto_id}`)
             : undefined
         }
+        onExportar={() => setExportDialogOpen(true)}
         podeEnviarAprovacao={briefing.completude >= 100 && briefing.status !== "em_aprovacao"}
         jaEmAprovacao={briefing.status === "em_aprovacao"}
         onEnviarAprovacao={() => setAprovDialogOpen(true)}
