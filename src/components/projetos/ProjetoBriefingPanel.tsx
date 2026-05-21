@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useProjetoBriefings, BriefingWithContext } from "@/hooks/useProjetoBriefings";
 import { BriefingCampo } from "@/hooks/useProjetoBriefing";
 import { Badge } from "@/components/ui/badge";
@@ -9,12 +10,13 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
+import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
   FileSpreadsheet, ChevronDown, ChevronRight, CheckCircle2, XCircle,
-  Clock, Eye, Filter, Loader2, Package, AlertCircle,
+  Clock, Eye, Filter, Loader2, Package, AlertCircle, Sparkles, ExternalLink,
 } from "lucide-react";
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: any }> = {
@@ -44,6 +46,27 @@ export function ProjetoBriefingPanel({ projetoId, darkBg = false }: ProjetoBrief
   const [expandedCampos, setExpandedCampos] = useState<Record<string, BriefingCampo[]>>({});
   const [rejectDialog, setRejectDialog] = useState<{ open: boolean; briefingId: string | null }>({ open: false, briefingId: null });
   const [rejectObs, setRejectObs] = useState("");
+  const navigate = useNavigate();
+  const [smartBriefings, setSmartBriefings] = useState<Array<{ id: string; titulo: string; tipo: string; status: string; completude: number; updated_at: string }>>([]);
+  const [smartLoading, setSmartLoading] = useState(true);
+
+  useEffect(() => {
+    if (!projetoId) return;
+    let cancelled = false;
+    (async () => {
+      setSmartLoading(true);
+      const { data } = await supabase
+        .from("briefings")
+        .select("id, titulo, tipo, status, completude, updated_at")
+        .eq("projeto_id", projetoId)
+        .order("updated_at", { ascending: false });
+      if (!cancelled) {
+        setSmartBriefings((data ?? []) as any);
+        setSmartLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [projetoId]);
 
   const textColor = darkBg ? "text-white" : "text-foreground";
   const textMuted = darkBg ? "text-white/60" : "text-muted-foreground";
@@ -88,7 +111,41 @@ export function ProjetoBriefingPanel({ projetoId, darkBg = false }: ProjetoBrief
     setRejectObs("");
   };
 
-  if (isLoading) {
+  const smartSection = smartBriefings.length > 0 && (
+    <div className={cn("rounded-lg border p-3 space-y-2", cardBg)}>
+      <div className="flex items-center gap-2">
+        <Sparkles className="h-4 w-4 text-primary" />
+        <span className={cn("text-xs font-semibold uppercase tracking-wider", textColor)}>
+          Briefings inteligentes
+        </span>
+        <span className={cn("text-[10px]", textMuted)}>{smartBriefings.length} vinculado(s)</span>
+      </div>
+      <div className="space-y-1">
+        {smartBriefings.map((b) => (
+          <button
+            key={b.id}
+            onClick={() => navigate(`/dashboard/briefings/${b.id}`)}
+            className={cn(
+              "w-full flex items-center gap-3 px-3 py-2 rounded-md text-left transition-colors",
+              darkBg ? "hover:bg-white/5" : "hover:bg-muted/40"
+            )}
+          >
+            <FileSpreadsheet className={cn("h-4 w-4 flex-shrink-0", textMuted)} />
+            <div className="flex-1 min-w-0">
+              <div className={cn("text-sm font-medium truncate", textColor)}>{b.titulo}</div>
+              <div className={cn("text-[10px]", textMuted)}>
+                {b.tipo} · {b.completude}% completo · atualizado {format(new Date(b.updated_at), "dd MMM yyyy", { locale: ptBR })}
+              </div>
+            </div>
+            <Badge variant="outline" className="text-[10px]">{b.status}</Badge>
+            <ExternalLink className={cn("h-3.5 w-3.5", textMuted)} />
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+
+  if (isLoading || smartLoading) {
     return (
       <div className="flex items-center justify-center py-20">
         <Loader2 className={cn("h-6 w-6 animate-spin", textMuted)} />
@@ -98,16 +155,20 @@ export function ProjetoBriefingPanel({ projetoId, darkBg = false }: ProjetoBrief
 
   if (total === 0) {
     return (
-      <div className={cn("flex flex-col items-center justify-center py-20 gap-3", textMuted)}>
-        <FileSpreadsheet className="h-10 w-10 opacity-40" />
-        <p className="text-sm">Nenhum briefing importado neste projeto</p>
-        <p className="text-xs opacity-60">Importe briefings a partir do detalhe de cada tarefa</p>
+      <div className="space-y-5">
+        {smartSection}
+        <div className={cn("flex flex-col items-center justify-center py-20 gap-3", textMuted)}>
+          <FileSpreadsheet className="h-10 w-10 opacity-40" />
+          <p className="text-sm">Nenhum briefing importado neste projeto</p>
+          <p className="text-xs opacity-60">Importe briefings a partir do detalhe de cada tarefa ou vincule um briefing inteligente.</p>
+        </div>
       </div>
     );
   }
 
   return (
     <div className="space-y-5">
+      {smartSection}
       {/* KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
         {[
