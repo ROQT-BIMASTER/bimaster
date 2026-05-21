@@ -95,9 +95,10 @@ export function BriefingChatPanel({ briefingId }: Props) {
     const arr = [...coments.comentarios].sort((a, b) => b.created_at.localeCompare(a.created_at));
     if (filtroComent === "abertos") return arr.filter((c) => !c.resolved);
     if (filtroComent === "mencionam") {
-      return arr.filter(
-        (c) => Array.isArray(c.mentions) && user?.id && c.mentions.includes(user.id),
-      );
+      return arr.filter((c) => {
+        const m = (c as any).mentions;
+        return Array.isArray(m) && user?.id && m.includes(user.id);
+      });
     }
     return arr;
   }, [coments.comentarios, filtroComent, user?.id]);
