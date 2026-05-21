@@ -15,6 +15,7 @@ import {
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import type { BriefingComentario, ReworkResult } from "@/hooks/useBriefingComentarios";
+import { resolveMentionsFromText, type MentionableMember } from "@/lib/briefings/resolveMentions";
 
 interface Props {
   briefingId: string;
