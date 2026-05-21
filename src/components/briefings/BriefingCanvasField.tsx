@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Check, Circle, Sparkles } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -13,6 +13,8 @@ interface Props {
   onChange: (v: string) => void;
   onBlurSave: (v: string) => Promise<void> | void;
   onAskAgent: (label: string) => void;
+  commentsSlot?: ReactNode;
+  hasOpenComments?: boolean;
 }
 
 export function BriefingCanvasField({
@@ -22,11 +24,15 @@ export function BriefingCanvasField({
   onChange,
   onBlurSave,
   onAskAgent,
+  commentsSlot,
+  hasOpenComments,
 }: Props) {
   const [savedAt, setSavedAt] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
   const initialRef = useRef(value);
   const filled = (value ?? "").trim().length > 0;
+
+  useEffect(() => { initialRef.current = value; }, [value]);
 
   useEffect(() => {
     if (!savedAt) return;
@@ -44,7 +50,10 @@ export function BriefingCanvasField({
   };
 
   return (
-    <div className="group space-y-1.5">
+    <div className={cn(
+      "group space-y-1.5 rounded-md transition-colors",
+      hasOpenComments && "border-l-2 border-amber-500/70 pl-2 -ml-2",
+    )}>
       <div className="flex items-center justify-between">
         <Label className="flex items-center gap-1.5 text-sm">
           {filled ? (
@@ -55,11 +64,12 @@ export function BriefingCanvasField({
           <span>{section.label}</span>
           {section.required && <span className="text-red-500">*</span>}
         </Label>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1">
           {saving && <span className="text-[10px] text-muted-foreground">salvando…</span>}
           {!saving && savedAt && (
             <span className="text-[10px] text-emerald-600">salvo</span>
           )}
+          {commentsSlot}
           {!readOnly && (
             <Button
               type="button"

@@ -17,6 +17,9 @@ import { toast } from "sonner";
 import { BriefingHeader } from "@/components/briefings/BriefingHeader";
 import { BriefingMessage } from "@/components/briefings/BriefingMessage";
 import { BriefingCanvasField } from "@/components/briefings/BriefingCanvasField";
+import { BriefingFieldComments } from "@/components/briefings/BriefingFieldComments";
+import { BriefingRetrabalhoDiffDialog } from "@/components/briefings/BriefingRetrabalhoDiffDialog";
+import { useBriefingComentarios, type ReworkResult } from "@/hooks/useBriefingComentarios";
 import { VincularProjetoDialog } from "@/components/briefings/VincularProjetoDialog";
 import { BriefingMicButton } from "@/components/briefings/BriefingMicButton";
 import { EnviarAprovacaoDialog } from "@/components/briefings/EnviarAprovacaoDialog";
@@ -37,7 +40,15 @@ export default function BriefingWorkspace() {
   const [aprovDialogOpen, setAprovDialogOpen] = useState(false);
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
   const [aprovRefresh, setAprovRefresh] = useState(0);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [diffData, setDiffData] = useState<(ReworkResult & { campoLabel: string; campoKey: string }) | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const coments = useBriefingComentarios(briefing?.id);
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => setCurrentUserId(data.user?.id ?? null));
+  }, []);
 
   useEffect(() => {
     if (briefing) setLocalPayload(briefing.payload ?? {});
@@ -268,17 +279,45 @@ export default function BriefingWorkspace() {
                     Este tipo de briefing ainda não tem template configurado.
                   </p>
                 ) : (
-                  sections.map((s) => (
-                    <BriefingCanvasField
-                      key={s.key}
-                      section={s}
-                      value={localPayload[s.key] ?? ""}
-                      readOnly={readOnly}
-                      onChange={(v) => setLocalPayload((p) => ({ ...p, [s.key]: v }))}
-                      onBlurSave={(v) => salvarCampo(s.key, v)}
-                      onAskAgent={pedirAjudaAoAgente}
-                    />
-                  ))
+                  sections.map((s) => {
+                    const campoComents = coments.byCampo(s.key);
+                    const counts = coments.countsByCampo[s.key];
+                    return (
+                      <BriefingCanvasField
+                        key={s.key}
+                        section={s}
+                        value={localPayload[s.key] ?? ""}
+                        readOnly={readOnly}
+                        onChange={(v) => setLocalPayload((p) => ({ ...p, [s.key]: v }))}
+                        onBlurSave={(v) => salvarCampo(s.key, v)}
+                        onAskAgent={pedirAjudaAoAgente}
+                        hasOpenComments={(counts?.abertos ?? 0) > 0}
+                        commentsSlot={
+                          <BriefingFieldComments
+                            briefingId={briefing.id}
+                            campoKey={s.key}
+                            campoLabel={s.label}
+                            comentarios={campoComents}
+                            authors={coments.authors}
+                            currentUserId={currentUserId}
+                            readOnly={readOnly}
+                            onAdd={coments.add}
+                            onUpdate={coments.updateBody}
+                            onRemove={coments.remove}
+                            onToggleResolved={coments.toggleResolved}
+                            onRework={coments.rework}
+                            onReworkApplied={async (r) => {
+                              if (r.novo_texto !== undefined) {
+                                setLocalPayload((p) => ({ ...p, [s.key]: r.novo_texto! }));
+                              }
+                              await recarregar();
+                              setDiffData({ ...r, campoLabel: s.label, campoKey: s.key });
+                            }}
+                          />
+                        }
+                      />
+                    );
+                  })
                 )}
               </TabsContent>
 
@@ -319,6 +358,23 @@ export default function BriefingWorkspace() {
         sections={sections}
         projetoNome={projetoNome}
       />
+
+      {diffData && (
+        <BriefingRetrabalhoDiffDialog
+          open={!!diffData}
+          onOpenChange={(v) => { if (!v) setDiffData(null); }}
+          campoLabel={diffData.campoLabel}
+          textoAnterior={diffData.texto_anterior ?? ""}
+          novoTexto={diffData.novo_texto ?? ""}
+          racional={diffData.racional}
+          mudancas={diffData.mudancas}
+          onUndo={async () => {
+            const prev = diffData.texto_anterior ?? "";
+            setLocalPayload((p) => ({ ...p, [diffData.campoKey]: prev }));
+            await salvarCampo(diffData.campoKey, prev);
+          }}
+        />
+      )}
     </div>
   );
 }

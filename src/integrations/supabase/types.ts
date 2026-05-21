@@ -2482,6 +2482,72 @@ export type Database = {
           },
         ]
       }
+      briefing_comentarios: {
+        Row: {
+          ai_request_id: string | null
+          ai_status: string
+          author_id: string
+          body: string
+          briefing_id: string
+          campo_key: string
+          created_at: string
+          id: string
+          mentions: string[]
+          parent_id: string | null
+          resolved: boolean
+          resolved_at: string | null
+          resolved_by: string | null
+          updated_at: string
+        }
+        Insert: {
+          ai_request_id?: string | null
+          ai_status?: string
+          author_id: string
+          body: string
+          briefing_id: string
+          campo_key: string
+          created_at?: string
+          id?: string
+          mentions?: string[]
+          parent_id?: string | null
+          resolved?: boolean
+          resolved_at?: string | null
+          resolved_by?: string | null
+          updated_at?: string
+        }
+        Update: {
+          ai_request_id?: string | null
+          ai_status?: string
+          author_id?: string
+          body?: string
+          briefing_id?: string
+          campo_key?: string
+          created_at?: string
+          id?: string
+          mentions?: string[]
+          parent_id?: string | null
+          resolved?: boolean
+          resolved_at?: string | null
+          resolved_by?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "briefing_comentarios_briefing_id_fkey"
+            columns: ["briefing_id"]
+            isOneToOne: false
+            referencedRelation: "briefings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "briefing_comentarios_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "briefing_comentarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       briefing_defaults: {
         Row: {
           campo: string
