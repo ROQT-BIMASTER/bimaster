@@ -52,13 +52,13 @@ export function useBriefingComentarios(briefingId: string | undefined) {
     setComentarios(list);
     const missing = Array.from(new Set(list.map((c) => c.author_id))).filter((id) => !authors[id]);
     if (missing.length > 0) {
-      const { data: profs } = await supabase
+      const { data: profs } = await (supabase as any)
         .from("profiles")
-        .select("user_id, nome, avatar_url")
-        .in("user_id", missing);
+        .select("id, nome, avatar_url")
+        .in("id", missing);
       const next = { ...authors };
       (profs ?? []).forEach((p: any) => {
-        next[p.user_id] = { nome: p.nome ?? null, avatar: p.avatar_url ?? null };
+        next[p.id] = { nome: p.nome ?? null, avatar: p.avatar_url ?? null };
       });
       setAuthors(next);
     }
