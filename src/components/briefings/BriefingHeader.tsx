@@ -41,6 +41,7 @@ export function BriefingHeader({
   onCancelarAprovacao,
 }: Props) {
   const navigate = useNavigate();
+  const [membrosOpen, setMembrosOpen] = useState(false);
   const tipo = getTipoMeta(briefing.tipo);
   const status = getStatusBadge(briefing.status);
 
