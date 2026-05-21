@@ -1,4 +1,6 @@
-import { ArrowLeft, Link2, MoreHorizontal, Download } from "lucide-react";
+import { ArrowLeft, Link2, MoreHorizontal, Download, Users } from "lucide-react";
+import { useState } from "react";
+import { BriefingMembrosDialog } from "./BriefingMembrosDialog";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
