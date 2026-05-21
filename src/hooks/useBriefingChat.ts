@@ -14,7 +14,7 @@ export interface BriefingMsg {
 
 export interface Briefing {
   id: string;
-  tipo: "marketing" | "criativo" | "produto" | "trade";
+  tipo: string;
   titulo: string;
   status: string;
   payload: Record<string, string>;
@@ -54,7 +54,7 @@ export function useBriefingChat(briefingId: string | undefined) {
       }
       setBriefing({
         id: b.id,
-        tipo: b.tipo as Briefing["tipo"],
+        tipo: b.tipo as string,
         titulo: b.titulo,
         status: b.status,
         payload: (b.payload as Record<string, string>) ?? {},
