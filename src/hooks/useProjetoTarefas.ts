@@ -317,27 +317,43 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
       // Enriquecimento: quando `responsavel_id` muda, o objeto derivado
       // `responsavel: { id, nome, avatar_url }` também precisa ser atualizado
       // no patch otimista, senão a UI mostra avatar/nome antigos até o refetch.
-      // Olha em `teamMembers` (lista já carregada na view) para popular.
+      // Olha primeiro em `teamMembers` (lista já carregada na view) e, como
+      // fallback, no cache de `projeto_membros` — necessário para subtarefas
+      // ao atribuir um membro que ainda não consta como responsável de
+      // nenhuma tarefa (e portanto não está em teamMembers).
       const respChange = Object.prototype.hasOwnProperty.call(updates, "responsavel_id");
       const novoResponsavelId = (updates as Partial<ProjetoTarefa>).responsavel_id;
-      const novoMembro = respChange && novoResponsavelId
-        ? (previous?.teamMembers || []).find(m => m.id === novoResponsavelId)
-        : null;
+      let novoMembro: { id: string; nome: string; avatar_url: string | null } | null = null;
+      if (respChange && novoResponsavelId) {
+        const fromTeam = (previous?.teamMembers || []).find(m => m.id === novoResponsavelId);
+        if (fromTeam) {
+          novoMembro = { id: fromTeam.id, nome: fromTeam.nome, avatar_url: fromTeam.avatar_url };
+        } else {
+          const membrosCache = queryClient.getQueryData<any[]>(["projeto_membros", projetoId]);
+          const fromMembros = membrosCache?.find((m: any) => m.user_id === novoResponsavelId);
+          if (fromMembros?.profile) {
+            novoMembro = {
+              id: fromMembros.user_id,
+              nome: fromMembros.profile.nome || "Membro",
+              avatar_url: fromMembros.profile.avatar_url || null,
+            };
+          }
+        }
+      }
       patchView((v) => ({
         ...v,
         tarefas: v.tarefas.map(t => {
           if (t.id !== id) return t;
           const patched = { ...t, ...updates } as ProjetoTarefa;
           if (respChange) {
-            patched.responsavel = novoMembro
-              ? { id: novoMembro.id, nome: novoMembro.nome, avatar_url: novoMembro.avatar_url }
-              : null;
+            patched.responsavel = novoMembro;
           }
           return patched;
         }),
       }));
       return { previous };
     },
+
     onError: (err: Error, _vars, context) => {
       if (context?.previous) queryClient.setQueryData(["projeto-tarefas-v2", projetoId], context.previous);
       if (err.message === "__CANCELLED__") return;
