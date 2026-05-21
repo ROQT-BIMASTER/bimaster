@@ -358,6 +358,23 @@ export default function BriefingWorkspace() {
         sections={sections}
         projetoNome={projetoNome}
       />
+
+      {diffData && (
+        <BriefingRetrabalhoDiffDialog
+          open={!!diffData}
+          onOpenChange={(v) => { if (!v) setDiffData(null); }}
+          campoLabel={diffData.campoLabel}
+          textoAnterior={diffData.texto_anterior ?? ""}
+          novoTexto={diffData.novo_texto ?? ""}
+          racional={diffData.racional}
+          mudancas={diffData.mudancas}
+          onUndo={async () => {
+            const prev = diffData.texto_anterior ?? "";
+            setLocalPayload((p) => ({ ...p, [diffData.campoKey]: prev }));
+            await salvarCampo(diffData.campoKey, prev);
+          }}
+        />
+      )}
     </div>
   );
 }
