@@ -89,6 +89,11 @@ export function BriefingHeader({
 
         <Badge className={`${status.className} border-0`}>{status.label}</Badge>
 
+        <Button variant="outline" size="sm" onClick={() => setMembrosOpen(true)}>
+          <Users className="h-3.5 w-3.5 mr-1.5" />
+          Membros
+        </Button>
+
         {!projetoNome && (
           <Button variant="outline" size="sm" onClick={onVincularProjeto}>
             <Link2 className="h-3.5 w-3.5 mr-1.5" />
