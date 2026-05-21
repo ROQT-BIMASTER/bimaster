@@ -13,7 +13,8 @@ import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { ExternalLink, MessageSquare, Sparkles, Send, AtSign, FileText } from "lucide-react";
+import { ExternalLink, MessageSquare, Sparkles, Send, AtSign, FileText, Paperclip, FolderLock } from "lucide-react";
+import { UploadDocumentoDialog } from "@/components/briefings/cofre/UploadDocumentoDialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -63,6 +64,9 @@ export function BriefingChatPanel({ briefingId }: Props) {
   const [filtroComent, setFiltroComent] = useState<"todos" | "abertos" | "mencionam">("todos");
   const [novoComentario, setNovoComentario] = useState("");
   const [enviando, setEnviando] = useState(false);
+  const [cofreOpen, setCofreOpen] = useState(false);
+  const [cofreDescricao, setCofreDescricao] = useState<string>("");
+  const [cofreVinculaComentarioId, setCofreVinculaComentarioId] = useState<string | null>(null);
 
   // Marca como lido ao abrir / mudar de briefing
   useEffect(() => {
@@ -330,6 +334,11 @@ export function BriefingChatPanel({ briefingId }: Props) {
                       comentario: c.id,
                     })
                   }
+                  onAnexarCofre={() => {
+                    setCofreVinculaComentarioId(c.id);
+                    setCofreDescricao(c.body);
+                    setCofreOpen(true);
+                  }}
                 />
               ))}
             </div>
@@ -375,17 +384,60 @@ export function BriefingChatPanel({ briefingId }: Props) {
             <span className="text-[10px] text-muted-foreground px-1.5 flex items-center gap-1">
               <AtSign className="h-3 w-3" /> Digite @ para mencionar um membro
             </span>
-            <Button
-              size="sm"
-              disabled={enviando || !novoComentario.trim()}
-              onClick={enviarComentario}
-              className="gap-1.5 bg-briefing text-briefing-foreground hover:bg-briefing/90"
-            >
-              <Send className="h-3.5 w-3.5" /> Enviar
-            </Button>
+            <div className="flex items-center gap-1.5">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  setCofreVinculaComentarioId(null);
+                  setCofreDescricao(novoComentario);
+                  setCofreOpen(true);
+                }}
+                className="gap-1.5 border-briefing/30 text-briefing hover:bg-briefing/10"
+                title="Anexar arquivo ao cofre do briefing"
+              >
+                <Paperclip className="h-3.5 w-3.5" /> Anexar ao cofre
+              </Button>
+              <Button
+                size="sm"
+                disabled={enviando || !novoComentario.trim()}
+                onClick={enviarComentario}
+                className="gap-1.5 bg-briefing text-briefing-foreground hover:bg-briefing/90"
+              >
+                <Send className="h-3.5 w-3.5" /> Enviar
+              </Button>
+            </div>
           </div>
         </div>
       </div>
+
+      <UploadDocumentoDialog
+        open={cofreOpen}
+        onOpenChange={setCofreOpen}
+        briefingId={briefingId}
+        descricaoInicial={cofreDescricao}
+        onUploaded={async ({ id: docId, nome }) => {
+          try {
+            if (cofreVinculaComentarioId) {
+              await coments.updateMetadata(cofreVinculaComentarioId, {
+                cofre_doc_id: docId,
+                cofre_doc_nome: nome,
+              });
+              toast.success("Comentário vinculado ao documento do cofre");
+            } else {
+              await coments.add({
+                campo_key: "__geral__",
+                body: novoComentario.trim() || `Documento adicionado ao cofre: ${nome}`,
+                metadata: { cofre_doc_id: docId, cofre_doc_nome: nome },
+              });
+              setNovoComentario("");
+            }
+          } finally {
+            setCofreVinculaComentarioId(null);
+            setCofreDescricao("");
+          }
+        }}
+      />
     </div>
   );
 }
@@ -410,7 +462,7 @@ function EmptyState({
 }
 
 function ComentarioCard({
-  c, authorNome, campoLabel, isMe, mencionaMe, onOpen,
+  c, authorNome, campoLabel, isMe, mencionaMe, onOpen, onAnexarCofre,
 }: {
   c: BriefingComentario;
   authorNome: string | null;
@@ -418,10 +470,11 @@ function ComentarioCard({
   isMe: boolean;
   mencionaMe: boolean;
   onOpen: () => void;
+  onAnexarCofre: () => void;
 }) {
+  const cofreDocNome = (c.metadata as any)?.cofre_doc_nome as string | undefined;
   return (
-    <button
-      onClick={onOpen}
+    <div
       className={cn(
         "w-full text-left rounded-lg border bg-card hover:bg-briefing-soft/30 transition-colors p-3 space-y-1.5 shadow-sm",
         "border-l-2 border-l-briefing/30",
@@ -429,30 +482,47 @@ function ComentarioCard({
         mencionaMe && "border-l-amber-500 bg-amber-500/[0.04]",
       )}
     >
-      <div className="flex items-center gap-2 flex-wrap">
-        <Avatar className={cn("h-5 w-5", mencionaMe && "ring-2 ring-amber-500/40")}>
-          <AvatarFallback className="text-[9px] bg-briefing/15 text-briefing">
-            {initials(authorNome)}
-          </AvatarFallback>
-        </Avatar>
-        <span className="text-[12px] font-medium truncate">
-          {isMe ? "Você" : authorNome ?? "Usuário"}
-        </span>
-        <Badge variant="outline" className="text-[9px] px-1 py-0 bg-briefing/5 text-briefing border-briefing/20">
-          {c.campo_key === "__geral__" ? "Geral" : campoLabel}
-        </Badge>
-        {mencionaMe && (
-          <Badge className="text-[9px] px-1 py-0 bg-amber-500 hover:bg-amber-500 text-white">@ você</Badge>
-        )}
-        {c.resolved && (
-          <Badge variant="outline" className="text-[9px] px-1 py-0">resolvido</Badge>
-        )}
-        <span className="ml-auto text-[10px] text-muted-foreground">
-          {formatRelativo(c.created_at)}
-        </span>
+      <button onClick={onOpen} className="w-full text-left">
+        <div className="flex items-center gap-2 flex-wrap">
+          <Avatar className={cn("h-5 w-5", mencionaMe && "ring-2 ring-amber-500/40")}>
+            <AvatarFallback className="text-[9px] bg-briefing/15 text-briefing">
+              {initials(authorNome)}
+            </AvatarFallback>
+          </Avatar>
+          <span className="text-[12px] font-medium truncate">
+            {isMe ? "Você" : authorNome ?? "Usuário"}
+          </span>
+          <Badge variant="outline" className="text-[9px] px-1 py-0 bg-briefing/5 text-briefing border-briefing/20">
+            {c.campo_key === "__geral__" ? "Geral" : campoLabel}
+          </Badge>
+          {mencionaMe && (
+            <Badge className="text-[9px] px-1 py-0 bg-amber-500 hover:bg-amber-500 text-white">@ você</Badge>
+          )}
+          {c.resolved && (
+            <Badge variant="outline" className="text-[9px] px-1 py-0">resolvido</Badge>
+          )}
+          <span className="ml-auto text-[10px] text-muted-foreground">
+            {formatRelativo(c.created_at)}
+          </span>
+        </div>
+        <p className="text-[13px] whitespace-pre-wrap line-clamp-3 mt-1">{c.body}</p>
+      </button>
+      <div className="flex items-center justify-between gap-2 pt-1">
+        {cofreDocNome ? (
+          <Badge variant="outline" className="text-[10px] gap-1 bg-briefing/5 text-briefing border-briefing/30">
+            <FolderLock className="h-2.5 w-2.5" /> Cofre · {cofreDocNome}
+          </Badge>
+        ) : <span />}
+        <button
+          onClick={onAnexarCofre}
+          className="text-[10px] inline-flex items-center gap-1 text-briefing hover:underline"
+          title="Anexar arquivo ao cofre vinculado a este comentário"
+        >
+          <Paperclip className="h-3 w-3" />
+          {cofreDocNome ? "Substituir doc" : "Anexar ao cofre"}
+        </button>
       </div>
-      <p className="text-[13px] whitespace-pre-wrap line-clamp-3">{c.body}</p>
-    </button>
+    </div>
   );
 }
 

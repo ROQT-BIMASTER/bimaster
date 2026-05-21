@@ -21,7 +21,10 @@ import {
   AtSign,
   Briefcase,
   ListTodo,
+  Paperclip,
+  FolderLock,
 } from "lucide-react";
+import { ProjetoCofreUploadDialog } from "@/components/projetos/cofre/ProjetoCofreUploadDialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -106,6 +109,8 @@ export function ProjetoChatPanel({ projetoId }: Props) {
   const [filtroComent, setFiltroComent] = useState<"todos" | "mencionam">("todos");
   const [novoComentario, setNovoComentario] = useState("");
   const [enviando, setEnviando] = useState(false);
+  const [cofreOpen, setCofreOpen] = useState(false);
+
 
   // Marca como lido ao abrir / trocar de projeto.
   useEffect(() => {
@@ -432,17 +437,50 @@ export function ProjetoChatPanel({ projetoId }: Props) {
             <span className="text-[10px] text-muted-foreground px-1.5 flex items-center gap-1">
               <AtSign className="h-3 w-3" /> Digite @ para mencionar um membro
             </span>
-            <Button
-              size="sm"
-              disabled={enviando || !novoComentario.trim()}
-              onClick={enviarComentario}
-              className="gap-1.5"
-            >
-              <Send className="h-3.5 w-3.5" /> Enviar
-            </Button>
+            <div className="flex items-center gap-1.5">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setCofreOpen(true)}
+                className="gap-1.5"
+                title="Anexar arquivo ao cofre do projeto"
+              >
+                <Paperclip className="h-3.5 w-3.5" /> Anexar ao cofre
+              </Button>
+              <Button
+                size="sm"
+                disabled={enviando || !novoComentario.trim()}
+                onClick={enviarComentario}
+                className="gap-1.5"
+              >
+                <Send className="h-3.5 w-3.5" /> Enviar
+              </Button>
+            </div>
           </div>
         </div>
       </div>
+
+      <ProjetoCofreUploadDialog
+        open={cofreOpen}
+        onOpenChange={setCofreOpen}
+        projetoId={projetoId}
+        descricaoInicial={novoComentario}
+        onUploaded={async ({ id: docId, nome }) => {
+          const conteudo = novoComentario.trim() || `Documento adicionado ao cofre: ${nome}`;
+          try {
+            await (supabase as any).from("projeto_chat_messages").insert({
+              projeto_id: projetoId,
+              user_id: user?.id ?? null,
+              conteudo,
+              tipo: "sistema",
+              metadata: { cofre_doc_id: docId, cofre_doc_nome: nome },
+            });
+            setNovoComentario("");
+          } catch (e: any) {
+            toast.error(e?.message ?? "Não foi possível registrar no chat");
+          }
+        }}
+      />
     </div>
   );
 }

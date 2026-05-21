@@ -1,5 +1,5 @@
-// src/components/briefings/cofre/UploadDocumentoDialog.tsx
-import { useState } from "react";
+// src/components/projetos/cofre/ProjetoCofreUploadDialog.tsx
+import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import {
@@ -14,23 +14,28 @@ import {
 import { toast } from "sonner";
 import { Upload } from "lucide-react";
 import { validateFileForUpload } from "@/lib/utils/file-security";
-import { CATEGORIA_LABELS, type BriefingDocumento } from "@/hooks/useBriefingCofre";
 import { useQueryClient } from "@tanstack/react-query";
+
+const CATEGORIAS: Record<string, string> = {
+  geral: "Geral",
+  briefing: "Briefing / referência",
+  fornecedor: "Fornecedor",
+  fiscal: "Fiscal",
+  contrato: "Contrato",
+  arte: "Arte / criação",
+  laudo: "Laudo / técnico",
+};
 
 interface Props {
   open: boolean;
   onOpenChange: (v: boolean) => void;
-  briefingId: string;
-  /** Se preenchido, faz upload contra um item de checklist existente (atualiza em vez de inserir). */
-  documentoAlvo?: BriefingDocumento | null;
-  /** Descrição inicial (ex.: texto de um comentário sendo anexado ao cofre). */
+  projetoId: string;
   descricaoInicial?: string;
-  /** Callback após sucesso, recebe id e nome do documento criado/atualizado. */
   onUploaded?: (doc: { id: string; nome: string }) => void;
 }
 
-export function UploadDocumentoDialog({
-  open, onOpenChange, briefingId, documentoAlvo, descricaoInicial, onUploaded,
+export function ProjetoCofreUploadDialog({
+  open, onOpenChange, projetoId, descricaoInicial, onUploaded,
 }: Props) {
   const qc = useQueryClient();
   const [file, setFile] = useState<File | null>(null);
@@ -42,15 +47,9 @@ export function UploadDocumentoDialog({
   const [dataEntrega, setDataEntrega] = useState("");
   const [uploading, setUploading] = useState(false);
 
-  // Pre-fill quando vier de um item do checklist ou descrição externa
-  if (open && documentoAlvo && !nome && !file) {
-    setNome(documentoAlvo.nome);
-    setCategoria(documentoAlvo.categoria);
-    if (documentoAlvo.descricao) setDescricao(documentoAlvo.descricao);
-  }
-  if (open && !documentoAlvo && descricaoInicial && !descricao) {
-    setDescricao(descricaoInicial);
-  }
+  useEffect(() => {
+    if (open && descricaoInicial && !descricao) setDescricao(descricaoInicial);
+  }, [open, descricaoInicial]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const reset = () => {
     setFile(null); setNome(""); setDescricao(""); setCategoria("geral");
@@ -73,52 +72,40 @@ export function UploadDocumentoDialog({
       const uid = u.user?.id;
       if (!uid) throw new Error("Sessão expirada");
 
-      const docId = documentoAlvo?.id ?? crypto.randomUUID();
+      const docId = crypto.randomUUID();
       const ext = file.name.split(".").pop() ?? "bin";
       const safeName = file.name.replace(/[^\w.\-]+/g, "_");
-      const path = `${briefingId}/${docId}/${safeName}`;
+      const path = `${projetoId}/cofre/${docId}/${safeName}`;
 
       const { error: upErr } = await supabase.storage
-        .from("briefing-cofre")
+        .from("projeto-anexos")
         .upload(path, file, {
           contentType: file.type || `application/${ext}`,
           upsert: true,
         });
       if (upErr) throw upErr;
 
-      const patch = {
-        nome: nome.trim(),
-        descricao: descricao.trim() || null,
-        categoria,
-        fornecedor_nome: fornecedor.trim() || null,
-        lote: lote.trim() || null,
-        data_entrega: dataEntrega || null,
-        storage_path: path,
-        mime_type: file.type || null,
-        tamanho_bytes: file.size,
-        status: "recebido" as const,
-      };
+      const { error } = await (supabase as any)
+        .from("projeto_cofre_documentos")
+        .insert({
+          id: docId,
+          projeto_id: projetoId,
+          created_by: uid,
+          nome: nome.trim(),
+          descricao: descricao.trim() || null,
+          categoria,
+          fornecedor_nome: fornecedor.trim() || null,
+          lote: lote.trim() || null,
+          data_entrega: dataEntrega || null,
+          storage_path: path,
+          mime_type: file.type || null,
+          tamanho_bytes: file.size,
+          status: "recebido",
+        });
+      if (error) throw error;
 
-      if (documentoAlvo) {
-        const { error } = await (supabase as any)
-          .from("briefing_documentos")
-          .update(patch)
-          .eq("id", documentoAlvo.id);
-        if (error) throw error;
-      } else {
-        const { error } = await (supabase as any)
-          .from("briefing_documentos")
-          .insert({
-            id: docId,
-            briefing_id: briefingId,
-            created_by: uid,
-            ...patch,
-          });
-        if (error) throw error;
-      }
-
-      toast.success("Documento enviado");
-      qc.invalidateQueries({ queryKey: ["briefing-documentos", briefingId] });
+      toast.success("Documento enviado ao cofre do projeto");
+      qc.invalidateQueries({ queryKey: ["projeto-cofre-documentos", projetoId] });
       onUploaded?.({ id: docId, nome: nome.trim() });
       reset();
       onOpenChange(false);
@@ -133,9 +120,7 @@ export function UploadDocumentoDialog({
     <Dialog open={open} onOpenChange={(v) => { if (!v) reset(); onOpenChange(v); }}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle>
-            {documentoAlvo ? `Anexar arquivo · ${documentoAlvo.nome}` : "Novo documento"}
-          </DialogTitle>
+          <DialogTitle>Anexar ao cofre do projeto</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-3">
@@ -163,7 +148,7 @@ export function UploadDocumentoDialog({
               <Select value={categoria} onValueChange={setCategoria}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {Object.entries(CATEGORIA_LABELS).map(([k, l]) => (
+                  {Object.entries(CATEGORIAS).map(([k, l]) => (
                     <SelectItem key={k} value={k}>{l}</SelectItem>
                   ))}
                 </SelectContent>
