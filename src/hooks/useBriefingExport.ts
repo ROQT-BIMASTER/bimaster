@@ -85,16 +85,20 @@ export function useBriefingExport({ briefing, sections, projetoNome, autorNome }
       if (!uid) return;
       // Não salvamos o logo no preset (pode ser grande). O usuário recarrega quando quiser.
       const { logoDataUrl, ...persistivel } = cfg;
-      await supabase.from("briefing_export_presets").upsert(
-        {
-          user_id: uid,
-          nome: "Padrão",
-          is_default: true,
-          config: persistivel as any,
-        },
-        { onConflict: "user_id,nome" } as any,
-      ).then(() => undefined).catch(() => undefined);
-    },
+      try {
+        await supabase.from("briefing_export_presets").upsert(
+          {
+            user_id: uid,
+            nome: "Padrão",
+            is_default: true,
+            config: persistivel as any,
+          },
+          { onConflict: "user_id,nome" } as any,
+        );
+      } catch {
+        // best-effort
+      }
+
     [],
   );
 
