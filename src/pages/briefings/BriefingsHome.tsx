@@ -42,6 +42,7 @@ import {
 } from "@/components/ui/table";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { usePageBgColor } from "@/components/shared/PageBgCustomizer";
 
 type Tipo = string;
 
