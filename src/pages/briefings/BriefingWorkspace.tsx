@@ -20,6 +20,7 @@ import { BriefingCanvasField } from "@/components/briefings/BriefingCanvasField"
 import { BriefingFieldComments } from "@/components/briefings/BriefingFieldComments";
 import { BriefingRetrabalhoDiffDialog } from "@/components/briefings/BriefingRetrabalhoDiffDialog";
 import { useBriefingComentarios, type ReworkResult } from "@/hooks/useBriefingComentarios";
+import { useBriefingMembros } from "@/hooks/useBriefingMembros";
 import { VincularProjetoDialog } from "@/components/briefings/VincularProjetoDialog";
 import { BriefingMicButton } from "@/components/briefings/BriefingMicButton";
 import { EnviarAprovacaoDialog } from "@/components/briefings/EnviarAprovacaoDialog";
