@@ -195,6 +195,7 @@ export function ChatLayout({ initialConversaId = null, className, defaultShowInf
           onModoChange={trocarModo}
           podeAlternarModo={podeAlternarModo}
           podeVerBriefings={podeVerBriefings}
+          podeVerProjetos={podeVerProjetos}
           className="w-[320px] shrink-0"
         />
         <div className="flex-1 min-w-0 flex">
