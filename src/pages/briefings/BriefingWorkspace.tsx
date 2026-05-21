@@ -20,6 +20,7 @@ import { BriefingCanvasField } from "@/components/briefings/BriefingCanvasField"
 import { VincularProjetoDialog } from "@/components/briefings/VincularProjetoDialog";
 import { EnviarAprovacaoDialog } from "@/components/briefings/EnviarAprovacaoDialog";
 import { AprovacaoTimeline } from "@/components/briefings/AprovacaoTimeline";
+import { ExportarBriefingDialog } from "@/components/briefings/export/ExportarBriefingDialog";
 
 export default function BriefingWorkspace() {
   const { id } = useParams<{ id: string }>();
@@ -31,6 +32,7 @@ export default function BriefingWorkspace() {
   const [projetoNome, setProjetoNome] = useState<string | null>(null);
   const [vincDialogOpen, setVincDialogOpen] = useState(false);
   const [aprovDialogOpen, setAprovDialogOpen] = useState(false);
+  const [exportDialogOpen, setExportDialogOpen] = useState(false);
   const [aprovRefresh, setAprovRefresh] = useState(0);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -129,6 +131,7 @@ export default function BriefingWorkspace() {
             ? () => navigate(`/dashboard/projetos/${briefing.projeto_id}`)
             : undefined
         }
+        onExportar={() => setExportDialogOpen(true)}
         podeEnviarAprovacao={briefing.completude >= 100 && briefing.status !== "em_aprovacao"}
         jaEmAprovacao={briefing.status === "em_aprovacao"}
         onEnviarAprovacao={() => setAprovDialogOpen(true)}
@@ -278,6 +281,14 @@ export default function BriefingWorkspace() {
           await recarregar();
           setAprovRefresh((x) => x + 1);
         }}
+      />
+
+      <ExportarBriefingDialog
+        open={exportDialogOpen}
+        onOpenChange={setExportDialogOpen}
+        briefing={briefing}
+        sections={sections}
+        projetoNome={projetoNome}
       />
     </div>
   );
