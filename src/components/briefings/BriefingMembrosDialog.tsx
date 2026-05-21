@@ -105,41 +105,76 @@ export function BriefingMembrosDialog({ open, onOpenChange, briefingId }: Props)
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex items-center gap-2">
-          <div className="relative flex-1">
-            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Buscar membro..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-8"
-            />
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <div className="relative flex-1">
+              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar usuário por nome..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-8"
+              />
+            </div>
+            {isCoordinator && (
+              <Select
+                onValueChange={(userId) => addMembro.mutate({ userId, papel: "membro" })}
+              >
+                <SelectTrigger className="w-[220px]">
+                  <SelectValue placeholder={(
+                    <span className="flex items-center gap-2">
+                      <UserPlus className="h-3.5 w-3.5" /> Adicionar da equipe
+                    </span>
+                  ) as any} />
+                </SelectTrigger>
+                <SelectContent>
+                  {candidatos.length === 0 ? (
+                    <div className="px-2 py-3 text-xs text-muted-foreground">
+                      Nenhum subordinado disponível
+                    </div>
+                  ) : (
+                    candidatos.map((p: any) => (
+                      <SelectItem key={p.id} value={p.id}>
+                        {p.nome || p.email}
+                      </SelectItem>
+                    ))
+                  )}
+                </SelectContent>
+              </Select>
+            )}
           </div>
-          {isCoordinator && (
-            <Select
-              onValueChange={(userId) => addMembro.mutate({ userId, papel: "membro" })}
-            >
-              <SelectTrigger className="w-[220px]">
-                <SelectValue placeholder={(
-                  <span className="flex items-center gap-2">
-                    <UserPlus className="h-3.5 w-3.5" /> Adicionar da equipe
-                  </span>
-                ) as any} />
-              </SelectTrigger>
-              <SelectContent>
-                {candidatos.length === 0 ? (
-                  <div className="px-2 py-3 text-xs text-muted-foreground">
-                    Nenhum subordinado disponível
+
+          {isCoordinator && search.trim().length >= 2 && (
+            filteredResults.length > 0 ? (
+              <div className="border rounded-md divide-y max-h-40 overflow-auto">
+                {filteredResults.map((profile: any) => (
+                  <div key={profile.id} className="flex items-center justify-between p-2 hover:bg-muted/50">
+                    <div className="flex items-center gap-2">
+                      <Avatar className="h-7 w-7">
+                        <AvatarImage src={profile.avatar_url || undefined} />
+                        <AvatarFallback className="text-xs">{profile.nome?.charAt(0) || "?"}</AvatarFallback>
+                      </Avatar>
+                      <p className="text-sm font-medium leading-none">{profile.nome}</p>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => {
+                        addMembro.mutate({ userId: profile.id, papel: "membro" });
+                        setSearch("");
+                      }}
+                      disabled={addMembro.isPending}
+                    >
+                      <UserPlus className="h-3.5 w-3.5 mr-1" /> Adicionar
+                    </Button>
                   </div>
-                ) : (
-                  candidatos.map((p: any) => (
-                    <SelectItem key={p.id} value={p.id}>
-                      {p.nome || p.email}
-                    </SelectItem>
-                  ))
-                )}
-              </SelectContent>
-            </Select>
+                ))}
+              </div>
+            ) : (
+              <div className="border rounded-md p-3 text-xs text-muted-foreground text-center">
+                Nenhum usuário encontrado para "{search.trim()}".
+              </div>
+            )
           )}
         </div>
 
