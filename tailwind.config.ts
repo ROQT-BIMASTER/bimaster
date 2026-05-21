@@ -88,6 +88,11 @@ export default {
         fabrica: {
           DEFAULT: "hsl(var(--module-fabrica))",
         },
+        briefing: {
+          DEFAULT: "hsl(var(--briefing-accent))",
+          foreground: "hsl(var(--briefing-accent-foreground))",
+          soft: "hsl(var(--briefing-soft))",
+        },
       },
       borderRadius: {
         lg: "var(--radius)",
