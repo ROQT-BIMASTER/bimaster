@@ -384,17 +384,60 @@ export function BriefingChatPanel({ briefingId }: Props) {
             <span className="text-[10px] text-muted-foreground px-1.5 flex items-center gap-1">
               <AtSign className="h-3 w-3" /> Digite @ para mencionar um membro
             </span>
-            <Button
-              size="sm"
-              disabled={enviando || !novoComentario.trim()}
-              onClick={enviarComentario}
-              className="gap-1.5 bg-briefing text-briefing-foreground hover:bg-briefing/90"
-            >
-              <Send className="h-3.5 w-3.5" /> Enviar
-            </Button>
+            <div className="flex items-center gap-1.5">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  setCofreVinculaComentarioId(null);
+                  setCofreDescricao(novoComentario);
+                  setCofreOpen(true);
+                }}
+                className="gap-1.5 border-briefing/30 text-briefing hover:bg-briefing/10"
+                title="Anexar arquivo ao cofre do briefing"
+              >
+                <Paperclip className="h-3.5 w-3.5" /> Anexar ao cofre
+              </Button>
+              <Button
+                size="sm"
+                disabled={enviando || !novoComentario.trim()}
+                onClick={enviarComentario}
+                className="gap-1.5 bg-briefing text-briefing-foreground hover:bg-briefing/90"
+              >
+                <Send className="h-3.5 w-3.5" /> Enviar
+              </Button>
+            </div>
           </div>
         </div>
       </div>
+
+      <UploadDocumentoDialog
+        open={cofreOpen}
+        onOpenChange={setCofreOpen}
+        briefingId={briefingId}
+        descricaoInicial={cofreDescricao}
+        onUploaded={async ({ id: docId, nome }) => {
+          try {
+            if (cofreVinculaComentarioId) {
+              await coments.updateMetadata(cofreVinculaComentarioId, {
+                cofre_doc_id: docId,
+                cofre_doc_nome: nome,
+              });
+              toast.success("Comentário vinculado ao documento do cofre");
+            } else {
+              await coments.add({
+                campo_key: "__geral__",
+                body: novoComentario.trim() || `Documento adicionado ao cofre: ${nome}`,
+                metadata: { cofre_doc_id: docId, cofre_doc_nome: nome },
+              });
+              setNovoComentario("");
+            }
+          } finally {
+            setCofreVinculaComentarioId(null);
+            setCofreDescricao("");
+          }
+        }}
+      />
     </div>
   );
 }
