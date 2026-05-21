@@ -4,9 +4,17 @@ import { formatInTimeZone } from "date-fns-tz";
 import type { Briefing, TemplateSection } from "@/hooks/useBriefingChat";
 import type { BriefingExportConfig } from "./exportTypes";
 
-const TZ = "America/Sao_Paulo";
+const TZ_FMT = new Intl.DateTimeFormat("pt-BR", {
+  timeZone: "America/Sao_Paulo",
+  day: "2-digit",
+  month: "2-digit",
+  year: "numeric",
+  hour: "2-digit",
+  minute: "2-digit",
+});
 const fmt = (d: Date | string | null | undefined) =>
-  d ? formatInTimeZone(new Date(d), TZ, "dd/MM/yyyy HH:mm") : "—";
+  d ? TZ_FMT.format(new Date(d)) : "—";
+
 
 interface AprovacaoEtapa {
   ordem: number;
