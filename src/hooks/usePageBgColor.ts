@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
-import { isDarkHex } from "@/lib/colorUtils";
+import { isDarkHex, isNeutralWhiteHex } from "@/lib/colorUtils";
 
 // Chave única compartilhada por todo o módulo Projetos.
 // Qualquer tela que use este hook lê/escreve no mesmo slot,
