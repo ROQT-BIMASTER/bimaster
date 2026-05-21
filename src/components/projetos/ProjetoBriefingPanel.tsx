@@ -46,6 +46,27 @@ export function ProjetoBriefingPanel({ projetoId, darkBg = false }: ProjetoBrief
   const [expandedCampos, setExpandedCampos] = useState<Record<string, BriefingCampo[]>>({});
   const [rejectDialog, setRejectDialog] = useState<{ open: boolean; briefingId: string | null }>({ open: false, briefingId: null });
   const [rejectObs, setRejectObs] = useState("");
+  const navigate = useNavigate();
+  const [smartBriefings, setSmartBriefings] = useState<Array<{ id: string; titulo: string; tipo: string; status: string; completude: number; updated_at: string }>>([]);
+  const [smartLoading, setSmartLoading] = useState(true);
+
+  useEffect(() => {
+    if (!projetoId) return;
+    let cancelled = false;
+    (async () => {
+      setSmartLoading(true);
+      const { data } = await supabase
+        .from("briefings")
+        .select("id, titulo, tipo, status, completude, updated_at")
+        .eq("projeto_id", projetoId)
+        .order("updated_at", { ascending: false });
+      if (!cancelled) {
+        setSmartBriefings((data ?? []) as any);
+        setSmartLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [projetoId]);
 
   const textColor = darkBg ? "text-white" : "text-foreground";
   const textMuted = darkBg ? "text-white/60" : "text-muted-foreground";
