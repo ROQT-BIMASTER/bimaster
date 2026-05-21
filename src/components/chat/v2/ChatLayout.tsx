@@ -4,19 +4,21 @@ import { ChatThread } from "./ChatThread";
 import { ConversaInfoPanel } from "./ConversaInfoPanel";
 import { ChinaChatPanel } from "@/components/china/ChinaChatPanel";
 import { BriefingChatPanel } from "./BriefingChatPanel";
+import { ProjetoChatPanel } from "./ProjetoChatPanel";
 import { useChinaUserContext } from "@/hooks/useChinaUserContext";
 import { useChinaSubmissoesChat } from "@/hooks/chat/useChinaSubmissoesChat";
 import { useTemAcessoBriefings } from "@/hooks/chat/useTemAcessoBriefings";
+import { useTemAcessoProjetos } from "@/hooks/chat/useTemAcessoProjetos";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, MessageSquare, Package, FileText } from "lucide-react";
+import { ArrowLeft, MessageSquare, Package, FileText, Briefcase } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { EnablePushBanner } from "@/components/notifications/EnablePushBanner";
 import { useSuporteAgenteTrigger } from "@/hooks/useSuporteAgenteTrigger";
 import { useAuth } from "@/contexts/AuthContext";
 
-/** Modo do chat: pessoas (conversas/grupos), submissões China ou briefings. */
-export type ChatModo = "pessoas" | "submissoes" | "briefings";
+/** Modo do chat: pessoas, submissões China, briefings ou projetos. */
+export type ChatModo = "pessoas" | "submissoes" | "briefings" | "projetos";
 
 interface Props {
   initialConversaId?: string | null;
@@ -33,6 +35,7 @@ export function ChatLayout({ initialConversaId = null, className, defaultShowInf
   const { isChinaUser, isBrasilUser } = useChinaUserContext();
   const { data: submissoes = [] } = useChinaSubmissoesChat();
   const podeVerBriefings = useTemAcessoBriefings();
+  const podeVerProjetos = useTemAcessoProjetos();
   const { user } = useAuth();
   useSuporteAgenteTrigger(user?.id);
 
@@ -57,6 +60,26 @@ export function ChatLayout({ initialConversaId = null, className, defaultShowInf
   };
 
   const renderPainelCentro = () => {
+    if (modo === "projetos") {
+      if (!conversaId) {
+        return (
+          <div className="flex-1 flex flex-col items-center justify-center text-center px-6">
+            <Briefcase className="h-16 w-16 text-muted-foreground/40 mb-4" />
+            <h3 className="text-lg font-semibold">Selecione um projeto</h3>
+            <p className="text-sm text-muted-foreground max-w-sm mt-1">
+              Escolha um projeto na lista para ver o chat geral, comentários das
+              tarefas e menções a você.
+            </p>
+          </div>
+        );
+      }
+      return (
+        <div className="flex-1 min-w-0 flex">
+          <ProjetoChatPanel projetoId={conversaId} />
+        </div>
+      );
+    }
+
     if (modo === "briefings") {
       if (!conversaId) {
         return (
@@ -144,6 +167,7 @@ export function ChatLayout({ initialConversaId = null, className, defaultShowInf
             onModoChange={trocarModo}
             podeAlternarModo={podeAlternarModo}
             podeVerBriefings={podeVerBriefings}
+            podeVerProjetos={podeVerProjetos}
             className="w-full"
           />
         ) : (
@@ -171,6 +195,7 @@ export function ChatLayout({ initialConversaId = null, className, defaultShowInf
           onModoChange={trocarModo}
           podeAlternarModo={podeAlternarModo}
           podeVerBriefings={podeVerBriefings}
+          podeVerProjetos={podeVerProjetos}
           className="w-[320px] shrink-0"
         />
         <div className="flex-1 min-w-0 flex">
