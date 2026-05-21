@@ -42,11 +42,14 @@ export function UploadDocumentoDialog({
   const [dataEntrega, setDataEntrega] = useState("");
   const [uploading, setUploading] = useState(false);
 
-  // Pre-fill quando vier de um item do checklist
+  // Pre-fill quando vier de um item do checklist ou descrição externa
   if (open && documentoAlvo && !nome && !file) {
     setNome(documentoAlvo.nome);
     setCategoria(documentoAlvo.categoria);
     if (documentoAlvo.descricao) setDescricao(documentoAlvo.descricao);
+  }
+  if (open && !documentoAlvo && descricaoInicial && !descricao) {
+    setDescricao(descricaoInicial);
   }
 
   const reset = () => {
