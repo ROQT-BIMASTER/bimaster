@@ -3,18 +3,20 @@ import { ChatSidebar } from "./ChatSidebar";
 import { ChatThread } from "./ChatThread";
 import { ConversaInfoPanel } from "./ConversaInfoPanel";
 import { ChinaChatPanel } from "@/components/china/ChinaChatPanel";
+import { BriefingChatPanel } from "./BriefingChatPanel";
 import { useChinaUserContext } from "@/hooks/useChinaUserContext";
 import { useChinaSubmissoesChat } from "@/hooks/chat/useChinaSubmissoesChat";
+import { useTemAcessoBriefings } from "@/hooks/chat/useTemAcessoBriefings";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, MessageSquare, Package } from "lucide-react";
+import { ArrowLeft, MessageSquare, Package, FileText } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { EnablePushBanner } from "@/components/notifications/EnablePushBanner";
 import { useSuporteAgenteTrigger } from "@/hooks/useSuporteAgenteTrigger";
 import { useAuth } from "@/contexts/AuthContext";
 
-/** Modo do chat: pessoas (conversas/grupos) ou submissões China. */
-export type ChatModo = "pessoas" | "submissoes";
+/** Modo do chat: pessoas (conversas/grupos), submissões China ou briefings. */
+export type ChatModo = "pessoas" | "submissoes" | "briefings";
 
 interface Props {
   initialConversaId?: string | null;
