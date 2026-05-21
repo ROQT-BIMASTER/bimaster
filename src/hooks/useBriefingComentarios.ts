@@ -166,6 +166,6 @@ export function useBriefingComentarios(briefingId: string | undefined) {
 
   return {
     comentarios, authors, loading, countsByCampo,
-    byCampo, add, updateBody, remove, toggleResolved, rework, refresh: fetchAll,
+    byCampo, add, updateBody, updateMetadata, remove, toggleResolved, rework, refresh: fetchAll,
   };
 }
