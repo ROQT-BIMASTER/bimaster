@@ -109,6 +109,8 @@ export function ProjetoChatPanel({ projetoId }: Props) {
   const [filtroComent, setFiltroComent] = useState<"todos" | "mencionam">("todos");
   const [novoComentario, setNovoComentario] = useState("");
   const [enviando, setEnviando] = useState(false);
+  const [cofreOpen, setCofreOpen] = useState(false);
+
 
   // Marca como lido ao abrir / trocar de projeto.
   useEffect(() => {
