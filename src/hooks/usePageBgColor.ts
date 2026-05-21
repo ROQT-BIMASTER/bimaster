@@ -55,8 +55,11 @@ export function usePageBgColor(_pageKey?: string) {
     } catch {}
   }, []);
 
+  // Branco/quase-branco não conta como "custom bg": volta a UI ao tema padrão
+  // (tipografia, bordas e KPIs originais) sem mudar a seleção do usuário.
+  const isWhite = bgColor ? isNeutralWhiteHex(bgColor) : false;
   const darkBg = useMemo(() => (bgColor ? isDarkHex(bgColor) : false), [bgColor]);
-  const customBg = !!bgColor;
+  const customBg = !!bgColor && !isWhite;
 
   return { bgColor, setBgColor, darkBg, customBg };
 }
