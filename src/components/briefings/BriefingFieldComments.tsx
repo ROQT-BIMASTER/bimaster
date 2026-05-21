@@ -29,7 +29,9 @@ interface Props {
   defaultOpen?: boolean;
   /** Se definido, destaca visualmente o comentário com este id. */
   highlightCommentId?: string | null;
-  onAdd: (p: { campo_key: string; body: string; parent_id?: string | null }) => Promise<void>;
+  /** Membros do briefing — usados para resolver @ menções. */
+  members?: MentionableMember[];
+  onAdd: (p: { campo_key: string; body: string; parent_id?: string | null; mentions?: string[] }) => Promise<void>;
   onUpdate: (id: string, body: string) => Promise<void>;
   onRemove: (id: string) => Promise<void>;
   onToggleResolved: (c: BriefingComentario) => Promise<void>;
