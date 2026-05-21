@@ -33,6 +33,8 @@ interface Props {
   podeAlternarModo: boolean;
   /** Se true, a aba "Briefing" aparece (usuário tem acesso a briefings). */
   podeVerBriefings?: boolean;
+  /** Se true, a aba "Projetos" aparece (usuário é membro de algum projeto). */
+  podeVerProjetos?: boolean;
 }
 
 export function ChatSidebar({
@@ -43,9 +45,14 @@ export function ChatSidebar({
   onModoChange,
   podeAlternarModo,
   podeVerBriefings = false,
+  podeVerProjetos = false,
 }: Props) {
-  // Quantas abas mostrar: pessoas é sempre; submissões e briefings são opt-in.
-  const tabsCount = 1 + (podeAlternarModo ? 1 : 0) + (podeVerBriefings ? 1 : 0);
+  // Quantas abas mostrar: pessoas sempre; submissões, briefings e projetos são opt-in.
+  const tabsCount =
+    1 +
+    (podeAlternarModo ? 1 : 0) +
+    (podeVerBriefings ? 1 : 0) +
+    (podeVerProjetos ? 1 : 0);
   const showToggle = tabsCount > 1;
   return (
     <aside className={cn("flex flex-col h-full bg-card border-r border-border", className)}>
