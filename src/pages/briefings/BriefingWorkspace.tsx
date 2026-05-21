@@ -287,6 +287,7 @@ export default function BriefingWorkspace() {
         open={exportDialogOpen}
         onOpenChange={setExportDialogOpen}
         briefing={briefing}
+        sections={sections}
         projetoNome={projetoNome}
       />
     </div>
