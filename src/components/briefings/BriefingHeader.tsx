@@ -144,6 +144,12 @@ export function BriefingHeader({
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
+
+      <BriefingMembrosDialog
+        open={membrosOpen}
+        onOpenChange={setMembrosOpen}
+        briefingId={briefing.id}
+      />
     </div>
   );
 }
