@@ -2493,6 +2493,7 @@ export type Database = {
           created_at: string
           id: string
           mentions: string[]
+          metadata: Json
           parent_id: string | null
           resolved: boolean
           resolved_at: string | null
@@ -2509,6 +2510,7 @@ export type Database = {
           created_at?: string
           id?: string
           mentions?: string[]
+          metadata?: Json
           parent_id?: string | null
           resolved?: boolean
           resolved_at?: string | null
@@ -2525,6 +2527,7 @@ export type Database = {
           created_at?: string
           id?: string
           mentions?: string[]
+          metadata?: Json
           parent_id?: string | null
           resolved?: boolean
           resolved_at?: string | null
@@ -32579,6 +32582,75 @@ export type Database = {
           },
         ]
       }
+      projeto_cofre_documentos: {
+        Row: {
+          categoria: string
+          created_at: string
+          created_by: string
+          data_entrega: string | null
+          descricao: string | null
+          fornecedor_nome: string | null
+          id: string
+          lote: string | null
+          mime_type: string | null
+          nome: string
+          projeto_id: string
+          status: string
+          storage_path: string | null
+          tamanho_bytes: number | null
+          updated_at: string
+        }
+        Insert: {
+          categoria?: string
+          created_at?: string
+          created_by: string
+          data_entrega?: string | null
+          descricao?: string | null
+          fornecedor_nome?: string | null
+          id?: string
+          lote?: string | null
+          mime_type?: string | null
+          nome: string
+          projeto_id: string
+          status?: string
+          storage_path?: string | null
+          tamanho_bytes?: number | null
+          updated_at?: string
+        }
+        Update: {
+          categoria?: string
+          created_at?: string
+          created_by?: string
+          data_entrega?: string | null
+          descricao?: string | null
+          fornecedor_nome?: string | null
+          id?: string
+          lote?: string | null
+          mime_type?: string | null
+          nome?: string
+          projeto_id?: string
+          status?: string
+          storage_path?: string | null
+          tamanho_bytes?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "projeto_cofre_documentos_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "projetos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projeto_cofre_documentos_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "vw_projeto_produtividade"
+            referencedColumns: ["projeto_id"]
+          },
+        ]
+      }
       projeto_convites: {
         Row: {
           accepted_at: string | null
@@ -33926,6 +33998,7 @@ export type Database = {
           created_at: string
           id: string
           mentions: string[] | null
+          metadata: Json
           tarefa_id: string
           user_id: string
         }
@@ -33934,6 +34007,7 @@ export type Database = {
           created_at?: string
           id?: string
           mentions?: string[] | null
+          metadata?: Json
           tarefa_id: string
           user_id: string
         }
@@ -33942,6 +34016,7 @@ export type Database = {
           created_at?: string
           id?: string
           mentions?: string[] | null
+          metadata?: Json
           tarefa_id?: string
           user_id?: string
         }
