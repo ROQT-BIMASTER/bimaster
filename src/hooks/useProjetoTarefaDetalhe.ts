@@ -90,10 +90,32 @@ export function useProjetoTarefaDetalhe(tarefaId: string | undefined, produtoId?
       } as any);
       if (error) throw error;
     },
-    onSuccess: () => {
+    onMutate: async ({ conteudo, mentions }) => {
+      const qk = ["tarefa-comentarios", tarefaId];
+      await queryClient.cancelQueries({ queryKey: qk });
+      const previous = queryClient.getQueryData<TarefaComentario[]>(qk);
+      // Resolve autor a partir do cache de perfis (mesmo padrão do fetch).
+      const profilesCache = queryClient.getQueryData<any[]>(["profiles-cache", user?.id]);
+      const me = profilesCache?.find((p: any) => p.id === user?.id);
+      const optimistic: TarefaComentario = {
+        id: `temp-${crypto.randomUUID()}`,
+        tarefa_id: tarefaId!,
+        user_id: user!.id,
+        conteudo,
+        mentions: mentions || [],
+        created_at: new Date().toISOString(),
+        autor: me ? { nome: me.nome, avatar_url: me.avatar_url } : { nome: "Você", avatar_url: null },
+      };
+      queryClient.setQueryData<TarefaComentario[]>(qk, (old) => [...(old || []), optimistic]);
+      return { previous };
+    },
+    onError: (err: Error, _vars, ctx) => {
+      if (ctx?.previous) queryClient.setQueryData(["tarefa-comentarios", tarefaId], ctx.previous);
+      toast.error(err.message);
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["tarefa-comentarios", tarefaId] });
     },
-    onError: (err: Error) => toast.error(err.message),
   });
 
   // Realtime subscription for comments
