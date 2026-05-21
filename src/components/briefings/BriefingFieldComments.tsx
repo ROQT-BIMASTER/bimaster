@@ -47,7 +47,7 @@ function initials(name: string | null | undefined) {
 export function BriefingFieldComments({
   briefingId, campoKey, campoLabel,
   comentarios, authors, currentUserId, readOnly,
-  defaultOpen, highlightCommentId,
+  defaultOpen, highlightCommentId, members,
   onAdd, onUpdate, onRemove, onToggleResolved, onRework, onReworkApplied,
 }: Props) {
   void briefingId;
