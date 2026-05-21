@@ -334,6 +334,11 @@ export function BriefingChatPanel({ briefingId }: Props) {
                       comentario: c.id,
                     })
                   }
+                  onAnexarCofre={() => {
+                    setCofreVinculaComentarioId(c.id);
+                    setCofreDescricao(c.body);
+                    setCofreOpen(true);
+                  }}
                 />
               ))}
             </div>
