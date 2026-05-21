@@ -2408,7 +2408,7 @@ export type Database = {
           ativo: boolean
           campo: string
           created_at: string
-          empresa_id: number
+          empresa_id: number | null
           id: string
           peso: number
           tipo: string
@@ -2417,7 +2417,7 @@ export type Database = {
           ativo?: boolean
           campo: string
           created_at?: string
-          empresa_id: number
+          empresa_id?: number | null
           id?: string
           peso?: number
           tipo: string
@@ -2426,7 +2426,7 @@ export type Database = {
           ativo?: boolean
           campo?: string
           created_at?: string
-          empresa_id?: number
+          empresa_id?: number | null
           id?: string
           peso?: number
           tipo?: string
@@ -2444,29 +2444,32 @@ export type Database = {
       briefing_catalogos_padrao: {
         Row: {
           created_at: string
-          empresa_id: number
+          empresa_id: number | null
           id: string
           itens: Json
           marca: string | null
           tipo: string
+          tipo_uso: string
           updated_at: string
         }
         Insert: {
           created_at?: string
-          empresa_id: number
+          empresa_id?: number | null
           id?: string
           itens?: Json
           marca?: string | null
           tipo: string
+          tipo_uso?: string
           updated_at?: string
         }
         Update: {
           created_at?: string
-          empresa_id?: number
+          empresa_id?: number | null
           id?: string
           itens?: Json
           marca?: string | null
           tipo?: string
+          tipo_uso?: string
           updated_at?: string
         }
         Relationships: [
@@ -2483,7 +2486,7 @@ export type Database = {
         Row: {
           campo: string
           created_at: string
-          empresa_id: number
+          empresa_id: number | null
           id: string
           tipo: string
           updated_at: string
@@ -2492,7 +2495,7 @@ export type Database = {
         Insert: {
           campo: string
           created_at?: string
-          empresa_id: number
+          empresa_id?: number | null
           id?: string
           tipo: string
           updated_at?: string
@@ -2501,7 +2504,7 @@ export type Database = {
         Update: {
           campo?: string
           created_at?: string
-          empresa_id?: number
+          empresa_id?: number | null
           id?: string
           tipo?: string
           updated_at?: string
