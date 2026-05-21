@@ -197,7 +197,7 @@ export default function BriefingsHome() {
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => (window.history.length > 1 ? navigate(-1) : navigate("/dashboard"))}
+            onClick={() => navigate("/dashboard")}
             className="gap-1.5"
           >
             <ArrowLeft className="h-4 w-4" />
