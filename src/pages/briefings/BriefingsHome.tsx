@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -15,9 +15,11 @@ import {
   ShoppingBag,
   Newspaper,
   BookOpen,
+  Search,
+  LayoutGrid,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
@@ -30,18 +32,24 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 type Tipo = string;
 
 const ICON_POR_TIPO: Record<string, React.ComponentType<{ className?: string }>> = {
-  // 4 legados
   marketing: Megaphone,
   criativo: Sparkles,
   produto: Package,
   trade: Store,
-  // 8 canônicos v2
   pdv: Store,
   embalagem: Box,
   evento: Calendar,
@@ -69,6 +77,12 @@ interface TipoTemplate {
   versao: number;
 }
 
+const STATUS_VARIANT: Record<string, "default" | "secondary" | "outline"> = {
+  rascunho: "outline",
+  em_andamento: "secondary",
+  concluido: "default",
+};
+
 export default function BriefingsHome() {
   const navigate = useNavigate();
   const [briefings, setBriefings] = useState<BriefingRow[]>([]);
@@ -77,6 +91,8 @@ export default function BriefingsHome() {
   const [creating, setCreating] = useState(false);
   const [tipoSel, setTipoSel] = useState<Tipo>("");
   const [titulo, setTitulo] = useState("");
+  const [filtroTipo, setFiltroTipo] = useState<string>("__todos");
+  const [busca, setBusca] = useState("");
 
   const { data: tipos, isLoading: loadingTipos } = useQuery({
     queryKey: ["briefing_templates_lista"],
@@ -107,6 +123,21 @@ export default function BriefingsHome() {
       setLoading(false);
     })();
   }, []);
+
+  const contagemPorTipo = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const b of briefings) m.set(b.tipo, (m.get(b.tipo) ?? 0) + 1);
+    return m;
+  }, [briefings]);
+
+  const filtrados = useMemo(() => {
+    const q = busca.trim().toLowerCase();
+    return briefings.filter((b) => {
+      if (filtroTipo !== "__todos" && b.tipo !== filtroTipo) return false;
+      if (q && !b.titulo.toLowerCase().includes(q)) return false;
+      return true;
+    });
+  }, [briefings, filtroTipo, busca]);
 
   const criar = async () => {
     if (!titulo.trim()) {
@@ -157,7 +188,7 @@ export default function BriefingsHome() {
   };
 
   return (
-    <div className="container max-w-6xl py-8 space-y-6">
+    <div className="container max-w-[1400px] py-8 space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-semibold tracking-tight">Briefings</h1>
@@ -234,60 +265,147 @@ export default function BriefingsHome() {
         </Dialog>
       </div>
 
-      {loading ? (
-        <div className="text-muted-foreground">Carregando...</div>
-      ) : briefings.length === 0 ? (
-        <Card>
-          <CardContent className="py-12 text-center space-y-3">
-            <FileText className="h-10 w-10 mx-auto text-muted-foreground" />
-            <p className="text-muted-foreground">
-              Você ainda não tem briefings. Crie o primeiro.
-            </p>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {briefings.map((b) => {
-            const Icon = ICON_POR_TIPO[b.tipo] ?? ICON_FALLBACK;
-            const nomeTipo = tipos?.find((t) => t.tipo === b.tipo)?.nome ?? b.tipo;
+      <div className="grid grid-cols-1 lg:grid-cols-[240px_1fr] gap-6">
+        {/* Sidebar de tipos */}
+        <aside className="space-y-1">
+          <div className="px-2 pb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            Categorias
+          </div>
+          <button
+            type="button"
+            onClick={() => setFiltroTipo("__todos")}
+            className={`w-full flex items-center justify-between rounded-md px-3 py-2 text-sm transition ${
+              filtroTipo === "__todos"
+                ? "bg-primary/10 text-primary font-medium"
+                : "hover:bg-muted text-foreground"
+            }`}
+          >
+            <span className="flex items-center gap-2">
+              <LayoutGrid className="h-4 w-4" />
+              Todos
+            </span>
+            <span className="text-xs text-muted-foreground">{briefings.length}</span>
+          </button>
+          {(tipos ?? []).map((t) => {
+            const Icon = ICON_POR_TIPO[t.tipo] ?? ICON_FALLBACK;
+            const sel = filtroTipo === t.tipo;
+            const count = contagemPorTipo.get(t.tipo) ?? 0;
             return (
-              <Card
-                key={b.id}
-                className="cursor-pointer hover:border-primary/40 transition"
-                onClick={() => navigate(`/dashboard/briefings/${b.id}`)}
+              <button
+                key={t.tipo}
+                type="button"
+                onClick={() => setFiltroTipo(t.tipo)}
+                className={`w-full flex items-center justify-between rounded-md px-3 py-2 text-sm transition ${
+                  sel
+                    ? "bg-primary/10 text-primary font-medium"
+                    : "hover:bg-muted text-foreground"
+                }`}
               >
-                <CardHeader className="pb-3">
-                  <div className="flex items-start justify-between gap-2">
-                    <Icon className="h-5 w-5 text-primary mt-0.5" />
-                    <Badge variant="outline" className="capitalize">
-                      {b.status.replace("_", " ")}
-                    </Badge>
-                  </div>
-                  <CardTitle className="text-base line-clamp-2">{b.titulo}</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  <div className="text-xs text-muted-foreground capitalize">{nomeTipo}</div>
-                  <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-primary transition-all"
-                      style={{ width: `${b.completude}%` }}
-                    />
-                  </div>
-                  <div className="flex justify-between text-xs text-muted-foreground">
-                    <span>{b.completude}% completo</span>
-                    <span>
-                      {formatDistanceToNow(new Date(b.updated_at), {
-                        addSuffix: true,
-                        locale: ptBR,
-                      })}
-                    </span>
-                  </div>
-                </CardContent>
-              </Card>
+                <span className="flex items-center gap-2 truncate">
+                  <Icon className="h-4 w-4 shrink-0" />
+                  <span className="truncate">{t.nome}</span>
+                </span>
+                <span className="text-xs text-muted-foreground">{count}</span>
+              </button>
             );
           })}
-        </div>
-      )}
+        </aside>
+
+        {/* Tabela */}
+        <section className="space-y-4 min-w-0">
+          <div className="relative max-w-sm">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              value={busca}
+              onChange={(e) => setBusca(e.target.value)}
+              placeholder="Buscar por título..."
+              className="pl-9"
+            />
+          </div>
+
+          {loading ? (
+            <div className="text-muted-foreground">Carregando...</div>
+          ) : filtrados.length === 0 ? (
+            <Card>
+              <CardContent className="py-12 text-center space-y-3">
+                <FileText className="h-10 w-10 mx-auto text-muted-foreground" />
+                <p className="text-muted-foreground">
+                  {briefings.length === 0
+                    ? "Você ainda não tem briefings. Crie o primeiro."
+                    : "Nenhum briefing encontrado para este filtro."}
+                </p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="rounded-lg border bg-card overflow-hidden">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-muted/40 hover:bg-muted/40">
+                    <TableHead className="w-[45%]">Título</TableHead>
+                    <TableHead>Tipo</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="w-[180px]">Progresso</TableHead>
+                    <TableHead className="text-right">Atualizado</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filtrados.map((b) => {
+                    const Icon = ICON_POR_TIPO[b.tipo] ?? ICON_FALLBACK;
+                    const nomeTipo =
+                      tipos?.find((t) => t.tipo === b.tipo)?.nome ?? b.tipo;
+                    return (
+                      <TableRow
+                        key={b.id}
+                        className="cursor-pointer"
+                        onClick={() => navigate(`/dashboard/briefings/${b.id}`)}
+                      >
+                        <TableCell>
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div className="h-8 w-8 rounded-md bg-primary/10 flex items-center justify-center shrink-0">
+                              <Icon className="h-4 w-4 text-primary" />
+                            </div>
+                            <span className="font-medium truncate">{b.titulo}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground capitalize">
+                          {nomeTipo}
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            variant={STATUS_VARIANT[b.status] ?? "outline"}
+                            className="capitalize"
+                          >
+                            {b.status.replace("_", " ")}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <div className="h-1.5 flex-1 bg-muted rounded-full overflow-hidden">
+                              <div
+                                className="h-full bg-primary transition-all"
+                                style={{ width: `${b.completude}%` }}
+                              />
+                            </div>
+                            <span className="text-xs text-muted-foreground w-10 text-right">
+                              {b.completude}%
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-right text-xs text-muted-foreground whitespace-nowrap">
+                          {formatDistanceToNow(new Date(b.updated_at), {
+                            addSuffix: true,
+                            locale: ptBR,
+                          })}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </section>
+      </div>
     </div>
   );
 }
