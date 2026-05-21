@@ -54,6 +54,12 @@ All colors MUST be HSL.
     --gradient-secondary: linear-gradient(135deg, hsl(220, 14%, 96%) 0%, hsl(220, 20%, 92%) 100%);
     --gradient-card: linear-gradient(180deg, hsl(0, 0%, 100%) 0%, hsl(220, 20%, 99%) 100%);
     --gradient-shine: linear-gradient(110deg, transparent 25%, hsla(0, 0%, 100%, 0.3) 50%, transparent 75%);
+
+    /* Briefing module tokens (indigo/violet) */
+    --briefing-accent: 262 83% 58%;
+    --briefing-accent-foreground: 0 0% 100%;
+    --briefing-soft: 262 83% 96%;
+    --gradient-briefing: linear-gradient(135deg, hsl(262, 83%, 97%) 0%, hsl(221, 90%, 97%) 100%);
     
     /* Shadows - subtle, using rgba(15,22,35,0.08) */
     --shadow-sm: 0 1px 2px 0 rgba(15, 22, 35, 0.05);
@@ -142,6 +148,12 @@ All colors MUST be HSL.
     --gradient-primary: linear-gradient(135deg, hsl(221, 83%, 58%) 0%, hsl(262, 83%, 63%) 100%);
     --gradient-secondary: linear-gradient(135deg, hsl(222, 47%, 12%) 0%, hsl(222, 47%, 10%) 100%);
     --gradient-card: linear-gradient(180deg, hsl(222, 47%, 8%) 0%, hsl(222, 47%, 7%) 100%);
+
+    /* Briefing module tokens - dark mode */
+    --briefing-accent: 262 70% 68%;
+    --briefing-accent-foreground: 0 0% 100%;
+    --briefing-soft: 262 40% 16%;
+    --gradient-briefing: linear-gradient(135deg, hsl(262, 40%, 14%) 0%, hsl(221, 40%, 12%) 100%);
     
     /* Shadows - Dark mode */
     --shadow-sm: 0 1px 2px 0 hsla(0, 0%, 0%, 0.3);
