@@ -2,6 +2,7 @@
 // Builds Notion blocks that mirror the briefing canvas.
 
 import { SLA_STATUS_LABEL, type BriefingSla } from "../_shared/briefing-sla.ts";
+import { FREE_ZONE_START_LABEL } from "../_shared/notion-client.ts";
 
 const NOTION_RT_LIMIT = 1800; // safety under 2000 char limit per rich_text
 
