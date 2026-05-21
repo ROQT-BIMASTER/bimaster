@@ -21,6 +21,8 @@ import { VincularProjetoDialog } from "@/components/briefings/VincularProjetoDia
 import { EnviarAprovacaoDialog } from "@/components/briefings/EnviarAprovacaoDialog";
 import { AprovacaoTimeline } from "@/components/briefings/AprovacaoTimeline";
 import { ExportarBriefingDialog } from "@/components/briefings/export/ExportarBriefingDialog";
+import { CofreTab } from "@/components/briefings/cofre/CofreTab";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
 export default function BriefingWorkspace() {
   const { id } = useParams<{ id: string }>();
