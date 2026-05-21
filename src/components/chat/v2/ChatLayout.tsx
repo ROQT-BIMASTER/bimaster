@@ -16,6 +16,7 @@ import { cn } from "@/lib/utils";
 import { EnablePushBanner } from "@/components/notifications/EnablePushBanner";
 import { useSuporteAgenteTrigger } from "@/hooks/useSuporteAgenteTrigger";
 import { useAuth } from "@/contexts/AuthContext";
+import { useImpersonation } from "@/contexts/ImpersonationContext";
 
 /** Modo do chat: pessoas, submissões China, briefings ou projetos. */
 export type ChatModo = "pessoas" | "submissoes" | "briefings" | "projetos";
@@ -151,10 +152,12 @@ export function ChatLayout({ initialConversaId = null, className, defaultShowInf
     return <ChatThread conversaId={conversaId} onShowInfo={() => setShowInfo((v) => !v)} />;
   };
 
-  // Quem vê o toggle: usuários da China (sempre) ou Brasil que tenham
-  // ao menos 1 submissão acessível. Heurística para esconder o toggle
-  // de usuários sem nenhum contexto China — evita ruído de UI.
-  const podeAlternarModo = isChinaUser || isBrasilUser; // Brasil é o default — assume true pra não esconder por race condition de loading. O hook de submissões respeitará RLS.
+  // Quem vê o toggle de Submissões: apenas usuários com permissão ao módulo
+  // Fábrica China (code "china"). Não-membros do módulo não devem nem
+  // saber que existem submissões — mesmo que tecnicamente algum dia uma
+  // RLS deixe vazar uma linha, o ponto de entrada na UI fica travado.
+  const { hasModulePermission } = useImpersonation();
+  const podeAlternarModo = hasModulePermission("china");
 
   if (isMobile) {
     return (
