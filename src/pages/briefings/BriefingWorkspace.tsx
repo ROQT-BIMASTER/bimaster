@@ -32,6 +32,7 @@ export default function BriefingWorkspace() {
   const [projetoNome, setProjetoNome] = useState<string | null>(null);
   const [vincDialogOpen, setVincDialogOpen] = useState(false);
   const [aprovDialogOpen, setAprovDialogOpen] = useState(false);
+  const [exportDialogOpen, setExportDialogOpen] = useState(false);
   const [aprovRefresh, setAprovRefresh] = useState(0);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
