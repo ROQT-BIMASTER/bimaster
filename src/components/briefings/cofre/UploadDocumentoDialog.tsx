@@ -23,10 +23,14 @@ interface Props {
   briefingId: string;
   /** Se preenchido, faz upload contra um item de checklist existente (atualiza em vez de inserir). */
   documentoAlvo?: BriefingDocumento | null;
+  /** Descrição inicial (ex.: texto de um comentário sendo anexado ao cofre). */
+  descricaoInicial?: string;
+  /** Callback após sucesso, recebe id e nome do documento criado/atualizado. */
+  onUploaded?: (doc: { id: string; nome: string }) => void;
 }
 
 export function UploadDocumentoDialog({
-  open, onOpenChange, briefingId, documentoAlvo,
+  open, onOpenChange, briefingId, documentoAlvo, descricaoInicial, onUploaded,
 }: Props) {
   const qc = useQueryClient();
   const [file, setFile] = useState<File | null>(null);
