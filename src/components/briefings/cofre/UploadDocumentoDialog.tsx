@@ -119,6 +119,7 @@ export function UploadDocumentoDialog({
 
       toast.success("Documento enviado");
       qc.invalidateQueries({ queryKey: ["briefing-documentos", briefingId] });
+      onUploaded?.({ id: docId, nome: nome.trim() });
       reset();
       onOpenChange(false);
     } catch (err: any) {
