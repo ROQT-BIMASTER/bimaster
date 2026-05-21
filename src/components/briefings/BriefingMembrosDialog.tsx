@@ -63,6 +63,27 @@ export function BriefingMembrosDialog({ open, onOpenChange, briefingId }: Props)
     return (subordinados as any[]).filter((p) => !ids.has(p.id));
   }, [subordinados, membros]);
 
+  const { data: searchResults = [] } = useQuery({
+    queryKey: ["search_profiles_briefing", search],
+    queryFn: async () => {
+      if (search.trim().length < 2) return [];
+      const { data, error } = await supabase
+        .from("chat_directory" as any)
+        .select("id, nome, avatar_url")
+        .ilike("nome", `%${search.trim()}%`)
+        .limit(10);
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: open && isCoordinator && search.trim().length >= 2,
+  });
+
+  const membroIds = useMemo(() => new Set(membros.map((m) => m.user_id)), [membros]);
+  const filteredResults = useMemo(
+    () => (searchResults as any[]).filter((p) => !membroIds.has(p.id)),
+    [searchResults, membroIds],
+  );
+
   const filtered = useMemo(() => {
     const s = search.trim().toLowerCase();
     if (!s) return membros;
