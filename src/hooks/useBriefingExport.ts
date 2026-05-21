@@ -98,9 +98,10 @@ export function useBriefingExport({ briefing, sections, projetoNome, autorNome }
       } catch {
         // best-effort
       }
-
+    },
     [],
   );
+
 
   const exportar = useCallback(
     async (formato: BriefingExportFormato, cfg: BriefingExportConfig) => {
