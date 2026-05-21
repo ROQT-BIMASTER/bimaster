@@ -90,24 +90,27 @@ export function BriefingChatPanel({ briefingId }: Props) {
     return m;
   }, [sections]);
 
-  // Feed de atividade unificado
-  const feed = useMemo(() => {
-    const items: Array<{
-      kind: "comentario" | "mensagem";
-      id: string;
-      created_at: string;
-      data: any;
-    }> = [];
-    coments.comentarios.forEach((c) =>
-      items.push({ kind: "comentario", id: c.id, created_at: c.created_at, data: c }),
-    );
-    messages
-      .filter((m) => m.role === "assistant" || (m.proposals && m.proposals.length > 0))
-      .forEach((m) =>
-        items.push({ kind: "mensagem", id: m.id, created_at: m.created_at, data: m }),
+  // Listas separadas: comentários humanos e mensagens da IA
+  const comentariosFiltrados = useMemo(() => {
+    const arr = [...coments.comentarios].sort((a, b) => b.created_at.localeCompare(a.created_at));
+    if (filtroComent === "abertos") return arr.filter((c) => !c.resolved);
+    if (filtroComent === "mencionam") {
+      return arr.filter(
+        (c) => Array.isArray(c.mentions) && user?.id && c.mentions.includes(user.id),
       );
-    return items.sort((a, b) => b.created_at.localeCompare(a.created_at));
-  }, [coments.comentarios, messages]);
+    }
+    return arr;
+  }, [coments.comentarios, filtroComent, user?.id]);
+
+  const mensagensIa = useMemo(
+    () =>
+      messages
+        .filter((m) => m.role === "assistant" || (m.proposals && m.proposals.length > 0))
+        .sort((a, b) => b.created_at.localeCompare(a.created_at)),
+    [messages],
+  );
+
+  const abertos = coments.comentarios.filter((c) => !c.resolved).length;
 
   const enviarComentario = async () => {
     const t = novoComentario.trim();
