@@ -172,6 +172,7 @@ export function BriefingFieldComments({
                   c.resolved && "opacity-60",
                   c.ai_status === "applied" && "border-emerald-500/40 bg-emerald-500/5",
                   c.ai_status === "proposed" && "border-primary/40 bg-primary/5",
+                  highlightCommentId === c.id && "ring-2 ring-amber-500/70",
                 )}
               >
                 <div className="flex items-start gap-2">
