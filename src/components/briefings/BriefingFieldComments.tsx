@@ -312,10 +312,15 @@ export function BriefingFieldComments({
 
                 {replyTo === c.id && !readOnly && (
                   <div className="pl-8 space-y-1">
-                    <Textarea
+                    <MentionTextarea
                       value={replyBody}
-                      onChange={(e) => setReplyBody(e.target.value)}
-                      placeholder="Responder…"
+                      onChange={setReplyBody}
+                      members={(members ?? []).map((m) => ({
+                        user_id: m.user_id,
+                        nome: m.nome,
+                        avatar_url: (m as any).avatar_url ?? null,
+                      }))}
+                      placeholder="Responder… digite @ para marcar alguém"
                       rows={2}
                       className="text-xs"
                     />
