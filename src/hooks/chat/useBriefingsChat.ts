@@ -123,13 +123,23 @@ export function useBriefingsChat() {
       const naoLidosBySub = new Map<string, number>();
       const mencoesBySub = new Map<string, number>();
       (coments ?? []).forEach((c: any) => {
-        const lr = lastReadBy.get(c.briefing_id);
-        const isNovo = lr ? c.created_at > lr : false;
-        if (isNovo && c.author_id !== userId) {
+        // Fallback: usuários sem registro em briefing_membros (ex.: admins/gerentes
+        // que acessam via RLS sem ser membros) tratam "nunca lido" como epoch,
+        // garantindo que comentários e menções apareçam normalmente.
+        const lr = lastReadBy.get(c.briefing_id) ?? "1970-01-01T00:00:00Z";
+        const isNovo = c.created_at > lr;
+        const ehDeOutro = c.author_id && c.author_id !== userId;
+        if (isNovo && ehDeOutro) {
           naoLidosBySub.set(c.briefing_id, (naoLidosBySub.get(c.briefing_id) ?? 0) + 1);
-          if (Array.isArray(c.mentions) && c.mentions.includes(userId)) {
-            mencoesBySub.set(c.briefing_id, (mencoesBySub.get(c.briefing_id) ?? 0) + 1);
-          }
+        }
+        const ehMencaoAMim =
+          ehDeOutro &&
+          !c.resolved &&
+          c.created_at > lr &&
+          Array.isArray(c.mentions) &&
+          c.mentions.includes(userId);
+        if (ehMencaoAMim) {
+          mencoesBySub.set(c.briefing_id, (mencoesBySub.get(c.briefing_id) ?? 0) + 1);
         }
         if (!lastComentBySub.has(c.briefing_id)) lastComentBySub.set(c.briefing_id, c);
       });
