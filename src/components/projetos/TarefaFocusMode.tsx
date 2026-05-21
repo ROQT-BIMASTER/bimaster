@@ -882,7 +882,7 @@ export function TarefaFocusMode({
           </ScrollArea>
 
           {/* Middle column - Product panel & checklist */}
-          {(projetoTipo === 'desenvolvimento_produto' || hasProduto) && <ProductLaunchPanel
+          {projetoTipo !== 'generico' && (projetoTipo === 'desenvolvimento_produto' || hasProduto) && <ProductLaunchPanel
             linkedProduto={linkedProduto}
             cofreDocs={cofreDocs}
             metas={displayMetas}
