@@ -176,6 +176,9 @@ function hsl(h: number, s: number, l: number): string {
  */
 export function getBgPaletteVars(hex: string | null | undefined): Record<string, string> {
   if (!hex) return {};
+  // Branco / quase-branco: deixa o tema padrão prevalecer para não desaturar
+  // textos, perder bordas e degradar a hierarquia tipográfica original.
+  if (isNeutralWhiteHex(hex)) return {};
   const { r, g, b } = hexToRgb(hex);
   const { h, s, l } = rgbToHsl(r, g, b);
   const dark = l < 55;
