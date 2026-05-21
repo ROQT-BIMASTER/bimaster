@@ -1,6 +1,6 @@
 // src/lib/briefings/exportXlsx.ts
 import ExcelJS from "exceljs";
-import { formatInTimeZone } from "date-fns-tz";
+
 import type { Briefing, TemplateSection } from "@/hooks/useBriefingChat";
 import type { BriefingExportConfig } from "./exportTypes";
 
