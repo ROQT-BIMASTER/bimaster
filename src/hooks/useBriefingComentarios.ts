@@ -17,6 +17,7 @@ export interface BriefingComentario {
   ai_request_id: string | null;
   created_at: string;
   updated_at: string;
+  metadata?: Record<string, any> | null;
 }
 
 export interface ReworkResult {
