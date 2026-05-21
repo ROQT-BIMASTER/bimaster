@@ -358,22 +358,22 @@ export function BriefingChatPanel({ briefingId }: Props) {
       {/* Composer comentário geral */}
       <div className="border-t border-border bg-card p-3">
         <div className="rounded-xl border border-border bg-background focus-within:border-briefing/50 focus-within:ring-2 focus-within:ring-briefing/15 transition-colors p-2">
-          <Textarea
+          <MentionTextarea
             value={novoComentario}
-            onChange={(e) => setNovoComentario(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault();
-                enviarComentario();
-              }
-            }}
-            placeholder="Comentário geral sobre o briefing… use @ para marcar alguém no workspace"
+            onChange={setNovoComentario}
+            onSubmitShortcut={enviarComentario}
+            members={(membros ?? []).map((m) => ({
+              user_id: m.user_id,
+              nome: m.profile?.nome ?? null,
+              avatar_url: m.profile?.avatar_url ?? null,
+            }))}
+            placeholder="Comentário geral sobre o briefing… digite @ para marcar alguém"
             rows={2}
             className="resize-none border-0 focus-visible:ring-0 shadow-none px-1.5 py-1 min-h-0 text-sm"
           />
           <div className="flex items-center justify-between gap-2 mt-1">
             <span className="text-[10px] text-muted-foreground px-1.5 flex items-center gap-1">
-              <AtSign className="h-3 w-3" /> Para mencionar com @, use o painel do campo
+              <AtSign className="h-3 w-3" /> Digite @ para mencionar um membro
             </span>
             <Button
               size="sm"
