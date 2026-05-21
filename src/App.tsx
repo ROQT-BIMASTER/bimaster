@@ -714,6 +714,7 @@ function AppContent() {
             <Route path="/dashboard/aprovacao-artes/configuracao" element={<ModuleRoute moduleCode="aprovacao_artes"><ScreenProtectedRoute screenCode="aprovacao_artes_config"><FluxoAprovacaoConfig /></ScreenProtectedRoute></ModuleRoute>} />
             <Route path="/admin/templates-alcadas" element={<ScreenRoute screenCode="admin"><FluxoAprovacaoConfig /></ScreenRoute>} />
             <Route path="/admin/versoes-clientes" element={<ScreenRoute screenCode="admin"><VersoesClientes /></ScreenRoute>} />
+            <Route path="/admin/cofre-templates" element={<ScreenRoute screenCode="admin"><CofreTemplates /></ScreenRoute>} />
             <Route path="/admin/suporte" element={<ScreenRoute screenCode="admin"><SuporteAdmin /></ScreenRoute>} />
 
 
