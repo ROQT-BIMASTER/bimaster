@@ -64,6 +64,9 @@ export function BriefingChatPanel({ briefingId }: Props) {
   const [filtroComent, setFiltroComent] = useState<"todos" | "abertos" | "mencionam">("todos");
   const [novoComentario, setNovoComentario] = useState("");
   const [enviando, setEnviando] = useState(false);
+  const [cofreOpen, setCofreOpen] = useState(false);
+  const [cofreDescricao, setCofreDescricao] = useState<string>("");
+  const [cofreVinculaComentarioId, setCofreVinculaComentarioId] = useState<string | null>(null);
 
   // Marca como lido ao abrir / mudar de briefing
   useEffect(() => {
