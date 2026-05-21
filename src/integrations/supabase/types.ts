@@ -19884,6 +19884,7 @@ export type Database = {
       }
       fluxo_aprovacao_instancias: {
         Row: {
+          briefing_id: string | null
           config_id: string
           created_at: string
           created_by: string | null
@@ -19904,6 +19905,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          briefing_id?: string | null
           config_id: string
           created_at?: string
           created_by?: string | null
@@ -19924,6 +19926,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          briefing_id?: string | null
           config_id?: string
           created_at?: string
           created_by?: string | null
@@ -19944,6 +19947,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "fluxo_aprovacao_instancias_briefing_id_fkey"
+            columns: ["briefing_id"]
+            isOneToOne: false
+            referencedRelation: "briefings"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "fluxo_aprovacao_instancias_config_id_fkey"
             columns: ["config_id"]
@@ -47634,6 +47644,10 @@ export type Database = {
         Args: { p_comentario?: string; p_decisao: string; p_item_id: string }
         Returns: Json
       }
+      rpc_cancelar_aprovacao_briefing: {
+        Args: { p_briefing_id: string }
+        Returns: undefined
+      }
       rpc_chat_adicionar_participantes: {
         Args: { p_conversa_id: string; p_users: string[] }
         Returns: undefined
@@ -47975,6 +47989,15 @@ export type Database = {
           p_politica?: string
           p_prazo_lote?: string
           p_tarefa_id: string
+        }
+        Returns: string
+      }
+      rpc_criar_lote_aprovacao_briefing: {
+        Args: {
+          p_briefing_id: string
+          p_config_id: string
+          p_prazo?: string
+          p_titulo?: string
         }
         Returns: string
       }
