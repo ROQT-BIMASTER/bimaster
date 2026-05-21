@@ -368,10 +368,15 @@ export function BriefingFieldComments({
                 </div>
               </div>
             )}
-            <Textarea
+            <MentionTextarea
               value={newBody}
-              onChange={(e) => setNewBody(e.target.value)}
-              placeholder="Adicionar comentário…"
+              onChange={setNewBody}
+              members={(members ?? []).map((m) => ({
+                user_id: m.user_id,
+                nome: m.nome,
+                avatar_url: (m as any).avatar_url ?? null,
+              }))}
+              placeholder="Adicionar comentário… digite @ para marcar alguém"
               rows={2}
               className="text-xs"
             />
