@@ -111,7 +111,41 @@ export function ProjetoBriefingPanel({ projetoId, darkBg = false }: ProjetoBrief
     setRejectObs("");
   };
 
-  if (isLoading) {
+  const smartSection = smartBriefings.length > 0 && (
+    <div className={cn("rounded-lg border p-3 space-y-2", cardBg)}>
+      <div className="flex items-center gap-2">
+        <Sparkles className="h-4 w-4 text-primary" />
+        <span className={cn("text-xs font-semibold uppercase tracking-wider", textColor)}>
+          Briefings inteligentes
+        </span>
+        <span className={cn("text-[10px]", textMuted)}>{smartBriefings.length} vinculado(s)</span>
+      </div>
+      <div className="space-y-1">
+        {smartBriefings.map((b) => (
+          <button
+            key={b.id}
+            onClick={() => navigate(`/dashboard/briefings/${b.id}`)}
+            className={cn(
+              "w-full flex items-center gap-3 px-3 py-2 rounded-md text-left transition-colors",
+              darkBg ? "hover:bg-white/5" : "hover:bg-muted/40"
+            )}
+          >
+            <FileSpreadsheet className={cn("h-4 w-4 flex-shrink-0", textMuted)} />
+            <div className="flex-1 min-w-0">
+              <div className={cn("text-sm font-medium truncate", textColor)}>{b.titulo}</div>
+              <div className={cn("text-[10px]", textMuted)}>
+                {b.tipo} · {b.completude}% completo · atualizado {format(new Date(b.updated_at), "dd MMM yyyy", { locale: ptBR })}
+              </div>
+            </div>
+            <Badge variant="outline" className="text-[10px]">{b.status}</Badge>
+            <ExternalLink className={cn("h-3.5 w-3.5", textMuted)} />
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+
+  if (isLoading || smartLoading) {
     return (
       <div className="flex items-center justify-center py-20">
         <Loader2 className={cn("h-6 w-6 animate-spin", textMuted)} />
@@ -121,16 +155,20 @@ export function ProjetoBriefingPanel({ projetoId, darkBg = false }: ProjetoBrief
 
   if (total === 0) {
     return (
-      <div className={cn("flex flex-col items-center justify-center py-20 gap-3", textMuted)}>
-        <FileSpreadsheet className="h-10 w-10 opacity-40" />
-        <p className="text-sm">Nenhum briefing importado neste projeto</p>
-        <p className="text-xs opacity-60">Importe briefings a partir do detalhe de cada tarefa</p>
+      <div className="space-y-5">
+        {smartSection}
+        <div className={cn("flex flex-col items-center justify-center py-20 gap-3", textMuted)}>
+          <FileSpreadsheet className="h-10 w-10 opacity-40" />
+          <p className="text-sm">Nenhum briefing importado neste projeto</p>
+          <p className="text-xs opacity-60">Importe briefings a partir do detalhe de cada tarefa ou vincule um briefing inteligente.</p>
+        </div>
       </div>
     );
   }
 
   return (
     <div className="space-y-5">
+      {smartSection}
       {/* KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
         {[
