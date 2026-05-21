@@ -45896,10 +45896,15 @@ export type Database = {
         Args: { p_payload: Json; p_tipo: string }
         Returns: string
       }
-      calc_completeness: {
-        Args: { p_empresa_id: number; p_payload: Json; p_tipo: string }
-        Returns: number
-      }
+      calc_completeness:
+        | {
+            Args: { _empresa_id: number; _payload: Json; _tipo: string }
+            Returns: number
+          }
+        | {
+            Args: { p_empresa_id: number; p_payload: Json; p_tipo: string }
+            Returns: number
+          }
       calcular_custo_entrada: {
         Args: {
           p_outras_despesas?: number
