@@ -393,8 +393,10 @@ export function ProjetoMembrosDialog({ open, onOpenChange, projetoId, projetoTip
             </div>
           </ScrollArea>
 
-          {/* Produtos Vinculados */}
-          <ProjetoProdutosVinculados projetoId={projetoId} isCoordinator={isCoordinator} />
+          {/* Produtos Vinculados — oculto em projetos genéricos */}
+          {projetoTipo !== "generico" && (
+            <ProjetoProdutosVinculados projetoId={projetoId} isCoordinator={isCoordinator} />
+          )}
           </TabsContent>
         </Tabs>
 
