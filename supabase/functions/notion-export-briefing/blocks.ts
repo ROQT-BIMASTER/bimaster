@@ -168,8 +168,8 @@ export function buildBriefingBlocks(input: BuildBlocksInput): unknown[] {
   return blocks;
 }
 
-/** Heading text that marks the start of the user-editable zone in the mirror page. */
-export const FREE_ZONE_START_LABEL = "Anotações livres (sincronizadas com bimaster)";
+/** Re-exported from shared so notion-pull-briefing can import from _shared. */
+export { FREE_ZONE_START_LABEL } from "../_shared/notion-client.ts";
 
 /** Properties for a database row in the "Briefings bimaster" database. */
 export function buildPageProperties(input: BuildBlocksInput): Record<string, unknown> {
