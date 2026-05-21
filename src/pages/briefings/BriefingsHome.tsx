@@ -86,6 +86,7 @@ const STATUS_VARIANT: Record<string, "default" | "secondary" | "outline"> = {
 
 export default function BriefingsHome() {
   const navigate = useNavigate();
+  const { bgStyle, BgColorButton } = usePageBgColor("briefings_home");
   const [briefings, setBriefings] = useState<BriefingRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [openNew, setOpenNew] = useState(false);
