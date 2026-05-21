@@ -195,11 +195,36 @@ export function useProjetoTarefaDetalhe(tarefaId: string | undefined, produtoId?
         detalhes: { nome_arquivo: file.name, tamanho: file.size, tipo: file.type, tarefa_id: tarefaId },
       });
     },
+    onMutate: async (file: File) => {
+      const qk = ["tarefa-anexos", tarefaId];
+      await queryClient.cancelQueries({ queryKey: qk });
+      const previous = queryClient.getQueryData<TarefaAnexo[]>(qk);
+      // Placeholder com flag isUploading — o invalidate no onSettled o substitui
+      // pelo registro real após sucesso, ou rollback remove em caso de falha.
+      const optimistic: TarefaAnexo & { isUploading?: boolean } = {
+        id: `temp-${crypto.randomUUID()}`,
+        tarefa_id: tarefaId!,
+        user_id: user!.id,
+        nome: file.name,
+        storage_path: "",
+        tipo_arquivo: file.type,
+        tamanho: file.size,
+        created_at: new Date().toISOString(),
+        isUploading: true,
+      };
+      queryClient.setQueryData<TarefaAnexo[]>(qk, (old) => [optimistic, ...(old || [])]);
+      return { previous };
+    },
+    onError: (err: Error, _vars, ctx: any) => {
+      if (ctx?.previous) queryClient.setQueryData(["tarefa-anexos", tarefaId], ctx.previous);
+      toast.error(err.message);
+    },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["tarefa-anexos", tarefaId] });
       toast.success("Anexo enviado!");
     },
-    onError: (err: Error) => toast.error(err.message),
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["tarefa-anexos", tarefaId] });
+    },
   });
 
   const deleteAnexo = useMutation({
@@ -208,11 +233,23 @@ export function useProjetoTarefaDetalhe(tarefaId: string | undefined, produtoId?
       const { error } = await supabase.from("projeto_tarefa_anexos").delete().eq("id", anexo.id);
       if (error) throw error;
     },
+    onMutate: async (anexo) => {
+      const qk = ["tarefa-anexos", tarefaId];
+      await queryClient.cancelQueries({ queryKey: qk });
+      const previous = queryClient.getQueryData<TarefaAnexo[]>(qk);
+      queryClient.setQueryData<TarefaAnexo[]>(qk, (old) => (old || []).filter(a => a.id !== anexo.id));
+      return { previous };
+    },
+    onError: (err: Error, _vars, ctx: any) => {
+      if (ctx?.previous) queryClient.setQueryData(["tarefa-anexos", tarefaId], ctx.previous);
+      toast.error(err.message);
+    },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["tarefa-anexos", tarefaId] });
       toast.success("Anexo removido!");
     },
-    onError: (err: Error) => toast.error(err.message),
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["tarefa-anexos", tarefaId] });
+    },
   });
 
   const getAnexoUrl = async (storagePath: string) => {
