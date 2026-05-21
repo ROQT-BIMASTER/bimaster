@@ -15,6 +15,7 @@ import {
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import type { BriefingComentario, ReworkResult } from "@/hooks/useBriefingComentarios";
+import { resolveMentionsFromText, type MentionableMember } from "@/lib/briefings/resolveMentions";
 
 interface Props {
   briefingId: string;
@@ -28,7 +29,9 @@ interface Props {
   defaultOpen?: boolean;
   /** Se definido, destaca visualmente o comentário com este id. */
   highlightCommentId?: string | null;
-  onAdd: (p: { campo_key: string; body: string; parent_id?: string | null }) => Promise<void>;
+  /** Membros do briefing — usados para resolver @ menções. */
+  members?: MentionableMember[];
+  onAdd: (p: { campo_key: string; body: string; parent_id?: string | null; mentions?: string[] }) => Promise<void>;
   onUpdate: (id: string, body: string) => Promise<void>;
   onRemove: (id: string) => Promise<void>;
   onToggleResolved: (c: BriefingComentario) => Promise<void>;
@@ -44,7 +47,7 @@ function initials(name: string | null | undefined) {
 export function BriefingFieldComments({
   briefingId, campoKey, campoLabel,
   comentarios, authors, currentUserId, readOnly,
-  defaultOpen, highlightCommentId,
+  defaultOpen, highlightCommentId, members,
   onAdd, onUpdate, onRemove, onToggleResolved, onRework, onReworkApplied,
 }: Props) {
   void briefingId;
@@ -77,16 +80,19 @@ export function BriefingFieldComments({
   const submitNew = async () => {
     const t = newBody.trim();
     if (!t) return;
-    await onAdd({ campo_key: campoKey, body: t });
+    const mentions = resolveMentionsFromText(t, members ?? []);
+    await onAdd({ campo_key: campoKey, body: t, mentions });
     setNewBody("");
   };
 
   const submitReply = async (parentId: string) => {
     const t = replyBody.trim();
     if (!t) return;
-    await onAdd({ campo_key: campoKey, body: t, parent_id: parentId });
+    const mentions = resolveMentionsFromText(t, members ?? []);
+    await onAdd({ campo_key: campoKey, body: t, parent_id: parentId, mentions });
     setReplyBody(""); setReplyTo(null);
   };
+
 
   const submitEdit = async () => {
     if (!editingId) return;

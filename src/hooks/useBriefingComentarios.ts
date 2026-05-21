@@ -97,19 +97,22 @@ export function useBriefingComentarios(briefingId: string | undefined) {
     [comentarios],
   );
 
-  const add = useCallback(async (params: { campo_key: string; body: string; parent_id?: string | null }) => {
+  const add = useCallback(async (params: { campo_key: string; body: string; parent_id?: string | null; mentions?: string[] }) => {
     if (!briefingId) return;
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { toast.error("Faça login para comentar"); return; }
+    const mentions = (params.mentions ?? []).filter((id) => id && id !== user.id);
     const { error } = await supabase.from("briefing_comentarios").insert({
       briefing_id: briefingId,
       campo_key: params.campo_key,
       body: params.body.trim(),
       parent_id: params.parent_id ?? null,
       author_id: user.id,
+      ...(mentions.length > 0 ? { mentions } : {}),
     });
     if (error) { toast.error("Erro ao salvar comentário"); return; }
   }, [briefingId]);
+
 
   const updateBody = useCallback(async (id: string, body: string) => {
     const { error } = await supabase

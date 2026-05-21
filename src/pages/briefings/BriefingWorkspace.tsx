@@ -20,6 +20,7 @@ import { BriefingCanvasField } from "@/components/briefings/BriefingCanvasField"
 import { BriefingFieldComments } from "@/components/briefings/BriefingFieldComments";
 import { BriefingRetrabalhoDiffDialog } from "@/components/briefings/BriefingRetrabalhoDiffDialog";
 import { useBriefingComentarios, type ReworkResult } from "@/hooks/useBriefingComentarios";
+import { useBriefingMembros } from "@/hooks/useBriefingMembros";
 import { VincularProjetoDialog } from "@/components/briefings/VincularProjetoDialog";
 import { BriefingMicButton } from "@/components/briefings/BriefingMicButton";
 import { EnviarAprovacaoDialog } from "@/components/briefings/EnviarAprovacaoDialog";
@@ -48,6 +49,11 @@ export default function BriefingWorkspace() {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const coments = useBriefingComentarios(briefing?.id);
+  const { membros: briefingMembros } = useBriefingMembros(briefing?.id);
+  const mentionMembers = useMemo(
+    () => (briefingMembros ?? []).map((m) => ({ user_id: m.user_id, nome: m.profile?.nome ?? null })),
+    [briefingMembros],
+  );
 
   // Deep-link vindo do Chat (?campo=...&comentario=...): rola até o campo
   // assim que ele estiver renderizado. Roda só uma vez por valor de campo.
@@ -316,6 +322,7 @@ export default function BriefingWorkspace() {
                             authors={coments.authors}
                             currentUserId={currentUserId}
                             readOnly={readOnly}
+                            members={mentionMembers}
                             defaultOpen={deepLinkCampo === s.key}
                             highlightCommentId={deepLinkCampo === s.key ? deepLinkComentario : null}
                             onAdd={coments.add}
