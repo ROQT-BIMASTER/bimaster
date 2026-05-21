@@ -155,12 +155,21 @@ export function buildBriefingBlocks(input: BuildBlocksInput): unknown[] {
     }
   }
 
-  // Footer
+  // Footer — wrapped with explicit markers so pull can identify the user-editable zone
+  blocks.push(divider());
+  blocks.push(heading3(FREE_ZONE_START_LABEL));
+  // Hint paragraph (also lives in the free zone so it's editable / deletable by the user)
+  blocks.push(paragraph(
+    "Tudo que você escrever entre este título e o próximo divisor será trazido de volta para o bimaster na próxima sincronização.",
+  ));
   blocks.push(divider());
   blocks.push(paragraph(`Abrir no bimaster: ${input.bimasterUrl}`));
 
   return blocks;
 }
+
+/** Heading text that marks the start of the user-editable zone in the mirror page. */
+export const FREE_ZONE_START_LABEL = "Anotações livres (sincronizadas com bimaster)";
 
 /** Properties for a database row in the "Briefings bimaster" database. */
 export function buildPageProperties(input: BuildBlocksInput): Record<string, unknown> {

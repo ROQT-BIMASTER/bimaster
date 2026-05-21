@@ -2784,6 +2784,53 @@ export type Database = {
           },
         ]
       }
+      briefing_notion_sync_log: {
+        Row: {
+          action: string
+          briefing_id: string
+          created_at: string
+          direction: string
+          error_message: string | null
+          fields_changed: Json
+          id: string
+          notion_page_id: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          action: string
+          briefing_id: string
+          created_at?: string
+          direction: string
+          error_message?: string | null
+          fields_changed?: Json
+          id?: string
+          notion_page_id?: string | null
+          status?: string
+          user_id: string
+        }
+        Update: {
+          action?: string
+          briefing_id?: string
+          created_at?: string
+          direction?: string
+          error_message?: string | null
+          fields_changed?: Json
+          id?: string
+          notion_page_id?: string | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "briefing_notion_sync_log_briefing_id_fkey"
+            columns: ["briefing_id"]
+            isOneToOne: false
+            referencedRelation: "briefings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       briefing_templates: {
         Row: {
           ativo: boolean
@@ -2829,6 +2876,12 @@ export type Database = {
           empresa_id: number | null
           id: string
           intake_demanda_id: string | null
+          notion_last_pull_at: string | null
+          notion_last_push_at: string | null
+          notion_page_hash: string | null
+          notion_page_id: string | null
+          notion_page_url: string | null
+          notion_synced_at: string | null
           payload: Json
           posicao_no_lote: number | null
           projeto_id: string | null
@@ -2850,6 +2903,12 @@ export type Database = {
           empresa_id?: number | null
           id?: string
           intake_demanda_id?: string | null
+          notion_last_pull_at?: string | null
+          notion_last_push_at?: string | null
+          notion_page_hash?: string | null
+          notion_page_id?: string | null
+          notion_page_url?: string | null
+          notion_synced_at?: string | null
           payload?: Json
           posicao_no_lote?: number | null
           projeto_id?: string | null
@@ -2871,6 +2930,12 @@ export type Database = {
           empresa_id?: number | null
           id?: string
           intake_demanda_id?: string | null
+          notion_last_pull_at?: string | null
+          notion_last_push_at?: string | null
+          notion_page_hash?: string | null
+          notion_page_id?: string | null
+          notion_page_url?: string | null
+          notion_synced_at?: string | null
           payload?: Json
           posicao_no_lote?: number | null
           projeto_id?: string | null
