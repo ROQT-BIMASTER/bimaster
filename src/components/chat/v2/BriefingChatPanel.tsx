@@ -462,7 +462,7 @@ function EmptyState({
 }
 
 function ComentarioCard({
-  c, authorNome, campoLabel, isMe, mencionaMe, onOpen,
+  c, authorNome, campoLabel, isMe, mencionaMe, onOpen, onAnexarCofre,
 }: {
   c: BriefingComentario;
   authorNome: string | null;
@@ -470,10 +470,11 @@ function ComentarioCard({
   isMe: boolean;
   mencionaMe: boolean;
   onOpen: () => void;
+  onAnexarCofre: () => void;
 }) {
+  const cofreDocNome = (c.metadata as any)?.cofre_doc_nome as string | undefined;
   return (
-    <button
-      onClick={onOpen}
+    <div
       className={cn(
         "w-full text-left rounded-lg border bg-card hover:bg-briefing-soft/30 transition-colors p-3 space-y-1.5 shadow-sm",
         "border-l-2 border-l-briefing/30",
@@ -481,30 +482,47 @@ function ComentarioCard({
         mencionaMe && "border-l-amber-500 bg-amber-500/[0.04]",
       )}
     >
-      <div className="flex items-center gap-2 flex-wrap">
-        <Avatar className={cn("h-5 w-5", mencionaMe && "ring-2 ring-amber-500/40")}>
-          <AvatarFallback className="text-[9px] bg-briefing/15 text-briefing">
-            {initials(authorNome)}
-          </AvatarFallback>
-        </Avatar>
-        <span className="text-[12px] font-medium truncate">
-          {isMe ? "Você" : authorNome ?? "Usuário"}
-        </span>
-        <Badge variant="outline" className="text-[9px] px-1 py-0 bg-briefing/5 text-briefing border-briefing/20">
-          {c.campo_key === "__geral__" ? "Geral" : campoLabel}
-        </Badge>
-        {mencionaMe && (
-          <Badge className="text-[9px] px-1 py-0 bg-amber-500 hover:bg-amber-500 text-white">@ você</Badge>
-        )}
-        {c.resolved && (
-          <Badge variant="outline" className="text-[9px] px-1 py-0">resolvido</Badge>
-        )}
-        <span className="ml-auto text-[10px] text-muted-foreground">
-          {formatRelativo(c.created_at)}
-        </span>
+      <button onClick={onOpen} className="w-full text-left">
+        <div className="flex items-center gap-2 flex-wrap">
+          <Avatar className={cn("h-5 w-5", mencionaMe && "ring-2 ring-amber-500/40")}>
+            <AvatarFallback className="text-[9px] bg-briefing/15 text-briefing">
+              {initials(authorNome)}
+            </AvatarFallback>
+          </Avatar>
+          <span className="text-[12px] font-medium truncate">
+            {isMe ? "Você" : authorNome ?? "Usuário"}
+          </span>
+          <Badge variant="outline" className="text-[9px] px-1 py-0 bg-briefing/5 text-briefing border-briefing/20">
+            {c.campo_key === "__geral__" ? "Geral" : campoLabel}
+          </Badge>
+          {mencionaMe && (
+            <Badge className="text-[9px] px-1 py-0 bg-amber-500 hover:bg-amber-500 text-white">@ você</Badge>
+          )}
+          {c.resolved && (
+            <Badge variant="outline" className="text-[9px] px-1 py-0">resolvido</Badge>
+          )}
+          <span className="ml-auto text-[10px] text-muted-foreground">
+            {formatRelativo(c.created_at)}
+          </span>
+        </div>
+        <p className="text-[13px] whitespace-pre-wrap line-clamp-3 mt-1">{c.body}</p>
+      </button>
+      <div className="flex items-center justify-between gap-2 pt-1">
+        {cofreDocNome ? (
+          <Badge variant="outline" className="text-[10px] gap-1 bg-briefing/5 text-briefing border-briefing/30">
+            <FolderLock className="h-2.5 w-2.5" /> Cofre · {cofreDocNome}
+          </Badge>
+        ) : <span />}
+        <button
+          onClick={onAnexarCofre}
+          className="text-[10px] inline-flex items-center gap-1 text-briefing hover:underline"
+          title="Anexar arquivo ao cofre vinculado a este comentário"
+        >
+          <Paperclip className="h-3 w-3" />
+          {cofreDocNome ? "Substituir doc" : "Anexar ao cofre"}
+        </button>
       </div>
-      <p className="text-[13px] whitespace-pre-wrap line-clamp-3">{c.body}</p>
-    </button>
+    </div>
   );
 }
 
