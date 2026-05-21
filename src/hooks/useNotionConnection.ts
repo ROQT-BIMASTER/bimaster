@@ -101,18 +101,40 @@ export function useNotionExportLog(limit = 20) {
   });
 }
 
-export async function sendBriefingToNotion(briefingId: string): Promise<{ page_url: string }> {
+export async function sendBriefingToNotion(
+  briefingId: string,
+  opts?: { force?: boolean },
+): Promise<{ page_url: string; action: "create" | "update" }> {
   const { data, error } = await supabase.functions.invoke<{
     ok: boolean;
     page_url: string;
+    action: "create" | "update";
     error?: string;
     message?: string;
   }>("notion-export-briefing", {
-    body: { briefing_id: briefingId, bimaster_origin: window.location.origin },
+    body: {
+      briefing_id: briefingId,
+      bimaster_origin: window.location.origin,
+      force: opts?.force ?? false,
+    },
   });
   if (error) throw new Error(error.message);
   if (!data?.ok) {
     throw new Error(data?.message || data?.error || "Falha ao enviar para o Notion");
   }
-  return { page_url: data.page_url };
+  return { page_url: data.page_url, action: data.action };
+}
+
+export async function pullBriefingFromNotion(
+  briefingId: string,
+): Promise<{ fields_changed: string[]; notes_chars: number }> {
+  const { data, error } = await supabase.functions.invoke<{
+    ok: boolean;
+    fields_changed: string[];
+    notes_chars: number;
+    error?: string;
+  }>("notion-pull-briefing", { body: { briefing_id: briefingId } });
+  if (error) throw new Error(error.message);
+  if (!data?.ok) throw new Error(data?.error || "Falha ao puxar do Notion");
+  return { fields_changed: data.fields_changed, notes_chars: data.notes_chars };
 }
