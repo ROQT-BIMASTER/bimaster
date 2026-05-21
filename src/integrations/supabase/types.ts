@@ -33256,6 +33256,7 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          last_read_at: string
           papel: string
           projeto_id: string
           user_id: string
@@ -33263,6 +33264,7 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
+          last_read_at?: string
           papel?: string
           projeto_id: string
           user_id: string
@@ -33270,6 +33272,7 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
+          last_read_at?: string
           papel?: string
           projeto_id?: string
           user_id?: string
@@ -48599,6 +48602,10 @@ export type Database = {
           p_produto_id?: string
         }
         Returns: string
+      }
+      rpc_projeto_marcar_lido: {
+        Args: { p_projeto_id: string }
+        Returns: undefined
       }
       rpc_promover_cenario: { Args: { p_produto_id: string }; Returns: string }
       rpc_promover_vencedor_sugestao: {
