@@ -1,8 +1,21 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Plus, FileText, Megaphone, Sparkles, Package, Store } from "lucide-react";
+import {
+  Plus,
+  FileText,
+  Megaphone,
+  Sparkles,
+  Package,
+  Store,
+  Box,
+  Calendar,
+  ShoppingBag,
+  Newspaper,
+  BookOpen,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -16,30 +29,44 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Skeleton } from "@/components/ui/skeleton";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
-type Tipo = "marketing" | "criativo" | "produto" | "trade";
+type Tipo = string;
 
-const TIPOS: Array<{
-  tipo: Tipo;
-  nome: string;
-  desc: string;
-  icon: React.ComponentType<{ className?: string }>;
-}> = [
-  { tipo: "marketing", nome: "Marketing", desc: "Campanhas, objetivos de negócio, KPIs", icon: Megaphone },
-  { tipo: "criativo", nome: "Criativo", desc: "Conceito, moodboard, referências visuais", icon: Sparkles },
-  { tipo: "produto", nome: "Produto / Fábrica", desc: "Conceito, regulatório, custo-alvo", icon: Package },
-  { tipo: "trade", nome: "Trade Marketing", desc: "PDV, sell-out, incentivo", icon: Store },
-];
+const ICON_POR_TIPO: Record<string, React.ComponentType<{ className?: string }>> = {
+  // 4 legados
+  marketing: Megaphone,
+  criativo: Sparkles,
+  produto: Package,
+  trade: Store,
+  // 8 canônicos v2
+  pdv: Store,
+  embalagem: Box,
+  evento: Calendar,
+  campanha: Megaphone,
+  ecommerce: ShoppingBag,
+  presskit: Newspaper,
+  catalogo: BookOpen,
+  material_interno: FileText,
+};
+const ICON_FALLBACK = FileText;
 
 interface BriefingRow {
   id: string;
-  tipo: Tipo;
+  tipo: string;
   titulo: string;
   status: string;
   completude: number;
   updated_at: string;
+}
+
+interface TipoTemplate {
+  tipo: string;
+  nome: string;
+  descricao: string | null;
+  versao: number;
 }
 
 export default function BriefingsHome() {
@@ -48,8 +75,26 @@ export default function BriefingsHome() {
   const [loading, setLoading] = useState(true);
   const [openNew, setOpenNew] = useState(false);
   const [creating, setCreating] = useState(false);
-  const [tipoSel, setTipoSel] = useState<Tipo>("marketing");
+  const [tipoSel, setTipoSel] = useState<Tipo>("");
   const [titulo, setTitulo] = useState("");
+
+  const { data: tipos, isLoading: loadingTipos } = useQuery({
+    queryKey: ["briefing_templates_lista"],
+    queryFn: async (): Promise<TipoTemplate[]> => {
+      const { data, error } = await supabase
+        .from("briefing_templates")
+        .select("tipo, nome, descricao, versao")
+        .eq("ativo", true)
+        .order("nome", { ascending: true });
+      if (error) throw error;
+      const map = new Map<string, TipoTemplate>();
+      for (const row of (data ?? []) as TipoTemplate[]) {
+        const cur = map.get(row.tipo);
+        if (!cur || row.versao > cur.versao) map.set(row.tipo, row);
+      }
+      return Array.from(map.values()).sort((a, b) => a.nome.localeCompare(b.nome));
+    },
+  });
 
   useEffect(() => {
     (async () => {
@@ -66,6 +111,10 @@ export default function BriefingsHome() {
   const criar = async () => {
     if (!titulo.trim()) {
       toast.error("Informe um título");
+      return;
+    }
+    if (!tipoSel) {
+      toast.error("Selecione um tipo de briefing");
       return;
     }
     setCreating(true);
@@ -127,28 +176,42 @@ export default function BriefingsHome() {
               <DialogTitle>Novo briefing</DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-3">
-                {TIPOS.map((t) => {
-                  const Icon = t.icon;
-                  const sel = tipoSel === t.tipo;
-                  return (
-                    <button
-                      key={t.tipo}
-                      type="button"
-                      onClick={() => setTipoSel(t.tipo)}
-                      className={`text-left rounded-lg border p-4 transition ${
-                        sel
-                          ? "border-primary bg-primary/5"
-                          : "border-border hover:bg-muted/50"
-                      }`}
-                    >
-                      <Icon className="h-5 w-5 mb-2 text-primary" />
-                      <div className="font-medium">{t.nome}</div>
-                      <div className="text-xs text-muted-foreground mt-1">{t.desc}</div>
-                    </button>
-                  );
-                })}
-              </div>
+              {loadingTipos ? (
+                <div className="grid grid-cols-2 gap-3">
+                  <Skeleton className="h-24 rounded-lg" />
+                  <Skeleton className="h-24 rounded-lg" />
+                  <Skeleton className="h-24 rounded-lg" />
+                </div>
+              ) : !tipos || tipos.length === 0 ? (
+                <div className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">
+                  Nenhum tipo de briefing disponível. Contate o administrador.
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-3">
+                  {tipos.map((t) => {
+                    const Icon = ICON_POR_TIPO[t.tipo] ?? ICON_FALLBACK;
+                    const sel = tipoSel === t.tipo;
+                    return (
+                      <button
+                        key={t.tipo}
+                        type="button"
+                        onClick={() => setTipoSel(t.tipo)}
+                        className={`text-left rounded-lg border p-4 transition ${
+                          sel
+                            ? "border-primary bg-primary/5"
+                            : "border-border hover:bg-muted/50"
+                        }`}
+                      >
+                        <Icon className="h-5 w-5 mb-2 text-primary" />
+                        <div className="font-medium">{t.nome}</div>
+                        <div className="text-xs text-muted-foreground mt-1">
+                          {t.descricao ?? ""}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
               <div className="space-y-2">
                 <Label htmlFor="titulo">Título</Label>
                 <Input
@@ -163,7 +226,7 @@ export default function BriefingsHome() {
               <Button variant="outline" onClick={() => setOpenNew(false)}>
                 Cancelar
               </Button>
-              <Button onClick={criar} disabled={creating}>
+              <Button onClick={criar} disabled={creating || !tipoSel}>
                 {creating ? "Criando..." : "Criar e abrir"}
               </Button>
             </DialogFooter>
@@ -185,8 +248,8 @@ export default function BriefingsHome() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {briefings.map((b) => {
-            const meta = TIPOS.find((t) => t.tipo === b.tipo);
-            const Icon = meta?.icon ?? FileText;
+            const Icon = ICON_POR_TIPO[b.tipo] ?? ICON_FALLBACK;
+            const nomeTipo = tipos?.find((t) => t.tipo === b.tipo)?.nome ?? b.tipo;
             return (
               <Card
                 key={b.id}
@@ -203,7 +266,7 @@ export default function BriefingsHome() {
                   <CardTitle className="text-base line-clamp-2">{b.titulo}</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-2">
-                  <div className="text-xs text-muted-foreground capitalize">{meta?.nome}</div>
+                  <div className="text-xs text-muted-foreground capitalize">{nomeTipo}</div>
                   <div className="h-1.5 bg-muted rounded-full overflow-hidden">
                     <div
                       className="h-full bg-primary transition-all"
