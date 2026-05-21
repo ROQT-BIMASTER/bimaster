@@ -18,6 +18,7 @@ import { BriefingHeader } from "@/components/briefings/BriefingHeader";
 import { BriefingMessage } from "@/components/briefings/BriefingMessage";
 import { BriefingCanvasField } from "@/components/briefings/BriefingCanvasField";
 import { VincularProjetoDialog } from "@/components/briefings/VincularProjetoDialog";
+import { BriefingMicButton } from "@/components/briefings/BriefingMicButton";
 import { EnviarAprovacaoDialog } from "@/components/briefings/EnviarAprovacaoDialog";
 import { AprovacaoTimeline } from "@/components/briefings/AprovacaoTimeline";
 import { ExportarBriefingDialog } from "@/components/briefings/export/ExportarBriefingDialog";
@@ -194,17 +195,32 @@ export default function BriefingWorkspace() {
                 className="resize-none border-0 focus-visible:ring-0 shadow-none px-1.5 py-1 min-h-0"
                 disabled={sending || readOnly}
               />
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between gap-2">
                 <span className="text-[10px] text-muted-foreground px-1.5">
                   Enter para enviar · Shift+Enter para nova linha
                 </span>
-                <Button
-                  type="submit"
-                  disabled={sending || !input.trim() || readOnly}
-                  size="sm"
-                >
-                  Enviar
-                </Button>
+                <div className="flex items-center gap-1">
+                  <BriefingMicButton
+                    disabled={sending || readOnly}
+                    onTranscribed={(text) => {
+                      setInput((prev) => (prev ? `${prev.trim()} ${text}`.trim() : text));
+                      requestAnimationFrame(() => {
+                        const el = textareaRef.current;
+                        if (el) {
+                          el.focus();
+                          el.setSelectionRange(el.value.length, el.value.length);
+                        }
+                      });
+                    }}
+                  />
+                  <Button
+                    type="submit"
+                    disabled={sending || !input.trim() || readOnly}
+                    size="sm"
+                  >
+                    Enviar
+                  </Button>
+                </div>
               </div>
             </div>
           </form>
