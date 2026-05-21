@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useProjetoBriefings, BriefingWithContext } from "@/hooks/useProjetoBriefings";
 import { BriefingCampo } from "@/hooks/useProjetoBriefing";
 import { Badge } from "@/components/ui/badge";
@@ -9,12 +10,13 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
+import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
   FileSpreadsheet, ChevronDown, ChevronRight, CheckCircle2, XCircle,
-  Clock, Eye, Filter, Loader2, Package, AlertCircle,
+  Clock, Eye, Filter, Loader2, Package, AlertCircle, Sparkles, ExternalLink,
 } from "lucide-react";
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: any }> = {
