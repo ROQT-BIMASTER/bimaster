@@ -5,7 +5,9 @@ import {
 } from "@/components/ui/accordion";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Eye, Users, FolderOpen, Send, Shield, MessageSquare, CheckCircle2, XCircle, UserCheck, UserPlus, Lock, HelpCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useNavigate } from "react-router-dom";
+import { ArrowLeft, Eye, Users, FolderOpen, Send, Shield, MessageSquare, CheckCircle2, XCircle, UserCheck, UserPlus, Lock, HelpCircle } from "lucide-react";
 
 function YesNo({ yes, label }: { yes: boolean; label: string }) {
   return (
