@@ -459,11 +459,11 @@ function MensagemIaCard({ m, onOpen }: { m: any; onOpen: () => void }) {
   return (
     <button
       onClick={onOpen}
-      className="w-full text-left rounded-md border border-primary/30 bg-primary/5 hover:bg-primary/10 transition-colors p-3 space-y-1.5"
+      className="w-full text-left rounded-lg border border-briefing/25 bg-briefing-soft/40 hover:bg-briefing-soft/70 transition-colors p-3 space-y-1.5 shadow-sm"
     >
       <div className="flex items-center gap-2">
-        <Sparkles className="h-3.5 w-3.5 text-primary" />
-        <span className="text-[12px] font-medium">IA</span>
+        <Sparkles className="h-3.5 w-3.5 text-briefing" />
+        <span className="text-[12px] font-medium text-briefing">IA</span>
         {isProposal && (
           <Badge variant="secondary" className="text-[9px] px-1 py-0">proposta</Badge>
         )}
