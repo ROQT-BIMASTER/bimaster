@@ -80,16 +80,19 @@ export function BriefingFieldComments({
   const submitNew = async () => {
     const t = newBody.trim();
     if (!t) return;
-    await onAdd({ campo_key: campoKey, body: t });
+    const mentions = resolveMentionsFromText(t, members ?? []);
+    await onAdd({ campo_key: campoKey, body: t, mentions });
     setNewBody("");
   };
 
   const submitReply = async (parentId: string) => {
     const t = replyBody.trim();
     if (!t) return;
-    await onAdd({ campo_key: campoKey, body: t, parent_id: parentId });
+    const mentions = resolveMentionsFromText(t, members ?? []);
+    await onAdd({ campo_key: campoKey, body: t, parent_id: parentId, mentions });
     setReplyBody(""); setReplyTo(null);
   };
+
 
   const submitEdit = async () => {
     if (!editingId) return;
