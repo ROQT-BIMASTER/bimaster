@@ -25841,6 +25841,119 @@ export type Database = {
         }
         Relationships: []
       }
+      notion_connections: {
+        Row: {
+          access_token: string
+          bot_id: string
+          briefings_database_id: string | null
+          briefings_database_url: string | null
+          created_at: string
+          id: string
+          notion_user_id: string | null
+          notion_user_name: string | null
+          parent_page_id: string | null
+          updated_at: string
+          user_id: string
+          workspace_icon: string | null
+          workspace_id: string
+          workspace_name: string | null
+        }
+        Insert: {
+          access_token: string
+          bot_id: string
+          briefings_database_id?: string | null
+          briefings_database_url?: string | null
+          created_at?: string
+          id?: string
+          notion_user_id?: string | null
+          notion_user_name?: string | null
+          parent_page_id?: string | null
+          updated_at?: string
+          user_id: string
+          workspace_icon?: string | null
+          workspace_id: string
+          workspace_name?: string | null
+        }
+        Update: {
+          access_token?: string
+          bot_id?: string
+          briefings_database_id?: string | null
+          briefings_database_url?: string | null
+          created_at?: string
+          id?: string
+          notion_user_id?: string | null
+          notion_user_name?: string | null
+          parent_page_id?: string | null
+          updated_at?: string
+          user_id?: string
+          workspace_icon?: string | null
+          workspace_id?: string
+          workspace_name?: string | null
+        }
+        Relationships: []
+      }
+      notion_export_log: {
+        Row: {
+          briefing_id: string
+          created_at: string
+          error_message: string | null
+          id: string
+          notion_page_id: string | null
+          notion_page_url: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          briefing_id: string
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          notion_page_id?: string | null
+          notion_page_url?: string | null
+          status: string
+          user_id: string
+        }
+        Update: {
+          briefing_id?: string
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          notion_page_id?: string | null
+          notion_page_url?: string | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notion_export_log_briefing_id_fkey"
+            columns: ["briefing_id"]
+            isOneToOne: false
+            referencedRelation: "briefings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notion_oauth_states: {
+        Row: {
+          created_at: string
+          expires_at: string
+          state: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at?: string
+          state?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          state?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       oms_condicoes_pagamento: {
         Row: {
           ativo: boolean | null
