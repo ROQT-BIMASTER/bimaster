@@ -65,7 +65,30 @@ export function useProjetoMembros(projetoId: string | undefined) {
       })) as ProjetoMembro[];
     },
     enabled: !!projetoId && !!user,
+    // Lista de membros precisa refletir convites recém-aceitos e adições em
+    // outras abas sem aguardar staleTime de 5min do default global.
+    staleTime: 30 * 1000,
+    refetchOnMount: "always",
   });
+
+  // Realtime: invalida cache quando alguém entra/sai do projeto em qualquer
+  // sessão (aceite de convite, remoção via tela de Equipe, etc.).
+  useEffect(() => {
+    if (!projetoId) return;
+    const channel = supabase
+      .channel(`projeto_membros:${projetoId}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "projeto_membros", filter: `projeto_id=eq.${projetoId}` },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ["projeto_membros", projetoId] });
+        },
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [projetoId, queryClient]);
 
   const isCoordinator = membros.some(
     (m) => m.user_id === user?.id && ["coordenador", "gestor_produto"].includes(m.papel)
