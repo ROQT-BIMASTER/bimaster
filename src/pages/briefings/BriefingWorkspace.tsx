@@ -20,6 +20,7 @@ import { BriefingCanvasField } from "@/components/briefings/BriefingCanvasField"
 import { VincularProjetoDialog } from "@/components/briefings/VincularProjetoDialog";
 import { EnviarAprovacaoDialog } from "@/components/briefings/EnviarAprovacaoDialog";
 import { AprovacaoTimeline } from "@/components/briefings/AprovacaoTimeline";
+import { ExportarBriefingDialog } from "@/components/briefings/export/ExportarBriefingDialog";
 
 export default function BriefingWorkspace() {
   const { id } = useParams<{ id: string }>();
