@@ -90,10 +90,32 @@ export function useProjetoTarefaDetalhe(tarefaId: string | undefined, produtoId?
       } as any);
       if (error) throw error;
     },
-    onSuccess: () => {
+    onMutate: async ({ conteudo, mentions }) => {
+      const qk = ["tarefa-comentarios", tarefaId];
+      await queryClient.cancelQueries({ queryKey: qk });
+      const previous = queryClient.getQueryData<TarefaComentario[]>(qk);
+      // Resolve autor a partir do cache de perfis (mesmo padrão do fetch).
+      const profilesCache = queryClient.getQueryData<any[]>(["profiles-cache", user?.id]);
+      const me = profilesCache?.find((p: any) => p.id === user?.id);
+      const optimistic: TarefaComentario = {
+        id: `temp-${crypto.randomUUID()}`,
+        tarefa_id: tarefaId!,
+        user_id: user!.id,
+        conteudo,
+        mentions: mentions || [],
+        created_at: new Date().toISOString(),
+        autor: me ? { nome: me.nome, avatar_url: me.avatar_url } : { nome: "Você", avatar_url: null },
+      };
+      queryClient.setQueryData<TarefaComentario[]>(qk, (old) => [...(old || []), optimistic]);
+      return { previous };
+    },
+    onError: (err: Error, _vars, ctx) => {
+      if (ctx?.previous) queryClient.setQueryData(["tarefa-comentarios", tarefaId], ctx.previous);
+      toast.error(err.message);
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["tarefa-comentarios", tarefaId] });
     },
-    onError: (err: Error) => toast.error(err.message),
   });
 
   // Realtime subscription for comments
@@ -173,11 +195,36 @@ export function useProjetoTarefaDetalhe(tarefaId: string | undefined, produtoId?
         detalhes: { nome_arquivo: file.name, tamanho: file.size, tipo: file.type, tarefa_id: tarefaId },
       });
     },
+    onMutate: async (file: File) => {
+      const qk = ["tarefa-anexos", tarefaId];
+      await queryClient.cancelQueries({ queryKey: qk });
+      const previous = queryClient.getQueryData<TarefaAnexo[]>(qk);
+      // Placeholder com flag isUploading — o invalidate no onSettled o substitui
+      // pelo registro real após sucesso, ou rollback remove em caso de falha.
+      const optimistic: TarefaAnexo & { isUploading?: boolean } = {
+        id: `temp-${crypto.randomUUID()}`,
+        tarefa_id: tarefaId!,
+        user_id: user!.id,
+        nome: file.name,
+        storage_path: "",
+        tipo_arquivo: file.type,
+        tamanho: file.size,
+        created_at: new Date().toISOString(),
+        isUploading: true,
+      };
+      queryClient.setQueryData<TarefaAnexo[]>(qk, (old) => [optimistic, ...(old || [])]);
+      return { previous };
+    },
+    onError: (err: Error, _vars, ctx: any) => {
+      if (ctx?.previous) queryClient.setQueryData(["tarefa-anexos", tarefaId], ctx.previous);
+      toast.error(err.message);
+    },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["tarefa-anexos", tarefaId] });
       toast.success("Anexo enviado!");
     },
-    onError: (err: Error) => toast.error(err.message),
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["tarefa-anexos", tarefaId] });
+    },
   });
 
   const deleteAnexo = useMutation({
@@ -186,11 +233,23 @@ export function useProjetoTarefaDetalhe(tarefaId: string | undefined, produtoId?
       const { error } = await supabase.from("projeto_tarefa_anexos").delete().eq("id", anexo.id);
       if (error) throw error;
     },
+    onMutate: async (anexo) => {
+      const qk = ["tarefa-anexos", tarefaId];
+      await queryClient.cancelQueries({ queryKey: qk });
+      const previous = queryClient.getQueryData<TarefaAnexo[]>(qk);
+      queryClient.setQueryData<TarefaAnexo[]>(qk, (old) => (old || []).filter(a => a.id !== anexo.id));
+      return { previous };
+    },
+    onError: (err: Error, _vars, ctx: any) => {
+      if (ctx?.previous) queryClient.setQueryData(["tarefa-anexos", tarefaId], ctx.previous);
+      toast.error(err.message);
+    },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["tarefa-anexos", tarefaId] });
       toast.success("Anexo removido!");
     },
-    onError: (err: Error) => toast.error(err.message),
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["tarefa-anexos", tarefaId] });
+    },
   });
 
   const getAnexoUrl = async (storagePath: string) => {
@@ -330,10 +389,31 @@ export function useProjetoTarefaDetalhe(tarefaId: string | undefined, produtoId?
       } as any);
       if (error) throw error;
     },
-    onSuccess: () => {
+    onMutate: async ({ conteudo, mentions }) => {
+      const qk = ["tarefa-messages", tarefaId];
+      await queryClient.cancelQueries({ queryKey: qk });
+      const previous = queryClient.getQueryData<TarefaMessage[]>(qk);
+      const profilesCache = queryClient.getQueryData<any[]>(["profiles-cache", user?.id]);
+      const me = profilesCache?.find((p: any) => p.id === user?.id);
+      const optimistic: TarefaMessage = {
+        id: `temp-${crypto.randomUUID()}`,
+        tarefa_id: tarefaId!,
+        user_id: user!.id,
+        conteudo,
+        mentions: mentions || [],
+        created_at: new Date().toISOString(),
+        autor: me ? { nome: me.nome, avatar_url: me.avatar_url } : { nome: "Você", avatar_url: null },
+      };
+      queryClient.setQueryData<TarefaMessage[]>(qk, (old) => [...(old || []), optimistic]);
+      return { previous };
+    },
+    onError: (err: Error, _vars, ctx: any) => {
+      if (ctx?.previous) queryClient.setQueryData(["tarefa-messages", tarefaId], ctx.previous);
+      toast.error(err.message);
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["tarefa-messages", tarefaId] });
     },
-    onError: (err: Error) => toast.error(err.message),
   });
 
   // ===== Linked Product query (with filhos for DISPLAY) =====

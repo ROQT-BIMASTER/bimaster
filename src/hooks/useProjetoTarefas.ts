@@ -482,17 +482,31 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
     onMutate: async ({ tarefaId, userId }) => {
       await queryClient.cancelQueries({ queryKey: ["projeto-tarefas-v2", projetoId] });
       const previous = queryClient.getQueryData<ProjetoTarefasView>(["projeto-tarefas-v2", projetoId]);
-      const member = teamMembers.find(m => m.id === userId);
-      if (member) {
-        patchView((v) => ({
-          ...v,
-          tarefas: v.tarefas.map(t =>
-            t.id === tarefaId
-              ? { ...t, colaboradores: [...(t.colaboradores || []), { user_id: userId, nome: member.nome, avatar_url: member.avatar_url }] }
-              : t
-          ),
-        }));
+      // Mesmo enriquecimento do responsável: olha primeiro em teamMembers e,
+      // como fallback, no cache de projeto_membros — necessário quando o
+      // membro ainda não atua em nenhuma outra tarefa do projeto.
+      let nome = "Membro";
+      let avatar_url: string | null = null;
+      const fromTeam = (previous?.teamMembers || []).find(m => m.id === userId);
+      if (fromTeam) {
+        nome = fromTeam.nome;
+        avatar_url = fromTeam.avatar_url;
+      } else {
+        const membrosCache = queryClient.getQueryData<any[]>(["projeto_membros", projetoId]);
+        const fromMembros = membrosCache?.find((m: any) => m.user_id === userId);
+        if (fromMembros?.profile) {
+          nome = fromMembros.profile.nome || "Membro";
+          avatar_url = fromMembros.profile.avatar_url || null;
+        }
       }
+      patchView((v) => ({
+        ...v,
+        tarefas: v.tarefas.map(t =>
+          t.id === tarefaId
+            ? { ...t, colaboradores: [...(t.colaboradores || []), { user_id: userId, nome, avatar_url }] }
+            : t
+        ),
+      }));
       return { previous };
     },
     onError: (err: Error, _vars, context) => {
