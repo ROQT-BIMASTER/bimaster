@@ -24,6 +24,10 @@ interface Props {
   authors: Record<string, { nome: string | null; avatar: string | null }>;
   currentUserId: string | null;
   readOnly?: boolean;
+  /** Se definido, abre a popover automaticamente uma vez (deep-link). */
+  defaultOpen?: boolean;
+  /** Se definido, destaca visualmente o comentário com este id. */
+  highlightCommentId?: string | null;
   onAdd: (p: { campo_key: string; body: string; parent_id?: string | null }) => Promise<void>;
   onUpdate: (id: string, body: string) => Promise<void>;
   onRemove: (id: string) => Promise<void>;
@@ -40,10 +44,11 @@ function initials(name: string | null | undefined) {
 export function BriefingFieldComments({
   briefingId, campoKey, campoLabel,
   comentarios, authors, currentUserId, readOnly,
+  defaultOpen, highlightCommentId,
   onAdd, onUpdate, onRemove, onToggleResolved, onRework, onReworkApplied,
 }: Props) {
   void briefingId;
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(!!defaultOpen);
   const [showResolved, setShowResolved] = useState(false);
   const [newBody, setNewBody] = useState("");
   const [replyTo, setReplyTo] = useState<string | null>(null);
