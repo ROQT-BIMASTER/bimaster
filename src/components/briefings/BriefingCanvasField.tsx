@@ -53,10 +53,13 @@ export function BriefingCanvasField({
   };
 
   return (
-    <div className={cn(
-      "group space-y-1.5 rounded-md transition-colors",
-      hasOpenComments && "border-l-2 border-amber-500/70 pl-2 -ml-2",
-    )}>
+    <div
+      id={anchorId}
+      className={cn(
+        "group space-y-1.5 rounded-md transition-colors scroll-mt-20",
+        hasOpenComments && "border-l-2 border-amber-500/70 pl-2 -ml-2",
+      )}
+    >
       <div className="flex items-center justify-between">
         <Label className="flex items-center gap-1.5 text-sm">
           {filled ? (
