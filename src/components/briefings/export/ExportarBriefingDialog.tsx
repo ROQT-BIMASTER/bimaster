@@ -73,15 +73,18 @@ export function ExportarBriefingDialog({
 
   const handleSendNotion = async () => {
     setSendingNotion(true);
-    const tid = toast.loading("Enviando para o Notion...");
+    const tid = toast.loading("Sincronizando com o Notion...");
     try {
-      const { page_url } = await sendBriefingToNotion(briefing.id);
-      toast.success("Briefing enviado para o Notion", {
-        id: tid,
-        action: page_url
-          ? { label: "Abrir", onClick: () => window.open(page_url, "_blank") }
-          : undefined,
-      });
+      const { page_url, action } = await sendBriefingToNotion(briefing.id);
+      toast.success(
+        action === "update" ? "Página atualizada no Notion" : "Briefing enviado para o Notion",
+        {
+          id: tid,
+          action: page_url
+            ? { label: "Abrir", onClick: () => window.open(page_url, "_blank") }
+            : undefined,
+        },
+      );
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Falha ao enviar";
       toast.error(msg, { id: tid });
