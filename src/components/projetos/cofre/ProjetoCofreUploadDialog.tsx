@@ -1,0 +1,193 @@
+// src/components/projetos/cofre/ProjetoCofreUploadDialog.tsx
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
+import { toast } from "sonner";
+import { Upload } from "lucide-react";
+import { validateFileForUpload } from "@/lib/utils/file-security";
+import { useQueryClient } from "@tanstack/react-query";
+
+const CATEGORIAS: Record<string, string> = {
+  geral: "Geral",
+  briefing: "Briefing / referência",
+  fornecedor: "Fornecedor",
+  fiscal: "Fiscal",
+  contrato: "Contrato",
+  arte: "Arte / criação",
+  laudo: "Laudo / técnico",
+};
+
+interface Props {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  projetoId: string;
+  descricaoInicial?: string;
+  onUploaded?: (doc: { id: string; nome: string }) => void;
+}
+
+export function ProjetoCofreUploadDialog({
+  open, onOpenChange, projetoId, descricaoInicial, onUploaded,
+}: Props) {
+  const qc = useQueryClient();
+  const [file, setFile] = useState<File | null>(null);
+  const [nome, setNome] = useState("");
+  const [descricao, setDescricao] = useState("");
+  const [categoria, setCategoria] = useState("geral");
+  const [fornecedor, setFornecedor] = useState("");
+  const [lote, setLote] = useState("");
+  const [dataEntrega, setDataEntrega] = useState("");
+  const [uploading, setUploading] = useState(false);
+
+  useEffect(() => {
+    if (open && descricaoInicial && !descricao) setDescricao(descricaoInicial);
+  }, [open, descricaoInicial]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const reset = () => {
+    setFile(null); setNome(""); setDescricao(""); setCategoria("geral");
+    setFornecedor(""); setLote(""); setDataEntrega("");
+  };
+
+  const handleSubmit = async () => {
+    if (!file) return toast.error("Selecione um arquivo");
+    if (!nome.trim()) return toast.error("Dê um nome ao documento");
+
+    setUploading(true);
+    try {
+      const validation = await validateFileForUpload(file);
+      if (!validation.valid) {
+        toast.error(validation.error || "Arquivo inválido");
+        return;
+      }
+
+      const { data: u } = await supabase.auth.getUser();
+      const uid = u.user?.id;
+      if (!uid) throw new Error("Sessão expirada");
+
+      const docId = crypto.randomUUID();
+      const ext = file.name.split(".").pop() ?? "bin";
+      const safeName = file.name.replace(/[^\w.\-]+/g, "_");
+      const path = `${projetoId}/cofre/${docId}/${safeName}`;
+
+      const { error: upErr } = await supabase.storage
+        .from("projeto-anexos")
+        .upload(path, file, {
+          contentType: file.type || `application/${ext}`,
+          upsert: true,
+        });
+      if (upErr) throw upErr;
+
+      const { error } = await (supabase as any)
+        .from("projeto_cofre_documentos")
+        .insert({
+          id: docId,
+          projeto_id: projetoId,
+          created_by: uid,
+          nome: nome.trim(),
+          descricao: descricao.trim() || null,
+          categoria,
+          fornecedor_nome: fornecedor.trim() || null,
+          lote: lote.trim() || null,
+          data_entrega: dataEntrega || null,
+          storage_path: path,
+          mime_type: file.type || null,
+          tamanho_bytes: file.size,
+          status: "recebido",
+        });
+      if (error) throw error;
+
+      toast.success("Documento enviado ao cofre do projeto");
+      qc.invalidateQueries({ queryKey: ["projeto-cofre-documentos", projetoId] });
+      onUploaded?.({ id: docId, nome: nome.trim() });
+      reset();
+      onOpenChange(false);
+    } catch (err: any) {
+      toast.error(err?.message || "Falha no upload");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={(v) => { if (!v) reset(); onOpenChange(v); }}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Anexar ao cofre do projeto</DialogTitle>
+        </DialogHeader>
+
+        <div className="space-y-3">
+          <div>
+            <Label htmlFor="file" className="text-xs">Arquivo</Label>
+            <Input
+              id="file" type="file"
+              onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+            />
+            {file && (
+              <p className="text-[11px] text-muted-foreground mt-1">
+                {file.name} · {(file.size / 1024 / 1024).toFixed(2)} MB
+              </p>
+            )}
+          </div>
+
+          <div>
+            <Label className="text-xs">Nome</Label>
+            <Input value={nome} onChange={(e) => setNome(e.target.value)} />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label className="text-xs">Categoria</Label>
+              <Select value={categoria} onValueChange={setCategoria}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {Object.entries(CATEGORIAS).map(([k, l]) => (
+                    <SelectItem key={k} value={k}>{l}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label className="text-xs">Fornecedor / parceiro</Label>
+              <Input value={fornecedor} onChange={(e) => setFornecedor(e.target.value)} />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label className="text-xs">Lote / entrega</Label>
+              <Input value={lote} onChange={(e) => setLote(e.target.value)} placeholder="ex.: Lote 01" />
+            </div>
+            <div>
+              <Label className="text-xs">Data de entrega</Label>
+              <Input type="date" value={dataEntrega} onChange={(e) => setDataEntrega(e.target.value)} />
+            </div>
+          </div>
+
+          <div>
+            <Label className="text-xs">Descrição</Label>
+            <Textarea
+              rows={2} value={descricao}
+              onChange={(e) => setDescricao(e.target.value)}
+            />
+          </div>
+        </div>
+
+        <DialogFooter>
+          <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancelar</Button>
+          <Button onClick={handleSubmit} disabled={uploading}>
+            <Upload className="h-3.5 w-3.5 mr-1.5" />
+            {uploading ? "Enviando..." : "Enviar"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
