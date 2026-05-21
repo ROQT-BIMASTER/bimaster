@@ -2708,6 +2708,38 @@ export type Database = {
         }
         Relationships: []
       }
+      briefing_membros: {
+        Row: {
+          briefing_id: string
+          created_at: string
+          id: string
+          papel: string
+          user_id: string
+        }
+        Insert: {
+          briefing_id: string
+          created_at?: string
+          id?: string
+          papel?: string
+          user_id: string
+        }
+        Update: {
+          briefing_id?: string
+          created_at?: string
+          id?: string
+          papel?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "briefing_membros_briefing_id_fkey"
+            columns: ["briefing_id"]
+            isOneToOne: false
+            referencedRelation: "briefings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       briefing_mensagens: {
         Row: {
           briefing_id: string
@@ -46298,6 +46330,10 @@ export type Database = {
         Returns: boolean
       }
       can_access_bank_accounts: { Args: { _user_id: string }; Returns: boolean }
+      can_access_briefing: {
+        Args: { _briefing_id: string; _user_id: string }
+        Returns: boolean
+      }
       can_access_cliente: { Args: { viewer_id: string }; Returns: boolean }
       can_access_credit_data: { Args: { _user_id: string }; Returns: boolean }
       can_access_fabrica: { Args: { _user_id: string }; Returns: boolean }
@@ -46325,6 +46361,14 @@ export type Database = {
       }
       can_approve_doc: {
         Args: { _projeto_id: string; _user_id: string }
+        Returns: boolean
+      }
+      can_edit_briefing: {
+        Args: { _briefing_id: string; _user_id: string }
+        Returns: boolean
+      }
+      can_manage_briefing: {
+        Args: { _briefing_id: string; _user_id: string }
         Returns: boolean
       }
       can_publish_to_cofre: {

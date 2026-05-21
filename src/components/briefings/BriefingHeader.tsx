@@ -1,4 +1,6 @@
-import { ArrowLeft, Link2, MoreHorizontal, Download } from "lucide-react";
+import { ArrowLeft, Link2, MoreHorizontal, Download, Users } from "lucide-react";
+import { useState } from "react";
+import { BriefingMembrosDialog } from "./BriefingMembrosDialog";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -39,6 +41,7 @@ export function BriefingHeader({
   onCancelarAprovacao,
 }: Props) {
   const navigate = useNavigate();
+  const [membrosOpen, setMembrosOpen] = useState(false);
   const tipo = getTipoMeta(briefing.tipo);
   const status = getStatusBadge(briefing.status);
 
@@ -85,6 +88,11 @@ export function BriefingHeader({
         </div>
 
         <Badge className={`${status.className} border-0`}>{status.label}</Badge>
+
+        <Button variant="outline" size="sm" onClick={() => setMembrosOpen(true)}>
+          <Users className="h-3.5 w-3.5 mr-1.5" />
+          Membros
+        </Button>
 
         {!projetoNome && (
           <Button variant="outline" size="sm" onClick={onVincularProjeto}>
@@ -136,6 +144,12 @@ export function BriefingHeader({
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
+
+      <BriefingMembrosDialog
+        open={membrosOpen}
+        onOpenChange={setMembrosOpen}
+        briefingId={briefing.id}
+      />
     </div>
   );
 }
