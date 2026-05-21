@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
-import { isDarkHex } from "@/lib/colorUtils";
+import { isDarkHex, isNeutralWhiteHex } from "@/lib/colorUtils";
 
 // Chave única compartilhada por todo o módulo Projetos.
 // Qualquer tela que use este hook lê/escreve no mesmo slot,
@@ -55,8 +55,11 @@ export function usePageBgColor(_pageKey?: string) {
     } catch {}
   }, []);
 
+  // Branco/quase-branco não conta como "custom bg": volta a UI ao tema padrão
+  // (tipografia, bordas e KPIs originais) sem mudar a seleção do usuário.
+  const isWhite = bgColor ? isNeutralWhiteHex(bgColor) : false;
   const darkBg = useMemo(() => (bgColor ? isDarkHex(bgColor) : false), [bgColor]);
-  const customBg = !!bgColor;
+  const customBg = !!bgColor && !isWhite;
 
   return { bgColor, setBgColor, darkBg, customBg };
 }

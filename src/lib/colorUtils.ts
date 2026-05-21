@@ -22,6 +22,22 @@ export function isDarkHex(hex: string): boolean {
   return l < 55;
 }
 
+/**
+ * Returns true when the chosen hex is essentially "white/near-white" — in which
+ * case the per-page reskin is skipped and the default design-system tokens
+ * (carefully tuned typography, borders, KPI hierarchy) are preserved.
+ * Covers #FFFFFF, #FAFAFA, #F8FAFC and similar neutral whites.
+ */
+export function isNeutralWhiteHex(hex: string): boolean {
+  try {
+    const { r, g, b } = hexToRgb(hex);
+    const { s, l } = rgbToHsl(r, g, b);
+    return l >= 96 && s <= 4;
+  } catch {
+    return false;
+  }
+}
+
 function hexToRgb(hex: string): { r: number; g: number; b: number } {
   const safe = hex.replace("#", "");
   return {
@@ -160,6 +176,9 @@ function hsl(h: number, s: number, l: number): string {
  */
 export function getBgPaletteVars(hex: string | null | undefined): Record<string, string> {
   if (!hex) return {};
+  // Branco / quase-branco: deixa o tema padrão prevalecer para não desaturar
+  // textos, perder bordas e degradar a hierarquia tipográfica original.
+  if (isNeutralWhiteHex(hex)) return {};
   const { r, g, b } = hexToRgb(hex);
   const { h, s, l } = rgbToHsl(r, g, b);
   const dark = l < 55;
