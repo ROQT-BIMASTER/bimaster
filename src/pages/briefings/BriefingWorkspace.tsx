@@ -40,7 +40,15 @@ export default function BriefingWorkspace() {
   const [aprovDialogOpen, setAprovDialogOpen] = useState(false);
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
   const [aprovRefresh, setAprovRefresh] = useState(0);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [diffData, setDiffData] = useState<(ReworkResult & { campoLabel: string; campoKey: string }) | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const coments = useBriefingComentarios(briefing?.id);
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => setCurrentUserId(data.user?.id ?? null));
+  }, []);
 
   useEffect(() => {
     if (briefing) setLocalPayload(briefing.payload ?? {});
