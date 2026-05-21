@@ -18,6 +18,7 @@ import { BriefingHeader } from "@/components/briefings/BriefingHeader";
 import { BriefingMessage } from "@/components/briefings/BriefingMessage";
 import { BriefingCanvasField } from "@/components/briefings/BriefingCanvasField";
 import { VincularProjetoDialog } from "@/components/briefings/VincularProjetoDialog";
+import { BriefingMicButton } from "@/components/briefings/BriefingMicButton";
 import { EnviarAprovacaoDialog } from "@/components/briefings/EnviarAprovacaoDialog";
 import { AprovacaoTimeline } from "@/components/briefings/AprovacaoTimeline";
 import { ExportarBriefingDialog } from "@/components/briefings/export/ExportarBriefingDialog";
