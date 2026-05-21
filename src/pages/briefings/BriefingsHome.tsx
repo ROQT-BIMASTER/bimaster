@@ -17,6 +17,7 @@ import {
   BookOpen,
   Search,
   LayoutGrid,
+  ArrowLeft,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -192,11 +193,22 @@ export default function BriefingsHome() {
   return (
     <div className="w-full px-6 py-8 space-y-6 min-h-screen" style={bgStyle}>
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-semibold tracking-tight">Briefings</h1>
-          <p className="text-muted-foreground mt-1">
-            Crie briefings profissionais com apoio de um agente de IA.
-          </p>
+        <div className="flex items-center gap-3">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => (window.history.length > 1 ? navigate(-1) : navigate("/dashboard"))}
+            className="gap-1.5"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Voltar
+          </Button>
+          <div>
+            <h1 className="text-3xl font-semibold tracking-tight">Briefings</h1>
+            <p className="text-muted-foreground mt-1">
+              Crie briefings profissionais com apoio de um agente de IA.
+            </p>
+          </div>
         </div>
         <div className="flex items-center gap-2">
           <BgColorButton />
