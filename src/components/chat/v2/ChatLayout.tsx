@@ -167,6 +167,7 @@ export function ChatLayout({ initialConversaId = null, className, defaultShowInf
             onModoChange={trocarModo}
             podeAlternarModo={podeAlternarModo}
             podeVerBriefings={podeVerBriefings}
+            podeVerProjetos={podeVerProjetos}
             className="w-full"
           />
         ) : (
