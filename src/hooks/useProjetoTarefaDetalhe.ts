@@ -389,10 +389,31 @@ export function useProjetoTarefaDetalhe(tarefaId: string | undefined, produtoId?
       } as any);
       if (error) throw error;
     },
-    onSuccess: () => {
+    onMutate: async ({ conteudo, mentions }) => {
+      const qk = ["tarefa-messages", tarefaId];
+      await queryClient.cancelQueries({ queryKey: qk });
+      const previous = queryClient.getQueryData<TarefaMessage[]>(qk);
+      const profilesCache = queryClient.getQueryData<any[]>(["profiles-cache", user?.id]);
+      const me = profilesCache?.find((p: any) => p.id === user?.id);
+      const optimistic: TarefaMessage = {
+        id: `temp-${crypto.randomUUID()}`,
+        tarefa_id: tarefaId!,
+        user_id: user!.id,
+        conteudo,
+        mentions: mentions || [],
+        created_at: new Date().toISOString(),
+        autor: me ? { nome: me.nome, avatar_url: me.avatar_url } : { nome: "Você", avatar_url: null },
+      };
+      queryClient.setQueryData<TarefaMessage[]>(qk, (old) => [...(old || []), optimistic]);
+      return { previous };
+    },
+    onError: (err: Error, _vars, ctx: any) => {
+      if (ctx?.previous) queryClient.setQueryData(["tarefa-messages", tarefaId], ctx.previous);
+      toast.error(err.message);
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["tarefa-messages", tarefaId] });
     },
-    onError: (err: Error) => toast.error(err.message),
   });
 
   // ===== Linked Product query (with filhos for DISPLAY) =====
