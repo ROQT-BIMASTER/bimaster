@@ -57,6 +57,25 @@ export function ChatLayout({ initialConversaId = null, className, defaultShowInf
   };
 
   const renderPainelCentro = () => {
+    if (modo === "briefings") {
+      if (!conversaId) {
+        return (
+          <div className="flex-1 flex flex-col items-center justify-center text-center px-6">
+            <FileText className="h-16 w-16 text-muted-foreground/40 mb-4" />
+            <h3 className="text-lg font-semibold">Selecione um briefing</h3>
+            <p className="text-sm text-muted-foreground max-w-sm mt-1">
+              Escolha um briefing na lista para ver atividade, comentários e menções a você.
+            </p>
+          </div>
+        );
+      }
+      return (
+        <div className="flex-1 min-w-0 flex">
+          <BriefingChatPanel briefingId={conversaId} />
+        </div>
+      );
+    }
+
     if (modo === "submissoes") {
       if (!conversaId) {
         return (
