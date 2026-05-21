@@ -5,7 +5,9 @@ import {
 } from "@/components/ui/accordion";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Eye, Users, FolderOpen, Send, Shield, MessageSquare, CheckCircle2, XCircle, UserCheck, UserPlus, Lock, HelpCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useNavigate } from "react-router-dom";
+import { ArrowLeft, Eye, Users, FolderOpen, Send, Shield, MessageSquare, CheckCircle2, XCircle, UserCheck, UserPlus, Lock, HelpCircle } from "lucide-react";
 
 function YesNo({ yes, label }: { yes: boolean; label: string }) {
   return (
@@ -21,11 +23,21 @@ function YesNo({ yes, label }: { yes: boolean; label: string }) {
 }
 
 export default function VisibilidadeProjetos() {
+  const navigate = useNavigate();
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-background">
         <AppSidebar />
         <main className="flex-1 overflow-auto p-6 space-y-6 max-w-5xl">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => (window.history.length > 1 ? navigate(-1) : navigate("/dashboard"))}
+            className="-ml-2 w-fit"
+          >
+            <ArrowLeft className="h-4 w-4 mr-1.5" /> Voltar
+          </Button>
+
           <header className="space-y-1">
             <h1 className="text-2xl font-semibold flex items-center gap-2">
               <Eye className="h-6 w-6 text-primary" /> Visibilidade de Projetos
@@ -35,6 +47,7 @@ export default function VisibilidadeProjetos() {
               com exemplos práticos e respostas para as dúvidas mais comuns.
             </p>
           </header>
+
 
           {/* Matriz resumo */}
           <Card>
