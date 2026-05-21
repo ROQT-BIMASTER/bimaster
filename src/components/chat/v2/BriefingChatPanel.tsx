@@ -105,7 +105,12 @@ export function BriefingChatPanel({ briefingId }: Props) {
     if (!t || !briefingId) return;
     setEnviando(true);
     try {
-      await coments.add({ campo_key: "__geral__", body: t });
+      const mentionMembers = (membros ?? []).map((m) => ({
+        user_id: m.user_id,
+        nome: m.profile?.nome ?? null,
+      }));
+      const mentions = resolveMentionsFromText(t, mentionMembers);
+      await coments.add({ campo_key: "__geral__", body: t, mentions });
       setNovoComentario("");
     } catch (e: any) {
       toast.error(e?.message ?? "Não foi possível enviar o comentário");
@@ -113,6 +118,7 @@ export function BriefingChatPanel({ briefingId }: Props) {
       setEnviando(false);
     }
   };
+
 
   if (loading || !briefing) {
     return (
