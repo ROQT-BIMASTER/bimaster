@@ -322,6 +322,7 @@ export default function BriefingWorkspace() {
                             authors={coments.authors}
                             currentUserId={currentUserId}
                             readOnly={readOnly}
+                            members={mentionMembers}
                             defaultOpen={deepLinkCampo === s.key}
                             highlightCommentId={deepLinkCampo === s.key ? deepLinkComentario : null}
                             onAdd={coments.add}
