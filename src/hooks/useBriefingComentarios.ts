@@ -97,7 +97,7 @@ export function useBriefingComentarios(briefingId: string | undefined) {
     [comentarios],
   );
 
-  const add = useCallback(async (params: { campo_key: string; body: string; parent_id?: string | null; mentions?: string[] }) => {
+  const add = useCallback(async (params: { campo_key: string; body: string; parent_id?: string | null; mentions?: string[]; metadata?: Record<string, any> }) => {
     if (!briefingId) return;
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { toast.error("Faça login para comentar"); return; }
@@ -109,9 +109,18 @@ export function useBriefingComentarios(briefingId: string | undefined) {
       parent_id: params.parent_id ?? null,
       author_id: user.id,
       ...(mentions.length > 0 ? { mentions } : {}),
+      ...(params.metadata ? { metadata: params.metadata } : {}),
     });
     if (error) { toast.error("Erro ao salvar comentário"); return; }
   }, [briefingId]);
+
+  const updateMetadata = useCallback(async (id: string, metadata: Record<string, any>) => {
+    const { error } = await supabase
+      .from("briefing_comentarios")
+      .update({ metadata } as any)
+      .eq("id", id);
+    if (error) toast.error("Erro ao vincular documento");
+  }, []);
 
 
   const updateBody = useCallback(async (id: string, body: string) => {
