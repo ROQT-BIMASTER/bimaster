@@ -300,6 +300,7 @@ export default function BriefingWorkspace() {
                       <BriefingCanvasField
                         key={s.key}
                         section={s}
+                        anchorId={`briefing-campo-${s.key}`}
                         value={localPayload[s.key] ?? ""}
                         readOnly={readOnly}
                         onChange={(v) => setLocalPayload((p) => ({ ...p, [s.key]: v }))}
@@ -315,6 +316,8 @@ export default function BriefingWorkspace() {
                             authors={coments.authors}
                             currentUserId={currentUserId}
                             readOnly={readOnly}
+                            defaultOpen={deepLinkCampo === s.key}
+                            highlightCommentId={deepLinkCampo === s.key ? deepLinkComentario : null}
                             onAdd={coments.add}
                             onUpdate={coments.updateBody}
                             onRemove={coments.remove}
