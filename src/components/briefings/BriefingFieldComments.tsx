@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { MentionTextarea } from "@/components/briefings/MentionTextarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
@@ -311,10 +312,15 @@ export function BriefingFieldComments({
 
                 {replyTo === c.id && !readOnly && (
                   <div className="pl-8 space-y-1">
-                    <Textarea
+                    <MentionTextarea
                       value={replyBody}
-                      onChange={(e) => setReplyBody(e.target.value)}
-                      placeholder="Responder…"
+                      onChange={setReplyBody}
+                      members={(members ?? []).map((m) => ({
+                        user_id: m.user_id,
+                        nome: m.nome,
+                        avatar_url: (m as any).avatar_url ?? null,
+                      }))}
+                      placeholder="Responder… digite @ para marcar alguém"
                       rows={2}
                       className="text-xs"
                     />
@@ -367,10 +373,15 @@ export function BriefingFieldComments({
                 </div>
               </div>
             )}
-            <Textarea
+            <MentionTextarea
               value={newBody}
-              onChange={(e) => setNewBody(e.target.value)}
-              placeholder="Adicionar comentário…"
+              onChange={setNewBody}
+              members={(members ?? []).map((m) => ({
+                user_id: m.user_id,
+                nome: m.nome,
+                avatar_url: (m as any).avatar_url ?? null,
+              }))}
+              placeholder="Adicionar comentário… digite @ para marcar alguém"
               rows={2}
               className="text-xs"
             />
