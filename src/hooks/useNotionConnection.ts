@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { openNotionOAuthPopup } from "@/lib/notion/popup";
 import { toast } from "sonner";
+import { PUBLIC_FORMS_DOMAIN } from "@/lib/constants/publicDomain";
 
 export interface NotionConnection {
   id: string;
