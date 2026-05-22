@@ -24,7 +24,7 @@ export function ProjetoHomeAtividades() {
         .from("projeto_atividades")
         .select("id, tipo, descricao, created_at, projeto_id")
         .order("created_at", { ascending: false })
-        .limit(5);
+        .limit(30);
 
       if (error) throw error;
 
@@ -65,7 +65,7 @@ export function ProjetoHomeAtividades() {
             Nenhuma atividade recente
           </div>
         ) : (
-          <div className="divide-y divide-border/30">
+          <div className="max-h-[420px] overflow-y-auto divide-y divide-border/30 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-thumb]:bg-border [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-transparent">
             {atividades.map(a => {
               const Icon = tipoIcones[a.tipo] || Activity;
               return (
