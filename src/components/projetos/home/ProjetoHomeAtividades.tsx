@@ -24,7 +24,7 @@ export function ProjetoHomeAtividades() {
         .from("projeto_atividades")
         .select("id, tipo, descricao, created_at, projeto_id")
         .order("created_at", { ascending: false })
-        .limit(5);
+        .limit(30);
 
       if (error) throw error;
 
