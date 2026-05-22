@@ -6,6 +6,7 @@ import { useEmpresaContext } from "@/contexts/EmpresaContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { CrmPageHeader } from "@/components/crm/CrmPageHeader";
 import { CrmStatusBadge } from "@/components/crm/CrmStatusBadge";
+import { MessageBody } from "@/components/crm/MessageBody";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
