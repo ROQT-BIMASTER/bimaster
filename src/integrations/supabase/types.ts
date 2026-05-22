@@ -2823,6 +2823,7 @@ export type Database = {
       }
       briefing_mensagens: {
         Row: {
+          attachments: Json
           briefing_id: string
           content: string
           created_at: string
@@ -2834,6 +2835,7 @@ export type Database = {
           tool_calls: Json | null
         }
         Insert: {
+          attachments?: Json
           briefing_id: string
           content?: string
           created_at?: string
@@ -2845,6 +2847,7 @@ export type Database = {
           tool_calls?: Json | null
         }
         Update: {
+          attachments?: Json
           briefing_id?: string
           content?: string
           created_at?: string
@@ -2908,6 +2911,66 @@ export type Database = {
             columns: ["briefing_id"]
             isOneToOne: false
             referencedRelation: "briefings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      briefing_sugestoes: {
+        Row: {
+          briefing_id: string
+          campo: string
+          created_at: string
+          created_by: string
+          decided_at: string | null
+          decided_by: string | null
+          id: string
+          justificativa: string | null
+          mensagem_id: string | null
+          status: string
+          sugestao: string
+          valor_atual: string | null
+        }
+        Insert: {
+          briefing_id: string
+          campo: string
+          created_at?: string
+          created_by: string
+          decided_at?: string | null
+          decided_by?: string | null
+          id?: string
+          justificativa?: string | null
+          mensagem_id?: string | null
+          status?: string
+          sugestao: string
+          valor_atual?: string | null
+        }
+        Update: {
+          briefing_id?: string
+          campo?: string
+          created_at?: string
+          created_by?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          id?: string
+          justificativa?: string | null
+          mensagem_id?: string | null
+          status?: string
+          sugestao?: string
+          valor_atual?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "briefing_sugestoes_briefing_id_fkey"
+            columns: ["briefing_id"]
+            isOneToOne: false
+            referencedRelation: "briefings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "briefing_sugestoes_mensagem_id_fkey"
+            columns: ["mensagem_id"]
+            isOneToOne: false
+            referencedRelation: "briefing_mensagens"
             referencedColumns: ["id"]
           },
         ]
@@ -48228,6 +48291,10 @@ export type Database = {
         Args: { p_instancia_id: string }
         Returns: string
       }
+      rpc_aceitar_sugestao_briefing: {
+        Args: { p_sugestao_id: string }
+        Returns: Json
+      }
       rpc_alocar_op_em_container: {
         Args: {
           p_embarque_id: string
@@ -48817,6 +48884,10 @@ export type Database = {
       }
       rpc_rejeitar_lote_versao: {
         Args: { p_motivo: string; p_versao_id: string }
+        Returns: Json
+      }
+      rpc_rejeitar_sugestao_briefing: {
+        Args: { p_sugestao_id: string }
         Returns: Json
       }
       rpc_revogar_oficializacao_cofre: {
