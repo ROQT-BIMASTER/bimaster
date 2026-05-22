@@ -345,11 +345,12 @@ export default function FabricaFornecedores() {
                 <Input placeholder="Buscar por razão social, CNPJ ou fantasia..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
               </div>
               <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="todos">Todos</SelectItem>
                   <SelectItem value="ativo">Ativos</SelectItem>
                   <SelectItem value="inativo">Inativos</SelectItem>
+                  <SelectItem value="pendente">Pendente CNPJ</SelectItem>
                 </SelectContent>
               </Select>
             </div>
