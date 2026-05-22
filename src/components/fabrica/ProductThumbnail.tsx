@@ -7,7 +7,7 @@ import UploadFotoProdutoDialog from "@/components/fabrica/UploadFotoProdutoDialo
 interface ProductThumbnailProps {
   src?: string | null;
   alt?: string;
-  size?: "sm" | "md" | "lg" | "xl";
+  size?: "sm" | "md" | "lg" | "xl" | "2xl" | "3xl";
   className?: string;
   /** Habilita upload ao clicar. Se informado, o thumbnail vira botão. */
   produtoId?: string;
@@ -15,10 +15,12 @@ interface ProductThumbnailProps {
 }
 
 const sizeClasses = {
-  sm: "h-8 w-8",
-  md: "h-12 w-12",
-  lg: "h-16 w-16",
-  xl: "h-24 w-24",
+  sm: "h-10 w-10",
+  md: "h-16 w-16",
+  lg: "h-24 w-24",
+  xl: "h-32 w-32",
+  "2xl": "h-40 w-40",
+  "3xl": "h-48 w-48",
 };
 
 const BUCKET = "fabrica-produto-fotos";
