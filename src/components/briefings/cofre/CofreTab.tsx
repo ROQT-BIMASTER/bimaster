@@ -110,7 +110,7 @@ export function CofreTab({ briefingId, tipoBriefing }: Props) {
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap justify-end">
             {templates.length > 0 && (
               <>
                 <Select value={templateSel} onValueChange={setTemplateSel}>
