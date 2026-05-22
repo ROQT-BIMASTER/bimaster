@@ -86,6 +86,16 @@ export interface BuildBlocksInput {
     status: string;
     responsaveis: string[];
   }>;
+  documentos?: Array<{
+    nome: string;
+    categoria: string;
+    status: string;
+    fornecedor_nome: string | null;
+    lote: string | null;
+    tamanho_bytes: number | null;
+    signed_url: string | null;
+    is_oficial: boolean;
+  }>;
   bimasterUrl: string;
 }
 
