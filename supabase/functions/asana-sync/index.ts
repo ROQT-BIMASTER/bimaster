@@ -54,12 +54,18 @@ Deno.serve(secureHandler({ auth: "none", rateLimit: 10, rateLimitPrefix: "asana-
     );
 
     const body = await req.json();
-    const { path, pat, workspace_gid, project_gids, phase, log_id: existingLogId } = body;
+    const { path, workspace_gid, project_gids, phase, log_id: existingLogId, mode } = body;
+    // `pat` ainda pode vir no body (frontend antigo) — ignorado, mantemos só para compat.
 
-    const asanaPatRaw = pat || Deno.env.get("ASANA_PAT") || "";
-    // Strip whitespace and any non-ASCII chars (smart quotes, zero-width, etc.) that break HTTP header ByteString
-    const asanaPat = asanaPatRaw.replace(/[^\x21-\x7E]/g, "");
-    if (!asanaPat && path !== "/status") return json({ error: "Token do Asana não configurado" }, 400);
+    // Validar credenciais do gateway (exceto rotas que não chamam Asana)
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    const ASANA_API_KEY = Deno.env.get("ASANA_API_KEY");
+    if (path !== "/status" && (!LOVABLE_API_KEY || !ASANA_API_KEY)) {
+      return json({
+        error: "Conexão com Asana não configurada. Vá em Conectores → BiMaster Sync e reconecte.",
+        error_code: "ASANA_CONNECTION_MISSING",
+      }, 503);
+    }
 
     switch (path) {
       case "/test-connection": {
