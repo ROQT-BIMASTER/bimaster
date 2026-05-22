@@ -108,7 +108,7 @@ export function ConsolidadoComposicao({ custosArr }: Props) {
                 <th className="px-3 py-2 font-medium text-right">Total NF</th>
                 <th className="px-3 py-2 font-medium text-right">Serviço</th>
                 <th className="px-3 py-2 font-medium text-right">Condição</th>
-                <th className="px-3 py-2 font-medium text-right">NF Made In</th>
+                <th className="px-3 py-2 font-medium text-right" title="Custo adicional na NF de produtos importados (origem estrangeira).">Importação</th>
                 <th className="px-3 py-2 font-medium text-right">Custo Final</th>
                 <th className="px-3 py-2 font-medium" style={{ minWidth: 120 }}>Peso</th>
               </tr>
