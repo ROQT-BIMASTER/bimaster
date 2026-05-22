@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Activity, AlertTriangle, CheckCircle2, Clock, RefreshCw, Users } from "lucide-react";
+import { Activity, AlertTriangle, CheckCircle2, Clock, Plug, RefreshCw, Users, XCircle } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
@@ -75,6 +75,40 @@ export default function AsanaSyncMonitor() {
         .limit(30);
       if (error) throw error;
       return (data || []) as SyncLog[];
+    },
+  });
+
+  // Testa o conector Asana (via gateway) — independe dos logs históricos
+  const connectorHealth = useQuery({
+    queryKey: ["asana-connector-health"],
+    enabled: isAdmin,
+    refetchInterval: 60000,
+    retry: false,
+    queryFn: async () => {
+      const { data, error } = await supabase.functions.invoke("asana-sync", {
+        body: { path: "/test-connection" },
+      });
+      if (error) {
+        // Extrai mensagem do servidor se disponível
+        let msg = error.message || "Erro";
+        let code: string | null = null;
+        try {
+          const ctx: any = (error as any).context;
+          if (ctx && typeof ctx.json === "function") {
+            const body = await ctx.json();
+            if (body?.error) msg = body.error;
+            if (body?.error_code) code = body.error_code;
+          }
+        } catch { /* noop */ }
+        return { ok: false, error: msg, code } as const;
+      }
+      const r: any = data;
+      return {
+        ok: true,
+        user: r?.user?.name as string | undefined,
+        email: r?.user?.email as string | undefined,
+        workspaces: (r?.workspaces?.length ?? 0) as number,
+      } as const;
     },
   });
 
@@ -158,6 +192,41 @@ export default function AsanaSyncMonitor() {
           Executar sync agora
         </Button>
       </div>
+
+      {/* Status do conector nativo (gateway Lovable) */}
+      <Card className={connectorHealth.data?.ok === false ? "border-destructive/50 bg-destructive/5" : ""}>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            <Plug className="h-4 w-4" />
+            Conexão Asana (BiMaster Sync)
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {connectorHealth.isLoading ? (
+            <Skeleton className="h-5 w-48" />
+          ) : connectorHealth.data?.ok ? (
+            <div className="flex items-center gap-2 text-sm">
+              <CheckCircle2 className="h-4 w-4 text-green-600" />
+              <span>
+                Conectado como <strong>{connectorHealth.data.user}</strong>
+                {connectorHealth.data.email ? ` (${connectorHealth.data.email})` : ""} —{" "}
+                {connectorHealth.data.workspaces} workspace(s) acessível(is).
+              </span>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 text-sm text-destructive">
+                <XCircle className="h-4 w-4" />
+                <span>{connectorHealth.data?.error || "Falha ao verificar conexão."}</span>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Acesse <strong>Conectores → BiMaster Sync</strong> e reconecte a conta Asana.
+                Enquanto a conexão estiver inválida, o cron horário pula automaticamente esses projetos.
+              </p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* KPIs do último run */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">

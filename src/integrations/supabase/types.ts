@@ -34634,6 +34634,7 @@ export type Database = {
         Row: {
           asana_gid: string | null
           asana_json_raw: Json | null
+          asana_modified_at: string | null
           campos_customizados: Json | null
           canal_criacao: string | null
           codigo: string | null
@@ -34671,6 +34672,7 @@ export type Database = {
         Insert: {
           asana_gid?: string | null
           asana_json_raw?: Json | null
+          asana_modified_at?: string | null
           campos_customizados?: Json | null
           canal_criacao?: string | null
           codigo?: string | null
@@ -34708,6 +34710,7 @@ export type Database = {
         Update: {
           asana_gid?: string | null
           asana_json_raw?: Json | null
+          asana_modified_at?: string | null
           campos_customizados?: Json | null
           canal_criacao?: string | null
           codigo?: string | null
@@ -34933,6 +34936,9 @@ export type Database = {
         Row: {
           alerta_antecipacao_dias: number
           asana_gid: string | null
+          asana_last_sync_error: string | null
+          asana_last_sync_status: string | null
+          asana_last_synced_at: string | null
           bg_cor: string | null
           categoria_linha: string | null
           codigo_integracao: string | null
@@ -34960,6 +34966,9 @@ export type Database = {
         Insert: {
           alerta_antecipacao_dias?: number
           asana_gid?: string | null
+          asana_last_sync_error?: string | null
+          asana_last_sync_status?: string | null
+          asana_last_synced_at?: string | null
           bg_cor?: string | null
           categoria_linha?: string | null
           codigo_integracao?: string | null
@@ -34987,6 +34996,9 @@ export type Database = {
         Update: {
           alerta_antecipacao_dias?: number
           asana_gid?: string | null
+          asana_last_sync_error?: string | null
+          asana_last_sync_status?: string | null
+          asana_last_synced_at?: string | null
           bg_cor?: string | null
           categoria_linha?: string | null
           codigo_integracao?: string | null
@@ -47349,6 +47361,9 @@ export type Database = {
         Returns: {
           alerta_antecipacao_dias: number
           asana_gid: string | null
+          asana_last_sync_error: string | null
+          asana_last_sync_status: string | null
+          asana_last_synced_at: string | null
           bg_cor: string | null
           categoria_linha: string | null
           codigo_integracao: string | null

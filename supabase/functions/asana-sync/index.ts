@@ -5,7 +5,10 @@ import { secureHandler } from "../_shared/secure-handler.ts";
 import { timingSafeEqual } from "../_shared/timing-safe.ts";
 
 
-const ASANA_API = "https://app.asana.com/api/1.0";
+// Asana é acessado via Lovable Connector Gateway — o gateway faz refresh automático
+// do token OAuth. Os secrets LOVABLE_API_KEY e ASANA_API_KEY são injetados pelo
+// connector "BiMaster Sync" (asana). Não usamos mais Personal Access Token.
+const GATEWAY_URL = "https://connector-gateway.lovable.dev/asana";
 const TIME_BUDGET_MS = 55_000; // 55s safety margin (edge limit ~60s)
 const TASKS_PAGE_SIZE = 100;
 
@@ -51,12 +54,23 @@ Deno.serve(secureHandler({ auth: "none", rateLimit: 10, rateLimitPrefix: "asana-
     );
 
     const body = await req.json();
-    const { path, pat, workspace_gid, project_gids, phase, log_id: existingLogId } = body;
+    const { path, workspace_gid, project_gids, phase, log_id: existingLogId, mode } = body;
+    // `pat` ainda pode vir no body (frontend antigo) — ignorado, mantemos só para compat.
 
-    const asanaPatRaw = pat || Deno.env.get("ASANA_PAT") || "";
-    // Strip whitespace and any non-ASCII chars (smart quotes, zero-width, etc.) that break HTTP header ByteString
-    const asanaPat = asanaPatRaw.replace(/[^\x21-\x7E]/g, "");
-    if (!asanaPat && path !== "/status") return json({ error: "Token do Asana não configurado" }, 400);
+    // Validar credenciais do gateway (exceto rotas que não chamam Asana)
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    const ASANA_API_KEY = Deno.env.get("ASANA_API_KEY");
+    if (path !== "/status" && (!LOVABLE_API_KEY || !ASANA_API_KEY)) {
+      return json({
+        error: "Conexão com Asana não configurada. Vá em Conectores → BiMaster Sync e reconecte.",
+        error_code: "ASANA_CONNECTION_MISSING",
+      }, 503);
+    }
+
+    // Variável legada mantida para compatibilidade com callsites e download de anexos
+    // hospedados no Asana (gateway não proxia downloads binários). Vazia se PAT não existir;
+    // helpers asanaGet/asanaGetPage/asanaGetAll ignoram este valor e usam o gateway.
+    const asanaPat = (Deno.env.get("ASANA_PAT") || "").replace(/[^\x21-\x7E]/g, "");
 
     switch (path) {
       case "/test-connection": {
@@ -367,6 +381,7 @@ Deno.serve(secureHandler({ auth: "none", rateLimit: 10, rateLimitPrefix: "asana-
                     data_prazo: task.due_on || null, data_inicio: task.start_on || null,
                     data_conclusao: task.completed_at || null,
                     responsavel_id: assigneeId || null, asana_gid: task.gid,
+                    asana_modified_at: task.modified_at || null,
                   };
 
                   if (assigneeId) await ensureMembership(adminClient, localProjectId, assigneeId);
@@ -600,6 +615,20 @@ Deno.serve(secureHandler({ auth: "none", rateLimit: 10, rateLimitPrefix: "asana-
               errors, completed_at: new Date().toISOString(),
             }).eq("id", logId);
             if (completeErr) logger.error("[secondary] Complete log update failed:", completeErr.message);
+
+            // Marca cada projeto como sincronizado com sucesso (alimenta cron incremental + UI)
+            try {
+              await adminClient.from("projetos")
+                .update({
+                  asana_last_synced_at: new Date().toISOString(),
+                  asana_last_sync_status: "ok",
+                  asana_last_sync_error: null,
+                })
+                .in("asana_gid", project_gids);
+            } catch (e: any) {
+              logger.warn("[secondary] could not update projetos.asana_last_synced_at:", e.message);
+            }
+
             logger.log(`[secondary] Done: ${subtasksSynced} subtasks, ${attachmentsSynced} attachments, ${commentsSynced} comments`);
 
             return json({
@@ -616,7 +645,16 @@ Deno.serve(secureHandler({ auth: "none", rateLimit: 10, rateLimitPrefix: "asana-
             status: "failed", errors: [...errors, { fatal: e.message }],
             completed_at: new Date().toISOString(),
           }).eq("id", logId);
-          return json({ error: e.message, errors }, 500);
+          // Marca projetos como falha (circuit breaker do cron usa isso)
+          try {
+            await adminClient.from("projetos")
+              .update({
+                asana_last_sync_status: "failed",
+                asana_last_sync_error: String(e.message || "erro desconhecido").slice(0, 500),
+              })
+              .in("asana_gid", project_gids);
+          } catch { /* ignore */ }
+          return json({ error: e.message, errors, error_code: (e as any).code || null }, 500);
         }
       }
 
@@ -917,10 +955,15 @@ async function syncSubtasksRecursive(
 
 function friendlyAsanaError(status: number, body: string): Error {
   if (status === 401) {
-    return new Error("Token do Asana inválido ou expirado. Gere um novo Personal Access Token em https://app.asana.com/0/my-apps e atualize a conexão.");
+    const err = new Error(
+      "Conexão Asana inválida ou expirada. Acesse Conectores → BiMaster Sync e reconecte a conta.",
+    );
+    (err as any).code = "ASANA_CONNECTION_REVOKED";
+    (err as any).status = 401;
+    return err;
   }
   if (status === 403) {
-    return new Error("Acesso negado pelo Asana. Verifique se o token tem permissão para acessar este workspace/projeto.");
+    return new Error("Acesso negado pelo Asana. A conta conectada não tem permissão neste workspace/projeto.");
   }
   if (status === 429) {
     return new Error("Limite de requisições do Asana excedido. Aguarde alguns minutos e tente novamente.");
@@ -928,33 +971,43 @@ function friendlyAsanaError(status: number, body: string): Error {
   return new Error(`Asana ${status}: ${body}`);
 }
 
-async function asanaGet(path: string, pat: string, params?: Record<string, string>) {
-  const url = new URL(`${ASANA_API}${path}`);
+function gatewayHeaders(): Record<string, string> {
+  // Lidas dentro do handler — em produção sempre presentes pois validamos no início.
+  return {
+    "Authorization": `Bearer ${Deno.env.get("LOVABLE_API_KEY") || ""}`,
+    "X-Connection-Api-Key": Deno.env.get("ASANA_API_KEY") || "",
+  };
+}
+
+// Os 3 helpers abaixo mantêm a assinatura legada (recebem `_pat` ignorado)
+// para evitar refatorar dezenas de callsites. Toda comunicação passa pelo gateway.
+async function asanaGet(path: string, _pat: string, params?: Record<string, string>) {
+  const url = new URL(`${GATEWAY_URL}${path}`);
   if (params) Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
-  const res = await fetch(url.toString(), { headers: { Authorization: `Bearer ${pat}` } });
+  const res = await fetch(url.toString(), { headers: gatewayHeaders() });
   if (!res.ok) { const e = await res.text(); throw friendlyAsanaError(res.status, e); }
   return res.json();
 }
 
-async function asanaGetPage(path: string, pat: string, params: Record<string, string> | undefined, offset: string | null, limit: number) {
-  const url = new URL(`${ASANA_API}${path}`);
+async function asanaGetPage(path: string, _pat: string, params: Record<string, string> | undefined, offset: string | null, limit: number) {
+  const url = new URL(`${GATEWAY_URL}${path}`);
   url.searchParams.set("limit", String(limit));
   if (params) Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
   if (offset) url.searchParams.set("offset", offset);
-  const res = await fetch(url.toString(), { headers: { Authorization: `Bearer ${pat}` } });
+  const res = await fetch(url.toString(), { headers: gatewayHeaders() });
   if (!res.ok) { const e = await res.text(); throw friendlyAsanaError(res.status, e); }
   return res.json();
 }
 
-async function asanaGetAll(path: string, pat: string, params?: Record<string, string>) {
+async function asanaGetAll(path: string, _pat: string, params?: Record<string, string>) {
   const all: any[] = [];
   let offset: string | null = null;
   do {
-    const url = new URL(`${ASANA_API}${path}`);
+    const url = new URL(`${GATEWAY_URL}${path}`);
     url.searchParams.set("limit", "100");
     if (params) Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
     if (offset) url.searchParams.set("offset", offset);
-    const res = await fetch(url.toString(), { headers: { Authorization: `Bearer ${pat}` } });
+    const res = await fetch(url.toString(), { headers: gatewayHeaders() });
     if (!res.ok) { const e = await res.text(); throw friendlyAsanaError(res.status, e); }
     const j = await res.json();
     all.push(...(j.data || []));
