@@ -125,13 +125,20 @@ Deno.serve(secureHandler(
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
-    // 1) Chave do bot
-    const { data: key, error: keyErr } = await sb.rpc("crm_bot_get_key", { p_bot_id: botId });
-    if (keyErr || !key) {
+    // 1) Credenciais completas do bot (chave + identifier + formato + ambiente)
+    const { data: authRows, error: keyErr } = await sb.rpc("crm_bot_get_auth", { p_bot_id: botId });
+    const authRow = Array.isArray(authRows) ? authRows[0] : authRows;
+    if (keyErr || !authRow?.bot_key) {
       return new Response(JSON.stringify({ error: "bot/chave não encontrado" }), {
         status: 404, headers: { ...cors, "Content-Type": "application/json" },
       });
     }
+    const key = authRow.bot_key as string;
+    const identifier = (authRow.identificador_externo as string | null) ?? null;
+    const authFormat = (authRow.auth_format as "raw" | "identifier_pair") ?? "raw";
+    const environment = (authRow.environment as "prod" | "hmg") ?? "prod";
+    const endpoint = BLIP_ENDPOINTS[environment];
+    const authValue = buildAuthValue(authFormat, key, identifier);
 
     const summary = {
       threads_found: 0,
@@ -142,7 +149,7 @@ Deno.serve(secureHandler(
 
     try {
       // 2) Lista threads
-      const tResp = await blipCommand<ThreadIdentity>(key as string, `/threads?$take=${threads}`);
+      const tResp = await blipCommand<ThreadIdentity>(authValue, endpoint, `/threads?$take=${threads}`);
       if (tResp.status !== "success") {
         throw new Error(tResp.reason?.description ?? "Falha ao listar threads");
       }
