@@ -67,19 +67,19 @@ export function TabInsumosFornecedores({ produtos }: { produtos: ProdutoConsolid
     <Card className="overflow-hidden">
       <div className="overflow-auto max-h-[680px]">
         <table className="w-full text-xs">
-          <thead className="bg-muted/50 sticky top-0 z-10">
-            <tr className="text-left">
-              <th className="px-3 py-2 font-medium whitespace-nowrap">Cód. Insumo</th>
+          <thead className="bg-muted sticky top-0 z-20 shadow-sm">
+            <tr className="text-left text-muted-foreground">
+              <th className="px-3 py-2.5 font-medium whitespace-nowrap">Cód. Insumo</th>
               {H("insumo", "Descrição")}
               {H("fornecedor", "Fornecedor")}
               {H("tipo", "Tipo")}
-              {H("n", "# Produtos", "right")}
-              {H("medio", "Custo Médio", "right")}
+              {H("n", "Produtos", "right")}
+              {H("medio", "Médio", "right")}
               {H("min", "Mínimo", "right")}
               {H("max", "Máximo", "right")}
               {H("var", "Variação", "right")}
-              {H("total", "Total Acumulado", "right")}
-              <th className="px-3 py-2 font-medium">Última NF</th>
+              {H("total", "Acumulado", "right")}
+              <th className="px-3 py-2.5 font-medium">Última NF</th>
             </tr>
           </thead>
           <tbody>
