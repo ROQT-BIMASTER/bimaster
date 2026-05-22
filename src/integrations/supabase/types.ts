@@ -10387,6 +10387,1382 @@ export type Database = {
           },
         ]
       }
+      crm_ai_classificacoes: {
+        Row: {
+          conversa_id: string
+          created_at: string
+          empresa_id: number
+          id: string
+          intencao: string | null
+          kb_refs: Json | null
+          motivo: string | null
+          sentimento: string | null
+          urgencia: string | null
+        }
+        Insert: {
+          conversa_id: string
+          created_at?: string
+          empresa_id: number
+          id?: string
+          intencao?: string | null
+          kb_refs?: Json | null
+          motivo?: string | null
+          sentimento?: string | null
+          urgencia?: string | null
+        }
+        Update: {
+          conversa_id?: string
+          created_at?: string
+          empresa_id?: number
+          id?: string
+          intencao?: string | null
+          kb_refs?: Json | null
+          motivo?: string | null
+          sentimento?: string | null
+          urgencia?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_ai_classificacoes_conversa_id_fkey"
+            columns: ["conversa_id"]
+            isOneToOne: false
+            referencedRelation: "crm_conversas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      crm_ai_runs: {
+        Row: {
+          conversa_id: string | null
+          created_at: string
+          custo_usd: number | null
+          empresa_id: number
+          erro: string | null
+          id: string
+          input_hash: string | null
+          latencia_ms: number | null
+          modelo: string
+          output: Json | null
+          tipo: Database["public"]["Enums"]["crm_ai_tipo"]
+          tokens_in: number | null
+          tokens_out: number | null
+        }
+        Insert: {
+          conversa_id?: string | null
+          created_at?: string
+          custo_usd?: number | null
+          empresa_id: number
+          erro?: string | null
+          id?: string
+          input_hash?: string | null
+          latencia_ms?: number | null
+          modelo: string
+          output?: Json | null
+          tipo: Database["public"]["Enums"]["crm_ai_tipo"]
+          tokens_in?: number | null
+          tokens_out?: number | null
+        }
+        Update: {
+          conversa_id?: string | null
+          created_at?: string
+          custo_usd?: number | null
+          empresa_id?: number
+          erro?: string | null
+          id?: string
+          input_hash?: string | null
+          latencia_ms?: number | null
+          modelo?: string
+          output?: Json | null
+          tipo?: Database["public"]["Enums"]["crm_ai_tipo"]
+          tokens_in?: number | null
+          tokens_out?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_ai_runs_conversa_id_fkey"
+            columns: ["conversa_id"]
+            isOneToOne: false
+            referencedRelation: "crm_conversas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      crm_anexos: {
+        Row: {
+          created_at: string
+          empresa_id: number
+          id: string
+          mensagem_id: string
+          mime: string | null
+          nome_arquivo: string | null
+          scan_status: string
+          storage_path: string | null
+          tamanho_bytes: number | null
+          url_externa: string | null
+        }
+        Insert: {
+          created_at?: string
+          empresa_id: number
+          id?: string
+          mensagem_id: string
+          mime?: string | null
+          nome_arquivo?: string | null
+          scan_status?: string
+          storage_path?: string | null
+          tamanho_bytes?: number | null
+          url_externa?: string | null
+        }
+        Update: {
+          created_at?: string
+          empresa_id?: number
+          id?: string
+          mensagem_id?: string
+          mime?: string | null
+          nome_arquivo?: string | null
+          scan_status?: string
+          storage_path?: string | null
+          tamanho_bytes?: number | null
+          url_externa?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_anexos_mensagem_id_fkey"
+            columns: ["mensagem_id"]
+            isOneToOne: false
+            referencedRelation: "crm_mensagens"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      crm_audit_log: {
+        Row: {
+          acao: string
+          antes: Json | null
+          ator_id: string | null
+          created_at: string
+          depois: Json | null
+          empresa_id: number
+          entidade: string
+          entidade_id: string | null
+          id: string
+          ip: string | null
+          user_agent: string | null
+        }
+        Insert: {
+          acao: string
+          antes?: Json | null
+          ator_id?: string | null
+          created_at?: string
+          depois?: Json | null
+          empresa_id: number
+          entidade: string
+          entidade_id?: string | null
+          id?: string
+          ip?: string | null
+          user_agent?: string | null
+        }
+        Update: {
+          acao?: string
+          antes?: Json | null
+          ator_id?: string | null
+          created_at?: string
+          depois?: Json | null
+          empresa_id?: number
+          entidade?: string
+          entidade_id?: string | null
+          id?: string
+          ip?: string | null
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
+      crm_bots: {
+        Row: {
+          ativo: boolean
+          bot_key_cifrada: string
+          canal: Database["public"]["Enums"]["crm_canal"]
+          config: Json
+          created_at: string
+          created_by: string | null
+          descricao: string | null
+          empresa_id: number
+          id: string
+          identificador_externo: string | null
+          modo_leitura: boolean
+          nome: string
+          numero_whatsapp: string | null
+          provider: Database["public"]["Enums"]["crm_provider"]
+          ultimo_erro: string | null
+          ultimo_sync_at: string | null
+          updated_at: string
+          webhook_secret: string
+        }
+        Insert: {
+          ativo?: boolean
+          bot_key_cifrada: string
+          canal?: Database["public"]["Enums"]["crm_canal"]
+          config?: Json
+          created_at?: string
+          created_by?: string | null
+          descricao?: string | null
+          empresa_id: number
+          id?: string
+          identificador_externo?: string | null
+          modo_leitura?: boolean
+          nome: string
+          numero_whatsapp?: string | null
+          provider?: Database["public"]["Enums"]["crm_provider"]
+          ultimo_erro?: string | null
+          ultimo_sync_at?: string | null
+          updated_at?: string
+          webhook_secret?: string
+        }
+        Update: {
+          ativo?: boolean
+          bot_key_cifrada?: string
+          canal?: Database["public"]["Enums"]["crm_canal"]
+          config?: Json
+          created_at?: string
+          created_by?: string | null
+          descricao?: string | null
+          empresa_id?: number
+          id?: string
+          identificador_externo?: string | null
+          modo_leitura?: boolean
+          nome?: string
+          numero_whatsapp?: string | null
+          provider?: Database["public"]["Enums"]["crm_provider"]
+          ultimo_erro?: string | null
+          ultimo_sync_at?: string | null
+          updated_at?: string
+          webhook_secret?: string
+        }
+        Relationships: []
+      }
+      crm_campanha_alvos: {
+        Row: {
+          campanha_id: string
+          contato_id: string | null
+          enviado_em: string | null
+          erro: string | null
+          id: string
+          status: string
+          variante: string | null
+        }
+        Insert: {
+          campanha_id: string
+          contato_id?: string | null
+          enviado_em?: string | null
+          erro?: string | null
+          id?: string
+          status?: string
+          variante?: string | null
+        }
+        Update: {
+          campanha_id?: string
+          contato_id?: string | null
+          enviado_em?: string | null
+          erro?: string | null
+          id?: string
+          status?: string
+          variante?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_campanha_alvos_campanha_id_fkey"
+            columns: ["campanha_id"]
+            isOneToOne: false
+            referencedRelation: "crm_campanhas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_campanha_alvos_contato_id_fkey"
+            columns: ["contato_id"]
+            isOneToOne: false
+            referencedRelation: "crm_contatos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      crm_campanhas: {
+        Row: {
+          ab_grupos: Json | null
+          agendamento_at: string | null
+          created_at: string
+          criada_por: string | null
+          empresa_id: number
+          id: string
+          nome: string
+          optout_lista_id: string | null
+          segmentacao: Json
+          status: string
+          template_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          ab_grupos?: Json | null
+          agendamento_at?: string | null
+          created_at?: string
+          criada_por?: string | null
+          empresa_id: number
+          id?: string
+          nome: string
+          optout_lista_id?: string | null
+          segmentacao?: Json
+          status?: string
+          template_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          ab_grupos?: Json | null
+          agendamento_at?: string | null
+          created_at?: string
+          criada_por?: string | null
+          empresa_id?: number
+          id?: string
+          nome?: string
+          optout_lista_id?: string | null
+          segmentacao?: Json
+          status?: string
+          template_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_campanhas_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "crm_templates_whatsapp"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      crm_contato_identidades: {
+        Row: {
+          bot_id: string | null
+          contato_id: string
+          created_at: string
+          external_id: string
+          id: string
+          metadata: Json
+          provider: Database["public"]["Enums"]["crm_provider"]
+        }
+        Insert: {
+          bot_id?: string | null
+          contato_id: string
+          created_at?: string
+          external_id: string
+          id?: string
+          metadata?: Json
+          provider: Database["public"]["Enums"]["crm_provider"]
+        }
+        Update: {
+          bot_id?: string | null
+          contato_id?: string
+          created_at?: string
+          external_id?: string
+          id?: string
+          metadata?: Json
+          provider?: Database["public"]["Enums"]["crm_provider"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_contato_identidades_bot_id_fkey"
+            columns: ["bot_id"]
+            isOneToOne: false
+            referencedRelation: "crm_bots"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_contato_identidades_contato_id_fkey"
+            columns: ["contato_id"]
+            isOneToOne: false
+            referencedRelation: "crm_contatos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      crm_contato_tags: {
+        Row: {
+          contato_id: string
+          tag_id: string
+        }
+        Insert: {
+          contato_id: string
+          tag_id: string
+        }
+        Update: {
+          contato_id?: string
+          tag_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_contato_tags_contato_id_fkey"
+            columns: ["contato_id"]
+            isOneToOne: false
+            referencedRelation: "crm_contatos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_contato_tags_tag_id_fkey"
+            columns: ["tag_id"]
+            isOneToOne: false
+            referencedRelation: "crm_tags"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      crm_contatos: {
+        Row: {
+          atributos: Json
+          avatar_url: string | null
+          cliente_erp_id: string | null
+          created_at: string
+          documento: string | null
+          email: string | null
+          empresa_id: number
+          id: string
+          nome: string | null
+          origem: string | null
+          primeiro_contato_em: string | null
+          telefone: string | null
+          telefone_normalizado: string | null
+          ultimo_contato_em: string | null
+          updated_at: string
+        }
+        Insert: {
+          atributos?: Json
+          avatar_url?: string | null
+          cliente_erp_id?: string | null
+          created_at?: string
+          documento?: string | null
+          email?: string | null
+          empresa_id: number
+          id?: string
+          nome?: string | null
+          origem?: string | null
+          primeiro_contato_em?: string | null
+          telefone?: string | null
+          telefone_normalizado?: string | null
+          ultimo_contato_em?: string | null
+          updated_at?: string
+        }
+        Update: {
+          atributos?: Json
+          avatar_url?: string | null
+          cliente_erp_id?: string | null
+          created_at?: string
+          documento?: string | null
+          email?: string | null
+          empresa_id?: number
+          id?: string
+          nome?: string | null
+          origem?: string | null
+          primeiro_contato_em?: string | null
+          telefone?: string | null
+          telefone_normalizado?: string | null
+          ultimo_contato_em?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      crm_conversa_tags: {
+        Row: {
+          conversa_id: string
+          tag_id: string
+        }
+        Insert: {
+          conversa_id: string
+          tag_id: string
+        }
+        Update: {
+          conversa_id?: string
+          tag_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_conversa_tags_conversa_id_fkey"
+            columns: ["conversa_id"]
+            isOneToOne: false
+            referencedRelation: "crm_conversas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_conversa_tags_tag_id_fkey"
+            columns: ["tag_id"]
+            isOneToOne: false
+            referencedRelation: "crm_tags"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      crm_conversa_ticket: {
+        Row: {
+          conversa_id: string
+          ticket_id: string
+        }
+        Insert: {
+          conversa_id: string
+          ticket_id: string
+        }
+        Update: {
+          conversa_id?: string
+          ticket_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_conversa_ticket_conversa_id_fkey"
+            columns: ["conversa_id"]
+            isOneToOne: false
+            referencedRelation: "crm_conversas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_conversa_ticket_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "crm_tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      crm_conversas: {
+        Row: {
+          bot_id: string | null
+          canal: Database["public"]["Enums"]["crm_canal"]
+          contato_id: string | null
+          created_at: string
+          empresa_id: number
+          external_id: string | null
+          fechada_em: string | null
+          fila_id: string | null
+          id: string
+          iniciada_em: string
+          metadata: Json
+          operador_id: string | null
+          owner: string
+          primeira_resposta_em: string | null
+          resumo_ia: string | null
+          sla_due_at: string | null
+          sla_policy_id: string | null
+          status: Database["public"]["Enums"]["crm_conversa_status"]
+          ultima_mensagem_em: string
+          ultimo_motivo: string | null
+          ultimo_sentimento: string | null
+          updated_at: string
+        }
+        Insert: {
+          bot_id?: string | null
+          canal?: Database["public"]["Enums"]["crm_canal"]
+          contato_id?: string | null
+          created_at?: string
+          empresa_id: number
+          external_id?: string | null
+          fechada_em?: string | null
+          fila_id?: string | null
+          id?: string
+          iniciada_em?: string
+          metadata?: Json
+          operador_id?: string | null
+          owner?: string
+          primeira_resposta_em?: string | null
+          resumo_ia?: string | null
+          sla_due_at?: string | null
+          sla_policy_id?: string | null
+          status?: Database["public"]["Enums"]["crm_conversa_status"]
+          ultima_mensagem_em?: string
+          ultimo_motivo?: string | null
+          ultimo_sentimento?: string | null
+          updated_at?: string
+        }
+        Update: {
+          bot_id?: string | null
+          canal?: Database["public"]["Enums"]["crm_canal"]
+          contato_id?: string | null
+          created_at?: string
+          empresa_id?: number
+          external_id?: string | null
+          fechada_em?: string | null
+          fila_id?: string | null
+          id?: string
+          iniciada_em?: string
+          metadata?: Json
+          operador_id?: string | null
+          owner?: string
+          primeira_resposta_em?: string | null
+          resumo_ia?: string | null
+          sla_due_at?: string | null
+          sla_policy_id?: string | null
+          status?: Database["public"]["Enums"]["crm_conversa_status"]
+          ultima_mensagem_em?: string
+          ultimo_motivo?: string | null
+          ultimo_sentimento?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_conversas_bot_id_fkey"
+            columns: ["bot_id"]
+            isOneToOne: false
+            referencedRelation: "crm_bots"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_conversas_contato_id_fkey"
+            columns: ["contato_id"]
+            isOneToOne: false
+            referencedRelation: "crm_contatos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_conversas_fila_id_fkey"
+            columns: ["fila_id"]
+            isOneToOne: false
+            referencedRelation: "crm_filas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      crm_departamentos: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          empresa_id: number
+          gestor_id: string | null
+          id: string
+          nome: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          empresa_id: number
+          gestor_id?: string | null
+          id?: string
+          nome: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          empresa_id?: number
+          gestor_id?: string | null
+          id?: string
+          nome?: string
+        }
+        Relationships: []
+      }
+      crm_feature_flags: {
+        Row: {
+          chave: string
+          created_at: string
+          empresa_id: number
+          escopo: string
+          escopo_id: string | null
+          id: string
+          updated_at: string
+          valor: Json
+        }
+        Insert: {
+          chave: string
+          created_at?: string
+          empresa_id: number
+          escopo?: string
+          escopo_id?: string | null
+          id?: string
+          updated_at?: string
+          valor?: Json
+        }
+        Update: {
+          chave?: string
+          created_at?: string
+          empresa_id?: number
+          escopo?: string
+          escopo_id?: string | null
+          id?: string
+          updated_at?: string
+          valor?: Json
+        }
+        Relationships: []
+      }
+      crm_filas: {
+        Row: {
+          ativo: boolean
+          capacidade_max_por_op: number
+          cor: string | null
+          created_at: string
+          departamento_id: string | null
+          empresa_id: number
+          horario_funcionamento: Json
+          id: string
+          nome: string
+          prioridade: number
+          regra_roteamento: Database["public"]["Enums"]["crm_roteamento"]
+          skills: string[]
+          transbordo_apos_min: number | null
+          transbordo_fila_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          capacidade_max_por_op?: number
+          cor?: string | null
+          created_at?: string
+          departamento_id?: string | null
+          empresa_id: number
+          horario_funcionamento?: Json
+          id?: string
+          nome: string
+          prioridade?: number
+          regra_roteamento?: Database["public"]["Enums"]["crm_roteamento"]
+          skills?: string[]
+          transbordo_apos_min?: number | null
+          transbordo_fila_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          capacidade_max_por_op?: number
+          cor?: string | null
+          created_at?: string
+          departamento_id?: string | null
+          empresa_id?: number
+          horario_funcionamento?: Json
+          id?: string
+          nome?: string
+          prioridade?: number
+          regra_roteamento?: Database["public"]["Enums"]["crm_roteamento"]
+          skills?: string[]
+          transbordo_apos_min?: number | null
+          transbordo_fila_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_filas_departamento_id_fkey"
+            columns: ["departamento_id"]
+            isOneToOne: false
+            referencedRelation: "crm_departamentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_crm_filas_transbordo"
+            columns: ["transbordo_fila_id"]
+            isOneToOne: false
+            referencedRelation: "crm_filas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      crm_integracoes: {
+        Row: {
+          ativo: boolean
+          config_cifrada: string | null
+          created_at: string
+          empresa_id: number
+          id: string
+          nome: string
+          tipo: string
+        }
+        Insert: {
+          ativo?: boolean
+          config_cifrada?: string | null
+          created_at?: string
+          empresa_id: number
+          id?: string
+          nome: string
+          tipo: string
+        }
+        Update: {
+          ativo?: boolean
+          config_cifrada?: string | null
+          created_at?: string
+          empresa_id?: number
+          id?: string
+          nome?: string
+          tipo?: string
+        }
+        Relationships: []
+      }
+      crm_kb_chunks: {
+        Row: {
+          conteudo: string
+          created_at: string
+          documento_id: string
+          embedding: string | null
+          empresa_id: number
+          id: string
+          ordem: number
+        }
+        Insert: {
+          conteudo: string
+          created_at?: string
+          documento_id: string
+          embedding?: string | null
+          empresa_id: number
+          id?: string
+          ordem: number
+        }
+        Update: {
+          conteudo?: string
+          created_at?: string
+          documento_id?: string
+          embedding?: string | null
+          empresa_id?: number
+          id?: string
+          ordem?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_kb_chunks_documento_id_fkey"
+            columns: ["documento_id"]
+            isOneToOne: false
+            referencedRelation: "crm_kb_documentos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      crm_kb_documentos: {
+        Row: {
+          ativo: boolean
+          conteudo: string
+          created_at: string
+          empresa_id: number
+          fonte: string | null
+          id: string
+          titulo: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          conteudo: string
+          created_at?: string
+          empresa_id: number
+          fonte?: string | null
+          id?: string
+          titulo: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          conteudo?: string
+          created_at?: string
+          empresa_id?: number
+          fonte?: string | null
+          id?: string
+          titulo?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      crm_mensagens: {
+        Row: {
+          autor_id: string | null
+          autor_nome: string | null
+          blip_id: string | null
+          content_tsv: unknown
+          conteudo: string | null
+          conversa_id: string
+          created_at: string
+          criada_em: string
+          direction: Database["public"]["Enums"]["crm_msg_direction"]
+          empresa_id: number
+          hash_dedupe: string | null
+          id: string
+          metadata: Json
+          midia_mime: string | null
+          midia_url: string | null
+          tipo: Database["public"]["Enums"]["crm_msg_tipo"]
+        }
+        Insert: {
+          autor_id?: string | null
+          autor_nome?: string | null
+          blip_id?: string | null
+          content_tsv?: unknown
+          conteudo?: string | null
+          conversa_id: string
+          created_at?: string
+          criada_em?: string
+          direction: Database["public"]["Enums"]["crm_msg_direction"]
+          empresa_id: number
+          hash_dedupe?: string | null
+          id?: string
+          metadata?: Json
+          midia_mime?: string | null
+          midia_url?: string | null
+          tipo?: Database["public"]["Enums"]["crm_msg_tipo"]
+        }
+        Update: {
+          autor_id?: string | null
+          autor_nome?: string | null
+          blip_id?: string | null
+          content_tsv?: unknown
+          conteudo?: string | null
+          conversa_id?: string
+          created_at?: string
+          criada_em?: string
+          direction?: Database["public"]["Enums"]["crm_msg_direction"]
+          empresa_id?: number
+          hash_dedupe?: string | null
+          id?: string
+          metadata?: Json
+          midia_mime?: string | null
+          midia_url?: string | null
+          tipo?: Database["public"]["Enums"]["crm_msg_tipo"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_mensagens_conversa_id_fkey"
+            columns: ["conversa_id"]
+            isOneToOne: false
+            referencedRelation: "crm_conversas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      crm_notificacoes: {
+        Row: {
+          created_at: string
+          destinatario_id: string
+          empresa_id: number
+          id: string
+          lido_em: string | null
+          payload: Json | null
+          tipo: string
+          titulo: string
+        }
+        Insert: {
+          created_at?: string
+          destinatario_id: string
+          empresa_id: number
+          id?: string
+          lido_em?: string | null
+          payload?: Json | null
+          tipo: string
+          titulo: string
+        }
+        Update: {
+          created_at?: string
+          destinatario_id?: string
+          empresa_id?: number
+          id?: string
+          lido_em?: string | null
+          payload?: Json | null
+          tipo?: string
+          titulo?: string
+        }
+        Relationships: []
+      }
+      crm_operadores: {
+        Row: {
+          apelido: string | null
+          ativo: boolean
+          capacidade_max: number
+          created_at: string
+          empresa_id: number
+          filas_padrao: string[]
+          skills: string[]
+          status_presenca: Database["public"]["Enums"]["crm_presenca"]
+          ultima_atividade_at: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          apelido?: string | null
+          ativo?: boolean
+          capacidade_max?: number
+          created_at?: string
+          empresa_id: number
+          filas_padrao?: string[]
+          skills?: string[]
+          status_presenca?: Database["public"]["Enums"]["crm_presenca"]
+          ultima_atividade_at?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          apelido?: string | null
+          ativo?: boolean
+          capacidade_max?: number
+          created_at?: string
+          empresa_id?: number
+          filas_padrao?: string[]
+          skills?: string[]
+          status_presenca?: Database["public"]["Enums"]["crm_presenca"]
+          ultima_atividade_at?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      crm_sla_events: {
+        Row: {
+          atraso_seg: number | null
+          conversa_id: string | null
+          empresa_id: number
+          id: string
+          metadata: Json
+          ocorreu_em: string
+          ticket_id: string | null
+          tipo: string
+        }
+        Insert: {
+          atraso_seg?: number | null
+          conversa_id?: string | null
+          empresa_id: number
+          id?: string
+          metadata?: Json
+          ocorreu_em?: string
+          ticket_id?: string | null
+          tipo: string
+        }
+        Update: {
+          atraso_seg?: number | null
+          conversa_id?: string | null
+          empresa_id?: number
+          id?: string
+          metadata?: Json
+          ocorreu_em?: string
+          ticket_id?: string | null
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_sla_events_conversa_id_fkey"
+            columns: ["conversa_id"]
+            isOneToOne: false
+            referencedRelation: "crm_conversas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      crm_sla_policies: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          empresa_id: number
+          horario_util: Json
+          id: string
+          nome: string
+          prioridade: Database["public"]["Enums"]["crm_prioridade"]
+          tempo_primeira_resposta_min: number | null
+          tempo_resolucao_min: number | null
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          empresa_id: number
+          horario_util?: Json
+          id?: string
+          nome: string
+          prioridade?: Database["public"]["Enums"]["crm_prioridade"]
+          tempo_primeira_resposta_min?: number | null
+          tempo_resolucao_min?: number | null
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          empresa_id?: number
+          horario_util?: Json
+          id?: string
+          nome?: string
+          prioridade?: Database["public"]["Enums"]["crm_prioridade"]
+          tempo_primeira_resposta_min?: number | null
+          tempo_resolucao_min?: number | null
+        }
+        Relationships: []
+      }
+      crm_tags: {
+        Row: {
+          cor: string | null
+          created_at: string
+          empresa_id: number
+          escopo: string
+          id: string
+          nome: string
+        }
+        Insert: {
+          cor?: string | null
+          created_at?: string
+          empresa_id: number
+          escopo?: string
+          id?: string
+          nome: string
+        }
+        Update: {
+          cor?: string | null
+          created_at?: string
+          empresa_id?: number
+          escopo?: string
+          id?: string
+          nome?: string
+        }
+        Relationships: []
+      }
+      crm_templates_whatsapp: {
+        Row: {
+          aprovado: boolean
+          categoria: string | null
+          conteudo: string
+          created_at: string
+          empresa_id: number
+          external_id: string | null
+          id: string
+          idioma: string
+          nome: string
+          variaveis: Json
+        }
+        Insert: {
+          aprovado?: boolean
+          categoria?: string | null
+          conteudo: string
+          created_at?: string
+          empresa_id: number
+          external_id?: string | null
+          id?: string
+          idioma?: string
+          nome: string
+          variaveis?: Json
+        }
+        Update: {
+          aprovado?: boolean
+          categoria?: string | null
+          conteudo?: string
+          created_at?: string
+          empresa_id?: number
+          external_id?: string | null
+          id?: string
+          idioma?: string
+          nome?: string
+          variaveis?: Json
+        }
+        Relationships: []
+      }
+      crm_tickets: {
+        Row: {
+          aberto_em: string
+          aberto_por: string | null
+          contato_id: string | null
+          created_at: string
+          descricao: string | null
+          empresa_id: number
+          fechado_em: string | null
+          fila_id: string | null
+          id: string
+          metadata: Json
+          motivo: string | null
+          numero: number
+          operador_id: string | null
+          prioridade: Database["public"]["Enums"]["crm_prioridade"]
+          resolvido_em: string | null
+          satisfacao: number | null
+          sla_due_at: string | null
+          sla_policy_id: string | null
+          status: Database["public"]["Enums"]["crm_ticket_status"]
+          titulo: string
+          updated_at: string
+        }
+        Insert: {
+          aberto_em?: string
+          aberto_por?: string | null
+          contato_id?: string | null
+          created_at?: string
+          descricao?: string | null
+          empresa_id: number
+          fechado_em?: string | null
+          fila_id?: string | null
+          id?: string
+          metadata?: Json
+          motivo?: string | null
+          numero?: number
+          operador_id?: string | null
+          prioridade?: Database["public"]["Enums"]["crm_prioridade"]
+          resolvido_em?: string | null
+          satisfacao?: number | null
+          sla_due_at?: string | null
+          sla_policy_id?: string | null
+          status?: Database["public"]["Enums"]["crm_ticket_status"]
+          titulo: string
+          updated_at?: string
+        }
+        Update: {
+          aberto_em?: string
+          aberto_por?: string | null
+          contato_id?: string | null
+          created_at?: string
+          descricao?: string | null
+          empresa_id?: number
+          fechado_em?: string | null
+          fila_id?: string | null
+          id?: string
+          metadata?: Json
+          motivo?: string | null
+          numero?: number
+          operador_id?: string | null
+          prioridade?: Database["public"]["Enums"]["crm_prioridade"]
+          resolvido_em?: string | null
+          satisfacao?: number | null
+          sla_due_at?: string | null
+          sla_policy_id?: string | null
+          status?: Database["public"]["Enums"]["crm_ticket_status"]
+          titulo?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_tickets_contato_id_fkey"
+            columns: ["contato_id"]
+            isOneToOne: false
+            referencedRelation: "crm_contatos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_tickets_fila_id_fkey"
+            columns: ["fila_id"]
+            isOneToOne: false
+            referencedRelation: "crm_filas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_tickets_sla_policy_id_fkey"
+            columns: ["sla_policy_id"]
+            isOneToOne: false
+            referencedRelation: "crm_sla_policies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      crm_webhook_endpoints: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          dlq_count: number
+          empresa_id: number
+          eventos: string[]
+          id: string
+          nome: string
+          secret: string
+          url: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          dlq_count?: number
+          empresa_id: number
+          eventos?: string[]
+          id?: string
+          nome: string
+          secret?: string
+          url: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          dlq_count?: number
+          empresa_id?: number
+          eventos?: string[]
+          id?: string
+          nome?: string
+          secret?: string
+          url?: string
+        }
+        Relationships: []
+      }
+      crm_webhooks_in_log: {
+        Row: {
+          bot_id: string | null
+          empresa_id: number
+          erro: string | null
+          headers: Json | null
+          hmac_ok: boolean | null
+          id: string
+          idempotency_key: string | null
+          processed_at: string | null
+          raw: Json
+          received_at: string
+        }
+        Insert: {
+          bot_id?: string | null
+          empresa_id: number
+          erro?: string | null
+          headers?: Json | null
+          hmac_ok?: boolean | null
+          id?: string
+          idempotency_key?: string | null
+          processed_at?: string | null
+          raw: Json
+          received_at?: string
+        }
+        Update: {
+          bot_id?: string | null
+          empresa_id?: number
+          erro?: string | null
+          headers?: Json | null
+          hmac_ok?: boolean | null
+          id?: string
+          idempotency_key?: string | null
+          processed_at?: string | null
+          raw?: Json
+          received_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_webhooks_in_log_bot_id_fkey"
+            columns: ["bot_id"]
+            isOneToOne: false
+            referencedRelation: "crm_bots"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      crm_webhooks_out_log: {
+        Row: {
+          created_at: string
+          empresa_id: number
+          endpoint_id: string | null
+          enviado_em: string | null
+          erro: string | null
+          evento: string
+          id: string
+          payload: Json
+          proxima_tentativa_at: string | null
+          status: number | null
+          tentativa: number
+        }
+        Insert: {
+          created_at?: string
+          empresa_id: number
+          endpoint_id?: string | null
+          enviado_em?: string | null
+          erro?: string | null
+          evento: string
+          id?: string
+          payload: Json
+          proxima_tentativa_at?: string | null
+          status?: number | null
+          tentativa?: number
+        }
+        Update: {
+          created_at?: string
+          empresa_id?: number
+          endpoint_id?: string | null
+          enviado_em?: string | null
+          erro?: string | null
+          evento?: string
+          id?: string
+          payload?: Json
+          proxima_tentativa_at?: string | null
+          status?: number | null
+          tentativa?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_webhooks_out_log_endpoint_id_fkey"
+            columns: ["endpoint_id"]
+            isOneToOne: false
+            referencedRelation: "crm_webhook_endpoints"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ddos_rate_limits: {
         Row: {
           blocked_until: string | null
@@ -47070,6 +48446,8 @@ export type Database = {
         }
         Returns: string
       }
+      crm_has_access: { Args: { _empresa_id: number }; Returns: boolean }
+      crm_is_admin: { Args: { _empresa_id: number }; Returns: boolean }
       current_user_email: { Args: never; Returns: string }
       daitch_mokotoff: { Args: { "": string }; Returns: string[] }
       debug_visibilidade_tarefa: {
@@ -49337,6 +50715,49 @@ export type Database = {
         | "etiqueta_teste"
         | "display"
       client_category: "A" | "B" | "C" | "D"
+      crm_ai_tipo:
+        | "suggest"
+        | "summary"
+        | "classify"
+        | "sentiment"
+        | "rag"
+        | "rewrite"
+      crm_canal:
+        | "whatsapp"
+        | "webchat"
+        | "instagram"
+        | "messenger"
+        | "email"
+        | "voz"
+        | "outro"
+      crm_conversa_status:
+        | "open"
+        | "pending"
+        | "assigned"
+        | "closed"
+        | "archived"
+      crm_msg_direction: "in" | "out" | "system"
+      crm_msg_tipo:
+        | "text"
+        | "image"
+        | "audio"
+        | "video"
+        | "file"
+        | "location"
+        | "template"
+        | "interactive"
+        | "system"
+      crm_presenca: "online" | "pausa" | "offline"
+      crm_prioridade: "low" | "normal" | "high" | "urgent"
+      crm_provider: "blip" | "whatsapp_cloud" | "interno"
+      crm_roteamento: "round_robin" | "skills" | "priority" | "manual"
+      crm_ticket_status:
+        | "open"
+        | "in_progress"
+        | "waiting"
+        | "resolved"
+        | "closed"
+        | "cancelled"
       fabrica_tipo_sku:
         | "produto"
         | "provador"
@@ -49551,6 +50972,54 @@ export const Constants = {
         "display",
       ],
       client_category: ["A", "B", "C", "D"],
+      crm_ai_tipo: [
+        "suggest",
+        "summary",
+        "classify",
+        "sentiment",
+        "rag",
+        "rewrite",
+      ],
+      crm_canal: [
+        "whatsapp",
+        "webchat",
+        "instagram",
+        "messenger",
+        "email",
+        "voz",
+        "outro",
+      ],
+      crm_conversa_status: [
+        "open",
+        "pending",
+        "assigned",
+        "closed",
+        "archived",
+      ],
+      crm_msg_direction: ["in", "out", "system"],
+      crm_msg_tipo: [
+        "text",
+        "image",
+        "audio",
+        "video",
+        "file",
+        "location",
+        "template",
+        "interactive",
+        "system",
+      ],
+      crm_presenca: ["online", "pausa", "offline"],
+      crm_prioridade: ["low", "normal", "high", "urgent"],
+      crm_provider: ["blip", "whatsapp_cloud", "interno"],
+      crm_roteamento: ["round_robin", "skills", "priority", "manual"],
+      crm_ticket_status: [
+        "open",
+        "in_progress",
+        "waiting",
+        "resolved",
+        "closed",
+        "cancelled",
+      ],
       fabrica_tipo_sku: [
         "produto",
         "provador",
