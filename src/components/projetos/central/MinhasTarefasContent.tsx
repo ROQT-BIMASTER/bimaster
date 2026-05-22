@@ -627,17 +627,45 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
       });
     }
     if (filterTime === "atrasadas") {
-      const now = new Date();
+      // Comparar apenas DATA (início do dia local), consistente com groupTarefas.
+      // Sem isso, tarefas com prazo HOJE caem como "atrasadas" porque
+      // `hoje 00:00 < new Date()` (hora atual) é sempre verdadeiro.
+      const todayStart = new Date();
+      todayStart.setHours(0, 0, 0, 0);
       result = result.filter(t => {
         if (t.status === "concluida") return false;
         const p = parseLocalDate(t.data_prazo);
-        return p && p < now;
+        if (!p) return false;
+        const pStart = new Date(p);
+        pStart.setHours(0, 0, 0, 0);
+        return pStart.getTime() < todayStart.getTime();
       });
     } else if (filterTime === "hoje") {
+      // "Tarefas do dia" = tarefas ativas hoje. Inclui:
+      //   (a) prazo === hoje
+      //   (b) tarefas em andamento (início <= hoje <= prazo)
+      //   (c) atrasadas não concluídas (carryover — ainda precisam de ação hoje)
+      // Antes o filtro só considerava (a), o que deixava de fora tarefas que
+      // o usuário esperava ver na visão "do dia".
+      const todayStart = new Date();
+      todayStart.setHours(0, 0, 0, 0);
+      const todayEnd = new Date();
+      todayEnd.setHours(23, 59, 59, 999);
       result = result.filter(t => {
         if (t.status === "concluida") return false;
-        const p = parseLocalDate(t.data_prazo);
-        return p && p.toDateString() === new Date().toDateString();
+        const prazo = parseLocalDate(t.data_prazo);
+        const inicio = parseLocalDate(t.data_inicio_planejada);
+        if (prazo) {
+          const prazoStart = new Date(prazo);
+          prazoStart.setHours(0, 0, 0, 0);
+          // (a) prazo hoje OR (c) prazo no passado e ainda aberta
+          if (prazoStart.getTime() <= todayEnd.getTime()) return true;
+          // (b) em janela [início, prazo] cobrindo hoje
+          if (inicio && inicio.getTime() <= todayEnd.getTime() && prazoStart.getTime() >= todayStart.getTime()) {
+            return true;
+          }
+        }
+        return false;
       });
     } else if (filterTime === "sem_data") {
       result = result.filter(t => isSemDatasPlanejadas(t));
@@ -1331,12 +1359,47 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
             <Card className="overflow-hidden">
             <CardContent className="p-0">
               {groups.length === 0 ? (
+                (() => {
+                  // Detecta filtros ativos para diferenciar "tudo em dia" real
+                  // de "filtro zerou o resultado". Sem isso, combinar projeto +
+                  // papel + período salvo nas preferências mostra uma tela
+                  // vazia sem indicar a causa — falha silenciosa.
+                  const hasActiveFilters =
+                    !!search ||
+                    filterPriority !== "all" ||
+                    filterProject !== "all" ||
+                    filterTime !== "all" ||
+                    filterRole !== "all" ||
+                    advancedActiveCount > 0;
+                  const totalNoFilters = tarefas.length;
+                  const clearAllFilters = () => {
+                    setSearch("");
+                    setFilterPriority("all");
+                    setFilterProject("all");
+                    setFilterTime("all");
+                    setFilterRole("all");
+                    clearAdvancedFilters();
+                  };
+                  return (
                 <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
-                  <div className="h-16 w-16 rounded-full bg-success/10 flex items-center justify-center mb-4">
-                    <CheckCircle2 className="h-8 w-8 text-success" />
+                  <div className={cn(
+                    "h-16 w-16 rounded-full flex items-center justify-center mb-4",
+                    hasActiveFilters ? "bg-warning/10" : "bg-success/10",
+                  )}>
+                    {hasActiveFilters ? (
+                      <Filter className="h-8 w-8 text-warning" />
+                    ) : (
+                      <CheckCircle2 className="h-8 w-8 text-success" />
+                    )}
                   </div>
-                  <p className="font-semibold text-foreground">Tudo em dia!</p>
-                  <p className="text-sm mt-1">Nenhuma tarefa encontrada com os filtros atuais.</p>
+                  <p className="font-semibold text-foreground">
+                    {hasActiveFilters ? "Nenhuma tarefa corresponde aos filtros" : "Tudo em dia!"}
+                  </p>
+                  <p className="text-sm mt-1">
+                    {hasActiveFilters
+                      ? `Você tem ${totalNoFilters} ${totalNoFilters === 1 ? "tarefa" : "tarefas"} ocultas pelos filtros atuais.`
+                      : "Nenhuma tarefa encontrada."}
+                  </p>
                   {filterRole === "colaborador" && (
                     <p className="text-xs mt-2 text-muted-foreground">
                       Procurando tarefas que você delegou?{" "}
@@ -1354,7 +1417,12 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
                       </button>
                     </p>
                   )}
-                  <div className="flex items-center gap-3 mt-4">
+                  <div className="flex items-center gap-3 mt-4 flex-wrap justify-center">
+                    {hasActiveFilters && (
+                      <Button variant="default" className="gap-1.5" onClick={clearAllFilters}>
+                        <X className="h-4 w-4" /> Limpar todos os filtros
+                      </Button>
+                    )}
                     <Button variant="outline" className="gap-1.5" onClick={() => setShowNewTask(true)}>
                       <Plus className="h-4 w-4" /> Criar nova tarefa
                     </Button>
@@ -1368,6 +1436,8 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
                     </a>
                   </div>
                 </div>
+                  );
+                })()
               ) : sortMode === "prioridade" && groups[0] ? (
                 <div>
                   <div className="flex items-center gap-2 px-4 py-2 bg-muted/30 border-b border-border/30">
