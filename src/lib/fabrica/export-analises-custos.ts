@@ -23,8 +23,8 @@ export async function exportAnalisesCustos(opts: {
   const { custosArr, provadores, grupoLabel } = opts;
 
   const comparativoRows = buildComparativoRows(custosArr).map((r) => ({
-    "Código ERP": r.codigo,
-    Produto: r.nome,
+    Código: r.codigo,
+    Descrição: r.nome,
     Tipo: r.tipo,
     "Custo Sim01": r.custoSim01,
     "Custo Sim02": r.custoSim02,
@@ -35,8 +35,9 @@ export async function exportAnalisesCustos(opts: {
   }));
 
   const consolidadoRows = custosArr.map((c) => ({
-    "Código ERP": c.produto.codigo,
-    SKU: c.produto.cenario_label || c.produto.nome,
+    Código: c.produto.codigo,
+    Descrição: c.produto.nome,
+    "Rótulo Cenário": c.produto.cenario_label || "",
     Tipo: (c.produto.tipo || "OFICIAL").toUpperCase(),
     Marca: c.produto.marca,
     "Total Insumos": c.totalInsumos,
@@ -52,9 +53,9 @@ export async function exportAnalisesCustos(opts: {
 
   const provadoresRows = provadores.map((p) => ({
     "Cód. Provador": p.provador_codigo,
-    "SKU Provador": p.provador_nome,
-    "Cód. ERP Pai": p.pai_codigo,
-    "Produto Pai": p.pai_nome,
+    "Descrição Provador": p.provador_nome,
+    "Cód. Pai": p.pai_codigo,
+    "Descrição Pai": p.pai_nome,
     "Custo Provador": p.custo_fabrica,
     "Custo Pai": p.custo_pai,
     "% do Pai": p.pct_do_pai,
