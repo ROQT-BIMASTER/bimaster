@@ -40,6 +40,7 @@ export default function BriefingWorkspace() {
   const { briefing, sections, messages, loading, sending, enviar, recarregar } =
     useBriefingChat(id);
   const [input, setInput] = useState("");
+  const [chatAttachments, setChatAttachments] = useState<ChatAttachment[]>([]);
   const [localPayload, setLocalPayload] = useState<Record<string, string>>({});
   const [projetoNome, setProjetoNome] = useState<string | null>(null);
   const [vincDialogOpen, setVincDialogOpen] = useState(false);
