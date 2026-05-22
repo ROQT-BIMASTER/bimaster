@@ -16,6 +16,8 @@ import { Inbox, Search, UserPlus, Send, Lock, AlertTriangle, Filter, RefreshCw }
 import { channelIcon, initials, relativeTime } from "@/lib/crm/format";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { useCrmFeatureFlag } from "@/hooks/useCrmFeatureFlag";
+import { CrmSearchResults } from "@/components/crm/CrmSearchResults";
 
 type Conv = {
   id: string; canal: string; status: string; operador_id: string | null;
@@ -32,6 +34,10 @@ export default function CrmInbox() {
   const empresaId = empresaSelecionada?.id ?? empresaIds[0];
 
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  useEffect(() => { const t = setTimeout(() => setDebouncedSearch(search), 350); return () => clearTimeout(t); }, [search]);
+  const searchV2 = useCrmFeatureFlag(empresaId, "crm_search_v2");
+  const useServerSearch = searchV2 && debouncedSearch.trim().length >= 2;
   const [status, setStatus] = useState<string>("abertas");
   const [canal, setCanal] = useState<string>("all");
   const [params, setParams] = useSearchParams();
@@ -137,6 +143,9 @@ export default function CrmInbox() {
                 </SelectContent>
               </Select>
             </div>
+            {useServerSearch ? (
+              <CrmSearchResults empresaId={empresaId} query={debouncedSearch} onPick={(cid) => setSelectedId(cid)} />
+            ) : (
             <ScrollArea className="flex-1">
               {isLoading && <div className="p-4 text-center text-xs text-muted-foreground">Carregando…</div>}
               {!isLoading && conversas.length === 0 && (
@@ -169,6 +178,7 @@ export default function CrmInbox() {
                 })}
               </div>
             </ScrollArea>
+            )}
           </div>
         </ResizablePanel>
         <ResizableHandle withHandle />
