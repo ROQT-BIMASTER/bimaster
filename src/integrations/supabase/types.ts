@@ -41686,7 +41686,6 @@ export type Database = {
           status: string
           supervisor_nome: string | null
           token_hash: string
-          token_plain: string | null
           use_count: number
         }
         Insert: {
@@ -41700,7 +41699,6 @@ export type Database = {
           status?: string
           supervisor_nome?: string | null
           token_hash: string
-          token_plain?: string | null
           use_count?: number
         }
         Update: {
@@ -41714,7 +41712,6 @@ export type Database = {
           status?: string
           supervisor_nome?: string | null
           token_hash?: string
-          token_plain?: string | null
           use_count?: number
         }
         Relationships: [
