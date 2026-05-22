@@ -49,7 +49,7 @@ export function ProdutoCard({
       <CardContent className="p-4 space-y-3">
         {/* Header: thumbnail + name + badges */}
         <div className="flex items-start gap-3">
-          <ProductThumbnail src={produto.foto_url} alt={produto.nome} size="lg" produtoId={produto.id} produtoNome={produto.nome} />
+          <ProductThumbnail src={produto.foto_url} alt={produto.nome} size="xl" produtoId={produto.id} produtoNome={produto.nome} />
           <div className="flex-1 min-w-0">
             <h3 className="font-semibold text-sm leading-tight truncate">{produto.nome}</h3>
             <p className="text-xs text-muted-foreground font-mono">{produto.codigo}</p>
