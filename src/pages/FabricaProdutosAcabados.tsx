@@ -1175,7 +1175,8 @@ export default function FabricaProdutosAcabados() {
         </div>
         {/* /Bloco fixo */}
 
-        {/* Bloco scrollável: filtros + tabela */}
+        {/* Bloco scrollável: filtros + tabela (oculto no modo Cenários) */}
+        {abaModulo === "oficiais" && (
         <div className="flex-1 min-h-0 flex gap-4 overflow-hidden">
           {/* Left Sidebar Filters */}
           {filtrosAbertos && (
@@ -1808,7 +1809,9 @@ export default function FabricaProdutosAcabados() {
             </div>
           </div>
         </div>
+        )}
       </div>
+
 
       <NovoProdutoAcabadoDialog
         open={dialogNovo}
