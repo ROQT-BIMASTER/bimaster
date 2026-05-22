@@ -338,6 +338,7 @@ const RelatorioDesenvolvimento = lazyWithRetry(() => import("./pages/RelatorioDe
 const RelatorioAPModule = lazyWithRetry(() => import("./pages/RelatorioAPModule"));
 const IntegracaoERP = lazyWithRetry(() => import("./pages/IntegracaoERP"));
 const AdminApiSupport = lazyWithRetry(() => import("./pages/AdminApiSupport"));
+const DocumentacaoTecnica = lazyWithRetry(() => import("./pages/admin/DocumentacaoTecnica"));
 const AsanaIntegracao = lazyWithRetry(() => import("./pages/AsanaIntegracao"));
 const IntegracoesNotion = lazyWithRetry(() => import("./pages/configuracoes/IntegracoesNotion"));
 const ShipsgoIntegracao = lazyWithRetry(() => import("./pages/admin/ShipsgoIntegracao"));
