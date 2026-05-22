@@ -2,3 +2,6 @@ project_id = "aokkyrgaqjarhlywhjju"
 
 [functions.backup-signed-urls]
 verify_jwt = false
+
+[functions.crm-blip-ingest]
+verify_jwt = false

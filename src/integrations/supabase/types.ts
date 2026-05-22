@@ -48447,6 +48447,14 @@ export type Database = {
         Returns: string
       }
       crm_bot_get_key: { Args: { p_bot_id: string }; Returns: string }
+      crm_bot_get_webhook_secret: {
+        Args: { p_bot_id: string }
+        Returns: string
+      }
+      crm_bot_touch_sync: {
+        Args: { p_bot_id: string; p_erro: string }
+        Returns: undefined
+      }
       crm_bot_upsert: {
         Args: {
           p_ativo: boolean
@@ -48466,7 +48474,31 @@ export type Database = {
       crm_decrypt_secret: { Args: { p_ciphertext: string }; Returns: string }
       crm_encrypt_secret: { Args: { p_plaintext: string }; Returns: string }
       crm_has_access: { Args: { _empresa_id: number }; Returns: boolean }
+      crm_ingest_message: {
+        Args: {
+          p_blip_msg_id: string
+          p_bot_id: string
+          p_contato_email: string
+          p_contato_nome: string
+          p_contato_telefone: string
+          p_conteudo: string
+          p_criada_em: string
+          p_direction: Database["public"]["Enums"]["crm_msg_direction"]
+          p_external_thread: string
+          p_metadata: Json
+          p_midia_mime: string
+          p_midia_url: string
+          p_tipo: Database["public"]["Enums"]["crm_msg_tipo"]
+        }
+        Returns: {
+          contato_id: string
+          conversa_id: string
+          duplicated: boolean
+          mensagem_id: string
+        }[]
+      }
       crm_is_admin: { Args: { _empresa_id: number }; Returns: boolean }
+      crm_normalize_phone: { Args: { p_phone: string }; Returns: string }
       current_user_email: { Args: never; Returns: string }
       daitch_mokotoff: { Args: { "": string }; Returns: string[] }
       debug_visibilidade_tarefa: {
