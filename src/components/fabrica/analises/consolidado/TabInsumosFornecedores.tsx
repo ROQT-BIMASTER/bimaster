@@ -1,7 +1,8 @@
 import { useMemo, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowUpDown } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { AlertTriangle, ArrowUpDown } from "lucide-react";
 import { formatCurrency } from "@/lib/formatters";
 import type { ProdutoConsolidado } from "@/hooks/useCustosConsolidados";
 import { agregarInsumosFornecedores } from "@/lib/fabrica/consolidado-utils";
