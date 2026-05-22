@@ -20,6 +20,7 @@ import { FiltrosConsolidadoBar } from "@/components/fabrica/analises/consolidado
 import { TabProdutos } from "@/components/fabrica/analises/consolidado/TabProdutos";
 import { TabInsumosFornecedores } from "@/components/fabrica/analises/consolidado/TabInsumosFornecedores";
 import { TabFornecedores } from "@/components/fabrica/analises/consolidado/TabFornecedores";
+import { TabPadronizacao } from "@/components/fabrica/analises/consolidado/TabPadronizacao";
 import { exportToExcel } from "@/lib/excel-utils";
 import { formatCurrency } from "@/lib/formatters";
 
@@ -184,6 +185,7 @@ export default function AnalisesCustosConsolidado() {
                 <TabsTrigger value="produtos">Produtos</TabsTrigger>
                 <TabsTrigger value="insumos">Insumos × Fornecedores</TabsTrigger>
                 <TabsTrigger value="fornecedores">Fornecedores</TabsTrigger>
+                <TabsTrigger value="padronizacao">Padronização</TabsTrigger>
               </TabsList>
               <TabsContent value="produtos">
                 <TabProdutos produtos={filtrados} />
@@ -193,6 +195,9 @@ export default function AnalisesCustosConsolidado() {
               </TabsContent>
               <TabsContent value="fornecedores">
                 <TabFornecedores produtos={filtrados} />
+              </TabsContent>
+              <TabsContent value="padronizacao">
+                <TabPadronizacao produtos={filtrados} />
               </TabsContent>
             </Tabs>
           </>

@@ -1,4 +1,5 @@
 import type { ProdutoConsolidado } from "@/hooks/useCustosConsolidados";
+import { insumoKey, normalizeText } from "@/lib/fabrica/normalize";
 
 export interface FiltrosConsolidado {
   busca: string;
@@ -102,10 +103,11 @@ export function aplicarFiltros(produtos: ProdutoConsolidado[], f: FiltrosConsoli
 
 export interface AggInsumoFornecedor {
   chave: string;
-  insumoCodigo: string;
-  insumoNome: string;
-  fornecedor: string;
+  insumoCodigo: string; // código canônico (mais frequente)
+  insumoNome: string;   // descrição canônica (mais frequente)
+  fornecedor: string;   // fornecedor canônico (primeira ocorrência)
   tipoInsumo: string;
+  codigos: string[];    // todos os códigos distintos vistos no grupo
   nProdutos: number;
   custoMedio: number;
   custoMin: number;
@@ -120,59 +122,107 @@ function custoUnitario(i: { custo_nf: number; custo_servico: number; custo_condi
   return i.custo_nf + i.custo_servico + i.custo_condicao + i.custo_nf_made_in + i.ipi_valor;
 }
 
+function pickMode(counts: Map<string, number>): string {
+  let best = "";
+  let bestN = -1;
+  counts.forEach((n, k) => {
+    if (n > bestN || (n === bestN && k && !best)) {
+      best = k;
+      bestN = n;
+    }
+  });
+  return best;
+}
+
+interface InternalAgg {
+  chave: string;
+  fornecedor: string;
+  tipoInsumo: string;
+  codigosCount: Map<string, number>;
+  nomesCount: Map<string, number>;
+  produtos: Set<string>;
+  soma: number;
+  count: number;
+  custoMin: number;
+  custoMax: number;
+  totalAcumulado: number;
+  ultimaNF: string | null;
+  ultimoUso: string;
+}
+
 export function agregarInsumosFornecedores(produtos: ProdutoConsolidado[]): AggInsumoFornecedor[] {
-  const map = new Map<string, AggInsumoFornecedor & { _produtos: Set<string>; _soma: number; _count: number }>();
+  const map = new Map<string, InternalAgg>();
   produtos.forEach((p) => {
     p.itens.forEach((i) => {
-      const insumoCodigo = (i.codigo || "").trim();
-      const insumoNome = (i.nome || "").trim();
+      const codigo = (i.codigo || "").trim();
+      const nome = (i.nome || "").trim();
       const fornecedor = (i.fornecedor || "—").trim();
       const tipoInsumo = (i.tipo_insumo || "—").trim();
-      const chave = `${insumoCodigo}||${insumoNome}||${fornecedor}`;
+      const chave = insumoKey(nome, fornecedor);
       const c = custoUnitario(i);
-      const existing = map.get(chave);
-      if (!existing) {
-        map.set(chave, {
+      let ex = map.get(chave);
+      if (!ex) {
+        ex = {
           chave,
-          insumoCodigo,
-          insumoNome,
           fornecedor,
           tipoInsumo,
-          nProdutos: 1,
-          custoMedio: c,
+          codigosCount: new Map(),
+          nomesCount: new Map(),
+          produtos: new Set(),
+          soma: 0,
+          count: 0,
           custoMin: c,
           custoMax: c,
-          variacao: 0,
-          totalAcumulado: c,
-          ultimaNF: i.nf_referencia,
+          totalAcumulado: 0,
+          ultimaNF: i.nf_referencia ?? null,
           ultimoUso: p.produto.created_at,
-          _produtos: new Set([p.produto.id]),
-          _soma: c,
-          _count: 1,
-        });
-      } else {
-        existing._produtos.add(p.produto.id);
-        existing.nProdutos = existing._produtos.size;
-        existing._soma += c;
-        existing._count += 1;
-        existing.custoMedio = existing._soma / existing._count;
-        existing.custoMin = Math.min(existing.custoMin, c);
-        existing.custoMax = Math.max(existing.custoMax, c);
-        existing.totalAcumulado += c;
-        if (p.produto.created_at > existing.ultimoUso) {
-          existing.ultimoUso = p.produto.created_at;
-          existing.ultimaNF = i.nf_referencia ?? existing.ultimaNF;
-        }
+        };
+        map.set(chave, ex);
+      }
+      if (codigo) ex.codigosCount.set(codigo, (ex.codigosCount.get(codigo) || 0) + 1);
+      if (nome) ex.nomesCount.set(nome, (ex.nomesCount.get(nome) || 0) + 1);
+      ex.produtos.add(p.produto.id);
+      ex.soma += c;
+      ex.count += 1;
+      ex.custoMin = Math.min(ex.custoMin, c);
+      ex.custoMax = Math.max(ex.custoMax, c);
+      ex.totalAcumulado += c;
+      if (p.produto.created_at > ex.ultimoUso) {
+        ex.ultimoUso = p.produto.created_at;
+        ex.ultimaNF = i.nf_referencia ?? ex.ultimaNF;
       }
     });
   });
-  const out = Array.from(map.values()).map((x) => ({
-    ...x,
-    variacao: x.custoMin > 0 ? (x.custoMax - x.custoMin) / x.custoMin : 0,
-  }));
+  const out: AggInsumoFornecedor[] = Array.from(map.values()).map((x) => {
+    const codigos = Array.from(x.codigosCount.keys()).sort((a, b) => a.localeCompare(b, "pt-BR"));
+    return {
+      chave: x.chave,
+      insumoCodigo: pickMode(x.codigosCount) || "—",
+      insumoNome: pickMode(x.nomesCount) || "—",
+      fornecedor: x.fornecedor,
+      tipoInsumo: x.tipoInsumo,
+      codigos,
+      nProdutos: x.produtos.size,
+      custoMedio: x.count > 0 ? x.soma / x.count : 0,
+      custoMin: x.custoMin,
+      custoMax: x.custoMax,
+      variacao: x.custoMin > 0 ? (x.custoMax - x.custoMin) / x.custoMin : 0,
+      totalAcumulado: x.totalAcumulado,
+      ultimaNF: x.ultimaNF,
+      ultimoUso: x.ultimoUso,
+    };
+  });
   out.sort((a, b) => b.variacao - a.variacao || b.totalAcumulado - a.totalAcumulado);
   return out;
 }
+
+/** Grupos com >=2 códigos distintos para a mesma descrição+fornecedor normalizados. */
+export function detectarDuplicados(produtos: ProdutoConsolidado[]): AggInsumoFornecedor[] {
+  return agregarInsumosFornecedores(produtos).filter((g) => g.codigos.length >= 2);
+}
+
+export { normalizeText };
+
 
 export interface AggFornecedor {
   fornecedor: string;

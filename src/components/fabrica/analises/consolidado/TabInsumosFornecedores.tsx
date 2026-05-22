@@ -1,7 +1,8 @@
 import { useMemo, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowUpDown } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { AlertTriangle, ArrowUpDown } from "lucide-react";
 import { formatCurrency } from "@/lib/formatters";
 import type { ProdutoConsolidado } from "@/hooks/useCustosConsolidados";
 import { agregarInsumosFornecedores } from "@/lib/fabrica/consolidado-utils";
@@ -86,9 +87,28 @@ export function TabInsumosFornecedores({ produtos }: { produtos: ProdutoConsolid
             )}
             {rows.map((r) => {
               const alta = r.variacao >= 0.15;
+              const multi = r.codigos.length >= 2;
               return (
                 <tr key={r.chave} className={`border-t hover:bg-muted/30 ${alta ? "bg-destructive/5" : ""}`}>
-                  <td className="px-3 py-2 font-mono whitespace-nowrap">{r.insumoCodigo || "—"}</td>
+                  <td className="px-3 py-2 font-mono whitespace-nowrap">
+                    {multi ? (
+                      <TooltipProvider delayDuration={150}>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Badge variant="outline" className="gap-1 bg-amber-500/10 text-amber-700 border-amber-500/30 cursor-help">
+                              <AlertTriangle className="h-3 w-3" />
+                              {r.codigos.length} códigos
+                            </Badge>
+                          </TooltipTrigger>
+                          <TooltipContent side="right" className="font-mono text-xs">
+                            {r.codigos.join(", ")}
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    ) : (
+                      r.insumoCodigo || "—"
+                    )}
+                  </td>
                   <td className="px-3 py-2" title={r.insumoNome}>{r.insumoNome || "—"}</td>
                   <td className="px-3 py-2 text-muted-foreground" title={r.fornecedor}>{r.fornecedor}</td>
                   <td className="px-3 py-2 text-muted-foreground">{r.tipoInsumo}</td>
