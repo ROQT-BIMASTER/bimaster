@@ -6,6 +6,7 @@ import { AlertTriangle, ArrowUpDown } from "lucide-react";
 import { formatCurrency } from "@/lib/formatters";
 import type { ProdutoConsolidado } from "@/hooks/useCustosConsolidados";
 import { agregarInsumosFornecedores } from "@/lib/fabrica/consolidado-utils";
+import { prettifyEnum } from "@/lib/fabrica/normalize";
 
 type SortKey = "insumo" | "fornecedor" | "tipo" | "n" | "medio" | "min" | "max" | "var" | "total";
 
