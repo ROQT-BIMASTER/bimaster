@@ -412,6 +412,33 @@ export default function BriefingWorkspace() {
           }}
         />
       )}
+
+      <AnexarEvidenciaDialog
+        open={evidenciaOpen}
+        onOpenChange={setEvidenciaOpen}
+        briefingId={briefing.id}
+        origem="chat"
+        onAnexado={async (doc) => {
+          // Registra mensagens no histórico do chat para proveniência
+          try {
+            await supabase.from("briefing_mensagens").insert([
+              {
+                briefing_id: briefing.id,
+                role: "user",
+                content: `Anexou evidência: ${doc.nome}`,
+              },
+              {
+                briefing_id: briefing.id,
+                role: "assistant",
+                content: `Evidência registrada no cofre${doc.is_oficial ? " como documento oficial" : ""}${doc.is_checklist_item ? " e adicionada ao checklist deste briefing" : ""}.`,
+              },
+            ]);
+            await recarregar();
+          } catch {
+            // silencioso — upload já foi feito
+          }
+        }}
+      />
     </div>
   );
 }
