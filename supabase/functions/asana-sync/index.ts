@@ -615,6 +615,20 @@ Deno.serve(secureHandler({ auth: "none", rateLimit: 10, rateLimitPrefix: "asana-
               errors, completed_at: new Date().toISOString(),
             }).eq("id", logId);
             if (completeErr) logger.error("[secondary] Complete log update failed:", completeErr.message);
+
+            // Marca cada projeto como sincronizado com sucesso (alimenta cron incremental + UI)
+            try {
+              await adminClient.from("projetos")
+                .update({
+                  asana_last_synced_at: new Date().toISOString(),
+                  asana_last_sync_status: "ok",
+                  asana_last_sync_error: null,
+                })
+                .in("asana_gid", project_gids);
+            } catch (e: any) {
+              logger.warn("[secondary] could not update projetos.asana_last_synced_at:", e.message);
+            }
+
             logger.log(`[secondary] Done: ${subtasksSynced} subtasks, ${attachmentsSynced} attachments, ${commentsSynced} comments`);
 
             return json({
