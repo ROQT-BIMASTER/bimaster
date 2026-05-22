@@ -88,6 +88,12 @@ const PermissoesModulo = lazyWithRetry(() => import("./pages/dashboard/configura
 const ConfiguracoesAcesso = lazyWithRetry(() => import("./pages/dashboard/configuracoes/ConfiguracoesAcesso"));
 const CrmHome = lazyWithRetry(() => import("./pages/crm/CrmHome"));
 const CrmBots = lazyWithRetry(() => import("./pages/crm/CrmBots"));
+const CrmInbox = lazyWithRetry(() => import("./pages/crm/CrmInbox"));
+const CrmContatos = lazyWithRetry(() => import("./pages/crm/CrmContatos"));
+const CrmTickets = lazyWithRetry(() => import("./pages/crm/CrmTickets"));
+const CrmAnalytics = lazyWithRetry(() => import("./pages/crm/CrmAnalytics"));
+const CrmConfiguracoes = lazyWithRetry(() => import("./pages/crm/CrmConfiguracoes"));
+const CrmLayout = lazyWithRetry(() => import("./components/crm/CrmLayout"));
 const ConfigFornecedorVisibilidade = lazyWithRetry(() => import("./pages/ConfigFornecedorVisibilidade"));
 const BriefingsHome = lazyWithRetry(() => import("./pages/briefings/BriefingsHome"));
 const BriefingWorkspace = lazyWithRetry(() => import("./pages/briefings/BriefingWorkspace"));
