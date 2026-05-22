@@ -302,6 +302,63 @@ Deno.serve(
       const origin = PUBLIC_ORIGIN_ALLOWLIST.has(requested)
         ? requested
         : "https://china.bimaster.online";
+      // 6.b Load cofre documents (optional) and sign URLs
+      let documentosParaNotion: Array<{
+        id: string;
+        nome: string;
+        categoria: string;
+        status: string;
+        fornecedor_nome: string | null;
+        lote: string | null;
+        tamanho_bytes: number | null;
+        signed_url: string | null;
+        is_oficial: boolean;
+        storage_path: string | null;
+        enviado_notion_em: string | null;
+        updated_at: string | null;
+      }> = [];
+      if (incluir_documentos) {
+        const { data: docs } = await sb
+          .from("briefing_documentos")
+          .select("id, nome, categoria, status, fornecedor_nome, lote, tamanho_bytes, storage_path, is_oficial, enviado_notion_em, updated_at")
+          .eq("briefing_id", briefing.id)
+          .order("created_at", { ascending: true });
+        const list = (docs ?? []) as Array<Record<string, unknown>>;
+        for (const d of list) {
+          let signed_url: string | null = null;
+          const sp = d.storage_path as string | null;
+          if (sp) {
+            const { data: signed } = await sb.storage
+              .from("briefing-cofre")
+              .createSignedUrl(sp, 60 * 60 * 24 * 7); // 7 dias
+            signed_url = signed?.signedUrl ?? null;
+          }
+          documentosParaNotion.push({
+            id: d.id as string,
+            nome: d.nome as string,
+            categoria: d.categoria as string,
+            status: d.status as string,
+            fornecedor_nome: (d.fornecedor_nome as string | null) ?? null,
+            lote: (d.lote as string | null) ?? null,
+            tamanho_bytes: (d.tamanho_bytes as number | null) ?? null,
+            signed_url,
+            is_oficial: !!d.is_oficial,
+            storage_path: sp,
+            enviado_notion_em: (d.enviado_notion_em as string | null) ?? null,
+            updated_at: (d.updated_at as string | null) ?? null,
+          });
+        }
+      }
+
+      // Para o espelho no Notion, opcionalmente mostrar apenas os "novos"
+      const documentosParaEspelho = apenas_novos_documentos
+        ? documentosParaNotion.filter(
+            (d) =>
+              !d.enviado_notion_em ||
+              (d.updated_at && new Date(d.updated_at).getTime() > new Date(d.enviado_notion_em).getTime()),
+          )
+        : documentosParaNotion;
+
       const blocksInput = {
         briefing: {
           titulo: briefing.titulo,
@@ -318,6 +375,16 @@ Deno.serve(
         autorNome: profile?.nome_completo ?? null,
         autorEmail: profile?.email ?? null,
         sla,
+        documentos: documentosParaEspelho.map((d) => ({
+          nome: d.nome,
+          categoria: d.categoria,
+          status: d.status,
+          fornecedor_nome: d.fornecedor_nome,
+          lote: d.lote,
+          tamanho_bytes: d.tamanho_bytes,
+          signed_url: d.signed_url,
+          is_oficial: d.is_oficial,
+        })),
         bimasterUrl: `${origin}/dashboard/briefings/${briefing.id}`,
       };
 
