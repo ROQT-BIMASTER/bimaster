@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
-import { Sparkles } from "lucide-react";
+import { Sparkles, Paperclip } from "lucide-react";
 import { useBriefingChat } from "@/hooks/useBriefingChat";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -27,6 +27,7 @@ import { EnviarAprovacaoDialog } from "@/components/briefings/EnviarAprovacaoDia
 import { AprovacaoTimeline } from "@/components/briefings/AprovacaoTimeline";
 import { ExportarBriefingDialog } from "@/components/briefings/export/ExportarBriefingDialog";
 import { CofreTab } from "@/components/briefings/cofre/CofreTab";
+import { AnexarEvidenciaDialog } from "@/components/briefings/cofre/AnexarEvidenciaDialog";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
 export default function BriefingWorkspace() {
@@ -43,6 +44,7 @@ export default function BriefingWorkspace() {
   const [vincDialogOpen, setVincDialogOpen] = useState(false);
   const [aprovDialogOpen, setAprovDialogOpen] = useState(false);
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
+  const [evidenciaOpen, setEvidenciaOpen] = useState(false);
   const [aprovRefresh, setAprovRefresh] = useState(0);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [diffData, setDiffData] = useState<(ReworkResult & { campoLabel: string; campoKey: string }) | null>(null);
@@ -231,6 +233,17 @@ export default function BriefingWorkspace() {
                   Enter para enviar · Shift+Enter para nova linha
                 </span>
                 <div className="flex items-center gap-1">
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="ghost"
+                    className="h-8 w-8"
+                    disabled={sending || readOnly}
+                    onClick={() => setEvidenciaOpen(true)}
+                    title="Anexar evidência"
+                  >
+                    <Paperclip className="h-4 w-4" />
+                  </Button>
                   <BriefingMicButton
                     disabled={sending || readOnly}
                     onTranscribed={(text) => {
@@ -399,6 +412,33 @@ export default function BriefingWorkspace() {
           }}
         />
       )}
+
+      <AnexarEvidenciaDialog
+        open={evidenciaOpen}
+        onOpenChange={setEvidenciaOpen}
+        briefingId={briefing.id}
+        origem="chat"
+        onAnexado={async (doc) => {
+          // Registra mensagens no histórico do chat para proveniência
+          try {
+            await supabase.from("briefing_mensagens").insert([
+              {
+                briefing_id: briefing.id,
+                role: "user",
+                content: `Anexou evidência: ${doc.nome}`,
+              },
+              {
+                briefing_id: briefing.id,
+                role: "assistant",
+                content: `Evidência registrada no cofre${doc.is_oficial ? " como documento oficial" : ""}${doc.is_checklist_item ? " e adicionada ao checklist deste briefing" : ""}.`,
+              },
+            ]);
+            await recarregar();
+          } catch {
+            // silencioso — upload já foi feito
+          }
+        }}
+      />
     </div>
   );
 }

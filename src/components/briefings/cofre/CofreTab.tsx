@@ -1,6 +1,6 @@
 // src/components/briefings/cofre/CofreTab.tsx
 import { useMemo, useState } from "react";
-import { Plus, FolderOpen, FileCheck2, Truck, Package, ListChecks, Send } from "lucide-react";
+import { Plus, FolderOpen, FileCheck2, Truck, Package, ListChecks, Send, Camera } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
@@ -15,6 +15,7 @@ import {
 } from "@/hooks/useBriefingCofre";
 import { DocumentoCard } from "./DocumentoCard";
 import { UploadDocumentoDialog } from "./UploadDocumentoDialog";
+import { AnexarEvidenciaDialog } from "./AnexarEvidenciaDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -43,6 +44,7 @@ export function CofreTab({ briefingId, tipoBriefing }: Props) {
 
   const [eixo, setEixo] = useState<EixoTab>("categoria");
   const [uploadOpen, setUploadOpen] = useState(false);
+  const [evidenciaOpen, setEvidenciaOpen] = useState(false);
   const [alvo, setAlvo] = useState<BriefingDocumento | null>(null);
   const [templateSel, setTemplateSel] = useState<string | undefined>();
   const [enviandoNotion, setEnviandoNotion] = useState(false);
@@ -141,6 +143,12 @@ export function CofreTab({ briefingId, tipoBriefing }: Props) {
               <Plus className="h-3.5 w-3.5 mr-1" /> Novo documento
             </Button>
             <Button
+              size="sm" variant="secondary" className="h-8"
+              onClick={() => setEvidenciaOpen(true)}
+            >
+              <Camera className="h-3.5 w-3.5 mr-1" /> Anexar evidência
+            </Button>
+            <Button
               size="sm" variant="outline" className="h-8"
               onClick={enviarParaNotion} disabled={enviandoNotion || docs.length === 0}
             >
@@ -229,6 +237,13 @@ export function CofreTab({ briefingId, tipoBriefing }: Props) {
         onOpenChange={setUploadOpen}
         briefingId={briefingId}
         documentoAlvo={alvo}
+      />
+
+      <AnexarEvidenciaDialog
+        open={evidenciaOpen}
+        onOpenChange={setEvidenciaOpen}
+        briefingId={briefingId}
+        origem="evidencia"
       />
     </div>
   );
