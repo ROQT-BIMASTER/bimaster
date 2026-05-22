@@ -112,7 +112,7 @@ export function TabInsumosFornecedores({ produtos }: { produtos: ProdutoConsolid
                   </td>
                   <td className="px-3 py-2" title={r.insumoNome}>{r.insumoNome || "—"}</td>
                   <td className="px-3 py-2 text-muted-foreground" title={r.fornecedor}>{r.fornecedor}</td>
-                  <td className="px-3 py-2 text-muted-foreground">{r.tipoInsumo}</td>
+                  <td className="px-3 py-2 text-muted-foreground">{prettifyEnum(r.tipoInsumo)}</td>
                   <td className="px-3 py-2 text-right tabular-nums">{r.nProdutos}</td>
                   <td className="px-3 py-2 text-right tabular-nums">{formatCurrency(r.custoMedio)}</td>
                   <td className="px-3 py-2 text-right tabular-nums">{formatCurrency(r.custoMin)}</td>
