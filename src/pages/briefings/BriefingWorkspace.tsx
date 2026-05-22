@@ -44,6 +44,7 @@ export default function BriefingWorkspace() {
   const [vincDialogOpen, setVincDialogOpen] = useState(false);
   const [aprovDialogOpen, setAprovDialogOpen] = useState(false);
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
+  const [evidenciaOpen, setEvidenciaOpen] = useState(false);
   const [aprovRefresh, setAprovRefresh] = useState(0);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [diffData, setDiffData] = useState<(ReworkResult & { campoLabel: string; campoKey: string }) | null>(null);
