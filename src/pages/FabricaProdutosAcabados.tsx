@@ -346,6 +346,7 @@ export default function FabricaProdutosAcabados() {
   }, [fichasConfig]);
 
   const totalOcultos = useMemo(() => produtos?.filter(p => p.oculto).length || 0, [produtos]);
+  const totalInativos = useMemo(() => produtos?.filter(p => p.ativo === false).length || 0, [produtos]);
 
   const profilesMap = useMemo(() => {
     const map = new Map<string, string>();
