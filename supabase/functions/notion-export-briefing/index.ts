@@ -159,7 +159,7 @@ Deno.serve(
           { status: 400, headers: { ...cors, "Content-Type": "application/json" } },
         );
       }
-      const { briefing_id, bimaster_origin, force } = parsed.data;
+      const { briefing_id, bimaster_origin, force, incluir_documentos, apenas_novos_documentos } = parsed.data;
 
       const sb = createClient(
         Deno.env.get("SUPABASE_URL")!,
