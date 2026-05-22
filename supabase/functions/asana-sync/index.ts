@@ -5,7 +5,10 @@ import { secureHandler } from "../_shared/secure-handler.ts";
 import { timingSafeEqual } from "../_shared/timing-safe.ts";
 
 
-const ASANA_API = "https://app.asana.com/api/1.0";
+// Asana é acessado via Lovable Connector Gateway — o gateway faz refresh automático
+// do token OAuth. Os secrets LOVABLE_API_KEY e ASANA_API_KEY são injetados pelo
+// connector "BiMaster Sync" (asana). Não usamos mais Personal Access Token.
+const GATEWAY_URL = "https://connector-gateway.lovable.dev/asana";
 const TIME_BUDGET_MS = 55_000; // 55s safety margin (edge limit ~60s)
 const TASKS_PAGE_SIZE = 100;
 
