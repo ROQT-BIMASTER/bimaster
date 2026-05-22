@@ -2,16 +2,17 @@
 // Uso interno de backup pré-restore. Restrito a admin via service-role check.
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
+import { timingSafeEqual } from "../_shared/timing-safe.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-const SHARED_TOKEN = "88773abe3ea871051e7ee6ce3717c9bfbac2881409a45849760e8d416e73d7e0";
+const SHARED_TOKEN = Deno.env.get("BACKUP_SHARED_TOKEN") ?? "";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   const token = req.headers.get("x-backup-token") ?? "";
-  if (!SHARED_TOKEN || token !== SHARED_TOKEN) {
+  if (!SHARED_TOKEN || !timingSafeEqual(token, SHARED_TOKEN)) {
     return new Response(JSON.stringify({ error: "forbidden" }), {
       status: 403,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
