@@ -151,6 +151,11 @@ export default function BriefingWorkspace() {
     [sections, localPayload],
   );
 
+  const sectionLabels = useMemo(
+    () => Object.fromEntries(sections.map((s) => [s.key, s.label])),
+    [sections],
+  );
+
   if (loading || !briefing) {
     return (
       <div className="flex items-center justify-center h-[60vh] text-muted-foreground">
