@@ -27,6 +27,7 @@ import { EnviarAprovacaoDialog } from "@/components/briefings/EnviarAprovacaoDia
 import { AprovacaoTimeline } from "@/components/briefings/AprovacaoTimeline";
 import { ExportarBriefingDialog } from "@/components/briefings/export/ExportarBriefingDialog";
 import { CofreTab } from "@/components/briefings/cofre/CofreTab";
+import { AnexarEvidenciaDialog } from "@/components/briefings/cofre/AnexarEvidenciaDialog";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
 export default function BriefingWorkspace() {
