@@ -627,17 +627,45 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
       });
     }
     if (filterTime === "atrasadas") {
-      const now = new Date();
+      // Comparar apenas DATA (início do dia local), consistente com groupTarefas.
+      // Sem isso, tarefas com prazo HOJE caem como "atrasadas" porque
+      // `hoje 00:00 < new Date()` (hora atual) é sempre verdadeiro.
+      const todayStart = new Date();
+      todayStart.setHours(0, 0, 0, 0);
       result = result.filter(t => {
         if (t.status === "concluida") return false;
         const p = parseLocalDate(t.data_prazo);
-        return p && p < now;
+        if (!p) return false;
+        const pStart = new Date(p);
+        pStart.setHours(0, 0, 0, 0);
+        return pStart.getTime() < todayStart.getTime();
       });
     } else if (filterTime === "hoje") {
+      // "Tarefas do dia" = tarefas ativas hoje. Inclui:
+      //   (a) prazo === hoje
+      //   (b) tarefas em andamento (início <= hoje <= prazo)
+      //   (c) atrasadas não concluídas (carryover — ainda precisam de ação hoje)
+      // Antes o filtro só considerava (a), o que deixava de fora tarefas que
+      // o usuário esperava ver na visão "do dia".
+      const todayStart = new Date();
+      todayStart.setHours(0, 0, 0, 0);
+      const todayEnd = new Date();
+      todayEnd.setHours(23, 59, 59, 999);
       result = result.filter(t => {
         if (t.status === "concluida") return false;
-        const p = parseLocalDate(t.data_prazo);
-        return p && p.toDateString() === new Date().toDateString();
+        const prazo = parseLocalDate(t.data_prazo);
+        const inicio = parseLocalDate(t.data_inicio_planejada);
+        if (prazo) {
+          const prazoStart = new Date(prazo);
+          prazoStart.setHours(0, 0, 0, 0);
+          // (a) prazo hoje OR (c) prazo no passado e ainda aberta
+          if (prazoStart.getTime() <= todayEnd.getTime()) return true;
+          // (b) em janela [início, prazo] cobrindo hoje
+          if (inicio && inicio.getTime() <= todayEnd.getTime() && prazoStart.getTime() >= todayStart.getTime()) {
+            return true;
+          }
+        }
+        return false;
       });
     } else if (filterTime === "sem_data") {
       result = result.filter(t => isSemDatasPlanejadas(t));
