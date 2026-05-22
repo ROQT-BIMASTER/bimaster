@@ -129,6 +129,10 @@ export default function DocumentacaoTecnica() {
 
   return (
     <div className="container mx-auto p-6 space-y-6">
+      <Button variant="ghost" size="sm" onClick={() => (window.history.length > 1 ? navigate(-1) : navigate("/dashboard"))} className="-ml-2">
+        <ArrowLeft className="h-4 w-4 mr-2" />
+        Voltar
+      </Button>
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Documentação Técnica</h1>
