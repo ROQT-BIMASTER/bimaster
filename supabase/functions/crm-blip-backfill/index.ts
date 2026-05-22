@@ -53,13 +53,18 @@ function toBase64(s: string): string {
   return btoa(unescape(encodeURIComponent(s)));
 }
 
+function normalizeBlipKey(value: string): string {
+  return value.trim().replace(/^Key\s+/i, "").trim();
+}
+
 function buildAuthValue(
   format: "raw" | "identifier_pair",
   key: string,
   identifier: string | null,
 ): string {
-  if (format === "identifier_pair" && identifier) return toBase64(`${identifier}:${key}`);
-  return key;
+  const normalizedKey = normalizeBlipKey(key);
+  if (format === "identifier_pair" && identifier) return toBase64(`${identifier}:${normalizedKey}`);
+  return normalizedKey;
 }
 
 async function blipCommand<T>(
