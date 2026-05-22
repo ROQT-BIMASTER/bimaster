@@ -51,6 +51,7 @@ function triggerBlobDownload(blob: Blob, filename: string) {
 
 export default function DocumentacaoTecnica() {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [docs, setDocs] = useState<DocTecnico[]>([]);
   const [loading, setLoading] = useState(true);
   const [filtro, setFiltro] = useState("");
