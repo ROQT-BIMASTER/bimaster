@@ -2,15 +2,19 @@ import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { invokeChat } from "@/lib/ai/invokeChat";
 import { toast } from "sonner";
+import type { ChatAttachment } from "@/components/briefings/chat/AttachImageButton";
+import type { SugestaoBriefing } from "@/components/briefings/chat/SugestaoCard";
 
 export interface BriefingMsg {
   id: string;
   role: "user" | "assistant" | "tool" | "system";
   content: string;
   sources?: Array<{ tipo: string; id: string; label: string }>;
-  proposals?: Array<{ campos: Record<string, string>; titulo?: string }>;
+  proposals?: Array<{ campos?: Record<string, string>; titulo?: string; sugestoes?: SugestaoBriefing[] }>;
+  attachments?: Array<{ path: string; mime: string; name: string }>;
   created_at: string;
 }
+
 
 export interface Briefing {
   id: string;
@@ -80,14 +84,14 @@ export function useBriefingChat(briefingId: string | undefined) {
   }, [carregar]);
 
   const enviar = useCallback(
-    async (texto: string) => {
-      if (!briefingId || !texto.trim()) return;
+    async (texto: string, attachments?: ChatAttachment[]) => {
+      if (!briefingId || (!texto.trim() && !(attachments?.length))) return;
       setSending(true);
-      // otimista
       const optimistic: BriefingMsg = {
         id: `tmp-${Date.now()}`,
         role: "user",
         content: texto,
+        attachments: attachments?.map((a) => ({ path: a.path, mime: a.mime, name: a.name })),
         created_at: new Date().toISOString(),
       };
       setMessages((prev) => [...prev, optimistic]);
@@ -97,7 +101,11 @@ export function useBriefingChat(briefingId: string | undefined) {
         sources: BriefingMsg["sources"];
         patches: BriefingMsg["proposals"];
         briefing: { id: string; titulo: string; payload: Record<string, string> };
-      }>("briefing-agent", { briefing_id: briefingId, user_message: texto });
+      }>("briefing-agent", {
+        briefing_id: briefingId,
+        user_message: texto || "(imagem anexada)",
+        attachments: attachments?.map((a) => ({ path: a.path, mime: a.mime, name: a.name })),
+      }, { timeoutMs: 90_000 });
 
       setSending(false);
 
@@ -107,7 +115,6 @@ export function useBriefingChat(briefingId: string | undefined) {
         return;
       }
 
-      // Atualiza canvas se a edge devolveu novo payload
       if (data.briefing) {
         setBriefing((prev) =>
           prev
@@ -115,7 +122,6 @@ export function useBriefingChat(briefingId: string | undefined) {
             : prev,
         );
       }
-      // Recarrega histórico do banco (verdade)
       await carregar();
     },
     [briefingId, carregar],
@@ -123,3 +129,4 @@ export function useBriefingChat(briefingId: string | undefined) {
 
   return { briefing, sections, messages, loading, sending, enviar, recarregar: carregar };
 }
+

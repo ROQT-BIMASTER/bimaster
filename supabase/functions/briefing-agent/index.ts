@@ -4,8 +4,9 @@
 // - JWT do usuário em todas as leituras (RLS aplica). Service role só para escrever
 //   no histórico do chat (sempre validando a posse do briefing).
 // - Whitelist explícita de tabelas + ACL por módulo (defesa em profundidade).
-// - Tool `atualizar_canvas` é o único modo de o agente alterar o briefing.
-// - Modelo padrão gemini-3-flash; raciocínio pesado usa gpt-5.2 (sem `reasoning`).
+// - `atualizar_canvas` só para FATOS confirmados pelo usuário / internal_lookup.
+// - `propor_sugestao` para qualquer inferência criativa/estratégica — usuário decide.
+// - Suporte multimodal: imagens anexadas pelo usuário vão como image_url ao modelo.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { z } from "https://esm.sh/zod@3.23.8";
 import { secureHandler } from "../_shared/secure-handler.ts";
@@ -16,17 +17,24 @@ const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
+const Attachment = z.object({
+  path: z.string().min(1).max(500),
+  mime: z.enum(["image/png", "image/jpeg", "image/webp"]),
+  name: z.string().min(1).max(200),
+}).strict();
+
 const Body = z.object({
   briefing_id: z.string().uuid(),
   user_message: z.string().min(1).max(8000),
+  attachments: z.array(Attachment).max(4).optional(),
 }).strict();
 
 // ── Whitelist tabela ↔ módulo / colunas seguras ─────────────────────────
 type SourceSpec = {
   table: string;
-  module: string | null;        // módulo necessário (null = sem restrição extra)
-  columns: string[];            // SELECT explícito — nunca *
-  searchColumns: string[];      // colunas pesquisáveis com ILIKE
+  module: string | null;
+  columns: string[];
+  searchColumns: string[];
   label: (row: Record<string, unknown>) => string;
 };
 
@@ -55,35 +63,59 @@ const ALLOWED_SOURCES: Record<string, SourceSpec> = {
   clientes: {
     table: "clientes",
     module: "comercial",
-    columns: ["id", "nome", "categoria"], // sem PII — telefone/email ficam fora
+    columns: ["id", "nome", "categoria"],
     searchColumns: ["nome"],
     label: (r) => String(r.nome ?? r.id),
   },
 };
 
-const SYSTEM_PROMPT = `Você é um assistente sênior de planejamento que ajuda o usuário a construir BRIEFINGS profissionais (marketing, criativo, produto/fábrica, trade marketing).
+const SYSTEM_PROMPT = `Você é um Planner sênior em uma agência de comunicação integrada (marketing, criativo, produto/PLM e trade marketing). Constrói briefings com o rigor de WPP/Ogilvy/AlmapBBDO e a disciplina operacional de uma consultoria.
 
-REGRAS DE COMUNICAÇÃO:
-- Sempre em português do Brasil, tom profissional, sem emojis.
-- Markdown enxuto. Listas curtas quando ajudar.
-- Cite fontes internas (produto, projeto, influencer) por nome quando usar dados internos.
+# Filosofia
+Briefing bom é decisão tomada antes do trabalho começar: objetivo de negócio claro, público vivo, insight verdadeiro, mandatórios não-negociáveis e métricas de sucesso mensuráveis. Você protege o usuário de briefings vagos, contraditórios ou sem critério de aprovação.
 
-COMO TRABALHAR:
-1. Use a tool "internal_lookup" para buscar dados internos do sistema (produtos, projetos, marcas, influencers) — mas só quando relevante. NUNCA invente dados internos.
-2. Use a tool "atualizar_canvas" para preencher ou atualizar campos do briefing. Sempre que o usuário descrever algo que se encaixe num campo, atualize o canvas em vez de só responder no chat.
-3. Cada chamada a "atualizar_canvas" deve conter apenas os campos realmente alterados.
-4. Após atualizar o canvas, dê uma resposta curta confirmando o que foi preenchido e sugerindo o próximo campo.
-5. Quando faltar informação, pergunte de forma objetiva (uma ou duas perguntas por vez).
-6. Se uma tool retornar "sem_permissao", explique ao usuário que ele não tem acesso àquele módulo e ofereça alternativas.
+# Estrutura canônica que você sempre busca cobrir (mapeie aos campos do template):
+1. Contexto de negócio e desafio
+2. Objetivo SMART (específico, mensurável, atingível, relevante, temporal)
+3. Público-alvo / persona (demográfico + comportamental + jobs-to-be-done)
+4. Insight do consumidor (verdade humana, não feature)
+5. Proposta única / big idea / RTB (reason-to-believe)
+6. Tom de voz e personalidade da marca
+7. Mandatórios da marca (cores, tipografia, claims obrigatórios, certificações)
+8. Restrições legais/regulatórias (Anvisa, Conar, INPI, LGPD quando aplicável)
+9. Entregáveis e formatos (com especificações técnicas)
+10. KPIs / métricas de sucesso
+11. Cronograma e marcos
+12. Orçamento e responsáveis
 
-NUNCA exponha IDs internos longos no texto da resposta — use nomes.
+Adapte ao tipo do briefing (PDV/Trade enfatiza canal, materiais, planograma, sell-out; Embalagem enfatiza dieline, claims, certificações; Campanha enfatiza funil e canais; Produto/Fábrica enfatiza ficha técnica e regulatório).
 
-Regras estritas de tool calling:
-- Para modificar QUALQUER campo do briefing, você DEVE chamar a tool "atualizar_canvas". Não existe outro caminho — escrever em texto não modifica nada.
-- NUNCA confirme ao usuário que algum campo foi atualizado sem ter chamado atualizar_canvas naquele mesmo turno. Frases como "atualizei o canvas com X" ou "o campo Y foi preenchido" são PROIBIDAS se você não emitiu a tool.
-- Se você não tem certeza de qual campo preencher, pergunte ao usuário antes em vez de afirmar que preencheu.
-- Se mencionar uma fonte interna na resposta (produto, projeto, cliente, influencer), ela DEVE vir de internal_lookup chamada no mesmo turno. Não invente referências.
-- Regra de preferência operacional: emita as tools PRIMEIRO, escreva a resposta DEPOIS. A resposta deve descrever fielmente o que as tools fizeram, não promessas.
+# Regras de comunicação
+- Português do Brasil, tom executivo, sem emojis, sem floreios.
+- Markdown enxuto. Negrito só para o que importa.
+- Sempre cite fontes internas pelo nome (produto, projeto, cliente), nunca por ID.
+- Estrutura padrão da resposta (omita seções vazias):
+  ## O que entendi
+  ## O que atualizei no canvas
+  ## Sugestões para sua aprovação
+  ## Próxima pergunta
+
+# Anti-alucinação (não-negociável)
+- NUNCA invente marca, SKU, dados de fábrica, regulatórios, números de mercado, claims ou benchmarks. Se faltar, use \`internal_lookup\` ou faça uma pergunta direta.
+- Análise de imagem: descreva APENAS o que está visivelmente presente (cores, formato, textos legíveis, materiais aparentes, dimensões relativas). Toda interpretação (marca implícita, categoria, posicionamento) vira \`propor_sugestao\`, nunca \`atualizar_canvas\`.
+- Não use vocabulário de "achismo" ("acho", "provavelmente", "deve ser") como se fosse fato. Ou é fato confirmado → canvas. Ou é hipótese → sugestão.
+
+# Tools — quando usar cada uma
+- \`internal_lookup\`: buscar produto/projeto/cliente/influencer interno. Use SEMPRE que o usuário citar um nome próprio antes de assumir que existe.
+- \`atualizar_canvas\`: APENAS para fatos que o usuário disse explicitamente ou que vieram de \`internal_lookup\` no mesmo turno. Cada chamada contém só os campos realmente alterados. NUNCA escreva no canvas conteúdo que é interpretação sua.
+- \`propor_sugestao\`: use para TODA recomendação criativa, estratégica ou inferida (tom de voz sugerido, big idea, copy, posicionamento, KPI recomendado, leitura de imagem). O usuário decide aplicar ou manter. Uma sugestão por campo por turno; pode emitir várias chamadas se cobrir campos diferentes.
+
+# Regras estritas de tool calling
+- Para MODIFICAR um campo do canvas, você DEVE chamar \`atualizar_canvas\`. Texto em prosa não modifica nada.
+- NUNCA confirme que preencheu um campo sem ter chamado a tool no mesmo turno.
+- Emita as tools PRIMEIRO, escreva a resposta DEPOIS. A resposta descreve o que as tools fizeram, não promessas.
+- NUNCA exponha IDs internos longos no texto.
+- Priorize campos marcados como obrigatórios antes dos opcionais.
 `;
 
 const TOOLS = [
@@ -95,15 +127,8 @@ const TOOLS = [
       parameters: {
         type: "object",
         properties: {
-          fonte: {
-            type: "string",
-            enum: Object.keys(ALLOWED_SOURCES),
-            description: "Qual base consultar.",
-          },
-          busca: {
-            type: "string",
-            description: "Texto para filtrar resultados (busca parcial por nome/sku/marca).",
-          },
+          fonte: { type: "string", enum: Object.keys(ALLOWED_SOURCES) },
+          busca: { type: "string", description: "Texto para filtrar (busca parcial)." },
           limite: { type: "integer", default: 10 },
         },
         required: ["fonte"],
@@ -115,21 +140,35 @@ const TOOLS = [
     type: "function",
     function: {
       name: "atualizar_canvas",
-      description: "Atualiza um ou mais campos do canvas do briefing. Use sempre que o usuário fornecer conteúdo que se encaixe em um campo do template.",
+      description: "Aplica FATOS confirmados pelo usuário ou trazidos por internal_lookup em campos do canvas. Não use para inferências suas — use propor_sugestao.",
       parameters: {
         type: "object",
         properties: {
           campos: {
             type: "object",
-            description: "Objeto { chave_do_campo: valor_em_texto }. As chaves devem ser as do template do briefing.",
+            description: "Objeto { chave_do_campo: valor_em_texto }. Chaves devem existir no template.",
             additionalProperties: { type: "string" },
           },
-          titulo: {
-            type: "string",
-            description: "Opcional: novo título do briefing.",
-          },
+          titulo: { type: "string", description: "Opcional: novo título do briefing." },
         },
         required: ["campos"],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "propor_sugestao",
+      description: "Cria uma sugestão para um campo do canvas que requer aprovação do usuário. Use para qualquer conteúdo criativo, estratégico ou inferido (incluindo leitura de imagens). O usuário decide aplicar ou manter o atual.",
+      parameters: {
+        type: "object",
+        properties: {
+          campo: { type: "string", description: "Chave do campo do template." },
+          sugestao: { type: "string", description: "Texto proposto para o campo (final, pronto para entrar no canvas)." },
+          justificativa: { type: "string", description: "Por que essa sugestão faz sentido (1-3 frases, baseadas em padrão de mercado, framework ou dado mencionado)." },
+        },
+        required: ["campo", "sugestao", "justificativa"],
         additionalProperties: false,
       },
     },
@@ -138,9 +177,10 @@ const TOOLS = [
 
 type Source = { tipo: string; id: string; label: string };
 type CanvasPatch = { campos: Record<string, string>; titulo?: string };
+type Sugestao = { id: string; campo: string; sugestao: string; justificativa: string; valor_atual: string | null };
 
-function escolherModelo(message: string): string {
-  // Heurística simples: pedidos longos / analíticos vão para gpt-5.2
+function escolherModelo(message: string, hasImages: boolean): string {
+  if (hasImages) return "google/gemini-2.5-flash";
   if (message.length > 600 || /(estraté|análise|posicionamento|swot|funil)/i.test(message)) {
     return "openai/gpt-5.2";
   }
@@ -190,16 +230,24 @@ Deno.serve(secureHandler(
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    const { briefing_id, user_message } = parsed.data;
+    const { briefing_id, user_message, attachments = [] } = parsed.data;
     const userId = ctx.userId!;
     const authHeader = req.headers.get("Authorization") ?? "";
+
+    // Valida que todos os anexos pertencem ao briefing
+    for (const a of attachments) {
+      if (!a.path.startsWith(`${briefing_id}/`)) {
+        return new Response(JSON.stringify({ error: "anexo_fora_do_briefing" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
 
     const userClient = createClient(SUPABASE_URL, ANON_KEY, {
       global: { headers: { Authorization: authHeader } },
     });
     const admin = createClient(SUPABASE_URL, SERVICE_KEY);
 
-    // Carrega briefing + template via JWT do usuário (RLS filtra)
     const { data: briefing, error: brErr } = await userClient
       .from("briefings")
       .select("id, user_id, tipo, titulo, payload, template_id, briefing_templates(secoes)")
@@ -225,7 +273,17 @@ Deno.serve(secureHandler(
       (secoes as Array<{ key: string }>).map((s) => s.key),
     );
 
-    // Histórico curto
+    // Signed URLs para anexos (5 min)
+    const signedAttachments: Array<{ url: string; mime: string; name: string; path: string }> = [];
+    for (const a of attachments) {
+      const { data: signed } = await admin.storage
+        .from("briefing-chat-anexos")
+        .createSignedUrl(a.path, 300);
+      if (signed?.signedUrl) {
+        signedAttachments.push({ url: signed.signedUrl, mime: a.mime, name: a.name, path: a.path });
+      }
+    }
+
     const { data: hist } = await userClient
       .from("briefing_mensagens")
       .select("role, content, tool_calls")
@@ -233,14 +291,14 @@ Deno.serve(secureHandler(
       .order("created_at", { ascending: true })
       .limit(20);
 
-    // Persiste a mensagem do usuário (RLS exige que ele seja o dono)
+    // Persiste mensagem do usuário com attachments
     await userClient.from("briefing_mensagens").insert({
       briefing_id,
       role: "user",
       content: user_message,
+      attachments: attachments.map((a) => ({ path: a.path, mime: a.mime, name: a.name })),
     });
 
-    // Módulos permitidos para o usuário (para gating de internal_lookup)
     const userModules = await getUserModules(admin, userId);
     const userIsAdmin = await isAdmin(admin, userId);
 
@@ -255,11 +313,22 @@ Deno.serve(secureHandler(
 TIPO DO BRIEFING: ${briefing.tipo}
 TÍTULO ATUAL: ${briefing.titulo}
 
-CAMPOS DO TEMPLATE (use exatamente essas chaves em "atualizar_canvas"):
+CAMPOS DO TEMPLATE (use exatamente essas chaves):
 ${templateLines}
 
 CONTEÚDO ATUAL DO CANVAS:
 ${canvasAtual}`;
+
+    // Conteúdo do usuário: texto + imagens (se houver)
+    const userContent: any = signedAttachments.length > 0
+      ? [
+          { type: "text", text: user_message },
+          ...signedAttachments.map((a) => ({
+            type: "image_url",
+            image_url: { url: a.url },
+          })),
+        ]
+      : user_message;
 
     const messages: any[] = [
       { role: "system", content: systemContent },
@@ -267,12 +336,13 @@ ${canvasAtual}`;
         role: m.role === "tool" ? "assistant" : m.role,
         content: m.content,
       }))),
-      { role: "user", content: user_message },
+      { role: "user", content: userContent },
     ];
 
     const sources: Source[] = [];
     const patches: CanvasPatch[] = [];
-    let model = escolherModelo(user_message);
+    const sugestoes: Sugestao[] = [];
+    let model = escolherModelo(user_message, signedAttachments.length > 0);
     let finalAssistant = "";
 
     for (let i = 0; i < 5; i++) {
@@ -281,7 +351,7 @@ ${canvasAtual}`;
         model,
         tools: TOOLS,
         tool_choice: "auto",
-        timeoutMs: 55_000,
+        timeoutMs: 60_000,
       });
       if (result.kind !== "ok") return aiGatewayErrorResponse(result, corsHeaders);
       model = result.modelUsed;
@@ -320,11 +390,7 @@ ${canvasAtual}`;
               } else {
                 const rows = (data ?? []) as Array<Record<string, unknown>>;
                 for (const r of rows) {
-                  sources.push({
-                    tipo: args.fonte,
-                    id: String(r.id),
-                    label: spec.label(r),
-                  });
+                  sources.push({ tipo: args.fonte, id: String(r.id), label: spec.label(r) });
                 }
                 toolRes = { resultados: rows, total: rows.length };
               }
@@ -341,7 +407,6 @@ ${canvasAtual}`;
             if (args.titulo && typeof args.titulo === "string") {
               patch.titulo = String(args.titulo).slice(0, 200);
             }
-            // Aplica no banco (RLS garante que só o dono pode)
             const novoPayload = { ...(briefing.payload as Record<string, unknown> ?? {}), ...novosCampos };
             const totalCampos = (secoes as Array<any>).length || 1;
             const preenchidos = Object.values(novoPayload).filter((v) => typeof v === "string" && v.trim().length > 0).length;
@@ -365,6 +430,41 @@ ${canvasAtual}`;
               if (patch.titulo) (briefing as any).titulo = patch.titulo;
               patches.push(patch);
               toolRes = { ok: true, campos_atualizados: Object.keys(novosCampos), completude };
+            }
+          } else if (tc.function.name === "propor_sugestao") {
+            const campo = String(args.campo ?? "").trim();
+            const sugestao = String(args.sugestao ?? "").trim();
+            const justificativa = String(args.justificativa ?? "").trim().slice(0, 2000);
+            if (!chavesValidas.has(campo)) {
+              toolRes = { error: "campo_invalido", campo };
+            } else if (!sugestao) {
+              toolRes = { error: "sugestao_vazia" };
+            } else {
+              const valorAtual = ((briefing as any).payload?.[campo] as string | undefined) ?? null;
+              const { data: inserted, error: sErr } = await userClient
+                .from("briefing_sugestoes")
+                .insert({
+                  briefing_id,
+                  campo,
+                  sugestao: sugestao.slice(0, 8000),
+                  justificativa,
+                  valor_atual: valorAtual,
+                  created_by: userId,
+                })
+                .select("id")
+                .maybeSingle();
+              if (sErr || !inserted) {
+                toolRes = { error: sErr?.message ?? "erro_persistir_sugestao" };
+              } else {
+                sugestoes.push({
+                  id: inserted.id,
+                  campo,
+                  sugestao,
+                  justificativa,
+                  valor_atual: valorAtual,
+                });
+                toolRes = { ok: true, sugestao_id: inserted.id, campo };
+              }
             }
           } else {
             toolRes = { error: "tool_desconhecida" };
@@ -391,12 +491,19 @@ ${canvasAtual}`;
       new Map(sources.map((s) => [`${s.tipo}:${s.id}`, s])).values()
     ).slice(0, 20);
 
+    // Persiste mensagem do assistant; injeta IDs das sugestões em proposals
+    // para o frontend recuperar e renderizar o card de aprovação.
+    const proposalsPayload = [
+      ...patches,
+      ...(sugestoes.length > 0 ? [{ sugestoes }] : []),
+    ];
+
     await userClient.from("briefing_mensagens").insert({
       briefing_id,
       role: "assistant",
       content: finalAssistant,
       sources: uniqueSources,
-      proposals: patches,
+      proposals: proposalsPayload,
       model,
     });
 
@@ -404,6 +511,7 @@ ${canvasAtual}`;
       reply: finalAssistant,
       sources: uniqueSources,
       patches,
+      sugestoes,
       model,
       briefing: {
         id: briefing.id,
