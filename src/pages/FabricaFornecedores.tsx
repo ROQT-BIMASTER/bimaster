@@ -185,6 +185,7 @@ export default function FabricaFornecedores() {
       if (search) query = query.or(`razao_social.ilike.%${search}%,cnpj.ilike.%${search}%,nome_fantasia.ilike.%${search}%`);
       if (statusFilter === "ativo") query = query.eq("ativo", true);
       if (statusFilter === "inativo") query = query.eq("ativo", false);
+      if (statusFilter === "pendente") query = query.eq("pendente_complemento", true);
       const { data, error } = await query;
       if (error) throw error;
       return data as FabricaFornecedor[];
