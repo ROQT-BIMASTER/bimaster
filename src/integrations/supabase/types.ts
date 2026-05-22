@@ -48682,6 +48682,19 @@ export type Database = {
         }
         Returns: string
       }
+      rpc_padronizar_insumo_duplicado: {
+        Args: {
+          _codigo_canonico: string
+          _codigos_origem: string[]
+          _fornecedor_origem: string
+          _nome_canonico: string
+          _vincular_mp?: boolean
+        }
+        Returns: {
+          linhas_atualizadas: number
+          mp_id: string
+        }[]
+      }
       rpc_projeto_marcar_lido: {
         Args: { p_projeto_id: string }
         Returns: undefined
