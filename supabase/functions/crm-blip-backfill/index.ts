@@ -44,10 +44,33 @@ type ThreadMessage = {
   metadata?: Record<string, unknown>;
 };
 
-async function blipCommand<T>(key: string, uri: string, method = "get"): Promise<BlipCommandResponse<T>> {
-  const resp = await fetch("https://http.msging.net/commands", {
+const BLIP_ENDPOINTS = {
+  prod: "https://http.msging.net/commands",
+  hmg: "https://hmg.http.msging.net/commands",
+} as const;
+
+function toBase64(s: string): string {
+  return btoa(unescape(encodeURIComponent(s)));
+}
+
+function buildAuthValue(
+  format: "raw" | "identifier_pair",
+  key: string,
+  identifier: string | null,
+): string {
+  if (format === "identifier_pair" && identifier) return toBase64(`${identifier}:${key}`);
+  return key;
+}
+
+async function blipCommand<T>(
+  authValue: string,
+  endpoint: string,
+  uri: string,
+  method = "get",
+): Promise<BlipCommandResponse<T>> {
+  const resp = await fetch(endpoint, {
     method: "POST",
-    headers: { "Content-Type": "application/json", Authorization: `Key ${key}` },
+    headers: { "Content-Type": "application/json", Authorization: `Key ${authValue}` },
     body: JSON.stringify({
       id: crypto.randomUUID(),
       to: "postmaster@msging.net",
