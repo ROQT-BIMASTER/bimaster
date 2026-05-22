@@ -48446,6 +48446,25 @@ export type Database = {
         }
         Returns: string
       }
+      crm_bot_get_key: { Args: { p_bot_id: string }; Returns: string }
+      crm_bot_upsert: {
+        Args: {
+          p_ativo: boolean
+          p_bot_key: string
+          p_canal: Database["public"]["Enums"]["crm_canal"]
+          p_descricao: string
+          p_empresa_id: number
+          p_id: string
+          p_identificador_externo: string
+          p_modo_leitura: boolean
+          p_nome: string
+          p_numero_whatsapp: string
+          p_provider: Database["public"]["Enums"]["crm_provider"]
+        }
+        Returns: string
+      }
+      crm_decrypt_secret: { Args: { p_ciphertext: string }; Returns: string }
+      crm_encrypt_secret: { Args: { p_plaintext: string }; Returns: string }
       crm_has_access: { Args: { _empresa_id: number }; Returns: boolean }
       crm_is_admin: { Args: { _empresa_id: number }; Returns: boolean }
       current_user_email: { Args: never; Returns: string }
