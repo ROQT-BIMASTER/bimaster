@@ -1,22 +1,73 @@
-import { AlertCircle, CheckCircle2, Database, Info, Layers, Sparkles } from "lucide-react";
+import { useEffect, useState } from "react";
+import { AlertCircle, CheckCircle2, Database, Info, Layers, Sparkles, ImageIcon } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { MessageResponse } from "@/components/ai-elements/message";
 import { isSystemNoteContent } from "./briefing-types";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
+import { SugestaoCard } from "./chat/SugestaoCard";
 import type { BriefingMsg } from "@/hooks/useBriefingChat";
 
 interface Props {
   message: BriefingMsg;
+  sectionLabels?: Record<string, string>;
+  onSugestaoDecided?: () => void;
 }
 
-export function BriefingMessage({ message }: Props) {
+function AttachmentThumbs({ attachments }: { attachments: NonNullable<BriefingMsg["attachments"]> }) {
+  const [urls, setUrls] = useState<Record<string, string>>({});
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const next: Record<string, string> = {};
+      for (const a of attachments) {
+        const { data } = await supabase.storage
+          .from("briefing-chat-anexos")
+          .createSignedUrl(a.path, 600);
+        if (data?.signedUrl) next[a.path] = data.signedUrl;
+      }
+      if (!cancelled) setUrls(next);
+    })();
+    return () => { cancelled = true; };
+  }, [attachments]);
+
+  return (
+    <div className="flex flex-wrap gap-1.5 mt-1.5">
+      {attachments.map((a) => (
+        <a
+          key={a.path}
+          href={urls[a.path] ?? "#"}
+          target="_blank"
+          rel="noreferrer"
+          className="block h-16 w-16 rounded-md overflow-hidden border bg-muted/40"
+          title={a.name}
+        >
+          {urls[a.path] ? (
+            <img src={urls[a.path]} alt={a.name} className="h-full w-full object-cover" />
+          ) : (
+            <div className="h-full w-full flex items-center justify-center">
+              <ImageIcon className="h-4 w-4 text-muted-foreground" />
+            </div>
+          )}
+        </a>
+      ))}
+    </div>
+  );
+}
+
+export function BriefingMessage({ message, sectionLabels, onSugestaoDecided }: Props) {
   // Usuário: bolha alinhada à direita
   if (message.role === "user") {
     return (
-      <div className="flex justify-end mb-3">
-        <div className="max-w-[80%] rounded-2xl rounded-br-sm bg-primary text-primary-foreground px-3.5 py-2 text-sm shadow-sm whitespace-pre-wrap break-words">
-          {message.content}
-        </div>
+      <div className="flex flex-col items-end mb-3">
+        {message.content && (
+          <div className="max-w-[80%] rounded-2xl rounded-br-sm bg-primary text-primary-foreground px-3.5 py-2 text-sm shadow-sm whitespace-pre-wrap break-words">
+            {message.content}
+          </div>
+        )}
+        {(message.attachments?.length ?? 0) > 0 && (
+          <AttachmentThumbs attachments={message.attachments!} />
+        )}
       </div>
     );
   }
@@ -52,6 +103,8 @@ export function BriefingMessage({ message }: Props) {
     );
   }
 
+  const sugestoes = (message.proposals ?? []).flatMap((p) => p.sugestoes ?? []);
+
   // Assistant normal: sem bolha, avatar à esquerda
   return (
     <div className="flex gap-2.5 mb-4 group">
@@ -68,6 +121,19 @@ export function BriefingMessage({ message }: Props) {
           <MessageResponse>{message.content}</MessageResponse>
         </div>
 
+        {sugestoes.length > 0 && (
+          <div className="space-y-2 pt-1">
+            {sugestoes.map((s) => (
+              <SugestaoCard
+                key={s.id}
+                sugestao={s}
+                campoLabel={sectionLabels?.[s.campo]}
+                onDecided={onSugestaoDecided}
+              />
+            ))}
+          </div>
+        )}
+
         {(message.proposals?.length ?? 0) > 0 && (
           <div className="flex flex-wrap gap-1.5 pt-1">
             {message.proposals!.flatMap((p, pi) =>
@@ -77,7 +143,7 @@ export function BriefingMessage({ message }: Props) {
                   className="inline-flex items-center gap-1 rounded-md bg-accent/40 px-1.5 py-0.5 text-[10px] text-accent-foreground"
                 >
                   <Layers className="h-2.5 w-2.5" />
-                  Canvas: {k}
+                  Canvas: {sectionLabels?.[k] ?? k}
                 </span>
               )),
             )}
