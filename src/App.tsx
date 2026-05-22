@@ -343,6 +343,7 @@ const AsanaIntegracao = lazyWithRetry(() => import("./pages/AsanaIntegracao"));
 const IntegracoesNotion = lazyWithRetry(() => import("./pages/configuracoes/IntegracoesNotion"));
 const ShipsgoIntegracao = lazyWithRetry(() => import("./pages/admin/ShipsgoIntegracao"));
 const AsanaSyncMonitor = lazyWithRetry(() => import("./pages/admin/AsanaSyncMonitor"));
+const AsanaImportacao = lazyWithRetry(() => import("./pages/admin/AsanaImportacao"));
 const DedupePerfis = lazyWithRetry(() => import("./pages/admin/DedupePerfis"));
 const EstoqueModule = lazyWithRetry(() => import("./pages/modules/EstoqueModule"));
 const EstoqueDistribuidoras = lazyWithRetry(() => import("./pages/EstoqueDistribuidoras"));
