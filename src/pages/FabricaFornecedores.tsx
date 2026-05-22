@@ -50,6 +50,7 @@ interface FabricaFornecedor {
   linha_digitavel: string | null;
   erp_code: string | null;
   ativo: boolean | null;
+  pendente_complemento?: boolean | null;
   created_at: string | null;
 }
 
@@ -184,6 +185,7 @@ export default function FabricaFornecedores() {
       if (search) query = query.or(`razao_social.ilike.%${search}%,cnpj.ilike.%${search}%,nome_fantasia.ilike.%${search}%`);
       if (statusFilter === "ativo") query = query.eq("ativo", true);
       if (statusFilter === "inativo") query = query.eq("ativo", false);
+      if (statusFilter === "pendente") query = query.eq("pendente_complemento", true);
       const { data, error } = await query;
       if (error) throw error;
       return data as FabricaFornecedor[];
@@ -344,11 +346,12 @@ export default function FabricaFornecedores() {
                 <Input placeholder="Buscar por razão social, CNPJ ou fantasia..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
               </div>
               <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="todos">Todos</SelectItem>
                   <SelectItem value="ativo">Ativos</SelectItem>
                   <SelectItem value="inativo">Inativos</SelectItem>
+                  <SelectItem value="pendente">Pendente CNPJ</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -392,9 +395,16 @@ export default function FabricaFornecedores() {
                             <TableCell className="text-xs">{f.email || f.telefone || "—"}</TableCell>
                             <TableCell className="text-xs">{[f.cidade, f.uf].filter(Boolean).join("/") || "—"}</TableCell>
                             <TableCell>
-                              <Badge variant={f.ativo ? "success" : "secondary"} className="text-[10px]">
-                                {f.ativo ? "Ativo" : "Inativo"}
-                              </Badge>
+                              <div className="flex flex-col gap-1">
+                                <Badge variant={f.ativo ? "success" : "secondary"} className="text-[10px] w-fit">
+                                  {f.ativo ? "Ativo" : "Inativo"}
+                                </Badge>
+                                {f.pendente_complemento && (
+                                  <Badge variant="outline" className="text-[10px] w-fit border-amber-500 text-amber-700 dark:text-amber-400">
+                                    Pendente CNPJ
+                                  </Badge>
+                                )}
+                              </div>
                             </TableCell>
                             <TableCell className="text-right">
                               <div className="flex justify-end gap-1" onClick={e => e.stopPropagation()}>

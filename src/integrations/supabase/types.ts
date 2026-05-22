@@ -15083,6 +15083,7 @@ export type Database = {
           linha_digitavel: string | null
           nome_fantasia: string | null
           numero: string | null
+          pendente_complemento: boolean
           pix_chave: string | null
           pix_tipo: string | null
           razao_social: string
@@ -15115,6 +15116,7 @@ export type Database = {
           linha_digitavel?: string | null
           nome_fantasia?: string | null
           numero?: string | null
+          pendente_complemento?: boolean
           pix_chave?: string | null
           pix_tipo?: string | null
           razao_social: string
@@ -15147,6 +15149,7 @@ export type Database = {
           linha_digitavel?: string | null
           nome_fantasia?: string | null
           numero?: string | null
+          pendente_complemento?: boolean
           pix_chave?: string | null
           pix_tipo?: string | null
           razao_social?: string
@@ -47980,6 +47983,7 @@ export type Database = {
         }
         Returns: number
       }
+      next_mp_codigo: { Args: never; Returns: string }
       notificar_espelhos_pendentes_sem_doc: { Args: never; Returns: number }
       notify_china_oc_sla: {
         Args: never
