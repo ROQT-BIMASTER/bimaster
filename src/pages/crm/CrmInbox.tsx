@@ -16,6 +16,8 @@ import { Inbox, Search, UserPlus, Send, Lock, AlertTriangle, Filter, RefreshCw }
 import { channelIcon, initials, relativeTime } from "@/lib/crm/format";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { useCrmFeatureFlag } from "@/hooks/useCrmFeatureFlag";
+import { CrmSearchResults } from "@/components/crm/CrmSearchResults";
 
 type Conv = {
   id: string; canal: string; status: string; operador_id: string | null;
