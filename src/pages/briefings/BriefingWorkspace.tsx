@@ -199,7 +199,14 @@ export default function BriefingWorkspace() {
                   </p>
                 </div>
               ) : (
-                messages.map((m) => <BriefingMessage key={m.id} message={m} />)
+                messages.map((m) => (
+                  <BriefingMessage
+                    key={m.id}
+                    message={m}
+                    sectionLabels={sectionLabels}
+                    onSugestaoDecided={recarregar}
+                  />
+                ))
               )}
               {sending && (
                 <div className="flex gap-2.5 mb-4">
