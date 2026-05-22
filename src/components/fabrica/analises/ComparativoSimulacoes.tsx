@@ -105,8 +105,8 @@ export function ComparativoSimulacoes({ custosArr }: Props) {
           <table className="w-full text-xs">
             <thead className="bg-muted/50 sticky top-0">
               <tr className="text-left">
-                <th className="px-3 py-2 font-medium">Código</th>
-                <th className="px-3 py-2 font-medium">Produto</th>
+                <th className="px-3 py-2 font-medium whitespace-nowrap">Código</th>
+                <th className="px-3 py-2 font-medium">Descrição</th>
                 <th className="px-3 py-2 font-medium">Tipo</th>
                 <th className="px-3 py-2 font-medium text-right">Custo Sim01</th>
                 <th className="px-3 py-2 font-medium text-right">Custo Sim02</th>
@@ -122,8 +122,8 @@ export function ComparativoSimulacoes({ custosArr }: Props) {
                 const badge = STATUS_BADGE[r.status];
                 return (
                   <tr key={i} className={`border-t hover:bg-muted/30 ${altaForte ? "bg-destructive/5" : ""}`}>
-                    <td className="px-3 py-2 font-mono">{r.codigo}</td>
-                    <td className="px-3 py-2">{r.nome}</td>
+                    <td className="px-3 py-2 font-mono whitespace-nowrap" title={r.codigo}>{r.codigo || "—"}</td>
+                    <td className="px-3 py-2" title={r.nome}>{r.nome || "—"}</td>
                     <td className="px-3 py-2 text-muted-foreground">{r.tipo}</td>
                     <td className="px-3 py-2 text-right tabular-nums">{r.custoSim01 != null ? formatCurrency(r.custoSim01) : "—"}</td>
                     <td className="px-3 py-2 text-right tabular-nums">{r.custoSim02 != null ? formatCurrency(r.custoSim02) : "—"}</td>

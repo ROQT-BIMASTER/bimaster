@@ -12,6 +12,7 @@ interface Props {
 interface LinhaConsolidada {
   codigo: string;
   nome: string;
+  cenarioLabel: string | null;
   tipo: string;
   totalInsumos: number;
   ipi: number;
@@ -26,7 +27,8 @@ interface LinhaConsolidada {
 function aggregate(c: CenarioCustoAgg): LinhaConsolidada {
   return {
     codigo: c.produto.codigo,
-    nome: c.produto.cenario_label || c.produto.nome,
+    nome: c.produto.nome,
+    cenarioLabel: c.produto.cenario_label || null,
     tipo: (c.produto.tipo || "OFICIAL").toUpperCase(),
     totalInsumos: c.totalInsumos,
     ipi: c.ipiTotal,
@@ -98,8 +100,8 @@ export function ConsolidadoComposicao({ custosArr }: Props) {
           <table className="w-full text-xs">
             <thead className="bg-muted/50 sticky top-0">
               <tr className="text-left">
-                <th className="px-3 py-2 font-medium">Código</th>
-                <th className="px-3 py-2 font-medium">Produto</th>
+                <th className="px-3 py-2 font-medium whitespace-nowrap">Código</th>
+                <th className="px-3 py-2 font-medium">Descrição</th>
                 <th className="px-3 py-2 font-medium">Tipo</th>
                 <th className="px-3 py-2 font-medium text-right">Total Insumos</th>
                 <th className="px-3 py-2 font-medium text-right">IPI (R$)</th>
@@ -119,8 +121,13 @@ export function ConsolidadoComposicao({ custosArr }: Props) {
                   `px-3 py-2 text-right tabular-nums ${big === key ? "bg-destructive/10 font-semibold" : ""}`;
                 return (
                   <tr key={i} className="border-t hover:bg-muted/30">
-                    <td className="px-3 py-2 font-mono">{l.codigo}</td>
-                    <td className="px-3 py-2">{l.nome}</td>
+                    <td className="px-3 py-2 font-mono whitespace-nowrap" title={l.codigo}>{l.codigo || "—"}</td>
+                    <td className="px-3 py-2" title={l.nome}>
+                      <div>{l.nome || "—"}</div>
+                      {l.cenarioLabel && l.cenarioLabel !== l.nome && (
+                        <div className="text-[10px] text-muted-foreground">{l.cenarioLabel}</div>
+                      )}
+                    </td>
                     <td className="px-3 py-2 text-muted-foreground">{l.tipo}</td>
                     <td className={cell(l.totalInsumos, "totalInsumos")}>{formatCurrency(l.totalInsumos)}</td>
                     <td className={cell(l.ipi, "ipi")}>{formatCurrency(l.ipi)}</td>

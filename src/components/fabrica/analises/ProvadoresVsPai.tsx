@@ -98,10 +98,10 @@ export function ProvadoresVsPai({ custosArr }: Props) {
           <table className="w-full text-xs">
             <thead className="bg-muted/50 sticky top-0">
               <tr className="text-left">
-                <th className="px-3 py-2 font-medium">Cód. Provador</th>
-                <th className="px-3 py-2 font-medium">Provador</th>
-                <th className="px-3 py-2 font-medium">Cód. Pai</th>
-                <th className="px-3 py-2 font-medium">Produto Pai</th>
+                <th className="px-3 py-2 font-medium whitespace-nowrap">Cód. Provador</th>
+                <th className="px-3 py-2 font-medium">Descrição Provador</th>
+                <th className="px-3 py-2 font-medium whitespace-nowrap">Cód. Pai</th>
+                <th className="px-3 py-2 font-medium">Descrição Pai</th>
                 <th className="px-3 py-2 font-medium text-right">Custo Provador</th>
                 <th className="px-3 py-2 font-medium text-right">Custo Pai</th>
                 <th className="px-3 py-2 font-medium text-right">% do Pai</th>
@@ -124,10 +124,10 @@ export function ProvadoresVsPai({ custosArr }: Props) {
                   : "bg-destructive/15 text-destructive border-destructive/30";
                 return (
                   <tr key={r.provador_id} className="border-t hover:bg-muted/30">
-                    <td className="px-3 py-2 font-mono">{r.provador_codigo}</td>
-                    <td className="px-3 py-2">{r.provador_nome}</td>
-                    <td className="px-3 py-2 font-mono text-muted-foreground">{r.pai_codigo}</td>
-                    <td className="px-3 py-2 text-muted-foreground">{r.pai_nome}</td>
+                    <td className="px-3 py-2 font-mono whitespace-nowrap" title={r.provador_codigo}>{r.provador_codigo || "—"}</td>
+                    <td className="px-3 py-2" title={r.provador_nome}>{r.provador_nome || "—"}</td>
+                    <td className="px-3 py-2 font-mono whitespace-nowrap text-muted-foreground" title={r.pai_codigo}>{r.pai_codigo || "—"}</td>
+                    <td className="px-3 py-2 text-muted-foreground" title={r.pai_nome}>{r.pai_nome || "—"}</td>
                     <td className="px-3 py-2 text-right tabular-nums">{formatCurrency(r.custo_fabrica)}</td>
                     <td className="px-3 py-2 text-right tabular-nums">{formatCurrency(r.custo_pai)}</td>
                     <td className="px-3 py-2 text-right tabular-nums font-medium">{(r.pct_do_pai * 100).toFixed(2)}%</td>
