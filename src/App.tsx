@@ -536,8 +536,15 @@ function AppContent() {
             
             {/* Protected Routes */}
             <Route path="/dashboard" element={<ProtectedRoute><DashboardRedirect /></ProtectedRoute>} />
-            <Route path="/dashboard/crm" element={<ProtectedRoute><CrmHome /></ProtectedRoute>} />
-            <Route path="/dashboard/crm/bots" element={<ProtectedRoute><CrmBots /></ProtectedRoute>} />
+            {/* Módulo CRM — acesso restrito a administradores */}
+            <Route path="/dashboard/crm" element={<CrmAdminRoute><CrmLayout /></CrmAdminRoute>}>
+              <Route index element={<CrmHome />} />
+              <Route path="bots" element={<CrmBots />} />
+              <Route path="inbox" element={<CrmInbox />} />
+              <Route path="contatos" element={<CrmContatos />} />
+              <Route path="tickets" element={<CrmTickets />} />
+              <Route path="analytics" element={<CrmAnalytics />} />
+              <Route path="configuracoes" element={<CrmConfiguracoes />} />
             <Route path="/dashboard/ai-analytics" element={<ScreenRoute screenCode="ai_analytics"><AIAnalytics /></ScreenRoute>} />
             <Route path="/dashboard/qa-agent" element={<ScreenRoute screenCode="ai_analytics"><QAAgent /></ScreenRoute>} />
             <Route path="/dashboard/agente-huggs" element={<ScreenRoute screenCode="ai_analytics"><AgenteHuggs /></ScreenRoute>} />
