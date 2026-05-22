@@ -108,7 +108,7 @@ export function ConsolidadoComposicao({ custosArr }: Props) {
                 <th className="px-3 py-2 font-medium text-right">Total NF</th>
                 <th className="px-3 py-2 font-medium text-right">Serviço</th>
                 <th className="px-3 py-2 font-medium text-right">Condição</th>
-                <th className="px-3 py-2 font-medium text-right">NF Made In</th>
+                <th className="px-3 py-2 font-medium text-right" title="Custo adicional na NF de produtos importados (origem estrangeira).">Importação</th>
                 <th className="px-3 py-2 font-medium text-right">Custo Final</th>
                 <th className="px-3 py-2 font-medium" style={{ minWidth: 120 }}>Peso</th>
               </tr>
@@ -177,7 +177,7 @@ export function ConsolidadoComposicao({ custosArr }: Props) {
               ["NF", sim01.totalNF, sim02.totalNF],
               ["Serviço", sim01.totalServico, sim02.totalServico],
               ["Condição", sim01.totalCondicao, sim02.totalCondicao],
-              ["Made In", sim01.totalNFMadeIn, sim02.totalNFMadeIn],
+              ["Importação", sim01.totalNFMadeIn, sim02.totalNFMadeIn],
               ["Custo Final", sim01.custoFinal, sim02.custoFinal],
             ] as [string, number, number][]).map(([label, a, b]) => {
               const d = b - a;

@@ -222,13 +222,13 @@ export function FiltrosConsolidadoBar({
             className="h-8 w-24 text-xs"
           />
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2" title="Produtos cujas notas fiscais possuem custo declarado de importação (origem estrangeira).">
           <Switch
-            id="made-in"
+            id="importacao"
             checked={filtros.somenteComMadeIn}
             onCheckedChange={(c) => update({ somenteComMadeIn: c })}
           />
-          <Label htmlFor="made-in" className="text-xs cursor-pointer">Com Made In</Label>
+          <Label htmlFor="importacao" className="text-xs cursor-pointer">Com importação</Label>
         </div>
         <div className="flex items-center gap-2">
           <Switch id="ipi" checked={filtros.somenteComIpi} onCheckedChange={(c) => update({ somenteComIpi: c })} />

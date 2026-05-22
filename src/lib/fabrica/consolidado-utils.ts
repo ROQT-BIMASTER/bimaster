@@ -1,5 +1,5 @@
 import type { ProdutoConsolidado } from "@/hooks/useCustosConsolidados";
-import { insumoKey, normalizeText } from "@/lib/fabrica/normalize";
+import { insumoKey, normalizeText, stripQuantidade } from "@/lib/fabrica/normalize";
 
 export interface FiltrosConsolidado {
   busca: string;
@@ -155,7 +155,7 @@ export function agregarInsumosFornecedores(produtos: ProdutoConsolidado[]): AggI
   produtos.forEach((p) => {
     p.itens.forEach((i) => {
       const codigo = (i.codigo || "").trim();
-      const nome = (i.nome || "").trim();
+      const nome = stripQuantidade(i.nome);
       const fornecedor = (i.fornecedor || "—").trim();
       const tipoInsumo = (i.tipo_insumo || "—").trim();
       const chave = insumoKey(nome, fornecedor);

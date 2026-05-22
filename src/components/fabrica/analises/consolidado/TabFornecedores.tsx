@@ -62,7 +62,7 @@ export function TabFornecedores({ produtos }: { produtos: ProdutoConsolidado[] }
     <Card className="overflow-hidden">
       <div className="overflow-auto max-h-[680px]">
         <table className="w-full text-xs">
-          <thead className="bg-muted/50 sticky top-0 z-10">
+          <thead className="bg-muted sticky top-0 z-20 shadow-sm">
             <tr className="text-left">
               {H("fornecedor", "Fornecedor")}
               {H("produtos", "# Produtos", "right")}
