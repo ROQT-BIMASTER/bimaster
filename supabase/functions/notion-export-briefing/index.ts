@@ -562,6 +562,22 @@ Deno.serve(
         })
         .eq("id", briefing.id);
 
+      // 9.b Marca documentos que foram efetivamente espelhados
+      let documentos_sincronizados = 0;
+      if (incluir_documentos && documentosParaEspelho.length) {
+        for (const d of documentosParaEspelho) {
+          await sb
+            .from("briefing_documentos")
+            .update({
+              enviado_notion_em: nowIso,
+              notion_file_url: d.signed_url,
+              notion_page_id: pageId,
+            })
+            .eq("id", d.id);
+          documentos_sincronizados += 1;
+        }
+      }
+
       return new Response(
         JSON.stringify({
           ok: true,
@@ -569,6 +585,8 @@ Deno.serve(
           page_id: pageId,
           page_url: pageUrl,
           database_url: dbUrl,
+          documentos_sincronizados,
+          documentos_totais: documentosParaNotion.length,
         }),
         { headers: { ...cors, "Content-Type": "application/json" } },
       );
