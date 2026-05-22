@@ -45,7 +45,7 @@ export async function exportAnalisesCustos(opts: {
     "Total NF": c.totalNF,
     Serviço: c.totalServico,
     Condição: c.totalCondicao,
-    "NF Made In": c.totalNFMadeIn,
+    "Custo Importação": c.totalNFMadeIn,
     "Mão de obra NF": c.custoMaoObraNF,
     "Mão de obra Serviço": c.custoMaoObraServico,
     "CUSTO FINAL": c.custoFinal,
