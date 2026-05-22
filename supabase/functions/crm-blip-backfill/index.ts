@@ -162,7 +162,8 @@ Deno.serve(secureHandler(
         if (!identity) continue;
         try {
           const mResp = await blipCommand<ThreadMessage>(
-            key as string,
+            authValue,
+            endpoint,
             `/threads/${encodeURIComponent(identity)}?$take=${messagesPerThread}`,
           );
           if (mResp.status !== "success") {
