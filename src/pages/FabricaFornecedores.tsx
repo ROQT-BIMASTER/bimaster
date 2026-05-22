@@ -50,6 +50,7 @@ interface FabricaFornecedor {
   linha_digitavel: string | null;
   erp_code: string | null;
   ativo: boolean | null;
+  pendente_complemento?: boolean | null;
   created_at: string | null;
 }
 
