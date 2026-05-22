@@ -6,6 +6,7 @@ import { useEmpresaContext } from "@/contexts/EmpresaContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { CrmPageHeader } from "@/components/crm/CrmPageHeader";
 import { CrmStatusBadge } from "@/components/crm/CrmStatusBadge";
+import { MessageBody } from "@/components/crm/MessageBody";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -220,7 +221,7 @@ function Thread({ conv, onAssign, onClose }: { conv: Conv; onAssign: () => void;
               <div key={m.id} className={cn("flex", out ? "justify-end" : "justify-start")}>
                 <div className={cn("max-w-[70%] rounded-lg px-3 py-2 text-xs", out ? "bg-primary text-primary-foreground" : "bg-card border")}>
                   {!out && m.autor_nome && <div className="text-[10px] opacity-70 mb-0.5">{m.autor_nome}</div>}
-                  <div className="whitespace-pre-wrap break-words">{m.conteudo ?? `[${m.tipo}]`}</div>
+                  <MessageBody conteudo={m.conteudo} tipo={m.tipo} />
                   <div className={cn("text-[10px] mt-1", out ? "opacity-80" : "text-muted-foreground")}>{relativeTime(m.criada_em)}</div>
                 </div>
               </div>
