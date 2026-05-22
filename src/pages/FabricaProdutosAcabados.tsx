@@ -710,7 +710,7 @@ export default function FabricaProdutosAcabados() {
         } border-b border-border/40 transition-colors`}
       >
         <TableCell className="pr-0 py-2">
-          <ProductThumbnail src={produto.foto_url} alt={produto.nome} size="sm" produtoId={produto.id} produtoNome={produto.nome} />
+          <ProductThumbnail src={produto.foto_url} alt={produto.nome} size="md" produtoId={produto.id} produtoNome={produto.nome} />
         </TableCell>
         <TableCell className="font-mono text-[12px] py-2 whitespace-nowrap">
           {produto.is_provador && (
