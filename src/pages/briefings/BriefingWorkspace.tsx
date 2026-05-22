@@ -281,7 +281,7 @@ export default function BriefingWorkspace() {
                   />
                   <Button
                     type="submit"
-                    disabled={sending || !input.trim() || readOnly}
+                    disabled={sending || (!input.trim() && chatAttachments.length === 0) || readOnly}
                     size="sm"
                   >
                     Enviar
