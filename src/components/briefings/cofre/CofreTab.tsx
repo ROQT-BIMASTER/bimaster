@@ -238,6 +238,13 @@ export function CofreTab({ briefingId, tipoBriefing }: Props) {
         briefingId={briefingId}
         documentoAlvo={alvo}
       />
+
+      <AnexarEvidenciaDialog
+        open={evidenciaOpen}
+        onOpenChange={setEvidenciaOpen}
+        briefingId={briefingId}
+        origem="evidencia"
+      />
     </div>
   );
 }
