@@ -15,6 +15,7 @@ import {
 } from "@/hooks/useBriefingCofre";
 import { DocumentoCard } from "./DocumentoCard";
 import { UploadDocumentoDialog } from "./UploadDocumentoDialog";
+import { AnexarEvidenciaDialog } from "./AnexarEvidenciaDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
