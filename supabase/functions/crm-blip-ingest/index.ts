@@ -127,14 +127,13 @@ Deno.serve(async (req) => {
 
   // Loga (mesmo se HMAC falhar — registra para auditoria)
   const { error: logErr } = await sb.from("crm_webhooks_in_log").insert({
-    empresa_id: 0, // placeholder; corrigido abaixo via trigger? Vamos buscar do bot
+    empresa_id: bot.empresa_id,
     bot_id: botId,
     raw: payload,
     headers: Object.fromEntries(req.headers),
     hmac_ok: hmacOk,
     idempotency_key: idemKey,
   });
-  // Se duplicado pelo unique idempotency_key, log de duplicata
   const duplicate = logErr?.message?.includes("uq_crm_whin_idem") ?? false;
 
   if (!hmacOk) {
