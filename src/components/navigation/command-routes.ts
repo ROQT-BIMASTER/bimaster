@@ -166,6 +166,7 @@ export const commandRoutes: CommandRoute[] = [
   { title: "Relatório de Segurança", path: "/dashboard/seguranca", module: "Segurança", icon: "Shield", screenCode: "admin" },
   { title: "Relatório APIs", path: "/dashboard/relatorio-apis", module: "Admin", icon: "Network", screenCode: "admin" },
   { title: "Relatório Desenvolvimento", path: "/dashboard/relatorio-desenvolvimento", module: "Admin", icon: "FileText", screenCode: "admin" },
+  { title: "Documentação Técnica", path: "/admin/documentacao-tecnica", module: "Admin", icon: "FileText", screenCode: "admin", keywords: ["arquitetura", "docs", "backbone"] },
 
   // --- OMS ---
   { title: "OMS — Painel de Pedidos", path: "/dashboard/oms/pedidos", module: "OMS", icon: "ShoppingCart", moduleCode: "oms", screenCode: "oms_pedidos" },
