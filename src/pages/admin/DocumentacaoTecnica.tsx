@@ -20,7 +20,8 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { FileText, Download, Eye, RefreshCw } from "lucide-react";
+import { FileText, Download, Eye, RefreshCw, ArrowLeft } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -50,6 +51,7 @@ function triggerBlobDownload(blob: Blob, filename: string) {
 
 export default function DocumentacaoTecnica() {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [docs, setDocs] = useState<DocTecnico[]>([]);
   const [loading, setLoading] = useState(true);
   const [filtro, setFiltro] = useState("");
@@ -127,6 +129,10 @@ export default function DocumentacaoTecnica() {
 
   return (
     <div className="container mx-auto p-6 space-y-6">
+      <Button variant="ghost" size="sm" onClick={() => (window.history.length > 1 ? navigate(-1) : navigate("/dashboard"))} className="-ml-2">
+        <ArrowLeft className="h-4 w-4 mr-2" />
+        Voltar
+      </Button>
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Documentação Técnica</h1>
