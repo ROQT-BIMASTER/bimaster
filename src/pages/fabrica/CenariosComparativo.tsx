@@ -154,9 +154,9 @@ export default function CenariosComparativo() {
                 <Card key={produto.id} className="p-4 flex flex-col gap-3">
                   <div className="space-y-1">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <h3 className="font-semibold text-sm leading-tight flex-1">
-                        {produto.cenario_label || produto.nome}
-                      </h3>
+                      <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+                        {produto.codigo || "—"}
+                      </span>
                       {isMinCusto && (
                         <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100">
                           <TrendingDown className="h-3 w-3 mr-1" /> menor custo
@@ -168,7 +168,12 @@ export default function CenariosComparativo() {
                         </Badge>
                       )}
                     </div>
-                    <p className="text-xs text-muted-foreground">{produto.codigo}</p>
+                    <h3 className="font-semibold text-sm leading-tight" title={produto.nome}>
+                      {produto.nome || "—"}
+                    </h3>
+                    {produto.cenario_label && produto.cenario_label !== produto.nome && (
+                      <p className="text-xs text-muted-foreground">{produto.cenario_label}</p>
+                    )}
                   </div>
 
                   <div className="grid grid-cols-2 gap-2">
