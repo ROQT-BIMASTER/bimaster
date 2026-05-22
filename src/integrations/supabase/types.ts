@@ -2675,11 +2675,14 @@ export type Database = {
           fornecedor_id: string | null
           fornecedor_nome: string | null
           id: string
+          is_checklist_item: boolean
+          is_oficial: boolean
           lote: string | null
           mime_type: string | null
           nome: string
           notion_file_url: string | null
           notion_page_id: string | null
+          origem: string
           status: Database["public"]["Enums"]["briefing_doc_status"]
           storage_path: string | null
           tamanho_bytes: number | null
@@ -2697,11 +2700,14 @@ export type Database = {
           fornecedor_id?: string | null
           fornecedor_nome?: string | null
           id?: string
+          is_checklist_item?: boolean
+          is_oficial?: boolean
           lote?: string | null
           mime_type?: string | null
           nome: string
           notion_file_url?: string | null
           notion_page_id?: string | null
+          origem?: string
           status?: Database["public"]["Enums"]["briefing_doc_status"]
           storage_path?: string | null
           tamanho_bytes?: number | null
@@ -2719,11 +2725,14 @@ export type Database = {
           fornecedor_id?: string | null
           fornecedor_nome?: string | null
           id?: string
+          is_checklist_item?: boolean
+          is_oficial?: boolean
           lote?: string | null
           mime_type?: string | null
           nome?: string
           notion_file_url?: string | null
           notion_page_id?: string | null
+          origem?: string
           status?: Database["public"]["Enums"]["briefing_doc_status"]
           storage_path?: string | null
           tamanho_bytes?: number | null
