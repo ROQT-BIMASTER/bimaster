@@ -338,6 +338,7 @@ const RelatorioDesenvolvimento = lazyWithRetry(() => import("./pages/RelatorioDe
 const RelatorioAPModule = lazyWithRetry(() => import("./pages/RelatorioAPModule"));
 const IntegracaoERP = lazyWithRetry(() => import("./pages/IntegracaoERP"));
 const AdminApiSupport = lazyWithRetry(() => import("./pages/AdminApiSupport"));
+const DocumentacaoTecnica = lazyWithRetry(() => import("./pages/admin/DocumentacaoTecnica"));
 const AsanaIntegracao = lazyWithRetry(() => import("./pages/AsanaIntegracao"));
 const IntegracoesNotion = lazyWithRetry(() => import("./pages/configuracoes/IntegracoesNotion"));
 const ShipsgoIntegracao = lazyWithRetry(() => import("./pages/admin/ShipsgoIntegracao"));
@@ -858,6 +859,7 @@ function AppContent() {
             <Route path="/dashboard/relatorio-ap-module" element={<ScreenRoute screenCode="admin"><RelatorioAPModule /></ScreenRoute>} />
             <Route path="/dashboard/integracao-erp" element={<ModuleRoute moduleCode="integracao_erp"><ScreenRoute screenCode="integracao_erp"><IntegracaoERP /></ScreenRoute></ModuleRoute>} />
             <Route path="/dashboard/admin-api-support" element={<ScreenRoute screenCode="admin"><AdminApiSupport /></ScreenRoute>} />
+            <Route path="/admin/documentacao-tecnica" element={<ScreenRoute screenCode="admin"><DocumentacaoTecnica /></ScreenRoute>} />
             <Route path="/dashboard/integracoes/asana" element={<ScreenRoute screenCode="admin"><AsanaIntegracao /></ScreenRoute>} />
             <Route path="/configuracoes/integracoes/notion" element={<ProtectedRoute><IntegracoesNotion /></ProtectedRoute>} />
             <Route path="/dashboard/integracoes/notion" element={<ProtectedRoute><IntegracoesNotion /></ProtectedRoute>} />
