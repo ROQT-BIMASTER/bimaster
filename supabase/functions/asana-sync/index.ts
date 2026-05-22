@@ -1107,85 +1107,256 @@ function mapAsanaPriority(p: string | null): string | null {
 }
 
 // --- Attachment importer: downloads Asana-hosted files into the projeto-anexos bucket ---
+// Para anexos com host="asana", o download_url é uma URL S3 pré-assinada anônima
+// (NÃO enviar Authorization — quebra o signature).
+// Para anexos externos (Drive, Dropbox, etc.) tentamos baixar se a URL for pública;
+// caso contrário, persistimos como link lógico (storage_path = external://...).
 const MAX_ATTACHMENT_BYTES = 50 * 1024 * 1024; // 50 MB hard cap
 
 function sanitizeFilename(name: string): string {
   return (name || "attachment").replace(/[^A-Za-z0-9._-]+/g, "_").slice(0, 180) || "attachment";
 }
 
+async function tryDownload(url: string): Promise<{ buf: Uint8Array; contentType: string } | null> {
+  try {
+    const dl = await fetch(url, { redirect: "follow" });
+    if (!dl.ok) return null;
+    const contentType = dl.headers.get("content-type") || "application/octet-stream";
+    // Skip HTML (provedor pediu login) — não é o arquivo
+    if (contentType.includes("text/html")) return null;
+    const buf = new Uint8Array(await dl.arrayBuffer());
+    if (buf.byteLength === 0 || buf.byteLength > MAX_ATTACHMENT_BYTES) return null;
+    return { buf, contentType };
+  } catch {
+    return null;
+  }
+}
+
+async function uploadToProjetoAnexos(
+  adminClient: any,
+  storagePath: string,
+  buf: Uint8Array,
+  contentType: string,
+): Promise<boolean> {
+  const { error } = await adminClient.storage
+    .from("projeto-anexos")
+    .upload(storagePath, buf, { contentType, upsert: true });
+  return !error;
+}
+
 async function importAsanaAttachment(
   adminClient: any,
-  asanaPat: string,
+  _asanaPat: string,
   att: any,
   tarefaId: string,
   userId: string,
   errors: any[],
 ): Promise<boolean> {
   try {
+    const host = att.host || "asana";
+    const metadata = {
+      origem: "asana",
+      asana_gid: att.gid,
+      asana_host: host,
+      asana_created_at: att.created_at || null,
+      asana_created_by_gid: att.created_by?.gid || null,
+      asana_view_url: att.view_url || null,
+      asana_permanent_url: att.permanent_url || null,
+      asana_resource_subtype: att.resource_subtype || null,
+    };
     const baseRow = {
       tarefa_id: tarefaId,
       nome: att.name || "attachment",
       tamanho: att.size || null,
       asana_gid: att.gid,
       user_id: userId,
+      metadata,
     };
 
-    const isAsanaHosted = (att.host === "asana") && !!att.download_url;
-
-    if (!isAsanaHosted) {
-      // External (Drive, Dropbox, OneDrive, ...). Keep the URL as a logical link.
-      const link = att.permanent_url || att.view_url || att.download_url || "";
-      const { error } = await adminClient.from("projeto_tarefa_anexos").insert({
-        ...baseRow,
-        storage_path: `external://${link}`,
-        tipo_arquivo: `external:${att.host || "link"}`,
-      });
-      if (error) { errors.push({ attachment: att.gid, error: `Insert link: ${error.message}` }); return false; }
-      return true;
-    }
-
-    // Skip ridiculously large files
+    // Skip arquivos absurdamente grandes (header)
     if (att.size && att.size > MAX_ATTACHMENT_BYTES) {
       errors.push({ attachment: att.gid, error: `Skipped: ${att.size} bytes > 50MB cap` });
       return false;
     }
 
-    const dl = await fetch(att.download_url, { headers: { Authorization: `Bearer ${asanaPat}` } });
-    if (!dl.ok) {
-      errors.push({ attachment: att.gid, error: `Download HTTP ${dl.status}` });
-      return false;
-    }
-    const contentType = dl.headers.get("content-type") || "application/octet-stream";
-    const buf = new Uint8Array(await dl.arrayBuffer());
-    if (buf.byteLength > MAX_ATTACHMENT_BYTES) {
-      errors.push({ attachment: att.gid, error: `Downloaded ${buf.byteLength} bytes > 50MB cap` });
-      return false;
-    }
+    // 1) Tenta download direto (Asana-hosted ou externo público)
+    const candidateUrls = [
+      att.download_url,
+      att.permanent_url,
+      att.view_url,
+    ].filter(Boolean) as string[];
 
-    const safeName = sanitizeFilename(att.name || "attachment");
-    const storagePath = `imported/asana/${tarefaId}/${att.gid}-${safeName}`;
-
-    const { error: upErr } = await adminClient.storage
-      .from("projeto-anexos")
-      .upload(storagePath, buf, { contentType, upsert: true });
-    if (upErr) {
-      errors.push({ attachment: att.gid, error: `Upload: ${upErr.message}` });
-      return false;
+    let downloaded: { buf: Uint8Array; contentType: string } | null = null;
+    for (const u of candidateUrls) {
+      downloaded = await tryDownload(u);
+      if (downloaded) break;
     }
 
-    const { error: insErr } = await adminClient.from("projeto_tarefa_anexos").insert({
+    if (downloaded) {
+      const safeName = sanitizeFilename(att.name || "attachment");
+      const storagePath = `imported/asana/${tarefaId}/${att.gid}-${safeName}`;
+      const ok = await uploadToProjetoAnexos(adminClient, storagePath, downloaded.buf, downloaded.contentType);
+      if (!ok) {
+        errors.push({ attachment: att.gid, error: `Upload falhou` });
+      } else {
+        const { error: insErr } = await adminClient.from("projeto_tarefa_anexos").insert({
+          ...baseRow,
+          storage_path: storagePath,
+          tipo_arquivo: downloaded.contentType,
+          tamanho: downloaded.buf.byteLength,
+        });
+        if (insErr) {
+          errors.push({ attachment: att.gid, error: `Insert: ${insErr.message}` });
+          return false;
+        }
+        return true;
+      }
+    }
+
+    // 2) Fallback: persiste como link lógico (ex.: Google Drive sem permissão pública)
+    const link = att.permanent_url || att.view_url || att.download_url || "";
+    if (!link) {
+      errors.push({ attachment: att.gid, error: "Sem URL utilizável" });
+      return false;
+    }
+    const { error: linkErr } = await adminClient.from("projeto_tarefa_anexos").insert({
       ...baseRow,
-      storage_path: storagePath,
-      tipo_arquivo: contentType,
-      tamanho: buf.byteLength,
+      storage_path: `external://${link}`,
+      tipo_arquivo: `external:${host}`,
     });
-    if (insErr) {
-      errors.push({ attachment: att.gid, error: `Insert: ${insErr.message}` });
-      return false;
-    }
+    if (linkErr) { errors.push({ attachment: att.gid, error: `Insert link: ${linkErr.message}` }); return false; }
     return true;
   } catch (e: any) {
     errors.push({ attachment: att?.gid, error: `Exception: ${e.message}` });
     return false;
   }
+}
+
+// --- Project Conversations / Messages importer ---
+// Importa "Mensagens" do projeto (aba Conversations no Asana) para projeto_chat_messages,
+// com anexos indo para projeto_chat_anexos. Atalhos: usa asana_sync_mappings entity "project_message".
+async function importProjectMessages(
+  adminClient: any,
+  projectGid: string,
+  localProjectId: string,
+  defaultUserId: string,
+  userMap: Map<string, string>,
+  workspaceGid: string,
+  errors: any[],
+  timeLeft: () => number,
+): Promise<number> {
+  let count = 0;
+  try {
+    const messages = await asanaGetAll(`/projects/${projectGid}/messages`, "", {
+      opt_fields: "gid,text,html_text,created_at,created_by,created_by.gid,liked,num_likes,num_hearts",
+    });
+    for (const m of messages) {
+      if (timeLeft() < 3000) break;
+      if (!m.gid) continue;
+      const { data: existing } = await adminClient
+        .from("asana_sync_mappings")
+        .select("local_id")
+        .eq("asana_gid", m.gid)
+        .eq("entity_type", "project_message")
+        .maybeSingle();
+      if (existing) continue;
+
+      const authorId = m.created_by?.gid ? (userMap.get(m.created_by.gid) || defaultUserId) : defaultUserId;
+      const { data: nm, error: insErr } = await adminClient.from("projeto_chat_messages").insert({
+        projeto_id: localProjectId,
+        user_id: authorId,
+        conteudo: m.text || "(sem texto)",
+        tipo: "mensagem",
+        asana_gid: m.gid,
+        metadata: {
+          origem: "asana",
+          asana_gid: m.gid,
+          html_text: m.html_text || null,
+          num_likes: m.num_likes || 0,
+          num_hearts: m.num_hearts || 0,
+          created_at_asana: m.created_at || null,
+        },
+        created_at: m.created_at || new Date().toISOString(),
+      }).select("id").single();
+      if (insErr || !nm) {
+        errors.push({ project_message: m.gid, error: insErr?.message });
+        continue;
+      }
+      await adminClient.from("asana_sync_mappings").insert({
+        asana_gid: m.gid, entity_type: "project_message",
+        local_id: nm.id, workspace_gid: workspaceGid,
+      });
+
+      // Anexos da mensagem
+      try {
+        const atts = await asanaGetAll(`/tasks/${m.gid}/attachments`, "", {
+          opt_fields: "name,download_url,host,view_url,permanent_url,size,created_at,created_by,resource_subtype",
+        }).catch(() => []);
+        for (const att of atts) {
+          if (!att.gid) continue;
+          const { data: ea } = await adminClient.from("projeto_chat_anexos")
+            .select("id").eq("asana_gid", att.gid).maybeSingle();
+          if (ea) continue;
+
+          const candidateUrls = [att.download_url, att.permanent_url, att.view_url].filter(Boolean) as string[];
+          let downloaded: { buf: Uint8Array; contentType: string } | null = null;
+          for (const u of candidateUrls) {
+            downloaded = await tryDownload(u);
+            if (downloaded) break;
+          }
+          const metadata = {
+            origem: "asana",
+            asana_host: att.host || null,
+            asana_view_url: att.view_url || null,
+            asana_permanent_url: att.permanent_url || null,
+            asana_created_at: att.created_at || null,
+          };
+          if (downloaded) {
+            const safeName = sanitizeFilename(att.name || "attachment");
+            const storagePath = `imported/asana/messages/${nm.id}/${att.gid}-${safeName}`;
+            const ok = await uploadToProjetoAnexos(adminClient, storagePath, downloaded.buf, downloaded.contentType);
+            if (ok) {
+              await adminClient.from("projeto_chat_anexos").insert({
+                message_id: nm.id,
+                projeto_id: localProjectId,
+                user_id: authorId,
+                nome: att.name || "attachment",
+                storage_path: storagePath,
+                tipo_arquivo: downloaded.contentType,
+                tamanho: downloaded.buf.byteLength,
+                asana_gid: att.gid,
+                metadata,
+              });
+              continue;
+            }
+          }
+          // Fallback link
+          const link = att.permanent_url || att.view_url || att.download_url || "";
+          if (link) {
+            await adminClient.from("projeto_chat_anexos").insert({
+              message_id: nm.id,
+              projeto_id: localProjectId,
+              user_id: authorId,
+              nome: att.name || "attachment",
+              storage_path: `external://${link}`,
+              tipo_arquivo: `external:${att.host || "link"}`,
+              tamanho: att.size || null,
+              asana_gid: att.gid,
+              metadata,
+            });
+          }
+        }
+      } catch (e: any) {
+        errors.push({ project_message_attachments: m.gid, error: e.message });
+      }
+
+      count++;
+    }
+  } catch (e: any) {
+    // 404 em /projects/{gid}/messages é comum quando projeto não tem conversas
+    if (!/Asana 404/.test(e.message || "")) {
+      errors.push({ project: projectGid, error: `Messages: ${e.message}` });
+    }
+  }
+  return count;
 }
