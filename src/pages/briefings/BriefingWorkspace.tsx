@@ -233,6 +233,17 @@ export default function BriefingWorkspace() {
                   Enter para enviar · Shift+Enter para nova linha
                 </span>
                 <div className="flex items-center gap-1">
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="ghost"
+                    className="h-8 w-8"
+                    disabled={sending || readOnly}
+                    onClick={() => setEvidenciaOpen(true)}
+                    title="Anexar evidência"
+                  >
+                    <Paperclip className="h-4 w-4" />
+                  </Button>
                   <BriefingMicButton
                     disabled={sending || readOnly}
                     onTranscribed={(text) => {
