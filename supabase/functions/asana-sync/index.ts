@@ -67,6 +67,11 @@ Deno.serve(secureHandler({ auth: "none", rateLimit: 10, rateLimitPrefix: "asana-
       }, 503);
     }
 
+    // Variável legada mantida para compatibilidade com callsites e download de anexos
+    // hospedados no Asana (gateway não proxia downloads binários). Vazia se PAT não existir;
+    // helpers asanaGet/asanaGetPage/asanaGetAll ignoram este valor e usam o gateway.
+    const asanaPat = (Deno.env.get("ASANA_PAT") || "").replace(/[^\x21-\x7E]/g, "");
+
     switch (path) {
       case "/test-connection": {
         const res = await asanaGet("/users/me", asanaPat);
