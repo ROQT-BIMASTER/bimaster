@@ -355,10 +355,7 @@ export default function CrmBots() {
                 <SelectContent>
                   <SelectItem value="blip">Blip</SelectItem>
                   <SelectItem value="whatsapp_cloud">WhatsApp Cloud API</SelectItem>
-                  <SelectItem value="instagram">Instagram</SelectItem>
-                  <SelectItem value="messenger">Messenger</SelectItem>
-                  <SelectItem value="telegram">Telegram</SelectItem>
-                  <SelectItem value="webchat">Webchat</SelectItem>
+                  <SelectItem value="interno">Interno</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -375,10 +372,10 @@ export default function CrmBots() {
                   <SelectItem value="whatsapp">WhatsApp</SelectItem>
                   <SelectItem value="instagram">Instagram</SelectItem>
                   <SelectItem value="messenger">Messenger</SelectItem>
-                  <SelectItem value="telegram">Telegram</SelectItem>
                   <SelectItem value="webchat">Webchat</SelectItem>
                   <SelectItem value="email">E-mail</SelectItem>
                   <SelectItem value="voz">Voz</SelectItem>
+                  <SelectItem value="outro">Outro</SelectItem>
                 </SelectContent>
               </Select>
             </div>
