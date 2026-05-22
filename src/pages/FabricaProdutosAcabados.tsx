@@ -81,6 +81,7 @@ export default function FabricaProdutosAcabados() {
   const [agruparPor, setAgruparPor] = useState("marca");
   const [showAdminDash, setShowAdminDash] = useState(false);
   const [mostrarOcultos, setMostrarOcultos] = useState(false);
+  const [mostrarInativos, setMostrarInativos] = useState(false);
   const [filtrosAbertos, setFiltrosAbertos] = useState(true);
   const [dataInicio, setDataInicio] = useState("");
   const [dataFim, setDataFim] = useState("");
@@ -345,6 +346,7 @@ export default function FabricaProdutosAcabados() {
   }, [fichasConfig]);
 
   const totalOcultos = useMemo(() => produtos?.filter(p => p.oculto).length || 0, [produtos]);
+  const totalInativos = useMemo(() => produtos?.filter(p => p.ativo === false).length || 0, [produtos]);
 
   const profilesMap = useMemo(() => {
     const map = new Map<string, string>();
@@ -373,7 +375,7 @@ export default function FabricaProdutosAcabados() {
         filtroProvador === "todos" ||
         (filtroProvador === "venda" && !isProv) ||
         (filtroProvador === "provador" && isProv);
-      const matchVisibilidade = mostrarOcultos || !p.oculto;
+      const matchVisibilidade = (mostrarOcultos || !p.oculto) && (mostrarInativos || p.ativo !== false);
       const createdDate = p.created_at ? new Date(p.created_at) : null;
       const matchDataInicio = !parsedInicio || (createdDate && createdDate >= parsedInicio);
       const matchDataFim = !parsedFim || (createdDate && createdDate <= parsedFim);
@@ -488,7 +490,7 @@ export default function FabricaProdutosAcabados() {
       }
     }
     return result;
-  }, [produtos, busca, filtroMarca, filtroLinha, filtroTipo, filtroProvador, filtroStatusFicha, fichasMap, mostrarOcultos, dataInicio, dataFim, paiParaFilhosMap, sugestaoParaConcorrentesMap, expandAllConcorrentes, expandedSugestoes, sortConfig, custoTotalMap, profilesMap]);
+  }, [produtos, busca, filtroMarca, filtroLinha, filtroTipo, filtroProvador, filtroStatusFicha, fichasMap, mostrarOcultos, mostrarInativos, dataInicio, dataFim, paiParaFilhosMap, sugestaoParaConcorrentesMap, expandAllConcorrentes, expandedSugestoes, sortConfig, custoTotalMap, profilesMap]);
 
   // Comparativo KPI "Em Revisão" vs lista filtrada — alerta quando algum
   // filtro ativo está escondendo itens contados no KPI.
@@ -1333,6 +1335,22 @@ export default function FabricaProdutosAcabados() {
                       id="mostrarOcultos"
                       checked={mostrarOcultos}
                       onCheckedChange={setMostrarOcultos}
+                    />
+                  </div>
+
+                  {/* Inativos */}
+                  <div className="flex items-center justify-between gap-2">
+                    <Label htmlFor="mostrarInativos" className="text-xs cursor-pointer flex items-center gap-1.5 text-muted-foreground">
+                      {mostrarInativos ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3" />}
+                      Inativos
+                      {totalInativos > 0 && (
+                        <Badge variant="secondary" className="text-[9px] px-1 py-0 h-4">{totalInativos}</Badge>
+                      )}
+                    </Label>
+                    <Switch
+                      id="mostrarInativos"
+                      checked={mostrarInativos}
+                      onCheckedChange={setMostrarInativos}
                     />
                   </div>
                 </div>
