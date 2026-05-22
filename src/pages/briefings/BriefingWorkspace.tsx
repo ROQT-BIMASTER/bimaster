@@ -244,11 +244,17 @@ export default function BriefingWorkspace() {
                 className="resize-none border-0 focus-visible:ring-0 shadow-none px-1.5 py-1 min-h-0"
                 disabled={sending || readOnly}
               />
-              <div className="flex items-center justify-between gap-2">
+              <div className="relative flex items-center justify-between gap-2">
                 <span className="text-[10px] text-muted-foreground px-1.5">
                   Enter para enviar · Shift+Enter para nova linha
                 </span>
                 <div className="flex items-center gap-1">
+                  <AttachImageButton
+                    briefingId={briefing.id}
+                    attachments={chatAttachments}
+                    setAttachments={setChatAttachments}
+                    disabled={sending || readOnly}
+                  />
                   <Button
                     type="button"
                     size="icon"
@@ -256,7 +262,7 @@ export default function BriefingWorkspace() {
                     className="h-8 w-8"
                     disabled={sending || readOnly}
                     onClick={() => setEvidenciaOpen(true)}
-                    title="Anexar evidência"
+                    title="Anexar evidência ao cofre"
                   >
                     <Paperclip className="h-4 w-4" />
                   </Button>
