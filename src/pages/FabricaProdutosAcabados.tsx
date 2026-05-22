@@ -1075,7 +1075,7 @@ export default function FabricaProdutosAcabados() {
         )}
 
 
-        {abaModulo === "oficiais" && (<>
+
         {/* Dashboard Administrativo */}
         <Collapsible open={showAdminDash} onOpenChange={setShowAdminDash}>
           <CollapsibleContent className="data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0">
