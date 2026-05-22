@@ -177,7 +177,7 @@ export function ConsolidadoComposicao({ custosArr }: Props) {
               ["NF", sim01.totalNF, sim02.totalNF],
               ["Serviço", sim01.totalServico, sim02.totalServico],
               ["Condição", sim01.totalCondicao, sim02.totalCondicao],
-              ["Made In", sim01.totalNFMadeIn, sim02.totalNFMadeIn],
+              ["Importação", sim01.totalNFMadeIn, sim02.totalNFMadeIn],
               ["Custo Final", sim01.custoFinal, sim02.custoFinal],
             ] as [string, number, number][]).map(([label, a, b]) => {
               const d = b - a;
