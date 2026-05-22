@@ -1359,12 +1359,47 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
             <Card className="overflow-hidden">
             <CardContent className="p-0">
               {groups.length === 0 ? (
+                (() => {
+                  // Detecta filtros ativos para diferenciar "tudo em dia" real
+                  // de "filtro zerou o resultado". Sem isso, combinar projeto +
+                  // papel + período salvo nas preferências mostra uma tela
+                  // vazia sem indicar a causa — falha silenciosa.
+                  const hasActiveFilters =
+                    !!search ||
+                    filterPriority !== "all" ||
+                    filterProject !== "all" ||
+                    filterTime !== "all" ||
+                    filterRole !== "all" ||
+                    advancedActiveCount > 0;
+                  const totalNoFilters = tarefas.length;
+                  const clearAllFilters = () => {
+                    setSearch("");
+                    setFilterPriority("all");
+                    setFilterProject("all");
+                    setFilterTime("all");
+                    setFilterRole("all");
+                    clearAdvancedFilters();
+                  };
+                  return (
                 <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
-                  <div className="h-16 w-16 rounded-full bg-success/10 flex items-center justify-center mb-4">
-                    <CheckCircle2 className="h-8 w-8 text-success" />
+                  <div className={cn(
+                    "h-16 w-16 rounded-full flex items-center justify-center mb-4",
+                    hasActiveFilters ? "bg-warning/10" : "bg-success/10",
+                  )}>
+                    {hasActiveFilters ? (
+                      <Filter className="h-8 w-8 text-warning" />
+                    ) : (
+                      <CheckCircle2 className="h-8 w-8 text-success" />
+                    )}
                   </div>
-                  <p className="font-semibold text-foreground">Tudo em dia!</p>
-                  <p className="text-sm mt-1">Nenhuma tarefa encontrada com os filtros atuais.</p>
+                  <p className="font-semibold text-foreground">
+                    {hasActiveFilters ? "Nenhuma tarefa corresponde aos filtros" : "Tudo em dia!"}
+                  </p>
+                  <p className="text-sm mt-1">
+                    {hasActiveFilters
+                      ? `Você tem ${totalNoFilters} ${totalNoFilters === 1 ? "tarefa" : "tarefas"} ocultas pelos filtros atuais.`
+                      : "Nenhuma tarefa encontrada."}
+                  </p>
                   {filterRole === "colaborador" && (
                     <p className="text-xs mt-2 text-muted-foreground">
                       Procurando tarefas que você delegou?{" "}
@@ -1382,7 +1417,12 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
                       </button>
                     </p>
                   )}
-                  <div className="flex items-center gap-3 mt-4">
+                  <div className="flex items-center gap-3 mt-4 flex-wrap justify-center">
+                    {hasActiveFilters && (
+                      <Button variant="default" className="gap-1.5" onClick={clearAllFilters}>
+                        <X className="h-4 w-4" /> Limpar todos os filtros
+                      </Button>
+                    )}
                     <Button variant="outline" className="gap-1.5" onClick={() => setShowNewTask(true)}>
                       <Plus className="h-4 w-4" /> Criar nova tarefa
                     </Button>
@@ -1396,6 +1436,8 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
                     </a>
                   </div>
                 </div>
+                  );
+                })()
               ) : sortMode === "prioridade" && groups[0] ? (
                 <div>
                   <div className="flex items-center gap-2 px-4 py-2 bg-muted/30 border-b border-border/30">
