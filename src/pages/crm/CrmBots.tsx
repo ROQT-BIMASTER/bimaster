@@ -473,21 +473,39 @@ export default function CrmBots() {
                   )}
                   Testar conexão
                 </Button>
-                {lastTest && (
-                  <span
-                    className={`text-sm flex items-center gap-1 ${
-                      lastTest.ok ? "text-emerald-600" : "text-destructive"
-                    }`}
-                  >
-                    {lastTest.ok ? (
-                      <CheckCircle2 className="h-4 w-4" />
-                    ) : (
-                      <XCircle className="h-4 w-4" />
-                    )}
-                    {lastTest.msg}
-                  </span>
-                )}
               </div>
+              {lastTest && (
+                <div
+                  className={`mt-2 rounded-md border p-2 text-xs ${
+                    lastTest.ok
+                      ? "border-emerald-500/40 bg-emerald-500/5 text-emerald-700 dark:text-emerald-300"
+                      : "border-destructive/40 bg-destructive/5 text-destructive"
+                  }`}
+                >
+                  <div className="flex items-start gap-2">
+                    {lastTest.ok ? (
+                      <CheckCircle2 className="h-4 w-4 mt-0.5 shrink-0" />
+                    ) : (
+                      <XCircle className="h-4 w-4 mt-0.5 shrink-0" />
+                    )}
+                    <div className="space-y-1">
+                      <div className="font-medium">{lastTest.msg}</div>
+                      {lastTest.ok && (
+                        <div className="text-[11px] opacity-80">
+                          Ambiente: <strong>{lastTest.environment}</strong> · Formato:{" "}
+                          <strong>{lastTest.format}</strong>
+                          {lastTest.identity && (
+                            <>
+                              {" "}
+                              · Bot: <strong>{lastTest.identity}</strong>
+                            </>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
             <div className="flex items-center justify-between rounded-lg border p-3">
               <div>
