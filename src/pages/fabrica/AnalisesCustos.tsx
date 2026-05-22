@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, BarChart3, Download } from "lucide-react";
+import { ArrowLeft, BarChart3, Download, LayoutGrid } from "lucide-react";
 import { useGrupoCenario } from "@/hooks/useGrupoCenarios";
 import { useCenariosCustosCompletos } from "@/hooks/useCenariosCustosCompletos";
 import { ComparativoSimulacoes } from "@/components/fabrica/analises/ComparativoSimulacoes";
@@ -85,10 +85,20 @@ export default function AnalisesCustos() {
               </p>
             </div>
           </div>
-          <Button variant="outline" size="sm" onClick={handleExport} disabled={exporting || custosArr.length === 0}>
-            <Download className="h-4 w-4 mr-1.5" />
-            {exporting ? "Exportando..." : "Exportar Excel"}
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigate("/dashboard/fabrica/analises-custos")}
+            >
+              <LayoutGrid className="h-4 w-4 mr-1.5" />
+              Visão Consolidada
+            </Button>
+            <Button variant="outline" size="sm" onClick={handleExport} disabled={exporting || custosArr.length === 0}>
+              <Download className="h-4 w-4 mr-1.5" />
+              {exporting ? "Exportando..." : "Exportar Excel"}
+            </Button>
+          </div>
         </div>
 
         {isLoading ? (
