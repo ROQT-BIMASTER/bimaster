@@ -285,20 +285,32 @@ export default function FabricaProdutosAcabados() {
     { staleTime: 30000 }
   );
 
-  // Map de custo total por produto (da última revisão)
+  // Map de custo total por produto (última revisão aprovada -> custo_unitario do produto como fallback)
+  // O custo_unitario já é recalculado pela função fn_fabrica_recalc_custo_final
+  // incluindo o IPI a partir de parametros_fiscais->>'ipi'.
   const custoTotalMap = useMemo(() => {
     const map = new Map<string, number>();
-    if (!revisoes) return map;
-    // Pegar a primeira revisão de cada produto (já está ordenada por created_at desc)
-    revisoes.forEach((r: any) => {
-      if (!map.has(r.produto_id) && r.snapshot_totais) {
-        const totais = typeof r.snapshot_totais === 'string' ? JSON.parse(r.snapshot_totais) : r.snapshot_totais;
-        const custo = custoTotalDoSnapshot(totais);
-        if (custo) map.set(r.produto_id, custo);
-      }
-    });
+    // 1) Snapshots de revisão (preferencial — já contemplam IPI Saída via helper)
+    if (revisoes) {
+      revisoes.forEach((r: any) => {
+        if (!map.has(r.produto_id) && r.snapshot_totais) {
+          const totais = typeof r.snapshot_totais === 'string' ? JSON.parse(r.snapshot_totais) : r.snapshot_totais;
+          const custo = custoTotalDoSnapshot(totais);
+          if (custo) map.set(r.produto_id, custo);
+        }
+      });
+    }
+    // 2) Fallback: custo_unitario consolidado do produto (já contém IPI da NCM)
+    if (produtos) {
+      produtos.forEach((p: any) => {
+        if (!map.has(p.id)) {
+          const c = Number(p.custo_unitario);
+          if (Number.isFinite(c) && c > 0) map.set(p.id, c);
+        }
+      });
+    }
     return map;
-  }, [revisoes]);
+  }, [revisoes, produtos]);
 
   // Set de produtos com aumento recente (últimos 30 dias)
   const produtosComAumento = useMemo(() => {
