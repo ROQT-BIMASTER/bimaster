@@ -14,6 +14,7 @@ import { memoryManager } from "@/lib/utils/memory-manager";
 import { memoryMonitor } from "@/lib/utils/memory-monitor";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { ClienteProtectedRoute } from "@/components/auth/ClienteProtectedRoute";
+import { CrmAdminRoute } from "@/components/auth/CrmAdminRoute";
 import { ModuleProtectedRoute } from "@/components/auth/ModuleProtectedRoute";
 import { ScreenProtectedRoute } from "@/components/auth/ScreenProtectedRoute";
 import { ModuleScreenRoute } from "@/components/auth/ModuleScreenRoute";
@@ -88,6 +89,12 @@ const PermissoesModulo = lazyWithRetry(() => import("./pages/dashboard/configura
 const ConfiguracoesAcesso = lazyWithRetry(() => import("./pages/dashboard/configuracoes/ConfiguracoesAcesso"));
 const CrmHome = lazyWithRetry(() => import("./pages/crm/CrmHome"));
 const CrmBots = lazyWithRetry(() => import("./pages/crm/CrmBots"));
+const CrmInbox = lazyWithRetry(() => import("./pages/crm/CrmInbox"));
+const CrmContatos = lazyWithRetry(() => import("./pages/crm/CrmContatos"));
+const CrmTickets = lazyWithRetry(() => import("./pages/crm/CrmTickets"));
+const CrmAnalytics = lazyWithRetry(() => import("./pages/crm/CrmAnalytics"));
+const CrmConfiguracoes = lazyWithRetry(() => import("./pages/crm/CrmConfiguracoes"));
+const CrmLayout = lazyWithRetry(() => import("./components/crm/CrmLayout"));
 const ConfigFornecedorVisibilidade = lazyWithRetry(() => import("./pages/ConfigFornecedorVisibilidade"));
 const BriefingsHome = lazyWithRetry(() => import("./pages/briefings/BriefingsHome"));
 const BriefingWorkspace = lazyWithRetry(() => import("./pages/briefings/BriefingWorkspace"));
@@ -529,8 +536,16 @@ function AppContent() {
             
             {/* Protected Routes */}
             <Route path="/dashboard" element={<ProtectedRoute><DashboardRedirect /></ProtectedRoute>} />
-            <Route path="/dashboard/crm" element={<ProtectedRoute><CrmHome /></ProtectedRoute>} />
-            <Route path="/dashboard/crm/bots" element={<ProtectedRoute><CrmBots /></ProtectedRoute>} />
+            {/* Módulo CRM — acesso restrito a administradores */}
+            <Route path="/dashboard/crm" element={<CrmAdminRoute><CrmLayout /></CrmAdminRoute>}>
+              <Route index element={<CrmHome />} />
+              <Route path="bots" element={<CrmBots />} />
+              <Route path="inbox" element={<CrmInbox />} />
+              <Route path="contatos" element={<CrmContatos />} />
+              <Route path="tickets" element={<CrmTickets />} />
+              <Route path="analytics" element={<CrmAnalytics />} />
+              <Route path="configuracoes" element={<CrmConfiguracoes />} />
+            </Route>
             <Route path="/dashboard/ai-analytics" element={<ScreenRoute screenCode="ai_analytics"><AIAnalytics /></ScreenRoute>} />
             <Route path="/dashboard/qa-agent" element={<ScreenRoute screenCode="ai_analytics"><QAAgent /></ScreenRoute>} />
             <Route path="/dashboard/agente-huggs" element={<ScreenRoute screenCode="ai_analytics"><AgenteHuggs /></ScreenRoute>} />
