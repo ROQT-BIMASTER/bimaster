@@ -607,6 +607,21 @@ Deno.serve(secureHandler({ auth: "none", rateLimit: 10, rateLimitPrefix: "asana-
               }
             }
 
+            // --- Project Conversations (Messages) — uma vez por projeto, no fim da phase secondary ---
+            let messagesImported = 0;
+            for (const projectGid of project_gids) {
+              if (timeLeft() < 5000) break;
+              try {
+                const { data: lp } = await adminClient.from("projetos").select("id").eq("asana_gid", projectGid).maybeSingle();
+                if (!lp?.id) continue;
+                const n = await importProjectMessages(adminClient, projectGid, lp.id, userId, userMap, workspace_gid, errors, () => timeLeft());
+                messagesImported += n;
+              } catch (e: any) {
+                errors.push({ project: projectGid, error: `Project messages: ${e.message}` });
+              }
+            }
+            logger.log(`[secondary] Imported ${messagesImported} project messages`);
+
             // All done
             const { error: completeErr } = await adminClient.from("asana_sync_log").update({
               status: "completed", comments_synced: commentsSynced,
