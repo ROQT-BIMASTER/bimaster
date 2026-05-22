@@ -274,7 +274,21 @@ async function execTool(
   }
 
   if (name === "marcar_ticket_resolvido") {
-    await sb.from("suporte_tickets").update({ status: "resolvido", resolved_at: new Date().toISOString() }).eq("id", ticketId);
+    const resolvidoEm = new Date().toISOString();
+    await sb.from("suporte_tickets").update({ status: "resolvido", resolved_at: resolvidoEm }).eq("id", ticketId);
+    // Backfill: para que o ProtocolCountdown pare em todas as mensagens do ticket.
+    const { data: msgsAnteriores } = await sb
+      .from("mensagens")
+      .select("id, metadata")
+      .eq("ticket_id", ticketId);
+    for (const msg of msgsAnteriores ?? []) {
+      const meta = (msg.metadata ?? {}) as Record<string, unknown>;
+      if (meta.resolvido_em) continue;
+      await sb
+        .from("mensagens")
+        .update({ metadata: { ...meta, resolvido_em: resolvidoEm } })
+        .eq("id", msg.id);
+    }
     return { ok: true };
   }
   return { erro: "tool desconhecida" };
