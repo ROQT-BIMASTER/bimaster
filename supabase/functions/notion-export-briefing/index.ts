@@ -37,6 +37,10 @@ const BodySchema = z.object({
   bimaster_origin: z.string().url().optional(),
   /** When true, push even if remote was edited after our last push. */
   force: z.boolean().optional().default(false),
+  /** When true, include cofre documents (signed URLs) in the mirror. */
+  incluir_documentos: z.boolean().optional().default(true),
+  /** When true, only documents not yet sent (or updated since) are pushed; others are still listed. */
+  apenas_novos_documentos: z.boolean().optional().default(false),
 }).strict();
 
 async function findExistingDatabase(token: string): Promise<{ id: string; url: string } | null> {
