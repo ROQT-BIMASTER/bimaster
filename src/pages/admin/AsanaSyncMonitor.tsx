@@ -193,6 +193,41 @@ export default function AsanaSyncMonitor() {
         </Button>
       </div>
 
+      {/* Status do conector nativo (gateway Lovable) */}
+      <Card className={connectorHealth.data?.ok === false ? "border-destructive/50 bg-destructive/5" : ""}>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            <Plug className="h-4 w-4" />
+            Conexão Asana (BiMaster Sync)
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {connectorHealth.isLoading ? (
+            <Skeleton className="h-5 w-48" />
+          ) : connectorHealth.data?.ok ? (
+            <div className="flex items-center gap-2 text-sm">
+              <CheckCircle2 className="h-4 w-4 text-green-600" />
+              <span>
+                Conectado como <strong>{connectorHealth.data.user}</strong>
+                {connectorHealth.data.email ? ` (${connectorHealth.data.email})` : ""} —{" "}
+                {connectorHealth.data.workspaces} workspace(s) acessível(is).
+              </span>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 text-sm text-destructive">
+                <XCircle className="h-4 w-4" />
+                <span>{connectorHealth.data?.error || "Falha ao verificar conexão."}</span>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Acesse <strong>Conectores → BiMaster Sync</strong> e reconecte a conta Asana.
+                Enquanto a conexão estiver inválida, o cron horário pula automaticamente esses projetos.
+              </p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       {/* KPIs do último run */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         <Card>
