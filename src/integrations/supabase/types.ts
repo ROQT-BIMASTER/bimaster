@@ -50349,6 +50349,19 @@ export type Database = {
         Args: { p_intake_demanda_id: string; p_itens: Json }
         Returns: Json
       }
+      rpc_crm_search: {
+        Args: { _empresa_id: number; _limit?: number; _q: string }
+        Returns: {
+          conversa_id: string
+          id: string
+          kind: string
+          quando: string
+          rank: number
+          subtitulo: string
+          titulo: string
+          trecho: string
+        }[]
+      }
       rpc_definir_prazo_item: {
         Args: { p_item_id: string; p_prazo_em: string }
         Returns: undefined
