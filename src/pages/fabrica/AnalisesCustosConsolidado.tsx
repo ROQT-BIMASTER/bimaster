@@ -185,6 +185,7 @@ export default function AnalisesCustosConsolidado() {
                 <TabsTrigger value="produtos">Produtos</TabsTrigger>
                 <TabsTrigger value="insumos">Insumos × Fornecedores</TabsTrigger>
                 <TabsTrigger value="fornecedores">Fornecedores</TabsTrigger>
+                <TabsTrigger value="padronizacao">Padronização</TabsTrigger>
               </TabsList>
               <TabsContent value="produtos">
                 <TabProdutos produtos={filtrados} />
@@ -194,6 +195,9 @@ export default function AnalisesCustosConsolidado() {
               </TabsContent>
               <TabsContent value="fornecedores">
                 <TabFornecedores produtos={filtrados} />
+              </TabsContent>
+              <TabsContent value="padronizacao">
+                <TabPadronizacao produtos={filtrados} />
               </TabsContent>
             </Tabs>
           </>
