@@ -81,6 +81,7 @@ export default function FabricaProdutosAcabados() {
   const [agruparPor, setAgruparPor] = useState("marca");
   const [showAdminDash, setShowAdminDash] = useState(false);
   const [mostrarOcultos, setMostrarOcultos] = useState(false);
+  const [mostrarInativos, setMostrarInativos] = useState(false);
   const [filtrosAbertos, setFiltrosAbertos] = useState(true);
   const [dataInicio, setDataInicio] = useState("");
   const [dataFim, setDataFim] = useState("");
