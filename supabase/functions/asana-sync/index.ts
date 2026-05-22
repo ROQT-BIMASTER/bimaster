@@ -876,6 +876,73 @@ Deno.serve(secureHandler({ auth: "none", rateLimit: 10, rateLimitPrefix: "asana-
         }
       }
 
+      case "/import-workspace": {
+        // Descobre todos os projetos não-arquivados de um workspace Asana e cria
+        // os correspondentes locais (se não existirem). Não importa tarefas — apenas
+        // o esqueleto. Use depois /sync-project para puxar tarefas/anexos/comentários.
+        if (!workspace_gid) return json({ error: "workspace_gid obrigatório" }, 400);
+        const { data: wsRow } = await adminClient
+          .from("asana_workspaces_descobertos")
+          .select("empresa_id, criador_id_padrao")
+          .eq("workspace_gid", workspace_gid).maybeSingle();
+        const criadorPadrao = wsRow?.criador_id_padrao || userId;
+
+        const asanaProjects = await asanaGetAll(`/workspaces/${workspace_gid}/projects`, asanaPat, {
+          opt_fields: "name,color,notes,modified_at,archived,team,team.gid",
+        });
+        const active = asanaProjects.filter((p: any) => !p.archived);
+        const created: any[] = [];
+        const updated: any[] = [];
+
+        for (const p of active) {
+          const { data: existing } = await adminClient.from("projetos")
+            .select("id, nome, asana_workspace_gid")
+            .eq("asana_gid", p.gid).maybeSingle();
+          if (existing) {
+            await adminClient.from("projetos").update({
+              asana_workspace_gid: workspace_gid,
+              asana_team_gid: p.team?.gid || null,
+              nome: p.name || existing.nome,
+            }).eq("id", existing.id);
+            updated.push({ asana_gid: p.gid, local_id: existing.id, nome: p.name });
+          } else {
+            const { data: newProj, error: insErr } = await adminClient.from("projetos").insert({
+              nome: p.name || "(Sem nome)",
+              descricao: p.notes || null,
+              cor: mapAsanaColor(p.color),
+              criador_id: criadorPadrao,
+              tipo: "kanban",
+              status: "ativo",
+              asana_gid: p.gid,
+              asana_workspace_gid: workspace_gid,
+              asana_team_gid: p.team?.gid || null,
+              origem_projeto: "asana",
+            }).select("id").single();
+            if (insErr || !newProj) {
+              created.push({ asana_gid: p.gid, error: insErr?.message });
+              continue;
+            }
+            created.push({ asana_gid: p.gid, local_id: newProj.id, nome: p.name });
+          }
+        }
+
+        await adminClient.from("asana_workspaces_descobertos").update({
+          last_discovery_at: new Date().toISOString(),
+          last_discovery_count: active.length,
+          nome: active.length > 0 ? (wsRow as any)?.nome || null : null,
+        }).eq("workspace_gid", workspace_gid);
+
+        return json({
+          success: true,
+          workspace_gid,
+          total_active: active.length,
+          created: created.filter((c) => c.local_id).length,
+          updated: updated.length,
+          errors_count: created.filter((c) => c.error).length,
+          projects: [...created, ...updated],
+        });
+      }
+
       default:
         return json({ error: `Rota desconhecida: ${path}` }, 400);
     }
