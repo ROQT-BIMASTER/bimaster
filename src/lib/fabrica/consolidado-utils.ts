@@ -1,4 +1,5 @@
 import type { ProdutoConsolidado } from "@/hooks/useCustosConsolidados";
+import { insumoKey, normalizeText } from "@/lib/fabrica/normalize";
 
 export interface FiltrosConsolidado {
   busca: string;
