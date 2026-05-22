@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { openNotionOAuthPopup } from "@/lib/notion/popup";
 import { toast } from "sonner";
+import { PUBLIC_FORMS_DOMAIN } from "@/lib/constants/publicDomain";
 
 export interface NotionConnection {
   id: string;
@@ -114,7 +115,7 @@ export async function sendBriefingToNotion(
   }>("notion-export-briefing", {
     body: {
       briefing_id: briefingId,
-      bimaster_origin: window.location.origin,
+      bimaster_origin: PUBLIC_FORMS_DOMAIN,
       force: opts?.force ?? false,
     },
   });
