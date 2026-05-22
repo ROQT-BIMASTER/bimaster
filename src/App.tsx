@@ -866,6 +866,7 @@ function AppContent() {
             <Route path="/dashboard/integracoes/notion" element={<ProtectedRoute><IntegracoesNotion /></ProtectedRoute>} />
             <Route path="/dashboard/integracoes/shipsgo" element={<ScreenRoute screenCode="admin"><ShipsgoIntegracao /></ScreenRoute>} />
             <Route path="/dashboard/admin/asana-sync" element={<ScreenRoute screenCode="admin"><AsanaSyncMonitor /></ScreenRoute>} />
+            <Route path="/dashboard/admin/asana-importacao" element={<ScreenRoute screenCode="admin"><AsanaImportacao /></ScreenRoute>} />
             <Route path="/dashboard/admin/dedupe-perfis" element={<ScreenRoute screenCode="admin"><DedupePerfis /></ScreenRoute>} />
             <Route path="/dashboard/financeiro/fornecedores" element={<ModuleRoute moduleCode="financeiro"><ScreenProtectedRoute screenCode="financeiro_fornecedores"><Fornecedores /></ScreenProtectedRoute></ModuleRoute>} />
             <Route path="/dashboard/fornecedores" element={<Navigate to="/dashboard/financeiro/fornecedores" replace />} />
