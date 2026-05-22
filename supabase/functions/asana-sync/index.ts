@@ -576,20 +576,25 @@ Deno.serve(secureHandler({ auth: "none", rateLimit: 10, rateLimitPrefix: "asana-
                             commentsSynced++;
                           }
                         }
-                      } else if ((story.type === "system" || story.resource_subtype) && story.text) {
+                      } else {
+                        // Captura toda story não-comentário como atividade — mesmo sem `text`
+                        // (likes, anexos, menções estruturadas). Preserva subtype/raw em metadata.
                         const { data: ea } = await adminClient.from("asana_sync_mappings")
                           .select("local_id").eq("asana_gid", story.gid).eq("entity_type", "activity").maybeSingle();
                         if (ea) continue;
                         const actAuthorId = story.created_by?.gid ? userMap.get(story.created_by.gid) || userId : userId;
-                        const mapping = subtypeToLocal(story.resource_subtype);
+                        const mapping = subtypeToLocal(story.resource_subtype || story.type);
                         let valorNovo: string | null = null;
-                        const m = story.text.match(/(?:para|to)\s+["""]?(.+?)["""]?\s*$/i);
-                        if (m) valorNovo = m[1].trim();
+                        if (story.text) {
+                          const m = story.text.match(/(?:para|to)\s+["""]?(.+?)["""]?\s*$/i);
+                          if (m) valorNovo = m[1].trim();
+                        }
+                        const descricao = story.text || `[${story.resource_subtype || story.type || "evento"}]`;
 
                         const { data: na } = await adminClient.from("projeto_tarefa_atividades").insert({
                           tarefa_id: localTaskId, projeto_id: localProjectId,
                           user_id: actAuthorId, tipo: mapping.tipo, campo: mapping.campo,
-                          valor_novo: valorNovo, descricao: story.text,
+                          valor_novo: valorNovo, descricao,
                           created_at: story.created_at || new Date().toISOString(),
                         }).select("id").single();
 
