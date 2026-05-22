@@ -20,6 +20,7 @@ import { FiltrosConsolidadoBar } from "@/components/fabrica/analises/consolidado
 import { TabProdutos } from "@/components/fabrica/analises/consolidado/TabProdutos";
 import { TabInsumosFornecedores } from "@/components/fabrica/analises/consolidado/TabInsumosFornecedores";
 import { TabFornecedores } from "@/components/fabrica/analises/consolidado/TabFornecedores";
+import { TabPadronizacao } from "@/components/fabrica/analises/consolidado/TabPadronizacao";
 import { exportToExcel } from "@/lib/excel-utils";
 import { formatCurrency } from "@/lib/formatters";
 
