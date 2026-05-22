@@ -9,22 +9,26 @@
 // ── Extensões e MIME types permitidos ──────────────────────────────────────────
 
 const ALLOWED_EXTENSIONS = new Set([
-  "pdf", "png", "jpg", "jpeg", "webp", "gif",
-  "doc", "docx", "xls", "xlsx", "csv", "xml",
+  "pdf", "png", "jpg", "jpeg", "webp", "gif", "heic",
+  "doc", "docx", "xls", "xlsx", "ppt", "pptx", "csv", "xml",
   "zip", "txt",
+  "mp4", "mov", "webm",
 ]);
 
 const ALLOWED_MIME_TYPES = new Set([
   "application/pdf",
-  "image/png", "image/jpeg", "image/webp", "image/gif",
+  "image/png", "image/jpeg", "image/webp", "image/gif", "image/heic", "image/heif",
   "application/msword",
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
   "application/vnd.ms-excel",
   "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  "application/vnd.ms-powerpoint",
+  "application/vnd.openxmlformats-officedocument.presentationml.presentation",
   "text/csv", "text/plain",
   "application/xml", "text/xml",
   "application/zip", "application/x-zip-compressed",
-  "application/octet-stream", // alguns browsers usam para .docx/.xlsx
+  "video/mp4", "video/quicktime", "video/webm",
+  "application/octet-stream", // alguns browsers usam para .docx/.xlsx/.pptx
 ]);
 
 const DANGEROUS_EXTENSIONS = new Set([
@@ -51,10 +55,16 @@ const MAGIC_SIGNATURES: Record<string, MagicSignature[]> = {
   zip:  [{ bytes: [0x50, 0x4B, 0x03, 0x04] }],              // PK..
   docx: [{ bytes: [0x50, 0x4B, 0x03, 0x04] }],              // ZIP-based
   xlsx: [{ bytes: [0x50, 0x4B, 0x03, 0x04] }],
+  pptx: [{ bytes: [0x50, 0x4B, 0x03, 0x04] }],              // ZIP-based
   doc:  [{ bytes: [0xD0, 0xCF, 0x11, 0xE0] }],              // OLE2
   xls:  [{ bytes: [0xD0, 0xCF, 0x11, 0xE0] }],
+  ppt:  [{ bytes: [0xD0, 0xCF, 0x11, 0xE0] }],              // OLE2
   xml:  [{ bytes: [0x3C, 0x3F, 0x78, 0x6D] }],              // <?xm
   webp: [{ bytes: [0x52, 0x49, 0x46, 0x46] }],              // RIFF
+  mp4:  [{ bytes: [0x66, 0x74, 0x79, 0x70], offset: 4 }],   // ftyp at offset 4
+  mov:  [{ bytes: [0x66, 0x74, 0x79, 0x70], offset: 4 }],   // ftyp at offset 4 (QuickTime)
+  webm: [{ bytes: [0x1A, 0x45, 0xDF, 0xA3] }],              // EBML
+  heic: [{ bytes: [0x66, 0x74, 0x79, 0x70], offset: 4 }],   // ftyp at offset 4 (HEIF/HEIC)
 };
 
 // ── Tipos de resultado ─────────────────────────────────────────────────────────

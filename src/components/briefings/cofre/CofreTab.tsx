@@ -70,16 +70,35 @@ export function CofreTab({ briefingId, tipoBriefing }: Props) {
     setUploadOpen(true);
   };
 
-  const enviarParaNotion = async () => {
+  const enviarParaNotion = async (apenasNovos = false) => {
     setEnviandoNotion(true);
     try {
       const { data, error } = await supabase.functions.invoke("notion-export-briefing", {
-        body: { briefing_id: briefingId, bimaster_origin: window.location.origin, incluir_documentos: true },
+        body: {
+          briefing_id: briefingId,
+          bimaster_origin: window.location.origin,
+          incluir_documentos: true,
+          apenas_novos_documentos: apenasNovos,
+        },
       });
       if (error || !(data as any)?.ok) {
         throw new Error((data as any)?.message || error?.message || "Falha no envio");
       }
-      toast.success("Briefing e documentos enviados para o Notion");
+      const sync = (data as any)?.documentos_sincronizados ?? 0;
+      const total = (data as any)?.documentos_totais ?? 0;
+      if (apenasNovos) {
+        toast.success(
+          sync > 0
+            ? `${sync} documento${sync !== 1 ? "s" : ""} novo${sync !== 1 ? "s" : ""} enviado${sync !== 1 ? "s" : ""} ao Notion`
+            : "Nenhum documento novo para enviar",
+        );
+      } else {
+        toast.success(
+          total > 0
+            ? `Briefing + ${sync} documento${sync !== 1 ? "s" : ""} enviado${sync !== 1 ? "s" : ""} ao Notion`
+            : "Briefing enviado ao Notion",
+        );
+      }
     } catch (e: any) {
       toast.error(e?.message || "Falha ao enviar para o Notion");
     } finally {
@@ -150,7 +169,16 @@ export function CofreTab({ briefingId, tipoBriefing }: Props) {
             </Button>
             <Button
               size="sm" variant="outline" className="h-8"
-              onClick={enviarParaNotion} disabled={enviandoNotion || docs.length === 0}
+              onClick={() => enviarParaNotion(true)}
+              disabled={enviandoNotion || docs.length === 0}
+              title="Enviar apenas documentos novos ou atualizados"
+            >
+              <Send className="h-3.5 w-3.5 mr-1" />
+              Atualizar docs no Notion
+            </Button>
+            <Button
+              size="sm" variant="outline" className="h-8"
+              onClick={() => enviarParaNotion(false)} disabled={enviandoNotion || docs.length === 0}
             >
               <Send className="h-3.5 w-3.5 mr-1" />
               {enviandoNotion ? "Enviando..." : "Enviar ao Notion"}
