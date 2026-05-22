@@ -2,15 +2,19 @@ import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { invokeChat } from "@/lib/ai/invokeChat";
 import { toast } from "sonner";
+import type { ChatAttachment } from "@/components/briefings/chat/AttachImageButton";
+import type { SugestaoBriefing } from "@/components/briefings/chat/SugestaoCard";
 
 export interface BriefingMsg {
   id: string;
   role: "user" | "assistant" | "tool" | "system";
   content: string;
   sources?: Array<{ tipo: string; id: string; label: string }>;
-  proposals?: Array<{ campos: Record<string, string>; titulo?: string }>;
+  proposals?: Array<{ campos?: Record<string, string>; titulo?: string; sugestoes?: SugestaoBriefing[] }>;
+  attachments?: Array<{ path: string; mime: string; name: string }>;
   created_at: string;
 }
+
 
 export interface Briefing {
   id: string;
