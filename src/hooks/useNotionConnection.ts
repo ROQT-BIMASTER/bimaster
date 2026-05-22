@@ -114,7 +114,7 @@ export async function sendBriefingToNotion(
   }>("notion-export-briefing", {
     body: {
       briefing_id: briefingId,
-      bimaster_origin: window.location.origin,
+      bimaster_origin: PUBLIC_FORMS_DOMAIN,
       force: opts?.force ?? false,
     },
   });

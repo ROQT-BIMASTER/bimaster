@@ -288,7 +288,16 @@ Deno.serve(
       await ensureDatabaseSchema(token, dbId!);
 
       // 7. Build properties + blocks
-      const origin = bimaster_origin?.replace(/\/$/, "") || "https://bimaster.lovable.app";
+      // Sempre força o domínio público canônico, ignorando origens de preview/Lovable.
+      const PUBLIC_ORIGIN_ALLOWLIST = new Set([
+        "https://china.bimaster.online",
+        "https://www.bimaster.online",
+        "https://bimaster.online",
+      ]);
+      const requested = bimaster_origin?.replace(/\/$/, "") ?? "";
+      const origin = PUBLIC_ORIGIN_ALLOWLIST.has(requested)
+        ? requested
+        : "https://china.bimaster.online";
       const blocksInput = {
         briefing: {
           titulo: briefing.titulo,
