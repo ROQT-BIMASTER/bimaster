@@ -1050,8 +1050,21 @@ export function FichaCustoProdutoEditor({
                 </Button>
               )}
               <ImportarInsumosIA
-                onImportar={(insumos) => {
-                  insumos.forEach((insumo) => onAdicionarInsumo(insumo));
+                onImportar={async (insumos) => {
+                  const { resolverOuCriarInsumosEmLote } = await import("@/lib/fabrica/auto-cadastro-insumo");
+                  const tid = toast.loading("Cadastrando matérias-primas e fornecedores...");
+                  try {
+                    const { resolvidos, criadosMP, criadosFornecedor } =
+                      await resolverOuCriarInsumosEmLote(insumos);
+                    resolvidos.forEach((insumo) => onAdicionarInsumo(insumo));
+                    toast.success(
+                      `${resolvidos.length} insumos importados (${criadosMP} MP nova(s), ${criadosFornecedor} fornecedor(es) novo(s))`,
+                      { id: tid }
+                    );
+                  } catch (e: any) {
+                    toast.error("Falha no auto-cadastro: " + (e?.message ?? "erro"), { id: tid });
+                    insumos.forEach((insumo) => onAdicionarInsumo(insumo));
+                  }
                 }}
               />
               <Button size="sm" onClick={() => setDialogAberto(true)}>
