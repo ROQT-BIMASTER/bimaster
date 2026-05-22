@@ -32,15 +32,20 @@ type Attempt = {
   ok: boolean;
 };
 
+function normalizeBlipKey(value: string): string {
+  return value.trim().replace(/^Key\s+/i, "").trim();
+}
+
 function toBase64(s: string): string {
   return btoa(unescape(encodeURIComponent(s)));
 }
 
 function buildAuthValue(format: AuthFormat, key: string, identifier: string | null): string | null {
-  if (format === "raw") return key;
+  const normalizedKey = normalizeBlipKey(key);
+  if (format === "raw") return normalizedKey;
   if (!identifier) return null;
   // alguns paineis exibem identifier já como UUID; sempre montamos identifier:key
-  return toBase64(`${identifier}:${key}`);
+  return toBase64(`${identifier}:${normalizedKey}`);
 }
 
 async function tryAuth(
