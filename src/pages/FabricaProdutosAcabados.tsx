@@ -490,7 +490,7 @@ export default function FabricaProdutosAcabados() {
       }
     }
     return result;
-  }, [produtos, busca, filtroMarca, filtroLinha, filtroTipo, filtroProvador, filtroStatusFicha, fichasMap, mostrarOcultos, dataInicio, dataFim, paiParaFilhosMap, sugestaoParaConcorrentesMap, expandAllConcorrentes, expandedSugestoes, sortConfig, custoTotalMap, profilesMap]);
+  }, [produtos, busca, filtroMarca, filtroLinha, filtroTipo, filtroProvador, filtroStatusFicha, fichasMap, mostrarOcultos, mostrarInativos, dataInicio, dataFim, paiParaFilhosMap, sugestaoParaConcorrentesMap, expandAllConcorrentes, expandedSugestoes, sortConfig, custoTotalMap, profilesMap]);
 
   // Comparativo KPI "Em Revisão" vs lista filtrada — alerta quando algum
   // filtro ativo está escondendo itens contados no KPI.
