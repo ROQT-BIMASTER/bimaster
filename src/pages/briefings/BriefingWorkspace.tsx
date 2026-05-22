@@ -103,9 +103,11 @@ export default function BriefingWorkspace() {
   const handleSubmit = async (e?: React.FormEvent) => {
     e?.preventDefault();
     const t = input.trim();
-    if (!t || sending) return;
+    if ((!t && chatAttachments.length === 0) || sending) return;
+    const atts = chatAttachments;
     setInput("");
-    await enviar(t);
+    setChatAttachments([]);
+    await enviar(t, atts);
   };
 
   const salvarCampo = async (key: string, valor: string) => {
