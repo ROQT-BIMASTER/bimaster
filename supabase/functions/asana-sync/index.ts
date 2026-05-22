@@ -381,6 +381,7 @@ Deno.serve(secureHandler({ auth: "none", rateLimit: 10, rateLimitPrefix: "asana-
                     data_prazo: task.due_on || null, data_inicio: task.start_on || null,
                     data_conclusao: task.completed_at || null,
                     responsavel_id: assigneeId || null, asana_gid: task.gid,
+                    asana_modified_at: task.modified_at || null,
                   };
 
                   if (assigneeId) await ensureMembership(adminClient, localProjectId, assigneeId);
