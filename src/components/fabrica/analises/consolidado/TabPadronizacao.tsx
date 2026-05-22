@@ -21,7 +21,7 @@ export function TabPadronizacao({ produtos }: { produtos: ProdutoConsolidado[] }
   }
 
   function handleSuccess() {
-    queryClient.invalidateQueries({ queryKey: ["custos-consolidados"] });
+    queryClient.invalidateQueries({ queryKey: ["fabrica-custos-consolidados-v1"] });
   }
 
   return (
