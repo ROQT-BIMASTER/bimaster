@@ -49,8 +49,8 @@ export default function CrmInbox() {
         .order("ultima_mensagem_em", { ascending: false })
         .limit(200);
       if (status === "abertas") q = q.in("status", ["open", "assigned", "pending"]);
-      else if (status !== "all") q = q.eq("status", status);
-      if (canal !== "all") q = q.eq("canal", canal);
+      else if (status !== "all") q = q.eq("status", status as any);
+      if (canal !== "all") q = q.eq("canal", canal as any);
       const { data, error } = await q;
       if (error) throw error;
       const filtered = (data as any as Conv[]).filter(c => {
