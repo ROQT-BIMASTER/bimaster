@@ -94,7 +94,11 @@ export default function CrmBots() {
   const [confirmDelete, setConfirmDelete] = useState<BotRow | null>(null);
   const [form, setForm] = useState<z.infer<typeof formSchema>>(emptyForm);
   const [testing, setTesting] = useState(false);
-  const [lastTest, setLastTest] = useState<{ ok: boolean; msg: string } | null>(null);
+  const [lastTest, setLastTest] = useState<
+    | { ok: true; msg: string; identity: string | null; environment: string; format: string }
+    | { ok: false; msg: string }
+    | null
+  >(null);
 
   const empresaId = empresaSelecionada?.id ?? null;
 
@@ -186,24 +190,40 @@ export default function CrmBots() {
     setTesting(true);
     setLastTest(null);
     try {
-      const payload = form.id ? { botId: form.id } : { key: form.bot_key || "" };
-      if (!form.id && !payload["key" as keyof typeof payload]) {
+      const payload: Record<string, unknown> = {};
+      if (form.id) payload.botId = form.id;
+      if (form.bot_key) payload.key = form.bot_key;
+      if (form.identificador_externo) payload.identificador_externo = form.identificador_externo;
+      if (!form.id && !form.bot_key) {
         toast.error("Informe a chave para testar.");
         return;
       }
       const { data, error } = await supabase.functions.invoke<{
         ok: boolean;
         error?: string;
-        status?: number;
+        matched_format?: "raw" | "identifier_pair";
+        environment?: "prod" | "hmg";
+        bot_identity?: string | null;
         elapsed_ms?: number;
+        attempts?: Array<{ environment: string; auth_format: string; status: number }>;
+        tried?: string;
       }>("crm-blip-test-connection", { body: payload });
       if (error) throw error;
       if (data?.ok) {
-        setLastTest({ ok: true, msg: `Conectado (${data.elapsed_ms ?? 0} ms)` });
+        const envLabel = data.environment === "hmg" ? "Homologação" : "Produção";
+        const fmtLabel = data.matched_format === "identifier_pair" ? "identifier+chave" : "chave direta";
+        setLastTest({
+          ok: true,
+          msg: `Conectado em ${data.elapsed_ms ?? 0} ms`,
+          identity: data.bot_identity ?? null,
+          environment: envLabel,
+          format: fmtLabel,
+        });
       } else {
+        const detail = data?.tried ? ` (tentativas: ${data.tried})` : "";
         setLastTest({
           ok: false,
-          msg: data?.error || `Falha (status ${data?.status ?? "?"})`,
+          msg: (data?.error || "Falha desconhecida") + detail,
         });
       }
     } catch (e) {
@@ -453,21 +473,39 @@ export default function CrmBots() {
                   )}
                   Testar conexão
                 </Button>
-                {lastTest && (
-                  <span
-                    className={`text-sm flex items-center gap-1 ${
-                      lastTest.ok ? "text-emerald-600" : "text-destructive"
-                    }`}
-                  >
-                    {lastTest.ok ? (
-                      <CheckCircle2 className="h-4 w-4" />
-                    ) : (
-                      <XCircle className="h-4 w-4" />
-                    )}
-                    {lastTest.msg}
-                  </span>
-                )}
               </div>
+              {lastTest && (
+                <div
+                  className={`mt-2 rounded-md border p-2 text-xs ${
+                    lastTest.ok
+                      ? "border-emerald-500/40 bg-emerald-500/5 text-emerald-700 dark:text-emerald-300"
+                      : "border-destructive/40 bg-destructive/5 text-destructive"
+                  }`}
+                >
+                  <div className="flex items-start gap-2">
+                    {lastTest.ok ? (
+                      <CheckCircle2 className="h-4 w-4 mt-0.5 shrink-0" />
+                    ) : (
+                      <XCircle className="h-4 w-4 mt-0.5 shrink-0" />
+                    )}
+                    <div className="space-y-1">
+                      <div className="font-medium">{lastTest.msg}</div>
+                      {lastTest.ok && (
+                        <div className="text-[11px] opacity-80">
+                          Ambiente: <strong>{lastTest.environment}</strong> · Formato:{" "}
+                          <strong>{lastTest.format}</strong>
+                          {lastTest.identity && (
+                            <>
+                              {" "}
+                              · Bot: <strong>{lastTest.identity}</strong>
+                            </>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
             <div className="flex items-center justify-between rounded-lg border p-3">
               <div>

@@ -10579,6 +10579,7 @@ export type Database = {
       crm_bots: {
         Row: {
           ativo: boolean
+          auth_format: string
           bot_key_cifrada: string
           canal: Database["public"]["Enums"]["crm_canal"]
           config: Json
@@ -10586,8 +10587,12 @@ export type Database = {
           created_by: string | null
           descricao: string | null
           empresa_id: number
+          environment: string
           id: string
           identificador_externo: string | null
+          last_test_at: string | null
+          last_test_identity: string | null
+          last_test_ok: boolean | null
           modo_leitura: boolean
           nome: string
           numero_whatsapp: string | null
@@ -10599,6 +10604,7 @@ export type Database = {
         }
         Insert: {
           ativo?: boolean
+          auth_format?: string
           bot_key_cifrada: string
           canal?: Database["public"]["Enums"]["crm_canal"]
           config?: Json
@@ -10606,8 +10612,12 @@ export type Database = {
           created_by?: string | null
           descricao?: string | null
           empresa_id: number
+          environment?: string
           id?: string
           identificador_externo?: string | null
+          last_test_at?: string | null
+          last_test_identity?: string | null
+          last_test_ok?: boolean | null
           modo_leitura?: boolean
           nome: string
           numero_whatsapp?: string | null
@@ -10619,6 +10629,7 @@ export type Database = {
         }
         Update: {
           ativo?: boolean
+          auth_format?: string
           bot_key_cifrada?: string
           canal?: Database["public"]["Enums"]["crm_canal"]
           config?: Json
@@ -10626,8 +10637,12 @@ export type Database = {
           created_by?: string | null
           descricao?: string | null
           empresa_id?: number
+          environment?: string
           id?: string
           identificador_externo?: string | null
+          last_test_at?: string | null
+          last_test_identity?: string | null
+          last_test_ok?: boolean | null
           modo_leitura?: boolean
           nome?: string
           numero_whatsapp?: string | null
@@ -48446,10 +48461,29 @@ export type Database = {
         }
         Returns: string
       }
+      crm_bot_get_auth: {
+        Args: { p_bot_id: string }
+        Returns: {
+          auth_format: string
+          bot_key: string
+          environment: string
+          identificador_externo: string
+        }[]
+      }
       crm_bot_get_key: { Args: { p_bot_id: string }; Returns: string }
       crm_bot_get_webhook_secret: {
         Args: { p_bot_id: string }
         Returns: string
+      }
+      crm_bot_record_test_result: {
+        Args: {
+          p_bot_id: string
+          p_env: string
+          p_format: string
+          p_identity: string
+          p_ok: boolean
+        }
+        Returns: undefined
       }
       crm_bot_touch_sync: {
         Args: { p_bot_id: string; p_erro: string }
