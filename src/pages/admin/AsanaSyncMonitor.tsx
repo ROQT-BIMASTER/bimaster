@@ -78,6 +78,40 @@ export default function AsanaSyncMonitor() {
     },
   });
 
+  // Testa o conector Asana (via gateway) — independe dos logs históricos
+  const connectorHealth = useQuery({
+    queryKey: ["asana-connector-health"],
+    enabled: isAdmin,
+    refetchInterval: 60000,
+    retry: false,
+    queryFn: async () => {
+      const { data, error } = await supabase.functions.invoke("asana-sync", {
+        body: { path: "/test-connection" },
+      });
+      if (error) {
+        // Extrai mensagem do servidor se disponível
+        let msg = error.message || "Erro";
+        let code: string | null = null;
+        try {
+          const ctx: any = (error as any).context;
+          if (ctx && typeof ctx.json === "function") {
+            const body = await ctx.json();
+            if (body?.error) msg = body.error;
+            if (body?.error_code) code = body.error_code;
+          }
+        } catch { /* noop */ }
+        return { ok: false, error: msg, code } as const;
+      }
+      const r: any = data;
+      return {
+        ok: true,
+        user: r?.user?.name as string | undefined,
+        email: r?.user?.email as string | undefined,
+        workspaces: (r?.workspaces?.length ?? 0) as number,
+      } as const;
+    },
+  });
+
   const userHealth = useQuery({
     queryKey: ["asana-user-health"],
     enabled: isAdmin,
