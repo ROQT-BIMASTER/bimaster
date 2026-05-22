@@ -190,24 +190,40 @@ export default function CrmBots() {
     setTesting(true);
     setLastTest(null);
     try {
-      const payload = form.id ? { botId: form.id } : { key: form.bot_key || "" };
-      if (!form.id && !payload["key" as keyof typeof payload]) {
+      const payload: Record<string, unknown> = {};
+      if (form.id) payload.botId = form.id;
+      if (form.bot_key) payload.key = form.bot_key;
+      if (form.identificador_externo) payload.identificador_externo = form.identificador_externo;
+      if (!form.id && !form.bot_key) {
         toast.error("Informe a chave para testar.");
         return;
       }
       const { data, error } = await supabase.functions.invoke<{
         ok: boolean;
         error?: string;
-        status?: number;
+        matched_format?: "raw" | "identifier_pair";
+        environment?: "prod" | "hmg";
+        bot_identity?: string | null;
         elapsed_ms?: number;
+        attempts?: Array<{ environment: string; auth_format: string; status: number }>;
+        tried?: string;
       }>("crm-blip-test-connection", { body: payload });
       if (error) throw error;
       if (data?.ok) {
-        setLastTest({ ok: true, msg: `Conectado (${data.elapsed_ms ?? 0} ms)` });
+        const envLabel = data.environment === "hmg" ? "Homologação" : "Produção";
+        const fmtLabel = data.matched_format === "identifier_pair" ? "identifier+chave" : "chave direta";
+        setLastTest({
+          ok: true,
+          msg: `Conectado em ${data.elapsed_ms ?? 0} ms`,
+          identity: data.bot_identity ?? null,
+          environment: envLabel,
+          format: fmtLabel,
+        });
       } else {
+        const detail = data?.tried ? ` (tentativas: ${data.tried})` : "";
         setLastTest({
           ok: false,
-          msg: data?.error || `Falha (status ${data?.status ?? "?"})`,
+          msg: (data?.error || "Falha desconhecida") + detail,
         });
       }
     } catch (e) {
