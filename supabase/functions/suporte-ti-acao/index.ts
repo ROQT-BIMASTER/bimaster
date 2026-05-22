@@ -168,6 +168,8 @@ Deno.serve(secureHandler(
         ? mensagem
         : `${mensagem}\n\nProtocolo: ${proto}`;
 
+      const resolvidoEm = new Date().toISOString();
+
       await sb.from("mensagens").insert({
         conversa_id: ticket.conversa_id,
         remetente_id: BOT_USER_ID,
@@ -180,15 +182,30 @@ Deno.serve(secureHandler(
           parecer_id: parecerRow.id,
           autor_ti: ctx.userId,
           protocolo: proto,
-          resolvido_em: new Date().toISOString(),
+          resolvido_em: resolvidoEm,
         },
       });
 
       await sb.from("suporte_tickets").update({
         status: "resolvido",
-        resolved_at: new Date().toISOString(),
-        ultima_interacao_em: new Date().toISOString(),
+        resolved_at: resolvidoEm,
+        ultima_interacao_em: resolvidoEm,
       }).eq("id", ticket.id);
+
+      // Backfill: marca todas as mensagens anteriores do mesmo ticket como
+      // resolvidas para que o cronômetro do ProtocolCountdown pare em todas elas.
+      const { data: msgsAnteriores } = await sb
+        .from("mensagens")
+        .select("id, metadata")
+        .eq("ticket_id", ticket.id);
+      for (const msg of msgsAnteriores ?? []) {
+        const meta = (msg.metadata ?? {}) as Record<string, unknown>;
+        if (meta.resolvido_em) continue;
+        await sb
+          .from("mensagens")
+          .update({ metadata: { ...meta, resolvido_em: resolvidoEm } })
+          .eq("id", msg.id);
+      }
     }
 
     return new Response(JSON.stringify({
