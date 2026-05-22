@@ -23,6 +23,9 @@ export interface BriefingDocumento {
   notion_file_url: string | null;
   notion_page_id: string | null;
   enviado_notion_em: string | null;
+  is_oficial: boolean;
+  is_checklist_item: boolean;
+  origem: "upload" | "chat" | "template" | "evidencia";
   created_by: string;
   created_at: string;
   updated_at: string;
