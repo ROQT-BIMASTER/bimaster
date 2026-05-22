@@ -143,6 +143,9 @@ export default function CrmInbox() {
                 </SelectContent>
               </Select>
             </div>
+            {useServerSearch ? (
+              <CrmSearchResults empresaId={empresaId} query={debouncedSearch} onPick={(cid) => setSelectedId(cid)} />
+            ) : (
             <ScrollArea className="flex-1">
               {isLoading && <div className="p-4 text-center text-xs text-muted-foreground">Carregando…</div>}
               {!isLoading && conversas.length === 0 && (
@@ -175,6 +178,7 @@ export default function CrmInbox() {
                 })}
               </div>
             </ScrollArea>
+            )}
           </div>
         </ResizablePanel>
         <ResizableHandle withHandle />
