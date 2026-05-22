@@ -63,7 +63,7 @@ export default function ProductThumbnail({
     setUploadOpen(true);
   };
 
-  const iconSize = size === "sm" ? "h-4 w-4" : size === "md" ? "h-5 w-5" : size === "lg" ? "h-6 w-6" : "h-8 w-8";
+  const iconSize = size === "sm" ? "h-4 w-4" : size === "md" ? "h-6 w-6" : size === "lg" ? "h-8 w-8" : size === "xl" ? "h-10 w-10" : "h-12 w-12";
 
   const placeholder = (
     <div
