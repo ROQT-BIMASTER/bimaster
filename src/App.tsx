@@ -196,6 +196,7 @@ const FabricaOperadores = lazyWithRetry(() => import("./pages/FabricaOperadores"
 const FabricaProdutosAcabados = lazyWithRetry(() => import("./pages/FabricaProdutosAcabados"));
 const CenariosComparativo = lazyWithRetry(() => import("./pages/fabrica/CenariosComparativo"));
 const AnalisesCustos = lazyWithRetry(() => import("./pages/fabrica/AnalisesCustos"));
+const AnalisesCustosConsolidado = lazyWithRetry(() => import("./pages/fabrica/AnalisesCustosConsolidado"));
 const FabricaAuditoriaFotos = lazyWithRetry(() => import("./pages/FabricaAuditoriaFotos"));
 const FichaCustoProduto = lazyWithRetry(() => import("./pages/FichaCustoProduto"));
 const ImportarProdutosAcabados = lazyWithRetry(() => import("./pages/ImportarProdutosAcabados"));
@@ -643,6 +644,7 @@ function AppContent() {
             <Route path="/dashboard/fabrica/produtos-acabados" element={<ModuleRoute moduleCode="fabrica"><ScreenProtectedRoute screenCode="fabrica_produtos"><FabricaProdutosAcabados /></ScreenProtectedRoute></ModuleRoute>} />
             <Route path="/dashboard/fabrica/cenarios/:grupoId" element={<ModuleRoute moduleCode="fabrica"><ScreenProtectedRoute screenCode="fabrica_produtos"><CenariosComparativo /></ScreenProtectedRoute></ModuleRoute>} />
             <Route path="/dashboard/fabrica/analises-custos/:grupoId" element={<ModuleRoute moduleCode="fabrica"><ScreenProtectedRoute screenCode="fabrica_produtos"><AnalisesCustos /></ScreenProtectedRoute></ModuleRoute>} />
+            <Route path="/dashboard/fabrica/analises-custos" element={<ModuleRoute moduleCode="fabrica"><ScreenProtectedRoute screenCode="fabrica_produtos"><AnalisesCustosConsolidado /></ScreenProtectedRoute></ModuleRoute>} />
             <Route path="/dashboard/fabrica/auditoria-fotos" element={<ModuleRoute moduleCode="fabrica"><ScreenProtectedRoute screenCode="fabrica_produtos"><FabricaAuditoriaFotos /></ScreenProtectedRoute></ModuleRoute>} />
             <Route path="/dashboard/fabrica/produtos/:id/custos" element={<ModuleRoute moduleCode="fabrica"><ScreenProtectedRoute screenCode="fabrica_produtos"><FichaCustoProduto /></ScreenProtectedRoute></ModuleRoute>} />
             <Route path="/dashboard/fabrica/produtos/importar" element={<ModuleRoute moduleCode="fabrica"><ScreenProtectedRoute screenCode="fabrica_produtos"><ImportarProdutosAcabados /></ScreenProtectedRoute></ModuleRoute>} />
