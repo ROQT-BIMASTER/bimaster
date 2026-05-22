@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useGrupoCenario, type CenarioProduto } from "@/hooks/useGrupoCenarios";
-import { ArrowLeft, Trophy, Layers, TrendingDown, TrendingUp, Plus, Sparkles } from "lucide-react";
+import { ArrowLeft, Trophy, Layers, TrendingDown, TrendingUp, Plus, Sparkles, BarChart3 } from "lucide-react";
 import { formatCurrency } from "@/lib/formatters";
 import { PromoverCenarioDialog } from "@/components/fabrica/cenarios/PromoverCenarioDialog";
 import { NovoCenarioDialog } from "@/components/fabrica/cenarios/NovoCenarioDialog";
@@ -116,10 +116,21 @@ export default function CenariosComparativo() {
               </p>
             </div>
           </div>
-          <Button onClick={() => setNovoOpen(true)}>
-            <Plus className="h-4 w-4 mr-1.5" />
-            Adicionar cenário
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              onClick={() => navigate(`/dashboard/fabrica/analises-custos/${grupoId}`)}
+              disabled={!grupoId || cenarios.length < 2}
+              title="Comparativo Sim01×Sim02, decomposição de custo e provadores"
+            >
+              <BarChart3 className="h-4 w-4 mr-1.5" />
+              Análises de Custos
+            </Button>
+            <Button onClick={() => setNovoOpen(true)}>
+              <Plus className="h-4 w-4 mr-1.5" />
+              Adicionar cenário
+            </Button>
+          </div>
         </div>
 
         {isLoading ? (
