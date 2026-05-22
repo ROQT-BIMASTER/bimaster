@@ -12,6 +12,7 @@ import { ArrowLeft, Trophy, Layers, TrendingDown, TrendingUp, Plus, Sparkles } f
 import { formatCurrency } from "@/lib/formatters";
 import { PromoverCenarioDialog } from "@/components/fabrica/cenarios/PromoverCenarioDialog";
 import { NovoCenarioDialog } from "@/components/fabrica/cenarios/NovoCenarioDialog";
+import { AnaliseInsumosComparativa } from "@/components/fabrica/cenarios/AnaliseInsumosComparativa";
 
 interface CustoItem {
   produto_id: string;
@@ -242,6 +243,10 @@ export default function CenariosComparativo() {
               );
             })}
           </div>
+        )}
+
+        {!isLoading && cenarios.length >= 2 && (
+          <AnaliseInsumosComparativa custosArr={custosArr} />
         )}
       </div>
 
