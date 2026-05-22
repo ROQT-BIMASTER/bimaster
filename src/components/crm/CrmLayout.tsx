@@ -49,13 +49,15 @@ function CrmSidebar() {
             <SidebarMenu>
               {items.map((it) => (
                 <SidebarMenuItem key={it.to}>
-                  <SidebarMenuButton asChild>
+                  <SidebarMenuButton asChild tooltip={it.label}>
                     <NavLink
                       to={it.to}
                       end={it.end}
                       className={({ isActive }) =>
-                        `flex items-center gap-2 ${
-                          isActive ? "bg-muted text-foreground font-medium" : "hover:bg-muted/50"
+                        `flex items-center gap-2 text-sidebar-foreground ${
+                          isActive
+                            ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                            : "hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground"
                         }`
                       }
                     >
