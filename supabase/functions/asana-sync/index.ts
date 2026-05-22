@@ -568,7 +568,16 @@ Deno.serve(secureHandler({ auth: "none", rateLimit: 10, rateLimitPrefix: "asana-
                           .select("local_id").eq("asana_gid", story.gid).eq("entity_type", "comment").maybeSingle();
                         if (!existing) {
                           const { data: nc } = await adminClient.from("projeto_tarefa_comentarios")
-                            .insert({ tarefa_id: localTaskId, user_id: authorId, conteudo: story.text }).select().single();
+                            .insert({
+                              tarefa_id: localTaskId, user_id: authorId, conteudo: story.text,
+                              metadata: {
+                                origem: "asana",
+                                asana_gid: story.gid,
+                                html_text: story.html_text || null,
+                                created_at_asana: story.created_at || null,
+                              },
+                              created_at: story.created_at || new Date().toISOString(),
+                            }).select().single();
                           if (nc) {
                             await adminClient.from("asana_sync_mappings").insert({
                               asana_gid: story.gid, entity_type: "comment", local_id: nc.id, workspace_gid,
