@@ -85,7 +85,7 @@ export default function AnalisesCustosConsolidado() {
         "Δ %": p.custoFinalSim01 ? (p.custoFinal - p.custoFinalSim01) / p.custoFinalSim01 : null,
         "Total Insumos": p.totalInsumos,
         "IPI (R$)": p.ipiTotal,
-        "Made In": p.totalNFMadeIn,
+        "Custo Importação": p.totalNFMadeIn,
         "Mão de obra NF": p.custoMaoObraNF,
         "Mão de obra Serviço": p.custoMaoObraServico,
         "% Markup": p.percentualMarkup,
