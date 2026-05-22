@@ -166,6 +166,44 @@ export function buildBriefingBlocks(input: BuildBlocksInput): unknown[] {
     }
   }
 
+  // Documentos do cofre
+  if (input.documentos?.length) {
+    blocks.push(divider());
+    blocks.push(heading2("Documentos do cofre"));
+    blocks.push(paragraph(
+      `Total: ${input.documentos.length} documento(s). Links assinados válidos por 7 dias — reenvie para renovar.`,
+    ));
+    for (const d of input.documentos) {
+      const sizeKb = d.tamanho_bytes ? `${(d.tamanho_bytes / 1024 / 1024).toFixed(2)} MB` : "";
+      const meta = [
+        d.categoria,
+        d.status,
+        d.is_oficial ? "oficial" : null,
+        d.fornecedor_nome,
+        d.lote ? `lote ${d.lote}` : null,
+        sizeKb || null,
+      ].filter(Boolean).join(" · ");
+      if (d.signed_url) {
+        blocks.push({
+          object: "block",
+          type: "bulleted_list_item",
+          bulleted_list_item: {
+            rich_text: [
+              {
+                type: "text",
+                text: { content: d.nome.slice(0, NOTION_RT_LIMIT), link: { url: d.signed_url } },
+                annotations: { bold: true },
+              },
+              ...rt(meta ? ` — ${meta}` : ""),
+            ],
+          },
+        });
+      } else {
+        blocks.push(bullet(`${d.nome} — ${meta} (sem arquivo anexado)`));
+      }
+    }
+  }
+
   // Footer — wrapped with explicit markers so pull can identify the user-editable zone
   blocks.push(divider());
   blocks.push(heading3(FREE_ZONE_START_LABEL));
