@@ -1661,6 +1661,53 @@ export type Database = {
         }
         Relationships: []
       }
+      asana_workspaces_descobertos: {
+        Row: {
+          ativo: boolean
+          auto_descoberta: boolean
+          created_at: string
+          criador_id_padrao: string | null
+          empresa_id: number | null
+          last_discovery_at: string | null
+          last_discovery_count: number | null
+          nome: string | null
+          updated_at: string
+          workspace_gid: string
+        }
+        Insert: {
+          ativo?: boolean
+          auto_descoberta?: boolean
+          created_at?: string
+          criador_id_padrao?: string | null
+          empresa_id?: number | null
+          last_discovery_at?: string | null
+          last_discovery_count?: number | null
+          nome?: string | null
+          updated_at?: string
+          workspace_gid: string
+        }
+        Update: {
+          ativo?: boolean
+          auto_descoberta?: boolean
+          created_at?: string
+          criador_id_padrao?: string | null
+          empresa_id?: number | null
+          last_discovery_at?: string | null
+          last_discovery_count?: number | null
+          nome?: string | null
+          updated_at?: string
+          workspace_gid?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asana_workspaces_descobertos_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       assinaturas: {
         Row: {
           cancelado_em: string | null
@@ -32698,8 +32745,73 @@ export type Database = {
           },
         ]
       }
+      projeto_chat_anexos: {
+        Row: {
+          asana_gid: string | null
+          created_at: string
+          id: string
+          message_id: string
+          metadata: Json
+          nome: string
+          projeto_id: string
+          storage_path: string
+          tamanho: number | null
+          tipo_arquivo: string | null
+          user_id: string | null
+        }
+        Insert: {
+          asana_gid?: string | null
+          created_at?: string
+          id?: string
+          message_id: string
+          metadata?: Json
+          nome: string
+          projeto_id: string
+          storage_path: string
+          tamanho?: number | null
+          tipo_arquivo?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          asana_gid?: string | null
+          created_at?: string
+          id?: string
+          message_id?: string
+          metadata?: Json
+          nome?: string
+          projeto_id?: string
+          storage_path?: string
+          tamanho?: number | null
+          tipo_arquivo?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "projeto_chat_anexos_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "projeto_chat_messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projeto_chat_anexos_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "projetos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projeto_chat_anexos_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "vw_projeto_produtividade"
+            referencedColumns: ["projeto_id"]
+          },
+        ]
+      }
       projeto_chat_messages: {
         Row: {
+          asana_gid: string | null
           conteudo: string
           created_at: string
           id: string
@@ -32710,6 +32822,7 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          asana_gid?: string | null
           conteudo: string
           created_at?: string
           id?: string
@@ -32720,6 +32833,7 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          asana_gid?: string | null
           conteudo?: string
           created_at?: string
           id?: string
@@ -33986,6 +34100,7 @@ export type Database = {
           asana_gid: string | null
           created_at: string
           id: string
+          metadata: Json
           nome: string
           storage_path: string
           tamanho: number | null
@@ -33997,6 +34112,7 @@ export type Database = {
           asana_gid?: string | null
           created_at?: string
           id?: string
+          metadata?: Json
           nome: string
           storage_path: string
           tamanho?: number | null
@@ -34008,6 +34124,7 @@ export type Database = {
           asana_gid?: string | null
           created_at?: string
           id?: string
+          metadata?: Json
           nome?: string
           storage_path?: string
           tamanho?: number | null
@@ -34939,6 +35056,8 @@ export type Database = {
           asana_last_sync_error: string | null
           asana_last_sync_status: string | null
           asana_last_synced_at: string | null
+          asana_team_gid: string | null
+          asana_workspace_gid: string | null
           bg_cor: string | null
           categoria_linha: string | null
           codigo_integracao: string | null
@@ -34969,6 +35088,8 @@ export type Database = {
           asana_last_sync_error?: string | null
           asana_last_sync_status?: string | null
           asana_last_synced_at?: string | null
+          asana_team_gid?: string | null
+          asana_workspace_gid?: string | null
           bg_cor?: string | null
           categoria_linha?: string | null
           codigo_integracao?: string | null
@@ -34999,6 +35120,8 @@ export type Database = {
           asana_last_sync_error?: string | null
           asana_last_sync_status?: string | null
           asana_last_synced_at?: string | null
+          asana_team_gid?: string | null
+          asana_workspace_gid?: string | null
           bg_cor?: string | null
           categoria_linha?: string | null
           codigo_integracao?: string | null
@@ -47364,6 +47487,8 @@ export type Database = {
           asana_last_sync_error: string | null
           asana_last_sync_status: string | null
           asana_last_synced_at: string | null
+          asana_team_gid: string | null
+          asana_workspace_gid: string | null
           bg_cor: string | null
           categoria_linha: string | null
           codigo_integracao: string | null
