@@ -395,9 +395,16 @@ export default function FabricaFornecedores() {
                             <TableCell className="text-xs">{f.email || f.telefone || "—"}</TableCell>
                             <TableCell className="text-xs">{[f.cidade, f.uf].filter(Boolean).join("/") || "—"}</TableCell>
                             <TableCell>
-                              <Badge variant={f.ativo ? "success" : "secondary"} className="text-[10px]">
-                                {f.ativo ? "Ativo" : "Inativo"}
-                              </Badge>
+                              <div className="flex flex-col gap-1">
+                                <Badge variant={f.ativo ? "success" : "secondary"} className="text-[10px] w-fit">
+                                  {f.ativo ? "Ativo" : "Inativo"}
+                                </Badge>
+                                {f.pendente_complemento && (
+                                  <Badge variant="outline" className="text-[10px] w-fit border-amber-500 text-amber-700 dark:text-amber-400">
+                                    Pendente CNPJ
+                                  </Badge>
+                                )}
+                              </div>
                             </TableCell>
                             <TableCell className="text-right">
                               <div className="flex justify-end gap-1" onClick={e => e.stopPropagation()}>
