@@ -169,7 +169,16 @@ export function CofreTab({ briefingId, tipoBriefing }: Props) {
             </Button>
             <Button
               size="sm" variant="outline" className="h-8"
-              onClick={enviarParaNotion} disabled={enviandoNotion || docs.length === 0}
+              onClick={() => enviarParaNotion(true)}
+              disabled={enviandoNotion || docs.length === 0}
+              title="Enviar apenas documentos novos ou atualizados"
+            >
+              <Send className="h-3.5 w-3.5 mr-1" />
+              Atualizar docs no Notion
+            </Button>
+            <Button
+              size="sm" variant="outline" className="h-8"
+              onClick={() => enviarParaNotion(false)} disabled={enviandoNotion || docs.length === 0}
             >
               <Send className="h-3.5 w-3.5 mr-1" />
               {enviandoNotion ? "Enviando..." : "Enviar ao Notion"}
