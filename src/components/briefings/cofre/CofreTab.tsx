@@ -44,6 +44,7 @@ export function CofreTab({ briefingId, tipoBriefing }: Props) {
 
   const [eixo, setEixo] = useState<EixoTab>("categoria");
   const [uploadOpen, setUploadOpen] = useState(false);
+  const [evidenciaOpen, setEvidenciaOpen] = useState(false);
   const [alvo, setAlvo] = useState<BriefingDocumento | null>(null);
   const [templateSel, setTemplateSel] = useState<string | undefined>();
   const [enviandoNotion, setEnviandoNotion] = useState(false);
