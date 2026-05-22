@@ -1335,6 +1335,22 @@ export default function FabricaProdutosAcabados() {
                       onCheckedChange={setMostrarOcultos}
                     />
                   </div>
+
+                  {/* Inativos */}
+                  <div className="flex items-center justify-between gap-2">
+                    <Label htmlFor="mostrarInativos" className="text-xs cursor-pointer flex items-center gap-1.5 text-muted-foreground">
+                      {mostrarInativos ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3" />}
+                      Inativos
+                      {totalInativos > 0 && (
+                        <Badge variant="secondary" className="text-[9px] px-1 py-0 h-4">{totalInativos}</Badge>
+                      )}
+                    </Label>
+                    <Switch
+                      id="mostrarInativos"
+                      checked={mostrarInativos}
+                      onCheckedChange={setMostrarInativos}
+                    />
+                  </div>
                 </div>
 
                 {/* View Mode */}
