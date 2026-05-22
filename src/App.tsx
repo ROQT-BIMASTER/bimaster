@@ -529,6 +529,8 @@ function AppContent() {
             
             {/* Protected Routes */}
             <Route path="/dashboard" element={<ProtectedRoute><DashboardRedirect /></ProtectedRoute>} />
+            <Route path="/dashboard/crm" element={<ProtectedRoute><CrmHome /></ProtectedRoute>} />
+            <Route path="/dashboard/crm/bots" element={<ProtectedRoute><CrmBots /></ProtectedRoute>} />
             <Route path="/dashboard/ai-analytics" element={<ScreenRoute screenCode="ai_analytics"><AIAnalytics /></ScreenRoute>} />
             <Route path="/dashboard/qa-agent" element={<ScreenRoute screenCode="ai_analytics"><QAAgent /></ScreenRoute>} />
             <Route path="/dashboard/agente-huggs" element={<ScreenRoute screenCode="ai_analytics"><AgenteHuggs /></ScreenRoute>} />
