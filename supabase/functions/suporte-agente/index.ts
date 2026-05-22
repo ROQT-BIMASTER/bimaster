@@ -222,6 +222,8 @@ async function execTool(
       await sb.from("suporte_tickets").update(patch).eq("id", ticketId);
     }
     return { ok: true, ...patch };
+  }
+
 
   if (name === "criar_tarefa_suporte") {
     const { data: projeto } = await sb.from("projetos").select("id").eq("nome", PROJETO_SUPORTE_NOME).eq("tipo", "generico").maybeSingle();
