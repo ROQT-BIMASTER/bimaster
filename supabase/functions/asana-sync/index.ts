@@ -645,7 +645,16 @@ Deno.serve(secureHandler({ auth: "none", rateLimit: 10, rateLimitPrefix: "asana-
             status: "failed", errors: [...errors, { fatal: e.message }],
             completed_at: new Date().toISOString(),
           }).eq("id", logId);
-          return json({ error: e.message, errors }, 500);
+          // Marca projetos como falha (circuit breaker do cron usa isso)
+          try {
+            await adminClient.from("projetos")
+              .update({
+                asana_last_sync_status: "failed",
+                asana_last_sync_error: String(e.message || "erro desconhecido").slice(0, 500),
+              })
+              .in("asana_gid", project_gids);
+          } catch { /* ignore */ }
+          return json({ error: e.message, errors, error_code: (e as any).code || null }, 500);
         }
       }
 
