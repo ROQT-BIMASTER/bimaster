@@ -49,8 +49,8 @@ type BotRow = {
   empresa_id: number;
   nome: string;
   descricao: string | null;
-  provider: "blip" | "whatsapp_cloud" | "instagram" | "messenger" | "telegram" | "webchat";
-  canal: "whatsapp" | "instagram" | "messenger" | "telegram" | "webchat" | "email" | "voz";
+  provider: "blip" | "interno" | "whatsapp_cloud";
+  canal: "whatsapp" | "instagram" | "messenger" | "webchat" | "email" | "voz" | "outro";
   identificador_externo: string | null;
   numero_whatsapp: string | null;
   modo_leitura: boolean;
@@ -63,8 +63,8 @@ const formSchema = z.object({
   id: z.string().uuid().nullable(),
   nome: z.string().min(2, "Nome obrigatório").max(120),
   descricao: z.string().max(500).optional().nullable(),
-  provider: z.enum(["blip", "whatsapp_cloud", "instagram", "messenger", "telegram", "webchat"]),
-  canal: z.enum(["whatsapp", "instagram", "messenger", "telegram", "webchat", "email", "voz"]),
+  provider: z.enum(["blip", "whatsapp_cloud", "interno"]),
+  canal: z.enum(["whatsapp", "instagram", "messenger", "webchat", "email", "voz", "outro"]),
   identificador_externo: z.string().max(200).optional().nullable(),
   numero_whatsapp: z.string().max(40).optional().nullable(),
   bot_key: z.string().max(500).optional().nullable(),
