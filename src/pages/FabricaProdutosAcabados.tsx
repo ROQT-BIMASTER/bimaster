@@ -310,7 +310,7 @@ export default function FabricaProdutosAcabados() {
       });
     }
     return map;
-  }, [revisoes]);
+  }, [revisoes, produtos]);
 
   // Set de produtos com aumento recente (últimos 30 dias)
   const produtosComAumento = useMemo(() => {
