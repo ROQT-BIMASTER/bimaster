@@ -300,14 +300,44 @@ export default function CrmBots() {
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        const url = `${SUPABASE_URL}/functions/v1/crm-blip-ingest?bot_id=${b.id}`;
+                        navigator.clipboard.writeText(url);
+                        toast.success("URL do webhook copiada");
+                      }}
+                      title="Copiar URL do webhook"
+                    >
+                      Webhook
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={async () => {
+                        toast.loading("Carregando histórico...", { id: `bf-${b.id}` });
+                        const { data, error } = await supabase.functions.invoke<{
+                          ok: boolean; threads_found?: number; messages_ingested?: number;
+                          messages_duplicated?: number; error?: string;
+                        }>("crm-blip-backfill", { body: { botId: b.id, threads: 20, messagesPerThread: 50 } });
+                        if (error || !data?.ok) {
+                          toast.error(data?.error || error?.message || "Falha no backfill", { id: `bf-${b.id}` });
+                        } else {
+                          toast.success(
+                            `${data.threads_found} thread(s), ${data.messages_ingested} nova(s), ${data.messages_duplicated} duplicada(s)`,
+                            { id: `bf-${b.id}` },
+                          );
+                          qc.invalidateQueries({ queryKey: ["crm-bots"] });
+                        }
+                      }}
+                    >
+                      Backfill
+                    </Button>
                     <Button variant="ghost" size="icon" onClick={() => openEdit(b)}>
                       <Pencil className="h-4 w-4" />
                     </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => setConfirmDelete(b)}
-                    >
+                    <Button variant="ghost" size="icon" onClick={() => setConfirmDelete(b)}>
                       <Trash2 className="h-4 w-4 text-destructive" />
                     </Button>
                   </div>
