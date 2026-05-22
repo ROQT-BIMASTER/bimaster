@@ -71,7 +71,7 @@ export function FichaAprovacaoBanner({ status, parecer }: Props) {
 }
 
 export function StatusAprovacaoBadge({ status }: { status: StatusAprovacao }) {
-  const cfg = statusConfig[status];
+  const cfg = statusConfig[status] ?? statusConfig.rascunho;
   return (
     <Badge variant={cfg.variant} className={cn("gap-1 text-xs", cfg.badgeClass)}>
       {cfg.icon}
