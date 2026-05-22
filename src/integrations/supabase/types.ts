@@ -11108,6 +11108,95 @@ export type Database = {
         }
         Relationships: []
       }
+      docs_tecnicos: {
+        Row: {
+          area: string
+          arquivo_pdf_storage_path: string | null
+          arquivo_storage_path: string
+          created_at: string
+          criado_por: string | null
+          descricao: string | null
+          id: string
+          mime_type: string
+          publicado: boolean
+          publicado_em: string
+          slug: string
+          tamanho_bytes: number | null
+          titulo: string
+          updated_at: string
+          versao: string
+        }
+        Insert: {
+          area?: string
+          arquivo_pdf_storage_path?: string | null
+          arquivo_storage_path: string
+          created_at?: string
+          criado_por?: string | null
+          descricao?: string | null
+          id?: string
+          mime_type?: string
+          publicado?: boolean
+          publicado_em?: string
+          slug: string
+          tamanho_bytes?: number | null
+          titulo: string
+          updated_at?: string
+          versao?: string
+        }
+        Update: {
+          area?: string
+          arquivo_pdf_storage_path?: string | null
+          arquivo_storage_path?: string
+          created_at?: string
+          criado_por?: string | null
+          descricao?: string | null
+          id?: string
+          mime_type?: string
+          publicado?: boolean
+          publicado_em?: string
+          slug?: string
+          tamanho_bytes?: number | null
+          titulo?: string
+          updated_at?: string
+          versao?: string
+        }
+        Relationships: []
+      }
+      docs_tecnicos_downloads: {
+        Row: {
+          created_at: string
+          doc_id: string
+          formato: string
+          id: string
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          doc_id: string
+          formato?: string
+          id?: string
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          doc_id?: string
+          formato?: string
+          id?: string
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "docs_tecnicos_downloads_doc_id_fkey"
+            columns: ["doc_id"]
+            isOneToOne: false
+            referencedRelation: "docs_tecnicos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       documento_anexos: {
         Row: {
           c_cod_int_anexo: string | null
