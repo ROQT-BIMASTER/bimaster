@@ -95,13 +95,23 @@ Deno.serve(async (req) => {
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
   );
 
-  // Busca segredo HMAC e bot
-  const { data: secret, error: secErr } = await sb.rpc("crm_bot_get_webhook_secret", { p_bot_id: botId });
-  if (secErr || !secret) {
+  // Busca bot (segredo + empresa)
+  const { data: bot, error: botErr } = await sb
+    .from("crm_bots")
+    .select("empresa_id, webhook_secret, ativo")
+    .eq("id", botId)
+    .maybeSingle();
+  if (botErr || !bot) {
     return new Response(JSON.stringify({ error: "bot inválido" }), {
       status: 404, headers: { ...cors, "Content-Type": "application/json" },
     });
   }
+  if (!bot.ativo) {
+    return new Response(JSON.stringify({ error: "bot inativo" }), {
+      status: 403, headers: { ...cors, "Content-Type": "application/json" },
+    });
+  }
+  const secret = bot.webhook_secret;
 
   // Valida HMAC (suporta "sha256=<hex>" ou apenas hex)
   const sigHeader = req.headers.get("x-bimaster-signature") ?? req.headers.get("x-hub-signature-256") ?? "";
