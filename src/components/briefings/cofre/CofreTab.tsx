@@ -1,6 +1,6 @@
 // src/components/briefings/cofre/CofreTab.tsx
 import { useMemo, useState } from "react";
-import { Plus, FolderOpen, FileCheck2, Truck, Package, ListChecks, Send } from "lucide-react";
+import { Plus, FolderOpen, FileCheck2, Truck, Package, ListChecks, Send, Camera } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
