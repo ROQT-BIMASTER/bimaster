@@ -1444,6 +1444,15 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
           </SidebarGroup>
         )}
 
+        {/* CRM standalone — admin-only */}
+        {isAdmin && (
+          <SidebarGroup className="py-1 px-2">
+            <SidebarMenu className="space-y-0.5">
+              <MenuItemLink to="/dashboard/crm" icon={Headset} title="CRM" />
+            </SidebarMenu>
+          </SidebarGroup>
+        )}
+
         {/* Portal ERP standalone — for non-admin users with ERP permission */}
         {!isAdmin && hasModulePermission("integracao_erp") && (
           <SidebarGroup className="py-1 px-2">
