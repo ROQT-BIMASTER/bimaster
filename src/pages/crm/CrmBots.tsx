@@ -94,7 +94,11 @@ export default function CrmBots() {
   const [confirmDelete, setConfirmDelete] = useState<BotRow | null>(null);
   const [form, setForm] = useState<z.infer<typeof formSchema>>(emptyForm);
   const [testing, setTesting] = useState(false);
-  const [lastTest, setLastTest] = useState<{ ok: boolean; msg: string } | null>(null);
+  const [lastTest, setLastTest] = useState<
+    | { ok: true; msg: string; identity: string | null; environment: string; format: string }
+    | { ok: false; msg: string }
+    | null
+  >(null);
 
   const empresaId = empresaSelecionada?.id ?? null;
 
