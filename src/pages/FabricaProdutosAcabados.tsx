@@ -375,7 +375,7 @@ export default function FabricaProdutosAcabados() {
         filtroProvador === "todos" ||
         (filtroProvador === "venda" && !isProv) ||
         (filtroProvador === "provador" && isProv);
-      const matchVisibilidade = mostrarOcultos || !p.oculto;
+      const matchVisibilidade = (mostrarOcultos || !p.oculto) && (mostrarInativos || p.ativo !== false);
       const createdDate = p.created_at ? new Date(p.created_at) : null;
       const matchDataInicio = !parsedInicio || (createdDate && createdDate >= parsedInicio);
       const matchDataFim = !parsedFim || (createdDate && createdDate <= parsedFim);
