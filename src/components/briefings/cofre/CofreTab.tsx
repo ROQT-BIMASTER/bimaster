@@ -143,6 +143,12 @@ export function CofreTab({ briefingId, tipoBriefing }: Props) {
               <Plus className="h-3.5 w-3.5 mr-1" /> Novo documento
             </Button>
             <Button
+              size="sm" variant="secondary" className="h-8"
+              onClick={() => setEvidenciaOpen(true)}
+            >
+              <Camera className="h-3.5 w-3.5 mr-1" /> Anexar evidência
+            </Button>
+            <Button
               size="sm" variant="outline" className="h-8"
               onClick={enviarParaNotion} disabled={enviandoNotion || docs.length === 0}
             >
