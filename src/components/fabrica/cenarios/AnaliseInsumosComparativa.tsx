@@ -72,8 +72,7 @@ export function AnaliseInsumosComparativa({ custosArr }: { custosArr: CustoArrEn
     const map = new Map<string, LinhaInsumo>();
 
     custosArr.forEach(({ produto, itens }) => {
-      // Agrega por chave dentro do mesmo cenário (somando duplicatas)
-      const porChaveDesteCenario = new Map<string, { custo: number; nome: string; fornecedor: string | null; nf: string | null }>();
+      const porChaveDesteCenario = new Map<string, { custo: number; nome: string; fornecedor: string | null; nf: string | null; tipo_insumo: string | null }>();
       itens.forEach((it) => {
         const chave = normalizaChave(it.codigo, it.nome);
         const totalItem = (it.custo_nf || 0) + (it.custo_servico || 0) + (it.custo_condicao || 0);
@@ -86,6 +85,7 @@ export function AnaliseInsumosComparativa({ custosArr }: { custosArr: CustoArrEn
             nome: it.nome,
             fornecedor: it.fornecedor,
             nf: it.nf_referencia,
+            tipo_insumo: it.tipo_insumo,
           });
         }
       });
@@ -96,6 +96,7 @@ export function AnaliseInsumosComparativa({ custosArr }: { custosArr: CustoArrEn
           linha = {
             chave,
             nome: v.nome,
+            tipo_insumo: v.tipo_insumo,
             porCenario: new Map(),
             min: 0,
             max: 0,
@@ -104,35 +105,39 @@ export function AnaliseInsumosComparativa({ custosArr }: { custosArr: CustoArrEn
             fornecedoresDistintos: [],
             cenarioMin: null,
             cenarioMax: null,
+            presencaCount: 0,
           };
           map.set(chave, linha);
         }
+        if (!linha.tipo_insumo && v.tipo_insumo) linha.tipo_insumo = v.tipo_insumo;
         linha.porCenario.set(produto.id, {
           custo: v.custo,
           fornecedor: v.fornecedor,
           nf: v.nf,
+          tipo_insumo: v.tipo_insumo,
           presente: true,
         });
       });
     });
 
-    // Preenche ausências e calcula métricas
     const linhasArr: LinhaInsumo[] = [];
     map.forEach((linha) => {
       let min = Infinity;
       let max = -Infinity;
       let cenarioMin: string | null = null;
       let cenarioMax: string | null = null;
+      let presencaCount = 0;
       const fornecedoresSet = new Set<string>();
 
       custosArr.forEach(({ produto }) => {
         const cel = linha.porCenario.get(produto.id);
         if (cel) {
+          presencaCount++;
           if (cel.custo < min) { min = cel.custo; cenarioMin = produto.id; }
           if (cel.custo > max) { max = cel.custo; cenarioMax = produto.id; }
           if (cel.fornecedor) fornecedoresSet.add(cel.fornecedor.trim());
         } else {
-          linha.porCenario.set(produto.id, { custo: 0, fornecedor: null, nf: null, presente: false });
+          linha.porCenario.set(produto.id, { custo: 0, fornecedor: null, nf: null, tipo_insumo: null, presente: false });
         }
       });
 
@@ -145,12 +150,33 @@ export function AnaliseInsumosComparativa({ custosArr }: { custosArr: CustoArrEn
       linha.fornecedoresDistintos = Array.from(fornecedoresSet);
       linha.cenarioMin = cenarioMin;
       linha.cenarioMax = cenarioMax;
+      linha.presencaCount = presencaCount;
       linhasArr.push(linha);
     });
 
     linhasArr.sort((a, b) => b.delta - a.delta);
     return linhasArr;
   }, [custosArr]);
+
+  // MPs presentes em apenas 1 cenário (exclusivas) — agrupadas por cenário
+  const exclusivasPorCenario = useMemo(() => {
+    const map = new Map<string, LinhaInsumo[]>();
+    linhas.forEach((l) => {
+      if (l.presencaCount === 1) {
+        // achar qual cenário tem
+        for (const { produto } of custosArr) {
+          const cel = l.porCenario.get(produto.id);
+          if (cel?.presente) {
+            const arr = map.get(produto.id) ?? [];
+            arr.push(l);
+            map.set(produto.id, arr);
+            break;
+          }
+        }
+      }
+    });
+    return map;
+  }, [linhas, custosArr]);
 
   const somaDeltas = useMemo(() => linhas.reduce((s, l) => s + l.delta, 0), [linhas]);
   const topOfensores = useMemo(() => linhas.filter((l) => l.delta > 0).slice(0, 3), [linhas]);
