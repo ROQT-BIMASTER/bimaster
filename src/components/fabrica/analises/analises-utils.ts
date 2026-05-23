@@ -33,6 +33,7 @@ export interface ComparativoRow {
   nome: string;
   tipo: string;
   marca: string | null;
+  cenarioLabel: string;
   custoSim01: number | null;
   custoSim02: number | null;
   delta: number;
@@ -43,67 +44,70 @@ export interface ComparativoRow {
 
 export type StatusComparativo = ComparativoRow["status"];
 
-function chave(c: CenarioProduto): string {
-  return (c.codigo || c.nome || "").trim().toLowerCase();
-}
-
 /**
- * Pareia os 2 (ou N>1) cenários do grupo em linhas comparativas.
- * O primeiro cenário cronológico = Sim01; o último = Sim02 (atual).
+ * Pareia os cenários do grupo pela POSIÇÃO cronológica:
+ *  - Sim01 = mais antigo (baseline)
+ *  - Cada cenário posterior gera uma linha comparando seu custoFinal vs Sim01.
+ *
+ * Cenários do mesmo grupo são versões do mesmo produto/projeto; pareá-los
+ * por código gera falsos "Novo/Removido" porque cada versão tem código próprio.
  */
 export function buildComparativoRows(custosArr: CenarioCustoAgg[]): ComparativoRow[] {
   if (custosArr.length < 2) return [];
 
-  // Ordena por created_at: primeiro = Sim01, último = Sim02
   const ordenados = [...custosArr].sort((a, b) =>
     (a.produto.created_at || "").localeCompare(b.produto.created_at || ""),
   );
   const sim01 = ordenados[0];
-  const sim02 = ordenados[ordenados.length - 1];
+  const baseline = sim01.custoFinal;
 
-  const mapA = new Map<string, CenarioCustoAgg>();
-  const mapB = new Map<string, CenarioCustoAgg>();
-  // Quando o grupo tem 2 cenários (cada um = 1 produto), trata cada produto como linha.
-  // Quando há mais cenários, mantém o pareamento por (Sim01, Sim02).
-  mapA.set(chave(sim01.produto), sim01);
-  mapB.set(chave(sim02.produto), sim02);
-
-  const keys = new Set<string>([...mapA.keys(), ...mapB.keys()]);
   const rows: ComparativoRow[] = [];
-  keys.forEach((k) => {
-    const a = mapA.get(k);
-    const b = mapB.get(k);
-    const ref = (b ?? a)!.produto;
-    const cA = a ? a.custoFinal : null;
-    const cB = b ? b.custoFinal : null;
-    const delta = (cB ?? 0) - (cA ?? 0);
-    const deltaPct = cA && cA > 0 ? delta / cA : 0;
+
+  rows.push({
+    codigo: sim01.produto.codigo,
+    nome: sim01.produto.nome,
+    tipo: (sim01.produto.tipo || "OFICIAL").toUpperCase(),
+    marca: sim01.produto.marca,
+    cenarioLabel: sim01.produto.cenario_label || "Sim01",
+    custoSim01: baseline,
+    custoSim02: baseline,
+    delta: 0,
+    deltaPct: 0,
+    status: "Igual",
+    observacao: "baseline (Sim01)",
+  });
+
+  ordenados.slice(1).forEach((c, idx) => {
+    const cB = c.custoFinal;
+    const delta = cB - baseline;
+    const deltaPct = baseline > 0 ? delta / baseline : 0;
 
     let status: StatusComparativo;
     let obs: string;
-    if (cA == null && cB != null) {
+    if (baseline === 0 && cB > 0) {
       status = "Novo";
-      obs = "presente apenas no cenário atual";
-    } else if (cA != null && cB == null) {
+      obs = "sem custo lançado em Sim01";
+    } else if (baseline > 0 && cB === 0) {
       status = "Removido";
-      obs = "presente apenas no Sim01";
+      obs = "sem custo lançado neste cenário";
     } else if (Math.abs(delta) < 0.005) {
       status = "Igual";
-      obs = "sem mudança entre versões";
+      obs = "sem mudança vs Sim01";
     } else if (delta > 0) {
       status = "Aumentou";
-      obs = `+R$ ${delta.toFixed(4)} (+${(deltaPct * 100).toFixed(2)}%)`;
+      obs = `+R$ ${delta.toFixed(4)} (+${(deltaPct * 100).toFixed(2)}%) vs Sim01`;
     } else {
       status = "Reduziu";
-      obs = `-R$ ${Math.abs(delta).toFixed(4)} (${(deltaPct * 100).toFixed(2)}%)`;
+      obs = `-R$ ${Math.abs(delta).toFixed(4)} (${(deltaPct * 100).toFixed(2)}%) vs Sim01`;
     }
 
     rows.push({
-      codigo: ref.codigo,
-      nome: ref.nome,
-      tipo: (ref.tipo || "OFICIAL").toUpperCase(),
-      marca: ref.marca,
-      custoSim01: cA,
+      codigo: c.produto.codigo,
+      nome: c.produto.nome,
+      tipo: (c.produto.tipo || "OFICIAL").toUpperCase(),
+      marca: c.produto.marca,
+      cenarioLabel: c.produto.cenario_label || `Sim${String(idx + 2).padStart(2, "0")}`,
+      custoSim01: baseline,
       custoSim02: cB,
       delta,
       deltaPct,
@@ -112,8 +116,6 @@ export function buildComparativoRows(custosArr: CenarioCustoAgg[]): ComparativoR
     });
   });
 
-  // Ordena por |Δ%| desc, depois por |Δ R$| desc
-  rows.sort((a, b) => Math.abs(b.deltaPct) - Math.abs(a.deltaPct) || Math.abs(b.delta) - Math.abs(a.delta));
   return rows;
 }
 
