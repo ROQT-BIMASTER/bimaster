@@ -30,12 +30,14 @@ interface CelulaCenario {
   custo: number;
   fornecedor: string | null;
   nf: string | null;
+  tipo_insumo: string | null;
   presente: boolean;
 }
 
 interface LinhaInsumo {
   chave: string;
   nome: string;
+  tipo_insumo: string | null;
   porCenario: Map<string, CelulaCenario>;
   min: number;
   max: number;
@@ -44,7 +46,18 @@ interface LinhaInsumo {
   fornecedoresDistintos: string[];
   cenarioMin: string | null;
   cenarioMax: string | null;
+  presencaCount: number;
 }
+
+const TIPO_LABEL: Record<string, string> = {
+  bulk: "Bulk",
+  embalagem_primaria: "Emb. primária",
+  embalagem_secundaria: "Emb. secundária",
+  rotulo: "Rótulo",
+  acessorio: "Acessório",
+  importado_kit: "Importado",
+  outro: "Outro",
+};
 
 const normalizaChave = (codigo: string | null | undefined, nome: string) => {
   const c = (codigo || "").trim();
