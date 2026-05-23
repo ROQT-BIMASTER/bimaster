@@ -34,21 +34,39 @@ export function useCustosConsolidados() {
     queryKey: ["fabrica-custos-consolidados-v1"],
     staleTime: 30_000,
     queryFn: async () => {
-      const [{ data: produtos, error: e1 }, { data: custos, error: e2 }, { data: configs, error: e3 }] =
-        await Promise.all([
-          supabase.from("fabrica_produtos").select(PROD_COLS).order("created_at", { ascending: true }),
-          supabase
+      // Paginação manual para evitar o limite default de 1000 linhas do PostgREST
+      async function fetchAllCustos() {
+        const PAGE = 1000;
+        let from = 0;
+        const all: any[] = [];
+        // loop até esgotar
+        // eslint-disable-next-line no-constant-condition
+        while (true) {
+          const { data, error } = await supabase
             .from("fabrica_produto_custos")
             .select(
               "produto_id, codigo, nome, fornecedor, tipo_insumo, custo_nf, custo_servico, custo_condicao, custo_nf_made_in, ipi_valor, nf_referencia, ordem",
             )
-            .order("ordem", { ascending: true }),
+            .order("ordem", { ascending: true })
+            .range(from, from + PAGE - 1);
+          if (error) throw error;
+          const batch = data ?? [];
+          all.push(...batch);
+          if (batch.length < PAGE) break;
+          from += PAGE;
+        }
+        return all;
+      }
+
+      const [{ data: produtos, error: e1 }, custos, { data: configs, error: e3 }] =
+        await Promise.all([
+          supabase.from("fabrica_produtos").select(PROD_COLS).order("created_at", { ascending: true }),
+          fetchAllCustos(),
           supabase
             .from("fabrica_produto_custos_config")
             .select("produto_id, custo_mao_obra_nf, custo_mao_obra_servico, percentual_markup"),
         ]);
       if (e1) throw e1;
-      if (e2) throw e2;
       if (e3) throw e3;
 
       const configMap = new Map<string, { mao_nf: number; mao_serv: number; markup: number }>();
