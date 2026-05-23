@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { AlertTriangle, TrendingUp, TrendingDown, ArrowRight, Users } from "lucide-react";
+import { AlertTriangle, TrendingUp, TrendingDown, ArrowRight, Users, Lightbulb } from "lucide-react";
 import { formatCurrency } from "@/lib/formatters";
 import type { CenarioProduto } from "@/hooks/useGrupoCenarios";
 
