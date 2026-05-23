@@ -260,33 +260,35 @@ export function AnaliseInsumosComparativa({ custosArr }: { custosArr: CustoArrEn
         </div>
       )}
 
-      {/* Tabela pivot */}
-      <div className="rounded-md border overflow-x-auto">
-        <table className="w-full text-xs">
+      {/* Tabela pivot de matérias-primas */}
+      <div className="rounded-md border border-border/60 overflow-x-auto">
+        <table className="w-full text-[11px]">
           <thead className="bg-muted/40">
             <tr>
-              <th className="text-left px-2 py-2 font-medium sticky left-0 bg-muted/40 z-10">Insumo</th>
+              <th className="text-left px-2 py-2 font-medium uppercase tracking-wider text-[10px] text-muted-foreground sticky left-0 bg-muted/40 z-10">Matéria-prima</th>
+              <th className="text-left px-2 py-2 font-medium uppercase tracking-wider text-[10px] text-muted-foreground whitespace-nowrap">Tipo</th>
               {custosArr.map(({ produto }) => (
-                <th key={produto.id} className="text-right px-2 py-2 font-medium whitespace-nowrap">
+                <th key={produto.id} className="text-right px-2 py-2 font-medium uppercase tracking-wider text-[10px] text-muted-foreground whitespace-nowrap">
                   {labelCenario(produto)}
                 </th>
               ))}
-              <th className="text-right px-2 py-2 font-medium whitespace-nowrap">Δ máx</th>
-              <th className="text-right px-2 py-2 font-medium whitespace-nowrap">% impacto</th>
+              <th className="text-right px-2 py-2 font-medium uppercase tracking-wider text-[10px] text-muted-foreground whitespace-nowrap">Δ máx</th>
+              <th className="text-right px-2 py-2 font-medium uppercase tracking-wider text-[10px] text-muted-foreground whitespace-nowrap">% impacto</th>
             </tr>
           </thead>
           <tbody>
             {linhas.length === 0 && (
               <tr>
-                <td colSpan={custosArr.length + 3} className="px-2 py-4 text-center text-muted-foreground">
+                <td colSpan={custosArr.length + 4} className="px-2 py-6 text-center text-muted-foreground">
                   Nenhum insumo lançado nos cenários ainda.
                 </td>
               </tr>
             )}
             {linhas.map((l) => {
               const impacto = somaDeltas > 0 ? (l.delta / somaDeltas) * 100 : 0;
+              const tipoLabel = l.tipo_insumo ? TIPO_LABEL[l.tipo_insumo] || l.tipo_insumo : "—";
               return (
-                <tr key={l.chave} className="border-t hover:bg-accent/20">
+                <tr key={l.chave} className="border-t border-border/50 hover:bg-foreground/[0.03]">
                   <td className="px-2 py-1.5 sticky left-0 bg-background z-10">
                     <div className="flex items-center gap-1.5">
                       <span className="font-medium truncate max-w-[200px]" title={l.nome}>{l.nome}</span>
@@ -302,14 +304,15 @@ export function AnaliseInsumosComparativa({ custosArr }: { custosArr: CustoArrEn
                       </div>
                     )}
                   </td>
+                  <td className="px-2 py-1.5 text-[10px] text-muted-foreground whitespace-nowrap">{tipoLabel}</td>
                   {custosArr.map(({ produto }) => {
                     const cel = l.porCenario.get(produto.id);
-                    const isMax = l.delta > 0 && cel?.custo === l.max;
+                    const isMax = l.delta > 0 && cel?.presente && cel.custo === l.max;
                     const isMin = l.delta > 0 && cel?.presente && cel.custo === l.min;
                     return (
                       <td
                         key={produto.id}
-                        className={`px-2 py-1.5 text-right tabular-nums whitespace-nowrap ${
+                        className={`px-2 py-1.5 text-right tabular-nums font-mono whitespace-nowrap ${
                           isMax ? "bg-destructive/10 text-destructive font-semibold" :
                           isMin ? "bg-emerald-500/10 text-emerald-700 font-medium" : ""
                         }`}
@@ -319,10 +322,10 @@ export function AnaliseInsumosComparativa({ custosArr }: { custosArr: CustoArrEn
                       </td>
                     );
                   })}
-                  <td className="px-2 py-1.5 text-right tabular-nums whitespace-nowrap font-medium">
+                  <td className="px-2 py-1.5 text-right tabular-nums font-mono whitespace-nowrap font-medium">
                     {l.delta > 0 ? `+${formatCurrency(l.delta)}` : "—"}
                   </td>
-                  <td className="px-2 py-1.5 text-right tabular-nums whitespace-nowrap text-muted-foreground">
+                  <td className="px-2 py-1.5 text-right tabular-nums font-mono whitespace-nowrap text-muted-foreground">
                     {l.delta > 0 ? `${impacto.toFixed(0)}%` : "—"}
                   </td>
                 </tr>
@@ -331,6 +334,53 @@ export function AnaliseInsumosComparativa({ custosArr }: { custosArr: CustoArrEn
           </tbody>
         </table>
       </div>
+
+      {/* MPs exclusivas por cenário */}
+      {exclusivasPorCenario.size > 0 && (
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <Lightbulb className="h-4 w-4 text-indigo-600" />
+            <h3 className="font-medium text-sm">Matérias-primas exclusivas por cenário</h3>
+            <span className="text-xs text-muted-foreground">
+              · presentes em apenas 1 dos {custosArr.length} cenários
+            </span>
+          </div>
+          <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-3">
+            {custosArr.map(({ produto }) => {
+              const exclusivas = exclusivasPorCenario.get(produto.id) || [];
+              if (exclusivas.length === 0) return null;
+              const totalExc = exclusivas.reduce((s, l) => {
+                const cel = l.porCenario.get(produto.id);
+                return s + (cel?.custo || 0);
+              }, 0);
+              return (
+                <div key={produto.id} className="rounded-md border border-indigo-500/30 bg-indigo-500/5 p-2.5">
+                  <div className="flex items-center justify-between gap-2 mb-1.5">
+                    <span className="text-xs font-medium truncate" title={labelCenario(produto)}>{labelCenario(produto)}</span>
+                    <Badge variant="outline" className="text-[10px] border-indigo-500/40 text-indigo-700">
+                      {exclusivas.length} item · {formatCurrency(totalExc)}
+                    </Badge>
+                  </div>
+                  <ul className="text-[11px] space-y-0.5">
+                    {exclusivas.slice(0, 8).map((l) => {
+                      const cel = l.porCenario.get(produto.id);
+                      return (
+                        <li key={l.chave} className="flex items-center justify-between gap-2">
+                          <span className="truncate" title={l.nome}>{l.nome}</span>
+                          <span className="tabular-nums font-mono text-muted-foreground shrink-0">{formatCurrency(cel?.custo || 0)}</span>
+                        </li>
+                      );
+                    })}
+                    {exclusivas.length > 8 && (
+                      <li className="text-[10px] text-muted-foreground italic">+ {exclusivas.length - 8} demais</li>
+                    )}
+                  </ul>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Fornecedores divergentes */}
       {fornecedoresDivergentes.length > 0 && (
