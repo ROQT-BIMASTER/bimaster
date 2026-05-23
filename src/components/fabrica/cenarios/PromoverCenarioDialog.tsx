@@ -18,6 +18,7 @@ interface Props {
 
 export function PromoverCenarioDialog({ open, onOpenChange, vencedor, irmaos, onSuccess }: Props) {
   const [loading, setLoading] = useState(false);
+  const qc = useQueryClient();
 
   if (!vencedor) return null;
 
@@ -27,6 +28,10 @@ export function PromoverCenarioDialog({ open, onOpenChange, vencedor, irmaos, on
       const { error } = await supabase.rpc("rpc_promover_cenario", { p_produto_id: vencedor.id });
       if (error) throw error;
       toast.success("Cenário promovido a produto oficial");
+      qc.invalidateQueries({ queryKey: ["fabrica-produtos-acabados"] });
+      qc.invalidateQueries({ queryKey: ["fabrica-cenarios-grupos"] });
+      qc.invalidateQueries({ queryKey: ["fabrica-cenarios-grupo"] });
+      qc.invalidateQueries({ queryKey: ["fabrica-custos-consolidados-v1"] });
       onSuccess();
       onOpenChange(false);
     } catch (e: any) {
