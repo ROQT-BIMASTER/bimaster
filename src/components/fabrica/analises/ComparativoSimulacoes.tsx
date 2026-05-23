@@ -100,20 +100,21 @@ export function ComparativoSimulacoes({ custosArr }: Props) {
         <span className="text-xs text-muted-foreground ml-auto">{rows.length} de {rowsAll.length}</span>
       </div>
 
-      <Card className="overflow-hidden">
+      <Card className="overflow-hidden border-border/60">
         <div className="overflow-auto max-h-[640px]">
-          <table className="w-full text-xs">
-            <thead className="bg-muted/50 sticky top-0">
+          <table className="w-full text-[11px]">
+            <thead className="bg-muted/40 sticky top-0 z-10">
               <tr className="text-left">
-                <th className="px-3 py-2 font-medium whitespace-nowrap">Código</th>
-                <th className="px-3 py-2 font-medium">Descrição</th>
-                <th className="px-3 py-2 font-medium">Tipo</th>
-                <th className="px-3 py-2 font-medium text-right">Custo Sim01</th>
-                <th className="px-3 py-2 font-medium text-right">Custo Sim02</th>
-                <th className="px-3 py-2 font-medium text-right">Δ R$</th>
-                <th className="px-3 py-2 font-medium text-right">Δ %</th>
-                <th className="px-3 py-2 font-medium">Status</th>
-                <th className="px-3 py-2 font-medium">Observação</th>
+                <th className="px-3 py-2 font-medium uppercase tracking-wider text-[10px] text-muted-foreground whitespace-nowrap">Cenário</th>
+                <th className="px-3 py-2 font-medium uppercase tracking-wider text-[10px] text-muted-foreground whitespace-nowrap">Código</th>
+                <th className="px-3 py-2 font-medium uppercase tracking-wider text-[10px] text-muted-foreground">Descrição</th>
+                <th className="px-3 py-2 font-medium uppercase tracking-wider text-[10px] text-muted-foreground">Tipo</th>
+                <th className="px-3 py-2 font-medium uppercase tracking-wider text-[10px] text-muted-foreground text-right">Custo Sim01</th>
+                <th className="px-3 py-2 font-medium uppercase tracking-wider text-[10px] text-muted-foreground text-right">Custo deste cenário</th>
+                <th className="px-3 py-2 font-medium uppercase tracking-wider text-[10px] text-muted-foreground text-right">Δ R$</th>
+                <th className="px-3 py-2 font-medium uppercase tracking-wider text-[10px] text-muted-foreground text-right">Δ %</th>
+                <th className="px-3 py-2 font-medium uppercase tracking-wider text-[10px] text-muted-foreground">Status</th>
+                <th className="px-3 py-2 font-medium uppercase tracking-wider text-[10px] text-muted-foreground">Observação</th>
               </tr>
             </thead>
             <tbody>
@@ -121,27 +122,28 @@ export function ComparativoSimulacoes({ custosArr }: Props) {
                 const altaForte = r.status === "Aumentou" && Math.abs(r.deltaPct) >= 0.1;
                 const badge = STATUS_BADGE[r.status];
                 return (
-                  <tr key={i} className={`border-t hover:bg-muted/30 ${altaForte ? "bg-destructive/5" : ""}`}>
-                    <td className="px-3 py-2 font-mono whitespace-nowrap" title={r.codigo}>{r.codigo || "—"}</td>
-                    <td className="px-3 py-2" title={r.nome}>{r.nome || "—"}</td>
-                    <td className="px-3 py-2 text-muted-foreground">{r.tipo}</td>
-                    <td className="px-3 py-2 text-right tabular-nums">{r.custoSim01 != null ? formatCurrency(r.custoSim01) : "—"}</td>
-                    <td className="px-3 py-2 text-right tabular-nums">{r.custoSim02 != null ? formatCurrency(r.custoSim02) : "—"}</td>
-                    <td className={`px-3 py-2 text-right tabular-nums font-medium ${r.delta > 0 ? "text-destructive" : r.delta < 0 ? "text-emerald-700" : ""}`}>
+                  <tr key={i} className={`border-t border-border/50 hover:bg-foreground/[0.03] ${altaForte ? "bg-destructive/5" : ""}`}>
+                    <td className="px-3 py-1.5 font-medium whitespace-nowrap">{r.cenarioLabel}</td>
+                    <td className="px-3 py-1.5 font-mono tabular-nums whitespace-nowrap text-muted-foreground" title={r.codigo}>{r.codigo || "—"}</td>
+                    <td className="px-3 py-1.5" title={r.nome}>{r.nome || "—"}</td>
+                    <td className="px-3 py-1.5 text-muted-foreground">{r.tipo}</td>
+                    <td className="px-3 py-1.5 text-right tabular-nums font-mono">{r.custoSim01 != null ? formatCurrency(r.custoSim01) : "—"}</td>
+                    <td className="px-3 py-1.5 text-right tabular-nums font-mono">{r.custoSim02 != null ? formatCurrency(r.custoSim02) : "—"}</td>
+                    <td className={`px-3 py-1.5 text-right tabular-nums font-mono font-medium ${r.delta > 0 ? "text-destructive" : r.delta < 0 ? "text-emerald-700" : ""}`}>
                       {r.custoSim01 != null && r.custoSim02 != null ? formatCurrency(r.delta) : "—"}
                     </td>
-                    <td className={`px-3 py-2 text-right tabular-nums font-medium ${r.delta > 0 ? "text-destructive" : r.delta < 0 ? "text-emerald-700" : ""}`}>
+                    <td className={`px-3 py-1.5 text-right tabular-nums font-mono font-medium ${r.delta > 0 ? "text-destructive" : r.delta < 0 ? "text-emerald-700" : ""}`}>
                       {r.custoSim01 != null && r.custoSim02 != null ? `${(r.deltaPct * 100).toFixed(2)}%` : "—"}
                     </td>
-                    <td className="px-3 py-2">
-                      <Badge variant="outline" className={`gap-1 ${badge.cls}`}>{badge.icon}{r.status}</Badge>
+                    <td className="px-3 py-1.5">
+                      <Badge variant="outline" className={`gap-1 text-[10px] ${badge.cls}`}>{badge.icon}{r.status}</Badge>
                     </td>
-                    <td className="px-3 py-2 text-muted-foreground">{r.observacao}</td>
+                    <td className="px-3 py-1.5 text-muted-foreground">{r.observacao}</td>
                   </tr>
                 );
               })}
               {rows.length === 0 && (
-                <tr><td colSpan={9} className="px-3 py-8 text-center text-muted-foreground">Nenhum produto corresponde aos filtros.</td></tr>
+                <tr><td colSpan={10} className="px-3 py-8 text-center text-muted-foreground">Nenhum produto corresponde aos filtros.</td></tr>
               )}
             </tbody>
           </table>
