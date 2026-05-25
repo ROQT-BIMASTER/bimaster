@@ -1406,7 +1406,14 @@ import { logger } from "@/lib/logger";
 // `internal_lookup` com whitelist por módulo (respeita permissões do usuário
 // via `usuario_permissoes_modulos`) e `atualizar_canvas`. Sem mudança de
 // SDK/OpenAPI público — bump força limpeza de cache.
-export const APP_VERSION = '3.4.98';
+// PR-106 (v3.4.99): FINANCEIRO — Importação dos 9 contratos iniciais (8 ALLTOMATIZE
+// RESULT-PRO + 1 SCANN-UP locação Zebra MC33) com vínculo por chave composta
+// `<FORNECEDOR>-<CNPJ_LICENCIADA>` na tabela `fornecedor_contratos`, observações
+// detalhadas (multa rescisória 2x, aviso 30 dias, IGPM, foro Aracaju/SP) e PDFs
+// arquivados no bucket `fornecedor-contratos`. Nova empresa UNION PERNAMBUCO
+// (CNPJ 55.715.202/0001-01) cadastrada em `empresas`. Invariante grep:
+// `grep -n "3.4.99" src/lib/version.ts | wc -l` ≥ 1.
+export const APP_VERSION = '3.4.99';
 
 // Chave para armazenar versão no localStorage
 const VERSION_KEY = 'app_version';
