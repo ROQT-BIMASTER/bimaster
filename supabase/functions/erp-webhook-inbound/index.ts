@@ -1,10 +1,9 @@
 // erp-webhook-inbound — Processa webhooks de retorno do ERP
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { handleCors, getCorsHeaders } from "../_shared/cors.ts";
+import { getCorsHeaders } from "../_shared/cors.ts";
 import { withSecurityHeaders } from "../_shared/security-headers.ts";
-import { jsonResponse, errorResponse } from "../_shared/response.ts";
 import { z, validateBody } from "../_shared/validate.ts";
-import { AuthError } from "../_shared/auth.ts";
+import { secureHandler } from "../_shared/secure-handler.ts";
 
 function json(body: unknown, status: number, req: Request) {
   const cors = getCorsHeaders(req);
@@ -27,10 +26,11 @@ const ErpWebhookSchema = z.object({
   valor_processado: z.number().optional().nullable(),
 }).strict();
 
-Deno.serve(async (req: Request) => {
-  const corsResp = handleCors(req);
-  if (corsResp) return corsResp;
-
+// auth interno via x-api-key (chaves ERP), mantendo WAF + IP blocklist + headers
+// de segurança via `secureHandler({ auth: "none" })`.
+Deno.serve(secureHandler(
+  { auth: "none", rateLimit: 120, rateLimitPrefix: "erp-webhook-inbound" },
+  async (req: Request) => {
   if (req.method !== "POST") return json({ sucesso: false, mensagem: "Método não permitido" }, 405, req);
 
   const supabase = createClient(
