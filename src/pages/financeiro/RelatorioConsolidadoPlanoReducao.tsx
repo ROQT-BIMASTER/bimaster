@@ -978,9 +978,19 @@ export default function RelatorioConsolidadoPlanoReducao() {
                     <TableCell className="font-medium">{d.categoria}</TableCell>
                     <TableCell>{d.descricao}</TableCell>
                     <TableCell>
-                      <Badge variant={d.tipo === "eliminar" ? "destructive" : d.tipo === "reduzir" ? "default" : "secondary"}>
-                        {TIPO_LABELS[d.tipo]}
-                      </Badge>
+                      <Select
+                        value={d.tipo}
+                        onValueChange={(v) => desp.update.mutate({ id: d.id, patch: { tipo: v as DespesaExtraTipo } })}
+                      >
+                        <SelectTrigger className="w-[110px] h-7">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="eliminar">Eliminar</SelectItem>
+                          <SelectItem value="reduzir">Reduzir</SelectItem>
+                          <SelectItem value="manter">Manter</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </TableCell>
                     {meses.map((m, i) => (
                       <TableCell key={m} className="text-right p-1">
