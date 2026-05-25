@@ -289,22 +289,30 @@ Deno.serve(secureHandler(
     const userModules = await getUserModules(admin, userId);
     const userIsAdmin = await isAdmin(admin, userId);
 
-    const templateLines = (secoes as Array<{ key: string; label: string; required?: boolean }>)
-      .map((s) => `- ${s.key}: ${s.label}${s.required ? " (obrigatório)" : ""}`)
+    type Secao = { key: string; label: string; required?: boolean; placeholder?: string };
+    const secoesList = (secoes as Secao[]) ?? [];
+    const payloadAtual = (briefing.payload as Record<string, unknown>) ?? {};
+    const isFilled = (k: string) => {
+      const v = payloadAtual[k];
+      return typeof v === "string" && v.trim().length > 0;
+    };
+
+    const templateLines = secoesList
+      .map((s, i) => {
+        const tag = s.required ? "[obrigatório]" : "[opcional]";
+        const status = isFilled(s.key) ? "preenchido" : "vazio";
+        const guia = s.placeholder ? `\n   guia: ${s.placeholder}` : "";
+        return `${i + 1}. ${tag} ${s.key} — ${s.label}${guia}\n   status: ${status}`;
+      })
       .join("\n");
 
-    const canvasAtual = JSON.stringify(briefing.payload ?? {}, null, 2);
+    const proxObrig = secoesList.find((s) => s.required && !isFilled(s.key));
+    const proxOpc = secoesList.find((s) => !s.required && !isFilled(s.key));
+    const proximo = proxObrig ?? proxOpc;
+    const proximoLinha = proximo
+      ? `PRÓXIMO CAMPO A TRABALHAR: ${proximo.key} (${proximo.label})${proximo.placeholder ? ` — guia: ${proximo.placeholder}` : ""}${proximo.required ? " [obrigatório]" : " [opcional]"}`
+      : `BRIEFING COMPLETO — todos os campos estão preenchidos. NÃO faça novas perguntas. Em vez disso, ofereça gerar o documento final para aprovação e pergunte se há algum ajuste antes de gerar.`;
 
-    const systemContent = `${SYSTEM_PROMPT}
-
-TIPO DO BRIEFING: ${briefing.tipo}
-TÍTULO ATUAL: ${briefing.titulo}
-
-CAMPOS DO TEMPLATE (use exatamente essas chaves):
-${templateLines}
-
-CONTEÚDO ATUAL DO CANVAS:
-${canvasAtual}`;
 
     // Conteúdo do usuário: texto + imagens (se houver)
     const userContent: any = signedAttachments.length > 0
