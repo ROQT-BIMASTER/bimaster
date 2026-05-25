@@ -8,8 +8,26 @@ function getRedirectUri(): string {
   return `${Deno.env.get("SUPABASE_URL")!}/functions/v1/notion-oauth-callback`;
 }
 
+function escapeHtml(s: string): string {
+  return String(s)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function getAppOrigin(): string {
+  // Origem confiável do app — usada para postMessage. Configurável via secret.
+  return Deno.env.get("APP_ORIGIN") ?? "https://bimaster.online";
+}
+
 function htmlResponse(title: string, body: string, status = 200): Response {
-  const html = `<!doctype html><html><head><meta charset="utf-8"><title>${title}</title>
+  const safeTitle = escapeHtml(title);
+  const safeBody = escapeHtml(body);
+  const safeOrigin = escapeHtml(getAppOrigin());
+  const type = status === 200 ? "notion-oauth-success" : "notion-oauth-error";
+  const html = `<!doctype html><html><head><meta charset="utf-8"><title>${safeTitle}</title>
 <style>
   body{font-family:system-ui,-apple-system,sans-serif;background:#0f172a;color:#f8fafc;
        display:flex;align-items:center;justify-content:center;height:100vh;margin:0;padding:24px}
@@ -17,10 +35,8 @@ function htmlResponse(title: string, body: string, status = 200): Response {
   h1{margin:0 0 12px;font-size:18px}
   p{margin:0;color:#cbd5e1;font-size:14px;line-height:1.5}
 </style></head>
-<body><div class="card"><h1>${title}</h1><p>${body}</p></div>
-<script>setTimeout(()=>{try{window.opener&&window.opener.postMessage({type:'notion-oauth-${
-    status === 200 ? "success" : "error"
-  }'},'*')}catch(e){}window.close()},800)</script>
+<body><div class="card"><h1>${safeTitle}</h1><p>${safeBody}</p></div>
+<script>setTimeout(function(){try{window.opener&&window.opener.postMessage({type:'${type}'}, '${safeOrigin}')}catch(e){}window.close()},800)</script>
 </body></html>`;
   return new Response(html, {
     status,
@@ -105,26 +121,26 @@ Deno.serve(async (req) => {
     owner?: { user?: { id?: string; name?: string } };
   };
 
-  const { error: upsertErr } = await sb
-    .from("notion_connections")
-    .upsert(
-      {
-        user_id: stateRow.user_id,
-        workspace_id: token.workspace_id,
-        workspace_name: token.workspace_name ?? null,
-        workspace_icon: token.workspace_icon ?? null,
-        bot_id: token.bot_id,
-        access_token: token.access_token,
-        notion_user_id: token.owner?.user?.id ?? null,
-        notion_user_name: token.owner?.user?.name ?? null,
-        updated_at: new Date().toISOString(),
-      },
-      { onConflict: "user_id,workspace_id" },
-    );
+  // Persist via SECURITY DEFINER RPC: encripta o token dentro do banco,
+  // evitando armazenar `access_token` em texto puro.
+  const { error: upsertErr } = await sb.rpc("upsert_notion_connection", {
+    p_user_id: stateRow.user_id,
+    p_workspace_id: token.workspace_id,
+    p_workspace_name: token.workspace_name ?? null,
+    p_workspace_icon: token.workspace_icon ?? null,
+    p_bot_id: token.bot_id,
+    p_access_token: token.access_token,
+    p_notion_user_id: token.owner?.user?.id ?? null,
+    p_notion_user_name: token.owner?.user?.name ?? null,
+  });
 
   if (upsertErr) {
     console.error("[notion-oauth-callback] upsert failed", upsertErr);
-    return htmlResponse("Erro ao salvar conexão", upsertErr.message, 500);
+    return htmlResponse(
+      "Erro ao salvar conexão",
+      "Não foi possível salvar a conexão. Tente novamente.",
+      500,
+    );
   }
 
   return htmlResponse(
