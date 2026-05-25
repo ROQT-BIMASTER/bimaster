@@ -1413,7 +1413,11 @@ import { logger } from "@/lib/logger";
 // arquivados no bucket `fornecedor-contratos`. Nova empresa UNION PERNAMBUCO
 // (CNPJ 55.715.202/0001-01) cadastrada em `empresas`. Invariante grep:
 // `grep -n "3.4.99" src/lib/version.ts | wc -l` ≥ 1.
-export const APP_VERSION = '3.5.00';
+// PR-107 (v3.5.01): Cadastro dos contratos Blip (aditivo Enterprise Lite, R$ ~8.500/mês,
+// aceito em 08/05/2026) e Dawntech Consultoria LTDA (proposta Catalyst com 3 opções de
+// desconto: sem fidelidade, 12m, 18m — em análise). Ambos com .eml anexado no bucket
+// fornecedor-contratos e linhas em fornecedor_contratos (tipo='ativo').
+export const APP_VERSION = '3.5.01';
 
 // Chave para armazenar versão no localStorage
 const VERSION_KEY = 'app_version';
