@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { useEffect } from "react";
 import { useTarefaMentionableUsers } from "./useTarefaMentionableUsers";
 import { uniqueChannelName } from "@/lib/realtime/channelName";
+import { sanitizeStorageFilename } from "@/lib/utils/sanitizeStorageFilename";
 
 export interface MinhaTarefaAnexo {
   id: string;

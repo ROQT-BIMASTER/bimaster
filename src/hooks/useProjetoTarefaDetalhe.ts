@@ -6,6 +6,7 @@ import { useEffect } from "react";
 import { logDocAudit } from "@/lib/productDocAudit";
 import { useTarefaMentionableUsers } from "./useTarefaMentionableUsers";
 import { uniqueChannelName } from "@/lib/realtime/channelName";
+import { sanitizeStorageFilename } from "@/lib/utils/sanitizeStorageFilename";
 
 export interface TarefaComentario {
   id: string;
