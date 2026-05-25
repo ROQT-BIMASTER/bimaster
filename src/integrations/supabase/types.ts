@@ -49487,15 +49487,29 @@ export type Database = {
         }[]
       }
       get_reativacao_kpis: { Args: { p_empresa_id?: number }; Returns: Json }
-      get_revisoes_plano_historico_mensal: {
-        Args: { p_meses: string[]; p_plano_id: string }
-        Returns: {
-          fornecedor_codigo: string
-          mes: string
-          revisao_id: string
-          valor: number
-        }[]
-      }
+      get_revisoes_plano_historico_mensal:
+        | {
+            Args: { p_meses: string[]; p_plano_id: string }
+            Returns: {
+              fornecedor_codigo: string
+              mes: string
+              revisao_id: string
+              valor: number
+            }[]
+          }
+        | {
+            Args: {
+              p_empresa_nome?: string
+              p_meses: string[]
+              p_plano_id: string
+            }
+            Returns: {
+              fornecedor_codigo: string
+              mes: string
+              revisao_id: string
+              valor: number
+            }[]
+          }
       get_sales_performance: {
         Args: never
         Returns: {
@@ -50504,23 +50518,52 @@ export type Database = {
           op_id: string
         }[]
       }
-      rpc_get_revisao_documentos_mes: {
-        Args: { p_fornecedor_codigo: string; p_mes: string }
+      rpc_get_filiais_plano_reducao: {
+        Args: { p_plano_id: string }
         Returns: {
-          data_emissao: string
-          data_pagamento: string
-          data_vencimento: string
           empresa_nome: string
-          id: string
-          numero_documento: string
-          parcela: number
-          portador: string
-          status: string
-          tipo_documento: string
-          valor_original: number
-          valor_pago: number
+          fornecedor_codigo: string
         }[]
       }
+      rpc_get_revisao_documentos_mes:
+        | {
+            Args: { p_fornecedor_codigo: string; p_mes: string }
+            Returns: {
+              data_emissao: string
+              data_pagamento: string
+              data_vencimento: string
+              empresa_nome: string
+              id: string
+              numero_documento: string
+              parcela: number
+              portador: string
+              status: string
+              tipo_documento: string
+              valor_original: number
+              valor_pago: number
+            }[]
+          }
+        | {
+            Args: {
+              p_empresa_nome?: string
+              p_fornecedor_codigo: string
+              p_mes: string
+            }
+            Returns: {
+              data_emissao: string
+              data_pagamento: string
+              data_vencimento: string
+              empresa_nome: string
+              id: string
+              numero_documento: string
+              parcela: number
+              portador: string
+              status: string
+              tipo_documento: string
+              valor_original: number
+              valor_pago: number
+            }[]
+          }
       rpc_lookup_catalogo: {
         Args: { p_empresa_id: number; p_marca: string; p_tipo: string }
         Returns: Json
