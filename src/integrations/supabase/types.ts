@@ -50584,6 +50584,18 @@ export type Database = {
         Args: { p_produto_ids: string[]; p_tabela_id: string }
         Returns: Json
       }
+      rpc_sugerir_fornecedores_ap: {
+        Args: { p_limit?: number; p_nome: string }
+        Returns: {
+          empresa_nome: string
+          fornecedor_codigo: string
+          fornecedor_nome: string
+          similaridade: number
+          titulos: number
+          ultimo_vencimento: string
+          valor_12m: number
+        }[]
+      }
       rpc_translation_cache_get_batch: {
         Args: { p_hashes: string[] }
         Returns: {
