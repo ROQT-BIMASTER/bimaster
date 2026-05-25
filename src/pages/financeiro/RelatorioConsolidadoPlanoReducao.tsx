@@ -114,7 +114,7 @@ export default function RelatorioConsolidadoPlanoReducao() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("contas_pagar_revisao")
-        .select("id, categoria_nome, fornecedor_nome, fornecedor_codigo, valor_atual, meta_reducao_valor, meta_reducao_percentual, tipo_revisao, status")
+        .select("id, categoria_nome, fornecedor_nome, fornecedor_codigo, empresa_nome, valor_atual, meta_reducao_valor, meta_reducao_percentual, tipo_revisao, status")
         .eq("plano_id", planoId!)
         .neq("status", "concluido");
       if (error) throw error;
@@ -222,6 +222,56 @@ export default function RelatorioConsolidadoPlanoReducao() {
     const efetivosIds = new Set(revisoesEfetivas.map((r: any) => r.id));
     return (revisoes || []).filter((r: any) => !efetivosIds.has(r.id)).map((r: any) => r.id);
   }, [revisoes, revisoesEfetivas]);
+
+  // Filtros de filial (empresa) e fornecedor — afetam apenas a tabela de itens
+  const [filtroFilial, setFiltroFilial] = useState<string>("__all__");
+  const [filtroFornecedor, setFiltroFornecedor] = useState<string>("__all__");
+
+  const filiaisDisponiveis = useMemo(() => {
+    const set = new Set<string>();
+    (revisoes || []).forEach((r: any) => {
+      if (r.empresa_nome) set.add(String(r.empresa_nome));
+    });
+    return [...set].sort((a, b) => a.localeCompare(b, "pt-BR"));
+  }, [revisoes]);
+
+  const fornecedoresDisponiveis = useMemo(() => {
+    const map = new Map<string, string>();
+    (revisoes || []).forEach((r: any) => {
+      const key = String(r.fornecedor_codigo || r.fornecedor_nome || "");
+      if (!key) return;
+      if (filtroFilial !== "__all__" && String(r.empresa_nome || "") !== filtroFilial) return;
+      if (!map.has(key)) map.set(key, r.fornecedor_nome || key);
+    });
+    return [...map.entries()]
+      .map(([value, label]) => ({ value, label }))
+      .sort((a, b) => a.label.localeCompare(b.label, "pt-BR"));
+  }, [revisoes, filtroFilial]);
+
+  const aplicarFiltros = <T extends { empresa_nome?: string | null; fornecedor_codigo?: string | null; fornecedor_nome?: string | null }>(
+    list: T[],
+  ): T[] => {
+    return list.filter((r) => {
+      if (filtroFilial !== "__all__" && String(r.empresa_nome || "") !== filtroFilial) return false;
+      if (filtroFornecedor !== "__all__") {
+        const key = String(r.fornecedor_codigo || r.fornecedor_nome || "");
+        if (key !== filtroFornecedor) return false;
+      }
+      return true;
+    });
+  };
+
+  const revisoesEfetivasFiltradas = useMemo(
+    () => aplicarFiltros(revisoesEfetivas as any[]),
+    [revisoesEfetivas, filtroFilial, filtroFornecedor],
+  );
+  const revisoesDuplicadasFiltradas = useMemo(
+    () =>
+      aplicarFiltros(
+        ((revisoes || []) as any[]).filter((r: any) => revisoesDuplicadasIds.includes(r.id)),
+      ),
+    [revisoes, revisoesDuplicadasIds, filtroFilial, filtroFornecedor],
+  );
 
   const valorMesRevisao = (r: any, mes: string): number => {
     const real = revisoesHist?.[r.id]?.[mes];
@@ -1071,6 +1121,49 @@ export default function RelatorioConsolidadoPlanoReducao() {
                 </Button>
               </div>
             )}
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <div className="flex items-center gap-1.5">
+                <Label className="text-xs text-muted-foreground">Filial</Label>
+                <Select value={filtroFilial} onValueChange={(v) => { setFiltroFilial(v); setFiltroFornecedor("__all__"); }}>
+                  <SelectTrigger className="h-8 w-[220px] text-xs">
+                    <SelectValue placeholder="Todas as filiais" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__all__">Todas as filiais</SelectItem>
+                    {filiaisDisponiveis.map((f) => (
+                      <SelectItem key={f} value={f}>{f}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <Label className="text-xs text-muted-foreground">Fornecedor</Label>
+                <Select value={filtroFornecedor} onValueChange={setFiltroFornecedor}>
+                  <SelectTrigger className="h-8 w-[260px] text-xs">
+                    <SelectValue placeholder="Todos os fornecedores" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__all__">Todos os fornecedores</SelectItem>
+                    {fornecedoresDisponiveis.map((f) => (
+                      <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              {(filtroFilial !== "__all__" || filtroFornecedor !== "__all__") && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 text-xs"
+                  onClick={() => { setFiltroFilial("__all__"); setFiltroFornecedor("__all__"); }}
+                >
+                  Limpar filtros
+                </Button>
+              )}
+              <span className="ml-auto text-xs text-muted-foreground">
+                {revisoesEfetivasFiltradas.length} de {revisoesEfetivas.length} itens
+              </span>
+            </div>
           </CardHeader>
           <CardContent className="overflow-x-auto">
             <Table>
@@ -1088,7 +1181,7 @@ export default function RelatorioConsolidadoPlanoReducao() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {revisoesEfetivas.map((r: any) => {
+                {revisoesEfetivasFiltradas.map((r: any) => {
                   const valores = meses.map((m) => valorMesRevisao(r, m));
                   const media = valores.reduce((s, v) => s + v, 0) / meses.length;
                   const tipoVariant =
@@ -1174,8 +1267,7 @@ export default function RelatorioConsolidadoPlanoReducao() {
                     </TableRow>
                   );
                 })}
-                {revisoesDuplicadasIds.length > 0 && (revisoes || [])
-                  .filter((r: any) => revisoesDuplicadasIds.includes(r.id))
+                {revisoesDuplicadasFiltradas.length > 0 && revisoesDuplicadasFiltradas
                   .map((r: any) => {
                     const label = r.fornecedor_nome || r.categoria_nome || "item";
                     return (
