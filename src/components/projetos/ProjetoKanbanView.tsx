@@ -97,15 +97,42 @@ export function ProjetoKanbanView({ projetoId, darkBg = false, filters = EMPTY_F
     };
   }, [rawTarefasPorSecao, filtersActive, filteredIds]);
 
-  const [selectedTarefaId, setSelectedTarefaId] = useState<string | null>(null);
+  // Tarefa aberta é persistida em `?tarefa=<id>` — sobrevive a reload do PWA,
+  // refresh manual e troca de aba (não fecha mais ao voltar de outra aba).
+  const [searchParams, setSearchParams] = useSearchParams();
+  const selectedTarefaId = searchParams.get("tarefa");
+  const setSelectedTarefaId = (id: string | null) => {
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        if (id) next.set("tarefa", id);
+        else next.delete("tarefa");
+        return next;
+      },
+      { replace: true },
+    );
+  };
   // Derive the live tarefa from the freshest `rawTarefas` array so the detail
-  // Sheet reflects optimistic updates and realtime invalidations.
+  // Sheet reflects optimistic updates and realtime invalidations. Mantém
+  // snapshot da última tarefa para evitar flicker durante refetches curtos.
+  const lastTarefaRef = useRef<ProjetoTarefa | null>(null);
   const selectedTarefa = useMemo(() => {
-    if (!selectedTarefaId) return null;
-    const found = rawTarefas.find(t => t.id === selectedTarefaId);
-    if (!found) return null;
-    return { ...found, subtarefas: rawTarefas.filter(st => st.parent_tarefa_id === found.id) };
+    if (!selectedTarefaId) {
+      lastTarefaRef.current = null;
+      return null;
+    }
+    const found = rawTarefas.find((t) => t.id === selectedTarefaId);
+    if (!found) return lastTarefaRef.current;
+    const enriched = { ...found, subtarefas: rawTarefas.filter((st) => st.parent_tarefa_id === found.id) };
+    lastTarefaRef.current = enriched as ProjetoTarefa;
+    return enriched;
   }, [selectedTarefaId, rawTarefas]);
+  // Reload-gate enquanto há tarefa aberta: PWA não recarrega no meio de edição.
+  useEffect(() => {
+    if (!selectedTarefaId) return;
+    acquireReloadGate();
+    return () => releaseReloadGate();
+  }, [selectedTarefaId]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [overColumnId, setOverColumnId] = useState<string | null>(null);
   const [quickAddSecaoId, setQuickAddSecaoId] = useState<string | null>(null);
