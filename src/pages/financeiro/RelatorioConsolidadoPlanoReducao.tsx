@@ -151,6 +151,7 @@ export default function RelatorioConsolidadoPlanoReducao() {
     toast.success("Item atualizado");
   };
 
+  const [vincularAlvo, setVincularAlvo] = useState<{ id: string; nome: string; valor: number } | null>(null);
   const [limpandoDuplicados, setLimpandoDuplicados] = useState(false);
   const limparDuplicados = async (ids: string[]) => {
     if (ids.length === 0) return;
