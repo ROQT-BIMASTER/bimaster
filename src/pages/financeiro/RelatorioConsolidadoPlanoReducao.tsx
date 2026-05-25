@@ -1077,7 +1077,7 @@ export default function RelatorioConsolidadoPlanoReducao() {
                         {r.fornecedor_nome && (
                           <div className="text-xs text-muted-foreground flex items-center gap-1.5">
                             <span className="truncate">{r.fornecedor_nome}</span>
-                            <FornecedorContratoBadge fornecedorCodigo={r.fornecedor_codigo} fornecedorNome={r.fornecedor_nome} iconOnly />
+                            <FornecedorContratoBadge fornecedorCodigo={r.fornecedor_codigo} fornecedorNome={r.fornecedor_nome} empresaNome={r.empresa_nome} iconOnly />
                           </div>
                         )}
                       </TableCell>

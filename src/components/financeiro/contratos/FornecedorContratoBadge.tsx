@@ -15,6 +15,8 @@ import { format } from "date-fns";
 interface Props {
   fornecedorCodigo: string | null | undefined;
   fornecedorNome: string;
+  /** Nome da empresa/filial — usado para desempate quando há múltiplos contratos do mesmo fornecedor. */
+  empresaNome?: string | null;
   /** Renderiza apenas ícone (sem texto) */
   iconOnly?: boolean;
   className?: string;
@@ -27,6 +29,7 @@ interface Props {
 export function FornecedorContratoBadge({
   fornecedorCodigo,
   fornecedorNome,
+  empresaNome,
   iconOnly,
   className,
 }: Props) {
@@ -34,6 +37,7 @@ export function FornecedorContratoBadge({
   const { data: contratos = [] } = useFornecedorContrato(
     fornecedorCodigo,
     fornecedorNome,
+    empresaNome,
   );
 
   const ativo = contratos.find((c) => c.tipo === "ativo");
@@ -71,11 +75,15 @@ export function FornecedorContratoBadge({
         e.stopPropagation();
         setOpen(true);
       }}
-      className={`inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-[10px] font-medium transition-colors cursor-pointer ${cls} ${className || ""}`}
+      className={`inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-[10px] font-semibold transition-colors cursor-pointer ${cls} ${className || ""}`}
       title={tooltip}
     >
       {icon}
-      {!iconOnly && <span>{label}</span>}
+      {iconOnly ? (
+        <span>{status === "ativo" ? "OK" : status === "cancelado" ? "CANC" : "+"}</span>
+      ) : (
+        <span>{label}</span>
+      )}
     </button>
   );
 
