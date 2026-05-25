@@ -5,14 +5,14 @@ import { secureHandler } from "../_shared/secure-handler.ts";
 import { verifyTotp, sha256Hex } from "../_shared/totp.ts";
 
 interface Body {
-  action: "request" | "validate";
+  action: "request" | "request_from_session" | "validate";
   code?: string;
   scope: string; // ex: 'finance.payment', 'admin.role_change'
   token?: string;
 }
 
 Deno.serve(secureHandler(
-  { auth: "jwt", rateLimit: 30, rateLimitPrefix: "mfa-step-up" },
+  { auth: "jwt", rateLimit: 30, rateLimitPrefix: "mfa-step-up", skipMfaEnforcement: true },
   async (req, ctx) => {
     const sb = createClient(
       Deno.env.get("SUPABASE_URL")!,
@@ -41,15 +41,15 @@ Deno.serve(secureHandler(
         }).then(() => {}, () => {});
         return json({ error: "Código incorreto" }, 401);
       }
-      const tokenBuf = new Uint8Array(32);
-      crypto.getRandomValues(tokenBuf);
-      const token = Array.from(tokenBuf).map((b) => b.toString(16).padStart(2, "0")).join("");
-      const tokenHash = await sha256Hex(token);
-      const expires = new Date(Date.now() + 5 * 60 * 1000).toISOString();
-      await sb.from("mfa_step_up_tokens").insert({
-        user_id: userId, token_hash: tokenHash, scope: body.scope, expires_at: expires,
-      });
-      return json({ token, expires_at: expires });
+      await sb.from("mfa_enrollments").update({ last_used_at: new Date().toISOString() }).eq("user_id", userId);
+      return json(await issueToken(sb, userId, body.scope));
+    }
+
+    if (body.action === "request_from_session") {
+      if (!sessionHasAal2(req)) {
+        return json({ error: "Sessão MFA não verificada" }, 401);
+      }
+      return json(await issueToken(sb, userId, body.scope));
     }
 
     if (body.action === "validate") {
@@ -69,4 +69,29 @@ function json(data: unknown, status = 200) {
   return new Response(JSON.stringify(data), {
     status, headers: { "Content-Type": "application/json" },
   });
+}
+
+async function issueToken(sb: ReturnType<typeof createClient>, userId: string, scope: string) {
+  const tokenBuf = new Uint8Array(32);
+  crypto.getRandomValues(tokenBuf);
+  const token = Array.from(tokenBuf).map((b) => b.toString(16).padStart(2, "0")).join("");
+  const tokenHash = await sha256Hex(token);
+  const expires = new Date(Date.now() + 5 * 60 * 1000).toISOString();
+  await sb.from("mfa_step_up_tokens").insert({
+    user_id: userId, token_hash: tokenHash, scope, expires_at: expires,
+  });
+  return { token, expires_at: expires };
+}
+
+function sessionHasAal2(req: Request): boolean {
+  const token = req.headers.get("Authorization")?.replace(/^Bearer\s+/i, "");
+  const payload = token?.split(".")[1];
+  if (!payload) return false;
+  try {
+    const normalized = payload.replace(/-/g, "+").replace(/_/g, "/").padEnd(Math.ceil(payload.length / 4) * 4, "=");
+    const claims = JSON.parse(atob(normalized));
+    return claims?.aal === "aal2" || claims?.amr?.some((entry: { method?: string }) => ["totp", "mfa", "otp"].includes(entry?.method ?? ""));
+  } catch {
+    return false;
+  }
 }

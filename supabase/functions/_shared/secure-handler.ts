@@ -51,6 +51,8 @@ export interface SecureHandlerConfig {
   requireStepUp?: string;
   /** Exigir MFA enrolled+verified para esta função (além do enforce de role). */
   requireMfa?: boolean;
+  /** Permite que endpoints de cadastro/verificação MFA rodem mesmo quando o usuário já está em enforcement. */
+  skipMfaEnforcement?: boolean;
   /**
    * Comportamento quando a verificação de MFA enforcement falha (RPC indisponível).
    * - "open" (default): segue request — preserva disponibilidade.
@@ -134,7 +136,7 @@ export function secureHandler(config: SecureHandlerConfig, handler: Handler) {
       // auth === "none" — skip
 
       // 3b. MFA enforcement (admin/gerente após grace period)
-      if (ctx.userId && (config.requireMfa || true)) {
+      if (ctx.userId && !config.skipMfaEnforcement && (config.requireMfa || true)) {
         try {
           const sb = createClient(
             Deno.env.get("SUPABASE_URL")!,

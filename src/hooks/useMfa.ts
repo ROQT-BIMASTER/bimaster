@@ -87,9 +87,36 @@ export async function requestStepUp(scope: string, code: string): Promise<StepUp
       }
     } catch { /* ignore */ }
     if (data && (data as any).error) serverMsg = serverMsg ?? (data as any).error;
+    const sessionResult = await requestStepUpFromNativeMfa(scope, code);
+    if (sessionResult) return sessionResult;
     throw new Error(serverMsg ?? error.message ?? "Falha na verificação MFA");
   }
   if ((data as any)?.error) throw new Error((data as any).error);
+  return data as StepUpResult;
+}
+
+async function requestStepUpFromNativeMfa(scope: string, code: string): Promise<StepUpResult | null> {
+  const { data: factorsData } = await supabase.auth.mfa.listFactors();
+  const totpFactor = factorsData?.totp?.find((factor) => factor.status === "verified");
+  if (!totpFactor) return null;
+
+  const { data: verifyData, error: verifyError } = await supabase.auth.mfa.challengeAndVerify({
+    factorId: totpFactor.id,
+    code,
+  });
+  if (verifyError) return null;
+
+  const freshSession = await supabase.auth.getSession();
+  const accessToken =
+    (verifyData as any)?.session?.access_token ??
+    (verifyData as any)?.access_token ??
+    freshSession.data.session?.access_token;
+
+  const { data, error } = await supabase.functions.invoke("mfa-step-up", {
+    body: { action: "request_from_session", scope },
+    headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined,
+  });
+  if (error || (data as any)?.error) return null;
   return data as StepUpResult;
 }
 
