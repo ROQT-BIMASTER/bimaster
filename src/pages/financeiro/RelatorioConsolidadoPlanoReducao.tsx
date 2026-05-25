@@ -22,8 +22,9 @@ import {
 } from "@/components/ui/dropdown-menu";
 import {
   ArrowLeft, Plus, Trash2, FileDown, Sparkles, TrendingDown, Wallet,
-  Calculator, PiggyBank, FileSpreadsheet, FileText,
+  Calculator, PiggyBank, FileSpreadsheet, FileText, Link2, AlertCircle,
 } from "lucide-react";
+import { VincularContaPagarDialog } from "@/components/financeiro/plano-reducao/VincularContaPagarDialog";
 import { toast } from "sonner";
 import { formatCurrency } from "@/lib/formatters";
 import {
@@ -150,6 +151,7 @@ export default function RelatorioConsolidadoPlanoReducao() {
     toast.success("Item atualizado");
   };
 
+  const [vincularAlvo, setVincularAlvo] = useState<{ id: string; nome: string; valor: number } | null>(null);
   const [limpandoDuplicados, setLimpandoDuplicados] = useState(false);
   const limparDuplicados = async (ids: string[]) => {
     if (ids.length === 0) return;
@@ -1191,11 +1193,32 @@ export default function RelatorioConsolidadoPlanoReducao() {
                   return (
                     <TableRow key={r.id}>
                       <TableCell className="font-medium">
-                        <div className="text-sm">{r.categoria_nome || "—"}</div>
+                        <div className="text-sm flex items-center gap-2">
+                          <span>{r.categoria_nome || "—"}</span>
+                          {r.fornecedor_codigo ? (
+                            <Badge variant="outline" className="h-5 text-[10px] gap-1 border-success/40 text-success bg-success/5">
+                              <Link2 className="h-2.5 w-2.5" /> AP em tempo real
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className="h-5 text-[10px] gap-1 border-warning/40 text-warning bg-warning/5">
+                              <AlertCircle className="h-2.5 w-2.5" /> Manual
+                            </Badge>
+                          )}
+                        </div>
                         {r.fornecedor_nome && (
                           <div className="text-xs text-muted-foreground flex items-center gap-1.5">
                             <span className="truncate">{r.fornecedor_nome}</span>
                             <FornecedorContratoBadge fornecedorCodigo={r.fornecedor_codigo} fornecedorNome={r.fornecedor_nome} empresaNome={r.empresa_nome} iconOnly />
+                            {!r.fornecedor_codigo && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-5 px-1.5 text-[10px] gap-1"
+                                onClick={() => setVincularAlvo({ id: r.id, nome: r.fornecedor_nome || r.categoria_nome || "", valor: Number(r.valor_atual || 0) })}
+                              >
+                                <Link2 className="h-3 w-3" /> Vincular
+                              </Button>
+                            )}
                           </div>
                         )}
                       </TableCell>
@@ -1454,6 +1477,20 @@ export default function RelatorioConsolidadoPlanoReducao() {
       <p className="text-xs text-muted-foreground text-center pb-6">
         Relatório gerencial — valores informados manualmente pelo responsável. Não substitui DRE oficial.
       </p>
+
+      {vincularAlvo && (
+        <VincularContaPagarDialog
+          open={!!vincularAlvo}
+          onOpenChange={(o) => { if (!o) setVincularAlvo(null); }}
+          revisaoId={vincularAlvo.id}
+          nomeAtual={vincularAlvo.nome}
+          valorMensal={vincularAlvo.valor}
+          onVinculado={() => {
+            qc.invalidateQueries({ queryKey: ["revisoes-plano", planoId] });
+            qc.invalidateQueries({ queryKey: ["revisoes-plano-hist", planoId] });
+          }}
+        />
+      )}
     </div>
   );
 }
