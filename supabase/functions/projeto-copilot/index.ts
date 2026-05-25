@@ -322,12 +322,17 @@ async function execTool(name: string, args: any, c: ToolCtx): Promise<any> {
       case "buscar_no_projeto": {
         const term = String(args.query ?? "").trim();
         if (!term) return { error: "query vazia" };
+        // Sanitiza caracteres com significado em filtros PostgREST (`,`, `.`, `(`, `)`, `%`)
+        // para evitar injeção de cláusulas OR adicionais.
+        const safeTerm = term.replace(/[(),.%]/g, "").slice(0, 100);
+        if (!safeTerm) return { resultados: [] };
         const { data, error } = await userClient.from("projeto_tarefas")
           .select("id, titulo, descricao, status")
           .eq("projeto_id", projetoId)
           .is("excluida_em", null)
-          .or(`titulo.ilike.%${term}%,descricao.ilike.%${term}%`)
+          .or(`titulo.ilike.%${safeTerm}%,descricao.ilike.%${safeTerm}%`)
           .limit(Math.min(args.limite ?? 10, 30));
+
         if (error) return { error: error.message };
         for (const t of data ?? []) sources.push({ tipo: "tarefa", id: t.id, label: t.titulo });
         return { resultados: data };
