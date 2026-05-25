@@ -1267,8 +1267,7 @@ export default function RelatorioConsolidadoPlanoReducao() {
                     </TableRow>
                   );
                 })}
-                {revisoesDuplicadasIds.length > 0 && (revisoes || [])
-                  .filter((r: any) => revisoesDuplicadasIds.includes(r.id))
+                {revisoesDuplicadasFiltradas.length > 0 && revisoesDuplicadasFiltradas
                   .map((r: any) => {
                     const label = r.fornecedor_nome || r.categoria_nome || "item";
                     return (
