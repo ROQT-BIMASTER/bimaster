@@ -617,7 +617,12 @@ export function PlanoReducaoGastos({ dataInicio, dataFim, filterEmpresa }: Plano
                   <TableCell>
                     <div>
                       <div className="font-medium text-sm truncate max-w-[250px]">{itemName}</div>
-                      {fornecedor && <div className="text-xs text-muted-foreground truncate max-w-[250px]">{fornecedor}</div>}
+                      {fornecedor && (
+                        <div className="text-xs text-muted-foreground truncate max-w-[250px] flex items-center gap-1.5">
+                          <span className="truncate">{fornecedor}</span>
+                          <FornecedorContratoBadge fornecedorCodigo={revisao.fornecedor_codigo} fornecedorNome={fornecedor} iconOnly />
+                        </div>
+                      )}
                     </div>
                   </TableCell>
                   <TableCell>
