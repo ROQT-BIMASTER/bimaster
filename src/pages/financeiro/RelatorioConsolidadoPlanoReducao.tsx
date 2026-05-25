@@ -1096,8 +1096,54 @@ export default function RelatorioConsolidadoPlanoReducao() {
                           </div>
                         )}
                       </TableCell>
-                      <TableCell><Badge variant={tipoVariant as any}>{r.tipo_revisao}</Badge></TableCell>
-                      <TableCell><Badge variant="secondary">{r.status}</Badge></TableCell>
+                      <TableCell>
+                        <Select
+                          value={String(r.tipo_revisao || "")}
+                          onValueChange={(v) => atualizarRevisao(r.id, { tipo_revisao: v })}
+                        >
+                          <SelectTrigger
+                            className={
+                              "h-7 w-[110px] text-xs font-medium border-0 " +
+                              (r.tipo_revisao === "eliminar"
+                                ? "bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                : r.tipo_revisao === "reduzir"
+                                  ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                                  : "bg-secondary text-secondary-foreground")
+                            }
+                          >
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="eliminar">Eliminar</SelectItem>
+                            <SelectItem value="reduzir">Reduzir</SelectItem>
+                            <SelectItem value="manter">Manter</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </TableCell>
+                      <TableCell>
+                        <Select
+                          value={String(r.status || "")}
+                          onValueChange={(v) => atualizarRevisao(r.id, { status: v })}
+                        >
+                          <SelectTrigger
+                            className={
+                              "h-7 w-[130px] text-xs font-medium border-0 " +
+                              (r.status === "concluido"
+                                ? "bg-success text-success-foreground"
+                                : r.status === "em_andamento"
+                                  ? "bg-warning text-warning-foreground"
+                                  : "bg-secondary text-secondary-foreground")
+                            }
+                          >
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="pendente">Pendente</SelectItem>
+                            <SelectItem value="em_andamento">Em andamento</SelectItem>
+                            <SelectItem value="concluido">Concluído</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </TableCell>
                       {valores.map((v, i) => (
                         <TableCell key={meses[i]} className="text-right text-sm tabular-nums">
                           {v > 0 ? formatCurrency(v) : <span className="text-muted-foreground">—</span>}
