@@ -23,8 +23,11 @@ import {
 import {
   ArrowLeft, Plus, Trash2, FileDown, Sparkles, TrendingDown, Wallet,
   Calculator, PiggyBank, FileSpreadsheet, FileText, Link2, AlertCircle,
+  ChevronRight, ChevronDown,
 } from "lucide-react";
 import { VincularContaPagarDialog } from "@/components/financeiro/plano-reducao/VincularContaPagarDialog";
+import { RevisaoDocumentosExpansao } from "@/components/financeiro/plano-reducao/RevisaoDocumentosExpansao";
+import { Fragment } from "react";
 import { toast } from "sonner";
 import { formatCurrency } from "@/lib/formatters";
 import {
