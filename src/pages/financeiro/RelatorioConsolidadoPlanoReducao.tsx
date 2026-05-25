@@ -1182,6 +1182,7 @@ export default function RelatorioConsolidadoPlanoReducao() {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-8"></TableHead>
                   <TableHead className="min-w-[260px]">Categoria/Fornecedor</TableHead>
                   <TableHead>Tipo</TableHead>
                   <TableHead>Status</TableHead>
