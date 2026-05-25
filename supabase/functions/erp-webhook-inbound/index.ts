@@ -63,16 +63,46 @@ Deno.serve(async (req: Request) => {
     return json({ sucesso: false, mensagem: "Payload inválido", details: e.issues }, 400, req);
   }
 
-  // Validate API key: hash-based first, plaintext fallback during transition (SEG-2)
-  const { data: erpConfig } = await supabase
-    .from("erp_config")
-    .select("id, empresa_id")
-    .eq("ativo", true)
-    .or(`api_key_hash.eq.${apiKeyHash},api_key.eq.${apiKey},and(api_key_anterior.eq.${apiKey},api_key_anterior_expira_em.gt.${new Date().toISOString()})`)
-    .maybeSingle();
+  // Validate API key: lookups parametrizados (sem `.or()` com input do usuário)
+  // — evita injeção de filtros PostgREST via header.
+  const nowIso = new Date().toISOString();
 
-  // Fallback: check erp_api_keys table
-  let erpConfigResult = erpConfig;
+  // 1) hash-based (canônico)
+  let erpConfigResult: { id: string; empresa_id: string } | null = null;
+  {
+    const { data } = await supabase
+      .from("erp_config")
+      .select("id, empresa_id")
+      .eq("ativo", true)
+      .eq("api_key_hash", apiKeyHash)
+      .maybeSingle();
+    if (data) erpConfigResult = data;
+  }
+
+  // 2) plaintext fallback durante transição
+  if (!erpConfigResult) {
+    const { data } = await supabase
+      .from("erp_config")
+      .select("id, empresa_id")
+      .eq("ativo", true)
+      .eq("api_key", apiKey)
+      .maybeSingle();
+    if (data) erpConfigResult = data;
+  }
+
+  // 3) chave anterior com janela de expiração
+  if (!erpConfigResult) {
+    const { data } = await supabase
+      .from("erp_config")
+      .select("id, empresa_id, api_key_anterior_expira_em")
+      .eq("ativo", true)
+      .eq("api_key_anterior", apiKey)
+      .gt("api_key_anterior_expira_em", nowIso)
+      .maybeSingle();
+    if (data) erpConfigResult = { id: data.id, empresa_id: data.empresa_id };
+  }
+
+  // 4) Fallback: erp_api_keys table
   if (!erpConfigResult) {
     const { validateErpApiKey } = await import("../_shared/erp-key-validator.ts");
     const empresa = await validateErpApiKey(apiKey);
