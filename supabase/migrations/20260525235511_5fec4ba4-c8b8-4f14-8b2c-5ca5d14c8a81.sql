@@ -1,0 +1,1 @@
+ALTER VIEW public.notion_connections_safe SET (security_invoker = true);
