@@ -30,6 +30,7 @@ import {
   useDespesasExtrasPlano, type DespesaExtra, type DespesaExtraTipo,
 } from "@/hooks/useDespesasExtrasPlano";
 import { getMesesPeriodo, labelMes, labelMesLongo } from "@/lib/financeiro/periodoMeses";
+import { FornecedorContratoBadge } from "@/components/financeiro/contratos/FornecedorContratoBadge";
 import {
   Bar, BarChart, CartesianGrid, Cell, Legend, Line, LineChart,
   Pie, PieChart, ResponsiveContainer, Tooltip as RTooltip, XAxis, YAxis,
@@ -1074,7 +1075,10 @@ export default function RelatorioConsolidadoPlanoReducao() {
                       <TableCell className="font-medium">
                         <div className="text-sm">{r.categoria_nome || "—"}</div>
                         {r.fornecedor_nome && (
-                          <div className="text-xs text-muted-foreground">{r.fornecedor_nome}</div>
+                          <div className="text-xs text-muted-foreground flex items-center gap-1.5">
+                            <span className="truncate">{r.fornecedor_nome}</span>
+                            <FornecedorContratoBadge fornecedorCodigo={r.fornecedor_codigo} fornecedorNome={r.fornecedor_nome} iconOnly />
+                          </div>
                         )}
                       </TableCell>
                       <TableCell><Badge variant={tipoVariant as any}>{r.tipo_revisao}</Badge></TableCell>
