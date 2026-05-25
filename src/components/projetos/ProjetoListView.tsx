@@ -1,4 +1,6 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
+import { useSearchParams } from "react-router-dom";
+import { acquireReloadGate, releaseReloadGate } from "@/lib/pwaReloadGate";
 import { useProjetoTarefas, ProjetoTarefa } from "@/hooks/useProjetoTarefas";
 import { useProjeto } from "@/hooks/useProjetos";
 import { useMetasProgress } from "@/hooks/useMetasProgress";
