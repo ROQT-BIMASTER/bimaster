@@ -223,6 +223,56 @@ export default function RelatorioConsolidadoPlanoReducao() {
     return (revisoes || []).filter((r: any) => !efetivosIds.has(r.id)).map((r: any) => r.id);
   }, [revisoes, revisoesEfetivas]);
 
+  // Filtros de filial (empresa) e fornecedor — afetam apenas a tabela de itens
+  const [filtroFilial, setFiltroFilial] = useState<string>("__all__");
+  const [filtroFornecedor, setFiltroFornecedor] = useState<string>("__all__");
+
+  const filiaisDisponiveis = useMemo(() => {
+    const set = new Set<string>();
+    (revisoes || []).forEach((r: any) => {
+      if (r.empresa_nome) set.add(String(r.empresa_nome));
+    });
+    return [...set].sort((a, b) => a.localeCompare(b, "pt-BR"));
+  }, [revisoes]);
+
+  const fornecedoresDisponiveis = useMemo(() => {
+    const map = new Map<string, string>();
+    (revisoes || []).forEach((r: any) => {
+      const key = String(r.fornecedor_codigo || r.fornecedor_nome || "");
+      if (!key) return;
+      if (filtroFilial !== "__all__" && String(r.empresa_nome || "") !== filtroFilial) return;
+      if (!map.has(key)) map.set(key, r.fornecedor_nome || key);
+    });
+    return [...map.entries()]
+      .map(([value, label]) => ({ value, label }))
+      .sort((a, b) => a.label.localeCompare(b.label, "pt-BR"));
+  }, [revisoes, filtroFilial]);
+
+  const aplicarFiltros = <T extends { empresa_nome?: string | null; fornecedor_codigo?: string | null; fornecedor_nome?: string | null }>(
+    list: T[],
+  ): T[] => {
+    return list.filter((r) => {
+      if (filtroFilial !== "__all__" && String(r.empresa_nome || "") !== filtroFilial) return false;
+      if (filtroFornecedor !== "__all__") {
+        const key = String(r.fornecedor_codigo || r.fornecedor_nome || "");
+        if (key !== filtroFornecedor) return false;
+      }
+      return true;
+    });
+  };
+
+  const revisoesEfetivasFiltradas = useMemo(
+    () => aplicarFiltros(revisoesEfetivas as any[]),
+    [revisoesEfetivas, filtroFilial, filtroFornecedor],
+  );
+  const revisoesDuplicadasFiltradas = useMemo(
+    () =>
+      aplicarFiltros(
+        ((revisoes || []) as any[]).filter((r: any) => revisoesDuplicadasIds.includes(r.id)),
+      ),
+    [revisoes, revisoesDuplicadasIds, filtroFilial, filtroFornecedor],
+  );
+
   const valorMesRevisao = (r: any, mes: string): number => {
     const real = revisoesHist?.[r.id]?.[mes];
     return typeof real === "number" ? real : 0;
