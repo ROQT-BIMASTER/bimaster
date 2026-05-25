@@ -49,25 +49,55 @@ export function ProjetoListView({ projetoId, darkBg = false, filters = EMPTY_FIL
   const { isAdmin } = useUserRole();
   const currentUserId = user?.id ?? null;
   const canDeleteSecao = !!projeto && (isAdmin || projeto.criador_id === currentUserId);
-  const [selectedTarefaId, setSelectedTarefaId] = useState<string | null>(null);
-  // Abre detalhe automaticamente quando deep-link de menção entrega initialTarefaId
-  // (espera as tarefas carregarem para garantir que existe).
+  // Tarefa aberta é persistida em `?tarefa=<id>` para sobreviver a reload do
+  // PWA, refresh manual e troca de aba. Reabrir aba não fecha mais o drawer.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const selectedTarefaId = searchParams.get("tarefa");
+  const setSelectedTarefaId = (id: string | null) => {
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        if (id) next.set("tarefa", id);
+        else next.delete("tarefa");
+        return next;
+      },
+      { replace: true },
+    );
+  };
+  // Abre detalhe automaticamente quando deep-link de menção entrega
+  // initialTarefaId (espera as tarefas carregarem para garantir que existe).
   useEffect(() => {
     if (!initialTarefaId) return;
     if (tarefasLoading) return;
-    if (tarefas.some(t => t.id === initialTarefaId)) {
+    if (selectedTarefaId === initialTarefaId) return;
+    if (tarefas.some((t) => t.id === initialTarefaId)) {
       setSelectedTarefaId(initialTarefaId);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialTarefaId, tarefasLoading]);
   // Derive the live tarefa from the freshest `tarefas` array so the detail Sheet
   // reflects optimistic updates and realtime invalidations without remounting.
+  // Mantém um snapshot da última tarefa não-nula para evitar flicker durante
+  // refetches curtos em que `find()` pode retornar undefined.
+  const lastTarefaRef = useRef<ProjetoTarefa | null>(null);
   const selectedTarefa = useMemo(() => {
-    if (!selectedTarefaId) return null;
-    const found = tarefas.find(t => t.id === selectedTarefaId);
-    if (!found) return null;
-    return { ...found, subtarefas: tarefas.filter(st => st.parent_tarefa_id === found.id) };
+    if (!selectedTarefaId) {
+      lastTarefaRef.current = null;
+      return null;
+    }
+    const found = tarefas.find((t) => t.id === selectedTarefaId);
+    if (!found) return lastTarefaRef.current;
+    const enriched = { ...found, subtarefas: tarefas.filter((st) => st.parent_tarefa_id === found.id) };
+    lastTarefaRef.current = enriched as ProjetoTarefa;
+    return enriched;
   }, [selectedTarefaId, tarefas]);
+  // Mantém reload-gate ativo enquanto há tarefa aberta: o PWA não recarrega
+  // a página enquanto o usuário estiver em um drawer aberto.
+  useEffect(() => {
+    if (!selectedTarefaId) return;
+    acquireReloadGate();
+    return () => releaseReloadGate();
+  }, [selectedTarefaId]);
   const [iaDialogOpen, setIaDialogOpen] = useState(false);
   const { createTasksWithAI, createFromFile, loading: iaLoading } = useProjetoIA();
   const [columns, setColumns] = useState<ColumnConfig[]>(loadColumnConfig);
