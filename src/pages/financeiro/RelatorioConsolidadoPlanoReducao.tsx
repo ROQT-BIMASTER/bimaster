@@ -135,6 +135,21 @@ export default function RelatorioConsolidadoPlanoReducao() {
     toast.success("Fornecedor removido do plano");
   };
 
+  // Atualização inline de tipo_revisao / status diretamente na linha
+  const atualizarRevisao = async (
+    id: string,
+    patch: { tipo_revisao?: string; status?: string },
+  ) => {
+    const { error } = await supabase.from("contas_pagar_revisao").update(patch).eq("id", id);
+    if (error) {
+      toast.error("Falha ao atualizar item do plano");
+      return;
+    }
+    qc.invalidateQueries({ queryKey: ["revisoes-plano", planoId] });
+    qc.invalidateQueries({ queryKey: ["revisoes-plano-hist", planoId] });
+    toast.success("Item atualizado");
+  };
+
   const [limpandoDuplicados, setLimpandoDuplicados] = useState(false);
   const limparDuplicados = async (ids: string[]) => {
     if (ids.length === 0) return;
