@@ -1313,6 +1313,18 @@ export default function RelatorioConsolidadoPlanoReducao() {
                         </Button>
                       </TableCell>
                     </TableRow>
+                    {aberto && (
+                      <TableRow className="hover:bg-transparent">
+                        <TableCell colSpan={5 + meses.length + 2} className="p-0">
+                          <RevisaoDocumentosExpansao
+                            fornecedorCodigo={r.fornecedor_codigo || ""}
+                            fornecedorNome={r.fornecedor_nome || r.categoria_nome || ""}
+                            meses={meses}
+                          />
+                        </TableCell>
+                      </TableRow>
+                    )}
+                    </Fragment>
                   );
                 })}
                 {revisoesDuplicadasFiltradas.length > 0 && revisoesDuplicadasFiltradas
