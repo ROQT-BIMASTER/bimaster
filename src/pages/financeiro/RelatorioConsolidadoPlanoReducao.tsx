@@ -1477,6 +1477,20 @@ export default function RelatorioConsolidadoPlanoReducao() {
       <p className="text-xs text-muted-foreground text-center pb-6">
         Relatório gerencial — valores informados manualmente pelo responsável. Não substitui DRE oficial.
       </p>
+
+      {vincularAlvo && (
+        <VincularContaPagarDialog
+          open={!!vincularAlvo}
+          onOpenChange={(o) => { if (!o) setVincularAlvo(null); }}
+          revisaoId={vincularAlvo.id}
+          nomeAtual={vincularAlvo.nome}
+          valorMensal={vincularAlvo.valor}
+          onVinculado={() => {
+            qc.invalidateQueries({ queryKey: ["revisoes-plano", planoId] });
+            qc.invalidateQueries({ queryKey: ["revisoes-plano-hist", planoId] });
+          }}
+        />
+      )}
     </div>
   );
 }
