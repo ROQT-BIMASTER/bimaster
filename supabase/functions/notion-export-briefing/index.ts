@@ -243,8 +243,18 @@ Deno.serve(
       // 5. SLA
       const sla = resolveBriefingSla(briefing.payload);
 
-      // 6. Ensure database exists with full schema
-      const token = connection.access_token as string;
+      // 6. Ensure database exists with full schema — token vem por RPC encriptada.
+      const { data: tokenPlain, error: tokenErr } = await sb.rpc(
+        "get_notion_access_token",
+        { p_user_id: ctx.userId },
+      );
+      if (tokenErr || !tokenPlain) {
+        return new Response(
+          JSON.stringify({ error: "not_connected" }),
+          { status: 412, headers: { ...cors, "Content-Type": "application/json" } },
+        );
+      }
+      const token = tokenPlain as string;
       let dbId = connection.briefings_database_id as string | null;
       let dbUrl = connection.briefings_database_url as string | null;
 
