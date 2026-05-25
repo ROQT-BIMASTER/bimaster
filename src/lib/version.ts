@@ -1417,7 +1417,7 @@ import { logger } from "@/lib/logger";
 // aceito em 08/05/2026) e Dawntech Consultoria LTDA (proposta Catalyst com 3 opções de
 // desconto: sem fidelidade, 12m, 18m — em análise). Ambos com .eml anexado no bucket
 // fornecedor-contratos e linhas em fornecedor_contratos (tipo='ativo').
-export const APP_VERSION = '3.5.01';
+export const APP_VERSION = '3.5.02';
 
 // Chave para armazenar versão no localStorage
 const VERSION_KEY = 'app_version';
