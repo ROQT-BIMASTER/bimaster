@@ -361,7 +361,7 @@ export function ProjetoListView({ projetoId, darkBg = false, filters = EMPTY_FIL
 
       <ProjetoTarefaDetalhe
         tarefa={selectedTarefa}
-        open={!!selectedTarefa}
+        open={!!selectedTarefaId && !!selectedTarefa}
         onOpenChange={(open) => { if (!open) setSelectedTarefaId(null); }}
         onUpdate={handleUpdateTarefa}
         onToggle={handleToggle}
