@@ -12,7 +12,7 @@ interface Body {
 }
 
 Deno.serve(secureHandler(
-  { auth: "jwt", rateLimit: 30, rateLimitPrefix: "mfa-step-up" },
+  { auth: "jwt", rateLimit: 30, rateLimitPrefix: "mfa-step-up", skipMfaEnforcement: true },
   async (req, ctx) => {
     const sb = createClient(
       Deno.env.get("SUPABASE_URL")!,
