@@ -621,7 +621,7 @@ export function PlanoReducaoGastos({ dataInicio, dataFim, filterEmpresa }: Plano
                       {fornecedor && (
                         <div className="text-xs text-muted-foreground truncate max-w-[250px] flex items-center gap-1.5">
                           <span className="truncate">{fornecedor}</span>
-                          <FornecedorContratoBadge fornecedorCodigo={revisao.fornecedor_codigo} fornecedorNome={fornecedor} iconOnly />
+                          <FornecedorContratoBadge fornecedorCodigo={revisao.fornecedor_codigo} fornecedorNome={fornecedor} empresaNome={revisao.empresa_nome} iconOnly />
                         </div>
                       )}
                     </div>
