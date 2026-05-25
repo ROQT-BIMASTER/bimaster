@@ -179,14 +179,21 @@ export default function RelatorioConsolidadoPlanoReducao() {
     toast.success(`${ids.length} duplicado(s) removido(s)`);
   };
   // Histórico mensal real das revisões (por fornecedor + mês)
+  // Filtro de filial (declarado mais abaixo, mas referenciado pelo histórico mensal
+  // para que os valores reflitam a filial selecionada). Inicializamos aqui apenas
+  // o estado; o setter é exposto via state hook abaixo.
+  const [filtroFilial, setFiltroFilial] = useState<string>("__all__");
+  const [filtroFornecedor, setFiltroFornecedor] = useState<string>("__all__");
+
   const { data: revisoesHist } = useQuery({
-    queryKey: ["revisoes-plano-hist", planoId, meses],
+    queryKey: ["revisoes-plano-hist", planoId, meses, filtroFilial],
     enabled: !!planoId && (revisoes?.length ?? 0) > 0,
     queryFn: async () => {
       const { data, error } = await supabase.rpc("get_revisoes_plano_historico_mensal", {
         p_plano_id: planoId!,
         p_meses: meses,
-      });
+        p_empresa_nome: filtroFilial === "__all__" ? null : filtroFilial,
+      } as any);
       if (error) throw error;
       // Map: revisao_id -> { mes -> valor }
       const m: Record<string, Record<string, number>> = {};
@@ -195,6 +202,20 @@ export default function RelatorioConsolidadoPlanoReducao() {
         m[r.revisao_id][r.mes] = Number(r.valor || 0);
       });
       return m;
+    },
+  });
+
+  // Lista de filiais reais (a partir do Contas a Pagar) onde os fornecedores
+  // do plano possuem títulos. Usado para popular o filtro de filial.
+  const { data: filiaisAP } = useQuery({
+    queryKey: ["plano-filiais-ap", planoId],
+    enabled: !!planoId,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("rpc_get_filiais_plano_reducao", {
+        p_plano_id: planoId!,
+      } as any);
+      if (error) throw error;
+      return (data || []) as { fornecedor_codigo: string; empresa_nome: string }[];
     },
   });
 
@@ -236,36 +257,59 @@ export default function RelatorioConsolidadoPlanoReducao() {
     return (revisoes || []).filter((r: any) => !efetivosIds.has(r.id)).map((r: any) => r.id);
   }, [revisoes, revisoesEfetivas]);
 
-  // Filtros de filial (empresa) e fornecedor — afetam apenas a tabela de itens
-  const [filtroFilial, setFiltroFilial] = useState<string>("__all__");
-  const [filtroFornecedor, setFiltroFornecedor] = useState<string>("__all__");
+  // Mapa fornecedor_codigo -> Set(empresa_nome) a partir do Contas a Pagar
+  const filiaisPorFornecedor = useMemo(() => {
+    const m = new Map<string, Set<string>>();
+    (filiaisAP || []).forEach((row) => {
+      const key = String(row.fornecedor_codigo);
+      if (!m.has(key)) m.set(key, new Set());
+      m.get(key)!.add(String(row.empresa_nome));
+    });
+    return m;
+  }, [filiaisAP]);
 
   const filiaisDisponiveis = useMemo(() => {
     const set = new Set<string>();
+    // empresa_nome desnormalizada no contas_pagar_revisao
     (revisoes || []).forEach((r: any) => {
       if (r.empresa_nome) set.add(String(r.empresa_nome));
     });
+    // todas as filiais reais com títulos no AP para os fornecedores do plano
+    (filiaisAP || []).forEach((row) => {
+      if (row.empresa_nome) set.add(String(row.empresa_nome));
+    });
     return [...set].sort((a, b) => a.localeCompare(b, "pt-BR"));
-  }, [revisoes]);
+  }, [revisoes, filiaisAP]);
+
+  // Verifica se uma revisão deve ser visível dada a filial selecionada.
+  // Aceita o item se: (a) sem filtro; (b) empresa_nome do revisao bate; ou
+  // (c) o fornecedor possui ALGUM título no AP naquela filial.
+  const revisaoCasaFilial = (r: any, filial: string): boolean => {
+    if (filial === "__all__") return true;
+    if (String(r.empresa_nome || "") === filial) return true;
+    const codigo = String(r.fornecedor_codigo || "");
+    if (codigo && filiaisPorFornecedor.get(codigo)?.has(filial)) return true;
+    return false;
+  };
 
   const fornecedoresDisponiveis = useMemo(() => {
     const map = new Map<string, string>();
     (revisoes || []).forEach((r: any) => {
       const key = String(r.fornecedor_codigo || r.fornecedor_nome || "");
       if (!key) return;
-      if (filtroFilial !== "__all__" && String(r.empresa_nome || "") !== filtroFilial) return;
+      if (!revisaoCasaFilial(r, filtroFilial)) return;
       if (!map.has(key)) map.set(key, r.fornecedor_nome || key);
     });
     return [...map.entries()]
       .map(([value, label]) => ({ value, label }))
       .sort((a, b) => a.label.localeCompare(b.label, "pt-BR"));
-  }, [revisoes, filtroFilial]);
+  }, [revisoes, filtroFilial, filiaisPorFornecedor]);
 
   const aplicarFiltros = <T extends { empresa_nome?: string | null; fornecedor_codigo?: string | null; fornecedor_nome?: string | null }>(
     list: T[],
   ): T[] => {
     return list.filter((r) => {
-      if (filtroFilial !== "__all__" && String(r.empresa_nome || "") !== filtroFilial) return false;
+      if (!revisaoCasaFilial(r, filtroFilial)) return false;
       if (filtroFornecedor !== "__all__") {
         const key = String(r.fornecedor_codigo || r.fornecedor_nome || "");
         if (key !== filtroFornecedor) return false;
@@ -1320,7 +1364,9 @@ export default function RelatorioConsolidadoPlanoReducao() {
                             fornecedorCodigo={r.fornecedor_codigo || ""}
                             fornecedorNome={r.fornecedor_nome || r.categoria_nome || ""}
                             meses={meses}
+                            empresaNome={filtroFilial === "__all__" ? null : filtroFilial}
                           />
+
                         </TableCell>
                       </TableRow>
                     )}
