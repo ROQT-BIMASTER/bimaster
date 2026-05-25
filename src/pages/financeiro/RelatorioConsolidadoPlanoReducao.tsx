@@ -179,14 +179,21 @@ export default function RelatorioConsolidadoPlanoReducao() {
     toast.success(`${ids.length} duplicado(s) removido(s)`);
   };
   // Histórico mensal real das revisões (por fornecedor + mês)
+  // Filtro de filial (declarado mais abaixo, mas referenciado pelo histórico mensal
+  // para que os valores reflitam a filial selecionada). Inicializamos aqui apenas
+  // o estado; o setter é exposto via state hook abaixo.
+  const [filtroFilial, setFiltroFilial] = useState<string>("__all__");
+  const [filtroFornecedor, setFiltroFornecedor] = useState<string>("__all__");
+
   const { data: revisoesHist } = useQuery({
-    queryKey: ["revisoes-plano-hist", planoId, meses],
+    queryKey: ["revisoes-plano-hist", planoId, meses, filtroFilial],
     enabled: !!planoId && (revisoes?.length ?? 0) > 0,
     queryFn: async () => {
       const { data, error } = await supabase.rpc("get_revisoes_plano_historico_mensal", {
         p_plano_id: planoId!,
         p_meses: meses,
-      });
+        p_empresa_nome: filtroFilial === "__all__" ? null : filtroFilial,
+      } as any);
       if (error) throw error;
       // Map: revisao_id -> { mes -> valor }
       const m: Record<string, Record<string, number>> = {};
@@ -195,6 +202,20 @@ export default function RelatorioConsolidadoPlanoReducao() {
         m[r.revisao_id][r.mes] = Number(r.valor || 0);
       });
       return m;
+    },
+  });
+
+  // Lista de filiais reais (a partir do Contas a Pagar) onde os fornecedores
+  // do plano possuem títulos. Usado para popular o filtro de filial.
+  const { data: filiaisAP } = useQuery({
+    queryKey: ["plano-filiais-ap", planoId],
+    enabled: !!planoId,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("rpc_get_filiais_plano_reducao", {
+        p_plano_id: planoId!,
+      } as any);
+      if (error) throw error;
+      return (data || []) as { fornecedor_codigo: string; empresa_nome: string }[];
     },
   });
 
