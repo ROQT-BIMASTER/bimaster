@@ -668,7 +668,14 @@ Deno.serve(secureHandler({
         .limit(limit);
 
       if (search) {
-        query = query.or(`cliente_nome.ilike.%${search}%,cnpj.ilike.%${search}%,cliente_codigo.ilike.%${search}%`);
+        // Sanitiza caracteres com significado em filtros PostgREST para evitar
+        // injeção de cláusulas OR adicionais (`,`, `.`, `(`, `)`, `%`).
+        const safeSearch = String(search).replace(/[(),.%]/g, "").slice(0, 100);
+        if (safeSearch) {
+          query = query.or(
+            `cliente_nome.ilike.%${safeSearch}%,cnpj.ilike.%${safeSearch}%,cliente_codigo.ilike.%${safeSearch}%`,
+          );
+        }
       }
       if (rota) {
         query = query.eq("rota", rota);
