@@ -350,9 +350,10 @@ export const GerenciamentoUsuarios = () => {
         const { data: { session } } = await supabase.auth.getSession();
         if (!session?.access_token) throw new Error("Sessão expirada");
 
-        const isSelf = session.user.id === editingUser.id;
+        // Edge function update-user-password exige escopo "user.password.self"
+        // independentemente de ser auto-alteração ou reset por admin.
         const stepUpToken = await requestStepUp(
-          isSelf ? "user.password.self" : "user.password.reset",
+          "user.password.self",
           `Confirme com MFA para alterar a senha de ${editingUser.email}.`
         );
         if (!stepUpToken) throw new Error("Verificação cancelada");
