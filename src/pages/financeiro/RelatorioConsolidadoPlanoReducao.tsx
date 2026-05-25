@@ -257,36 +257,59 @@ export default function RelatorioConsolidadoPlanoReducao() {
     return (revisoes || []).filter((r: any) => !efetivosIds.has(r.id)).map((r: any) => r.id);
   }, [revisoes, revisoesEfetivas]);
 
-  // Filtros de filial (empresa) e fornecedor — afetam apenas a tabela de itens
-  const [filtroFilial, setFiltroFilial] = useState<string>("__all__");
-  const [filtroFornecedor, setFiltroFornecedor] = useState<string>("__all__");
+  // Mapa fornecedor_codigo -> Set(empresa_nome) a partir do Contas a Pagar
+  const filiaisPorFornecedor = useMemo(() => {
+    const m = new Map<string, Set<string>>();
+    (filiaisAP || []).forEach((row) => {
+      const key = String(row.fornecedor_codigo);
+      if (!m.has(key)) m.set(key, new Set());
+      m.get(key)!.add(String(row.empresa_nome));
+    });
+    return m;
+  }, [filiaisAP]);
 
   const filiaisDisponiveis = useMemo(() => {
     const set = new Set<string>();
+    // empresa_nome desnormalizada no contas_pagar_revisao
     (revisoes || []).forEach((r: any) => {
       if (r.empresa_nome) set.add(String(r.empresa_nome));
     });
+    // todas as filiais reais com títulos no AP para os fornecedores do plano
+    (filiaisAP || []).forEach((row) => {
+      if (row.empresa_nome) set.add(String(row.empresa_nome));
+    });
     return [...set].sort((a, b) => a.localeCompare(b, "pt-BR"));
-  }, [revisoes]);
+  }, [revisoes, filiaisAP]);
+
+  // Verifica se uma revisão deve ser visível dada a filial selecionada.
+  // Aceita o item se: (a) sem filtro; (b) empresa_nome do revisao bate; ou
+  // (c) o fornecedor possui ALGUM título no AP naquela filial.
+  const revisaoCasaFilial = (r: any, filial: string): boolean => {
+    if (filial === "__all__") return true;
+    if (String(r.empresa_nome || "") === filial) return true;
+    const codigo = String(r.fornecedor_codigo || "");
+    if (codigo && filiaisPorFornecedor.get(codigo)?.has(filial)) return true;
+    return false;
+  };
 
   const fornecedoresDisponiveis = useMemo(() => {
     const map = new Map<string, string>();
     (revisoes || []).forEach((r: any) => {
       const key = String(r.fornecedor_codigo || r.fornecedor_nome || "");
       if (!key) return;
-      if (filtroFilial !== "__all__" && String(r.empresa_nome || "") !== filtroFilial) return;
+      if (!revisaoCasaFilial(r, filtroFilial)) return;
       if (!map.has(key)) map.set(key, r.fornecedor_nome || key);
     });
     return [...map.entries()]
       .map(([value, label]) => ({ value, label }))
       .sort((a, b) => a.label.localeCompare(b.label, "pt-BR"));
-  }, [revisoes, filtroFilial]);
+  }, [revisoes, filtroFilial, filiaisPorFornecedor]);
 
   const aplicarFiltros = <T extends { empresa_nome?: string | null; fornecedor_codigo?: string | null; fornecedor_nome?: string | null }>(
     list: T[],
   ): T[] => {
     return list.filter((r) => {
-      if (filtroFilial !== "__all__" && String(r.empresa_nome || "") !== filtroFilial) return false;
+      if (!revisaoCasaFilial(r, filtroFilial)) return false;
       if (filtroFornecedor !== "__all__") {
         const key = String(r.fornecedor_codigo || r.fornecedor_nome || "");
         if (key !== filtroFornecedor) return false;
