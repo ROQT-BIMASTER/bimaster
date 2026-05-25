@@ -390,7 +390,7 @@ export function ProjetoKanbanView({ projetoId, darkBg = false, filters = EMPTY_F
       {/* Task detail sheet */}
       <ProjetoTarefaDetalhe
         tarefa={selectedTarefa}
-        open={!!selectedTarefa}
+        open={!!selectedTarefaId && !!selectedTarefa}
         onOpenChange={(open) => { if (!open) setSelectedTarefaId(null); }}
         onUpdate={(id, updates) => updateTarefa.mutate({ id, ...updates })}
         onToggle={(t) => toggleTarefaCompleta.mutate(t)}
