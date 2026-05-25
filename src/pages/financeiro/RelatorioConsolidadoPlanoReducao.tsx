@@ -1202,8 +1202,21 @@ export default function RelatorioConsolidadoPlanoReducao() {
                     r.tipo_revisao === "eliminar" ? "destructive" :
                     r.tipo_revisao === "reduzir" ? "default" : "secondary";
                   const label = r.fornecedor_nome || r.categoria_nome || "item";
+                  const aberto = expandidos.has(r.id);
                   return (
-                    <TableRow key={r.id}>
+                    <Fragment key={r.id}>
+                    <TableRow>
+                      <TableCell className="align-top pt-3">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6"
+                          title={aberto ? "Recolher documentos" : "Ver documentos do Contas a Pagar"}
+                          onClick={() => toggleExpandido(r.id)}
+                        >
+                          {aberto ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                        </Button>
+                      </TableCell>
                       <TableCell className="font-medium">
                         <div className="text-sm flex items-center gap-2">
                           <span>{r.categoria_nome || "—"}</span>
