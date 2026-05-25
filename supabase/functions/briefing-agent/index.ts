@@ -313,6 +313,20 @@ Deno.serve(secureHandler(
       ? `PRÓXIMO CAMPO A TRABALHAR: ${proximo.key} (${proximo.label})${proximo.placeholder ? ` — guia: ${proximo.placeholder}` : ""}${proximo.required ? " [obrigatório]" : " [opcional]"}`
       : `BRIEFING COMPLETO — todos os campos estão preenchidos. NÃO faça novas perguntas. Em vez disso, ofereça gerar o documento final para aprovação e pergunte se há algum ajuste antes de gerar.`;
 
+    const canvasAtual = JSON.stringify(payloadAtual, null, 2);
+
+    const systemContent = `${SYSTEM_PROMPT}
+
+TIPO DO BRIEFING: ${briefing.tipo}
+TÍTULO ATUAL: ${briefing.titulo}
+
+CAMPOS DO TEMPLATE (use exatamente essas chaves, nesta ordem):
+${templateLines}
+
+CONTEÚDO ATUAL DO CANVAS:
+${canvasAtual}
+
+${proximoLinha}`;
 
     // Conteúdo do usuário: texto + imagens (se houver)
     const userContent: any = signedAttachments.length > 0
