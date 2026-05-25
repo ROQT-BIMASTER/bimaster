@@ -23,8 +23,11 @@ import {
 import {
   ArrowLeft, Plus, Trash2, FileDown, Sparkles, TrendingDown, Wallet,
   Calculator, PiggyBank, FileSpreadsheet, FileText, Link2, AlertCircle,
+  ChevronRight, ChevronDown,
 } from "lucide-react";
 import { VincularContaPagarDialog } from "@/components/financeiro/plano-reducao/VincularContaPagarDialog";
+import { RevisaoDocumentosExpansao } from "@/components/financeiro/plano-reducao/RevisaoDocumentosExpansao";
+import { Fragment } from "react";
 import { toast } from "sonner";
 import { formatCurrency } from "@/lib/formatters";
 import {
@@ -152,6 +155,14 @@ export default function RelatorioConsolidadoPlanoReducao() {
   };
 
   const [vincularAlvo, setVincularAlvo] = useState<{ id: string; nome: string; valor: number } | null>(null);
+  const [expandidos, setExpandidos] = useState<Set<string>>(new Set());
+  const toggleExpandido = (id: string) => {
+    setExpandidos((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
   const [limpandoDuplicados, setLimpandoDuplicados] = useState(false);
   const limparDuplicados = async (ids: string[]) => {
     if (ids.length === 0) return;
@@ -1171,6 +1182,7 @@ export default function RelatorioConsolidadoPlanoReducao() {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-8"></TableHead>
                   <TableHead className="min-w-[260px]">Categoria/Fornecedor</TableHead>
                   <TableHead>Tipo</TableHead>
                   <TableHead>Status</TableHead>
@@ -1190,8 +1202,21 @@ export default function RelatorioConsolidadoPlanoReducao() {
                     r.tipo_revisao === "eliminar" ? "destructive" :
                     r.tipo_revisao === "reduzir" ? "default" : "secondary";
                   const label = r.fornecedor_nome || r.categoria_nome || "item";
+                  const aberto = expandidos.has(r.id);
                   return (
-                    <TableRow key={r.id}>
+                    <Fragment key={r.id}>
+                    <TableRow>
+                      <TableCell className="align-top pt-3">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6"
+                          title={aberto ? "Recolher documentos" : "Ver documentos do Contas a Pagar"}
+                          onClick={() => toggleExpandido(r.id)}
+                        >
+                          {aberto ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                        </Button>
+                      </TableCell>
                       <TableCell className="font-medium">
                         <div className="text-sm flex items-center gap-2">
                           <span>{r.categoria_nome || "—"}</span>
@@ -1288,6 +1313,18 @@ export default function RelatorioConsolidadoPlanoReducao() {
                         </Button>
                       </TableCell>
                     </TableRow>
+                    {aberto && (
+                      <TableRow className="hover:bg-transparent">
+                        <TableCell colSpan={5 + meses.length + 2} className="p-0">
+                          <RevisaoDocumentosExpansao
+                            fornecedorCodigo={r.fornecedor_codigo || ""}
+                            fornecedorNome={r.fornecedor_nome || r.categoria_nome || ""}
+                            meses={meses}
+                          />
+                        </TableCell>
+                      </TableRow>
+                    )}
+                    </Fragment>
                   );
                 })}
                 {revisoesDuplicadasFiltradas.length > 0 && revisoesDuplicadasFiltradas
@@ -1295,6 +1332,7 @@ export default function RelatorioConsolidadoPlanoReducao() {
                     const label = r.fornecedor_nome || r.categoria_nome || "item";
                     return (
                       <TableRow key={r.id} className="opacity-60">
+                        <TableCell></TableCell>
                         <TableCell className="font-medium">
                           <div className="text-sm">{r.categoria_nome || "—"}</div>
                           {r.fornecedor_nome && (
