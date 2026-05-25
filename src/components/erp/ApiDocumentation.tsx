@@ -3620,6 +3620,9 @@ def verify_signature(payload: bytes, signature: str, secret: str) -> bool:
 
                 <div className="border rounded-xl p-5 space-y-3">
                   {[
+                    { version: "v4.4.30 / SDK v3.3.1 / APP v3.5.03", date: "2026-05-25", changes: [
+                      "FINANCEIRO — Cadastro do cancelamento do fornecedor Milvus (`fornecedor_codigo=2207`, `fornecedor_nome=MILVUS.COM LTDA`, `tipo=cancelamento`, `data_vigencia_fim=2026-05-07`, `numero_contrato=CANCELAMENTO-MILVUS-2026-05`). Comprovante: e-mail `Cancelamento_Milvus.eml` (ticket #181956 - 22849, suporte@milvus.com.br) anexado em `fornecedor-contratos/MILVUS/Cancelamento_Milvus.eml` (mime `message/rfc822`). Processo em 2 etapas confirmado pela Milvus em 18/05/2026; pagamento de maio quitado; último boleto pós-pago a ser emitido; responsável interno Thiago Vieira (Supervisor de TI). Bump `APP_VERSION` 3.5.02 → 3.5.03. Invariante grep: `grep -n \"3.5.03\" src/lib/version.ts | wc -l` ≥ 1.",
+                    ] },
                     { version: "v4.4.29 / SDK v3.3.1 / APP v3.5.02", date: "2026-05-25", changes: [
                       "FINANCEIRO — Cadastro do cancelamento do fornecedor Cortex (`fornecedor_codigo=CORTEX`, `tipo=cancelamento`, `data_vigencia_fim=2026-05-15`, `numero_contrato=CANCELAMENTO-CORTEX-2026-05`). Comprovante: print do e-mail de confirmação de Antônio Carlos (a.carlos@rubyrosemaquiagem.com.br) em 15/05/2026 15:48 anexado em `fornecedor-contratos/CORTEX/Confirmacao_Cancelamento_Cortex.png` (mime `image/png`). Mesma thread mencionou ajustes Blip (R$ 8.500) e Dawntech (3 meses). Bump `APP_VERSION` 3.5.01 → 3.5.02. Invariante grep: `grep -n \"3.5.02\" src/lib/version.ts | wc -l` ≥ 1.",
                     ] },
