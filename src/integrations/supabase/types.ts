@@ -22098,6 +22098,75 @@ export type Database = {
           },
         ]
       }
+      fornecedor_contratos: {
+        Row: {
+          analise_ia_em: string | null
+          analise_ia_json: Json | null
+          arquivo_mime: string | null
+          arquivo_nome: string | null
+          arquivo_path: string | null
+          arquivo_tamanho: number | null
+          created_at: string
+          criado_por: string | null
+          data_vigencia_fim: string | null
+          data_vigencia_inicio: string | null
+          fornecedor_codigo: string
+          fornecedor_nome: string | null
+          id: string
+          numero_contrato: string | null
+          observacoes: string | null
+          resumo_ia: string | null
+          tipo: string
+          updated_at: string
+          valor_mensal: number | null
+          valor_total: number | null
+        }
+        Insert: {
+          analise_ia_em?: string | null
+          analise_ia_json?: Json | null
+          arquivo_mime?: string | null
+          arquivo_nome?: string | null
+          arquivo_path?: string | null
+          arquivo_tamanho?: number | null
+          created_at?: string
+          criado_por?: string | null
+          data_vigencia_fim?: string | null
+          data_vigencia_inicio?: string | null
+          fornecedor_codigo: string
+          fornecedor_nome?: string | null
+          id?: string
+          numero_contrato?: string | null
+          observacoes?: string | null
+          resumo_ia?: string | null
+          tipo: string
+          updated_at?: string
+          valor_mensal?: number | null
+          valor_total?: number | null
+        }
+        Update: {
+          analise_ia_em?: string | null
+          analise_ia_json?: Json | null
+          arquivo_mime?: string | null
+          arquivo_nome?: string | null
+          arquivo_path?: string | null
+          arquivo_tamanho?: number | null
+          created_at?: string
+          criado_por?: string | null
+          data_vigencia_fim?: string | null
+          data_vigencia_inicio?: string | null
+          fornecedor_codigo?: string
+          fornecedor_nome?: string | null
+          id?: string
+          numero_contrato?: string | null
+          observacoes?: string | null
+          resumo_ia?: string | null
+          tipo?: string
+          updated_at?: string
+          valor_mensal?: number | null
+          valor_total?: number | null
+        }
+        Relationships: []
+      }
       fornecedor_modulo_config: {
         Row: {
           compartilhado: boolean | null
