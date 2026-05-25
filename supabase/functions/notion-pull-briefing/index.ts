@@ -80,14 +80,11 @@ Deno.serve(
         Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
       );
 
-      const { data: connection } = await sb
-        .from("notion_connections")
-        .select("access_token")
-        .eq("user_id", ctx.userId)
-        .order("updated_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      if (!connection) {
+      const { data: tokenPlain, error: tokenErr } = await sb.rpc(
+        "get_notion_access_token",
+        { p_user_id: ctx.userId },
+      );
+      if (tokenErr || !tokenPlain) {
         return new Response(JSON.stringify({ error: "not_connected" }), {
           status: 412,
           headers: { ...cors, "Content-Type": "application/json" },
@@ -112,7 +109,7 @@ Deno.serve(
         });
       }
 
-      const token = connection.access_token as string;
+      const token = tokenPlain as string;
 
       const pageR = await notion<NotionPage>(token, `/pages/${briefing.notion_page_id}`);
       if (!pageR.ok || !pageR.data) {
