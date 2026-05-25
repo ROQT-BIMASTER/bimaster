@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { useEffect } from "react";
 import { useTarefaMentionableUsers } from "./useTarefaMentionableUsers";
 import { uniqueChannelName } from "@/lib/realtime/channelName";
+import { sanitizeStorageFilename } from "@/lib/utils/sanitizeStorageFilename";
 
 export interface MinhaTarefaAnexo {
   id: string;
@@ -64,7 +65,7 @@ export function useMinhasTarefaDetalhe(tarefaId: string | undefined) {
       if (ALLOWED_TYPES.length > 0 && !ALLOWED_TYPES.includes(file.type) && file.type !== "") {
         throw new Error(`Tipo não permitido: ${file.type}`);
       }
-      const filePath = `${tarefaId}/${Date.now()}_${file.name}`;
+      const filePath = `${tarefaId}/${Date.now()}_${sanitizeStorageFilename(file.name)}`;
       const { error: uploadError } = await supabase.storage
         .from("projeto-anexos")
         .upload(filePath, file);

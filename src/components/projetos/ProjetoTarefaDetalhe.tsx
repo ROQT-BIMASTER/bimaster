@@ -1092,7 +1092,13 @@ export function ProjetoTarefaDetalhe({
                       </div>
                     </div>
                   )}
+                  {(!tarefa.subtarefas || tarefa.subtarefas.length === 0) && pendingAISubtarefas.length === 0 && (
+                    <p className="text-[11px] text-muted-foreground italic mb-2 pl-1">
+                      Nenhuma subtarefa ainda. Adicione abaixo ou gere um checklist com IA.
+                    </p>
+                  )}
                   <div className="space-y-1.5">
+
                     {tarefa.subtarefas?.map(st => {
                       const stEstagioInfo = ESTAGIO_OPTIONS.find(e => e.value === st.estagio);
                       return (
