@@ -155,6 +155,14 @@ export default function RelatorioConsolidadoPlanoReducao() {
   };
 
   const [vincularAlvo, setVincularAlvo] = useState<{ id: string; nome: string; valor: number } | null>(null);
+  const [expandidos, setExpandidos] = useState<Set<string>>(new Set());
+  const toggleExpandido = (id: string) => {
+    setExpandidos((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
   const [limpandoDuplicados, setLimpandoDuplicados] = useState(false);
   const limparDuplicados = async (ids: string[]) => {
     if (ids.length === 0) return;
