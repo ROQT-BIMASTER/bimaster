@@ -1332,6 +1332,7 @@ export default function RelatorioConsolidadoPlanoReducao() {
                     const label = r.fornecedor_nome || r.categoria_nome || "item";
                     return (
                       <TableRow key={r.id} className="opacity-60">
+                        <TableCell></TableCell>
                         <TableCell className="font-medium">
                           <div className="text-sm">{r.categoria_nome || "—"}</div>
                           {r.fornecedor_nome && (
