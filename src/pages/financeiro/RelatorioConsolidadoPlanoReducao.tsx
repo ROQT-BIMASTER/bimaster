@@ -22,8 +22,9 @@ import {
 } from "@/components/ui/dropdown-menu";
 import {
   ArrowLeft, Plus, Trash2, FileDown, Sparkles, TrendingDown, Wallet,
-  Calculator, PiggyBank, FileSpreadsheet, FileText,
+  Calculator, PiggyBank, FileSpreadsheet, FileText, Link2, AlertCircle,
 } from "lucide-react";
+import { VincularContaPagarDialog } from "@/components/financeiro/plano-reducao/VincularContaPagarDialog";
 import { toast } from "sonner";
 import { formatCurrency } from "@/lib/formatters";
 import {
