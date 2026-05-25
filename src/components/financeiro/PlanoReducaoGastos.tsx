@@ -29,6 +29,7 @@ import { saveAs } from 'file-saver';
 import { useAuditReductionPlan } from '@/hooks/useExpenseAI';
 import { AuditReductionDialog } from './AuditReductionDialog';
 import { OrcamentosAlternativos } from './OrcamentosAlternativos';
+import { FornecedorContratoBadge } from './contratos/FornecedorContratoBadge';
 
 interface PlanoReducaoGastosProps {
   dataInicio: string;
