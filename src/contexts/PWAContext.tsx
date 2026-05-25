@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback, use
 import { checkAndUpdateVersion, APP_VERSION, forceCleanReload, getDeployedVersionFromHtml, isVersionMismatch } from '@/lib/version';
 import { isPwaHeartbeatEnabled } from '@/lib/featureFlags';
 import { fetchLatestPin, subscribeToReleasePins, isBelowPin, type ReleasePin } from '@/lib/releasePin';
+import { isReloadGateActive, onReloadGateClear } from '@/lib/pwaReloadGate';
 import { logger } from "@/lib/logger";
 
 interface PWAState {
