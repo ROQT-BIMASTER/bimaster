@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback, use
 import { checkAndUpdateVersion, APP_VERSION, forceCleanReload, getDeployedVersionFromHtml, isVersionMismatch } from '@/lib/version';
 import { isPwaHeartbeatEnabled } from '@/lib/featureFlags';
 import { fetchLatestPin, subscribeToReleasePins, isBelowPin, type ReleasePin } from '@/lib/releasePin';
+import { isReloadGateActive, onReloadGateClear } from '@/lib/pwaReloadGate';
 import { logger } from "@/lib/logger";
 
 interface PWAState {
@@ -146,11 +147,25 @@ export function PWAProvider({ children }: { children: React.ReactNode }) {
     // Quando o SW novo assume controle (após skipWaiting), recarregar a página
     // automaticamente UMA vez para garantir que o cliente esteja na versão nova.
     let reloadedForNewSW = false;
-    const handleControllerChange = () => {
+    const doReload = () => {
       if (reloadedForNewSW) return;
       reloadedForNewSW = true;
       logger.log('[PWA] Novo Service Worker assumiu controle — recarregando para versão nova');
       window.location.reload();
+    };
+    const handleControllerChange = () => {
+      if (reloadedForNewSW) return;
+      // Se houver UI sensível aberta (ex.: drawer de tarefa), aguarda fechar
+      // antes de recarregar — preserva o contexto do usuário.
+      if (isReloadGateActive()) {
+        logger.log('[PWA] Reload adiado: UI sensível aberta (reload-gate ativo)');
+        const off = onReloadGateClear(() => {
+          off();
+          doReload();
+        });
+        return;
+      }
+      doReload();
     };
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.addEventListener('controllerchange', handleControllerChange);
