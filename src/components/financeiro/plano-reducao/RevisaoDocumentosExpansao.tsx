@@ -28,6 +28,7 @@ interface Props {
   fornecedorCodigo: string;
   fornecedorNome: string;
   meses: string[];
+  empresaNome?: string | null;
 }
 
 function fmtDate(d: string | null) {
@@ -50,9 +51,9 @@ function statusVariant(s: string | null): "default" | "secondary" | "destructive
   return "secondary";
 }
 
-export function RevisaoDocumentosExpansao({ fornecedorCodigo, fornecedorNome, meses }: Props) {
+export function RevisaoDocumentosExpansao({ fornecedorCodigo, fornecedorNome, meses, empresaNome }: Props) {
   const { data, isLoading } = useQuery({
-    queryKey: ["revisao-docs-mes", fornecedorCodigo, meses],
+    queryKey: ["revisao-docs-mes", fornecedorCodigo, meses, empresaNome || null],
     enabled: !!fornecedorCodigo,
     queryFn: async () => {
       const result: Record<string, DocRow[]> = {};
@@ -61,7 +62,8 @@ export function RevisaoDocumentosExpansao({ fornecedorCodigo, fornecedorNome, me
           const { data, error } = await supabase.rpc("rpc_get_revisao_documentos_mes", {
             p_fornecedor_codigo: fornecedorCodigo,
             p_mes: m,
-          });
+            p_empresa_nome: empresaNome || null,
+          } as any);
           if (error) throw error;
           result[m] = (data || []) as DocRow[];
         }),
