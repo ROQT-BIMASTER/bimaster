@@ -450,6 +450,11 @@ const PageLoader = () => (
 // QueryClient com defaults globais — ver src/lib/queryClient.ts
 
 // Componente interno que usa o hook PWA
+function RedirectToConsolidado() {
+  const { planoId } = useParams();
+  return <Navigate to={`/dashboard/financeiro/plano-reducao/${planoId}/consolidado`} replace />;
+}
+
 function AppContent() {
   const { installProgress, installStatus } = usePWA();
   const [showSplash, setShowSplash] = useState(() => {
