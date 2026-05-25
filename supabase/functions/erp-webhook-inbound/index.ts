@@ -222,4 +222,4 @@ Deno.serve(secureHandler(
     evento_id: logEntry?.id ?? "sem-log",
     fila_atualizada: filaAtualizada,
   }, 200, req);
-});
+}));
