@@ -172,7 +172,7 @@ export function useProjetoTarefaDetalhe(tarefaId: string | undefined, produtoId?
         throw new Error(`Tipo de arquivo não permitido: ${file.type}. Use PDF, imagens, Excel, Word ou texto.`);
       }
 
-      const filePath = `${tarefaId}/${Date.now()}_${file.name}`;
+      const filePath = `${tarefaId}/${Date.now()}_${sanitizeStorageFilename(file.name)}`;
       const { error: uploadError } = await supabase.storage
         .from("projeto-anexos")
         .upload(filePath, file);

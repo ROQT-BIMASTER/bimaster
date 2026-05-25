@@ -44,9 +44,14 @@ export function SubtarefaResponsavelPicker({
   const { updateTarefa } = useProjetoTarefas(projetoId);
   const [open, setOpen] = useState(false);
 
-  const busy = updateTarefa.isPending;
-
   const trocar = (novoUserId: string | null) => {
+    // Fecha o popover ANTES de disparar a mutation. O onMutate de updateTarefa
+    // já aplica patch otimista no cache (responsavel_id + objeto responsavel
+    // enriquecido a partir de teamMembers / projeto_membros), então a UI
+    // reflete a troca imediatamente — não precisamos travar o trigger com
+    // `disabled` enquanto a rede roda. Travar o botão fazia o usuário
+    // perceber lentidão mesmo quando a mudança já estava aplicada visualmente.
+    setOpen(false);
     updateTarefa.mutate(
       { id: subtarefaId, responsavel_id: novoUserId } as any,
       {
@@ -55,7 +60,6 @@ export function SubtarefaResponsavelPicker({
         },
       },
     );
-    setOpen(false);
   };
 
   return (
@@ -63,8 +67,7 @@ export function SubtarefaResponsavelPicker({
       <PopoverTrigger asChild>
         <button
           type="button"
-          disabled={busy}
-          className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground rounded px-1 py-0.5 hover:bg-muted/40 transition-colors disabled:opacity-60"
+          className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground rounded px-1 py-0.5 hover:bg-muted/40 transition-colors"
         >
           {responsavelId ? (
             <>
