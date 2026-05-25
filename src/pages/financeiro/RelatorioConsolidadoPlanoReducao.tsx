@@ -1121,6 +1121,49 @@ export default function RelatorioConsolidadoPlanoReducao() {
                 </Button>
               </div>
             )}
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <div className="flex items-center gap-1.5">
+                <Label className="text-xs text-muted-foreground">Filial</Label>
+                <Select value={filtroFilial} onValueChange={(v) => { setFiltroFilial(v); setFiltroFornecedor("__all__"); }}>
+                  <SelectTrigger className="h-8 w-[220px] text-xs">
+                    <SelectValue placeholder="Todas as filiais" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__all__">Todas as filiais</SelectItem>
+                    {filiaisDisponiveis.map((f) => (
+                      <SelectItem key={f} value={f}>{f}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <Label className="text-xs text-muted-foreground">Fornecedor</Label>
+                <Select value={filtroFornecedor} onValueChange={setFiltroFornecedor}>
+                  <SelectTrigger className="h-8 w-[260px] text-xs">
+                    <SelectValue placeholder="Todos os fornecedores" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__all__">Todos os fornecedores</SelectItem>
+                    {fornecedoresDisponiveis.map((f) => (
+                      <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              {(filtroFilial !== "__all__" || filtroFornecedor !== "__all__") && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 text-xs"
+                  onClick={() => { setFiltroFilial("__all__"); setFiltroFornecedor("__all__"); }}
+                >
+                  Limpar filtros
+                </Button>
+              )}
+              <span className="ml-auto text-xs text-muted-foreground">
+                {revisoesEfetivasFiltradas.length} de {revisoesEfetivas.length} itens
+              </span>
+            </div>
           </CardHeader>
           <CardContent className="overflow-x-auto">
             <Table>
