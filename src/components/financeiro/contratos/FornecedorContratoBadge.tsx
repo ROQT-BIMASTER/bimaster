@@ -75,11 +75,15 @@ export function FornecedorContratoBadge({
         e.stopPropagation();
         setOpen(true);
       }}
-      className={`inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-[10px] font-medium transition-colors cursor-pointer ${cls} ${className || ""}`}
+      className={`inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-[10px] font-semibold transition-colors cursor-pointer ${cls} ${className || ""}`}
       title={tooltip}
     >
       {icon}
-      {!iconOnly && <span>{label}</span>}
+      {iconOnly ? (
+        <span>{status === "ativo" ? "OK" : status === "cancelado" ? "CANC" : "+"}</span>
+      ) : (
+        <span>{label}</span>
+      )}
     </button>
   );
 
