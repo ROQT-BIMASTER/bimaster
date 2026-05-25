@@ -2,7 +2,12 @@
 import { lazy, Suspense, useEffect, useState, useRef, ComponentType } from "react";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useParams } from "react-router-dom";
+
+function RedirectToConsolidado() {
+  const { planoId } = useParams();
+  return <Navigate to={`/dashboard/financeiro/plano-reducao/${planoId}/consolidado`} replace />;
+}
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { EspelhoEvidenceListener } from "@/components/processos/EspelhoEvidenceListener";
@@ -793,7 +798,7 @@ function AppContent() {
             <Route path="/dashboard/financeiro/central-pagamentos" element={<ModuleRoute moduleCode="financeiro"><ScreenProtectedRoute screenCode="financeiro_pagamentos"><FinancialPaymentCentral /></ScreenProtectedRoute></ModuleRoute>} />
             <Route path="/dashboard/financeiro/consolidado" element={<ModuleRoute moduleCode="financeiro"><ScreenProtectedRoute screenCode="financeiro_consolidado"><FinanceiroConsolidadoDashboard /></ScreenProtectedRoute></ModuleRoute>} />
             <Route path="/dashboard/financeiro/conciliacao-bancaria" element={<ModuleRoute moduleCode="financeiro"><ScreenProtectedRoute screenCode="financeiro_conciliacao"><ConciliacaoBancaria /></ScreenProtectedRoute></ModuleRoute>} />
-            <Route path="/dashboard/financeiro/plano-reducao/:planoId" element={<ModuleRoute moduleCode="financeiro"><ScreenProtectedRoute screenCode="financeiro_dre"><RelatorioPlanoReducao /></ScreenProtectedRoute></ModuleRoute>} />
+            <Route path="/dashboard/financeiro/plano-reducao/:planoId" element={<RedirectToConsolidado />} />
             <Route path="/dashboard/financeiro/plano-reducao/:planoId/consolidado" element={<ModuleRoute moduleCode="financeiro"><ScreenProtectedRoute screenCode="financeiro_dre"><RelatorioConsolidadoPlanoReducao /></ScreenProtectedRoute></ModuleRoute>} />
             <Route path="/dashboard/financeiro/investimentos" element={<ModuleRoute moduleCode="financeiro"><ScreenProtectedRoute screenCode="financeiro_investimentos"><InvestimentosCorporativos /></ScreenProtectedRoute></ModuleRoute>} />
             
