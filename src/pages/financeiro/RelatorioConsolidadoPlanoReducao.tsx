@@ -1364,7 +1364,9 @@ export default function RelatorioConsolidadoPlanoReducao() {
                             fornecedorCodigo={r.fornecedor_codigo || ""}
                             fornecedorNome={r.fornecedor_nome || r.categoria_nome || ""}
                             meses={meses}
+                            empresaNome={filtroFilial === "__all__" ? null : filtroFilial}
                           />
+
                         </TableCell>
                       </TableRow>
                     )}
