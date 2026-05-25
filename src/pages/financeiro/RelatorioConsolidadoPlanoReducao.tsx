@@ -30,6 +30,7 @@ import {
   useDespesasExtrasPlano, type DespesaExtra, type DespesaExtraTipo,
 } from "@/hooks/useDespesasExtrasPlano";
 import { getMesesPeriodo, labelMes, labelMesLongo } from "@/lib/financeiro/periodoMeses";
+import { FornecedorContratoBadge } from "@/components/financeiro/contratos/FornecedorContratoBadge";
 import {
   Bar, BarChart, CartesianGrid, Cell, Legend, Line, LineChart,
   Pie, PieChart, ResponsiveContainer, Tooltip as RTooltip, XAxis, YAxis,
