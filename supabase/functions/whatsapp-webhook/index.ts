@@ -332,13 +332,30 @@ async function atualizarContexto(
   const newContext = { ...context };
 
   if (context.step === "escolher_loja") {
-    // Tentar encontrar loja pelo nome ou ID
-    const { data: store } = await supabase
-      .from("stores")
-      .select("id, name")
-      .or(`name.ilike.%${messageText}%,id.eq.${messageText}`)
-      .limit(1)
-      .single();
+    // Sanitiza texto vindo do WhatsApp para evitar injeção de filtros PostgREST
+    // (client com service role bypassa RLS, então toda interpolação precisa ser limpa).
+    const raw = String(messageText ?? "").slice(0, 120);
+    const safeName = raw.replace(/[(),.%]/g, "").trim();
+    const looksLikeUuid = /^[0-9a-f-]{8,}$/i.test(raw);
+
+    let store: { id: string; name: string } | null = null;
+    if (safeName) {
+      const { data } = await supabase
+        .from("stores")
+        .select("id, name")
+        .ilike("name", `%${safeName}%`)
+        .limit(1)
+        .maybeSingle();
+      store = data ?? null;
+    }
+    if (!store && looksLikeUuid) {
+      const { data } = await supabase
+        .from("stores")
+        .select("id, name")
+        .eq("id", raw)
+        .maybeSingle();
+      store = data ?? null;
+    }
 
     if (store) {
       newContext.store_id = store.id;

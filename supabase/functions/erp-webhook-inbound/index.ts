@@ -1,10 +1,9 @@
 // erp-webhook-inbound — Processa webhooks de retorno do ERP
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { handleCors, getCorsHeaders } from "../_shared/cors.ts";
+import { getCorsHeaders } from "../_shared/cors.ts";
 import { withSecurityHeaders } from "../_shared/security-headers.ts";
-import { jsonResponse, errorResponse } from "../_shared/response.ts";
 import { z, validateBody } from "../_shared/validate.ts";
-import { AuthError } from "../_shared/auth.ts";
+import { secureHandler } from "../_shared/secure-handler.ts";
 
 function json(body: unknown, status: number, req: Request) {
   const cors = getCorsHeaders(req);
@@ -27,10 +26,11 @@ const ErpWebhookSchema = z.object({
   valor_processado: z.number().optional().nullable(),
 }).strict();
 
-Deno.serve(async (req: Request) => {
-  const corsResp = handleCors(req);
-  if (corsResp) return corsResp;
-
+// auth interno via x-api-key (chaves ERP), mantendo WAF + IP blocklist + headers
+// de segurança via `secureHandler({ auth: "none" })`.
+Deno.serve(secureHandler(
+  { auth: "none", rateLimit: 120, rateLimitPrefix: "erp-webhook-inbound" },
+  async (req: Request) => {
   if (req.method !== "POST") return json({ sucesso: false, mensagem: "Método não permitido" }, 405, req);
 
   const supabase = createClient(
@@ -63,16 +63,46 @@ Deno.serve(async (req: Request) => {
     return json({ sucesso: false, mensagem: "Payload inválido", details: e.issues }, 400, req);
   }
 
-  // Validate API key: hash-based first, plaintext fallback during transition (SEG-2)
-  const { data: erpConfig } = await supabase
-    .from("erp_config")
-    .select("id, empresa_id")
-    .eq("ativo", true)
-    .or(`api_key_hash.eq.${apiKeyHash},api_key.eq.${apiKey},and(api_key_anterior.eq.${apiKey},api_key_anterior_expira_em.gt.${new Date().toISOString()})`)
-    .maybeSingle();
+  // Validate API key: lookups parametrizados (sem `.or()` com input do usuário)
+  // — evita injeção de filtros PostgREST via header.
+  const nowIso = new Date().toISOString();
 
-  // Fallback: check erp_api_keys table
-  let erpConfigResult = erpConfig;
+  // 1) hash-based (canônico)
+  let erpConfigResult: { id: string; empresa_id: string } | null = null;
+  {
+    const { data } = await supabase
+      .from("erp_config")
+      .select("id, empresa_id")
+      .eq("ativo", true)
+      .eq("api_key_hash", apiKeyHash)
+      .maybeSingle();
+    if (data) erpConfigResult = data;
+  }
+
+  // 2) plaintext fallback durante transição
+  if (!erpConfigResult) {
+    const { data } = await supabase
+      .from("erp_config")
+      .select("id, empresa_id")
+      .eq("ativo", true)
+      .eq("api_key", apiKey)
+      .maybeSingle();
+    if (data) erpConfigResult = data;
+  }
+
+  // 3) chave anterior com janela de expiração
+  if (!erpConfigResult) {
+    const { data } = await supabase
+      .from("erp_config")
+      .select("id, empresa_id, api_key_anterior_expira_em")
+      .eq("ativo", true)
+      .eq("api_key_anterior", apiKey)
+      .gt("api_key_anterior_expira_em", nowIso)
+      .maybeSingle();
+    if (data) erpConfigResult = { id: data.id, empresa_id: data.empresa_id };
+  }
+
+  // 4) Fallback: erp_api_keys table
   if (!erpConfigResult) {
     const { validateErpApiKey } = await import("../_shared/erp-key-validator.ts");
     const empresa = await validateErpApiKey(apiKey);
@@ -192,4 +222,4 @@ Deno.serve(async (req: Request) => {
     evento_id: logEntry?.id ?? "sem-log",
     fila_atualizada: filaAtualizada,
   }, 200, req);
-});
+}));

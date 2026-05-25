@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import DOMPurify from "dompurify";
 import { supabase } from "@/integrations/supabase/client";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { User, MessageSquare } from "lucide-react";
@@ -82,7 +83,12 @@ export function CrmSearchResults({
                 </div>
                 <div
                   className="text-[11px] text-muted-foreground line-clamp-2 [&_mark]:bg-primary/20 [&_mark]:text-foreground [&_mark]:rounded [&_mark]:px-0.5"
-                  dangerouslySetInnerHTML={{ __html: r.trecho ?? "" }}
+                  dangerouslySetInnerHTML={{
+                    __html: DOMPurify.sanitize(r.trecho ?? "", {
+                      ALLOWED_TAGS: ["mark"],
+                      ALLOWED_ATTR: [],
+                    }),
+                  }}
                 />
               </div>
             </button>

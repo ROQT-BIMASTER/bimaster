@@ -2,14 +2,24 @@
 // Gera/atualiza alertas de SLA porto→CD e atrasos de entrega para OCs ativas.
 // Roda diariamente via pg_cron.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.58.0";
+import { secureHandler } from "../_shared/secure-handler.ts";
+import { timingSafeEqual } from "../_shared/timing-safe.ts";
+import { getCorsHeaders } from "../_shared/cors.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+Deno.serve(secureHandler(
+  { auth: "none", rateLimit: 30, rateLimitPrefix: "china-sla-monitor" },
+  async (req) => {
+  const corsHeaders = getCorsHeaders(req);
 
-Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+  // Cron shared-secret: bloqueia execuções não autorizadas
+  const provided = req.headers.get("x-cron-secret") ?? "";
+  const expected = Deno.env.get("CRON_SHARED_SECRET") ?? "";
+  if (!expected || !timingSafeEqual(provided, expected)) {
+    return new Response(
+      JSON.stringify({ ok: false, error: "forbidden" }),
+      { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    );
+  }
 
   const supabase = createClient(
     Deno.env.get("SUPABASE_URL")!,
@@ -125,4 +135,4 @@ Deno.serve(async (req) => {
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   }
-});
+}));

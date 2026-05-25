@@ -58,7 +58,8 @@ export function useTeamFormTokens() {
 
       const { error } = await supabase.from("team_form_tokens").insert({
         token_hash: tokenHash,
-        token_plain: tokenValue,
+        // token_plain removido: persistir apenas o hash; o valor é devolvido
+        // uma única vez ao criador via `return tokenValue` abaixo.
         label: params.label,
         equipe_comercial: params.equipe_comercial || null,
         supervisor_nome: params.supervisor_nome || null,

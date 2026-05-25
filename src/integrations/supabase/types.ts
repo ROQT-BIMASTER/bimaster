@@ -27841,7 +27841,7 @@ export type Database = {
       }
       notion_connections: {
         Row: {
-          access_token: string
+          access_token_encrypted: string | null
           bot_id: string
           briefings_database_id: string | null
           briefings_database_url: string | null
@@ -27857,7 +27857,7 @@ export type Database = {
           workspace_name: string | null
         }
         Insert: {
-          access_token: string
+          access_token_encrypted?: string | null
           bot_id: string
           briefings_database_id?: string | null
           briefings_database_url?: string | null
@@ -27873,7 +27873,7 @@ export type Database = {
           workspace_name?: string | null
         }
         Update: {
-          access_token?: string
+          access_token_encrypted?: string | null
           bot_id?: string
           briefings_database_id?: string | null
           briefings_database_url?: string | null
@@ -46621,6 +46621,48 @@ export type Database = {
         }
         Relationships: []
       }
+      notion_connections_safe: {
+        Row: {
+          bot_id: string | null
+          created_at: string | null
+          has_token: boolean | null
+          id: string | null
+          notion_user_id: string | null
+          notion_user_name: string | null
+          updated_at: string | null
+          user_id: string | null
+          workspace_icon: string | null
+          workspace_id: string | null
+          workspace_name: string | null
+        }
+        Insert: {
+          bot_id?: string | null
+          created_at?: string | null
+          has_token?: never
+          id?: string | null
+          notion_user_id?: string | null
+          notion_user_name?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+          workspace_icon?: string | null
+          workspace_id?: string | null
+          workspace_name?: string | null
+        }
+        Update: {
+          bot_id?: string | null
+          created_at?: string | null
+          has_token?: never
+          id?: string | null
+          notion_user_id?: string | null
+          notion_user_name?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+          workspace_icon?: string | null
+          workspace_id?: string | null
+          workspace_name?: string | null
+        }
+        Relationships: []
+      }
       profiles_safe: {
         Row: {
           aprovado: boolean | null
@@ -49436,6 +49478,7 @@ export type Database = {
           visibilidade: string
         }[]
       }
+      get_notion_access_token: { Args: { p_user_id: string }; Returns: string }
       get_pendencias_por_submissao: {
         Args: { p_ids: string[] }
         Returns: {
@@ -50812,6 +50855,19 @@ export type Database = {
       }
       update_user_ranking: {
         Args: { p_period_key: string; p_period_type: string; p_user_id: string }
+        Returns: undefined
+      }
+      upsert_notion_connection: {
+        Args: {
+          p_access_token: string
+          p_bot_id: string
+          p_notion_user_id: string
+          p_notion_user_name: string
+          p_user_id: string
+          p_workspace_icon: string
+          p_workspace_id: string
+          p_workspace_name: string
+        }
         Returns: undefined
       }
       user_accepts_notification: {
