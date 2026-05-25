@@ -114,7 +114,7 @@ export default function RelatorioConsolidadoPlanoReducao() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("contas_pagar_revisao")
-        .select("id, categoria_nome, fornecedor_nome, fornecedor_codigo, valor_atual, meta_reducao_valor, meta_reducao_percentual, tipo_revisao, status")
+        .select("id, categoria_nome, fornecedor_nome, fornecedor_codigo, empresa_nome, valor_atual, meta_reducao_valor, meta_reducao_percentual, tipo_revisao, status")
         .eq("plano_id", planoId!)
         .neq("status", "concluido");
       if (error) throw error;
