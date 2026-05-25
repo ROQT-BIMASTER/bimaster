@@ -1311,7 +1311,8 @@ export default function RelatorioConsolidadoPlanoReducao() {
                           <SelectContent>
                             <SelectItem value="eliminar">Eliminar</SelectItem>
                             <SelectItem value="reduzir">Reduzir</SelectItem>
-                            <SelectItem value="manter">Manter</SelectItem>
+                            <SelectItem value="renegociar">Renegociar</SelectItem>
+                            <SelectItem value="monitorar">Monitorar</SelectItem>
                           </SelectContent>
                         </Select>
                       </TableCell>
