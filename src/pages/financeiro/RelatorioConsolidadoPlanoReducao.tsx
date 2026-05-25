@@ -1181,7 +1181,7 @@ export default function RelatorioConsolidadoPlanoReducao() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {revisoesEfetivas.map((r: any) => {
+                {revisoesEfetivasFiltradas.map((r: any) => {
                   const valores = meses.map((m) => valorMesRevisao(r, m));
                   const media = valores.reduce((s, v) => s + v, 0) / meses.length;
                   const tipoVariant =
