@@ -32,8 +32,10 @@ interface Props {
 
 function fmtDate(d: string | null) {
   if (!d) return "—";
+  const parsed = parseLocalDate(d);
+  if (!parsed) return d;
   try {
-    return format(parseLocalDate(d), "dd/MM/yyyy", { locale: ptBR });
+    return format(parsed, "dd/MM/yyyy", { locale: ptBR });
   } catch {
     return d;
   }
