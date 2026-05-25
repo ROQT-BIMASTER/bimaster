@@ -15,6 +15,8 @@ import { format } from "date-fns";
 interface Props {
   fornecedorCodigo: string | null | undefined;
   fornecedorNome: string;
+  /** Nome da empresa/filial — usado para desempate quando há múltiplos contratos do mesmo fornecedor. */
+  empresaNome?: string | null;
   /** Renderiza apenas ícone (sem texto) */
   iconOnly?: boolean;
   className?: string;
@@ -27,6 +29,7 @@ interface Props {
 export function FornecedorContratoBadge({
   fornecedorCodigo,
   fornecedorNome,
+  empresaNome,
   iconOnly,
   className,
 }: Props) {
@@ -34,6 +37,7 @@ export function FornecedorContratoBadge({
   const { data: contratos = [] } = useFornecedorContrato(
     fornecedorCodigo,
     fornecedorNome,
+    empresaNome,
   );
 
   const ativo = contratos.find((c) => c.tipo === "ativo");
