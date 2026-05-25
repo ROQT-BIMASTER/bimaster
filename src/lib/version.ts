@@ -1406,7 +1406,7 @@ import { logger } from "@/lib/logger";
 // `internal_lookup` com whitelist por módulo (respeita permissões do usuário
 // via `usuario_permissoes_modulos`) e `atualizar_canvas`. Sem mudança de
 // SDK/OpenAPI público — bump força limpeza de cache.
-export const APP_VERSION = '3.4.97';
+export const APP_VERSION = '3.4.98';
 
 // Chave para armazenar versão no localStorage
 const VERSION_KEY = 'app_version';
