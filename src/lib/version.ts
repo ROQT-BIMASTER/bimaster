@@ -1413,7 +1413,7 @@ import { logger } from "@/lib/logger";
 // arquivados no bucket `fornecedor-contratos`. Nova empresa UNION PERNAMBUCO
 // (CNPJ 55.715.202/0001-01) cadastrada em `empresas`. Invariante grep:
 // `grep -n "3.4.99" src/lib/version.ts | wc -l` ≥ 1.
-export const APP_VERSION = '3.4.99';
+export const APP_VERSION = '3.5.00';
 
 // Chave para armazenar versão no localStorage
 const VERSION_KEY = 'app_version';
