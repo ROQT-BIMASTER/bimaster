@@ -75,7 +75,21 @@ export async function requestStepUp(scope: string, code: string): Promise<StepUp
   const { data, error } = await supabase.functions.invoke("mfa-step-up", {
     body: { action: "request", scope, code },
   });
-  if (error) throw error;
+  if (error) {
+    // supabase.functions.invoke throws a generic "non-2xx" error; try to extract
+    // the JSON body returned by the edge function so the user sees the real reason.
+    let serverMsg: string | undefined;
+    try {
+      const resp = (error as any)?.context?.response as Response | undefined;
+      if (resp) {
+        const body = await resp.clone().json().catch(() => null);
+        serverMsg = body?.error;
+      }
+    } catch { /* ignore */ }
+    if (data && (data as any).error) serverMsg = serverMsg ?? (data as any).error;
+    throw new Error(serverMsg ?? error.message ?? "Falha na verificação MFA");
+  }
+  if ((data as any)?.error) throw new Error((data as any).error);
   return data as StepUpResult;
 }
 
