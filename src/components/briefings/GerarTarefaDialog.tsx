@@ -106,22 +106,20 @@ export function GerarTarefaDialog({
       const { data: userData } = await supabase.auth.getUser();
       const uid = userData.user?.id ?? null;
 
-      const insertPayload: Record<string, any> = {
-        projeto_id: projetoId,
-        secao_id: secaoId,
-        titulo: titulo.trim(),
-        descricao: descricao.trim() || null,
-        data_prazo: prazo || null,
-        criador_id: uid,
-        responsavel_id: uid,
-        canal_criacao: "briefing",
-        tem_briefing: true,
-        status: "pendente",
-      };
-
       const { data: tarefa, error: errIns } = await supabase
         .from("projeto_tarefas")
-        .insert(insertPayload)
+        .insert({
+          projeto_id: projetoId,
+          secao_id: secaoId,
+          titulo: titulo.trim(),
+          descricao: descricao.trim() || null,
+          data_prazo: prazo || null,
+          criador_id: uid,
+          responsavel_id: uid,
+          canal_criacao: "briefing",
+          tem_briefing: true,
+          status: "pendente",
+        })
         .select("id")
         .single();
 
