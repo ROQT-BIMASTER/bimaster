@@ -388,9 +388,11 @@ ${proximoLinha}`;
             } else {
               const limite = Math.min(Number(args.limite ?? 10), 25);
               let q = userClient.from(spec.table).select(spec.columns.join(",")).limit(limite);
-              const busca = String(args.busca ?? "").trim();
-              if (busca && spec.searchColumns.length > 0) {
-                const ors = spec.searchColumns.map((c) => `${c}.ilike.%${busca}%`).join(",");
+              // Sanitiza caracteres com significado em filtros PostgREST (`,`, `.`, `(`, `)`, `%`)
+              // para evitar injeção de cláusulas OR adicionais via args da tool call.
+              const safeBusca = String(args.busca ?? "").replace(/[(),.%]/g, "").trim().slice(0, 100);
+              if (safeBusca && spec.searchColumns.length > 0) {
+                const ors = spec.searchColumns.map((c) => `${c}.ilike.%${safeBusca}%`).join(",");
                 q = q.or(ors);
               }
               const { data, error } = await q;
