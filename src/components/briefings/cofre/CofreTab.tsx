@@ -16,6 +16,7 @@ import {
 import { DocumentoCard } from "./DocumentoCard";
 import { UploadDocumentoDialog } from "./UploadDocumentoDialog";
 import { AnexarEvidenciaDialog } from "./AnexarEvidenciaDialog";
+import { DriveStatusStrip } from "./DriveStatusStrip";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
