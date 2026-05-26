@@ -123,13 +123,6 @@ const moduleColors = {
     border: "border-[hsl(var(--module-eventos,280_60%_50%))]",
     hover: "hover:bg-[hsl(var(--module-eventos,280_60%_50%)/0.15)]",
   },
-  departamentos: {
-    bg: "bg-[hsl(var(--module-departamentos,200_70%_45%))]",
-    bgLight: "bg-[hsl(var(--module-departamentos,200_70%_45%)/0.1)]",
-    text: "text-[hsl(var(--module-departamentos,200_70%_45%))]",
-    border: "border-[hsl(var(--module-departamentos,200_70%_45%))]",
-    hover: "hover:bg-[hsl(var(--module-departamentos,200_70%_45%)/0.15)]",
-  },
   china: {
     bg: "bg-[hsl(0_72%_51%)]",
     bgLight: "bg-[hsl(0_72%_51%/0.1)]",
@@ -367,7 +360,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
       { code: "fabrica", label: t("module.fabrica"), icon: Factory },
       { code: "comercial", label: t("module.comercial"), icon: Briefcase },
       { code: "eventos", label: t("module.eventos"), icon: PartyPopper },
-      { code: "departamentos", label: t("module.departamentos"), icon: Building2 },
+      
       { code: "precos", label: t("module.precos"), icon: DollarSign },
       { code: "projetos", label: "Projetos", icon: FolderKanban },
       { code: "reunioes", label: "Reuniões", icon: Mic },
@@ -438,7 +431,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
     etiqueta_bula: ["/dashboard/etiqueta-bula"],
     aprovacao_artes: ["/dashboard/aprovacao-artes", "/dashboard/fluxo-artes"],
     financeiro: ["/dashboard/financeiro"],
-    departamentos: ["/dashboard/departamentos"],
+    
     estoque: ["/dashboard/estoque"],
     projetos: ["/dashboard/projetos"],
     reunioes: ["/dashboard/reunioes"],
@@ -552,7 +545,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
     etiqueta_bula: ["etiqueta", "bula"],
     aprovacao_artes: ["aprovação de artes", "motor de artes", "fluxos"],
     financeiro: [t("module.financeiro"), "financeiro", "verbas", "extrato", "aprovações", "campanhas", "lançamentos", "contas a pagar", "contas a receber", "conciliação", "cobrança", "plano de contas", "fluxo de caixa", "dre", "classificação", "saldos", "investimentos", "fornecedores", "empresas", "centros de custo"],
-    departamentos: [t("module.departamentos"), "departamentos"],
+    
     estoque: ["estoque", "distribuidoras", "produtos master", "saldos", "consolidado", "vinculações"],
     projetos: ["projetos", "inbox", "vincular china"],
     reunioes: ["reuniões"],
@@ -1111,63 +1104,9 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
           </ModuleSubmenu>
         );
 
-      case "departamentos":
-        return userDepartments.length > 0 ? (
-          <>
-            {userDepartments.map((dept) => {
-              const deptKey = `dept_${dept.id}`;
-              const isDeptOpen = openModules.has(deptKey);
-              
-              const deptHeader = (
-                <ModuleHeader icon={Building2} title={dept.nome} isOpen={isDeptOpen} colorKey="departamentos" subItemCount={2} />
-              );
-              const deptItems = (
-                <SidebarMenu className="space-y-0.5">
-                  <MenuItemLink to={`/dashboard/departamentos/${dept.id}`} icon={FileText} title={t("dept.expenses")} colorKey="departamentos" end />
-                  <MenuItemLink to={`/dashboard/departamentos/${dept.id}/dashboard`} icon={BarChart3} title={t("dept.dashboard")} colorKey="departamentos" />
-                </SidebarMenu>
-              );
+      // case "departamentos" removido: itens duplicavam os módulos próprios da sidebar.
 
-              if (isMobile) {
-                return (
-                   <Drawer key={dept.id} open={isDeptOpen} onOpenChange={(open) => setModuleOpen(deptKey, open)}>
-                    <DrawerTrigger asChild>
-                      <button className="w-full text-left">{deptHeader}</button>
-                    </DrawerTrigger>
-                    <DrawerContent>
-                      <DrawerHeader className="pb-2">
-                        <div className="flex items-center justify-between">
-                          <DrawerTitle className="text-sm font-semibold">{dept.nome}</DrawerTitle>
-                          <button onClick={() => setModuleOpen(deptKey, false)} className="rounded-sm p-1 opacity-70 hover:opacity-100 transition-opacity">
-                            <X className="h-3.5 w-3.5" />
-                          </button>
-                        </div>
-                      </DrawerHeader>
-                      <div className="px-4 pb-6">{deptItems}</div>
-                    </DrawerContent>
-                  </Drawer>
-                );
-              }
 
-              return (
-                <Popover key={dept.id} open={isDeptOpen} onOpenChange={(open) => setModuleOpen(deptKey, open)}>
-                  <PopoverTrigger asChild>
-                    <button className="w-full text-left">{deptHeader}</button>
-                  </PopoverTrigger>
-                  <PopoverContent side="right" align="start" sideOffset={8} className="w-64 p-2">
-                    <div className="flex items-center justify-between px-2 pb-2 mb-1 border-b border-border">
-                      <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{dept.nome}</span>
-                      <button onClick={() => setModuleOpen(deptKey, false)} className="rounded-sm p-1 opacity-70 hover:opacity-100 transition-opacity">
-                        <X className="h-3.5 w-3.5" />
-                      </button>
-                    </div>
-                    {deptItems}
-                  </PopoverContent>
-                </Popover>
-              );
-            })}
-          </>
-        ) : null;
 
       case "estoque":
         return (
