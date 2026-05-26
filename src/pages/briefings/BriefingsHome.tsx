@@ -473,7 +473,7 @@ export default function BriefingsHome() {
 
   return (
     <TooltipProvider delayDuration={200}>
-      <div className="w-full px-6 py-8 space-y-6 min-h-screen" style={bgStyle}>
+      <div className="w-full px-6 py-6 space-y-6 min-h-[calc(100vh-4rem)] flex flex-col" style={bgStyle}>
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <div className="flex items-center gap-3">
             <Button
@@ -564,7 +564,7 @@ export default function BriefingsHome() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-[240px_1fr] gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-[240px_1fr] gap-6 flex-1 min-h-0">
           {/* Sidebar de tipos */}
           <aside className="space-y-4">
             <div className="space-y-1">
@@ -639,7 +639,7 @@ export default function BriefingsHome() {
           </aside>
 
           {/* Tabela */}
-          <section className="space-y-4 min-w-0">
+          <section className="space-y-4 min-w-0 flex flex-col min-h-0">
             <div className="flex flex-wrap items-center gap-2">
               <div className="relative max-w-sm flex-1 min-w-[200px]">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -698,11 +698,11 @@ export default function BriefingsHome() {
                 </CardContent>
               </Card>
             ) : (
-              <div className="rounded-lg border bg-card overflow-hidden">
+              <div className="rounded-lg border bg-card overflow-auto flex-1 min-h-0">
                 <Table>
                   <TableHeader>
                     <TableRow className="bg-muted/40 hover:bg-muted/40">
-                      <TableHead className="w-[28%]">
+                      <TableHead className="min-w-[260px]">
                         <button
                           type="button"
                           onClick={() => toggleSort("titulo")}
