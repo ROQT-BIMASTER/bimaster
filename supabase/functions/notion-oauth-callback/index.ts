@@ -28,6 +28,10 @@ function htmlResponse(title: string, body: string, status = 200): Response {
   const safeBody = escapeHtml(body);
   const safeOrigin = escapeHtml(getAppOrigin());
   const type = status === 200 ? "notion-oauth-success" : "notion-oauth-error";
+  // Nonce por request: permite SOMENTE este inline script (postMessage + window.close).
+  // Sem isto, o CSP global "script-src 'self'" do secureHandler bloqueia o script,
+  // o popup nunca fecha e a UI do app fica travada em "processando".
+  const nonce = crypto.randomUUID().replace(/-/g, "");
   const html = `<!doctype html><html><head><meta charset="utf-8"><title>${safeTitle}</title>
 <style>
   body{font-family:system-ui,-apple-system,sans-serif;background:#0f172a;color:#f8fafc;
@@ -37,11 +41,16 @@ function htmlResponse(title: string, body: string, status = 200): Response {
   p{margin:0;color:#cbd5e1;font-size:14px;line-height:1.5}
 </style></head>
 <body><div class="card"><h1>${safeTitle}</h1><p>${safeBody}</p></div>
-<script>setTimeout(function(){try{window.opener&&window.opener.postMessage({type:'${type}'}, '${safeOrigin}')}catch(e){}window.close()},800)</script>
+<script nonce="${nonce}">setTimeout(function(){try{window.opener&&window.opener.postMessage({type:'${type}'}, '${safeOrigin}')}catch(e){}try{window.opener&&window.opener.postMessage({type:'${type}'}, '*')}catch(e){}try{window.close()}catch(e){}},600)</script>
 </body></html>`;
   return new Response(html, {
     status,
-    headers: { "Content-Type": "text/html; charset=utf-8" },
+    headers: {
+      "Content-Type": "text/html; charset=utf-8",
+      // Sobrescreve o CSP padrão do secureHandler para liberar o inline script via nonce.
+      "Content-Security-Policy":
+        `default-src 'self'; script-src 'nonce-${nonce}'; style-src 'self' 'unsafe-inline'; object-src 'none'; frame-ancestors 'none'`,
+    },
   });
 }
 
