@@ -16,6 +16,7 @@ import {
 import { DocumentoCard } from "./DocumentoCard";
 import { UploadDocumentoDialog } from "./UploadDocumentoDialog";
 import { AnexarEvidenciaDialog } from "./AnexarEvidenciaDialog";
+import { DriveStatusStrip } from "./DriveStatusStrip";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -112,6 +113,7 @@ export function CofreTab({ briefingId, tipoBriefing }: Props) {
 
   return (
     <div className="space-y-4">
+      <DriveStatusStrip briefingId={briefingId} />
       {/* Header com stats + ações */}
       <div className="rounded-lg border border-border bg-card p-4 space-y-3">
         <div className="flex items-center justify-between gap-3 flex-wrap">
