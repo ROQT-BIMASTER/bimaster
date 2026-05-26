@@ -193,27 +193,7 @@ export function FormSubmissionsPanel() {
                   <TableRow key={t.id}>
                     <TableCell className="font-medium">{t.label}</TableCell>
                     <TableCell>
-                      {(t as any).token_plain ? (
-                        <div className="flex items-center gap-1">
-                          <code className="text-xs font-mono bg-muted px-1.5 py-0.5 rounded">
-                            {(t as any).token_plain}
-                          </code>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-6 w-6"
-                            onClick={() => {
-                              const link = buildTeamFormTokenUrl((t as any).token_plain);
-                              navigator.clipboard.writeText(link);
-                              toast({ title: "Link copiado!" });
-                            }}
-                          >
-                            <Copy className="h-3 w-3" />
-                          </Button>
-                        </div>
-                      ) : (
-                        <span className="text-xs text-muted-foreground">—</span>
-                      )}
+                      <span className="text-xs text-muted-foreground">—</span>
                     </TableCell>
                     <TableCell>{statusBadge(t.status, t.expires_at)}</TableCell>
                     <TableCell className="text-center">
