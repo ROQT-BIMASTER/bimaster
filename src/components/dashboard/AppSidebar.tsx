@@ -438,7 +438,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
     etiqueta_bula: ["/dashboard/etiqueta-bula"],
     aprovacao_artes: ["/dashboard/aprovacao-artes", "/dashboard/fluxo-artes"],
     financeiro: ["/dashboard/financeiro"],
-    departamentos: ["/dashboard/departamentos"],
+    
     estoque: ["/dashboard/estoque"],
     projetos: ["/dashboard/projetos"],
     reunioes: ["/dashboard/reunioes"],
