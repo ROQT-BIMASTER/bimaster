@@ -24,6 +24,9 @@ import {
   ListChecks,
   MoreHorizontal,
   ArrowUpDown,
+  Trash2,
+  Archive,
+  ArchiveRestore,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -72,6 +75,17 @@ import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { usePageBgColor } from "@/components/shared/PageBgCustomizer";
 import { useAuth } from "@/contexts/AuthContext";
+import { usePermissions } from "@/contexts/PermissionsContext";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { uniqueChannelName } from "@/lib/realtime/channelName";
 import { BriefingMembrosDialog } from "@/components/briefings/BriefingMembrosDialog";
 import { VincularProjetoDialog } from "@/components/briefings/VincularProjetoDialog";
@@ -154,6 +168,7 @@ export default function BriefingsHome() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { user } = useAuth();
+  const { isAdmin } = usePermissions();
   const { bgStyle, BgColorButton } = usePageBgColor("briefings_home");
 
   const [openNew, setOpenNew] = useState(false);
@@ -173,6 +188,9 @@ export default function BriefingsHome() {
   const [membrosDialogId, setMembrosDialogId] = useState<string | null>(null);
   const [vincDialog, setVincDialog] = useState<
     { id: string; projetoId: string | null; tarefaId: string | null } | null
+  >(null);
+  const [excluirDialog, setExcluirDialog] = useState<
+    { id: string; titulo: string } | null
   >(null);
 
   const { data: tipos, isLoading: loadingTipos } = useQuery({
@@ -928,20 +946,46 @@ export default function BriefingsHome() {
                                   Vincular projeto/tarefa
                                 </DropdownMenuItem>
                                 <DropdownMenuSeparator />
-                                <DropdownMenuItem
-                                  disabled={b.status === "arquivado"}
-                                  onClick={async () => {
-                                    const { error } = await supabase
-                                      .from("briefings")
-                                      .update({ status: "arquivado" })
-                                      .eq("id", b.id);
-                                    if (error)
-                                      toast.error("Erro ao arquivar");
-                                    else toast.success("Briefing arquivado");
-                                  }}
-                                >
-                                  Arquivar
-                                </DropdownMenuItem>
+                                {b.status === "arquivado" ? (
+                                  <DropdownMenuItem
+                                    onClick={async () => {
+                                      const { error } = await supabase
+                                        .from("briefings")
+                                        .update({ status: "em_andamento" })
+                                        .eq("id", b.id);
+                                      if (error) toast.error("Erro ao reativar");
+                                      else toast.success("Briefing reativado");
+                                    }}
+                                  >
+                                    <ArchiveRestore className="h-3.5 w-3.5 mr-2" />
+                                    Reativar
+                                  </DropdownMenuItem>
+                                ) : (
+                                  <DropdownMenuItem
+                                    onClick={async () => {
+                                      const { error } = await supabase
+                                        .from("briefings")
+                                        .update({ status: "arquivado" })
+                                        .eq("id", b.id);
+                                      if (error) toast.error("Erro ao inativar");
+                                      else toast.success("Briefing inativado");
+                                    }}
+                                  >
+                                    <Archive className="h-3.5 w-3.5 mr-2" />
+                                    Inativar
+                                  </DropdownMenuItem>
+                                )}
+                                {isAdmin && (
+                                  <DropdownMenuItem
+                                    className="text-destructive focus:text-destructive"
+                                    onClick={() =>
+                                      setExcluirDialog({ id: b.id, titulo: b.titulo })
+                                    }
+                                  >
+                                    <Trash2 className="h-3.5 w-3.5 mr-2" />
+                                    Excluir
+                                  </DropdownMenuItem>
+                                )}
                               </DropdownMenuContent>
                             </DropdownMenu>
                           </TableCell>
@@ -976,6 +1020,47 @@ export default function BriefingsHome() {
             }}
           />
         )}
+
+        <AlertDialog
+          open={!!excluirDialog}
+          onOpenChange={(o) => !o && setExcluirDialog(null)}
+        >
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Excluir briefing</AlertDialogTitle>
+              <AlertDialogDescription>
+                Esta ação é permanente e não pode ser desfeita. O briefing
+                {excluirDialog ? ` "${excluirDialog.titulo}"` : ""}, suas mensagens,
+                comentários e vínculos serão removidos. Para remover apenas da
+                listagem ativa, use Inativar.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                onClick={async () => {
+                  if (!excluirDialog) return;
+                  const { error } = await supabase
+                    .from("briefings")
+                    .delete()
+                    .eq("id", excluirDialog.id);
+                  if (error) {
+                    toast.error(error.message || "Erro ao excluir");
+                  } else {
+                    toast.success("Briefing excluído");
+                    queryClient.invalidateQueries({
+                      queryKey: ["briefings_home_lista"],
+                    });
+                  }
+                  setExcluirDialog(null);
+                }}
+              >
+                Excluir definitivamente
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </TooltipProvider>
   );
