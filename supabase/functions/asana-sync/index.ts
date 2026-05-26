@@ -327,8 +327,15 @@ Deno.serve(secureHandler({ auth: "none", rateLimit: 10, rateLimitPrefix: "asana-
                   const existing = existingMap.get(task.gid);
                   const unchanged = !!(existing && existing.modifiedAt && task.modified_at && existing.modifiedAt === task.modified_at);
 
-                  const sectionGid = task.memberships?.[0]?.section?.gid;
-                  const sectionId = sectionGid ? sectionMap.get(sectionGid) : defaultSectionId;
+                  // Find membership for THIS project (tasks can belong to multiple projects;
+                  // [0] may point to a section in another project, which used to silently fall
+                  // back to the default section — bunching everything into the first section).
+                  const projectMembership = (task.memberships || []).find(
+                    (m: any) => m?.project?.gid === projectGid
+                  ) || task.memberships?.[0];
+                  const sectionGid = projectMembership?.section?.gid;
+                  const mappedSectionId = sectionGid ? sectionMap.get(sectionGid) : undefined;
+                  const sectionId = mappedSectionId || defaultSectionId;
                   const assigneeId = task.assignee?.gid ? userMap.get(task.assignee.gid) : null;
 
                   // Normalize custom fields: prefer first non-empty value per field name (lowercased+trimmed key)
