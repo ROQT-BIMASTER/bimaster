@@ -4,6 +4,7 @@
 // Header esperado: x-bimaster-signature: sha256=<hex(hmac_sha256(body, secret))>
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { getCorsHeaders } from "../_shared/cors.ts";
+import { secureHandler } from "../_shared/secure-handler.ts";
 
 type IngestPayload = {
   // Formato Blip "Message" (envelope LIME)
@@ -72,7 +73,7 @@ function parseIdentity(s: string | undefined): { external: string; phone: string
   return { external: base, phone };
 }
 
-Deno.serve(async (req) => {
+Deno.serve(secureHandler({ auth: "none", rateLimit: 60, rateLimitPrefix: "crm-blip-ingest", skipWaf: true }, async (req) => {
   const cors = getCorsHeaders(req);
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   if (req.method !== "POST") {
@@ -190,4 +191,4 @@ Deno.serve(async (req) => {
   return new Response(JSON.stringify({ ok: true, processed: results.length, results }), {
     headers: { ...cors, "Content-Type": "application/json" },
   });
-});
+}));

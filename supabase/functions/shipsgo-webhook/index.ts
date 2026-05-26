@@ -5,10 +5,11 @@
 //   https://<project-ref>.functions.supabase.co/shipsgo-webhook
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { verifyShipsgoSignature, mapOceanShipment, mapOceanEvents } from "../_shared/shipsgo.ts";
+import { secureHandler } from "../_shared/secure-handler.ts";
 
-// Webhook é público — auth via signature HMAC. Não usa secureHandler para
-// preservar o body bruto necessário ao cálculo da assinatura.
-Deno.serve(async (req) => {
+// Webhook é público — auth via signature HMAC. secureHandler clona o req
+// para WAF, então o body bruto continua disponível para verificação HMAC.
+Deno.serve(secureHandler({ auth: "none", rateLimit: 60, rateLimitPrefix: "shipsgo-webhook", skipWaf: true }, async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", {
       headers: {
@@ -118,4 +119,4 @@ Deno.serve(async (req) => {
       headers: { "Content-Type": "application/json" },
     });
   }
-});
+}));

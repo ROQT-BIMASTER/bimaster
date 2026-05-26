@@ -2,8 +2,9 @@ import { logger } from "../_shared/logger.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
 import { verifyMetaSignature, logWebhookSignatureFailure } from "../_shared/webhook-hmac.ts";
+import { secureHandler } from "../_shared/secure-handler.ts";
 
-Deno.serve(async (req) => {
+Deno.serve(secureHandler({ auth: "none", rateLimit: 60, rateLimitPrefix: "cobranca-whatsapp-webhook", skipWaf: true }, async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: getCorsHeaders(req) });
   }
@@ -286,4 +287,4 @@ Deno.serve(async (req) => {
     status: 404,
     headers: { ...getCorsHeaders(req), "Content-Type": "application/json" }
   });
-});
+}));

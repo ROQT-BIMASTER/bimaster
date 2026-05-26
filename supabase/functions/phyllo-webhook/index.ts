@@ -2,8 +2,9 @@ import { logger } from "../_shared/logger.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
 import { verifyPhylloSignature, logWebhookSignatureFailure } from "../_shared/webhook-hmac.ts";
+import { secureHandler } from "../_shared/secure-handler.ts";
 
-Deno.serve(async (req) => {
+Deno.serve(secureHandler({ auth: "none", rateLimit: 60, rateLimitPrefix: "phyllo-webhook", skipWaf: true }, async (req) => {
   const corsResponse = handleCors(req);
   if (corsResponse) return corsResponse;
 
@@ -91,4 +92,4 @@ Deno.serve(async (req) => {
       status: 500, headers: jsonHeaders,
     });
   }
-});
+}));
