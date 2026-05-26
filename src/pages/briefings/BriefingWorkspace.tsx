@@ -22,6 +22,7 @@ import { BriefingRetrabalhoDiffDialog } from "@/components/briefings/BriefingRet
 import { useBriefingComentarios, type ReworkResult } from "@/hooks/useBriefingComentarios";
 import { useBriefingMembros } from "@/hooks/useBriefingMembros";
 import { VincularProjetoDialog } from "@/components/briefings/VincularProjetoDialog";
+import { GerarTarefaDialog } from "@/components/briefings/GerarTarefaDialog";
 import { BriefingMicButton } from "@/components/briefings/BriefingMicButton";
 import { EnviarAprovacaoDialog } from "@/components/briefings/EnviarAprovacaoDialog";
 import { AprovacaoTimeline } from "@/components/briefings/AprovacaoTimeline";
@@ -45,6 +46,7 @@ export default function BriefingWorkspace() {
   const [projetoNome, setProjetoNome] = useState<string | null>(null);
   const [vincDialogOpen, setVincDialogOpen] = useState(false);
   const [aprovDialogOpen, setAprovDialogOpen] = useState(false);
+  const [gerarTarefaOpen, setGerarTarefaOpen] = useState(false);
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
   const [evidenciaOpen, setEvidenciaOpen] = useState(false);
   const [aprovRefresh, setAprovRefresh] = useState(0);
@@ -177,6 +179,17 @@ export default function BriefingWorkspace() {
             : undefined
         }
         onExportar={() => setExportDialogOpen(true)}
+        onGerarTarefa={
+          briefing.projeto_id && !briefing.tarefa_id
+            ? () => setGerarTarefaOpen(true)
+            : undefined
+        }
+        onAbrirTarefa={
+          briefing.projeto_id && briefing.tarefa_id
+            ? () => navigate(`/dashboard/projetos/${briefing.projeto_id}n${briefing.tarefa_id}`)
+            : undefined
+        }
+        temTarefaVinculada={!!briefing.tarefa_id}
         podeEnviarAprovacao={briefing.completude >= 100 && briefing.status !== "em_aprovacao"}
         jaEmAprovacao={briefing.status === "em_aprovacao"}
         onEnviarAprovacao={() => setAprovDialogOpen(true)}
@@ -409,6 +422,20 @@ export default function BriefingWorkspace() {
           setAprovRefresh((x) => x + 1);
         }}
       />
+
+      {briefing.projeto_id && (
+        <GerarTarefaDialog
+          open={gerarTarefaOpen}
+          onOpenChange={setGerarTarefaOpen}
+          briefingId={briefing.id}
+          briefingTitulo={briefing.titulo}
+          projetoId={briefing.projeto_id}
+          projetoNome={projetoNome}
+          onTarefaCriada={async () => {
+            await recarregar();
+          }}
+        />
+      )}
 
       <ExportarBriefingDialog
         open={exportDialogOpen}
