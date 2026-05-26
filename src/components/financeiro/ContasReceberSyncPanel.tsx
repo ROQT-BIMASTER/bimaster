@@ -175,7 +175,22 @@ export function ContasReceberSyncPanel() {
                   <div><span className="text-muted-foreground">Mensagem:</span> <span className="font-medium">{lastSyncResult.message}</span></div>
                 </div>
               )}
-              {lastSyncResult.error && <p className="text-sm text-red-600 mt-2">{lastSyncResult.error}</p>}
+              {lastSyncResult.error && (() => {
+                const errLower = (lastSyncResult.error || "").toLowerCase();
+                const isTempdb = errLower.includes("tempdb") || errLower.includes("transaction log");
+                if (isTempdb) {
+                  return (
+                    <div className="mt-2 p-3 rounded border border-amber-500/40 bg-amber-500/10 text-sm">
+                      <p className="font-medium text-amber-700 dark:text-amber-400">Falha temporária no servidor do ERP</p>
+                      <p className="text-amber-700/90 dark:text-amber-300/90 mt-1">
+                        O banco do ERP está sem espaço de log em <code>tempdb</code>. A sincronização será retentada automaticamente.
+                        Se persistir, peça ao DBA para verificar <code>log_reuse_wait_desc</code> em <code>sys.databases</code> e liberar o log de <code>tempdb</code>.
+                      </p>
+                    </div>
+                  );
+                }
+                return <p className="text-sm text-red-600 mt-2">{lastSyncResult.error}</p>;
+              })()}
             </div>
           )}
         </CardContent>

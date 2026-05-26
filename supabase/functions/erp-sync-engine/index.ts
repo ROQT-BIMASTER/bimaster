@@ -53,7 +53,7 @@ function connectToSqlServer(): Promise<Connection> {
   });
 }
 
-function executeSqlQuery(connection: Connection, query: string): Promise<SqlRow[]> {
+function executeSqlQueryOnce(connection: Connection, query: string): Promise<SqlRow[]> {
   return new Promise((resolve, reject) => {
     const rows: SqlRow[] = [];
     const request = new TdsRequest(query, (err: Error | undefined) => {
@@ -69,6 +69,35 @@ function executeSqlQuery(connection: Connection, query: string): Promise<SqlRow[
     });
     connection.execSql(request);
   });
+}
+
+// Transient SQL Server errors (tempdb full, deadlock, log backup, timeout) — retry with backoff
+function isTransientSqlError(msg: string): boolean {
+  const m = msg.toLowerCase();
+  return (
+    m.includes("tempdb") ||
+    m.includes("transaction log") ||
+    m.includes("log for database") ||
+    m.includes("deadlock") ||
+    m.includes("timeout") ||
+    m.includes("could not allocate space")
+  );
+}
+
+async function executeSqlQuery(connection: Connection, query: string): Promise<SqlRow[]> {
+  const delays = [2000, 5000, 10000];
+  let lastErr: Error | null = null;
+  for (let attempt = 0; attempt <= delays.length; attempt++) {
+    try {
+      return await executeSqlQueryOnce(connection, query);
+    } catch (err) {
+      lastErr = err instanceof Error ? err : new Error(String(err));
+      if (attempt === delays.length || !isTransientSqlError(lastErr.message)) throw lastErr;
+      logger.log(`⚠️ Transient SQL error (attempt ${attempt + 1}): ${lastErr.message.slice(0, 160)} — retrying in ${delays[attempt]}ms`);
+      await new Promise((r) => setTimeout(r, delays[attempt]));
+    }
+  }
+  throw lastErr ?? new Error("SQL query failed");
 }
 
 // ─── Helpers ───
@@ -571,7 +600,7 @@ async function handleSyncPaginated(
   entityName: string,
   transformFn: (row: SqlRow) => Record<string, unknown>,
   conflictCol: string,
-  options?: { whereClause?: string; empresaId?: number; startPage?: number; maxPages?: number; orderBy?: string }
+  options?: { whereClause?: string; empresaId?: number; startPage?: number; maxPages?: number; orderBy?: string; pageSize?: number }
 ) {
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -582,6 +611,7 @@ async function handleSyncPaginated(
   const allErrors: string[] = [];
   let page = options?.startPage || 0;
   const maxPages = options?.maxPages || 999;
+  const pageSize = options?.pageSize || SQL_PAGE_SIZE;
   const TIME_LIMIT_MS = 110_000; // 110s — leaves 40s margin for upsert + response
   const whereFilter = options?.whereClause ? `WHERE ${options.whereClause}` : "";
   let stoppedByTimeGuard = false;
@@ -606,7 +636,7 @@ async function handleSyncPaginated(
         break;
       }
 
-      const offset = page * SQL_PAGE_SIZE;
+      const offset = page * pageSize;
       const orderByClause = options?.orderBy || "[ID Empresa], [Nota], [Seq]";
       const query = `
         SELECT * FROM (
@@ -614,9 +644,9 @@ async function handleSyncPaginated(
           FROM [${viewName}]
           ${whereFilter}
         ) AS _paged
-        WHERE _rn > ${offset} AND _rn <= ${offset + SQL_PAGE_SIZE}
+        WHERE _rn > ${offset} AND _rn <= ${offset + pageSize}
       `;
-      logger.log(`📥 ${entityName} page ${page + 1} (offset ${offset})${options?.empresaId ? ` empresa=${options.empresaId}` : ""}...`);
+      logger.log(`📥 ${entityName} page ${page + 1} (offset ${offset}, size ${pageSize})${options?.empresaId ? ` empresa=${options.empresaId}` : ""}...`);
       const rows = await executeSqlQuery(connection, query);
       logger.log(`📊 Got ${rows.length} rows`);
 
@@ -629,12 +659,13 @@ async function handleSyncPaginated(
       totalDeadlockRetries += deadlockRetries;
       if (errors.length > 0) allErrors.push(...errors);
 
-      if (rows.length < SQL_PAGE_SIZE) break;
+      if (rows.length < pageSize) break;
       page++;
       pagesProcessed++;
 
       await new Promise((r) => setTimeout(r, 50));
     }
+
 
     const duration = Date.now() - startMs;
     const status = stoppedByTimeGuard ? "partial" : (allErrors.length > 0 ? "partial" : "success");
@@ -686,7 +717,7 @@ async function handleSyncContasReceberPorEmpresa(req: Request, startMs: number) 
     req, startMs,
     "ConsultaPowerBIReceber", "contas_receber", "contas_receber",
     transformContasReceber, "erp_id",
-    { whereClause: `[ID Empresa] = ${Number(empresaId)}`, empresaId: Number(empresaId), startPage: Number(startPage), maxPages: Number(maxPages) }
+    { whereClause: `[ID Empresa] = ${Number(empresaId)}`, empresaId: Number(empresaId), startPage: Number(startPage), maxPages: Number(maxPages), pageSize: 1000 }
   );
 }
 
@@ -715,7 +746,7 @@ async function handleSyncContasReceberFull(req: Request, startMs: number) {
   let totalAll = 0;
   let upsertedAll = 0;
 
-  const CONCURRENCY = 2;
+  const CONCURRENCY = 1; // CR: serial to reduce tempdb pressure on ERP SQL Server
   for (let i = 0; i < empresaIds.length; i += CONCURRENCY) {
     const batch = empresaIds.slice(i, i + CONCURRENCY);
     const promises = batch.map(async (empId) => {
@@ -780,12 +811,12 @@ async function handleSyncContasReceberIncremental(req: Request, startMs: number)
     req, startMs,
     "ConsultaPowerBIReceber", "contas_receber", "contas_receber_incremental",
     transformContasReceber, "erp_id",
-    { whereClause, maxPages: 5 }
+    { whereClause, maxPages: 5, pageSize: 1000 }
   );
 }
 
 async function handleSyncContasReceber(req: Request, startMs: number) {
-  return handleSyncPaginated(req, startMs, "ConsultaPowerBIReceber", "contas_receber", "contas_receber", transformContasReceber, "erp_id");
+  return handleSyncPaginated(req, startMs, "ConsultaPowerBIReceber", "contas_receber", "contas_receber", transformContasReceber, "erp_id", { pageSize: 1000 });
 }
 
 async function handleSyncContasPagar(req: Request, startMs: number) {
