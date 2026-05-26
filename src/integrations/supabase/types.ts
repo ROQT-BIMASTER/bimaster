@@ -51120,6 +51120,7 @@ export type Database = {
         | "gerente"
         | "consultor"
         | "suporte"
+        | "marketing"
       briefing_doc_status: "pendente" | "recebido" | "aprovado" | "rejeitado"
       checklist_arte_tipo:
         | "etiqueta_bula"
@@ -51375,6 +51376,7 @@ export const Constants = {
         "gerente",
         "consultor",
         "suporte",
+        "marketing",
       ],
       briefing_doc_status: ["pendente", "recebido", "aprovado", "rejeitado"],
       checklist_arte_tipo: [
