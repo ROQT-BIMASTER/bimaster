@@ -153,3 +153,4 @@ Deno.serve(secureHandler(
     `Workspace ${token.workspace_name ?? ""} pronto para receber briefings.`,
   );
 });
+});
