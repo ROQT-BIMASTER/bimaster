@@ -811,12 +811,12 @@ async function handleSyncContasReceberIncremental(req: Request, startMs: number)
     req, startMs,
     "ConsultaPowerBIReceber", "contas_receber", "contas_receber_incremental",
     transformContasReceber, "erp_id",
-    { whereClause, maxPages: 5 }
+    { whereClause, maxPages: 5, pageSize: 1000 }
   );
 }
 
 async function handleSyncContasReceber(req: Request, startMs: number) {
-  return handleSyncPaginated(req, startMs, "ConsultaPowerBIReceber", "contas_receber", "contas_receber", transformContasReceber, "erp_id");
+  return handleSyncPaginated(req, startMs, "ConsultaPowerBIReceber", "contas_receber", "contas_receber", transformContasReceber, "erp_id", { pageSize: 1000 });
 }
 
 async function handleSyncContasPagar(req: Request, startMs: number) {
