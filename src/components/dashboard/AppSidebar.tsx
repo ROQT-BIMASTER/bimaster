@@ -367,7 +367,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
       { code: "fabrica", label: t("module.fabrica"), icon: Factory },
       { code: "comercial", label: t("module.comercial"), icon: Briefcase },
       { code: "eventos", label: t("module.eventos"), icon: PartyPopper },
-      { code: "departamentos", label: t("module.departamentos"), icon: Building2 },
+      
       { code: "precos", label: t("module.precos"), icon: DollarSign },
       { code: "projetos", label: "Projetos", icon: FolderKanban },
       { code: "reunioes", label: "Reuniões", icon: Mic },
