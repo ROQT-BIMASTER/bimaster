@@ -1111,63 +1111,9 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
           </ModuleSubmenu>
         );
 
-      case "departamentos":
-        return userDepartments.length > 0 ? (
-          <>
-            {userDepartments.map((dept) => {
-              const deptKey = `dept_${dept.id}`;
-              const isDeptOpen = openModules.has(deptKey);
-              
-              const deptHeader = (
-                <ModuleHeader icon={Building2} title={dept.nome} isOpen={isDeptOpen} colorKey="departamentos" subItemCount={2} />
-              );
-              const deptItems = (
-                <SidebarMenu className="space-y-0.5">
-                  <MenuItemLink to={`/dashboard/departamentos/${dept.id}`} icon={FileText} title={t("dept.expenses")} colorKey="departamentos" end />
-                  <MenuItemLink to={`/dashboard/departamentos/${dept.id}/dashboard`} icon={BarChart3} title={t("dept.dashboard")} colorKey="departamentos" />
-                </SidebarMenu>
-              );
+      // case "departamentos" removido: itens duplicavam os módulos próprios da sidebar.
 
-              if (isMobile) {
-                return (
-                   <Drawer key={dept.id} open={isDeptOpen} onOpenChange={(open) => setModuleOpen(deptKey, open)}>
-                    <DrawerTrigger asChild>
-                      <button className="w-full text-left">{deptHeader}</button>
-                    </DrawerTrigger>
-                    <DrawerContent>
-                      <DrawerHeader className="pb-2">
-                        <div className="flex items-center justify-between">
-                          <DrawerTitle className="text-sm font-semibold">{dept.nome}</DrawerTitle>
-                          <button onClick={() => setModuleOpen(deptKey, false)} className="rounded-sm p-1 opacity-70 hover:opacity-100 transition-opacity">
-                            <X className="h-3.5 w-3.5" />
-                          </button>
-                        </div>
-                      </DrawerHeader>
-                      <div className="px-4 pb-6">{deptItems}</div>
-                    </DrawerContent>
-                  </Drawer>
-                );
-              }
 
-              return (
-                <Popover key={dept.id} open={isDeptOpen} onOpenChange={(open) => setModuleOpen(deptKey, open)}>
-                  <PopoverTrigger asChild>
-                    <button className="w-full text-left">{deptHeader}</button>
-                  </PopoverTrigger>
-                  <PopoverContent side="right" align="start" sideOffset={8} className="w-64 p-2">
-                    <div className="flex items-center justify-between px-2 pb-2 mb-1 border-b border-border">
-                      <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{dept.nome}</span>
-                      <button onClick={() => setModuleOpen(deptKey, false)} className="rounded-sm p-1 opacity-70 hover:opacity-100 transition-opacity">
-                        <X className="h-3.5 w-3.5" />
-                      </button>
-                    </div>
-                    {deptItems}
-                  </PopoverContent>
-                </Popover>
-              );
-            })}
-          </>
-        ) : null;
 
       case "estoque":
         return (
