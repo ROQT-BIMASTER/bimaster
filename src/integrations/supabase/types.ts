@@ -2718,9 +2718,15 @@ export type Database = {
           created_by: string
           data_entrega: string | null
           descricao: string | null
+          drive_sync_error: string | null
+          drive_sync_status: string
+          enviado_drive_em: string | null
           enviado_notion_em: string | null
           fornecedor_id: string | null
           fornecedor_nome: string | null
+          google_drive_file_id: string | null
+          google_drive_folder_id: string | null
+          google_drive_url: string | null
           id: string
           is_checklist_item: boolean
           is_oficial: boolean
@@ -2743,9 +2749,15 @@ export type Database = {
           created_by: string
           data_entrega?: string | null
           descricao?: string | null
+          drive_sync_error?: string | null
+          drive_sync_status?: string
+          enviado_drive_em?: string | null
           enviado_notion_em?: string | null
           fornecedor_id?: string | null
           fornecedor_nome?: string | null
+          google_drive_file_id?: string | null
+          google_drive_folder_id?: string | null
+          google_drive_url?: string | null
           id?: string
           is_checklist_item?: boolean
           is_oficial?: boolean
@@ -2768,9 +2780,15 @@ export type Database = {
           created_by?: string
           data_entrega?: string | null
           descricao?: string | null
+          drive_sync_error?: string | null
+          drive_sync_status?: string
+          enviado_drive_em?: string | null
           enviado_notion_em?: string | null
           fornecedor_id?: string | null
           fornecedor_nome?: string | null
+          google_drive_file_id?: string | null
+          google_drive_folder_id?: string | null
+          google_drive_url?: string | null
           id?: string
           is_checklist_item?: boolean
           is_oficial?: boolean
@@ -3065,6 +3083,9 @@ export type Database = {
           completude: number
           created_at: string
           empresa_id: number | null
+          google_drive_folder_id: string | null
+          google_drive_folder_url: string | null
+          google_drive_share_url: string | null
           id: string
           intake_demanda_id: string | null
           notion_last_pull_at: string | null
@@ -3093,6 +3114,9 @@ export type Database = {
           completude?: number
           created_at?: string
           empresa_id?: number | null
+          google_drive_folder_id?: string | null
+          google_drive_folder_url?: string | null
+          google_drive_share_url?: string | null
           id?: string
           intake_demanda_id?: string | null
           notion_last_pull_at?: string | null
@@ -3121,6 +3145,9 @@ export type Database = {
           completude?: number
           created_at?: string
           empresa_id?: number | null
+          google_drive_folder_id?: string | null
+          google_drive_folder_url?: string | null
+          google_drive_share_url?: string | null
           id?: string
           intake_demanda_id?: string | null
           notion_last_pull_at?: string | null
@@ -22653,6 +22680,90 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      google_drive_config: {
+        Row: {
+          auto_sync_enabled: boolean
+          connection_status: string
+          created_at: string
+          created_by: string | null
+          id: string
+          last_verified_at: string | null
+          root_folder_id: string | null
+          root_folder_name: string
+          shared_drive_id: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          auto_sync_enabled?: boolean
+          connection_status?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          last_verified_at?: string | null
+          root_folder_id?: string | null
+          root_folder_name?: string
+          shared_drive_id?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          auto_sync_enabled?: boolean
+          connection_status?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          last_verified_at?: string | null
+          root_folder_id?: string | null
+          root_folder_name?: string
+          shared_drive_id?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      google_drive_sync_log: {
+        Row: {
+          acao: string
+          briefing_id: string | null
+          created_at: string
+          created_by: string | null
+          documento_id: string | null
+          drive_file_id: string | null
+          drive_folder_id: string | null
+          duration_ms: number | null
+          error_message: string | null
+          id: string
+          status: string
+        }
+        Insert: {
+          acao: string
+          briefing_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          documento_id?: string | null
+          drive_file_id?: string | null
+          drive_folder_id?: string | null
+          duration_ms?: number | null
+          error_message?: string | null
+          id?: string
+          status: string
+        }
+        Update: {
+          acao?: string
+          briefing_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          documento_id?: string | null
+          drive_file_id?: string | null
+          drive_folder_id?: string | null
+          duration_ms?: number | null
+          error_message?: string | null
+          id?: string
+          status?: string
+        }
+        Relationships: []
       }
       historico_cobrancas: {
         Row: {
