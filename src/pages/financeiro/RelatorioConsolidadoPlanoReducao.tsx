@@ -952,6 +952,60 @@ export default function RelatorioConsolidadoPlanoReducao() {
         </CardContent>
       </Card>
 
+      {/* Itens cancelados */}
+      {revisoesCanceladas.length > 0 && (
+        <Card className="border-destructive/40">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+              <div className="flex items-center gap-2">
+                <AlertCircle className="h-4 w-4 text-destructive" />
+                <CardTitle className="text-base">
+                  Itens cancelados
+                </CardTitle>
+                <Badge variant="destructive" className="h-5">
+                  {revisoesCanceladas.length}
+                </Badge>
+              </div>
+              <div className="text-xs text-muted-foreground">
+                Estes itens não entram no cálculo da economia consolidada.
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="pt-0">
+            <div className="flex flex-wrap gap-2">
+              {revisoesCanceladas.map((r: any) => (
+                <div
+                  key={r.id}
+                  className="flex items-center gap-2 rounded-md border border-destructive/30 bg-destructive/5 px-2.5 py-1.5 text-xs"
+                >
+                  <span className="font-medium text-foreground line-through decoration-destructive/70">
+                    {r.fornecedor_nome || r.categoria_nome || "—"}
+                  </span>
+                  {r.empresa_nome && (
+                    <span className="text-muted-foreground">· {r.empresa_nome}</span>
+                  )}
+                  <span className="tabular-nums text-muted-foreground">
+                    {formatCurrency(Number(r.valor_atual || 0))}
+                  </span>
+                  <Badge variant="outline" className="h-4 text-[10px]">
+                    {TIPO_LABELS[r.tipo_revisao as DespesaExtraTipo] || r.tipo_revisao || "—"}
+                  </Badge>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-5 px-1.5 text-[10px]"
+                    onClick={() => atualizarRevisao(r.id, { status: "pendente" })}
+                    title="Reativar"
+                  >
+                    Reativar
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* KPIs */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
         <KpiBox
