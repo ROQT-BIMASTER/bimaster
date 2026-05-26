@@ -1337,6 +1337,7 @@ export default function RelatorioConsolidadoPlanoReducao() {
                             <SelectItem value="pendente">Pendente</SelectItem>
                             <SelectItem value="em_andamento">Em andamento</SelectItem>
                             <SelectItem value="concluido">Concluído</SelectItem>
+                            <SelectItem value="cancelado">Cancelado</SelectItem>
                           </SelectContent>
                         </Select>
                       </TableCell>
