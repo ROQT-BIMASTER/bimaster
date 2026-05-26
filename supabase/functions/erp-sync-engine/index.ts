@@ -746,7 +746,7 @@ async function handleSyncContasReceberFull(req: Request, startMs: number) {
   let totalAll = 0;
   let upsertedAll = 0;
 
-  const CONCURRENCY = 2;
+  const CONCURRENCY = 1; // CR: serial to reduce tempdb pressure on ERP SQL Server
   for (let i = 0; i < empresaIds.length; i += CONCURRENCY) {
     const batch = empresaIds.slice(i, i + CONCURRENCY);
     const promises = batch.map(async (empId) => {
