@@ -259,7 +259,7 @@ export default function BriefingsHome() {
         .select("id, nome, avatar_url")
         .in("id", allProfileIds);
       if (error) throw error;
-      return (data ?? []) as ProfileLite[];
+      return ((data ?? []) as unknown) as ProfileLite[];
     },
   });
 
