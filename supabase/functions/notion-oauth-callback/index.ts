@@ -45,7 +45,11 @@ function htmlResponse(title: string, body: string, status = 200): Response {
   });
 }
 
-Deno.serve(async (req) => {
+// Público (OAuth callback) mas envolto em secureHandler para aplicar
+// WAF L7, IP blocklist e security headers via plataforma.
+Deno.serve(secureHandler(
+  { auth: "none", rateLimit: 30, rateLimitPrefix: "notion-oauth-callback" },
+  async (req) => {
   const url = new URL(req.url);
   const code = url.searchParams.get("code");
   const state = url.searchParams.get("state");
