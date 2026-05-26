@@ -26,6 +26,8 @@ export function openNotionOAuthPopup(authorizeUrl: string): Promise<OpenOAuthPop
       settled = true;
       window.removeEventListener("message", onMessage);
       clearInterval(timer);
+      clearTimeout(maxTimeout);
+      try { if (!popup.closed) popup.close(); } catch { /* noop */ }
       resolve({ outcome });
     };
     const onMessage = (ev: MessageEvent) => {
@@ -37,5 +39,7 @@ export function openNotionOAuthPopup(authorizeUrl: string): Promise<OpenOAuthPop
     const timer = window.setInterval(() => {
       if (popup.closed) finish("closed");
     }, 500);
+    // Safety net: nunca deixar a UI travada — fecha em 5 min mesmo sem sinal.
+    const maxTimeout = window.setTimeout(() => finish("closed"), 5 * 60 * 1000);
   });
 }
