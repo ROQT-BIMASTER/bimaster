@@ -24,6 +24,9 @@ import {
   ListChecks,
   MoreHorizontal,
   ArrowUpDown,
+  Trash2,
+  Archive,
+  ArchiveRestore,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -72,6 +75,17 @@ import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { usePageBgColor } from "@/components/shared/PageBgCustomizer";
 import { useAuth } from "@/contexts/AuthContext";
+import { usePermissions } from "@/contexts/PermissionsContext";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { uniqueChannelName } from "@/lib/realtime/channelName";
 import { BriefingMembrosDialog } from "@/components/briefings/BriefingMembrosDialog";
 import { VincularProjetoDialog } from "@/components/briefings/VincularProjetoDialog";
@@ -154,6 +168,7 @@ export default function BriefingsHome() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { user } = useAuth();
+  const { isAdmin } = usePermissions();
   const { bgStyle, BgColorButton } = usePageBgColor("briefings_home");
 
   const [openNew, setOpenNew] = useState(false);
@@ -173,6 +188,9 @@ export default function BriefingsHome() {
   const [membrosDialogId, setMembrosDialogId] = useState<string | null>(null);
   const [vincDialog, setVincDialog] = useState<
     { id: string; projetoId: string | null; tarefaId: string | null } | null
+  >(null);
+  const [excluirDialog, setExcluirDialog] = useState<
+    { id: string; titulo: string } | null
   >(null);
 
   const { data: tipos, isLoading: loadingTipos } = useQuery({
