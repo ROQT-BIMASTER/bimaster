@@ -717,7 +717,7 @@ async function handleSyncContasReceberPorEmpresa(req: Request, startMs: number) 
     req, startMs,
     "ConsultaPowerBIReceber", "contas_receber", "contas_receber",
     transformContasReceber, "erp_id",
-    { whereClause: `[ID Empresa] = ${Number(empresaId)}`, empresaId: Number(empresaId), startPage: Number(startPage), maxPages: Number(maxPages) }
+    { whereClause: `[ID Empresa] = ${Number(empresaId)}`, empresaId: Number(empresaId), startPage: Number(startPage), maxPages: Number(maxPages), pageSize: 1000 }
   );
 }
 
