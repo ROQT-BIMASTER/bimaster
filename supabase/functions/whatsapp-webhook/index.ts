@@ -2,6 +2,7 @@ import { logger } from "../_shared/logger.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
 import { verifyMetaSignature, logWebhookSignatureFailure } from "../_shared/webhook-hmac.ts";
+import { secureHandler } from "../_shared/secure-handler.ts";
 
 // Interface para o contexto da conversa
 interface ConversationContext {
@@ -17,7 +18,7 @@ interface ConversationContext {
   pending_photo?: 'before' | 'after';
 }
 
-Deno.serve(async (req) => {
+Deno.serve(secureHandler({ auth: "none", rateLimit: 60, rateLimitPrefix: "whatsapp-webhook", skipWaf: true }, async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: getCorsHeaders(req) });
   }
@@ -269,7 +270,7 @@ Para iniciar um lançamento, basta digitar /novo e eu vou te guiar passo a passo
       headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
     });
   }
-});
+}));
 
 async function processarMensagem(
   messageText: string,
