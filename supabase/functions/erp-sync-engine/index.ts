@@ -53,7 +53,7 @@ function connectToSqlServer(): Promise<Connection> {
   });
 }
 
-function executeSqlQuery(connection: Connection, query: string): Promise<SqlRow[]> {
+function executeSqlQueryOnce(connection: Connection, query: string): Promise<SqlRow[]> {
   return new Promise((resolve, reject) => {
     const rows: SqlRow[] = [];
     const request = new TdsRequest(query, (err: Error | undefined) => {
@@ -69,6 +69,35 @@ function executeSqlQuery(connection: Connection, query: string): Promise<SqlRow[
     });
     connection.execSql(request);
   });
+}
+
+// Transient SQL Server errors (tempdb full, deadlock, log backup, timeout) — retry with backoff
+function isTransientSqlError(msg: string): boolean {
+  const m = msg.toLowerCase();
+  return (
+    m.includes("tempdb") ||
+    m.includes("transaction log") ||
+    m.includes("log for database") ||
+    m.includes("deadlock") ||
+    m.includes("timeout") ||
+    m.includes("could not allocate space")
+  );
+}
+
+async function executeSqlQuery(connection: Connection, query: string): Promise<SqlRow[]> {
+  const delays = [2000, 5000, 10000];
+  let lastErr: Error | null = null;
+  for (let attempt = 0; attempt <= delays.length; attempt++) {
+    try {
+      return await executeSqlQueryOnce(connection, query);
+    } catch (err) {
+      lastErr = err instanceof Error ? err : new Error(String(err));
+      if (attempt === delays.length || !isTransientSqlError(lastErr.message)) throw lastErr;
+      logger.log(`⚠️ Transient SQL error (attempt ${attempt + 1}): ${lastErr.message.slice(0, 160)} — retrying in ${delays[attempt]}ms`);
+      await new Promise((r) => setTimeout(r, delays[attempt]));
+    }
+  }
+  throw lastErr ?? new Error("SQL query failed");
 }
 
 // ─── Helpers ───
