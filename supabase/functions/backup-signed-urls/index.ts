@@ -3,12 +3,13 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { timingSafeEqual } from "../_shared/timing-safe.ts";
+import { secureHandler } from "../_shared/secure-handler.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const SHARED_TOKEN = Deno.env.get("BACKUP_SHARED_TOKEN") ?? "";
 
-Deno.serve(async (req) => {
+Deno.serve(secureHandler({ auth: "none", rateLimit: 30, rateLimitPrefix: "backup-signed-urls" }, async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   const token = req.headers.get("x-backup-token") ?? "";
@@ -46,4 +47,4 @@ Deno.serve(async (req) => {
   return new Response(JSON.stringify({ expiresIn, results }), {
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
-});
+}));
