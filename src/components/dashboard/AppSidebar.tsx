@@ -123,13 +123,6 @@ const moduleColors = {
     border: "border-[hsl(var(--module-eventos,280_60%_50%))]",
     hover: "hover:bg-[hsl(var(--module-eventos,280_60%_50%)/0.15)]",
   },
-  departamentos: {
-    bg: "bg-[hsl(var(--module-departamentos,200_70%_45%))]",
-    bgLight: "bg-[hsl(var(--module-departamentos,200_70%_45%)/0.1)]",
-    text: "text-[hsl(var(--module-departamentos,200_70%_45%))]",
-    border: "border-[hsl(var(--module-departamentos,200_70%_45%))]",
-    hover: "hover:bg-[hsl(var(--module-departamentos,200_70%_45%)/0.15)]",
-  },
   china: {
     bg: "bg-[hsl(0_72%_51%)]",
     bgLight: "bg-[hsl(0_72%_51%/0.1)]",
