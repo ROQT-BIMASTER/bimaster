@@ -23,7 +23,8 @@ import { CreativeImageGenerator } from "./studio/CreativeImageGenerator";
 import { CreativeGallery } from "./studio/CreativeGallery";
 import { AdvancedVideoGenerator } from "./studio/AdvancedVideoGenerator";
 import { RoteiristaIA } from "./studio/RoteiristaIA";
-import { Clapperboard } from "lucide-react";
+import { HuggsStudioTab } from "./studio/HuggsStudioTab";
+import { Clapperboard, Film } from "lucide-react";
 
 interface StitchDesign {
   id: string;
