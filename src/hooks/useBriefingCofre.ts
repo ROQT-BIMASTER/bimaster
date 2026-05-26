@@ -5,6 +5,8 @@ import { toast } from "sonner";
 
 export type BriefingDocStatus = "pendente" | "recebido" | "aprovado" | "rejeitado";
 
+export type DriveSyncStatus = "desabilitado" | "pendente" | "enviado" | "erro";
+
 export interface BriefingDocumento {
   id: string;
   briefing_id: string;
@@ -29,6 +31,13 @@ export interface BriefingDocumento {
   created_by: string;
   created_at: string;
   updated_at: string;
+  // Google Drive
+  google_drive_file_id?: string | null;
+  google_drive_url?: string | null;
+  google_drive_folder_id?: string | null;
+  enviado_drive_em?: string | null;
+  drive_sync_status?: DriveSyncStatus;
+  drive_sync_error?: string | null;
 }
 
 export interface ChecklistTemplate {
