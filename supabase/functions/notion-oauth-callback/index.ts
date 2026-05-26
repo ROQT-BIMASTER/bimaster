@@ -1,6 +1,7 @@
 // supabase/functions/notion-oauth-callback/index.ts
 // Receives the OAuth code from Notion, exchanges for a token, persists the connection.
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { secureHandler } from "../_shared/secure-handler.ts";
 
 const NOTION_TOKEN_URL = "https://api.notion.com/v1/oauth/token";
 
