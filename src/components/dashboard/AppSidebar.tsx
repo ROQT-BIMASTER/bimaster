@@ -552,7 +552,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
     etiqueta_bula: ["etiqueta", "bula"],
     aprovacao_artes: ["aprovação de artes", "motor de artes", "fluxos"],
     financeiro: [t("module.financeiro"), "financeiro", "verbas", "extrato", "aprovações", "campanhas", "lançamentos", "contas a pagar", "contas a receber", "conciliação", "cobrança", "plano de contas", "fluxo de caixa", "dre", "classificação", "saldos", "investimentos", "fornecedores", "empresas", "centros de custo"],
-    departamentos: [t("module.departamentos"), "departamentos"],
+    
     estoque: ["estoque", "distribuidoras", "produtos master", "saldos", "consolidado", "vinculações"],
     projetos: ["projetos", "inbox", "vincular china"],
     reunioes: ["reuniões"],
