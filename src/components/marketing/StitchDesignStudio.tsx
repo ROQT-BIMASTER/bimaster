@@ -288,7 +288,8 @@ export const StitchDesignStudio = ({ initialTab }: { initialTab?: string }) => {
   return (
     <div className="space-y-4">
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid grid-cols-9 w-full">
+        <TabsList className="grid grid-cols-10 w-full">
+          <TabsTrigger value="huggs" className="text-xs"><Film className="h-3 w-3 mr-1" /> Estúdio Huggs</TabsTrigger>
           <TabsTrigger value="criar" className="text-xs"><Sparkles className="h-3 w-3 mr-1" /> Criar Imagem</TabsTrigger>
           <TabsTrigger value="galeria-criativa" className="text-xs"><ImageIcon className="h-3 w-3 mr-1" /> Galeria IA</TabsTrigger>
           <TabsTrigger value="roteirista" className="text-xs"><Clapperboard className="h-3 w-3 mr-1" /> Roteirista IA</TabsTrigger>
@@ -299,6 +300,9 @@ export const StitchDesignStudio = ({ initialTab }: { initialTab?: string }) => {
           <TabsTrigger value="brandkit" className="text-xs"><Palette className="h-3 w-3 mr-1" /> Brand Kit</TabsTrigger>
           <TabsTrigger value="versoes" className="text-xs"><GitBranch className="h-3 w-3 mr-1" /> Versões</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="huggs"><HuggsStudioTab /></TabsContent>
+
 
         {/* TAB: Roteirista IA Cinematográfico */}
         <TabsContent value="roteirista">
