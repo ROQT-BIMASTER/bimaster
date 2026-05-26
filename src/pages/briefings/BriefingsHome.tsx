@@ -72,7 +72,7 @@ import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { usePageBgColor } from "@/components/shared/PageBgCustomizer";
 import { useAuth } from "@/contexts/AuthContext";
-import { uniqueChannelName } from "@/lib/realtime";
+import { uniqueChannelName } from "@/lib/realtime/channelName";
 import { BriefingMembrosDialog } from "@/components/briefings/BriefingMembrosDialog";
 import { VincularProjetoDialog } from "@/components/briefings/VincularProjetoDialog";
 
