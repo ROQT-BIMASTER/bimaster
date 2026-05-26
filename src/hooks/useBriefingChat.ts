@@ -25,6 +25,7 @@ export interface Briefing {
   completude: number;
   template_id: string | null;
   projeto_id: string | null;
+  tarefa_id: string | null;
 }
 
 export interface TemplateSection {
@@ -65,6 +66,7 @@ export function useBriefingChat(briefingId: string | undefined) {
         completude: b.completude ?? 0,
         template_id: b.template_id,
         projeto_id: b.projeto_id,
+        tarefa_id: (b as any).tarefa_id ?? null,
       });
       setSections(((b as any).briefing_templates?.secoes ?? []) as TemplateSection[]);
 
