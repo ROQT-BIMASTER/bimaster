@@ -1,4 +1,4 @@
-import { ArrowLeft, Link2, MoreHorizontal, Download, Users } from "lucide-react";
+import { ArrowLeft, Link2, MoreHorizontal, Download, Users, ListPlus } from "lucide-react";
 import { useState } from "react";
 import { BriefingMembrosDialog } from "./BriefingMembrosDialog";
 import { useNavigate } from "react-router-dom";
@@ -22,6 +22,9 @@ interface Props {
   onVincularProjeto: () => void;
   onAbrirProjeto?: () => void;
   onExportar?: () => void;
+  onGerarTarefa?: () => void;
+  onAbrirTarefa?: () => void;
+  temTarefaVinculada?: boolean;
   podeEnviarAprovacao: boolean;
   jaEmAprovacao: boolean;
   onEnviarAprovacao: () => void;
@@ -35,6 +38,9 @@ export function BriefingHeader({
   onVincularProjeto,
   onAbrirProjeto,
   onExportar,
+  onGerarTarefa,
+  onAbrirTarefa,
+  temTarefaVinculada,
   podeEnviarAprovacao,
   jaEmAprovacao,
   onEnviarAprovacao,
@@ -99,6 +105,20 @@ export function BriefingHeader({
           <Button variant="outline" size="sm" onClick={onVincularProjeto}>
             <Link2 className="h-3.5 w-3.5 mr-1.5" />
             Vincular projeto
+          </Button>
+        )}
+
+        {projetoNome && onGerarTarefa && !temTarefaVinculada && (
+          <Button variant="outline" size="sm" onClick={onGerarTarefa}>
+            <ListPlus className="h-3.5 w-3.5 mr-1.5" />
+            Gerar tarefa
+          </Button>
+        )}
+
+        {temTarefaVinculada && onAbrirTarefa && (
+          <Button variant="outline" size="sm" onClick={onAbrirTarefa}>
+            <ListPlus className="h-3.5 w-3.5 mr-1.5" />
+            Abrir tarefa
           </Button>
         )}
 
