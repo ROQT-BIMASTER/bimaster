@@ -600,7 +600,7 @@ async function handleSyncPaginated(
   entityName: string,
   transformFn: (row: SqlRow) => Record<string, unknown>,
   conflictCol: string,
-  options?: { whereClause?: string; empresaId?: number; startPage?: number; maxPages?: number; orderBy?: string }
+  options?: { whereClause?: string; empresaId?: number; startPage?: number; maxPages?: number; orderBy?: string; pageSize?: number }
 ) {
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -611,6 +611,7 @@ async function handleSyncPaginated(
   const allErrors: string[] = [];
   let page = options?.startPage || 0;
   const maxPages = options?.maxPages || 999;
+  const pageSize = options?.pageSize || SQL_PAGE_SIZE;
   const TIME_LIMIT_MS = 110_000; // 110s — leaves 40s margin for upsert + response
   const whereFilter = options?.whereClause ? `WHERE ${options.whereClause}` : "";
   let stoppedByTimeGuard = false;
@@ -635,7 +636,7 @@ async function handleSyncPaginated(
         break;
       }
 
-      const offset = page * SQL_PAGE_SIZE;
+      const offset = page * pageSize;
       const orderByClause = options?.orderBy || "[ID Empresa], [Nota], [Seq]";
       const query = `
         SELECT * FROM (
@@ -643,9 +644,9 @@ async function handleSyncPaginated(
           FROM [${viewName}]
           ${whereFilter}
         ) AS _paged
-        WHERE _rn > ${offset} AND _rn <= ${offset + SQL_PAGE_SIZE}
+        WHERE _rn > ${offset} AND _rn <= ${offset + pageSize}
       `;
-      logger.log(`📥 ${entityName} page ${page + 1} (offset ${offset})${options?.empresaId ? ` empresa=${options.empresaId}` : ""}...`);
+      logger.log(`📥 ${entityName} page ${page + 1} (offset ${offset}, size ${pageSize})${options?.empresaId ? ` empresa=${options.empresaId}` : ""}...`);
       const rows = await executeSqlQuery(connection, query);
       logger.log(`📊 Got ${rows.length} rows`);
 
@@ -658,12 +659,13 @@ async function handleSyncPaginated(
       totalDeadlockRetries += deadlockRetries;
       if (errors.length > 0) allErrors.push(...errors);
 
-      if (rows.length < SQL_PAGE_SIZE) break;
+      if (rows.length < pageSize) break;
       page++;
       pagesProcessed++;
 
       await new Promise((r) => setTimeout(r, 50));
     }
+
 
     const duration = Date.now() - startMs;
     const status = stoppedByTimeGuard ? "partial" : (allErrors.length > 0 ? "partial" : "success");
