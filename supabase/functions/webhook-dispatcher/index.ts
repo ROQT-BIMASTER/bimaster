@@ -196,3 +196,4 @@ Deno.serve(secureHandler(
 
   return json({ error: "Rota não encontrada" }, 404, req);
 });
+});
