@@ -1,6 +1,7 @@
 // supabase/functions/notion-oauth-callback/index.ts
 // Receives the OAuth code from Notion, exchanges for a token, persists the connection.
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { secureHandler } from "../_shared/secure-handler.ts";
 
 const NOTION_TOKEN_URL = "https://api.notion.com/v1/oauth/token";
 
@@ -44,7 +45,11 @@ function htmlResponse(title: string, body: string, status = 200): Response {
   });
 }
 
-Deno.serve(async (req) => {
+// Público (OAuth callback) mas envolto em secureHandler para aplicar
+// WAF L7, IP blocklist e security headers via plataforma.
+Deno.serve(secureHandler(
+  { auth: "none", rateLimit: 30, rateLimitPrefix: "notion-oauth-callback" },
+  async (req) => {
   const url = new URL(req.url);
   const code = url.searchParams.get("code");
   const state = url.searchParams.get("state");
@@ -147,4 +152,5 @@ Deno.serve(async (req) => {
     "Notion conectado",
     `Workspace ${token.workspace_name ?? ""} pronto para receber briefings.`,
   );
+});
 });

@@ -5,6 +5,7 @@ import { jsonResponse as json, errorResponse } from "../_shared/response.ts";
 import { validateAnyAuth, AuthError } from "../_shared/auth.ts";
 import { checkRateLimit, RateLimitError } from "../_shared/rate-limit.ts";
 import { validateExternalUrl, SSRFError } from "../_shared/ssrf-guard.ts";
+import { secureHandler } from "../_shared/secure-handler.ts";
 
 const MAX_EVENTS_PER_RUN = 50;
 
@@ -22,7 +23,11 @@ async function signPayload(payload: string, secret: string): Promise<string> {
     .join("");
 }
 
-Deno.serve(async (req) => {
+// Envolve em secureHandler({ auth: "none" }) para aplicar WAF L7, IP blocklist
+// e security headers; a auth interna (validateAnyAuth) e rate-limit continuam abaixo.
+Deno.serve(secureHandler(
+  { auth: "none", rateLimit: 30, rateLimitPrefix: "webhook-dispatcher" },
+  async (req) => {
   const corsResp = handleCors(req);
   if (corsResp) return corsResp;
 
@@ -190,4 +195,5 @@ Deno.serve(async (req) => {
   }
 
   return json({ error: "Rota não encontrada" }, 404, req);
+});
 });
