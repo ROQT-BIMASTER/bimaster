@@ -127,8 +127,10 @@ export const HuggsStudioTab = () => {
               </div>
               <div className="space-y-2">
                 <Label>Avatar</Label>
-                <Select value={avatarId} onValueChange={setAvatarId}>
-                  <SelectTrigger><SelectValue placeholder="Selecione um avatar" /></SelectTrigger>
+                <Select value={avatarId} onValueChange={setAvatarId} disabled={avatars.length === 0}>
+                  <SelectTrigger>
+                    <SelectValue placeholder={loading ? "Carregando avatares..." : avatars.length === 0 ? "Nenhum avatar disponível" : "Selecione um avatar"} />
+                  </SelectTrigger>
                   <SelectContent>
                     {avatars.map((a) => (
                       <SelectItem key={a.avatar_id} value={a.avatar_id}>
@@ -137,11 +139,18 @@ export const HuggsStudioTab = () => {
                     ))}
                   </SelectContent>
                 </Select>
+                {!loading && avatars.length === 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    Nenhum avatar cadastrado na conta. Cadastre em app.heygen.com e recarregue.
+                  </p>
+                )}
               </div>
               <div className="space-y-2 md:col-span-2">
                 <Label>Voz</Label>
-                <Select value={voiceId} onValueChange={setVoiceId}>
-                  <SelectTrigger><SelectValue placeholder="Selecione uma voz" /></SelectTrigger>
+                <Select value={voiceId} onValueChange={setVoiceId} disabled={voices.length === 0}>
+                  <SelectTrigger>
+                    <SelectValue placeholder={loading ? "Carregando vozes..." : voices.length === 0 ? "Nenhuma voz disponível" : "Selecione uma voz"} />
+                  </SelectTrigger>
                   <SelectContent>
                     {voices.map((v) => (
                       <SelectItem key={v.voice_id} value={v.voice_id}>
@@ -150,6 +159,11 @@ export const HuggsStudioTab = () => {
                     ))}
                   </SelectContent>
                 </Select>
+                {!loading && voices.length === 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    Nenhuma voz disponível para os idiomas filtrados.
+                  </p>
+                )}
               </div>
             </div>
             <div className="space-y-2">

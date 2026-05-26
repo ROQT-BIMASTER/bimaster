@@ -8,6 +8,26 @@ type Action =
   | "create_translation" | "translation_status" | "list_my_translations"
   | "list_translation_languages";
 
+function mapInvokeError(err: unknown, action: string): string {
+  const anyErr = err as any;
+  const status: number | undefined = anyErr?.context?.response?.status ?? anyErr?.status;
+  // Try to read body returned by the function (FunctionsHttpError keeps the Response in context)
+  const ctxBody = anyErr?.context?.body;
+  if (typeof ctxBody === "string" && ctxBody.length) {
+    try {
+      const parsed = JSON.parse(ctxBody);
+      if (parsed?.error) return String(parsed.error);
+    } catch { /* ignore */ }
+  }
+  if (status === 404) return "Estúdio indisponível: módulo não publicado. Tente novamente em instantes.";
+  if (status === 403) return "Sem permissão para acessar o Estúdio Huggs.";
+  if (status === 401) return "Sessão expirada. Faça login novamente.";
+  if (status === 429) return "Muitas requisições. Aguarde alguns segundos e tente de novo.";
+  if (status && status >= 500) return `Erro no Estúdio (${status}). Verifique os logs.`;
+  if (err instanceof Error && err.message) return err.message;
+  return `Erro ao chamar o Estúdio (${action})`;
+}
+
 export function useHuggsStudio() {
   const [loading, setLoading] = useState(false);
   const call = useCallback(async <T = any>(action: Action, payload?: Record<string, any>): Promise<T | null> => {
@@ -16,12 +36,21 @@ export function useHuggsStudio() {
       const { data, error } = await supabase.functions.invoke("huggs-studio", {
         body: { action, payload },
       });
-      if (error) throw error;
-      if (!data?.ok) throw new Error(data?.error || "Falha na operação");
+      if (error) {
+        console.error("[useHuggsStudio]", action, error);
+        toast.error(mapInvokeError(error, action));
+        return null;
+      }
+      if (!data?.ok) {
+        const msg = data?.error || "Falha na operação";
+        console.error("[useHuggsStudio]", action, msg);
+        toast.error(msg);
+        return null;
+      }
       return data.data as T;
     } catch (err) {
-      const msg = err instanceof Error ? err.message : "Erro ao chamar o Estúdio";
-      toast.error(msg);
+      console.error("[useHuggsStudio]", action, err);
+      toast.error(mapInvokeError(err, action));
       return null;
     } finally {
       setLoading(false);
