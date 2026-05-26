@@ -1328,7 +1328,9 @@ export default function RelatorioConsolidadoPlanoReducao() {
                                 ? "bg-success text-success-foreground"
                                 : r.status === "em_andamento"
                                   ? "bg-warning text-warning-foreground"
-                                  : "bg-secondary text-secondary-foreground")
+                                  : r.status === "cancelado"
+                                    ? "bg-destructive text-destructive-foreground"
+                                    : "bg-secondary text-secondary-foreground")
                             }
                           >
                             <SelectValue />
