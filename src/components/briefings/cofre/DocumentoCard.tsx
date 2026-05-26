@@ -1,10 +1,12 @@
 // src/components/briefings/cofre/DocumentoCard.tsx
-import { FileText, Download, MoreVertical, Trash2, CheckCircle2, XCircle, Upload, ExternalLink } from "lucide-react";
+import { FileText, Download, MoreVertical, Trash2, CheckCircle2, XCircle, Upload, ExternalLink, Cloud, CloudOff, RefreshCw, AlertCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
-  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { useSyncDocumentoDrive, useGoogleDriveConfig } from "@/hooks/useGoogleDriveSync";
 import { supabase } from "@/integrations/supabase/client";
 import {
   triggerBlobDownload, downloadStorageBlob,
