@@ -233,22 +233,28 @@ export default function RelatorioConsolidadoPlanoReducao() {
   const revisoesEfetivas = useMemo(() => {
     const porFornecedor = new Map<string, any>();
     const semFornecedor: any[] = [];
-    (revisoes || []).forEach((r: any) => {
-      if (!r.fornecedor_codigo) {
-        semFornecedor.push(r);
-        return;
-      }
-      const key = String(r.fornecedor_codigo);
-      const atual = porFornecedor.get(key);
-      if (!atual) {
-        porFornecedor.set(key, r);
-        return;
-      }
-      const pAtual = TIPO_PRIORIDADE[String(atual.tipo_revisao)] || 0;
-      const pNovo = TIPO_PRIORIDADE[String(r.tipo_revisao)] || 0;
-      if (pNovo > pAtual) porFornecedor.set(key, r);
-    });
+    (revisoes || [])
+      .filter((r: any) => r.status !== "cancelado")
+      .forEach((r: any) => {
+        if (!r.fornecedor_codigo) {
+          semFornecedor.push(r);
+          return;
+        }
+        const key = String(r.fornecedor_codigo);
+        const atual = porFornecedor.get(key);
+        if (!atual) {
+          porFornecedor.set(key, r);
+          return;
+        }
+        const pAtual = TIPO_PRIORIDADE[String(atual.tipo_revisao)] || 0;
+        const pNovo = TIPO_PRIORIDADE[String(r.tipo_revisao)] || 0;
+        if (pNovo > pAtual) porFornecedor.set(key, r);
+      });
     return [...porFornecedor.values(), ...semFornecedor];
+  }, [revisoes]);
+
+  const revisoesCanceladas = useMemo(() => {
+    return ((revisoes || []) as any[]).filter((r: any) => r.status === "cancelado");
   }, [revisoes]);
 
   // IDs duplicados (mesmo fornecedor_codigo, não escolhidos como efetivo)
