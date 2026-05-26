@@ -402,6 +402,14 @@ Deno.serve(secureHandler({ auth: "none", rateLimit: 10, rateLimitPrefix: "asana-
                     if (!unchanged) {
                       await adminClient.from("projeto_tarefas").update(taskData).eq("id", localTaskId);
                       tasksSynced++;
+                    } else if (mappedSectionId) {
+                      // Even when the task itself is unchanged, reconcile section assignment —
+                      // older payloads were missing `memberships.project.gid` so tasks could be
+                      // bucketed into the wrong section. Only touch secao_id, cheap update.
+                      await adminClient.from("projeto_tarefas")
+                        .update({ secao_id: mappedSectionId })
+                        .eq("id", localTaskId)
+                        .neq("secao_id", mappedSectionId);
                     }
                   } else {
                     const { data: newTask, error: insertErr } = await adminClient.from("projeto_tarefas").insert({
