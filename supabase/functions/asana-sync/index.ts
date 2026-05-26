@@ -294,7 +294,7 @@ Deno.serve(secureHandler({ auth: "none", rateLimit: 10, rateLimitPrefix: "asana-
                 }
 
                 const tasksRes = await asanaGetPage(`/projects/${projectGid}/tasks`, asanaPat, {
-                  opt_fields: "name,notes,completed,completed_at,due_on,start_on,assignee,assignee.email,assignee.gid,memberships.section,parent,created_at,modified_at,num_subtasks,custom_fields,custom_fields.name,custom_fields.display_value,custom_fields.enum_value,custom_fields.enum_value.name,followers,followers.gid,followers.email,followers.name,tags,tags.name,tags.color,dependencies,dependencies.gid",
+                  opt_fields: "name,notes,completed,completed_at,due_on,start_on,assignee,assignee.email,assignee.gid,memberships.section,memberships.section.gid,memberships.project,memberships.project.gid,parent,created_at,modified_at,num_subtasks,custom_fields,custom_fields.name,custom_fields.display_value,custom_fields.enum_value,custom_fields.enum_value.name,followers,followers.gid,followers.email,followers.name,tags,tags.name,tags.color,dependencies,dependencies.gid",
                   completed_since: "2000-01-01T00:00:00.000Z",
                 }, pageOffset, TASKS_PAGE_SIZE);
 
@@ -327,8 +327,15 @@ Deno.serve(secureHandler({ auth: "none", rateLimit: 10, rateLimitPrefix: "asana-
                   const existing = existingMap.get(task.gid);
                   const unchanged = !!(existing && existing.modifiedAt && task.modified_at && existing.modifiedAt === task.modified_at);
 
-                  const sectionGid = task.memberships?.[0]?.section?.gid;
-                  const sectionId = sectionGid ? sectionMap.get(sectionGid) : defaultSectionId;
+                  // Find membership for THIS project (tasks can belong to multiple projects;
+                  // [0] may point to a section in another project, which used to silently fall
+                  // back to the default section — bunching everything into the first section).
+                  const projectMembership = (task.memberships || []).find(
+                    (m: any) => m?.project?.gid === projectGid
+                  ) || task.memberships?.[0];
+                  const sectionGid = projectMembership?.section?.gid;
+                  const mappedSectionId = sectionGid ? sectionMap.get(sectionGid) : undefined;
+                  const sectionId = mappedSectionId || defaultSectionId;
                   const assigneeId = task.assignee?.gid ? userMap.get(task.assignee.gid) : null;
 
                   // Normalize custom fields: prefer first non-empty value per field name (lowercased+trimmed key)
@@ -382,6 +389,7 @@ Deno.serve(secureHandler({ auth: "none", rateLimit: 10, rateLimitPrefix: "asana-
                     data_conclusao: task.completed_at || null,
                     responsavel_id: assigneeId || null, asana_gid: task.gid,
                     asana_modified_at: task.modified_at || null,
+                    secao_id: sectionId || defaultSectionId,
                   };
 
                   if (assigneeId) await ensureMembership(adminClient, localProjectId, assigneeId);
@@ -394,6 +402,14 @@ Deno.serve(secureHandler({ auth: "none", rateLimit: 10, rateLimitPrefix: "asana-
                     if (!unchanged) {
                       await adminClient.from("projeto_tarefas").update(taskData).eq("id", localTaskId);
                       tasksSynced++;
+                    } else if (mappedSectionId) {
+                      // Even when the task itself is unchanged, reconcile section assignment —
+                      // older payloads were missing `memberships.project.gid` so tasks could be
+                      // bucketed into the wrong section. Only touch secao_id, cheap update.
+                      await adminClient.from("projeto_tarefas")
+                        .update({ secao_id: mappedSectionId })
+                        .eq("id", localTaskId)
+                        .neq("secao_id", mappedSectionId);
                     }
                   } else {
                     const { data: newTask, error: insertErr } = await adminClient.from("projeto_tarefas").insert({
