@@ -129,16 +129,18 @@ export default function IntegracaoGoogleDrive() {
           {cfg?.connection_status !== "conectado" && (
             <Alert>
               <Info className="h-4 w-4" />
-              <AlertTitle>Como vincular a conta da agência</AlertTitle>
+              <AlertTitle>Vinculação da conta da agência</AlertTitle>
               <AlertDescription className="space-y-2 text-xs mt-1">
                 <p>
-                  A vinculação inicial é feita uma única vez pelo administrador do
-                  workspace, no painel <strong>Connectors → Google Drive</strong>.
-                  É um fluxo OAuth do Google (clica e autoriza) — não exige colar credenciais.
+                  A autorização inicial da conta Google da agência é realizada
+                  pelo <strong>administrador do sistema</strong> nos bastidores,
+                  via fluxo OAuth oficial do Google (sem necessidade de compartilhar
+                  senha ou credenciais).
                 </p>
                 <p>
-                  Após vinculada, clique em <strong>Verificar conexão</strong> abaixo
-                  para confirmar e o status mudará para "Conectado".
+                  Solicite ao administrador a vinculação e, em seguida, clique em
+                  <strong> Verificar conexão</strong> abaixo. O status mudará para
+                  "Conectado" assim que a conta estiver disponível.
                 </p>
               </AlertDescription>
             </Alert>
