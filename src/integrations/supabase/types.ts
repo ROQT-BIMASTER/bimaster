@@ -23147,6 +23147,249 @@ export type Database = {
           },
         ]
       }
+      huggs_studio_avatars: {
+        Row: {
+          consent_url: string | null
+          created_at: string
+          heygen_avatar_group_id: string | null
+          heygen_avatar_look_id: string | null
+          id: string
+          is_agency_shared: boolean
+          metadata: Json
+          nome: string
+          preview_url: string | null
+          status: string
+          tipo: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          consent_url?: string | null
+          created_at?: string
+          heygen_avatar_group_id?: string | null
+          heygen_avatar_look_id?: string | null
+          id?: string
+          is_agency_shared?: boolean
+          metadata?: Json
+          nome: string
+          preview_url?: string | null
+          status?: string
+          tipo?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          consent_url?: string | null
+          created_at?: string
+          heygen_avatar_group_id?: string | null
+          heygen_avatar_look_id?: string | null
+          id?: string
+          is_agency_shared?: boolean
+          metadata?: Json
+          nome?: string
+          preview_url?: string | null
+          status?: string
+          tipo?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      huggs_studio_translations: {
+        Row: {
+          created_at: string
+          error_message: string | null
+          heygen_translation_id: string | null
+          id: string
+          metadata: Json
+          source_url: string | null
+          source_video_id: string | null
+          status: string
+          target_language: string
+          title: string | null
+          updated_at: string
+          user_id: string
+          video_url: string | null
+        }
+        Insert: {
+          created_at?: string
+          error_message?: string | null
+          heygen_translation_id?: string | null
+          id?: string
+          metadata?: Json
+          source_url?: string | null
+          source_video_id?: string | null
+          status?: string
+          target_language: string
+          title?: string | null
+          updated_at?: string
+          user_id: string
+          video_url?: string | null
+        }
+        Update: {
+          created_at?: string
+          error_message?: string | null
+          heygen_translation_id?: string | null
+          id?: string
+          metadata?: Json
+          source_url?: string | null
+          source_video_id?: string | null
+          status?: string
+          target_language?: string
+          title?: string | null
+          updated_at?: string
+          user_id?: string
+          video_url?: string | null
+        }
+        Relationships: []
+      }
+      huggs_studio_usage: {
+        Row: {
+          created_at: string
+          custo_estimado_usd: number
+          id: string
+          mes: string
+          minutos_gerados: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          custo_estimado_usd?: number
+          id?: string
+          mes: string
+          minutos_gerados?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          custo_estimado_usd?: number
+          id?: string
+          mes?: string
+          minutos_gerados?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      huggs_studio_videos: {
+        Row: {
+          avatar_id: string | null
+          brand_kit_id: string | null
+          created_at: string
+          duration_seconds: number | null
+          error_message: string | null
+          heygen_video_id: string | null
+          id: string
+          is_agency_shared: boolean
+          language: string | null
+          metadata: Json
+          script: string | null
+          source_type: string
+          source_video_id: string | null
+          status: string
+          thumbnail_url: string | null
+          titulo: string
+          updated_at: string
+          user_id: string
+          video_url: string | null
+          voice_id: string | null
+        }
+        Insert: {
+          avatar_id?: string | null
+          brand_kit_id?: string | null
+          created_at?: string
+          duration_seconds?: number | null
+          error_message?: string | null
+          heygen_video_id?: string | null
+          id?: string
+          is_agency_shared?: boolean
+          language?: string | null
+          metadata?: Json
+          script?: string | null
+          source_type?: string
+          source_video_id?: string | null
+          status?: string
+          thumbnail_url?: string | null
+          titulo: string
+          updated_at?: string
+          user_id: string
+          video_url?: string | null
+          voice_id?: string | null
+        }
+        Update: {
+          avatar_id?: string | null
+          brand_kit_id?: string | null
+          created_at?: string
+          duration_seconds?: number | null
+          error_message?: string | null
+          heygen_video_id?: string | null
+          id?: string
+          is_agency_shared?: boolean
+          language?: string | null
+          metadata?: Json
+          script?: string | null
+          source_type?: string
+          source_video_id?: string | null
+          status?: string
+          thumbnail_url?: string | null
+          titulo?: string
+          updated_at?: string
+          user_id?: string
+          video_url?: string | null
+          voice_id?: string | null
+        }
+        Relationships: []
+      }
+      huggs_studio_voices: {
+        Row: {
+          created_at: string
+          gender: string | null
+          heygen_voice_id: string | null
+          id: string
+          is_agency_shared: boolean
+          language: string | null
+          metadata: Json
+          nome: string
+          preview_url: string | null
+          status: string
+          tipo: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          gender?: string | null
+          heygen_voice_id?: string | null
+          id?: string
+          is_agency_shared?: boolean
+          language?: string | null
+          metadata?: Json
+          nome: string
+          preview_url?: string | null
+          status?: string
+          tipo?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          gender?: string | null
+          heygen_voice_id?: string | null
+          id?: string
+          is_agency_shared?: boolean
+          language?: string | null
+          metadata?: Json
+          nome?: string
+          preview_url?: string | null
+          status?: string
+          tipo?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       huggs_usage_logs: {
         Row: {
           action: string
@@ -48472,6 +48715,7 @@ export type Database = {
         Args: { _user_id: string }
         Returns: boolean
       }
+      can_access_huggs_studio: { Args: { _user_id: string }; Returns: boolean }
       can_access_meeting: {
         Args: { _meeting_id: string; _user_id: string }
         Returns: boolean
@@ -51120,6 +51364,7 @@ export type Database = {
         | "gerente"
         | "consultor"
         | "suporte"
+        | "marketing"
       briefing_doc_status: "pendente" | "recebido" | "aprovado" | "rejeitado"
       checklist_arte_tipo:
         | "etiqueta_bula"
@@ -51375,6 +51620,7 @@ export const Constants = {
         "gerente",
         "consultor",
         "suporte",
+        "marketing",
       ],
       briefing_doc_status: ["pendente", "recebido", "aprovado", "rejeitado"],
       checklist_arte_tipo: [
