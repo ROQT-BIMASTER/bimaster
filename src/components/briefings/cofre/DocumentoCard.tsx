@@ -33,6 +33,10 @@ const STATUS_VARIANT: Record<BriefingDocStatus, string> = {
 };
 
 export function DocumentoCard({ doc, onAnexarArquivo, onMudarStatus, onExcluir }: Props) {
+  const { data: driveCfg } = useGoogleDriveConfig();
+  const syncDrive = useSyncDocumentoDrive(doc.briefing_id);
+  const driveEnabled = driveCfg?.connection_status === "conectado";
+
   const baixar = async () => {
     if (!doc.storage_path) return;
     const result = await downloadStorageBlob(doc.storage_path, "briefing-cofre");
@@ -44,6 +48,7 @@ export function DocumentoCard({ doc, onAnexarArquivo, onMudarStatus, onExcluir }
   };
 
   const dataEntrega = doc.data_entrega ? parseLocalDate(doc.data_entrega) : null;
+  const driveStatus = doc.drive_sync_status ?? "desabilitado";
 
   return (
     <div className="flex items-center gap-3 bg-card border border-border rounded-lg p-3 hover:bg-muted/30 transition-colors">
@@ -65,6 +70,38 @@ export function DocumentoCard({ doc, onAnexarArquivo, onMudarStatus, onExcluir }
               <ExternalLink className="h-2.5 w-2.5" /> Notion
             </Badge>
           )}
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                {doc.google_drive_url ? (
+                  <a href={doc.google_drive_url} target="_blank" rel="noreferrer">
+                    <Badge variant="outline" className="text-[10px] h-4 gap-1 cursor-pointer hover:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/30">
+                      <Cloud className="h-2.5 w-2.5" /> Drive
+                    </Badge>
+                  </a>
+                ) : driveStatus === "pendente" ? (
+                  <Badge variant="outline" className="text-[10px] h-4 gap-1 text-amber-600 border-amber-500/30">
+                    <RefreshCw className="h-2.5 w-2.5 animate-spin" /> Enviando
+                  </Badge>
+                ) : driveStatus === "erro" ? (
+                  <Badge variant="outline" className="text-[10px] h-4 gap-1 text-destructive border-destructive/30">
+                    <AlertCircle className="h-2.5 w-2.5" /> Drive
+                  </Badge>
+                ) : driveEnabled && doc.storage_path ? (
+                  <Badge variant="outline" className="text-[10px] h-4 gap-1 text-muted-foreground">
+                    <CloudOff className="h-2.5 w-2.5" /> Drive
+                  </Badge>
+                ) : null}
+              </TooltipTrigger>
+              <TooltipContent side="top" className="text-xs">
+                {doc.google_drive_url ? "Abrir no Google Drive" :
+                  driveStatus === "pendente" ? "Sincronizando..." :
+                  driveStatus === "erro" ? (doc.drive_sync_error || "Erro no envio") :
+                  !driveEnabled ? "Google Drive não configurado" :
+                  "Aguardando envio"}
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </div>
         <div className="flex items-center gap-2 mt-0.5 text-[11px] text-muted-foreground">
           {doc.fornecedor_nome && <span>{doc.fornecedor_nome}</span>}
@@ -109,6 +146,26 @@ export function DocumentoCard({ doc, onAnexarArquivo, onMudarStatus, onExcluir }
             <DropdownMenuItem onClick={() => onMudarStatus(doc, "pendente")}>
               Voltar para pendente
             </DropdownMenuItem>
+            {doc.storage_path && (
+              <>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  disabled={!driveEnabled || syncDrive.isPending}
+                  onClick={() => syncDrive.mutate(doc.id)}
+                >
+                  <Cloud className="h-3.5 w-3.5 mr-2" />
+                  {doc.google_drive_url ? "Reenviar ao Drive" : "Enviar ao Google Drive"}
+                </DropdownMenuItem>
+                {doc.google_drive_url && (
+                  <DropdownMenuItem asChild>
+                    <a href={doc.google_drive_url} target="_blank" rel="noreferrer">
+                      <ExternalLink className="h-3.5 w-3.5 mr-2" /> Abrir no Drive
+                    </a>
+                  </DropdownMenuItem>
+                )}
+              </>
+            )}
+            <DropdownMenuSeparator />
             <DropdownMenuItem
               className="text-destructive focus:text-destructive"
               onClick={() => onExcluir(doc)}
