@@ -3077,6 +3077,7 @@ export type Database = {
           posicao_no_lote: number | null
           projeto_id: string | null
           status: string
+          tarefa_id: string | null
           template_id: string | null
           tipo: string
           tipo_legado: string | null
@@ -3104,6 +3105,7 @@ export type Database = {
           posicao_no_lote?: number | null
           projeto_id?: string | null
           status?: string
+          tarefa_id?: string | null
           template_id?: string | null
           tipo: string
           tipo_legado?: string | null
@@ -3131,6 +3133,7 @@ export type Database = {
           posicao_no_lote?: number | null
           projeto_id?: string | null
           status?: string
+          tarefa_id?: string | null
           template_id?: string | null
           tipo?: string
           tipo_legado?: string | null
@@ -3146,6 +3149,13 @@ export type Database = {
             columns: ["intake_demanda_id"]
             isOneToOne: false
             referencedRelation: "intake_demandas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "briefings_tarefa_id_fkey"
+            columns: ["tarefa_id"]
+            isOneToOne: false
+            referencedRelation: "projeto_tarefas"
             referencedColumns: ["id"]
           },
           {
