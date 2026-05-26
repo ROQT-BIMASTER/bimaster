@@ -23,7 +23,11 @@ async function signPayload(payload: string, secret: string): Promise<string> {
     .join("");
 }
 
-Deno.serve(async (req) => {
+// Envolve em secureHandler({ auth: "none" }) para aplicar WAF L7, IP blocklist
+// e security headers; a auth interna (validateAnyAuth) e rate-limit continuam abaixo.
+Deno.serve(secureHandler(
+  { auth: "none", rateLimit: 30, rateLimitPrefix: "webhook-dispatcher" },
+  async (req) => {
   const corsResp = handleCors(req);
   if (corsResp) return corsResp;
 
