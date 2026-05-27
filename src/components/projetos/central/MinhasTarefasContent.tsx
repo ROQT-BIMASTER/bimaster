@@ -913,6 +913,42 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
           onHide={() => setShowRoleOverview(false)}
         />
       )}
+      {/* Chips de filtro de prazo (substituem CentralKPIs) */}
+      <CentralChipsPortal>
+        <CentralChip
+          label="Todas"
+          count={chipCounts.todas}
+          active={filterTime === "all"}
+          onClick={() => setFilterTime("all")}
+        />
+        <CentralChip
+          label="Sem prazo"
+          count={chipCounts.semPrazo}
+          active={filterTime === "sem_data"}
+          onClick={() => setFilterTime("sem_data")}
+        />
+        <CentralChip
+          label="Para hoje"
+          count={chipCounts.hoje}
+          active={filterTime === "hoje"}
+          onClick={() => setFilterTime("hoje")}
+        />
+        <CentralChip
+          label="Atrasadas"
+          count={chipCounts.atrasadas}
+          countVariant={
+            chipCounts.atrasadas > 0 && filterTime !== "atrasadas" ? "destructive" : undefined
+          }
+          active={filterTime === "atrasadas"}
+          onClick={() => setFilterTime("atrasadas")}
+        />
+        <CentralChip
+          label="Concluídas hoje"
+          count={chipCounts.concluidasHoje}
+          active={filterTime === "concluidas_hoje"}
+          onClick={() => setFilterTime("concluidas_hoje")}
+        />
+      </CentralChipsPortal>
       {/* Toolbar contextual portada para o slot do CentralLayout */}
       <CentralToolbarPortal>
       {/* Action bar */}
