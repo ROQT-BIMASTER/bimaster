@@ -407,25 +407,11 @@ export const GerenciamentoUsuarios = () => {
         return;
       }
 
-      // Pré-checar MFA TOTP do admin (edge function exige factor verificado).
-      // Usa o MFA customizado (mfa-manage), não o nativo do Supabase.
-      try {
-        const { data: mfaStatus } = await supabase.functions.invoke("mfa-manage", {
-          body: { action: "status" },
-        });
-        const hasTotp = !!(mfaStatus?.enrolled && mfaStatus?.verified);
-        if (!hasTotp) {
-          toast.error("MFA não configurado", {
-            description: "Ative o MFA TOTP em Segurança › MFA antes de alterar senhas de outros usuários.",
-            action: { label: "Configurar MFA", onClick: () => { window.location.href = "/dashboard/security/mfa"; } },
-          });
-          setLoading(false);
-          return;
-        }
-      } catch (e) {
-        logger.warn("Falha ao consultar status MFA:", e);
-      }
+      // (pré-check de MFA agora vive em runPasswordChange — evita duplicação)
     }
+
+    // Limpa retry antigo ao iniciar nova edição.
+    setMfaRetry(null);
 
     try {
       // 1) Atualizar perfil (nome e supervisor)
