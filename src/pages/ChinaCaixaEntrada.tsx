@@ -35,6 +35,7 @@ import {
 import { useEnviarDocumentoAoBrasil } from "@/hooks/useEnviarDocumentoAoBrasil";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { useChinaI18n } from "@/hooks/useChinaI18n";
+import { useConfirm } from "@/hooks/useConfirm";
 
 const VALID_FOLDERS: MailboxFolder[] = [
   "oc", "inbox", "starred", "sent", "drafts", "approved", "rejected", "trash",
@@ -423,7 +424,8 @@ export default function ChinaCaixaEntrada() {
             </button>
           )}
         </div>
-        {selectedIds.size > 0 && (
+        {
+        {const confirm = useConfirm();selectedIds.size > 0 && (
           <div className="flex flex-wrap items-center gap-1.5">
             <span className="text-[11px] text-muted-foreground">{t("inbox.selecionados", { count: selectedIds.size })}</span>
             <Button size="sm" variant="outline" className="h-7 text-xs" onClick={handleBulkRead}>
@@ -462,8 +464,8 @@ export default function ChinaCaixaEntrada() {
                   size="sm"
                   variant="destructive"
                   className="h-7 gap-1.5 text-xs"
-                  onClick={() => {
-                    if (!confirm(t("inbox.confirmExcluir"))) return;
+                  onClick={async () => {
+                    if (!(await confirm({ title: t("inbox.confirmExcluir"), destructive: true }))) return;
                     purge.mutate(Array.from(selectedIds));
                     setSelectedIds(new Set());
                   }}

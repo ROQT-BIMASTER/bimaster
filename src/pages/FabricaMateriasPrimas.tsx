@@ -26,6 +26,7 @@ import { VincularXmlInsumoDialog } from "@/components/fabrica/VincularXmlInsumoD
 import { TourButton } from "@/components/tour/TourButton";
 import { FABRICA_MATERIAS_PRIMAS_TOUR_ID, fabricaMateriasPrimasTourSteps } from "@/components/tour/tours/fabricaMateriasPrimasTour";
 import { ManualFabricaDrawer } from "@/components/fabrica/ManualFabricaDrawer";
+import { useConfirm } from "@/hooks/useConfirm";
 
 interface MateriaPrima {
   id: string;
@@ -56,6 +57,7 @@ const statusLabels = {
 };
 
 export default function FabricaMateriasPrimas() {
+  const confirm = useConfirm();
   const { hasPermission, loading: permissionsLoading } = useScreenPermissions();
   const [materiasPrimas, setMateriasPrimas] = useState<MateriaPrima[]>([]);
   const [loading, setLoading] = useState(true);
@@ -147,7 +149,7 @@ export default function FabricaMateriasPrimas() {
   };
 
   const handleExcluir = async (mp: MateriaPrima) => {
-    if (!confirm(`Tem certeza que deseja excluir a matéria-prima "${mp.nome}"?`)) {
+    if (!(await confirm({ title: `Tem certeza que deseja excluir a matéria-prima "${mp.nome}"?`, destructive: true }))) {
       return;
     }
 
@@ -171,7 +173,7 @@ export default function FabricaMateriasPrimas() {
     const novoStatus = !mp.ativo;
     const acao = novoStatus ? "ativar" : "inativar";
     
-    if (!confirm(`Tem certeza que deseja ${acao} a matéria-prima "${mp.nome}"?`)) {
+    if (!(await confirm({ title: `Tem certeza que deseja ${acao} a matéria-prima "${mp.nome}"?` }))) {
       return;
     }
 

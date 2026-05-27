@@ -13,8 +13,10 @@ import { ManualFabricaDrawer } from "@/components/fabrica/ManualFabricaDrawer";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useConfirm } from "@/hooks/useConfirm";
 
 export default function FabricaFormulas() {
+  const confirm = useConfirm();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [busca, setBusca] = useState("");
@@ -86,9 +88,9 @@ export default function FabricaFormulas() {
     }
   });
 
-  const handleExcluir = (e: React.MouseEvent, formula: any) => {
+  const handleExcluir = async (e: React.MouseEvent, formula: any) => {
     e.stopPropagation();
-    if (!confirm(`Tem certeza que deseja excluir a fórmula do produto "${formula.fabrica_produtos?.nome}"?`)) {
+    if (!(await confirm({ title: `Tem certeza que deseja excluir a fórmula do produto "${formula.fabrica_produtos?.nome}"?`, destructive: true }))) {
       return;
     }
     excluirMutation.mutate(formula.id);

@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/dialog";
 import { Plus, Trash2, ListChecks, ChevronUp, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
+import { useConfirm } from "@/hooks/useConfirm";
 import {
   CATEGORIA_LABELS, type ChecklistTemplate, type ChecklistItem,
 } from "@/hooks/useBriefingCofre";
@@ -110,7 +111,8 @@ export default function CofreTemplates() {
         </Button>
       </div>
 
-      {isLoading ? (
+      {
+      {const confirm = useConfirm();isLoading ? (
         <p className="text-sm text-muted-foreground">Carregando...</p>
       ) : (
         <div className="space-y-3">
@@ -145,8 +147,8 @@ export default function CofreTemplates() {
                   </Button>
                   <Button
                     size="icon" variant="ghost" className="h-8 w-8 text-destructive"
-                    onClick={() => {
-                      if (confirm(`Excluir template "${t.nome}"?`)) excluirTpl.mutate(t.id);
+                    onClick={async () => {
+                      if ((await confirm({ title: `Excluir template "${t.nome}"?`, destructive: true }))) excluirTpl.mutate(t.id);
                     }}
                   >
                     <Trash2 className="h-3.5 w-3.5" />

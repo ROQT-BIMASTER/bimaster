@@ -14,6 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { useAllEmpresas } from "@/hooks/useUserEmpresas";
 
 import { toast } from "sonner";
+import { useConfirm } from "@/hooks/useConfirm";
 interface Departamento {
   id: string;
   nome: string;
@@ -25,6 +26,7 @@ interface Departamento {
 }
 
 export function GerenciamentoDepartamentos() {
+  const confirm = useConfirm();
   const [departamentos, setDepartamentos] = useState<Departamento[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -126,7 +128,7 @@ export function GerenciamentoDepartamentos() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Tem certeza que deseja excluir este departamento?")) return;
+    if (!(await confirm({ title: "Tem certeza que deseja excluir este departamento?", destructive: true }))) return;
 
     const { error } = await supabase
       .from("departamentos")

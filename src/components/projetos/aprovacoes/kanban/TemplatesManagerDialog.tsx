@@ -53,6 +53,7 @@ import {
 } from "@/hooks/useKanbanTemplates";
 import type { KanbanPipeline } from "@/hooks/useKanbanAprovacoes";
 import { cn } from "@/lib/utils";
+import { useConfirm } from "@/hooks/useConfirm";
 
 interface Props {
   open: boolean;
@@ -204,7 +205,8 @@ function TemplateList({
   }
   return (
     <div className="space-y-2">
-      {templates.map((t) => {
+      {
+      {const confirm = useConfirm();templates.map((t) => {
         const Icon = ESCOPO_ICON[t.escopo];
         const isOwner = t.owner_id === currentUserId;
         return (
@@ -268,8 +270,8 @@ function TemplateList({
                       size="icon"
                       variant="ghost"
                       className="h-7 w-7 text-destructive"
-                      onClick={() => {
-                        if (confirm(`Remover template "${t.nome}"?`)) onDelete(t.id);
+                      onClick={async () => {
+                        if ((await confirm({ title: `Remover template "${t.nome}"?`, destructive: true }))) onDelete(t.id);
                       }}
                       title="Remover"
                     >

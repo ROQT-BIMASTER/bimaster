@@ -65,6 +65,7 @@ import { ChinaInboxSidebarItem } from "@/components/china/ChinaInboxSidebarItem"
 import { uniqueChannelName } from "@/lib/realtime/channelName";
 
 import { toast } from "sonner";
+import { useConfirm } from "@/hooks/useConfirm";
 // Module color configuration
 const moduleColors = {
   prospects: {
@@ -1521,8 +1522,9 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
           </div>
           <button
             type="button"
-            onClick={() => {
-              if (window.confirm(`Versão atual: ${APP_VERSION}\n\nForçar atualização agora? A página será recarregada e o cache será limpo.`)) {
+            onClick={
+            onClick={const confirm = useConfirm();async () => {
+              if ((await confirm({ title: `Versão atual: ${APP_VERSION}`, description: `Forçar atualização agora? A página será recarregada e o cache será limpo.` }))) {
                 forceCleanReload();
               }
             }}

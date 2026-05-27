@@ -33,6 +33,7 @@ import { MetasIAAssistente } from "./MetasIAAssistente";
 import { format, eachDayOfInterval, parseISO, isAfter, differenceInDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
+import { useConfirm } from "@/hooks/useConfirm";
 
 interface Props {
   projetoId: string;
@@ -55,6 +56,7 @@ const TIPOS_META = [
 ] as const;
 
 export function ProjetoMetasPanel({ projetoId, darkBg }: Props) {
+  const confirm = useConfirm();
   const { metas, isLoading, criarMeta, atualizarMeta, removerMeta, scoreGlobal, stats } =
     useProjetoMetas(projetoId);
   const { tarefas } = useProjetoTarefas(projetoId);
@@ -255,9 +257,9 @@ export function ProjetoMetasPanel({ projetoId, darkBg }: Props) {
                             size="icon"
                             variant="ghost"
                             className="h-7 w-7"
-                            onClick={(e) => {
+                            onClick={async (e) => {
                               e.stopPropagation();
-                              if (confirm(`Remover meta "${m.titulo}"?`)) removerMeta.mutate(m.id);
+                              if ((await confirm({ title: `Remover meta "${m.titulo}"?`, destructive: true }))) removerMeta.mutate(m.id);
                             }}
                           >
                             <Trash2 className="h-3.5 w-3.5 text-destructive" />

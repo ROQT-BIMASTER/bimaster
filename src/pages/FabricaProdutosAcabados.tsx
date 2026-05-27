@@ -58,8 +58,10 @@ import {
 } from "@/lib/status-families";
 import { useFilterMismatch } from "@/hooks/useFilterMismatch";
 import { FilterMismatchAlert } from "@/components/shared/FilterMismatchAlert";
+import { useConfirm } from "@/hooks/useConfirm";
 
 export default function FabricaProdutosAcabados() {
+  const confirm = useConfirm();
   const { hasPermission, loading: permLoading } = useScreenPermissions();
   const { isAdmin } = useUserRole();
   const navigate = useNavigate();
@@ -610,7 +612,7 @@ export default function FabricaProdutosAcabados() {
   };
 
   const handleExcluir = async (produto: any) => {
-    if (!confirm(`Tem certeza que deseja excluir o produto "${produto.nome}"?`)) {
+    if (!(await confirm({ title: `Tem certeza que deseja excluir o produto "${produto.nome}"?`, destructive: true }))) {
       return;
     }
     try {

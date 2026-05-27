@@ -24,6 +24,7 @@ import { toast } from "sonner";
 import { resolveStorageUrl } from "@/lib/utils/storage-url";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { useConfirm } from "@/hooks/useConfirm";
 
 interface Template {
   id: string;
@@ -486,6 +487,7 @@ function UploadAssetDialog({ onSuccess }: { onSuccess: () => void }) {
 }
 
 function AssetGallery() {
+  const confirm = useConfirm();
   const queryClient = useQueryClient();
   const [filterTipo, setFilterTipo] = useState<string>("all");
   const [searchTerm, setSearchTerm] = useState("");
@@ -657,8 +659,8 @@ function AssetGallery() {
                     size="sm"
                     variant="destructive"
                     className="h-7 w-7 p-0"
-                    onClick={() => {
-                      if (confirm('Excluir este asset?')) {
+                    onClick={async () => {
+                      if ((await confirm({ title: 'Excluir este asset?', destructive: true }))) {
                         deleteMutation.mutate(asset);
                       }
                     }}

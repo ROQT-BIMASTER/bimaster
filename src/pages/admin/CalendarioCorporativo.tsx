@@ -19,6 +19,7 @@ import { CalendarDays, RefreshCw, Plus, Trash2, Loader2 } from "lucide-react";
 import { useFeriados, type Feriado } from "@/hooks/useFeriados";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { useConfirm } from "@/hooks/useConfirm";
 
 const TIPOS = [
   { value: "nacional", label: "Nacional" },
@@ -155,7 +156,8 @@ export default function CalendarioCorporativo() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                {isLoading ? (
+                {
+                {const confirm = useConfirm();isLoading ? (
                   <div className="text-sm text-muted-foreground text-center py-8">Carregando…</div>
                 ) : feriados.length === 0 ? (
                   <div className="text-sm text-muted-foreground text-center py-8">
@@ -189,8 +191,8 @@ export default function CalendarioCorporativo() {
                           size="icon"
                           variant="ghost"
                           className="h-8 w-8"
-                          onClick={() => {
-                            if (confirm(`Remover feriado "${f.nome}"?`)) removerFeriado.mutate(f.id);
+                          onClick={async () => {
+                            if ((await confirm({ title: `Remover feriado "${f.nome}"?`, destructive: true }))) removerFeriado.mutate(f.id);
                           }}
                         >
                           <Trash2 className="h-3.5 w-3.5 text-destructive" />

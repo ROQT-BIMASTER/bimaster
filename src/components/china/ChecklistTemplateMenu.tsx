@@ -22,6 +22,7 @@ import {
   type ChecklistTemplate,
 } from "@/hooks/useChinaProdutoChecklist";
 import { useChinaI18n } from "@/hooks/useChinaI18n";
+import { useConfirm } from "@/hooks/useConfirm";
 
 interface Props {
   marca: string | null;
@@ -30,6 +31,7 @@ interface Props {
 }
 
 export function ChecklistTemplateMenu({ marca, colunasAtuais, onApply }: Props) {
+  const confirm = useConfirm();
   const { t } = useChinaI18n();
   const { data: templates = [], isLoading } = useChecklistTemplates(marca);
   const save = useSaveTemplate();
@@ -95,9 +97,9 @@ export function ChecklistTemplateMenu({ marca, colunasAtuais, onApply }: Props) 
                   </div>
                 </button>
                 <button
-                  onClick={(e) => {
+                  onClick={async (e) => {
                     e.stopPropagation();
-                    if (confirm(t("documento.templateMenu.confirmExcluir", { nome: t2.nome }))) del.mutate(t2.id);
+                    if ((await confirm({ title: t("documento.templateMenu.confirmExcluir", { nome: t2.nome }), destructive: true }))) del.mutate(t2.id);
                   }}
                   className="text-destructive hover:text-destructive/70 shrink-0"
                   title={t("documento.templateMenu.excluir")}

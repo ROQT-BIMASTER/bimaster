@@ -22,6 +22,7 @@ import { VincularChinaRowAction } from "@/components/china/VincularChinaRowActio
 import { isVincularRead, markVincularRead, markAllVincularRead, clearVincularRead, subscribeVincularRead } from "@/lib/china/vincularReadState";
 import { ReadStatusLegend } from "@/components/china/inbox/ReadStatusLegend";
 import { useChinaI18n } from "@/hooks/useChinaI18n";
+import { useConfirm } from "@/hooks/useConfirm";
 
 interface Props {
   items: MailboxRow[];
@@ -344,8 +345,9 @@ export function VincularMailboxList({
             </DropdownMenuItem>
             <DropdownMenuItem
               className="text-xs gap-2 text-amber-300 focus:text-amber-300"
-              onClick={() => {
-                if (!window.confirm(t("inbox.readMenu.confirmLimpar"))) return;
+              onClick={
+              onClick={const confirm = useConfirm();async () => {
+                if (!(await confirm({ title: t("inbox.readMenu.confirmLimpar"), destructive: true }))) return;
                 clearVincularRead();
                 toast.success(t("inbox.toasts.estadoLeituraZerado"));
               }}

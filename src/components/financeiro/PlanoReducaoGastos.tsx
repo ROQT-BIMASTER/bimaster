@@ -30,6 +30,7 @@ import { useAuditReductionPlan } from '@/hooks/useExpenseAI';
 import { AuditReductionDialog } from './AuditReductionDialog';
 import { OrcamentosAlternativos } from './OrcamentosAlternativos';
 import { FornecedorContratoBadge } from './contratos/FornecedorContratoBadge';
+import { useConfirm } from "@/hooks/useConfirm";
 
 interface PlanoReducaoGastosProps {
   dataInicio: string;
@@ -58,6 +59,7 @@ const prioridadeConfig = {
 };
 
 export function PlanoReducaoGastos({ dataInicio, dataFim, filterEmpresa }: PlanoReducaoGastosProps) {
+  const confirm = useConfirm();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [filterStatus, setFilterStatus] = useState<string>('todos');
@@ -390,7 +392,7 @@ export function PlanoReducaoGastos({ dataInicio, dataFim, filterEmpresa }: Plano
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Deseja realmente excluir esta marcação?")) return;
+    if (!(await confirm({ title: "Deseja realmente excluir esta marcação?", destructive: true }))) return;
     try {
       const { error } = await supabase.from('contas_pagar_revisao').delete().eq('id', id);
       if (error) throw error;
@@ -751,9 +753,9 @@ export function PlanoReducaoGastos({ dataInicio, dataFim, filterEmpresa }: Plano
                         </Button>
                       )}
                       {revisao.status !== 'cancelado' && revisao.status !== 'concluido' && (
-                        <Button variant="ghost" size="icon" className="h-7 w-7" title="Tirar do plano de redução"
+                        <Button variant="ghost" size="icon" className="h-7 w-7" title="Tirar do plano de reduçãasync o"
                           onClick={() => {
-                            if (confirm(`Tirar "${itemName}" do plano de redução? O item será marcado como cancelado e deixará de afetar os totais, mas o histórico será preservado.`)) {
+                            if ((await confirm({ title: `Tirar "${itemName}" do plano de redução? O item será marcado como cancelado e deixará de afetar os totais, mas o histórico será preservado.`, destructive: true }))) {
                               handleUpdateStatus(revisao.id, 'cancelado');
                             }
                           }}>

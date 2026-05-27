@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useChinaI18n } from "@/hooks/useChinaI18n";
+import { useConfirm } from "@/hooks/useConfirm";
 
 interface Props {
   current: SavedFilterPayload;
@@ -21,6 +22,7 @@ interface Props {
 }
 
 export function SavedFiltersMenu({ current, onApply }: Props) {
+  const confirm = useConfirm();
   const { t } = useChinaI18n();
   const { data: filters = [], isLoading } = useSavedFiltersRecebimento();
   const save = useSaveFilter();
@@ -70,7 +72,7 @@ export function SavedFiltersMenu({ current, onApply }: Props) {
               />
               <Trash2
                 className="h-3.5 w-3.5 text-muted-foreground cursor-pointer hover:text-red-500"
-                onClick={(e) => { e.stopPropagation(); if (confirm(t("recebimento.removerConfirm", { nome: f.nome }))) del.mutate(f.id); }}
+                onClick={async (e) => { e.stopPropagation(); if ((await confirm({ title: t("recebimento.removerConfirm", { nome: f.nome }), destructive: true }))) del.mutate(f.id); }}
               />
             </DropdownMenuItem>
           ))}

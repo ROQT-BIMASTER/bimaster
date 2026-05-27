@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import { Plus, Pencil, Trash2, Star, Tag, Sparkles } from "lucide-react";
 import { AnalyzeBrandWebsiteDialog } from "@/components/trade/AnalyzeBrandWebsiteDialog";
 import { uniqueChannelName } from "@/lib/realtime/channelName";
+import { useConfirm } from "@/hooks/useConfirm";
 
 interface Brand {
   id: string;
@@ -25,6 +26,7 @@ interface Brand {
 }
 
 export default function TradeOurBrands() {
+  const confirm = useConfirm();
   const [brands, setBrands] = useState<Brand[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -134,7 +136,7 @@ export default function TradeOurBrands() {
   };
 
   const handleDelete = async (brandId: string) => {
-    if (!confirm("Tem certeza que deseja excluir esta marca?")) return;
+    if (!(await confirm({ title: "Tem certeza que deseja excluir esta marca?", destructive: true }))) return;
 
     try {
       const { error } = await supabase

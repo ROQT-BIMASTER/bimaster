@@ -4,6 +4,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { BrowserRouter, Routes, Route, Navigate, useParams } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
+import { ConfirmDialogProvider } from "@/components/ui/confirm-dialog";
 import { EspelhoEvidenceListener } from "@/components/processos/EspelhoEvidenceListener";
 import { ConfirmConclusaoListener } from "@/components/projetos/ConfirmConclusaoListener";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -991,11 +992,13 @@ const App = () => {
                   <InboxDrawerProvider>
                   <ChatDrawerProvider>
                   <TooltipProvider delayDuration={0}>
+                    <ConfirmDialogProvider>
                     <Sonner />
 
                     <EspelhoEvidenceListener />
                     <ConfirmConclusaoListener />
                     <AppContent />
+                    </ConfirmDialogProvider>
                   </TooltipProvider>
                   </ChatDrawerProvider>
                   </InboxDrawerProvider>

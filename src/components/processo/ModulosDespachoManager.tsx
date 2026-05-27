@@ -18,6 +18,7 @@ import {
 } from "@/hooks/useModulosDespacho";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
+import { useConfirm } from "@/hooks/useConfirm";
 
 const CAPABILITY_LABELS = [
   { key: "pode_ciencia", label: "Ciência" },
@@ -74,7 +75,8 @@ export function ModulosDespachoManager() {
       </CardHeader>
       <CardContent className="px-4 pb-4 space-y-1">
         {isLoading && <p className="text-xs text-muted-foreground">Carregando...</p>}
-        {modulos.map((m) => {
+        {
+        {const confirm = useConfirm();modulos.map((m) => {
           const IconComp = ICON_MAP[m.icon_name] || ICON_MAP["file-text"];
           return (
             <React.Fragment key={m.id}>
@@ -102,8 +104,8 @@ export function ModulosDespachoManager() {
                   variant="ghost"
                   size="sm"
                   className="h-6 w-6 p-0 text-destructive hover:text-destructive"
-                  onClick={() => {
-                    if (confirm(`Remover módulo "${m.label}"?`)) {
+                  onClick={async () => {
+                    if ((await confirm({ title: `Remover módulo "${m.label}"?`, destructive: true }))) {
                       deleteModulo.mutate(m.id);
                     }
                   }}

@@ -10,8 +10,10 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { parseLocalDate } from "@/lib/utils/parseLocalDate";
 import { formatCurrency } from "@/lib/formatters";
+import { useConfirm } from "@/hooks/useConfirm";
 
 export function PlanoLovableSection() {
+  const confirm = useConfirm();
   const { data, planoVigente, upsert, remover, isLoading } = useLovablePlanConfig();
 
   const [plano, setPlano] = useState("Pro");
@@ -143,7 +145,7 @@ export function PlanoLovableSection() {
                   <Button
                     variant="ghost"
                     size="icon"
-                    onClick={() => { if (confirm("Remover este plano?")) remover.mutate(p.id); }}
+                    onClick={async () => { if ((await confirm({ title: "Remover este plano?", destructive: true }))) remover.mutate(p.id); }}
                   >
                     <Trash2 className="h-4 w-4 text-destructive" />
                   </Button>

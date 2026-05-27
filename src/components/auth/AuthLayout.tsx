@@ -3,16 +3,18 @@ import { Link } from "react-router-dom";
 import { useLanguage } from "@/contexts/LanguageContext";
 import logoHuugs from "@/assets/logo-huugs.jpg";
 import { APP_VERSION, forceCleanReload } from "@/lib/version";
+import { useConfirm } from "@/hooks/useConfirm";
 
 interface AuthLayoutProps {
   children: ReactNode;
 }
 
 export const AuthLayout = ({ children }: AuthLayoutProps) => {
+  const confirm = useConfirm();
   const { t } = useLanguage();
 
-  const handleVersionClick = () => {
-    if (window.confirm(`Versão atual: ${APP_VERSION}\n\nForçar atualização agora? A página será recarregada e o cache será limpo.`)) {
+  const handleVersionClick = async () => {
+    if ((await confirm({ title: `Versão atual: ${APP_VERSION}`, description: `Forçar atualização agora? A página será recarregada e o cache será limpo.` }))) {
       forceCleanReload();
     }
   };

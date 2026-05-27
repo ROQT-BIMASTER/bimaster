@@ -9,6 +9,7 @@ import { Plus, Trash2, Edit2, Save, X } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { logger } from "@/lib/logger";
+import { useConfirm } from "@/hooks/useConfirm";
 
 interface GerenciarProdutosLojaDialogProps {
   open: boolean;
@@ -31,6 +32,7 @@ export const GerenciarProdutosLojaDialog = ({
   onOpenChange, 
   storeId 
 }: GerenciarProdutosLojaDialogProps) => {
+  const confirm = useConfirm();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -144,7 +146,7 @@ export const GerenciarProdutosLojaDialog = ({
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Tem certeza que deseja excluir este produto?")) return;
+    if (!(await confirm({ title: "Tem certeza que deseja excluir este produto?", destructive: true }))) return;
 
     setLoading(true);
     try {

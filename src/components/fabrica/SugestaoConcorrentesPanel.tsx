@@ -13,6 +13,7 @@ import {
   useReabrirDisputa,
 } from "@/hooks/useProdutoSugestao";
 import { formatCurrency } from "@/lib/formatters";
+import { useConfirm } from "@/hooks/useConfirm";
 
 interface Props {
   sugestaoId: string;
@@ -20,6 +21,7 @@ interface Props {
 }
 
 export function SugestaoConcorrentesPanel({ sugestaoId, vencedorId }: Props) {
+  const confirm = useConfirm();
   const [termo, setTermo] = useState("");
   const { data: concorrentes = [], isLoading } = useConcorrentesSugestao(sugestaoId);
   const { data: candidatos = [], isFetching: buscando } = useBuscarProdutoParaVincular(termo, sugestaoId);
@@ -183,8 +185,8 @@ export function SugestaoConcorrentesPanel({ sugestaoId, vencedorId }: Props) {
                   variant="ghost"
                   size="sm"
                   className="h-7 w-7 p-0 text-destructive"
-                  onClick={() => {
-                    if (confirm("Desvincular este concorrente da Sugestão?")) {
+                  onClick={async () => {
+                    if ((await confirm({ title: "Desvincular este concorrente da Sugestão?", destructive: true }))) {
                       desvincular.mutate(c.id);
                     }
                   }}

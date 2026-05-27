@@ -37,6 +37,7 @@ import {
 } from "@/hooks/useFornecedorContrato";
 import { parseLocalDate } from "@/lib/utils/parseLocalDate";
 import { formatCurrency } from "@/lib/formatters";
+import { useConfirm } from "@/hooks/useConfirm";
 
 interface Props {
   open: boolean;
@@ -64,6 +65,7 @@ export function FornecedorContratoDialog({
   fornecedorCodigo,
   fornecedorNome,
 }: Props) {
+  const confirm = useConfirm();
   const key = resolveFornecedorKey(fornecedorCodigo, fornecedorNome);
   const { data: contratos = [], isLoading, refetch } = useFornecedorContrato(
     fornecedorCodigo,
@@ -243,7 +245,7 @@ export function FornecedorContratoDialog({
   }
 
   async function handleDelete(id: string) {
-    if (!confirm("Remover este contrato definitivamente?")) return;
+    if (!(await confirm({ title: "Remover este contrato definitivamente?", destructive: true }))) return;
     const { error } = await supabase
       .from("fornecedor_contratos" as any)
       .delete()

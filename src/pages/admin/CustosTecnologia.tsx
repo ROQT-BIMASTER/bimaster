@@ -9,11 +9,13 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { PlanoLovableSection } from "@/components/admin/PlanoLovableSection";
+import { useConfirm } from "@/hooks/useConfirm";
 
 const formatBRL = (v: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v || 0);
 
 export default function CustosTecnologia() {
+  const confirm = useConfirm();
   const { custos, isLoading, upsert, remover } = useCustosTecnologia();
   const [mes, setMes] = useState<string>(() => new Date().toISOString().slice(0, 7));
   const [fornecedor, setFornecedor] = useState("Hosting");
@@ -147,8 +149,8 @@ export default function CustosTecnologia() {
                   <Button
                     variant="ghost"
                     size="icon"
-                    onClick={() => {
-                      if (confirm("Remover este lançamento?")) remover.mutate(c.id);
+                    onClick={async () => {
+                      if ((await confirm({ title: "Remover este lançamento?", destructive: true }))) remover.mutate(c.id);
                     }}
                   >
                     <Trash2 className="h-4 w-4 text-destructive" />
