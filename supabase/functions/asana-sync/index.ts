@@ -35,7 +35,19 @@ Deno.serve(secureHandler({ auth: "none", rateLimit: 10, rateLimitPrefix: "asana-
 
     let userId: string;
     if (isCron) {
-      userId = "4af78a22-7d9a-495a-9a4f-f846d94af061";
+      const cronUserId = Deno.env.get("CRON_USER_ID");
+      if (!cronUserId) {
+        logger.error("CRON_USER_ID não configurado — cron abortado para evitar misatribuição");
+        return json({
+          error: "Configuração de cron incompleta (CRON_USER_ID ausente).",
+          error_code: "CRON_USER_NOT_CONFIGURED",
+        }, 503);
+      }
+      userId = cronUserId;
+      logger.info("asana-sync invoked as cron", {
+        user_id: userId,
+        via: cronSecret ? "x-cron-secret" : "service-role",
+      });
     } else {
       if (!authHeader?.startsWith("Bearer ")) return json({ error: "Não autorizado" }, 401);
       const supabase = createClient(
