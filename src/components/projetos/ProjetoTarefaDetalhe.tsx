@@ -264,6 +264,30 @@ export function ProjetoTarefaDetalhe({
   const isCompleted = tarefa.status === "concluida";
   const isPendingValidation = (tarefa as any).validacao_status === "pendente_validacao";
   const estagioInfo = ESTAGIO_OPTIONS.find(e => e.value === tarefa.estagio);
+  const responsaveisDetalhe = (() => {
+    const lista = (tarefa.responsaveis || []).map(r => ({
+      user_id: r.user_id,
+      nome: r.nome || "Membro",
+      avatar_url: r.avatar_url || null,
+      origem: "junction" as const,
+    }));
+
+    if (tarefa.responsavel_id && tarefa.responsavel && !lista.some(r => r.user_id === tarefa.responsavel_id)) {
+      lista.unshift({
+        user_id: tarefa.responsavel_id,
+        nome: tarefa.responsavel.nome || "Membro",
+        avatar_url: tarefa.responsavel.avatar_url || null,
+        origem: "principal" as const,
+      });
+    }
+
+    return lista;
+  })();
+  const seguidoresDetalhe = (tarefa.colaboradores || []).map(c => ({
+    user_id: c.user_id,
+    nome: c.nome || "Membro",
+    avatar_url: c.avatar_url || null,
+  }));
 
   const handleEnviarParaValidacao = async () => {
     // Check if there are linked products in junction table
@@ -734,16 +758,9 @@ export function ProjetoTarefaDetalhe({
                     <TarefaResponsavelSeguidoresEditor
                       tarefaId={tarefa.id}
                       projetoId={projetoId}
-                      responsaveis={(tarefa.responsaveis || []).map(r => ({
-                        user_id: r.user_id,
-                        nome: r.nome || "Membro",
-                        avatar_url: r.avatar_url || null,
-                      }))}
-                      colaboradores={(tarefa.colaboradores || []).map(c => ({
-                        user_id: c.user_id,
-                        nome: c.nome || "Membro",
-                        avatar_url: c.avatar_url || null,
-                      }))}
+                      responsaveis={responsaveisDetalhe}
+                      colaboradores={seguidoresDetalhe}
+                      onSetResponsavelPrincipal={(userId) => onUpdate(tarefa.id, { responsavel_id: userId })}
                     />
                   )}
 
