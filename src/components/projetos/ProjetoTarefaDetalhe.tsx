@@ -176,7 +176,9 @@ export function ProjetoTarefaDetalhe({
     },
     enabled: !!projetoId,
   });
-  const isProjetoProduto = !!projetoTipo && projetoTipo !== "generico";
+  // Produto só faz sentido em projetos de desenvolvimento (PLM). Outros
+  // tipos (kanban, documentacao, generico) não devem expor o campo.
+  const isProjetoProduto = projetoTipo === "desenvolvimento_produto" || projetoTipo === "desenvolvimento";
 
   // Fetch creator profile for metadata display
   const criadorId = (tarefa as any)?.criador_id;
