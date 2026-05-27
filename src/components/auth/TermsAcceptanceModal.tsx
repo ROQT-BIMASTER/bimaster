@@ -10,8 +10,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useTermsAcceptance } from "@/hooks/useTermsAcceptance";
-import { toast } from "@/hooks/use-toast";
 import { FileText, Shield } from "lucide-react";
+import { toast } from "sonner";
 
 export const TermsAcceptanceModal = () => {
   const { needsAcceptance, loading, acceptTerms } = useTermsAcceptance();
@@ -24,16 +24,9 @@ export const TermsAcceptanceModal = () => {
     setSubmitting(true);
     try {
       await acceptTerms();
-      toast({
-        title: "Termos aceitos",
-        description: "Obrigado por aceitar nossos termos e política de privacidade.",
-      });
+      toast.success("Termos aceitos", { description: "Obrigado por aceitar nossos termos e política de privacidade." });
     } catch {
-      toast({
-        title: "Erro",
-        description: "Não foi possível registrar o aceite. Tente novamente.",
-        variant: "destructive",
-      });
+      toast.error("Erro", { description: "Não foi possível registrar o aceite. Tente novamente." });
     } finally {
       setSubmitting(false);
     }

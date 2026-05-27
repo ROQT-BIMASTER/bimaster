@@ -4,9 +4,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { useUserRole } from "@/hooks/useUserRole";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { toast } from "@/hooks/use-toast";
 import { Shield, Search, Download, UserX, AlertTriangle } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { toast } from "sonner";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -56,10 +56,10 @@ const LGPDAdmin = () => {
       if (error) throw error;
       setResults(data || []);
       if (!data?.length) {
-        toast({ title: "Nenhum usuário encontrado" });
+        toast("Nenhum usuário encontrado");
       }
     } catch {
-      toast({ title: "Erro na busca", variant: "destructive" });
+      toast.error("Erro na busca");
     } finally {
       setSearching(false);
     }
@@ -104,9 +104,9 @@ const LGPDAdmin = () => {
         metadata: { exported_tables: ["profiles", "team_member_details", "terms_acceptance", "audit_logs"] } as any,
       } as any);
 
-      toast({ title: "Dados exportados com sucesso" });
+      toast("Dados exportados com sucesso");
     } catch {
-      toast({ title: "Erro ao exportar dados", variant: "destructive" });
+      toast.error("Erro ao exportar dados");
     } finally {
       setExporting(null);
     }
@@ -148,14 +148,14 @@ const LGPDAdmin = () => {
         metadata: { original_name: userName, anonymized_tables: ["profiles", "team_member_details"] } as any,
       } as any);
 
-      toast({ title: "Dados anonimizados com sucesso", description: `Dados pessoais de ${userName} foram substituídos.` });
+      toast.success("Dados anonimizados com sucesso", { description: `Dados pessoais de ${userName} foram substituídos.` });
       
       // Atualizar resultados
       setResults(prev => prev.map(u => 
         u.id === userId ? { ...u, nome: `Usuário Anonimizado ${anonId}`, email: `anonimizado-${anonId}@removed.lgpd` } : u
       ));
     } catch {
-      toast({ title: "Erro ao anonimizar dados", variant: "destructive" });
+      toast.error("Erro ao anonimizar dados");
     } finally {
       setAnonymizing(null);
     }

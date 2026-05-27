@@ -10,10 +10,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Ban, BarChart3, CheckCircle2, Clock, Copy, ExternalLink, FileText, Layers, Trash2, Users } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { toast } from "@/hooks/use-toast";
 import { buildDynamicFormPublicUrl, buildTeamFormTokenUrl } from "@/lib/constants/publicDomain";
 import { DynamicFormResponsesDialog } from "./DynamicFormResponsesDialog";
 import { useState } from "react";
+import { toast } from "sonner";
 
 export function FormSubmissionsPanel() {
   const { tokens, submissions, isLoadingTokens, isLoadingSubmissions, revokeToken, deleteToken } = useTeamFormTokens();
@@ -127,7 +127,7 @@ export function FormSubmissionsPanel() {
                           className="h-7 gap-1"
                           onClick={() => {
                             navigator.clipboard.writeText(publicUrl);
-                            toast({ title: "Link copiado!" });
+                            toast("Link copiado!");
                           }}
                         >
                           <Copy className="h-3 w-3" />

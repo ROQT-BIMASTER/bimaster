@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "@/hooks/use-toast";
 import type { SecurityDefinerStatus } from "@/lib/security/securityDefinerStatus";
+import { toast } from "sonner";
 
 interface UpsertOverrideInput {
   schema_name: string;
@@ -38,14 +38,10 @@ export function useSecurityDefinerOverride() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["security-definer-overrides"] });
-      toast({ title: "Revisão salva", description: "Status e nota atualizados." });
+      toast.success("Revisão salva", { description: "Status e nota atualizados." });
     },
     onError: (err: Error) => {
-      toast({
-        title: "Erro ao salvar revisão",
-        description: err.message,
-        variant: "destructive",
-      });
+      toast.error("Erro ao salvar revisão", { description: err.message });
     },
   });
 }

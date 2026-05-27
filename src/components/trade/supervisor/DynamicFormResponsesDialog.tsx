@@ -11,8 +11,7 @@ import { Download, Search } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { exportToExcel } from "@/utils/excelExport";
-import { toast } from "@/hooks/use-toast";
-
+import { toast } from "sonner";
 interface Props {
   formId: string | null;
   formName: string;
@@ -110,7 +109,7 @@ export function DynamicFormResponsesDialog({ formId, formName, open, onOpenChang
 
   const handleExport = async () => {
     if (filteredRows.length === 0) {
-      toast({ title: "Nada para exportar", variant: "destructive" });
+      toast.error("Nada para exportar");
       return;
     }
     try {
@@ -125,9 +124,9 @@ export function DynamicFormResponsesDialog({ formId, formName, open, onOpenChang
         columns,
         includeTimestamp: true,
       });
-      toast({ title: "Excel gerado com sucesso" });
+      toast("Excel gerado com sucesso");
     } catch (e: any) {
-      toast({ title: "Erro ao exportar", description: e?.message, variant: "destructive" });
+      toast.error("Erro ao exportar", { description: e?.message });
     }
   };
 

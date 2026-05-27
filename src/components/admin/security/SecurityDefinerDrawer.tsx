@@ -13,8 +13,7 @@ import {
   type SecurityDefinerStatus,
 } from "@/lib/security/securityDefinerStatus";
 import { Copy, FileCode2 } from "lucide-react";
-import { toast } from "@/hooks/use-toast";
-
+import { toast } from "sonner";
 interface Props {
   fn: SecurityDefinerFunctionEnriched | null;
   open: boolean;
@@ -47,7 +46,7 @@ export function SecurityDefinerDrawer({ fn, open, onOpenChange }: Props) {
 
   const copyPath = (path: string) => {
     navigator.clipboard.writeText(path);
-    toast({ title: "Copiado", description: path });
+    toast.success("Copiado", { description: path });
   };
 
   return (

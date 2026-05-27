@@ -6,8 +6,7 @@ import { Label } from "@/components/ui/label";
 import { useTeamFormTokens } from "@/hooks/useTeamFormTokens";
 import { buildTeamFormTokenUrl } from "@/lib/constants/publicDomain";
 import { Copy, ExternalLink, Link2, Loader2, Check } from "lucide-react";
-import { toast } from "@/hooks/use-toast";
-
+import { toast } from "sonner";
 export function GenerateFormLinkDialog() {
   const [open, setOpen] = useState(false);
   const [label, setLabel] = useState("");
@@ -21,7 +20,7 @@ export function GenerateFormLinkDialog() {
 
   const handleGenerate = async () => {
     if (!label.trim()) {
-      toast({ title: "Informe um nome para o formulário", variant: "destructive" });
+      toast.error("Informe um nome para o formulário");
       return;
     }
 
@@ -40,7 +39,7 @@ export function GenerateFormLinkDialog() {
   const handleCopy = async () => {
     await navigator.clipboard.writeText(formLink);
     setCopied(true);
-    toast({ title: "Link copiado!" });
+    toast("Link copiado!");
     setTimeout(() => setCopied(false), 2000);
   };
 
