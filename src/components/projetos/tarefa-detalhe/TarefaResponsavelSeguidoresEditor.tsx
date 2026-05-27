@@ -265,10 +265,6 @@ export function TarefaResponsavelSeguidoresEditor({
               <CommandItem
                 value="__me__"
                 onSelect={() => handleToggle(user.id)}
-                onMouseDown={(e) => {
-                  e.preventDefault();
-                  handleToggle(user.id);
-                }}
                 className="text-xs"
               >
                 <UserPlus className="h-3.5 w-3.5 mr-2" />
