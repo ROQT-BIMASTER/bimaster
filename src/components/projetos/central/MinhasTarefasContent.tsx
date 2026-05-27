@@ -313,7 +313,7 @@ const ListSection = memo(function ListSection({
 });
 
 interface Props {
-  initialFilter?: "atrasadas" | "hoje" | "sem_data" | null;
+  initialFilter?: "atrasadas" | "hoje" | "sem_data" | "concluidas_hoje" | null;
 }
 
 export function MinhasTarefasContent({ initialFilter = null }: Props) {
