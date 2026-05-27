@@ -172,6 +172,13 @@ export function TarefaResponsavelSeguidoresEditor({
   /** Substitui um responsável por outro em um clique (add novo + remove antigo). */
   const trocarResponsavel = (oldUserId: string, newUserId: string) => {
     if (oldUserId === newUserId) return;
+    const alvo = responsaveis.find((r) => r.user_id === oldUserId);
+    if (alvo?.origem === "principal" && onSetResponsavelPrincipal) {
+      onSetResponsavelPrincipal(newUserId);
+      toast.success("Responsável atualizado");
+      onChange?.();
+      return;
+    }
     adicionarResponsavel(newUserId);
     removerResponsavel(oldUserId);
   };
