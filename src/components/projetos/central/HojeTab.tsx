@@ -196,14 +196,16 @@ export function HojeTab({ onGoToTarefas }: Props) {
           </div>
 
           {loadingTarefas ? (
-            <div className="space-y-3">
-              {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-16 w-full rounded-lg" />)}
+            <div className="space-y-2">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <Skeleton key={i} className={cn("w-full rounded-lg", isCompact ? "h-11" : "h-14")} />
+              ))}
             </div>
           ) : totalDestaque === 0 ? (
             <EmptyState
-              icon={Rocket}
-              title="Tudo em dia!"
-              description="Nenhuma tarefa atrasada, para hoje ou sem datas planejadas. Aproveite para planejar o que vem a seguir."
+              icon={CalendarDays}
+              title="Nada por aqui ainda"
+              description="Nenhuma tarefa atrasada, para hoje ou sem datas planejadas."
               actionLabel="Ver todas as tarefas"
               onAction={() => onGoToTarefas()}
             />
@@ -214,46 +216,49 @@ export function HojeTab({ onGoToTarefas }: Props) {
                   <button
                     type="button"
                     onClick={() => onGoToTarefas("atrasadas")}
-                    className="text-xs font-semibold uppercase tracking-wider text-destructive mb-2 hover:underline focus:outline-none focus-visible:underline"
+                    className={cn(
+                      "text-xs font-medium uppercase tracking-wide text-destructive mb-2 hover:underline focus:outline-none focus-visible:underline",
+                      isCompact ? "mt-0" : "mt-0",
+                    )}
                   >
                     Atrasadas · {atrasadas.length}
                   </button>
                   <div className="space-y-2">
                     {atrasadas.slice(0, MAX_ITEMS).map(t => (
-                      <TarefaRow key={t.id} tarefa={t} onToggle={handleToggle} />
+                      <TarefaRow key={t.id} tarefa={t} onToggle={handleToggle} isCompact={isCompact} />
                     ))}
                   </div>
                 </div>
               )}
               {hoje.length > 0 && atrasadas.length < MAX_ITEMS && (
-                <div className={atrasadas.length > 0 ? "mt-4" : ""}>
+                <div className={atrasadas.length > 0 ? (isCompact ? "mt-3" : "mt-4") : ""}>
                   <button
                     type="button"
                     onClick={() => onGoToTarefas("hoje")}
-                    className="text-xs font-semibold uppercase tracking-wider text-primary mb-2 hover:underline focus:outline-none focus-visible:underline"
+                    className="text-xs font-medium uppercase tracking-wide text-primary mb-2 hover:underline focus:outline-none focus-visible:underline"
                   >
                     Hoje · {hoje.length}
                   </button>
                   <div className="space-y-2">
                     {hoje.slice(0, MAX_ITEMS - atrasadas.length).map(t => (
-                      <TarefaRow key={t.id} tarefa={t} onToggle={handleToggle} />
+                      <TarefaRow key={t.id} tarefa={t} onToggle={handleToggle} isCompact={isCompact} />
                     ))}
                   </div>
                 </div>
               )}
               {semData.length > 0 && (atrasadas.length + hoje.length) < MAX_ITEMS && (
-                <div className={(atrasadas.length + hoje.length) > 0 ? "mt-4" : ""}>
+                <div className={(atrasadas.length + hoje.length) > 0 ? (isCompact ? "mt-3" : "mt-4") : ""}>
                   <button
                     type="button"
                     onClick={() => onGoToTarefas("sem_data")}
-                    className="text-xs font-semibold uppercase tracking-wider text-amber-600 dark:text-amber-400 mb-2 flex items-center gap-1.5 hover:underline focus:outline-none focus-visible:underline"
+                    className="text-xs font-medium uppercase tracking-wide text-amber-600 dark:text-amber-400 mb-2 flex items-center gap-1.5 hover:underline focus:outline-none focus-visible:underline"
                   >
                     <CalendarOff className="h-3 w-3 animate-pulse-slow" />
                     Sem datas planejadas · {semData.length}
                   </button>
                   <div className="space-y-2">
                     {semData.slice(0, MAX_ITEMS - atrasadas.length - hoje.length).map(t => (
-                      <TarefaRow key={t.id} tarefa={t} onToggle={handleToggle} />
+                      <TarefaRow key={t.id} tarefa={t} onToggle={handleToggle} isCompact={isCompact} />
                     ))}
                   </div>
                 </div>
