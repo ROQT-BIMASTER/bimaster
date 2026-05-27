@@ -176,160 +176,160 @@ export function HojeTab({ onGoToTarefas }: Props) {
           onClick={() => onGoToTarefas("atrasadas")}
         />
       </CentralChipsPortal>
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
-            <CalendarDays className="h-5 w-5 text-primary" />
-            Para focar agora
-          </h2>
-          <Button variant="ghost" size="sm" onClick={() => onGoToTarefas()} className="gap-1 text-xs">
-            Ver todas em Tarefas <ArrowRight className="h-3 w-3" />
-          </Button>
+      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_320px] gap-6">
+        <div className="min-w-0 space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
+              <CalendarDays className="h-5 w-5 text-primary" />
+              Para focar agora
+            </h2>
+            <Button variant="ghost" size="sm" onClick={() => onGoToTarefas()} className="gap-1 text-xs">
+              Ver todas em Tarefas <ArrowRight className="h-3 w-3" />
+            </Button>
+          </div>
+
+          {loadingTarefas ? (
+            <div className="space-y-3">
+              {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-16 w-full rounded-lg" />)}
+            </div>
+          ) : totalDestaque === 0 ? (
+            <EmptyState
+              icon={Rocket}
+              title="Tudo em dia!"
+              description="Nenhuma tarefa atrasada, para hoje ou sem datas planejadas. Aproveite para planejar o que vem a seguir."
+              actionLabel="Ver todas as tarefas"
+              onAction={() => onGoToTarefas()}
+            />
+          ) : (
+            <>
+              {atrasadas.length > 0 && (
+                <div>
+                  <button
+                    type="button"
+                    onClick={() => onGoToTarefas("atrasadas")}
+                    className="text-xs font-semibold uppercase tracking-wider text-destructive mb-2 hover:underline focus:outline-none focus-visible:underline"
+                  >
+                    Atrasadas · {atrasadas.length}
+                  </button>
+                  <div className="space-y-2">
+                    {atrasadas.slice(0, MAX_ITEMS).map(t => (
+                      <TarefaRow key={t.id} tarefa={t} onToggle={handleToggle} />
+                    ))}
+                  </div>
+                </div>
+              )}
+              {hoje.length > 0 && atrasadas.length < MAX_ITEMS && (
+                <div className={atrasadas.length > 0 ? "mt-4" : ""}>
+                  <button
+                    type="button"
+                    onClick={() => onGoToTarefas("hoje")}
+                    className="text-xs font-semibold uppercase tracking-wider text-primary mb-2 hover:underline focus:outline-none focus-visible:underline"
+                  >
+                    Hoje · {hoje.length}
+                  </button>
+                  <div className="space-y-2">
+                    {hoje.slice(0, MAX_ITEMS - atrasadas.length).map(t => (
+                      <TarefaRow key={t.id} tarefa={t} onToggle={handleToggle} />
+                    ))}
+                  </div>
+                </div>
+              )}
+              {semData.length > 0 && (atrasadas.length + hoje.length) < MAX_ITEMS && (
+                <div className={(atrasadas.length + hoje.length) > 0 ? "mt-4" : ""}>
+                  <button
+                    type="button"
+                    onClick={() => onGoToTarefas("sem_data")}
+                    className="text-xs font-semibold uppercase tracking-wider text-amber-600 dark:text-amber-400 mb-2 flex items-center gap-1.5 hover:underline focus:outline-none focus-visible:underline"
+                  >
+                    <CalendarOff className="h-3 w-3 animate-pulse-slow" />
+                    Sem datas planejadas · {semData.length}
+                  </button>
+                  <div className="space-y-2">
+                    {semData.slice(0, MAX_ITEMS - atrasadas.length - hoje.length).map(t => (
+                      <TarefaRow key={t.id} tarefa={t} onToggle={handleToggle} />
+                    ))}
+                  </div>
+                </div>
+              )}
+              {totalDestaque > MAX_ITEMS && (
+                <Button variant="outline" size="sm" className="w-full gap-1.5" onClick={() => onGoToTarefas()}>
+                  Ver mais {totalDestaque - MAX_ITEMS} tarefas
+                  <ArrowRight className="h-3.5 w-3.5" />
+                </Button>
+              )}
+            </>
+          )}
         </div>
 
-        {loadingTarefas ? (
-          <div className="space-y-3">
-            {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-16 w-full rounded-lg" />)}
-          </div>
-        ) : totalDestaque === 0 ? (
-          <EmptyState
-            icon={Rocket}
-            title="Tudo em dia!"
-            description="Nenhuma tarefa atrasada, para hoje ou sem datas planejadas. Aproveite para planejar o que vem a seguir."
-            actionLabel="Ver todas as tarefas"
-            onAction={() => onGoToTarefas()}
-          />
-        ) : (
-          <>
-            {atrasadas.length > 0 && (
-              <div>
-                <button
-                  type="button"
-                  onClick={() => onGoToTarefas("atrasadas")}
-                  className="text-xs font-semibold uppercase tracking-wider text-destructive mb-2 hover:underline focus:outline-none focus-visible:underline"
-                >
-                  Atrasadas · {atrasadas.length}
-                </button>
-                <div className="space-y-2">
-                  {atrasadas.slice(0, MAX_ITEMS).map(t => (
-                    <TarefaRow key={t.id} tarefa={t} onToggle={handleToggle} />
-                  ))}
+        <aside className="space-y-6 min-w-0">
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base flex items-center gap-2">
+                <FolderKanban className="h-4 w-4 text-primary" />
+                Meus Projetos
+                {!loadingProjetos && projetos.length > 0 && (
+                  <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 ml-1">
+                    {projetos.length}
+                  </Badge>
+                )}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-0">
+              {loadingProjetos ? (
+                <div className="p-4 space-y-3">
+                  {[1, 2, 3].map(i => <Skeleton key={i} className="h-14 w-full" />)}
                 </div>
-              </div>
-            )}
-            {hoje.length > 0 && atrasadas.length < MAX_ITEMS && (
-              <div className={atrasadas.length > 0 ? "mt-4" : ""}>
-                <button
-                  type="button"
-                  onClick={() => onGoToTarefas("hoje")}
-                  className="text-xs font-semibold uppercase tracking-wider text-primary mb-2 hover:underline focus:outline-none focus-visible:underline"
+              ) : projetos.length === 0 ? (
+                <div className="py-6 text-center text-muted-foreground text-sm">Nenhum projeto ativo</div>
+              ) : (
+                <div
+                  className="max-h-[420px] overflow-y-auto divide-y divide-border/30 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-thumb]:bg-border [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-transparent"
                 >
-                  Hoje · {hoje.length}
-                </button>
-                <div className="space-y-2">
-                  {hoje.slice(0, MAX_ITEMS - atrasadas.length).map(t => (
-                    <TarefaRow key={t.id} tarefa={t} onToggle={handleToggle} />
-                  ))}
-                </div>
-              </div>
-            )}
-            {semData.length > 0 && (atrasadas.length + hoje.length) < MAX_ITEMS && (
-              <div className={(atrasadas.length + hoje.length) > 0 ? "mt-4" : ""}>
-                <button
-                  type="button"
-                  onClick={() => onGoToTarefas("sem_data")}
-                  className="text-xs font-semibold uppercase tracking-wider text-amber-600 dark:text-amber-400 mb-2 flex items-center gap-1.5 hover:underline focus:outline-none focus-visible:underline"
-                >
-                  <CalendarOff className="h-3 w-3 animate-pulse-slow" />
-                  Sem datas planejadas · {semData.length}
-                </button>
-                <div className="space-y-2">
-                  {semData.slice(0, MAX_ITEMS - atrasadas.length - hoje.length).map(t => (
-                    <TarefaRow key={t.id} tarefa={t} onToggle={handleToggle} />
-                  ))}
-                </div>
-              </div>
-            )}
-            {totalDestaque > MAX_ITEMS && (
-              <Button variant="outline" size="sm" className="w-full gap-1.5" onClick={() => onGoToTarefas()}>
-                Ver mais {totalDestaque - MAX_ITEMS} tarefas
-                <ArrowRight className="h-3.5 w-3.5" />
-              </Button>
-            )}
-          </>
-        )}
-      </div>
-
-
-      <div className="space-y-6">
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base flex items-center gap-2">
-              <FolderKanban className="h-4 w-4 text-primary" />
-              Meus Projetos
-              {!loadingProjetos && projetos.length > 0 && (
-                <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 ml-1">
-                  {projetos.length}
-                </Badge>
-              )}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-0">
-            {loadingProjetos ? (
-              <div className="p-4 space-y-3">
-                {[1, 2, 3].map(i => <Skeleton key={i} className="h-14 w-full" />)}
-              </div>
-            ) : projetos.length === 0 ? (
-              <div className="py-6 text-center text-muted-foreground text-sm">Nenhum projeto ativo</div>
-            ) : (
-              <div
-                className="max-h-[420px] overflow-y-auto divide-y divide-border/30 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-thumb]:bg-border [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-transparent"
-              >
-                {projetos.map(p => {
-                  const progress = p.total_tarefas > 0 ? Math.round((p.concluidas / p.total_tarefas) * 100) : 0;
-                  return (
-                    <button
-                      key={p.id}
-                      className="w-full flex items-center gap-3 px-4 py-3 hover:bg-muted/30 transition-colors text-left"
-                      onClick={() => navigate(`/dashboard/projetos/${p.id}`)}
-                    >
-                      <div
-                        className="h-8 w-8 rounded-md flex items-center justify-center text-white text-xs font-bold shrink-0"
-                        style={{ backgroundColor: p.cor }}
+                  {projetos.map(p => {
+                    const progress = p.total_tarefas > 0 ? Math.round((p.concluidas / p.total_tarefas) * 100) : 0;
+                    return (
+                      <button
+                        key={p.id}
+                        className="w-full flex items-center gap-3 px-4 py-3 hover:bg-muted/30 transition-colors text-left"
+                        onClick={() => navigate(`/dashboard/projetos/${p.id}`)}
                       >
-                        {p.nome.charAt(0).toUpperCase()}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium truncate">{p.nome}</p>
-                        <div className="flex items-center gap-2 mt-1">
-                          <Progress value={progress} className="h-1.5 flex-1" />
-                          <span className="text-[10px] text-muted-foreground shrink-0">{progress}%</span>
+                        <div
+                          className="h-8 w-8 rounded-md flex items-center justify-center text-white text-xs font-bold shrink-0"
+                          style={{ backgroundColor: p.cor }}
+                        >
+                          {p.nome.charAt(0).toUpperCase()}
                         </div>
-                      </div>
-                      <div className="flex items-center gap-1.5 shrink-0">
-                        {p.atrasadas > 0 && (
-                          <Badge variant="destructive" className="text-[10px] px-1.5 py-0 h-4">
-                            {p.atrasadas}
-                          </Badge>
-                        )}
-                        {p.minhas_pendentes > 0 && (
-                          <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4">
-                            {p.minhas_pendentes}
-                          </Badge>
-                        )}
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium truncate">{p.nome}</p>
+                          <div className="flex items-center gap-2 mt-1">
+                            <Progress value={progress} className="h-1.5 flex-1" />
+                            <span className="text-[10px] text-muted-foreground shrink-0">{progress}%</span>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          {p.atrasadas > 0 && (
+                            <Badge variant="destructive" className="text-[10px] px-1.5 py-0 h-4">
+                              {p.atrasadas}
+                            </Badge>
+                          )}
+                          {p.minhas_pendentes > 0 && (
+                            <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4">
+                              {p.minhas_pendentes}
+                            </Badge>
+                          )}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
-        <ProjetoHomeAtividades />
-      </div>
+          <ProjetoHomeAtividades />
+        </aside>
       </div>
     </>
   );
 }
+
