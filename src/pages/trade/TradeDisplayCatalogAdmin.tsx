@@ -78,8 +78,9 @@ const TradeDisplayCatalogAdmin = () => {
         const { error: upErr } = await supabase.storage.from("trade-banners").upload(path, blob, { upsert: false });
         if (upErr) { failed++; continue; }
 
-        const { data: urlData } = supabase.storage.from("trade-banners").getPublicUrl(path);
-        await updateDisplay.mutateAsync({ id: d.id, foto_url: urlData.publicUrl });
+        const { data: signed } = await supabase.storage.from("trade-banners").createSignedUrl(path, 60 * 60 * 24 * 365);
+        if (!signed?.signedUrl) { failed++; continue; }
+        await updateDisplay.mutateAsync({ id: d.id, foto_url: signed.signedUrl });
         success++;
       } catch {
         failed++;
