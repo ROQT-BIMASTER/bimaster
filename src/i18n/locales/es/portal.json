@@ -1,0 +1,10 @@
+{
+  "dept.dashboard": "Dashboard",
+  "dept.expenses": "Gastos",
+  "portal.exit": "Salir",
+  "portal.logout_error": "Error al cerrar sesión",
+  "portal.logout_success": "Sesión cerrada exitosamente",
+  "portal.my_profile": "Mi Perfil",
+  "portal.price_tables": "Tablas de Precios",
+  "portal.title": "Portal del Cliente"
+}

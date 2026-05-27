@@ -1,0 +1,10 @@
+{
+  "dept.dashboard": "Dashboard",
+  "dept.expenses": "Expenses",
+  "portal.exit": "Exit",
+  "portal.logout_error": "Logout error",
+  "portal.logout_success": "Logout successful",
+  "portal.my_profile": "My Profile",
+  "portal.price_tables": "Price Tables",
+  "portal.title": "Client Portal"
+}

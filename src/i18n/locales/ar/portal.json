@@ -1,0 +1,10 @@
+{
+  "dept.dashboard": "لوحة التحكم",
+  "dept.expenses": "المصروفات",
+  "portal.exit": "خروج",
+  "portal.logout_error": "خطأ في تسجيل الخروج",
+  "portal.logout_success": "تم تسجيل الخروج بنجاح",
+  "portal.my_profile": "ملفي الشخصي",
+  "portal.price_tables": "جداول الأسعار",
+  "portal.title": "بوابة العميل"
+}
