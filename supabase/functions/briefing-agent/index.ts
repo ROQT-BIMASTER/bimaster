@@ -74,8 +74,11 @@ const SYSTEM_PROMPT = `Você é um Planner sênior de briefings (marketing, cria
 # Como você trabalha
 - O template do briefing vem do banco. É a fonte da verdade: trabalhe SOMENTE os campos listados, na ORDEM em que aparecem, usando o "guia" de cada campo como base da sua pergunta ao usuário.
 - A cada turno, foque em UM ÚNICO campo: o "PRÓXIMO CAMPO A TRABALHAR" indicado no contexto. Só avance quando o atual estiver preenchido (via tool) ou explicitamente pulado pelo usuário.
-- Termine os campos obrigatórios antes de tocar nos opcionais.
-- Quando todos os campos estiverem preenchidos, pare de perguntar e proponha gerar o documento final.
+- Termine os campos OBRIGATÓRIOS antes de tocar em opcionais.
+- Quando todos os obrigatórios estiverem preenchidos, o briefing está PRONTO. Não insista em campos opcionais — apenas informe ao usuário que ele já pode clicar em "Enviar para aprovação" no topo da tela. NÃO altere status do briefing por conta própria.
+- Se o usuário pedir para "finalizar", "concluir", "fechar" ou "enviar para aprovação":
+  * Com obrigatórios pendentes → liste o que falta e pergunte o próximo.
+  * Com obrigatórios completos → confirme que está pronto e oriente o clique no botão "Enviar para aprovação". Mencione brevemente quais opcionais ficaram em branco (se houver), sem insistir.
 
 # Comunicação
 - Português do Brasil. Tom executivo, direto, sem floreio, sem emojis.
@@ -307,11 +310,10 @@ Deno.serve(secureHandler(
       .join("\n");
 
     const proxObrig = secoesList.find((s) => s.required && !isFilled(s.key));
-    const proxOpc = secoesList.find((s) => !s.required && !isFilled(s.key));
-    const proximo = proxObrig ?? proxOpc;
+    const proximo = proxObrig;
     const proximoLinha = proximo
-      ? `PRÓXIMO CAMPO A TRABALHAR: ${proximo.key} (${proximo.label})${proximo.placeholder ? ` — guia: ${proximo.placeholder}` : ""}${proximo.required ? " [obrigatório]" : " [opcional]"}`
-      : `BRIEFING COMPLETO — todos os campos estão preenchidos. NÃO faça novas perguntas. Em vez disso, ofereça gerar o documento final para aprovação e pergunte se há algum ajuste antes de gerar.`;
+      ? `PRÓXIMO CAMPO A TRABALHAR: ${proximo.key} (${proximo.label})${proximo.placeholder ? ` — guia: ${proximo.placeholder}` : ""} [obrigatório]`
+      : `BRIEFING PRONTO — todos os campos obrigatórios estão preenchidos. NÃO faça novas perguntas sobre opcionais a menos que o usuário peça explicitamente. Confirme que o briefing está pronto e oriente o usuário a clicar no botão "Enviar para aprovação" no topo da tela. NÃO altere status nem chame tools de atualização sem pedido.`;
 
     const canvasAtual = JSON.stringify(payloadAtual, null, 2);
 
@@ -419,9 +421,13 @@ ${proximoLinha}`;
               patch.titulo = String(args.titulo).slice(0, 200);
             }
             const novoPayload = { ...(briefing.payload as Record<string, unknown> ?? {}), ...novosCampos };
-            const totalCampos = (secoes as Array<any>).length || 1;
-            const preenchidos = Object.values(novoPayload).filter((v) => typeof v === "string" && v.trim().length > 0).length;
-            const completude = Math.min(100, Math.round((preenchidos / totalCampos) * 100));
+            const obrigatorios = (secoes as Array<{ key: string; required?: boolean }>).filter((s) => s.required);
+            const totalObrig = obrigatorios.length || 1;
+            const preenchidosObrig = obrigatorios.filter((s) => {
+              const v = novoPayload[s.key];
+              return typeof v === "string" && v.trim().length > 0;
+            }).length;
+            const completude = Math.min(100, Math.round((preenchidosObrig / totalObrig) * 100));
 
             const upd: Record<string, unknown> = {
               payload: novoPayload,
