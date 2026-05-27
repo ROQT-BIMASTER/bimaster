@@ -421,9 +421,13 @@ ${proximoLinha}`;
               patch.titulo = String(args.titulo).slice(0, 200);
             }
             const novoPayload = { ...(briefing.payload as Record<string, unknown> ?? {}), ...novosCampos };
-            const totalCampos = (secoes as Array<any>).length || 1;
-            const preenchidos = Object.values(novoPayload).filter((v) => typeof v === "string" && v.trim().length > 0).length;
-            const completude = Math.min(100, Math.round((preenchidos / totalCampos) * 100));
+            const obrigatorios = (secoes as Array<{ key: string; required?: boolean }>).filter((s) => s.required);
+            const totalObrig = obrigatorios.length || 1;
+            const preenchidosObrig = obrigatorios.filter((s) => {
+              const v = novoPayload[s.key];
+              return typeof v === "string" && v.trim().length > 0;
+            }).length;
+            const completude = Math.min(100, Math.round((preenchidosObrig / totalObrig) * 100));
 
             const upd: Record<string, unknown> = {
               payload: novoPayload,
