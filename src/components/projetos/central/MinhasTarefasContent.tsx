@@ -877,6 +877,30 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
     setSelectedIds(new Set());
   };
 
+  // Contadores para os chips de filtro (sobre o dataset completo, sem busca
+  // nem filtros opcionais; replicam a base que o antigo CentralKPIs usava).
+  const chipCounts = useMemo(() => {
+    const now = startOfDay(new Date());
+    const pendentes = tarefas.filter((t) => t.status !== "concluida");
+    return {
+      todas: pendentes.length,
+      semPrazo: pendentes.filter((t) => isSemDatasPlanejadas(t)).length,
+      hoje: pendentes.filter((t) => {
+        const p = parseLocalDate(t.data_prazo);
+        return p && isToday(p);
+      }).length,
+      atrasadas: pendentes.filter((t) => {
+        const p = parseLocalDate(t.data_prazo);
+        return p && isBefore(startOfDay(p), now);
+      }).length,
+      concluidasHoje: tarefas.filter((t) => {
+        if (t.status !== "concluida") return false;
+        const c = parseLocalDate(t.data_conclusao);
+        return c && isToday(c);
+      }).length,
+    };
+  }, [tarefas]);
+
   return (
     <div className="space-y-4">
       <PapelExplicativoBanner />
