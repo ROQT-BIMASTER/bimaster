@@ -108,6 +108,20 @@ export function HojeTab({ onGoToTarefas }: Props) {
   }).filter(matchSearch);
   const semData = pendentes.filter(t => isSemDatasPlanejadas(t)).filter(matchSearch);
 
+  // Contadores totais (sem busca) para os chips — refletem a mesma base que
+  // o CentralKPIs usava antes, sem nova query.
+  const chipCounts = {
+    semPrazo: pendentes.filter(t => isSemDatasPlanejadas(t)).length,
+    hoje: pendentes.filter(t => {
+      const p = parseLocalDate(t.data_prazo);
+      return p && isToday(p);
+    }).length,
+    atrasadas: pendentes.filter(t => {
+      const p = parseLocalDate(t.data_prazo);
+      return p && isBefore(startOfDay(p), now);
+    }).length,
+  };
+
   const totalDestaque = atrasadas.length + hoje.length + semData.length;
 
   const handleToggle = async (id: string, done: boolean) => {
