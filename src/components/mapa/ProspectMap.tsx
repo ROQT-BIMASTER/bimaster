@@ -181,7 +181,7 @@ export const ProspectMap = () => {
           .select("id, nome")
           .in("id", vendedorIds);
 
-        const vendedoresMap = new Map(vendedoresData?.map((v) => [v.id, v]) || []);
+        const vendedoresMap = new globalThis.Map(vendedoresData?.map((v) => [v.id, v] as const) || []);
 
         const prospectsWithVendedor =
           prospectsRaw?.map((p) => ({
