@@ -164,6 +164,7 @@ export function ProjetoTarefaDetalhe({
   }, [selectedSubtarefaId, tarefa?.subtarefas]);
   const { suggestFields, generateChecklist, loading: iaLoading } = useProjetoIA();
   const [pendingAISubtarefas, setPendingAISubtarefas] = useState<{ titulo: string; selected: boolean }[]>([]);
+  const [showConcluidas, setShowConcluidas] = useState(false);
   const [focusMode, setFocusMode] = useState(false);
   const [briefingDialogOpen, setBriefingDialogOpen] = useState(false);
   const [briefingTasksDialogOpen, setBriefingTasksDialogOpen] = useState(false);
