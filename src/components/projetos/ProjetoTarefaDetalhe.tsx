@@ -1378,12 +1378,8 @@ export function ProjetoTarefaDetalhe({
                   </div>
                   <TarefaAcessoHistorico tarefaId={tarefa.id} />
                 </div>
-
-                  addComentario={addComentario}
-                  teamMembers={teamMembers}
-                  highlightCommentId={highlightCommentId}
-                />
               </div>
+
             </ScrollArea>
 
             {/* Lateral Chat */}
