@@ -643,41 +643,31 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
     onMutate: async ({ tarefaId, userId }) => {
       await queryClient.cancelQueries({ queryKey: ["projeto-tarefas-v2", projetoId] });
       const previous = queryClient.getQueryData<ProjetoTarefasView>(["projeto-tarefas-v2", projetoId]);
-      // Mesmo enriquecimento do responsável: olha primeiro em teamMembers e,
-      // como fallback, no cache de projeto_membros — necessário quando o
-      // membro ainda não atua em nenhuma outra tarefa do projeto.
-      let nome = "Membro";
-      let avatar_url: string | null = null;
-      const fromTeam = (previous?.teamMembers || []).find(m => m.id === userId);
-      if (fromTeam) {
-        nome = fromTeam.nome;
-        avatar_url = fromTeam.avatar_url;
-      } else {
-        const membrosCache = queryClient.getQueryData<any[]>(["projeto_membros", projetoId]);
-        const fromMembros = membrosCache?.find((m: any) => m.user_id === userId);
-        if (fromMembros?.profile) {
-          nome = fromMembros.profile.nome || "Membro";
-          avatar_url = fromMembros.profile.avatar_url || null;
-        }
-      }
+      const pessoa = resolvePessoa(userId, previous);
+      setPendingListOp(pendingColaboradoresRef, tarefaId, userId, "add", pessoa);
       patchView((v) => ({
         ...v,
+        teamMembers: v.teamMembers.some(m => m.id === userId) ? v.teamMembers : [...v.teamMembers, pessoa],
         tarefas: v.tarefas.map(t =>
           t.id === tarefaId
             ? {
                 ...t,
                 colaboradores: (t.colaboradores || []).some(c => c.user_id === userId)
                   ? t.colaboradores!
-                  : [...(t.colaboradores || []), { user_id: userId, nome, avatar_url }],
+                  : [...(t.colaboradores || []), { user_id: userId, nome: pessoa.nome, avatar_url: pessoa.avatar_url }],
               }
             : t
         ),
       }));
-      return { previous };
+      return { previous, tarefaId, userId };
     },
     onError: (err: Error, _vars, context) => {
+      if (context) clearPendingListOp(pendingColaboradoresRef, context.tarefaId, context.userId);
       if (context?.previous) queryClient.setQueryData(["projeto-tarefas-v2", projetoId], context.previous);
       toast.error(err.message);
+    },
+    onSuccess: (_data, _vars, context) => {
+      if (context) schedulePendingCleanup(() => clearPendingListOp(pendingColaboradoresRef, context.tarefaId, context.userId));
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2", projetoId] });
@@ -700,6 +690,8 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
     onMutate: async ({ tarefaId, userId }) => {
       await queryClient.cancelQueries({ queryKey: ["projeto-tarefas-v2", projetoId] });
       const previous = queryClient.getQueryData<ProjetoTarefasView>(["projeto-tarefas-v2", projetoId]);
+      const pessoa = resolvePessoa(userId, previous);
+      setPendingListOp(pendingColaboradoresRef, tarefaId, userId, "remove", pessoa);
       patchView((v) => ({
         ...v,
         tarefas: v.tarefas.map(t =>
@@ -708,11 +700,15 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
             : t
         ),
       }));
-      return { previous };
+      return { previous, tarefaId, userId };
     },
     onError: (err: Error, _vars, context) => {
+      if (context) clearPendingListOp(pendingColaboradoresRef, context.tarefaId, context.userId);
       if (context?.previous) queryClient.setQueryData(["projeto-tarefas-v2", projetoId], context.previous);
       toast.error(err.message);
+    },
+    onSuccess: (_data, _vars, context) => {
+      if (context) schedulePendingCleanup(() => clearPendingListOp(pendingColaboradoresRef, context.tarefaId, context.userId));
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2", projetoId] });
