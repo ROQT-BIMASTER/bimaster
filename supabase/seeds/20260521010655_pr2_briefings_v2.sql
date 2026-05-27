@@ -1,3 +1,9 @@
+-- SEED — NÃO É MIGRATION. Não aplicar automaticamente.
+-- Origem: supabase/migrations/20260521010655_pr2_seed_briefings_v2.sql (já aplicada em produção).
+-- Reaplicação destrói dados. Uso permitido apenas em ambiente novo/clone:
+--   psql "$DATABASE_URL" -f supabase/seeds/20260521010655_pr2_briefings_v2.sql
+-- Histórico no schema_migrations preservado; este arquivo é apenas referência.
+
 -- Migration PR2: seed Briefings v2 Ruby Rose
 -- Aprovado em review: docs/briefing-especificacoes/PR2-seed-proposta.md
 -- Postgres 17.6 confirmado (NULLS NOT DISTINCT suportado desde 15).

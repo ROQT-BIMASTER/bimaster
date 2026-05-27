@@ -1,3 +1,9 @@
+-- SEED — NÃO É MIGRATION. Não aplicar automaticamente.
+-- Origem: supabase/migrations/20260521022718_pr3_seed_templates_8_tipos.sql (já aplicada em produção).
+-- Reaplicação destrói dados. Uso permitido apenas em ambiente novo/clone:
+--   psql "$DATABASE_URL" -f supabase/seeds/20260521022718_pr3_templates_8_tipos.sql
+-- Histórico no schema_migrations preservado; este arquivo é apenas referência.
+
 -- Migration: adiciona 8 templates mínimos pros 8 tipos canônicos do Briefings v2
 --
 -- Motivo: após o revert da PR2.5 (20260521002557_..._pr2_revert_pr25_check_8_tipos.sql),

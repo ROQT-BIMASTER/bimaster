@@ -1,3 +1,9 @@
+-- SEED — NÃO É MIGRATION. Não aplicar automaticamente.
+-- Origem: supabase/migrations/20260304225927_2032843b-5e72-458d-a963-cb56fba4c5cf.sql (já aplicada em produção).
+-- Reaplicação destrói dados. Uso permitido apenas em ambiente novo/clone:
+--   psql "$DATABASE_URL" -f supabase/seeds/20260304225927_projeto_tarefas_ruby_rose.sql
+-- Histórico no schema_migrations preservado; este arquivo é apenas referência.
+
 
 -- Delete existing tasks for this project
 DELETE FROM projeto_tarefas WHERE projeto_id = 'b176ab9c-58e2-4268-baf7-695fc6b2cdc5';
