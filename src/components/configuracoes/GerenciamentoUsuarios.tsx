@@ -47,6 +47,11 @@ export const GerenciamentoUsuarios = () => {
   const [loading, setLoading] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Usuario | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
+  /** Quando a troca de senha falha por MFA (cancelado/token inválido/MFA não configurado),
+   * mantemos aqui o último par {userId,password} para permitir tentar novamente
+   * sem refazer o resto do formulário. */
+  const [mfaRetry, setMfaRetry] = useState<{ userId: string; userEmail: string; password: string } | null>(null);
+  const [mfaRetrying, setMfaRetrying] = useState(false);
   const ITEMS_PER_PAGE = 20;
 
   const [novoUsuario, setNovoUsuario] = useState<{
