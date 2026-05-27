@@ -992,11 +992,13 @@ const App = () => {
                   <InboxDrawerProvider>
                   <ChatDrawerProvider>
                   <TooltipProvider delayDuration={0}>
+                    <ConfirmDialogProvider>
                     <Sonner />
 
                     <EspelhoEvidenceListener />
                     <ConfirmConclusaoListener />
                     <AppContent />
+                    </ConfirmDialogProvider>
                   </TooltipProvider>
                   </ChatDrawerProvider>
                   </InboxDrawerProvider>
