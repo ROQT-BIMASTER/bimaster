@@ -994,19 +994,8 @@ export function ProjetoTarefaDetalhe({
                 <Separator />
                 <ProjetoAprovacaoWorkflow tarefaId={tarefa.id} />
 
-                {/* Timeline Unificada (Comentários + Atividades) */}
-                <Separator />
-                <ProjetoTarefaTimeline tarefaId={tarefa.id} />
 
-                {/* Auditoria de acesso à tarefa */}
-                <Separator />
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <h4 className="text-sm font-medium">Auditoria de acesso</h4>
-                    {isAdmin && <VisibilidadeDebugDialog tarefaId={tarefa.id} />}
-                  </div>
-                  <TarefaAcessoHistorico tarefaId={tarefa.id} />
-                </div>
+
 
                 <Separator />
 
@@ -1375,7 +1364,22 @@ export function ProjetoTarefaDetalhe({
                   teamMembers={teamMembers}
                   highlightCommentId={highlightCommentId}
                 />
+
+                {/* Timeline Unificada (Comentários + Atividades) */}
+                <Separator />
+                <ProjetoTarefaTimeline tarefaId={tarefa.id} />
+
+                {/* Auditoria de acesso à tarefa */}
+                <Separator />
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-sm font-medium">Auditoria de acesso</h4>
+                    {isAdmin && <VisibilidadeDebugDialog tarefaId={tarefa.id} />}
+                  </div>
+                  <TarefaAcessoHistorico tarefaId={tarefa.id} />
+                </div>
               </div>
+
             </ScrollArea>
 
             {/* Lateral Chat */}
