@@ -460,7 +460,7 @@ export function TarefaResponsavelSeguidoresEditor({
                     </Avatar>
                   </button>
                 </PopoverTrigger>
-                <PopoverContent className="w-64 p-0" align="start" onOpenAutoFocus={(e) => e.preventDefault()}>
+                <PopoverContent className="w-64 p-0" align="start" style={{ pointerEvents: "auto" }} onOpenAutoFocus={(e) => e.preventDefault()}>
                   {renderPicker({
                     kind: "seguidor",
                     swapFrom: c.user_id,
