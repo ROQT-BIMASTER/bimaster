@@ -37,7 +37,7 @@ import {
   type CentralTab,
 } from "@/lib/centralUrlParams";
 import { CentralHeader } from "@/components/projetos/central/CentralHeader";
-import { CentralKPIs } from "@/components/projetos/central/CentralKPIs";
+import { useMinhasDelegadas } from "@/hooks/useMinhasDelegadas";
 import { HojeTab } from "@/components/projetos/central/HojeTab";
 import { MinhasTarefasContent } from "@/components/projetos/central/MinhasTarefasContent";
 import { DelegadasContent } from "@/components/projetos/central/DelegadasContent";
