@@ -93,14 +93,19 @@ export function ProjetoMembrosDialog({ open, onOpenChange, projetoId, projetoTip
     setAddingTeam(true);
     try {
       for (const userId of selectedTeamIds) {
-        await addMembro.mutateAsync({ userId, papel: "membro" });
+        const sub = subordinados.find((s: any) => s.id === userId);
+        await addMembro.mutateAsync({
+          userId,
+          papel: "membro",
+          profile: sub ? { nome: sub.nome, avatar_url: sub.avatar_url, email: sub.email } : undefined,
+        });
       }
       setSelectedTeamIds([]);
       setShowTeamDialog(false);
     } finally {
       setAddingTeam(false);
     }
-  }, [selectedTeamIds, addMembro]);
+  }, [selectedTeamIds, addMembro, subordinados]);
 
   const { data: secoes = [] } = useQuery({
     queryKey: ["projeto_secoes_list", projetoId],
