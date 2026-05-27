@@ -297,8 +297,8 @@ function PerfilDetalhe({
                 ordem: etapaSelecionada.ordem,
                 requer_aprovacao: v,
               } as any)
-   async          }
-            onRemoveEtapa={() => {
+            }
+            onRemoveEtapa={async () => {
               if ((await confirm({ title: `Remover etapa "${etapaSelecionada.label}"?`, destructive: true }))) {
                 remove.mutate(etapaSelecionada.id);
                 setEtapaSelecionadaId(null);
