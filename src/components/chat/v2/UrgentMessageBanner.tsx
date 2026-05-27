@@ -50,7 +50,7 @@ export function UrgentMessageBanner() {
               variant="secondary"
               onClick={() => {
                 marcarLida.mutate([primeira.id]);
-                navigate(primeira.action_url!);
+                window.location.assign(primeira.action_url!);
               }}
             >
               Abrir agora
