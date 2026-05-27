@@ -1,0 +1,7 @@
+{
+  "extends": "./tsconfig.app.json",
+  "compilerOptions": {
+    "strictNullChecks": true
+  },
+  "include": ["src/lib/**/*.ts", "src/lib/**/*.tsx"]
+}
