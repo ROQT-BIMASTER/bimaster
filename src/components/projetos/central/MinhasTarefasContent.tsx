@@ -1271,6 +1271,7 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
           </TooltipProvider>
         )}
       </div>
+      </CentralToolbarPortal>
 
       {selectedIds.size > 0 && (
         <div className="flex items-center gap-3 px-4 py-2.5 bg-primary/5 border border-primary/20 rounded-lg animate-in fade-in slide-in-from-bottom-2">
