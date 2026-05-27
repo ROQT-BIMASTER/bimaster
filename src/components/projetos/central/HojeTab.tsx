@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useMinhasTarefas, type MinaTarefa } from "@/hooks/useMinhasTarefas";
 import { useMeusProjetosRecentes } from "@/hooks/useMeusProjetosRecentes";
@@ -7,10 +8,11 @@ import { Progress } from "@/components/ui/progress";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { TarefaResponsavelAvatar } from "@/components/projetos/shared/TarefaResponsavelAvatar";
-import { AlertTriangle, FolderKanban, ArrowRight, Rocket, CalendarDays, CalendarOff } from "lucide-react";
+import { AlertTriangle, FolderKanban, ArrowRight, Rocket, CalendarDays, CalendarOff, Search } from "lucide-react";
 import { format, isToday, isBefore, startOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { parseLocalDate } from "@/lib/utils/parseLocalDate";
@@ -19,6 +21,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { ProjetoHomeAtividades } from "@/components/projetos/home/ProjetoHomeAtividades";
+import { CentralToolbarPortal } from "@/components/projetos/central/CentralLayout";
 
 const MAX_ITEMS = 8;
 
