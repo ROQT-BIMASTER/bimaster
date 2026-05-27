@@ -383,7 +383,35 @@ export function ProjetoTarefaDetalhe({
   return (
     <>
       <Sheet open={open && !focusMode} onOpenChange={onOpenChange}>
-        <SheetContent side="right" className="w-full sm:max-w-[580px] p-0 flex flex-col overflow-hidden">
+        <SheetContent
+          side="right"
+          className="w-full sm:max-w-[580px] p-0 flex flex-col overflow-hidden"
+          onPointerDownOutside={(e) => {
+            // Evita que cliques em conteúdo portalizado (Popover, Select,
+            // Dropdown, Dialog aninhado) sejam tratados como "fora do Sheet"
+            // — sem isso, o Radix dá preventDefault no pointerdown e o
+            // onSelect do cmdk nunca dispara nos pickers de
+            // Responsável/Seguidores.
+            const target = e.target as HTMLElement | null;
+            if (
+              target?.closest(
+                "[data-radix-popper-content-wrapper], [role=dialog], [role=menu], [role=listbox]"
+              )
+            ) {
+              e.preventDefault();
+            }
+          }}
+          onInteractOutside={(e) => {
+            const target = e.target as HTMLElement | null;
+            if (
+              target?.closest(
+                "[data-radix-popper-content-wrapper], [role=dialog], [role=menu], [role=listbox]"
+              )
+            ) {
+              e.preventDefault();
+            }
+          }}
+        >
           <SheetHeader className="sr-only">
             <SheetTitle>Detalhe da tarefa</SheetTitle>
             <SheetDescription>Visualize e edite os detalhes da tarefa selecionada</SheetDescription>
