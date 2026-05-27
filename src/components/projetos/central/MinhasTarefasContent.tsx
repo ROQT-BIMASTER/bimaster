@@ -24,7 +24,7 @@ import { Separator } from "@/components/ui/separator";
 import { STATUS_OPTIONS } from "@/lib/projetoConstants";
 import { useSystemProfiles } from "@/hooks/useSystemProfiles";
 import { cn } from "@/lib/utils";
-import { format, formatDistanceToNow } from "date-fns";
+import { format, formatDistanceToNow, isToday } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { parseLocalDate } from "@/lib/utils/parseLocalDate";
 import { isSemDatasPlanejadas } from "@/lib/utils/tarefaPlanejamento";
