@@ -32,7 +32,7 @@ export type CentralView = typeof VALID_VIEWS[number];
 export const VALID_PRIORITIES = ["all", "urgente", "alta", "media", "baixa"] as const;
 export type CentralPriority = typeof VALID_PRIORITIES[number];
 
-export const VALID_FILTERS = ["all", "atrasadas", "hoje", "sem_data"] as const;
+export const VALID_FILTERS = ["all", "atrasadas", "hoje", "sem_data", "concluidas_hoje"] as const;
 export type CentralFilter = typeof VALID_FILTERS[number];
 
 export const VALID_SORTS = ["default", "urgent", "prazo", "status", "prioridade"] as const;
