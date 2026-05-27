@@ -262,7 +262,11 @@ export function ProjetoMembrosDialog({ open, onOpenChange, projetoId, projetoTip
                         size="sm"
                         variant="ghost"
                         onClick={() => {
-                          addMembro.mutate({ userId: profile.id, papel: isDevProduto ? "membro" : "membro" });
+                          addMembro.mutate({
+                            userId: profile.id,
+                            papel: "membro",
+                            profile: { nome: profile.nome, avatar_url: profile.avatar_url, email: profile.email },
+                          });
                           setSearch("");
                         }}
                       >
