@@ -458,20 +458,12 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
       const novoResponsavelId = (updates as Partial<ProjetoTarefa>).responsavel_id;
       let novoMembro: { id: string; nome: string; avatar_url: string | null } | null = null;
       if (respChange && novoResponsavelId) {
-        const fromTeam = (previous?.teamMembers || []).find(m => m.id === novoResponsavelId);
-        if (fromTeam) {
-          novoMembro = { id: fromTeam.id, nome: fromTeam.nome, avatar_url: fromTeam.avatar_url };
-        } else {
-          const membrosCache = queryClient.getQueryData<any[]>(["projeto_membros", projetoId]);
-          const fromMembros = membrosCache?.find((m: any) => m.user_id === novoResponsavelId);
-          if (fromMembros?.profile) {
-            novoMembro = {
-              id: fromMembros.user_id,
-              nome: fromMembros.profile.nome || "Membro",
-              avatar_url: fromMembros.profile.avatar_url || null,
-            };
-          }
-        }
+        novoMembro = resolvePessoa(novoResponsavelId, previous);
+      }
+      if (respChange) {
+        const nextPrimary = new Map(pendingPrimaryRef.current);
+        nextPrimary.set(id, { userId: novoResponsavelId ?? null, pessoa: novoMembro });
+        pendingPrimaryRef.current = nextPrimary;
       }
       patchView((v) => ({
         ...v,
@@ -480,17 +472,34 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
           const patched = { ...t, ...updates } as ProjetoTarefa;
           if (respChange) {
             patched.responsavel = novoMembro;
+            patched.responsaveis = novoResponsavelId && novoMembro
+              ? [{ user_id: novoResponsavelId, nome: novoMembro.nome, avatar_url: novoMembro.avatar_url, papel: "responsavel" }]
+              : [];
           }
           return patched;
         }),
       }));
-      return { previous };
+      return { previous, pendingPrimaryTaskId: respChange ? id : null };
     },
 
     onError: (err: Error, _vars, context) => {
+      if (context?.pendingPrimaryTaskId) {
+        const nextPrimary = new Map(pendingPrimaryRef.current);
+        nextPrimary.delete(context.pendingPrimaryTaskId);
+        pendingPrimaryRef.current = nextPrimary;
+      }
       if (context?.previous) queryClient.setQueryData(["projeto-tarefas-v2", projetoId], context.previous);
       if (err.message === "__CANCELLED__") return;
       toast.error(err.message);
+    },
+    onSuccess: (_data, _vars, context) => {
+      if (context?.pendingPrimaryTaskId) {
+        schedulePendingCleanup(() => {
+          const nextPrimary = new Map(pendingPrimaryRef.current);
+          nextPrimary.delete(context.pendingPrimaryTaskId!);
+          pendingPrimaryRef.current = nextPrimary;
+        });
+      }
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2", projetoId] });
