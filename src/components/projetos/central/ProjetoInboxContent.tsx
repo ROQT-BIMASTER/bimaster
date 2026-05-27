@@ -447,27 +447,3 @@ export function ProjetoInboxContent() {
   );
 }
 
-interface KpiWithHelpProps {
-  title: string;
-  value: number;
-  icon: React.ComponentProps<typeof KpiCard>["icon"];
-  variant: React.ComponentProps<typeof KpiCard>["variant"];
-  help: string;
-}
-
-/** KpiCard com tooltip explicando a origem da contagem. */
-function KpiWithHelp({ title, value, icon, variant, help }: KpiWithHelpProps) {
-  return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <div className="cursor-help">
-          <KpiCard title={title} value={value} icon={icon} variant={variant} />
-        </div>
-      </TooltipTrigger>
-      <TooltipContent side="bottom" className="max-w-xs text-xs leading-relaxed">
-        {help}
-      </TooltipContent>
-    </Tooltip>
-  );
-}
-
