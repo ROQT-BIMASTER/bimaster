@@ -214,9 +214,9 @@ export function DelegadasContent({ naoLidas = 0, onGoToInbox }: DelegadasProps =
         {toolbar}
         {chips}
         <Card>
-          <CardContent className="p-4 space-y-2">
+          <CardContent className="p-2 space-y-2">
             {Array.from({ length: 5 }).map((_, i) => (
-              <Skeleton key={i} className="h-10 w-full" />
+              <Skeleton key={i} className={cn("w-full rounded-lg", isCompact ? "h-11" : "h-14")} />
             ))}
           </CardContent>
         </Card>
@@ -230,20 +230,12 @@ export function DelegadasContent({ naoLidas = 0, onGoToInbox }: DelegadasProps =
         {toolbar}
         {chips}
         <Card>
-          <CardContent className="p-12 text-center text-muted-foreground">
-            <Inbox className="h-10 w-10 mx-auto mb-3 opacity-40" />
-            <div className="text-sm font-medium text-foreground">Nada delegado por enquanto</div>
-            <div className="text-xs mt-1">
-              Tarefas que você criar e atribuir a outras pessoas aparecem aqui.
-            </div>
-            <a
-              href="/dashboard/ajuda/projetos-visibilidade"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-block mt-4 text-xs text-primary underline underline-offset-2 hover:text-primary/80"
-            >
-              Como funciona a visibilidade?
-            </a>
+          <CardContent className="p-0">
+            <EmptyState
+              icon={Send}
+              title="Nada por aqui ainda"
+              description="Você ainda não delegou tarefas para outras pessoas."
+            />
           </CardContent>
         </Card>
       </>
@@ -253,21 +245,21 @@ export function DelegadasContent({ naoLidas = 0, onGoToInbox }: DelegadasProps =
   return (
     <>
       {toolbar}
-        {chips}
+      {chips}
       <Card>
         <CardContent className="p-0">
-          <div className="px-4 py-2.5 border-b bg-muted/20 flex items-center gap-2">
-            <Send className="h-3.5 w-3.5 text-muted-foreground" />
-            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Tarefas que você delegou ({filtered.length})
-            </span>
-          </div>
+          <h3 className={cn(
+            "text-xs font-medium uppercase tracking-wide text-muted-foreground px-4 py-2 border-b bg-muted/20 flex items-center gap-2",
+          )}>
+            <Send className="h-3.5 w-3.5" />
+            Tarefas que você delegou ({filtered.length})
+          </h3>
           {filtered.length === 0 ? (
             <div className="p-8 text-center text-xs text-muted-foreground">
               Nenhuma tarefa corresponde aos filtros atuais.
             </div>
           ) : (
-            filtered.map((t) => <Row key={t.id} t={t} onOpen={handleOpen} />)
+            filtered.map((t) => <Row key={t.id} t={t} onOpen={handleOpen} isCompact={isCompact} />)
           )}
         </CardContent>
       </Card>
