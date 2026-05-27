@@ -16,8 +16,8 @@ class ResizeObserverMock {
 
 globalThis.ResizeObserver = ResizeObserverMock as any;
 
-vi.mock("@/hooks/use-toast", () => ({
-  useToast: () => ({ toast: toastMock }),
+vi.mock("sonner", () => ({
+  toast: Object.assign(toastMock, { success: toastMock, error: toastMock }),
 }));
 
 function mockProfilesQuery() {
