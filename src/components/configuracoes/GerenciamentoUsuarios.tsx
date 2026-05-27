@@ -299,6 +299,94 @@ export const GerenciamentoUsuarios = () => {
     setIsDialogOpen(true);
   };
 
+  /**
+   * Executa a troca de senha (pré-check MFA + step-up + invoke da edge function).
+   * Retorna `mfaIssue: true` quando a falha foi relacionada a MFA (cancelado,
+   * não configurado, token inválido) — sinal para a UI oferecer o botão
+   * "Repetir verificação MFA" sem perder a senha já digitada.
+   */
+  const runPasswordChange = async (
+    userId: string,
+    userEmail: string,
+    password: string,
+  ): Promise<{ ok: boolean; error?: string; mfaIssue?: boolean }> => {
+    // Pré-check MFA TOTP (edge function exige factor verificado).
+    try {
+      const { data: mfaStatus } = await supabase.functions.invoke("mfa-manage", {
+        body: { action: "status" },
+      });
+      const hasTotp = !!(mfaStatus?.enrolled && mfaStatus?.verified);
+      if (!hasTotp) {
+        toast.error("MFA não configurado", {
+          description: "Ative o MFA TOTP em Segurança › MFA antes de alterar senhas de outros usuários.",
+          action: { label: "Configurar MFA", onClick: () => { window.location.href = "/dashboard/security/mfa"; } },
+        });
+        return { ok: false, error: "MFA não configurado.", mfaIssue: true };
+      }
+    } catch (e) {
+      logger.warn("Falha ao consultar status MFA:", e);
+    }
+
+    try {
+      const stepUpToken = await requestStepUp(
+        "user.password.self",
+        `Confirme com MFA para alterar a senha de ${userEmail}.`,
+      );
+      if (!stepUpToken) {
+        return { ok: false, error: "Verificação MFA cancelada.", mfaIssue: true };
+      }
+      const response = await supabase.functions.invoke("update-user-password", {
+        body: { user_id: userId, password },
+        headers: { "x-step-up-token": stepUpToken },
+      });
+      if (response.error) {
+        let serverMsg: string | undefined;
+        try {
+          const resp = (response.error as any)?.context?.response as Response | undefined;
+          const body = await resp?.clone().json().catch(() => null);
+          serverMsg = body?.error;
+        } catch { /* ignore */ }
+        const msg = serverMsg || (response.error as any).message || "Erro ao atualizar senha";
+        const mfaIssue = /mfa|step.?up|token/i.test(msg);
+        return { ok: false, error: msg, mfaIssue };
+      }
+      if ((response.data as any)?.error) {
+        const msg = (response.data as any).error as string;
+        const mfaIssue = /mfa|step.?up|token/i.test(msg);
+        return { ok: false, error: msg, mfaIssue };
+      }
+      return { ok: true };
+    } catch (e: any) {
+      const msg = e?.message || "Erro ao atualizar senha";
+      return { ok: false, error: msg, mfaIssue: /mfa|step.?up|token/i.test(msg) };
+    }
+  };
+
+  /** Handler do botão "Repetir verificação MFA" exibido após uma falha de MFA. */
+  const handleRetryMfa = async () => {
+    if (!mfaRetry) return;
+    setMfaRetrying(true);
+    const { ok, error, mfaIssue } = await runPasswordChange(
+      mfaRetry.userId,
+      mfaRetry.userEmail,
+      mfaRetry.password,
+    );
+    setMfaRetrying(false);
+    if (ok) {
+      toast.success("Senha alterada com sucesso");
+      setMfaRetry(null);
+      setNovoUsuario((prev) => ({ ...prev, senha: "" }));
+      setIsDialogOpen(false);
+      setEditingUser(null);
+      fetchUsuarios();
+    } else {
+      toast.error("Senha não foi alterada", { description: error });
+      if (!mfaIssue) setMfaRetry(null);
+    }
+  };
+
+
+
   const handleSaveEdit = async () => {
     if (!editingUser) return;
 
