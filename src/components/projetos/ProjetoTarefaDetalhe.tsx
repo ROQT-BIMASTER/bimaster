@@ -525,6 +525,16 @@ export function ProjetoTarefaDetalhe({
                 variant="ghost"
                 size="sm"
                 className="gap-1.5 text-xs rounded-full h-8 px-3"
+                onClick={() => copyTarefaLink(tarefa.projeto_id, tarefa.id)}
+                title="Copiar link da tarefa"
+              >
+                <Link2 className="h-3.5 w-3.5" />
+                Copiar link
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="gap-1.5 text-xs rounded-full h-8 px-3"
                 onClick={() => setFocusMode(true)}
               >
                 <Maximize2 className="h-3.5 w-3.5" />
