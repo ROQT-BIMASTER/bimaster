@@ -314,10 +314,13 @@ export const GerenciamentoUsuarios = () => {
         return;
       }
 
-      // Pré-checar MFA TOTP do admin (edge function exige factor verified)
+      // Pré-checar MFA TOTP do admin (edge function exige factor verificado).
+      // Usa o MFA customizado (mfa-manage), não o nativo do Supabase.
       try {
-        const { data: factors } = await supabase.auth.mfa.listFactors();
-        const hasTotp = !!factors?.totp?.some((f) => f.status === "verified");
+        const { data: mfaStatus } = await supabase.functions.invoke("mfa-manage", {
+          body: { action: "status" },
+        });
+        const hasTotp = !!(mfaStatus?.enrolled && mfaStatus?.verified);
         if (!hasTotp) {
           toast.error("MFA não configurado", {
             description: "Ative o MFA TOTP em Segurança › MFA antes de alterar senhas de outros usuários.",
@@ -327,7 +330,7 @@ export const GerenciamentoUsuarios = () => {
           return;
         }
       } catch (e) {
-        logger.warn("Falha ao consultar fatores MFA:", e);
+        logger.warn("Falha ao consultar status MFA:", e);
       }
     }
 
