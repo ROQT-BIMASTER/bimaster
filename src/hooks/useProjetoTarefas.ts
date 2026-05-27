@@ -530,12 +530,16 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
 
   const removeColaborador = useMutation({
     mutationFn: async ({ tarefaId, userId }: { tarefaId: string; userId: string }) => {
-      const { error } = await supabase
+      const { data: deleted, error } = await supabase
         .from("projeto_tarefa_colaboradores")
         .delete()
         .eq("tarefa_id", tarefaId)
-        .eq("user_id", userId);
+        .eq("user_id", userId)
+        .select("id");
       if (error) throw error;
+      if (!deleted || deleted.length === 0) {
+        throw new Error("Sem permissão para remover seguidor. Você precisa ser membro do projeto, responsável ou criador da tarefa.");
+      }
     },
     onMutate: async ({ tarefaId, userId }) => {
       await queryClient.cancelQueries({ queryKey: ["projeto-tarefas-v2", projetoId] });
