@@ -278,11 +278,15 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
           if (!ok) throw new Error("__CANCELLED__");
         }
       }
-      const { error } = await supabase
+      const { data: updated, error } = await supabase
         .from("projeto_tarefas")
         .update({ ...updates, updated_at: new Date().toISOString() } as never)
-        .eq("id", id);
+        .eq("id", id)
+        .select("id");
       if (error) throw error;
+      if (!updated || updated.length === 0) {
+        throw new Error("Sem permissão para alterar esta tarefa. Você precisa ser membro do projeto, responsável ou criador da tarefa.");
+      }
 
       // Auditoria: registra mudança de status para concluida/reaberta.
       if (Object.prototype.hasOwnProperty.call(updates, "status")) {
@@ -475,10 +479,14 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
 
   const addColaborador = useMutation({
     mutationFn: async ({ tarefaId, userId }: { tarefaId: string; userId: string }) => {
-      const { error } = await supabase
+      const { data: inserted, error } = await supabase
         .from("projeto_tarefa_colaboradores")
-        .insert({ tarefa_id: tarefaId, user_id: userId });
+        .insert({ tarefa_id: tarefaId, user_id: userId })
+        .select("id");
       if (error) throw error;
+      if (!inserted || inserted.length === 0) {
+        throw new Error("Sem permissão para adicionar seguidor. Você precisa ser membro do projeto, responsável ou criador da tarefa.");
+      }
       return { tarefaId, userId };
     },
     onMutate: async ({ tarefaId, userId }) => {
@@ -522,12 +530,16 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
 
   const removeColaborador = useMutation({
     mutationFn: async ({ tarefaId, userId }: { tarefaId: string; userId: string }) => {
-      const { error } = await supabase
+      const { data: deleted, error } = await supabase
         .from("projeto_tarefa_colaboradores")
         .delete()
         .eq("tarefa_id", tarefaId)
-        .eq("user_id", userId);
+        .eq("user_id", userId)
+        .select("id");
       if (error) throw error;
+      if (!deleted || deleted.length === 0) {
+        throw new Error("Sem permissão para remover seguidor. Você precisa ser membro do projeto, responsável ou criador da tarefa.");
+      }
     },
     onMutate: async ({ tarefaId, userId }) => {
       await queryClient.cancelQueries({ queryKey: ["projeto-tarefas-v2", projetoId] });
