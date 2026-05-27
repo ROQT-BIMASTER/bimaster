@@ -35,6 +35,7 @@ const TIPOS_BRIEFING = [
 ];
 
 export default function CofreTemplates() {
+  const confirm = useConfirm();
   const qc = useQueryClient();
   const [editing, setEditing] = useState<ChecklistTemplate | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
@@ -111,8 +112,7 @@ export default function CofreTemplates() {
         </Button>
       </div>
 
-      {
-      {const confirm = useConfirm();isLoading ? (
+      {isLoading ? (
         <p className="text-sm text-muted-foreground">Carregando...</p>
       ) : (
         <div className="space-y-3">

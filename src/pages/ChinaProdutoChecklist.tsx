@@ -97,7 +97,7 @@ export default function ChinaProdutoChecklist() {
     const next = colunas.map((c) => (c.key === key ? { ...c, label_pt, label_cn } : c));
     updateCols.mutate({ checklistId: checklist.id, colunas: next });
   };
-  const handleApplyTemplate = (cols: ChecklistColuna[]) => {
+  const handleApplyTemplate = async (cols: ChecklistColuna[]) => {
     if (!checklist) return;
     const normalized = cols.map((c, i) => ({ ...c, ordem: i }));
     // Substitui as colunas atuais pelo template selecionado e remove as
@@ -107,8 +107,8 @@ export default function ChinaProdutoChecklist() {
     const removedKeys = colunas
       .map((c) => c.key)
       .filter((k) => !novosKeys.has(k));
-    async if (removedKeys.length > 0) {
-      const ok = (await confirm({ title: "Aplicar este modelo substitui as colunas atuais e remove os dados das colunas removidas. Continuar?\n\n应用此模板将替换当前列并删除被移除列的数据。是否继续？", }));
+    if (removedKeys.length > 0) {
+      const ok = await confirm({ title: "Aplicar este modelo substitui as colunas atuais e remove os dados das colunas removidas. Continuar?", description: "应用此模板将替换当前列并删除被移除列的数据。是否继续？" });
       if (!ok) return;
     }
     updateCols.mutate({ checklistId: checklist.id, colunas: normalized, removedKeys });
