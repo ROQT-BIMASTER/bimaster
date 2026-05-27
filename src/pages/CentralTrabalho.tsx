@@ -305,13 +305,8 @@ export default function CentralTrabalho({ defaultTab }: Props) {
             />
             <ProjetoShortcutsDialog />
 
-            {/* KPIs only on tabs where they don't duplicate visible content. */}
-            {(activeTab === "tarefas" || activeTab === "delegadas") && (
-              <CentralKPIs
-                activeTab={activeTab}
-                onNavigate={isResetting ? () => {} : setTab}
-              />
-            )}
+            {/* KPI cards substituídos por chips renderizados em chipsSlot pelas abas. */}
+
 
             <Tabs
               value={activeTab}
