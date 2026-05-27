@@ -76,11 +76,15 @@ export async function calcularMRP(
       const quantidadeNecessaria =
         item.quantidade * op.quantidade_planejada;
 
+      // Pula OPs sem data prevista — não dá pra calcular MRP sem horizonte.
+      if (!op.data_prevista) return;
+      const dataPrevista = op.data_prevista;
+
       const necessidade: NecessidadeMRP = {
         mp_id: mp.id,
         mp_codigo: mp.codigo,
         mp_nome: mp.nome,
-        data_necessidade: new Date(op.data_prevista),
+        data_necessidade: new Date(dataPrevista),
         quantidade_necessaria: quantidadeNecessaria,
         quantidade_disponivel: mp.estoque_atual || 0,
         quantidade_a_comprar: Math.max(
@@ -89,7 +93,7 @@ export async function calcularMRP(
         ),
         lead_time_dias: mp.lead_time_dias || 7,
         data_sugestao_compra: new Date(
-          new Date(op.data_prevista).getTime() -
+          new Date(dataPrevista).getTime() -
             (mp.lead_time_dias || 7) * 24 * 60 * 60 * 1000
         ),
       };
