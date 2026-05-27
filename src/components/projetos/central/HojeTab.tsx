@@ -143,6 +143,7 @@ export function HojeTab({ onGoToTarefas }: Props) {
         </div>
       </CentralToolbarPortal>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2 space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
             <CalendarDays className="h-5 w-5 text-primary" />
