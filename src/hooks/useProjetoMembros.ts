@@ -93,8 +93,22 @@ export function useProjetoMembros(projetoId: string | undefined) {
 
   const currentUserPapel = membros.find(m => m.user_id === user?.id)?.papel;
 
+  // Helper: invalida todos os caches que dependem da lista de membros do
+  // projeto. Roda em background — a UI já mostrou o membro otimisticamente.
+  const invalidateMemberCaches = () => {
+    queryClient.invalidateQueries({ queryKey: ["projeto_membros", projetoId] });
+    queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2", projetoId] });
+    queryClient.invalidateQueries({ queryKey: ["projetos-membros"] });
+    queryClient.invalidateQueries({ queryKey: ["projetos-team-data"] });
+  };
+
   const addMembro = useMutation({
-    mutationFn: async ({ userId, papel = "membro" }: { userId: string; papel?: string }) => {
+    mutationFn: async ({ userId, papel = "membro" }: {
+      userId: string;
+      papel?: string;
+      // profile é só usado no patch otimista — não é enviado ao banco.
+      profile?: { nome?: string | null; avatar_url?: string | null; email?: string | null };
+    }) => {
       if (!projetoId) throw new Error("Projeto não definido");
       const { data, error } = await supabase
         .from("projeto_membros")
@@ -104,11 +118,71 @@ export function useProjetoMembros(projetoId: string | undefined) {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["projeto_membros", projetoId] });
+    onMutate: async ({ userId, papel = "membro", profile }) => {
+      await queryClient.cancelQueries({ queryKey: ["projeto_membros", projetoId] });
+      await queryClient.cancelQueries({ queryKey: ["projeto-tarefas-v2", projetoId] });
+
+      const prevMembros = queryClient.getQueryData<ProjetoMembro[]>(["projeto_membros", projetoId]);
+      const prevTarefasView = queryClient.getQueryData<any>(["projeto-tarefas-v2", projetoId]);
+
+      const tempId = `temp-membro-${userId}-${Date.now()}`;
+      const nome = profile?.nome || "Membro";
+      const avatar_url = profile?.avatar_url ?? null;
+
+      // Patch otimista: lista de membros do diálogo de Equipe.
+      queryClient.setQueryData<ProjetoMembro[]>(["projeto_membros", projetoId], (old) => {
+        const list = old || [];
+        if (list.some((m) => m.user_id === userId)) return list;
+        const optimistic: ProjetoMembro = {
+          id: tempId,
+          projeto_id: projetoId!,
+          user_id: userId,
+          papel,
+          created_at: new Date().toISOString(),
+          profile: { id: userId, nome, avatar_url, email: profile?.email ?? null },
+          secoes_ids: [],
+        };
+        return [...list, optimistic];
+      });
+
+      // Patch otimista: teamMembers usado pelos pickers de Responsável e
+      // Seguidores nas tarefas. Esse é o cache que estava atrasando.
+      if (prevTarefasView && typeof prevTarefasView === "object") {
+        queryClient.setQueryData(["projeto-tarefas-v2", projetoId], (old: any) => {
+          if (!old) return old;
+          const team = Array.isArray(old.teamMembers) ? old.teamMembers : [];
+          if (team.some((m: any) => m.id === userId)) return old;
+          return {
+            ...old,
+            teamMembers: [...team, { id: userId, nome, avatar_url }],
+          };
+        });
+      }
+
+      return { prevMembros, prevTarefasView, tempId };
+    },
+    onError: (err: Error, _vars, context) => {
+      if (context?.prevMembros !== undefined) {
+        queryClient.setQueryData(["projeto_membros", projetoId], context.prevMembros);
+      }
+      if (context?.prevTarefasView !== undefined) {
+        queryClient.setQueryData(["projeto-tarefas-v2", projetoId], context.prevTarefasView);
+      }
+      toast.error("Erro ao adicionar membro: " + err.message);
+    },
+    onSuccess: (data, _vars, context) => {
+      // Reconcilia ID temporário com o ID real do vínculo retornado pelo
+      // backend, sem aguardar refetch.
+      if (data?.id && context?.tempId) {
+        queryClient.setQueryData<ProjetoMembro[]>(["projeto_membros", projetoId], (old) =>
+          (old || []).map((m) => (m.id === context.tempId ? { ...m, id: data.id, created_at: data.created_at || m.created_at } : m)),
+        );
+      }
       toast.success("Membro adicionado!");
     },
-    onError: (err: Error) => toast.error("Erro ao adicionar membro: " + err.message),
+    onSettled: () => {
+      invalidateMemberCaches();
+    },
   });
 
   const removeMembro = useMutation({
@@ -119,11 +193,43 @@ export function useProjetoMembros(projetoId: string | undefined) {
         .eq("id", membroId);
       if (error) throw error;
     },
+    onMutate: async (membroId) => {
+      await queryClient.cancelQueries({ queryKey: ["projeto_membros", projetoId] });
+      await queryClient.cancelQueries({ queryKey: ["projeto-tarefas-v2", projetoId] });
+
+      const prevMembros = queryClient.getQueryData<ProjetoMembro[]>(["projeto_membros", projetoId]);
+      const prevTarefasView = queryClient.getQueryData<any>(["projeto-tarefas-v2", projetoId]);
+      const removidoUserId = prevMembros?.find((m) => m.id === membroId)?.user_id;
+
+      queryClient.setQueryData<ProjetoMembro[]>(["projeto_membros", projetoId], (old) =>
+        (old || []).filter((m) => m.id !== membroId),
+      );
+
+      if (removidoUserId && prevTarefasView && typeof prevTarefasView === "object") {
+        queryClient.setQueryData(["projeto-tarefas-v2", projetoId], (old: any) => {
+          if (!old) return old;
+          const team = Array.isArray(old.teamMembers) ? old.teamMembers : [];
+          return { ...old, teamMembers: team.filter((m: any) => m.id !== removidoUserId) };
+        });
+      }
+
+      return { prevMembros, prevTarefasView };
+    },
+    onError: (err: Error, _vars, context) => {
+      if (context?.prevMembros !== undefined) {
+        queryClient.setQueryData(["projeto_membros", projetoId], context.prevMembros);
+      }
+      if (context?.prevTarefasView !== undefined) {
+        queryClient.setQueryData(["projeto-tarefas-v2", projetoId], context.prevTarefasView);
+      }
+      toast.error("Erro ao remover membro: " + err.message);
+    },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["projeto_membros", projetoId] });
       toast.success("Membro removido!");
     },
-    onError: (err: Error) => toast.error("Erro ao remover membro: " + err.message),
+    onSettled: () => {
+      invalidateMemberCaches();
+    },
   });
 
   const updateSecoes = useMutation({
@@ -141,11 +247,26 @@ export function useProjetoMembros(projetoId: string | undefined) {
         if (insError) throw insError;
       }
     },
+    onMutate: async ({ membroId, secaoIds }) => {
+      await queryClient.cancelQueries({ queryKey: ["projeto_membros", projetoId] });
+      const prevMembros = queryClient.getQueryData<ProjetoMembro[]>(["projeto_membros", projetoId]);
+      queryClient.setQueryData<ProjetoMembro[]>(["projeto_membros", projetoId], (old) =>
+        (old || []).map((m) => (m.id === membroId ? { ...m, secoes_ids: secaoIds } : m)),
+      );
+      return { prevMembros };
+    },
+    onError: (err: Error, _vars, context) => {
+      if (context?.prevMembros !== undefined) {
+        queryClient.setQueryData(["projeto_membros", projetoId], context.prevMembros);
+      }
+      toast.error("Erro ao atualizar seções: " + err.message);
+    },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["projeto_membros", projetoId] });
       toast.success("Visibilidade de seções atualizada!");
     },
-    onError: (err: Error) => toast.error("Erro ao atualizar seções: " + err.message),
+    onSettled: () => {
+      invalidateMemberCaches();
+    },
   });
 
   const updatePapel = useMutation({
@@ -165,11 +286,26 @@ export function useProjetoMembros(projetoId: string | undefined) {
         throw new Error("O papel não foi gravado. Verifique sua permissão para gerenciar este projeto.");
       }
     },
+    onMutate: async ({ membroId, papel }) => {
+      await queryClient.cancelQueries({ queryKey: ["projeto_membros", projetoId] });
+      const prevMembros = queryClient.getQueryData<ProjetoMembro[]>(["projeto_membros", projetoId]);
+      queryClient.setQueryData<ProjetoMembro[]>(["projeto_membros", projetoId], (old) =>
+        (old || []).map((m) => (m.id === membroId ? { ...m, papel } : m)),
+      );
+      return { prevMembros };
+    },
+    onError: (err: Error, _vars, context) => {
+      if (context?.prevMembros !== undefined) {
+        queryClient.setQueryData(["projeto_membros", projetoId], context.prevMembros);
+      }
+      toast.error("Erro ao atualizar papel: " + err.message);
+    },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["projeto_membros", projetoId] });
       toast.success("Papel atualizado!");
     },
-    onError: (err: Error) => toast.error("Erro ao atualizar papel: " + err.message),
+    onSettled: () => {
+      invalidateMemberCaches();
+    },
   });
 
   return {
