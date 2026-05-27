@@ -64,7 +64,9 @@ describe("NovaConversaDialog", () => {
       expect(onSuccess).toHaveBeenCalledWith("conversa-1");
     });
 
-    expect(supabase.from).toHaveBeenCalledWith("profiles");
+    // Diretório de usuários vem da view chat_directory (RLS-safe), não direto de `profiles`.
+    expect(supabase.from).toHaveBeenCalledWith("chat_directory");
+
     expect(supabase.from).not.toHaveBeenCalledWith("conversas");
     expect(supabase.from).not.toHaveBeenCalledWith("conversas_participantes");
   });
