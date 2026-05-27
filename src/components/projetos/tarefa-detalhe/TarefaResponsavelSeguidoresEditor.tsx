@@ -284,12 +284,6 @@ export function TarefaResponsavelSeguidoresEditor({
                     else removerSeguidor(swapFrom);
                     onPicked();
                   }}
-                  onMouseDown={(e) => {
-                    e.preventDefault();
-                    if (kind === "responsavel") removerResponsavel(swapFrom);
-                    else removerSeguidor(swapFrom);
-                    onPicked();
-                  }}
                   className="text-xs text-destructive"
                 >
                   <X className="h-3.5 w-3.5 mr-2" />
