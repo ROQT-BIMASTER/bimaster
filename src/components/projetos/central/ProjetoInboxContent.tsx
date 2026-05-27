@@ -36,6 +36,7 @@ import {
   type CentralInboxSubtab,
   type CentralInboxTipo,
 } from "@/lib/centralUrlParams";
+import { CentralToolbarPortal } from "@/components/projetos/central/CentralLayout";
 
 const TIPO_FILTERS = [
   { key: "criou_tarefa" as const, label: "Tarefas", icon: FolderPlus },
