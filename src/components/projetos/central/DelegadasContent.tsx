@@ -10,10 +10,11 @@ import {
 import { TarefaResponsavelAvatar } from "@/components/projetos/shared/TarefaResponsavelAvatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Send, Inbox, Search } from "lucide-react";
-import { format } from "date-fns";
+import { format, isToday, isBefore, startOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { parseLocalDate } from "@/lib/utils/parseLocalDate";
-import { CentralToolbarPortal } from "@/components/projetos/central/CentralLayout";
+import { CentralToolbarPortal, CentralChipsPortal } from "@/components/projetos/central/CentralLayout";
+import { CentralChip } from "@/components/projetos/central/CentralChips";
 
 const Row = memo(function Row({ t, onOpen }: { t: DelegadaTarefa; onOpen: (t: DelegadaTarefa) => void }) {
   const prazoDate = parseLocalDate(t.data_prazo);
