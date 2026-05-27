@@ -1170,9 +1170,12 @@ export function ProjetoTarefaDetalhe({
                       Nenhuma subtarefa ainda. Adicione abaixo ou gere um checklist com IA.
                     </p>
                   )}
-                  <div className="space-y-1.5">
+                  {(() => {
+                    const allSubs = tarefa.subtarefas ?? [];
+                    const pendentes = allSubs.filter(s => s.status !== "concluida");
+                    const concluidas = allSubs.filter(s => s.status === "concluida");
 
-                    {tarefa.subtarefas?.map(st => {
+                    const renderSub = (st: typeof allSubs[number]) => {
                       const stEstagioInfo = ESTAGIO_OPTIONS.find(e => e.value === st.estagio);
                       return (
                         <div key={st.id} className="group border-b border-border/40 last:border-b-0 py-2 hover:bg-muted/20 transition-colors space-y-2 -mx-2 px-2 rounded-sm">
@@ -1293,8 +1296,33 @@ export function ProjetoTarefaDetalhe({
                           </div>
                         </div>
                       );
-                    })}
-                  </div>
+                    };
+
+                    return (
+                      <div className="space-y-1.5">
+                        {pendentes.map(renderSub)}
+
+                        {concluidas.length > 0 && (
+                          <div className="mt-2 pt-2 border-t border-border/30">
+                            <button
+                              type="button"
+                              onClick={() => setShowConcluidas(v => !v)}
+                              className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground transition-colors py-1"
+                            >
+                              {showConcluidas ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
+                              {showConcluidas ? "Ocultar" : "Mostrar"} {concluidas.length} concluída{concluidas.length > 1 ? "s" : ""}
+                            </button>
+                            {showConcluidas && (
+                              <div className="space-y-1.5 mt-1">
+                                {concluidas.map(renderSub)}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
+
                   {onAddSubtarefa && (
                     <div className="flex items-center gap-2 mt-2">
                       <Input
