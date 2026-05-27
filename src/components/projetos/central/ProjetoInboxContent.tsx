@@ -207,12 +207,78 @@ export function ProjetoInboxContent() {
                 : "Visão Equipe · projetos genéricos"}
           </span>
         </div>
+      </div>
+
+      <CentralToolbarPortal>
+        <div className="relative w-72">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+          <Input
+            value={search}
+            onChange={e => setSearch(normalizeSearch(e.target.value))}
+            placeholder="Buscar notificações..."
+            className="h-9 w-full pl-8 text-xs"
+            maxLength={100}
+          />
+          {search && (
+            <button onClick={() => setSearch("")} className="absolute right-2 top-1/2 -translate-y-1/2" aria-label="Limpar busca">
+              <X className="h-3 w-3 text-muted-foreground" />
+            </button>
+          )}
+        </div>
+
+        {projetos.length > 0 && (
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="sm" className="h-9 gap-1.5 text-xs">
+                <FolderOpen className="h-3.5 w-3.5" />
+                Projeto
+                {filterProjetoIds.length > 0 && (
+                  <Badge variant="secondary" className="text-[10px] h-4 px-1">{filterProjetoIds.length}</Badge>
+                )}
+                <ChevronDown className="h-3 w-3" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-56 p-2" align="start">
+              <p className="text-xs font-semibold text-muted-foreground px-2 py-1">Filtrar por projeto</p>
+              {projetos.map(p => (
+                <button
+                  key={p.id}
+                  className="flex items-center gap-2 w-full px-2 py-1.5 rounded hover:bg-muted/50 transition-colors text-sm"
+                  onClick={() => toggleFilterProjeto(p.id)}
+                >
+                  <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: p.cor }} />
+                  <span className="flex-1 text-left truncate">{p.nome}</span>
+                  {filterProjetoIds.includes(p.id) && <CheckCheck className="h-3.5 w-3.5 text-primary" />}
+                </button>
+              ))}
+              {filterProjetoIds.length > 0 && (
+                <button
+                  className="text-xs text-primary px-2 py-1 mt-1 hover:underline"
+                  onClick={() => setFilterProjetoIds([])}
+                >
+                  Limpar filtros
+                </button>
+              )}
+            </PopoverContent>
+          </Popover>
+        )}
+
+        <Button
+          variant={groupMode === "projeto" ? "secondary" : "outline"}
+          size="sm"
+          className="h-9 gap-1.5 text-xs"
+          onClick={() => setGroupMode(g => g === "tempo" ? "projeto" : "tempo")}
+        >
+          <FolderOpen className="h-3.5 w-3.5" />
+          {groupMode === "tempo" ? "Por tempo" : "Por projeto"}
+        </Button>
+
         {naoLidas > 0 && (
-          <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={handleMarcarTodasLidas}>
+          <Button variant="outline" size="sm" className="h-9 gap-1.5 text-xs ml-auto" onClick={handleMarcarTodasLidas}>
             <CheckCheck className="h-3.5 w-3.5" /> Marcar todas como lidas
           </Button>
         )}
-      </div>
+      </CentralToolbarPortal>
 
       <TooltipProvider delayDuration={150}>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
