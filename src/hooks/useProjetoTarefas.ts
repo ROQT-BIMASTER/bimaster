@@ -583,10 +583,14 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
 
   const addResponsavel = useMutation({
     mutationFn: async ({ tarefaId, userId }: { tarefaId: string; userId: string }) => {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from("projeto_tarefa_responsaveis" as never)
-        .insert({ tarefa_id: tarefaId, user_id: userId } as never);
+        .insert({ tarefa_id: tarefaId, user_id: userId } as never)
+        .select("id");
       if (error) throw error;
+      if (!data || (data as any[]).length === 0) {
+        throw new Error("Sem permissão para adicionar responsável. Você precisa ser membro do projeto, responsável ou criador da tarefa.");
+      }
       return { tarefaId, userId };
     },
     onMutate: async ({ tarefaId, userId }) => {
