@@ -30,21 +30,27 @@ export function useUserLanguage() {
   useEffect(() => {
     let alive = true;
     (async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user || !alive) { setLoading(false); return; }
-      const { data } = await supabase
-        .from("profiles")
-        .select("preferred_language")
-        .eq("id", user.id)
-        .maybeSingle();
-      if (!alive) return;
-      const lang = (data?.preferred_language as UserLanguage | undefined) ?? "pt";
-      setLanguageState(lang);
-      try { localStorage.setItem(STORAGE_KEY, lang); } catch { /* ignore */ }
-      setLoading(false);
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user || !alive) { setLoading(false); return; }
+        const { data } = await supabase
+          .from("profiles")
+          .select("preferred_language")
+          .eq("id", user.id)
+          .maybeSingle();
+        if (!alive) return;
+        const lang = (data?.preferred_language as UserLanguage | undefined) ?? "pt";
+        setLanguageState(lang);
+        try { localStorage.setItem(STORAGE_KEY, lang); } catch { /* ignore */ }
+      } catch {
+        // Em ambientes de teste / SDK não disponível, mantém fallback "pt" silenciosamente.
+      } finally {
+        if (alive) setLoading(false);
+      }
     })();
     return () => { alive = false; };
   }, []);
+
 
   const setLanguage = useCallback(async (next: UserLanguage) => {
     setLanguageState(next);
