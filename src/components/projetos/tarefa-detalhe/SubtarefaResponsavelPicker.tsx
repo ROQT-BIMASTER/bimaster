@@ -13,9 +13,10 @@ import {
   CommandList,
   CommandSeparator,
 } from "@/components/ui/command";
-import { Plus, X, Check, UserPlus } from "lucide-react";
+import { Plus, X, Check, UserPlus, User } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+
 
 interface Props {
   subtarefaId: string;
@@ -23,6 +24,8 @@ interface Props {
   responsavelId: string | null;
   responsavelNome?: string | null;
   responsavelAvatar?: string | null;
+  /** "inline" (default): chip pequeno com nome. "avatar": apenas avatar circular estilo Asana. */
+  variant?: "inline" | "avatar";
 }
 
 /**
@@ -38,6 +41,7 @@ export function SubtarefaResponsavelPicker({
   responsavelId,
   responsavelNome,
   responsavelAvatar,
+  variant = "inline",
 }: Props) {
   const { user } = useAuth();
   const { membros } = useProjetoMembros(projetoId);
@@ -62,31 +66,58 @@ export function SubtarefaResponsavelPicker({
     );
   };
 
+  const triggerEl =
+    variant === "avatar" ? (
+      <button
+        type="button"
+        title={responsavelNome || "Atribuir responsável"}
+        aria-label={responsavelNome ? `Responsável: ${responsavelNome}` : "Atribuir responsável"}
+        className={cn(
+          "flex items-center justify-center rounded-full transition-colors",
+          "h-7 w-7 shrink-0",
+          responsavelId
+            ? "hover:ring-2 hover:ring-primary/30"
+            : "border border-dashed border-border/60 text-muted-foreground hover:text-foreground hover:border-foreground/40",
+        )}
+      >
+        {responsavelId ? (
+          <Avatar className="h-7 w-7">
+            <AvatarImage src={responsavelAvatar || undefined} />
+            <AvatarFallback className="text-[10px] bg-primary/15 text-primary font-medium">
+              {responsavelNome?.substring(0, 2).toUpperCase() || "?"}
+            </AvatarFallback>
+          </Avatar>
+        ) : (
+          <User className="h-3.5 w-3.5" />
+        )}
+      </button>
+    ) : (
+      <button
+        type="button"
+        className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground rounded px-1 py-0.5 hover:bg-muted/40 transition-colors"
+      >
+        {responsavelId ? (
+          <>
+            <Avatar className="h-4 w-4">
+              <AvatarImage src={responsavelAvatar || undefined} />
+              <AvatarFallback className="text-[7px] bg-primary/20 text-primary">
+                {responsavelNome?.substring(0, 2).toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
+            <span className="truncate max-w-[60px]">{responsavelNome?.split(" ")[0]}</span>
+          </>
+        ) : (
+          <>
+            <Plus className="h-3 w-3" />
+            <span>Responsável</span>
+          </>
+        )}
+      </button>
+    );
+
   return (
     <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <button
-          type="button"
-          className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground rounded px-1 py-0.5 hover:bg-muted/40 transition-colors"
-        >
-          {responsavelId ? (
-            <>
-              <Avatar className="h-4 w-4">
-                <AvatarImage src={responsavelAvatar || undefined} />
-                <AvatarFallback className="text-[7px] bg-primary/20 text-primary">
-                  {responsavelNome?.substring(0, 2).toUpperCase()}
-                </AvatarFallback>
-              </Avatar>
-              <span className="truncate max-w-[60px]">{responsavelNome?.split(" ")[0]}</span>
-            </>
-          ) : (
-            <>
-              <Plus className="h-3 w-3" />
-              <span>Responsável</span>
-            </>
-          )}
-        </button>
-      </PopoverTrigger>
+      <PopoverTrigger asChild>{triggerEl}</PopoverTrigger>
       <PopoverContent className="w-60 p-0" align="start">
         <Command>
           <CommandInput placeholder="Buscar membro..." />
