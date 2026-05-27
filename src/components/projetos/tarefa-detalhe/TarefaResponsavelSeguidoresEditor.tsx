@@ -380,7 +380,7 @@ export function TarefaResponsavelSeguidoresEditor({
                     </Avatar>
                   </button>
                 </PopoverTrigger>
-                <PopoverContent className="w-64 p-0" align="start">
+                <PopoverContent className="w-64 p-0" align="start" onOpenAutoFocus={(e) => e.preventDefault()}>
                   {renderPicker({
                     kind: "responsavel",
                     swapFrom: r.user_id,
@@ -414,7 +414,7 @@ export function TarefaResponsavelSeguidoresEditor({
               <Plus className="h-3 w-3" />
             </Button>
           </PopoverTrigger>
-          <PopoverContent className="w-64 p-0" align="start">
+          <PopoverContent className="w-64 p-0" align="start" onOpenAutoFocus={(e) => e.preventDefault()}>
             {renderPicker({
               kind: "responsavel",
               onPicked: () => setRespOpenKey(null),
@@ -449,7 +449,7 @@ export function TarefaResponsavelSeguidoresEditor({
                     </Avatar>
                   </button>
                 </PopoverTrigger>
-                <PopoverContent className="w-64 p-0" align="start">
+                <PopoverContent className="w-64 p-0" align="start" onOpenAutoFocus={(e) => e.preventDefault()}>
                   {renderPicker({
                     kind: "seguidor",
                     swapFrom: c.user_id,
@@ -483,7 +483,7 @@ export function TarefaResponsavelSeguidoresEditor({
               <Plus className="h-3 w-3" />
             </Button>
           </PopoverTrigger>
-          <PopoverContent className="w-64 p-0" align="start">
+          <PopoverContent className="w-64 p-0" align="start" onOpenAutoFocus={(e) => e.preventDefault()}>
             {renderPicker({
               kind: "seguidor",
               onPicked: () => setSegOpenKey(null),
