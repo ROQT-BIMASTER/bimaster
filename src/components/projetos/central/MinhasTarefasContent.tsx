@@ -1419,8 +1419,10 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
 
       <div>
         {isLoading ? (
-          <div className="space-y-3">
-            {[1, 2, 3, 4, 5].map((i) => <Skeleton key={i} className="h-12 w-full rounded-lg" />)}
+          <div className="space-y-2">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <Skeleton key={i} className={cn("w-full rounded-lg", isCompact ? "h-11" : "h-14")} />
+            ))}
           </div>
         ) : view === "list" ? (
           <div className="space-y-4">
