@@ -6,9 +6,17 @@ import { useProjetoTarefas } from "@/hooks/useProjetoTarefas";
 import { logger } from "@/lib/logger";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+  CommandSeparator,
+} from "@/components/ui/command";
 import { Button } from "@/components/ui/button";
-import { Plus, UserPlus, UserMinus, Check } from "lucide-react";
+import { Plus, UserPlus, UserMinus, Check, X } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -76,8 +84,10 @@ export function TarefaResponsavelSeguidoresEditor({
     addResponsavel,
     removeResponsavel,
   } = useProjetoTarefas(projetoId);
-  const [respOpen, setRespOpen] = useState(false);
-  const [segOpen, setSegOpen] = useState(false);
+
+  // Popover por avatar (key = user_id). String vazia = popover "+" geral.
+  const [respOpenKey, setRespOpenKey] = useState<string | null>(null);
+  const [segOpenKey, setSegOpenKey] = useState<string | null>(null);
 
   const busy =
     addResponsavel.isPending ||
@@ -85,12 +95,18 @@ export function TarefaResponsavelSeguidoresEditor({
     addColaborador.isPending ||
     removeColaborador.isPending;
 
-  const responsaveisIds = useMemo(() => new Set(responsaveis.map(r => r.user_id)), [responsaveis]);
-  const seguidoresIds = useMemo(() => new Set(colaboradores.map((c) => c.user_id)), [colaboradores]);
+  const responsaveisIds = useMemo(
+    () => new Set(responsaveis.map((r) => r.user_id)),
+    [responsaveis],
+  );
+  const seguidoresIds = useMemo(
+    () => new Set(colaboradores.map((c) => c.user_id)),
+    [colaboradores],
+  );
 
+  // ─── Responsáveis ──────────────────────────────────────────────────────────
   const adicionarResponsavel = (userId: string) => {
-    if (!user) return;
-    if (responsaveisIds.has(userId)) return;
+    if (!user || responsaveisIds.has(userId)) return;
     const membro = membros.find((m) => m.user_id === userId);
     addResponsavel.mutate(
       { tarefaId, userId },
@@ -108,13 +124,13 @@ export function TarefaResponsavelSeguidoresEditor({
           toast.success("Responsável adicionado");
           onChange?.();
         },
-      }
+      },
     );
   };
 
   const removerResponsavel = (userId: string) => {
     if (!user) return;
-    const alvo = responsaveis.find(r => r.user_id === userId);
+    const alvo = responsaveis.find((r) => r.user_id === userId);
     removeResponsavel.mutate(
       { tarefaId, userId },
       {
@@ -131,13 +147,20 @@ export function TarefaResponsavelSeguidoresEditor({
           toast.success("Responsável removido");
           onChange?.();
         },
-      }
+      },
     );
   };
 
+  /** Substitui um responsável por outro em um clique (add novo + remove antigo). */
+  const trocarResponsavel = (oldUserId: string, newUserId: string) => {
+    if (oldUserId === newUserId) return;
+    adicionarResponsavel(newUserId);
+    removerResponsavel(oldUserId);
+  };
+
+  // ─── Seguidores ────────────────────────────────────────────────────────────
   const adicionarSeguidor = (userId: string) => {
-    if (!user) return;
-    if (seguidoresIds.has(userId)) return;
+    if (!user || seguidoresIds.has(userId)) return;
     const membro = membros.find((m) => m.user_id === userId);
     addColaborador.mutate(
       { tarefaId, userId },
@@ -155,7 +178,7 @@ export function TarefaResponsavelSeguidoresEditor({
           toast.success("Seguidor adicionado");
           onChange?.();
         },
-      }
+      },
     );
   };
 
@@ -178,11 +201,140 @@ export function TarefaResponsavelSeguidoresEditor({
           toast.success("Seguidor removido");
           onChange?.();
         },
-      }
+      },
     );
   };
 
-  const membrosDisponiveis = membros.filter((m) => !responsaveisIds.has(m.user_id));
+  const trocarSeguidor = (oldUserId: string, newUserId: string) => {
+    if (oldUserId === newUserId) return;
+    adicionarSeguidor(newUserId);
+    removerSeguidor(oldUserId);
+  };
+
+  // ─── Picker compartilhado ──────────────────────────────────────────────────
+  /**
+   * Renderiza o conteúdo do Command usado tanto pelo botão "+" quanto pelo
+   * popover de cada avatar. Quando `swapFrom` é informado, selecionar outro
+   * membro substitui esse responsável/seguidor em um clique.
+   */
+  const renderPicker = ({
+    kind,
+    swapFrom,
+    onPicked,
+  }: {
+    kind: "responsavel" | "seguidor";
+    swapFrom?: string;
+    onPicked: () => void;
+  }) => {
+    const selectedIds = kind === "responsavel" ? responsaveisIds : seguidoresIds;
+    const meSelecionado = user ? selectedIds.has(user.id) : true;
+
+    const handleToggle = (userId: string) => {
+      if (swapFrom) {
+        if (userId === swapFrom) {
+          if (kind === "responsavel") removerResponsavel(userId);
+          else removerSeguidor(userId);
+        } else if (selectedIds.has(userId)) {
+          // Já é responsável/seguidor — remove o "antigo" para concluir a troca
+          if (kind === "responsavel") removerResponsavel(swapFrom);
+          else removerSeguidor(swapFrom);
+        } else {
+          if (kind === "responsavel") trocarResponsavel(swapFrom, userId);
+          else trocarSeguidor(swapFrom, userId);
+        }
+      } else {
+        if (selectedIds.has(userId)) {
+          if (kind === "responsavel") removerResponsavel(userId);
+          else removerSeguidor(userId);
+        } else {
+          if (kind === "responsavel") adicionarResponsavel(userId);
+          else adicionarSeguidor(userId);
+        }
+      }
+      onPicked();
+    };
+
+    return (
+      <Command>
+        <CommandInput placeholder="Buscar membro..." />
+        <CommandList>
+          <CommandEmpty>Nenhum membro encontrado.</CommandEmpty>
+
+          {user && !meSelecionado && (
+            <CommandGroup>
+              <CommandItem
+                value="__me__"
+                onSelect={() => handleToggle(user.id)}
+                className="text-xs"
+              >
+                <UserPlus className="h-3.5 w-3.5 mr-2" />
+                Atribuir a mim
+              </CommandItem>
+            </CommandGroup>
+          )}
+
+          {swapFrom && (
+            <>
+              {user && !meSelecionado && <CommandSeparator />}
+              <CommandGroup>
+                <CommandItem
+                  value="__remove__"
+                  onSelect={() => {
+                    if (kind === "responsavel") removerResponsavel(swapFrom);
+                    else removerSeguidor(swapFrom);
+                    onPicked();
+                  }}
+                  className="text-xs text-destructive"
+                >
+                  <X className="h-3.5 w-3.5 mr-2" />
+                  {kind === "responsavel" ? "Remover este responsável" : "Remover este seguidor"}
+                </CommandItem>
+              </CommandGroup>
+            </>
+          )}
+
+          {membros.length === 0 ? (
+            <div className="px-3 py-4 text-center space-y-1.5">
+              <p className="text-[11px] text-muted-foreground">
+                Nenhum membro cadastrado neste projeto.
+              </p>
+              <p className="text-[10px] text-muted-foreground/70">
+                Adicione membros na aba{" "}
+                <span className="font-semibold text-foreground/80">Equipe</span> para poder
+                atribuí-los.
+              </p>
+            </div>
+          ) : (
+            <>
+              <CommandSeparator />
+              <CommandGroup heading="Membros do projeto">
+                {membros.map((m) => {
+                  const isSelected = selectedIds.has(m.user_id);
+                  return (
+                    <CommandItem
+                      key={m.user_id}
+                      value={m.profile?.nome || m.user_id}
+                      onSelect={() => handleToggle(m.user_id)}
+                      className={cn("text-xs", isSelected && "bg-accent/60")}
+                    >
+                      <Avatar className="h-5 w-5 mr-2">
+                        <AvatarImage src={m.profile?.avatar_url || undefined} />
+                        <AvatarFallback className="text-[9px]">
+                          {m.profile?.nome?.substring(0, 2).toUpperCase() || "?"}
+                        </AvatarFallback>
+                      </Avatar>
+                      <span className="flex-1 truncate">{m.profile?.nome || "Membro"}</span>
+                      {isSelected && <Check className="h-3.5 w-3.5 text-primary" />}
+                    </CommandItem>
+                  );
+                })}
+              </CommandGroup>
+            </>
+          )}
+        </CommandList>
+      </Command>
+    );
+  };
 
   return (
     <>
@@ -194,12 +346,17 @@ export function TarefaResponsavelSeguidoresEditor({
         {responsaveis.length > 0 ? (
           <div className="flex -space-x-1">
             {responsaveis.map((r) => (
-              <Popover key={r.user_id}>
+              <Popover
+                key={r.user_id}
+                open={respOpenKey === r.user_id}
+                onOpenChange={(o) => setRespOpenKey(o ? r.user_id : null)}
+              >
                 <PopoverTrigger asChild>
                   <button
                     disabled={busy}
+                    type="button"
                     className="hover:scale-110 transition-transform"
-                    title={`${r.nome} — clique para remover`}
+                    title={`${r.nome} — clique para trocar ou remover`}
                   >
                     <Avatar className="h-6 w-6 border-2 border-background">
                       <AvatarImage src={r.avatar_url || undefined} />
@@ -209,18 +366,12 @@ export function TarefaResponsavelSeguidoresEditor({
                     </Avatar>
                   </button>
                 </PopoverTrigger>
-                <PopoverContent className="w-48 p-2" align="start">
-                  <div className="text-xs font-medium mb-2">{r.nome}</div>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="w-full justify-start text-xs text-destructive hover:text-destructive"
-                    onClick={() => removerResponsavel(r.user_id)}
-                    disabled={busy}
-                  >
-                    <UserMinus className="h-3 w-3 mr-2" />
-                    Remover responsável
-                  </Button>
+                <PopoverContent className="w-64 p-0" align="start">
+                  {renderPicker({
+                    kind: "responsavel",
+                    swapFrom: r.user_id,
+                    onPicked: () => setRespOpenKey(null),
+                  })}
                 </PopoverContent>
               </Popover>
             ))}
@@ -231,7 +382,10 @@ export function TarefaResponsavelSeguidoresEditor({
           </span>
         )}
 
-        <Popover open={respOpen} onOpenChange={setRespOpen}>
+        <Popover
+          open={respOpenKey === "__add__"}
+          onOpenChange={(o) => setRespOpenKey(o ? "__add__" : null)}
+        >
           <PopoverTrigger asChild>
             <Button
               size="sm"
@@ -239,7 +393,7 @@ export function TarefaResponsavelSeguidoresEditor({
               disabled={busy}
               className={cn(
                 "h-6 w-6 p-0 rounded-full border border-dashed border-border hover:border-primary",
-                responsaveis.length > 0 && "ml-1"
+                responsaveis.length > 0 && "ml-1",
               )}
               title="Adicionar responsável"
             >
@@ -247,48 +401,10 @@ export function TarefaResponsavelSeguidoresEditor({
             </Button>
           </PopoverTrigger>
           <PopoverContent className="w-64 p-0" align="start">
-            <Command>
-              <CommandInput placeholder="Buscar membro..." />
-              <CommandList>
-                <CommandEmpty>Nenhum membro encontrado.</CommandEmpty>
-                {membrosDisponiveis.length === 0 ? (
-                  <div className="px-3 py-4 text-center space-y-1.5">
-                    <p className="text-[11px] text-muted-foreground">
-                      {membros.length === 0
-                        ? "Nenhum membro cadastrado neste projeto."
-                        : "Todos os membros já são responsáveis."}
-                    </p>
-                    {membros.length === 0 && (
-                      <p className="text-[10px] text-muted-foreground/70">
-                        Adicione membros na aba <span className="font-semibold text-foreground/80">Equipe</span> para poder atribuí-los.
-                      </p>
-                    )}
-                  </div>
-                ) : (
-                  <CommandGroup heading="Adicionar responsável">
-                    {membrosDisponiveis.map((m) => (
-                      <CommandItem
-                        key={m.user_id}
-                        value={m.profile?.nome || "Membro"}
-                        onSelect={() => {
-                          adicionarResponsavel(m.user_id);
-                          setRespOpen(false);
-                        }}
-                      >
-                        <Avatar className="h-5 w-5 mr-2">
-                          <AvatarImage src={m.profile?.avatar_url || undefined} />
-                          <AvatarFallback className="text-[9px]">
-                            {m.profile?.nome?.substring(0, 2).toUpperCase()}
-                          </AvatarFallback>
-                        </Avatar>
-                        <span className="flex-1 text-xs">{m.profile?.nome || "Membro"}</span>
-                        {responsaveisIds.has(m.user_id) && <Check className="h-3.5 w-3.5 text-primary" />}
-                      </CommandItem>
-                    ))}
-                  </CommandGroup>
-                )}
-              </CommandList>
-            </Command>
+            {renderPicker({
+              kind: "responsavel",
+              onPicked: () => setRespOpenKey(null),
+            })}
           </PopoverContent>
         </Popover>
       </div>
@@ -299,12 +415,17 @@ export function TarefaResponsavelSeguidoresEditor({
         {colaboradores.length > 0 ? (
           <div className="flex -space-x-1">
             {colaboradores.map((c) => (
-              <Popover key={c.user_id}>
+              <Popover
+                key={c.user_id}
+                open={segOpenKey === c.user_id}
+                onOpenChange={(o) => setSegOpenKey(o ? c.user_id : null)}
+              >
                 <PopoverTrigger asChild>
                   <button
                     disabled={busy}
+                    type="button"
                     className="hover:scale-110 transition-transform"
-                    title={`${c.nome} — clique para remover`}
+                    title={`${c.nome} — clique para trocar ou remover`}
                   >
                     <Avatar className="h-6 w-6 border-2 border-background">
                       <AvatarImage src={c.avatar_url || undefined} />
@@ -314,26 +435,26 @@ export function TarefaResponsavelSeguidoresEditor({
                     </Avatar>
                   </button>
                 </PopoverTrigger>
-                <PopoverContent className="w-48 p-2" align="start">
-                  <div className="text-xs font-medium mb-2">{c.nome}</div>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="w-full justify-start text-xs text-destructive hover:text-destructive"
-                    onClick={() => removerSeguidor(c.user_id)}
-                  >
-                    <UserMinus className="h-3 w-3 mr-2" />
-                    Remover seguidor
-                  </Button>
+                <PopoverContent className="w-64 p-0" align="start">
+                  {renderPicker({
+                    kind: "seguidor",
+                    swapFrom: c.user_id,
+                    onPicked: () => setSegOpenKey(null),
+                  })}
                 </PopoverContent>
               </Popover>
             ))}
           </div>
         ) : (
-          <span className="text-xs text-muted-foreground">Nenhum seguidor</span>
+          <span className="text-xs text-muted-foreground inline-flex items-center gap-1">
+            <UserMinus className="h-3 w-3" /> Nenhum seguidor
+          </span>
         )}
 
-        <Popover open={segOpen} onOpenChange={setSegOpen}>
+        <Popover
+          open={segOpenKey === "__add__"}
+          onOpenChange={(o) => setSegOpenKey(o ? "__add__" : null)}
+        >
           <PopoverTrigger asChild>
             <Button
               size="sm"
@@ -341,7 +462,7 @@ export function TarefaResponsavelSeguidoresEditor({
               disabled={busy}
               className={cn(
                 "h-6 w-6 p-0 rounded-full border border-dashed border-border hover:border-primary",
-                colaboradores.length > 0 && "ml-1"
+                colaboradores.length > 0 && "ml-1",
               )}
               title="Adicionar seguidor"
             >
@@ -349,50 +470,10 @@ export function TarefaResponsavelSeguidoresEditor({
             </Button>
           </PopoverTrigger>
           <PopoverContent className="w-64 p-0" align="start">
-            <Command>
-              <CommandInput placeholder="Buscar membro..." />
-              <CommandList>
-                <CommandEmpty>Nenhum membro encontrado.</CommandEmpty>
-                {membros.length === 0 ? (
-                  <div className="px-3 py-4 text-center space-y-1.5">
-                    <p className="text-[11px] text-muted-foreground">
-                      Nenhum membro cadastrado neste projeto.
-                    </p>
-                    <p className="text-[10px] text-muted-foreground/70">
-                      Adicione membros na aba <span className="font-semibold text-foreground/80">Equipe</span> para poder atribuí-los.
-                    </p>
-                  </div>
-                ) : (
-                  <CommandGroup heading="Adicionar seguidor">
-                    {membros
-                      .filter((m) => !seguidoresIds.has(m.user_id))
-                      .map((m) => (
-                        <CommandItem
-                          key={m.user_id}
-                          value={m.profile?.nome || "Membro"}
-                          onSelect={() => {
-                            adicionarSeguidor(m.user_id);
-                            setSegOpen(false);
-                          }}
-                        >
-                          <Avatar className="h-5 w-5 mr-2">
-                            <AvatarImage src={m.profile?.avatar_url || undefined} />
-                            <AvatarFallback className="text-[9px]">
-                              {m.profile?.nome?.substring(0, 2).toUpperCase()}
-                            </AvatarFallback>
-                          </Avatar>
-                          <span className="text-xs">{m.profile?.nome || "Membro"}</span>
-                        </CommandItem>
-                      ))}
-                    {membros.filter((m) => !seguidoresIds.has(m.user_id)).length === 0 && (
-                      <div className="px-2 py-3 text-xs text-muted-foreground text-center">
-                        Todos os membros já são seguidores.
-                      </div>
-                    )}
-                  </CommandGroup>
-                )}
-              </CommandList>
-            </Command>
+            {renderPicker({
+              kind: "seguidor",
+              onPicked: () => setSegOpenKey(null),
+            })}
           </PopoverContent>
         </Popover>
       </div>
