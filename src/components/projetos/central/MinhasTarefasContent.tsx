@@ -946,6 +946,7 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
             <SelectItem value="atrasadas">Atrasadas</SelectItem>
             <SelectItem value="hoje">Hoje</SelectItem>
             <SelectItem value="sem_data">Sem prazo</SelectItem>
+            <SelectItem value="concluidas_hoje">Concluídas hoje</SelectItem>
           </SelectContent>
         </Select>
         <Select value={filterPriority} onValueChange={setFilterPriority}>
