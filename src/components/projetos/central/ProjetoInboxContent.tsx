@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
-import { KpiCard } from "@/components/ui/kpi-card";
+// KpiCard removido — substituído por chips no chipsSlot.
 import {
   CheckCheck, Star, Archive, MessageSquare, Search,
   Bell, CalendarDays, LayoutList, FolderOpen, ChevronDown,
