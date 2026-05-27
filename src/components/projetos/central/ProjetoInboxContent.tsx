@@ -359,6 +359,7 @@ export function ProjetoInboxContent() {
             </TabsTrigger>
           </TabsList>
         </Tabs>
+      </div>
 
       {activeTab === "atividade" && (
         <div className="flex items-center gap-2 flex-wrap">
