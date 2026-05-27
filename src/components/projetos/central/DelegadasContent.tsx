@@ -9,12 +9,15 @@ import {
 } from "@/components/ui/select";
 import { TarefaResponsavelAvatar } from "@/components/projetos/shared/TarefaResponsavelAvatar";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Send, Inbox, Search } from "lucide-react";
+import { Send, Search } from "lucide-react";
 import { format, isToday, isBefore, startOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { parseLocalDate } from "@/lib/utils/parseLocalDate";
 import { CentralToolbarPortal, CentralChipsPortal } from "@/components/projetos/central/CentralLayout";
 import { CentralChip } from "@/components/projetos/central/CentralChips";
+import { EmptyState } from "@/components/ui/empty-state";
+import { useTarefaDensity } from "@/hooks/useTarefaDensity";
+import { cn } from "@/lib/utils";
 
 const Row = memo(function Row({ t, onOpen }: { t: DelegadaTarefa; onOpen: (t: DelegadaTarefa) => void }) {
   const prazoDate = parseLocalDate(t.data_prazo);
