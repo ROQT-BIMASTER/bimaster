@@ -266,7 +266,7 @@ function transformFile(path) {
   // 4. Ensure sonner import
   if (!/from\s*["']sonner["']/.test(src)) {
     // insert at top after last import line
-    const importRe = /^import .+;?\s*$/gm;
+    const importRe = /^import [^\n]+;[ \t]*$/gm;
     let lastIdx = 0;
     let m;
     while ((m = importRe.exec(src)) !== null) {
