@@ -205,6 +205,7 @@ export function DelegadasContent({ naoLidas = 0, onGoToInbox }: DelegadasProps =
     return (
       <>
         {toolbar}
+        {chips}
         <Card>
           <CardContent className="p-4 space-y-2">
             {Array.from({ length: 5 }).map((_, i) => (
@@ -220,6 +221,7 @@ export function DelegadasContent({ naoLidas = 0, onGoToInbox }: DelegadasProps =
     return (
       <>
         {toolbar}
+        {chips}
         <Card>
           <CardContent className="p-12 text-center text-muted-foreground">
             <Inbox className="h-10 w-10 mx-auto mb-3 opacity-40" />
@@ -244,6 +246,7 @@ export function DelegadasContent({ naoLidas = 0, onGoToInbox }: DelegadasProps =
   return (
     <>
       {toolbar}
+        {chips}
       <Card>
         <CardContent className="p-0">
           <div className="px-4 py-2.5 border-b bg-muted/20 flex items-center gap-2">
