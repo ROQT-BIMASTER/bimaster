@@ -24,6 +24,7 @@ interface Pessoa {
   user_id: string;
   nome: string;
   avatar_url: string | null;
+  origem?: "junction" | "principal";
 }
 
 interface Props {
@@ -33,6 +34,7 @@ interface Props {
   responsaveis: Pessoa[];
   colaboradores: Pessoa[];
   onChange?: () => void;
+  onSetResponsavelPrincipal?: (userId: string | null) => void;
 }
 
 // Fire-and-forget — auditoria não deve bloquear o feedback de UI.
@@ -75,6 +77,7 @@ export function TarefaResponsavelSeguidoresEditor({
   responsaveis,
   colaboradores,
   onChange,
+  onSetResponsavelPrincipal,
 }: Props) {
   const { user } = useAuth();
   const { membros } = useProjetoMembros(projetoId);
@@ -131,6 +134,21 @@ export function TarefaResponsavelSeguidoresEditor({
   const removerResponsavel = (userId: string) => {
     if (!user) return;
     const alvo = responsaveis.find((r) => r.user_id === userId);
+    if (alvo?.origem === "principal" && onSetResponsavelPrincipal) {
+      onSetResponsavelPrincipal(null);
+      logAtividade({
+        tarefa_id: tarefaId,
+        projeto_id: projetoId,
+        user_id: user.id,
+        tipo: "responsavel_removido",
+        campo: "responsaveis",
+        valor_anterior: alvo.nome || userId,
+        descricao: `Removeu ${alvo.nome || "membro"} dos responsáveis`,
+      });
+      toast.success("Responsável removido");
+      onChange?.();
+      return;
+    }
     removeResponsavel.mutate(
       { tarefaId, userId },
       {
