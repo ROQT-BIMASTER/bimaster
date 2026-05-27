@@ -370,40 +370,21 @@ export const GerenciamentoUsuarios = () => {
 
       // 4) Senha — última etapa para não impedir o salvamento dos demais campos
       if (wantsPasswordChange) {
-        let passwordError: string | null = null;
-        try {
-          const stepUpToken = await requestStepUp(
-            "user.password.self",
-            `Confirme com MFA para alterar a senha de ${editingUser.email}.`
-          );
-          if (!stepUpToken) {
-            passwordError = "Verificação MFA cancelada.";
-          } else {
-            const response = await supabase.functions.invoke("update-user-password", {
-              body: { user_id: editingUser.id, password: novoUsuario.senha },
-              headers: { "x-step-up-token": stepUpToken },
-            });
-            if (response.error) {
-              // Tentar extrair mensagem real do corpo da resposta
-              let serverMsg: string | undefined;
-              try {
-                const resp = (response.error as any)?.context?.response as Response | undefined;
-                const body = await resp?.clone().json().catch(() => null);
-                serverMsg = body?.error;
-              } catch { /* ignore */ }
-              passwordError = serverMsg || (response.error as any).message || "Erro ao atualizar senha";
-            } else if ((response.data as any)?.error) {
-              passwordError = (response.data as any).error;
-            }
-          }
-        } catch (e: any) {
-          passwordError = e?.message || "Erro ao atualizar senha";
-        }
+        const { ok, error: passwordError, mfaIssue } = await runPasswordChange(
+          editingUser.id,
+          editingUser.email,
+          novoUsuario.senha,
+        );
 
-        if (passwordError) {
+        if (!ok) {
           logger.error("Falha ao atualizar senha:", passwordError);
           toast.warning("Dados salvos, mas a senha não foi alterada", { description: passwordError });
-          setNovoUsuario((prev) => ({ ...prev, senha: "" }));
+          if (mfaIssue) {
+            // Mantém a senha no estado para o usuário poder clicar em "Repetir verificação MFA"
+            setMfaRetry({ userId: editingUser.id, userEmail: editingUser.email, password: novoUsuario.senha });
+          } else {
+            setNovoUsuario((prev) => ({ ...prev, senha: "" }));
+          }
           fetchUsuarios();
           setLoading(false);
           return;
