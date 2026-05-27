@@ -11,8 +11,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
 import { NovaDistribuidoraDialog } from "@/components/estoque/NovaDistribuidoraDialog";
 import { formatCNPJ } from "@/lib/validations/estoque";
-import {
 import { toast } from "sonner";
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
