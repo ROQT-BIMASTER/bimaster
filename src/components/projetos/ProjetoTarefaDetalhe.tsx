@@ -459,18 +459,18 @@ export function ProjetoTarefaDetalhe({
                 <span className="text-xs text-muted-foreground font-mono">{tarefa.codigo}</span>
               )}
               <Button
-                variant={chatOpen ? "default" : "outline"}
+                variant={chatOpen ? "default" : "ghost"}
                 size="sm"
-                className="gap-1.5 text-xs"
+                className="gap-1.5 text-xs rounded-full h-8 px-3"
                 onClick={() => setChatOpen(!chatOpen)}
               >
                 <MessageCircle className="h-3.5 w-3.5" />
                 Chat {messages.length > 0 && `(${messages.length})`}
               </Button>
               <Button
-                variant="outline"
+                variant="ghost"
                 size="sm"
-                className="gap-1.5 text-xs"
+                className="gap-1.5 text-xs rounded-full h-8 px-3"
                 onClick={() => setFocusMode(true)}
               >
                 <Maximize2 className="h-3.5 w-3.5" />
