@@ -47,6 +47,11 @@ export const GerenciamentoUsuarios = () => {
   const [loading, setLoading] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Usuario | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
+  /** Quando a troca de senha falha por MFA (cancelado/token inválido/MFA não configurado),
+   * mantemos aqui o último par {userId,password} para permitir tentar novamente
+   * sem refazer o resto do formulário. */
+  const [mfaRetry, setMfaRetry] = useState<{ userId: string; userEmail: string; password: string } | null>(null);
+  const [mfaRetrying, setMfaRetrying] = useState(false);
   const ITEMS_PER_PAGE = 20;
 
   const [novoUsuario, setNovoUsuario] = useState<{
@@ -294,6 +299,94 @@ export const GerenciamentoUsuarios = () => {
     setIsDialogOpen(true);
   };
 
+  /**
+   * Executa a troca de senha (pré-check MFA + step-up + invoke da edge function).
+   * Retorna `mfaIssue: true` quando a falha foi relacionada a MFA (cancelado,
+   * não configurado, token inválido) — sinal para a UI oferecer o botão
+   * "Repetir verificação MFA" sem perder a senha já digitada.
+   */
+  const runPasswordChange = async (
+    userId: string,
+    userEmail: string,
+    password: string,
+  ): Promise<{ ok: boolean; error?: string; mfaIssue?: boolean }> => {
+    // Pré-check MFA TOTP (edge function exige factor verificado).
+    try {
+      const { data: mfaStatus } = await supabase.functions.invoke("mfa-manage", {
+        body: { action: "status" },
+      });
+      const hasTotp = !!(mfaStatus?.enrolled && mfaStatus?.verified);
+      if (!hasTotp) {
+        toast.error("MFA não configurado", {
+          description: "Ative o MFA TOTP em Segurança › MFA antes de alterar senhas de outros usuários.",
+          action: { label: "Configurar MFA", onClick: () => { window.location.href = "/dashboard/security/mfa"; } },
+        });
+        return { ok: false, error: "MFA não configurado.", mfaIssue: true };
+      }
+    } catch (e) {
+      logger.warn("Falha ao consultar status MFA:", e);
+    }
+
+    try {
+      const stepUpToken = await requestStepUp(
+        "user.password.self",
+        `Confirme com MFA para alterar a senha de ${userEmail}.`,
+      );
+      if (!stepUpToken) {
+        return { ok: false, error: "Verificação MFA cancelada.", mfaIssue: true };
+      }
+      const response = await supabase.functions.invoke("update-user-password", {
+        body: { user_id: userId, password },
+        headers: { "x-step-up-token": stepUpToken },
+      });
+      if (response.error) {
+        let serverMsg: string | undefined;
+        try {
+          const resp = (response.error as any)?.context?.response as Response | undefined;
+          const body = await resp?.clone().json().catch(() => null);
+          serverMsg = body?.error;
+        } catch { /* ignore */ }
+        const msg = serverMsg || (response.error as any).message || "Erro ao atualizar senha";
+        const mfaIssue = /mfa|step.?up|token/i.test(msg);
+        return { ok: false, error: msg, mfaIssue };
+      }
+      if ((response.data as any)?.error) {
+        const msg = (response.data as any).error as string;
+        const mfaIssue = /mfa|step.?up|token/i.test(msg);
+        return { ok: false, error: msg, mfaIssue };
+      }
+      return { ok: true };
+    } catch (e: any) {
+      const msg = e?.message || "Erro ao atualizar senha";
+      return { ok: false, error: msg, mfaIssue: /mfa|step.?up|token/i.test(msg) };
+    }
+  };
+
+  /** Handler do botão "Repetir verificação MFA" exibido após uma falha de MFA. */
+  const handleRetryMfa = async () => {
+    if (!mfaRetry) return;
+    setMfaRetrying(true);
+    const { ok, error, mfaIssue } = await runPasswordChange(
+      mfaRetry.userId,
+      mfaRetry.userEmail,
+      mfaRetry.password,
+    );
+    setMfaRetrying(false);
+    if (ok) {
+      toast.success("Senha alterada com sucesso");
+      setMfaRetry(null);
+      setNovoUsuario((prev) => ({ ...prev, senha: "" }));
+      setIsDialogOpen(false);
+      setEditingUser(null);
+      fetchUsuarios();
+    } else {
+      toast.error("Senha não foi alterada", { description: error });
+      if (!mfaIssue) setMfaRetry(null);
+    }
+  };
+
+
+
   const handleSaveEdit = async () => {
     if (!editingUser) return;
 
@@ -314,25 +407,11 @@ export const GerenciamentoUsuarios = () => {
         return;
       }
 
-      // Pré-checar MFA TOTP do admin (edge function exige factor verificado).
-      // Usa o MFA customizado (mfa-manage), não o nativo do Supabase.
-      try {
-        const { data: mfaStatus } = await supabase.functions.invoke("mfa-manage", {
-          body: { action: "status" },
-        });
-        const hasTotp = !!(mfaStatus?.enrolled && mfaStatus?.verified);
-        if (!hasTotp) {
-          toast.error("MFA não configurado", {
-            description: "Ative o MFA TOTP em Segurança › MFA antes de alterar senhas de outros usuários.",
-            action: { label: "Configurar MFA", onClick: () => { window.location.href = "/dashboard/security/mfa"; } },
-          });
-          setLoading(false);
-          return;
-        }
-      } catch (e) {
-        logger.warn("Falha ao consultar status MFA:", e);
-      }
+      // (pré-check de MFA agora vive em runPasswordChange — evita duplicação)
     }
+
+    // Limpa retry antigo ao iniciar nova edição.
+    setMfaRetry(null);
 
     try {
       // 1) Atualizar perfil (nome e supervisor)
@@ -365,40 +444,21 @@ export const GerenciamentoUsuarios = () => {
 
       // 4) Senha — última etapa para não impedir o salvamento dos demais campos
       if (wantsPasswordChange) {
-        let passwordError: string | null = null;
-        try {
-          const stepUpToken = await requestStepUp(
-            "user.password.self",
-            `Confirme com MFA para alterar a senha de ${editingUser.email}.`
-          );
-          if (!stepUpToken) {
-            passwordError = "Verificação MFA cancelada.";
-          } else {
-            const response = await supabase.functions.invoke("update-user-password", {
-              body: { user_id: editingUser.id, password: novoUsuario.senha },
-              headers: { "x-step-up-token": stepUpToken },
-            });
-            if (response.error) {
-              // Tentar extrair mensagem real do corpo da resposta
-              let serverMsg: string | undefined;
-              try {
-                const resp = (response.error as any)?.context?.response as Response | undefined;
-                const body = await resp?.clone().json().catch(() => null);
-                serverMsg = body?.error;
-              } catch { /* ignore */ }
-              passwordError = serverMsg || (response.error as any).message || "Erro ao atualizar senha";
-            } else if ((response.data as any)?.error) {
-              passwordError = (response.data as any).error;
-            }
-          }
-        } catch (e: any) {
-          passwordError = e?.message || "Erro ao atualizar senha";
-        }
+        const { ok, error: passwordError, mfaIssue } = await runPasswordChange(
+          editingUser.id,
+          editingUser.email,
+          novoUsuario.senha,
+        );
 
-        if (passwordError) {
+        if (!ok) {
           logger.error("Falha ao atualizar senha:", passwordError);
           toast.warning("Dados salvos, mas a senha não foi alterada", { description: passwordError });
-          setNovoUsuario((prev) => ({ ...prev, senha: "" }));
+          if (mfaIssue) {
+            // Mantém a senha no estado para o usuário poder clicar em "Repetir verificação MFA"
+            setMfaRetry({ userId: editingUser.id, userEmail: editingUser.email, password: novoUsuario.senha });
+          } else {
+            setNovoUsuario((prev) => ({ ...prev, senha: "" }));
+          }
           fetchUsuarios();
           setLoading(false);
           return;
@@ -603,7 +663,24 @@ export const GerenciamentoUsuarios = () => {
                     <p className="text-xs text-muted-foreground">
                       {editingUser ? "Preencha apenas se deseja alterar. " : ""}Mínimo 8 caracteres, com letras maiúsculas, minúsculas e números
                     </p>
+                    {editingUser && mfaRetry && mfaRetry.userId === editingUser.id && (
+                      <div className="rounded-md border border-amber-500/40 bg-amber-500/10 p-2 space-y-2">
+                        <p className="text-xs text-amber-700 dark:text-amber-400">
+                          A verificação MFA falhou ou foi cancelada. A senha digitada foi preservada — clique abaixo para repetir somente a verificação MFA.
+                        </p>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          onClick={handleRetryMfa}
+                          disabled={mfaRetrying}
+                        >
+                          {mfaRetrying ? "Verificando..." : "Repetir verificação MFA"}
+                        </Button>
+                      </div>
+                    )}
                   </div>
+
 
                   {novoUsuario.tipo_usuario !== "admin" && (
                     <div className="space-y-2">
