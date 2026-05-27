@@ -704,7 +704,7 @@ export async function buscarCadeiaTabelas(
 ): Promise<Array<{
   id: string;
   nome: string;
-  ordem: number;
+  ordem: number | null;
   tipo_markup: string;
   valor_markup: number;
   tabela_base_id: string | null;
