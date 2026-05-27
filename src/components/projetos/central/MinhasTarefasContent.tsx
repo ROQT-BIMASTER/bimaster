@@ -882,8 +882,10 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
           onHide={() => setShowRoleOverview(false)}
         />
       )}
+      {/* Toolbar contextual portada para o slot do CentralLayout */}
+      <CentralToolbarPortal>
       {/* Action bar */}
-      <div className="flex items-center justify-end gap-2 flex-wrap min-h-[36px]">
+      <div className="w-full flex items-center justify-end gap-2 flex-wrap min-h-[36px]">
         <Button size="sm" className="gap-1.5 h-9" onClick={() => setShowNewTask(true)}>
           <Plus className="h-4 w-4" /> Nova Tarefa
         </Button>
