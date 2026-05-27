@@ -116,3 +116,10 @@ Checklist obrigatório ao adicionar um hook de domínio:
 
 Atribua reviewer pela área dominante da mudança (ver `.github/CODEOWNERS`).
 PRs grandes (>500 linhas) devem ser quebrados sempre que possível.
+
+## Testes & Branch Protection
+
+- Toda PR roda `bun run test:coverage` via `.github/workflows/tests.yml`.
+- O dono do repo deve configurar em **Settings → Branches → main → Require status checks to pass before merging** e selecionar `tests / vitest`.
+- Cobertura mínima: ainda em fase de baseline. Após o primeiro run em `main`, abrir PR que adiciona `coverage.thresholds` em `vitest.config.ts` com `baseline + 5%` para lines/statements/functions/branches, subindo gradualmente.
+- Scripts locais: `bun run test` (run único), `bun run test:watch` (dev), `bun run test:coverage` (gera `coverage/`).
