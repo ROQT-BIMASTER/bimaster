@@ -11,7 +11,8 @@ export default defineConfig({
     exclude: ['node_modules', 'dist', 'e2e/**', 'playwright-report/**', 'test-results/**'],
     coverage: {
       provider: 'v8',
-      reporter: ['text', 'json', 'html'],
+      reporter: ['text', 'text-summary', 'json-summary', 'html'],
+      // thresholds: definir em PR seguinte com baseline medido via CI
       exclude: [
         'node_modules/',
         'src/test/',
