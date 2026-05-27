@@ -753,9 +753,9 @@ export function PlanoReducaoGastos({ dataInicio, dataFim, filterEmpresa }: Plano
                         </Button>
                       )}
                       {revisao.status !== 'cancelado' && revisao.status !== 'concluido' && (
-                        <Button variant="ghost" size="icon" className="h-7 w-7" title="Tirar do plano de reduçãasync o"
-                          onClick={() => {
-                            if ((await confirm({ title: `Tirar "${itemName}" do plano de redução? O item será marcado como cancelado e deixará de afetar os totais, mas o histórico será preservado.`, destructive: true }))) {
+                        <Button variant="ghost" size="icon" className="h-7 w-7" title="Tirar do plano de redução"
+                          onClick={async () => {
+                            if ((await confirm({ title: `Tirar "${itemName}" do plano de redução?`, description: "O item será marcado como cancelado e deixará de afetar os totais, mas o histórico será preservado.", destructive: true }))) {
                               handleUpdateStatus(revisao.id, 'cancelado');
                             }
                           }}>
