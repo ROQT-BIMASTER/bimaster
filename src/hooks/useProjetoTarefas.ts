@@ -551,6 +551,106 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
     },
   });
 
+  // ─────────────────────────────────────────────────────────────────────────
+  // Multi-responsáveis (projeto_tarefa_responsaveis)
+  // O trigger no banco mantém `projeto_tarefas.responsavel_id` sincronizado
+  // com o "principal" (papel='principal' mais antigo, senão o registro mais
+  // antigo). Aqui aplicamos optimistic update no array `responsaveis` e,
+  // quando faz sentido, ajustamos o `responsavel_id`/`responsavel` espelho.
+  // ─────────────────────────────────────────────────────────────────────────
+  function resolveMembro(userId: string, previous: ProjetoTarefasView | undefined): { nome: string; avatar_url: string | null } {
+    const fromTeam = (previous?.teamMembers || []).find(m => m.id === userId);
+    if (fromTeam) return { nome: fromTeam.nome, avatar_url: fromTeam.avatar_url };
+    const membrosCache = queryClient.getQueryData<any[]>(["projeto_membros", projetoId]);
+    const fromMembros = membrosCache?.find((m: any) => m.user_id === userId);
+    if (fromMembros?.profile) {
+      return { nome: fromMembros.profile.nome || "Membro", avatar_url: fromMembros.profile.avatar_url || null };
+    }
+    return { nome: "Membro", avatar_url: null };
+  }
+
+  const addResponsavel = useMutation({
+    mutationFn: async ({ tarefaId, userId }: { tarefaId: string; userId: string }) => {
+      const { error } = await supabase
+        .from("projeto_tarefa_responsaveis" as never)
+        .insert({ tarefa_id: tarefaId, user_id: userId } as never);
+      if (error) throw error;
+      return { tarefaId, userId };
+    },
+    onMutate: async ({ tarefaId, userId }) => {
+      await queryClient.cancelQueries({ queryKey: ["projeto-tarefas-v2", projetoId] });
+      const previous = queryClient.getQueryData<ProjetoTarefasView>(["projeto-tarefas-v2", projetoId]);
+      const info = resolveMembro(userId, previous);
+      patchView((v) => ({
+        ...v,
+        tarefas: v.tarefas.map(t => {
+          if (t.id !== tarefaId) return t;
+          const lista = t.responsaveis || [];
+          if (lista.some(r => r.user_id === userId)) return t;
+          const novaLista = [...lista, { user_id: userId, nome: info.nome, avatar_url: info.avatar_url, papel: "responsavel" }];
+          // Espelha o principal se ainda não houver responsavel_id.
+          const patched: ProjetoTarefa = { ...t, responsaveis: novaLista };
+          if (!t.responsavel_id) {
+            patched.responsavel_id = userId;
+            patched.responsavel = { id: userId, nome: info.nome, avatar_url: info.avatar_url };
+          }
+          return patched;
+        }),
+      }));
+      return { previous };
+    },
+    onError: (err: Error, _vars, context) => {
+      if (context?.previous) queryClient.setQueryData(["projeto-tarefas-v2", projetoId], context.previous);
+      toast.error(err.message);
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2", projetoId] });
+    },
+  });
+
+  const removeResponsavel = useMutation({
+    mutationFn: async ({ tarefaId, userId }: { tarefaId: string; userId: string }) => {
+      const { error } = await supabase
+        .from("projeto_tarefa_responsaveis" as never)
+        .delete()
+        .eq("tarefa_id", tarefaId)
+        .eq("user_id", userId);
+      if (error) throw error;
+    },
+    onMutate: async ({ tarefaId, userId }) => {
+      await queryClient.cancelQueries({ queryKey: ["projeto-tarefas-v2", projetoId] });
+      const previous = queryClient.getQueryData<ProjetoTarefasView>(["projeto-tarefas-v2", projetoId]);
+      patchView((v) => ({
+        ...v,
+        tarefas: v.tarefas.map(t => {
+          if (t.id !== tarefaId) return t;
+          const novaLista = (t.responsaveis || []).filter(r => r.user_id !== userId);
+          const patched: ProjetoTarefa = { ...t, responsaveis: novaLista };
+          // Se removeu o "principal" espelhado, promove o próximo (ou limpa).
+          if (t.responsavel_id === userId) {
+            const next = novaLista[0];
+            if (next) {
+              patched.responsavel_id = next.user_id;
+              patched.responsavel = { id: next.user_id, nome: next.nome, avatar_url: next.avatar_url };
+            } else {
+              patched.responsavel_id = null;
+              patched.responsavel = null;
+            }
+          }
+          return patched;
+        }),
+      }));
+      return { previous };
+    },
+    onError: (err: Error, _vars, context) => {
+      if (context?.previous) queryClient.setQueryData(["projeto-tarefas-v2", projetoId], context.previous);
+      toast.error(err.message);
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2", projetoId] });
+    },
+  });
+
   const updateSecao = useMutation({
     mutationFn: async ({
       secaoId,
@@ -827,6 +927,8 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
     toggleSecaoBriefing,
     addColaborador,
     removeColaborador,
+    addResponsavel,
+    removeResponsavel,
     teamMembers,
     softDeleteTarefa,
     restaurarTarefa,
