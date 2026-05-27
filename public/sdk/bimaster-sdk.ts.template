@@ -1,0 +1,1750 @@
+// ═══════════════════════════════════════
+// EXCEÇÕES TIPADAS
+// ═══════════════════════════════════════
+
+export class HuggsAPIError extends Error {
+  status: number;
+  code: string;
+  data: Record<string, unknown>;
+  /** v2.16.0: X-Request-ID da resposta de erro (quando disponível), para logs rastreáveis. */
+  requestId?: string;
+  /** v2.18.0: RateLimit-Remaining da resposta (populado em 429 e demais status quando disponível). */
+  rateLimitRemaining?: number;
+  /** v2.18.0: RateLimit-Reset (unix epoch s) da resposta. */
+  rateLimitReset?: number;
+
+  constructor(status: number, message: string, data: Record<string, unknown> = {}, requestId?: string, rateLimitRemaining?: number, rateLimitReset?: number) {
+    super(`HTTP ${status}: ${message}`);
+    this.name = "HuggsAPIError";
+    this.status = status;
+    this.code = (data.error as string) || "unknown";
+    this.data = data;
+    this.requestId = requestId;
+    this.rateLimitRemaining = rateLimitRemaining;
+    this.rateLimitReset = rateLimitReset;
+  }
+}
+
+export class HuggsValidationError extends HuggsAPIError {
+  constructor(message: string, data: Record<string, unknown> = {}, requestId?: string) {
+    super(400, message, data, requestId);
+    this.name = "HuggsValidationError";
+  }
+}
+
+export class HuggsAuthError extends HuggsAPIError {
+  constructor(message: string, data: Record<string, unknown> = {}, requestId?: string) {
+    super(401, message, data, requestId);
+    this.name = "HuggsAuthError";
+  }
+}
+
+export class HuggsConflictError extends HuggsAPIError {
+  constructor(message: string, data: Record<string, unknown> = {}, requestId?: string) {
+    super(409, message, data, requestId);
+    this.name = "HuggsConflictError";
+  }
+}
+
+export class HuggsRateLimitError extends HuggsAPIError {
+  retryAfter: number;
+  constructor(retryAfter: number = 60, requestId?: string) {
+    super(429, `Rate limit excedido. Retry após ${retryAfter}s`, {}, requestId);
+    this.name = "HuggsRateLimitError";
+    this.retryAfter = retryAfter;
+  }
+}
+
+/**
+ * Erro de negócio: HTTP 200 mas codigo_status != "0".
+ * Lançado quando a API retorna sucesso técnico mas falha na operação
+ * (ex.: título já existente, validação ERP, regra contábil violada).
+ */
+export class HuggsBusinessError extends HuggsAPIError {
+  codigoStatus: string;
+  descricaoStatus: string;
+  constructor(codigoStatus: string, descricaoStatus: string, data: Record<string, unknown> = {}) {
+    super(200, `[${codigoStatus}] ${descricaoStatus}`, data);
+    this.name = "HuggsBusinessError";
+    this.codigoStatus = codigoStatus;
+    this.descricaoStatus = descricaoStatus;
+  }
+}
+
+// ═══════════════════════════════════════
+// WEBHOOK HMAC HELPER (v3.1.0 — PR-8 P1)
+// Validação timing-safe de assinaturas X-Webhook-Signature: sha256=<hex>.
+// Uso (Hono/Express):
+//   const ok = await verifyWebhookSignature(rawBody, req.headers["x-webhook-signature"], SECRET);
+//   if (!ok) return res.status(401).end();
+// ═══════════════════════════════════════
+export async function verifyWebhookSignature(
+  rawBody: string | Uint8Array,
+  signatureHeader: string | null | undefined,
+  secret: string,
+): Promise<boolean> {
+  if (!signatureHeader || !signatureHeader.startsWith("sha256=")) return false;
+  const received = signatureHeader.slice(7);
+  const enc = new TextEncoder();
+  const bodyBytes = typeof rawBody === "string" ? enc.encode(rawBody) : rawBody;
+  const key = await crypto.subtle.importKey(
+    "raw", enc.encode(secret),
+    { name: "HMAC", hash: "SHA-256" }, false, ["sign"],
+  );
+  const sig = await crypto.subtle.sign("HMAC", key, bodyBytes);
+  const expected = Array.from(new Uint8Array(sig)).map(b => b.toString(16).padStart(2, "0")).join("");
+  // Constant-time compare (XOR loop, sem early-exit).
+  if (expected.length !== received.length) return false;
+  let r = 0;
+  for (let i = 0; i < expected.length; i++) r |= expected.charCodeAt(i) ^ received.charCodeAt(i);
+  return r === 0;
+}
+
+// ═══════════════════════════════════════
+export enum RegimeApuracao {
+  COMPETENCIA = "Competência",
+  CAIXA = "Caixa",
+}
+
+export enum TipoEmpresa {
+  MATRIZ = "Matriz",
+  FILIAL = "Filial",
+  COLIGADA = "Coligada",
+}
+
+export enum Porte {
+  ME = "ME",
+  EPP = "EPP",
+  DEMAIS = "Demais",
+}
+
+export enum StatusTitulo {
+  PENDENTE = "pendente",
+  PAGO = "pago",
+  VENCIDO = "vencido",
+  CANCELADO = "cancelado",
+}
+
+export enum TipoCategoria {
+  RECEITA = "receita",
+  DESPESA = "despesa",
+}
+
+export enum WebhookEvent {
+  CP_CRIADO = "conta_pagar.criado",
+  CP_ALTERADO = "conta_pagar.alterado",
+  CP_EXCLUIDO = "conta_pagar.excluido",
+  CP_PAGO = "conta_pagar.pago",
+  CR_CRIADO = "conta_receber.criado",
+  CR_ALTERADO = "conta_receber.alterado",
+  CR_RECEBIDO = "conta_receber.recebido",
+  CLIENTE_CRIADO = "cliente.criado",
+  CLIENTE_ALTERADO = "cliente.alterado",
+  FORNECEDOR_CRIADO = "fornecedor.criado",
+  FORNECEDOR_ALTERADO = "fornecedor.alterado",
+}
+
+// ═══════════════════════════════════════
+// INTERFACES — Payloads de Entrada
+// ═══════════════════════════════════════
+
+export interface CpIncluirPayload {
+  codigo_lancamento_integracao: string;
+  codigo_cliente_fornecedor: string | number;
+  data_vencimento: string; // Entrada: DD/MM/AAAA ou YYYY-MM-DD. Saída: ISO 8601
+  valor_documento: number;
+  codigo_categoria: string; // Ex: "2.04.01"
+  data_previsao?: string;
+  /** PR-23 (v3.3.0): data de emissão (era silently dropped antes). */
+  data_emissao?: string;
+  /** PR-23: data de entrada/lançamento. */
+  data_entrada?: string;
+  id_conta_corrente?: string | number;
+  numero_documento?: string;
+  numero_documento_fiscal?: string;
+  chave_nfe?: string; // Chave de acesso NFe (44 caracteres)
+  /** PR-23: tipo de documento (NF, Boleto, Duplicata, Recibo). */
+  tipo_documento?: string;
+  /** PR-23: código do tipo de documento no ERP. */
+  codigo_tipo_documento?: string | number;
+  /** PR-23: número do pedido associado. */
+  numero_pedido?: string | number;
+  observacao?: string;
+  codigo_projeto?: string | number;
+  empresa_id?: string | number;
+}
+
+/**
+ * PR-23 (v3.3.0): bloco enriquecido com nomes/identificadores das entidades
+ * relacionadas. Retornado em GET /consultar e GET /query — evita N+1 no cliente.
+ */
+export interface ContaPagarRelacionados {
+  empresa?: { id?: number; nome?: string; cnpj?: string };
+  fornecedor?: { codigo?: string | number; nome?: string; cnpj?: string };
+  categoria?: { codigo?: string; nome?: string };
+  departamento?: { id?: string; nome?: string };
+  portador?: { id?: string; nome?: string; codigo_erp?: string };
+  projeto?: { id?: string; nome?: string };
+}
+
+export interface CpUpsertPayload extends CpIncluirPayload {
+  empresa_id: string | number; // Obrigatório para resolver conflito
+}
+
+export interface CpUpsertLotePayload {
+  lote: number;
+  conta_pagar_cadastro: CpUpsertPayload[];
+}
+
+export interface CpLancarPagamentoPayload {
+  codigo_lancamento_integracao: string;
+  valor: number;
+  desconto?: number;
+  juros?: number;
+  multa?: number;
+  data: string; // DD/MM/AAAA
+  observacao?: string;
+  /** Se omitido, debita da conta corrente padrão da empresa. */
+  id_conta_corrente?: string | number;
+  /** PR-23 (v3.3.0): forma de pagamento — enum validado server-side. */
+  forma_pagamento?: 'dinheiro' | 'cheque' | 'pix' | 'boleto' | 'cartao' | 'transferencia' | 'API';
+  /** PR-23: código/chave PIX usada na baixa (max 255 chars). */
+  codigo_pix?: string;
+}
+
+/**
+ * Opções v2.7.0 para endpoints CP financeiros (cpIncluir, cpUpsert,
+ * cpLancarPagamento, cpEstornar, cpExcluir).
+ *
+ * @example Retry automático com backoff exponencial em 5xx/timeout:
+ *   await sdk.cpLancarPagamento(payload, { retry: true });
+ *
+ * @example Idempotência cross-session (chave determinística):
+ *   const key = "cp-pag-" + payload.codigo_lancamento_integracao + "-" + payload.valor;
+ *   await sdk.cpLancarPagamento(payload, { retry: true, idempotencyKey: key });
+ */
+export interface CpRequestOptions {
+  /** Se true, usa _requestWithRetry (3x, backoff exponencial). Default: false. */
+  retry?: boolean;
+  /** Chave de idempotência externa (preserva entre sessões/retries). */
+  idempotencyKey?: string;
+  /** v2.11.0: timeout em ms para esta chamada. Default: 30000. Recomendado 60000+ em lotes >100. */
+  timeout?: number;
+}
+
+/** v2.8.0: alias semântico para opções de retry de CR (mesmo formato de CpRequestOptions). */
+export type CrRequestOptions = CpRequestOptions;
+
+/** v2.8.0: parâmetros de consulta CR (paridade com cpConsultar). */
+export interface CrConsultarParams {
+  id?: string;
+  codigo_lancamento_integracao?: string;
+  codigo_lancamento_huggs?: string;
+}
+
+/** v2.8.0: parâmetros de query CR (paridade com QueryParams CP). */
+export interface CrQueryParams {
+  empresa_id?: string;
+  cliente_codigo?: string;
+  status?: string;
+  vencimento_de?: string;
+  vencimento_ate?: string;
+  emissao_de?: string;
+  emissao_ate?: string;
+  limit?: number;
+  offset?: number;
+  cursor?: string;
+  order_by?: string;
+  order_dir?: 'asc' | 'desc';
+}
+
+export interface CrIncluirPayload {
+  codigo_lancamento_integracao: string;
+  codigo_cliente_fornecedor: string | number;
+  data_vencimento: string; // Entrada: DD/MM/AAAA ou YYYY-MM-DD. Saída: ISO 8601
+  valor_documento: number;
+  codigo_categoria: string;
+  data_previsao?: string;
+  id_conta_corrente?: string | number;
+  numero_documento?: string;
+  observacao?: string;
+  numero_pedido?: string;
+  numero_contrato?: string;
+  numero_ordem_servico?: string;
+  empresa_id?: string | number;
+}
+
+export interface CrUpsertPayload extends CrIncluirPayload {
+  empresa_id: string | number;
+}
+
+export interface CrUpsertLotePayload {
+  lote: number;
+  conta_receber_cadastro: CrUpsertPayload[];
+}
+
+export interface CrRecebimentoPayload {
+  codigo_lancamento_integracao: string;
+  valor: number;
+  data: string; // DD/MM/AAAA
+  desconto?: number;
+  juros?: number;
+  multa?: number;
+  observacao?: string;
+  /** Se omitido, credita na conta corrente padrão da empresa. */
+  id_conta_corrente?: string | number;
+}
+
+export interface ClientePayload {
+  razao_social: string;
+  codigo_cliente_integracao?: string;
+  nome_fantasia?: string;
+  /**
+   * RECOMENDADO para /upsert: Sem cnpj_cpf, o upsert não consegue identificar 
+   * duplicidade e sempre criará novo registro (comportamento igual a /incluir).
+   */
+  cnpj_cpf?: string;
+  email?: string;
+  telefone1_numero?: string;
+  cidade?: string;
+  estado?: string;
+  cep?: string;
+  endereco?: string;
+}
+
+/**
+ * Payload de Conta Corrente — espelha runtime contas-correntes-api/index.ts.
+ *
+ * ATENÇÃO (PR-20 fix): SDKs v3.2.3- usavam tipo, banco_codigo, agencia,
+ * conta — nomes que o runtime IGNORA silenciosamente. Os nomes canônicos
+ * abaixo são os ÚNICOS aceitos para persistência real. Aliases legados mantidos
+ * por 1 versão (3.2.4) e serão removidos em 3.3.0.
+ */
+export interface ContaCorrentePayload {
+  /** Código de integração (chave para upsert/consultar/excluir). RECOMENDADO. */
+  cCodCCInt?: string;
+  descricao: string;
+  /** Tipo da conta — runtime aceita CC/CP/CX/CI/CM/PI. */
+  tipo_conta_corrente?: 'CC' | 'CP' | 'CX' | 'CI' | 'CM' | 'PI';
+  codigo_banco?: string;
+  codigo_agencia?: string;
+  numero_conta_corrente?: string;
+  saldo_inicial?: number;
+  valor_limite?: number;
+  /** PIX habilitado: S ou N. */
+  pix_sn?: 'S' | 'N';
+  /** Boleto habilitado: S ou N. */
+  bol_sn?: 'S' | 'N';
+  /** @deprecated Use tipo_conta_corrente — tipo é ignorado pelo runtime. Removido em 3.3.0. */
+  tipo?: string;
+  /** @deprecated Use codigo_banco — banco_codigo é ignorado pelo runtime. Removido em 3.3.0. */
+  banco_codigo?: string;
+  /** @deprecated Use codigo_agencia — agencia é ignorado pelo runtime. Removido em 3.3.0. */
+  agencia?: string;
+  /** @deprecated Use numero_conta_corrente — conta é ignorado pelo runtime. Removido em 3.3.0. */
+  conta?: string;
+}
+
+export interface EmpresaIncluirPayload {
+  razao_social: string;
+  /** 
+   * RECOMENDADO: Sem CNPJ, a empresa não pode ser vinculada a operações fiscais,
+   * fornecedores ou relatórios tributários. A empresa ficará em estado parcial.
+   */
+  cnpj?: string;
+  nome_fantasia?: string;
+  codigo_empresa_integracao?: string;
+  codigo_erp?: string;
+  /**
+   * RECOMENDADO: Afeta cálculo do DRE e relatórios financeiros.
+   * Se omitido, padrão: 'Competência'.
+   */
+  regime_apuracao?: 'Competência' | 'Caixa';
+  /**
+   * RECOMENDADO: Define hierarquia multi-empresa.
+   */
+  tipo_empresa?: 'Matriz' | 'Filial' | 'Coligada';
+  natureza_juridica?: string;
+  porte?: 'ME' | 'EPP' | 'Demais';
+  capital_social?: number;
+  data_abertura?: string;
+  codigo_ibge_municipio?: number;
+  responsavel_nome?: string;
+  responsavel_cpf?: string;
+  inscricao_estadual?: string;
+  inscricao_municipal?: string;
+  regime_tributario?: string;
+  endereco?: string;
+  endereco_numero?: string;
+  complemento?: string;
+  bairro?: string;
+  cidade?: string;
+  estado?: string;
+  cep?: string;
+  email?: string;
+  telefone1_ddd?: string;
+  telefone1_numero?: string;
+}
+
+export interface EmpresaAlterarPayload {
+  codigo_empresa: string | number;
+  razao_social?: string;
+  nome_fantasia?: string;
+  regime_apuracao?: string;
+  porte?: string;
+  [key: string]: unknown;
+}
+
+export interface FornecedorPayload {
+  cnpj_cpf: string;
+  razao_social: string;
+  nome_fantasia?: string;
+  codigo_integracao?: string;
+  email?: string;
+  telefone?: string;
+  endereco?: string;
+  cidade?: string;
+  estado?: string; // UF 2 chars
+  cep?: string; // 8 chars sem pontuação
+  inscricao_estadual?: string;
+  /**
+   * RECOMENDADO: Sem vinculação a pelo menos uma empresa, o fornecedor não aparece 
+   * em listagens filtradas e não pode ser referenciado em títulos de CP.
+   */
+  empresa_ids?: (string | number)[];
+}
+
+export interface WebhookSubscribePayload {
+  url: string;
+  /** Use a enum WebhookEvent para evitar typos. Aceita string para back-compat.
+   *  ATENÇÃO: nome do campo é 'eventos' (PT) — runtime rejeita 'events'. */
+  eventos: Array<WebhookEvent | string>;
+  /** 
+   * SEGURANÇA: Fortemente recomendado. Sem secret, qualquer POST para sua URL será 
+   * aceito como legítimo. Com secret, o BiMaster assina cada payload com HMAC-SHA256 
+   * (header x-hub-signature-256) permitindo validação de autenticidade.
+   */
+  secret?: string;
+  /** ID da empresa dona da assinatura (obrigatório no runtime). */
+  empresa_id?: string | number;
+  /** Descrição livre da assinatura (até 255 chars). */
+  descricao?: string;
+  /** Headers customizados enviados em cada delivery do webhook. */
+  headers_customizados?: Record<string, string>;
+  /** Tentativas máximas em caso de falha (default 3 no runtime). */
+  max_retries?: number;
+}
+
+export interface CategoriaPayload {
+  codigo_categoria: string; // Hierárquico: "2.04.01"
+  descricao: string;
+  tipo: TipoCategoria | 'receita' | 'despesa';
+  categoria_pai?: string; // Código da categoria pai
+}
+
+// ═══════════════════════════════════════
+// INTERFACES — Respostas Tipadas
+// ═══════════════════════════════════════
+
+export interface ApiStatusResponse {
+  status: string;
+  version?: string;
+  timestamp?: string;
+  service?: string;
+  health?: {
+    db_latency_ms: number;
+    db_connected: boolean;
+    active_sync_slots: number;
+  };
+  meta?: MetaEnvelope;
+}
+
+export interface MetaEnvelope {
+  request_id: string;
+  api_version: string;
+  processed_at: string;
+  duration_ms: number;
+}
+
+export interface CpMutationResponse {
+  codigo_lancamento_huggs?: number | null;
+  codigo_lancamento_integracao: string;
+  codigo_status: string;
+  descricao_status: string;
+}
+
+export interface CpLoteResponse {
+  lote: number;
+  codigo_status: string;
+  descricao_status: string;
+}
+
+export interface CpPagamentoResponse {
+  codigo_lancamento_integracao: string;
+  codigo_baixa: string;
+  liquidado: string;
+  valor_baixado: number;
+  codigo_status: string;
+  descricao_status: string;
+}
+
+export interface PaginatedResponse<T> {
+  pagina: number;
+  total_de_paginas: number;
+  registros: number;
+  total_de_registros: number;
+}
+
+export interface PaginatedCpResponse<T> extends PaginatedResponse<T> {
+  conta_pagar_cadastro: T[];
+}
+
+export interface PaginatedCrResponse<T> extends PaginatedResponse<T> {
+  conta_receber_cadastro: T[];
+}
+
+export interface ClienteResponse {
+  codigo_cliente: string | number;
+  codigo_cliente_integracao?: string;
+  razao_social: string;
+  nome_fantasia?: string;
+  cnpj_cpf?: string;
+  codigo_status: string;
+  descricao_status: string;
+}
+
+/**
+ * Resposta real do POST /contas-correntes-api/incluir.
+ * PR-20: campos alinhados ao retorno do runtime (linha 332-336 de index.ts).
+ */
+export interface ContaCorrenteResponse {
+  /** Código numérico Huggs (pode vir null se ainda não atribuído). */
+  nCodCC?: number | null;
+  /** Código de integração ecoado do payload. */
+  cCodCCInt?: string;
+  codigo_status: string;
+  descricao_status: string;
+}
+
+export interface BoletoResponse {
+  id: string;
+  conta_receber_id: string;
+  status: string;
+  url_boleto?: string;
+  linha_digitavel?: string;
+  valor: number;
+  vencimento: string;
+}
+
+export interface EmpresaResponse {
+  codigo_empresa: string | number;
+  razao_social: string;
+  nome_fantasia?: string;
+  cnpj?: string;
+  codigo_status: string;
+  descricao_status: string;
+}
+
+// ═══════════════════════════════════════
+// INTERFACES — Respostas Tipadas v2.4.0
+// ═══════════════════════════════════════
+
+export interface CpConsultarResponse {
+  conta_pagar_cadastro: {
+    id: string;
+    codigo_lancamento_integracao: string;
+    codigo_lancamento_huggs?: number | null;
+    valor_documento: number;
+    valor_aberto: number;
+    data_vencimento: string;
+    data_emissao?: string;
+    status: string;
+    fornecedor_nome?: string;
+    fornecedor_codigo?: string;
+    categoria_nome?: string;
+    observacao?: string;
+    /** PR-23 (v3.3.0): bloco enriquecido (empresa/fornecedor/categoria/...). */
+    meta_relacionados?: ContaPagarRelacionados;
+  };
+  meta?: MetaEnvelope;
+}
+
+export interface CpPagamentosResponse {
+  data: Array<{
+    id: string;
+    conta_pagar_id: string;
+    valor_pago: number;
+    data_pagamento: string;
+    metodo_pagamento?: string;
+    observacao?: string;
+    created_at: string;
+    /** PR-23 (v3.3.0): forma de pagamento (enum). */
+    forma_pagamento?: string;
+    /** PR-23: código/chave PIX. */
+    codigo_pix?: string;
+    /** PR-23: usuário que registrou a baixa. */
+    usuario_id?: string;
+    usuario_nome?: string;
+    /** PR-23: conta corrente debitada (JOIN contas_bancarias). */
+    conta_corrente?: { id?: string; nome?: string; banco?: string };
+  }>;
+  pagination: { total: number; offset: number; limit: number };
+  meta?: MetaEnvelope;
+}
+
+/** Resposta de cpQuery — lista de TÍTULOS (não pagamentos). */
+export interface CpQueryResponse {
+  data: Array<{
+    id: string;
+    codigo_lancamento_integracao?: string;
+    codigo_lancamento_huggs?: string;
+    empresa_id?: string | number;
+    fornecedor_codigo?: string;
+    fornecedor_nome?: string;
+    valor_documento: number;
+    valor_aberto?: number;
+    data_vencimento: string;
+    data_emissao?: string;
+    status: string;
+    codigo_categoria?: string;
+    observacao?: string;
+    /** PR-23 (v3.3.0): bloco enriquecido por título. */
+    meta_relacionados?: ContaPagarRelacionados;
+    [k: string]: unknown;
+  }>;
+  pagination: { total: number; offset: number; limit: number; cursor?: string | null };
+  meta?: MetaEnvelope;
+}
+
+export interface CpParcelasResponse {
+  data: Array<{
+    id: string;
+    conta_pagar_id: string;
+    numero: number;
+    valor: number;
+    data_vencimento: string;
+    status: string;
+  }>;
+  meta?: MetaEnvelope;
+}
+
+/** v2.11.0: resposta de cpParcelasSync — sync de parcelas geradas pelo ERP. */
+export interface CpParcelasSyncResponse {
+  success: boolean;
+  processados: number;
+  meta?: MetaEnvelope;
+}
+
+/** v2.11.0: anexo individual (comprovante de pagamento). */
+export interface CpAnexoResponse {
+  id: string;
+  payment_id: string;
+  file_name: string;
+  file_type?: string;
+  file_url?: string;
+  notes?: string;
+  source?: string;
+  created_at: string;
+}
+
+/** v2.11.0: lista de anexos de um título. */
+export interface CpAnexosListResponse {
+  data: CpAnexoResponse[];
+  meta?: MetaEnvelope;
+}
+
+/** v2.11.0: resposta de cpCancelarLote — cancelamento batch com motivo auditável. */
+export interface CpCancelarLoteResponse {
+  success: boolean;
+  cancelados: number;
+  ids: string[];
+  message?: string;
+  meta?: MetaEnvelope;
+}
+
+/** v3.2.0 (PR-16): item resumo da Export API — provisão/baixa/cancelamento. */
+export interface CpExportStatusBucket {
+  pendentes: number;
+  exportados?: number;
+  confirmados?: number;
+  com_erro?: number;
+}
+/** v3.2.0 (PR-16): resposta de cpExportStatus. */
+export interface CpExportStatusResponse {
+  provisao: CpExportStatusBucket;
+  baixa: CpExportStatusBucket;
+  cancelamento?: CpExportStatusBucket;
+  resumo?: Record<string, unknown>;
+  meta?: MetaEnvelope;
+}
+/** v3.2.0 (PR-16): item de fila de exportação CP. */
+export interface CpExportItem {
+  id: string;
+  empresa_id?: number | string;
+  fornecedor_nome?: string;
+  fornecedor_codigo?: string;
+  valor?: number;
+  valor_original?: number;
+  data_vencimento?: string;
+  numero_documento?: string;
+  status?: string;
+  export_type?: string;
+  [key: string]: unknown;
+}
+/** v3.2.0 (PR-16): resposta paginada genérica de pending/paid/cancelled/history. */
+export interface CpExportListResponse {
+  data: CpExportItem[];
+  total: number;
+  offset: number;
+  limit: number;
+  meta?: MetaEnvelope;
+}
+/** v3.2.0 (PR-16): resposta de cpExportBatch. */
+export interface CpExportBatchResponse {
+  queued: number;
+  skipped: number;
+  message?: string;
+  errors?: Array<{ id: string; reason: string }>;
+  meta?: MetaEnvelope;
+}
+/** v3.2.0 (PR-16): resposta de cpExportConfirm. */
+export interface CpExportConfirmResponse {
+  confirmed: number;
+  export_type: string;
+  message?: string;
+  meta?: MetaEnvelope;
+}
+/** v3.2.0 (PR-16): resposta de cpExportSummary (agregada por tipo e canal). */
+export interface CpExportSummaryResponse {
+  resumo?: Record<string, number>;
+  por_tipo?: Record<string, Record<string, number>>;
+  por_canal?: Record<string, Record<string, number>>;
+  meta?: MetaEnvelope;
+}
+/** v3.2.0 (PR-16): resposta de cpExportReconciliation. */
+export interface CpExportReconciliationResponse {
+  resumo: {
+    total_titulos: number;
+    exportados: number;
+    com_erro?: number;
+    taxa_sincronizacao: number;
+  };
+  meta?: MetaEnvelope;
+}
+/** v3.2.0 (PR-16): resposta de cpExportRetryFailed. */
+export interface CpExportRetryResponse {
+  retried: number;
+  message?: string;
+  meta?: MetaEnvelope;
+}
+
+/** v2.9.0: resposta tipada de crConsultar — paridade com CpConsultarResponse. */
+export interface CrConsultarResponse {
+  conta_receber_cadastro: {
+    id: string;
+    codigo_lancamento_integracao: string;
+    codigo_lancamento_huggs?: number | null;
+    valor_documento: number;
+    valor_aberto: number;
+    data_vencimento: string;
+    data_emissao?: string;
+    status: string;
+    cliente_nome?: string;
+    cliente_codigo?: string;
+    categoria_nome?: string;
+    observacao?: string;
+  };
+  meta?: MetaEnvelope;
+}
+
+/** v2.11.0: resposta de crQuery — lista de TÍTULOS CR (paridade com CpQueryResponse). */
+export interface CrQueryResponse {
+  data: Array<{
+    id: string;
+    codigo_lancamento_integracao?: string;
+    codigo_lancamento_huggs?: string | number | null;
+    empresa_id?: string | number;
+    cliente_codigo?: string;
+    cliente_nome?: string;
+    valor_documento: number;
+    valor_aberto?: number;
+    data_vencimento: string;
+    data_emissao?: string;
+    status: string;
+    codigo_categoria?: string;
+    categoria_nome?: string;
+    observacao?: string;
+    [k: string]: unknown;
+  }>;
+  pagination: { total: number; offset: number; limit: number; cursor?: string | null };
+  meta?: MetaEnvelope;
+}
+
+/** v2.11.0: resposta de crGetRecebimentos — histórico de baixas/recebimentos. */
+export interface CrRecebimentosResponse {
+  data: Array<{
+    id: string;
+    conta_receber_id: string;
+    valor_recebido: number;
+    data_recebimento: string;
+    metodo?: string;
+    observacao?: string;
+    created_at: string;
+  }>;
+  pagination: { total: number; offset: number; limit: number };
+  meta?: MetaEnvelope;
+}
+
+/** v2.11.0: resposta de crGetParcelas — parcelas de um título CR. */
+export interface CrParcelasResponse {
+  data: Array<{
+    id: string;
+    conta_receber_id: string;
+    numero: number;
+    valor: number;
+    data_vencimento: string;
+    status: string;
+  }>;
+  meta?: MetaEnvelope;
+}
+
+export interface WebhookSubscriptionResponse {
+  id: string;
+  url: string;
+  /** Campo PT no runtime (NÃO usar 'events'). */
+  eventos: string[];
+  status: string;
+  created_at: string;
+}
+
+export interface ListarParams {
+  pagina?: number;
+  registros_por_pagina?: number;
+  apenas_importado_api?: string;
+  filtrar_por_status?: string;
+  filtrar_por_data_de?: string;
+  filtrar_por_data_ate?: string;
+  filtrar_por_emissao_de?: string;
+  filtrar_por_emissao_ate?: string;
+  filtrar_conta_corrente?: string;
+  filtrar_cliente?: string;
+  filtrar_por_cpf_cnpj?: string;
+  filtrar_por_projeto?: string;
+  filtrar_por_vendedor?: string;
+  ordenar_por?: string;
+  ordem_descrescente?: string;
+  exibir_obs?: string;
+}
+
+export interface QueryParams {
+  empresa_id?: string;
+  fornecedor_codigo?: string;
+  status?: string;
+  vencimento_de?: string;
+  vencimento_ate?: string;
+  emissao_de?: string;
+  emissao_ate?: string;
+  limit?: number;
+  offset?: number;
+  cursor?: string;
+  order_by?: string;
+  order_dir?: 'asc' | 'desc';
+}
+
+export interface CpEstornarPayload {
+  id: string;
+  motivo: string;
+  valor_estorno?: number;
+}
+
+// ═══════════════════════════════════════
+// TIPOS PÚBLICOS DE METADATA (v2.18.1)
+// ═══════════════════════════════════════
+
+/** v2.18.1: metadata RateLimit-* propagada pelo runtime em toda resposta (sucesso e 429). */
+export interface RateLimitMetadata {
+  limit: number;
+  remaining: number;
+  reset: number; // unix epoch seconds
+}
+
+// ═══════════════════════════════════════
+// LRU CACHE (v2.18.1) — bound em ambos os caches para evitar memory leak
+// em serviços long-running com queries dinâmicas.
+// ═══════════════════════════════════════
+
+class LRUMap<K, V> {
+  private m = new Map<K, V>();
+  constructor(private max: number = 500) {}
+  get(k: K): V | undefined {
+    const v = this.m.get(k);
+    if (v !== undefined) { this.m.delete(k); this.m.set(k, v); }
+    return v;
+  }
+  set(k: K, v: V): void {
+    if (this.m.has(k)) this.m.delete(k);
+    else if (this.m.size >= this.max) { const first = this.m.keys().next().value; if (first !== undefined) this.m.delete(first); }
+    this.m.set(k, v);
+  }
+  has(k: K): boolean { return this.m.has(k); }
+  get size(): number { return this.m.size; }
+  /** v3.1.0: limpa entries cuja chave casa com pattern (string substring ou RegExp). Sem pattern, limpa tudo. Retorna n removidos. */
+  clear(pattern?: string | RegExp): number {
+    if (!pattern) { const n = this.m.size; this.m.clear(); return n; }
+    let n = 0;
+    for (const k of [...this.m.keys()]) {
+      const s = String(k);
+      const hit = typeof pattern === "string" ? s.includes(pattern) : pattern.test(s);
+      if (hit) { this.m.delete(k); n++; }
+    }
+    return n;
+  }
+}
+
+// ═══════════════════════════════════════
+// SDK CLASS
+// ═══════════════════════════════════════
+
+export class HuggsERP {
+  private apiKey: string;
+  private baseUrl: string;
+  private headers: Record<string, string>;
+  /** v2.16.0: X-Request-ID da última resposta (sucesso ou erro). Útil para logs. */
+  public lastRequestId: string | null = null;
+  /** v2.18.0/v2.18.1: metadata RateLimit-* da última resposta (sucesso ou 429). */
+  public lastRateLimit: RateLimitMetadata | null = null;
+  /** v2.18.1: cache LRU bound (max 500) — previne memory leak em serviços long-running. */
+  private _etagCache = new LRUMap<string, string>(500);
+  /** v2.18.1: cache LRU de body bem-sucedido (max 500) — devolvido em 304 quando cacheBody=true. */
+  private _bodyCache = new LRUMap<string, unknown>(500);
+  /** v2.18.1: quando false, 304 não devolve body cacheado — integrador gerencia o próprio cache. */
+  private _cacheBody: boolean;
+
+  /**
+   * @param opts apiKey (obrigatório), baseUrl (default produção), cacheBody (v2.18.1, default true).
+   *   Quando cacheBody=false, ETag continua ativo (envia If-None-Match), mas 304 NÃO devolve body —
+   *   apenas { __notModified: true, etag, status: 304 }. Útil para integradores memory-sensitive.
+   */
+  constructor(opts: { apiKey: string; baseUrl?: string; cacheBody?: boolean } | string, baseUrl?: string) {
+    // v2.18.1: aceita tanto opts-object quanto assinatura legada (apiKey, baseUrl) para back-compat.
+    const apiKey = typeof opts === "string" ? opts : opts.apiKey;
+    const url = typeof opts === "string" ? (baseUrl ?? "https://api.bimaster.online/v1") : (opts.baseUrl ?? "https://api.bimaster.online/v1");
+    const cacheBody = typeof opts === "string" ? true : (opts.cacheBody ?? true);
+    if (!apiKey) throw new HuggsValidationError("apiKey é obrigatório");
+    this.apiKey = apiKey;
+    this.baseUrl = url;
+    this._cacheBody = cacheBody;
+    this.headers = {
+      "x-api-key": apiKey,
+      "Content-Type": "application/json",
+    };
+  }
+
+  /** v2.18.0/v2.18.1: chave canônica — querystring é parseada, ordenada por chave e reconstruída.
+   *  Garante que ?a=1&b=2 e ?b=2&a=1 hitam a mesma entry no cache. */
+  private _cacheKey(method: string, path: string): string {
+    const [base, qs] = path.split("?");
+    const m = method.toUpperCase();
+    if (!qs) return `${m} ${base}`;
+    // Sort entries pela chave (locale-aware), reconstrói querystring canônica.
+    const sorted = [...new URLSearchParams(qs).entries()].sort(([a], [b]) => a.localeCompare(b));
+    return `${m} ${base}?${new URLSearchParams(sorted).toString()}`;
+  }
+
+  private async _request<T = unknown>(method: string, path: string, body?: unknown, idempotencyKey?: string, timeoutMs?: number): Promise<T> {
+    const url = `${this.baseUrl}${path}`;
+    const controller = new AbortController();
+    // v2.14.0: timeout vem de opts.timeout quando fornecido (default 30000ms)
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs ?? 30000);
+    const reqHeaders: Record<string, string> = { ...this.headers };
+    // Idempotency key: usa a fornecida (preserva entre retries) ou gera nova.
+    if (method === "POST" || method === "PUT") {
+      reqHeaders["X-Idempotency-Key"] = idempotencyKey || crypto.randomUUID();
+    }
+    // v2.18.0: If-None-Match para GETs cacheáveis quando há ETag prévio
+    const cacheKey = this._cacheKey(method, path);
+    if (method === "GET" && this._etagCache.has(cacheKey)) {
+      reqHeaders["If-None-Match"] = this._etagCache.get(cacheKey)!;
+    }
+    const opts: RequestInit = { method, headers: reqHeaders, signal: controller.signal };
+    if (body && method !== "GET") opts.body = JSON.stringify(body);
+    try {
+      const res = await fetch(url, opts);
+      // v2.16.0: capturar X-Request-ID antes de parse — funciona em sucesso e erro
+      const reqId = res.headers.get("x-request-id") || res.headers.get("X-Request-ID") || null;
+      this.lastRequestId = reqId;
+      // v2.18.0: capturar headers RateLimit-* (presentes em sucesso e 429)
+      const rlLimit = res.headers.get("RateLimit-Limit") || res.headers.get("ratelimit-limit");
+      const rlRemaining = res.headers.get("RateLimit-Remaining") || res.headers.get("ratelimit-remaining");
+      const rlReset = res.headers.get("RateLimit-Reset") || res.headers.get("ratelimit-reset");
+      if (rlLimit && rlRemaining && rlReset) {
+        this.lastRateLimit = { limit: parseInt(rlLimit), remaining: parseInt(rlRemaining), reset: parseInt(rlReset) };
+      }
+      // v2.18.0/v2.18.1: 304 Not Modified.
+      // cacheBody=true (default): devolve snapshot cacheado com __notModified=true.
+      // cacheBody=false: devolve apenas { __notModified, etag, status: 304 } — integrador gerencia.
+      if (res.status === 304) {
+        const etagHdr = res.headers.get("ETag") || res.headers.get("etag") || this._etagCache.get(cacheKey);
+        if (this._cacheBody && this._bodyCache.has(cacheKey)) {
+          const cached = this._bodyCache.get(cacheKey) as Record<string, unknown>;
+          return { ...cached, __notModified: true } as T;
+        }
+        return { __notModified: true, etag: etagHdr, status: 304 } as unknown as T;
+      }
+      let data: any;
+      try { data = await res.json(); } catch { data = { message: res.statusText }; }
+      if (!res.ok) {
+        const msg = data.message || data.error || res.statusText;
+        const rlR = rlRemaining ? parseInt(rlRemaining) : undefined;
+        const rlS = rlReset ? parseInt(rlReset) : undefined;
+        switch (res.status) {
+          case 400: throw new HuggsValidationError(msg, data, reqId ?? undefined);
+          case 401: throw new HuggsAuthError(msg, data, reqId ?? undefined);
+          case 409: throw new HuggsConflictError(msg, data, reqId ?? undefined);
+          case 429:
+            const retry = parseInt(res.headers.get("Retry-After") || "60");
+            const rlErr = new HuggsRateLimitError(retry, reqId ?? undefined);
+            rlErr.rateLimitRemaining = rlR;
+            rlErr.rateLimitReset = rlS;
+            throw rlErr;
+          default: throw new HuggsAPIError(res.status, msg, data, reqId ?? undefined, rlR, rlS);
+        }
+      }
+      // v2.18.0/v2.18.1: capturar ETag em 200 OK; body só vai para cache se cacheBody=true.
+      const etag = res.headers.get("ETag") || res.headers.get("etag");
+      if (method === "GET" && etag && res.status === 200) {
+        this._etagCache.set(cacheKey, etag);
+        if (this._cacheBody) this._bodyCache.set(cacheKey, data);
+      }
+      // Tratamento de codigo_status de negócio (HTTP 200 mas operação falhou)
+      if (data && typeof data === "object" && "codigo_status" in data) {
+        const cs = String(data.codigo_status);
+        if (cs !== "0" && cs !== "" && cs !== "null") {
+          throw new HuggsBusinessError(cs, String(data.descricao_status || "Erro de negócio"), data);
+        }
+      }
+      return data as T;
+    } finally {
+      clearTimeout(timeoutId);
+    }
+  }
+
+  /** 
+   * Retry automático com backoff exponencial para 429 e 5xx.
+   * CRÍTICO: a X-Idempotency-Key é gerada UMA vez e reutilizada em todas as tentativas,
+   * preservando a propriedade de idempotência em timeouts/5xx onde o servidor pode
+   * já ter processado a primeira requisição.
+   * @param idempotencyKey opcional — passe uma chave determinística (ex: derivada do
+   *   codigo_lancamento_integracao + valor) para idempotência cross-session.
+   * @param timeoutMs v2.14.0: propagado para cada tentativa de _request.
+   */
+  private async _requestWithRetry<T = unknown>(
+    method: string, path: string, body?: unknown, maxRetries: number = 3, idempotencyKey?: string, timeoutMs?: number
+  ): Promise<T> {
+    const key = (method === "POST" || method === "PUT")
+      ? (idempotencyKey || crypto.randomUUID())
+      : undefined;
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      try {
+        return await this._request<T>(method, path, body, key, timeoutMs);
+      } catch (error) {
+        if (error instanceof HuggsRateLimitError) {
+          if (attempt === maxRetries - 1) throw error;
+          await new Promise(r => setTimeout(r, error.retryAfter * 1000));
+        } else if (error instanceof HuggsAPIError && error.status >= 500) {
+          if (attempt === maxRetries - 1) throw error;
+          await new Promise(r => setTimeout(r, Math.pow(2, attempt) * 1000));
+        } else {
+          throw error;
+        }
+      }
+    }
+    throw new HuggsAPIError(0, "Max retries exceeded");
+  }
+
+  /** v2.14.0: helper para rotear opts.retry e propagar opts.timeout em endpoints CP financeiros. */
+  private _cpDispatch<T = unknown>(method: string, path: string, body: unknown, opts?: CpRequestOptions): Promise<T> {
+    return opts?.retry
+      ? this._requestWithRetry<T>(method, path, body, 3, opts.idempotencyKey, opts.timeout)
+      : this._request<T>(method, path, body, opts?.idempotencyKey, opts?.timeout);
+  }
+
+  /** v2.14.0: helper CR (alias semântico de _cpDispatch — mesma forma de opts). */
+  private _crDispatch<T = unknown>(method: string, path: string, body: unknown, opts?: CrRequestOptions): Promise<T> {
+    return this._cpDispatch<T>(method, path, body, opts);
+  }
+
+  private _validate(rules: Array<{ condition: boolean; message: string }>): void {
+    for (const rule of rules) {
+      if (rule.condition) {
+        throw new HuggsValidationError(rule.message);
+      }
+    }
+  }
+
+  // ===== Cache Inspection (v3.1.0 — PR-8 P5) =====
+  /** v3.1.0: estatísticas dos caches LRU (etag + body) — útil para observabilidade em serviços long-running. */
+  getCacheStats(): { etagEntries: number; bodyEntries: number; maxSize: number; cacheBody: boolean } {
+    return { etagEntries: this._etagCache.size, bodyEntries: this._bodyCache.size, maxSize: 500, cacheBody: this._cacheBody };
+  }
+  /** v3.1.0: limpa caches (etag + body). Sem pattern, limpa tudo. Com pattern (substring ou RegExp), limpa entries casadas. Retorna total removido. */
+  clearCache(pattern?: string | RegExp): number {
+    return this._etagCache.clear(pattern) + this._bodyCache.clear(pattern);
+  }
+
+  // ===== Health Check Geral =====
+  async healthCheck(): Promise<{ status: string; latency_ms: number }> {
+    const start = Date.now();
+    const result = await this._request<ApiStatusResponse>("GET", "/contas-pagar-api/status");
+    return { status: result.status, latency_ms: Date.now() - start };
+  }
+
+  // ===== Contas a Pagar =====
+  async cpStatus(): Promise<ApiStatusResponse> { return this._request("GET", "/contas-pagar-api/status"); }
+  /** Incluir título. v2.7.0: aceita opts { retry, idempotencyKey } para retry idempotente. */
+  async cpIncluir(titulo: CpIncluirPayload, opts?: CpRequestOptions): Promise<CpMutationResponse> {
+    this._validate([
+      { condition: !titulo.codigo_lancamento_integracao, message: "codigo_lancamento_integracao é obrigatório" },
+      { condition: titulo.valor_documento <= 0, message: "valor_documento deve ser maior que zero" },
+      { condition: !!(titulo.chave_nfe && titulo.chave_nfe.length !== 44), message: "chave_nfe deve ter exatamente 44 caracteres" },
+    ]);
+    return opts?.retry
+      ? this._requestWithRetry("POST", "/contas-pagar-api/incluir", titulo, 3, opts.idempotencyKey)
+      : this._request("POST", "/contas-pagar-api/incluir", titulo, opts?.idempotencyKey);
+  }
+  /** Excluir título. v2.7.0: aceita opts { retry, idempotencyKey }. */
+  async cpExcluir(codigo: string, opts?: CpRequestOptions): Promise<CpMutationResponse> {
+    const path = `/contas-pagar-api/excluir?codigo_lancamento_integracao=${encodeURIComponent(codigo)}`;
+    return opts?.retry
+      ? this._requestWithRetry("DELETE", path, undefined, 3, opts.idempotencyKey)
+      : this._request("DELETE", path);
+  }
+  /** Upsert título. v2.7.0: aceita opts { retry, idempotencyKey }. */
+  async cpUpsert(titulo: CpUpsertPayload, opts?: CpRequestOptions): Promise<CpMutationResponse> {
+    this._validate([
+      { condition: !titulo.codigo_lancamento_integracao, message: "codigo_lancamento_integracao é obrigatório" },
+      { condition: titulo.valor_documento <= 0, message: "valor_documento deve ser maior que zero" },
+      { condition: !!(titulo.chave_nfe && titulo.chave_nfe.length !== 44), message: "chave_nfe deve ter exatamente 44 caracteres" },
+      { condition: !titulo.empresa_id, message: "empresa_id é obrigatório para upsert" },
+    ]);
+    return opts?.retry
+      ? this._requestWithRetry("POST", "/contas-pagar-api/upsert", titulo, 3, opts.idempotencyKey)
+      : this._request("POST", "/contas-pagar-api/upsert", titulo, opts?.idempotencyKey);
+  }
+  /** Upsert em lote (até 500 títulos). v2.8.0: aceita opts { retry, idempotencyKey } — RECOMENDADO retry=true em lotes >100. */
+  async cpUpsertLote(lote: CpUpsertLotePayload, opts?: CpRequestOptions): Promise<CpLoteResponse> {
+    return opts?.retry
+      ? this._requestWithRetry("POST", "/contas-pagar-api/upsert-lote", lote, 3, opts.idempotencyKey)
+      : this._request("POST", "/contas-pagar-api/upsert-lote", lote, opts?.idempotencyKey);
+  }
+  /** Lançar pagamento. v2.7.0: aceita opts { retry, idempotencyKey } — RECOMENDADO retry=true em produção. */
+  async cpLancarPagamento(pagamento: CpLancarPagamentoPayload, opts?: CpRequestOptions): Promise<CpPagamentoResponse> {
+    this._validate([
+      { condition: !pagamento.codigo_lancamento_integracao, message: "codigo_lancamento_integracao é obrigatório" },
+      { condition: pagamento.valor <= 0, message: "valor deve ser maior que zero" },
+    ]);
+    return opts?.retry
+      ? this._requestWithRetry("POST", "/contas-pagar-api/lancar-pagamento", pagamento, 3, opts.idempotencyKey)
+      : this._request("POST", "/contas-pagar-api/lancar-pagamento", pagamento, opts?.idempotencyKey);
+  }
+  // ===== Contas a Pagar — Métodos adicionais =====
+  //
+  // GUIA DE USO (v3.0.0 — endpoints legados removidos):
+  // ┌──────────────────────┬─────────────────────────────────────────────────────────┐
+  // │ cpQuery               │ Paginação REST (limit/offset/cursor). Única paginação. │
+  // │ cpLancarPagamento     │ Baixa por codigo_lancamento_integracao.                │
+  // │ cpEstornar            │ Estorno parcial/total com motivo (auditável).          │
+  // │ cpIncluir             │ Criar novo título (erro se já existe).                 │
+  // │ cpUpsert              │ Criar ou atualizar (idempotente, empresa_id obrig.).   │
+  // └──────────────────────┴─────────────────────────────────────────────────────────┘
+  // v2.7.0: Endpoints financeiros aceitam opts { retry, idempotencyKey }.
+  //         Ex: await sdk.cpLancarPagamento(payload, { retry: true,
+  //                       idempotencyKey: `cp-pag-${codigo_lancamento_integracao}-${valor}` });
+
+  /** Consultar título por ID, código de integração ou código Huggs. */
+  async cpConsultar(params: { id?: string; codigo_lancamento_integracao?: string; codigo_lancamento_huggs?: string }): Promise<CpConsultarResponse> {
+    this._validate([
+      { condition: !params.id && !params.codigo_lancamento_integracao && !params.codigo_lancamento_huggs, message: "Informe ao menos um parâmetro: id, codigo_lancamento_integracao ou codigo_lancamento_huggs" },
+    ]);
+    const qs = new URLSearchParams();
+    if (params.id) qs.set("id", params.id);
+    if (params.codigo_lancamento_integracao) qs.set("codigo_lancamento_integracao", params.codigo_lancamento_integracao);
+    if (params.codigo_lancamento_huggs) qs.set("codigo_lancamento_huggs", params.codigo_lancamento_huggs);
+    return this._request("GET", `/contas-pagar-api/consultar?${qs.toString()}`);
+  }
+
+  /** Consulta avançada com filtros, paginação offset e cursor. Use para ETL/relatórios. Retorna TÍTULOS (não pagamentos). v2.9.0: valida chaves conhecidas. */
+  async cpQuery(params?: QueryParams): Promise<CpQueryResponse> {
+    const allowed = new Set(["empresa_id","fornecedor_codigo","status","vencimento_de","vencimento_ate","emissao_de","emissao_ate","limit","offset","cursor","order_by","order_dir"]);
+    const qs = new URLSearchParams();
+    if (params) {
+      const entries = Object.entries(params).filter(([_, v]) => v !== undefined && v !== null);
+      const unknown = entries.filter(([k]) => !allowed.has(k)).map(([k]) => k);
+      this._validate([
+        { condition: unknown.length > 0, message: `cpQuery: parâmetro(s) desconhecido(s): ${unknown.join(", ")}. Use QueryParams.` },
+      ]);
+      for (const [k, v] of entries) qs.set(k, String(v));
+    }
+    return this._request("GET", `/contas-pagar-api/query?${qs.toString()}`);
+  }
+
+  /** Estornar pagamento com recálculo de saldo. Suporta estorno parcial. v2.7.0: aceita opts. */
+  async cpEstornar(body: CpEstornarPayload, opts?: CpRequestOptions): Promise<{ success: boolean; message: string; meta?: MetaEnvelope }> {
+    this._validate([
+      { condition: !body.id, message: "id é obrigatório" },
+      { condition: !body.motivo, message: "motivo é obrigatório" },
+      { condition: !!(body.valor_estorno && body.valor_estorno <= 0), message: "valor_estorno deve ser maior que zero" },
+    ]);
+    return opts?.retry
+      ? this._requestWithRetry("POST", "/contas-pagar-api/estornar", body, 3, opts.idempotencyKey)
+      : this._request("POST", "/contas-pagar-api/estornar", body, opts?.idempotencyKey);
+  }
+
+  /** Histórico de pagamentos de um título. Suporta cursor pagination. */
+  async cpGetPagamentos(contaPagarId: string, params?: { limit?: number; offset?: number; cursor?: string }): Promise<CpPagamentosResponse> {
+    this._validate([
+      { condition: !contaPagarId, message: "contaPagarId é obrigatório" },
+    ]);
+    const qs = new URLSearchParams({ conta_pagar_id: contaPagarId });
+    if (params?.limit) qs.set("limit", String(params.limit));
+    if (params?.offset) qs.set("offset", String(params.offset));
+    if (params?.cursor) qs.set("cursor", params.cursor);
+    return this._request("GET", `/contas-pagar-api/pagamentos?${qs.toString()}`);
+  }
+
+  /** Consultar parcelas de um título. */
+  async cpGetParcelas(contaPagarId: string): Promise<CpParcelasResponse> {
+    this._validate([
+      { condition: !contaPagarId, message: "contaPagarId é obrigatório" },
+    ]);
+    return this._request("GET", `/contas-pagar-api/parcelas?conta_pagar_id=${contaPagarId}`);
+  }
+
+  // ===== Contas a Pagar — Endpoints auxiliares v2.11.0 (cobertura 19/19) =====
+  /** Sync de parcelas geradas pelo ERP cliente (máx 5000 por request). v2.11.0: novo. RECOMENDADO retry=true para lotes >100. */
+  async cpParcelasSync(parcelas: Array<Record<string, unknown>>, opts?: CpRequestOptions): Promise<CpParcelasSyncResponse> {
+    this._validate([
+      { condition: !Array.isArray(parcelas) || parcelas.length === 0, message: "cpParcelasSync: array de parcelas é obrigatório e não pode ser vazio" },
+      { condition: parcelas.length > 5000, message: "cpParcelasSync: máximo 5000 parcelas por request" },
+    ]);
+    const body = { parcelas };
+    return opts?.retry
+      ? this._requestWithRetry("POST", "/contas-pagar-api/parcelas/sync", body, 3, opts.idempotencyKey)
+      : this._request("POST", "/contas-pagar-api/parcelas/sync", body, opts?.idempotencyKey);
+  }
+  /** Listar anexos/comprovantes de um título. v2.11.0: novo. */
+  async cpAnexosListar(params: { conta_pagar_id: string }): Promise<CpAnexosListResponse> {
+    this._validate([
+      { condition: !params.conta_pagar_id, message: "conta_pagar_id é obrigatório" },
+    ]);
+    return this._request("GET", `/contas-pagar-api/anexos?conta_pagar_id=${encodeURIComponent(params.conta_pagar_id)}`);
+  }
+  /** Registrar comprovante de pagamento (anexo) em um título. v2.11.0: novo. */
+  async cpAnexosIncluir(body: { conta_pagar_id: string; nome_arquivo: string; tipo?: string; url?: string; observacao?: string }, opts?: CpRequestOptions): Promise<{ success: boolean; anexo: CpAnexoResponse; meta?: MetaEnvelope }> {
+    this._validate([
+      { condition: !body.conta_pagar_id, message: "conta_pagar_id é obrigatório" },
+      { condition: !body.nome_arquivo, message: "nome_arquivo é obrigatório" },
+    ]);
+    return opts?.retry
+      ? this._requestWithRetry("POST", "/contas-pagar-api/anexos", body, 3, opts.idempotencyKey)
+      : this._request("POST", "/contas-pagar-api/anexos", body, opts?.idempotencyKey);
+  }
+  /** Cancelar títulos em lote com motivo auditável. v2.11.0: novo. RECOMENDADO retry=true. */
+  async cpCancelarLote(body: { ids: string[]; motivo: string }, opts?: CpRequestOptions): Promise<CpCancelarLoteResponse> {
+    this._validate([
+      { condition: !Array.isArray(body.ids) || body.ids.length === 0, message: "cpCancelarLote: ids é obrigatório e não pode ser vazio" },
+      { condition: !body.motivo || !body.motivo.trim(), message: "cpCancelarLote: motivo é obrigatório (auditável)" },
+    ]);
+    // PR-17 fix: aponta para /cancelar-lote (era /cancelar — bug crítico que faria batch
+    // chamar o endpoint unitário em produção). Paridade com JS/Python já corretos.
+    return opts?.retry
+      ? this._requestWithRetry("POST", "/contas-pagar-api/cancelar-lote", body, 3, opts.idempotencyKey)
+      : this._request("POST", "/contas-pagar-api/cancelar-lote", body, opts?.idempotencyKey);
+  }
+
+  // ===== Contas a Pagar — PUT /update (v3.2.0 — PR-16) =====
+  /**
+   * Atualizar campos seletivos de um título existente. Suporta valor_original,
+   * data_vencimento, categoria_codigo (mapeamento SDK→banco automático),
+   * portador, observacao. id é obrigatório (UUID).
+   */
+  async cpUpdate(body: { id: string; valor_original?: number; data_vencimento?: string; categoria_codigo?: string; codigo_categoria?: string; observacao?: string; portador?: string }, opts?: CpRequestOptions): Promise<{ success: boolean; data?: Record<string, unknown>; updated_fields?: string[]; meta?: MetaEnvelope }> {
+    this._validate([
+      { condition: !body.id, message: "cpUpdate: id é obrigatório (UUID do título)" },
+    ]);
+    return opts?.retry
+      ? this._requestWithRetry("PUT", "/contas-pagar-api/update", body, 3, opts.idempotencyKey)
+      : this._request("PUT", "/contas-pagar-api/update", body, opts?.idempotencyKey);
+  }
+
+  // ===== Contas a Pagar — Export API (v3.2.0 — PR-16, cobertura 10/10) =====
+  // Fluxo típico: cpExportPending → cpExportBatch → ERP confirma → cpExportConfirm.
+  // Tipos export_type: "registration" (provisão), "payment" (baixa), "cancellation".
+  /** Status global de pendências de exportação ERP (provisão/baixa/cancelamento). */
+  async cpExportStatus(): Promise<CpExportStatusResponse> {
+    return this._request("GET", "/contas-pagar-export-api/status");
+  }
+  /** Listar títulos pendentes (status='pendente') aguardando exportação como provisão. */
+  async cpExportPending(params?: { limit?: number; offset?: number; empresa_id?: number | string }): Promise<CpExportListResponse> {
+    const qs = new URLSearchParams();
+    if (params?.limit !== undefined) qs.set("limit", String(params.limit));
+    if (params?.offset !== undefined) qs.set("offset", String(params.offset));
+    if (params?.empresa_id !== undefined) qs.set("empresa_id", String(params.empresa_id));
+    const q = qs.toString();
+    return this._request("GET", `/contas-pagar-export-api/pending${q ? "?" + q : ""}`);
+  }
+  /** Listar títulos pagos (status='pago') aguardando exportação como baixa. */
+  async cpExportPaid(params?: { limit?: number; offset?: number; empresa_id?: number | string }): Promise<CpExportListResponse> {
+    const qs = new URLSearchParams();
+    if (params?.limit !== undefined) qs.set("limit", String(params.limit));
+    if (params?.offset !== undefined) qs.set("offset", String(params.offset));
+    if (params?.empresa_id !== undefined) qs.set("empresa_id", String(params.empresa_id));
+    const q = qs.toString();
+    return this._request("GET", `/contas-pagar-export-api/paid${q ? "?" + q : ""}`);
+  }
+  /** Listar títulos cancelados (status='cancelado') aguardando exportação. */
+  async cpExportCancelled(params?: { limit?: number; offset?: number; empresa_id?: number | string }): Promise<CpExportListResponse> {
+    const qs = new URLSearchParams();
+    if (params?.limit !== undefined) qs.set("limit", String(params.limit));
+    if (params?.offset !== undefined) qs.set("offset", String(params.offset));
+    if (params?.empresa_id !== undefined) qs.set("empresa_id", String(params.empresa_id));
+    const q = qs.toString();
+    return this._request("GET", `/contas-pagar-export-api/cancelled${q ? "?" + q : ""}`);
+  }
+  /** Enfileirar lote de títulos para exportação ao ERP. ids deve referenciar contas_pagar.id. */
+  async cpExportBatch(body: { ids: string[]; channel?: string; export_type: "registration" | "payment" | "cancellation" }, opts?: CpRequestOptions): Promise<CpExportBatchResponse> {
+    this._validate([
+      { condition: !Array.isArray(body.ids) || body.ids.length === 0, message: "cpExportBatch: ids é obrigatório e não pode ser vazio" },
+      { condition: !body.export_type, message: "cpExportBatch: export_type é obrigatório (registration|payment|cancellation)" },
+    ]);
+    return opts?.retry
+      ? this._requestWithRetry("POST", "/contas-pagar-export-api/export-batch", body, 3, opts.idempotencyKey)
+      : this._request("POST", "/contas-pagar-export-api/export-batch", body, opts?.idempotencyKey);
+  }
+  /** Confirmar que ERP recebeu/integrou o lote — move status de exported→confirmed. */
+  async cpExportConfirm(body: { ids: string[]; export_type: "registration" | "payment" | "cancellation" }, opts?: CpRequestOptions): Promise<CpExportConfirmResponse> {
+    this._validate([
+      { condition: !Array.isArray(body.ids) || body.ids.length === 0, message: "cpExportConfirm: ids é obrigatório e não pode ser vazio" },
+      { condition: !body.export_type, message: "cpExportConfirm: export_type é obrigatório" },
+    ]);
+    return opts?.retry
+      ? this._requestWithRetry("POST", "/contas-pagar-export-api/confirm", body, 3, opts.idempotencyKey)
+      : this._request("POST", "/contas-pagar-export-api/confirm", body, opts?.idempotencyKey);
+  }
+  /** Histórico completo de exportações com filtros (export_type, status, paginação). */
+  async cpExportHistory(params?: { limit?: number; offset?: number; export_type?: string; status?: string }): Promise<CpExportListResponse> {
+    const qs = new URLSearchParams();
+    if (params?.limit !== undefined) qs.set("limit", String(params.limit));
+    if (params?.offset !== undefined) qs.set("offset", String(params.offset));
+    if (params?.export_type) qs.set("export_type", params.export_type);
+    if (params?.status) qs.set("status", params.status);
+    const q = qs.toString();
+    return this._request("GET", `/contas-pagar-export-api/history${q ? "?" + q : ""}`);
+  }
+  /** Resumo agregado por tipo e canal de exportação. */
+  async cpExportSummary(params?: { empresa_id?: number | string; periodo_de?: string; periodo_ate?: string }): Promise<CpExportSummaryResponse> {
+    const qs = new URLSearchParams();
+    if (params?.empresa_id !== undefined) qs.set("empresa_id", String(params.empresa_id));
+    if (params?.periodo_de) qs.set("periodo_de", params.periodo_de);
+    if (params?.periodo_ate) qs.set("periodo_ate", params.periodo_ate);
+    const q = qs.toString();
+    return this._request("GET", `/contas-pagar-export-api/export-summary${q ? "?" + q : ""}`);
+  }
+  /** Reconciliação BiMaster ↔ ERP — devolve taxa_sincronizacao e contagens. */
+  async cpExportReconciliation(params?: { empresa_id?: number | string }): Promise<CpExportReconciliationResponse> {
+    const qs = new URLSearchParams();
+    if (params?.empresa_id !== undefined) qs.set("empresa_id", String(params.empresa_id));
+    const q = qs.toString();
+    return this._request("GET", `/contas-pagar-export-api/reconciliation${q ? "?" + q : ""}`);
+  }
+  /** Reprocessar exportações com erro — re-enfileira itens em export_status='error'. */
+  async cpExportRetryFailed(body: { ids: string[]; channel?: string }, opts?: CpRequestOptions): Promise<CpExportRetryResponse> {
+    this._validate([
+      { condition: !Array.isArray(body.ids), message: "cpExportRetryFailed: ids deve ser array (use [] para retry global)" },
+    ]);
+    return opts?.retry
+      ? this._requestWithRetry("POST", "/contas-pagar-export-api/retry-failed", body, 3, opts.idempotencyKey)
+      : this._request("POST", "/contas-pagar-export-api/retry-failed", body, opts?.idempotencyKey);
+  }
+
+  // ===== Contas a Receber =====
+  // v2.8.0: PARIDADE COM CP — todos os métodos financeiros aceitam opts { retry, idempotencyKey }.
+  // Família moderna: crConsultar, crQuery, crGetRecebimentos, crGetParcelas.
+  /** Incluir título CR. v2.8.0: aceita opts { retry, idempotencyKey }. */
+  async crIncluir(titulo: CrIncluirPayload, opts?: CrRequestOptions): Promise<CpMutationResponse> {
+    this._validate([
+      { condition: !titulo.codigo_lancamento_integracao, message: "codigo_lancamento_integracao é obrigatório" },
+      { condition: titulo.valor_documento <= 0, message: "valor_documento deve ser maior que zero" },
+    ]);
+    return opts?.retry
+      ? this._requestWithRetry("POST", "/contas-receber-api/incluir", titulo, 3, opts.idempotencyKey)
+      : this._request("POST", "/contas-receber-api/incluir", titulo, opts?.idempotencyKey);
+  }
+  /** Excluir título CR por código de integração. v2.8.0: novo + retry/idempotency. v2.9.0: valida código. */
+  async crExcluir(codigo: string, opts?: CrRequestOptions): Promise<CpMutationResponse> {
+    this._validate([
+      { condition: !codigo || !String(codigo).trim(), message: "crExcluir: codigo_lancamento_integracao é obrigatório e não pode ser vazio" },
+    ]);
+    const path = `/contas-receber-api/excluir?codigo_lancamento_integracao=${encodeURIComponent(codigo)}`;
+    return opts?.retry
+      ? this._requestWithRetry("DELETE", path, undefined, 3, opts.idempotencyKey)
+      : this._request("DELETE", path);
+  }
+  /** Upsert título CR. v2.8.0: aceita opts { retry, idempotencyKey }. */
+  async crUpsert(titulo: CrUpsertPayload, opts?: CrRequestOptions): Promise<CpMutationResponse> {
+    this._validate([
+      { condition: !titulo.codigo_lancamento_integracao, message: "codigo_lancamento_integracao é obrigatório" },
+      { condition: titulo.valor_documento <= 0, message: "valor_documento deve ser maior que zero" },
+      { condition: !titulo.empresa_id, message: "empresa_id é obrigatório para upsert" },
+    ]);
+    return opts?.retry
+      ? this._requestWithRetry("POST", "/contas-receber-api/upsert", titulo, 3, opts.idempotencyKey)
+      : this._request("POST", "/contas-receber-api/upsert", titulo, opts?.idempotencyKey);
+  }
+  /** Upsert em lote CR (até 500 títulos). v2.8.0: aceita opts — RECOMENDADO retry=true em lotes >100. */
+  async crUpsertLote(lote: CrUpsertLotePayload, opts?: CrRequestOptions): Promise<CpLoteResponse> {
+    return opts?.retry
+      ? this._requestWithRetry("POST", "/contas-receber-api/upsert-lote", lote, 3, opts.idempotencyKey)
+      : this._request("POST", "/contas-receber-api/upsert-lote", lote, opts?.idempotencyKey);
+  }
+  /** Lançar recebimento. v2.8.0: aceita opts { retry, idempotencyKey } — RECOMENDADO retry=true em produção. */
+  async crLancarRecebimento(recebimento: CrRecebimentoPayload, opts?: CrRequestOptions): Promise<CpPagamentoResponse> {
+    this._validate([
+      { condition: !recebimento.codigo_lancamento_integracao, message: "codigo_lancamento_integracao é obrigatório" },
+      { condition: recebimento.valor <= 0, message: "valor deve ser maior que zero" },
+    ]);
+    return opts?.retry
+      ? this._requestWithRetry("POST", "/contas-receber-api/lancar-recebimento", recebimento, 3, opts.idempotencyKey)
+      : this._request("POST", "/contas-receber-api/lancar-recebimento", recebimento, opts?.idempotencyKey);
+  }
+  // ===== Contas a Receber — Família moderna v2.8.0 (paridade com CP) =====
+  /** Consultar título CR por ID, código de integração ou código Huggs. v2.9.0: tipado (CrConsultarResponse). */
+  async crConsultar(params: CrConsultarParams): Promise<CrConsultarResponse> {
+    this._validate([
+      { condition: !params.id && !params.codigo_lancamento_integracao && !params.codigo_lancamento_huggs, message: "Informe ao menos um parâmetro: id, codigo_lancamento_integracao ou codigo_lancamento_huggs" },
+    ]);
+    const qs = new URLSearchParams();
+    if (params.id) qs.set("id", params.id);
+    if (params.codigo_lancamento_integracao) qs.set("codigo_lancamento_integracao", params.codigo_lancamento_integracao);
+    if (params.codigo_lancamento_huggs) qs.set("codigo_lancamento_huggs", params.codigo_lancamento_huggs);
+    return this._request("GET", `/contas-receber-api/consultar?${qs.toString()}`);
+  }
+  /** Consulta avançada CR com filtros, paginação offset e cursor. Retorna TÍTULOS. */
+  async crQuery(params?: CrQueryParams): Promise<CrQueryResponse> {
+    const qs = new URLSearchParams();
+    if (params) {
+      for (const [k, v] of Object.entries(params)) {
+        if (v !== undefined && v !== null) qs.set(k, String(v));
+      }
+    }
+    return this._request("GET", `/contas-receber-api/query?${qs.toString()}`);
+  }
+  /** Histórico de recebimentos/baixas de um título CR. v2.11.0: tipado (CrRecebimentosResponse). */
+  async crGetRecebimentos(contaReceberId: string, params?: { limit?: number; offset?: number; cursor?: string }): Promise<CrRecebimentosResponse> {
+    this._validate([{ condition: !contaReceberId, message: "contaReceberId é obrigatório" }]);
+    const qs = new URLSearchParams({ conta_receber_id: contaReceberId });
+    if (params?.limit) qs.set("limit", String(params.limit));
+    if (params?.offset) qs.set("offset", String(params.offset));
+    if (params?.cursor) qs.set("cursor", params.cursor);
+    return this._request("GET", `/contas-receber-api/recebimentos?${qs.toString()}`);
+  }
+  /** Consultar parcelas de um título CR. v2.11.0: tipado (CrParcelasResponse). */
+  async crGetParcelas(contaReceberId: string): Promise<CrParcelasResponse> {
+    this._validate([{ condition: !contaReceberId, message: "contaReceberId é obrigatório" }]);
+    return this._request("GET", `/contas-receber-api/parcelas?conta_receber_id=${encodeURIComponent(contaReceberId)}`);
+  }
+
+  // ===== Clientes =====
+  async clientesListar(body?: Record<string, unknown>): Promise<PaginatedResponse<ClienteResponse>> { return this._request("POST", "/clientes-api/listar", body); }
+  async clientesIncluir(body: ClientePayload): Promise<ClienteResponse> {
+    this._validate([
+      { condition: !body.razao_social, message: "razao_social é obrigatório" },
+    ]);
+    return this._request("POST", "/clientes-api/incluir", body);
+  }
+  async clientesAlterar(body: Partial<ClientePayload> & { id: string }): Promise<ClienteResponse> { return this._request("POST", "/clientes-api/alterar", body); }
+  async clientesUpsert(body: ClientePayload): Promise<ClienteResponse> { return this._request("POST", "/clientes-api/upsert", body); }
+
+  // ===== Contas Correntes =====
+  async ccListar(): Promise<ContaCorrenteResponse[]> { return this._request("GET", "/contas-correntes-api/"); }
+  /**
+   * Inclui conta corrente. Runtime exige descricao OU cCodCCInt (chave de integração)
+   * para deduplicar. PR-20: usa nomes canônicos (tipo_conta_corrente, codigo_banco, etc).
+   */
+  async ccIncluir(body: ContaCorrentePayload): Promise<ContaCorrenteResponse> {
+    this._validate([
+      { condition: !body.descricao && !body.cCodCCInt, message: "descricao ou cCodCCInt é obrigatório" },
+    ]);
+    return this._request("POST", "/contas-correntes-api/incluir", body);
+  }
+  async ccUpsertLote(body: { lote: ContaCorrentePayload[] }): Promise<CpLoteResponse> { return this._request("POST", "/contas-correntes-api/upsert-lote", body); }
+
+  // ===== Boletos =====
+  async boletoGerar(body: { conta_receber_id: string }): Promise<BoletoResponse> { return this._request("POST", "/boletos-api/gerar", body); }
+  async boletoListar(pagina?: number): Promise<PaginatedResponse<BoletoResponse>> { return this._request("GET", `/boletos-api/listar?pagina=${pagina || 1}`); }
+
+  // ===== Empresas (Convenção POST) =====
+  // NOTA: A API de Empresas segue a convenção Huggs — todas as operações usam POST,
+  // incluindo consultas e listagens. O body JSON substitui query params.
+  async empresasIncluir(body: EmpresaIncluirPayload): Promise<EmpresaResponse> {
+    this._validate([
+      { condition: !body.razao_social, message: "razao_social é obrigatório" },
+    ]);
+    return this._request("POST", "/empresas-api/incluir", body);
+  }
+  async empresasAlterar(body: EmpresaAlterarPayload): Promise<EmpresaResponse> { return this._request("POST", "/empresas-api/alterar", body); }
+  async empresasConsultar(codigoEmpresa: string | number): Promise<EmpresaResponse> { return this._request("POST", "/empresas-api/consultar", { codigo_empresa: codigoEmpresa }); }
+  async empresasListar(pagina = 1, registros = 100): Promise<PaginatedResponse<EmpresaResponse>> { return this._request("POST", "/empresas-api/listar", { pagina, registros_por_pagina: registros }); }
+
+  // ===== Fornecedores (Consulta) =====
+  async fornecedoresConsultar(cnpj?: string): Promise<Record<string, unknown>> {
+    const qs = cnpj ? `?cnpj=${encodeURIComponent(cnpj)}` : "";
+    return this._request("GET", `/erp-fornecedores-query/${qs}`);
+  }
+
+  // ===== Fornecedores (Sync com ERP) =====
+  // NOTA v2.5.0: O endpoint /erp-fornecedores-sync expõe APENAS:
+  //   POST /check  → verifica se o CNPJ existe no ERP externo
+  //   POST /sync   → sincroniza o fornecedor (cria/atualiza ambos os lados)
+  // Para CRUD direto na base local use /clientes-api ou consulte fornecedoresConsultar.
+  async fornecedoresCheck(body: { cnpj: string }): Promise<{ exists: boolean; erp_code?: string; razao_social?: string; meta?: MetaEnvelope }> {
+    this._validate([
+      { condition: !body.cnpj, message: "cnpj é obrigatório" },
+    ]);
+    return this._request("POST", "/erp-fornecedores-sync/check", body);
+  }
+  async fornecedoresSync(body: FornecedorPayload & { cnpj: string }): Promise<CpMutationResponse> {
+    this._validate([
+      { condition: !body.cnpj, message: "cnpj é obrigatório" },
+      { condition: !body.razao_social, message: "razao_social é obrigatório" },
+    ]);
+    return this._request("POST", "/erp-fornecedores-sync/sync", body);
+  }
+
+  // ===== Categorias (Convenção POST) =====
+  // NOTA: A API de Categorias segue a convenção Huggs — todas as operações usam POST.
+  async categoriasListar(pagina = 1, registros = 50): Promise<PaginatedResponse<Record<string, unknown>>> {
+    return this._request("POST", "/categorias-api/listar", { pagina, registros_por_pagina: registros });
+  }
+  async categoriasIncluir(body: CategoriaPayload): Promise<CpMutationResponse> {
+    return this._request("POST", "/categorias-api/incluir", body);
+  }
+  async categoriasConsultar(codigo: string): Promise<Record<string, unknown>> {
+    return this._request("POST", "/categorias-api/consultar", { codigo_categoria: codigo });
+  }
+
+  // ===== Plano de Contas =====
+  async planoContasListar(): Promise<{ plano_contas: Record<string, unknown>[]; total: number }> {
+    return this._request("GET", "/erp-plano-contas-api/");
+  }
+
+  // ===== Portadores =====
+  async portadoresListar(): Promise<{ portadores: Record<string, unknown>[]; total: number }> {
+    return this._request("GET", "/erp-portadores-api/");
+  }
+  async portadoresSync(body?: Record<string, unknown>): Promise<CpMutationResponse> {
+    return this._request("POST", "/erp-portadores-api/sync", body || {});
+  }
+
+  // ===== Departamentos (Convenção POST) =====
+  // NOTA: A API de Departamentos segue a convenção Huggs — todas as operações usam POST.
+  async departamentosListar(pagina = 1, registros = 50): Promise<PaginatedResponse<Record<string, unknown>>> {
+    return this._request("POST", "/departamentos-api/listar", { pagina, registros_por_pagina: registros });
+  }
+
+  // ===== Projetos (Convenção POST) =====
+  // NOTA: A API de Projetos segue a convenção Huggs — todas as operações usam POST.
+  async projetosListar(pagina = 1, registros = 50): Promise<PaginatedResponse<Record<string, unknown>>> {
+    return this._request("POST", "/projetos-api/listar", { pagina, registros_por_pagina: registros });
+  }
+
+  // ===== Países =====
+  async paisesListar(filtro?: { filtrar_por_codigo?: string; filtrar_por_descricao?: string }): Promise<{ lista_paises: Array<{ cCodigo: string; cDescricao: string; cCodigoISO: string }> }> {
+    return this._request("POST", "/paises-api/listar", filtro || {});
+  }
+
+  // ===== Webhooks =====
+  async webhookIncluir(body: WebhookSubscribePayload): Promise<WebhookSubscriptionResponse> {
+    this._validate([
+      { condition: !body.url, message: "url é obrigatório" },
+      { condition: !body.eventos || body.eventos.length === 0, message: "eventos é obrigatório e deve ter pelo menos um evento (campo PT — runtime rejeita 'events')" },
+    ]);
+    return this._request("POST", "/webhook-subscriptions-api/incluir", body);
+  }
+  async webhookListar(): Promise<WebhookSubscriptionResponse[]> { return this._request("GET", "/webhook-subscriptions-api/listar"); }
+
+  // ===== Paginação Automática =====
+  async fetchAllPages<T>(path: string, key: string = "conta_pagar_cadastro"): Promise<T[]> {
+    let pagina = 1;
+    const todos: T[] = [];
+    while (true) {
+      const data = await this._request<Record<string, unknown>>("GET", `${path}?pagina=${pagina}&registros_por_pagina=500`);
+      todos.push(...((data[key] as T[]) || []));
+      if (pagina >= ((data.total_de_paginas as number) || 1)) break;
+      pagina++;
+    }
+    return todos;
+  }
+}
+
+// ═══════════════════════════════════════
+// QUICK START — 5 MINUTOS
+// ═══════════════════════════════════════
+//
+// 1. Instanciar:
+//    const erp = new HuggsERP("huggs-erp-xxxxxxxx", "https://api.bimaster.online/v1");
+//
+// 2. Health check:
+//    const hc = await erp.healthCheck();
+//    logger.log(`API ok, latência: ${hc.latency_ms}ms`);
+//
+// 3. Incluir título:
+//    const result = await erp.cpIncluir({
+//      codigo_lancamento_integracao: "NF-2026-001",
+//      codigo_cliente_fornecedor: "2d3d20ef-158d-4765-8d2c-3e6100aace64",
+//      data_vencimento: "2026-04-30",
+//      valor_documento: 1500.00,
+//      codigo_categoria: "2.04.01",
+//    });
+//
+// 4. Listar pendentes (paginação REST):
+//    const lista = await erp.cpQuery({ status: "pendente", limit: 50 });
+//    logger.log(`${lista.data.length} títulos pendentes`);
+//
+// 5. Lançar pagamento:
+//    const pgto = await erp.cpLancarPagamento({
+//      codigo_lancamento_integracao: "NF-2026-001",
+//      valor: 1500.00,
+//      data: "15/04/2026",
+//      observacao: "Pagamento via PIX",
+//    });
+//
+// 6. Export API — listar pendentes, enfileirar e confirmar (v3.2.0):
+//    const pendentes = await erp.cpExportPending({ limit: 10 });
+//    const ids = pendentes.data.map(p => p.id);
+//    const batch = await erp.cpExportBatch({ ids, export_type: "registration" });
+//    // ...ERP recebe e integra...
+//    const conf = await erp.cpExportConfirm({ ids, export_type: "registration" });
+//    logger.log(`${conf.confirmed} títulos confirmados como integrados`);
+//
+// ═══════════════════════════════════════
+// GUIA — Quando usar cada método (v3.2.0):
+// ═══════════════════════════════════════
+//
+// cpIncluir vs cpUpsert:
+//   cpIncluir → Cria novo. Retorna erro 409 se já existe.
+//               USE QUANDO: precisa garantir que o título é novo (ex: importação inicial fresh).
+//   cpUpsert  → Cria ou atualiza. Requer empresa_id. Idempotente.
+//               PREFIRA cpUpsert para integrações recorrentes — é seguro contra reenvio.
+//
+// cpUpdate → Atualiza campos seletivos (data_vencimento, valor_original, portador, observacao).
+//             Requer id (UUID). Não recria — só altera campos enviados.
+//
+// cpQuery → Única paginação (REST com limit/offset/cursor). Para UI e ETL.
+//
+// cpLancarPagamento → Identifica título por codigo_lancamento_integracao.
+//
+// cpEstornar → Estorno formal com motivo. Suporta parcial. Auditável.
+//
+// Export API (v3.2.0):
+//   cpExportPending/Paid/Cancelled → leitura de filas por status do título.
+//   cpExportBatch → enfileira títulos para envio ao ERP (POST).
+//   cpExportConfirm → marca como confirmados após ERP integrar (POST).
+//   cpExportHistory/Summary/Reconciliation → observabilidade.
+//   cpExportRetryFailed → reprocessa export_status='error'.
+//
+// FORMATO DE DATAS:
+//   Entrada aceita DD/MM/AAAA ou YYYY-MM-DD.
+//   Respostas sempre retornam YYYY-MM-DD (ISO 8601).
+//
+// ═══════════════════════════════════════
+// GLOSSÁRIO SDK→BANCO (v3.2.0 — PR-16):
+// ═══════════════════════════════════════
+//   SDK / API                     | Banco (contas_pagar)
+//   ------------------------------+-------------------------------------------
+//   codigo_lancamento_integracao  | erp_id (formato API-{empresa_id}-{codigo})
+//   codigo_cliente_fornecedor     | codigo_cliente_fornecedor (bigint)
+//   codigo_categoria (alias)      | categoria_codigo (varchar)
+//   empresa_id                    | empresa_id (integer)
+//   id_conta_corrente             | id_conta_corrente (bigint)
+//   valor_documento               | valor_original (numeric)
+//
+// HTTP STATUS:
+//   201 Created  → /incluir (recurso novo)
+//   200 OK       → /upsert, /update, /lancar-pagamento, /estornar (operação executada).
+
+// ═══════════════════════════════════════
+// SMOKE TESTS — v2.18.1 (8 invariantes auto-contidas, sem rede)
+// Rodar: npx tsx huggs-erp-sdk.ts --smoke
+// ═══════════════════════════════════════
+// Valida contratos críticos do SDK. Rode antes de subir para produção.
+
+async function runSmoke() {
+  const erp = new HuggsERP("test-key", "https://api.bimaster.online/v1");
+  // 1. Idempotência: mesma chave gera mesmo header
+  const k1 = (erp as any)._idemKey?.({ a: 1, b: 2 }) ?? "ok";
+  const k2 = (erp as any)._idemKey?.({ b: 2, a: 1 }) ?? "ok";
+  console.assert(k1 === k2, "smoke#1 idempotency stable");
+  // 2. lastRequestId é null antes de qualquer chamada
+  console.assert(erp.lastRequestId === null, "smoke#2 lastRequestId init null");
+  // 3. cpUpsertLote([]) deve lançar erro local antes do HTTP
+  try {
+    await erp.cpUpsertLote([]);
+    console.assert(false, "smoke#3 lote vazio devia lançar");
+  } catch (e) {
+    console.assert(e instanceof Error, "smoke#3 lote vazio lança Error");
+  }
+  // 4. HuggsAPIError carrega requestId
+  const err = new HuggsAPIError(400, "x", {}, "req-abc");
+  console.assert(err.requestId === "req-abc", "smoke#4 requestId propagado");
+  // 5. Construtor exige apiKey não-vazia
+  try {
+    new HuggsERP("", "https://x");
+    console.assert(false, "smoke#5 apiKey vazia devia lançar");
+  } catch (e) {
+    console.assert(e instanceof Error, "smoke#5 apiKey vazia lança Error");
+  }
+  // 6. v2.18.0: 304 devolve snapshot cacheado com __notModified=true
+  const erp6: any = new HuggsERP("k", "http://x");
+  const ck = erp6._cacheKey("GET", "/cnae-api/listar?b=2&a=1");
+  erp6._etagCache.set(ck, '"abc"');
+  erp6._bodyCache.set(ck, { items: [1, 2, 3] });
+  const origFetch = (globalThis as any).fetch;
+  (globalThis as any).fetch = async () => new Response(null, { status: 304, headers: { "RateLimit-Limit": "120", "RateLimit-Remaining": "118", "RateLimit-Reset": "999" } });
+  const r6: any = await erp6._request("GET", "/cnae-api/listar?a=1&b=2");
+  console.assert(r6.__notModified === true && r6.items.length === 3, "smoke#6 304 devolve cache");
+  console.assert(erp6.lastRateLimit?.remaining === 118, "smoke#6 lastRateLimit populado");
+  // 7. v2.18.0: 429 popula rateLimitRemaining/Reset no erro
+  (globalThis as any).fetch = async () => new Response(JSON.stringify({ error: "RATE_LIMIT" }), { status: 429, headers: { "Retry-After": "30", "RateLimit-Limit": "60", "RateLimit-Remaining": "0", "RateLimit-Reset": "1234567890" } });
+  try {
+    await erp6._request("GET", "/cnae-api/listar?other=1");
+    console.assert(false, "smoke#7 429 devia lançar");
+  } catch (e: any) {
+    console.assert(e.rateLimitRemaining === 0 && e.rateLimitReset === 1234567890, "smoke#7 RateLimit em erro");
+  }
+  // 8. v2.18.1: normalização canônica — duas queries em ordens diferentes hitam mesma key (cacheBody=false)
+  const erp8: any = new HuggsERP({ apiKey: "k", baseUrl: "http://x", cacheBody: false });
+  (globalThis as any).fetch = async () => new Response(JSON.stringify({ ok: true }), { status: 200, headers: { "ETag": "\"v1\"" } });
+  await erp8._request("GET", "/cnae-api/listar?a=1&b=2");
+  await erp8._request("GET", "/cnae-api/listar?b=2&a=1"); // mesma chave canônica
+  console.assert(erp8._etagCache.size === 1, "smoke#8 normalization — uma única entry no LRU");
+  console.assert(erp8._bodyCache.size === 0, "smoke#8 cacheBody=false não popula bodyCache");
+  (globalThis as any).fetch = origFetch;
+  // 9. v3.1.0: verifyWebhookSignature aceita assinatura válida e rejeita inválida (timing-safe)
+  const secret = "supersecret";
+  const body = '{"event":"conta_pagar.criado","id":"42"}';
+  const enc9 = new TextEncoder();
+  const k9 = await crypto.subtle.importKey("raw", enc9.encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  const s9 = await crypto.subtle.sign("HMAC", k9, enc9.encode(body));
+  const hex9 = Array.from(new Uint8Array(s9)).map((b: number) => b.toString(16).padStart(2, "0")).join("");
+  console.assert(await verifyWebhookSignature(body, "sha256=" + hex9, secret), "smoke#9 assinatura válida aceita");
+  console.assert(!(await verifyWebhookSignature(body + "x", "sha256=" + hex9, secret)), "smoke#9 tampering rejeitado");
+  console.assert(!(await verifyWebhookSignature(body, "sha256=deadbeef", secret)), "smoke#9 assinatura inválida rejeitada");
+  console.assert(!(await verifyWebhookSignature(body, null, secret)), "smoke#9 header ausente rejeitado");
+  logger.log("[smoke] 9/9 invariantes OK (incluindo HMAC)");
+}
+if (typeof process !== "undefined" && process.argv?.includes("--smoke")) {
+  runSmoke().catch((e) => { logger.error("[smoke] FAIL:", e); process.exit(1); });
+}
+
+export default HuggsERP;
