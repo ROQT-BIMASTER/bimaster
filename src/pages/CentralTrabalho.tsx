@@ -320,19 +320,22 @@ export default function CentralTrabalho({ defaultTab }: Props) {
                   <CalendarDays className="h-3.5 w-3.5" />
                   Hoje
                   {tabCounts.hoje > 0 && (
-                    <span className="text-[10px] text-muted-foreground ml-1">{tabCounts.hoje}</span>
+                    <Badge variant="secondary" className="text-[10px] h-4 px-1 ml-1">{tabCounts.hoje}</Badge>
                   )}
                 </TabsTrigger>
                 <TabsTrigger value="tarefas" className="gap-1.5 h-8 px-3" disabled={isResetting}>
                   <ListChecks className="h-3.5 w-3.5" />
                   Minhas tarefas
                   {tabCounts.pendentes > 0 && (
-                    <span className="text-[10px] text-muted-foreground ml-1">{tabCounts.pendentes}</span>
+                    <Badge variant="secondary" className="text-[10px] h-4 px-1 ml-1">{tabCounts.pendentes}</Badge>
                   )}
                 </TabsTrigger>
                 <TabsTrigger value="delegadas" className="gap-1.5 h-8 px-3" disabled={isResetting}>
                   <Send className="h-3.5 w-3.5" />
                   Delegadas
+                  {tabCounts.delegadasPendentes > 0 && (
+                    <Badge variant="secondary" className="text-[10px] h-4 px-1 ml-1">{tabCounts.delegadasPendentes}</Badge>
+                  )}
                 </TabsTrigger>
                 <TabsTrigger value="inbox" className="gap-1.5 h-8 px-3" disabled={isResetting}>
                   <Bell className="h-3.5 w-3.5" />
@@ -384,9 +387,13 @@ export default function CentralTrabalho({ defaultTab }: Props) {
 
                 <TabsContent value="delegadas" className="mt-4">
                   <CentralLayout toolbarSlot={null} chipsSlot={null}>
-                    <DelegadasContent />
+                    <DelegadasContent
+                      naoLidas={naoLidas}
+                      onGoToInbox={() => !isResetting && setTab("inbox")}
+                    />
                   </CentralLayout>
                 </TabsContent>
+
 
                 <TabsContent value="inbox" className="mt-4">
                   <CentralLayout toolbarSlot={null} chipsSlot={null}>
