@@ -52,8 +52,9 @@ const TradeBannersAdmin = () => {
         const { error: upErr } = await supabase.storage.from("trade-banners").upload(path, blob);
         if (upErr) { failed++; continue; }
 
-        const { data: { publicUrl } } = supabase.storage.from("trade-banners").getPublicUrl(path);
-        await updateBanner.mutateAsync({ id: banner.id, imagem_url: publicUrl });
+        const { data: signed } = await supabase.storage.from("trade-banners").createSignedUrl(path, 60 * 60 * 24 * 365);
+        if (!signed?.signedUrl) { failed++; continue; }
+        await updateBanner.mutateAsync({ id: banner.id, imagem_url: signed.signedUrl });
         success++;
       } catch {
         failed++;
