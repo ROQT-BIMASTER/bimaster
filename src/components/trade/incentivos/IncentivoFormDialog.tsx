@@ -134,8 +134,9 @@ export function IncentivoFormDialog({ open, onOpenChange, editIncentivo }: Props
       const path = `incentivos/${Date.now()}.${ext}`;
       const { error: uploadError } = await supabase.storage.from("trade-banners").upload(path, fileToUpload);
       if (uploadError) throw uploadError;
-      const { data: { publicUrl } } = supabase.storage.from("trade-banners").getPublicUrl(path);
-      setForm(f => ({ ...f, banner_url: publicUrl }));
+      const { data: signed } = await supabase.storage.from("trade-banners").createSignedUrl(path, 60 * 60 * 24 * 365);
+      if (!signed?.signedUrl) throw new Error("Falha ao gerar URL assinada");
+      setForm(f => ({ ...f, banner_url: signed.signedUrl }));
       toast.success("Banner enviado");
     } catch {
       toast.error("Erro no upload do banner");
@@ -210,8 +211,9 @@ export function IncentivoFormDialog({ open, onOpenChange, editIncentivo }: Props
                   const path = `incentivos/ai_${Date.now()}.png`;
                   const { error: upErr } = await supabase.storage.from("trade-banners").upload(path, blob);
                   if (upErr) throw upErr;
-                  const { data: { publicUrl } } = supabase.storage.from("trade-banners").getPublicUrl(path);
-                  setForm(f => ({ ...f, banner_url: publicUrl }));
+                  const { data: signed } = await supabase.storage.from("trade-banners").createSignedUrl(path, 60 * 60 * 24 * 365);
+                  if (!signed?.signedUrl) throw new Error("Falha ao gerar URL assinada");
+                  setForm(f => ({ ...f, banner_url: signed.signedUrl }));
                 } catch {
                   toast.error("Erro ao salvar imagem gerada");
                 } finally {

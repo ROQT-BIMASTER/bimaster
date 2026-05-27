@@ -110,9 +110,10 @@ export function DisplayFormDialog({ open, onOpenChange, display }: DisplayFormDi
       const { error } = await supabase.storage.from("trade-banners").upload(path, uploadFile, { upsert: false });
       if (error) throw error;
 
-      const { data: urlData } = supabase.storage.from("trade-banners").getPublicUrl(path);
-      setFotoUrl(urlData.publicUrl);
-      setFotoPreview(urlData.publicUrl);
+      const { data: signed } = await supabase.storage.from("trade-banners").createSignedUrl(path, 60 * 60 * 24 * 365);
+      if (!signed?.signedUrl) throw new Error("Falha ao gerar URL assinada");
+      setFotoUrl(signed.signedUrl);
+      setFotoPreview(signed.signedUrl);
       toast.success(optimizedBlob ? "Imagem otimizada e enviada ✨" : "Imagem enviada (otimização indisponível)");
     } catch {
       toast.error("Erro ao enviar imagem");
@@ -141,9 +142,10 @@ export function DisplayFormDialog({ open, onOpenChange, display }: DisplayFormDi
       const { error: upError } = await supabase.storage.from("trade-banners").upload(path, blob, { upsert: false });
       if (upError) throw upError;
 
-      const { data: urlData } = supabase.storage.from("trade-banners").getPublicUrl(path);
-      setFotoUrl(urlData.publicUrl);
-      setFotoPreview(urlData.publicUrl);
+      const { data: signed } = await supabase.storage.from("trade-banners").createSignedUrl(path, 60 * 60 * 24 * 365);
+      if (!signed?.signedUrl) throw new Error("Falha ao gerar URL assinada");
+      setFotoUrl(signed.signedUrl);
+      setFotoPreview(signed.signedUrl);
       toast.success("Imagem re-otimizada com sucesso ✨");
     } catch (err: any) {
       toast.error(err?.message || "Erro ao otimizar imagem");
