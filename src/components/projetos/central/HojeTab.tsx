@@ -129,8 +129,20 @@ export function HojeTab({ onGoToTarefas }: Props) {
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      <div className="lg:col-span-2 space-y-4">
+    <>
+      <CentralToolbarPortal>
+        <div className="relative w-72">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+          <Input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Buscar nas suas tarefas de hoje..."
+            className="h-9 pl-8 text-xs"
+            maxLength={100}
+          />
+        </div>
+      </CentralToolbarPortal>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
             <CalendarDays className="h-5 w-5 text-primary" />
