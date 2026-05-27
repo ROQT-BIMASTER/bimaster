@@ -295,6 +295,7 @@ export function HojeTab({ onGoToTarefas }: Props) {
 
         <ProjetoHomeAtividades />
       </div>
-    </div>
+      </div>
+    </>
   );
 }
