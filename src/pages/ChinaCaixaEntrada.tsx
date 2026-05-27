@@ -51,6 +51,7 @@ const CHINA_FOLDER_ALIAS: Partial<Record<MailboxFolder, MailboxFolder>> = {
 };
 
 export default function ChinaCaixaEntrada() {
+  const confirm = useConfirm();
   const navigate = useNavigate();
   const location = useLocation();
   const { t } = useChinaI18n();
@@ -424,8 +425,7 @@ export default function ChinaCaixaEntrada() {
             </button>
           )}
         </div>
-        {
-        {const confirm = useConfirm();selectedIds.size > 0 && (
+        {selectedIds.size > 0 && (
           <div className="flex flex-wrap items-center gap-1.5">
             <span className="text-[11px] text-muted-foreground">{t("inbox.selecionados", { count: selectedIds.size })}</span>
             <Button size="sm" variant="outline" className="h-7 text-xs" onClick={handleBulkRead}>

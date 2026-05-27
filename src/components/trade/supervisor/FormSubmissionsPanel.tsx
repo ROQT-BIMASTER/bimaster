@@ -17,6 +17,7 @@ import { toast } from "sonner";
 import { useConfirm } from "@/hooks/useConfirm";
 
 export function FormSubmissionsPanel() {
+  const confirm = useConfirm();
   const { tokens, submissions, isLoadingTokens, isLoadingSubmissions, revokeToken, deleteToken } = useTeamFormTokens();
   const navigate = useNavigate();
   const [selectedForm, setSelectedForm] = useState<{ id: string; name: string } | null>(null);
@@ -173,8 +174,7 @@ export function FormSubmissionsPanel() {
           <CardDescription>Formulários compartilhados com sua equipe</CardDescription>
         </CardHeader>
         <CardContent>
-          {
-          {const confirm = useConfirm();tokens.length === 0 ? (
+          {tokens.length === 0 ? (
             <p className="text-sm text-muted-foreground text-center py-4">
               Nenhum link gerado ainda. Use o botão "Gerar Link Formulário" acima.
             </p>

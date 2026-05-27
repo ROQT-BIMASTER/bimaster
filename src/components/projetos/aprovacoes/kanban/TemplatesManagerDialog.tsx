@@ -196,6 +196,7 @@ function TemplateList({
   onDelete: (id: string) => void;
   onDuplicate: (id: string) => void;
 }) {
+  const confirm = useConfirm();
   if (templates.length === 0) {
     return (
       <p className="text-xs text-muted-foreground text-center py-10">
@@ -205,8 +206,7 @@ function TemplateList({
   }
   return (
     <div className="space-y-2">
-      {
-      {const confirm = useConfirm();templates.map((t) => {
+      {templates.map((t) => {
         const Icon = ESCOPO_ICON[t.escopo];
         const isOwner = t.owner_id === currentUserId;
         return (

@@ -70,6 +70,7 @@ export function VincularMailboxList({
   projetos, search, onSearchChange, onBulkLink, onBulkExport,
 }: Props) {
   const { t } = useChinaI18n();
+  const confirm = useConfirm();
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     if (!q) return items;
@@ -345,8 +346,7 @@ export function VincularMailboxList({
             </DropdownMenuItem>
             <DropdownMenuItem
               className="text-xs gap-2 text-amber-300 focus:text-amber-300"
-              onClick={
-              onClick={const confirm = useConfirm();async () => {
+              onClick={async () => {
                 if (!(await confirm({ title: t("inbox.readMenu.confirmLimpar"), destructive: true }))) return;
                 clearVincularRead();
                 toast.success(t("inbox.toasts.estadoLeituraZerado"));

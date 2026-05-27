@@ -183,6 +183,7 @@ export default function PerfisProcesso() {
 function PerfilDetalhe({
   perfil, onUpdate, onRemove,
 }: { perfil: ProcessoPerfil; onUpdate: (p: Partial<ProcessoPerfil>) => void; onRemove: () => void }) {
+  const confirm = useConfirm();
   const { etapas, upsert, remove, reorder } = useProcessoPerfilEtapas(perfil.id);
   const [etapaSelecionadaId, setEtapaSelecionadaId] = useState<string | null>(null);
   const [novaEtapa, setNovaEtapa] = useState({ codigo: "", label: "", requer_aprovacao: false });
@@ -297,8 +298,8 @@ function PerfilDetalhe({
                 ordem: etapaSelecionada.ordem,
                 requer_aprovacao: v,
               } as any)
-   async          }
-            onRemoveEtapa={() => {
+            }
+            onRemoveEtapa={async () => {
               if ((await confirm({ title: `Remover etapa "${etapaSelecionada.label}"?`, destructive: true }))) {
                 remove.mutate(etapaSelecionada.id);
                 setEtapaSelecionadaId(null);

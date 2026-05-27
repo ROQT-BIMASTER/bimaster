@@ -39,6 +39,7 @@ interface Props {
 
 export function OPVinculadaCard({ ocId, ocNumero, produtoCodigo, produtoNome, qtySugerida }: Props) {
   const { t } = useChinaI18n();
+  const confirm = useConfirm();
   const { data: ops = [], isLoading } = useFabricaOPDaOC(ocId);
   const [openDialog, setOpenDialog] = useState(false);
   const [apontarOp, setApontarOp] = useState<{ id: string; numero: string; saldo: number } | null>(null);
@@ -70,8 +71,7 @@ export function OPVinculadaCard({ ocId, ocNumero, produtoCodigo, produtoNome, qt
         </div>
       )}
 
-      {
-      {const confirm = useConfirm();ops.map((op) => {
+      {ops.map((op) => {
         const pct = op.quantidade_planejada
           ? Math.min(100, Math.round((Number(op.quantidade_produzida || 0) / Number(op.quantidade_planejada)) * 100))
           : 0;

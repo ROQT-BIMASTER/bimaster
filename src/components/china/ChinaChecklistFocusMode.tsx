@@ -1136,7 +1136,7 @@ export function ChinaChecklistFocusMode({
                           </div>
                         </button>
                         <button
-   async                        onClick={(e) => {
+                          onClick={async (e) => {
                             e.stopPropagation();
                             if ((await confirm({ title: t("focusMode.confirmExcluirModelo", { nome: tpl.nome }) }))) deleteTemplate.mutate(tpl.id);
                           }}

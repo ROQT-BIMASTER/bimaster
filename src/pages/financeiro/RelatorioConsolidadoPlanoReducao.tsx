@@ -1182,9 +1182,9 @@ export default function RelatorioConsolidadoPlanoReducao() {
                     <TableCell className="text-right font-medium">{formatCurrency(media)}</TableCell>
                     <TableCell>
                       <Button
-                        variant="async ghost"
+                        variant="ghost"
                         size="icon"
-                        onClick={() => {
+                        onClick={async () => {
                           if ((await confirm({ title: "Remover esta despesa?", destructive: true }))) desp.remove.mutate(d.id);
                         }}
                       >

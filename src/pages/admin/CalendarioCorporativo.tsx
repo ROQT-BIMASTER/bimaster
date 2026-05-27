@@ -29,6 +29,7 @@ const TIPOS = [
 ];
 
 export default function CalendarioCorporativo() {
+  const confirm = useConfirm();
   const [ano, setAno] = useState<number>(new Date().getFullYear());
   const { feriados, isLoading, sincronizar, criarFeriado, removerFeriado } = useFeriados(ano);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -156,8 +157,7 @@ export default function CalendarioCorporativo() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                {
-                {const confirm = useConfirm();isLoading ? (
+                {isLoading ? (
                   <div className="text-sm text-muted-foreground text-center py-8">Carregando…</div>
                 ) : feriados.length === 0 ? (
                   <div className="text-sm text-muted-foreground text-center py-8">
