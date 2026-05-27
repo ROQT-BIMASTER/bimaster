@@ -58,13 +58,22 @@ const Row = memo(function Row({ t, onOpen }: { t: DelegadaTarefa; onOpen: (t: De
 });
 
 type StatusFilter = "pendentes" | "concluidas" | "todas";
+type ChipFilter = "pendentes" | "para_hoje" | "atrasadas";
 
-export function DelegadasContent() {
+interface DelegadasProps {
+  /** Contador de notificações não lidas (vem da Central, evita refetch). */
+  naoLidas?: number;
+  /** Handler para navegar até a aba de Inbox quando o chip "Não lidas" é clicado. */
+  onGoToInbox?: () => void;
+}
+
+export function DelegadasContent({ naoLidas = 0, onGoToInbox }: DelegadasProps = {}) {
   const { data: tarefas = [], isLoading } = useMinhasDelegadas();
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("pendentes");
   const [projetoFilter, setProjetoFilter] = useState<string>("all");
+  const [chipFilter, setChipFilter] = useState<ChipFilter>("pendentes");
 
   const projetos = useMemo(() => {
     const m = new Map<string, { id: string; nome: string; cor: string }>();
@@ -76,19 +85,47 @@ export function DelegadasContent() {
     return Array.from(m.values()).sort((a, b) => a.nome.localeCompare(b.nome));
   }, [tarefas]);
 
+  const chipCounts = useMemo(() => {
+    const now = startOfDay(new Date());
+    const pendentes = tarefas.filter((t) => t.status !== "concluida");
+    return {
+      pendentes: pendentes.length,
+      paraHoje: pendentes.filter((t) => {
+        const p = parseLocalDate(t.data_prazo);
+        return p && isToday(p);
+      }).length,
+      atrasadas: pendentes.filter((t) => {
+        const p = parseLocalDate(t.data_prazo);
+        return p && isBefore(startOfDay(p), now);
+      }).length,
+    };
+  }, [tarefas]);
+
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
+    const now = startOfDay(new Date());
     return tarefas.filter((t) => {
       if (statusFilter === "pendentes" && t.status === "concluida") return false;
       if (statusFilter === "concluidas" && t.status !== "concluida") return false;
       if (projetoFilter !== "all" && t.projeto_id !== projetoFilter) return false;
+      if (chipFilter === "pendentes" && t.status === "concluida") return false;
+      if (chipFilter === "para_hoje") {
+        if (t.status === "concluida") return false;
+        const p = parseLocalDate(t.data_prazo);
+        if (!p || !isToday(p)) return false;
+      }
+      if (chipFilter === "atrasadas") {
+        if (t.status === "concluida") return false;
+        const p = parseLocalDate(t.data_prazo);
+        if (!p || !isBefore(startOfDay(p), now)) return false;
+      }
       if (q) {
         const hay = `${t.titulo} ${t.projeto_nome ?? ""} ${t.responsavel_nome ?? ""}`.toLowerCase();
         if (!hay.includes(q)) return false;
       }
       return true;
     });
-  }, [tarefas, search, statusFilter, projetoFilter]);
+  }, [tarefas, search, statusFilter, projetoFilter, chipFilter]);
 
   const handleOpen = (t: DelegadaTarefa) => {
     navigate(`/dashboard/projetos/${t.projeto_id}?tarefa=${t.id}`);
