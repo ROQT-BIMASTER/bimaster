@@ -315,10 +315,6 @@ export function TarefaResponsavelSeguidoresEditor({
                       key={m.user_id}
                       value={m.profile?.nome || m.user_id}
                       onSelect={() => handleToggle(m.user_id)}
-                      onMouseDown={(e) => {
-                        e.preventDefault();
-                        handleToggle(m.user_id);
-                      }}
                       className={cn("text-xs", isSelected && "bg-accent/60")}
                     >
                       <Avatar className="h-5 w-5 mr-2">
