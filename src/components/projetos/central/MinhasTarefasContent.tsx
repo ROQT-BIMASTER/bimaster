@@ -69,7 +69,8 @@ import { QuickCommentPopover } from "@/components/projetos/central/QuickCommentP
 import { useTarefaMessageCounts } from "@/hooks/useTarefaMessageCounts";
 import { useManualPriorityOrder, applyManualOrder } from "@/hooks/useManualPriorityOrder";
 import { ManualPrioritySortable } from "@/components/projetos/central/ManualPrioritySortable";
-import { CentralToolbarPortal } from "@/components/projetos/central/CentralLayout";
+import { CentralToolbarPortal, CentralChipsPortal } from "@/components/projetos/central/CentralLayout";
+import { CentralChip } from "@/components/projetos/central/CentralChips";
 
 import { BarChart3, RotateCcw, Trash2 } from "lucide-react";
 import type { ProjetoTarefa, ProjetoSecao } from "@/hooks/useProjetoTarefas";
