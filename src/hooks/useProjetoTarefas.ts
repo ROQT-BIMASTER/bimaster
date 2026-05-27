@@ -42,6 +42,8 @@ export interface ProjetoTarefa {
   produto_id: string | null;
   subtarefas?: ProjetoTarefa[];
   responsavel?: { id: string; nome: string; avatar_url: string | null } | null;
+  /** Multi-responsáveis (junction projeto_tarefa_responsaveis). `responsavel`/`responsavel_id` continuam refletindo o "principal". */
+  responsaveis?: { user_id: string; nome: string; avatar_url: string | null; papel?: string }[];
   criador?: { id: string; nome: string; avatar_url: string | null } | null;
   colaboradores?: { user_id: string; nome: string; avatar_url: string | null }[];
   produto_foto_url?: string | null;
