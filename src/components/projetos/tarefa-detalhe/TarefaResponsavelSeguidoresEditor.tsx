@@ -265,6 +265,10 @@ export function TarefaResponsavelSeguidoresEditor({
               <CommandItem
                 value="__me__"
                 onSelect={() => handleToggle(user.id)}
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  handleToggle(user.id);
+                }}
                 className="text-xs"
               >
                 <UserPlus className="h-3.5 w-3.5 mr-2" />
@@ -280,6 +284,12 @@ export function TarefaResponsavelSeguidoresEditor({
                 <CommandItem
                   value="__remove__"
                   onSelect={() => {
+                    if (kind === "responsavel") removerResponsavel(swapFrom);
+                    else removerSeguidor(swapFrom);
+                    onPicked();
+                  }}
+                  onMouseDown={(e) => {
+                    e.preventDefault();
                     if (kind === "responsavel") removerResponsavel(swapFrom);
                     else removerSeguidor(swapFrom);
                     onPicked();
@@ -315,6 +325,10 @@ export function TarefaResponsavelSeguidoresEditor({
                       key={m.user_id}
                       value={m.profile?.nome || m.user_id}
                       onSelect={() => handleToggle(m.user_id)}
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        handleToggle(m.user_id);
+                      }}
                       className={cn("text-xs", isSelected && "bg-accent/60")}
                     >
                       <Avatar className="h-5 w-5 mr-2">
