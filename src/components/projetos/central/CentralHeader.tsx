@@ -172,6 +172,8 @@ export function CentralHeader({
             </Tooltip>
           </TooltipProvider>
 
+          <ProjetoDensityToggle />
+
           <CentralSettingsMenu
             bgColor={bgColor}
             onBgColorChange={onBgColorChange}
