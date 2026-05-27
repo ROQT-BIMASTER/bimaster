@@ -73,16 +73,16 @@ const ESTAGIO_OPTIONS = [
 ];
 
 const STATUS_OPTIONS = [
-  { value: "pendente", label: "Pendente" },
-  { value: "em_andamento", label: "Em andamento" },
-  { value: "concluida", label: "Concluída" },
-  { value: "bloqueada", label: "Bloqueada" },
+  { value: "pendente", label: "Pendente", color: "bg-muted text-muted-foreground" },
+  { value: "em_andamento", label: "Em andamento", color: "bg-emerald-500/15 text-emerald-400" },
+  { value: "concluida", label: "Concluída", color: "bg-blue-500/15 text-blue-400" },
+  { value: "bloqueada", label: "Bloqueada", color: "bg-destructive/15 text-destructive" },
 ];
 
 const PRIORIDADE_OPTIONS = [
-  { value: "baixa", label: "Baixa" },
-  { value: "media", label: "Média" },
-  { value: "alta", label: "Alta" },
+  { value: "baixa", label: "Baixa", color: "bg-emerald-500/15 text-emerald-400" },
+  { value: "media", label: "Média", color: "bg-rose-500/15 text-rose-400" },
+  { value: "alta", label: "Alta", color: "bg-destructive/20 text-destructive" },
 ];
 
 const COFRE_CATEGORIAS = [
@@ -389,20 +389,11 @@ export function ProjetoTarefaDetalhe({
             <SheetDescription>Visualize e edite os detalhes da tarefa selecionada</SheetDescription>
           </SheetHeader>
 
-          {/* Gradient header based on stage */}
-          <div className={cn(
-            "px-5 py-3 border-b border-border/50 flex items-center gap-2",
-            tarefa.estagio === "briefing" && "bg-gradient-to-r from-purple-500/15 to-transparent",
-            tarefa.estagio === "em_criacao" && "bg-gradient-to-r from-blue-500/15 to-transparent",
-            tarefa.estagio === "revisao" && "bg-gradient-to-r from-amber-500/15 to-transparent",
-            tarefa.estagio === "aprovado" && "bg-gradient-to-r from-emerald-500/15 to-transparent",
-            tarefa.estagio === "producao" && "bg-gradient-to-r from-pink-500/15 to-transparent",
-            tarefa.estagio === "lancamento" && "bg-gradient-to-r from-pink-500/15 to-transparent",
-            !tarefa.estagio && ""
-          )}>
+          {/* Top action bar — Asana-style flat header */}
+          <div className="px-5 py-3 border-b border-border/60 flex items-center gap-2">
             {/* Marcar como concluída - bloqueado durante validação pendente */}
             {isPendingValidation ? (
-              <Badge className="text-[10px] bg-amber-500/20 text-amber-400 border-0 gap-1">
+              <Badge className="text-[10px] bg-amber-500/20 text-amber-400 border-0 gap-1 rounded-full px-2.5 py-1">
                 <Clock className="h-3 w-3" />
                 Pendente de Aprovação
               </Badge>
@@ -410,7 +401,10 @@ export function ProjetoTarefaDetalhe({
               <Button
                 variant={isCompleted ? "default" : "outline"}
                 size="sm"
-                className={cn("gap-1.5 text-xs", isCompleted && "bg-emerald-600 hover:bg-emerald-700")}
+                className={cn(
+                  "gap-1.5 text-xs rounded-full h-8 px-3",
+                  isCompleted && "bg-emerald-600 hover:bg-emerald-700"
+                )}
                 onClick={() => onToggle(tarefa)}
                 disabled={isPendingValidation}
               >
@@ -465,18 +459,18 @@ export function ProjetoTarefaDetalhe({
                 <span className="text-xs text-muted-foreground font-mono">{tarefa.codigo}</span>
               )}
               <Button
-                variant={chatOpen ? "default" : "outline"}
+                variant={chatOpen ? "default" : "ghost"}
                 size="sm"
-                className="gap-1.5 text-xs"
+                className="gap-1.5 text-xs rounded-full h-8 px-3"
                 onClick={() => setChatOpen(!chatOpen)}
               >
                 <MessageCircle className="h-3.5 w-3.5" />
                 Chat {messages.length > 0 && `(${messages.length})`}
               </Button>
               <Button
-                variant="outline"
+                variant="ghost"
                 size="sm"
-                className="gap-1.5 text-xs"
+                className="gap-1.5 text-xs rounded-full h-8 px-3"
                 onClick={() => setFocusMode(true)}
               >
                 <Maximize2 className="h-3.5 w-3.5" />
@@ -499,11 +493,11 @@ export function ProjetoTarefaDetalhe({
                         onBlur={handleTitleBlur}
                         onKeyDown={e => e.key === "Enter" && handleTitleBlur()}
                         autoFocus
-                        className="text-lg font-semibold border-none p-0 h-auto focus-visible:ring-0"
+                        className="text-2xl font-bold tracking-tight border-none p-0 h-auto focus-visible:ring-0"
                       />
                     ) : (
                       <h2
-                        className="text-lg font-semibold cursor-pointer hover:text-primary transition-colors"
+                        className="text-2xl font-bold tracking-tight cursor-pointer -mx-2 px-2 py-0.5 rounded hover:bg-muted/40 transition-colors"
                         onClick={() => setEditingTitle(true)}
                       >
                         {tarefa.titulo}
@@ -580,7 +574,14 @@ export function ProjetoTarefaDetalhe({
                     if (isPendingValidation) { toast.error("Aguardando aprovação. Não é possível alterar o status."); return; }
                     onUpdate(tarefa.id, { status: v });
                   }} disabled={isPendingValidation}>
-                    <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                    <SelectTrigger className="h-8 text-xs border-0 bg-transparent hover:bg-muted/40 px-2 [&>svg]:opacity-40 justify-start gap-2">
+                      {(() => {
+                        const s = STATUS_OPTIONS.find(x => x.value === tarefa.status);
+                        return s ? (
+                          <Badge className={cn("text-[10px] border-0 rounded-md", s.color)}>{s.label}</Badge>
+                        ) : <SelectValue />;
+                      })()}
+                    </SelectTrigger>
                     <SelectContent>
                       {isPendingValidation && <SelectItem value="pendente_validacao">Pendente de Aprovação</SelectItem>}
                       {STATUS_OPTIONS.map(s => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
@@ -590,11 +591,19 @@ export function ProjetoTarefaDetalhe({
                   {/* Prioridade */}
                   <span className="text-muted-foreground">Prioridade</span>
                   <Select value={tarefa.prioridade} onValueChange={v => onUpdate(tarefa.id, { prioridade: v })}>
-                    <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                    <SelectTrigger className="h-8 text-xs border-0 bg-transparent hover:bg-muted/40 px-2 [&>svg]:opacity-40 justify-start gap-2">
+                      {(() => {
+                        const p = PRIORIDADE_OPTIONS.find(x => x.value === tarefa.prioridade);
+                        return p ? (
+                          <Badge className={cn("text-[10px] border-0 rounded-md", p.color)}>{p.label}</Badge>
+                        ) : <SelectValue />;
+                      })()}
+                    </SelectTrigger>
                     <SelectContent>
                       {PRIORIDADE_OPTIONS.map(p => <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>)}
                     </SelectContent>
                   </Select>
+
 
                   {/* Estágio */}
                   <span className="text-muted-foreground">Estágio</span>
@@ -1137,7 +1146,7 @@ export function ProjetoTarefaDetalhe({
                     {tarefa.subtarefas?.map(st => {
                       const stEstagioInfo = ESTAGIO_OPTIONS.find(e => e.value === st.estagio);
                       return (
-                        <div key={st.id} className="group border border-border/30 rounded-lg p-2.5 bg-muted/10 hover:bg-muted/20 transition-colors space-y-2">
+                        <div key={st.id} className="group border-b border-border/40 last:border-b-0 py-2 hover:bg-muted/20 transition-colors space-y-2 -mx-2 px-2 rounded-sm">
                           {/* Row 1: checkbox + title + open button */}
                           <div className="flex items-center gap-2">
                             <button onClick={() => onToggle(st)} className={cn(
