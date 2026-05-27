@@ -26,12 +26,13 @@ import { MentionInput } from "./MentionInput";
 import ProductThumbnail from "@/components/fabrica/ProductThumbnail";
 import { DisplayGradePopover } from "@/components/fabrica/DisplayGradePopover";
 import { cn } from "@/lib/utils";
+import { copyTarefaLink } from "@/lib/utils/copyDeepLink";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
   CheckCircle2, Circle, CalendarIcon, Paperclip, MessageSquare,
   Send, Upload, FileText, Image, File, Trash2, Download,
-  Package, FolderOpen, MessageCircle, Search, X, ArrowRightLeft, Plus, ShieldCheck, ChevronRight, ChevronDown, Clock, Sparkles, Loader2, Target, Maximize2, FileSpreadsheet, RotateCcw, Ship, Hash, Copy
+  Package, FolderOpen, MessageCircle, Search, X, ArrowRightLeft, Plus, ShieldCheck, ChevronRight, ChevronDown, Clock, Sparkles, Loader2, Target, Maximize2, FileSpreadsheet, RotateCcw, Ship, Hash, Copy, Link2
 } from "lucide-react";
 import { TarefaFocusMode } from "./TarefaFocusMode";
 import { ProjetoAprovacaoWorkflow } from "./ProjetoAprovacaoWorkflow";
@@ -519,6 +520,16 @@ export function ProjetoTarefaDetalhe({
               >
                 <MessageCircle className="h-3.5 w-3.5" />
                 Chat {messages.length > 0 && `(${messages.length})`}
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="gap-1.5 text-xs rounded-full h-8 px-3"
+                onClick={() => copyTarefaLink(tarefa.projeto_id, tarefa.id)}
+                title="Copiar link da tarefa"
+              >
+                <Link2 className="h-3.5 w-3.5" />
+                Copiar link
               </Button>
               <Button
                 variant="ghost"
