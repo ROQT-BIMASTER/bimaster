@@ -1458,27 +1458,17 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
                     clearAdvancedFilters();
                   };
                   return (
-                <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
-                  <div className={cn(
-                    "h-16 w-16 rounded-full flex items-center justify-center mb-4",
-                    hasActiveFilters ? "bg-warning/10" : "bg-success/10",
-                  )}>
-                    {hasActiveFilters ? (
-                      <Filter className="h-8 w-8 text-warning" />
-                    ) : (
-                      <CheckCircle2 className="h-8 w-8 text-success" />
-                    )}
-                  </div>
-                  <p className="font-semibold text-foreground">
-                    {hasActiveFilters ? "Nenhuma tarefa corresponde aos filtros" : "Tudo em dia!"}
-                  </p>
-                  <p className="text-sm mt-1">
-                    {hasActiveFilters
+                <EmptyState
+                  icon={hasActiveFilters ? Filter : ListChecks}
+                  title={hasActiveFilters ? "Nenhuma tarefa corresponde aos filtros" : "Nada por aqui ainda"}
+                  description={
+                    hasActiveFilters
                       ? `Você tem ${totalNoFilters} ${totalNoFilters === 1 ? "tarefa" : "tarefas"} ocultas pelos filtros atuais.`
-                      : "Nenhuma tarefa encontrada."}
-                  </p>
+                      : "Você não tem tarefas atribuídas no momento."
+                  }
+                >
                   {filterRole === "colaborador" && (
-                    <p className="text-xs mt-2 text-muted-foreground">
+                    <p className="text-xs mt-3 text-muted-foreground">
                       Procurando tarefas que você delegou?{" "}
                       <button
                         type="button"
@@ -1490,17 +1480,17 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
                           setSearchParams(params);
                         }}
                       >
-                        Veja a aba Delegadas →
+                        Veja a aba Delegadas
                       </button>
                     </p>
                   )}
                   <div className="flex items-center gap-3 mt-4 flex-wrap justify-center">
                     {hasActiveFilters && (
-                      <Button variant="default" className="gap-1.5" onClick={clearAllFilters}>
+                      <Button variant="default" size="sm" className="gap-1.5" onClick={clearAllFilters}>
                         <X className="h-4 w-4" /> Limpar todos os filtros
                       </Button>
                     )}
-                    <Button variant="outline" className="gap-1.5" onClick={() => setShowNewTask(true)}>
+                    <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setShowNewTask(true)}>
                       <Plus className="h-4 w-4" /> Criar nova tarefa
                     </Button>
                     <a
@@ -1512,7 +1502,7 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
                       Por que não vejo outras tarefas?
                     </a>
                   </div>
-                </div>
+                </EmptyState>
                   );
                 })()
               ) : sortMode === "prioridade" && groups[0] ? (
