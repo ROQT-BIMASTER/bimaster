@@ -23,6 +23,8 @@ import { toast } from "sonner";
 import { ProjetoHomeAtividades } from "@/components/projetos/home/ProjetoHomeAtividades";
 import { CentralToolbarPortal, CentralChipsPortal } from "@/components/projetos/central/CentralLayout";
 import { CentralChip } from "@/components/projetos/central/CentralChips";
+import { useTarefaDensity } from "@/hooks/useTarefaDensity";
+import { cn } from "@/lib/utils";
 
 const MAX_ITEMS = 8;
 
