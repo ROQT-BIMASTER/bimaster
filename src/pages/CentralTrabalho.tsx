@@ -42,6 +42,7 @@ import { HojeTab } from "@/components/projetos/central/HojeTab";
 import { MinhasTarefasContent } from "@/components/projetos/central/MinhasTarefasContent";
 import { DelegadasContent } from "@/components/projetos/central/DelegadasContent";
 import { ProjetoInboxContent } from "@/components/projetos/central/ProjetoInboxContent";
+import { CentralLayout } from "@/components/projetos/central/CentralLayout";
 import { useAuth } from "@/contexts/AuthContext";
 import { buildReason, rememberReason } from "@/lib/centralSaveReason";
 
