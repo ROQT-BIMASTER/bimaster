@@ -48980,6 +48980,17 @@ export type Database = {
       }
       crm_decrypt_secret: { Args: { p_ciphertext: string }; Returns: string }
       crm_encrypt_secret: { Args: { p_plaintext: string }; Returns: string }
+      crm_get_bot_secret: {
+        Args: { _bot_id: string }
+        Returns: {
+          bot_key_cifrada: string
+          webhook_secret: string
+        }[]
+      }
+      crm_get_webhook_endpoint_secret: {
+        Args: { _endpoint_id: string }
+        Returns: string
+      }
       crm_has_access: { Args: { _empresa_id: number }; Returns: boolean }
       crm_ingest_message: {
         Args: {
