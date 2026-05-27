@@ -49,6 +49,7 @@ export function ChecklistEmbalagensTable({
   onSetMockup,
 }: Props) {
   const { t } = useChinaI18n();
+  const confirm = useConfirm();
   const [addOpen, setAddOpen] = useState(false);
   const [newCol, setNewCol] = useState({ pt: "", cn: "" });
   const [editing, setEditing] = useState<ChecklistColuna | null>(null);
@@ -146,8 +147,7 @@ export function ChecklistEmbalagensTable({
               <th className="px-3 py-3 text-center font-semibold border-b border-r w-[110px]">
                 Mockup<br /><span className="text-muted-foreground text-[10px]">样品图</span>
               </th>
-              {
-              {const confirm = useConfirm();colunas.sort((a, b) => a.ordem - b.ordem).map((col) => (
+              {colunas.sort((a, b) => a.ordem - b.ordem).map((col) => (
                 <th key={col.key} className="px-2 py-3 text-center font-semibold border-b border-r min-w-[136px]">
                   <div className="flex min-h-[70px] flex-col items-center justify-between gap-2">
                     <div className="leading-tight">
