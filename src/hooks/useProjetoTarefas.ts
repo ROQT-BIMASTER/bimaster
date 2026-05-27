@@ -1,5 +1,5 @@
 import { logger } from "@/lib/logger";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, type MutableRefObject } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -83,6 +83,133 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
   const lixeiraOpen = !!opts?.lixeiraOpen;
   const queryClient = useQueryClient();
 
+  type PessoaCache = { id: string; nome: string; avatar_url: string | null };
+  type PendingListOp = { op: "add" | "remove"; pessoa: PessoaCache };
+  const pendingResponsaveisRef = useRef(new Map<string, Map<string, PendingListOp>>());
+  const pendingColaboradoresRef = useRef(new Map<string, Map<string, PendingListOp>>());
+  const pendingPrimaryRef = useRef(new Map<string, { userId: string | null; pessoa: PessoaCache | null }>());
+
+  const resolvePessoa = (userId: string, viewSnapshot?: Pick<ProjetoTarefasView, "teamMembers">): PessoaCache => {
+    const fromTeam = (viewSnapshot?.teamMembers || []).find(m => m.id === userId);
+    if (fromTeam) return { id: fromTeam.id, nome: fromTeam.nome, avatar_url: fromTeam.avatar_url };
+    const membrosCache = queryClient.getQueryData<any[]>(["projeto_membros", projetoId]);
+    const fromMembros = membrosCache?.find((m: any) => m.user_id === userId);
+    if (fromMembros?.profile) {
+      return {
+        id: fromMembros.user_id,
+        nome: fromMembros.profile.nome || "Membro",
+        avatar_url: fromMembros.profile.avatar_url || null,
+      };
+    }
+    return { id: userId, nome: "Membro", avatar_url: null };
+  };
+
+  const setPendingListOp = (
+    ref: MutableRefObject<Map<string, Map<string, PendingListOp>>>,
+    tarefaId: string,
+    userId: string,
+    op: "add" | "remove",
+    pessoa: PessoaCache,
+  ) => {
+    const next = new Map(ref.current);
+    const taskOps = new Map(next.get(tarefaId) || []);
+    taskOps.set(userId, { op, pessoa });
+    next.set(tarefaId, taskOps);
+    ref.current = next;
+  };
+
+  const clearPendingListOp = (
+    ref: MutableRefObject<Map<string, Map<string, PendingListOp>>>,
+    tarefaId: string,
+    userId: string,
+  ) => {
+    const next = new Map(ref.current);
+    const taskOps = new Map(next.get(tarefaId) || []);
+    taskOps.delete(userId);
+    if (taskOps.size > 0) next.set(tarefaId, taskOps);
+    else next.delete(tarefaId);
+    ref.current = next;
+  };
+
+  const schedulePendingCleanup = (clear: () => void) => {
+    window.setTimeout(() => {
+      clear();
+      queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2", projetoId] });
+    }, 8_000);
+  };
+
+  const applyPendingAssignments = (base: ProjetoTarefasView): ProjetoTarefasView => {
+    if (
+      pendingResponsaveisRef.current.size === 0 &&
+      pendingColaboradoresRef.current.size === 0 &&
+      pendingPrimaryRef.current.size === 0
+    ) {
+      return base;
+    }
+
+    const teamById = new Map(base.teamMembers.map(m => [m.id, m]));
+    const ensureTeam = (pessoa: PessoaCache | null) => {
+      if (pessoa && !teamById.has(pessoa.id)) teamById.set(pessoa.id, pessoa);
+    };
+
+    const tarefasPatched = base.tarefas.map((t) => {
+      let patched: ProjetoTarefa = t;
+      const respOps = pendingResponsaveisRef.current.get(t.id);
+      const colabOps = pendingColaboradoresRef.current.get(t.id);
+      const primary = pendingPrimaryRef.current.get(t.id);
+
+      if (respOps?.size) {
+        let responsaveis = [...(patched.responsaveis || [])];
+        respOps.forEach(({ op, pessoa }, userId) => {
+          ensureTeam(pessoa);
+          responsaveis = responsaveis.filter(r => r.user_id !== userId);
+          if (op === "add") {
+            responsaveis.push({ user_id: userId, nome: pessoa.nome, avatar_url: pessoa.avatar_url, papel: "responsavel" });
+          }
+        });
+        patched = { ...patched, responsaveis };
+      }
+
+      if (colabOps?.size) {
+        let colaboradores = [...(patched.colaboradores || [])];
+        colabOps.forEach(({ op, pessoa }, userId) => {
+          ensureTeam(pessoa);
+          colaboradores = colaboradores.filter(c => c.user_id !== userId);
+          if (op === "add") {
+            colaboradores.push({ user_id: userId, nome: pessoa.nome, avatar_url: pessoa.avatar_url });
+          }
+        });
+        patched = { ...patched, colaboradores };
+      }
+
+      if (primary) {
+        ensureTeam(primary.pessoa);
+        patched = {
+          ...patched,
+          responsavel_id: primary.userId,
+          responsavel: primary.pessoa,
+          responsaveis: primary.userId && primary.pessoa
+            ? [{ user_id: primary.userId, nome: primary.pessoa.nome, avatar_url: primary.pessoa.avatar_url, papel: "responsavel" }]
+            : [],
+        };
+      } else if (respOps?.size && patched.responsavel_id) {
+        const stillResponsible = (patched.responsaveis || []).find(r => r.user_id === patched.responsavel_id);
+        if (!stillResponsible) {
+          const next = (patched.responsaveis || [])[0];
+          patched = {
+            ...patched,
+            responsavel_id: next?.user_id ?? null,
+            responsavel: next ? { id: next.user_id, nome: next.nome, avatar_url: next.avatar_url } : null,
+          };
+        }
+      }
+
+      return patched;
+    });
+
+    return { ...base, tarefas: tarefasPatched, teamMembers: Array.from(teamById.values()) };
+  };
+
   // === Single RPC fetches everything (tarefas + secoes + team + visibility flags) ===
   const { data: view, isLoading: viewLoading } = useQuery<ProjetoTarefasView>({
     queryKey: ["projeto-tarefas-v2", projetoId],
@@ -103,7 +230,7 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
       } else if (data != null) {
         logger.warn("get_projeto_tarefas_v2: payload com shape inesperado", { data });
       }
-      return {
+      return applyPendingAssignments({
         secoes: (Array.isArray(payload.secoes) ? payload.secoes : []) as ProjetoSecao[],
         tarefas: (Array.isArray(payload.tarefas) ? payload.tarefas : []) as ProjetoTarefa[],
         teamMembers: (Array.isArray(payload.team_members) ? payload.team_members : []) as { id: string; nome: string; avatar_url: string | null }[],
@@ -112,7 +239,7 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
         totalSecoesProjeto: payload.total_secoes_projeto ?? 0,
         totalTarefasProjeto: payload.total_tarefas_projeto ?? 0,
         visibleTarefasCount: payload.visible_tarefas_count ?? 0,
-      };
+      });
     },
     enabled: !!projetoId && !!user,
     staleTime: 30_000,
@@ -331,20 +458,12 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
       const novoResponsavelId = (updates as Partial<ProjetoTarefa>).responsavel_id;
       let novoMembro: { id: string; nome: string; avatar_url: string | null } | null = null;
       if (respChange && novoResponsavelId) {
-        const fromTeam = (previous?.teamMembers || []).find(m => m.id === novoResponsavelId);
-        if (fromTeam) {
-          novoMembro = { id: fromTeam.id, nome: fromTeam.nome, avatar_url: fromTeam.avatar_url };
-        } else {
-          const membrosCache = queryClient.getQueryData<any[]>(["projeto_membros", projetoId]);
-          const fromMembros = membrosCache?.find((m: any) => m.user_id === novoResponsavelId);
-          if (fromMembros?.profile) {
-            novoMembro = {
-              id: fromMembros.user_id,
-              nome: fromMembros.profile.nome || "Membro",
-              avatar_url: fromMembros.profile.avatar_url || null,
-            };
-          }
-        }
+        novoMembro = resolvePessoa(novoResponsavelId, previous);
+      }
+      if (respChange) {
+        const nextPrimary = new Map(pendingPrimaryRef.current);
+        nextPrimary.set(id, { userId: novoResponsavelId ?? null, pessoa: novoMembro });
+        pendingPrimaryRef.current = nextPrimary;
       }
       patchView((v) => ({
         ...v,
@@ -353,17 +472,34 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
           const patched = { ...t, ...updates } as ProjetoTarefa;
           if (respChange) {
             patched.responsavel = novoMembro;
+            patched.responsaveis = novoResponsavelId && novoMembro
+              ? [{ user_id: novoResponsavelId, nome: novoMembro.nome, avatar_url: novoMembro.avatar_url, papel: "responsavel" }]
+              : [];
           }
           return patched;
         }),
       }));
-      return { previous };
+      return { previous, pendingPrimaryTaskId: respChange ? id : null };
     },
 
     onError: (err: Error, _vars, context) => {
+      if (context?.pendingPrimaryTaskId) {
+        const nextPrimary = new Map(pendingPrimaryRef.current);
+        nextPrimary.delete(context.pendingPrimaryTaskId);
+        pendingPrimaryRef.current = nextPrimary;
+      }
       if (context?.previous) queryClient.setQueryData(["projeto-tarefas-v2", projetoId], context.previous);
       if (err.message === "__CANCELLED__") return;
       toast.error(err.message);
+    },
+    onSuccess: (_data, _vars, context) => {
+      if (context?.pendingPrimaryTaskId) {
+        schedulePendingCleanup(() => {
+          const nextPrimary = new Map(pendingPrimaryRef.current);
+          nextPrimary.delete(context.pendingPrimaryTaskId!);
+          pendingPrimaryRef.current = nextPrimary;
+        });
+      }
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2", projetoId] });
@@ -507,41 +643,31 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
     onMutate: async ({ tarefaId, userId }) => {
       await queryClient.cancelQueries({ queryKey: ["projeto-tarefas-v2", projetoId] });
       const previous = queryClient.getQueryData<ProjetoTarefasView>(["projeto-tarefas-v2", projetoId]);
-      // Mesmo enriquecimento do responsável: olha primeiro em teamMembers e,
-      // como fallback, no cache de projeto_membros — necessário quando o
-      // membro ainda não atua em nenhuma outra tarefa do projeto.
-      let nome = "Membro";
-      let avatar_url: string | null = null;
-      const fromTeam = (previous?.teamMembers || []).find(m => m.id === userId);
-      if (fromTeam) {
-        nome = fromTeam.nome;
-        avatar_url = fromTeam.avatar_url;
-      } else {
-        const membrosCache = queryClient.getQueryData<any[]>(["projeto_membros", projetoId]);
-        const fromMembros = membrosCache?.find((m: any) => m.user_id === userId);
-        if (fromMembros?.profile) {
-          nome = fromMembros.profile.nome || "Membro";
-          avatar_url = fromMembros.profile.avatar_url || null;
-        }
-      }
+      const pessoa = resolvePessoa(userId, previous);
+      setPendingListOp(pendingColaboradoresRef, tarefaId, userId, "add", pessoa);
       patchView((v) => ({
         ...v,
+        teamMembers: v.teamMembers.some(m => m.id === userId) ? v.teamMembers : [...v.teamMembers, pessoa],
         tarefas: v.tarefas.map(t =>
           t.id === tarefaId
             ? {
                 ...t,
                 colaboradores: (t.colaboradores || []).some(c => c.user_id === userId)
                   ? t.colaboradores!
-                  : [...(t.colaboradores || []), { user_id: userId, nome, avatar_url }],
+                  : [...(t.colaboradores || []), { user_id: userId, nome: pessoa.nome, avatar_url: pessoa.avatar_url }],
               }
             : t
         ),
       }));
-      return { previous };
+      return { previous, tarefaId, userId };
     },
     onError: (err: Error, _vars, context) => {
+      if (context) clearPendingListOp(pendingColaboradoresRef, context.tarefaId, context.userId);
       if (context?.previous) queryClient.setQueryData(["projeto-tarefas-v2", projetoId], context.previous);
       toast.error(err.message);
+    },
+    onSuccess: (_data, _vars, context) => {
+      if (context) schedulePendingCleanup(() => clearPendingListOp(pendingColaboradoresRef, context.tarefaId, context.userId));
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2", projetoId] });
@@ -564,6 +690,8 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
     onMutate: async ({ tarefaId, userId }) => {
       await queryClient.cancelQueries({ queryKey: ["projeto-tarefas-v2", projetoId] });
       const previous = queryClient.getQueryData<ProjetoTarefasView>(["projeto-tarefas-v2", projetoId]);
+      const pessoa = resolvePessoa(userId, previous);
+      setPendingListOp(pendingColaboradoresRef, tarefaId, userId, "remove", pessoa);
       patchView((v) => ({
         ...v,
         tarefas: v.tarefas.map(t =>
@@ -572,11 +700,15 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
             : t
         ),
       }));
-      return { previous };
+      return { previous, tarefaId, userId };
     },
     onError: (err: Error, _vars, context) => {
+      if (context) clearPendingListOp(pendingColaboradoresRef, context.tarefaId, context.userId);
       if (context?.previous) queryClient.setQueryData(["projeto-tarefas-v2", projetoId], context.previous);
       toast.error(err.message);
+    },
+    onSuccess: (_data, _vars, context) => {
+      if (context) schedulePendingCleanup(() => clearPendingListOp(pendingColaboradoresRef, context.tarefaId, context.userId));
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2", projetoId] });
