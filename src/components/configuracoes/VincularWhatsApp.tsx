@@ -3,13 +3,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2, Phone, CheckCircle2, XCircle, MessageSquare, Copy } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { logger } from "@/lib/logger";
+import { toast } from "sonner";
 
 export function VincularWhatsApp() {
   const [phoneNumber, setPhoneNumber] = useState("");
@@ -17,8 +17,6 @@ export function VincularWhatsApp() {
   const [linked, setLinked] = useState(false);
   const [currentPhone, setCurrentPhone] = useState<string | null>(null);
   const [webhookUrl, setWebhookUrl] = useState("");
-  const { toast } = useToast();
-
   useEffect(() => {
     fetchCurrentLink();
     generateWebhookUrl();
@@ -53,21 +51,13 @@ export function VincularWhatsApp() {
 
   async function handleLink() {
     if (!phoneNumber) {
-      toast({
-        title: "Erro",
-        description: "Digite um número de telefone",
-        variant: "destructive",
-      });
+      toast.error("Erro", { description: "Digite um número de telefone" });
       return;
     }
 
     const cleanNumber = phoneNumber.replace(/\D/g, "");
     if (cleanNumber.length < 10 || cleanNumber.length > 15) {
-      toast({
-        title: "Erro",
-        description: "Número de telefone inválido. Use o formato internacional (ex: +5511999999999)",
-        variant: "destructive",
-      });
+      toast.error("Erro", { description: "Número de telefone inválido. Use o formato internacional (ex: +5511999999999)" });
       return;
     }
 
@@ -91,16 +81,9 @@ export function VincularWhatsApp() {
       setCurrentPhone(cleanNumber);
       setLinked(false);
 
-      toast({
-        title: "Sucesso",
-        description: "Número vinculado! Envie uma mensagem para o WhatsApp do sistema para verificar.",
-      });
+      toast.success("Sucesso", { description: "Número vinculado! Envie uma mensagem para o WhatsApp do sistema para verificar." });
     } catch (error: any) {
-      toast({
-        title: "Erro",
-        description: error.message,
-        variant: "destructive",
-      });
+      toast.error("Erro", { description: error.message });
     } finally {
       setLoading(false);
     }
@@ -123,16 +106,9 @@ export function VincularWhatsApp() {
       setLinked(false);
       setPhoneNumber("");
 
-      toast({
-        title: "Sucesso",
-        description: "Número desvinculado com sucesso",
-      });
+      toast.success("Sucesso", { description: "Número desvinculado com sucesso" });
     } catch (error: any) {
-      toast({
-        title: "Erro",
-        description: error.message,
-        variant: "destructive",
-      });
+      toast.error("Erro", { description: error.message });
     } finally {
       setLoading(false);
     }
@@ -243,10 +219,7 @@ export function VincularWhatsApp() {
                 size="icon"
                 onClick={() => {
                   navigator.clipboard.writeText(webhookUrl);
-                  toast({
-                    title: "Copiado!",
-                    description: "URL copiada para área de transferência",
-                  });
+                  toast.success("Copiado!", { description: "URL copiada para área de transferência" });
                 }}
               >
                 <Copy className="h-4 w-4" />

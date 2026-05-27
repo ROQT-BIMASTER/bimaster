@@ -2,11 +2,11 @@ import { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/components/ui/use-toast";
 import { Loader2, TrendingUp, MessageSquareText } from "lucide-react";
 import { format, subDays, eachDayOfInterval, startOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { logger } from "@/lib/logger";
+import { toast } from "sonner";
 
 interface ChartDataPoint {
   date: string;
@@ -24,8 +24,6 @@ interface WhatsAppChartsProps {
 export function WhatsAppCharts({ dateRange, userId }: WhatsAppChartsProps) {
   const [chartData, setChartData] = useState<ChartDataPoint[]>([]);
   const [loading, setLoading] = useState(true);
-  const { toast } = useToast();
-
   useEffect(() => {
     fetchChartData();
   }, [dateRange, userId]);
@@ -117,11 +115,7 @@ export function WhatsAppCharts({ dateRange, userId }: WhatsAppChartsProps) {
       setChartData(chartArray);
     } catch (error: any) {
       logger.error("Erro ao carregar dados dos gráficos:", error);
-      toast({
-        title: "Erro",
-        description: "Não foi possível carregar os gráficos",
-        variant: "destructive",
-      });
+      toast.error("Erro", { description: "Não foi possível carregar os gráficos" });
     } finally {
       setLoading(false);
     }

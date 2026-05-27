@@ -5,12 +5,12 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Loader2, MessageCircle, User, Bot } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/components/ui/use-toast";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { logger } from "@/lib/logger";
 import { uniqueChannelName } from "@/lib/realtime/channelName";
+import { toast } from "sonner";
 
 interface Message {
   id: string;
@@ -42,7 +42,6 @@ export function WhatsAppMessagesPanel({ filters }: WhatsAppMessagesPanelProps) {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const { toast } = useToast();
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -161,11 +160,7 @@ export function WhatsAppMessagesPanel({ filters }: WhatsAppMessagesPanelProps) {
       }
     } catch (error: any) {
       logger.error("Erro ao carregar conversas:", error);
-      toast({
-        title: "Erro",
-        description: "Não foi possível carregar as conversas",
-        variant: "destructive",
-      });
+      toast.error("Erro", { description: "Não foi possível carregar as conversas" });
     } finally {
       setLoading(false);
     }

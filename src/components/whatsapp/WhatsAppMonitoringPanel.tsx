@@ -4,11 +4,11 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Loader2, MessageCircle, Clock, CheckCircle2, XCircle, TrendingUp, Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/components/ui/use-toast";
 import { format, subDays, isAfter, isBefore, startOfDay, endOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { logger } from "@/lib/logger";
 import { uniqueChannelName } from "@/lib/realtime/channelName";
+import { toast } from "sonner";
 
 interface MonitoringPanelProps {
   userId?: string;
@@ -58,8 +58,6 @@ export function WhatsAppMonitoringPanel({ userId, dateRange }: MonitoringPanelPr
   });
   const [recentConversations, setRecentConversations] = useState<RecentConversation[]>([]);
   const [loading, setLoading] = useState(true);
-  const { toast } = useToast();
-
   useEffect(() => {
     fetchKPIs();
     fetchRecentConversations();
@@ -214,11 +212,7 @@ export function WhatsAppMonitoringPanel({ userId, dateRange }: MonitoringPanelPr
       });
     } catch (error: any) {
       logger.error("Erro ao carregar KPIs:", error);
-      toast({
-        title: "Erro",
-        description: "Não foi possível carregar as métricas",
-        variant: "destructive",
-      });
+      toast.error("Erro", { description: "Não foi possível carregar as métricas" });
     } finally {
       setLoading(false);
     }

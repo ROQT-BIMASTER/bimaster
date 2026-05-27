@@ -3,10 +3,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/components/ui/use-toast";
 import { Loader2, RefreshCw, Smile, Meh, Frown, TrendingUp } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { logger } from "@/lib/logger";
+import { toast } from "sonner";
 
 interface SentimentData {
   positive: number;
@@ -35,8 +35,6 @@ export function WhatsAppSentimentDashboard() {
   const [analyzing, setAnalyzing] = useState(false);
   const [sentimentData, setSentimentData] = useState<SentimentData>({ positive: 0, neutral: 0, negative: 0 });
   const [conversations, setConversations] = useState<ConversationWithSentiment[]>([]);
-  const { toast } = useToast();
-
   useEffect(() => {
     fetchSentimentData();
   }, []);
@@ -65,11 +63,7 @@ export function WhatsAppSentimentDashboard() {
       setSentimentData(counts);
     } catch (error: any) {
       logger.error('Erro ao carregar dados:', error);
-      toast({
-        title: "Erro",
-        description: "Não foi possível carregar os dados de sentimento",
-        variant: "destructive",
-      });
+      toast.error("Erro", { description: "Não foi possível carregar os dados de sentimento" });
     } finally {
       setLoading(false);
     }
@@ -82,10 +76,7 @@ export function WhatsAppSentimentDashboard() {
       const unanalyzed = conversations.filter(c => !c.sentiment && c.status !== 'active');
       
       if (unanalyzed.length === 0) {
-        toast({
-          title: "Nenhuma conversa para analisar",
-          description: "Todas as conversas completas já foram analisadas",
-        });
+        toast.success("Nenhuma conversa para analisar", { description: "Todas as conversas completas já foram analisadas" });
         return;
       }
 
@@ -102,19 +93,12 @@ export function WhatsAppSentimentDashboard() {
         }
       }
 
-      toast({
-        title: "Análise concluída",
-        description: `${analyzed} conversas foram analisadas com sucesso`,
-      });
+      toast.success("Análise concluída", { description: `${analyzed} conversas foram analisadas com sucesso` });
 
       await fetchSentimentData();
     } catch (error: any) {
       logger.error('Erro na análise:', error);
-      toast({
-        title: "Erro",
-        description: "Não foi possível analisar as conversas",
-        variant: "destructive",
-      });
+      toast.error("Erro", { description: "Não foi possível analisar as conversas" });
     } finally {
       setAnalyzing(false);
     }
