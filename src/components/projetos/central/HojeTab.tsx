@@ -21,7 +21,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { ProjetoHomeAtividades } from "@/components/projetos/home/ProjetoHomeAtividades";
-import { CentralToolbarPortal } from "@/components/projetos/central/CentralLayout";
+import { CentralToolbarPortal, CentralChipsPortal } from "@/components/projetos/central/CentralLayout";
+import { CentralChip } from "@/components/projetos/central/CentralChips";
 
 const MAX_ITEMS = 8;
 
