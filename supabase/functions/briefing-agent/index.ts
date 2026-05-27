@@ -310,11 +310,10 @@ Deno.serve(secureHandler(
       .join("\n");
 
     const proxObrig = secoesList.find((s) => s.required && !isFilled(s.key));
-    const proxOpc = secoesList.find((s) => !s.required && !isFilled(s.key));
-    const proximo = proxObrig ?? proxOpc;
+    const proximo = proxObrig;
     const proximoLinha = proximo
-      ? `PRÓXIMO CAMPO A TRABALHAR: ${proximo.key} (${proximo.label})${proximo.placeholder ? ` — guia: ${proximo.placeholder}` : ""}${proximo.required ? " [obrigatório]" : " [opcional]"}`
-      : `BRIEFING COMPLETO — todos os campos estão preenchidos. NÃO faça novas perguntas. Em vez disso, ofereça gerar o documento final para aprovação e pergunte se há algum ajuste antes de gerar.`;
+      ? `PRÓXIMO CAMPO A TRABALHAR: ${proximo.key} (${proximo.label})${proximo.placeholder ? ` — guia: ${proximo.placeholder}` : ""} [obrigatório]`
+      : `BRIEFING PRONTO — todos os campos obrigatórios estão preenchidos. NÃO faça novas perguntas sobre opcionais a menos que o usuário peça explicitamente. Confirme que o briefing está pronto e oriente o usuário a clicar no botão "Enviar para aprovação" no topo da tela. NÃO altere status nem chame tools de atualização sem pedido.`;
 
     const canvasAtual = JSON.stringify(payloadAtual, null, 2);
 
