@@ -28,28 +28,32 @@ import { cn } from "@/lib/utils";
 
 const MAX_ITEMS = 8;
 
-function TarefaRow({ tarefa, onToggle }: { tarefa: MinaTarefa; onToggle: (id: string, done: boolean) => void }) {
+function TarefaRow({ tarefa, onToggle, isCompact }: { tarefa: MinaTarefa; onToggle: (id: string, done: boolean) => void; isCompact: boolean }) {
   const navigate = useNavigate();
   const isDone = tarefa.status === "concluida";
   const isOverdue = !isDone && tarefa.data_prazo && new Date(tarefa.data_prazo) < new Date();
 
   return (
     <div
-      className="group flex items-center gap-3 p-3 rounded-lg border border-border/40 bg-card hover:shadow-sm transition-all cursor-pointer"
+      className={cn(
+        "group flex items-center gap-3 px-3 rounded-lg border border-border/40 bg-card",
+        "hover:bg-accent/30 transition-colors cursor-pointer",
+        isCompact ? "min-h-[44px] py-2" : "min-h-[56px] py-3",
+      )}
       onClick={() => navigate(`/dashboard/projetos/${tarefa.projeto_id}`)}
     >
       <Checkbox
         checked={isDone}
         onCheckedChange={(checked) => onToggle(tarefa.id, !!checked)}
         onClick={(e) => e.stopPropagation()}
-        className="h-4 w-4 rounded-full"
+        className="h-5 w-5 rounded-full shrink-0"
       />
       <div className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: tarefa.projeto_cor }} />
       <div className="flex-1 min-w-0">
         <p className={`text-sm font-medium truncate ${isDone ? "line-through text-muted-foreground" : ""}`}>
           {tarefa.titulo}
         </p>
-        <p className="text-[11px] text-muted-foreground truncate">{tarefa.projeto_nome}</p>
+        <p className="text-xs text-muted-foreground truncate">{tarefa.projeto_nome}</p>
       </div>
       <TarefaResponsavelAvatar
         responsavelId={tarefa.responsavel_id}
@@ -58,7 +62,7 @@ function TarefaRow({ tarefa, onToggle }: { tarefa: MinaTarefa; onToggle: (id: st
         size="xs"
       />
       {tarefa.data_prazo ? (
-        <span className={`text-[11px] font-medium shrink-0 ${isOverdue ? "text-destructive" : "text-muted-foreground"}`}>
+        <span className={`text-xs font-medium shrink-0 ${isOverdue ? "text-destructive" : "text-muted-foreground"}`}>
           {isOverdue && <AlertTriangle className="h-3 w-3 inline mr-0.5 -mt-0.5" />}
           {format(new Date(tarefa.data_prazo), "d MMM", { locale: ptBR })}
         </span>
