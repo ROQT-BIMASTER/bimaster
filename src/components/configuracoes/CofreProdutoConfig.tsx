@@ -9,7 +9,23 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { useCofreProdutoConfig, CofreConfigItem } from "@/hooks/useCofreProdutoConfig";
 import { Plus, Edit2, Power, GripVertical, FolderOpen, Camera, FileText, Video, File, Loader2 } from "lucide-react";
-import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  KeyboardSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+  useSortable,
+  sortableKeyboardCoordinates,
+  arrayMove,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
 const TIPO_ANEXO_OPTIONS = [
   { value: "foto", label: "Foto", icon: Camera },
@@ -44,11 +60,89 @@ const defaultForm: FormData = {
   aplicavel_a: '{"tipo":"todos"}',
 };
 
+function getTipoIcon(tipo: string) {
+  const opt = TIPO_ANEXO_OPTIONS.find(o => o.value === tipo);
+  const Icon = opt?.icon || File;
+  return <Icon className="h-3.5 w-3.5" />;
+}
+
+interface SortableConfigRowProps {
+  item: CofreConfigItem;
+  onEdit: (item: CofreConfigItem) => void;
+  onToggle: (id: string, status: string) => void;
+}
+
+function SortableConfigRow({ item, onEdit, onToggle }: SortableConfigRowProps) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: item.id });
+
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
+  return (
+    <TableRow
+      ref={setNodeRef}
+      style={style}
+      {...attributes}
+      className={isDragging ? "bg-accent" : item.status === "inativo" ? "opacity-50" : ""}
+    >
+      <TableCell className="p-1">
+        <div {...listeners} className="cursor-grab touch-none">
+          <GripVertical className="h-4 w-4 text-muted-foreground" />
+        </div>
+      </TableCell>
+      <TableCell className="font-medium text-sm">{item.nome_pt}</TableCell>
+      <TableCell className="text-sm text-muted-foreground">{item.nome_zh || "—"}</TableCell>
+      <TableCell>
+        <div className="flex items-center gap-1.5 text-xs">
+          {getTipoIcon(item.tipo_anexo)}
+          {TIPO_ANEXO_OPTIONS.find(o => o.value === item.tipo_anexo)?.label}
+        </div>
+      </TableCell>
+      <TableCell className="text-center text-sm">{item.qtd_minima}</TableCell>
+      <TableCell className="text-center">
+        <Badge variant={item.obrigatorio ? "destructive" : "secondary"} className="text-[10px]">
+          {item.obrigatorio ? "Sim" : "Não"}
+        </Badge>
+      </TableCell>
+      <TableCell className="text-xs text-muted-foreground">
+        {item.aplicavel_a?.tipo === "todos" ? "Todos" : item.aplicavel_a?.tipo}
+      </TableCell>
+      <TableCell className="text-center">
+        <Badge variant={item.status === "ativo" ? "default" : "outline"} className="text-[10px]">
+          {item.status}
+        </Badge>
+      </TableCell>
+      <TableCell>
+        <div className="flex gap-1">
+          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onEdit(item)}>
+            <Edit2 className="h-3.5 w-3.5" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7"
+            onClick={() => onToggle(item.id, item.status)}
+          >
+            <Power className={`h-3.5 w-3.5 ${item.status === "ativo" ? "text-success" : "text-muted-foreground"}`} />
+          </Button>
+        </div>
+      </TableCell>
+    </TableRow>
+  );
+}
+
 export function CofreProdutoConfig() {
   const { configs, loading, createConfig, updateConfig, toggleStatus, reorderConfigs } = useCofreProdutoConfig();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<FormData>(defaultForm);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
 
   const openCreate = () => {
     setEditingId(null);
@@ -91,18 +185,14 @@ export function CofreProdutoConfig() {
     setDialogOpen(false);
   };
 
-  const handleDragEnd = (result: any) => {
-    if (!result.destination) return;
-    const reordered = Array.from(configs);
-    const [moved] = reordered.splice(result.source.index, 1);
-    reordered.splice(result.destination.index, 0, moved);
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const oldIndex = configs.findIndex(c => c.id === active.id);
+    const newIndex = configs.findIndex(c => c.id === over.id);
+    if (oldIndex === -1 || newIndex === -1) return;
+    const reordered = arrayMove(configs, oldIndex, newIndex);
     reorderConfigs(reordered);
-  };
-
-  const getTipoIcon = (tipo: string) => {
-    const opt = TIPO_ANEXO_OPTIONS.find(o => o.value === tipo);
-    const Icon = opt?.icon || File;
-    return <Icon className="h-3.5 w-3.5" />;
   };
 
   if (loading) {
@@ -135,86 +225,35 @@ export function CofreProdutoConfig() {
           </div>
         </CardHeader>
         <CardContent>
-          <DragDropContext onDragEnd={handleDragEnd}>
-            <Droppable droppableId="cofre-config">
-              {(provided) => (
-                <div ref={provided.innerRef} {...provided.droppableProps}>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className="w-8" />
-                        <TableHead>Nome PT</TableHead>
-                        <TableHead>Nome ZH</TableHead>
-                        <TableHead>Tipo</TableHead>
-                        <TableHead className="text-center">Mín.</TableHead>
-                        <TableHead className="text-center">Obrigatório</TableHead>
-                        <TableHead>Aplicável a</TableHead>
-                        <TableHead className="text-center">Status</TableHead>
-                        <TableHead className="w-24">Ações</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {configs.map((item, index) => (
-                        <Draggable key={item.id} draggableId={item.id} index={index}>
-                          {(provided, snapshot) => (
-                            <TableRow
-                              ref={provided.innerRef}
-                              {...provided.draggableProps}
-                              className={snapshot.isDragging ? "bg-accent" : item.status === "inativo" ? "opacity-50" : ""}
-                            >
-                              <TableCell className="p-1">
-                                <div {...provided.dragHandleProps}>
-                                  <GripVertical className="h-4 w-4 text-muted-foreground cursor-grab" />
-                                </div>
-                              </TableCell>
-                              <TableCell className="font-medium text-sm">{item.nome_pt}</TableCell>
-                              <TableCell className="text-sm text-muted-foreground">{item.nome_zh || "—"}</TableCell>
-                              <TableCell>
-                                <div className="flex items-center gap-1.5 text-xs">
-                                  {getTipoIcon(item.tipo_anexo)}
-                                  {TIPO_ANEXO_OPTIONS.find(o => o.value === item.tipo_anexo)?.label}
-                                </div>
-                              </TableCell>
-                              <TableCell className="text-center text-sm">{item.qtd_minima}</TableCell>
-                              <TableCell className="text-center">
-                                <Badge variant={item.obrigatorio ? "destructive" : "secondary"} className="text-[10px]">
-                                  {item.obrigatorio ? "Sim" : "Não"}
-                                </Badge>
-                              </TableCell>
-                              <TableCell className="text-xs text-muted-foreground">
-                                {item.aplicavel_a?.tipo === "todos" ? "Todos" : item.aplicavel_a?.tipo}
-                              </TableCell>
-                              <TableCell className="text-center">
-                                <Badge variant={item.status === "ativo" ? "default" : "outline"} className="text-[10px]">
-                                  {item.status}
-                                </Badge>
-                              </TableCell>
-                              <TableCell>
-                                <div className="flex gap-1">
-                                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(item)}>
-                                    <Edit2 className="h-3.5 w-3.5" />
-                                  </Button>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-7 w-7"
-                                    onClick={() => toggleStatus(item.id, item.status)}
-                                  >
-                                    <Power className={`h-3.5 w-3.5 ${item.status === "ativo" ? "text-success" : "text-muted-foreground"}`} />
-                                  </Button>
-                                </div>
-                              </TableCell>
-                            </TableRow>
-                          )}
-                        </Draggable>
-                      ))}
-                      {provided.placeholder}
-                    </TableBody>
-                  </Table>
-                </div>
-              )}
-            </Droppable>
-          </DragDropContext>
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-8" />
+                  <TableHead>Nome PT</TableHead>
+                  <TableHead>Nome ZH</TableHead>
+                  <TableHead>Tipo</TableHead>
+                  <TableHead className="text-center">Mín.</TableHead>
+                  <TableHead className="text-center">Obrigatório</TableHead>
+                  <TableHead>Aplicável a</TableHead>
+                  <TableHead className="text-center">Status</TableHead>
+                  <TableHead className="w-24">Ações</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                <SortableContext items={configs.map(c => c.id)} strategy={verticalListSortingStrategy}>
+                  {configs.map(item => (
+                    <SortableConfigRow
+                      key={item.id}
+                      item={item}
+                      onEdit={openEdit}
+                      onToggle={toggleStatus}
+                    />
+                  ))}
+                </SortableContext>
+              </TableBody>
+            </Table>
+          </DndContext>
 
           {configs.length === 0 && (
             <p className="text-center text-muted-foreground py-8">Nenhum item configurado</p>
