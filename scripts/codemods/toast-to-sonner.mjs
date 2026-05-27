@@ -195,6 +195,11 @@ function transformFile(path) {
     /^import\s*\{\s*useToast\s*\}\s*from\s*["']@\/hooks\/use-toast["'];?\s*\n/gm,
     ""
   );
+  // 1b. import { toast } from "@/hooks/use-toast"; -> remove (sonner adicionado depois)
+  src = src.replace(
+    /^import\s*\{\s*toast\s*\}\s*from\s*["']@\/hooks\/use-toast["'];?\s*\n/gm,
+    ""
+  );
   // multi-import: e.g. import { useToast, toast as t } — bail if found
   if (/from\s*["']@\/hooks\/use-toast["']/.test(src)) {
     return { ok: false, reason: "complex use-toast import" };
