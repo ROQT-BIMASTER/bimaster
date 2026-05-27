@@ -494,7 +494,7 @@ export function TarefaResponsavelSeguidoresEditor({
               <Plus className="h-3 w-3" />
             </Button>
           </PopoverTrigger>
-          <PopoverContent className="w-64 p-0" align="start" onOpenAutoFocus={(e) => e.preventDefault()}>
+          <PopoverContent className="w-64 p-0" align="start" style={{ pointerEvents: "auto" }} onOpenAutoFocus={(e) => e.preventDefault()}>
             {renderPicker({
               kind: "seguidor",
               onPicked: () => setSegOpenKey(null),
