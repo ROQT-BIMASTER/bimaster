@@ -14,7 +14,6 @@ import { DEV_STATUS_OPTIONS, STATUS_TRANSITIONS, logDocAudit } from "@/lib/produ
 import { cn } from "@/lib/utils";
 import { ChevronRight, Check } from "lucide-react";
 import { toast } from "sonner";
-import { useConfirm } from "@/hooks/useConfirm";
 
 interface ProductDevStatusBarProps {
   produtoId: string;
