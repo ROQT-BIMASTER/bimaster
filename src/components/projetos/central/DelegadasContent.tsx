@@ -75,6 +75,7 @@ interface DelegadasProps {
 
 export function DelegadasContent({ naoLidas = 0, onGoToInbox }: DelegadasProps = {}) {
   const { data: tarefas = [], isLoading } = useMinhasDelegadas();
+  const { isCompact } = useTarefaDensity();
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("pendentes");
