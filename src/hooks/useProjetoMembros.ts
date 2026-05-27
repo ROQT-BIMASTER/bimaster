@@ -40,15 +40,12 @@ export function useProjetoMembros(projetoId: string | undefined) {
         .order("created_at");
       if (error) throw error;
 
-      const userIds = membrosData.map((m: any) => m.user_id);
-      // chat_directory (security_invoker=off) bypassa RLS estrita de profiles
-      // pra que nao-admins consigam resolver nome/avatar dos COLEGAS de
-      // projeto. Sem isso, nao-admins viam null nos itens do MentionInput
-      // e da tela de membros (bug latente desde a RLS de 2026-01-21).
+      // RPC SECURITY DEFINER que devolve nome/avatar de TODOS os membros do
+      // projeto, contornando a RLS estrita de profiles (que via
+      // chat_directory deixava muitos membros como "Membro" sem nome,
+      // quebrando o picker de Responsável e o MentionInput).
       const { data: profiles } = await supabase
-        .from("chat_directory" as any)
-        .select("id, nome, avatar_url")
-        .in("id", userIds);
+        .rpc("get_projeto_membros_directory", { _projeto_id: projetoId });
 
       const membroIds = membrosData.map((m: any) => m.id);
       const { data: secAssignments } = await supabase
