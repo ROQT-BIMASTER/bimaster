@@ -278,11 +278,15 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
           if (!ok) throw new Error("__CANCELLED__");
         }
       }
-      const { error } = await supabase
+      const { data: updated, error } = await supabase
         .from("projeto_tarefas")
         .update({ ...updates, updated_at: new Date().toISOString() } as never)
-        .eq("id", id);
+        .eq("id", id)
+        .select("id");
       if (error) throw error;
+      if (!updated || updated.length === 0) {
+        throw new Error("Sem permissão para alterar esta tarefa. Você precisa ser membro do projeto, responsável ou criador da tarefa.");
+      }
 
       // Auditoria: registra mudança de status para concluida/reaberta.
       if (Object.prototype.hasOwnProperty.call(updates, "status")) {
