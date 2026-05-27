@@ -11,7 +11,7 @@ import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover
 import {
   CheckCheck, Star, Archive, MessageSquare, Search,
   LayoutList, FolderOpen, ChevronDown,
-  X, AtSign, CheckCircle2, FolderPlus, ArrowRight, Sparkles,
+  X, AtSign, CheckCircle2, FolderPlus, ArrowRight, Sparkles, Bell,
   ShieldCheck,
 } from "lucide-react";
 import { useProjetoAtividades, type ProjetoAtividade, type InboxFilter } from "@/hooks/useProjetoAtividades";
