@@ -51339,6 +51339,10 @@ export type Database = {
         Args: { p_store_id: string; p_user_id?: string }
         Returns: boolean
       }
+      user_is_task_collaborator: {
+        Args: { _tarefa_id: string; _user_id: string }
+        Returns: boolean
+      }
       user_requires_mfa: { Args: { _uid: string }; Returns: boolean }
       user_tem_acesso_cnpj: {
         Args: { p_cnpj: string; p_user_id: string }
