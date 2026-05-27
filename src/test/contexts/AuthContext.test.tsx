@@ -72,18 +72,19 @@ describe('AuthContext', () => {
       expect(result.current.user).toBe(null);
     });
 
-    it('deve inicializar approved como true quando há cache no localStorage', () => {
-      // Arrange
+    it('NÃO deve inicializar approved=true a partir do cache localStorage (segurança — só servidor decide)', () => {
+      // Arrange — cache diz "true", mas o contrato atual ignora isso até o servidor confirmar.
       localStorageMock.getItem.mockReturnValue('true');
-      
+
       // Act
       const { result } = renderHook(() => useAuth(), {
         wrapper: AuthProvider,
       });
 
-      // Assert
-      expect(result.current.approved).toBe(true);
+      // Assert — approved permanece false até resposta do servidor (anti privilege escalation).
+      expect(result.current.approved).toBe(false);
     });
+
 
     it('deve ter isOnline inicializado corretamente', () => {
       // Arrange & Act
