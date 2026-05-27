@@ -991,8 +991,8 @@ const App = () => {
                   <InboxDrawerProvider>
                   <ChatDrawerProvider>
                   <TooltipProvider delayDuration={0}>
-                    <Toaster />
                     <Sonner />
+
                     <EspelhoEvidenceListener />
                     <ConfirmConclusaoListener />
                     <AppContent />
