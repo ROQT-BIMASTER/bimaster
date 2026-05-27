@@ -663,7 +663,24 @@ export const GerenciamentoUsuarios = () => {
                     <p className="text-xs text-muted-foreground">
                       {editingUser ? "Preencha apenas se deseja alterar. " : ""}Mínimo 8 caracteres, com letras maiúsculas, minúsculas e números
                     </p>
+                    {editingUser && mfaRetry && mfaRetry.userId === editingUser.id && (
+                      <div className="rounded-md border border-amber-500/40 bg-amber-500/10 p-2 space-y-2">
+                        <p className="text-xs text-amber-700 dark:text-amber-400">
+                          A verificação MFA falhou ou foi cancelada. A senha digitada foi preservada — clique abaixo para repetir somente a verificação MFA.
+                        </p>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          onClick={handleRetryMfa}
+                          disabled={mfaRetrying}
+                        >
+                          {mfaRetrying ? "Verificando..." : "Repetir verificação MFA"}
+                        </Button>
+                      </div>
+                    )}
                   </div>
+
 
                   {novoUsuario.tipo_usuario !== "admin" && (
                     <div className="space-y-2">
