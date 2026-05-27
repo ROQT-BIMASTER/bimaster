@@ -9,8 +9,8 @@ import { Separator } from "@/components/ui/separator";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { supabase } from "@/integrations/supabase/client";
 import { logger } from "@/lib/logger";
-import { 
 import { toast } from "sonner";
+import {
   Bot, 
   Clock, 
   Key, 
