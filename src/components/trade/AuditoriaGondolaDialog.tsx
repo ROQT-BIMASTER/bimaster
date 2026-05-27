@@ -6,13 +6,13 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
 import { Loader2, Plus, X } from "lucide-react";
 import { CadastroRapidoProdutoDialog } from "./CadastroRapidoProdutoDialog";
 import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { logger } from "@/lib/logger";
 
+import { toast } from "sonner";
 interface AuditoriaGondolaDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -46,7 +46,6 @@ export function AuditoriaGondolaDialog({
   storeId,
   onSuccess,
 }: AuditoriaGondolaDialogProps) {
-  const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [products, setProducts] = useState<any[]>([]);
   const [concorrentes, setConcorrentes] = useState<ConcorrenteForm[]>([]);
@@ -80,7 +79,7 @@ export function AuditoriaGondolaDialog({
 
   const addProduto = () => {
     if (produtosAuditoria.length >= 20) {
-      toast({ title: "Limite atingido", description: "Máximo de 20 produtos por auditoria", variant: "destructive" });
+      toast.error("Limite atingido", { description: "Máximo de 20 produtos por auditoria" });
       return;
     }
     setProdutosAuditoria([...produtosAuditoria, {
@@ -97,7 +96,7 @@ export function AuditoriaGondolaDialog({
 
   const removeProduto = (index: number) => {
     if (produtosAuditoria.length === 1) {
-      toast({ title: "Erro", description: "Deve haver pelo menos 1 produto", variant: "destructive" });
+      toast.error("Erro", { description: "Deve haver pelo menos 1 produto" });
       return;
     }
     setProdutosAuditoria(produtosAuditoria.filter((_, i) => i !== index));
@@ -111,7 +110,7 @@ export function AuditoriaGondolaDialog({
 
   const addConcorrente = () => {
     if (concorrentes.length >= 5) {
-      toast({ title: "Limite atingido", description: "Máximo de 5 concorrentes", variant: "destructive" });
+      toast.error("Limite atingido", { description: "Máximo de 5 concorrentes" });
       return;
     }
     setConcorrentes([...concorrentes, { nome: "", quantidade_frentes: 0, produto_nome: "", preco_praticado: 0 }]);
@@ -141,7 +140,7 @@ export function AuditoriaGondolaDialog({
       // Validar produtos
       for (const produto of produtosAuditoria) {
         if (!produto.product_id) {
-          toast({ title: "Erro", description: "Selecione todos os produtos", variant: "destructive" });
+          toast.error("Erro", { description: "Selecione todos os produtos" });
           setLoading(false);
           return;
         }
@@ -187,10 +186,7 @@ export function AuditoriaGondolaDialog({
         }
       }
 
-      toast({
-        title: "Auditoria registrada",
-        description: `${produtosAuditoria.length} produto(s) auditado(s) com sucesso.`,
-      });
+      toast.success("Auditoria registrada", { description: `${produtosAuditoria.length} produto(s) auditado(s) com sucesso.` });
 
       // Reset
       setProdutosAuditoria([{
@@ -209,11 +205,7 @@ export function AuditoriaGondolaDialog({
       onOpenChange(false);
       onSuccess?.();
     } catch (error: any) {
-      toast({
-        title: "Erro ao salvar",
-        description: error.message,
-        variant: "destructive",
-      });
+      toast.error("Erro ao salvar", { description: error.message });
     } finally {
       setLoading(false);
     }

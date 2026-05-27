@@ -7,11 +7,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
 import { Upload, Image as ImageIcon, X, Loader2 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { logger } from "@/lib/logger";
 
+import { toast } from "sonner";
 interface RewardDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -20,7 +20,6 @@ interface RewardDialogProps {
 }
 
 export function RewardDialog({ open, onOpenChange, reward, onSuccess }: RewardDialogProps) {
-  const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [uploadingBanner, setUploadingBanner] = useState(false);
   const [bannerPreview, setBannerPreview] = useState<string | null>(null);
@@ -79,21 +78,13 @@ export function RewardDialog({ open, onOpenChange, reward, onSuccess }: RewardDi
 
     // Validar tamanho (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
-      toast({
-        title: "Arquivo muito grande",
-        description: "O banner deve ter no máximo 5MB",
-        variant: "destructive",
-      });
+      toast.error("Arquivo muito grande", { description: "O banner deve ter no máximo 5MB" });
       return;
     }
 
     // Validar tipo
     if (!file.type.startsWith("image/")) {
-      toast({
-        title: "Formato inválido",
-        description: "Por favor, envie uma imagem",
-        variant: "destructive",
-      });
+      toast.error("Formato inválido", { description: "Por favor, envie uma imagem" });
       return;
     }
 
@@ -121,17 +112,10 @@ export function RewardDialog({ open, onOpenChange, reward, onSuccess }: RewardDi
       // Armazenar apenas o caminho (path) por segurança
       setFormData((prev) => ({ ...prev, banner_url: filePath }));
 
-      toast({
-        title: "Banner enviado",
-        description: "Banner carregado com sucesso!",
-      });
+      toast.success("Banner enviado", { description: "Banner carregado com sucesso!" });
     } catch (error: any) {
       logger.error("Erro ao fazer upload:", error);
-      toast({
-        title: "Erro no upload",
-        description: error.message || "Erro ao enviar banner",
-        variant: "destructive",
-      });
+      toast.error("Erro no upload", { description: error.message || "Erro ao enviar banner" });
     } finally {
       setUploadingBanner(false);
     }
@@ -146,11 +130,7 @@ export function RewardDialog({ open, onOpenChange, reward, onSuccess }: RewardDi
     e.preventDefault();
     
     if (!formData.name || !formData.min_points) {
-      toast({
-        title: "Campos obrigatórios",
-        description: "Preencha nome e pontos mínimos",
-        variant: "destructive",
-      });
+      toast.error("Campos obrigatórios", { description: "Preencha nome e pontos mínimos" });
       return;
     }
 
@@ -194,10 +174,7 @@ export function RewardDialog({ open, onOpenChange, reward, onSuccess }: RewardDi
 
         if (error) throw error;
 
-        toast({
-          title: "Premiação atualizada",
-          description: "A premiação foi atualizada com sucesso.",
-        });
+        toast.success("Premiação atualizada", { description: "A premiação foi atualizada com sucesso." });
       } else {
         const { data, error } = await supabase
           .from("trade_rewards")
@@ -208,20 +185,13 @@ export function RewardDialog({ open, onOpenChange, reward, onSuccess }: RewardDi
 
         if (error) throw error;
 
-        toast({
-          title: "Premiação criada",
-          description: "A premiação foi criada com sucesso.",
-        });
+        toast.success("Premiação criada", { description: "A premiação foi criada com sucesso." });
       }
 
       onSuccess();
     } catch (error: any) {
       logger.error("Erro detalhado ao salvar premiação:", error);
-      toast({
-        title: "Erro ao salvar",
-        description: error.message || "Erro ao salvar premiação",
-        variant: "destructive",
-      });
+      toast.error("Erro ao salvar", { description: error.message || "Erro ao salvar premiação" });
     } finally {
       setLoading(false);
     }

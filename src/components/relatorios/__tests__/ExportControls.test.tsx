@@ -11,12 +11,14 @@ vi.mock("@/utils/excelExport", () => ({
   exportToExcel: vi.fn().mockResolvedValue(undefined),
 }));
 
-vi.mock("@/hooks/use-toast", () => ({
-  useToast: () => ({ toast: vi.fn() }),
-}));
+vi.mock("sonner", () => {
+  const fn = vi.fn();
+  return { toast: Object.assign(fn, { success: fn, error: fn }) };
+});
 
 import { ExportControls } from "../ExportControls";
 
+import { toast } from "sonner";
 describe("ExportControls", () => {
   it("renders PDF and Excel buttons", () => {
     render(<ExportControls reportType="test" data={[{ a: 1 }]} />);

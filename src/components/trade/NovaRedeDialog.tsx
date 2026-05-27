@@ -5,8 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
-
+import { toast } from "sonner";
 interface NovaRedeDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -14,7 +13,6 @@ interface NovaRedeDialogProps {
 }
 
 export const NovaRedeDialog = ({ open, onOpenChange, onSuccess }: NovaRedeDialogProps) => {
-  const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
@@ -48,20 +46,13 @@ export const NovaRedeDialog = ({ open, onOpenChange, onSuccess }: NovaRedeDialog
 
       if (error) throw error;
 
-      toast({
-        title: "Rede criada",
-        description: "Nova rede cadastrada com sucesso.",
-      });
+      toast.success("Rede criada", { description: "Nova rede cadastrada com sucesso." });
 
       onOpenChange(false);
       onSuccess?.(formData.name);
       setFormData({ name: "", cnpj: "", branch_count: 1, contact_name: "", contact_email: "", contact_phone: "", notes: "" });
     } catch (error: any) {
-      toast({
-        title: "Erro ao criar rede",
-        description: error.message,
-        variant: "destructive",
-      });
+      toast.error("Erro ao criar rede", { description: error.message });
     } finally {
       setLoading(false);
     }

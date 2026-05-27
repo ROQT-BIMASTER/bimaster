@@ -23,10 +23,10 @@ import {
   Maximize2,
   Minimize2
 } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell } from "recharts";
 import ReactMarkdown from "react-markdown";
 
+import { toast } from "sonner";
 interface AICanvasProps {
   content: string;
   title?: string;
@@ -43,16 +43,14 @@ export const AICanvas = ({ content, title = "Relatório IA", onClose, onRegenera
   const [editInstructions, setEditInstructions] = useState("");
   const [isFullscreen, setIsFullscreen] = useState(false);
   const canvasRef = useRef<HTMLDivElement>(null);
-  const { toast } = useToast();
-
   const handleCopy = async () => {
     try {
       // Remove chart blocks for plain text copy
       const plainText = editedContent.replace(/```chart[\s\S]*?```/g, '[Gráfico]');
       await navigator.clipboard.writeText(plainText);
-      toast({ title: "Copiado!", description: "Conteúdo copiado para a área de transferência" });
+      toast.success("Copiado!", { description: "Conteúdo copiado para a área de transferência" });
     } catch (e) {
-      toast({ title: "Erro", description: "Não foi possível copiar", variant: "destructive" });
+      toast.error("Erro", { description: "Não foi possível copiar" });
     }
   };
 
@@ -96,7 +94,7 @@ export const AICanvas = ({ content, title = "Relatório IA", onClose, onRegenera
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    toast({ title: "Download iniciado", description: "Relatório exportado como Markdown" });
+    toast.success("Download iniciado", { description: "Relatório exportado como Markdown" });
   };
 
   const handleExportCSV = () => {
@@ -130,15 +128,15 @@ export const AICanvas = ({ content, title = "Relatório IA", onClose, onRegenera
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-      toast({ title: "CSV exportado", description: `${tableCount} tabela(s) exportada(s)` });
+      toast.success("CSV exportado", { description: `${tableCount} tabela(s) exportada(s)` });
     } else {
-      toast({ title: "Sem tabelas", description: "Nenhuma tabela encontrada para exportar", variant: "destructive" });
+      toast.error("Sem tabelas", { description: "Nenhuma tabela encontrada para exportar" });
     }
   };
 
   const handleSaveEdit = () => {
     setIsEditing(false);
-    toast({ title: "Salvo", description: "Alterações salvas com sucesso" });
+    toast.success("Salvo", { description: "Alterações salvas com sucesso" });
   };
 
   const handleRegenerate = () => {

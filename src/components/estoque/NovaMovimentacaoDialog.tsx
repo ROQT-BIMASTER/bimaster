@@ -6,16 +6,15 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { useToast } from "@/hooks/use-toast";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { movimentacaoSchema, MovimentacaoInput, TIPOS_MOVIMENTO } from "@/lib/validations/estoque";
 import { useEffect } from "react";
 
+import { toast } from "sonner";
 interface Props { open: boolean; onOpenChange: (open: boolean) => void; selectedEstoque?: any; }
 
 export function NovaMovimentacaoDialog({ open, onOpenChange, selectedEstoque }: Props) {
-  const { toast } = useToast();
   const queryClient = useQueryClient();
 
   const { data: estoques } = useQuery({
@@ -61,10 +60,10 @@ export function NovaMovimentacaoDialog({ open, onOpenChange, selectedEstoque }: 
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['estoque-saldos'] });
       queryClient.invalidateQueries({ queryKey: ['estoque-movimentacoes-recentes'] });
-      toast({ title: "Movimentação registrada" });
+      toast("Movimentação registrada");
       onOpenChange(false);
     },
-    onError: (error: any) => toast({ title: "Erro", description: error.message, variant: "destructive" })
+    onError: (error: any) => toast.error("Erro", { description: error.message })
   });
 
   return (

@@ -5,9 +5,9 @@ import { Label } from "@/components/ui/label";
 import { ExternalLink, FileText, FileImage, File, CheckCircle2, Loader2, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { resolveStorageUrl } from "@/lib/utils/storage-url";
-import { useToast } from "@/hooks/use-toast";
 import { logger } from "@/lib/logger";
 
+import { toast } from "sonner";
 export interface Attachment {
   name: string;
   url: string;
@@ -43,8 +43,6 @@ export function AttachmentAcknowledgement({
   const [acknowledgedFiles, setAcknowledgedFiles] = useState<Set<string>>(new Set());
   const [loadingFiles, setLoadingFiles] = useState<Set<string>>(new Set());
   const [errorFiles, setErrorFiles] = useState<Map<string, string>>(new Map());
-  const { toast } = useToast();
-
   // Notify parent when all files are acknowledged
   useEffect(() => {
     const allAcknowledged = attachments.length > 0 && acknowledgedFiles.size === attachments.length;
@@ -66,11 +64,7 @@ export function AttachmentAcknowledgement({
       if (error || !signedUrl) {
         logger.warn('[AttachmentAcknowledgement] resolveStorageUrl failed:', { url, error });
         setErrorFiles((prev) => new Map(prev).set(url, error || 'Erro desconhecido'));
-        toast({
-          title: "Arquivo não encontrado",
-          description: error || "Não foi possível acessar o arquivo anexado.",
-          variant: "destructive",
-        });
+        toast.error("Arquivo não encontrado", { description: error || "Não foi possível acessar o arquivo anexado." });
         return;
       }
 

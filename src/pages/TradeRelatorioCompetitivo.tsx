@@ -5,7 +5,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
 import { useUserRole } from "@/hooks/useUserRole";
 import { 
   TrendingUp, 
@@ -21,6 +20,7 @@ import {
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
+import { toast } from "sonner";
 interface CompetitiveAnalysis {
   id: string;
   created_at: string;
@@ -54,7 +54,6 @@ interface CompetitiveAnalysis {
 export default function TradeRelatorioCompetitivo() {
   const [analyses, setAnalyses] = useState<CompetitiveAnalysis[]>([]);
   const [loading, setLoading] = useState(true);
-  const { toast } = useToast();
   const { isAdminOrSupervisor, loading: roleLoading } = useUserRole();
 
   useEffect(() => {
@@ -102,11 +101,7 @@ export default function TradeRelatorioCompetitivo() {
       if (error) throw error;
       setAnalyses((data as any) || []);
     } catch (error: any) {
-      toast({
-        title: "Erro ao carregar",
-        description: error.message,
-        variant: "destructive",
-      });
+      toast.error("Erro ao carregar", { description: error.message });
     } finally {
       setLoading(false);
     }

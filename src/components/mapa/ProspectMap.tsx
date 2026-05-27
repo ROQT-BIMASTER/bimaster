@@ -11,10 +11,10 @@ import { MarkerClusterer } from "@googlemaps/markerclusterer";
 import type { Marker } from "@googlemaps/markerclusterer";
 import { logger } from "@/lib/logger";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
 import { Card } from "@/components/ui/card";
 import { Loader2, MapPin } from "lucide-react";
 
+import { toast } from "sonner";
 interface Prospect {
   id: string;
   nome_empresa: string;
@@ -67,8 +67,6 @@ export const ProspectMap = () => {
   const [progress, setProgress] = useState({ current: 0, total: 0 });
   const [prospects, setProspects] = useState<GeocodedProspect[]>([]);
   const [selected, setSelected] = useState<GeocodedProspect | null>(null);
-  const { toast } = useToast();
-
   const geocodeAddress = async (
     address: string,
   ): Promise<{ latitude: number; longitude: number } | null> => {
@@ -145,11 +143,7 @@ export const ProspectMap = () => {
         setApiKey(data.key);
       } catch (error) {
         logger.error("Erro ao buscar chave:", error);
-        toast({
-          title: "Erro",
-          description: error instanceof Error ? error.message : "Falha ao carregar mapa",
-          variant: "destructive",
-        });
+        toast.error("Erro", { description: error instanceof Error ? error.message : "Falha ao carregar mapa" });
       } finally {
         setLoadingKey(false);
       }
@@ -196,10 +190,7 @@ export const ProspectMap = () => {
         });
 
         if (comEndereco.length === 0) {
-          toast({
-            title: "Sem dados",
-            description: "Nenhum prospect com endereço encontrado.",
-          });
+          toast.success("Sem dados", { description: "Nenhum prospect com endereço encontrado." });
           if (isMounted) setLoading(false);
           return;
         }
@@ -212,11 +203,7 @@ export const ProspectMap = () => {
         setGeocoding(false);
 
         if (geocoded.length === 0) {
-          toast({
-            title: "Erro na geocodificação",
-            description: "Não foi possível localizar nenhum endereço.",
-            variant: "destructive",
-          });
+          toast.error("Erro na geocodificação", { description: "Não foi possível localizar nenhum endereço." });
           setLoading(false);
           return;
         }
@@ -225,11 +212,7 @@ export const ProspectMap = () => {
         setLoading(false);
       } catch (error) {
         logger.error("Erro ao carregar mapa:", error);
-        toast({
-          title: "Erro",
-          description: error instanceof Error ? error.message : "Erro ao carregar mapa",
-          variant: "destructive",
-        });
+        toast.error("Erro", { description: error instanceof Error ? error.message : "Erro ao carregar mapa" });
         if (isMounted) {
           setLoading(false);
           setGeocoding(false);

@@ -5,7 +5,6 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Loader2, Eye, EyeOff, Pencil, Lock, Shield, AlertTriangle } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
 import { useFieldVisibilityManagement } from "@/hooks/useFieldVisibility";
 import { useAllDepartments } from "@/hooks/useUserDepartments";
 import { useQuery } from "@tanstack/react-query";
@@ -20,6 +19,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { toast } from "sonner";
 import {
   Table,
   TableBody,
@@ -118,7 +118,6 @@ const PROJETOS_DEPT_ID = "9937b2ff-bb1d-4f92-9d8b-4b3c0c7ad130";
 const CHINA_DEPT_ID = "79392f6b-4ab5-400b-88b5-7f0020ec4b77";
 
 export default function DeptVisibilityControlPanel() {
-  const { toast } = useToast();
   const [selectedAlvoDept, setSelectedAlvoDept] = useState(CHINA_DEPT_ID);
   const [confirmDialog, setConfirmDialog] = useState<{
     open: boolean;
@@ -180,13 +179,10 @@ export default function DeptVisibilityControlPanel() {
       { tela_codigo: tela, campo_codigo: campo, visivel, editavel },
       {
         onSuccess: () => {
-          toast({
-            title: "Permissão atualizada",
-            description: `Campo "${campo}" ${visivel ? "visível" : "oculto"} para o departamento alvo.`,
-          });
+          toast.success("Permissão atualizada", { description: `Campo "${campo}" ${visivel ? "visível" : "oculto"} para o departamento alvo.` });
         },
         onError: (err: any) => {
-          toast({ title: "Erro", description: err.message, variant: "destructive" });
+          toast.error("Erro", { description: err.message });
         },
       }
     );

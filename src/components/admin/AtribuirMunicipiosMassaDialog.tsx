@@ -13,10 +13,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
-import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2, ListChecks, Sparkles, Check, X, AlertTriangle } from "lucide-react";
 
+import { toast } from "sonner";
 interface Vendedor {
   id: string;
   nome: string;
@@ -61,8 +61,6 @@ export function AtribuirMunicipiosMassaDialog({ onSuccess }: Props) {
   const [assigning, setAssigning] = useState(false);
   const [loadingIA, setLoadingIA] = useState(false);
   const [step, setStep] = useState<"input" | "preview">("input");
-  const { toast } = useToast();
-
   useEffect(() => {
     if (open) {
       fetchVendedores();
@@ -160,7 +158,7 @@ export function AtribuirMunicipiosMassaDialog({ onSuccess }: Props) {
   const atribuirSelecionados = async () => {
     const selecionados = matches.filter((m) => m.selected && m.municipio);
     if (selecionados.length === 0) {
-      toast({ title: "Nenhum município selecionado", variant: "destructive" });
+      toast.error("Nenhum município selecionado");
       return;
     }
 
@@ -174,20 +172,13 @@ export function AtribuirMunicipiosMassaDialog({ onSuccess }: Props) {
 
       if (error) throw error;
 
-      toast({
-        title: "Municípios atribuídos",
-        description: `${selecionados.length} municípios atribuídos com sucesso.`,
-      });
+      toast.success("Municípios atribuídos", { description: `${selecionados.length} municípios atribuídos com sucesso.` });
       setOpen(false);
       resetState();
       onSuccess?.();
     } catch (error) {
       logger.error("Erro ao atribuir:", error);
-      toast({
-        title: "Erro ao atribuir municípios",
-        description: "Tente novamente.",
-        variant: "destructive",
-      });
+      toast.error("Erro ao atribuir municípios", { description: "Tente novamente." });
     } finally {
       setAssigning(false);
     }
@@ -195,7 +186,7 @@ export function AtribuirMunicipiosMassaDialog({ onSuccess }: Props) {
 
   const sugerirPorIA = async () => {
     if (!selectedVendedor) {
-      toast({ title: "Selecione um vendedor primeiro", variant: "destructive" });
+      toast.error("Selecione um vendedor primeiro");
       return;
     }
 
@@ -204,7 +195,7 @@ export function AtribuirMunicipiosMassaDialog({ onSuccess }: Props) {
       // Get unassigned municipalities
       const semVendedor = allMunicipios.filter((m) => !m.vendedor_id);
       if (semVendedor.length === 0) {
-        toast({ title: "Todos os municípios já estão atribuídos" });
+        toast("Todos os municípios já estão atribuídos");
         return;
       }
 
@@ -242,23 +233,16 @@ export function AtribuirMunicipiosMassaDialog({ onSuccess }: Props) {
         .filter(Boolean) as MatchResult[];
 
       if (results.length === 0) {
-        toast({ title: "IA não encontrou sugestões", variant: "destructive" });
+        toast.error("IA não encontrou sugestões");
         return;
       }
 
       setMatches(results);
       setStep("preview");
-      toast({
-        title: "Sugestões da IA",
-        description: `${results.length} municípios sugeridos com base na distribuição geográfica.`,
-      });
+      toast.success("Sugestões da IA", { description: `${results.length} municípios sugeridos com base na distribuição geográfica.` });
     } catch (error) {
       logger.error("Erro na sugestão IA:", error);
-      toast({
-        title: "Erro ao obter sugestões",
-        description: "Tente novamente.",
-        variant: "destructive",
-      });
+      toast.error("Erro ao obter sugestões", { description: "Tente novamente." });
     } finally {
       setLoadingIA(false);
     }

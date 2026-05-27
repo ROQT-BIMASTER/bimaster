@@ -1,7 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "@/hooks/use-toast";
-
+import { toast } from "sonner";
 export function useTeamFormTokens() {
   const queryClient = useQueryClient();
 
@@ -74,11 +73,7 @@ export function useTeamFormTokens() {
       queryClient.invalidateQueries({ queryKey: ["team-form-tokens"] });
     },
     onError: (err) => {
-      toast({
-        title: "Erro ao gerar token",
-        description: err.message,
-        variant: "destructive",
-      });
+      toast.error("Erro ao gerar token", { description: err.message });
     },
   });
 
@@ -92,7 +87,7 @@ export function useTeamFormTokens() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["team-form-tokens"] });
-      toast({ title: "Token revogado com sucesso" });
+      toast("Token revogado com sucesso");
     },
   });
 
@@ -114,14 +109,10 @@ export function useTeamFormTokens() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["team-form-tokens"] });
       queryClient.invalidateQueries({ queryKey: ["team-form-submissions"] });
-      toast({ title: "Formulário excluído com sucesso" });
+      toast("Formulário excluído com sucesso");
     },
     onError: (err) => {
-      toast({
-        title: "Erro ao excluir",
-        description: err.message,
-        variant: "destructive",
-      });
+      toast.error("Erro ao excluir", { description: err.message });
     },
   });
 

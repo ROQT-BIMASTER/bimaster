@@ -3,7 +3,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { logger } from "@/lib/logger";
@@ -22,6 +21,7 @@ import {
 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
+import { toast } from "sonner";
 interface Usuario {
   id: string;
   nome: string;
@@ -43,8 +43,6 @@ export function HierarquiaUsuarios() {
   const [expandedSupervisors, setExpandedSupervisors] = useState<Set<string>>(new Set());
   const [selectedSupervisor, setSelectedSupervisor] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
-  const { toast } = useToast();
-
   useEffect(() => {
     fetchData();
   }, []);
@@ -104,11 +102,7 @@ export function HierarquiaUsuarios() {
 
     } catch (error) {
       logger.error("Erro ao buscar dados:", error);
-      toast({
-        title: "Erro",
-        description: "Não foi possível carregar os dados",
-        variant: "destructive",
-      });
+      toast.error("Erro", { description: "Não foi possível carregar os dados" });
     } finally {
       setLoading(false);
     }
@@ -190,11 +184,7 @@ export function HierarquiaUsuarios() {
 
       // Validar que não estamos criando um ciclo
       if (supervisorId && criariaciclo(usuarioId, supervisorId)) {
-        toast({
-          title: "Erro de hierarquia",
-          description: "Não é possível criar uma hierarquia circular. O usuário selecionado é subordinado direto ou indireto deste usuário.",
-          variant: "destructive",
-        });
+        toast.error("Erro de hierarquia", { description: "Não é possível criar uma hierarquia circular. O usuário selecionado é subordinado direto ou indireto deste usuário." });
         return;
       }
 
@@ -212,20 +202,13 @@ export function HierarquiaUsuarios() {
         )
       );
 
-      toast({
-        title: "Sucesso",
-        description: supervisorId 
+      toast.success("Sucesso", { description: supervisorId 
           ? "Vínculo hierárquico criado com sucesso" 
-          : "Vínculo hierárquico removido com sucesso",
-      });
+          : "Vínculo hierárquico removido com sucesso" });
 
     } catch (error) {
       logger.error("Erro ao vincular supervisor:", error);
-      toast({
-        title: "Erro",
-        description: "Não foi possível atualizar a hierarquia",
-        variant: "destructive",
-      });
+      toast.error("Erro", { description: "Não foi possível atualizar a hierarquia" });
     } finally {
       setSaving(null);
     }

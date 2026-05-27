@@ -60,8 +60,7 @@ import {
 import { useLeadMining, LeadMinerado } from "@/hooks/useLeadMining";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
-
+import { toast } from "sonner";
 const statusConfig: Record<string, { label: string; color: string; icon: React.ElementType }> = {
   novo: { label: "Novo", color: "bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300", icon: Sparkles },
   qualificado: { label: "Qualificado", color: "bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300", icon: CheckCircle },
@@ -70,7 +69,6 @@ const statusConfig: Record<string, { label: string; color: string; icon: React.E
 };
 
 const LeadMining = () => {
-  const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedUF, setSelectedUF] = useState<string>("");
   const [selectedCidade, setSelectedCidade] = useState<string>("");
@@ -126,7 +124,7 @@ const LeadMining = () => {
 
   const handleMine = async () => {
     if (!searchQuery.trim()) {
-      toast({ title: "Informe o que deseja buscar", variant: "destructive" });
+      toast.error("Informe o que deseja buscar");
       return;
     }
     await mine({
@@ -166,7 +164,7 @@ const LeadMining = () => {
 
   const copyPhone = (phone: string) => {
     navigator.clipboard.writeText(phone);
-    toast({ title: "Telefone copiado!" });
+    toast("Telefone copiado!");
   };
 
   const renderStars = (rating: number | null) => {

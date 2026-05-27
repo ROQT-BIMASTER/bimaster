@@ -18,12 +18,12 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { useToast } from "@/hooks/use-toast";
 import { AdminPasswordDialog } from "@/components/configuracoes/AdminPasswordDialog";
 import { APP_VERSION } from "@/lib/version";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
+import { toast } from "sonner";
 interface TelemetryRow {
   user_id: string;
   app_version: string;
@@ -40,7 +40,6 @@ interface ReleasePin {
 }
 
 export default function VersoesClientes() {
-  const { toast } = useToast();
   const [telemetry, setTelemetry] = useState<TelemetryRow[]>([]);
   const [pins, setPins] = useState<ReleasePin[]>([]);
   const [loading, setLoading] = useState(true);
@@ -62,8 +61,8 @@ export default function VersoesClientes() {
         .order("criado_em", { ascending: false })
         .limit(20),
     ]);
-    if (tel.error) toast({ title: "Erro ao carregar telemetria", description: tel.error.message, variant: "destructive" });
-    if (pin.error) toast({ title: "Erro ao carregar pins", description: pin.error.message, variant: "destructive" });
+    if (tel.error) toast.error("Erro ao carregar telemetria", { description: tel.error.message });
+    if (pin.error) toast.error("Erro ao carregar pins", { description: pin.error.message });
     setTelemetry((tel.data as TelemetryRow[]) ?? []);
     setPins((pin.data as ReleasePin[]) ?? []);
     setLoading(false);
@@ -86,10 +85,10 @@ export default function VersoesClientes() {
       criado_por: user.id,
     });
     if (error) {
-      toast({ title: "Falha ao registrar pin", description: error.message, variant: "destructive" });
+      toast.error("Falha ao registrar pin", { description: error.message });
       return;
     }
-    toast({ title: "Pin registrado", description: `Clientes < ${minVersion} receberão o aviso de atualização.` });
+    toast.success("Pin registrado", { description: `Clientes < ${minVersion} receberão o aviso de atualização.` });
     setMinVersion("");
     setMensagem("");
     void load();

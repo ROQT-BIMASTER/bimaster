@@ -9,7 +9,6 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Checkbox } from "@/components/ui/checkbox";
-import { useToast } from "@/hooks/use-toast";
 import { UserPlus, Pencil, Trash2, Search, CheckCircle, XCircle, Lock, ChevronLeft, ChevronRight } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { userSchema } from "@/lib/validations/user";
@@ -18,6 +17,7 @@ import { logger } from "@/lib/logger";
 import { useStepUp } from "@/hooks/useStepUp";
 import { StepUpDialog } from "@/components/security/StepUpDialog";
 
+import { toast } from "sonner";
 interface Usuario {
   id: string;
   nome: string;
@@ -34,7 +34,6 @@ interface Municipio {
 }
 
 export const GerenciamentoUsuarios = () => {
-  const { toast } = useToast();
   const { request: requestStepUp, dialogProps: stepUpDialogProps } = useStepUp();
   const [searchTerm, setSearchTerm] = useState("");
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
@@ -234,10 +233,7 @@ export const GerenciamentoUsuarios = () => {
       setSelectedMunicipios([]);
       setSelectedSupervisor(null);
       
-      toast({
-        title: "Usuário criado",
-        description: `${validatedData.nome} foi criado com sucesso`,
-      });
+      toast.success("Usuário criado", { description: `${validatedData.nome} foi criado com sucesso` });
       
       fetchUsuarios();
     } catch (error: any) {
@@ -251,11 +247,7 @@ export const GerenciamentoUsuarios = () => {
         setErrors(fieldErrors);
       }
       
-      toast({
-        title: "Erro",
-        description: error.message || "Não foi possível criar o usuário",
-        variant: "destructive",
-      });
+      toast.error("Erro", { description: error.message || "Não foi possível criar o usuário" });
     } finally {
       setLoading(false);
     }
@@ -283,17 +275,10 @@ export const GerenciamentoUsuarios = () => {
         if (error) throw error;
       }
 
-      toast({
-        title: "Municípios atualizados",
-        description: "Os municípios do vendedor foram atualizados com sucesso",
-      });
+      toast.success("Municípios atualizados", { description: "Os municípios do vendedor foram atualizados com sucesso" });
     } catch (error) {
       logger.error("Erro ao atualizar municípios:", error);
-      toast({
-        title: "Erro",
-        description: "Não foi possível atualizar os municípios",
-        variant: "destructive",
-      });
+      toast.error("Erro", { description: "Não foi possível atualizar os municípios" });
     }
   };
 
@@ -372,10 +357,7 @@ export const GerenciamentoUsuarios = () => {
         await handleUpdateUserMunicipios(editingUser.id);
       }
 
-      toast({
-        title: "Usuário atualizado",
-        description: novoUsuario.senha ? "Informações e senha atualizadas com sucesso" : "As informações foram atualizadas com sucesso",
-      });
+      toast.success("Usuário atualizado", { description: novoUsuario.senha ? "Informações e senha atualizadas com sucesso" : "As informações foram atualizadas com sucesso" });
 
       setIsDialogOpen(false);
       setEditingUser(null);
@@ -385,11 +367,7 @@ export const GerenciamentoUsuarios = () => {
       fetchUsuarios();
     } catch (error) {
       logger.error("Erro ao atualizar usuário:", error);
-      toast({
-        title: "Erro",
-        description: "Não foi possível atualizar o usuário",
-        variant: "destructive",
-      });
+      toast.error("Erro", { description: "Não foi possível atualizar o usuário" });
     } finally {
       setLoading(false);
     }
@@ -411,20 +389,13 @@ export const GerenciamentoUsuarios = () => {
       if (fnError) throw fnError;
       if (data?.error) throw new Error(data.error);
 
-      toast({
-        title: "Usuário removido",
-        description: `${deleteTarget?.nome || 'O usuário'} foi removido completamente do sistema`,
-      });
+      toast.success("Usuário removido", { description: `${deleteTarget?.nome || 'O usuário'} foi removido completamente do sistema` });
       
       setDeleteTarget(null);
       fetchUsuarios();
     } catch (error: any) {
       logger.error("Erro ao remover usuário:", error);
-      toast({
-        title: "Erro",
-        description: error.message || "Não foi possível remover o usuário",
-        variant: "destructive",
-      });
+      toast.error("Erro", { description: error.message || "Não foi possível remover o usuário" });
     }
   };
 
@@ -442,19 +413,12 @@ export const GerenciamentoUsuarios = () => {
 
       if (error) throw error;
 
-      toast({
-        title: "Status atualizado",
-        description: "O status do usuário foi alterado",
-      });
+      toast.success("Status atualizado", { description: "O status do usuário foi alterado" });
       
       fetchUsuarios();
     } catch (error) {
       logger.error("Erro ao atualizar status:", error);
-      toast({
-        title: "Erro",
-        description: "Não foi possível atualizar o status",
-        variant: "destructive",
-      });
+      toast.error("Erro", { description: "Não foi possível atualizar o status" });
     }
   };
 
@@ -467,21 +431,14 @@ export const GerenciamentoUsuarios = () => {
 
       if (error) throw error;
 
-      toast({
-        title: aprovar ? "Usuário aprovado!" : "Aprovação revogada",
-        description: aprovar 
+      toast.success(aprovar ? "Usuário aprovado!" : "Aprovação revogada", { description: aprovar 
           ? "O usuário agora pode acessar o sistema."
-          : "O acesso do usuário foi revogado.",
-      });
+          : "O acesso do usuário foi revogado." });
 
       fetchUsuarios();
     } catch (error) {
       logger.error("Erro ao atualizar aprovação:", error);
-      toast({
-        title: "Erro",
-        description: "Não foi possível atualizar a aprovação do usuário",
-        variant: "destructive",
-      });
+      toast.error("Erro", { description: "Não foi possível atualizar a aprovação do usuário" });
     }
   };
 

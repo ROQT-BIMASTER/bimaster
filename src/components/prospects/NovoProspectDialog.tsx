@@ -5,11 +5,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Plus } from "lucide-react";
 import { prospectSchema } from "@/lib/validations/prospect";
 
+import { toast } from "sonner";
 interface NovoProspectDialogProps {
   onSuccess: () => void;
 }
@@ -39,8 +39,6 @@ export const NovoProspectDialog = ({ onSuccess }: NovoProspectDialogProps) => {
     categoria: "",
     observacoes: "",
   });
-  const { toast } = useToast();
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrors({});
@@ -77,10 +75,7 @@ export const NovoProspectDialog = ({ onSuccess }: NovoProspectDialogProps) => {
 
       if (error) throw error;
 
-      toast({
-        title: "Sucesso",
-        description: "Prospect validado e criado com sucesso",
-      });
+      toast.success("Sucesso", { description: "Prospect validado e criado com sucesso" });
 
       setFormData({
         nome_empresa: "",
@@ -113,17 +108,9 @@ export const NovoProspectDialog = ({ onSuccess }: NovoProspectDialogProps) => {
           fieldErrors[err.path[0]] = err.message;
         });
         setErrors(fieldErrors);
-        toast({
-          title: "Erro de validação",
-          description: "Verifique os campos destacados",
-          variant: "destructive",
-        });
+        toast.error("Erro de validação", { description: "Verifique os campos destacados" });
       } else {
-        toast({
-          title: "Erro",
-          description: error.message || "Não foi possível criar o prospect",
-          variant: "destructive",
-        });
+        toast.error("Erro", { description: error.message || "Não foi possível criar o prospect" });
       }
     } finally {
       setLoading(false);

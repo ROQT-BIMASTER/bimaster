@@ -1,8 +1,7 @@
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "@/hooks/use-toast";
-
+import { toast } from "sonner";
 export interface IBGEEstado {
   id: number;
   sigla: string;
@@ -64,10 +63,7 @@ export function useIBGESync() {
       if (data?.success) {
         const lastResult = data.results?.[data.results.length - 1];
         setSyncMessage(lastResult?.message || "Sincronização concluída!");
-        toast({
-          title: "Sincronização concluída",
-          description: lastResult?.message || "Dados do IBGE atualizados com sucesso.",
-        });
+        toast.success("Sincronização concluída", { description: lastResult?.message || "Dados do IBGE atualizados com sucesso." });
         queryClient.invalidateQueries({ queryKey: ["ibge"] });
       } else {
         throw new Error(data?.error || "Erro desconhecido");
@@ -75,11 +71,7 @@ export function useIBGESync() {
     } catch (err: any) {
       const msg = err.message || "Erro na sincronização";
       setSyncMessage(`Erro: ${msg}`);
-      toast({
-        title: "Erro na sincronização",
-        description: msg,
-        variant: "destructive",
-      });
+      toast.error("Erro na sincronização", { description: msg });
     } finally {
       setSyncing(false);
     }

@@ -9,11 +9,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { useToast } from "@/hooks/use-toast";
 import { Plus, Pencil, Trash2, Building2, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useAllEmpresas } from "@/hooks/useUserEmpresas";
 
+import { toast } from "sonner";
 interface Departamento {
   id: string;
   nome: string;
@@ -30,7 +30,6 @@ export function GerenciamentoDepartamentos() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editando, setEditando] = useState<Departamento | null>(null);
   const [saving, setSaving] = useState(false);
-  const { toast } = useToast();
   const { data: empresas } = useAllEmpresas();
 
   const [formData, setFormData] = useState({
@@ -53,7 +52,7 @@ export function GerenciamentoDepartamentos() {
       .order("nome");
 
     if (error) {
-      toast({ title: "Erro ao carregar departamentos", variant: "destructive" });
+      toast.error("Erro ao carregar departamentos");
     } else {
       setDepartamentos(data || []);
     }
@@ -79,7 +78,7 @@ export function GerenciamentoDepartamentos() {
 
   const handleSave = async () => {
     if (!formData.nome.trim()) {
-      toast({ title: "Nome é obrigatório", variant: "destructive" });
+      toast.error("Nome é obrigatório");
       return;
     }
 
@@ -103,9 +102,9 @@ export function GerenciamentoDepartamentos() {
         .eq("id", editando.id);
 
       if (error) {
-        toast({ title: "Erro ao atualizar departamento", variant: "destructive" });
+        toast.error("Erro ao atualizar departamento");
       } else {
-        toast({ title: "Departamento atualizado com sucesso" });
+        toast("Departamento atualizado com sucesso");
         setDialogOpen(false);
         fetchDepartamentos();
       }
@@ -115,9 +114,9 @@ export function GerenciamentoDepartamentos() {
         .insert(payload);
 
       if (error) {
-        toast({ title: "Erro ao criar departamento", variant: "destructive" });
+        toast.error("Erro ao criar departamento");
       } else {
-        toast({ title: "Departamento criado com sucesso" });
+        toast("Departamento criado com sucesso");
         setDialogOpen(false);
         fetchDepartamentos();
       }
@@ -135,9 +134,9 @@ export function GerenciamentoDepartamentos() {
       .eq("id", id);
 
     if (error) {
-      toast({ title: "Erro ao excluir departamento", description: "Pode haver usuários vinculados", variant: "destructive" });
+      toast.error("Erro ao excluir departamento", { description: "Pode haver usuários vinculados" });
     } else {
-      toast({ title: "Departamento excluído com sucesso" });
+      toast("Departamento excluído com sucesso");
       fetchDepartamentos();
     }
   };

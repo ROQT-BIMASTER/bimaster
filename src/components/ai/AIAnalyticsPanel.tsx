@@ -7,13 +7,13 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2, Send, Sparkles, BarChart3, TrendingUp, FileText, PanelRightOpen, MessageSquare } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
 import { getAuthHeaders } from "@/lib/utils/auth-headers";
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell } from "recharts";
 import ReactMarkdown from "react-markdown";
 import { AICanvas } from "./AICanvas";
 import { logger } from "@/lib/logger";
 
+import { toast } from "sonner";
 interface Message {
   role: "user" | "assistant";
   content: string;
@@ -44,8 +44,6 @@ export const AIAnalyticsPanel = () => {
   const [canvasContent, setCanvasContent] = useState<string | null>(null);
   const [canvasTitle, setCanvasTitle] = useState("Relatório IA");
   const scrollRef = useRef<HTMLDivElement>(null);
-  const { toast } = useToast();
-
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
@@ -66,11 +64,7 @@ export const AIAnalyticsPanel = () => {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => {
       controller.abort();
-      toast({
-        title: "⏱️ Tempo limite excedido",
-        description: "A consulta está demorando muito (45s). Tente uma pergunta mais simples.",
-        variant: "destructive",
-      });
+      toast.error("⏱️ Tempo limite excedido", { description: "A consulta está demorando muito (45s). Tente uma pergunta mais simples." });
       setIsLoading(false);
     }, 45000); // 45s timeout - mais rápido!
 
@@ -170,11 +164,7 @@ export const AIAnalyticsPanel = () => {
 
     } catch (error) {
       logger.error("Error:", error);
-      toast({
-        title: "Erro",
-        description: error instanceof Error ? error.message : "Erro ao enviar mensagem",
-        variant: "destructive",
-      });
+      toast.error("Erro", { description: error instanceof Error ? error.message : "Erro ao enviar mensagem" });
       setMessages(messages);
     } finally {
       setIsLoading(false);
@@ -257,11 +247,7 @@ export const AIAnalyticsPanel = () => {
           setCanvasTitle(template.label);
           setCanvasContent(assistantMessage);
         } catch (error) {
-          toast({
-            title: "Erro",
-            description: error instanceof Error ? error.message : "Erro ao gerar relatório",
-            variant: "destructive",
-          });
+          toast.error("Erro", { description: error instanceof Error ? error.message : "Erro ao gerar relatório" });
         } finally {
           setIsLoading(false);
         }
@@ -329,13 +315,9 @@ export const AIAnalyticsPanel = () => {
 
       setCanvasContent(assistantMessage);
       setMessages([...refineMessages, { role: "assistant", content: assistantMessage }]);
-      toast({ title: "Relatório refinado", description: "O Canvas foi atualizado com as novas instruções" });
+      toast.success("Relatório refinado", { description: "O Canvas foi atualizado com as novas instruções" });
     } catch (error) {
-      toast({
-        title: "Erro",
-        description: error instanceof Error ? error.message : "Erro ao refinar",
-        variant: "destructive",
-      });
+      toast.error("Erro", { description: error instanceof Error ? error.message : "Erro ao refinar" });
     } finally {
       setIsLoading(false);
     }

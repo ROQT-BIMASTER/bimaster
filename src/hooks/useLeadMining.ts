@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
 import { logger } from "@/lib/logger";
 
+import { toast } from "sonner";
 export interface LeadMinerado {
   id: string;
   google_place_id: string;
@@ -45,7 +45,6 @@ interface MiningSearchParams {
 }
 
 export function useLeadMining(filters: MiningFilters = {}) {
-  const { toast } = useToast();
   const queryClient = useQueryClient();
   const [miningProgress, setMiningProgress] = useState<string | null>(null);
 
@@ -113,18 +112,11 @@ export function useLeadMining(filters: MiningFilters = {}) {
       setMiningProgress(null);
       queryClient.invalidateQueries({ queryKey: ["leads-minerados"] });
       queryClient.invalidateQueries({ queryKey: ["leads-minerados-stats"] });
-      toast({
-        title: "Mineração concluída!",
-        description: `${data.totalFetched} leads encontrados, ${data.totalSaved} salvos no banco.`,
-      });
+      toast.success("Mineração concluída!", { description: `${data.totalFetched} leads encontrados, ${data.totalSaved} salvos no banco.` });
     },
     onError: (error: Error) => {
       setMiningProgress(null);
-      toast({
-        title: "Erro na mineração",
-        description: error.message,
-        variant: "destructive",
-      });
+      toast.error("Erro na mineração", { description: error.message });
     },
   });
 
@@ -142,11 +134,7 @@ export function useLeadMining(filters: MiningFilters = {}) {
       queryClient.invalidateQueries({ queryKey: ["leads-minerados-stats"] });
     },
     onError: (error: Error) => {
-      toast({
-        title: "Erro ao atualizar status",
-        description: error.message,
-        variant: "destructive",
-      });
+      toast.error("Erro ao atualizar status", { description: error.message });
     },
   });
 
@@ -201,17 +189,10 @@ export function useLeadMining(filters: MiningFilters = {}) {
     onSuccess: (results) => {
       queryClient.invalidateQueries({ queryKey: ["leads-minerados"] });
       queryClient.invalidateQueries({ queryKey: ["leads-minerados-stats"] });
-      toast({
-        title: "Leads convertidos!",
-        description: `${results.length} lead(s) convertido(s) em prospect(s).`,
-      });
+      toast.success("Leads convertidos!", { description: `${results.length} lead(s) convertido(s) em prospect(s).` });
     },
     onError: (error: Error) => {
-      toast({
-        title: "Erro ao converter",
-        description: error.message,
-        variant: "destructive",
-      });
+      toast.error("Erro ao converter", { description: error.message });
     },
   });
 

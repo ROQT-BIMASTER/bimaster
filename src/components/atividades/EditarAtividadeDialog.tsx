@@ -6,13 +6,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { useToast } from "@/hooks/use-toast";
 import { useUserRole } from "@/hooks/useUserRole";
 import { supabase } from "@/integrations/supabase/client";
 import { atividadeSchema } from "@/lib/validations/atividade";
 import { Loader2, Trash2 } from "lucide-react";
 import { logger } from "@/lib/logger";
 
+import { toast } from "sonner";
 interface Prospect {
   id: string;
   nome_empresa: string;
@@ -50,8 +50,6 @@ export const EditarAtividadeDialog = ({ atividade, open, onOpenChange, onSuccess
     data_atividade: new Date().toISOString().split('T')[0],
     proximo_followup: "",
   });
-  const { toast } = useToast();
-
   useEffect(() => {
     if (open) {
       fetchProspects();
@@ -81,11 +79,7 @@ export const EditarAtividadeDialog = ({ atividade, open, onOpenChange, onSuccess
       setProspects(data || []);
     } catch (error) {
       logger.error("Erro ao carregar prospects:", error);
-      toast({
-        title: "Erro",
-        description: "Não foi possível carregar os prospects",
-        variant: "destructive",
-      });
+      toast.error("Erro", { description: "Não foi possível carregar os prospects" });
     }
   };
 
@@ -121,10 +115,7 @@ export const EditarAtividadeDialog = ({ atividade, open, onOpenChange, onSuccess
 
       if (error) throw error;
 
-      toast({
-        title: "Sucesso",
-        description: "Atividade atualizada com sucesso",
-      });
+      toast.success("Sucesso", { description: "Atividade atualizada com sucesso" });
 
       onOpenChange(false);
       onSuccess();
@@ -135,17 +126,9 @@ export const EditarAtividadeDialog = ({ atividade, open, onOpenChange, onSuccess
           fieldErrors[err.path[0]] = err.message;
         });
         setErrors(fieldErrors);
-        toast({
-          title: "Erro de validação",
-          description: "Verifique os campos destacados",
-          variant: "destructive",
-        });
+        toast.error("Erro de validação", { description: "Verifique os campos destacados" });
       } else {
-        toast({
-          title: "Erro",
-          description: error.message || "Não foi possível atualizar a atividade",
-          variant: "destructive",
-        });
+        toast.error("Erro", { description: error.message || "Não foi possível atualizar a atividade" });
       }
     } finally {
       setLoading(false);
@@ -164,20 +147,13 @@ export const EditarAtividadeDialog = ({ atividade, open, onOpenChange, onSuccess
 
       if (error) throw error;
 
-      toast({
-        title: "Sucesso",
-        description: "Atividade excluída com sucesso",
-      });
+      toast.success("Sucesso", { description: "Atividade excluída com sucesso" });
 
       onOpenChange(false);
       setDeleteDialogOpen(false);
       onSuccess();
     } catch (error: any) {
-      toast({
-        title: "Erro",
-        description: error.message || "Não foi possível excluir a atividade",
-        variant: "destructive",
-      });
+      toast.error("Erro", { description: error.message || "Não foi possível excluir a atividade" });
     } finally {
       setLoading(false);
     }

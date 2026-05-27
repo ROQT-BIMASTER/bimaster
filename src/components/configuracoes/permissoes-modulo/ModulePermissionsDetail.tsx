@@ -8,7 +8,6 @@ import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { useToast } from "@/hooks/use-toast";
 import { Link } from "react-router-dom";
 import { logger } from "@/lib/logger";
 import {
@@ -17,6 +16,7 @@ import {
 import { AddUserDialog } from "./AddUserDialog";
 import { BulkActionsSection } from "./BulkActionsSection";
 
+import { toast } from "sonner";
 interface ModuleInfo {
   id: string;
   codigo: string;
@@ -43,7 +43,6 @@ interface ModulePermissionsDetailProps {
 }
 
 export function ModulePermissionsDetail({ moduleCode }: ModulePermissionsDetailProps) {
-  const { toast } = useToast();
   const [module, setModule] = useState<ModuleInfo | null>(null);
   const [screens, setScreens] = useState<ScreenInfo[]>([]);
   const [usersWithAccess, setUsersWithAccess] = useState<UserWithAccess[]>([]);
@@ -146,7 +145,7 @@ export function ModulePermissionsDetail({ moduleCode }: ModulePermissionsDetailP
       );
     } catch (err) {
       logger.error("Erro ao carregar dados do módulo:", err);
-      toast({ title: "Erro", description: "Não foi possível carregar dados do módulo", variant: "destructive" });
+      toast.error("Erro", { description: "Não foi possível carregar dados do módulo" });
     } finally {
       setLoading(false);
     }
@@ -197,11 +196,11 @@ export function ModulePermissionsDetail({ moduleCode }: ModulePermissionsDetailP
       const inserts = userIds.map(uid => ({ usuario_id: uid, modulo_id: module.id }));
       const { error } = await supabase.from("usuario_permissoes_modulos").insert(inserts);
       if (error) throw error;
-      toast({ title: "Sucesso", description: `${userIds.length} usuário(s) adicionado(s) ao módulo` });
+      toast.success("Sucesso", { description: `${userIds.length} usuário(s) adicionado(s) ao módulo` });
       dispatchPermissionsUpdated();
       await fetchData();
     } catch (err: any) {
-      toast({ title: "Erro", description: err.message || "Erro ao adicionar usuários", variant: "destructive" });
+      toast.error("Erro", { description: err.message || "Erro ao adicionar usuários" });
     } finally {
       setOperationLoading(false);
     }
@@ -229,11 +228,11 @@ export function ModulePermissionsDetail({ moduleCode }: ModulePermissionsDetailP
           .in("tela_id", screenIds);
       }
 
-      toast({ title: "Sucesso", description: "Acesso removido com sucesso" });
+      toast.success("Sucesso", { description: "Acesso removido com sucesso" });
       dispatchPermissionsUpdated();
       await fetchData();
     } catch (err: any) {
-      toast({ title: "Erro", description: err.message || "Erro ao remover acesso", variant: "destructive" });
+      toast.error("Erro", { description: err.message || "Erro ao remover acesso" });
     } finally {
       setOperationLoading(false);
     }
@@ -267,11 +266,11 @@ export function ModulePermissionsDetail({ moduleCode }: ModulePermissionsDetailP
         }
       }
 
-      toast({ title: "Sucesso", description: "Permissão atualizada" });
+      toast.success("Sucesso", { description: "Permissão atualizada" });
       dispatchPermissionsUpdated();
       await fetchData();
     } catch (err: any) {
-      toast({ title: "Erro", description: err.message || "Erro ao atualizar permissão", variant: "destructive" });
+      toast.error("Erro", { description: err.message || "Erro ao atualizar permissão" });
     } finally {
       setOperationLoading(false);
     }
@@ -307,12 +306,12 @@ export function ModulePermissionsDetail({ moduleCode }: ModulePermissionsDetailP
         }
       }
 
-      toast({ title: "Sucesso", description: "Acesso total concedido" });
+      toast.success("Sucesso", { description: "Acesso total concedido" });
       setSelectedUserIds([]);
       dispatchPermissionsUpdated();
       await fetchData();
     } catch (err: any) {
-      toast({ title: "Erro", description: err.message || "Erro ao conceder acesso total", variant: "destructive" });
+      toast.error("Erro", { description: err.message || "Erro ao conceder acesso total" });
     } finally {
       setOperationLoading(false);
     }
@@ -343,12 +342,12 @@ export function ModulePermissionsDetail({ moduleCode }: ModulePermissionsDetailP
         }
       }
 
-      toast({ title: "Sucesso", description: "Acesso revogado com sucesso" });
+      toast.success("Sucesso", { description: "Acesso revogado com sucesso" });
       setSelectedUserIds([]);
       dispatchPermissionsUpdated();
       await fetchData();
     } catch (err: any) {
-      toast({ title: "Erro", description: err.message || "Erro ao revogar acesso", variant: "destructive" });
+      toast.error("Erro", { description: err.message || "Erro ao revogar acesso" });
     } finally {
       setOperationLoading(false);
     }

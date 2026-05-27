@@ -3,11 +3,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { useToast } from "@/hooks/use-toast";
 import { NovaAtividadeDialog } from "@/components/atividades/NovaAtividadeDialog";
 import { EditarAtividadeDialog } from "@/components/atividades/EditarAtividadeDialog";
 import { logger } from "@/lib/logger";
 
+import { toast } from "sonner";
 interface Atividade {
   id: string;
   descricao: string;
@@ -36,8 +36,6 @@ const Atividades = () => {
   const [loading, setLoading] = useState(true);
   const [editandoAtividade, setEditandoAtividade] = useState<Atividade | null>(null);
   const [dialogAberto, setDialogAberto] = useState(false);
-  const { toast } = useToast();
-
   useEffect(() => {
     fetchAtividades();
   }, []);
@@ -54,11 +52,7 @@ const Atividades = () => {
       setAtividades(data || []);
     } catch (error) {
       logger.error("Erro ao carregar atividades:", error);
-      toast({
-        title: "Erro",
-        description: "Não foi possível carregar as atividades",
-        variant: "destructive",
-      });
+      toast.error("Erro", { description: "Não foi possível carregar as atividades" });
     } finally {
       setLoading(false);
     }

@@ -5,10 +5,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { useToast } from "@/hooks/use-toast";
 import { z } from "zod";
 import { ArrowLeft, Mail } from "lucide-react";
 
+import { toast } from "sonner";
 const emailSchema = z.object({
   email: z.string().trim().email("Email inválido").max(255).toLowerCase(),
 });
@@ -17,8 +17,6 @@ export const ForgotPasswordForm = () => {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
-  const { toast } = useToast();
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -30,15 +28,15 @@ export const ForgotPasswordForm = () => {
       });
 
       if (error) {
-        toast({ title: "Erro", description: error.message, variant: "destructive" });
+        toast.error("Erro", { description: error.message });
         return;
       }
 
       setSent(true);
-      toast({ title: "Email enviado!", description: "Verifique sua caixa de entrada para redefinir a senha." });
+      toast.success("Email enviado!", { description: "Verifique sua caixa de entrada para redefinir a senha." });
     } catch (err) {
       if (err instanceof z.ZodError) {
-        toast({ title: "Erro de validação", description: err.errors[0].message, variant: "destructive" });
+        toast.error("Erro de validação", { description: err.errors[0].message });
       }
     } finally {
       setLoading(false);

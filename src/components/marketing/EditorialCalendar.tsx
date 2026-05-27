@@ -6,11 +6,11 @@ import { Badge } from "@/components/ui/badge";
 import { Calendar, ChevronLeft, ChevronRight, Clock, Image } from "lucide-react";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, addMonths, subMonths } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { logger } from "@/lib/logger";
 
+import { toast } from "sonner";
 interface ScheduledPost {
   id: string;
   content: string;
@@ -30,8 +30,6 @@ export const EditorialCalendar = ({ onSelectPost }: EditorialCalendarProps) => {
   const [posts, setPosts] = useState<ScheduledPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
-  const { toast } = useToast();
-
   useEffect(() => { loadPosts(); }, [currentMonth]);
 
   const loadPosts = async () => {
@@ -44,7 +42,7 @@ export const EditorialCalendar = ({ onSelectPost }: EditorialCalendarProps) => {
       setPosts(data || []);
     } catch (error) {
       logger.error("Erro ao carregar posts:", error);
-      toast({ title: "Erro", description: "Não foi possível carregar os posts agendados", variant: "destructive" });
+      toast.error("Erro", { description: "Não foi possível carregar os posts agendados" });
     } finally {
       setLoading(false);
     }

@@ -1,9 +1,9 @@
 import { useState, useCallback, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
 import { getToday, getDateKey } from '@/utils/dateUtils';
 import { logger } from "@/lib/logger";
 
+import { toast } from "sonner";
 export interface SyncResult {
   success: boolean;
   totalRows?: number;
@@ -45,7 +45,6 @@ const initialProgress = {
 };
 
 export function useContasReceberSync() {
-  const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [stats, setStats] = useState<ContasReceberStats | null>(null);
@@ -148,10 +147,10 @@ export function useContasReceberSync() {
     try {
       const { count, error } = await supabase.from('contas_receber').select('id', { count: 'exact', head: true });
       if (error) throw error;
-      toast({ title: 'Conexão OK', description: `Banco de dados acessível. ${count || 0} registros encontrados.` });
+      toast.success('Conexão OK', { description: `Banco de dados acessível. ${count || 0} registros encontrados.` });
       return { connected: true, count };
     } catch (err) {
-      toast({ title: 'Erro de Conexão', description: 'Falha ao conectar com o banco de dados', variant: 'destructive' });
+      toast.error('Erro de Conexão', { description: 'Falha ao conectar com o banco de dados' });
       return { connected: false, error: err };
     } finally {
       setIsLoading(false);
@@ -165,14 +164,14 @@ export function useContasReceberSync() {
       const data = await callErpEngine('test-connection');
       if (data?.success) {
         setErpConnectionStatus('connected');
-        toast({ title: 'Conexão ERP OK', description: `Conectado ao SQL Server. ${data.rowCount || 0} registros de teste.` });
+        toast.success('Conexão ERP OK', { description: `Conectado ao SQL Server. ${data.rowCount || 0} registros de teste.` });
         return { connected: true, data };
       } else {
         throw new Error(data?.error || 'Falha na conexão');
       }
     } catch (err) {
       setErpConnectionStatus('error');
-      toast({ title: 'Erro de Conexão ERP', description: 'Falha ao conectar com o SQL Server.', variant: 'destructive' });
+      toast.error('Erro de Conexão ERP', { description: 'Falha ao conectar com o SQL Server.' });
       return { connected: false, error: err };
     }
   }, [toast, callErpEngine]);
@@ -184,13 +183,13 @@ export function useContasReceberSync() {
     try {
       const data = await callErpEngine('sync-contas-receber-full');
       setLastSyncResult({ success: true, totalRows: data?.totalRows, upserted: data?.upserted, message: `${data?.empresas || 0} empresas processadas` });
-      toast({ title: 'Sync Full Concluída', description: `${data?.totalRows?.toLocaleString() || 0} registros processados` });
+      toast.success('Sync Full Concluída', { description: `${data?.totalRows?.toLocaleString() || 0} registros processados` });
       await Promise.all([fetchStats(), fetchSyncHistory()]);
       return data;
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Erro desconhecido';
       setLastSyncResult({ success: false, error: msg });
-      toast({ title: 'Erro na Sync Full', description: msg, variant: 'destructive' });
+      toast.error('Erro na Sync Full', { description: msg });
       return null;
     } finally {
       setIsSyncing(false);
@@ -205,13 +204,13 @@ export function useContasReceberSync() {
     try {
       const data = await callErpEngine('sync-contas-receber-incremental');
       setLastSyncResult({ success: true, totalRows: data?.totalRows, upserted: data?.upserted, message: 'Pagamentos recentes sincronizados' });
-      toast({ title: 'Sync Incremental Concluída', description: `${data?.totalRows?.toLocaleString() || 0} registros processados` });
+      toast.success('Sync Incremental Concluída', { description: `${data?.totalRows?.toLocaleString() || 0} registros processados` });
       await Promise.all([fetchStats(), fetchSyncHistory()]);
       return data;
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Erro desconhecido';
       setLastSyncResult({ success: false, error: msg });
-      toast({ title: 'Erro na Sync Incremental', description: msg, variant: 'destructive' });
+      toast.error('Erro na Sync Incremental', { description: msg });
       return null;
     } finally {
       setIsSyncing(false);
@@ -226,13 +225,13 @@ export function useContasReceberSync() {
     try {
       const data = await callErpEngine('sync-contas-receber-por-empresa', { empresa_id: empresaId });
       setLastSyncResult({ success: true, totalRows: data?.totalRows, upserted: data?.upserted, message: `Empresa ${empresaId} sincronizada` });
-      toast({ title: 'Sync Empresa Concluída', description: `Empresa ${empresaId}: ${data?.totalRows?.toLocaleString() || 0} registros` });
+      toast.success('Sync Empresa Concluída', { description: `Empresa ${empresaId}: ${data?.totalRows?.toLocaleString() || 0} registros` });
       await Promise.all([fetchStats(), fetchSyncHistory()]);
       return data;
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Erro desconhecido';
       setLastSyncResult({ success: false, error: msg });
-      toast({ title: 'Erro na Sync', description: msg, variant: 'destructive' });
+      toast.error('Erro na Sync', { description: msg });
       return null;
     } finally {
       setIsSyncing(false);

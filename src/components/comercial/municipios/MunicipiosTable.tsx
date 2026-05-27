@@ -4,10 +4,10 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ArrowUpDown, ChevronLeft, ChevronRight, Download, ChevronDown, ChevronUp, Info, Users, DollarSign, TrendingUp, MapPin, BarChart3 } from "lucide-react";
 import { MunicipioIntelligence, MunicipiosFilters } from "@/hooks/useMunicipiosIntelligence";
-import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
 import { logger } from "@/lib/logger";
 
+import { toast } from "sonner";
 interface MunicipiosTableProps {
   data: MunicipioIntelligence[];
   loading: boolean;
@@ -196,7 +196,6 @@ function ExpandedRow({ row }: { row: MunicipioIntelligence }) {
 export function MunicipiosTable({
   data, loading, filters, totalCount, totalPages, pageSize, onSort, onPageChange, fetchAllForExport,
 }: MunicipiosTableProps) {
-  const { toast } = useToast();
   const [exporting, setExporting] = useState(false);
   const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set());
 
@@ -248,10 +247,10 @@ export function MunicipiosTable({
       const buf = await wb.xlsx.writeBuffer();
       saveAs(new Blob([buf]), `inteligencia_municipal_${new Date().toISOString().slice(0, 10)}.xlsx`);
 
-      toast({ title: "Exportado!", description: `${allData.length} municípios exportados com sucesso.` });
+      toast.success("Exportado!", { description: `${allData.length} municípios exportados com sucesso.` });
     } catch (err) {
       logger.error(err);
-      toast({ title: "Erro", description: "Falha ao exportar.", variant: "destructive" });
+      toast.error("Erro", { description: "Falha ao exportar." });
     } finally {
       setExporting(false);
     }

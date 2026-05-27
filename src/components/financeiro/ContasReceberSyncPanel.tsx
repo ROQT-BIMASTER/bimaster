@@ -6,7 +6,6 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useToast } from '@/hooks/use-toast';
 import { useContasReceberSync } from '@/hooks/useContasReceberSync';
 import { 
   RefreshCw, Database, Clock, CheckCircle, XCircle, Loader2,
@@ -16,8 +15,8 @@ import {
 import { formatDistanceToNow, format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
+import { toast } from "sonner";
 export function ContasReceberSyncPanel() {
-  const { toast } = useToast();
   const {
     isLoading, isSyncing, stats, syncHistory, lastSyncResult,
     erpConnectionStatus, syncProgress,
@@ -36,7 +35,7 @@ export function ContasReceberSyncPanel() {
 
   const handleRefreshAll = useCallback(async () => {
     await refreshAll();
-    toast({ title: 'Dados Atualizados', description: 'Estatísticas atualizadas' });
+    toast.success('Dados Atualizados', { description: 'Estatísticas atualizadas' });
   }, [refreshAll, toast]);
 
   // formatCurrency importado de @/lib/formatters

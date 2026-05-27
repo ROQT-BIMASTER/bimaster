@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchAllRows } from "@/lib/utils/fetchAllRows";
-import { useToast } from "@/hooks/use-toast";
 import { logger } from "@/lib/logger";
 
+import { toast } from "sonner";
 export interface MapCliente {
   id: string;
   nome: string;
@@ -65,8 +65,6 @@ export function useCommercialMapData(filters: MapFilters) {
   const [prospects, setProspects] = useState<MapProspect[]>([]);
   const [loading, setLoading] = useState(true);
   const [geocodingStatus, setGeocodingStatus] = useState<string | null>(null);
-  const { toast } = useToast();
-
   const fetchData = useCallback(async () => {
     try {
       setLoading(true);
@@ -158,11 +156,7 @@ export function useCommercialMapData(filters: MapFilters) {
       }
     } catch (error) {
       logger.error("Erro ao carregar dados do mapa:", error);
-      toast({
-        title: "Erro",
-        description: "Falha ao carregar dados para o mapa",
-        variant: "destructive",
-      });
+      toast.error("Erro", { description: "Falha ao carregar dados para o mapa" });
     } finally {
       setLoading(false);
     }
@@ -178,21 +172,14 @@ export function useCommercialMapData(filters: MapFilters) {
       if (error) throw error;
 
       setGeocodingStatus(null);
-      toast({
-        title: "Geocodificação concluída",
-        description: `${data.success} de ${data.processed} registros processados`,
-      });
+      toast.success("Geocodificação concluída", { description: `${data.success} de ${data.processed} registros processados` });
 
       // Reload data
       fetchData();
     } catch (error) {
       logger.error("Erro na geocodificação:", error);
       setGeocodingStatus(null);
-      toast({
-        title: "Erro na geocodificação",
-        description: error instanceof Error ? error.message : "Erro desconhecido",
-        variant: "destructive",
-      });
+      toast.error("Erro na geocodificação", { description: error instanceof Error ? error.message : "Erro desconhecido" });
     }
   }, [fetchData, toast]);
 

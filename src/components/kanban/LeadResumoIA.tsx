@@ -7,9 +7,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { Sparkles, Calendar, Activity, TrendingUp, Loader2, RefreshCw, Pencil, Save, X } from "lucide-react";
 import { format, differenceInDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { useToast } from "@/hooks/use-toast";
 import { logger } from "@/lib/logger";
 
+import { toast } from "sonner";
 interface LeadResumoIAProps {
   prospect: {
     id: string;
@@ -42,8 +42,6 @@ export const LeadResumoIA = ({ prospect, onUpdate }: LeadResumoIAProps) => {
     porte_empresa: prospect.porte_empresa || "",
     categoria: prospect.categoria || "",
   });
-  const { toast } = useToast();
-
   useEffect(() => {
     fetchActivityCount();
   }, [prospect.id]);
@@ -140,9 +138,9 @@ export const LeadResumoIA = ({ prospect, onUpdate }: LeadResumoIAProps) => {
                 }).eq("id", prospect.id);
                 setSaving(false);
                 if (error) {
-                  toast({ title: "Erro ao salvar", variant: "destructive" });
+                  toast.error("Erro ao salvar");
                 } else {
-                  toast({ title: "Dados atualizados" });
+                  toast("Dados atualizados");
                   setEditing(false);
                   onUpdate?.();
                 }

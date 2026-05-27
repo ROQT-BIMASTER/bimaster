@@ -3,9 +3,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
-import { useToast } from "@/hooks/use-toast";
 import { ShieldCheck, Loader2, Copy, Check } from "lucide-react";
 
+import { toast } from "sonner";
 interface MFAEnrollDialogProps {
   open: boolean;
   onClose: () => void;
@@ -21,8 +21,6 @@ export function MFAEnrollDialog({ open, onClose, onEnrolled }: MFAEnrollDialogPr
   const [enrolling, setEnrolling] = useState(true);
   const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
-  const { toast } = useToast();
-
   useEffect(() => {
     if (!open) return;
     setCode("");
@@ -74,7 +72,7 @@ export function MFAEnrollDialog({ open, onClose, onEnrolled }: MFAEnrollDialogPr
       }
 
       if (data) {
-        toast({ title: "✅ MFA ativado!", description: "Autenticação em duas etapas configurada com sucesso." });
+        toast.success("✅ MFA ativado!", { description: "Autenticação em duas etapas configurada com sucesso." });
         onEnrolled();
       }
     } catch {

@@ -6,12 +6,12 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useToast } from "@/hooks/use-toast";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { produtoMasterSchema, ProdutoMasterInput, UNIDADES_MEDIDA } from "@/lib/validations/estoque";
 import { useEffect } from "react";
 
+import { toast } from "sonner";
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -19,7 +19,6 @@ interface Props {
 }
 
 export function NovoProdutoMasterDialog({ open, onOpenChange, editingItem }: Props) {
-  const { toast } = useToast();
   const queryClient = useQueryClient();
 
   const form = useForm<ProdutoMasterInput>({
@@ -45,10 +44,10 @@ export function NovoProdutoMasterDialog({ open, onOpenChange, editingItem }: Pro
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['estoque-produtos-master'] });
-      toast({ title: editingItem ? "Produto atualizado" : "Produto criado" });
+      toast(editingItem ? "Produto atualizado" : "Produto criado");
       onOpenChange(false);
     },
-    onError: (error: any) => toast({ title: "Erro", description: error.message, variant: "destructive" })
+    onError: (error: any) => toast.error("Erro", { description: error.message })
   });
 
   return (

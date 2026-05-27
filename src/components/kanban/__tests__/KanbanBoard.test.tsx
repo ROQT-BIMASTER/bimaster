@@ -26,12 +26,14 @@ vi.mock("@/integrations/supabase/client", () => ({
   },
 }));
 
-vi.mock("@/hooks/use-toast", () => ({
-  useToast: () => ({ toast: vi.fn() }),
-}));
+vi.mock("sonner", () => {
+  const fn = vi.fn();
+  return { toast: Object.assign(fn, { success: fn, error: fn }) };
+});
 
 import { KanbanBoard } from "../KanbanBoard";
 
+import { toast } from "sonner";
 describe("KanbanBoard", () => {
   it("renders loading state initially", () => {
     const { container } = render(<KanbanBoard />);

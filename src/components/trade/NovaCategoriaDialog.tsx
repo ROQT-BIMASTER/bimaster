@@ -5,8 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
-
+import { toast } from "sonner";
 interface NovaCategoriaDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -14,7 +13,6 @@ interface NovaCategoriaDialogProps {
 }
 
 export const NovaCategoriaDialog = ({ open, onOpenChange, onSuccess }: NovaCategoriaDialogProps) => {
-  const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
@@ -38,20 +36,13 @@ export const NovaCategoriaDialog = ({ open, onOpenChange, onSuccess }: NovaCateg
 
       if (error) throw error;
 
-      toast({
-        title: "Categoria criada",
-        description: "Nova categoria cadastrada com sucesso.",
-      });
+      toast.success("Categoria criada", { description: "Nova categoria cadastrada com sucesso." });
 
       onOpenChange(false);
       onSuccess?.(formData.name);
       setFormData({ name: "", description: "" });
     } catch (error: any) {
-      toast({
-        title: "Erro ao criar categoria",
-        description: error.message,
-        variant: "destructive",
-      });
+      toast.error("Erro ao criar categoria", { description: error.message });
     } finally {
       setLoading(false);
     }

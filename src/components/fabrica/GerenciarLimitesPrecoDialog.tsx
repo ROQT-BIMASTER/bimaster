@@ -7,7 +7,6 @@ import { Badge } from "@/components/ui/badge";
 import { Search, Save, AlertTriangle, Shield, X, Filter, ChevronDown, ChevronRight, TableIcon, Calculator, TrendingDown, TrendingUp, ArrowRight, Loader2, ListTodo, Play } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -16,6 +15,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { logger } from "@/lib/logger";
+import { toast } from "sonner";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -60,7 +60,6 @@ interface SimulacaoState {
 }
 
 export function GerenciarLimitesPrecoDialog({ open, onOpenChange }: Props) {
-  const { toast } = useToast();
   const queryClient = useQueryClient();
   const [tabelaSelecionada, setTabelaSelecionada] = useState<string>("");
   const [busca, setBusca] = useState("");
@@ -313,11 +312,11 @@ export function GerenciarLimitesPrecoDialog({ open, onOpenChange }: Props) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['fabrica-limites-tabela', tabelaSelecionada] });
       queryClient.invalidateQueries({ queryKey: ['fabrica-precos-produtos'] });
-      toast({ title: "Limites salvos", description: `${produtosAlterados.size} produto(s) atualizado(s) para esta tabela` });
+      toast.success("Limites salvos", { description: `${produtosAlterados.size} produto(s) atualizado(s) para esta tabela` });
       setProdutosAlterados(new Set());
     },
     onError: (error: any) => {
-      toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
+      toast.error("Erro ao salvar", { description: error.message });
     },
   });
 
@@ -347,7 +346,7 @@ export function GerenciarLimitesPrecoDialog({ open, onOpenChange }: Props) {
   // Executar simulação de cálculo reverso
   const executarSimulacao = async (produtoId: string, produtoNome: string, precoMaximo: number) => {
     if (!tabelaSelecionada || !tabelaSimulacaoOrigem || precoMaximo <= 0) {
-      toast({ title: "Selecione a tabela de origem para simulação", variant: "destructive" });
+      toast.error("Selecione a tabela de origem para simulação");
       return;
     }
 
@@ -370,7 +369,7 @@ export function GerenciarLimitesPrecoDialog({ open, onOpenChange }: Props) {
 
       setSimulacao(prev => prev ? { ...prev, resultados, carregando: false } : null);
     } catch (error) {
-      toast({ title: "Erro ao simular", description: "Não foi possível calcular a simulação", variant: "destructive" });
+      toast.error("Erro ao simular", { description: "Não foi possível calcular a simulação" });
       setSimulacao(null);
     }
   };
@@ -383,7 +382,7 @@ export function GerenciarLimitesPrecoDialog({ open, onOpenChange }: Props) {
   // Criar tarefas de ajuste a partir da simulação
   const criarTarefasAjuste = async () => {
     if (!simulacao || simulacao.resultados.length === 0 || !tabelaSelecionada) {
-      toast({ title: "Nenhuma simulação ativa", variant: "destructive" });
+      toast.error("Nenhuma simulação ativa");
       return;
     }
 
@@ -419,7 +418,7 @@ export function GerenciarLimitesPrecoDialog({ open, onOpenChange }: Props) {
         }));
 
       if (tarefas.length === 0) {
-        toast({ title: "Nenhuma tarefa a criar", description: "A simulação não gerou tarefas de ajuste", variant: "destructive" });
+        toast.error("Nenhuma tarefa a criar", { description: "A simulação não gerou tarefas de ajuste" });
         setCriandoTarefas(false);
         return;
       }
@@ -430,16 +429,13 @@ export function GerenciarLimitesPrecoDialog({ open, onOpenChange }: Props) {
 
       if (error) throw error;
 
-      toast({ 
-        title: "Tarefas criadas com sucesso!", 
-        description: `${tarefas.length} tarefa(s) de ajuste criada(s)` 
-      });
+      toast.success("Tarefas criadas com sucesso!", { description: `${tarefas.length} tarefa(s) de ajuste criada(s)` });
 
       queryClient.invalidateQueries({ queryKey: ["fabrica-tarefas-ajuste"] });
       setDialogCriarTarefas(false);
       setSimulacao(null);
     } catch (error: any) {
-      toast({ title: "Erro ao criar tarefas", description: error.message, variant: "destructive" });
+      toast.error("Erro ao criar tarefas", { description: error.message });
     } finally {
       setCriandoTarefas(false);
     }

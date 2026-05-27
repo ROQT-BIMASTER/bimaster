@@ -5,12 +5,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Plus } from "lucide-react";
 import { atividadeSchema } from "@/lib/validations/atividade";
 import { logger } from "@/lib/logger";
 
+import { toast } from "sonner";
 interface Prospect {
   id: string;
   nome_empresa: string;
@@ -33,8 +33,6 @@ export const NovaAtividadeDialog = ({ onSuccess }: NovaAtividadeDialogProps) => 
     data_atividade: new Date().toISOString().split('T')[0],
     proximo_followup: "",
   });
-  const { toast } = useToast();
-
   useEffect(() => {
     if (open) {
       fetchProspects();
@@ -52,11 +50,7 @@ export const NovaAtividadeDialog = ({ onSuccess }: NovaAtividadeDialogProps) => 
       setProspects(data || []);
     } catch (error) {
       logger.error("Erro ao carregar prospects:", error);
-      toast({
-        title: "Erro",
-        description: "Não foi possível carregar os prospects",
-        variant: "destructive",
-      });
+      toast.error("Erro", { description: "Não foi possível carregar os prospects" });
     }
   };
 
@@ -83,10 +77,7 @@ export const NovaAtividadeDialog = ({ onSuccess }: NovaAtividadeDialogProps) => 
 
       if (error) throw error;
 
-      toast({
-        title: "Sucesso",
-        description: "Atividade validada e registrada com sucesso",
-      });
+      toast.success("Sucesso", { description: "Atividade validada e registrada com sucesso" });
 
       setFormData({
         prospect_id: "",
@@ -106,17 +97,9 @@ export const NovaAtividadeDialog = ({ onSuccess }: NovaAtividadeDialogProps) => 
           fieldErrors[err.path[0]] = err.message;
         });
         setErrors(fieldErrors);
-        toast({
-          title: "Erro de validação",
-          description: "Verifique os campos destacados",
-          variant: "destructive",
-        });
+        toast.error("Erro de validação", { description: "Verifique os campos destacados" });
       } else {
-        toast({
-          title: "Erro",
-          description: error.message || "Não foi possível registrar a atividade",
-          variant: "destructive",
-        });
+        toast.error("Erro", { description: error.message || "Não foi possível registrar a atividade" });
       }
     } finally {
       setLoading(false);

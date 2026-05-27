@@ -12,12 +12,12 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
 import { Target, Plus, Trash2 } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
 import { ValueLegend } from "@/components/ui/smart-value";
 import { useDashboardFilterOptions } from "@/hooks/useDashboardFilterOptions";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
+import { toast } from "sonner";
 const now = new Date();
 const fmt = (v: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 }).format(v);
 const fmtPct = (v: number) => `${v.toFixed(1)}%`;
@@ -45,7 +45,6 @@ function GaugeCard({ label, realizado, meta, projecao, pctAtingimento }: { label
 export default function MetasProjecoes() {
   const [filters, setFilters] = useState<DashboardFilters>({ ano: now.getFullYear(), mes: now.getMonth() + 1 });
   const handleFilterChange = useCallback((p: Partial<DashboardFilters>) => setFilters(prev => ({ ...prev, ...p })), []);
-  const { toast } = useToast();
   const { isAdmin } = useUserRole();
 
   const { data, isLoading } = useMetasVendas(filters);
@@ -65,14 +64,14 @@ export default function MetasProjecoes() {
     const periodo = filters.mes ? `${filters.ano}-${String(filters.mes).padStart(2, "0")}` : `${filters.ano}-01`;
     try {
       await upsert.mutateAsync({ periodo, tipo_meta: newMeta.tipo_meta, referencia_id: newMeta.referencia_id, valor_meta: Number(newMeta.valor_meta) });
-      toast({ title: "Meta salva com sucesso" });
+      toast("Meta salva com sucesso");
       setAddOpen(false);
       setNewMeta({ tipo_meta: "empresa", referencia_id: "", valor_meta: "" });
-    } catch (e: any) { toast({ title: "Erro ao salvar meta", description: e.message, variant: "destructive" }); }
+    } catch (e: any) { toast.error("Erro ao salvar meta", { description: e.message }); }
   };
 
   const handleDelete = async (id: string) => {
-    try { await remove.mutateAsync(id); toast({ title: "Meta removida" }); } catch (e: any) { toast({ title: "Erro", description: e.message, variant: "destructive" }); }
+    try { await remove.mutateAsync(id); toast("Meta removida"); } catch (e: any) { toast.error("Erro", { description: e.message }); }
   };
 
   const allMetas = [...(data?.empresaMetas || []), ...(data?.supervisorMetas || []), ...(data?.vendedorMetas || [])];

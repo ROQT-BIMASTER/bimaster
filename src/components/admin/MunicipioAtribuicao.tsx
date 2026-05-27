@@ -5,10 +5,10 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { useToast } from "@/hooks/use-toast";
 import { UserPlus, UserMinus, Loader2, Trash2 } from "lucide-react";
 import { logger } from "@/lib/logger";
 
+import { toast } from "sonner";
 interface Vendedor {
   id: string;
   nome: string;
@@ -31,8 +31,6 @@ export const MunicipioAtribuicao = () => {
   const [loading, setLoading] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [municipioToDelete, setMunicipioToDelete] = useState<Municipio | null>(null);
-  const { toast } = useToast();
-
   useEffect(() => {
     fetchData();
   }, []);
@@ -88,11 +86,7 @@ export const MunicipioAtribuicao = () => {
       setMunicipios(municipiosFormatados);
     } catch (error) {
       logger.error("Erro ao carregar dados:", error);
-      toast({
-        title: "Erro",
-        description: "Não foi possível carregar os dados",
-        variant: "destructive",
-      });
+      toast.error("Erro", { description: "Não foi possível carregar os dados" });
     } finally {
       setLoading(false);
     }
@@ -100,11 +94,7 @@ export const MunicipioAtribuicao = () => {
 
   const handleAtribuir = async () => {
     if (!selectedMunicipio || !selectedVendedor) {
-      toast({
-        title: "Atenção",
-        description: "Selecione um município e um vendedor",
-        variant: "destructive",
-      });
+      toast.error("Atenção", { description: "Selecione um município e um vendedor" });
       return;
     }
 
@@ -117,21 +107,14 @@ export const MunicipioAtribuicao = () => {
 
       if (error) throw error;
 
-      toast({
-        title: "Sucesso",
-        description: "Município atribuído ao vendedor",
-      });
+      toast.success("Sucesso", { description: "Município atribuído ao vendedor" });
 
       setSelectedMunicipio("");
       setSelectedVendedor("");
       fetchData();
     } catch (error) {
       logger.error("Erro ao atribuir município:", error);
-      toast({
-        title: "Erro",
-        description: "Não foi possível atribuir o município",
-        variant: "destructive",
-      });
+      toast.error("Erro", { description: "Não foi possível atribuir o município" });
     } finally {
       setLoading(false);
     }
@@ -147,19 +130,12 @@ export const MunicipioAtribuicao = () => {
 
       if (error) throw error;
 
-      toast({
-        title: "Sucesso",
-        description: "Vendedor removido do município",
-      });
+      toast.success("Sucesso", { description: "Vendedor removido do município" });
 
       fetchData();
     } catch (error) {
       logger.error("Erro ao remover atribuição:", error);
-      toast({
-        title: "Erro",
-        description: "Não foi possível remover a atribuição",
-        variant: "destructive",
-      });
+      toast.error("Erro", { description: "Não foi possível remover a atribuição" });
     } finally {
       setLoading(false);
     }
@@ -177,21 +153,14 @@ export const MunicipioAtribuicao = () => {
 
       if (error) throw error;
 
-      toast({
-        title: "Sucesso",
-        description: "Município excluído com sucesso",
-      });
+      toast.success("Sucesso", { description: "Município excluído com sucesso" });
 
       setDeleteDialogOpen(false);
       setMunicipioToDelete(null);
       fetchData();
     } catch (error) {
       logger.error("Erro ao excluir município:", error);
-      toast({
-        title: "Erro",
-        description: "Não foi possível excluir o município",
-        variant: "destructive",
-      });
+      toast.error("Erro", { description: "Não foi possível excluir o município" });
     } finally {
       setLoading(false);
     }

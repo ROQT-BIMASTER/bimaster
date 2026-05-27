@@ -11,7 +11,6 @@ import {
   ArrowUp, ArrowDown, FolderOpen, Eye, EyeOff, Settings, ChevronRight,
   Brain, Shield, Download
 } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
 import { 
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter
 } from "@/components/ui/dialog";
@@ -26,6 +25,7 @@ import {
 import { cn } from "@/lib/utils";
 import * as LucideIcons from "lucide-react";
 
+import { toast } from "sonner";
 const ICON_OPTIONS = [
   "Briefcase", "Store", "Factory", "DollarSign", "FolderKanban", "Users",
   "Building2", "Package", "BarChart3", "TrendingUp", "Globe", "Mic",
@@ -172,8 +172,6 @@ export default function MenuConfigPage() {
     updateModuleMapping, moveModule, reorderCategories, reorderModules
   } = useSidebarConfig();
   const { itemsByModule, isLoading: itemsLoading, updateItem, toggleItemActive } = useSidebarMenuItems();
-  const { toast } = useToast();
-
   const [editingCatId, setEditingCatId] = useState<string | null>(null);
   const [editLabel, setEditLabel] = useState("");
   const [editIcon, setEditIcon] = useState("");
@@ -210,10 +208,10 @@ export default function MenuConfigPage() {
     if (!editingCatId) return;
     try {
       await updateCategory.mutateAsync({ id: editingCatId, label: editLabel, icon: editIcon });
-      toast({ title: "Categoria atualizada" });
+      toast("Categoria atualizada");
       setEditingCatId(null);
     } catch {
-      toast({ title: "Erro ao salvar", variant: "destructive" });
+      toast.error("Erro ao salvar");
     }
   };
 
@@ -222,20 +220,20 @@ export default function MenuConfigPage() {
     try {
       const key = newCatLabel.toLowerCase().replace(/[^a-z0-9]/g, "_");
       await createCategory.mutateAsync({ key, label: newCatLabel, icon: newCatIcon, ordem: categories.length + 1 });
-      toast({ title: "Categoria criada" });
+      toast("Categoria criada");
       setNewCatOpen(false);
       setNewCatLabel("");
     } catch {
-      toast({ title: "Erro ao criar", variant: "destructive" });
+      toast.error("Erro ao criar");
     }
   };
 
   const handleDeleteCat = async (id: string) => {
     try {
       await deleteCategory.mutateAsync(id);
-      toast({ title: "Categoria removida" });
+      toast("Categoria removida");
     } catch {
-      toast({ title: "Erro ao remover", variant: "destructive" });
+      toast.error("Erro ao remover");
     }
   };
 
@@ -271,7 +269,7 @@ export default function MenuConfigPage() {
     const targetCat = categories.find(c => c.id === newCatId);
     const newOrdem = (targetCat?.modules.length || 0) + 1;
     await moveModule.mutateAsync({ moduleId: mod.id, newCategoryId: newCatId, newOrdem });
-    toast({ title: "Módulo movido" });
+    toast("Módulo movido");
   };
 
   const handleStartEditMod = (mod: SidebarCategoryModule) => {
@@ -288,10 +286,10 @@ export default function MenuConfigPage() {
         label_override: editModLabel || null,
         icon_override: editModIcon || null,
       });
-      toast({ title: "Módulo atualizado" });
+      toast("Módulo atualizado");
       setEditingModId(null);
     } catch {
-      toast({ title: "Erro ao salvar", variant: "destructive" });
+      toast.error("Erro ao salvar");
     }
   };
 
@@ -299,9 +297,9 @@ export default function MenuConfigPage() {
   const handleToggleItem = async (id: string, ativo: boolean) => {
     try {
       await toggleItemActive.mutateAsync({ id, ativo });
-      toast({ title: ativo ? "Item ativado" : "Item desativado" });
+      toast(ativo ? "Item ativado" : "Item desativado");
     } catch {
-      toast({ title: "Erro ao atualizar", variant: "destructive" });
+      toast.error("Erro ao atualizar");
     }
   };
 
@@ -319,10 +317,10 @@ export default function MenuConfigPage() {
         label_override: editItemLabel || null,
         icon_override: editItemIcon || null,
       });
-      toast({ title: "Item atualizado" });
+      toast("Item atualizado");
       setEditingItem(null);
     } catch {
-      toast({ title: "Erro ao salvar", variant: "destructive" });
+      toast.error("Erro ao salvar");
     }
   };
 

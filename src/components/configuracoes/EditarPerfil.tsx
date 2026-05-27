@@ -4,12 +4,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { useToast } from "@/hooks/use-toast";
 import { User, Mail, Phone, Building, Shield, Lock, Loader2 } from "lucide-react";
 import { profileSchema } from "@/lib/validations/profile";
 import { supabase } from "@/integrations/supabase/client";
 import { logger } from "@/lib/logger";
 
+import { toast } from "sonner";
 interface Profile {
   id: string;
   nome: string;
@@ -33,8 +33,6 @@ export const EditarPerfil = ({ profile, userRole, onUpdate }: EditarPerfilProps)
   const [formData, setFormData] = useState(profile);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [departamentoNome, setDepartamentoNome] = useState<string>("");
-  const { toast } = useToast();
-
   // Fetch departamento name from departamento_id
   useEffect(() => {
     const fetchDepartamento = async () => {
@@ -104,10 +102,7 @@ export const EditarPerfil = ({ profile, userRole, onUpdate }: EditarPerfilProps)
       const updatedProfile = { ...profile, ...formData, email: profile.email };
       onUpdate(updatedProfile);
       setIsEditing(false);
-      toast({
-        title: "Perfil atualizado",
-        description: "Suas informações foram salvas com sucesso",
-      });
+      toast.success("Perfil atualizado", { description: "Suas informações foram salvas com sucesso" });
     } catch (error: any) {
       if (error.errors) {
         const fieldErrors: Record<string, string> = {};
@@ -115,18 +110,10 @@ export const EditarPerfil = ({ profile, userRole, onUpdate }: EditarPerfilProps)
           fieldErrors[err.path[0]] = err.message;
         });
         setErrors(fieldErrors);
-        toast({
-          title: "Erro de validação",
-          description: "Verifique os campos destacados",
-          variant: "destructive",
-        });
+        toast.error("Erro de validação", { description: "Verifique os campos destacados" });
       } else {
         logger.error("Erro ao salvar perfil:", error);
-        toast({
-          title: "Erro",
-          description: "Não foi possível salvar as alterações",
-          variant: "destructive",
-        });
+        toast.error("Erro", { description: "Não foi possível salvar as alterações" });
       }
     } finally {
       setSaving(false);

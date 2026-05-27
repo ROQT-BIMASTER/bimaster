@@ -18,7 +18,6 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
   DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useToast } from "@/hooks/use-toast";
 import { useLeadMining, LeadMinerado } from "@/hooks/useLeadMining";
 import { REGIOES_UFS } from "@/lib/constants/regioes";
 import { formatLocalDate, getDateKey } from "@/utils/dateUtils";
@@ -30,6 +29,7 @@ import {
 } from "lucide-react";
 import type { MunicipioIntelligence } from "@/hooks/useMunicipiosIntelligence";
 
+import { toast } from "sonner";
 interface ModoFocoDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -47,7 +47,6 @@ const statusConfig: Record<string, { label: string; color: string; icon: React.E
 };
 
 export function ModoFocoDialog({ open, onOpenChange }: ModoFocoDialogProps) {
-  const { toast } = useToast();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<Set<number>>(new Set());
@@ -170,16 +169,9 @@ export function ModoFocoDialog({ open, onOpenChange }: ModoFocoDialogProps) {
         setLastMinedCity(m.municipio_nome);
         setViewMode("results");
         setSelectedLeads(new Set());
-        toast({
-          title: "Mineração concluída!",
-          description: `${result.totalFetched || 0} leads encontrados em ${m.municipio_nome}/${m.uf_sigla}.`,
-        });
+        toast.success("Mineração concluída!", { description: `${result.totalFetched || 0} leads encontrados em ${m.municipio_nome}/${m.uf_sigla}.` });
       } catch (err: any) {
-        toast({
-          title: "Erro na mineração",
-          description: err.message,
-          variant: "destructive",
-        });
+        toast.error("Erro na mineração", { description: err.message });
       } finally {
         setMiningId(null);
       }
@@ -217,10 +209,7 @@ export function ModoFocoDialog({ open, onOpenChange }: ModoFocoDialogProps) {
       setLastMinedCity("");
       setViewMode("results");
     }
-    toast({
-      title: "Mineração em lote concluída!",
-      description: `${success}/${items.length} municípios minerados com sucesso.`,
-    });
+    toast.success("Mineração em lote concluída!", { description: `${success}/${items.length} municípios minerados com sucesso.` });
   }, [selected, allVirgens, mineMutation, toast]);
 
   const toggleSelect = (id: number) => {
@@ -250,7 +239,7 @@ export function ModoFocoDialog({ open, onOpenChange }: ModoFocoDialogProps) {
   // Lead actions
   const copyPhone = (phone: string) => {
     navigator.clipboard.writeText(phone);
-    toast({ title: "Telefone copiado!" });
+    toast("Telefone copiado!");
   };
 
   const handleSelectAllLeads = (checked: boolean) => {

@@ -12,7 +12,6 @@ import {
 import { MarkerClusterer } from "@googlemaps/markerclusterer";
 import type { Marker } from "@googlemaps/markerclusterer";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
 import { useCommercialMapData, type MapFilters, type MapCliente, type MapProspect } from "@/hooks/useCommercialMapData";
 import { useMapTeamData } from "@/hooks/useMapTeamData";
 import { MapFilters as MapFiltersComponent } from "./MapFilters";
@@ -24,6 +23,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useQuery } from "@tanstack/react-query";
 
+import { toast } from "sonner";
 const RISCO_COLORS: Record<string, string> = {
   ativo: "#22C55E",
   atencao: "#EAB308",
@@ -47,8 +47,6 @@ const DEFAULT_ZOOM = 4;
 export const CommercialMap = () => {
   const [apiKey, setApiKey] = useState<string | null>(null);
   const [loadingKey, setLoadingKey] = useState(true);
-  const { toast } = useToast();
-
   const [filters, setFilters] = useState<MapFilters>({
     empresaId: null,
     ufs: [],
@@ -99,11 +97,7 @@ export const CommercialMap = () => {
         setApiKey(data.key);
       } catch (error) {
         logger.error("Erro ao buscar chave:", error);
-        toast({
-          title: "Erro",
-          description: error instanceof Error ? error.message : "Falha ao carregar mapa",
-          variant: "destructive",
-        });
+        toast.error("Erro", { description: error instanceof Error ? error.message : "Falha ao carregar mapa" });
       } finally {
         setLoadingKey(false);
       }

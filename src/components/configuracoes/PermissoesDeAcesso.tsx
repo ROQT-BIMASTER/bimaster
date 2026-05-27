@@ -3,7 +3,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
 import { Loader2, Shield, CheckCircle2, AlertCircle, Info } from "lucide-react";
 import * as LucideIcons from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -11,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { permissionsCache } from "@/lib/utils/permissions-cache";
 import { logger } from "@/lib/logger";
 
+import { toast } from "sonner";
 interface Tela {
   id: string;
   codigo: string;
@@ -53,8 +53,6 @@ export function PermissoesDeAcesso() {
   const [telas, setTelas] = useState<Tela[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadingData, setLoadingData] = useState(true);
-  const { toast } = useToast();
-
   useEffect(() => {
     loadPermissions();
   }, []);
@@ -89,7 +87,7 @@ export function PermissoesDeAcesso() {
       setTelas(telasComPermissoes);
     } catch (error) {
       logger.error("Erro ao carregar permissões:", error);
-      toast({ title: "Erro", description: "Não foi possível carregar as permissões", variant: "destructive" });
+      toast.error("Erro", { description: "Não foi possível carregar as permissões" });
     } finally {
       setLoadingData(false);
     }
@@ -122,11 +120,11 @@ export function PermissoesDeAcesso() {
       permissionsCache.clear();
       window.dispatchEvent(new Event('permissions-updated'));
 
-      toast({ title: "Sucesso", description: "Permissões por role salvas com sucesso." });
+      toast.success("Sucesso", { description: "Permissões por role salvas com sucesso." });
       await loadPermissions();
     } catch (error) {
       logger.error("Erro ao salvar permissões:", error);
-      toast({ title: "Erro", description: "Não foi possível salvar as permissões", variant: "destructive" });
+      toast.error("Erro", { description: "Não foi possível salvar as permissões" });
     } finally {
       setLoading(false);
     }

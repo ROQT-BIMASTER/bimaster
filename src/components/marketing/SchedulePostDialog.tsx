@@ -5,13 +5,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Calendar as CalendarIcon, Clock, Image, Plus, X } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Checkbox } from "@/components/ui/checkbox";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { logger } from "@/lib/logger";
 
+import { toast } from "sonner";
 interface SocialAccount {
   id: string;
   platform: string;
@@ -33,8 +33,6 @@ export const SchedulePostDialog = ({ accounts, onPostScheduled }: SchedulePostDi
   const [mediaUrls, setMediaUrls] = useState<string[]>([]);
   const [newMediaUrl, setNewMediaUrl] = useState("");
   const [loading, setLoading] = useState(false);
-  const { toast } = useToast();
-
   const handleAccountToggle = (accountId: string) => {
     setSelectedAccounts((prev) =>
       prev.includes(accountId)
@@ -56,29 +54,17 @@ export const SchedulePostDialog = ({ accounts, onPostScheduled }: SchedulePostDi
 
   const handleSchedulePost = async () => {
     if (!content.trim()) {
-      toast({
-        title: "Erro",
-        description: "O conteúdo do post não pode estar vazio",
-        variant: "destructive",
-      });
+      toast.error("Erro", { description: "O conteúdo do post não pode estar vazio" });
       return;
     }
 
     if (selectedAccounts.length === 0) {
-      toast({
-        title: "Erro",
-        description: "Selecione pelo menos uma conta",
-        variant: "destructive",
-      });
+      toast.error("Erro", { description: "Selecione pelo menos uma conta" });
       return;
     }
 
     if (!scheduledDate || !scheduledTime) {
-      toast({
-        title: "Erro",
-        description: "Selecione data e hora para o agendamento",
-        variant: "destructive",
-      });
+      toast.error("Erro", { description: "Selecione data e hora para o agendamento" });
       return;
     }
 
@@ -101,10 +87,7 @@ export const SchedulePostDialog = ({ accounts, onPostScheduled }: SchedulePostDi
 
       if (error) throw error;
 
-      toast({
-        title: "Post agendado!",
-        description: `Post será publicado em ${format(scheduledAt, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}`,
-      });
+      toast.success("Post agendado!", { description: `Post será publicado em ${format(scheduledAt, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}` });
 
       setContent("");
       setSelectedAccounts([]);
@@ -115,11 +98,7 @@ export const SchedulePostDialog = ({ accounts, onPostScheduled }: SchedulePostDi
       onPostScheduled?.();
     } catch (error) {
       logger.error("Erro ao agendar post:", error);
-      toast({
-        title: "Erro",
-        description: "Não foi possível agendar o post",
-        variant: "destructive",
-      });
+      toast.error("Erro", { description: "Não foi possível agendar o post" });
     } finally {
       setLoading(false);
     }
@@ -133,10 +112,7 @@ export const SchedulePostDialog = ({ accounts, onPostScheduled }: SchedulePostDi
     now.setHours(bestHour, 0, 0, 0);
     
     setScheduledTime(format(now, "HH:mm"));
-    toast({
-      title: "Horário sugerido",
-      description: "Baseado no histórico de engajamento",
-    });
+    toast.success("Horário sugerido", { description: "Baseado no histórico de engajamento" });
   };
 
   return (

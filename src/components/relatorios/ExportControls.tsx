@@ -1,11 +1,11 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { FileDown, FileSpreadsheet } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { exportToExcel } from "@/utils/excelExport";
 import { logger } from "@/lib/logger";
 
+import { toast } from "sonner";
 interface ExportControlsProps {
   reportType: string;
   data: any[];
@@ -13,8 +13,6 @@ interface ExportControlsProps {
 
 export const ExportControls = ({ reportType, data }: ExportControlsProps) => {
   const [exporting, setExporting] = useState(false);
-  const { toast } = useToast();
-
   const handleExportExcel = async () => {
     try {
       await exportToExcel(data, {
@@ -23,27 +21,16 @@ export const ExportControls = ({ reportType, data }: ExportControlsProps) => {
         includeTimestamp: true,
       });
 
-      toast({
-        title: "Exportação concluída",
-        description: "Relatório exportado com sucesso em formato Excel",
-      });
+      toast.success("Exportação concluída", { description: "Relatório exportado com sucesso em formato Excel" });
     } catch (error) {
       logger.error('Error exporting to Excel:', error);
-      toast({
-        title: "Erro na exportação",
-        description: "Ocorreu um erro ao exportar o relatório",
-        variant: "destructive"
-      });
+      toast.error("Erro na exportação", { description: "Ocorreu um erro ao exportar o relatório" });
     }
   };
 
   const handleExportPDF = async () => {
     if (!data || data.length === 0) {
-      toast({
-        title: "Sem dados",
-        description: "Não há dados para exportar",
-        variant: "destructive",
-      });
+      toast.error("Sem dados", { description: "Não há dados para exportar" });
       return;
     }
 
@@ -76,17 +63,10 @@ export const ExportControls = ({ reportType, data }: ExportControlsProps) => {
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
 
-      toast({
-        title: "PDF exportado",
-        description: "O relatório foi baixado com sucesso",
-      });
+      toast.success("PDF exportado", { description: "O relatório foi baixado com sucesso" });
     } catch (error) {
       logger.error('Error exporting to PDF:', error);
-      toast({
-        title: "Erro na exportação",
-        description: "Ocorreu um erro ao gerar o PDF. Tente novamente.",
-        variant: "destructive",
-      });
+      toast.error("Erro na exportação", { description: "Ocorreu um erro ao gerar o PDF. Tente novamente." });
     } finally {
       setExporting(false);
     }

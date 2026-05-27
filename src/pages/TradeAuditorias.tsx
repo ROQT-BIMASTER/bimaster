@@ -4,7 +4,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
 import { AuditoriaGondolaDialog } from "@/components/trade/AuditoriaGondolaDialog";
 import { EditarAuditoriaDialog } from "@/components/trade/EditarAuditoriaDialog";
 import { TradeFilters } from "@/components/trade/TradeFilters";
@@ -14,6 +13,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { uniqueChannelName } from "@/lib/realtime/channelName";
 
+import { toast } from "sonner";
 interface Auditoria {
   id: string;
   store_id: string;
@@ -49,8 +49,6 @@ export default function TradeAuditorias() {
   const [deleteAuditId, setDeleteAuditId] = useState<string | null>(null);
   const [selectedStore, setSelectedStore] = useState<string | null>(null);
   const [aiCriteria, setAiCriteria] = useState<any>(null);
-  const { toast } = useToast();
-
   useEffect(() => {
     fetchAuditorias();
 
@@ -108,11 +106,7 @@ export default function TradeAuditorias() {
       if (error) throw error;
       setAuditorias(data || []);
     } catch (error: any) {
-      toast({
-        title: "Erro ao carregar",
-        description: error.message,
-        variant: "destructive",
-      });
+      toast.error("Erro ao carregar", { description: error.message });
     } finally {
       setLoading(false);
     }
@@ -120,11 +114,7 @@ export default function TradeAuditorias() {
 
   const openNewAuditDialog = () => {
     if (!selectedStore) {
-      toast({
-        title: "Selecione uma loja",
-        description: "Escolha uma loja antes de criar uma auditoria",
-        variant: "destructive",
-      });
+      toast.error("Selecione uma loja", { description: "Escolha uma loja antes de criar uma auditoria" });
       return;
     }
     setDialogOpen(true);
@@ -161,19 +151,12 @@ export default function TradeAuditorias() {
 
       if (error) throw error;
 
-      toast({
-        title: "Auditoria excluída",
-        description: "A auditoria foi removida com sucesso.",
-      });
+      toast.success("Auditoria excluída", { description: "A auditoria foi removida com sucesso." });
 
       fetchAuditorias();
       setDeleteAuditId(null);
     } catch (error: any) {
-      toast({
-        title: "Erro ao excluir",
-        description: error.message,
-        variant: "destructive",
-      });
+      toast.error("Erro ao excluir", { description: error.message });
     }
   };
 

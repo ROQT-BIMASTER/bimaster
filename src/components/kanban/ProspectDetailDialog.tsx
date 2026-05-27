@@ -8,11 +8,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
 import { useUserRole } from "@/hooks/useUserRole";
 import { Loader2, Trash2, UserCircle } from "lucide-react";
 import { logger } from "@/lib/logger";
 
+import { toast } from "sonner";
 interface Prospect {
   id: string;
   nome_empresa: string;
@@ -51,7 +51,6 @@ export const ProspectDetailDialog = ({ prospect, open, onOpenChange, onUpdate }:
   const [formData, setFormData] = useState<Prospect | null>(null);
   const [loading, setLoading] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const { toast } = useToast();
   const { isAdmin } = useUserRole();
 
   useEffect(() => {
@@ -92,20 +91,13 @@ export const ProspectDetailDialog = ({ prospect, open, onOpenChange, onUpdate }:
 
       if (error) throw error;
 
-      toast({
-        title: "Sucesso",
-        description: "Prospect atualizado com sucesso",
-      });
+      toast.success("Sucesso", { description: "Prospect atualizado com sucesso" });
       
       onUpdate();
       onOpenChange(false);
     } catch (error) {
       logger.error("Erro ao atualizar prospect:", error);
-      toast({
-        title: "Erro",
-        description: "Não foi possível atualizar o prospect",
-        variant: "destructive",
-      });
+      toast.error("Erro", { description: "Não foi possível atualizar o prospect" });
     } finally {
       setLoading(false);
     }
@@ -123,21 +115,14 @@ export const ProspectDetailDialog = ({ prospect, open, onOpenChange, onUpdate }:
 
       if (error) throw error;
 
-      toast({
-        title: "Sucesso",
-        description: "Prospect excluído com sucesso",
-      });
+      toast.success("Sucesso", { description: "Prospect excluído com sucesso" });
       
       onUpdate();
       onOpenChange(false);
       setDeleteDialogOpen(false);
     } catch (error) {
       logger.error("Erro ao excluir prospect:", error);
-      toast({
-        title: "Erro",
-        description: "Não foi possível excluir o prospect",
-        variant: "destructive",
-      });
+      toast.error("Erro", { description: "Não foi possível excluir o prospect" });
     } finally {
       setLoading(false);
     }

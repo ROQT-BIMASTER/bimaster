@@ -3,9 +3,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
-import { useToast } from "@/hooks/use-toast";
 import { Bell, Mail, MessageSquare, Calendar } from "lucide-react";
 
+import { toast } from "sonner";
 interface NotificationSettings {
   emailProspects: boolean;
   emailAtividades: boolean;
@@ -18,7 +18,6 @@ interface NotificationSettings {
 }
 
 export const ConfiguracoesNotificacoes = () => {
-  const { toast } = useToast();
   const [settings, setSettings] = useState<NotificationSettings>({
     emailProspects: true,
     emailAtividades: true,
@@ -35,10 +34,7 @@ export const ConfiguracoesNotificacoes = () => {
   };
 
   const handleSave = () => {
-    toast({
-      title: "Configurações salvas",
-      description: "Suas preferências de notificação foram atualizadas (interface only)",
-    });
+    toast.success("Configurações salvas", { description: "Suas preferências de notificação foram atualizadas (interface only)" });
   };
 
   return (

@@ -5,13 +5,13 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { useToast } from "@/hooks/use-toast";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { distribuidoraSchema, DistribuidoraInput, cleanCNPJ } from "@/lib/validations/estoque";
 import { useEffect } from "react";
 import { CnpjSearchButton, CnpjData } from "@/components/shared/CnpjSearchButton";
 
+import { toast } from "sonner";
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -19,7 +19,6 @@ interface Props {
 }
 
 export function NovaDistribuidoraDialog({ open, onOpenChange, editingItem }: Props) {
-  const { toast } = useToast();
   const queryClient = useQueryClient();
 
   const form = useForm<DistribuidoraInput>({
@@ -48,11 +47,11 @@ export function NovaDistribuidoraDialog({ open, onOpenChange, editingItem }: Pro
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['estoque-distribuidoras'] });
-      toast({ title: editingItem ? "Distribuidora atualizada" : "Distribuidora criada" });
+      toast(editingItem ? "Distribuidora atualizada" : "Distribuidora criada");
       onOpenChange(false);
     },
     onError: (error: any) => {
-      toast({ title: "Erro", description: error.message, variant: "destructive" });
+      toast.error("Erro", { description: error.message });
     }
   });
 

@@ -5,10 +5,10 @@ import { Card } from '@/components/ui/card';
 import { Phone, PhoneOff, Mic, MicOff, Loader2 } from 'lucide-react';
 import { RealtimeAudioCall, CallMessage } from '@/utils/RealtimeAudioCall';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
 import LiveTranscription from './LiveTranscription';
 import { logger } from "@/lib/logger";
 
+import { toast } from "sonner";
 interface AICallInterfaceProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -17,7 +17,6 @@ interface AICallInterfaceProps {
 }
 
 const AICallInterface = ({ open, onOpenChange, prospectId, prospectName }: AICallInterfaceProps) => {
-  const { toast } = useToast();
   const [status, setStatus] = useState<string>('idle');
   const [messages, setMessages] = useState<CallMessage[]>([]);
   const [isMuted, setIsMuted] = useState(false);
@@ -55,18 +54,11 @@ const AICallInterface = ({ open, onOpenChange, prospectId, prospectName }: AICal
 
       await callRef.current.startCall(data.callId, data.client_secret.value);
 
-      toast({
-        title: "Ligação iniciada",
-        description: `Conectado com ${prospectName}`,
-      });
+      toast.success("Ligação iniciada", { description: `Conectado com ${prospectName}` });
 
     } catch (error) {
       logger.error('Erro ao iniciar ligação:', error);
-      toast({
-        title: "Erro ao iniciar ligação",
-        description: error instanceof Error ? error.message : 'Erro desconhecido',
-        variant: "destructive",
-      });
+      toast.error("Erro ao iniciar ligação", { description: error instanceof Error ? error.message : 'Erro desconhecido' });
       setStatus('error');
     }
   };
@@ -96,10 +88,7 @@ const AICallInterface = ({ open, onOpenChange, prospectId, prospectName }: AICal
         logger.error('Erro ao processar resultado:', error);
       }
 
-      toast({
-        title: "Ligação encerrada",
-        description: `Duração: ${Math.floor(result.duration / 60)}min ${result.duration % 60}s`,
-      });
+      toast.success("Ligação encerrada", { description: `Duração: ${Math.floor(result.duration / 60)}min ${result.duration % 60}s` });
 
       onOpenChange(false);
       setStatus('idle');
@@ -109,11 +98,7 @@ const AICallInterface = ({ open, onOpenChange, prospectId, prospectName }: AICal
 
     } catch (error) {
       logger.error('Erro ao encerrar ligação:', error);
-      toast({
-        title: "Erro ao encerrar ligação",
-        description: error instanceof Error ? error.message : 'Erro desconhecido',
-        variant: "destructive",
-      });
+      toast.error("Erro ao encerrar ligação", { description: error instanceof Error ? error.message : 'Erro desconhecido' });
     }
   };
 

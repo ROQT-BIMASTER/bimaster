@@ -12,8 +12,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CheckCircle2, Loader2, ShieldCheck, Users, Info } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { toast } from "@/hooks/use-toast";
-
+import { toast } from "sonner";
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 
 // Schema for token step
@@ -121,7 +120,7 @@ export default function FormularioEquipe() {
 
   const handleTokenSubmit = () => {
     if (!tokenInput.trim()) {
-      toast({ title: "Informe o código de acesso", variant: "destructive" });
+      toast.error("Informe o código de acesso");
       return;
     }
     setToken(tokenInput.trim());
@@ -140,21 +139,13 @@ export default function FormularioEquipe() {
       const result = await response.json();
 
       if (!response.ok) {
-        toast({
-          title: "Erro",
-          description: result.error || "Erro ao enviar formulário",
-          variant: "destructive",
-        });
+        toast.error("Erro", { description: result.error || "Erro ao enviar formulário" });
         return;
       }
 
       setStep("success");
     } catch {
-      toast({
-        title: "Erro de conexão",
-        description: "Verifique sua internet e tente novamente",
-        variant: "destructive",
-      });
+      toast.error("Erro de conexão", { description: "Verifique sua internet e tente novamente" });
     } finally {
       setIsSubmitting(false);
     }

@@ -10,7 +10,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Card, CardContent } from "@/components/ui/card";
 import { Search, Plus, Sparkles, Users, TrendingUp, Activity, Target, LayoutGrid, RefreshCw } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useToast } from "@/hooks/use-toast";
 import { NovoProspectDialog } from "@/components/prospects/NovoProspectDialog";
 import { ProspectFullModal } from "@/components/kanban/ProspectFullModal";
 import { AIInsightsChat } from "@/components/chat/AIInsightsChat";
@@ -25,6 +24,7 @@ import { format } from "date-fns";
 import { Skeleton } from "@/components/ui/skeleton";
 import { logger } from "@/lib/logger";
 
+import { toast } from "sonner";
 interface Prospect {
   id: string;
   nome_empresa: string;
@@ -91,7 +91,6 @@ const ProspectsOptimized = () => {
   const [kpiStats, setKpiStats] = useState<KpiStats | null>(null);
   const [kpiLoading, setKpiLoading] = useState(true);
   const [pipelineData, setPipelineData] = useState<{ name: string; value: number; key: string }[]>([]);
-  const { toast } = useToast();
   const { isAdmin, isSupervisor } = useUserRole();
   const { t } = useLanguage();
 

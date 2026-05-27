@@ -7,10 +7,10 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Send, MessageSquare } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { useToast } from "@/hooks/use-toast";
 import { logger } from "@/lib/logger";
 import { uniqueChannelName } from "@/lib/realtime/channelName";
 
+import { toast } from "sonner";
 interface Mensagem {
   id: string;
   conteudo: string;
@@ -32,8 +32,6 @@ export const ChatWindow = ({ conversaId }: ChatWindowProps) => {
   const [nomeConversa, setNomeConversa] = useState("");
   const [userId, setUserId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const { toast } = useToast();
-
   useEffect(() => {
     getCurrentUser();
   }, []);
@@ -141,11 +139,7 @@ export const ChatWindow = ({ conversaId }: ChatWindowProps) => {
       );
     } catch (error) {
       logger.error("Erro ao carregar mensagens:", error);
-      toast({
-        title: "Erro",
-        description: "Não foi possível carregar as mensagens",
-        variant: "destructive",
-      });
+      toast.error("Erro", { description: "Não foi possível carregar as mensagens" });
     }
   };
 
@@ -187,11 +181,7 @@ export const ChatWindow = ({ conversaId }: ChatWindowProps) => {
       setNovaMensagem("");
     } catch (error: any) {
       logger.error("Erro ao enviar mensagem:", error);
-      toast({
-        title: "Erro",
-        description: error.message || "Não foi possível enviar a mensagem",
-        variant: "destructive",
-      });
+      toast.error("Erro", { description: error.message || "Não foi possível enviar a mensagem" });
     } finally {
       setLoading(false);
     }

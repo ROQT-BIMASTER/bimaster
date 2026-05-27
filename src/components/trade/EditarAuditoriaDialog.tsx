@@ -6,8 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
-
+import { toast } from "sonner";
 interface EditarAuditoriaDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -16,7 +15,6 @@ interface EditarAuditoriaDialogProps {
 }
 
 export const EditarAuditoriaDialog = ({ open, onOpenChange, auditoriaId, onSuccess }: EditarAuditoriaDialogProps) => {
-  const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     preco_praticado: "",
@@ -54,11 +52,7 @@ export const EditarAuditoriaDialog = ({ open, onOpenChange, auditoriaId, onSucce
         observacoes: data.observacoes || "",
       });
     } catch (error: any) {
-      toast({
-        title: "Erro ao carregar auditoria",
-        description: error.message,
-        variant: "destructive",
-      });
+      toast.error("Erro ao carregar auditoria", { description: error.message });
     }
   };
 
@@ -81,19 +75,12 @@ export const EditarAuditoriaDialog = ({ open, onOpenChange, auditoriaId, onSucce
 
       if (error) throw error;
 
-      toast({
-        title: "Auditoria atualizada",
-        description: "As alterações foram salvas com sucesso.",
-      });
+      toast.success("Auditoria atualizada", { description: "As alterações foram salvas com sucesso." });
 
       onOpenChange(false);
       onSuccess?.();
     } catch (error: any) {
-      toast({
-        title: "Erro ao atualizar",
-        description: error.message,
-        variant: "destructive",
-      });
+      toast.error("Erro ao atualizar", { description: error.message });
     } finally {
       setLoading(false);
     }

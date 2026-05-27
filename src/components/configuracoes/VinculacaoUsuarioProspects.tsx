@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Loader2, Link2, Users, Search, Filter, X } from "lucide-react";
 import { logger } from "@/lib/logger";
+import { toast } from "sonner";
 import {
   Select,
   SelectContent,
@@ -39,8 +39,6 @@ export const VinculacaoUsuarioProspects = () => {
   const [zonaFilter, setZonaFilter] = useState<string>("all");
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
-  const { toast } = useToast();
-
   useEffect(() => {
     fetchUsuarios();
     fetchProspects();
@@ -132,20 +130,13 @@ export const VinculacaoUsuarioProspects = () => {
         if (error) throw error;
       }
 
-      toast({
-        title: "Vinculações atualizadas",
-        description: "Os clientes foram vinculados ao usuário com sucesso",
-      });
+      toast.success("Vinculações atualizadas", { description: "Os clientes foram vinculados ao usuário com sucesso" });
 
       // Recarregar as vinculações para garantir que a UI está atualizada
       await fetchLinkedProspects(selectedUsuario);
     } catch (error) {
       logger.error("Error saving links:", error);
-      toast({
-        title: "Erro ao salvar",
-        description: "Não foi possível atualizar as vinculações",
-        variant: "destructive",
-      });
+      toast.error("Erro ao salvar", { description: "Não foi possível atualizar as vinculações" });
     } finally {
       setSaving(false);
     }

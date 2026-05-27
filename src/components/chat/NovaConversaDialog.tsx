@@ -7,10 +7,10 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Search, Check, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { logger } from "@/lib/logger";
 
+import { toast } from "sonner";
 interface Usuario {
   id: string;
   nome: string | null;
@@ -29,8 +29,6 @@ export const NovaConversaDialog = ({ open, onOpenChange, onSuccess }: NovaConver
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [usuarioSelecionado, setUsuarioSelecionado] = useState<string>("");
   const [busca, setBusca] = useState("");
-  const { toast } = useToast();
-
   useEffect(() => {
     if (open) {
       setBusca("");
@@ -57,11 +55,7 @@ export const NovaConversaDialog = ({ open, onOpenChange, onSuccess }: NovaConver
       setUsuarios((data as unknown as Usuario[]) || []);
     } catch (error) {
       logger.error("Erro ao carregar usuários:", error);
-      toast({
-        title: "Erro",
-        description: "Não foi possível carregar os usuários",
-        variant: "destructive",
-      });
+      toast.error("Erro", { description: "Não foi possível carregar os usuários" });
     } finally {
       setLoadingUsers(false);
     }
@@ -77,11 +71,7 @@ export const NovaConversaDialog = ({ open, onOpenChange, onSuccess }: NovaConver
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!usuarioSelecionado) {
-      toast({
-        title: "Selecione um usuário",
-        description: "Escolha alguém da lista para iniciar a conversa.",
-        variant: "destructive",
-      });
+      toast.error("Selecione um usuário", { description: "Escolha alguém da lista para iniciar a conversa." });
       return;
     }
 
@@ -99,20 +89,13 @@ export const NovaConversaDialog = ({ open, onOpenChange, onSuccess }: NovaConver
       if (conversaError) throw conversaError;
       if (!conversaId) throw new Error("Não foi possível localizar a conversa criada");
 
-      toast({
-        title: "Conversa criada",
-        description: "Sua nova conversa foi iniciada.",
-      });
+      toast.success("Conversa criada", { description: "Sua nova conversa foi iniciada." });
 
       setUsuarioSelecionado("");
       onSuccess(conversaId as string);
     } catch (error: any) {
       logger.error("Erro ao criar conversa:", error);
-      toast({
-        title: "Erro",
-        description: error.message || "Não foi possível criar a conversa",
-        variant: "destructive",
-      });
+      toast.error("Erro", { description: error.message || "Não foi possível criar a conversa" });
     } finally {
       setLoading(false);
     }

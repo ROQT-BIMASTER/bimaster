@@ -4,7 +4,6 @@ import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Upload, Download, CheckCircle, XCircle, AlertCircle, Sparkles, Search } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -21,6 +20,7 @@ import { readExcelFile } from "@/utils/excelExport";
 import { createImportTemplate } from "@/utils/excelExport";
 import ExcelJS from 'exceljs';
 
+import { toast } from "sonner";
 interface ImportResult {
   total: number;
   distribuidos: number;
@@ -52,8 +52,6 @@ const ImportarClientes = () => {
   const [supervisorSelecionado, setSupervisorSelecionado] = useState<string>("");
   const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
-  const { toast } = useToast();
-
   useEffect(() => {
     checkAdmin();
     fetchUsuarios();
@@ -148,11 +146,7 @@ const ImportarClientes = () => {
         setFile(selectedFile);
         setResult(null);
       } else {
-        toast({
-          title: "Formato inválido",
-          description: "Apenas arquivos CSV ou Excel são aceitos",
-          variant: "destructive",
-        });
+        toast.error("Formato inválido", { description: "Apenas arquivos CSV ou Excel são aceitos" });
       }
     }
   };
@@ -251,11 +245,7 @@ const ImportarClientes = () => {
     
     reader.onerror = () => {
       logger.error("❌ Erro ao ler arquivo");
-      toast({
-        title: "Erro ao ler arquivo",
-        description: "Não foi possível ler o arquivo selecionado",
-        variant: "destructive",
-      });
+      toast.error("Erro ao ler arquivo", { description: "Não foi possível ler o arquivo selecionado" });
       setLoading(false);
     };
     
@@ -644,17 +634,10 @@ const ImportarClientes = () => {
 
         logger.debug(`Importação concluída: ${inseridos} inseridos, ${atualizados} atualizados, ${distribuidos} distribuídos`);
         
-        toast({
-          title: "Importação concluída",
-          description: `${inseridos} ${inseridos === 1 ? 'inserido' : 'inseridos'}, ${atualizados} ${atualizados === 1 ? 'atualizado' : 'atualizados'}`,
-        });
+        toast.success("Importação concluída", { description: `${inseridos} ${inseridos === 1 ? 'inserido' : 'inseridos'}, ${atualizados} ${atualizados === 1 ? 'atualizado' : 'atualizados'}` });
       } catch (error: any) {
         logger.error("❌ Erro durante o processamento:", error);
-        toast({
-          title: "Erro na importação",
-          description: error.message || "Erro ao processar arquivo",
-          variant: "destructive",
-        });
+        toast.error("Erro na importação", { description: error.message || "Erro ao processar arquivo" });
       } finally {
         setLoading(false);
       }
@@ -666,11 +649,7 @@ const ImportarClientes = () => {
 
   const handleImportIA = async () => {
     if (!textoIA.trim()) {
-      toast({
-        title: "Dados vazios",
-        description: "Por favor, cole os dados da planilha ou insira informações para análise",
-        variant: "destructive",
-      });
+      toast.error("Dados vazios", { description: "Por favor, cole os dados da planilha ou insira informações para análise" });
       return;
     }
 
@@ -697,11 +676,7 @@ const ImportarClientes = () => {
       logger.debug("📊 Resultado da análise:", analiseData);
 
       if (!analiseData?.prospects || analiseData.prospects.length === 0) {
-        toast({
-          title: "Nenhum prospect encontrado",
-          description: "A IA não conseguiu identificar empresas nos dados fornecidos",
-          variant: "destructive",
-        });
+        toast.error("Nenhum prospect encontrado", { description: "A IA não conseguiu identificar empresas nos dados fornecidos" });
         return;
       }
 
@@ -916,20 +891,13 @@ const ImportarClientes = () => {
         detalhes
       });
 
-      toast({
-        title: "✨ Importação com IA concluída",
-        description: `${inseridos} ${inseridos === 1 ? 'inserido' : 'inseridos'}, ${atualizados} ${atualizados === 1 ? 'atualizado' : 'atualizados'}`,
-      });
+      toast.success("✨ Importação com IA concluída", { description: `${inseridos} ${inseridos === 1 ? 'inserido' : 'inseridos'}, ${atualizados} ${atualizados === 1 ? 'atualizado' : 'atualizados'}` });
 
       setTextoIA(""); // Limpar campo
 
     } catch (error: any) {
       logger.error("❌ Erro na importação com IA:", error);
-      toast({
-        title: "Erro na importação",
-        description: error.message || "Erro ao processar dados com IA",
-        variant: "destructive",
-      });
+      toast.error("Erro na importação", { description: error.message || "Erro ao processar dados com IA" });
     } finally {
       setLoadingIA(false);
     }
@@ -1242,7 +1210,7 @@ Exemplo:
 
           <TabsContent value="cnpj" className="space-y-4">
             <CNPJBizCreditos />
-            <CNPJBizSearch onImportComplete={() => toast({ title: "Prospect importado com sucesso!" })} />
+            <CNPJBizSearch onImportComplete={() => toast("Prospect importado com sucesso!")} />
           </TabsContent>
 
           <TabsContent value="api" className="space-y-6">

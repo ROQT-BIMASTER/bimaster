@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef } from "react";
-import { useToast } from "@/hooks/use-toast";
 import { getAuthHeaders } from "@/lib/utils/auth-headers";
 
+import { toast } from "sonner";
 export interface QAMessage {
   id: string;
   role: "user" | "assistant";
@@ -27,8 +27,6 @@ export function useQAAgent() {
     issuesFound: 0
   });
   const abortControllerRef = useRef<AbortController | null>(null);
-  const { toast } = useToast();
-
   const sendMessage = useCallback(async (content: string) => {
     if (!content.trim() || isLoading) return;
 
@@ -162,11 +160,7 @@ export function useQAAgent() {
           : m
       ));
 
-      toast({
-        title: "Erro no Agente QA",
-        description: errorMessage,
-        variant: "destructive"
-      });
+      toast.error("Erro no Agente QA", { description: errorMessage });
     } finally {
       setIsLoading(false);
       abortControllerRef.current = null;

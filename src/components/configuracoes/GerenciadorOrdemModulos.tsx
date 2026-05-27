@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Loader2, GripVertical, Save, RotateCcw } from "lucide-react";
@@ -25,6 +24,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { Badge } from "@/components/ui/badge";
 import { useUserRole } from "@/hooks/useUserRole";
 
+import { toast } from "sonner";
 interface Module {
   id: string;
   codigo: string;
@@ -91,7 +91,6 @@ function SortableModuleItem({ module }: SortableModuleItemProps) {
 }
 
 export function GerenciadorOrdemModulos() {
-  const { toast } = useToast();
   const { isAdmin, loading: roleLoading } = useUserRole();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -130,11 +129,7 @@ export function GerenciadorOrdemModulos() {
       setHasChanges(false);
     } catch (error) {
       logger.error("Erro ao carregar módulos:", error);
-      toast({
-        title: "Erro",
-        description: "Falha ao carregar módulos",
-        variant: "destructive",
-      });
+      toast.error("Erro", { description: "Falha ao carregar módulos" });
     } finally {
       setLoading(false);
     }
@@ -177,10 +172,7 @@ export function GerenciadorOrdemModulos() {
 
       await Promise.all(updates);
 
-      toast({
-        title: "Sucesso",
-        description: "Ordem dos módulos atualizada com sucesso",
-      });
+      toast.success("Sucesso", { description: "Ordem dos módulos atualizada com sucesso" });
 
       setOriginalModules(modules);
       setHasChanges(false);
@@ -189,11 +181,7 @@ export function GerenciadorOrdemModulos() {
       window.dispatchEvent(new Event("modules-updated"));
     } catch (error) {
       logger.error("Erro ao salvar ordem:", error);
-      toast({
-        title: "Erro",
-        description: "Falha ao salvar a ordem dos módulos",
-        variant: "destructive",
-      });
+      toast.error("Erro", { description: "Falha ao salvar a ordem dos módulos" });
     } finally {
       setSaving(false);
     }
@@ -202,10 +190,7 @@ export function GerenciadorOrdemModulos() {
   const handleReset = () => {
     setModules(originalModules);
     setHasChanges(false);
-    toast({
-      title: "Restaurado",
-      description: "Ordem dos módulos foi restaurada",
-    });
+    toast.success("Restaurado", { description: "Ordem dos módulos foi restaurada" });
   };
 
   if (roleLoading || loading) {

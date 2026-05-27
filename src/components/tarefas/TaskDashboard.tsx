@@ -1,6 +1,5 @@
 import { useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { useToast } from "@/hooks/use-toast";
 import { 
   CheckCircle2, 
   Clock, 
@@ -24,8 +23,8 @@ import { format, subDays, startOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useAtividadesStats, getAtividadesPorTipo } from "@/hooks/useAtividadesData";
 
+import { toast } from "sonner";
 export const TaskDashboard = () => {
-  const { toast } = useToast();
   const { data, isLoading, error } = useAtividadesStats();
 
   // Processar dados para gráficos usando useMemo para evitar recálculos
@@ -52,11 +51,7 @@ export const TaskDashboard = () => {
 
   // Mostrar erro se houver
   if (error) {
-    toast({
-      title: "Erro",
-      description: "Não foi possível carregar os dados",
-      variant: "destructive",
-    });
+    toast.error("Erro", { description: "Não foi possível carregar os dados" });
   }
 
   const stats = data?.stats || {

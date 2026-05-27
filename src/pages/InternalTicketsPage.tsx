@@ -9,12 +9,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { useToast } from "@/hooks/use-toast";
 import { Loader2, Plus, Ticket, Link2, Search, AlertTriangle, Clock, CheckCircle } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { uniqueChannelName } from "@/lib/realtime/channelName";
 
+import { toast } from "sonner";
 interface InternalTicket {
   id: string;
   titulo: string;
@@ -49,8 +49,6 @@ const InternalTicketsPage = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [newTicket, setNewTicket] = useState({ titulo: "", descricao: "", prioridade: "media" });
   const [creating, setCreating] = useState(false);
-  const { toast } = useToast();
-
   const kpis = {
     total: tickets.length,
     abertos: tickets.filter(t => t.status === "aberto").length,
@@ -89,11 +87,11 @@ const InternalTicketsPage = () => {
       criado_por: user?.id,
     });
     if (error) {
-      toast({ title: "Erro", description: "Não foi possível criar o ticket", variant: "destructive" });
+      toast.error("Erro", { description: "Não foi possível criar o ticket" });
     } else {
       setDialogOpen(false);
       setNewTicket({ titulo: "", descricao: "", prioridade: "media" });
-      toast({ title: "Ticket criado", description: "Demanda interna registrada com sucesso" });
+      toast.success("Ticket criado", { description: "Demanda interna registrada com sucesso" });
     }
     setCreating(false);
   };

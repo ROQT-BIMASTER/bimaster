@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { useToast } from "@/hooks/use-toast";
 import { z } from "zod";
 import { Lock, AlertTriangle, Eye, EyeOff } from "lucide-react";
 import { Link } from "react-router-dom";
@@ -13,6 +12,7 @@ import { usePWA } from "@/contexts/PWAContext";
 import { forceCleanNavigate } from "@/lib/version";
 import { logger } from "@/lib/logger";
 
+import { toast } from "sonner";
 const loginSchema = z.object({
   email: z
     .string()
@@ -72,17 +72,16 @@ export const LoginForm = () => {
   const [lastSubmitTime, setLastSubmitTime] = useState(0);
   const [showMFA, setShowMFA] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const { toast } = useToast();
   const { autoUpdateOnLogin } = usePWA();
 
   useEffect(() => {
     const handleOnline = () => {
       setIsOnline(true);
-      toast({ title: "✅ Conexão restaurada", description: "Você está online novamente" });
+      toast.success("✅ Conexão restaurada", { description: "Você está online novamente" });
     };
     const handleOffline = () => {
       setIsOnline(false);
-      toast({ title: "⚠️ Sem conexão", description: "Você está offline. Algumas funcionalidades podem não funcionar.", variant: "destructive" });
+      toast.error("⚠️ Sem conexão", { description: "Você está offline. Algumas funcionalidades podem não funcionar." });
     };
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
@@ -141,7 +140,7 @@ export const LoginForm = () => {
 
   const handleMFASuccess = () => {
     setShowMFA(false);
-    toast({ title: "Login realizado!", description: "Autenticação em duas etapas verificada" });
+    toast.success("Login realizado!", { description: "Autenticação em duas etapas verificada" });
     navigateAfterLogin();
   };
 
@@ -155,11 +154,7 @@ export const LoginForm = () => {
     await withTimeout(autoUpdateOnLogin(), PWA_UPDATE_TIMEOUT);
 
     // Toast discreto informando atualização para a versão mais recente
-    toast({
-      title: "Atualizando sistema",
-      description: "Carregando a versão mais recente...",
-      duration: 2000,
-    });
+    toast.success("Atualizando sistema", { description: "Carregando a versão mais recente...", duration: 2000 });
 
     const role = await fetchUserRoleWithTimeout(session.user.id);
 
@@ -182,7 +177,7 @@ export const LoginForm = () => {
     e.preventDefault();
 
     if (!isOnline) {
-      toast({ title: "Sem conexão", description: "Você precisa estar online para fazer login.", variant: "destructive" });
+      toast.error("Sem conexão", { description: "Você precisa estar online para fazer login." });
       return;
     }
 
@@ -192,14 +187,14 @@ export const LoginForm = () => {
         logger.warn("Bot detected via honeypot");
         // Simulate delay to not reveal detection
         await new Promise(r => setTimeout(r, 1500));
-        toast({ title: "Erro ao fazer login", description: "Email ou senha incorretos", variant: "destructive" });
+        toast.error("Erro ao fazer login", { description: "Email ou senha incorretos" });
         return;
       }
 
       // Client-side rate limit — min 2s between submissions
       const now = Date.now();
       if (now - lastSubmitTime < 2000) {
-        toast({ title: "Aguarde", description: "Muitas tentativas. Aguarde alguns segundos.", variant: "destructive" });
+        toast.error("Aguarde", { description: "Muitas tentativas. Aguarde alguns segundos." });
         return;
       }
       setLastSubmitTime(now);
@@ -209,11 +204,7 @@ export const LoginForm = () => {
       // Check lockout before attempting login
       const isLocked = await checkLockout(validated.email);
       if (isLocked) {
-        toast({
-          title: "Conta temporariamente bloqueada",
-          description: "Muitas tentativas falhas. Aguarde alguns minutos e tente novamente.",
-          variant: "destructive",
-        });
+        toast.error("Conta temporariamente bloqueada", { description: "Muitas tentativas falhas. Aguarde alguns minutos e tente novamente." });
         return;
       }
 
@@ -234,13 +225,9 @@ export const LoginForm = () => {
           const attemptsInfo = lockout?.remaining_attempts
             ? ` (${lockout.remaining_attempts - 1} tentativas restantes)`
             : "";
-          toast({
-            title: "Erro ao fazer login",
-            description: `Email ou senha incorretos${attemptsInfo}`,
-            variant: "destructive",
-          });
+          toast.error("Erro ao fazer login", { description: `Email ou senha incorretos${attemptsInfo}` });
         } else {
-          toast({ title: "Erro ao fazer login", description: error.message, variant: "destructive" });
+          toast.error("Erro ao fazer login", { description: error.message });
         }
         return;
       }
@@ -259,12 +246,12 @@ export const LoginForm = () => {
           return;
         }
 
-        toast({ title: "Login realizado!", description: "Bem-vindo de volta" });
+        toast.success("Login realizado!", { description: "Bem-vindo de volta" });
         await navigateAfterLogin();
       }
     } catch (error) {
       if (error instanceof z.ZodError) {
-        toast({ title: "Erro de validação", description: error.errors[0].message, variant: "destructive" });
+        toast.error("Erro de validação", { description: error.errors[0].message });
       }
     } finally {
       setLoading(false);

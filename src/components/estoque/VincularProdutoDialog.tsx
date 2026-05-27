@@ -5,16 +5,15 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useToast } from "@/hooks/use-toast";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { vinculacaoSchema, VinculacaoInput } from "@/lib/validations/estoque";
 import { useEffect } from "react";
 
+import { toast } from "sonner";
 interface Props { open: boolean; onOpenChange: (open: boolean) => void; editingItem?: any; }
 
 export function VincularProdutoDialog({ open, onOpenChange, editingItem }: Props) {
-  const { toast } = useToast();
   const queryClient = useQueryClient();
 
   const { data: distribuidoras } = useQuery({
@@ -48,8 +47,8 @@ export function VincularProdutoDialog({ open, onOpenChange, editingItem }: Props
         if (error) throw error;
       }
     },
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['estoque-vinculacoes'] }); toast({ title: "Vinculação salva" }); onOpenChange(false); },
-    onError: (error: any) => toast({ title: "Erro", description: error.message, variant: "destructive" })
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['estoque-vinculacoes'] }); toast("Vinculação salva"); onOpenChange(false); },
+    onError: (error: any) => toast.error("Erro", { description: error.message })
   });
 
   return (

@@ -9,10 +9,10 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { useToast } from "@/hooks/use-toast";
 import { Plus, Pencil, Trash2, Upload, X } from "lucide-react";
 import { logger } from "@/lib/logger";
 
+import { toast } from "sonner";
 interface Reward {
   id: string;
   reward_name: string;
@@ -36,8 +36,6 @@ export function GerenciamentoPremiacoes() {
   const [uploading, setUploading] = useState(false);
   const [bannerPreview, setBannerPreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { toast } = useToast();
-
   const [formData, setFormData] = useState({
     reward_name: "",
     description: "",
@@ -67,11 +65,7 @@ export function GerenciamentoPremiacoes() {
       setRewards(data || []);
     } catch (error) {
       logger.error("Erro ao buscar premiações:", error);
-      toast({
-        title: "Erro ao carregar premiações",
-        description: "Não foi possível carregar as premiações.",
-        variant: "destructive",
-      });
+      toast.error("Erro ao carregar premiações", { description: "Não foi possível carregar as premiações." });
     } finally {
       setLoading(false);
     }
@@ -122,20 +116,12 @@ export function GerenciamentoPremiacoes() {
     if (!file) return;
 
     if (!file.type.startsWith('image/')) {
-      toast({
-        title: "Arquivo inválido",
-        description: "Por favor, selecione apenas arquivos de imagem.",
-        variant: "destructive",
-      });
+      toast.error("Arquivo inválido", { description: "Por favor, selecione apenas arquivos de imagem." });
       return;
     }
 
     if (file.size > 5 * 1024 * 1024) {
-      toast({
-        title: "Arquivo muito grande",
-        description: "O arquivo deve ter no máximo 5MB.",
-        variant: "destructive",
-      });
+      toast.error("Arquivo muito grande", { description: "O arquivo deve ter no máximo 5MB." });
       return;
     }
 
@@ -164,17 +150,10 @@ export function GerenciamentoPremiacoes() {
       // Armazenar apenas o caminho (path) por segurança
       setFormData({ ...formData, banner_url: filePath });
 
-      toast({
-        title: "Banner enviado",
-        description: "O banner foi enviado com sucesso.",
-      });
+      toast.success("Banner enviado", { description: "O banner foi enviado com sucesso." });
     } catch (error) {
       logger.error("Erro ao fazer upload:", error);
-      toast({
-        title: "Erro no upload",
-        description: "Não foi possível enviar o banner.",
-        variant: "destructive",
-      });
+      toast.error("Erro no upload", { description: "Não foi possível enviar o banner." });
     } finally {
       setUploading(false);
     }
@@ -212,10 +191,7 @@ export function GerenciamentoPremiacoes() {
 
         if (error) throw error;
 
-        toast({
-          title: "Premiação atualizada",
-          description: "A premiação foi atualizada com sucesso.",
-        });
+        toast.success("Premiação atualizada", { description: "A premiação foi atualizada com sucesso." });
       } else {
         const { error } = await supabase
           .from("trade_rewards")
@@ -223,10 +199,7 @@ export function GerenciamentoPremiacoes() {
 
         if (error) throw error;
 
-        toast({
-          title: "Premiação criada",
-          description: "A premiação foi criada com sucesso.",
-        });
+        toast.success("Premiação criada", { description: "A premiação foi criada com sucesso." });
       }
 
       setDialogOpen(false);
@@ -234,11 +207,7 @@ export function GerenciamentoPremiacoes() {
       fetchRewards();
     } catch (error) {
       logger.error("Erro ao salvar premiação:", error);
-      toast({
-        title: "Erro ao salvar",
-        description: "Não foi possível salvar a premiação.",
-        variant: "destructive",
-      });
+      toast.error("Erro ao salvar", { description: "Não foi possível salvar a premiação." });
     }
   };
 
@@ -253,19 +222,12 @@ export function GerenciamentoPremiacoes() {
 
       if (error) throw error;
 
-      toast({
-        title: "Premiação excluída",
-        description: "A premiação foi excluída com sucesso.",
-      });
+      toast.success("Premiação excluída", { description: "A premiação foi excluída com sucesso." });
 
       fetchRewards();
     } catch (error) {
       logger.error("Erro ao excluir premiação:", error);
-      toast({
-        title: "Erro ao excluir",
-        description: "Não foi possível excluir a premiação.",
-        variant: "destructive",
-      });
+      toast.error("Erro ao excluir", { description: "Não foi possível excluir a premiação." });
     }
   };
 
