@@ -90,18 +90,22 @@ export function HojeTab({ onGoToTarefas }: Props) {
   const { data: projetos = [], isLoading: loadingProjetos } = useMeusProjetosRecentes();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const [search, setSearch] = useState("");
 
   const now = startOfDay(new Date());
   const pendentes = tarefas.filter(t => t.status !== "concluida");
+  const q = search.trim().toLowerCase();
+  const matchSearch = (t: MinaTarefa) =>
+    !q || t.titulo.toLowerCase().includes(q) || (t.projeto_nome ?? "").toLowerCase().includes(q);
   const atrasadas = pendentes.filter(t => {
     const p = parseLocalDate(t.data_prazo);
     return p && isBefore(startOfDay(p), now);
-  });
+  }).filter(matchSearch);
   const hoje = pendentes.filter(t => {
     const p = parseLocalDate(t.data_prazo);
     return p && isToday(p);
-  });
-  const semData = pendentes.filter(t => isSemDatasPlanejadas(t));
+  }).filter(matchSearch);
+  const semData = pendentes.filter(t => isSemDatasPlanejadas(t)).filter(matchSearch);
 
   const totalDestaque = atrasadas.length + hoje.length + semData.length;
 
