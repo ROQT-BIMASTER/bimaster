@@ -313,6 +313,7 @@ const CategoryDivider = ({ title }: { title: string }) => (
 );
 
 export function AppSidebar({ side }: { side?: "left" | "right" }) {
+  const confirm = useConfirm();
   const isMobile = useIsMobile();
   const navigate = useNavigate();
   const location = useLocation();
@@ -1522,8 +1523,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
           </div>
           <button
             type="button"
-            onClick={
-            onClick={const confirm = useConfirm();async () => {
+            onClick={async () => {
               if ((await confirm({ title: `Versão atual: ${APP_VERSION}`, description: `Forçar atualização agora? A página será recarregada e o cache será limpo.` }))) {
                 forceCleanReload();
               }

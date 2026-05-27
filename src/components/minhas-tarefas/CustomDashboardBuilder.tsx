@@ -160,6 +160,7 @@ function WidgetCard({
 }
 
 export function CustomDashboardBuilder({ tarefas }: Props) {
+  const confirm = useConfirm();
   const { dashboards, isLoading, createDashboard, updateWidgets, renameDashboard, deleteDashboard } =
     useCustomDashboards();
 
@@ -254,8 +255,7 @@ export function CustomDashboardBuilder({ tarefas }: Props) {
           <Plus className="h-3.5 w-3.5" /> Novo
         </Button>
 
-        {
-        {const confirm = useConfirm();activeDash && (
+        {activeDash && (
           <>
             <Button
               variant={editing ? "default" : "outline"}

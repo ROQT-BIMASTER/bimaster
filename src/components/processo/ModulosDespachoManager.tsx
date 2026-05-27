@@ -31,6 +31,7 @@ const CAPABILITY_LABELS = [
 ] as const;
 
 export function ModulosDespachoManager() {
+  const confirm = useConfirm();
   const { data: modulos = [], isLoading } = useAllModulosDespacho();
   const { addModulo, updateModulo, deleteModulo } = useManageModulosDespacho();
   const [showNew, setShowNew] = useState(false);
@@ -75,8 +76,7 @@ export function ModulosDespachoManager() {
       </CardHeader>
       <CardContent className="px-4 pb-4 space-y-1">
         {isLoading && <p className="text-xs text-muted-foreground">Carregando...</p>}
-        {
-        {const confirm = useConfirm();modulos.map((m) => {
+        {modulos.map((m) => {
           const IconComp = ICON_MAP[m.icon_name] || ICON_MAP["file-text"];
           return (
             <React.Fragment key={m.id}>
