@@ -1,5 +1,5 @@
 import { logger } from "@/lib/logger";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, type MutableRefObject } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -105,7 +105,7 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
   };
 
   const setPendingListOp = (
-    ref: React.MutableRefObject<Map<string, Map<string, PendingListOp>>>,
+    ref: MutableRefObject<Map<string, Map<string, PendingListOp>>>,
     tarefaId: string,
     userId: string,
     op: "add" | "remove",
@@ -119,7 +119,7 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
   };
 
   const clearPendingListOp = (
-    ref: React.MutableRefObject<Map<string, Map<string, PendingListOp>>>,
+    ref: MutableRefObject<Map<string, Map<string, PendingListOp>>>,
     tarefaId: string,
     userId: string,
   ) => {
@@ -230,7 +230,7 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
       } else if (data != null) {
         logger.warn("get_projeto_tarefas_v2: payload com shape inesperado", { data });
       }
-      return {
+      return applyPendingAssignments({
         secoes: (Array.isArray(payload.secoes) ? payload.secoes : []) as ProjetoSecao[],
         tarefas: (Array.isArray(payload.tarefas) ? payload.tarefas : []) as ProjetoTarefa[],
         teamMembers: (Array.isArray(payload.team_members) ? payload.team_members : []) as { id: string; nome: string; avatar_url: string | null }[],
@@ -239,7 +239,7 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
         totalSecoesProjeto: payload.total_secoes_projeto ?? 0,
         totalTarefasProjeto: payload.total_tarefas_projeto ?? 0,
         visibleTarefasCount: payload.visible_tarefas_count ?? 0,
-      };
+      });
     },
     enabled: !!projetoId && !!user,
     staleTime: 30_000,
