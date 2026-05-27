@@ -6,7 +6,8 @@
  * "Reconhecer" marca todas as `notifications` do tipo `chat_urgent`
  * como lidas (read=true). Não apaga a mensagem original — só fecha o alerta.
  */
-import { useNavigate } from "react-router-dom";
+// Não usar hooks do react-router aqui — este banner pode ser montado fora do <Router>.
+// Navegação é feita com window.location (cross-app friendly) — ver no-router-hooks.test.ts.
 import { AlertOctagon, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useMencoesNotifications } from "@/hooks/useMencoesNotifications";
@@ -14,7 +15,7 @@ import { useMemo } from "react";
 
 export function UrgentMessageBanner() {
   const { mencoes, marcarLida } = useMencoesNotifications();
-  const navigate = useNavigate();
+
 
   const urgentes = useMemo(
     () => (mencoes ?? []).filter((m) => m.type === "chat_urgent" && !m.read),
@@ -49,7 +50,7 @@ export function UrgentMessageBanner() {
               variant="secondary"
               onClick={() => {
                 marcarLida.mutate([primeira.id]);
-                navigate(primeira.action_url!);
+                window.location.assign(primeira.action_url!);
               }}
             >
               Abrir agora

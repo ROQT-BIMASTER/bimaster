@@ -72,18 +72,19 @@ describe('AuthContext', () => {
       expect(result.current.user).toBe(null);
     });
 
-    it('deve inicializar approved como true quando há cache no localStorage', () => {
-      // Arrange
+    it('NÃO deve inicializar approved=true a partir do cache localStorage (segurança — só servidor decide)', () => {
+      // Arrange — cache diz "true", mas o contrato atual ignora isso até o servidor confirmar.
       localStorageMock.getItem.mockReturnValue('true');
-      
+
       // Act
       const { result } = renderHook(() => useAuth(), {
         wrapper: AuthProvider,
       });
 
-      // Assert
-      expect(result.current.approved).toBe(true);
+      // Assert — approved permanece false até resposta do servidor (anti privilege escalation).
+      expect(result.current.approved).toBe(false);
     });
+
 
     it('deve ter isOnline inicializado corretamente', () => {
       // Arrange & Act
@@ -136,19 +137,20 @@ describe('AuthContext', () => {
   });
 
   describe('Cache de aprovação', () => {
-    it('deve salvar aprovação no cache quando usuário é aprovado', () => {
-      // Arrange
+    it('NÃO deve ler cache de aprovação enquanto não houver sessão (servidor é a fonte da verdade)', () => {
+      // Arrange — sem sessão mockada, fetchApprovalStatus não roda.
       localStorageMock.getItem.mockReturnValue('true');
-      
+
       // Act
       renderHook(() => useAuth(), {
         wrapper: AuthProvider,
       });
 
-      // Assert - O cache foi lido
-      expect(localStorageMock.getItem).toHaveBeenCalledWith('user_approved_cache');
+      // Assert — sem sessão, o cache 'user_approved_cache' não deve ser consultado.
+      expect(localStorageMock.getItem).not.toHaveBeenCalledWith('user_approved_cache');
     });
   });
+
 
   describe('Segurança', () => {
     it('deve limpar cache no logout', async () => {
