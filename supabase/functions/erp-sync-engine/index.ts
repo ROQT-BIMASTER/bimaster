@@ -4,6 +4,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { secureHandler } from "../_shared/secure-handler.ts";
 import { jsonResponse, errorResponse } from "../_shared/response.ts";
+import { validateAnyAuth, AuthError } from "../_shared/auth.ts";
 
 // ─── SQL Server connection via tedious ───
 import { Connection, Request as TdsRequest } from "npm:tedious@19.0.0";
@@ -1364,6 +1365,52 @@ Deno.serve(secureHandler({
 }, async (req: Request, _ctx) => {
 
   const startMs = Date.now();
+  const cors = getCorsHeaders(req);
+
+  // ─── Auth gate: require authenticated admin user ───
+  let authUserId: string | undefined;
+  try {
+    const auth = await validateAnyAuth(req);
+    authUserId = auth.userId;
+    if (!authUserId) {
+      return new Response(
+        JSON.stringify({ error: "Autenticação de usuário obrigatória" }),
+        { status: 401, headers: { ...cors, "Content-Type": "application/json" } },
+      );
+    }
+  } catch (err) {
+    const status = err instanceof AuthError ? err.status : 401;
+    const message = err instanceof Error ? err.message : "Não autorizado";
+    return new Response(
+      JSON.stringify({ error: message }),
+      { status, headers: { ...cors, "Content-Type": "application/json" } },
+    );
+  }
+
+  // Authorization: require admin role
+  try {
+    const adminClient = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+    );
+    const { data: roleRow, error: roleErr } = await adminClient
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", authUserId)
+      .eq("role", "admin")
+      .maybeSingle();
+    if (roleErr || !roleRow) {
+      return new Response(
+        JSON.stringify({ error: "Acesso restrito a administradores" }),
+        { status: 403, headers: { ...cors, "Content-Type": "application/json" } },
+      );
+    }
+  } catch (_e) {
+    return new Response(
+      JSON.stringify({ error: "Acesso restrito a administradores" }),
+      { status: 403, headers: { ...cors, "Content-Type": "application/json" } },
+    );
+  }
 
   try {
     const url = new URL(req.url);
@@ -1375,6 +1422,7 @@ Deno.serve(secureHandler({
         path = body.path?.replace(/^\//, "") || "";
       } catch (_) {}
     }
+
 
     switch (path) {
       case "test-connection":
