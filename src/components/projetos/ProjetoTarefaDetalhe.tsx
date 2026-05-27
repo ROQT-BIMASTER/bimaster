@@ -389,20 +389,11 @@ export function ProjetoTarefaDetalhe({
             <SheetDescription>Visualize e edite os detalhes da tarefa selecionada</SheetDescription>
           </SheetHeader>
 
-          {/* Gradient header based on stage */}
-          <div className={cn(
-            "px-5 py-3 border-b border-border/50 flex items-center gap-2",
-            tarefa.estagio === "briefing" && "bg-gradient-to-r from-purple-500/15 to-transparent",
-            tarefa.estagio === "em_criacao" && "bg-gradient-to-r from-blue-500/15 to-transparent",
-            tarefa.estagio === "revisao" && "bg-gradient-to-r from-amber-500/15 to-transparent",
-            tarefa.estagio === "aprovado" && "bg-gradient-to-r from-emerald-500/15 to-transparent",
-            tarefa.estagio === "producao" && "bg-gradient-to-r from-pink-500/15 to-transparent",
-            tarefa.estagio === "lancamento" && "bg-gradient-to-r from-pink-500/15 to-transparent",
-            !tarefa.estagio && ""
-          )}>
+          {/* Top action bar — Asana-style flat header */}
+          <div className="px-5 py-3 border-b border-border/60 flex items-center gap-2">
             {/* Marcar como concluída - bloqueado durante validação pendente */}
             {isPendingValidation ? (
-              <Badge className="text-[10px] bg-amber-500/20 text-amber-400 border-0 gap-1">
+              <Badge className="text-[10px] bg-amber-500/20 text-amber-400 border-0 gap-1 rounded-full px-2.5 py-1">
                 <Clock className="h-3 w-3" />
                 Pendente de Aprovação
               </Badge>
@@ -410,7 +401,10 @@ export function ProjetoTarefaDetalhe({
               <Button
                 variant={isCompleted ? "default" : "outline"}
                 size="sm"
-                className={cn("gap-1.5 text-xs", isCompleted && "bg-emerald-600 hover:bg-emerald-700")}
+                className={cn(
+                  "gap-1.5 text-xs rounded-full h-8 px-3",
+                  isCompleted && "bg-emerald-600 hover:bg-emerald-700"
+                )}
                 onClick={() => onToggle(tarefa)}
                 disabled={isPendingValidation}
               >
