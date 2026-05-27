@@ -265,6 +265,10 @@ export function TarefaResponsavelSeguidoresEditor({
               <CommandItem
                 value="__me__"
                 onSelect={() => handleToggle(user.id)}
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  handleToggle(user.id);
+                }}
                 className="text-xs"
               >
                 <UserPlus className="h-3.5 w-3.5 mr-2" />
@@ -280,6 +284,12 @@ export function TarefaResponsavelSeguidoresEditor({
                 <CommandItem
                   value="__remove__"
                   onSelect={() => {
+                    if (kind === "responsavel") removerResponsavel(swapFrom);
+                    else removerSeguidor(swapFrom);
+                    onPicked();
+                  }}
+                  onMouseDown={(e) => {
+                    e.preventDefault();
                     if (kind === "responsavel") removerResponsavel(swapFrom);
                     else removerSeguidor(swapFrom);
                     onPicked();
@@ -315,6 +325,10 @@ export function TarefaResponsavelSeguidoresEditor({
                       key={m.user_id}
                       value={m.profile?.nome || m.user_id}
                       onSelect={() => handleToggle(m.user_id)}
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        handleToggle(m.user_id);
+                      }}
                       className={cn("text-xs", isSelected && "bg-accent/60")}
                     >
                       <Avatar className="h-5 w-5 mr-2">
@@ -366,7 +380,7 @@ export function TarefaResponsavelSeguidoresEditor({
                     </Avatar>
                   </button>
                 </PopoverTrigger>
-                <PopoverContent className="w-64 p-0" align="start">
+                <PopoverContent className="w-64 p-0" align="start" onOpenAutoFocus={(e) => e.preventDefault()}>
                   {renderPicker({
                     kind: "responsavel",
                     swapFrom: r.user_id,
@@ -400,7 +414,7 @@ export function TarefaResponsavelSeguidoresEditor({
               <Plus className="h-3 w-3" />
             </Button>
           </PopoverTrigger>
-          <PopoverContent className="w-64 p-0" align="start">
+          <PopoverContent className="w-64 p-0" align="start" onOpenAutoFocus={(e) => e.preventDefault()}>
             {renderPicker({
               kind: "responsavel",
               onPicked: () => setRespOpenKey(null),
@@ -435,7 +449,7 @@ export function TarefaResponsavelSeguidoresEditor({
                     </Avatar>
                   </button>
                 </PopoverTrigger>
-                <PopoverContent className="w-64 p-0" align="start">
+                <PopoverContent className="w-64 p-0" align="start" onOpenAutoFocus={(e) => e.preventDefault()}>
                   {renderPicker({
                     kind: "seguidor",
                     swapFrom: c.user_id,
@@ -469,7 +483,7 @@ export function TarefaResponsavelSeguidoresEditor({
               <Plus className="h-3 w-3" />
             </Button>
           </PopoverTrigger>
-          <PopoverContent className="w-64 p-0" align="start">
+          <PopoverContent className="w-64 p-0" align="start" onOpenAutoFocus={(e) => e.preventDefault()}>
             {renderPicker({
               kind: "seguidor",
               onPicked: () => setSegOpenKey(null),
