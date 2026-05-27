@@ -1,0 +1,1065 @@
+/**
+ * SDK oficial para integração com o ERP BiMaster/Huggs.
+ * @example
+ * const erp = new HuggsERP("huggs-erp-xxxxxxxx", "https://api.bimaster.online/v1");
+ * const status = await erp.cpStatus();
+ */
+
+// ═══════════════════════════════════════
+// ENUMS
+// ═══════════════════════════════════════
+
+const RegimeApuracao = Object.freeze({ COMPETENCIA: "Competência", CAIXA: "Caixa" });
+const TipoEmpresa = Object.freeze({ MATRIZ: "Matriz", FILIAL: "Filial", COLIGADA: "Coligada" });
+const Porte = Object.freeze({ ME: "ME", EPP: "EPP", DEMAIS: "Demais" });
+const StatusTitulo = Object.freeze({ PENDENTE: "pendente", PAGO: "pago", VENCIDO: "vencido", CANCELADO: "cancelado" });
+const TipoCategoria = Object.freeze({ RECEITA: "receita", DESPESA: "despesa" });
+const WebhookEvent = Object.freeze({
+  CP_CRIADO: "conta_pagar.criado", CP_ALTERADO: "conta_pagar.alterado",
+  CP_EXCLUIDO: "conta_pagar.excluido", CP_PAGO: "conta_pagar.pago",
+  CR_CRIADO: "conta_receber.criado", CR_ALTERADO: "conta_receber.alterado",
+  CR_RECEBIDO: "conta_receber.recebido",
+  CLIENTE_CRIADO: "cliente.criado", CLIENTE_ALTERADO: "cliente.alterado",
+  FORNECEDOR_CRIADO: "fornecedor.criado", FORNECEDOR_ALTERADO: "fornecedor.alterado",
+});
+
+/**
+ * v3.1.0 (PR-8 P2) — Classes de erro tipadas, paridade com TS/Python.
+ * Integrador agora pode 'catch (e) { if (e instanceof HuggsConflictError) ... }'.
+ */
+class HuggsAPIError extends Error {
+  constructor(status, message, data = {}, requestId, rateLimitRemaining, rateLimitReset) {
+    super(`HTTP ${status}: ${message}`);
+    this.name = "HuggsAPIError";
+    this.status = status;
+    this.code = (data && data.error) || "unknown";
+    this.data = data || {};
+    this.requestId = requestId;
+    this.rateLimitRemaining = rateLimitRemaining;
+    this.rateLimitReset = rateLimitReset;
+  }
+}
+class HuggsValidationError extends HuggsAPIError {
+  constructor(message, data = {}, requestId) { super(400, message, data, requestId); this.name = "HuggsValidationError"; }
+}
+class HuggsAuthError extends HuggsAPIError {
+  constructor(message, data = {}, requestId) { super(401, message, data, requestId); this.name = "HuggsAuthError"; }
+}
+class HuggsConflictError extends HuggsAPIError {
+  constructor(message, data = {}, requestId) { super(409, message, data, requestId); this.name = "HuggsConflictError"; }
+}
+class HuggsRateLimitError extends HuggsAPIError {
+  constructor(retryAfter = 60, requestId, rateLimitRemaining, rateLimitReset) {
+    super(429, `Rate limit excedido. Retry após ${retryAfter}s`, {}, requestId, rateLimitRemaining, rateLimitReset);
+    this.name = "HuggsRateLimitError";
+    this.retryAfter = retryAfter;
+  }
+}
+class HuggsBusinessError extends HuggsAPIError {
+  constructor(codigoStatus, descricaoStatus, data = {}, requestId) {
+    super(200, `[${codigoStatus}] ${descricaoStatus}`, data, requestId);
+    this.name = "HuggsBusinessError";
+    this.codigoStatus = codigoStatus;
+    this.descricaoStatus = descricaoStatus;
+  }
+}
+
+// ═══════════════════════════════════════
+// WEBHOOK HMAC HELPER (v3.1.0 — PR-8 P1)
+// Validação timing-safe de assinaturas X-Webhook-Signature: sha256=<hex>.
+// Uso (Express):
+//   const ok = await verifyWebhookSignature(rawBody, req.headers['x-webhook-signature'], SECRET);
+//   if (!ok) return res.status(401).end();
+// ═══════════════════════════════════════
+async function verifyWebhookSignature(rawBody, signatureHeader, secret) {
+  if (!signatureHeader || !signatureHeader.startsWith("sha256=")) return false;
+  const received = signatureHeader.slice(7);
+  const enc = new TextEncoder();
+  const bodyBytes = typeof rawBody === "string" ? enc.encode(rawBody) : rawBody;
+  const key = await crypto.subtle.importKey("raw", enc.encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  const sig = await crypto.subtle.sign("HMAC", key, bodyBytes);
+  const expected = Array.from(new Uint8Array(sig)).map(b => b.toString(16).padStart(2, "0")).join("");
+  // Constant-time compare (XOR loop, sem early-exit).
+  if (expected.length !== received.length) return false;
+  let r = 0;
+  for (let i = 0; i < expected.length; i++) r |= expected.charCodeAt(i) ^ received.charCodeAt(i);
+  return r === 0;
+}
+
+/**
+ * v2.18.1: LRU bound (max 500) — previne memory leak em serviços long-running
+ * com queries dinâmicas. Map em ordem de inserção é LRU natural com delete+set no get.
+ * v3.1.0: + clear(pattern?) para invalidação seletiva.
+ */
+class LRUMap {
+  constructor(max = 500) { this.max = max; this.m = new Map(); }
+  get(k) { const v = this.m.get(k); if (v !== undefined) { this.m.delete(k); this.m.set(k, v); } return v; }
+  set(k, v) { if (this.m.has(k)) this.m.delete(k); else if (this.m.size >= this.max) { const f = this.m.keys().next().value; if (f !== undefined) this.m.delete(f); } this.m.set(k, v); }
+  has(k) { return this.m.has(k); }
+  get size() { return this.m.size; }
+  /** v3.1.0: limpa entries cuja chave casa com pattern (string substring ou RegExp). Sem pattern, limpa tudo. */
+  clear(pattern) {
+    if (!pattern) { const n = this.m.size; this.m.clear(); return n; }
+    let n = 0;
+    for (const k of [...this.m.keys()]) {
+      const s = String(k);
+      const hit = typeof pattern === "string" ? s.includes(pattern) : pattern.test(s);
+      if (hit) { this.m.delete(k); n++; }
+    }
+    return n;
+  }
+}
+
+/** v2.18.1: tipo público RateLimitMetadata = { limit, remaining, reset } (Object.freeze sentinel). */
+const RateLimitMetadata = Object.freeze({ __type: "RateLimitMetadata", fields: ["limit", "remaining", "reset"] });
+
+class HuggsERP {
+  /**
+   * @param {string|{apiKey:string,baseUrl?:string,cacheBody?:boolean}} opts - Chave de API ou objeto opts (v2.18.1)
+   * @param {string} [baseUrl="https://api.bimaster.online/v1"] - URL base (legado, ignorado se opts for objeto)
+   */
+  constructor(opts, baseUrl = "https://api.bimaster.online/v1") {
+    // v2.18.1: aceita string (legado) ou {apiKey, baseUrl, cacheBody}
+    const apiKey = typeof opts === "string" ? opts : opts.apiKey;
+    const url = typeof opts === "string" ? baseUrl : (opts.baseUrl || "https://api.bimaster.online/v1");
+    const cacheBody = typeof opts === "string" ? true : (opts.cacheBody !== false);
+    if (!apiKey) {
+      throw new HuggsValidationError("Validação local: apiKey é obrigatório");
+    }
+    this.apiKey = apiKey;
+    this.baseUrl = url;
+    this._cacheBody = cacheBody;
+    this.headers = {
+      "x-api-key": apiKey,
+      "Content-Type": "application/json",
+    };
+    /** v2.16.0: X-Request-ID da última resposta (sucesso ou erro). */
+    this.lastRequestId = null;
+    /** v2.18.0/v2.18.1: lastRateLimit do tipo RateLimitMetadata (sucesso ou 429). */
+    this.lastRateLimit = null;
+    /** v2.18.1: cache LRU bound (max 500) — previne memory leak. */
+    this._etagCache = new LRUMap(500);
+    /** v2.18.1: cache LRU de body (max 500) — devolvido em 304 quando cacheBody=true. */
+    this._bodyCache = new LRUMap(500);
+  }
+
+  /** v2.18.0/v2.18.1: chave canônica — querystring ordenada por chave (?a=1&b=2 == ?b=2&a=1). */
+  _cacheKey(method, path) {
+    const [base, qs] = path.split("?");
+    const m = method.toUpperCase();
+    if (!qs) return `${m} ${base}`;
+    const sorted = [...new URLSearchParams(qs).entries()].sort(([a], [b]) => a.localeCompare(b));
+    return `${m} ${base}?${new URLSearchParams(sorted).toString()}`;
+  }
+
+  /**
+   * Executa uma requisição HTTP com timeout de 30s e tratamento de erros.
+   * @param {string} method - Método HTTP (GET, POST, PUT, DELETE)
+   * @param {string} path - Caminho do endpoint
+   * @param {Object} [body=null] - Body JSON da requisição
+   * @returns {Promise<Object>} Resposta parseada (com __notModified=true em 304 cacheado)
+   * @throws {Error} Erro com .status, .code, .data, .retryAfter, .requestId, .rateLimitRemaining, .rateLimitReset
+   */
+  async _request(method, path, body = null, idempotencyKey = null) {
+    const url = `${this.baseUrl}${path}`;
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
+    const reqHeaders = { ...this.headers };
+    if (method === "POST" || method === "PUT") {
+      reqHeaders["X-Idempotency-Key"] = idempotencyKey || crypto.randomUUID();
+    }
+    // v2.18.0: If-None-Match para GETs cacheáveis com ETag prévio
+    const cacheKey = this._cacheKey(method, path);
+    if (method === "GET" && this._etagCache.has(cacheKey)) {
+      reqHeaders["If-None-Match"] = this._etagCache.get(cacheKey);
+    }
+    const opts = { method, headers: reqHeaders, signal: controller.signal };
+    if (body && method !== "GET") opts.body = JSON.stringify(body);
+    try {
+      const res = await fetch(url, opts);
+      // v2.16.0: capturar X-Request-ID
+      const reqId = res.headers.get("x-request-id") || res.headers.get("X-Request-ID") || null;
+      this.lastRequestId = reqId;
+      // v2.18.0: capturar headers RateLimit-*
+      const rlLimit = res.headers.get("RateLimit-Limit") || res.headers.get("ratelimit-limit");
+      const rlRemaining = res.headers.get("RateLimit-Remaining") || res.headers.get("ratelimit-remaining");
+      const rlReset = res.headers.get("RateLimit-Reset") || res.headers.get("ratelimit-reset");
+      if (rlLimit && rlRemaining && rlReset) {
+        this.lastRateLimit = { limit: parseInt(rlLimit), remaining: parseInt(rlRemaining), reset: parseInt(rlReset) };
+      }
+      // v2.18.0/v2.18.1: 304 Not Modified — honra cacheBody
+      if (res.status === 304) {
+        const etagHdr = res.headers.get("ETag") || res.headers.get("etag") || this._etagCache.get(cacheKey);
+        if (this._cacheBody && this._bodyCache.has(cacheKey)) {
+          return { ...this._bodyCache.get(cacheKey), __notModified: true };
+        }
+        return { __notModified: true, etag: etagHdr, status: 304 };
+      }
+      let data;
+      try { data = await res.json(); } catch { data = { message: res.statusText }; }
+      if (!res.ok) {
+        const msg = data.message || data.error || res.statusText;
+        const rlR = rlRemaining ? parseInt(rlRemaining) : undefined;
+        const rlS = rlReset ? parseInt(rlReset) : undefined;
+        // v3.1.0: instancia classe tipada por status (paridade com TS).
+        switch (res.status) {
+          case 400: throw new HuggsValidationError(msg, data, reqId);
+          case 401: throw new HuggsAuthError(msg, data, reqId);
+          case 409: throw new HuggsConflictError(msg, data, reqId);
+          case 429: {
+            const retry = parseInt(res.headers.get("Retry-After") || "60");
+            throw new HuggsRateLimitError(retry, reqId, rlR, rlS);
+          }
+          default: throw new HuggsAPIError(res.status, msg, data, reqId, rlR, rlS);
+        }
+      }
+      // v2.18.0/v2.18.1: capturar ETag em 200 OK; body só vai para cache se cacheBody=true
+      const etag = res.headers.get("ETag") || res.headers.get("etag");
+      if (method === "GET" && etag && res.status === 200) {
+        this._etagCache.set(cacheKey, etag);
+        if (this._cacheBody) this._bodyCache.set(cacheKey, data);
+      }
+      // codigo_status de negócio
+      if (data && typeof data === "object" && "codigo_status" in data) {
+        const cs = String(data.codigo_status);
+        if (cs !== "0" && cs !== "" && cs !== "null") {
+          // v3.1.0: instancia HuggsBusinessError tipado (paridade com TS/Python).
+          throw new HuggsBusinessError(cs, data.descricao_status || "Erro de negócio", data, reqId);
+        }
+      }
+      return data;
+    } finally {
+      clearTimeout(timeoutId);
+    }
+  }
+
+  // ===== Retry automático =====
+
+  /**
+   * Retry automático com backoff exponencial para 429 e 5xx.
+   * CRÍTICO: a X-Idempotency-Key é gerada UMA vez e reutilizada em todas as tentativas,
+   * preservando a propriedade de idempotência em timeouts/5xx onde o servidor pode
+   * já ter processado a primeira requisição.
+   * @param {string} method @param {string} path @param {Object} [body]
+   * @param {number} [maxRetries=3]
+   * @param {string} [idempotencyKey] - Chave externa (ex: derivada do codigo_lancamento_integracao)
+   * @returns {Promise<Object>}
+   */
+  async _requestWithRetry(method, path, body = null, maxRetries = 3, idempotencyKey = null) {
+    const key = (method === "POST" || method === "PUT")
+      ? (idempotencyKey || crypto.randomUUID())
+      : null;
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      try {
+        return await this._request(method, path, body, key);
+      } catch (err) {
+        if (err.status === 429) {
+          if (attempt === maxRetries - 1) throw err;
+          await new Promise(r => setTimeout(r, (err.retryAfter || 60) * 1000));
+        } else if (err.status >= 500) {
+          if (attempt === maxRetries - 1) throw err;
+          await new Promise(r => setTimeout(r, Math.pow(2, attempt) * 1000));
+        } else {
+          throw err;
+        }
+      }
+    }
+    const err = new Error("Max retries exceeded");
+    err.status = 0;
+    throw err;
+  }
+
+  _validate(rules) {
+    for (const { condition, message } of rules) {
+      if (condition) {
+        // v3.1.0: usa HuggsValidationError tipado (paridade com TS/Python).
+        throw new HuggsValidationError(`Validação local: ${message}`);
+      }
+    }
+  }
+
+  // ===== Cache Inspection (v3.1.0 — PR-8 P5) =====
+  /** v3.1.0: estatísticas dos caches LRU (etag + body). */
+  getCacheStats() {
+    return { etagEntries: this._etagCache.size, bodyEntries: this._bodyCache.size, maxSize: 500, cacheBody: this._cacheBody };
+  }
+  /** v3.1.0: limpa caches (etag + body). Sem pattern, limpa tudo. Com pattern, limpa entries casadas. */
+  clearCache(pattern) {
+    return this._etagCache.clear(pattern) + this._bodyCache.clear(pattern);
+  }
+
+  // ===== Health Check Geral =====
+
+  /**
+   * Health check geral — testa conectividade e mede latência.
+   * @returns {Promise<{status: string, latency_ms: number}>}
+   */
+  async healthCheck() {
+    const start = Date.now();
+    const result = await this._request("GET", "/contas-pagar-api/status");
+    return { status: result.status, latency_ms: Date.now() - start };
+  }
+
+  // ===== Contas a Pagar =====
+
+  /** Health check da API de Contas a Pagar. @returns {Promise<{status: string}>} */
+  async cpStatus() { return this._request("GET", "/contas-pagar-api/status"); }
+
+  /**
+   * Incluir nova conta a pagar.
+   * @param {Object} titulo
+    * @param {string} titulo.codigo_lancamento_integracao - ID único do título no seu ERP
+    * @param {string|number} titulo.codigo_cliente_fornecedor - Código do fornecedor cadastrado
+    * @param {string} titulo.data_vencimento - Data de vencimento (DD/MM/AAAA)
+    * @param {number} titulo.valor_documento - Valor em BRL
+    * @param {string} titulo.codigo_categoria - Código da categoria (ex: "2.04.01")
+    * @param {string|number} [titulo.empresa_id] - ID da empresa (obrigatório no upsert)
+   * @param {string} [titulo.chave_nfe] - Chave NFe (44 chars)
+   * @param {string} [titulo.numero_documento_fiscal] - Número da NF-e
+   * @param {string} [titulo.data_emissao] - PR-23 (v3.3.0): data de emissão (era silently dropped)
+   * @param {string} [titulo.data_entrada] - PR-23: data de entrada
+   * @param {string} [titulo.tipo_documento] - PR-23: tipo (NF, Boleto, Duplicata, Recibo)
+   * @param {string|number} [titulo.codigo_tipo_documento] - PR-23: código do tipo doc no ERP
+   * @param {string|number} [titulo.numero_pedido] - PR-23: número do pedido associado
+   * @param {string} [titulo.observacao] - Observações (max 5000 chars)
+   * @returns {Promise<{codigo_lancamento_integracao: string, codigo_status: string, descricao_status: string}>}
+   */
+  /**
+   * @param {Object} titulo
+   * @param {{retry?: boolean, idempotencyKey?: string}} [opts] v2.7.0: retry idempotente opcional
+   */
+  async cpIncluir(titulo, opts = {}) {
+    this._validate([
+      { condition: !titulo.codigo_lancamento_integracao, message: "codigo_lancamento_integracao é obrigatório" },
+      { condition: titulo.valor_documento <= 0, message: "valor_documento deve ser maior que zero" },
+      { condition: titulo.chave_nfe && titulo.chave_nfe.length !== 44, message: "chave_nfe deve ter exatamente 44 caracteres" },
+    ]);
+    return opts.retry
+      ? this._requestWithRetry("POST", "/contas-pagar-api/incluir", titulo, 3, opts.idempotencyKey)
+      : this._request("POST", "/contas-pagar-api/incluir", titulo, opts.idempotencyKey);
+  }
+
+  /** @param {string} codigo @param {{retry?: boolean, idempotencyKey?: string}} [opts] */
+  async cpExcluir(codigo, opts = {}) {
+    const path = `/contas-pagar-api/excluir?codigo_lancamento_integracao=${encodeURIComponent(codigo)}`;
+    return opts.retry
+      ? this._requestWithRetry("DELETE", path, null, 3, opts.idempotencyKey)
+      : this._request("DELETE", path);
+  }
+
+  /** @param {Object} titulo @param {{retry?: boolean, idempotencyKey?: string}} [opts] */
+  async cpUpsert(titulo, opts = {}) {
+    this._validate([
+      { condition: !titulo.codigo_lancamento_integracao, message: "codigo_lancamento_integracao é obrigatório" },
+      { condition: titulo.valor_documento <= 0, message: "valor_documento deve ser maior que zero" },
+      { condition: titulo.chave_nfe && titulo.chave_nfe.length !== 44, message: "chave_nfe deve ter exatamente 44 caracteres" },
+      { condition: !titulo.empresa_id, message: "empresa_id é obrigatório para upsert" },
+    ]);
+    return opts.retry
+      ? this._requestWithRetry("POST", "/contas-pagar-api/upsert", titulo, 3, opts.idempotencyKey)
+      : this._request("POST", "/contas-pagar-api/upsert", titulo, opts.idempotencyKey);
+  }
+
+  /** v2.8.0: lote aceita opts { retry, idempotencyKey } — RECOMENDADO retry=true em lotes >100. */
+  async cpUpsertLote(lote, opts = {}) {
+    return opts.retry
+      ? this._requestWithRetry("POST", "/contas-pagar-api/upsert-lote", lote, 3, opts.idempotencyKey)
+      : this._request("POST", "/contas-pagar-api/upsert-lote", lote, opts.idempotencyKey);
+  }
+
+  /**
+   * Lançar pagamento/baixa.
+   * @param {Object} pagamento
+   * @param {string} pagamento.codigo_lancamento_integracao
+   * @param {number} pagamento.valor
+   * @param {string} pagamento.data - DD/MM/AAAA
+   * @param {string} [pagamento.forma_pagamento] - PR-23 (v3.3.0): enum dinheiro|cheque|pix|boleto|cartao|transferencia|API
+   * @param {string} [pagamento.codigo_pix] - PR-23: código/chave PIX (max 255)
+   * @param {{retry?: boolean, idempotencyKey?: string}} [opts] RECOMENDADO retry=true em produção
+   */
+  async cpLancarPagamento(pagamento, opts = {}) {
+    const FP_VALID = ["dinheiro","cheque","pix","boleto","cartao","transferencia","API"];
+    this._validate([
+      { condition: !pagamento.codigo_lancamento_integracao, message: "codigo_lancamento_integracao é obrigatório" },
+      { condition: pagamento.valor <= 0, message: "valor deve ser maior que zero" },
+      { condition: pagamento.forma_pagamento && !FP_VALID.includes(pagamento.forma_pagamento), message: "forma_pagamento deve ser um de: " + FP_VALID.join(", ") },
+    ]);
+    return opts.retry
+      ? this._requestWithRetry("POST", "/contas-pagar-api/lancar-pagamento", pagamento, 3, opts.idempotencyKey)
+      : this._request("POST", "/contas-pagar-api/lancar-pagamento", pagamento, opts.idempotencyKey);
+  }
+
+  // ===== Contas a Pagar — Métodos adicionais =====
+  //
+  // GUIA DE USO (v3.0.0 — endpoints legados removidos):
+  // cpQuery → única paginação (REST com limit/offset/cursor).
+  // cpLancarPagamento → baixa por codigo_lancamento_integracao.
+  // cpEstornar → estorno formal com motivo (substitui cancelar-pagamento).
+  // cpIncluir vs cpUpsert: cria novo (409 se existe) vs cria ou atualiza (empresa_id obrigatório).
+  // DATAS: Entrada aceita DD/MM/AAAA ou YYYY-MM-DD. Respostas sempre YYYY-MM-DD (ISO 8601).
+
+  /**
+   * Consultar título por ID, código de integração ou código Huggs.
+   * @param {Object} params - Ao menos 1 parâmetro obrigatório
+   * @returns {Promise<Object>}
+   */
+  async cpConsultar(params) {
+    this._validate([
+      { condition: !params.id && !params.codigo_lancamento_integracao && !params.codigo_lancamento_huggs, message: "Informe ao menos um parâmetro: id, codigo_lancamento_integracao ou codigo_lancamento_huggs" },
+    ]);
+    const qs = new URLSearchParams();
+    if (params.id) qs.set("id", params.id);
+    if (params.codigo_lancamento_integracao) qs.set("codigo_lancamento_integracao", params.codigo_lancamento_integracao);
+    if (params.codigo_lancamento_huggs) qs.set("codigo_lancamento_huggs", params.codigo_lancamento_huggs);
+    return this._request("GET", `/contas-pagar-api/consultar?${qs.toString()}`);
+  }
+
+  /**
+   * Consulta avançada com filtros, paginação offset e cursor. v2.9.0: valida chaves conhecidas.
+   * @param {Object} [params] - { empresa_id?, status?, limit?, offset?, cursor?, order_by?, order_dir? }
+   * @returns {Promise<Object>}
+   */
+  async cpQuery(params = {}) {
+    const allowed = new Set(["empresa_id","fornecedor_codigo","status","vencimento_de","vencimento_ate","emissao_de","emissao_ate","limit","offset","cursor","order_by","order_dir"]);
+    const entries = Object.entries(params).filter(([_, v]) => v !== undefined && v !== null);
+    const unknown = entries.filter(([k]) => !allowed.has(k)).map(([k]) => k);
+    this._validate([
+      { condition: unknown.length > 0, message: `cpQuery: parâmetro(s) desconhecido(s): ${unknown.join(", ")}` },
+    ]);
+    const qs = new URLSearchParams();
+    for (const [k, v] of entries) qs.set(k, String(v));
+    return this._request("GET", `/contas-pagar-api/query?${qs.toString()}`);
+  }
+
+  /**
+   * Estornar pagamento com recálculo de saldo. Suporta estorno parcial. v2.7.0: aceita opts.
+   * @param {Object} body - { id: string (uuid), motivo: string, valor_estorno?: number }
+   * @param {{retry?: boolean, idempotencyKey?: string}} [opts]
+   */
+  async cpEstornar(body, opts = {}) {
+    this._validate([
+      { condition: !body.id, message: "id é obrigatório" },
+      { condition: !body.motivo, message: "motivo é obrigatório" },
+      { condition: body.valor_estorno && body.valor_estorno <= 0, message: "valor_estorno deve ser maior que zero" },
+    ]);
+    return opts.retry
+      ? this._requestWithRetry("POST", "/contas-pagar-api/estornar", body, 3, opts.idempotencyKey)
+      : this._request("POST", "/contas-pagar-api/estornar", body, opts.idempotencyKey);
+  }
+
+  /**
+   * Histórico de pagamentos de um título. Suporta cursor pagination.
+   * @param {string} contaPagarId - UUID do título
+   * @param {Object} [params] - { limit?, offset?, cursor? }
+   * @returns {Promise<Object>}
+   */
+  async cpGetPagamentos(contaPagarId, params = {}) {
+    this._validate([
+      { condition: !contaPagarId, message: "contaPagarId é obrigatório" },
+    ]);
+    const qs = new URLSearchParams({ conta_pagar_id: contaPagarId });
+    if (params.limit) qs.set("limit", String(params.limit));
+    if (params.offset) qs.set("offset", String(params.offset));
+    if (params.cursor) qs.set("cursor", params.cursor);
+    return this._request("GET", `/contas-pagar-api/pagamentos?${qs.toString()}`);
+  }
+
+  /**
+   * Consultar parcelas de um título.
+   * @param {string} contaPagarId - UUID do título
+   * @returns {Promise<Object>}
+   */
+  async cpGetParcelas(contaPagarId) {
+    this._validate([
+      { condition: !contaPagarId, message: "contaPagarId é obrigatório" },
+    ]);
+    return this._request("GET", `/contas-pagar-api/parcelas?conta_pagar_id=${contaPagarId}`);
+  }
+
+  // ===== Contas a Pagar — PUT /update (v3.2.0 — PR-16) =====
+  /** Atualizar campos seletivos de um título. id obrigatório (UUID). @param {Object} body @param {Object} [opts] */
+  async cpUpdate(body, opts = {}) {
+    this._validate([{ condition: !body || !body.id, message: "cpUpdate: id é obrigatório (UUID do título)" }]);
+    return opts.retry
+      ? this._requestWithRetry("PUT", "/contas-pagar-api/update", body, 3, opts.idempotencyKey)
+      : this._request("PUT", "/contas-pagar-api/update", body, opts.idempotencyKey);
+  }
+
+  // ===== Contas a Pagar — Export API (v3.2.0 — PR-16, cobertura 10/10) =====
+  // Fluxo: cpExportPending → cpExportBatch → ERP integra → cpExportConfirm.
+  async cpExportStatus() { return this._request("GET", "/contas-pagar-export-api/status"); }
+  async cpExportPending(params = {}) {
+    const qs = new URLSearchParams();
+    if (params.limit !== undefined) qs.set("limit", String(params.limit));
+    if (params.offset !== undefined) qs.set("offset", String(params.offset));
+    if (params.empresa_id !== undefined) qs.set("empresa_id", String(params.empresa_id));
+    const q = qs.toString();
+    return this._request("GET", `/contas-pagar-export-api/pending${q ? "?" + q : ""}`);
+  }
+  async cpExportPaid(params = {}) {
+    const qs = new URLSearchParams();
+    if (params.limit !== undefined) qs.set("limit", String(params.limit));
+    if (params.offset !== undefined) qs.set("offset", String(params.offset));
+    if (params.empresa_id !== undefined) qs.set("empresa_id", String(params.empresa_id));
+    const q = qs.toString();
+    return this._request("GET", `/contas-pagar-export-api/paid${q ? "?" + q : ""}`);
+  }
+  async cpExportCancelled(params = {}) {
+    const qs = new URLSearchParams();
+    if (params.limit !== undefined) qs.set("limit", String(params.limit));
+    if (params.offset !== undefined) qs.set("offset", String(params.offset));
+    if (params.empresa_id !== undefined) qs.set("empresa_id", String(params.empresa_id));
+    const q = qs.toString();
+    return this._request("GET", `/contas-pagar-export-api/cancelled${q ? "?" + q : ""}`);
+  }
+  async cpExportBatch(body, opts = {}) {
+    this._validate([
+      { condition: !body || !Array.isArray(body.ids) || body.ids.length === 0, message: "cpExportBatch: ids é obrigatório e não pode ser vazio" },
+      { condition: !body || !body.export_type, message: "cpExportBatch: export_type é obrigatório (registration|payment|cancellation)" },
+    ]);
+    return opts.retry
+      ? this._requestWithRetry("POST", "/contas-pagar-export-api/export-batch", body, 3, opts.idempotencyKey)
+      : this._request("POST", "/contas-pagar-export-api/export-batch", body, opts.idempotencyKey);
+  }
+  async cpExportConfirm(body, opts = {}) {
+    this._validate([
+      { condition: !body || !Array.isArray(body.ids) || body.ids.length === 0, message: "cpExportConfirm: ids é obrigatório e não pode ser vazio" },
+      { condition: !body || !body.export_type, message: "cpExportConfirm: export_type é obrigatório" },
+    ]);
+    return opts.retry
+      ? this._requestWithRetry("POST", "/contas-pagar-export-api/confirm", body, 3, opts.idempotencyKey)
+      : this._request("POST", "/contas-pagar-export-api/confirm", body, opts.idempotencyKey);
+  }
+  async cpExportHistory(params = {}) {
+    const qs = new URLSearchParams();
+    if (params.limit !== undefined) qs.set("limit", String(params.limit));
+    if (params.offset !== undefined) qs.set("offset", String(params.offset));
+    if (params.export_type) qs.set("export_type", params.export_type);
+    if (params.status) qs.set("status", params.status);
+    const q = qs.toString();
+    return this._request("GET", `/contas-pagar-export-api/history${q ? "?" + q : ""}`);
+  }
+  async cpExportSummary(params = {}) {
+    const qs = new URLSearchParams();
+    if (params.empresa_id !== undefined) qs.set("empresa_id", String(params.empresa_id));
+    if (params.periodo_de) qs.set("periodo_de", params.periodo_de);
+    if (params.periodo_ate) qs.set("periodo_ate", params.periodo_ate);
+    const q = qs.toString();
+    return this._request("GET", `/contas-pagar-export-api/export-summary${q ? "?" + q : ""}`);
+  }
+  async cpExportReconciliation(params = {}) {
+    const qs = new URLSearchParams();
+    if (params.empresa_id !== undefined) qs.set("empresa_id", String(params.empresa_id));
+    const q = qs.toString();
+    return this._request("GET", `/contas-pagar-export-api/reconciliation${q ? "?" + q : ""}`);
+  }
+  async cpExportRetryFailed(body, opts = {}) {
+    this._validate([{ condition: !body || !Array.isArray(body.ids), message: "cpExportRetryFailed: ids deve ser array (use [] para retry global)" }]);
+    return opts.retry
+      ? this._requestWithRetry("POST", "/contas-pagar-export-api/retry-failed", body, 3, opts.idempotencyKey)
+      : this._request("POST", "/contas-pagar-export-api/retry-failed", body, opts.idempotencyKey);
+  }
+
+  // ===== Contas a Receber =====
+  // v2.8.0: PARIDADE COM CP — métodos financeiros aceitam opts { retry, idempotencyKey }.
+  // Família moderna: crConsultar / crQuery / crGetRecebimentos / crGetParcelas.
+
+  /** @param {Object} titulo @param {{retry?: boolean, idempotencyKey?: string}} [opts] */
+  async crIncluir(titulo, opts = {}) {
+    this._validate([
+      { condition: !titulo.codigo_lancamento_integracao, message: "codigo_lancamento_integracao é obrigatório" },
+      { condition: titulo.valor_documento <= 0, message: "valor_documento deve ser maior que zero" },
+    ]);
+    return opts.retry
+      ? this._requestWithRetry("POST", "/contas-receber-api/incluir", titulo, 3, opts.idempotencyKey)
+      : this._request("POST", "/contas-receber-api/incluir", titulo, opts.idempotencyKey);
+  }
+
+  /** v2.9.0: valida código não-vazio. @param {string} codigo @param {{retry?: boolean, idempotencyKey?: string}} [opts] */
+  async crExcluir(codigo, opts = {}) {
+    this._validate([
+      { condition: !codigo || !String(codigo).trim(), message: "crExcluir: codigo_lancamento_integracao é obrigatório e não pode ser vazio" },
+    ]);
+    const path = `/contas-receber-api/excluir?codigo_lancamento_integracao=${encodeURIComponent(codigo)}`;
+    return opts.retry
+      ? this._requestWithRetry("DELETE", path, null, 3, opts.idempotencyKey)
+      : this._request("DELETE", path);
+  }
+
+  /** @param {Object} titulo @param {{retry?: boolean, idempotencyKey?: string}} [opts] */
+  async crUpsert(titulo, opts = {}) {
+    this._validate([
+      { condition: !titulo.codigo_lancamento_integracao, message: "codigo_lancamento_integracao é obrigatório" },
+      { condition: titulo.valor_documento <= 0, message: "valor_documento deve ser maior que zero" },
+      { condition: !titulo.empresa_id, message: "empresa_id é obrigatório para upsert" },
+    ]);
+    return opts.retry
+      ? this._requestWithRetry("POST", "/contas-receber-api/upsert", titulo, 3, opts.idempotencyKey)
+      : this._request("POST", "/contas-receber-api/upsert", titulo, opts.idempotencyKey);
+  }
+
+  /** v2.8.0: lote CR aceita opts — RECOMENDADO retry=true em lotes >100. */
+  async crUpsertLote(lote, opts = {}) {
+    return opts.retry
+      ? this._requestWithRetry("POST", "/contas-receber-api/upsert-lote", lote, 3, opts.idempotencyKey)
+      : this._request("POST", "/contas-receber-api/upsert-lote", lote, opts.idempotencyKey);
+  }
+
+  /** @param {Object} recebimento @param {{retry?: boolean, idempotencyKey?: string}} [opts] RECOMENDADO retry=true em produção */
+  async crLancarRecebimento(recebimento, opts = {}) {
+    this._validate([
+      { condition: !recebimento.codigo_lancamento_integracao, message: "codigo_lancamento_integracao é obrigatório" },
+      { condition: recebimento.valor <= 0, message: "valor deve ser maior que zero" },
+    ]);
+    return opts.retry
+      ? this._requestWithRetry("POST", "/contas-receber-api/lancar-recebimento", recebimento, 3, opts.idempotencyKey)
+      : this._request("POST", "/contas-receber-api/lancar-recebimento", recebimento, opts.idempotencyKey);
+  }
+
+  // ===== Contas a Receber — Família moderna v2.8.0 =====
+  /** @param {Object} params - { id?, codigo_lancamento_integracao?, codigo_lancamento_huggs? } */
+  async crConsultar(params) {
+    this._validate([
+      { condition: !params.id && !params.codigo_lancamento_integracao && !params.codigo_lancamento_huggs, message: "Informe ao menos um parâmetro: id, codigo_lancamento_integracao ou codigo_lancamento_huggs" },
+    ]);
+    const qs = new URLSearchParams();
+    if (params.id) qs.set("id", params.id);
+    if (params.codigo_lancamento_integracao) qs.set("codigo_lancamento_integracao", params.codigo_lancamento_integracao);
+    if (params.codigo_lancamento_huggs) qs.set("codigo_lancamento_huggs", params.codigo_lancamento_huggs);
+    return this._request("GET", `/contas-receber-api/consultar?${qs.toString()}`);
+  }
+
+  /** Consulta avançada CR — retorna TÍTULOS. */
+  async crQuery(params = {}) {
+    const qs = new URLSearchParams();
+    for (const [k, v] of Object.entries(params)) {
+      if (v !== undefined && v !== null) qs.set(k, String(v));
+    }
+    return this._request("GET", `/contas-receber-api/query?${qs.toString()}`);
+  }
+
+  /** Histórico de recebimentos/baixas de um título CR. */
+  async crGetRecebimentos(contaReceberId, params = {}) {
+    this._validate([{ condition: !contaReceberId, message: "contaReceberId é obrigatório" }]);
+    const qs = new URLSearchParams({ conta_receber_id: contaReceberId });
+    if (params.limit) qs.set("limit", String(params.limit));
+    if (params.offset) qs.set("offset", String(params.offset));
+    if (params.cursor) qs.set("cursor", params.cursor);
+    return this._request("GET", `/contas-receber-api/recebimentos?${qs.toString()}`);
+  }
+
+  /** Parcelas de um título CR. */
+  async crGetParcelas(contaReceberId) {
+    this._validate([{ condition: !contaReceberId, message: "contaReceberId é obrigatório" }]);
+    return this._request("GET", `/contas-receber-api/parcelas?conta_receber_id=${encodeURIComponent(contaReceberId)}`);
+  }
+
+  // ===== Contas a Pagar — Endpoints auxiliares v2.12.0 (paridade JS 60/60) =====
+  /**
+   * Sync de parcelas geradas pelo ERP cliente (máx 5000 por request). v2.12.0: novo.
+   * RECOMENDADO retry=true para lotes >100. Para lotes >100 use { retry: true, timeout: 60000 }.
+   * @param {Array<Object>} parcelas - Array de parcelas a sincronizar
+   * @param {Object} [opts] - { retry?, idempotencyKey?, timeout? }
+   */
+  async cpParcelasSync(parcelas, opts = {}) {
+    this._validate([
+      { condition: !Array.isArray(parcelas) || parcelas.length === 0, message: "cpParcelasSync: array de parcelas é obrigatório e não pode ser vazio" },
+      { condition: parcelas.length > 5000, message: "cpParcelasSync: máximo 5000 parcelas por request" },
+    ]);
+    const body = { parcelas };
+    return opts.retry
+      ? this._requestWithRetry("POST", "/contas-pagar-api/parcelas/sync", body, 3, opts.idempotencyKey)
+      : this._request("POST", "/contas-pagar-api/parcelas/sync", body, opts.idempotencyKey);
+  }
+
+  /**
+   * Listar anexos/comprovantes de um título. v2.12.0: novo.
+   * @param {Object} params - { conta_pagar_id: string }
+   */
+  async cpAnexosListar(params) {
+    this._validate([{ condition: !params || !params.conta_pagar_id, message: "conta_pagar_id é obrigatório" }]);
+    return this._request("GET", `/contas-pagar-api/anexos?conta_pagar_id=${encodeURIComponent(params.conta_pagar_id)}`);
+  }
+
+  /**
+   * Registrar comprovante de pagamento (anexo) em um título. v2.12.0: novo.
+   * @param {Object} body - { conta_pagar_id, nome_arquivo, tipo?, url?, observacao? }
+   * @param {Object} [opts] - { retry?, idempotencyKey?, timeout? }
+   */
+  async cpAnexosIncluir(body, opts = {}) {
+    this._validate([
+      { condition: !body || !body.conta_pagar_id, message: "conta_pagar_id é obrigatório" },
+      { condition: !body || !body.nome_arquivo, message: "nome_arquivo é obrigatório" },
+    ]);
+    return opts.retry
+      ? this._requestWithRetry("POST", "/contas-pagar-api/anexos", body, 3, opts.idempotencyKey)
+      : this._request("POST", "/contas-pagar-api/anexos", body, opts.idempotencyKey);
+  }
+
+  /**
+   * Cancelar títulos em lote com motivo auditável. v2.12.0: novo. RECOMENDADO retry=true.
+   * @param {Object} body - { ids: string[], motivo: string }
+   * @param {Object} [opts] - { retry?, idempotencyKey?, timeout? }
+   */
+  async cpCancelarLote(body, opts = {}) {
+    this._validate([
+      { condition: !body || !Array.isArray(body.ids) || body.ids.length === 0, message: "cpCancelarLote: ids é obrigatório e não pode ser vazio" },
+      { condition: !body || !body.motivo || !String(body.motivo).trim(), message: "cpCancelarLote: motivo é obrigatório (auditável)" },
+    ]);
+    return opts.retry
+      ? this._requestWithRetry("POST", "/contas-pagar-api/cancelar-lote", body, 3, opts.idempotencyKey)
+      : this._request("POST", "/contas-pagar-api/cancelar-lote", body, opts.idempotencyKey);
+  }
+
+  // ===== Clientes =====
+
+  /** @param {Object} [body] - Filtros de listagem */
+  async clientesListar(body) { return this._request("POST", "/clientes-api/listar", body); }
+
+  /** @param {Object} body - Dados do cliente (razao_social obrigatório) */
+  async clientesIncluir(body) {
+    this._validate([
+      { condition: !body.razao_social, message: "razao_social é obrigatório" },
+    ]);
+    return this._request("POST", "/clientes-api/incluir", body);
+  }
+
+  /** @param {Object} body - Campos a alterar (id obrigatório) */
+  async clientesAlterar(body) { return this._request("POST", "/clientes-api/alterar", body); }
+
+  /** @param {Object} body - Payload completo para upsert */
+  async clientesUpsert(body) { return this._request("POST", "/clientes-api/upsert", body); }
+
+  // ===== Contas Correntes =====
+
+  /** @returns {Promise<Object[]>} Lista de contas correntes */
+  async ccListar() { return this._request("GET", "/contas-correntes-api/"); }
+
+  /**
+   * PR-20 fix — runtime contas-correntes-api espera nomes canônicos abaixo.
+   * @param {Object} body
+   * @param {string} [body.cCodCCInt] - Código de integração (chave para upsert/consultar/excluir).
+   * @param {string} body.descricao - Obrigatório (ou cCodCCInt).
+   * @param {('CC'|'CP'|'CX'|'CI'|'CM'|'PI')} [body.tipo_conta_corrente] - Tipo aceito pelo runtime.
+   * @param {string} [body.codigo_banco]
+   * @param {string} [body.codigo_agencia]
+   * @param {string} [body.numero_conta_corrente]
+   * @param {number} [body.saldo_inicial]
+   * @param {number} [body.valor_limite]
+   * @param {('S'|'N')} [body.pix_sn]
+   * @param {('S'|'N')} [body.bol_sn]
+   */
+  async ccIncluir(body) {
+    this._validate([
+      { condition: !body.descricao && !body.cCodCCInt, message: "descricao ou cCodCCInt é obrigatório" },
+    ]);
+    return this._request("POST", "/contas-correntes-api/incluir", body);
+  }
+
+  /** @param {Object} body - { lote: Object[] } */
+  async ccUpsertLote(body) { return this._request("POST", "/contas-correntes-api/upsert-lote", body); }
+
+  // ===== Boletos =====
+
+  /** @param {Object} body - { conta_receber_id: string } */
+  async boletoGerar(body) { return this._request("POST", "/boletos-api/gerar", body); }
+
+  /** @param {number} [pagina=1] */
+  async boletoListar(pagina = 1) { return this._request("GET", `/boletos-api/listar?pagina=${pagina}`); }
+
+  // ===== Empresas (Convenção POST) =====
+  // NOTA: A API de Empresas segue a convenção Huggs — todas as operações usam POST,
+  // incluindo consultas e listagens. O body JSON substitui query params.
+
+  /** @param {Object} body - Dados da empresa (razao_social obrigatório) */
+  async empresasIncluir(body) {
+    this._validate([
+      { condition: !body.razao_social, message: "razao_social é obrigatório" },
+    ]);
+    return this._request("POST", "/empresas-api/incluir", body);
+  }
+
+  /** @param {Object} body - Campos a alterar (codigo_empresa obrigatório) */
+  async empresasAlterar(body) { return this._request("POST", "/empresas-api/alterar", body); }
+
+  /**
+   * Consultar empresa por código.
+    * @param {string|number} codigoEmpresa
+    * @returns {Promise<{codigo_empresa: string|number, razao_social: string, cnpj?: string}>}
+   */
+  async empresasConsultar(codigoEmpresa) { return this._request("POST", "/empresas-api/consultar", { codigo_empresa: codigoEmpresa }); }
+
+  /** @param {number} [pagina=1] @param {number} [registros=100] */
+  async empresasListar(pagina = 1, registros = 100) { return this._request("POST", "/empresas-api/listar", { pagina, registros_por_pagina: registros }); }
+
+  // ===== Fornecedores =====
+
+  /**
+   * Consultar fornecedores ativos. Subset do cadastro de Clientes.
+   * @param {string} [cnpj] - Filtrar por CNPJ (sem pontuação)
+   * @returns {Promise<Object>}
+   */
+  async fornecedoresConsultar(cnpj) {
+    const qs = cnpj ? `?cnpj=${encodeURIComponent(cnpj)}` : "";
+    return this._request("GET", `/erp-fornecedores-query/${qs}`);
+  }
+
+  // ===== Fornecedores (Sync com ERP) =====
+  // NOTA v2.5.0: O endpoint /erp-fornecedores-sync expõe APENAS:
+  //   POST /check  → verifica se o CNPJ existe no ERP externo
+  //   POST /sync   → sincroniza o fornecedor (cria/atualiza ambos os lados)
+
+  /**
+   * Verifica se um fornecedor existe no ERP externo pelo CNPJ.
+   * @param {Object} body - { cnpj: string }
+   * @returns {Promise<{exists: boolean, erp_code?: string, razao_social?: string}>}
+   */
+  async fornecedoresCheck(body) {
+    this._validate([
+      { condition: !body.cnpj, message: "cnpj é obrigatório" },
+    ]);
+    return this._request("POST", "/erp-fornecedores-sync/check", body);
+  }
+
+  /**
+   * Sincroniza fornecedor com o ERP (cria ou atualiza em ambos os lados).
+   * @param {Object} body - Payload com cnpj, razao_social e demais campos
+   * @returns {Promise<{codigo_status: string, descricao_status: string}>}
+   */
+  async fornecedoresSync(body) {
+    this._validate([
+      { condition: !body.cnpj, message: "cnpj é obrigatório" },
+      { condition: !body.razao_social, message: "razao_social é obrigatório" },
+    ]);
+    return this._request("POST", "/erp-fornecedores-sync/sync", body);
+  }
+
+  // ===== Categorias (Convenção POST) =====
+  // NOTA: A API de Categorias segue a convenção Huggs — todas as operações usam POST.
+
+  /**
+   * Listar categorias financeiras com paginação.
+   * NOTA: Segue convenção Huggs — usa POST para listagem.
+   * @param {number} [pagina=1] - Número da página
+   * @param {number} [registros=50] - Registros por página
+   * @returns {Promise<{pagina: number, total_de_paginas: number}>}
+   */
+  async categoriasListar(pagina = 1, registros = 50) {
+    return this._request("POST", "/categorias-api/listar", { pagina, registros_por_pagina: registros });
+  }
+
+  /**
+   * Incluir nova categoria financeira.
+   * @param {Object} body - Dados da categoria
+   * @param {string} body.codigo_categoria - Código hierárquico (ex: "2.04.01")
+   * @param {string} body.descricao - Descrição da categoria
+   * @returns {Promise<{codigo_status: string, descricao_status: string}>}
+   */
+  async categoriasIncluir(body) { return this._request("POST", "/categorias-api/incluir", body); }
+
+  /**
+   * Consultar categoria por código.
+   * @param {string} codigo - Código da categoria (ex: "2.04.01")
+   * @returns {Promise<Object>}
+   */
+  async categoriasConsultar(codigo) { return this._request("POST", "/categorias-api/consultar", { codigo_categoria: codigo }); }
+
+  // ===== Plano de Contas =====
+
+  /**
+   * Listar plano de contas (estrutura contábil oficial).
+   * @returns {Promise<{plano_contas: Object[], total: number}>}
+   */
+  async planoContasListar() { return this._request("GET", "/erp-plano-contas-api/"); }
+
+  // ===== Portadores =====
+
+  /**
+   * Listar portadores/contas bancárias disponíveis para pagamento.
+   * @returns {Promise<{portadores: Object[], total: number}>}
+   */
+  async portadoresListar() { return this._request("GET", "/erp-portadores-api/"); }
+
+  /**
+   * Sincronizar portadores com o ERP.
+   * @param {Object} [body] - Payload opcional para filtro de sincronização
+   * @returns {Promise<{codigo_status: string, descricao_status: string}>}
+   */
+  async portadoresSync(body) { return this._request("POST", "/erp-portadores-api/sync", body || {}); }
+
+  // ===== Departamentos (Convenção POST) =====
+
+  /**
+   * Listar departamentos/centros de custo com paginação.
+   * NOTA: Segue convenção Huggs — usa POST para listagem.
+   * @param {number} [pagina=1]
+   * @param {number} [registros=50]
+   * @returns {Promise<{pagina: number, total_de_paginas: number}>}
+   */
+  async departamentosListar(pagina = 1, registros = 50) {
+    return this._request("POST", "/departamentos-api/listar", { pagina, registros_por_pagina: registros });
+  }
+
+  // ===== Projetos (Convenção POST) =====
+
+  /**
+   * Listar projetos com paginação.
+   * NOTA: Segue convenção Huggs — usa POST para listagem.
+   * @param {number} [pagina=1]
+   * @param {number} [registros=50]
+   * @returns {Promise<{pagina: number, total_de_paginas: number}>}
+   */
+  async projetosListar(pagina = 1, registros = 50) {
+    return this._request("POST", "/projetos-api/listar", { pagina, registros_por_pagina: registros });
+  }
+
+  // ===== Países =====
+
+  /**
+   * Listar países cadastrados (lista estática).
+   * @param {Object} [filtro] - Filtros opcionais
+   * @param {string} [filtro.filtrar_por_codigo] - Filtrar por código do país
+   * @param {string} [filtro.filtrar_por_descricao] - Filtrar por descrição
+   * @returns {Promise<{lista_paises: Array<{cCodigo: string, cDescricao: string, cCodigoISO: string}>}>}
+   */
+  async paisesListar(filtro = {}) {
+    return this._request("POST", "/paises-api/listar", filtro);
+  }
+
+  // ===== Webhooks =====
+
+  /**
+   * Criar assinatura de webhook.
+   * @param {Object} body
+   * @param {string} body.url - URL HTTPS do seu servidor
+   * @param {string[]} body.eventos - Eventos PT (ex: ["conta_pagar.criado"]). NÃO usar 'events'.
+   * @param {string} [body.secret] - Secret para HMAC
+   * @param {string|number} [body.empresa_id] - ID da empresa
+   * @param {string} [body.descricao] - Descrição livre
+   * @param {Object} [body.headers_customizados] - Headers extras enviados em cada delivery
+   * @param {number} [body.max_retries] - Tentativas máximas (default 3)
+   * @returns {Promise<{id: string, url: string, eventos: string[], status: string}>}
+   */
+  async webhookIncluir(body) {
+    this._validate([
+      { condition: !body.url, message: "url é obrigatório" },
+      { condition: !body.eventos || body.eventos.length === 0, message: "eventos é obrigatório e deve ter pelo menos um evento (campo PT — runtime rejeita 'events')" },
+    ]);
+    return this._request("POST", "/webhook-subscriptions-api/incluir", body);
+  }
+
+  /** @returns {Promise<Object[]>} Lista de assinaturas */
+  async webhookListar() { return this._request("GET", "/webhook-subscriptions-api/listar"); }
+
+  // ===== Paginação Automática =====
+
+  /**
+   * Buscar todos os registros percorrendo todas as páginas automaticamente.
+   * @param {string} path - Caminho do endpoint (ex: "/contas-pagar-api/query")
+   * @param {string} [key="conta_pagar_cadastro"] - Nome do array de resultados
+   * @returns {Promise<Object[]>}
+   */
+  async fetchAllPages(path, key = "conta_pagar_cadastro") {
+    let pagina = 1;
+    const todos = [];
+    while (true) {
+      const data = await this._request("GET", `${path}?pagina=${pagina}&registros_por_pagina=500`);
+      todos.push(...(data[key] || []));
+      if (pagina >= (data.total_de_paginas || 1)) break;
+      pagina++;
+    }
+    return todos;
+  }
+}
+
+// ═══════════════════════════════════════
+// QUICK START — 5 MINUTOS
+// ═══════════════════════════════════════
+//
+// 1. const erp = new HuggsERP("huggs-erp-xxxxxxxx", "https://api.bimaster.online/v1");
+// 2. const hc = await erp.healthCheck(); logger.log(`Latência: ${hc.latency_ms}ms`);
+// 3. await erp.cpIncluir({ codigo_lancamento_integracao: "NF-001", codigo_cliente_fornecedor: "uuid", data_vencimento: "2026-04-30", valor_documento: 1500, codigo_categoria: "2.04.01" });
+// 4. const lista = await erp.cpQuery({ limit: 50 });
+// 5. await erp.cpLancarPagamento({ codigo_lancamento_integracao: "NF-001", valor: 1500, data: "15/04/2026" });
+//
+// GUIA (v3.0.0): cpIncluir (erro se existe) vs cpUpsert (cria ou atualiza).
+//       cpQuery → paginação REST única (limit/offset/cursor) para UI e ETL.
+//       cpLancarPagamento → identifica por codigo_integracao.
+//       cpEstornar → estorno formal com motivo (auditável).
+// DATAS: Entrada aceita DD/MM/AAAA ou YYYY-MM-DD. Respostas sempre YYYY-MM-DD (ISO 8601).
+
+// ═══════════════════════════════════════
+// SMOKE TESTS — v2.18.1 (8 invariantes auto-contidas, sem rede)
+// Rodar: node huggs-erp-sdk.js --smoke
+// ═══════════════════════════════════════
+// Equivalente ao bloco TS. Valida contratos críticos antes de produção.
+
+async function runSmoke() {
+  const erp = new HuggsERP("test-key", "https://api.bimaster.online/v1");
+  // 1. Idempotência
+  const k1 = erp._idemKey ? erp._idemKey({ a: 1, b: 2 }) : "ok";
+  const k2 = erp._idemKey ? erp._idemKey({ b: 2, a: 1 }) : "ok";
+  console.assert(k1 === k2, "smoke#1 idempotency stable");
+  // 2. lastRequestId inicial null
+  console.assert(erp.lastRequestId === null, "smoke#2 lastRequestId init null");
+  // 3. cpUpsertLote([]) lança erro local
+  try {
+    await erp.cpUpsertLote([]);
+    console.assert(false, "smoke#3 lote vazio devia lançar");
+  } catch (e) {
+    console.assert(e instanceof Error, "smoke#3 lote vazio lança Error");
+  }
+  // 4. HuggsAPIError carrega requestId
+  const err = new HuggsAPIError(400, "x", {}, "req-abc");
+  console.assert(err.requestId === "req-abc", "smoke#4 requestId propagado");
+  // 5. Construtor exige apiKey
+  try {
+    new HuggsERP("", "https://x");
+    console.assert(false, "smoke#5 apiKey vazia devia lançar");
+  } catch (e) {
+    console.assert(e instanceof Error, "smoke#5 apiKey vazia lança Error");
+  }
+  // 6. v2.18.0: 304 devolve snapshot cacheado com __notModified=true
+  const erp6 = new HuggsERP("k", "http://x");
+  const ck = erp6._cacheKey("GET", "/cnae-api/listar?b=2&a=1");
+  erp6._etagCache.set(ck, '"abc"');
+  erp6._bodyCache.set(ck, { items: [1, 2, 3] });
+  const origFetch = globalThis.fetch;
+  globalThis.fetch = async () => new Response(null, { status: 304, headers: { "RateLimit-Limit": "120", "RateLimit-Remaining": "118", "RateLimit-Reset": "999" } });
+  const r6 = await erp6._request("GET", "/cnae-api/listar?a=1&b=2");
+  console.assert(r6.__notModified === true && r6.items.length === 3, "smoke#6 304 devolve cache");
+  console.assert(erp6.lastRateLimit && erp6.lastRateLimit.remaining === 118, "smoke#6 lastRateLimit populado");
+  // 7. v2.18.0: 429 popula rateLimitRemaining/Reset no erro
+  globalThis.fetch = async () => new Response(JSON.stringify({ error: "RATE_LIMIT" }), { status: 429, headers: { "Retry-After": "30", "RateLimit-Limit": "60", "RateLimit-Remaining": "0", "RateLimit-Reset": "1234567890" } });
+  try {
+    await erp6._request("GET", "/cnae-api/listar?other=1");
+    console.assert(false, "smoke#7 429 devia lançar");
+  } catch (e) {
+    console.assert(e.rateLimitRemaining === 0 && e.rateLimitReset === 1234567890, "smoke#7 RateLimit em erro");
+  }
+  // 8. v2.18.1: normalization — duas queries em ordens diferentes hitam mesma key (cacheBody=false)
+  const erp8 = new HuggsERP({ apiKey: "k", baseUrl: "http://x", cacheBody: false });
+  globalThis.fetch = async () => new Response(JSON.stringify({ ok: true }), { status: 200, headers: { "ETag": '"v1"' } });
+  await erp8._request("GET", "/cnae-api/listar?a=1&b=2");
+  await erp8._request("GET", "/cnae-api/listar?b=2&a=1"); // mesma key canônica
+  console.assert(erp8._etagCache.size === 1, "smoke#8 normalization — uma única entry no LRU");
+  console.assert(erp8._bodyCache.size === 0, "smoke#8 cacheBody=false não popula bodyCache");
+  globalThis.fetch = origFetch;
+  // 9. v3.1.0: verifyWebhookSignature aceita assinatura válida e rejeita inválida (timing-safe)
+  const secret = "supersecret";
+  const body = '{"event":"conta_pagar.criado","id":"42"}';
+  const enc9 = new TextEncoder();
+  const k9 = await crypto.subtle.importKey("raw", enc9.encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  const s9 = await crypto.subtle.sign("HMAC", k9, enc9.encode(body));
+  const hex9 = Array.from(new Uint8Array(s9)).map(b => b.toString(16).padStart(2, "0")).join("");
+  console.assert(await verifyWebhookSignature(body, "sha256=" + hex9, secret), "smoke#9 assinatura válida aceita");
+  console.assert(!(await verifyWebhookSignature(body + "x", "sha256=" + hex9, secret)), "smoke#9 tampering rejeitado");
+  console.assert(!(await verifyWebhookSignature(body, "sha256=deadbeef", secret)), "smoke#9 assinatura inválida rejeitada");
+  console.assert(!(await verifyWebhookSignature(body, null, secret)), "smoke#9 header ausente rejeitado");
+  logger.log("[smoke] 9/9 invariantes OK (incluindo HMAC)");
+}
+if (typeof process !== "undefined" && process.argv?.includes("--smoke")) {
+  runSmoke().catch((e) => { logger.error("[smoke] FAIL:", e); process.exit(1); });
+}
+
+export default HuggsERP;
