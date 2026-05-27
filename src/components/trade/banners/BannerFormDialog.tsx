@@ -121,8 +121,9 @@ export function BannerFormDialog({ open, onOpenChange, editBanner }: Props) {
       const path = `${Date.now()}.${ext}`;
       const { error: uploadError } = await supabase.storage.from("trade-banners").upload(path, fileToUpload);
       if (uploadError) throw uploadError;
-      const { data: { publicUrl } } = supabase.storage.from("trade-banners").getPublicUrl(path);
-      setForm(f => ({ ...f, imagem_url: publicUrl }));
+      const { data: signed } = await supabase.storage.from("trade-banners").createSignedUrl(path, 60 * 60 * 24 * 365);
+      if (!signed?.signedUrl) throw new Error("Falha ao gerar URL assinada");
+      setForm(f => ({ ...f, imagem_url: signed.signedUrl }));
       toast.success("Imagem enviada");
     } catch {
       toast.error("Erro no upload");
