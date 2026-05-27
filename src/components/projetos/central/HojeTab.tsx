@@ -157,6 +157,25 @@ export function HojeTab({ onGoToTarefas }: Props) {
           />
         </div>
       </CentralToolbarPortal>
+      <CentralChipsPortal>
+        <CentralChip label="Para focar agora" active />
+        <CentralChip
+          label="Sem prazo"
+          count={chipCounts.semPrazo}
+          onClick={() => onGoToTarefas("sem_data")}
+        />
+        <CentralChip
+          label="Para hoje"
+          count={chipCounts.hoje}
+          onClick={() => onGoToTarefas("hoje")}
+        />
+        <CentralChip
+          label="Atrasadas"
+          count={chipCounts.atrasadas}
+          countVariant={chipCounts.atrasadas > 0 ? "destructive" : "outline"}
+          onClick={() => onGoToTarefas("atrasadas")}
+        />
+      </CentralChipsPortal>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-4">
         <div className="flex items-center justify-between">
