@@ -21,7 +21,7 @@ import { EnablePushBanner } from "@/components/notifications/EnablePushBanner";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { useInboxScope } from "@/hooks/useInboxScope";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+// Tooltip imports removidos — KpiWithHelp foi substituído por chips.
 import { cn } from "@/lib/utils";
 import {
   DEFAULTS,
