@@ -51,9 +51,14 @@ function nsFor(key) {
 }
 
 function extractLangBlock(src, lang) {
-  // Localiza `"<lang>": {` e captura até o fechamento balanceado.
-  const marker = `"${lang}": {`;
-  const start = src.indexOf(marker);
+  // Aceita tanto `"<lang>": {` quanto `<lang>: {` (chaves não-aspeadas como `en`).
+  const candidates = [`"${lang}": {`, `${lang}: {`];
+  let marker = "";
+  let start = -1;
+  for (const m of candidates) {
+    const idx = src.indexOf(m);
+    if (idx !== -1) { marker = m; start = idx; break; }
+  }
   if (start === -1) throw new Error(`Bloco do idioma ${lang} não encontrado`);
   let i = start + marker.length;
   let depth = 1;
