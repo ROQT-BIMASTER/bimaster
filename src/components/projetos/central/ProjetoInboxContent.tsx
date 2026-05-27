@@ -282,59 +282,42 @@ export function ProjetoInboxContent() {
         )}
       </CentralToolbarPortal>
 
-      <TooltipProvider delayDuration={150}>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <KpiWithHelp
-            title="Não lidas"
-            value={naoLidas}
-            icon={Bell}
-            variant="info"
-            help="Notificações de projetos ainda não abertas por você. Conta itens marcados como não lidos em projeto_atividades."
-          />
-          {isProdutoView ? (
-            <>
-              <KpiWithHelp
-                title="Aprovações pendentes"
-                value={aprovacoesPendentes}
-                icon={ShieldCheck}
-                variant="warning"
-                help="Atividades do tipo 'completou' ainda não lidas. Sinaliza tarefas finalizadas pelo time esperando seu OK."
-              />
-              <KpiWithHelp
-                title="Tarefas novas"
-                value={tarefasNovas}
-                icon={AlertTriangle}
-                variant="accent"
-                help="Atividades do tipo 'criou_tarefa' ainda não lidas — novas demandas atribuídas aos seus projetos."
-              />
-            </>
-          ) : (
-            <>
-              <KpiWithHelp
-                title="Menções"
-                value={mencoes.length}
-                icon={AtSign}
-                variant="warning"
-                help="Comentários onde você foi citado. Conta atividades do tipo 'comentou' ainda ativas."
-              />
-              <KpiWithHelp
-                title="Favoritas"
-                value={favoritas.length}
-                icon={Star}
-                variant="accent"
-                help="Notificações marcadas com estrela para acesso rápido."
-              />
-            </>
-          )}
-          <KpiWithHelp
-            title="Hoje"
-            value={hoje}
-            icon={CalendarDays}
-            variant="success"
-            help="Notificações criadas no dia de hoje (fuso America/Sao_Paulo)."
-          />
-        </div>
-      </TooltipProvider>
+      <CentralChipsPortal>
+        <CentralChip
+          label="Todas"
+          count={naoLidas}
+          active={filterTipos.length === 0}
+          onClick={() => setFilterTipos([])}
+        />
+        <CentralChip
+          label="Menções"
+          count={mencoes.length}
+          active={activeTab === "mencoes"}
+          onClick={() => { setActiveTab("mencoes"); setSelectedIds(new Set()); }}
+        />
+        {isProdutoView && (
+          <>
+            <CentralChip
+              label="Aprovações pendentes"
+              count={aprovacoesPendentes}
+              active={filterTipos.length === 1 && filterTipos[0] === "completou"}
+              onClick={() => setFilterTipos(["completou"])}
+            />
+            <CentralChip
+              label="Tarefas novas"
+              count={tarefasNovas}
+              active={filterTipos.length === 1 && filterTipos[0] === "criou_tarefa"}
+              onClick={() => setFilterTipos(["criou_tarefa"])}
+            />
+          </>
+        )}
+        <CentralChip
+          label="Hoje"
+          count={hoje}
+          onClick={() => { /* visualização de hoje já é destacada no feed; mantém ação não-destrutiva */ }}
+          title="Notificações de hoje (America/Sao_Paulo)"
+        />
+      </CentralChipsPortal>
 
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <Tabs value={activeTab} onValueChange={v => { setActiveTab(normalizeInboxSubtab(v)); setSelectedIds(new Set()); }}>
