@@ -734,10 +734,24 @@ export function ProjetoTarefaDetalhe({
                                       produtoCodigo={linkedProduto?.codigo}
                                     />
                                   )}
-                                  <Button variant="ghost" size="icon" className="h-5 w-5 ml-auto" onClick={() => {
-                                    onUpdate(tarefa.id, { produto_id: null } as any);
-                                  }}>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-6 px-2 ml-auto text-[10px] text-destructive hover:text-destructive hover:bg-destructive/10 gap-1"
+                                    onClick={() => {
+                                      const previo = (tarefa as any).produto_id;
+                                      onUpdate(tarefa.id, { produto_id: null } as any);
+                                      toast.success("Produto removido da tarefa", {
+                                        action: {
+                                          label: "Desfazer",
+                                          onClick: () => onUpdate(tarefa.id, { produto_id: previo } as any),
+                                        },
+                                      });
+                                    }}
+                                    title="Remover produto desta tarefa"
+                                  >
                                     <X className="h-3 w-3" />
+                                    Remover
                                   </Button>
                                 </div>
                                 <p className="text-xs text-foreground truncate mt-0.5">
