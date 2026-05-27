@@ -49877,6 +49877,14 @@ export type Database = {
           valor_total_brl: number
         }[]
       }
+      get_projeto_membros_directory: {
+        Args: { _projeto_id: string }
+        Returns: {
+          avatar_url: string
+          id: string
+          nome: string
+        }[]
+      }
       get_projeto_metrics: {
         Args: never
         Returns: {
