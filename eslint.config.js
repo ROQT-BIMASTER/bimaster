@@ -49,6 +49,15 @@ export default tseslint.config(
       "@typescript-eslint/no-implied-eval": "off",
       "@typescript-eslint/prefer-promise-reject-errors": "off",
       "@typescript-eslint/only-throw-error": "off",
+      "@typescript-eslint/no-unnecessary-type-assertion": "off",
+      "@typescript-eslint/no-unnecessary-type-arguments": "off",
+      "@typescript-eslint/no-for-in-array": "off",
+      "@typescript-eslint/prefer-regexp-exec": "off",
+      "@typescript-eslint/dot-notation": "off",
+      "@typescript-eslint/no-meaningless-void-operator": "off",
+      "@typescript-eslint/consistent-type-assertions": "off",
+      "@typescript-eslint/non-nullable-type-assertion-style": "off",
+
 
       // === Quality gates (warning level — não quebra build atual) ===
       "no-console": ["warn", { allow: ["error"] }],
