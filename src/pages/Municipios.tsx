@@ -5,12 +5,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
 import { NovoMunicipioDialog } from "@/components/admin/NovoMunicipioDialog";
 import { AtribuirProspectsDialog } from "@/components/admin/AtribuirProspectsDialog";
 import { AtribuirMunicipiosMassaDialog } from "@/components/admin/AtribuirMunicipiosMassaDialog";
 import { logger } from "@/lib/logger";
 
+import { toast } from "sonner";
 interface Municipio {
   id: string;
   nome: string;
@@ -33,8 +33,6 @@ const Municipios = () => {
   const [municipios, setMunicipios] = useState<Municipio[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-  const { toast } = useToast();
-
   useEffect(() => {
     fetchMunicipios();
   }, []);
@@ -65,11 +63,7 @@ const Municipios = () => {
       setMunicipios(municipiosFormatados);
     } catch (error) {
       logger.error("Erro ao carregar municípios:", error);
-      toast({
-        title: "Erro",
-        description: "Não foi possível carregar os municípios",
-        variant: "destructive",
-      });
+      toast.error("Erro", { description: "Não foi possível carregar os municípios" });
     } finally {
       setLoading(false);
     }

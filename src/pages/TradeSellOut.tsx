@@ -4,7 +4,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
 import { TradeFilters } from "@/components/trade/TradeFilters";
 import { NovoSellOutMultiprodutos } from "@/components/trade/NovoSellOutMultiprodutos";
 import { GerenciarProdutosLojaDialog } from "@/components/trade/GerenciarProdutosLojaDialog";
@@ -22,6 +21,7 @@ import {
 } from "recharts";
 import { uniqueChannelName } from "@/lib/realtime/channelName";
 
+import { toast } from "sonner";
 interface SellOut {
   id: string;
   store_id: string;
@@ -54,8 +54,6 @@ export default function TradeSellOut() {
   const [aiCriteria, setAiCriteria] = useState<any>(null);
   const [dateRange, setDateRange] = useState({ start: "", end: "" });
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
-  const { toast } = useToast();
-
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
       setCurrentUserId(data.user?.id || null);
@@ -119,11 +117,7 @@ export default function TradeSellOut() {
       if (error) throw error;
       setSellouts(data || []);
     } catch (error: any) {
-      toast({
-        title: "Erro ao carregar",
-        description: error.message,
-        variant: "destructive",
-      });
+      toast.error("Erro ao carregar", { description: error.message });
     } finally {
       setLoading(false);
     }
@@ -131,11 +125,7 @@ export default function TradeSellOut() {
 
   const openNewSellOutDialog = () => {
     if (!selectedStore) {
-      toast({
-        title: "Selecione uma loja",
-        description: "Escolha uma loja antes de registrar",
-        variant: "destructive",
-      });
+      toast.error("Selecione uma loja", { description: "Escolha uma loja antes de registrar" });
       return;
     }
     setDialogOpen(true);

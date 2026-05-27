@@ -5,6 +5,7 @@ import userEvent from "@testing-library/user-event";
 import { NovaConversaDialog } from "@/components/chat/NovaConversaDialog";
 import { supabase } from "@/integrations/supabase/client";
 
+import { toast } from "sonner";
 const toastMock = vi.fn();
 
 class ResizeObserverMock {

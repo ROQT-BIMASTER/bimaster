@@ -3,7 +3,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
 import { Phone, Clock, TrendingUp, Users, Calendar, PlayCircle } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -17,6 +16,7 @@ import {
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
+import { toast } from "sonner";
 interface Call {
   id: string;
   prospect_id: string;
@@ -35,8 +35,6 @@ const CallHistory = () => {
   const [loading, setLoading] = useState(true);
   const [selectedCall, setSelectedCall] = useState<Call | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
-  const { toast } = useToast();
-
   useEffect(() => {
     loadCalls();
   }, []);
@@ -67,11 +65,7 @@ const CallHistory = () => {
       setCalls(data || []);
     } catch (error) {
       logger.error("Erro ao carregar histórico:", error);
-      toast({
-        title: "Erro",
-        description: "Não foi possível carregar o histórico de chamadas",
-        variant: "destructive",
-      });
+      toast.error("Erro", { description: "Não foi possível carregar o histórico de chamadas" });
     } finally {
       setLoading(false);
     }

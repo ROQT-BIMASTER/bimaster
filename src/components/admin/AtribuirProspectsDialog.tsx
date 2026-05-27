@@ -3,7 +3,6 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2, UserPlus } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -11,6 +10,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { logger } from "@/lib/logger";
 
+import { toast } from "sonner";
 interface Prospect {
   id: string;
   nome_empresa: string;
@@ -48,8 +48,6 @@ export const AtribuirProspectsDialog = ({ onSuccess }: AtribuirProspectsDialogPr
   const [selectedProspects, setSelectedProspects] = useState<Set<string>>(new Set());
   const [selectedVendedor, setSelectedVendedor] = useState("");
   const [selectedMunicipio, setSelectedMunicipio] = useState<string>("todos");
-  const { toast } = useToast();
-
   useEffect(() => {
     if (open) {
       fetchData();
@@ -109,11 +107,7 @@ export const AtribuirProspectsDialog = ({ onSuccess }: AtribuirProspectsDialogPr
       setVendedores(vendedoresData);
     } catch (error) {
       logger.error("Erro ao carregar dados:", error);
-      toast({
-        title: "Erro",
-        description: "Não foi possível carregar os dados",
-        variant: "destructive",
-      });
+      toast.error("Erro", { description: "Não foi possível carregar os dados" });
     }
   };
 
@@ -151,20 +145,12 @@ export const AtribuirProspectsDialog = ({ onSuccess }: AtribuirProspectsDialogPr
 
   const handleSubmit = async () => {
     if (selectedProspects.size === 0) {
-      toast({
-        title: "Atenção",
-        description: "Selecione pelo menos um prospect",
-        variant: "destructive",
-      });
+      toast.error("Atenção", { description: "Selecione pelo menos um prospect" });
       return;
     }
 
     if (!selectedVendedor) {
-      toast({
-        title: "Atenção",
-        description: "Selecione um vendedor",
-        variant: "destructive",
-      });
+      toast.error("Atenção", { description: "Selecione um vendedor" });
       return;
     }
 
@@ -177,10 +163,7 @@ export const AtribuirProspectsDialog = ({ onSuccess }: AtribuirProspectsDialogPr
 
       if (error) throw error;
 
-      toast({
-        title: "Sucesso",
-        description: `${selectedProspects.size} prospect(s) atribuído(s) com sucesso`,
-      });
+      toast.success("Sucesso", { description: `${selectedProspects.size} prospect(s) atribuído(s) com sucesso` });
 
       setSelectedProspects(new Set());
       setSelectedVendedor("");
@@ -188,11 +171,7 @@ export const AtribuirProspectsDialog = ({ onSuccess }: AtribuirProspectsDialogPr
       onSuccess?.();
     } catch (error: any) {
       logger.error("Erro ao atribuir prospects:", error);
-      toast({
-        title: "Erro",
-        description: error.message || "Não foi possível atribuir os prospects",
-        variant: "destructive",
-      });
+      toast.error("Erro", { description: error.message || "Não foi possível atribuir os prospects" });
     } finally {
       setLoading(false);
     }

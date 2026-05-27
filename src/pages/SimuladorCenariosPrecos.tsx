@@ -4,7 +4,6 @@ import { ModuleBreadcrumb } from "@/components/navigation/ModuleBreadcrumb";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useToast } from "@/hooks/use-toast";
 import { FlaskConical, Save, FileSpreadsheet, ArrowRight, RefreshCw } from "lucide-react";
 import { SimuladorCenarioConfig } from "@/components/simulador/SimuladorCenarioConfig";
 import { SimuladorComparativo } from "@/components/simulador/SimuladorComparativo";
@@ -13,8 +12,8 @@ import { SimuladorCadeiaImpacto } from "@/components/simulador/SimuladorCadeiaIm
 import { SimuladorProdutoSelector } from "@/components/simulador/SimuladorProdutoSelector";
 import { useSimuladorPrecos } from "@/hooks/useSimuladorPrecos";
 
+import { toast } from "sonner";
 export default function SimuladorCenariosPrecos() {
-  const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("configuracao");
   
   const {
@@ -35,25 +34,15 @@ export default function SimuladorCenariosPrecos() {
   const handleSalvar = async () => {
     try {
       await salvarCenario();
-      toast({
-        title: "Cenário salvo",
-        description: "O cenário foi salvo com sucesso.",
-      });
+      toast.success("Cenário salvo", { description: "O cenário foi salvo com sucesso." });
     } catch (error) {
-      toast({
-        title: "Erro ao salvar",
-        description: "Não foi possível salvar o cenário.",
-        variant: "destructive",
-      });
+      toast.error("Erro ao salvar", { description: "Não foi possível salvar o cenário." });
     }
   };
 
   const handleExportar = () => {
     exportarExcel();
-    toast({
-      title: "Exportação iniciada",
-      description: "O arquivo Excel está sendo gerado.",
-    });
+    toast.success("Exportação iniciada", { description: "O arquivo Excel está sendo gerado." });
   };
 
   const temResultados = resultados.length > 0;

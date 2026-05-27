@@ -6,10 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { useToast } from "@/hooks/use-toast";
 import { z } from "zod";
 import { Eye, EyeOff, CheckCircle2 } from "lucide-react";
 
+import { toast } from "sonner";
 const passwordSchema = z.object({
   password: z
     .string()
@@ -27,8 +27,6 @@ const ResetPassword = () => {
   const [success, setSuccess] = useState(false);
   const [isRecovery, setIsRecovery] = useState(false);
   const navigate = useNavigate();
-  const { toast } = useToast();
-
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
       if (event === "PASSWORD_RECOVERY") {
@@ -42,7 +40,7 @@ const ResetPassword = () => {
     e.preventDefault();
 
     if (password !== confirmPassword) {
-      toast({ title: "Erro", description: "As senhas não coincidem.", variant: "destructive" });
+      toast.error("Erro", { description: "As senhas não coincidem." });
       return;
     }
 
@@ -53,16 +51,16 @@ const ResetPassword = () => {
       const { error } = await supabase.auth.updateUser({ password: validated.password });
 
       if (error) {
-        toast({ title: "Erro", description: error.message, variant: "destructive" });
+        toast.error("Erro", { description: error.message });
         return;
       }
 
       setSuccess(true);
-      toast({ title: "Senha redefinida!", description: "Sua senha foi alterada com sucesso." });
+      toast.success("Senha redefinida!", { description: "Sua senha foi alterada com sucesso." });
       setTimeout(() => navigate("/auth/login", { replace: true }), 3000);
     } catch (err) {
       if (err instanceof z.ZodError) {
-        toast({ title: "Erro de validação", description: err.errors[0].message, variant: "destructive" });
+        toast.error("Erro de validação", { description: err.errors[0].message });
       }
     } finally {
       setLoading(false);

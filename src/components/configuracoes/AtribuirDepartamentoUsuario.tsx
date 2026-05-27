@@ -5,10 +5,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useToast } from "@/hooks/use-toast";
 import { Loader2, Users, Building2, Search, Save } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
+import { toast } from "sonner";
 interface Usuario {
   id: string;
   nome: string;
@@ -34,8 +34,6 @@ export function AtribuirDepartamentoUsuario() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
-  const { toast } = useToast();
-
   useEffect(() => {
     fetchData();
   }, []);
@@ -80,9 +78,9 @@ export function AtribuirDepartamentoUsuario() {
       .eq("id", userId);
 
     if (error) {
-      toast({ title: "Erro ao atualizar departamento", variant: "destructive" });
+      toast.error("Erro ao atualizar departamento");
     } else {
-      toast({ title: "Departamento atualizado com sucesso" });
+      toast("Departamento atualizado com sucesso");
       
       // Atualizar estado local
       setUsuarios(prev => 

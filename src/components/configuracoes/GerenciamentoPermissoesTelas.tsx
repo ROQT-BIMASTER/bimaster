@@ -1,6 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -20,6 +19,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { permissionsCache } from "@/lib/utils/permissions-cache";
 import { logScreenPermissionsUpdate, logPermissionSync } from "@/lib/utils/permission-audit";
 
+import { toast } from "sonner";
 interface Screen {
   id: string;
   codigo: string;
@@ -55,8 +55,6 @@ export const GerenciamentoPermissoesTelas = () => {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [openGroups, setOpenGroups] = useState<Set<string>>(new Set());
-  const { toast } = useToast();
-
   useEffect(() => {
     fetchScreens();
     fetchUsuarios();
@@ -191,9 +189,9 @@ export const GerenciamentoPermissoesTelas = () => {
       setUserPermissions(new Set());
       permissionsCache.invalidate(selectedUsuario);
       window.dispatchEvent(new Event('permissions-updated'));
-      toast({ title: "Sucesso", description: "Permissões individuais removidas. Usuário herda do Role/Departamento." });
+      toast.success("Sucesso", { description: "Permissões individuais removidas. Usuário herda do Role/Departamento." });
     } catch (error) {
-      toast({ title: "Erro", description: "Falha ao remover permissões", variant: "destructive" });
+      toast.error("Erro", { description: "Falha ao remover permissões" });
     } finally {
       setSaving(false);
     }
@@ -224,10 +222,10 @@ export const GerenciamentoPermissoesTelas = () => {
       const screenNames = screens.map(s => ({ id: s.id, name: s.nome }));
       await logScreenPermissionsUpdate(selectedUsuario, selectedUser?.nome || 'Usuário', oldPermissionIds, newPermissionIds, screenNames);
 
-      toast({ title: "Permissões atualizadas", description: "As permissões individuais foram salvas (sobrescrevem Role/Dept)" });
+      toast.success("Permissões atualizadas", { description: "As permissões individuais foram salvas (sobrescrevem Role/Dept)" });
     } catch (error) {
       logger.error("Error saving permissions:", error);
-      toast({ title: "Erro ao salvar", description: "Não foi possível atualizar as permissões", variant: "destructive" });
+      toast.error("Erro ao salvar", { description: "Não foi possível atualizar as permissões" });
     } finally {
       setSaving(false);
     }

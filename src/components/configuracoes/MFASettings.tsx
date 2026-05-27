@@ -2,19 +2,17 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { useToast } from "@/hooks/use-toast";
 import { ShieldCheck, ShieldOff, Loader2 } from "lucide-react";
 import { MFAEnrollDialog } from "@/components/auth/MFAEnrollDialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 
+import { toast } from "sonner";
 export function MFASettings() {
   const [hasMFA, setHasMFA] = useState(false);
   const [factorId, setFactorId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [showEnroll, setShowEnroll] = useState(false);
   const [disabling, setDisabling] = useState(false);
-  const { toast } = useToast();
-
   const checkMFAStatus = async () => {
     setLoading(true);
     try {
@@ -39,14 +37,14 @@ export function MFASettings() {
     try {
       const { error } = await supabase.auth.mfa.unenroll({ factorId });
       if (error) {
-        toast({ title: "Erro", description: "Não foi possível desativar o MFA: " + error.message, variant: "destructive" });
+        toast.error("Erro", { description: "Não foi possível desativar o MFA: " + error.message });
         return;
       }
       setHasMFA(false);
       setFactorId(null);
-      toast({ title: "MFA desativado", description: "A autenticação em duas etapas foi removida da sua conta." });
+      toast.success("MFA desativado", { description: "A autenticação em duas etapas foi removida da sua conta." });
     } catch {
-      toast({ title: "Erro", description: "Falha ao desativar MFA.", variant: "destructive" });
+      toast.error("Erro", { description: "Falha ao desativar MFA." });
     } finally {
       setDisabling(false);
     }

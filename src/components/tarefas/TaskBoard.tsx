@@ -2,13 +2,13 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { useToast } from "@/hooks/use-toast";
 import { Calendar, Clock, CheckCircle2, Circle, AlertCircle } from "lucide-react";
 import { format, isToday, isFuture, isPast } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { EditarAtividadeDialog } from "@/components/atividades/EditarAtividadeDialog";
 import { logger } from "@/lib/logger";
 
+import { toast } from "sonner";
 interface Atividade {
   id: string;
   descricao: string;
@@ -41,8 +41,6 @@ export const TaskBoard = () => {
   const [loading, setLoading] = useState(true);
   const [editandoAtividade, setEditandoAtividade] = useState<Atividade | null>(null);
   const [dialogAberto, setDialogAberto] = useState(false);
-  const { toast } = useToast();
-
   useEffect(() => {
     fetchAtividades();
   }, []);
@@ -63,11 +61,7 @@ export const TaskBoard = () => {
       setAtividades(data || []);
     } catch (error) {
       logger.error("Erro ao carregar atividades:", error);
-      toast({
-        title: "Erro",
-        description: "Não foi possível carregar as atividades",
-        variant: "destructive",
-      });
+      toast.error("Erro", { description: "Não foi possível carregar as atividades" });
     } finally {
       setLoading(false);
     }

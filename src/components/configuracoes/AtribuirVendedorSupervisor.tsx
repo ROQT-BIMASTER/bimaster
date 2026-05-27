@@ -2,11 +2,11 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Users, UserCheck, Loader2 } from "lucide-react";
 import { logger } from "@/lib/logger";
 
+import { toast } from "sonner";
 interface Usuario {
   id: string;
   nome: string;
@@ -25,8 +25,6 @@ export function AtribuirVendedorSupervisor() {
   const [supervisores, setSupervisores] = useState<Supervisor[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<string | null>(null);
-  const { toast } = useToast();
-
   useEffect(() => {
     fetchData();
   }, []);
@@ -94,11 +92,7 @@ export function AtribuirVendedorSupervisor() {
 
     } catch (error) {
       logger.error("Erro ao buscar dados:", error);
-      toast({
-        title: "Erro",
-        description: "Não foi possível carregar os dados",
-        variant: "destructive",
-      });
+      toast.error("Erro", { description: "Não foi possível carregar os dados" });
     } finally {
       setLoading(false);
     }
@@ -122,20 +116,13 @@ export function AtribuirVendedorSupervisor() {
         )
       );
 
-      toast({
-        title: "Sucesso",
-        description: supervisorId 
+      toast.success("Sucesso", { description: supervisorId 
           ? "Supervisor atribuído com sucesso" 
-          : "Supervisor removido com sucesso",
-      });
+          : "Supervisor removido com sucesso" });
 
     } catch (error) {
       logger.error("Erro ao atribuir supervisor:", error);
-      toast({
-        title: "Erro",
-        description: "Não foi possível atribuir o supervisor",
-        variant: "destructive",
-      });
+      toast.error("Erro", { description: "Não foi possível atribuir o supervisor" });
     } finally {
       setSaving(null);
     }

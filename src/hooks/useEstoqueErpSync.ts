@@ -1,8 +1,8 @@
 import { useState, useCallback, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
 import { logger } from "@/lib/logger";
 
+import { toast } from "sonner";
 export interface SyncResult {
   success: boolean;
   totalRows?: number;
@@ -45,7 +45,6 @@ const initialProgress = {
 };
 
 export function useEstoqueErpSync() {
-  const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [stats, setStats] = useState<EstoqueErpStats | null>(null);
@@ -145,10 +144,10 @@ export function useEstoqueErpSync() {
     try {
       const { count, error } = await supabase.from('erp_estoque_distribuidora' as any).select('id', { count: 'exact', head: true });
       if (error) throw error;
-      toast({ title: 'Conexão OK', description: `Banco acessível. ${count || 0} registros de estoque.` });
+      toast.success('Conexão OK', { description: `Banco acessível. ${count || 0} registros de estoque.` });
       return { connected: true, count };
     } catch (err) {
-      toast({ title: 'Erro de Conexão', description: 'Falha ao acessar a base local.', variant: 'destructive' });
+      toast.error('Erro de Conexão', { description: 'Falha ao acessar a base local.' });
       return { connected: false, error: err };
     } finally {
       setIsLoading(false);
@@ -161,13 +160,13 @@ export function useEstoqueErpSync() {
       const data = await callErpEngine('test-connection');
       if (data?.success) {
         setErpConnectionStatus('connected');
-        toast({ title: 'Conexão ERP OK', description: 'Conectado ao SQL Server.' });
+        toast.success('Conexão ERP OK', { description: 'Conectado ao SQL Server.' });
         return { connected: true, data };
       }
       throw new Error(data?.error || 'Falha na conexão');
     } catch (err) {
       setErpConnectionStatus('error');
-      toast({ title: 'Erro de Conexão ERP', description: 'Falha ao conectar com o SQL Server.', variant: 'destructive' });
+      toast.error('Erro de Conexão ERP', { description: 'Falha ao conectar com o SQL Server.' });
       return { connected: false, error: err };
     }
   }, [toast, callErpEngine]);
@@ -178,13 +177,13 @@ export function useEstoqueErpSync() {
     try {
       const data = await callErpEngine('sync-estoque-full');
       setLastSyncResult({ success: true, totalRows: data?.totalRows, upserted: data?.upserted, message: `${data?.empresas || 0} distribuidoras processadas` });
-      toast({ title: 'Sync Concluída', description: `${data?.totalRows?.toLocaleString() || 0} SKUs sincronizados` });
+      toast.success('Sync Concluída', { description: `${data?.totalRows?.toLocaleString() || 0} SKUs sincronizados` });
       await Promise.all([fetchStats(), fetchSyncHistory()]);
       return data;
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Erro desconhecido';
       setLastSyncResult({ success: false, error: msg });
-      toast({ title: 'Erro na Sync', description: msg, variant: 'destructive' });
+      toast.error('Erro na Sync', { description: msg });
       return null;
     } finally {
       setIsSyncing(false);
@@ -203,13 +202,13 @@ export function useEstoqueErpSync() {
     try {
       const data = await callErpEngine('sync-estoque-por-empresa', { empresa_id: empresaId });
       setLastSyncResult({ success: true, totalRows: data?.totalRows, upserted: data?.upserted, message: `Distribuidora ${empresaId} sincronizada` });
-      toast({ title: 'Sync Concluída', description: `Distribuidora ${empresaId}: ${data?.totalRows?.toLocaleString() || 0} SKUs` });
+      toast.success('Sync Concluída', { description: `Distribuidora ${empresaId}: ${data?.totalRows?.toLocaleString() || 0} SKUs` });
       await Promise.all([fetchStats(), fetchSyncHistory()]);
       return data;
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Erro desconhecido';
       setLastSyncResult({ success: false, error: msg });
-      toast({ title: 'Erro na Sync', description: msg, variant: 'destructive' });
+      toast.error('Erro na Sync', { description: msg });
       return null;
     } finally {
       setIsSyncing(false);

@@ -4,10 +4,10 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Send, Bot, User, Loader2, Sparkles } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
 import { logger } from "@/lib/logger";
 import { invokeChat } from "@/lib/ai/invokeChat";
 
+import { toast } from "sonner";
 interface Message {
   role: "user" | "assistant";
   content: string;
@@ -27,8 +27,6 @@ export const AIInsightsChat = ({ open, onOpenChange }: AIInsightsChatProps) => {
   ]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const { toast } = useToast();
-
   const handleSend = async () => {
     if (!input.trim() || isLoading) return;
 
@@ -47,11 +45,7 @@ export const AIInsightsChat = ({ open, onOpenChange }: AIInsightsChatProps) => {
 
       if (error) {
         logger.error("ai-insights error:", error);
-        toast({
-          title: "Erro",
-          description: error.userMessage,
-          variant: "destructive",
-        });
+        toast.error("Erro", { description: error.userMessage });
         return;
       }
 
@@ -62,11 +56,7 @@ export const AIInsightsChat = ({ open, onOpenChange }: AIInsightsChatProps) => {
 
     } catch (error: any) {
       logger.error("Error sending message:", error);
-      toast({
-        title: "Erro",
-        description: "Erro inesperado. Tente novamente.",
-        variant: "destructive",
-      });
+      toast.error("Erro", { description: "Erro inesperado. Tente novamente." });
     } finally {
       setIsLoading(false);
     }

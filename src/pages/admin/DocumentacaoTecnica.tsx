@@ -19,12 +19,12 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { useToast } from "@/hooks/use-toast";
 import { FileText, Download, Eye, RefreshCw, ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
+import { toast } from "sonner";
 interface DocTecnico {
   id: string;
   titulo: string;
@@ -50,7 +50,6 @@ function triggerBlobDownload(blob: Blob, filename: string) {
 }
 
 export default function DocumentacaoTecnica() {
-  const { toast } = useToast();
   const navigate = useNavigate();
   const [docs, setDocs] = useState<DocTecnico[]>([]);
   const [loading, setLoading] = useState(true);
@@ -68,7 +67,7 @@ export default function DocumentacaoTecnica() {
       .eq("publicado", true)
       .order("publicado_em", { ascending: false });
     if (error) {
-      toast({ title: "Erro ao carregar documentos", description: error.message, variant: "destructive" });
+      toast.error("Erro ao carregar documentos", { description: error.message });
     } else {
       setDocs(data ?? []);
     }
@@ -93,7 +92,7 @@ export default function DocumentacaoTecnica() {
   const baixarArquivo = async (doc: DocTecnico) => {
     const { data, error } = await supabase.storage.from("docs-tecnicos").download(doc.arquivo_storage_path);
     if (error || !data) {
-      toast({ title: "Falha ao baixar", description: error?.message ?? "Sem dados", variant: "destructive" });
+      toast.error("Falha ao baixar", { description: error?.message ?? "Sem dados" });
       return;
     }
     const ext = doc.mime_type === "application/pdf" ? "pdf" : "md";
@@ -109,7 +108,7 @@ export default function DocumentacaoTecnica() {
         user_agent: navigator.userAgent.slice(0, 500),
       });
     }
-    toast({ title: "Download iniciado", description: filename });
+    toast.success("Download iniciado", { description: filename });
   };
 
   const abrirPreview = async (doc: DocTecnico) => {
@@ -118,7 +117,7 @@ export default function DocumentacaoTecnica() {
     setPreviewContent("");
     const { data, error } = await supabase.storage.from("docs-tecnicos").download(doc.arquivo_storage_path);
     if (error || !data) {
-      toast({ title: "Falha no preview", description: error?.message, variant: "destructive" });
+      toast.error("Falha no preview", { description: error?.message });
       setPreviewLoading(false);
       return;
     }

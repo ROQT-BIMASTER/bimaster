@@ -7,11 +7,11 @@ import { Button } from "@/components/ui/button";
 import { Plus, MessageSquare } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { useToast } from "@/hooks/use-toast";
 import { NovaConversaDialog } from "./NovaConversaDialog";
 import { logger } from "@/lib/logger";
 import { uniqueChannelName } from "@/lib/realtime/channelName";
 
+import { toast } from "sonner";
 interface Conversa {
   id: string;
   nome: string | null;
@@ -36,8 +36,6 @@ export const ConversasList = ({ onSelectConversa, conversaSelecionada }: Convers
   const [conversas, setConversas] = useState<Conversa[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogAberto, setDialogAberto] = useState(false);
-  const { toast } = useToast();
-
   useEffect(() => {
     fetchConversas();
     const cleanup = subscribeToConversas();
@@ -133,11 +131,7 @@ export const ConversasList = ({ onSelectConversa, conversaSelecionada }: Convers
       ));
     } catch (error) {
       logger.error("Erro ao carregar conversas:", error);
-      toast({
-        title: "Erro",
-        description: "Não foi possível carregar as conversas",
-        variant: "destructive",
-      });
+      toast.error("Erro", { description: "Não foi possível carregar as conversas" });
     } finally {
       setLoading(false);
     }

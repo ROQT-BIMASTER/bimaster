@@ -7,13 +7,12 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { useToast } from "@/hooks/use-toast";
 import { Key, RotateCw, Shield, Activity, AlertTriangle, CheckCircle2, Clock } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
+import { toast } from "sonner";
 export function GerenciamentoAPIKeys() {
-  const { toast } = useToast();
   const queryClient = useQueryClient();
   const [rotateKey, setRotateKey] = useState<string | null>(null);
   const [rotating, setRotating] = useState(false);
@@ -53,10 +52,10 @@ export function GerenciamentoAPIKeys() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["api-keys-management"] });
-      toast({ title: "Status atualizado" });
+      toast("Status atualizado");
     },
     onError: () => {
-      toast({ title: "Erro ao atualizar status", variant: "destructive" });
+      toast.error("Erro ao atualizar status");
     },
   });
 
@@ -74,10 +73,10 @@ export function GerenciamentoAPIKeys() {
         .eq("id", rotateKey);
       if (error) throw error;
       queryClient.invalidateQueries({ queryKey: ["api-keys-management"] });
-      toast({ title: "Rotação registrada com sucesso" });
+      toast("Rotação registrada com sucesso");
       setRotateKey(null);
     } catch {
-      toast({ title: "Erro ao registrar rotação", variant: "destructive" });
+      toast.error("Erro ao registrar rotação");
     } finally {
       setRotating(false);
     }

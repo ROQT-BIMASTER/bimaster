@@ -1,16 +1,14 @@
 import { Check, Palette } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useTheme, themes, ThemeKey } from "@/contexts/ThemeContext";
-import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
+import { toast } from "sonner";
 export const ThemeSelectorPopover = () => {
   const { currentTheme, setTheme } = useTheme();
-  const { toast } = useToast();
-
   const handleSelect = async (key: ThemeKey) => {
     await setTheme(key);
-    toast({ title: "Tema aplicado", description: `Tema ${themes.find(t => t.key === key)?.label} salvo.` });
+    toast.success("Tema aplicado", { description: `Tema ${themes.find(t => t.key === key)?.label} salvo.` });
   };
 
   return (

@@ -9,10 +9,10 @@ import { Building2, Plus, Search, Edit, Trash2, MapPin, Phone, Mail } from "luci
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useToast } from "@/hooks/use-toast";
 import { NovaDistribuidoraDialog } from "@/components/estoque/NovaDistribuidoraDialog";
 import { formatCNPJ } from "@/lib/validations/estoque";
 import {
+import { toast } from "sonner";
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -28,7 +28,6 @@ export default function EstoqueDistribuidoras() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<any>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
-  const { toast } = useToast();
   const queryClient = useQueryClient();
 
   const { data: distribuidoras, isLoading } = useQuery({
@@ -59,11 +58,11 @@ export default function EstoqueDistribuidoras() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['estoque-distribuidoras'] });
-      toast({ title: "Distribuidora desativada com sucesso" });
+      toast("Distribuidora desativada com sucesso");
       setDeletingId(null);
     },
     onError: (error: any) => {
-      toast({ title: "Erro ao desativar", description: error.message, variant: "destructive" });
+      toast.error("Erro ao desativar", { description: error.message });
     }
   });
 

@@ -6,9 +6,9 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 
+import { toast } from "sonner";
 interface EditarVisitaDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -17,7 +17,6 @@ interface EditarVisitaDialogProps {
 }
 
 export const EditarVisitaDialog = ({ open, onOpenChange, visitId, onSuccess }: EditarVisitaDialogProps) => {
-  const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     scheduled_date: "",
@@ -53,11 +52,7 @@ export const EditarVisitaDialog = ({ open, onOpenChange, visitId, onSuccess }: E
         observations: "",
       });
     } catch (error: any) {
-      toast({
-        title: "Erro ao carregar visita",
-        description: error.message,
-        variant: "destructive",
-      });
+      toast.error("Erro ao carregar visita", { description: error.message });
     }
   };
 
@@ -78,19 +73,12 @@ export const EditarVisitaDialog = ({ open, onOpenChange, visitId, onSuccess }: E
 
       if (error) throw error;
 
-      toast({
-        title: "Visita atualizada",
-        description: "As alterações foram salvas com sucesso.",
-      });
+      toast.success("Visita atualizada", { description: "As alterações foram salvas com sucesso." });
 
       onOpenChange(false);
       onSuccess?.();
     } catch (error: any) {
-      toast({
-        title: "Erro ao atualizar",
-        description: error.message,
-        variant: "destructive",
-      });
+      toast.error("Erro ao atualizar", { description: error.message });
     } finally {
       setLoading(false);
     }

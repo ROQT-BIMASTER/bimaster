@@ -7,10 +7,10 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { logger } from "@/lib/logger";
 import { 
+import { toast } from "sonner";
   Bot, 
   Clock, 
   Key, 
@@ -56,8 +56,6 @@ export function ConfiguracoesCobrancaAutomatica() {
   const [saving, setSaving] = useState(false);
   const [showApiKey, setShowApiKey] = useState(false);
   const [showVerifyToken, setShowVerifyToken] = useState(false);
-  const { toast } = useToast();
-
   const webhookUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/cobranca-whatsapp-webhook`;
 
   useEffect(() => {
@@ -131,17 +129,10 @@ export function ConfiguracoesCobrancaAutomatica() {
         setConfig(prev => ({ ...prev, id: (data as any).id }));
       }
 
-      toast({
-        title: "Configurações salvas",
-        description: "As configurações de cobrança automática foram atualizadas"
-      });
+      toast.success("Configurações salvas", { description: "As configurações de cobrança automática foram atualizadas" });
     } catch (error: any) {
       logger.error("Erro ao salvar:", error);
-      toast({
-        title: "Erro ao salvar",
-        description: error.message,
-        variant: "destructive"
-      });
+      toast.error("Erro ao salvar", { description: error.message });
     } finally {
       setSaving(false);
     }
@@ -159,10 +150,7 @@ export function ConfiguracoesCobrancaAutomatica() {
 
   const copyToClipboard = (text: string, label: string) => {
     navigator.clipboard.writeText(text);
-    toast({
-      title: "Copiado!",
-      description: `${label} copiado para a área de transferência`
-    });
+    toast.success("Copiado!", { description: `${label} copiado para a área de transferência` });
   };
 
   if (loading) {

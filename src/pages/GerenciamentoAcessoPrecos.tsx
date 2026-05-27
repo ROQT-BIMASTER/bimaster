@@ -51,7 +51,6 @@ import {
   Ban
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { useVisibilityBlocks } from "@/hooks/useVisibilityBlocks";
 import {
@@ -63,6 +62,7 @@ import {
 import { ModuleBreadcrumb } from "@/components/navigation/ModuleBreadcrumb";
 import { format } from "date-fns";
 
+import { toast } from "sonner";
 interface PriceTable {
   id: string;
   codigo: string;
@@ -103,7 +103,6 @@ type ScopeType = "tabela" | "linha" | "produto";
 
 export default function GerenciamentoAcessoPrecos() {
   const { user } = useAuth();
-  const { toast } = useToast();
   const { blocks, unblock, isUnblocking, blockItem, isBlocking } = useVisibilityBlocks();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -185,11 +184,7 @@ export default function GerenciamentoAcessoPrecos() {
       setAccessRecords(enrichedAccess);
     } catch (error: any) {
       logger.error("Error loading data:", error);
-      toast({
-        title: "Erro ao carregar dados",
-        description: error.message,
-        variant: "destructive",
-      });
+      toast.error("Erro ao carregar dados", { description: error.message });
     } finally {
       setLoading(false);
     }
@@ -213,17 +208,17 @@ export default function GerenciamentoAcessoPrecos() {
 
   const handleAddAccess = async () => {
     if (!newAccess.user_id || !newAccess.tabela_id) {
-      toast({ title: "Campos obrigatórios", description: "Selecione um usuário e uma tabela de preço", variant: "destructive" });
+      toast.error("Campos obrigatórios", { description: "Selecione um usuário e uma tabela de preço" });
       return;
     }
 
     if (newAccess.scope === "linha" && selectedLinhas.length === 0) {
-      toast({ title: "Campo obrigatório", description: "Selecione pelo menos uma linha de produto", variant: "destructive" });
+      toast.error("Campo obrigatório", { description: "Selecione pelo menos uma linha de produto" });
       return;
     }
 
     if (newAccess.scope === "produto" && selectedProdutoIds.length === 0) {
-      toast({ title: "Campo obrigatório", description: "Selecione pelo menos um produto", variant: "destructive" });
+      toast.error("Campo obrigatório", { description: "Selecione pelo menos um produto" });
       return;
     }
 
@@ -256,13 +251,13 @@ export default function GerenciamentoAcessoPrecos() {
       if (error) throw error;
 
       const count = insertRows.length;
-      toast({ title: "Acesso configurado", description: `${count} regra${count > 1 ? 's' : ''} salva${count > 1 ? 's' : ''} com sucesso` });
+      toast.success("Acesso configurado", { description: `${count} regra${count > 1 ? 's' : ''} salva${count > 1 ? 's' : ''} com sucesso` });
       setDialogOpen(false);
       resetForm();
       loadData();
     } catch (error: any) {
       logger.error("Error saving access:", error);
-      toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
+      toast.error("Erro ao salvar", { description: error.message });
     } finally {
       setSaving(false);
     }
@@ -285,9 +280,9 @@ export default function GerenciamentoAcessoPrecos() {
         prev.map(r => r.id === recordId ? { ...r, [field]: value } : r)
       );
 
-      toast({ title: "Permissão atualizada", description: "Alteração salva com sucesso" });
+      toast.success("Permissão atualizada", { description: "Alteração salva com sucesso" });
     } catch (error: any) {
-      toast({ title: "Erro ao atualizar", description: error.message, variant: "destructive" });
+      toast.error("Erro ao atualizar", { description: error.message });
     }
   };
 
@@ -301,9 +296,9 @@ export default function GerenciamentoAcessoPrecos() {
       if (error) throw error;
 
       setAccessRecords(prev => prev.filter(r => r.id !== recordId));
-      toast({ title: "Acesso removido", description: "Permissão excluída com sucesso" });
+      toast.success("Acesso removido", { description: "Permissão excluída com sucesso" });
     } catch (error: any) {
-      toast({ title: "Erro ao excluir", description: error.message, variant: "destructive" });
+      toast.error("Erro ao excluir", { description: error.message });
     }
   };
 

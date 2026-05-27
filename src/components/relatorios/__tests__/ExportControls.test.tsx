@@ -17,6 +17,7 @@ vi.mock("@/hooks/use-toast", () => ({
 
 import { ExportControls } from "../ExportControls";
 
+import { toast } from "sonner";
 describe("ExportControls", () => {
   it("renders PDF and Excel buttons", () => {
     render(<ExportControls reportType="test" data={[{ a: 1 }]} />);

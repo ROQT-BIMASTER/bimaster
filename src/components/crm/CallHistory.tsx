@@ -5,11 +5,11 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Phone, Calendar, Clock, TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { logger } from "@/lib/logger";
 
+import { toast } from "sonner";
 interface Call {
   id: string;
   created_at: string;
@@ -30,7 +30,6 @@ interface CallHistoryProps {
 }
 
 const CallHistory = ({ prospectId }: CallHistoryProps) => {
-  const { toast } = useToast();
   const [calls, setCalls] = useState<Call[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedCall, setSelectedCall] = useState<Call | null>(null);
@@ -62,11 +61,7 @@ const CallHistory = ({ prospectId }: CallHistoryProps) => {
       setCalls(data || []);
     } catch (error) {
       logger.error('Erro ao buscar histórico:', error);
-      toast({
-        title: "Erro ao carregar histórico",
-        description: error instanceof Error ? error.message : 'Erro desconhecido',
-        variant: "destructive",
-      });
+      toast.error("Erro ao carregar histórico", { description: error instanceof Error ? error.message : 'Erro desconhecido' });
     } finally {
       setLoading(false);
     }

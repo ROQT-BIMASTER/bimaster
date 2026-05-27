@@ -1,8 +1,8 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
 import { logger } from "@/lib/logger";
 
+import { toast } from "sonner";
 export interface HuggsMessage {
   id: string;
   role: 'user' | 'assistant' | 'system' | 'tool';
@@ -63,7 +63,6 @@ interface UseHuggsAgentReturn {
 }
 
 export function useHuggsAgent(): UseHuggsAgentReturn {
-  const { toast } = useToast();
   const [messages, setMessages] = useState<HuggsMessage[]>([]);
   const [sessions, setSessions] = useState<HuggsSession[]>([]);
   const [currentSession, setCurrentSession] = useState<HuggsSession | null>(null);
@@ -139,7 +138,7 @@ export function useHuggsAgent(): UseHuggsAgentReturn {
     try {
       const { data: userData } = await supabase.auth.getUser();
       if (!userData.user) {
-        toast({ title: 'Erro', description: 'Usuário não autenticado', variant: 'destructive' });
+        toast.error('Erro', { description: 'Usuário não autenticado' });
         return null;
       }
 
@@ -172,7 +171,7 @@ export function useHuggsAgent(): UseHuggsAgentReturn {
       return data.id;
     } catch (err) {
       logger.error('Error starting session:', err);
-      toast({ title: 'Erro', description: 'Falha ao iniciar sessão', variant: 'destructive' });
+      toast.error('Erro', { description: 'Falha ao iniciar sessão' });
       return null;
     }
   }, [toast]);
@@ -233,7 +232,7 @@ export function useHuggsAgent(): UseHuggsAgentReturn {
   // Send message via n8n workflow
   const sendMessage = useCallback(async (content: string) => {
     if (!currentSession) {
-      toast({ title: 'Erro', description: 'Nenhuma sessão ativa', variant: 'destructive' });
+      toast.error('Erro', { description: 'Nenhuma sessão ativa' });
       return;
     }
 
@@ -350,7 +349,7 @@ export function useHuggsAgent(): UseHuggsAgentReturn {
         createdAt: new Date().toISOString()
       }]);
 
-      toast({ title: 'Erro', description: errorMessage, variant: 'destructive' });
+      toast.error('Erro', { description: errorMessage });
 
       // Log error
       await supabase.from('huggs_usage_logs').insert({
@@ -391,9 +390,9 @@ export function useHuggsAgent(): UseHuggsAgentReturn {
         setMessages([]);
       }
 
-      toast({ title: 'Sucesso', description: 'Sessão arquivada' });
+      toast.success('Sucesso', { description: 'Sessão arquivada' });
     } catch (err) {
-      toast({ title: 'Erro', description: 'Falha ao arquivar sessão', variant: 'destructive' });
+      toast.error('Erro', { description: 'Falha ao arquivar sessão' });
     }
   }, [currentSession, toast]);
 
@@ -426,9 +425,9 @@ export function useHuggsAgent(): UseHuggsAgentReturn {
         .eq('id', config.id);
 
       setConfig(prev => prev ? { ...prev, ...updates } : null);
-      toast({ title: 'Sucesso', description: 'Configuração atualizada' });
+      toast.success('Sucesso', { description: 'Configuração atualizada' });
     } catch (err) {
-      toast({ title: 'Erro', description: 'Falha ao atualizar configuração', variant: 'destructive' });
+      toast.error('Erro', { description: 'Falha ao atualizar configuração' });
     }
   }, [config, toast]);
 
@@ -451,7 +450,7 @@ export function useHuggsAgent(): UseHuggsAgentReturn {
         comment
       });
 
-      toast({ title: 'Obrigado!', description: 'Seu feedback foi registrado' });
+      toast.success('Obrigado!', { description: 'Seu feedback foi registrado' });
     } catch (err) {
       logger.error('Error submitting feedback:', err);
     }

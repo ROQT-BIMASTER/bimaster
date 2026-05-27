@@ -6,12 +6,12 @@ import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import { useToast } from "@/hooks/use-toast";
 import { Plus, Trash2, Calendar, Loader2, CheckCircle2 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { TarefaResponsavelAvatar } from "@/components/projetos/shared/TarefaResponsavelAvatar";
 
+import { toast } from "sonner";
 interface ChecklistItem {
   item: string;
   done: boolean;
@@ -38,8 +38,6 @@ export const LeadSubtarefas = ({ prospectId }: LeadSubtarefasProps) => {
   const [loading, setLoading] = useState(true);
   const [newTitle, setNewTitle] = useState("");
   const [adding, setAdding] = useState(false);
-  const { toast } = useToast();
-
   useEffect(() => {
     fetchSubtasks();
   }, [prospectId]);
@@ -70,7 +68,7 @@ export const LeadSubtarefas = ({ prospectId }: LeadSubtarefasProps) => {
       titulo: newTitle.trim(),
     });
     if (error) {
-      toast({ title: "Erro", description: "Não foi possível criar subtarefa", variant: "destructive" });
+      toast.error("Erro", { description: "Não foi possível criar subtarefa" });
     } else {
       setNewTitle("");
       fetchSubtasks();

@@ -4,10 +4,10 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
-import { useToast } from "@/hooks/use-toast";
 import { Loader2, Shield, Building2, Layers, Monitor } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
+import { toast } from "sonner";
 interface Departamento {
   id: string;
   nome: string;
@@ -36,8 +36,6 @@ export function GerenciamentoPermissoesDepartamentos() {
   const [permissoesTelas, setPermissoesTelas] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const { toast } = useToast();
-
   useEffect(() => {
     fetchData();
   }, []);
@@ -135,12 +133,12 @@ export function GerenciamentoPermissoesDepartamentos() {
         await supabase.from("departamento_permissoes_telas").insert(telasInsert);
       }
 
-      toast({ title: "Permissões salvas com sucesso" });
+      toast("Permissões salvas com sucesso");
       
       // Disparar evento para atualizar permissões em toda aplicação
       window.dispatchEvent(new CustomEvent('permissions-updated'));
     } catch (error) {
-      toast({ title: "Erro ao salvar permissões", variant: "destructive" });
+      toast.error("Erro ao salvar permissões");
     }
 
     setSaving(false);

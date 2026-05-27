@@ -7,8 +7,8 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
-import { useToast } from "@/hooks/use-toast";
 import { 
+import { toast } from "sonner";
   Copy, 
   FileText, 
   Database, 
@@ -31,17 +31,16 @@ import {
 const SUPABASE_URL = "https://api.bimaster.online/v1";
 
 export function DocumentacaoIntegracaoERP() {
-  const { toast } = useToast();
   const [copiedSection, setCopiedSection] = useState<string | null>(null);
 
   const copyToClipboard = async (text: string, section: string) => {
     try {
       await navigator.clipboard.writeText(text);
       setCopiedSection(section);
-      toast({ title: "Copiado!", description: "Texto copiado para a área de transferência" });
+      toast.success("Copiado!", { description: "Texto copiado para a área de transferência" });
       setTimeout(() => setCopiedSection(null), 2000);
     } catch (err) {
-      toast({ title: "Erro ao copiar", variant: "destructive" });
+      toast.error("Erro ao copiar");
     }
   };
 

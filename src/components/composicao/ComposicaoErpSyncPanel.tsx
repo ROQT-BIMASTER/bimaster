@@ -4,7 +4,6 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
-import { useToast } from '@/hooks/use-toast';
 import { useComposicaoErpSync } from '@/hooks/useComposicaoErpSync';
 import {
   RefreshCw, Database, Clock, CheckCircle, XCircle, Loader2,
@@ -13,8 +12,8 @@ import {
 import { formatDistanceToNow, format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
+import { toast } from "sonner";
 export function ComposicaoErpSyncPanel() {
-  const { toast } = useToast();
   const {
     isLoading, isSyncing, stats, syncHistory, lastSyncResult,
     erpConnectionStatus, syncProgress,
@@ -33,7 +32,7 @@ export function ComposicaoErpSyncPanel() {
 
   const handleRefreshAll = useCallback(async () => {
     await refreshAll();
-    toast({ title: 'Dados Atualizados', description: 'Estatísticas atualizadas' });
+    toast.success('Dados Atualizados', { description: 'Estatísticas atualizadas' });
   }, [refreshAll, toast]);
 
   const formatElapsed = (s: number) => {

@@ -10,9 +10,9 @@ import { Package, Plus, Search, Edit, Trash2, Filter } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useToast } from "@/hooks/use-toast";
 import { NovoProdutoMasterDialog } from "@/components/estoque/NovoProdutoMasterDialog";
 import {
+import { toast } from "sonner";
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -29,7 +29,6 @@ export default function EstoqueProdutosMaster() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<any>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
-  const { toast } = useToast();
   const queryClient = useQueryClient();
 
   const { data: produtos, isLoading } = useQuery({
@@ -77,11 +76,11 @@ export default function EstoqueProdutosMaster() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['estoque-produtos-master'] });
-      toast({ title: "Produto desativado com sucesso" });
+      toast("Produto desativado com sucesso");
       setDeletingId(null);
     },
     onError: (error: any) => {
-      toast({ title: "Erro ao desativar", description: error.message, variant: "destructive" });
+      toast.error("Erro ao desativar", { description: error.message });
     }
   });
 

@@ -10,9 +10,9 @@ import { Link, Plus, Search, Edit, Trash2, Building2, Package } from "lucide-rea
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useToast } from "@/hooks/use-toast";
 import { VincularProdutoDialog } from "@/components/estoque/VincularProdutoDialog";
 import {
+import { toast } from "sonner";
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -29,7 +29,6 @@ export default function EstoqueVinculacoes() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<any>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
-  const { toast } = useToast();
   const queryClient = useQueryClient();
 
   const { data: distribuidoras } = useQuery({
@@ -80,11 +79,11 @@ export default function EstoqueVinculacoes() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['estoque-vinculacoes'] });
-      toast({ title: "Vinculação desativada com sucesso" });
+      toast("Vinculação desativada com sucesso");
       setDeletingId(null);
     },
     onError: (error: any) => {
-      toast({ title: "Erro ao desativar", description: error.message, variant: "destructive" });
+      toast.error("Erro ao desativar", { description: error.message });
     }
   });
 

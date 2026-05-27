@@ -4,11 +4,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2, Plus } from "lucide-react";
 import { logger } from "@/lib/logger";
 
+import { toast } from "sonner";
 interface NovoMunicipioDialogProps {
   onSuccess: () => void;
 }
@@ -22,17 +22,11 @@ export const NovoMunicipioDialog = ({ onSuccess }: NovoMunicipioDialogProps) => 
     regiao: "",
     micro_regiao: "",
   });
-  const { toast } = useToast();
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!formData.nome || !formData.uf || !formData.regiao) {
-      toast({
-        title: "Erro",
-        description: "Preencha todos os campos obrigatórios",
-        variant: "destructive",
-      });
+      toast.error("Erro", { description: "Preencha todos os campos obrigatórios" });
       return;
     }
 
@@ -57,10 +51,7 @@ export const NovoMunicipioDialog = ({ onSuccess }: NovoMunicipioDialogProps) => 
 
       if (error) throw error;
 
-      toast({
-        title: "Sucesso",
-        description: "Município cadastrado com sucesso",
-      });
+      toast.success("Sucesso", { description: "Município cadastrado com sucesso" });
 
       setFormData({
         nome: "",
@@ -72,11 +63,7 @@ export const NovoMunicipioDialog = ({ onSuccess }: NovoMunicipioDialogProps) => 
       onSuccess();
     } catch (error: any) {
       logger.error("Erro ao cadastrar município:", error);
-      toast({
-        title: "Erro",
-        description: error.message || "Não foi possível cadastrar o município",
-        variant: "destructive",
-      });
+      toast.error("Erro", { description: error.message || "Não foi possível cadastrar o município" });
     } finally {
       setLoading(false);
     }

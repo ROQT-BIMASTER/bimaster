@@ -42,7 +42,6 @@ import {
   CollapsibleTrigger,
   CollapsibleContent,
 } from "@/components/ui/collapsible";
-import { useToast } from "@/hooks/use-toast";
 import { useScreenPermissions } from "@/hooks/useScreenPermissions";
 import { useModulePermissions } from "@/hooks/useModulePermissions";
 import { useUserRole } from "@/hooks/useUserRole";
@@ -65,6 +64,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { ChinaInboxSidebarItem } from "@/components/china/ChinaInboxSidebarItem";
 import { uniqueChannelName } from "@/lib/realtime/channelName";
 
+import { toast } from "sonner";
 // Module color configuration
 const moduleColors = {
   prospects: {
@@ -315,7 +315,6 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
   const isMobile = useIsMobile();
   const navigate = useNavigate();
   const location = useLocation();
-  const { toast } = useToast();
   const { permissions, loading: permissionsLoading, hasPermission } = useScreenPermissions();
   const { hasModulePermission, loading: modulesLoading } = useModulePermissions();
   const { isAdminOrSupervisor, isAdmin } = useUserRole();
@@ -515,7 +514,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    toast({ title: t("logout.title"), description: t("logout.description") });
+    toast.success(t("logout.title"), { description: t("logout.description") });
     navigate("/auth/login");
   };
   // ============ CATEGORY DEFINITIONS (from DB) ============

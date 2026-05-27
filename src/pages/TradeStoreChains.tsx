@@ -5,11 +5,11 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
 import { Plus, Edit, Trash2 } from "lucide-react";
 import { NovaRedeDialog } from "@/components/trade/NovaRedeDialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
+import { toast } from "sonner";
 interface StoreChain {
   id: string;
   name: string;
@@ -20,7 +20,6 @@ interface StoreChain {
 }
 
 export default function TradeStoreChains() {
-  const { toast } = useToast();
   const [chains, setChains] = useState<StoreChain[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -42,11 +41,7 @@ export default function TradeStoreChains() {
       if (error) throw error;
       setChains(data || []);
     } catch (error: any) {
-      toast({
-        title: "Erro ao carregar redes",
-        description: error.message,
-        variant: "destructive",
-      });
+      toast.error("Erro ao carregar redes", { description: error.message });
     } finally {
       setLoading(false);
     }
@@ -63,19 +58,12 @@ export default function TradeStoreChains() {
 
       if (error) throw error;
 
-      toast({
-        title: "Rede removida",
-        description: "A rede foi desativada com sucesso.",
-      });
+      toast.success("Rede removida", { description: "A rede foi desativada com sucesso." });
 
       fetchChains();
       setDeleteId(null);
     } catch (error: any) {
-      toast({
-        title: "Erro ao remover rede",
-        description: error.message,
-        variant: "destructive",
-      });
+      toast.error("Erro ao remover rede", { description: error.message });
     }
   };
 

@@ -1,6 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
@@ -15,6 +14,7 @@ import { permissionsCache } from "@/lib/utils/permissions-cache";
 import { logModulePermissionToggle } from "@/lib/utils/permission-audit";
 import { logger } from "@/lib/logger";
 
+import { toast } from "sonner";
 interface Module {
   id: string;
   codigo: string;
@@ -58,7 +58,6 @@ const iconMap: Record<string, any> = {
 type PermissionSource = "role" | "departamento" | "individual" | null;
 
 export function GerenciamentoPermissoesModulos() {
-  const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [modules, setModules] = useState<Module[]>([]);
@@ -103,7 +102,7 @@ export function GerenciamentoPermissoesModulos() {
       setUsers(usersWithRoles);
     } catch (error) {
       logger.error("Erro ao carregar dados:", error);
-      toast({ title: "Erro", description: "Falha ao carregar permissões", variant: "destructive" });
+      toast.error("Erro", { description: "Falha ao carregar permissões" });
     } finally {
       setLoading(false);
     }
@@ -121,10 +120,10 @@ export function GerenciamentoPermissoesModulos() {
       }
       permissionsCache.clear();
       window.dispatchEvent(new Event('permissions-updated'));
-      toast({ title: "Sucesso", description: "Permissão atualizada" });
+      toast.success("Sucesso", { description: "Permissão atualizada" });
     } catch (error) {
       logger.error("Erro ao atualizar permissão:", error);
-      toast({ title: "Erro", description: "Falha ao atualizar permissão", variant: "destructive" });
+      toast.error("Erro", { description: "Falha ao atualizar permissão" });
     } finally {
       setSaving(false);
     }
@@ -174,10 +173,10 @@ export function GerenciamentoPermissoesModulos() {
       permissionsCache.invalidate(userId);
       window.dispatchEvent(new Event('permissions-updated'));
       await logModulePermissionToggle(userId, user?.nome || 'Usuário', moduleId, module?.nome || 'Módulo', !currentValue);
-      toast({ title: "Sucesso", description: "Permissão atualizada" });
+      toast.success("Sucesso", { description: "Permissão atualizada" });
     } catch (error) {
       logger.error("Erro ao atualizar permissão:", error);
-      toast({ title: "Erro", description: "Falha ao atualizar permissão", variant: "destructive" });
+      toast.error("Erro", { description: "Falha ao atualizar permissão" });
     } finally {
       setSaving(false);
     }
@@ -190,10 +189,10 @@ export function GerenciamentoPermissoesModulos() {
       setUserPermissions((prev) => prev.filter((up) => up.userId !== userId));
       permissionsCache.invalidate(userId);
       window.dispatchEvent(new Event('permissions-updated'));
-      toast({ title: "Sucesso", description: "Permissões individuais removidas. O usuário agora herda do Role/Departamento." });
+      toast.success("Sucesso", { description: "Permissões individuais removidas. O usuário agora herda do Role/Departamento." });
     } catch (error) {
       logger.error("Erro:", error);
-      toast({ title: "Erro", description: "Falha ao remover permissões", variant: "destructive" });
+      toast.error("Erro", { description: "Falha ao remover permissões" });
     } finally {
       setSaving(false);
     }

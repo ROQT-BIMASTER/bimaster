@@ -4,10 +4,10 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
 import { Shield } from "lucide-react";
 import { logger } from "@/lib/logger";
 
+import { toast } from "sonner";
 interface AdminPasswordDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -17,15 +17,9 @@ interface AdminPasswordDialogProps {
 export const AdminPasswordDialog = ({ open, onOpenChange, onSuccess }: AdminPasswordDialogProps) => {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const { toast } = useToast();
-
   const handleVerify = async () => {
     if (!password.trim()) {
-      toast({
-        title: "Erro",
-        description: "Digite sua senha",
-        variant: "destructive",
-      });
+      toast.error("Erro", { description: "Digite sua senha" });
       return;
     }
 
@@ -41,29 +35,18 @@ export const AdminPasswordDialog = ({ open, onOpenChange, onSuccess }: AdminPass
       });
 
       if (error) {
-        toast({
-          title: "Senha incorreta",
-          description: "A senha informada está incorreta",
-          variant: "destructive",
-        });
+        toast.error("Senha incorreta", { description: "A senha informada está incorreta" });
         return;
       }
 
-      toast({
-        title: "Acesso autorizado",
-        description: "Senha verificada com sucesso",
-      });
+      toast.success("Acesso autorizado", { description: "Senha verificada com sucesso" });
       
       setPassword("");
       onSuccess();
       onOpenChange(false);
     } catch (error) {
       logger.error("Erro ao verificar senha:", error);
-      toast({
-        title: "Erro",
-        description: "Não foi possível verificar a senha",
-        variant: "destructive",
-      });
+      toast.error("Erro", { description: "Não foi possível verificar a senha" });
     } finally {
       setLoading(false);
     }

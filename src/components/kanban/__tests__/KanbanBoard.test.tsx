@@ -32,6 +32,7 @@ vi.mock("@/hooks/use-toast", () => ({
 
 import { KanbanBoard } from "../KanbanBoard";
 
+import { toast } from "sonner";
 describe("KanbanBoard", () => {
   it("renders loading state initially", () => {
     const { container } = render(<KanbanBoard />);

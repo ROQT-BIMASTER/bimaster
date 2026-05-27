@@ -5,7 +5,6 @@ import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { useToast } from "@/hooks/use-toast";
 import { Shield, UserCog, User, CheckCircle, Lock, Loader2, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { logger } from "@/lib/logger";
@@ -15,6 +14,7 @@ import { EditarPerfil } from "@/components/configuracoes/EditarPerfil";
 import { AdminPasswordDialog } from "@/components/configuracoes/AdminPasswordDialog";
 import { MFASettings } from "@/components/configuracoes/MFASettings";
 
+import { toast } from "sonner";
 // Lazy imports — heavy components loaded on demand
 const GerenciamentoUsuarios = lazy(() => import("@/components/configuracoes/GerenciamentoUsuarios").then(m => ({ default: m.GerenciamentoUsuarios })));
 const HierarquiaUsuarios = lazy(() => import("@/components/configuracoes/HierarquiaUsuarios").then(m => ({ default: m.HierarquiaUsuarios })));
@@ -87,8 +87,6 @@ function Configuracoes() {
   const [activeSection, setActiveSection] = useState("perfil");
   const [showPasswordDialog, setShowPasswordDialog] = useState(false);
   const [outrasOpcoesUnlocked, setOutrasOpcoesUnlocked] = useState(false);
-  const { toast } = useToast();
-
   useEffect(() => {
     fetchProfile();
   }, []);
@@ -109,11 +107,7 @@ function Configuracoes() {
       setUserRole(permRole || null);
     } catch (error) {
       logger.error("Erro ao carregar perfil:", error);
-      toast({
-        title: "Erro",
-        description: "Não foi possível carregar o perfil",
-        variant: "destructive",
-      });
+      toast.error("Erro", { description: "Não foi possível carregar o perfil" });
     } finally {
       setLoading(false);
     }
@@ -126,10 +120,10 @@ function Configuracoes() {
         redirectTo: `${window.location.origin}/auth/reset-password`,
       });
       if (error) throw error;
-      toast({ title: "Email enviado", description: "Verifique seu email para redefinir sua senha" });
+      toast.success("Email enviado", { description: "Verifique seu email para redefinir sua senha" });
     } catch (error) {
       logger.error("Erro ao enviar email:", error);
-      toast({ title: "Erro", description: "Não foi possível enviar o email de redefinição", variant: "destructive" });
+      toast.error("Erro", { description: "Não foi possível enviar o email de redefinição" });
     }
   };
 

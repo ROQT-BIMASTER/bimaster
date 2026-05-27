@@ -1,10 +1,9 @@
 import { logger } from "@/lib/logger";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
 import { fetchAllRows } from "@/lib/utils/fetchAllRows";
 import { exportPaymentToErp } from "@/hooks/useErpExport";
-import { toast as sonnerToast } from "sonner";
+import { toast, toast as sonnerToast } from "sonner";
 import { callApi } from "@/lib/utils/api-helpers";
 
 export type PaymentQueueStatus = 'pending' | 'accepted' | 'rejected' | 'paid' | 'cancelled';
@@ -198,7 +197,6 @@ async function sendRejectionNotification(item: {
 }
 
 export function useFinancialPaymentQueue(filters?: PaymentQueueFilters) {
-  const { toast } = useToast();
   const queryClient = useQueryClient();
 
   // Fetch payment queue items
@@ -354,18 +352,11 @@ export function useFinancialPaymentQueue(filters?: PaymentQueueFilters) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['financial-payment-queue'] });
-      toast({
-        title: "Sucesso",
-        description: "Solicitação de pagamento enviada ao financeiro",
-      });
+      toast.success("Sucesso", { description: "Solicitação de pagamento enviada ao financeiro" });
     },
     onError: (error) => {
       logger.error('Error creating payment queue item:', error);
-      toast({
-        title: "Erro",
-        description: "Não foi possível enviar a solicitação",
-        variant: "destructive",
-      });
+      toast.error("Erro", { description: "Não foi possível enviar a solicitação" });
     },
   });
 
@@ -449,18 +440,11 @@ export function useFinancialPaymentQueue(filters?: PaymentQueueFilters) {
         cancelled: 'Pagamento cancelado',
       };
 
-      toast({
-        title: "Sucesso",
-        description: statusMessages[variables.financial_status],
-      });
+      toast.success("Sucesso", { description: statusMessages[variables.financial_status] });
     },
     onError: (error) => {
       logger.error('Error updating payment status:', error);
-      toast({
-        title: "Erro",
-        description: "Não foi possível atualizar o status",
-        variant: "destructive",
-      });
+      toast.error("Erro", { description: "Não foi possível atualizar o status" });
     },
   });
 
@@ -567,18 +551,11 @@ export function useFinancialPaymentQueue(filters?: PaymentQueueFilters) {
         });
       }
 
-      toast({
-        title: "Pagamento Aceito",
-        description: "Registro criado em Contas a Pagar e provisão enviada ao ERP",
-      });
+      toast.success("Pagamento Aceito", { description: "Registro criado em Contas a Pagar e provisão enviada ao ERP" });
     },
     onError: (error) => {
       logger.error('Error accepting payment:', error);
-      toast({
-        title: "Erro",
-        description: error instanceof Error ? error.message : "Não foi possível aceitar o pagamento",
-        variant: "destructive",
-      });
+      toast.error("Erro", { description: error instanceof Error ? error.message : "Não foi possível aceitar o pagamento" });
     },
   });
 

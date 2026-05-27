@@ -17,10 +17,10 @@ import {
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { ProspectCard } from "./ProspectCard";
 import { KanbanColumn } from "./KanbanColumn";
-import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
 import { uniqueChannelName } from "@/lib/realtime/channelName";
 
+import { toast } from "sonner";
 interface Prospect {
   id: string;
   nome_empresa: string;
@@ -57,8 +57,6 @@ export const KanbanBoard = () => {
   const [selectedProspect, setSelectedProspect] = useState<Prospect | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [loading, setLoading] = useState(true);
-  const { toast } = useToast();
-
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
@@ -137,11 +135,7 @@ export const KanbanBoard = () => {
       setProspects(data || []);
     } catch (error) {
       logger.error("Erro ao carregar prospects:", error);
-      toast({
-        title: "Erro",
-        description: "Não foi possível carregar os prospects",
-        variant: "destructive",
-      });
+      toast.error("Erro", { description: "Não foi possível carregar os prospects" });
     } finally {
       setLoading(false);
     }
@@ -223,24 +217,14 @@ export const KanbanBoard = () => {
           criado_por: user.id,
         });
 
-        toast({
-          title: "🎉 Prospect Ganho!",
-          description: `Ticket de Onboarding criado automaticamente para "${prospect.nome_empresa}"`,
-        });
+        toast.success("🎉 Prospect Ganho!", { description: `Ticket de Onboarding criado automaticamente para "${prospect.nome_empresa}"` });
       } else {
-        toast({
-          title: "Status atualizado",
-          description: `Prospect movido para "${statusLabel}"`,
-        });
+        toast.success("Status atualizado", { description: `Prospect movido para "${statusLabel}"` });
       }
     } catch (error) {
       logger.error("Erro ao atualizar status:", error);
       fetchProspects();
-      toast({
-        title: "Erro",
-        description: "Não foi possível atualizar o status",
-        variant: "destructive",
-      });
+      toast.error("Erro", { description: "Não foi possível atualizar o status" });
     }
   };
 

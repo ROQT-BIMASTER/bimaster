@@ -2,19 +2,18 @@ import { Check } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useTheme, themes, ThemeKey } from "@/contexts/ThemeContext";
-import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { Palette } from "lucide-react";
 import { useState } from "react";
 
+import { toast } from "sonner";
 export const ThemeSelector = () => {
   const { currentTheme, setTheme } = useTheme();
-  const { toast } = useToast();
   const [selected, setSelected] = useState<ThemeKey>(currentTheme);
 
   const handleSave = async () => {
     await setTheme(selected);
-    toast({ title: "Preferência salva", description: "Seu tema foi atualizado com sucesso." });
+    toast.success("Preferência salva", { description: "Seu tema foi atualizado com sucesso." });
   };
 
   return (
