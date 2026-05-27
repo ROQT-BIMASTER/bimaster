@@ -493,11 +493,11 @@ export function ProjetoTarefaDetalhe({
                         onBlur={handleTitleBlur}
                         onKeyDown={e => e.key === "Enter" && handleTitleBlur()}
                         autoFocus
-                        className="text-lg font-semibold border-none p-0 h-auto focus-visible:ring-0"
+                        className="text-2xl font-bold tracking-tight border-none p-0 h-auto focus-visible:ring-0"
                       />
                     ) : (
                       <h2
-                        className="text-lg font-semibold cursor-pointer hover:text-primary transition-colors"
+                        className="text-2xl font-bold tracking-tight cursor-pointer -mx-2 px-2 py-0.5 rounded hover:bg-muted/40 transition-colors"
                         onClick={() => setEditingTitle(true)}
                       >
                         {tarefa.titulo}
