@@ -169,6 +169,38 @@ export function DelegadasContent({ naoLidas = 0, onGoToInbox }: DelegadasProps =
     </CentralToolbarPortal>
   );
 
+  const chips = (
+    <CentralChipsPortal>
+      <CentralChip
+        label="Pendentes"
+        count={chipCounts.pendentes}
+        active={chipFilter === "pendentes"}
+        onClick={() => setChipFilter("pendentes")}
+      />
+      <CentralChip
+        label="Para hoje"
+        count={chipCounts.paraHoje}
+        active={chipFilter === "para_hoje"}
+        onClick={() => setChipFilter("para_hoje")}
+      />
+      <CentralChip
+        label="Atrasadas"
+        count={chipCounts.atrasadas}
+        countVariant={
+          chipCounts.atrasadas > 0 && chipFilter !== "atrasadas" ? "destructive" : undefined
+        }
+        active={chipFilter === "atrasadas"}
+        onClick={() => setChipFilter("atrasadas")}
+      />
+      <CentralChip
+        label="Não lidas"
+        count={naoLidas}
+        onClick={() => onGoToInbox?.()}
+        title="Abrir notificações"
+      />
+    </CentralChipsPortal>
+  );
+
   if (isLoading) {
     return (
       <>
