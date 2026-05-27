@@ -919,7 +919,7 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
         </Tabs>
       </div>
 
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="w-full flex flex-wrap items-center gap-2">
         <div className="relative flex-1 min-w-[200px] max-w-xs">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
