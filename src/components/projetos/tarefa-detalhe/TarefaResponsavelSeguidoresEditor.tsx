@@ -302,7 +302,7 @@ export function TarefaResponsavelSeguidoresEditor({
                       .map((m) => (
                         <CommandItem
                           key={m.user_id}
-                          value={m.profile?.nome || m.user_id}
+                          value={m.profile?.nome || "Membro"}
                           onSelect={() => {
                             adicionarSeguidor(m.user_id);
                             setSegOpen(false);
