@@ -367,26 +367,34 @@ export default function CentralTrabalho({ defaultTab }: Props) {
                 )}
 
                 <TabsContent value="hoje" className="mt-4">
-                  <HojeTab
-                    onGoToTarefas={(filter) =>
-                      !isResetting && setTab("tarefas", filter)
-                    }
-                  />
+                  <CentralLayout toolbarSlot={null} chipsSlot={null}>
+                    <HojeTab
+                      onGoToTarefas={(filter) =>
+                        !isResetting && setTab("tarefas", filter)
+                      }
+                    />
+                  </CentralLayout>
                 </TabsContent>
 
                 <TabsContent value="tarefas" className="mt-4">
-                  <MinhasTarefasContent
-                    key={initialTarefasFilter || "default"}
-                    initialFilter={initialTarefasFilter}
-                  />
+                  <CentralLayout toolbarSlot={null} chipsSlot={null}>
+                    <MinhasTarefasContent
+                      key={initialTarefasFilter || "default"}
+                      initialFilter={initialTarefasFilter}
+                    />
+                  </CentralLayout>
                 </TabsContent>
 
                 <TabsContent value="delegadas" className="mt-4">
-                  <DelegadasContent />
+                  <CentralLayout toolbarSlot={null} chipsSlot={null}>
+                    <DelegadasContent />
+                  </CentralLayout>
                 </TabsContent>
 
                 <TabsContent value="inbox" className="mt-4">
-                  <ProjetoInboxContent />
+                  <CentralLayout toolbarSlot={null} chipsSlot={null}>
+                    <ProjetoInboxContent />
+                  </CentralLayout>
                 </TabsContent>
               </div>
             </Tabs>
