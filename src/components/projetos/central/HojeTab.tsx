@@ -98,6 +98,7 @@ export function HojeTab({ onGoToTarefas }: Props) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
+  const { isCompact } = useTarefaDensity();
 
   const now = startOfDay(new Date());
   const pendentes = tarefas.filter(t => t.status !== "concluida");
