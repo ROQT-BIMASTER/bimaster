@@ -35,6 +35,7 @@ import {
 } from "@/hooks/useDespesasExtrasPlano";
 import { getMesesPeriodo, labelMes, labelMesLongo } from "@/lib/financeiro/periodoMeses";
 import { FornecedorContratoBadge } from "@/components/financeiro/contratos/FornecedorContratoBadge";
+import { useConfirm } from "@/hooks/useConfirm";
 import {
   Bar, BarChart, CartesianGrid, Cell, Legend, Line, LineChart,
   Pie, PieChart, ResponsiveContainer, Tooltip as RTooltip, XAxis, YAxis,
@@ -63,6 +64,7 @@ const TIPO_LABELS: Record<DespesaExtraTipo, string> = {
 };
 
 export default function RelatorioConsolidadoPlanoReducao() {
+  const confirm = useConfirm();
   const { planoId } = useParams<{ planoId: string }>();
   const navigate = useNavigate();
   const qc = useQueryClient();
@@ -128,7 +130,7 @@ export default function RelatorioConsolidadoPlanoReducao() {
 
   // Excluir uma revisão (fornecedor) do plano
   const excluirRevisao = async (id: string, label: string) => {
-    if (!confirm(`Remover "${label}" do plano de redução?`)) return;
+    if (!(await confirm({ title: `Remover "${label}" do plano de redução?`, destructive: true }))) return;
     const { error } = await supabase.from("contas_pagar_revisao").delete().eq("id", id);
     if (error) {
       toast.error("Falha ao remover do plano");
@@ -166,7 +168,7 @@ export default function RelatorioConsolidadoPlanoReducao() {
   const [limpandoDuplicados, setLimpandoDuplicados] = useState(false);
   const limparDuplicados = async (ids: string[]) => {
     if (ids.length === 0) return;
-    if (!confirm(`Remover ${ids.length} item(ns) duplicado(s) do plano? A revisão efetiva de cada fornecedor (prioridade Eliminar > Reduzir > Manter) será mantida.`)) return;
+    if (!(await confirm({ title: `Remover ${ids.length} item(ns) duplicado(s) do plano? A revisão efetiva de cada fornecedor (prioridade Eliminar > Reduzir > Manter) será mantida.`, destructive: true }))) return;
     setLimpandoDuplicados(true);
     const { error } = await supabase.from("contas_pagar_revisao").delete().in("id", ids);
     setLimpandoDuplicados(false);
@@ -1180,10 +1182,10 @@ export default function RelatorioConsolidadoPlanoReducao() {
                     <TableCell className="text-right font-medium">{formatCurrency(media)}</TableCell>
                     <TableCell>
                       <Button
-                        variant="ghost"
+                        variant="async ghost"
                         size="icon"
                         onClick={() => {
-                          if (confirm("Remover esta despesa?")) desp.remove.mutate(d.id);
+                          if ((await confirm({ title: "Remover esta despesa?", destructive: true }))) desp.remove.mutate(d.id);
                         }}
                       >
                         <Trash2 className="h-4 w-4 text-destructive" />

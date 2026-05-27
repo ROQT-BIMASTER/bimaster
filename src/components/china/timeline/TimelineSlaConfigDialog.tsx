@@ -10,6 +10,7 @@ import {
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { useConfirm } from "@/hooks/useConfirm";
 import {
   EMPTY_SLA, STAGE_LABELS, totalSlaDias, type SlaConfig,
 } from "@/lib/china/timelineSlaCompute";
@@ -46,6 +47,7 @@ interface Props {
 }
 
 export function TimelineSlaConfigDialog({ open, onOpenChange, submissaoId, baseDate }: Props) {
+  const confirm = useConfirm();
   const { data, isLoading } = useChinaTimelineSla(submissaoId);
   const upsert = useUpsertChinaTimelineSla();
   const delOverride = useDeleteChinaTimelineSlaOverride();
@@ -106,7 +108,7 @@ export function TimelineSlaConfigDialog({ open, onOpenChange, submissaoId, baseD
 
   const handleClearOverride = async () => {
     if (!data?.usingOverride) return;
-    if (!window.confirm("Remover o prazo personalizado desta submissão e voltar a usar o padrão?")) return;
+    if (!(await confirm({ title: "Remover o prazo personalizado desta submissão e voltar a usar o padrão?", destructive: true }))) return;
     try {
       await delOverride.mutateAsync(submissaoId);
       toast.success("Override removido. Submissão voltou ao prazo padrão.");

@@ -14,11 +14,13 @@ import { ptBR } from "date-fns/locale";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ProjetoHorasMiniPanel } from "@/components/projetos/ProjetoHorasMiniPanel";
 import { BackfillIADialog } from "@/components/projetos/BackfillIADialog";
+import { useConfirm } from "@/hooks/useConfirm";
 
 const formatBRL = (v: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v || 0);
 
 export default function ProdutividadeProjeto() {
+  const confirm = useConfirm();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const projetoId = id || null;
@@ -166,7 +168,7 @@ export default function ProdutividadeProjeto() {
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    <Button variant="ghost" size="icon" onClick={() => { if (confirm("Remover?")) remover.mutate(l.id); }}>
+                    <Button variant="ghost" size="icon" onClick={async () => { if ((await confirm({ title: "Remover?", destructive: true }))) remover.mutate(l.id); }}>
                       <Trash2 className="h-3.5 w-3.5 text-destructive" />
                     </Button>
                   </TableCell>

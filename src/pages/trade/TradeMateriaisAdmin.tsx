@@ -11,6 +11,7 @@ import { useTradeMateriais, useDeleteMaterial, useUpdateMaterial, type TradeMate
 import { MaterialFormDialog } from "@/components/trade/materiais/MaterialFormDialog";
 import { ArrowLeft, Plus, Pencil, Trash2, Search, Package, AlertTriangle, CheckCircle, XCircle, Copy, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { useConfirm } from "@/hooks/useConfirm";
 
 const CATEGORIAS = ["Todos", "Banner PDV", "Display de chão", "Wobbler", "Adesivo", "Totem", "Faixa de gôndola", "Stopper", "Outros"];
 
@@ -21,6 +22,7 @@ function estoqueStatus(m: TradeMaterial) {
 }
 
 export default function TradeMateriaisAdmin() {
+  const confirm = useConfirm();
   const { data: materiais, isLoading } = useTradeMateriais();
   const deleteMaterial = useDeleteMaterial();
   const updateMaterial = useUpdateMaterial();
@@ -49,7 +51,7 @@ export default function TradeMateriaisAdmin() {
   };
 
   const handleDelete = async (m: TradeMaterial) => {
-    if (!confirm(`Excluir "${m.nome}"?`)) return;
+    if (!(await confirm({ title: `Excluir "${m.nome}"?`, destructive: true }))) return;
     await deleteMaterial.mutateAsync(m.id);
   };
 

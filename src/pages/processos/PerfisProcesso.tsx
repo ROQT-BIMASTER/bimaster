@@ -29,6 +29,7 @@ import { TarefaEspelhoSelect, type EspelhoValue } from "@/components/processos/T
 import { useUserRole } from "@/hooks/useUserRole";
 import { useProjetosParaVinculo, useSecoesETarefas } from "@/hooks/useChinaTarefaVinculos";
 import { Navigate, Link } from "react-router-dom";
+import { useConfirm } from "@/hooks/useConfirm";
 
 const AMBIENTES: { value: ProcessoAmbiente; label: string }[] = [
   { value: "china", label: "China" },
@@ -40,6 +41,7 @@ const AMBIENTES: { value: ProcessoAmbiente; label: string }[] = [
 ];
 
 export default function PerfisProcesso() {
+  const confirm = useConfirm();
   const { isAdmin } = useUserRole();
   const [ambiente, setAmbiente] = useState<ProcessoAmbiente | "all">("all");
   const { perfis, isLoading, create, update, remove } = useProcessoPerfis(
@@ -164,8 +166,8 @@ export default function PerfisProcesso() {
               <PerfilDetalhe
                 perfil={selected}
                 onUpdate={(patch) => update.mutate({ id: selected.id, ...patch })}
-                onRemove={() => {
-                  if (confirm(`Remover perfil "${selected.nome}"?`)) {
+                onRemove={async () => {
+                  if ((await confirm({ title: `Remover perfil "${selected.nome}"?`, destructive: true }))) {
                     remove.mutate(selected.id, { onSuccess: () => setSelectedId(null) });
                   }
                 }}
@@ -295,9 +297,9 @@ function PerfilDetalhe({
                 ordem: etapaSelecionada.ordem,
                 requer_aprovacao: v,
               } as any)
-            }
+   async          }
             onRemoveEtapa={() => {
-              if (confirm(`Remover etapa "${etapaSelecionada.label}"?`)) {
+              if ((await confirm({ title: `Remover etapa "${etapaSelecionada.label}"?`, destructive: true }))) {
                 remove.mutate(etapaSelecionada.id);
                 setEtapaSelecionadaId(null);
               }

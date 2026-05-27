@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { useChinaI18n } from "@/hooks/useChinaI18n";
 import { cn } from "@/lib/utils";
 import type { ChecklistColuna, ChecklistCelula } from "@/hooks/useChinaProdutoChecklist";
+import { useConfirm } from "@/hooks/useConfirm";
 
 interface CorRow {
   id: string;
@@ -145,7 +146,8 @@ export function ChecklistEmbalagensTable({
               <th className="px-3 py-3 text-center font-semibold border-b border-r w-[110px]">
                 Mockup<br /><span className="text-muted-foreground text-[10px]">样品图</span>
               </th>
-              {colunas.sort((a, b) => a.ordem - b.ordem).map((col) => (
+              {
+              {const confirm = useConfirm();colunas.sort((a, b) => a.ordem - b.ordem).map((col) => (
                 <th key={col.key} className="px-2 py-3 text-center font-semibold border-b border-r min-w-[136px]">
                   <div className="flex min-h-[70px] flex-col items-center justify-between gap-2">
                     <div className="leading-tight">
@@ -170,8 +172,8 @@ export function ChecklistEmbalagensTable({
                           type="button"
                           size="sm"
                           variant="outline"
-                          onClick={() => {
-                            if (confirm(`Remover coluna "${col.label_pt}"?\n\nAs marcações desta coluna serão apagadas.`)) {
+                          onClick={async () => {
+                            if ((await confirm({ title: `Remover coluna "${col.label_pt}"?`, description: `As marcações desta coluna serão apagadas.`, destructive: true }))) {
                               onRemoveColuna(col.key);
                             }
                           }}

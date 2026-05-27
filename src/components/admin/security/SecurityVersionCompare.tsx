@@ -8,6 +8,7 @@ import { Camera, GitCompare, Trash2 } from "lucide-react";
 import { APP_VERSION } from "@/lib/version";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { useConfirm } from "@/hooks/useConfirm";
 
 const STORAGE_KEY = "security_v2_version_snapshots";
 const MAX_SNAPSHOTS = 20;
@@ -80,6 +81,7 @@ function deltaBadge(curr: number | null, prev: number | null, direction: "up" | 
 }
 
 export function SecurityVersionCompare() {
+  const confirm = useConfirm();
   const [snapshots, setSnapshots] = useState<Snapshot[]>([]);
   const [capturing, setCapturing] = useState(false);
   const [selectedA, setSelectedA] = useState<string>("");
@@ -124,8 +126,8 @@ export function SecurityVersionCompare() {
     }
   };
 
-  const clearAll = () => {
-    if (!confirm("Apagar todos os snapshots locais?")) return;
+  const clearAll = async () => {
+    if (!(await confirm({ title: "Apagar todos os snapshots locais?", destructive: true }))) return;
     localStorage.removeItem(STORAGE_KEY);
     setSnapshots([]);
     setSelectedA("");

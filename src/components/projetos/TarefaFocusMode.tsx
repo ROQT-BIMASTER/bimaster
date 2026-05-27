@@ -45,6 +45,7 @@ import { useProjetoCor } from "@/hooks/useProjetoCor";
 import { useProjetoIA } from "@/hooks/useProjetoIA";
 import { AISubtarefasSuggestions } from "./tarefa-detalhe/AISubtarefasSuggestions";
 import { ProjetoCorSelector } from "./tarefa-detalhe/ProjetoCorSelector";
+import { useConfirm } from "@/hooks/useConfirm";
 
 const ESTAGIO_OPTIONS = [
   { value: "briefing", label: "Briefing", color: "bg-purple-500/20 text-purple-400" },
@@ -117,6 +118,7 @@ interface TarefaFocusModeProps {
 export function TarefaFocusMode({
   tarefa, open, onOpenChange, onUpdate, onToggle, onAddSubtarefa, secoes = [], projetoTipo,
 }: TarefaFocusModeProps) {
+  const confirm = useConfirm();
   const {
     comentarios, addComentario, anexos, uploadAnexo, deleteAnexo, getAnexoUrl,
     messages, sendMessage, sendToCofre, teamMembers, linkedProduto, searchProdutos,
@@ -675,8 +677,8 @@ export function TarefaFocusMode({
                               </Button>
                               {/* Only allow deletion if user is admin/coordenador/gestor or the uploader, and not in cofre */}
                               {(isAdminCofre || currentUserPapel === "gestor_produto" || a.user_id === user?.id) && !cofreDocs.some((d: any) => d.nome_arquivo === a.nome) && (
-                                <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => {
-                                  if (confirm(`Excluir o anexo "${a.nome}"?`)) {
+                                <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={async () => {
+                                  if ((await confirm({ title: `Excluir o anexo "${a.nome}"?`, destructive: true }))) {
                                     deleteAnexo.mutate(a);
                                   }
                                 }}>

@@ -11,6 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Plus, Pencil, Trash2, FileText } from "lucide-react";
 import { logger } from "@/lib/logger";
+import { useConfirm } from "@/hooks/useConfirm";
 
 const UFS = ["AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO", "MA", "MT", "MS", "MG", "PA", "PB", "PR", "PE", "PI", "RJ", "RN", "RS", "RO", "RR", "SC", "SP", "SE", "TO"];
 
@@ -28,6 +29,7 @@ interface RegraFiscal {
 }
 
 export function CadastroRegrasFiscaisNCM() {
+  const confirm = useConfirm();
   const [open, setOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [regras, setRegras] = useState<RegraFiscal[]>([]);
@@ -213,7 +215,7 @@ export function CadastroRegrasFiscaisNCM() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Tem certeza que deseja excluir esta regra fiscal?")) return;
+    if (!(await confirm({ title: "Tem certeza que deseja excluir esta regra fiscal?", destructive: true }))) return;
 
     try {
       const { error } = await supabase

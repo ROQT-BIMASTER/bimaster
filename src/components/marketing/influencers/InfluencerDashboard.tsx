@@ -24,6 +24,7 @@ import { PaineisTabs } from "./paineis/PaineisTabs";
 import { usePaineisInfluencers } from "./paineis/usePaineisInfluencers";
 import { aplicarFiltrosPainel, type PainelFiltros } from "./paineis/painelFilters";
 import { logger } from "@/lib/logger";
+import { useConfirm } from "@/hooks/useConfirm";
 
 interface Influencer {
   id: string;
@@ -51,6 +52,7 @@ interface Influencer {
 type ViewMode = "grid" | "ranking" | "regional";
 
 export function InfluencerDashboard() {
+  const confirm = useConfirm();
   const [influencers, setInfluencers] = useState<Influencer[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -181,7 +183,7 @@ export function InfluencerDashboard() {
   };
 
   const handleEnrichAll = async () => {
-    const ok = window.confirm(`Enriquecer todos os influenciadores ativos via Apify? Isso atualizará foto de perfil, bio, métricas e posts recentes. Pode consumir várias execuções de scraping.`);
+    const ok = (await confirm({ title: `Enriquecer todos os influenciadores ativos via Apify? Isso atualizará foto de perfil, bio, métricas e posts recentes. Pode consumir várias execuções de scraping.` }));
     if (!ok) return;
     try {
       const { data, error } = await supabase.functions.invoke("apify-bulk-enrich", {

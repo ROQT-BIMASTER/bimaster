@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { useUserRole } from "@/hooks/useUserRole";
 import { logger } from "@/lib/logger";
+import { useConfirm } from "@/hooks/useConfirm";
 
 interface GuidePhoto {
   id: string;
@@ -23,6 +24,7 @@ interface GuidePhoto {
 }
 
 const TradeMeasurementGuide = () => {
+  const confirm = useConfirm();
   const navigate = useNavigate();
   const { isAdminOrSupervisor } = useUserRole();
   const [photos, setPhotos] = useState<GuidePhoto[]>([]);
@@ -114,7 +116,7 @@ const TradeMeasurementGuide = () => {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Tem certeza que deseja remover esta foto do guia?")) return;
+    if (!(await confirm({ title: "Tem certeza que deseja remover esta foto do guia?", destructive: true }))) return;
 
     try {
       const { error } = await supabase

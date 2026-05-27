@@ -19,6 +19,7 @@ import { AnexarEvidenciaDialog } from "./AnexarEvidenciaDialog";
 import { DriveStatusStrip } from "./DriveStatusStrip";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useConfirm } from "@/hooks/useConfirm";
 
 interface Props {
   briefingId: string;
@@ -37,6 +38,7 @@ function groupBy<T>(arr: T[], key: (t: T) => string): Record<string, T[]> {
 }
 
 export function CofreTab({ briefingId, tipoBriefing }: Props) {
+  const confirm = useConfirm();
   const { data: docs = [], isLoading } = useBriefingDocumentos(briefingId);
   const { data: templates = [] } = useChecklistTemplates(tipoBriefing);
   const aplicar = useAplicarTemplate(briefingId);
@@ -249,8 +251,8 @@ export function CofreTab({ briefingId, tipoBriefing }: Props) {
                           onMudarStatus={(doc, status) =>
                             atualizar.mutate({ id: doc.id, patch: { status } })
                           }
-                          onExcluir={(doc) => {
-                            if (confirm(`Excluir "${doc.nome}"?`)) excluir.mutate(doc);
+                          onExcluir={async (doc) => {
+                            if ((await confirm({ title: `Excluir "${doc.nome}"?`, destructive: true }))) excluir.mutate(doc);
                           }}
                         />
                       ))}

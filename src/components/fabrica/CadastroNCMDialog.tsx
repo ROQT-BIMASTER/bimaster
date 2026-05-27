@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Plus, Pencil, Trash2, BookOpen } from "lucide-react";
 import { logger } from "@/lib/logger";
+import { useConfirm } from "@/hooks/useConfirm";
 
 interface NCM {
   id: string;
@@ -22,6 +23,7 @@ interface NCM {
 }
 
 export function CadastroNCMDialog() {
+  const confirm = useConfirm();
   const [open, setOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [ncms, setNcms] = useState<NCM[]>([]);
@@ -113,7 +115,7 @@ export function CadastroNCMDialog() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Tem certeza que deseja excluir este NCM?")) return;
+    if (!(await confirm({ title: "Tem certeza que deseja excluir este NCM?", destructive: true }))) return;
 
     try {
       const { error } = await supabase

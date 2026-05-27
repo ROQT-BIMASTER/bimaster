@@ -31,6 +31,7 @@ import { WidgetTarefasPorStatus } from "./widgets/WidgetTarefasPorStatus";
 import { WidgetTimelineConclusoes } from "./widgets/WidgetTimelineConclusoes";
 import { WidgetListaAtrasadas } from "./widgets/WidgetListaAtrasadas";
 import { WidgetListaProximas } from "./widgets/WidgetListaProximas";
+import { useConfirm } from "@/hooks/useConfirm";
 
 interface Props {
   tarefas: MinaTarefa[];
@@ -253,7 +254,8 @@ export function CustomDashboardBuilder({ tarefas }: Props) {
           <Plus className="h-3.5 w-3.5" /> Novo
         </Button>
 
-        {activeDash && (
+        {
+        {const confirm = useConfirm();activeDash && (
           <>
             <Button
               variant={editing ? "default" : "outline"}
@@ -273,8 +275,8 @@ export function CustomDashboardBuilder({ tarefas }: Props) {
                   variant="ghost"
                   size="sm"
                   className="h-8 gap-1 text-xs text-destructive hover:text-destructive"
-                  onClick={() => {
-                    if (confirm("Excluir este dashboard?")) {
+                  onClick={async () => {
+                    if ((await confirm({ title: "Excluir este dashboard?", destructive: true }))) {
                       deleteDashboard.mutate(activeDash.id);
                       setEditing(false);
                     }

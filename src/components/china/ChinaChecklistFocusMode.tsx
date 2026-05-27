@@ -51,6 +51,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { createElement } from "react";
 import { usePageBgColor } from "@/components/shared/PageBgCustomizer";
 import { useChinaI18n } from "@/hooks/useChinaI18n";
+import { useConfirm } from "@/hooks/useConfirm";
 
 interface DocRecord {
   id: string;
@@ -130,6 +131,7 @@ export function ChinaChecklistFocusMode({
   focusTipo,
   onAfterFocus,
 }: ChinaChecklistFocusModeProps) {
+  const confirm = useConfirm();
   const { t } = useChinaI18n();
   const [isOpen, setIsOpen] = useState(false);
   const { bgStyle, BgColorButton } = usePageBgColor("china_checklist_focus");
@@ -1031,7 +1033,7 @@ export function ChinaChecklistFocusMode({
   };
 
   const handleApplyTemplate = async (tpl: { id: string; nome: string; estrutura: TemplateEstrutura }) => {
-    if (!confirm(`Aplicar o modelo "${tpl.nome}"?\n\nA estrutura atual será SUBSTITUÍDA pela do modelo. Categorias e itens que já têm documentos anexados (ex.: planilha inicial) serão preservados. Arquivos enviados nunca são apagados.`)) return;
+    if (!(await confirm({ title: `Aplicar o modelo "${tpl.nome}"?`, description: `A estrutura atual será SUBSTITUÍDA pela do modelo. Categorias e itens que já têm documentos anexados (ex.: planilha inicial) serão preservados. Arquivos enviados nunca são apagados.` }))) return;
     setApplyingTpl(true);
     try {
       await aplicarTemplateNaSubmissao(submissaoId, tpl.estrutura);
@@ -1134,9 +1136,9 @@ export function ChinaChecklistFocusMode({
                           </div>
                         </button>
                         <button
-                          onClick={(e) => {
+   async                        onClick={(e) => {
                             e.stopPropagation();
-                            if (confirm(t("focusMode.confirmExcluirModelo", { nome: tpl.nome }))) deleteTemplate.mutate(tpl.id);
+                            if ((await confirm({ title: t("focusMode.confirmExcluirModelo", { nome: tpl.nome }) }))) deleteTemplate.mutate(tpl.id);
                           }}
                           className="text-destructive hover:text-destructive/70 shrink-0"
                           title={t("focusMode.tooltipExcluirModelo")}

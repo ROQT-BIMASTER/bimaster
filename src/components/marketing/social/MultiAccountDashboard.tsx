@@ -19,6 +19,7 @@ import { InstagramAccountDetails } from "./InstagramAccountDetails";
 import { RefreshCw, BarChart3, Users, TrendingUp, Eye } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
+import { useConfirm } from "@/hooks/useConfirm";
 
 interface SocialAccount {
   id: string;
@@ -45,6 +46,7 @@ interface AccountMetrics {
 }
 
 export const MultiAccountDashboard = () => {
+  const confirm = useConfirm();
   const [accounts, setAccounts] = useState<SocialAccount[]>([]);
   const [metrics, setMetrics] = useState<AccountMetrics>({});
   const [loading, setLoading] = useState(true);
@@ -184,7 +186,7 @@ export const MultiAccountDashboard = () => {
   };
 
   const deleteAccount = async (accountId: string) => {
-    if (!confirm("Tem certeza que deseja remover esta conta?")) return;
+    if (!(await confirm({ title: "Tem certeza que deseja remover esta conta?", destructive: true }))) return;
 
     try {
       const { error } = await supabase

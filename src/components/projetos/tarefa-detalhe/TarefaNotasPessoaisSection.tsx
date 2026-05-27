@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { useTarefaNotasPessoais } from "@/hooks/useTarefaNotasPessoais";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { useConfirm } from "@/hooks/useConfirm";
 
 interface Props {
   tarefaId: string;
@@ -15,6 +16,7 @@ interface Props {
  * úteis para rascunhos, lembretes e contexto pessoal sobre a tarefa.
  */
 export function TarefaNotasPessoaisSection({ tarefaId }: Props) {
+  const confirm = useConfirm();
   const { nota, isLoading, save, remove, MAX_LEN } = useTarefaNotasPessoais(tarefaId);
   const [value, setValue] = useState("");
   const [dirty, setDirty] = useState(false);
@@ -47,8 +49,8 @@ export function TarefaNotasPessoaisSection({ tarefaId }: Props) {
               variant="ghost"
               size="sm"
               className="h-7 text-[11px] gap-1 text-destructive hover:text-destructive"
-              onClick={() => {
-                if (confirm("Remover esta anotação pessoal?")) remove.mutate();
+              onClick={async () => {
+                if ((await confirm({ title: "Remover esta anotação pessoal?", destructive: true }))) remove.mutate();
               }}
               disabled={remove.isPending}
             >

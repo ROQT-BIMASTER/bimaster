@@ -6,8 +6,10 @@ import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { usePermissions } from "@/contexts/PermissionsContext";
 import { getAuthHeaders } from "@/lib/utils/auth-headers";
+import { useConfirm } from "@/hooks/useConfirm";
 
 export function GerarDocumentacaoButton() {
+  const confirm = useConfirm();
   const { isAdmin } = usePermissions();
   const [loading, setLoading] = useState(false);
   const queryClient = useQueryClient();
@@ -15,7 +17,7 @@ export function GerarDocumentacaoButton() {
   if (!isAdmin) return null;
 
   const handleGenerar = async () => {
-    if (!confirm("Isso criará 15 projetos de documentação com ~200+ tarefas. Continuar?")) return;
+    if (!(await confirm({ title: "Isso criará 15 projetos de documentação com ~200+ tarefas. Continuar?" }))) return;
 
     setLoading(true);
     try {

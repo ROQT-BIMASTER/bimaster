@@ -10,6 +10,7 @@ import { NossoProdutoDialog } from "@/components/trade/NossoProdutoDialog";
 import { ProdutoConcorrenteDialog } from "@/components/trade/ProdutoConcorrenteDialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { logger } from "@/lib/logger";
+import { useConfirm } from "@/hooks/useConfirm";
 
 interface OurProduct {
   id: string;
@@ -36,6 +37,7 @@ interface CompetitorProduct {
 }
 
 export default function TradeComparacaoProdutos() {
+  const confirm = useConfirm();
   const [ourProducts, setOurProducts] = useState<OurProduct[]>([]);
   const [competitorProducts, setCompetitorProducts] = useState<CompetitorProduct[]>([]);
   const [loading, setLoading] = useState(true);
@@ -77,7 +79,7 @@ export default function TradeComparacaoProdutos() {
   };
 
   const deleteOurProduct = async (id: string) => {
-    if (!confirm("Confirma a exclusão deste produto?")) return;
+    if (!(await confirm({ title: "Confirma a exclusão deste produto?" }))) return;
 
     try {
       const { error } = await supabase
@@ -94,7 +96,7 @@ export default function TradeComparacaoProdutos() {
   };
 
   const deleteCompetitorProduct = async (id: string) => {
-    if (!confirm("Confirma a exclusão deste produto?")) return;
+    if (!(await confirm({ title: "Confirma a exclusão deste produto?" }))) return;
 
     try {
       const { error } = await supabase

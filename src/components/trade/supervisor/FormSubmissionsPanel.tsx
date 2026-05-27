@@ -14,6 +14,7 @@ import { buildDynamicFormPublicUrl, buildTeamFormTokenUrl } from "@/lib/constant
 import { DynamicFormResponsesDialog } from "./DynamicFormResponsesDialog";
 import { useState } from "react";
 import { toast } from "sonner";
+import { useConfirm } from "@/hooks/useConfirm";
 
 export function FormSubmissionsPanel() {
   const { tokens, submissions, isLoadingTokens, isLoadingSubmissions, revokeToken, deleteToken } = useTeamFormTokens();
@@ -172,7 +173,8 @@ export function FormSubmissionsPanel() {
           <CardDescription>Formulários compartilhados com sua equipe</CardDescription>
         </CardHeader>
         <CardContent>
-          {tokens.length === 0 ? (
+          {
+          {const confirm = useConfirm();tokens.length === 0 ? (
             <p className="text-sm text-muted-foreground text-center py-4">
               Nenhum link gerado ainda. Use o botão "Gerar Link Formulário" acima.
             </p>
@@ -216,8 +218,8 @@ export function FormSubmissionsPanel() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => {
-                          if (confirm("Excluir este formulário e todos os cadastros vinculados?")) {
+                        onClick={async () => {
+                          if ((await confirm({ title: "Excluir este formulário e todos os cadastros vinculados?", destructive: true }))) {
                             deleteToken.mutate(t.id);
                           }
                         }}

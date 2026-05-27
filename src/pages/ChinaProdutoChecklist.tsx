@@ -19,8 +19,10 @@ import {
   type ChecklistColuna,
 } from "@/hooks/useChinaProdutoChecklist";
 import { useUIPermissions } from "@/hooks/useUIPermissions";
+import { useConfirm } from "@/hooks/useConfirm";
 
 export default function ChinaProdutoChecklist() {
+  const confirm = useConfirm();
   const { id } = useParams<{ id: string }>();
   const { canEdit } = useUIPermissions("china_ficha");
 
@@ -105,10 +107,8 @@ export default function ChinaProdutoChecklist() {
     const removedKeys = colunas
       .map((c) => c.key)
       .filter((k) => !novosKeys.has(k));
-    if (removedKeys.length > 0) {
-      const ok = window.confirm(
-        "Aplicar este modelo substitui as colunas atuais e remove os dados das colunas removidas. Continuar?\n\n应用此模板将替换当前列并删除被移除列的数据。是否继续？",
-      );
+    async if (removedKeys.length > 0) {
+      const ok = (await confirm({ title: "Aplicar este modelo substitui as colunas atuais e remove os dados das colunas removidas. Continuar?\n\n应用此模板将替换当前列并删除被移除列的数据。是否继续？", }));
       if (!ok) return;
     }
     updateCols.mutate({ checklistId: checklist.id, colunas: normalized, removedKeys });

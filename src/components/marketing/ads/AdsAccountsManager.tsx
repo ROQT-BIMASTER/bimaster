@@ -17,6 +17,7 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
+import { useConfirm } from "@/hooks/useConfirm";
 
 interface AdsAccountsManagerProps {
   onUpdate?: () => void;
@@ -56,6 +57,7 @@ const platformConfig = {
 };
 
 export function AdsAccountsManager({ onUpdate }: AdsAccountsManagerProps) {
+  const confirm = useConfirm();
   const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingAccount, setEditingAccount] = useState<any>(null);
@@ -342,8 +344,8 @@ export function AdsAccountsManager({ onUpdate }: AdsAccountsManagerProps) {
                         size="icon" 
                         variant="ghost" 
                         className="h-8 w-8 text-destructive hover:text-destructive"
-                        onClick={() => {
-                          if (confirm("Tem certeza que deseja remover esta conta?")) {
+                        onClick={async () => {
+                          if ((await confirm({ title: "Tem certeza que deseja remover esta conta?", destructive: true }))) {
                             deleteMutation.mutate(account.id);
                           }
                         }}

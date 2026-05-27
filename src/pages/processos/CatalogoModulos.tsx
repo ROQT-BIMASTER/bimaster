@@ -15,6 +15,7 @@ import {
 import { BookOpen, Plus, Trash2, Pencil } from "lucide-react";
 import { useModuloCatalogo, type ModuloCatalogo } from "@/hooks/useModuloCatalogo";
 import { useUserRole } from "@/hooks/useUserRole";
+import { useConfirm } from "@/hooks/useConfirm";
 
 const ENTIDADES = [
   { value: "produto", label: "Produto Brasil" },
@@ -38,6 +39,7 @@ const emptyForm: Partial<ModuloCatalogo> = {
 };
 
 export default function CatalogoModulos() {
+  const confirm = useConfirm();
   const { isAdmin } = useUserRole();
   const { catalogo, isLoading, upsert, remove } = useModuloCatalogo(false);
   const [open, setOpen] = useState(false);
@@ -109,8 +111,8 @@ export default function CatalogoModulos() {
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => {
-                      if (confirm(`Remover módulo "${m.label}" do catálogo?`)) remove.mutate(m.codigo);
+                    onClick={async () => {
+                      if ((await confirm({ title: `Remover módulo "${m.label}" do catálogo?`, destructive: true }))) remove.mutate(m.codigo);
                     }}
                   >
                     <Trash2 className="h-3.5 w-3.5 text-destructive" />

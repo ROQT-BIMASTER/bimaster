@@ -13,6 +13,7 @@ import { Plus, Pencil, Trash2, Upload, X } from "lucide-react";
 import { logger } from "@/lib/logger";
 
 import { toast } from "sonner";
+import { useConfirm } from "@/hooks/useConfirm";
 interface Reward {
   id: string;
   reward_name: string;
@@ -29,6 +30,7 @@ interface Reward {
 }
 
 export function GerenciamentoPremiacoes() {
+  const confirm = useConfirm();
   const [rewards, setRewards] = useState<Reward[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -212,7 +214,7 @@ export function GerenciamentoPremiacoes() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Deseja realmente excluir esta premiação?")) return;
+    if (!(await confirm({ title: "Deseja realmente excluir esta premiação?", destructive: true }))) return;
 
     try {
       const { error } = await supabase
