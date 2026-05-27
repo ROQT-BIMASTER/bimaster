@@ -5,6 +5,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Skeleton } from "@/components/ui/skeleton";
+import { EmptyState } from "@/components/ui/empty-state";
+import { useTarefaDensity } from "@/hooks/useTarefaDensity";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -13,7 +15,7 @@ import {
 } from "@/components/ui/select";
 import {
   CheckCircle2, ChevronDown, ChevronRight, LayoutList, LayoutGrid,
-  Search, Calendar, Filter, Plus, Flag, Clock, Zap, X, Eye, EyeOff,
+  Search, Calendar, Filter, Plus, Flag, Clock, Zap, X, Eye, EyeOff, ListChecks,
   CalendarOff, Users, UserCheck, SlidersHorizontal, User as UserIcon,
   ArrowUpDown,
 } from "lucide-react";
@@ -318,6 +320,7 @@ interface Props {
 
 export function MinhasTarefasContent({ initialFilter = null }: Props) {
   const { data: tarefas = [], isLoading } = useMinhasTarefas();
+  const { isCompact } = useTarefaDensity();
   const { user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const { preferences, save: savePrefs, isSaving } = useCentralPreferences();
@@ -1416,8 +1419,10 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
 
       <div>
         {isLoading ? (
-          <div className="space-y-3">
-            {[1, 2, 3, 4, 5].map((i) => <Skeleton key={i} className="h-12 w-full rounded-lg" />)}
+          <div className="space-y-2">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <Skeleton key={i} className={cn("w-full rounded-lg", isCompact ? "h-11" : "h-14")} />
+            ))}
           </div>
         ) : view === "list" ? (
           <div className="space-y-4">
@@ -1453,27 +1458,17 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
                     clearAdvancedFilters();
                   };
                   return (
-                <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
-                  <div className={cn(
-                    "h-16 w-16 rounded-full flex items-center justify-center mb-4",
-                    hasActiveFilters ? "bg-warning/10" : "bg-success/10",
-                  )}>
-                    {hasActiveFilters ? (
-                      <Filter className="h-8 w-8 text-warning" />
-                    ) : (
-                      <CheckCircle2 className="h-8 w-8 text-success" />
-                    )}
-                  </div>
-                  <p className="font-semibold text-foreground">
-                    {hasActiveFilters ? "Nenhuma tarefa corresponde aos filtros" : "Tudo em dia!"}
-                  </p>
-                  <p className="text-sm mt-1">
-                    {hasActiveFilters
+                <EmptyState
+                  icon={hasActiveFilters ? Filter : ListChecks}
+                  title={hasActiveFilters ? "Nenhuma tarefa corresponde aos filtros" : "Nada por aqui ainda"}
+                  description={
+                    hasActiveFilters
                       ? `Você tem ${totalNoFilters} ${totalNoFilters === 1 ? "tarefa" : "tarefas"} ocultas pelos filtros atuais.`
-                      : "Nenhuma tarefa encontrada."}
-                  </p>
+                      : "Você não tem tarefas atribuídas no momento."
+                  }
+                >
                   {filterRole === "colaborador" && (
-                    <p className="text-xs mt-2 text-muted-foreground">
+                    <p className="text-xs mt-3 text-muted-foreground">
                       Procurando tarefas que você delegou?{" "}
                       <button
                         type="button"
@@ -1485,17 +1480,17 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
                           setSearchParams(params);
                         }}
                       >
-                        Veja a aba Delegadas →
+                        Veja a aba Delegadas
                       </button>
                     </p>
                   )}
                   <div className="flex items-center gap-3 mt-4 flex-wrap justify-center">
                     {hasActiveFilters && (
-                      <Button variant="default" className="gap-1.5" onClick={clearAllFilters}>
+                      <Button variant="default" size="sm" className="gap-1.5" onClick={clearAllFilters}>
                         <X className="h-4 w-4" /> Limpar todos os filtros
                       </Button>
                     )}
-                    <Button variant="outline" className="gap-1.5" onClick={() => setShowNewTask(true)}>
+                    <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setShowNewTask(true)}>
                       <Plus className="h-4 w-4" /> Criar nova tarefa
                     </Button>
                     <a
@@ -1507,7 +1502,7 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
                       Por que não vejo outras tarefas?
                     </a>
                   </div>
-                </div>
+                </EmptyState>
                   );
                 })()
               ) : sortMode === "prioridade" && groups[0] ? (

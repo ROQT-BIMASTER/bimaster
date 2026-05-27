@@ -11,7 +11,7 @@ import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover
 import {
   CheckCheck, Star, Archive, MessageSquare, Search,
   LayoutList, FolderOpen, ChevronDown,
-  X, AtSign, CheckCircle2, FolderPlus, ArrowRight, Sparkles,
+  X, AtSign, CheckCircle2, FolderPlus, ArrowRight, Sparkles, Bell,
   ShieldCheck,
 } from "lucide-react";
 import { useProjetoAtividades, type ProjetoAtividade, type InboxFilter } from "@/hooks/useProjetoAtividades";
@@ -420,17 +420,17 @@ export function ProjetoInboxContent() {
             emptyTitle={
               activeTab === "favoritas" ? "Nenhuma favorita" :
               activeTab === "arquivadas" ? "Nenhuma arquivada" :
-              "Tudo em dia!"
+              "Nada por aqui ainda"
             }
             emptyDesc={
-              activeTab === "favoritas" ? "Marque notificações com ⭐ para acessá-las rapidamente" :
-              activeTab === "arquivadas" ? "Arquive notificações antigas para manter sua caixa organizada" :
-              "Nenhuma notificação pendente. Aproveite para focar no que importa!"
+              activeTab === "favoritas" ? "Marque notificações com a estrela para acessá-las rapidamente." :
+              activeTab === "arquivadas" ? "Arquive notificações antigas para manter sua caixa organizada." :
+              "Sem novas notificações. Você está em dia."
             }
             emptyIcon={
               activeTab === "favoritas" ? Star :
               activeTab === "arquivadas" ? Archive :
-              Sparkles
+              Bell
             }
           />
         )}

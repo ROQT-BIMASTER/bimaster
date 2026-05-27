@@ -9,14 +9,17 @@ import {
 } from "@/components/ui/select";
 import { TarefaResponsavelAvatar } from "@/components/projetos/shared/TarefaResponsavelAvatar";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Send, Inbox, Search } from "lucide-react";
+import { Send, Search } from "lucide-react";
 import { format, isToday, isBefore, startOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { parseLocalDate } from "@/lib/utils/parseLocalDate";
 import { CentralToolbarPortal, CentralChipsPortal } from "@/components/projetos/central/CentralLayout";
 import { CentralChip } from "@/components/projetos/central/CentralChips";
+import { EmptyState } from "@/components/ui/empty-state";
+import { useTarefaDensity } from "@/hooks/useTarefaDensity";
+import { cn } from "@/lib/utils";
 
-const Row = memo(function Row({ t, onOpen }: { t: DelegadaTarefa; onOpen: (t: DelegadaTarefa) => void }) {
+const Row = memo(function Row({ t, onOpen, isCompact }: { t: DelegadaTarefa; onOpen: (t: DelegadaTarefa) => void; isCompact: boolean }) {
   const prazoDate = parseLocalDate(t.data_prazo);
   const isOverdue = prazoDate && prazoDate < new Date() && t.status !== "concluida";
   return (
@@ -24,13 +27,16 @@ const Row = memo(function Row({ t, onOpen }: { t: DelegadaTarefa; onOpen: (t: De
       role="button"
       tabIndex={0}
       aria-label={`Abrir tarefa: ${t.titulo}`}
-      className="flex items-center gap-3 px-4 py-2.5 hover:bg-muted/30 focus:bg-muted/40 outline-none transition-colors cursor-pointer border-b border-border/20 last:border-b-0"
+      className={cn(
+        "flex items-center gap-3 px-4 hover:bg-accent/30 focus:bg-muted/40 outline-none transition-colors cursor-pointer border-b border-border/20 last:border-b-0",
+        isCompact ? "min-h-[44px] py-2" : "min-h-[56px] py-3",
+      )}
       onClick={() => onOpen(t)}
       onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onOpen(t); } }}
     >
       <div className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: t.projeto_cor }} />
       <div className="flex-1 min-w-0">
-        <div className="text-sm truncate text-foreground">{t.titulo}</div>
+        <div className="text-sm font-medium truncate text-foreground">{t.titulo}</div>
         <div className="text-xs text-muted-foreground truncate">
           {t.secao_nome ? `${t.secao_nome} · ` : ""}
           {t.projeto_nome}
@@ -69,6 +75,7 @@ interface DelegadasProps {
 
 export function DelegadasContent({ naoLidas = 0, onGoToInbox }: DelegadasProps = {}) {
   const { data: tarefas = [], isLoading } = useMinhasDelegadas();
+  const { isCompact } = useTarefaDensity();
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("pendentes");
@@ -207,9 +214,9 @@ export function DelegadasContent({ naoLidas = 0, onGoToInbox }: DelegadasProps =
         {toolbar}
         {chips}
         <Card>
-          <CardContent className="p-4 space-y-2">
+          <CardContent className="p-2 space-y-2">
             {Array.from({ length: 5 }).map((_, i) => (
-              <Skeleton key={i} className="h-10 w-full" />
+              <Skeleton key={i} className={cn("w-full rounded-lg", isCompact ? "h-11" : "h-14")} />
             ))}
           </CardContent>
         </Card>
@@ -223,20 +230,12 @@ export function DelegadasContent({ naoLidas = 0, onGoToInbox }: DelegadasProps =
         {toolbar}
         {chips}
         <Card>
-          <CardContent className="p-12 text-center text-muted-foreground">
-            <Inbox className="h-10 w-10 mx-auto mb-3 opacity-40" />
-            <div className="text-sm font-medium text-foreground">Nada delegado por enquanto</div>
-            <div className="text-xs mt-1">
-              Tarefas que você criar e atribuir a outras pessoas aparecem aqui.
-            </div>
-            <a
-              href="/dashboard/ajuda/projetos-visibilidade"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-block mt-4 text-xs text-primary underline underline-offset-2 hover:text-primary/80"
-            >
-              Como funciona a visibilidade?
-            </a>
+          <CardContent className="p-0">
+            <EmptyState
+              icon={Send}
+              title="Nada por aqui ainda"
+              description="Você ainda não delegou tarefas para outras pessoas."
+            />
           </CardContent>
         </Card>
       </>
@@ -246,21 +245,21 @@ export function DelegadasContent({ naoLidas = 0, onGoToInbox }: DelegadasProps =
   return (
     <>
       {toolbar}
-        {chips}
+      {chips}
       <Card>
         <CardContent className="p-0">
-          <div className="px-4 py-2.5 border-b bg-muted/20 flex items-center gap-2">
-            <Send className="h-3.5 w-3.5 text-muted-foreground" />
-            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Tarefas que você delegou ({filtered.length})
-            </span>
-          </div>
+          <h3 className={cn(
+            "text-xs font-medium uppercase tracking-wide text-muted-foreground px-4 py-2 border-b bg-muted/20 flex items-center gap-2",
+          )}>
+            <Send className="h-3.5 w-3.5" />
+            Tarefas que você delegou ({filtered.length})
+          </h3>
           {filtered.length === 0 ? (
             <div className="p-8 text-center text-xs text-muted-foreground">
               Nenhuma tarefa corresponde aos filtros atuais.
             </div>
           ) : (
-            filtered.map((t) => <Row key={t.id} t={t} onOpen={handleOpen} />)
+            filtered.map((t) => <Row key={t.id} t={t} onOpen={handleOpen} isCompact={isCompact} />)
           )}
         </CardContent>
       </Card>

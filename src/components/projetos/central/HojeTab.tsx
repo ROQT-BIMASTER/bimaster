@@ -23,31 +23,37 @@ import { toast } from "sonner";
 import { ProjetoHomeAtividades } from "@/components/projetos/home/ProjetoHomeAtividades";
 import { CentralToolbarPortal, CentralChipsPortal } from "@/components/projetos/central/CentralLayout";
 import { CentralChip } from "@/components/projetos/central/CentralChips";
+import { useTarefaDensity } from "@/hooks/useTarefaDensity";
+import { cn } from "@/lib/utils";
 
 const MAX_ITEMS = 8;
 
-function TarefaRow({ tarefa, onToggle }: { tarefa: MinaTarefa; onToggle: (id: string, done: boolean) => void }) {
+function TarefaRow({ tarefa, onToggle, isCompact }: { tarefa: MinaTarefa; onToggle: (id: string, done: boolean) => void; isCompact: boolean }) {
   const navigate = useNavigate();
   const isDone = tarefa.status === "concluida";
   const isOverdue = !isDone && tarefa.data_prazo && new Date(tarefa.data_prazo) < new Date();
 
   return (
     <div
-      className="group flex items-center gap-3 p-3 rounded-lg border border-border/40 bg-card hover:shadow-sm transition-all cursor-pointer"
+      className={cn(
+        "group flex items-center gap-3 px-3 rounded-lg border border-border/40 bg-card",
+        "hover:bg-accent/30 transition-colors cursor-pointer",
+        isCompact ? "min-h-[44px] py-2" : "min-h-[56px] py-3",
+      )}
       onClick={() => navigate(`/dashboard/projetos/${tarefa.projeto_id}`)}
     >
       <Checkbox
         checked={isDone}
         onCheckedChange={(checked) => onToggle(tarefa.id, !!checked)}
         onClick={(e) => e.stopPropagation()}
-        className="h-4 w-4 rounded-full"
+        className="h-5 w-5 rounded-full shrink-0"
       />
       <div className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: tarefa.projeto_cor }} />
       <div className="flex-1 min-w-0">
         <p className={`text-sm font-medium truncate ${isDone ? "line-through text-muted-foreground" : ""}`}>
           {tarefa.titulo}
         </p>
-        <p className="text-[11px] text-muted-foreground truncate">{tarefa.projeto_nome}</p>
+        <p className="text-xs text-muted-foreground truncate">{tarefa.projeto_nome}</p>
       </div>
       <TarefaResponsavelAvatar
         responsavelId={tarefa.responsavel_id}
@@ -56,7 +62,7 @@ function TarefaRow({ tarefa, onToggle }: { tarefa: MinaTarefa; onToggle: (id: st
         size="xs"
       />
       {tarefa.data_prazo ? (
-        <span className={`text-[11px] font-medium shrink-0 ${isOverdue ? "text-destructive" : "text-muted-foreground"}`}>
+        <span className={`text-xs font-medium shrink-0 ${isOverdue ? "text-destructive" : "text-muted-foreground"}`}>
           {isOverdue && <AlertTriangle className="h-3 w-3 inline mr-0.5 -mt-0.5" />}
           {format(new Date(tarefa.data_prazo), "d MMM", { locale: ptBR })}
         </span>
@@ -92,6 +98,7 @@ export function HojeTab({ onGoToTarefas }: Props) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
+  const { isCompact } = useTarefaDensity();
 
   const now = startOfDay(new Date());
   const pendentes = tarefas.filter(t => t.status !== "concluida");
@@ -189,14 +196,16 @@ export function HojeTab({ onGoToTarefas }: Props) {
           </div>
 
           {loadingTarefas ? (
-            <div className="space-y-3">
-              {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-16 w-full rounded-lg" />)}
+            <div className="space-y-2">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <Skeleton key={i} className={cn("w-full rounded-lg", isCompact ? "h-11" : "h-14")} />
+              ))}
             </div>
           ) : totalDestaque === 0 ? (
             <EmptyState
-              icon={Rocket}
-              title="Tudo em dia!"
-              description="Nenhuma tarefa atrasada, para hoje ou sem datas planejadas. Aproveite para planejar o que vem a seguir."
+              icon={CalendarDays}
+              title="Nada por aqui ainda"
+              description="Nenhuma tarefa atrasada, para hoje ou sem datas planejadas."
               actionLabel="Ver todas as tarefas"
               onAction={() => onGoToTarefas()}
             />
@@ -207,46 +216,49 @@ export function HojeTab({ onGoToTarefas }: Props) {
                   <button
                     type="button"
                     onClick={() => onGoToTarefas("atrasadas")}
-                    className="text-xs font-semibold uppercase tracking-wider text-destructive mb-2 hover:underline focus:outline-none focus-visible:underline"
+                    className={cn(
+                      "text-xs font-medium uppercase tracking-wide text-destructive mb-2 hover:underline focus:outline-none focus-visible:underline",
+                      isCompact ? "mt-0" : "mt-0",
+                    )}
                   >
                     Atrasadas · {atrasadas.length}
                   </button>
                   <div className="space-y-2">
                     {atrasadas.slice(0, MAX_ITEMS).map(t => (
-                      <TarefaRow key={t.id} tarefa={t} onToggle={handleToggle} />
+                      <TarefaRow key={t.id} tarefa={t} onToggle={handleToggle} isCompact={isCompact} />
                     ))}
                   </div>
                 </div>
               )}
               {hoje.length > 0 && atrasadas.length < MAX_ITEMS && (
-                <div className={atrasadas.length > 0 ? "mt-4" : ""}>
+                <div className={atrasadas.length > 0 ? (isCompact ? "mt-3" : "mt-4") : ""}>
                   <button
                     type="button"
                     onClick={() => onGoToTarefas("hoje")}
-                    className="text-xs font-semibold uppercase tracking-wider text-primary mb-2 hover:underline focus:outline-none focus-visible:underline"
+                    className="text-xs font-medium uppercase tracking-wide text-primary mb-2 hover:underline focus:outline-none focus-visible:underline"
                   >
                     Hoje · {hoje.length}
                   </button>
                   <div className="space-y-2">
                     {hoje.slice(0, MAX_ITEMS - atrasadas.length).map(t => (
-                      <TarefaRow key={t.id} tarefa={t} onToggle={handleToggle} />
+                      <TarefaRow key={t.id} tarefa={t} onToggle={handleToggle} isCompact={isCompact} />
                     ))}
                   </div>
                 </div>
               )}
               {semData.length > 0 && (atrasadas.length + hoje.length) < MAX_ITEMS && (
-                <div className={(atrasadas.length + hoje.length) > 0 ? "mt-4" : ""}>
+                <div className={(atrasadas.length + hoje.length) > 0 ? (isCompact ? "mt-3" : "mt-4") : ""}>
                   <button
                     type="button"
                     onClick={() => onGoToTarefas("sem_data")}
-                    className="text-xs font-semibold uppercase tracking-wider text-amber-600 dark:text-amber-400 mb-2 flex items-center gap-1.5 hover:underline focus:outline-none focus-visible:underline"
+                    className="text-xs font-medium uppercase tracking-wide text-amber-600 dark:text-amber-400 mb-2 flex items-center gap-1.5 hover:underline focus:outline-none focus-visible:underline"
                   >
                     <CalendarOff className="h-3 w-3 animate-pulse-slow" />
                     Sem datas planejadas · {semData.length}
                   </button>
                   <div className="space-y-2">
                     {semData.slice(0, MAX_ITEMS - atrasadas.length - hoje.length).map(t => (
-                      <TarefaRow key={t.id} tarefa={t} onToggle={handleToggle} />
+                      <TarefaRow key={t.id} tarefa={t} onToggle={handleToggle} isCompact={isCompact} />
                     ))}
                   </div>
                 </div>

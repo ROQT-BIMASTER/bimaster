@@ -31,6 +31,7 @@ import { ImpersonationSelector } from "@/components/admin/ImpersonationSelector"
 import { ProfileAvatarUpload } from "@/components/shared/ProfileAvatarUpload";
 import { CentralCopilotPanel } from "@/components/projetos/central/CentralCopilotPanel";
 import { CentralSettingsMenu } from "@/components/projetos/central/CentralSettingsMenu";
+import { ProjetoDensityToggle } from "@/components/projetos/ProjetoDensityToggle";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import type { CentralPreferences } from "@/hooks/useCentralPreferences";
@@ -170,6 +171,8 @@ export function CentralHeader({
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
+
+          <ProjetoDensityToggle />
 
           <CentralSettingsMenu
             bgColor={bgColor}
