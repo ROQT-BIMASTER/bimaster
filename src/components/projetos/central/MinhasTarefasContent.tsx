@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/select";
 import {
   CheckCircle2, ChevronDown, ChevronRight, LayoutList, LayoutGrid,
-  Search, Calendar, Filter, Plus, Flag, Clock, Zap, X, Eye, EyeOff,
+  Search, Calendar, Filter, Plus, Flag, Clock, Zap, X, Eye, EyeOff, ListChecks,
   CalendarOff, Users, UserCheck, SlidersHorizontal, User as UserIcon,
   ArrowUpDown,
 } from "lucide-react";
