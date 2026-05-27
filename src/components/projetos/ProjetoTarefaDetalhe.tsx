@@ -73,16 +73,16 @@ const ESTAGIO_OPTIONS = [
 ];
 
 const STATUS_OPTIONS = [
-  { value: "pendente", label: "Pendente" },
-  { value: "em_andamento", label: "Em andamento" },
-  { value: "concluida", label: "Concluída" },
-  { value: "bloqueada", label: "Bloqueada" },
+  { value: "pendente", label: "Pendente", color: "bg-muted text-muted-foreground" },
+  { value: "em_andamento", label: "Em andamento", color: "bg-emerald-500/15 text-emerald-400" },
+  { value: "concluida", label: "Concluída", color: "bg-blue-500/15 text-blue-400" },
+  { value: "bloqueada", label: "Bloqueada", color: "bg-destructive/15 text-destructive" },
 ];
 
 const PRIORIDADE_OPTIONS = [
-  { value: "baixa", label: "Baixa" },
-  { value: "media", label: "Média" },
-  { value: "alta", label: "Alta" },
+  { value: "baixa", label: "Baixa", color: "bg-emerald-500/15 text-emerald-400" },
+  { value: "media", label: "Média", color: "bg-rose-500/15 text-rose-400" },
+  { value: "alta", label: "Alta", color: "bg-destructive/20 text-destructive" },
 ];
 
 const COFRE_CATEGORIAS = [
