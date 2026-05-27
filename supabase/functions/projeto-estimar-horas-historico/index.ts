@@ -1,6 +1,6 @@
 // Estimativa de horas retroativa por IA usando o Lovable AI Gateway.
 // Recebe lista de tarefas concluídas e devolve estimativa de horas + justificativa.
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { createClient } from "npm:@supabase/supabase-js@2";
 import { z } from "https://esm.sh/zod@3.23.8";
 import { secureHandler } from "../_shared/secure-handler.ts";
 

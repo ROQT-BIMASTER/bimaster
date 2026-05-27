@@ -6,7 +6,7 @@
 //  - "actions" : sugere ações estruturadas (aprovar / pedir ajuste / encaminhar)
 //                via tool calling — NUNCA executa, devolve a "proposta".
 import { z } from "https://esm.sh/zod@3.23.8";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "npm:@supabase/supabase-js@2";
 import { secureHandler } from "../_shared/secure-handler.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { callAIGateway, aiGatewayErrorResponse, pickLang } from "../_shared/ai-gateway-call.ts";

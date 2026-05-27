@@ -1,6 +1,6 @@
 // Posta resumo automático no chat de cada projeto ativo.
 // Disparado por pg_cron (19h BRT = 22h UTC) ou manualmente pelo usuário.
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { createClient } from "npm:@supabase/supabase-js@2";
 import { secureHandler } from "../_shared/secure-handler.ts";
 import { logger } from "../_shared/logger.ts";
 
