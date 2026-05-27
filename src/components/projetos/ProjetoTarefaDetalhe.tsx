@@ -543,14 +543,29 @@ export function ProjetoTarefaDetalhe({
                       em {format(new Date(tarefa.created_at), "dd/MM/yyyy", { locale: ptBR })}
                     </span>
                   )}
-                  {(tarefa as any).responsavel && (
-                    <>
-                      <span className="text-border">·</span>
-                      <span className="flex items-center gap-1">
-                        Atribuída a <span className="font-medium text-foreground">{String((tarefa as any).responsavel).split(" ")[0]}</span>
-                      </span>
-                    </>
-                  )}
+                  {(() => {
+                    const lista = (tarefa as any).responsaveis as { nome?: string | null }[] | undefined;
+                    const principalNome =
+                      (lista && lista.length > 0 ? lista[0]?.nome : null) ||
+                      (tarefa as any).responsavel?.nome ||
+                      (typeof (tarefa as any).responsavel === "string" ? (tarefa as any).responsavel : null);
+                    if (!principalNome) return null;
+                    const extras = lista && lista.length > 1 ? lista.length - 1 : 0;
+                    return (
+                      <>
+                        <span className="text-border">·</span>
+                        <span className="flex items-center gap-1">
+                          Atribuída a{" "}
+                          <span className="font-medium text-foreground">
+                            {String(principalNome).split(" ")[0]}
+                          </span>
+                          {extras > 0 && (
+                            <span className="text-muted-foreground">+{extras}</span>
+                          )}
+                        </span>
+                      </>
+                    );
+                  })()}
                 </div>
 
                 {/* Fields grid */}
