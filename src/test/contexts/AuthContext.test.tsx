@@ -137,19 +137,20 @@ describe('AuthContext', () => {
   });
 
   describe('Cache de aprovação', () => {
-    it('deve salvar aprovação no cache quando usuário é aprovado', () => {
-      // Arrange
+    it('NÃO deve ler cache de aprovação enquanto não houver sessão (servidor é a fonte da verdade)', () => {
+      // Arrange — sem sessão mockada, fetchApprovalStatus não roda.
       localStorageMock.getItem.mockReturnValue('true');
-      
+
       // Act
       renderHook(() => useAuth(), {
         wrapper: AuthProvider,
       });
 
-      // Assert - O cache foi lido
-      expect(localStorageMock.getItem).toHaveBeenCalledWith('user_approved_cache');
+      // Assert — sem sessão, o cache 'user_approved_cache' não deve ser consultado.
+      expect(localStorageMock.getItem).not.toHaveBeenCalledWith('user_approved_cache');
     });
   });
+
 
   describe('Segurança', () => {
     it('deve limpar cache no logout', async () => {
