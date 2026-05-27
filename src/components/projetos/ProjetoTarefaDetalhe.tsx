@@ -574,7 +574,14 @@ export function ProjetoTarefaDetalhe({
                     if (isPendingValidation) { toast.error("Aguardando aprovação. Não é possível alterar o status."); return; }
                     onUpdate(tarefa.id, { status: v });
                   }} disabled={isPendingValidation}>
-                    <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                    <SelectTrigger className="h-8 text-xs border-0 bg-transparent hover:bg-muted/40 px-2 [&>svg]:opacity-40 justify-start gap-2">
+                      {(() => {
+                        const s = STATUS_OPTIONS.find(x => x.value === tarefa.status);
+                        return s ? (
+                          <Badge className={cn("text-[10px] border-0 rounded-md", s.color)}>{s.label}</Badge>
+                        ) : <SelectValue />;
+                      })()}
+                    </SelectTrigger>
                     <SelectContent>
                       {isPendingValidation && <SelectItem value="pendente_validacao">Pendente de Aprovação</SelectItem>}
                       {STATUS_OPTIONS.map(s => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
@@ -584,11 +591,19 @@ export function ProjetoTarefaDetalhe({
                   {/* Prioridade */}
                   <span className="text-muted-foreground">Prioridade</span>
                   <Select value={tarefa.prioridade} onValueChange={v => onUpdate(tarefa.id, { prioridade: v })}>
-                    <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                    <SelectTrigger className="h-8 text-xs border-0 bg-transparent hover:bg-muted/40 px-2 [&>svg]:opacity-40 justify-start gap-2">
+                      {(() => {
+                        const p = PRIORIDADE_OPTIONS.find(x => x.value === tarefa.prioridade);
+                        return p ? (
+                          <Badge className={cn("text-[10px] border-0 rounded-md", p.color)}>{p.label}</Badge>
+                        ) : <SelectValue />;
+                      })()}
+                    </SelectTrigger>
                     <SelectContent>
                       {PRIORIDADE_OPTIONS.map(p => <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>)}
                     </SelectContent>
                   </Select>
+
 
                   {/* Estágio */}
                   <span className="text-muted-foreground">Estágio</span>
