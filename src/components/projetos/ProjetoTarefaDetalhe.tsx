@@ -1146,9 +1146,46 @@ export function ProjetoTarefaDetalhe({
                             )}>
                               {st.status === "concluida" ? <CheckCircle2 className="h-4 w-4" /> : <Circle className="h-4 w-4" />}
                             </button>
-                            <span className={cn("text-sm flex-1 min-w-0 truncate", st.status === "concluida" && "line-through text-muted-foreground")}>
-                              {st.titulo}
-                            </span>
+                            {editingSubtarefaId === st.id ? (
+                              <Input
+                                autoFocus
+                                value={editingSubtarefaTitulo}
+                                onChange={e => setEditingSubtarefaTitulo(e.target.value)}
+                                onFocus={e => e.currentTarget.select()}
+                                onKeyDown={e => {
+                                  if (e.key === "Enter") {
+                                    e.preventDefault();
+                                    const novo = editingSubtarefaTitulo.trim();
+                                    if (novo && novo !== st.titulo) onUpdate(st.id, { titulo: novo } as any);
+                                    setEditingSubtarefaId(null);
+                                  } else if (e.key === "Escape") {
+                                    e.preventDefault();
+                                    setEditingSubtarefaId(null);
+                                  }
+                                }}
+                                onBlur={() => {
+                                  const novo = editingSubtarefaTitulo.trim();
+                                  if (novo && novo !== st.titulo) onUpdate(st.id, { titulo: novo } as any);
+                                  setEditingSubtarefaId(null);
+                                }}
+                                className="h-7 text-sm flex-1 min-w-0"
+                              />
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setEditingSubtarefaId(st.id);
+                                  setEditingSubtarefaTitulo(st.titulo);
+                                }}
+                                className={cn(
+                                  "text-sm flex-1 min-w-0 text-left break-words whitespace-normal hover:text-foreground transition-colors",
+                                  st.status === "concluida" && "line-through text-muted-foreground"
+                                )}
+                                title="Clique para renomear"
+                              >
+                                {st.titulo}
+                              </button>
+                            )}
                             <Button
                               variant="ghost"
                               size="icon"
