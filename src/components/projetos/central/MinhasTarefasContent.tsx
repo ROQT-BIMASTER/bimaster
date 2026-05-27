@@ -320,6 +320,7 @@ interface Props {
 
 export function MinhasTarefasContent({ initialFilter = null }: Props) {
   const { data: tarefas = [], isLoading } = useMinhasTarefas();
+  const { isCompact } = useTarefaDensity();
   const { user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const { preferences, save: savePrefs, isSaving } = useCentralPreferences();
