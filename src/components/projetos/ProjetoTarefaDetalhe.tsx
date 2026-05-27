@@ -265,11 +265,11 @@ export function ProjetoTarefaDetalhe({
   const isPendingValidation = (tarefa as any).validacao_status === "pendente_validacao";
   const estagioInfo = ESTAGIO_OPTIONS.find(e => e.value === tarefa.estagio);
   const responsaveisDetalhe = (() => {
-    const lista = (tarefa.responsaveis || []).map(r => ({
+    const lista: Array<{ user_id: string; nome: string; avatar_url: string | null; origem: "junction" | "principal" }> = (tarefa.responsaveis || []).map(r => ({
       user_id: r.user_id,
       nome: r.nome || "Membro",
       avatar_url: r.avatar_url || null,
-      origem: "junction" as const,
+      origem: "junction",
     }));
 
     if (tarefa.responsavel_id && tarefa.responsavel && !lista.some(r => r.user_id === tarefa.responsavel_id)) {
