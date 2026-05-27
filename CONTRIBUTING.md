@@ -94,6 +94,24 @@ Checklist obrigatório ao adicionar um hook de domínio:
 - [ ] Datas Postgres `DATE` sempre via `parseLocalDate`; moeda via
       `formatCurrency`.
 
+## Migrations vs seeds
+
+- `supabase/migrations/` — **apenas DDL** (CREATE/ALTER TABLE, RLS, GRANTs,
+  functions, triggers, RPCs, índices). O harness Lovable reaplica em ordem
+  qualquer arquivo novo aqui; DML destrutiva (`DELETE`, `TRUNCATE`, `UPDATE`
+  em massa) reexecutada apaga dados reais.
+- `supabase/seeds/` — seeds de dados (INSERTs de catálogos, templates,
+  fixtures de demo). Não são aplicados automaticamente. Rodar manualmente em
+  clones via `psql "$DATABASE_URL" -f supabase/seeds/<arquivo>.sql`.
+- Antes de abrir PR, rodar:
+
+  ```bash
+  rg -n '^(DELETE|TRUNCATE|UPDATE)\s' supabase/migrations/
+  ```
+
+  Qualquer hit precisa virar seed ou ser justificado em revisão.
+
+
 ## Revisão
 
 Atribua reviewer pela área dominante da mudança (ver `.github/CODEOWNERS`).
