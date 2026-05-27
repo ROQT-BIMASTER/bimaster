@@ -51321,6 +51321,10 @@ export type Database = {
         Args: { _tabela_id: string; _user_id: string }
         Returns: boolean
       }
+      user_can_manage_project_members: {
+        Args: { _projeto_id: string; _user_id: string }
+        Returns: boolean
+      }
       user_device_register: {
         Args: {
           p_device_name?: string
@@ -51337,6 +51341,14 @@ export type Database = {
       }
       user_has_store_access: {
         Args: { p_store_id: string; p_user_id?: string }
+        Returns: boolean
+      }
+      user_is_project_coordinator: {
+        Args: { _projeto_id: string; _user_id: string }
+        Returns: boolean
+      }
+      user_is_project_member: {
+        Args: { _projeto_id: string; _user_id: string }
         Returns: boolean
       }
       user_is_task_collaborator: {
