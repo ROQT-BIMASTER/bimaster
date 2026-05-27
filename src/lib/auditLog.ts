@@ -29,10 +29,16 @@ export async function logAuditAction(entry: AuditLogEntry): Promise<void> {
       .eq("id", user.id)
       .maybeSingle();
 
+    const campaignId = entry.campaignId || entry.entityId;
+    if (!campaignId) {
+      logger.warn("[AuditLog] Entrada sem campaignId/entityId — pulando");
+      return;
+    }
+
     const { error } = await supabase
       .from("trade_campaign_audit_log")
       .insert({
-        campaign_id: entry.campaignId || entry.entityId || null,
+        campaign_id: campaignId,
         entity_type: entry.entityType || "campaign",
         entity_id: entry.entityId || entry.campaignId || null,
         action: entry.action,

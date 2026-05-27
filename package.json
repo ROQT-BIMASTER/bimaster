@@ -8,6 +8,7 @@
     "build": "NODE_OPTIONS=--max-old-space-size=8192 vite build",
     "build:dev": "NODE_OPTIONS=--max-old-space-size=8192 vite build --mode development",
     "typecheck": "tsc -p tsconfig.app.json --noEmit",
+    "typecheck:strict": "node scripts/typecheck-strict.mjs",
     "lint": "eslint .",
     "preview": "vite preview",
     "e2e:reset": "bun run scripts/seed/e2e-aprovacoes-reset.ts",
