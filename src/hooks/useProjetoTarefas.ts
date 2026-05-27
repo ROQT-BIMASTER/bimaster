@@ -479,10 +479,14 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
 
   const addColaborador = useMutation({
     mutationFn: async ({ tarefaId, userId }: { tarefaId: string; userId: string }) => {
-      const { error } = await supabase
+      const { data: inserted, error } = await supabase
         .from("projeto_tarefa_colaboradores")
-        .insert({ tarefa_id: tarefaId, user_id: userId });
+        .insert({ tarefa_id: tarefaId, user_id: userId })
+        .select("id");
       if (error) throw error;
+      if (!inserted || inserted.length === 0) {
+        throw new Error("Sem permissão para adicionar seguidor. Você precisa ser membro do projeto, responsável ou criador da tarefa.");
+      }
       return { tarefaId, userId };
     },
     onMutate: async ({ tarefaId, userId }) => {
