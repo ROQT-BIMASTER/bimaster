@@ -69,6 +69,7 @@ import { QuickCommentPopover } from "@/components/projetos/central/QuickCommentP
 import { useTarefaMessageCounts } from "@/hooks/useTarefaMessageCounts";
 import { useManualPriorityOrder, applyManualOrder } from "@/hooks/useManualPriorityOrder";
 import { ManualPrioritySortable } from "@/components/projetos/central/ManualPrioritySortable";
+import { CentralToolbarPortal } from "@/components/projetos/central/CentralLayout";
 
 import { BarChart3, RotateCcw, Trash2 } from "lucide-react";
 import type { ProjetoTarefa, ProjetoSecao } from "@/hooks/useProjetoTarefas";
@@ -881,8 +882,10 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
           onHide={() => setShowRoleOverview(false)}
         />
       )}
+      {/* Toolbar contextual portada para o slot do CentralLayout */}
+      <CentralToolbarPortal>
       {/* Action bar */}
-      <div className="flex items-center justify-end gap-2 flex-wrap min-h-[36px]">
+      <div className="w-full flex items-center justify-end gap-2 flex-wrap min-h-[36px]">
         <Button size="sm" className="gap-1.5 h-9" onClick={() => setShowNewTask(true)}>
           <Plus className="h-4 w-4" /> Nova Tarefa
         </Button>
@@ -916,7 +919,7 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
         </Tabs>
       </div>
 
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="w-full flex flex-wrap items-center gap-2">
         <div className="relative flex-1 min-w-[200px] max-w-xs">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
@@ -1268,6 +1271,7 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
           </TooltipProvider>
         )}
       </div>
+      </CentralToolbarPortal>
 
       {selectedIds.size > 0 && (
         <div className="flex items-center gap-3 px-4 py-2.5 bg-primary/5 border border-primary/20 rounded-lg animate-in fade-in slide-in-from-bottom-2">

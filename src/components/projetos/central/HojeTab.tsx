@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useMinhasTarefas, type MinaTarefa } from "@/hooks/useMinhasTarefas";
 import { useMeusProjetosRecentes } from "@/hooks/useMeusProjetosRecentes";
@@ -7,10 +8,11 @@ import { Progress } from "@/components/ui/progress";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { TarefaResponsavelAvatar } from "@/components/projetos/shared/TarefaResponsavelAvatar";
-import { AlertTriangle, FolderKanban, ArrowRight, Rocket, CalendarDays, CalendarOff } from "lucide-react";
+import { AlertTriangle, FolderKanban, ArrowRight, Rocket, CalendarDays, CalendarOff, Search } from "lucide-react";
 import { format, isToday, isBefore, startOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { parseLocalDate } from "@/lib/utils/parseLocalDate";
@@ -19,6 +21,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { ProjetoHomeAtividades } from "@/components/projetos/home/ProjetoHomeAtividades";
+import { CentralToolbarPortal } from "@/components/projetos/central/CentralLayout";
 
 const MAX_ITEMS = 8;
 
@@ -87,18 +90,22 @@ export function HojeTab({ onGoToTarefas }: Props) {
   const { data: projetos = [], isLoading: loadingProjetos } = useMeusProjetosRecentes();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const [search, setSearch] = useState("");
 
   const now = startOfDay(new Date());
   const pendentes = tarefas.filter(t => t.status !== "concluida");
+  const q = search.trim().toLowerCase();
+  const matchSearch = (t: MinaTarefa) =>
+    !q || t.titulo.toLowerCase().includes(q) || (t.projeto_nome ?? "").toLowerCase().includes(q);
   const atrasadas = pendentes.filter(t => {
     const p = parseLocalDate(t.data_prazo);
     return p && isBefore(startOfDay(p), now);
-  });
+  }).filter(matchSearch);
   const hoje = pendentes.filter(t => {
     const p = parseLocalDate(t.data_prazo);
     return p && isToday(p);
-  });
-  const semData = pendentes.filter(t => isSemDatasPlanejadas(t));
+  }).filter(matchSearch);
+  const semData = pendentes.filter(t => isSemDatasPlanejadas(t)).filter(matchSearch);
 
   const totalDestaque = atrasadas.length + hoje.length + semData.length;
 
@@ -122,8 +129,21 @@ export function HojeTab({ onGoToTarefas }: Props) {
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      <div className="lg:col-span-2 space-y-4">
+    <>
+      <CentralToolbarPortal>
+        <div className="relative w-72">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+          <Input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Buscar nas suas tarefas de hoje..."
+            className="h-9 pl-8 text-xs"
+            maxLength={100}
+          />
+        </div>
+      </CentralToolbarPortal>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2 space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
             <CalendarDays className="h-5 w-5 text-primary" />
@@ -275,6 +295,7 @@ export function HojeTab({ onGoToTarefas }: Props) {
 
         <ProjetoHomeAtividades />
       </div>
-    </div>
+      </div>
+    </>
   );
 }
