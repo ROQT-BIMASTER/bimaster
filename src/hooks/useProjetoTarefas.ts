@@ -528,7 +528,12 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
         ...v,
         tarefas: v.tarefas.map(t =>
           t.id === tarefaId
-            ? { ...t, colaboradores: [...(t.colaboradores || []), { user_id: userId, nome, avatar_url }] }
+            ? {
+                ...t,
+                colaboradores: (t.colaboradores || []).some(c => c.user_id === userId)
+                  ? t.colaboradores!
+                  : [...(t.colaboradores || []), { user_id: userId, nome, avatar_url }],
+              }
             : t
         ),
       }));
