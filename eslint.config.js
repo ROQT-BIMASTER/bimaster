@@ -70,7 +70,7 @@ export default tseslint.config(
       "prefer-rest-params": "warn",
       "@typescript-eslint/no-unused-expressions": "warn",
       "@typescript-eslint/no-unsafe-enum-comparison": "warn",
-      "@typescript-eslint/ban-types": "warn",
+      
       "@typescript-eslint/no-empty-object-type": "warn",
       "@typescript-eslint/no-non-null-asserted-optional-chain": "warn",
       "@typescript-eslint/no-namespace": "warn",
