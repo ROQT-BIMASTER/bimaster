@@ -296,10 +296,43 @@ export const GerenciamentoUsuarios = () => {
 
   const handleSaveEdit = async () => {
     if (!editingUser) return;
-    
+
     setLoading(true);
+    const wantsPasswordChange = !!(novoUsuario.senha && novoUsuario.senha.length > 0);
+
+    // Validar senha antes de qualquer escrita
+    if (wantsPasswordChange) {
+      const senhaRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/;
+      if (novoUsuario.senha.length < 8) {
+        toast.error("Senha inválida", { description: "Mínimo de 8 caracteres." });
+        setLoading(false);
+        return;
+      }
+      if (!senhaRegex.test(novoUsuario.senha)) {
+        toast.error("Senha inválida", { description: "Inclua letras maiúsculas, minúsculas e números." });
+        setLoading(false);
+        return;
+      }
+
+      // Pré-checar MFA TOTP do admin (edge function exige factor verified)
+      try {
+        const { data: factors } = await supabase.auth.mfa.listFactors();
+        const hasTotp = !!factors?.totp?.some((f) => f.status === "verified");
+        if (!hasTotp) {
+          toast.error("MFA não configurado", {
+            description: "Ative o MFA TOTP em Segurança › MFA antes de alterar senhas de outros usuários.",
+            action: { label: "Configurar MFA", onClick: () => { window.location.href = "/dashboard/security/mfa"; } },
+          });
+          setLoading(false);
+          return;
+        }
+      } catch (e) {
+        logger.warn("Falha ao consultar fatores MFA:", e);
+      }
+    }
+
     try {
-      // Atualizar perfil (nome e supervisor)
+      // 1) Atualizar perfil (nome e supervisor)
       const { error: profileError } = await supabase
         .from("profiles")
         .update({
@@ -310,7 +343,7 @@ export const GerenciamentoUsuarios = () => {
 
       if (profileError) throw profileError;
 
-      // Só atualizar role se realmente mudou (evita trigger destrutivo)
+      // 2) Atualizar role se mudou
       if (novoUsuario.tipo_usuario !== editingUser.tipo_usuario) {
         const { error: roleError } = await supabase
           .from("user_roles")
@@ -322,42 +355,58 @@ export const GerenciamentoUsuarios = () => {
         if (roleError) throw roleError;
       }
 
-      // Atualizar senha se foi preenchida — usar mesma regex do userSchema
-      if (novoUsuario.senha && novoUsuario.senha.length > 0) {
-        const senhaRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/;
-        if (novoUsuario.senha.length < 8) {
-          throw new Error("Senha deve ter no mínimo 8 caracteres");
-        }
-        if (!senhaRegex.test(novoUsuario.senha)) {
-          throw new Error("Senha deve conter letras maiúsculas, minúsculas e números");
-        }
-
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session?.access_token) throw new Error("Sessão expirada");
-
-        // Edge function update-user-password exige escopo "user.password.self"
-        // independentemente de ser auto-alteração ou reset por admin.
-        const stepUpToken = await requestStepUp(
-          "user.password.self",
-          `Confirme com MFA para alterar a senha de ${editingUser.email}.`
-        );
-        if (!stepUpToken) throw new Error("Verificação cancelada");
-
-        const response = await supabase.functions.invoke("update-user-password", {
-          body: { user_id: editingUser.id, password: novoUsuario.senha },
-          headers: { "x-step-up-token": stepUpToken },
-        });
-
-        if (response.error) throw new Error(response.error.message || "Erro ao atualizar senha");
-        if (response.data?.error) throw new Error(response.data.error);
-      }
-
-      // Atualizar municípios se for vendedor
+      // 3) Municípios (vendedor)
       if (novoUsuario.tipo_usuario === "vendedor") {
         await handleUpdateUserMunicipios(editingUser.id);
       }
 
-      toast.success("Usuário atualizado", { description: novoUsuario.senha ? "Informações e senha atualizadas com sucesso" : "As informações foram atualizadas com sucesso" });
+      // 4) Senha — última etapa para não impedir o salvamento dos demais campos
+      if (wantsPasswordChange) {
+        let passwordError: string | null = null;
+        try {
+          const stepUpToken = await requestStepUp(
+            "user.password.self",
+            `Confirme com MFA para alterar a senha de ${editingUser.email}.`
+          );
+          if (!stepUpToken) {
+            passwordError = "Verificação MFA cancelada.";
+          } else {
+            const response = await supabase.functions.invoke("update-user-password", {
+              body: { user_id: editingUser.id, password: novoUsuario.senha },
+              headers: { "x-step-up-token": stepUpToken },
+            });
+            if (response.error) {
+              // Tentar extrair mensagem real do corpo da resposta
+              let serverMsg: string | undefined;
+              try {
+                const resp = (response.error as any)?.context?.response as Response | undefined;
+                const body = await resp?.clone().json().catch(() => null);
+                serverMsg = body?.error;
+              } catch { /* ignore */ }
+              passwordError = serverMsg || (response.error as any).message || "Erro ao atualizar senha";
+            } else if ((response.data as any)?.error) {
+              passwordError = (response.data as any).error;
+            }
+          }
+        } catch (e: any) {
+          passwordError = e?.message || "Erro ao atualizar senha";
+        }
+
+        if (passwordError) {
+          logger.error("Falha ao atualizar senha:", passwordError);
+          toast.warning("Dados salvos, mas a senha não foi alterada", { description: passwordError });
+          setNovoUsuario((prev) => ({ ...prev, senha: "" }));
+          fetchUsuarios();
+          setLoading(false);
+          return;
+        }
+      }
+
+      toast.success("Usuário atualizado", {
+        description: wantsPasswordChange
+          ? "Informações e senha atualizadas com sucesso"
+          : "As informações foram atualizadas com sucesso",
+      });
 
       setIsDialogOpen(false);
       setEditingUser(null);
@@ -365,9 +414,10 @@ export const GerenciamentoUsuarios = () => {
       setSelectedMunicipios([]);
       setSelectedSupervisor(null);
       fetchUsuarios();
-    } catch (error) {
+    } catch (error: any) {
       logger.error("Erro ao atualizar usuário:", error);
-      toast.error("Erro", { description: "Não foi possível atualizar o usuário" });
+      const description = error?.message || "Não foi possível atualizar o usuário";
+      toast.error("Erro ao atualizar usuário", { description });
     } finally {
       setLoading(false);
     }
