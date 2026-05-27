@@ -16,7 +16,7 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { execSync } from "node:child_process";
 
 const files = execSync(
-  `rg -l "from ['"]@/hooks/use-toast['"]" src`,
+  `rg -l "@/hooks/use-toast" src`,
   { encoding: "utf8" }
 )
   .split("\n")
