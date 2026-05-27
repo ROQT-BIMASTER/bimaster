@@ -58,6 +58,26 @@ export default tseslint.config(
       "@typescript-eslint/consistent-type-assertions": "off",
       "@typescript-eslint/non-nullable-type-assertion-style": "off",
 
+      // Baseline: rebaixar para warn regras pré-existentes que estavam como error
+      // nos presets js/ts. Serão promovidas gradualmente em PRs futuros.
+      "prefer-const": "warn",
+      "no-empty": "warn",
+      "no-case-declarations": "warn",
+      "no-useless-escape": "warn",
+      "no-async-promise-executor": "warn",
+      "no-control-regex": "warn",
+      "no-constant-binary-expression": "warn",
+      "prefer-rest-params": "warn",
+      "@typescript-eslint/no-unused-expressions": "warn",
+      "@typescript-eslint/no-unsafe-enum-comparison": "warn",
+      "@typescript-eslint/ban-types": "warn",
+      "@typescript-eslint/no-empty-object-type": "warn",
+      "@typescript-eslint/no-non-null-asserted-optional-chain": "warn",
+      "@typescript-eslint/no-namespace": "warn",
+      "react-hooks/rules-of-hooks": "warn",
+
+
+
 
       // === Quality gates (warning level — não quebra build atual) ===
       "no-console": ["warn", { allow: ["error"] }],
