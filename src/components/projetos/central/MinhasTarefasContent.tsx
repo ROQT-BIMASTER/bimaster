@@ -671,6 +671,12 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
       });
     } else if (filterTime === "sem_data") {
       result = result.filter(t => isSemDatasPlanejadas(t));
+    } else if (filterTime === "concluidas_hoje") {
+      result = result.filter(t => {
+        if (t.status !== "concluida") return false;
+        const c = parseLocalDate(t.data_conclusao);
+        return c && isToday(c);
+      });
     }
     return result;
   }, [tarefas, search, filterPriority, filterProject, filterTime, filterRole, filterStatus, filterResponsavel, filterDateFrom, filterDateTo]);
