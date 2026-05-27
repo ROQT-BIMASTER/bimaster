@@ -21,7 +21,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { ProjetoHomeAtividades } from "@/components/projetos/home/ProjetoHomeAtividades";
-import { CentralToolbarPortal } from "@/components/projetos/central/CentralLayout";
+import { CentralToolbarPortal, CentralChipsPortal } from "@/components/projetos/central/CentralLayout";
+import { CentralChip } from "@/components/projetos/central/CentralChips";
 
 const MAX_ITEMS = 8;
 
@@ -82,7 +83,7 @@ function TarefaRow({ tarefa, onToggle }: { tarefa: MinaTarefa; onToggle: (id: st
 }
 
 interface Props {
-  onGoToTarefas: (filter?: "atrasadas" | "hoje" | "sem_data") => void;
+  onGoToTarefas: (filter?: "atrasadas" | "hoje" | "sem_data" | "concluidas_hoje") => void;
 }
 
 export function HojeTab({ onGoToTarefas }: Props) {
@@ -106,6 +107,20 @@ export function HojeTab({ onGoToTarefas }: Props) {
     return p && isToday(p);
   }).filter(matchSearch);
   const semData = pendentes.filter(t => isSemDatasPlanejadas(t)).filter(matchSearch);
+
+  // Contadores totais (sem busca) para os chips — refletem a mesma base que
+  // o CentralKPIs usava antes, sem nova query.
+  const chipCounts = {
+    semPrazo: pendentes.filter(t => isSemDatasPlanejadas(t)).length,
+    hoje: pendentes.filter(t => {
+      const p = parseLocalDate(t.data_prazo);
+      return p && isToday(p);
+    }).length,
+    atrasadas: pendentes.filter(t => {
+      const p = parseLocalDate(t.data_prazo);
+      return p && isBefore(startOfDay(p), now);
+    }).length,
+  };
 
   const totalDestaque = atrasadas.length + hoje.length + semData.length;
 
@@ -142,6 +157,25 @@ export function HojeTab({ onGoToTarefas }: Props) {
           />
         </div>
       </CentralToolbarPortal>
+      <CentralChipsPortal>
+        <CentralChip label="Para focar agora" active />
+        <CentralChip
+          label="Sem prazo"
+          count={chipCounts.semPrazo}
+          onClick={() => onGoToTarefas("sem_data")}
+        />
+        <CentralChip
+          label="Para hoje"
+          count={chipCounts.hoje}
+          onClick={() => onGoToTarefas("hoje")}
+        />
+        <CentralChip
+          label="Atrasadas"
+          count={chipCounts.atrasadas}
+          countVariant={chipCounts.atrasadas > 0 ? "destructive" : "outline"}
+          onClick={() => onGoToTarefas("atrasadas")}
+        />
+      </CentralChipsPortal>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-4">
         <div className="flex items-center justify-between">

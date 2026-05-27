@@ -24,7 +24,7 @@ import { Separator } from "@/components/ui/separator";
 import { STATUS_OPTIONS } from "@/lib/projetoConstants";
 import { useSystemProfiles } from "@/hooks/useSystemProfiles";
 import { cn } from "@/lib/utils";
-import { format, formatDistanceToNow } from "date-fns";
+import { format, formatDistanceToNow, isToday, isBefore, startOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { parseLocalDate } from "@/lib/utils/parseLocalDate";
 import { isSemDatasPlanejadas } from "@/lib/utils/tarefaPlanejamento";
@@ -69,7 +69,8 @@ import { QuickCommentPopover } from "@/components/projetos/central/QuickCommentP
 import { useTarefaMessageCounts } from "@/hooks/useTarefaMessageCounts";
 import { useManualPriorityOrder, applyManualOrder } from "@/hooks/useManualPriorityOrder";
 import { ManualPrioritySortable } from "@/components/projetos/central/ManualPrioritySortable";
-import { CentralToolbarPortal } from "@/components/projetos/central/CentralLayout";
+import { CentralToolbarPortal, CentralChipsPortal } from "@/components/projetos/central/CentralLayout";
+import { CentralChip } from "@/components/projetos/central/CentralChips";
 
 import { BarChart3, RotateCcw, Trash2 } from "lucide-react";
 import type { ProjetoTarefa, ProjetoSecao } from "@/hooks/useProjetoTarefas";
@@ -312,7 +313,7 @@ const ListSection = memo(function ListSection({
 });
 
 interface Props {
-  initialFilter?: "atrasadas" | "hoje" | "sem_data" | null;
+  initialFilter?: "atrasadas" | "hoje" | "sem_data" | "concluidas_hoje" | null;
 }
 
 export function MinhasTarefasContent({ initialFilter = null }: Props) {
@@ -670,6 +671,12 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
       });
     } else if (filterTime === "sem_data") {
       result = result.filter(t => isSemDatasPlanejadas(t));
+    } else if (filterTime === "concluidas_hoje") {
+      result = result.filter(t => {
+        if (t.status !== "concluida") return false;
+        const c = parseLocalDate(t.data_conclusao);
+        return c && isToday(c);
+      });
     }
     return result;
   }, [tarefas, search, filterPriority, filterProject, filterTime, filterRole, filterStatus, filterResponsavel, filterDateFrom, filterDateTo]);
@@ -870,6 +877,30 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
     setSelectedIds(new Set());
   };
 
+  // Contadores para os chips de filtro (sobre o dataset completo, sem busca
+  // nem filtros opcionais; replicam a base que o antigo CentralKPIs usava).
+  const chipCounts = useMemo(() => {
+    const now = startOfDay(new Date());
+    const pendentes = tarefas.filter((t) => t.status !== "concluida");
+    return {
+      todas: pendentes.length,
+      semPrazo: pendentes.filter((t) => isSemDatasPlanejadas(t)).length,
+      hoje: pendentes.filter((t) => {
+        const p = parseLocalDate(t.data_prazo);
+        return p && isToday(p);
+      }).length,
+      atrasadas: pendentes.filter((t) => {
+        const p = parseLocalDate(t.data_prazo);
+        return p && isBefore(startOfDay(p), now);
+      }).length,
+      concluidasHoje: tarefas.filter((t) => {
+        if (t.status !== "concluida") return false;
+        const c = parseLocalDate(t.data_conclusao);
+        return c && isToday(c);
+      }).length,
+    };
+  }, [tarefas]);
+
   return (
     <div className="space-y-4">
       <PapelExplicativoBanner />
@@ -882,6 +913,42 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
           onHide={() => setShowRoleOverview(false)}
         />
       )}
+      {/* Chips de filtro de prazo (substituem CentralKPIs) */}
+      <CentralChipsPortal>
+        <CentralChip
+          label="Todas"
+          count={chipCounts.todas}
+          active={filterTime === "all"}
+          onClick={() => setFilterTime("all")}
+        />
+        <CentralChip
+          label="Sem prazo"
+          count={chipCounts.semPrazo}
+          active={filterTime === "sem_data"}
+          onClick={() => setFilterTime("sem_data")}
+        />
+        <CentralChip
+          label="Para hoje"
+          count={chipCounts.hoje}
+          active={filterTime === "hoje"}
+          onClick={() => setFilterTime("hoje")}
+        />
+        <CentralChip
+          label="Atrasadas"
+          count={chipCounts.atrasadas}
+          countVariant={
+            chipCounts.atrasadas > 0 && filterTime !== "atrasadas" ? "destructive" : undefined
+          }
+          active={filterTime === "atrasadas"}
+          onClick={() => setFilterTime("atrasadas")}
+        />
+        <CentralChip
+          label="Concluídas hoje"
+          count={chipCounts.concluidasHoje}
+          active={filterTime === "concluidas_hoje"}
+          onClick={() => setFilterTime("concluidas_hoje")}
+        />
+      </CentralChipsPortal>
       {/* Toolbar contextual portada para o slot do CentralLayout */}
       <CentralToolbarPortal>
       {/* Action bar */}
@@ -939,6 +1006,7 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
             <SelectItem value="atrasadas">Atrasadas</SelectItem>
             <SelectItem value="hoje">Hoje</SelectItem>
             <SelectItem value="sem_data">Sem prazo</SelectItem>
+            <SelectItem value="concluidas_hoje">Concluídas hoje</SelectItem>
           </SelectContent>
         </Select>
         <Select value={filterPriority} onValueChange={setFilterPriority}>

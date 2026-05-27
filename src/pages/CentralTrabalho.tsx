@@ -37,7 +37,7 @@ import {
   type CentralTab,
 } from "@/lib/centralUrlParams";
 import { CentralHeader } from "@/components/projetos/central/CentralHeader";
-import { CentralKPIs } from "@/components/projetos/central/CentralKPIs";
+import { useMinhasDelegadas } from "@/hooks/useMinhasDelegadas";
 import { HojeTab } from "@/components/projetos/central/HojeTab";
 import { MinhasTarefasContent } from "@/components/projetos/central/MinhasTarefasContent";
 import { DelegadasContent } from "@/components/projetos/central/DelegadasContent";
@@ -195,6 +195,7 @@ export default function CentralTrabalho({ defaultTab }: Props) {
 
   // Lightweight tab counters (reuses the same cached query as KPIs and HojeTab).
   const { data: tarefas = [] } = useMinhasTarefas();
+  const { data: delegadas = [] } = useMinhasDelegadas();
   const tabCounts = useMemo(() => {
     const now = startOfDay(new Date());
     const pendentes = tarefas.filter((t) => t.status !== "concluida");
@@ -202,8 +203,9 @@ export default function CentralTrabalho({ defaultTab }: Props) {
       const p = parseLocalDate(t.data_prazo);
       return p && (isToday(p) || isBefore(startOfDay(p), now));
     });
-    return { hoje: hojeC.length, pendentes: pendentes.length };
-  }, [tarefas]);
+    const delegadasPendentes = delegadas.filter((t) => t.status !== "concluida").length;
+    return { hoje: hojeC.length, pendentes: pendentes.length, delegadasPendentes };
+  }, [tarefas, delegadas]);
 
   return (
     <SidebarProvider>
@@ -303,13 +305,8 @@ export default function CentralTrabalho({ defaultTab }: Props) {
             />
             <ProjetoShortcutsDialog />
 
-            {/* KPIs only on tabs where they don't duplicate visible content. */}
-            {(activeTab === "tarefas" || activeTab === "delegadas") && (
-              <CentralKPIs
-                activeTab={activeTab}
-                onNavigate={isResetting ? () => {} : setTab}
-              />
-            )}
+            {/* KPI cards substituídos por chips renderizados em chipsSlot pelas abas. */}
+
 
             <Tabs
               value={activeTab}
@@ -323,19 +320,22 @@ export default function CentralTrabalho({ defaultTab }: Props) {
                   <CalendarDays className="h-3.5 w-3.5" />
                   Hoje
                   {tabCounts.hoje > 0 && (
-                    <span className="text-[10px] text-muted-foreground ml-1">{tabCounts.hoje}</span>
+                    <Badge variant="secondary" className="text-[10px] h-4 px-1 ml-1">{tabCounts.hoje}</Badge>
                   )}
                 </TabsTrigger>
                 <TabsTrigger value="tarefas" className="gap-1.5 h-8 px-3" disabled={isResetting}>
                   <ListChecks className="h-3.5 w-3.5" />
                   Minhas tarefas
                   {tabCounts.pendentes > 0 && (
-                    <span className="text-[10px] text-muted-foreground ml-1">{tabCounts.pendentes}</span>
+                    <Badge variant="secondary" className="text-[10px] h-4 px-1 ml-1">{tabCounts.pendentes}</Badge>
                   )}
                 </TabsTrigger>
                 <TabsTrigger value="delegadas" className="gap-1.5 h-8 px-3" disabled={isResetting}>
                   <Send className="h-3.5 w-3.5" />
                   Delegadas
+                  {tabCounts.delegadasPendentes > 0 && (
+                    <Badge variant="secondary" className="text-[10px] h-4 px-1 ml-1">{tabCounts.delegadasPendentes}</Badge>
+                  )}
                 </TabsTrigger>
                 <TabsTrigger value="inbox" className="gap-1.5 h-8 px-3" disabled={isResetting}>
                   <Bell className="h-3.5 w-3.5" />
@@ -387,9 +387,13 @@ export default function CentralTrabalho({ defaultTab }: Props) {
 
                 <TabsContent value="delegadas" className="mt-4">
                   <CentralLayout toolbarSlot={null} chipsSlot={null}>
-                    <DelegadasContent />
+                    <DelegadasContent
+                      naoLidas={naoLidas}
+                      onGoToInbox={() => !isResetting && setTab("inbox")}
+                    />
                   </CentralLayout>
                 </TabsContent>
+
 
                 <TabsContent value="inbox" className="mt-4">
                   <CentralLayout toolbarSlot={null} chipsSlot={null}>
