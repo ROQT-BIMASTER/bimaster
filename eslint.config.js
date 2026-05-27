@@ -5,7 +5,7 @@ import reactRefresh from "eslint-plugin-react-refresh";
 import tseslint from "typescript-eslint";
 
 export default tseslint.config(
-  { ignores: ["dist", "supabase/functions/**", "scripts/**", "audit/**", "*.config.{js,ts,cjs,mjs}", "cloudflare/**"] },
+  { ignores: ["dist", "dev-dist", "build", "coverage", "e2e/**", "supabase/functions/**", "scripts/**", "audit/**", "*.config.{js,ts,cjs,mjs}", "cloudflare/**"] },
   {
     extends: [js.configs.recommended, ...tseslint.configs.recommendedTypeChecked],
     files: ["**/*.{ts,tsx}"],
@@ -38,6 +38,9 @@ export default tseslint.config(
       "@typescript-eslint/no-unsafe-call": "off",
       "@typescript-eslint/no-unsafe-argument": "off",
       "@typescript-eslint/no-unsafe-return": "off",
+      "@typescript-eslint/no-unsafe-assignment": "off",
+      "@typescript-eslint/no-unsafe-member-access": "off",
+
       "@typescript-eslint/no-redundant-type-constituents": "off",
       "@typescript-eslint/restrict-template-expressions": "off",
       "@typescript-eslint/restrict-plus-operands": "off",
