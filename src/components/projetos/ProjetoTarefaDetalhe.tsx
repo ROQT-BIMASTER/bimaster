@@ -153,6 +153,8 @@ export function ProjetoTarefaDetalhe({
   const [produtoResults, setProdutoResults] = useState<ProdutoAcabado[]>([]);
   const [showProdutoSearch, setShowProdutoSearch] = useState(false);
   const [selectedSubtarefaId, setSelectedSubtarefaId] = useState<string | null>(null);
+  const [editingSubtarefaId, setEditingSubtarefaId] = useState<string | null>(null);
+  const [editingSubtarefaTitulo, setEditingSubtarefaTitulo] = useState("");
   // Derivado da lista live de subtarefas para refletir optimistic updates /
   // refetches automaticamente — evita stale snapshot ao trocar responsável,
   // status, etc. via outro caminho (mention, IA, parent task).
