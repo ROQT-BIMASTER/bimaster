@@ -5,8 +5,12 @@ import userEvent from "@testing-library/user-event";
 import { NovaConversaDialog } from "@/components/chat/NovaConversaDialog";
 import { supabase } from "@/integrations/supabase/client";
 
+const { toastMock } = vi.hoisted(() => ({ toastMock: vi.fn() }));
+vi.mock("sonner", () => ({
+  toast: Object.assign(toastMock, { success: toastMock, error: toastMock }),
+}));
+
 import { toast } from "sonner";
-const toastMock = vi.fn();
 
 class ResizeObserverMock {
   observe = vi.fn();
@@ -15,10 +19,6 @@ class ResizeObserverMock {
 }
 
 globalThis.ResizeObserver = ResizeObserverMock as any;
-
-vi.mock("sonner", () => ({
-  toast: Object.assign(toastMock, { success: toastMock, error: toastMock }),
-}));
 
 function mockProfilesQuery() {
   const users = [
