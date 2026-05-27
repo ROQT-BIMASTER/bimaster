@@ -479,13 +479,28 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
 
   const addColaborador = useMutation({
     mutationFn: async ({ tarefaId, userId }: { tarefaId: string; userId: string }) => {
+      // Idempotente: se o vínculo (tarefa_id, user_id) já existir, ignora silenciosamente
+      // (evita o erro "duplicate key" quando o cache local ainda não refletiu um seguidor
+      // adicionado em outra sessão/aba ou em clique duplo).
       const { data: inserted, error } = await supabase
         .from("projeto_tarefa_colaboradores")
-        .insert({ tarefa_id: tarefaId, user_id: userId })
+        .upsert(
+          { tarefa_id: tarefaId, user_id: userId },
+          { onConflict: "tarefa_id,user_id", ignoreDuplicates: true },
+        )
         .select("id");
       if (error) throw error;
       if (!inserted || inserted.length === 0) {
-        throw new Error("Sem permissão para adicionar seguidor. Você precisa ser membro do projeto, responsável ou criador da tarefa.");
+        // Pode ser duplicata (sucesso silencioso) OU bloqueio por RLS. Conferimos.
+        const { data: existing } = await supabase
+          .from("projeto_tarefa_colaboradores")
+          .select("id")
+          .eq("tarefa_id", tarefaId)
+          .eq("user_id", userId)
+          .maybeSingle();
+        if (!existing) {
+          throw new Error("Sem permissão para adicionar seguidor. Você precisa ser membro do projeto, responsável ou criador da tarefa.");
+        }
       }
       return { tarefaId, userId };
     },
