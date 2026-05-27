@@ -83,6 +83,133 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
   const lixeiraOpen = !!opts?.lixeiraOpen;
   const queryClient = useQueryClient();
 
+  type PessoaCache = { id: string; nome: string; avatar_url: string | null };
+  type PendingListOp = { op: "add" | "remove"; pessoa: PessoaCache };
+  const pendingResponsaveisRef = useRef(new Map<string, Map<string, PendingListOp>>());
+  const pendingColaboradoresRef = useRef(new Map<string, Map<string, PendingListOp>>());
+  const pendingPrimaryRef = useRef(new Map<string, { userId: string | null; pessoa: PessoaCache | null }>());
+
+  const resolvePessoa = (userId: string, viewSnapshot?: Pick<ProjetoTarefasView, "teamMembers">): PessoaCache => {
+    const fromTeam = (viewSnapshot?.teamMembers || []).find(m => m.id === userId);
+    if (fromTeam) return { id: fromTeam.id, nome: fromTeam.nome, avatar_url: fromTeam.avatar_url };
+    const membrosCache = queryClient.getQueryData<any[]>(["projeto_membros", projetoId]);
+    const fromMembros = membrosCache?.find((m: any) => m.user_id === userId);
+    if (fromMembros?.profile) {
+      return {
+        id: fromMembros.user_id,
+        nome: fromMembros.profile.nome || "Membro",
+        avatar_url: fromMembros.profile.avatar_url || null,
+      };
+    }
+    return { id: userId, nome: "Membro", avatar_url: null };
+  };
+
+  const setPendingListOp = (
+    ref: React.MutableRefObject<Map<string, Map<string, PendingListOp>>>,
+    tarefaId: string,
+    userId: string,
+    op: "add" | "remove",
+    pessoa: PessoaCache,
+  ) => {
+    const next = new Map(ref.current);
+    const taskOps = new Map(next.get(tarefaId) || []);
+    taskOps.set(userId, { op, pessoa });
+    next.set(tarefaId, taskOps);
+    ref.current = next;
+  };
+
+  const clearPendingListOp = (
+    ref: React.MutableRefObject<Map<string, Map<string, PendingListOp>>>,
+    tarefaId: string,
+    userId: string,
+  ) => {
+    const next = new Map(ref.current);
+    const taskOps = new Map(next.get(tarefaId) || []);
+    taskOps.delete(userId);
+    if (taskOps.size > 0) next.set(tarefaId, taskOps);
+    else next.delete(tarefaId);
+    ref.current = next;
+  };
+
+  const schedulePendingCleanup = (clear: () => void) => {
+    window.setTimeout(() => {
+      clear();
+      queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2", projetoId] });
+    }, 8_000);
+  };
+
+  const applyPendingAssignments = (base: ProjetoTarefasView): ProjetoTarefasView => {
+    if (
+      pendingResponsaveisRef.current.size === 0 &&
+      pendingColaboradoresRef.current.size === 0 &&
+      pendingPrimaryRef.current.size === 0
+    ) {
+      return base;
+    }
+
+    const teamById = new Map(base.teamMembers.map(m => [m.id, m]));
+    const ensureTeam = (pessoa: PessoaCache | null) => {
+      if (pessoa && !teamById.has(pessoa.id)) teamById.set(pessoa.id, pessoa);
+    };
+
+    const tarefasPatched = base.tarefas.map((t) => {
+      let patched: ProjetoTarefa = t;
+      const respOps = pendingResponsaveisRef.current.get(t.id);
+      const colabOps = pendingColaboradoresRef.current.get(t.id);
+      const primary = pendingPrimaryRef.current.get(t.id);
+
+      if (respOps?.size) {
+        let responsaveis = [...(patched.responsaveis || [])];
+        respOps.forEach(({ op, pessoa }, userId) => {
+          ensureTeam(pessoa);
+          responsaveis = responsaveis.filter(r => r.user_id !== userId);
+          if (op === "add") {
+            responsaveis.push({ user_id: userId, nome: pessoa.nome, avatar_url: pessoa.avatar_url, papel: "responsavel" });
+          }
+        });
+        patched = { ...patched, responsaveis };
+      }
+
+      if (colabOps?.size) {
+        let colaboradores = [...(patched.colaboradores || [])];
+        colabOps.forEach(({ op, pessoa }, userId) => {
+          ensureTeam(pessoa);
+          colaboradores = colaboradores.filter(c => c.user_id !== userId);
+          if (op === "add") {
+            colaboradores.push({ user_id: userId, nome: pessoa.nome, avatar_url: pessoa.avatar_url });
+          }
+        });
+        patched = { ...patched, colaboradores };
+      }
+
+      if (primary) {
+        ensureTeam(primary.pessoa);
+        patched = {
+          ...patched,
+          responsavel_id: primary.userId,
+          responsavel: primary.pessoa,
+          responsaveis: primary.userId && primary.pessoa
+            ? [{ user_id: primary.userId, nome: primary.pessoa.nome, avatar_url: primary.pessoa.avatar_url, papel: "responsavel" }]
+            : [],
+        };
+      } else if (respOps?.size && patched.responsavel_id) {
+        const stillResponsible = (patched.responsaveis || []).find(r => r.user_id === patched.responsavel_id);
+        if (!stillResponsible) {
+          const next = (patched.responsaveis || [])[0];
+          patched = {
+            ...patched,
+            responsavel_id: next?.user_id ?? null,
+            responsavel: next ? { id: next.user_id, nome: next.nome, avatar_url: next.avatar_url } : null,
+          };
+        }
+      }
+
+      return patched;
+    });
+
+    return { ...base, tarefas: tarefasPatched, teamMembers: Array.from(teamById.values()) };
+  };
+
   // === Single RPC fetches everything (tarefas + secoes + team + visibility flags) ===
   const { data: view, isLoading: viewLoading } = useQuery<ProjetoTarefasView>({
     queryKey: ["projeto-tarefas-v2", projetoId],
