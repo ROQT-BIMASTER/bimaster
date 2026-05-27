@@ -677,9 +677,11 @@ export function ProjetoTarefaDetalhe({
                     <TarefaResponsavelSeguidoresEditor
                       tarefaId={tarefa.id}
                       projetoId={projetoId}
-                      responsavelId={(tarefa as any).responsavel_id || null}
-                      responsavelNome={tarefa.responsavel?.nome || null}
-                      responsavelAvatar={tarefa.responsavel?.avatar_url || null}
+                      responsaveis={(tarefa.responsaveis || []).map(r => ({
+                        user_id: r.user_id,
+                        nome: r.nome || "Membro",
+                        avatar_url: r.avatar_url || null,
+                      }))}
                       colaboradores={(tarefa.colaboradores || []).map(c => ({
                         user_id: c.user_id,
                         nome: c.nome || "Membro",
