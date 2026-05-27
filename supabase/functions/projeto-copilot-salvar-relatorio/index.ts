@@ -1,7 +1,7 @@
 // projeto-copilot-salvar-relatorio
 // Marca relatório como salvo (não expira) e/ou vincula a uma tarefa
 // copiando o arquivo para o bucket projeto-anexos.
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { createClient } from "npm:@supabase/supabase-js@2";
 import { z } from "https://esm.sh/zod@3.23.8";
 import { secureHandler } from "../_shared/secure-handler.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";

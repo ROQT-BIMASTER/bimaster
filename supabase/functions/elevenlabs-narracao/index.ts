@@ -2,7 +2,7 @@
 // Recebe { texto, voice_id?, model_id?, voice_settings?, roteiro_id?, cena_index?, voice_nome?, save? }
 // Devolve { audio_base64, mime_type, voice_id, saved?: { id, audio_url, storage_path } }
 import { encode as base64Encode } from "https://deno.land/std@0.224.0/encoding/base64.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { createClient } from "npm:@supabase/supabase-js@2";
 import { secureHandler } from "../_shared/secure-handler.ts";
 
 

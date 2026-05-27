@@ -1,7 +1,7 @@
 // Edge Function: china-sla-monitor
 // Gera/atualiza alertas de SLA porto→CD e atrasos de entrega para OCs ativas.
 // Roda diariamente via pg_cron.
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.58.0";
+import { createClient } from "npm:@supabase/supabase-js@2";
 import { secureHandler } from "../_shared/secure-handler.ts";
 import { timingSafeEqual } from "../_shared/timing-safe.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";

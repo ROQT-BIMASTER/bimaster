@@ -5,7 +5,7 @@
 // - Mutações nunca são executadas aqui — apenas registradas como propostas em
 //   central_copilot_acoes; aplicação exige senha em central-copilot-aplicar.
 // - Relatórios são gerados via central-copilot-relatorio (cross-projeto).
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { createClient } from "npm:@supabase/supabase-js@2";
 import { z } from "https://esm.sh/zod@3.23.8";
 import { secureHandler } from "../_shared/secure-handler.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";

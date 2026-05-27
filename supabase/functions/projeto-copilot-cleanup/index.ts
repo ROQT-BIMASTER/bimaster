@@ -1,7 +1,7 @@
 // projeto-copilot-cleanup — Limpa conversas e relatórios não-salvos > 30 dias
 // para o copiloto do PROJETO e da CENTRAL DE TRABALHO.
 // Disparado por pg_cron diariamente. Sem auth (apenas chave shared opcional).
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { createClient } from "npm:@supabase/supabase-js@2";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
