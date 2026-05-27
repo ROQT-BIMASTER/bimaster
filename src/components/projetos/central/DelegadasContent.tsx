@@ -19,7 +19,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { useTarefaDensity } from "@/hooks/useTarefaDensity";
 import { cn } from "@/lib/utils";
 
-const Row = memo(function Row({ t, onOpen }: { t: DelegadaTarefa; onOpen: (t: DelegadaTarefa) => void }) {
+const Row = memo(function Row({ t, onOpen, isCompact }: { t: DelegadaTarefa; onOpen: (t: DelegadaTarefa) => void; isCompact: boolean }) {
   const prazoDate = parseLocalDate(t.data_prazo);
   const isOverdue = prazoDate && prazoDate < new Date() && t.status !== "concluida";
   return (
@@ -27,13 +27,16 @@ const Row = memo(function Row({ t, onOpen }: { t: DelegadaTarefa; onOpen: (t: De
       role="button"
       tabIndex={0}
       aria-label={`Abrir tarefa: ${t.titulo}`}
-      className="flex items-center gap-3 px-4 py-2.5 hover:bg-muted/30 focus:bg-muted/40 outline-none transition-colors cursor-pointer border-b border-border/20 last:border-b-0"
+      className={cn(
+        "flex items-center gap-3 px-4 hover:bg-accent/30 focus:bg-muted/40 outline-none transition-colors cursor-pointer border-b border-border/20 last:border-b-0",
+        isCompact ? "min-h-[44px] py-2" : "min-h-[56px] py-3",
+      )}
       onClick={() => onOpen(t)}
       onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onOpen(t); } }}
     >
       <div className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: t.projeto_cor }} />
       <div className="flex-1 min-w-0">
-        <div className="text-sm truncate text-foreground">{t.titulo}</div>
+        <div className="text-sm font-medium truncate text-foreground">{t.titulo}</div>
         <div className="text-xs text-muted-foreground truncate">
           {t.secao_nome ? `${t.secao_nome} · ` : ""}
           {t.projeto_nome}
