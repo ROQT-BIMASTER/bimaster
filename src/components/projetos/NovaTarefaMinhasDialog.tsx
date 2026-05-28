@@ -133,6 +133,12 @@ export function NovaTarefaMinhasDialog({ open, onOpenChange }: NovaTarefaMinhasD
                 <SelectValue placeholder="Selecione o projeto" />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="__pessoal__">
+                  <div className="flex items-center gap-2">
+                    <User className="h-3 w-3 text-muted-foreground" />
+                    Sem projeto (Pessoal)
+                  </div>
+                </SelectItem>
                 {projetos.map((p: any) => (
                   <SelectItem key={p.id} value={p.id}>
                     <div className="flex items-center gap-2">
