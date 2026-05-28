@@ -3078,6 +3078,7 @@ export type Database = {
       }
       briefings: {
         Row: {
+          campo_origens: Json
           codigo: string | null
           completeness_score: number
           completude: number
@@ -3109,6 +3110,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          campo_origens?: Json
           codigo?: string | null
           completeness_score?: number
           completude?: number
@@ -3140,6 +3142,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          campo_origens?: Json
           codigo?: string | null
           completeness_score?: number
           completude?: number
