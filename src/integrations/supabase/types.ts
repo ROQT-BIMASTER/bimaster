@@ -50534,6 +50534,18 @@ export type Database = {
         }
         Returns: Json
       }
+      rpc_audit_usuarios_resumo: {
+        Args: { p_from?: string; p_to?: string }
+        Returns: {
+          acessos_24h: number
+          modulos_distintos: number
+          telas_distintas: number
+          total_acessos: number
+          ultimo_acesso: string
+          user_id: string
+          user_nome: string
+        }[]
+      }
       rpc_avancar_etapa_aprovacao: {
         Args: {
           p_comentario?: string
