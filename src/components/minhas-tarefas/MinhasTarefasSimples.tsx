@@ -243,6 +243,8 @@ export function MinhasTarefasSimples() {
   const [view, setView] = useState<ViewMode>("list");
   const [search, setSearch] = useState("");
   const [projectFilter, setProjectFilter] = useState<string>("all");
+  const [priorityFilter, setPriorityFilter] = useState<PriorityFilter>("all");
+  const [quickFilter, setQuickFilter] = useState<QuickFilter>("all");
   const [sortMode, setSortMode] = useState<SortMode>("due_asc");
 
   const [showNewTask, setShowNewTask] = useState(false);
@@ -255,8 +257,49 @@ export function MinhasTarefasSimples() {
     return Array.from(map.values()).sort((a, b) => a.nome.localeCompare(b.nome));
   }, [tarefas]);
 
+  // Contadores dos chips — calculados sobre o dataset completo para não
+  // saltarem ao aplicar busca/projeto/prioridade.
+  const chipCounts = useMemo(() => {
+    const now = startOfDay(new Date());
+    const pend = tarefas.filter((t) => t.status !== "concluida");
+    return {
+      todas: pend.length,
+      semPrazo: pend.filter((t) => !t.data_prazo).length,
+      hoje: pend.filter((t) => {
+        const p = parseLocalDate(t.data_prazo);
+        return p && isToday(p);
+      }).length,
+      atrasadas: pend.filter((t) => {
+        const p = parseLocalDate(t.data_prazo);
+        return p && isBefore(startOfDay(p), now);
+      }).length,
+      concluidasHoje: tarefas.filter((t) => {
+        if (t.status !== "concluida") return false;
+        const c = parseLocalDate(t.data_conclusao);
+        return c && isToday(c);
+      }).length,
+    };
+  }, [tarefas]);
+
   const filtered = useMemo(() => {
+    const now = startOfDay(new Date());
     let result = tarefas;
+    if (quickFilter !== "all") {
+      result = result.filter((t) => {
+        const prazo = parseLocalDate(t.data_prazo);
+        if (quickFilter === "sem_data") return t.status !== "concluida" && !t.data_prazo;
+        if (quickFilter === "hoje") return t.status !== "concluida" && !!prazo && isToday(prazo);
+        if (quickFilter === "atrasadas") return t.status !== "concluida" && !!prazo && isBefore(startOfDay(prazo), now);
+        if (quickFilter === "concluidas_hoje") {
+          const c = parseLocalDate(t.data_conclusao);
+          return t.status === "concluida" && !!c && isToday(c);
+        }
+        return true;
+      });
+    }
+    if (priorityFilter !== "all") {
+      result = result.filter((t) => (t.prioridade || "media") === priorityFilter);
+    }
     if (projectFilter !== "all") {
       result = result.filter((t) => t.projeto_id === projectFilter);
     }
@@ -289,9 +332,18 @@ export function MinhasTarefasSimples() {
       }
     });
     return sorted;
-  }, [tarefas, projectFilter, search, sortMode]);
+  }, [tarefas, quickFilter, priorityFilter, projectFilter, search, sortMode]);
 
-  const groups = useMemo(() => groupAsanaStyle(filtered), [filtered]);
+  // Quando o filtro rápido é "concluidas_hoje", apresentamos lista plana
+  // (sem os grupos Asana de pendentes).
+  const groups = useMemo(() => {
+    if (quickFilter === "concluidas_hoje") {
+      return filtered.length
+        ? [{ key: "flat", label: "Concluídas hoje", items: filtered, tone: "text-success" }]
+        : [];
+    }
+    return groupAsanaStyle(filtered);
+  }, [filtered, quickFilter]);
 
   /* ----------------------------- Toggle status ---------------------------- */
   const handleToggle = useCallback(async (id: string, done: boolean) => {
