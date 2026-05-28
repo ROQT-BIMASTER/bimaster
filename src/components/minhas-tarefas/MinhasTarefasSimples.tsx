@@ -247,6 +247,24 @@ export function MinhasTarefasSimples() {
   const queryClient = useQueryClient();
   const { data: tarefas = [], isLoading } = useMinhasTarefas();
 
+  const { data: profileData } = useQuery({
+    queryKey: ["my-profile-name", user?.id],
+    queryFn: async () => {
+      if (!user?.id) return null;
+      const { data } = await supabase
+        .from("profiles")
+        .select("nome, avatar_url")
+        .eq("id", user.id)
+        .maybeSingle();
+      return data;
+    },
+    enabled: !!user?.id,
+    staleTime: 5 * 60_000,
+  });
+
+  const firstName = (profileData?.nome || user?.email || "").split(/[\s@]/)[0] || "";
+  const today = format(new Date(), "EEEE, d 'de' MMMM", { locale: ptBR });
+
   const [view, setView] = useState<ViewMode>("list");
   const [search, setSearch] = useState("");
   const [projectFilter, setProjectFilter] = useState<string>("all");
