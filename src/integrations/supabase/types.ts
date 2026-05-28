@@ -49898,6 +49898,13 @@ export type Database = {
         }[]
       }
       get_notion_access_token: { Args: { p_user_id: string }; Returns: string }
+      get_or_create_projeto_pessoal: {
+        Args: never
+        Returns: {
+          projeto_id: string
+          secao_id: string
+        }[]
+      }
       get_pendencias_por_submissao: {
         Args: { p_ids: string[] }
         Returns: {
@@ -50260,6 +50267,15 @@ export type Database = {
           tarefa_titulo: string
         }[]
       }
+      listar_projetos_para_vincular_tarefa: {
+        Args: never
+        Returns: {
+          cor: string
+          id: string
+          nome: string
+          tipo: string
+        }[]
+      }
       log_audit: {
         Args: {
           p_action: string
@@ -50296,6 +50312,10 @@ export type Database = {
           source_queue: string
         }
         Returns: number
+      }
+      mover_tarefa_para_projeto: {
+        Args: { p_projeto_id_destino: string; p_tarefa_id: string }
+        Returns: Json
       }
       next_mp_codigo: { Args: never; Returns: string }
       notificar_espelhos_pendentes_sem_doc: { Args: never; Returns: number }
