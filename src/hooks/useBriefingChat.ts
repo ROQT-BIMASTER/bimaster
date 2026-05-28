@@ -16,12 +16,15 @@ export interface BriefingMsg {
 }
 
 
+export type CampoOrigem = "ia" | "manual";
+
 export interface Briefing {
   id: string;
   tipo: string;
   titulo: string;
   status: string;
   payload: Record<string, string>;
+  campo_origens: Record<string, CampoOrigem>;
   completude: number;
   template_id: string | null;
   projeto_id: string | null;
