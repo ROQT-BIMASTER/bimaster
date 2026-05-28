@@ -342,6 +342,11 @@ export function MinhasTarefasSimples() {
     if (priorityFilter !== "all") {
       result = result.filter((t) => (t.prioridade || "media") === priorityFilter);
     }
+    if (originFilter === "pessoal" && projetoPessoalId) {
+      result = result.filter((t) => t.projeto_id === projetoPessoalId);
+    } else if (originFilter === "projetos" && projetoPessoalId) {
+      result = result.filter((t) => t.projeto_id !== projetoPessoalId);
+    }
     if (projectFilter !== "all") {
       result = result.filter((t) => t.projeto_id === projectFilter);
     }
