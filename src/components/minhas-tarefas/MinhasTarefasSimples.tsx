@@ -51,6 +51,7 @@ type ViewMode = "list" | "board" | "calendar";
 type SortMode = "due_asc" | "due_desc" | "created_desc" | "priority";
 type QuickFilter = "all" | "sem_data" | "hoje" | "atrasadas" | "concluidas_hoje";
 type PriorityFilter = "all" | "urgente" | "alta" | "media" | "baixa";
+type OriginFilter = "all" | "pessoal" | "projetos";
 
 const PRIORITY_META: Record<string, { label: string; tone: string }> = {
   urgente: { label: "Urgente", tone: "text-destructive" },
