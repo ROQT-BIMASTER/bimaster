@@ -21743,7 +21743,7 @@ export type Database = {
           etapa_nome: string | null
           etapa_ordem: number
           id: string
-          instancia_id: string
+          instancia_id: string | null
           item_id: string | null
           prazo_em: string | null
           responsavel_id: string | null
@@ -21761,7 +21761,7 @@ export type Database = {
           etapa_nome?: string | null
           etapa_ordem: number
           id?: string
-          instancia_id: string
+          instancia_id?: string | null
           item_id?: string | null
           prazo_em?: string | null
           responsavel_id?: string | null
@@ -21779,7 +21779,7 @@ export type Database = {
           etapa_nome?: string | null
           etapa_ordem?: number
           id?: string
-          instancia_id?: string
+          instancia_id?: string | null
           item_id?: string | null
           prazo_em?: string | null
           responsavel_id?: string | null
