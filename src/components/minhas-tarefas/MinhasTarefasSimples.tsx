@@ -35,6 +35,13 @@ import { MinhasTarefasCalendar } from "@/components/minhas-tarefas/MinhasTarefas
 import { CentralChip } from "@/components/projetos/central/CentralChips";
 import type { ProjetoTarefa, ProjetoSecao } from "@/hooks/useProjetoTarefas";
 
+function getGreeting() {
+  const h = new Date().getHours();
+  if (h < 12) return "Bom dia";
+  if (h < 18) return "Boa tarde";
+  return "Boa noite";
+}
+
 type ViewMode = "list" | "board" | "calendar";
 type SortMode = "due_asc" | "due_desc" | "created_desc" | "priority";
 type QuickFilter = "all" | "sem_data" | "hoje" | "atrasadas" | "concluidas_hoje";
