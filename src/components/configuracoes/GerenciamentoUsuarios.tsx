@@ -799,7 +799,9 @@ export const GerenciamentoUsuarios = () => {
                 </DialogFooter>
               </DialogContent>
             </Dialog>
+            </div>
           </div>
+
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
