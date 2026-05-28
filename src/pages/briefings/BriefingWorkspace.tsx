@@ -142,6 +142,16 @@ export default function BriefingWorkspace() {
     if (!briefing) return;
     const novoPayload = { ...localPayload, [key]: valor };
     setLocalPayload(novoPayload);
+    // Edição manual: marca origem do campo como "manual" se houver texto;
+    // se esvaziar, remove a marca para o agente poder preencher de novo.
+    const novasOrigens = { ...localOrigens };
+    if (valor.trim().length > 0) {
+      novasOrigens[key] = "manual";
+    } else {
+      delete novasOrigens[key];
+    }
+    setLocalOrigens(novasOrigens);
+    lastRemotePayloadRef.current = { ...lastRemotePayloadRef.current, [key]: valor };
     const totalCampos = sections.length || 1;
     const preenchidos = Object.values(novoPayload).filter(
       (v) => typeof v === "string" && v.trim().length > 0,
@@ -149,9 +159,33 @@ export default function BriefingWorkspace() {
     const completude = Math.min(100, Math.round((preenchidos / totalCampos) * 100));
     const { error } = await supabase
       .from("briefings")
-      .update({ payload: novoPayload, completude, status: "em_andamento" })
+      .update({
+        payload: novoPayload,
+        campo_origens: novasOrigens,
+        completude,
+        status: "em_andamento",
+      })
       .eq("id", briefing.id);
     if (error) toast.error("Erro ao salvar campo");
+  };
+
+  const marcarOrigem = async (key: string, origem: "ia" | "manual") => {
+    if (!briefing) return;
+    const novasOrigens = { ...localOrigens, [key]: origem };
+    setLocalOrigens(novasOrigens);
+    const { error } = await supabase
+      .from("briefings")
+      .update({ campo_origens: novasOrigens })
+      .eq("id", briefing.id);
+    if (error) {
+      toast.error("Não foi possível atualizar a origem do campo");
+      return;
+    }
+    toast.success(
+      origem === "manual"
+        ? "Campo protegido contra o agente."
+        : "Campo liberado para o agente.",
+    );
   };
 
   const pedirAjudaAoAgente = (label: string) => {
