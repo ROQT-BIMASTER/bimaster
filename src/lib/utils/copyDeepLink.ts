@@ -5,7 +5,6 @@ async function copyText(text: string, successMsg: string) {
     if (navigator?.clipboard?.writeText) {
       await navigator.clipboard.writeText(text);
     } else {
-      // Fallback para navegadores sem Clipboard API
       const ta = document.createElement("textarea");
       ta.value = text;
       ta.style.position = "fixed";
@@ -24,11 +23,11 @@ async function copyText(text: string, successMsg: string) {
 }
 
 export function copyTarefaLink(projetoId: string, tarefaId: string) {
-  const url = `${window.location.origin}/dashboard/projetos/${projetoId}?tarefa=${tarefaId}`;
+  const url = `${window.location.origin}/dashboard/share/projeto/${projetoId}/tarefa/${tarefaId}`;
   void copyText(url, "Link da tarefa copiado");
 }
 
 export function copyProjetoLink(projetoId: string) {
-  const url = `${window.location.origin}/dashboard/projetos/${projetoId}`;
+  const url = `${window.location.origin}/dashboard/share/projeto/${projetoId}`;
   void copyText(url, "Link do projeto copiado");
 }
