@@ -57,13 +57,27 @@ export function NovaTarefaMinhasDialog({ open, onOpenChange }: NovaTarefaMinhasD
     let targetSecaoId: string | undefined;
 
     if (projetoId === "__pessoal__") {
-      if (!pessoal?.projeto_id || !pessoal?.secao_id) {
+      let resolved = pessoal;
+      if (!resolved?.projeto_id || !resolved?.secao_id) {
+        // Fallback: chama o RPC sob demanda (caso a query do hook ainda não tenha resolvido ou tenha falhado)
+        const { data, error } = await (supabase as any).rpc("get_or_create_projeto_pessoal");
+        if (error) {
+          console.error("[NovaTarefaMinhasDialog] get_or_create_projeto_pessoal:", error);
+          toast.error(`Não foi possível resolver o espaço Pessoal: ${error.message}`);
+          setSaving(false);
+          return;
+        }
+        const row = Array.isArray(data) ? data[0] : data;
+        resolved = row ?? null;
+      }
+      if (!resolved?.projeto_id || !resolved?.secao_id) {
         toast.error("Não foi possível resolver o espaço Pessoal.");
         setSaving(false);
         return;
       }
-      targetProjetoId = pessoal.projeto_id;
-      targetSecaoId = pessoal.secao_id;
+      targetProjetoId = resolved.projeto_id;
+      targetSecaoId = resolved.secao_id;
+
     } else {
       const { data: secoes } = await supabase
         .from("projeto_secoes")
