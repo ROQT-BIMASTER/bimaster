@@ -1,0 +1,1 @@
+GRANT EXECUTE ON FUNCTION public.get_or_create_projeto_pessoal() TO authenticated;
