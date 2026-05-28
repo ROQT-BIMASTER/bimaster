@@ -159,6 +159,7 @@ function Row({
         className="h-4 w-4"
       />
       <div className="min-w-0 flex items-center gap-2">
+        <PriorityFlag value={t.prioridade} />
         <span className={cn("text-sm truncate", done && "line-through text-muted-foreground")}>
           {t.titulo}
         </span>
