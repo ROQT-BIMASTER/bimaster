@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
   CheckCircle2, ChevronDown, ChevronRight, ListChecks, LayoutGrid,
-  Calendar as CalendarIcon, Plus, Search, Lock, Users as UsersIcon,
+  Calendar as CalendarIcon, Plus, Search, Lock, Users as UsersIcon, Flag,
 } from "lucide-react";
 import { format, isToday, isBefore, startOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
