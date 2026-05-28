@@ -619,12 +619,13 @@ export function MinhasTarefasSimples() {
                 <div
                   className={cn(
                     "grid items-center gap-3 px-4 py-2 text-[11px] uppercase tracking-wider text-muted-foreground border-b border-border/40 bg-background",
-                    "grid-cols-[24px_minmax(0,1fr)_120px_140px_160px_120px]",
+                    "grid-cols-[24px_minmax(0,1fr)_120px_90px_110px_160px_120px]",
                   )}
                 >
                   <span />
                   <span>Nome</span>
                   <span>Data de conclusão</span>
+                  <span>Responsável</span>
                   <span>Colaboradores</span>
                   <span>Projeto</span>
                   <span>Visibilidade</span>

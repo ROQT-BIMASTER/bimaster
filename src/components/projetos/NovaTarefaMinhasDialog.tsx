@@ -13,6 +13,8 @@ import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useProjetoPessoal } from "@/hooks/useProjetoPessoal";
+import { User } from "lucide-react";
 import { toast } from "sonner";
 
 interface NovaTarefaMinhasDialogProps {
@@ -24,10 +26,11 @@ export function NovaTarefaMinhasDialog({ open, onOpenChange }: NovaTarefaMinhasD
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [titulo, setTitulo] = useState("");
-  const [projetoId, setProjetoId] = useState("");
+  const [projetoId, setProjetoId] = useState("__pessoal__");
   const [prioridade, setPrioridade] = useState("media");
   const [dataPrazo, setDataPrazo] = useState<Date | undefined>();
   const [saving, setSaving] = useState(false);
+  const { data: pessoal } = useProjetoPessoal(open);
 
   const { data: projetos = [] } = useQuery({
     queryKey: ["meus-projetos-select", user?.id],
@@ -50,25 +53,36 @@ export function NovaTarefaMinhasDialog({ open, onOpenChange }: NovaTarefaMinhasD
     if (!titulo.trim() || !projetoId || !user?.id) return;
     setSaving(true);
 
-    // Get first section of the project for required secao_id
-    const { data: secoes } = await supabase
-      .from("projeto_secoes")
-      .select("id")
-      .eq("projeto_id", projetoId)
-      .order("ordem", { ascending: true })
-      .limit(1);
+    let targetProjetoId = projetoId;
+    let targetSecaoId: string | undefined;
 
-    const secaoId = secoes?.[0]?.id;
-    if (!secaoId) {
-      toast.error("Projeto sem seções. Crie uma seção primeiro.");
-      setSaving(false);
-      return;
+    if (projetoId === "__pessoal__") {
+      if (!pessoal?.projeto_id || !pessoal?.secao_id) {
+        toast.error("Não foi possível resolver o espaço Pessoal.");
+        setSaving(false);
+        return;
+      }
+      targetProjetoId = pessoal.projeto_id;
+      targetSecaoId = pessoal.secao_id;
+    } else {
+      const { data: secoes } = await supabase
+        .from("projeto_secoes")
+        .select("id")
+        .eq("projeto_id", projetoId)
+        .order("ordem", { ascending: true })
+        .limit(1);
+      targetSecaoId = secoes?.[0]?.id;
+      if (!targetSecaoId) {
+        toast.error("Projeto sem seções. Crie uma seção primeiro.");
+        setSaving(false);
+        return;
+      }
     }
 
     const { error } = await supabase.from("projeto_tarefas").insert({
       titulo: titulo.trim(),
-      projeto_id: projetoId,
-      secao_id: secaoId,
+      projeto_id: targetProjetoId,
+      secao_id: targetSecaoId,
       responsavel_id: user.id,
       criador_id: user.id,
       prioridade,
@@ -85,7 +99,7 @@ export function NovaTarefaMinhasDialog({ open, onOpenChange }: NovaTarefaMinhasD
     toast.success("Tarefa criada!");
     queryClient.invalidateQueries({ queryKey: ["minhas-tarefas"] });
     setTitulo("");
-    setProjetoId("");
+    setProjetoId("__pessoal__");
     setPrioridade("media");
     setDataPrazo(undefined);
     onOpenChange(false);
@@ -119,6 +133,12 @@ export function NovaTarefaMinhasDialog({ open, onOpenChange }: NovaTarefaMinhasD
                 <SelectValue placeholder="Selecione o projeto" />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="__pessoal__">
+                  <div className="flex items-center gap-2">
+                    <User className="h-3 w-3 text-muted-foreground" />
+                    Sem projeto (Pessoal)
+                  </div>
+                </SelectItem>
                 {projetos.map((p: any) => (
                   <SelectItem key={p.id} value={p.id}>
                     <div className="flex items-center gap-2">
