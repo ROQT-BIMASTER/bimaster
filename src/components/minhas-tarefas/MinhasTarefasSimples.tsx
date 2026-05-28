@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
   CheckCircle2, ChevronDown, ChevronRight, ListChecks, LayoutGrid,
-  Calendar as CalendarIcon, Plus, Search, Lock, Users as UsersIcon,
+  Calendar as CalendarIcon, Plus, Search, Lock, Users as UsersIcon, Flag,
 } from "lucide-react";
 import { format, isToday, isBefore, startOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -32,10 +32,33 @@ import { NovaTarefaMinhasDialog } from "@/components/projetos/NovaTarefaMinhasDi
 import { ProjetoTarefaDetalhe } from "@/components/projetos/ProjetoTarefaDetalhe";
 import { MinhasTarefasBoard } from "@/components/minhas-tarefas/MinhasTarefasBoard";
 import { MinhasTarefasCalendar } from "@/components/minhas-tarefas/MinhasTarefasCalendar";
+import { CentralChip } from "@/components/projetos/central/CentralChips";
 import type { ProjetoTarefa, ProjetoSecao } from "@/hooks/useProjetoTarefas";
 
 type ViewMode = "list" | "board" | "calendar";
 type SortMode = "due_asc" | "due_desc" | "created_desc" | "priority";
+type QuickFilter = "all" | "sem_data" | "hoje" | "atrasadas" | "concluidas_hoje";
+type PriorityFilter = "all" | "urgente" | "alta" | "media" | "baixa";
+
+const PRIORITY_META: Record<string, { label: string; tone: string }> = {
+  urgente: { label: "Urgente", tone: "text-destructive" },
+  alta: { label: "Alta", tone: "text-warning" },
+  baixa: { label: "Baixa", tone: "text-muted-foreground" },
+};
+
+function PriorityFlag({ value }: { value: string | null | undefined }) {
+  if (!value || value === "media") return null;
+  const meta = PRIORITY_META[value];
+  if (!meta) return null;
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Flag className={cn("h-3.5 w-3.5 shrink-0", meta.tone)} aria-label={meta.label} />
+      </TooltipTrigger>
+      <TooltipContent>{meta.label}</TooltipContent>
+    </Tooltip>
+  );
+}
 
 /* ------------------------------ Grupos Asana ------------------------------ */
 
@@ -136,6 +159,7 @@ function Row({
         className="h-4 w-4"
       />
       <div className="min-w-0 flex items-center gap-2">
+        <PriorityFlag value={t.prioridade} />
         <span className={cn("text-sm truncate", done && "line-through text-muted-foreground")}>
           {t.titulo}
         </span>
@@ -219,6 +243,8 @@ export function MinhasTarefasSimples() {
   const [view, setView] = useState<ViewMode>("list");
   const [search, setSearch] = useState("");
   const [projectFilter, setProjectFilter] = useState<string>("all");
+  const [priorityFilter, setPriorityFilter] = useState<PriorityFilter>("all");
+  const [quickFilter, setQuickFilter] = useState<QuickFilter>("all");
   const [sortMode, setSortMode] = useState<SortMode>("due_asc");
 
   const [showNewTask, setShowNewTask] = useState(false);
@@ -231,8 +257,49 @@ export function MinhasTarefasSimples() {
     return Array.from(map.values()).sort((a, b) => a.nome.localeCompare(b.nome));
   }, [tarefas]);
 
+  // Contadores dos chips — calculados sobre o dataset completo para não
+  // saltarem ao aplicar busca/projeto/prioridade.
+  const chipCounts = useMemo(() => {
+    const now = startOfDay(new Date());
+    const pend = tarefas.filter((t) => t.status !== "concluida");
+    return {
+      todas: pend.length,
+      semPrazo: pend.filter((t) => !t.data_prazo).length,
+      hoje: pend.filter((t) => {
+        const p = parseLocalDate(t.data_prazo);
+        return p && isToday(p);
+      }).length,
+      atrasadas: pend.filter((t) => {
+        const p = parseLocalDate(t.data_prazo);
+        return p && isBefore(startOfDay(p), now);
+      }).length,
+      concluidasHoje: tarefas.filter((t) => {
+        if (t.status !== "concluida") return false;
+        const c = parseLocalDate(t.data_conclusao);
+        return c && isToday(c);
+      }).length,
+    };
+  }, [tarefas]);
+
   const filtered = useMemo(() => {
+    const now = startOfDay(new Date());
     let result = tarefas;
+    if (quickFilter !== "all") {
+      result = result.filter((t) => {
+        const prazo = parseLocalDate(t.data_prazo);
+        if (quickFilter === "sem_data") return t.status !== "concluida" && !t.data_prazo;
+        if (quickFilter === "hoje") return t.status !== "concluida" && !!prazo && isToday(prazo);
+        if (quickFilter === "atrasadas") return t.status !== "concluida" && !!prazo && isBefore(startOfDay(prazo), now);
+        if (quickFilter === "concluidas_hoje") {
+          const c = parseLocalDate(t.data_conclusao);
+          return t.status === "concluida" && !!c && isToday(c);
+        }
+        return true;
+      });
+    }
+    if (priorityFilter !== "all") {
+      result = result.filter((t) => (t.prioridade || "media") === priorityFilter);
+    }
     if (projectFilter !== "all") {
       result = result.filter((t) => t.projeto_id === projectFilter);
     }
@@ -265,9 +332,18 @@ export function MinhasTarefasSimples() {
       }
     });
     return sorted;
-  }, [tarefas, projectFilter, search, sortMode]);
+  }, [tarefas, quickFilter, priorityFilter, projectFilter, search, sortMode]);
 
-  const groups = useMemo(() => groupAsanaStyle(filtered), [filtered]);
+  // Quando o filtro rápido é "concluidas_hoje", apresentamos lista plana
+  // (sem os grupos Asana de pendentes).
+  const groups = useMemo(() => {
+    if (quickFilter === "concluidas_hoje") {
+      return filtered.length
+        ? [{ key: "flat", label: "Concluídas hoje", items: filtered, tone: "text-success" }]
+        : [];
+    }
+    return groupAsanaStyle(filtered);
+  }, [filtered, quickFilter]);
 
   /* ----------------------------- Toggle status ---------------------------- */
   const handleToggle = useCallback(async (id: string, done: boolean) => {
@@ -411,6 +487,19 @@ export function MinhasTarefasSimples() {
                 className="h-8 w-56 pl-8 text-sm"
               />
             </div>
+            <Select value={priorityFilter} onValueChange={(v) => setPriorityFilter(v as PriorityFilter)}>
+              <SelectTrigger className="h-8 w-40 text-sm" aria-label="Prioridade">
+                <Flag className="h-3.5 w-3.5 mr-1" />
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas prioridades</SelectItem>
+                <SelectItem value="urgente">Urgente</SelectItem>
+                <SelectItem value="alta">Alta</SelectItem>
+                <SelectItem value="media">Média</SelectItem>
+                <SelectItem value="baixa">Baixa</SelectItem>
+              </SelectContent>
+            </Select>
             <Select value={projectFilter} onValueChange={setProjectFilter}>
               <SelectTrigger className="h-8 w-48 text-sm">
                 <SelectValue placeholder="Projeto" />
@@ -418,7 +507,12 @@ export function MinhasTarefasSimples() {
               <SelectContent>
                 <SelectItem value="all">Todos os projetos</SelectItem>
                 {projects.map((p) => (
-                  <SelectItem key={p.id} value={p.id}>{p.nome}</SelectItem>
+                  <SelectItem key={p.id} value={p.id}>
+                    <div className="flex items-center gap-2">
+                      <span className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: p.cor }} />
+                      {p.nome}
+                    </div>
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -435,6 +529,22 @@ export function MinhasTarefasSimples() {
             </Select>
           </div>
         </div>
+
+        {/* Chips de filtro rápido por prazo */}
+        <div className="flex flex-wrap items-center gap-1.5">
+          <CentralChip label="Todas" count={chipCounts.todas}
+            active={quickFilter === "all"} onClick={() => setQuickFilter("all")} />
+          <CentralChip label="Sem prazo" count={chipCounts.semPrazo}
+            active={quickFilter === "sem_data"} onClick={() => setQuickFilter("sem_data")} />
+          <CentralChip label="Para hoje" count={chipCounts.hoje}
+            active={quickFilter === "hoje"} onClick={() => setQuickFilter("hoje")} />
+          <CentralChip label="Atrasadas" count={chipCounts.atrasadas}
+            countVariant={chipCounts.atrasadas > 0 && quickFilter !== "atrasadas" ? "destructive" : undefined}
+            active={quickFilter === "atrasadas"} onClick={() => setQuickFilter("atrasadas")} />
+          <CentralChip label="Concluídas hoje" count={chipCounts.concluidasHoje}
+            active={quickFilter === "concluidas_hoje"} onClick={() => setQuickFilter("concluidas_hoje")} />
+        </div>
+
 
         {/* Conteúdo */}
         {view === "list" ? (
