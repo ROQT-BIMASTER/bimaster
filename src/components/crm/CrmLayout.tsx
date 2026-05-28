@@ -1,4 +1,6 @@
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
+import { usePageTracking } from "@/hooks/usePageTracking";
+
 import {
   Sidebar,
   SidebarContent,
@@ -79,6 +81,9 @@ export default function CrmLayout() {
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const isRoot = pathname === "/dashboard/crm" || pathname === "/dashboard/crm/";
+  usePageTracking();
+
+
 
   return (
     <SidebarProvider>

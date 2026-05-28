@@ -2,12 +2,15 @@ import { ReactNode, useEffect } from "react";
 import { ClienteHeader } from "./ClienteHeader";
 import { supabase } from "@/integrations/supabase/client";
 import { logger } from "@/lib/logger";
+import { usePageTracking } from "@/hooks/usePageTracking";
 
 interface ClientePortalLayoutProps {
   children: ReactNode;
 }
 
 export const ClientePortalLayout = ({ children }: ClientePortalLayoutProps) => {
+  usePageTracking();
+
   useEffect(() => {
     // Registrar acesso ao portal
     const registrarAcesso = async () => {
