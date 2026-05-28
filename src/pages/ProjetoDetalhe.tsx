@@ -27,13 +27,11 @@ import { cn } from "@/lib/utils";
 import { TourButton, projetoDetalheTourSteps, PROJETO_DETALHE_TOUR_ID } from "@/components/tour";
 import { logProjectAccessDenied } from "@/lib/auditProjectAccess";
 import { ProjetoBackButton } from "@/components/projetos/ProjetoBackButton";
-import { ProjetoInvestimentoLovableKpi } from "@/components/projetos/ProjetoInvestimentoLovableKpi";
 import { getBgPaletteVars } from "@/lib/colorUtils";
-import { ProcessoAplicadoCard } from "@/components/processos/ProcessoAplicadoCard";
 import { ProcessoModulosResumoBanner } from "@/components/processos/ProcessoModulosResumoBanner";
 import { ProjetoChatTab } from "@/components/projetos/ProjetoChatTab";
 import { ProjetoCopilotPanel } from "@/components/projetos/ProjetoCopilotPanel";
-import { Sparkles } from "lucide-react";
+import { Sparkles, ExternalLink } from "lucide-react";
 
 function isDarkColor(hex: string | null): boolean {
   if (!hex) return false;
@@ -44,7 +42,11 @@ function isDarkColor(hex: string | null): boolean {
   return lum < 0.4;
 }
 
-export default function ProjetoDetalhe() {
+interface ProjetoDetalheProps {
+  shared?: boolean;
+}
+
+export default function ProjetoDetalhe({ shared = false }: ProjetoDetalheProps = {}) {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
