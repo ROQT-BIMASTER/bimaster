@@ -628,7 +628,7 @@ export function MinhasTarefasSimples() {
                   <span>Visibilidade</span>
                 </div>
                 {groups.map((g) => (
-                  <Section key={g.key} group={g} onToggle={handleToggle} onSelect={handleSelect} />
+                  <Section key={g.key} group={g} onToggle={handleToggle} onSelect={handleSelect} projetoPessoalId={projetoPessoalId} />
                 ))}
               </>
             )}
