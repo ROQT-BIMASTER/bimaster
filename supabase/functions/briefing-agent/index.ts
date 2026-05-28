@@ -411,16 +411,26 @@ ${proximoLinha}`;
           } else if (tc.function.name === "atualizar_canvas") {
             const novosCampos: Record<string, string> = {};
             const camposInput = args.campos ?? {};
+            const origensAtuais = ((briefing as any).campo_origens as Record<string, string> | null) ?? {};
+            const ignorados: string[] = [];
             for (const [k, v] of Object.entries(camposInput)) {
-              if (chavesValidas.has(k) && typeof v === "string" && v.trim().length > 0) {
-                novosCampos[k] = String(v).slice(0, 8000);
+              if (!chavesValidas.has(k) || typeof v !== "string" || v.trim().length === 0) continue;
+              // Protege campos marcados como preenchimento manual: a IA não sobrescreve.
+              if (origensAtuais[k] === "manual") {
+                ignorados.push(k);
+                continue;
               }
+              novosCampos[k] = String(v).slice(0, 8000);
             }
             const patch: CanvasPatch = { campos: novosCampos };
             if (args.titulo && typeof args.titulo === "string") {
               patch.titulo = String(args.titulo).slice(0, 200);
             }
             const novoPayload = { ...(briefing.payload as Record<string, unknown> ?? {}), ...novosCampos };
+            // Marca como "ia" todo campo que a IA acabou de escrever.
+            const novasOrigens = { ...origensAtuais };
+            for (const k of Object.keys(novosCampos)) novasOrigens[k] = "ia";
+
             const obrigatorios = (secoes as Array<{ key: string; required?: boolean }>).filter((s) => s.required);
             const totalObrig = obrigatorios.length || 1;
             const preenchidosObrig = obrigatorios.filter((s) => {
@@ -431,6 +441,7 @@ ${proximoLinha}`;
 
             const upd: Record<string, unknown> = {
               payload: novoPayload,
+              campo_origens: novasOrigens,
               completude,
               status: "em_andamento",
             };
@@ -444,9 +455,15 @@ ${proximoLinha}`;
               toolRes = { error: updErr.message };
             } else {
               (briefing as any).payload = novoPayload;
+              (briefing as any).campo_origens = novasOrigens;
               if (patch.titulo) (briefing as any).titulo = patch.titulo;
               patches.push(patch);
-              toolRes = { ok: true, campos_atualizados: Object.keys(novosCampos), completude };
+              toolRes = {
+                ok: true,
+                campos_atualizados: Object.keys(novosCampos),
+                campos_ignorados_manual: ignorados,
+                completude,
+              };
             }
           } else if (tc.function.name === "propor_sugestao") {
             const campo = String(args.campo ?? "").trim();
