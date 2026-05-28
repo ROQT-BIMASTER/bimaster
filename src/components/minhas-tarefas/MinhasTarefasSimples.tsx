@@ -27,12 +27,17 @@ import { useAuth } from "@/contexts/AuthContext";
 import { parseLocalDate } from "@/lib/utils/parseLocalDate";
 import { supabase } from "@/integrations/supabase/client";
 
-import { TarefaResponsavelAvatar } from "@/components/projetos/shared/TarefaResponsavelAvatar";
 import { NovaTarefaMinhasDialog } from "@/components/projetos/NovaTarefaMinhasDialog";
 import { ProjetoTarefaDetalhe } from "@/components/projetos/ProjetoTarefaDetalhe";
 import { MinhasTarefasBoard } from "@/components/minhas-tarefas/MinhasTarefasBoard";
 import { MinhasTarefasCalendar } from "@/components/minhas-tarefas/MinhasTarefasCalendar";
 import { CentralChip } from "@/components/projetos/central/CentralChips";
+import {
+  MinhasTarefaResponsavelInline,
+  MinhasTarefaColaboradoresInline,
+  ProjetoInlinePicker,
+} from "@/components/minhas-tarefas/MinhasTarefaInlinePickers";
+import { useProjetoPessoal } from "@/hooks/useProjetoPessoal";
 import type { ProjetoTarefa, ProjetoSecao } from "@/hooks/useProjetoTarefas";
 
 function getGreeting() {
@@ -140,22 +145,24 @@ function VisibilidadeBadge({ value }: { value: string | null }) {
 }
 
 function Row({
-  t, onToggle, onSelect,
+  t, onToggle, onSelect, projetoPessoalId,
 }: {
   t: MinaTarefa;
   onToggle: (id: string, done: boolean) => void;
   onSelect: (t: MinaTarefa) => void;
+  projetoPessoalId: string | null;
 }) {
   const done = t.status === "concluida";
   const prazo = parseLocalDate(t.data_prazo);
   const now = startOfDay(new Date());
   const atrasada = !done && prazo && isBefore(startOfDay(prazo), now);
+  const isPessoal = !!projetoPessoalId && t.projeto_id === projetoPessoalId;
 
   return (
     <div
       className={cn(
         "group grid items-center gap-3 px-4 py-2 border-b border-border/30 hover:bg-muted/30 cursor-pointer transition-colors",
-        "grid-cols-[24px_minmax(0,1fr)_120px_140px_160px_120px]",
+        "grid-cols-[24px_minmax(0,1fr)_120px_90px_110px_160px_120px]",
       )}
       onClick={() => onSelect(t)}
     >
@@ -174,24 +181,26 @@ function Row({
       <div className={cn("text-xs", atrasada ? "text-destructive font-medium" : "text-muted-foreground")}>
         {prazo ? format(prazo, "d 'de' MMM", { locale: ptBR }) : "—"}
       </div>
-      <div className="flex items-center gap-1">
-        {t.responsavel_id ? (
-          <TarefaResponsavelAvatar
-            responsavelId={t.responsavel_id}
-            nome={t.responsavel_nome}
-            avatarUrl={t.responsavel_avatar_url}
-            size="xs"
-          />
-        ) : (
-          <span className="text-xs text-muted-foreground">—</span>
-        )}
-      </div>
-      <div className="flex items-center gap-2 min-w-0">
-        <span
-          className="h-2 w-2 rounded-full shrink-0"
-          style={{ backgroundColor: t.projeto_cor }}
+      <div className="flex items-center" onClick={(e) => e.stopPropagation()}>
+        <MinhasTarefaResponsavelInline
+          tarefaId={t.id}
+          projetoId={t.projeto_id}
+          responsavelId={t.responsavel_id}
+          responsavelNome={t.responsavel_nome}
+          responsavelAvatarUrl={t.responsavel_avatar_url}
         />
-        <span className="text-xs text-muted-foreground truncate">{t.projeto_nome}</span>
+      </div>
+      <div className="flex items-center" onClick={(e) => e.stopPropagation()}>
+        <MinhasTarefaColaboradoresInline tarefaId={t.id} projetoId={t.projeto_id} />
+      </div>
+      <div className="flex items-center min-w-0" onClick={(e) => e.stopPropagation()}>
+        <ProjetoInlinePicker
+          tarefaId={t.id}
+          currentProjetoId={t.projeto_id}
+          currentProjetoNome={t.projeto_nome}
+          currentProjetoCor={t.projeto_cor}
+          isPessoal={isPessoal}
+        />
       </div>
       <VisibilidadeBadge value={t.visibilidade} />
     </div>
