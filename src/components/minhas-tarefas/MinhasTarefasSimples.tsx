@@ -473,10 +473,19 @@ export function MinhasTarefasSimples() {
       <div className="w-full space-y-4">
         {/* Header */}
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight">Minhas tarefas</h1>
-            <p className="text-sm text-muted-foreground">
-              Visão simplificada das suas tarefas. Para filtros avançados, use a Central de Trabalho.
+          <div className="min-w-0">
+            <h1 className="text-base sm:text-xl font-semibold text-foreground flex items-center gap-2 truncate">
+              <ListChecks className="h-5 w-5 text-primary shrink-0" />
+              <span className="truncate">
+                <span className="hidden sm:inline">{getGreeting()}</span>
+                {firstName ? <span className="sm:before:content-[',_']">{firstName}</span> : null}
+              </span>
+              <span className="hidden md:inline text-xs font-normal text-muted-foreground capitalize ml-2">
+                · {today}
+              </span>
+            </h1>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Minhas tarefas — visão pessoal. Para filtros avançados, use a Central de Trabalho.
             </p>
           </div>
           <div className="flex items-center gap-2">
