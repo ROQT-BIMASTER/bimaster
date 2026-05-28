@@ -198,16 +198,6 @@ export default function ProjetoDetalhe({ shared = false }: ProjetoDetalheProps =
               onBgCorChange={handleBgColorChange}
             />
 
-            <ProjetoInvestimentoLovableKpi projetoId={projeto.id} darkBg={darkBg} className="max-w-sm" />
-
-            {/* Processo aplicado */}
-            <ProcessoAplicadoCard
-              entidadeTipo="projeto"
-              entidadeId={projeto.id}
-              ambientePadrao="projeto"
-              titulo="Processo aplicado ao projeto"
-            />
-
             <ProcessoModulosResumoBanner registroId={projeto.id} />
 
             {/* Tab content wrapped in card container */}
