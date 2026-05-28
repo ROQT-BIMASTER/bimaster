@@ -26,10 +26,11 @@ export function NovaTarefaMinhasDialog({ open, onOpenChange }: NovaTarefaMinhasD
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [titulo, setTitulo] = useState("");
-  const [projetoId, setProjetoId] = useState("");
+  const [projetoId, setProjetoId] = useState("__pessoal__");
   const [prioridade, setPrioridade] = useState("media");
   const [dataPrazo, setDataPrazo] = useState<Date | undefined>();
   const [saving, setSaving] = useState(false);
+  const { data: pessoal } = useProjetoPessoal(open);
 
   const { data: projetos = [] } = useQuery({
     queryKey: ["meus-projetos-select", user?.id],
