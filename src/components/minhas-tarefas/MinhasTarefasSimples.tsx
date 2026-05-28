@@ -256,6 +256,8 @@ export function MinhasTarefasSimples() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const { data: tarefas = [], isLoading } = useMinhasTarefas();
+  const { data: pessoal } = useProjetoPessoal();
+  const projetoPessoalId = pessoal?.projeto_id ?? null;
 
   const { data: profileData } = useQuery({
     queryKey: ["my-profile-name", user?.id],
