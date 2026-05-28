@@ -53,25 +53,36 @@ export function NovaTarefaMinhasDialog({ open, onOpenChange }: NovaTarefaMinhasD
     if (!titulo.trim() || !projetoId || !user?.id) return;
     setSaving(true);
 
-    // Get first section of the project for required secao_id
-    const { data: secoes } = await supabase
-      .from("projeto_secoes")
-      .select("id")
-      .eq("projeto_id", projetoId)
-      .order("ordem", { ascending: true })
-      .limit(1);
+    let targetProjetoId = projetoId;
+    let targetSecaoId: string | undefined;
 
-    const secaoId = secoes?.[0]?.id;
-    if (!secaoId) {
-      toast.error("Projeto sem seções. Crie uma seção primeiro.");
-      setSaving(false);
-      return;
+    if (projetoId === "__pessoal__") {
+      if (!pessoal?.projeto_id || !pessoal?.secao_id) {
+        toast.error("Não foi possível resolver o espaço Pessoal.");
+        setSaving(false);
+        return;
+      }
+      targetProjetoId = pessoal.projeto_id;
+      targetSecaoId = pessoal.secao_id;
+    } else {
+      const { data: secoes } = await supabase
+        .from("projeto_secoes")
+        .select("id")
+        .eq("projeto_id", projetoId)
+        .order("ordem", { ascending: true })
+        .limit(1);
+      targetSecaoId = secoes?.[0]?.id;
+      if (!targetSecaoId) {
+        toast.error("Projeto sem seções. Crie uma seção primeiro.");
+        setSaving(false);
+        return;
+      }
     }
 
     const { error } = await supabase.from("projeto_tarefas").insert({
       titulo: titulo.trim(),
-      projeto_id: projetoId,
-      secao_id: secaoId,
+      projeto_id: targetProjetoId,
+      secao_id: targetSecaoId,
       responsavel_id: user.id,
       criador_id: user.id,
       prioridade,
