@@ -1148,6 +1148,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
             {isAdmin && hasPermission("projetos_aprovacoes_auditoria") && (
               <MenuItemLink to="/dashboard/projetos/aprovacoes/auditoria" icon={Shield} title="Auditoria de Aprovações" />
             )}
+            <MenuItemLink to="/dashboard/projetos/minhas-tarefas" icon={CheckSquare} title="Minhas tarefas" />
             <MenuItemLink to="/dashboard/projetos/central" icon={Home} title="Central de Trabalho" />
             <MenuItemLink to="/dashboard/projetos" icon={FolderKanban} title="Meus Projetos" end />
             {isAdmin && (
