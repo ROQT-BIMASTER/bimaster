@@ -556,7 +556,36 @@ export function MinhasTarefasSimples() {
                 <SelectItem value="baixa">Baixa</SelectItem>
               </SelectContent>
             </Select>
-            <Select value={projectFilter} onValueChange={setProjectFilter}>
+            <Select
+              value={originFilter}
+              onValueChange={(v) => {
+                const next = v as OriginFilter;
+                setOriginFilter(next);
+                if (next === "pessoal") setProjectFilter("all");
+              }}
+            >
+              <SelectTrigger className="h-8 w-44 text-sm" aria-label="Origem">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas as origens</SelectItem>
+                <SelectItem value="pessoal">
+                  <div className="flex items-center gap-2">
+                    <Lock className="h-3 w-3" /> Tarefas pessoais
+                  </div>
+                </SelectItem>
+                <SelectItem value="projetos">
+                  <div className="flex items-center gap-2">
+                    <UsersIcon className="h-3 w-3" /> Tarefas de projetos
+                  </div>
+                </SelectItem>
+              </SelectContent>
+            </Select>
+            <Select
+              value={projectFilter}
+              onValueChange={setProjectFilter}
+              disabled={originFilter === "pessoal"}
+            >
               <SelectTrigger className="h-8 w-48 text-sm">
                 <SelectValue placeholder="Projeto" />
               </SelectTrigger>
