@@ -51,6 +51,7 @@ type ViewMode = "list" | "board" | "calendar";
 type SortMode = "due_asc" | "due_desc" | "created_desc" | "priority";
 type QuickFilter = "all" | "sem_data" | "hoje" | "atrasadas" | "concluidas_hoje";
 type PriorityFilter = "all" | "urgente" | "alta" | "media" | "baixa";
+type OriginFilter = "all" | "pessoal" | "projetos";
 
 const PRIORITY_META: Record<string, { label: string; tone: string }> = {
   urgente: { label: "Urgente", tone: "text-destructive" },
@@ -281,6 +282,7 @@ export function MinhasTarefasSimples() {
   const [search, setSearch] = useState("");
   const [projectFilter, setProjectFilter] = useState<string>("all");
   const [priorityFilter, setPriorityFilter] = useState<PriorityFilter>("all");
+  const [originFilter, setOriginFilter] = useState<OriginFilter>("all");
   const [quickFilter, setQuickFilter] = useState<QuickFilter>("all");
   const [sortMode, setSortMode] = useState<SortMode>("due_asc");
 
@@ -290,9 +292,12 @@ export function MinhasTarefasSimples() {
 
   const projects = useMemo(() => {
     const map = new Map<string, { id: string; nome: string; cor: string }>();
-    tarefas.forEach((t) => map.set(t.projeto_id, { id: t.projeto_id, nome: t.projeto_nome, cor: t.projeto_cor }));
+    tarefas.forEach((t) => {
+      if (projetoPessoalId && t.projeto_id === projetoPessoalId) return;
+      map.set(t.projeto_id, { id: t.projeto_id, nome: t.projeto_nome, cor: t.projeto_cor });
+    });
     return Array.from(map.values()).sort((a, b) => a.nome.localeCompare(b.nome));
-  }, [tarefas]);
+  }, [tarefas, projetoPessoalId]);
 
   // Contadores dos chips — calculados sobre o dataset completo para não
   // saltarem ao aplicar busca/projeto/prioridade.
@@ -337,6 +342,11 @@ export function MinhasTarefasSimples() {
     if (priorityFilter !== "all") {
       result = result.filter((t) => (t.prioridade || "media") === priorityFilter);
     }
+    if (originFilter === "pessoal" && projetoPessoalId) {
+      result = result.filter((t) => t.projeto_id === projetoPessoalId);
+    } else if (originFilter === "projetos" && projetoPessoalId) {
+      result = result.filter((t) => t.projeto_id !== projetoPessoalId);
+    }
     if (projectFilter !== "all") {
       result = result.filter((t) => t.projeto_id === projectFilter);
     }
@@ -369,7 +379,7 @@ export function MinhasTarefasSimples() {
       }
     });
     return sorted;
-  }, [tarefas, quickFilter, priorityFilter, projectFilter, search, sortMode]);
+  }, [tarefas, quickFilter, priorityFilter, projectFilter, originFilter, projetoPessoalId, search, sortMode]);
 
   // Quando o filtro rápido é "concluidas_hoje", apresentamos lista plana
   // (sem os grupos Asana de pendentes).
@@ -546,7 +556,36 @@ export function MinhasTarefasSimples() {
                 <SelectItem value="baixa">Baixa</SelectItem>
               </SelectContent>
             </Select>
-            <Select value={projectFilter} onValueChange={setProjectFilter}>
+            <Select
+              value={originFilter}
+              onValueChange={(v) => {
+                const next = v as OriginFilter;
+                setOriginFilter(next);
+                if (next === "pessoal") setProjectFilter("all");
+              }}
+            >
+              <SelectTrigger className="h-8 w-44 text-sm" aria-label="Origem">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas as origens</SelectItem>
+                <SelectItem value="pessoal">
+                  <div className="flex items-center gap-2">
+                    <Lock className="h-3 w-3" /> Tarefas pessoais
+                  </div>
+                </SelectItem>
+                <SelectItem value="projetos">
+                  <div className="flex items-center gap-2">
+                    <UsersIcon className="h-3 w-3" /> Tarefas de projetos
+                  </div>
+                </SelectItem>
+              </SelectContent>
+            </Select>
+            <Select
+              value={projectFilter}
+              onValueChange={setProjectFilter}
+              disabled={originFilter === "pessoal"}
+            >
               <SelectTrigger className="h-8 w-48 text-sm">
                 <SelectValue placeholder="Projeto" />
               </SelectTrigger>
