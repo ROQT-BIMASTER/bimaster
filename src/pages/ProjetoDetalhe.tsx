@@ -27,13 +27,11 @@ import { cn } from "@/lib/utils";
 import { TourButton, projetoDetalheTourSteps, PROJETO_DETALHE_TOUR_ID } from "@/components/tour";
 import { logProjectAccessDenied } from "@/lib/auditProjectAccess";
 import { ProjetoBackButton } from "@/components/projetos/ProjetoBackButton";
-import { ProjetoInvestimentoLovableKpi } from "@/components/projetos/ProjetoInvestimentoLovableKpi";
 import { getBgPaletteVars } from "@/lib/colorUtils";
-import { ProcessoAplicadoCard } from "@/components/processos/ProcessoAplicadoCard";
 import { ProcessoModulosResumoBanner } from "@/components/processos/ProcessoModulosResumoBanner";
 import { ProjetoChatTab } from "@/components/projetos/ProjetoChatTab";
 import { ProjetoCopilotPanel } from "@/components/projetos/ProjetoCopilotPanel";
-import { Sparkles } from "lucide-react";
+import { Sparkles, ExternalLink } from "lucide-react";
 
 function isDarkColor(hex: string | null): boolean {
   if (!hex) return false;
@@ -44,7 +42,11 @@ function isDarkColor(hex: string | null): boolean {
   return lum < 0.4;
 }
 
-export default function ProjetoDetalhe() {
+interface ProjetoDetalheProps {
+  shared?: boolean;
+}
+
+export default function ProjetoDetalhe({ shared = false }: ProjetoDetalheProps = {}) {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -102,153 +104,164 @@ export default function ProjetoDetalhe() {
   const customBg = !!projeto?.bg_cor;
   const darkBg = isDarkColor(projeto?.bg_cor ?? null);
 
-  if (isLoading) {
-    return (
-      <SidebarProvider>
-        <div className="min-h-screen flex w-full bg-background">
-          <AppSidebar />
-          <main className="flex-1 flex items-center justify-center">
-            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-          </main>
-        </div>
-      </SidebarProvider>
-    );
-  }
-
-  if (!projeto) {
-    // Log denied access attempt and redirect
-    if (id) {
-      logProjectAccessDenied(id);
+  const Frame = ({ children }: { children: React.ReactNode }) => {
+    if (shared) {
+      return <div className="min-h-screen w-full bg-background">{children}</div>;
     }
     return (
       <SidebarProvider>
         <div className="min-h-screen flex w-full bg-background">
           <AppSidebar />
-          <main className="flex-1 flex flex-col items-center justify-center gap-3 text-muted-foreground">
-            <ShieldAlert className="h-8 w-8 text-destructive" />
-            <p>Você não tem permissão para acessar este projeto.</p>
-            <Button variant="outline" size="sm" onClick={() => navigate("/dashboard/projetos")}>
-              <ArrowLeft className="h-4 w-4 mr-1" /> Voltar aos Projetos
-            </Button>
-          </main>
+          {children}
         </div>
       </SidebarProvider>
+    );
+  };
+
+  if (isLoading) {
+    return (
+      <Frame>
+        <main className="flex-1 flex items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </main>
+      </Frame>
+    );
+  }
+
+  if (!projeto) {
+    if (id) {
+      logProjectAccessDenied(id);
+    }
+    return (
+      <Frame>
+        <main className="flex-1 flex flex-col items-center justify-center gap-3 text-muted-foreground">
+          <ShieldAlert className="h-8 w-8 text-destructive" />
+          <p>Você não tem permissão para acessar este projeto.</p>
+          <Button variant="outline" size="sm" onClick={() => navigate("/dashboard/projetos")}>
+            <ArrowLeft className="h-4 w-4 mr-1" /> Voltar aos Projetos
+          </Button>
+        </main>
+      </Frame>
     );
   }
 
   return (
-    <SidebarProvider>
-      <div className="min-h-screen flex w-full bg-background">
-        <AppSidebar />
-        <main
-          className="flex-1 overflow-auto transition-colors duration-300"
-          style={
-            customBg
-              ? ({
-                  backgroundColor: projeto.bg_cor!,
-                  color: "hsl(var(--foreground))",
-                  ...getBgPaletteVars(projeto.bg_cor!),
-                } as React.CSSProperties)
-              : undefined
-          }
-        >
-          <div className="p-4 sm:p-6 space-y-5">
-            {/* Back button + sidebar trigger + China badge */}
-            <div className="flex items-center gap-2" data-tour="pd-header">
-              <SidebarTrigger />
-              <ProjetoBackButton
-                label="Projetos"
-                className={darkBg ? "text-white hover:bg-white/10" : customBg ? "text-black hover:bg-black/10" : "text-muted-foreground"}
-              />
-              {chinaVinculo && (
-                <Badge
-                  variant="outline"
-                  className={`cursor-pointer gap-1.5 ${darkBg ? "border-white/30 text-white hover:bg-white/10" : ""}`}
-                  onClick={() => navigate(`/dashboard/fabrica-china/produto/${chinaVinculo.id}`)}
-                >
-                  <Package className="h-3.5 w-3.5" />
-                  Produto China: {chinaVinculo.produto_codigo}
-                </Badge>
-              )}
-            </div>
+    <Frame>
+      <main
+        className="flex-1 overflow-auto transition-colors duration-300"
+        style={
+          customBg
+            ? ({
+                backgroundColor: projeto.bg_cor!,
+                color: "hsl(var(--foreground))",
+                ...getBgPaletteVars(projeto.bg_cor!),
+              } as React.CSSProperties)
+            : undefined
+        }
+      >
+        <div className="p-4 sm:p-6 space-y-5">
+          {/* Topo: navegação ou barra de shared */}
+          <div className="flex items-center gap-2" data-tour="pd-header">
+            {shared ? (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigate(`/dashboard/projetos/${projeto.id}`)}
+                className="gap-1.5"
+              >
+                <ExternalLink className="h-4 w-4" />
+                Abrir no app
+              </Button>
+            ) : (
+              <>
+                <SidebarTrigger />
+                <ProjetoBackButton
+                  label="Projetos"
+                  className={darkBg ? "text-white hover:bg-white/10" : customBg ? "text-black hover:bg-black/10" : "text-muted-foreground"}
+                />
+              </>
+            )}
+            {chinaVinculo && !shared && (
+              <Badge
+                variant="outline"
+                className={`cursor-pointer gap-1.5 ${darkBg ? "border-white/30 text-white hover:bg-white/10" : ""}`}
+                onClick={() => navigate(`/dashboard/fabrica-china/produto/${chinaVinculo.id}`)}
+              >
+                <Package className="h-3.5 w-3.5" />
+                Produto China: {chinaVinculo.produto_codigo}
+              </Badge>
+            )}
+          </div>
 
-            <ProjetoHeader
-              projeto={projeto}
-              activeTab={activeTab}
-              onTabChange={setActiveTab}
-              tarefas={tarefas}
-              customBg={customBg}
-              darkBg={darkBg}
-              filters={filters}
-              onFiltersChange={setFilters}
-              sort={sort}
-              onSortChange={setSort}
-              teamMembers={teamMembers}
-              secoes={secoes.map(s => ({ id: s.id, nome: s.nome }))}
-              onAddTarefa={handleAddTarefa}
-              tarefasExcluidas={tarefasExcluidas as any}
-              tarefasExcluidasLoading={tarefasExcluidasLoading}
-              tarefasExcluidasCount={tarefasExcluidasCount}
-              lixeiraOpen={lixeiraOpen}
-              onLixeiraOpenChange={setLixeiraOpen}
-              onRestaurarTarefa={(id) => restaurarTarefa.mutate(id)}
-              bgCor={projeto.bg_cor ?? null}
-              onBgCorChange={handleBgColorChange}
-            />
+          <ProjetoHeader
+            projeto={projeto}
+            activeTab={activeTab}
+            onTabChange={setActiveTab}
+            tarefas={tarefas}
+            customBg={customBg}
+            darkBg={darkBg}
+            filters={filters}
+            onFiltersChange={setFilters}
+            sort={sort}
+            onSortChange={setSort}
+            teamMembers={teamMembers}
+            secoes={secoes.map(s => ({ id: s.id, nome: s.nome }))}
+            onAddTarefa={handleAddTarefa}
+            tarefasExcluidas={tarefasExcluidas as any}
+            tarefasExcluidasLoading={tarefasExcluidasLoading}
+            tarefasExcluidasCount={tarefasExcluidasCount}
+            lixeiraOpen={lixeiraOpen}
+            onLixeiraOpenChange={setLixeiraOpen}
+            onRestaurarTarefa={(id) => restaurarTarefa.mutate(id)}
+            bgCor={projeto.bg_cor ?? null}
+            onBgCorChange={handleBgColorChange}
+          />
 
-            <ProjetoInvestimentoLovableKpi projetoId={projeto.id} darkBg={darkBg} className="max-w-sm" />
+          {!shared && <ProcessoModulosResumoBanner registroId={projeto.id} />}
 
-            {/* Processo aplicado */}
-            <ProcessoAplicadoCard
-              entidadeTipo="projeto"
-              entidadeId={projeto.id}
-              ambientePadrao="projeto"
-              titulo="Processo aplicado ao projeto"
-            />
-
-            <ProcessoModulosResumoBanner registroId={projeto.id} />
-
-            {/* Tab content wrapped in card container */}
-            <div data-tour="pd-content" className={cn(
-              "rounded-xl border shadow-sm animate-fade-in-up",
-              darkBg ? "bg-white/5 border-white/10" : customBg ? "bg-white/60 border-black/10 backdrop-blur-sm" : "bg-card border-border"
-            )}>
-              <div className="p-4">
-                {activeTab === "lista" && <ProjetoListView projetoId={projeto.id} darkBg={darkBg} filters={filters} sort={sort} initialTarefaId={deepTarefaId} highlightCommentId={deepComentarioId} />}
-                {activeTab === "quadro" && <ProjetoKanbanView projetoId={projeto.id} darkBg={darkBg} filters={filters} sort={sort} />}
-                {activeTab === "cronograma" && <ProjetoCronogramaView projetoId={projeto.id} darkBg={darkBg} filters={filters} sort={sort} />}
-                {activeTab === "calendario" && <ProjetoCalendarioView projetoId={projeto.id} darkBg={darkBg} filters={filters} sort={sort} />}
-                {activeTab === "prazos" && <PrazosPanel projetoId={projeto.id} darkBg={darkBg} />}
-                {activeTab === "briefings" && <ProjetoBriefingPanel projetoId={projeto.id} darkBg={darkBg} />}
-                {activeTab === "painel" && <ProjetoEquipeDashboard projetoId={projeto.id} darkBg={darkBg} />}
-                {activeTab === "equipe" && <ProjetoEquipeDashboard projetoId={projeto.id} darkBg={darkBg} />}
-                {activeTab === "metas" && <ProjetoMetasPanel projetoId={projeto.id} darkBg={darkBg} />}
-                {activeTab === "chat" && <ProjetoChatTab projetoId={projeto.id} highlightMsgId={deepMensagemId} />}
-                {activeTab === "arquivos" && <ProjetoArquivosView projetoId={projeto.id} darkBg={darkBg} />}
-              </div>
+          <div data-tour="pd-content" className={cn(
+            "rounded-xl border shadow-sm animate-fade-in-up",
+            darkBg ? "bg-white/5 border-white/10" : customBg ? "bg-white/60 border-black/10 backdrop-blur-sm" : "bg-card border-border"
+          )}>
+            <div className="p-4">
+              {activeTab === "lista" && <ProjetoListView projetoId={projeto.id} darkBg={darkBg} filters={filters} sort={sort} initialTarefaId={deepTarefaId} highlightCommentId={deepComentarioId} />}
+              {activeTab === "quadro" && <ProjetoKanbanView projetoId={projeto.id} darkBg={darkBg} filters={filters} sort={sort} />}
+              {activeTab === "cronograma" && <ProjetoCronogramaView projetoId={projeto.id} darkBg={darkBg} filters={filters} sort={sort} />}
+              {activeTab === "calendario" && <ProjetoCalendarioView projetoId={projeto.id} darkBg={darkBg} filters={filters} sort={sort} />}
+              {activeTab === "prazos" && <PrazosPanel projetoId={projeto.id} darkBg={darkBg} />}
+              {activeTab === "briefings" && <ProjetoBriefingPanel projetoId={projeto.id} darkBg={darkBg} />}
+              {activeTab === "painel" && <ProjetoEquipeDashboard projetoId={projeto.id} darkBg={darkBg} />}
+              {activeTab === "equipe" && <ProjetoEquipeDashboard projetoId={projeto.id} darkBg={darkBg} />}
+              {activeTab === "metas" && <ProjetoMetasPanel projetoId={projeto.id} darkBg={darkBg} />}
+              {activeTab === "chat" && <ProjetoChatTab projetoId={projeto.id} highlightMsgId={deepMensagemId} />}
+              {activeTab === "arquivos" && <ProjetoArquivosView projetoId={projeto.id} darkBg={darkBg} />}
             </div>
           </div>
-        </main>
-      </div>
-      <TourButton tourId={PROJETO_DETALHE_TOUR_ID} tourSteps={projetoDetalheTourSteps} title="Manual do Projeto" description="Aprenda a usar o detalhe do projeto passo a passo" />
-      {projeto && (
+        </div>
+      </main>
+      {!shared && (
         <>
-          <Button
-            onClick={() => setCopilotOpen(true)}
-            size="lg"
-            className="fixed bottom-6 right-6 z-40 h-12 px-4 shadow-lg gap-2 rounded-full"
-          >
-            <Sparkles className="size-4" />
-            Copiloto
-          </Button>
-          <ProjetoCopilotPanel
-            open={copilotOpen}
-            onOpenChange={setCopilotOpen}
-            projetoId={projeto.id}
-            projetoNome={projeto.nome}
-          />
+          <TourButton tourId={PROJETO_DETALHE_TOUR_ID} tourSteps={projetoDetalheTourSteps} title="Manual do Projeto" description="Aprenda a usar o detalhe do projeto passo a passo" />
+          {projeto && (
+            <>
+              <Button
+                onClick={() => setCopilotOpen(true)}
+                size="lg"
+                className="fixed bottom-6 right-6 z-40 h-12 px-4 shadow-lg gap-2 rounded-full"
+              >
+                <Sparkles className="size-4" />
+                Copiloto
+              </Button>
+              <ProjetoCopilotPanel
+                open={copilotOpen}
+                onOpenChange={setCopilotOpen}
+                projetoId={projeto.id}
+                projetoNome={projeto.nome}
+              />
+            </>
+          )}
         </>
       )}
-    </SidebarProvider>
+    </Frame>
   );
 }
