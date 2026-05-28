@@ -78,9 +78,33 @@ export default function BriefingWorkspace() {
     supabase.auth.getUser().then(({ data }) => setCurrentUserId(data.user?.id ?? null));
   }, []);
 
+  // Sincroniza payload remoto -> local sem destruir digitação em andamento.
+  // Para cada campo: só substitui o valor local se o remoto realmente mudou
+  // E o local ainda estava igual ao último remoto conhecido (não foi editado).
   useEffect(() => {
-    if (briefing) setLocalPayload(briefing.payload ?? {});
-  }, [briefing?.id, briefing?.payload]);
+    if (!briefing) return;
+    const remote = briefing.payload ?? {};
+    const lastRemote = lastRemotePayloadRef.current;
+    setLocalPayload((prev) => {
+      const next = { ...prev };
+      const allKeys = new Set([...Object.keys(remote), ...Object.keys(prev)]);
+      for (const k of allKeys) {
+        const remoteVal = remote[k] ?? "";
+        const prevVal = prev[k] ?? "";
+        const lastRemoteVal = lastRemote[k] ?? "";
+        const remoteChanged = remoteVal !== lastRemoteVal;
+        const localUntouched = prevVal === lastRemoteVal;
+        if (remoteChanged && localUntouched) {
+          next[k] = remoteVal;
+        } else if (!(k in prev)) {
+          next[k] = remoteVal;
+        }
+      }
+      return next;
+    });
+    lastRemotePayloadRef.current = remote;
+    setLocalOrigens(briefing.campo_origens ?? {});
+  }, [briefing?.id, briefing?.payload, briefing?.campo_origens]);
 
   // Carrega nome do projeto vinculado
   useEffect(() => {
