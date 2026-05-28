@@ -417,9 +417,11 @@ export default function BriefingWorkspace() {
                         anchorId={`briefing-campo-${s.key}`}
                         value={localPayload[s.key] ?? ""}
                         readOnly={readOnly}
+                        origem={localOrigens[s.key] ?? null}
                         onChange={(v) => setLocalPayload((p) => ({ ...p, [s.key]: v }))}
                         onBlurSave={(v) => salvarCampo(s.key, v)}
                         onAskAgent={pedirAjudaAoAgente}
+                        onChangeOrigem={(o) => marcarOrigem(s.key, o)}
                         hasOpenComments={(counts?.abertos ?? 0) > 0}
                         commentsSlot={
                           <BriefingFieldComments
