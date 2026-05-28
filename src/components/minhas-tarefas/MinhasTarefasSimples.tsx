@@ -27,12 +27,17 @@ import { useAuth } from "@/contexts/AuthContext";
 import { parseLocalDate } from "@/lib/utils/parseLocalDate";
 import { supabase } from "@/integrations/supabase/client";
 
-import { TarefaResponsavelAvatar } from "@/components/projetos/shared/TarefaResponsavelAvatar";
 import { NovaTarefaMinhasDialog } from "@/components/projetos/NovaTarefaMinhasDialog";
 import { ProjetoTarefaDetalhe } from "@/components/projetos/ProjetoTarefaDetalhe";
 import { MinhasTarefasBoard } from "@/components/minhas-tarefas/MinhasTarefasBoard";
 import { MinhasTarefasCalendar } from "@/components/minhas-tarefas/MinhasTarefasCalendar";
 import { CentralChip } from "@/components/projetos/central/CentralChips";
+import {
+  MinhasTarefaResponsavelInline,
+  MinhasTarefaColaboradoresInline,
+  ProjetoInlinePicker,
+} from "@/components/minhas-tarefas/MinhasTarefaInlinePickers";
+import { useProjetoPessoal } from "@/hooks/useProjetoPessoal";
 import type { ProjetoTarefa, ProjetoSecao } from "@/hooks/useProjetoTarefas";
 
 function getGreeting() {
