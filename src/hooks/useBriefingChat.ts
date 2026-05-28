@@ -66,6 +66,7 @@ export function useBriefingChat(briefingId: string | undefined) {
         titulo: b.titulo,
         status: b.status,
         payload: (b.payload as Record<string, string>) ?? {},
+        campo_origens: ((b as any).campo_origens as Record<string, CampoOrigem>) ?? {},
         completude: b.completude ?? 0,
         template_id: b.template_id,
         projeto_id: b.projeto_id,
