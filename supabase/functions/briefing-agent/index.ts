@@ -300,10 +300,17 @@ Deno.serve(secureHandler(
       return typeof v === "string" && v.trim().length > 0;
     };
 
+    const origensIniciais = ((briefing as any).campo_origens as Record<string, string> | null) ?? {};
     const templateLines = secoesList
       .map((s, i) => {
         const tag = s.required ? "[obrigatório]" : "[opcional]";
-        const status = isFilled(s.key) ? "preenchido" : "vazio";
+        const filled = isFilled(s.key);
+        const origem = origensIniciais[s.key];
+        const status = filled
+          ? (origem === "manual"
+              ? "preenchido manualmente — PROTEGIDO, não sobrescrever"
+              : "preenchido pela IA")
+          : "vazio";
         const guia = s.placeholder ? `\n   guia: ${s.placeholder}` : "";
         return `${i + 1}. ${tag} ${s.key} — ${s.label}${guia}\n   status: ${status}`;
       })
