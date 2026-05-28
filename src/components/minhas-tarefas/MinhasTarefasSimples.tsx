@@ -35,6 +35,13 @@ import { MinhasTarefasCalendar } from "@/components/minhas-tarefas/MinhasTarefas
 import { CentralChip } from "@/components/projetos/central/CentralChips";
 import type { ProjetoTarefa, ProjetoSecao } from "@/hooks/useProjetoTarefas";
 
+function getGreeting() {
+  const h = new Date().getHours();
+  if (h < 12) return "Bom dia";
+  if (h < 18) return "Boa tarde";
+  return "Boa noite";
+}
+
 type ViewMode = "list" | "board" | "calendar";
 type SortMode = "due_asc" | "due_desc" | "created_desc" | "priority";
 type QuickFilter = "all" | "sem_data" | "hoje" | "atrasadas" | "concluidas_hoje";
@@ -239,6 +246,24 @@ export function MinhasTarefasSimples() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const { data: tarefas = [], isLoading } = useMinhasTarefas();
+
+  const { data: profileData } = useQuery({
+    queryKey: ["my-profile-name", user?.id],
+    queryFn: async () => {
+      if (!user?.id) return null;
+      const { data } = await supabase
+        .from("profiles")
+        .select("nome, avatar_url")
+        .eq("id", user.id)
+        .maybeSingle();
+      return data;
+    },
+    enabled: !!user?.id,
+    staleTime: 5 * 60_000,
+  });
+
+  const firstName = (profileData?.nome || user?.email || "").split(/[\s@]/)[0] || "";
+  const today = format(new Date(), "EEEE, d 'de' MMMM", { locale: ptBR });
 
   const [view, setView] = useState<ViewMode>("list");
   const [search, setSearch] = useState("");
@@ -448,10 +473,19 @@ export function MinhasTarefasSimples() {
       <div className="w-full space-y-4">
         {/* Header */}
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight">Minhas tarefas</h1>
-            <p className="text-sm text-muted-foreground">
-              Visão simplificada das suas tarefas. Para filtros avançados, use a Central de Trabalho.
+          <div className="min-w-0">
+            <h1 className="text-base sm:text-xl font-semibold text-foreground flex items-center gap-2 truncate">
+              <ListChecks className="h-5 w-5 text-primary shrink-0" />
+              <span className="truncate">
+                <span className="hidden sm:inline">{getGreeting()}</span>
+                {firstName ? <span className="sm:before:content-[',_']">{firstName}</span> : null}
+              </span>
+              <span className="hidden md:inline text-xs font-normal text-muted-foreground capitalize ml-2">
+                · {today}
+              </span>
+            </h1>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Minhas tarefas — visão pessoal. Para filtros avançados, use a Central de Trabalho.
             </p>
           </div>
           <div className="flex items-center gap-2">
