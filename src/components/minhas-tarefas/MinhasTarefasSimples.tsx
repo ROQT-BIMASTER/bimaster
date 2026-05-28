@@ -37,6 +37,28 @@ import type { ProjetoTarefa, ProjetoSecao } from "@/hooks/useProjetoTarefas";
 
 type ViewMode = "list" | "board" | "calendar";
 type SortMode = "due_asc" | "due_desc" | "created_desc" | "priority";
+type QuickFilter = "all" | "sem_data" | "hoje" | "atrasadas" | "concluidas_hoje";
+type PriorityFilter = "all" | "urgente" | "alta" | "media" | "baixa";
+
+const PRIORITY_META: Record<string, { label: string; tone: string }> = {
+  urgente: { label: "Urgente", tone: "text-destructive" },
+  alta: { label: "Alta", tone: "text-warning" },
+  baixa: { label: "Baixa", tone: "text-muted-foreground" },
+};
+
+function PriorityFlag({ value }: { value: string | null | undefined }) {
+  if (!value || value === "media") return null;
+  const meta = PRIORITY_META[value];
+  if (!meta) return null;
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Flag className={cn("h-3.5 w-3.5 shrink-0", meta.tone)} aria-label={meta.label} />
+      </TooltipTrigger>
+      <TooltipContent>{meta.label}</TooltipContent>
+    </Tooltip>
+  );
+}
 
 /* ------------------------------ Grupos Asana ------------------------------ */
 
