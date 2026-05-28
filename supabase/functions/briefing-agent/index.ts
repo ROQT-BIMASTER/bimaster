@@ -240,7 +240,7 @@ Deno.serve(secureHandler(
 
     const { data: briefing, error: brErr } = await userClient
       .from("briefings")
-      .select("id, user_id, tipo, titulo, payload, template_id, briefing_templates(secoes)")
+      .select("id, user_id, tipo, titulo, payload, campo_origens, template_id, briefing_templates(secoes)")
       .eq("id", briefing_id)
       .maybeSingle();
 
