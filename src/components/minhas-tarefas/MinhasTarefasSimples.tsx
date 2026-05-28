@@ -32,6 +32,7 @@ import { NovaTarefaMinhasDialog } from "@/components/projetos/NovaTarefaMinhasDi
 import { ProjetoTarefaDetalhe } from "@/components/projetos/ProjetoTarefaDetalhe";
 import { MinhasTarefasBoard } from "@/components/minhas-tarefas/MinhasTarefasBoard";
 import { MinhasTarefasCalendar } from "@/components/minhas-tarefas/MinhasTarefasCalendar";
+import { CentralChip } from "@/components/projetos/central/CentralChips";
 import type { ProjetoTarefa, ProjetoSecao } from "@/hooks/useProjetoTarefas";
 
 type ViewMode = "list" | "board" | "calendar";
