@@ -13,6 +13,8 @@ import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useProjetoPessoal } from "@/hooks/useProjetoPessoal";
+import { User } from "lucide-react";
 import { toast } from "sonner";
 
 interface NovaTarefaMinhasDialogProps {
