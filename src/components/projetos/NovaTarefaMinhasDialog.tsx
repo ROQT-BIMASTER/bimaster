@@ -99,7 +99,7 @@ export function NovaTarefaMinhasDialog({ open, onOpenChange }: NovaTarefaMinhasD
     toast.success("Tarefa criada!");
     queryClient.invalidateQueries({ queryKey: ["minhas-tarefas"] });
     setTitulo("");
-    setProjetoId("");
+    setProjetoId("__pessoal__");
     setPrioridade("media");
     setDataPrazo(undefined);
     onOpenChange(false);
