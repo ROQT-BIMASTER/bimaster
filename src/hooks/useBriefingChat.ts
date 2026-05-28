@@ -16,12 +16,15 @@ export interface BriefingMsg {
 }
 
 
+export type CampoOrigem = "ia" | "manual";
+
 export interface Briefing {
   id: string;
   tipo: string;
   titulo: string;
   status: string;
   payload: Record<string, string>;
+  campo_origens: Record<string, CampoOrigem>;
   completude: number;
   template_id: string | null;
   projeto_id: string | null;
@@ -63,6 +66,7 @@ export function useBriefingChat(briefingId: string | undefined) {
         titulo: b.titulo,
         status: b.status,
         payload: (b.payload as Record<string, string>) ?? {},
+        campo_origens: ((b as any).campo_origens as Record<string, CampoOrigem>) ?? {},
         completude: b.completude ?? 0,
         template_id: b.template_id,
         projeto_id: b.projeto_id,
@@ -102,7 +106,12 @@ export function useBriefingChat(briefingId: string | undefined) {
         reply: string;
         sources: BriefingMsg["sources"];
         patches: BriefingMsg["proposals"];
-        briefing: { id: string; titulo: string; payload: Record<string, string> };
+        briefing: {
+          id: string;
+          titulo: string;
+          payload: Record<string, string>;
+          campo_origens?: Record<string, CampoOrigem>;
+        };
       }>("briefing-agent", {
         briefing_id: briefingId,
         user_message: texto || "(imagem anexada)",
@@ -120,7 +129,12 @@ export function useBriefingChat(briefingId: string | undefined) {
       if (data.briefing) {
         setBriefing((prev) =>
           prev
-            ? { ...prev, titulo: data.briefing.titulo, payload: data.briefing.payload }
+            ? {
+                ...prev,
+                titulo: data.briefing.titulo,
+                payload: data.briefing.payload,
+                campo_origens: data.briefing.campo_origens ?? prev.campo_origens,
+              }
             : prev,
         );
       }

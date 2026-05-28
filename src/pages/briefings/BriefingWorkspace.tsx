@@ -43,6 +43,8 @@ export default function BriefingWorkspace() {
   const [input, setInput] = useState("");
   const [chatAttachments, setChatAttachments] = useState<ChatAttachment[]>([]);
   const [localPayload, setLocalPayload] = useState<Record<string, string>>({});
+  const [localOrigens, setLocalOrigens] = useState<Record<string, "ia" | "manual">>({});
+  const lastRemotePayloadRef = useRef<Record<string, string>>({});
   const [projetoNome, setProjetoNome] = useState<string | null>(null);
   const [vincDialogOpen, setVincDialogOpen] = useState(false);
   const [aprovDialogOpen, setAprovDialogOpen] = useState(false);
@@ -76,9 +78,33 @@ export default function BriefingWorkspace() {
     supabase.auth.getUser().then(({ data }) => setCurrentUserId(data.user?.id ?? null));
   }, []);
 
+  // Sincroniza payload remoto -> local sem destruir digitação em andamento.
+  // Para cada campo: só substitui o valor local se o remoto realmente mudou
+  // E o local ainda estava igual ao último remoto conhecido (não foi editado).
   useEffect(() => {
-    if (briefing) setLocalPayload(briefing.payload ?? {});
-  }, [briefing?.id, briefing?.payload]);
+    if (!briefing) return;
+    const remote = briefing.payload ?? {};
+    const lastRemote = lastRemotePayloadRef.current;
+    setLocalPayload((prev) => {
+      const next = { ...prev };
+      const allKeys = new Set([...Object.keys(remote), ...Object.keys(prev)]);
+      for (const k of allKeys) {
+        const remoteVal = remote[k] ?? "";
+        const prevVal = prev[k] ?? "";
+        const lastRemoteVal = lastRemote[k] ?? "";
+        const remoteChanged = remoteVal !== lastRemoteVal;
+        const localUntouched = prevVal === lastRemoteVal;
+        if (remoteChanged && localUntouched) {
+          next[k] = remoteVal;
+        } else if (!(k in prev)) {
+          next[k] = remoteVal;
+        }
+      }
+      return next;
+    });
+    lastRemotePayloadRef.current = remote;
+    setLocalOrigens(briefing.campo_origens ?? {});
+  }, [briefing?.id, briefing?.payload, briefing?.campo_origens]);
 
   // Carrega nome do projeto vinculado
   useEffect(() => {
@@ -116,6 +142,16 @@ export default function BriefingWorkspace() {
     if (!briefing) return;
     const novoPayload = { ...localPayload, [key]: valor };
     setLocalPayload(novoPayload);
+    // Edição manual: marca origem do campo como "manual" se houver texto;
+    // se esvaziar, remove a marca para o agente poder preencher de novo.
+    const novasOrigens = { ...localOrigens };
+    if (valor.trim().length > 0) {
+      novasOrigens[key] = "manual";
+    } else {
+      delete novasOrigens[key];
+    }
+    setLocalOrigens(novasOrigens);
+    lastRemotePayloadRef.current = { ...lastRemotePayloadRef.current, [key]: valor };
     const totalCampos = sections.length || 1;
     const preenchidos = Object.values(novoPayload).filter(
       (v) => typeof v === "string" && v.trim().length > 0,
@@ -123,9 +159,33 @@ export default function BriefingWorkspace() {
     const completude = Math.min(100, Math.round((preenchidos / totalCampos) * 100));
     const { error } = await supabase
       .from("briefings")
-      .update({ payload: novoPayload, completude, status: "em_andamento" })
+      .update({
+        payload: novoPayload,
+        campo_origens: novasOrigens,
+        completude,
+        status: "em_andamento",
+      })
       .eq("id", briefing.id);
     if (error) toast.error("Erro ao salvar campo");
+  };
+
+  const marcarOrigem = async (key: string, origem: "ia" | "manual") => {
+    if (!briefing) return;
+    const novasOrigens = { ...localOrigens, [key]: origem };
+    setLocalOrigens(novasOrigens);
+    const { error } = await supabase
+      .from("briefings")
+      .update({ campo_origens: novasOrigens })
+      .eq("id", briefing.id);
+    if (error) {
+      toast.error("Não foi possível atualizar a origem do campo");
+      return;
+    }
+    toast.success(
+      origem === "manual"
+        ? "Campo protegido contra o agente."
+        : "Campo liberado para o agente.",
+    );
   };
 
   const pedirAjudaAoAgente = (label: string) => {
@@ -357,9 +417,11 @@ export default function BriefingWorkspace() {
                         anchorId={`briefing-campo-${s.key}`}
                         value={localPayload[s.key] ?? ""}
                         readOnly={readOnly}
+                        origem={localOrigens[s.key] ?? null}
                         onChange={(v) => setLocalPayload((p) => ({ ...p, [s.key]: v }))}
                         onBlurSave={(v) => salvarCampo(s.key, v)}
                         onAskAgent={pedirAjudaAoAgente}
+                        onChangeOrigem={(o) => marcarOrigem(s.key, o)}
                         hasOpenComments={(counts?.abertos ?? 0) > 0}
                         commentsSlot={
                           <BriefingFieldComments
