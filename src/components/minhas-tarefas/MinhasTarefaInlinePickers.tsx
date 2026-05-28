@@ -349,14 +349,14 @@ export function ProjetoInlinePicker({
             "inline-flex items-center gap-1.5 max-w-full px-1.5 py-0.5 rounded hover:bg-accent/50 transition-colors text-left",
             isPessoal && "text-muted-foreground/80",
           )}
-          title={isPessoal ? "Vincular a um projeto" : `Projeto: ${currentProjetoNome}`}
+          title={isPessoal ? "Tarefa pessoal — clique para vincular a um projeto" : `Projeto: ${currentProjetoNome}`}
         >
           <span
             className="h-2 w-2 rounded-full shrink-0"
             style={{ backgroundColor: isPessoal ? "hsl(var(--muted-foreground) / 0.5)" : currentProjetoCor }}
           />
           <span className="text-xs truncate">
-            {isPessoal ? "Sem projeto" : currentProjetoNome}
+            {isPessoal ? "Tarefas pessoais" : currentProjetoNome}
           </span>
         </button>
       </PopoverTrigger>
