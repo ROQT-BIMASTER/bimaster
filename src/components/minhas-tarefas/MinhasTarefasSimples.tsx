@@ -487,6 +487,19 @@ export function MinhasTarefasSimples() {
                 className="h-8 w-56 pl-8 text-sm"
               />
             </div>
+            <Select value={priorityFilter} onValueChange={(v) => setPriorityFilter(v as PriorityFilter)}>
+              <SelectTrigger className="h-8 w-40 text-sm" aria-label="Prioridade">
+                <Flag className="h-3.5 w-3.5 mr-1" />
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas prioridades</SelectItem>
+                <SelectItem value="urgente">Urgente</SelectItem>
+                <SelectItem value="alta">Alta</SelectItem>
+                <SelectItem value="media">Média</SelectItem>
+                <SelectItem value="baixa">Baixa</SelectItem>
+              </SelectContent>
+            </Select>
             <Select value={projectFilter} onValueChange={setProjectFilter}>
               <SelectTrigger className="h-8 w-48 text-sm">
                 <SelectValue placeholder="Projeto" />
@@ -494,7 +507,12 @@ export function MinhasTarefasSimples() {
               <SelectContent>
                 <SelectItem value="all">Todos os projetos</SelectItem>
                 {projects.map((p) => (
-                  <SelectItem key={p.id} value={p.id}>{p.nome}</SelectItem>
+                  <SelectItem key={p.id} value={p.id}>
+                    <div className="flex items-center gap-2">
+                      <span className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: p.cor }} />
+                      {p.nome}
+                    </div>
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -511,6 +529,22 @@ export function MinhasTarefasSimples() {
             </Select>
           </div>
         </div>
+
+        {/* Chips de filtro rápido por prazo */}
+        <div className="flex flex-wrap items-center gap-1.5">
+          <CentralChip label="Todas" count={chipCounts.todas}
+            active={quickFilter === "all"} onClick={() => setQuickFilter("all")} />
+          <CentralChip label="Sem prazo" count={chipCounts.semPrazo}
+            active={quickFilter === "sem_data"} onClick={() => setQuickFilter("sem_data")} />
+          <CentralChip label="Para hoje" count={chipCounts.hoje}
+            active={quickFilter === "hoje"} onClick={() => setQuickFilter("hoje")} />
+          <CentralChip label="Atrasadas" count={chipCounts.atrasadas}
+            countVariant={chipCounts.atrasadas > 0 && quickFilter !== "atrasadas" ? "destructive" : undefined}
+            active={quickFilter === "atrasadas"} onClick={() => setQuickFilter("atrasadas")} />
+          <CentralChip label="Concluídas hoje" count={chipCounts.concluidasHoje}
+            active={quickFilter === "concluidas_hoje"} onClick={() => setQuickFilter("concluidas_hoje")} />
+        </div>
+
 
         {/* Conteúdo */}
         {view === "list" ? (
