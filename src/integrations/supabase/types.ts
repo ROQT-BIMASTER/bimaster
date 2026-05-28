@@ -27888,6 +27888,7 @@ export type Database = {
       }
       modulos_sistema: {
         Row: {
+          acesso_padrao: boolean
           ativo: boolean | null
           codigo: string
           created_at: string | null
@@ -27898,6 +27899,7 @@ export type Database = {
           ordem: number | null
         }
         Insert: {
+          acesso_padrao?: boolean
           ativo?: boolean | null
           codigo: string
           created_at?: string | null
@@ -27908,6 +27910,7 @@ export type Database = {
           ordem?: number | null
         }
         Update: {
+          acesso_padrao?: boolean
           ativo?: boolean | null
           codigo?: string
           created_at?: string | null
@@ -42298,6 +42301,7 @@ export type Database = {
       }
       telas_sistema: {
         Row: {
+          acesso_padrao: boolean
           ativo: boolean | null
           codigo: string
           created_at: string | null
@@ -42310,6 +42314,7 @@ export type Database = {
           rota: string
         }
         Insert: {
+          acesso_padrao?: boolean
           ativo?: boolean | null
           codigo: string
           created_at?: string | null
@@ -42322,6 +42327,7 @@ export type Database = {
           rota: string
         }
         Update: {
+          acesso_padrao?: boolean
           ativo?: boolean | null
           codigo?: string
           created_at?: string | null
@@ -48481,6 +48487,8 @@ export type Database = {
         }
         Returns: string
       }
+      aplicar_acesso_padrao: { Args: { _user_id: string }; Returns: undefined }
+      aplicar_acesso_padrao_em_massa: { Args: never; Returns: Json }
       aplicar_mapeamento_plano_contas: { Args: never; Returns: Json }
       aplicar_perfil_processo: {
         Args: {

@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Checkbox } from "@/components/ui/checkbox";
-import { UserPlus, Pencil, Trash2, Search, CheckCircle, XCircle, Lock, ChevronLeft, ChevronRight } from "lucide-react";
+import { UserPlus, Pencil, Trash2, Search, CheckCircle, XCircle, Lock, ChevronLeft, ChevronRight, ShieldCheck, Sparkles } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { userSchema } from "@/lib/validations/user";
 import { supabase } from "@/integrations/supabase/client";
@@ -570,18 +570,38 @@ export const GerenciamentoUsuarios = () => {
     <div className="space-y-4">
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-2 flex-wrap">
             <div>
               <CardTitle>Gerenciar Usuários</CardTitle>
               <CardDescription>Adicione, edite ou remova usuários do sistema</CardDescription>
             </div>
-            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-              <DialogTrigger asChild>
-                <Button onClick={() => { setEditingUser(null); setErrors({}); }}>
-                  <UserPlus className="w-4 h-4 mr-2" />
-                  Novo Usuário
-                </Button>
-              </DialogTrigger>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                onClick={async () => {
+                  if (!confirm("Aplicar o pacote de acesso padrão a todos os usuários ativos que ainda não o tenham? Acessos extras existentes não serão removidos.")) return;
+                  const { data, error } = await supabase.rpc("aplicar_acesso_padrao_em_massa");
+                  if (error) {
+                    toast.error("Erro", { description: error.message });
+                    return;
+                  }
+                  const r = data as { modulos_concedidos: number; telas_concedidas: number };
+                  toast.success("Acesso padrão aplicado", {
+                    description: `${r.telas_concedidas} tela(s) e ${r.modulos_concedidos} módulo(s) concedido(s).`,
+                  });
+                }}
+              >
+                <ShieldCheck className="w-4 h-4 mr-2" />
+                Aplicar acesso padrão
+              </Button>
+              <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button onClick={() => { setEditingUser(null); setErrors({}); }}>
+                    <UserPlus className="w-4 h-4 mr-2" />
+                    Novo Usuário
+                  </Button>
+                </DialogTrigger>
+
               <DialogContent>
                 <DialogHeader>
                   <DialogTitle>{editingUser ? "Editar Usuário" : "Novo Usuário"}</DialogTitle>
@@ -779,7 +799,9 @@ export const GerenciamentoUsuarios = () => {
                 </DialogFooter>
               </DialogContent>
             </Dialog>
+            </div>
           </div>
+
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
