@@ -282,6 +282,7 @@ export function MinhasTarefasSimples() {
   const [search, setSearch] = useState("");
   const [projectFilter, setProjectFilter] = useState<string>("all");
   const [priorityFilter, setPriorityFilter] = useState<PriorityFilter>("all");
+  const [originFilter, setOriginFilter] = useState<OriginFilter>("all");
   const [quickFilter, setQuickFilter] = useState<QuickFilter>("all");
   const [sortMode, setSortMode] = useState<SortMode>("due_asc");
 
@@ -291,9 +292,12 @@ export function MinhasTarefasSimples() {
 
   const projects = useMemo(() => {
     const map = new Map<string, { id: string; nome: string; cor: string }>();
-    tarefas.forEach((t) => map.set(t.projeto_id, { id: t.projeto_id, nome: t.projeto_nome, cor: t.projeto_cor }));
+    tarefas.forEach((t) => {
+      if (projetoPessoalId && t.projeto_id === projetoPessoalId) return;
+      map.set(t.projeto_id, { id: t.projeto_id, nome: t.projeto_nome, cor: t.projeto_cor });
+    });
     return Array.from(map.values()).sort((a, b) => a.nome.localeCompare(b.nome));
-  }, [tarefas]);
+  }, [tarefas, projetoPessoalId]);
 
   // Contadores dos chips — calculados sobre o dataset completo para não
   // saltarem ao aplicar busca/projeto/prioridade.
