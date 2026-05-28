@@ -83,6 +83,23 @@ export default function CentralTrabalho({ defaultTab }: Props) {
   const activeTab: TabKey = normalizeTab(rawTab, fallbackTab);
   const tarefasFilter = normalizeFilter(searchParams.get("filter"));
 
+  // Quando a aba ativa vem implicitamente (via prop `defaultTab` ou preferência
+  // salva) e a URL não tem `?tab=`, o sanitizer global em `centralUrlParams.ts`
+  // assume `tab="hoje"` e descarta `filter`/`view`/`priority`/`sort`/`role`/
+  // `project`/`q` (que só são válidos quando `tab=tarefas`). Isso faz os chips
+  // "Sem prazo / Para hoje / Atrasadas / Concluídas hoje" voltarem para "Todas"
+  // imediatamente após o clique. Materializamos `tab=<activeTab>` na URL para
+  // que o sanitizer preserve os parâmetros próprios da aba.
+  useEffect(() => {
+    if (prefsLoading || isResetting) return;
+    if (searchParams.get("tab")) return;
+    if (activeTab === "hoje") return; // default, não precisa materializar
+    const next = new URLSearchParams(searchParams);
+    next.set("tab", activeTab);
+    setSearchParams(next, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab, prefsLoading, isResetting, searchParams]);
+
   // Track keys we've already warned about so we don't spam toasts on re-renders.
   const warnedKeysRef = useRef<Set<string>>(new Set());
 
