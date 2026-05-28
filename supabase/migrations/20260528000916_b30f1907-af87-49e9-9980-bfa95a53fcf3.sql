@@ -1,0 +1,1 @@
+DROP FUNCTION IF EXISTS public.rpc_enviar_documento_aprovacao(uuid, uuid, uuid, uuid, timestamp with time zone);
