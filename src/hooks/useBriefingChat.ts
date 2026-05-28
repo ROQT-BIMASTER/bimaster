@@ -106,7 +106,12 @@ export function useBriefingChat(briefingId: string | undefined) {
         reply: string;
         sources: BriefingMsg["sources"];
         patches: BriefingMsg["proposals"];
-        briefing: { id: string; titulo: string; payload: Record<string, string> };
+        briefing: {
+          id: string;
+          titulo: string;
+          payload: Record<string, string>;
+          campo_origens?: Record<string, CampoOrigem>;
+        };
       }>("briefing-agent", {
         briefing_id: briefingId,
         user_message: texto || "(imagem anexada)",
@@ -124,7 +129,12 @@ export function useBriefingChat(briefingId: string | undefined) {
       if (data.briefing) {
         setBriefing((prev) =>
           prev
-            ? { ...prev, titulo: data.briefing.titulo, payload: data.briefing.payload }
+            ? {
+                ...prev,
+                titulo: data.briefing.titulo,
+                payload: data.briefing.payload,
+                campo_origens: data.briefing.campo_origens ?? prev.campo_origens,
+              }
             : prev,
         );
       }
