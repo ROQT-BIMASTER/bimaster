@@ -147,8 +147,8 @@ function Row({
         {t.responsavel_id ? (
           <TarefaResponsavelAvatar
             responsavelId={t.responsavel_id}
-            responsavelNome={t.responsavel_nome}
-            responsavelAvatarUrl={t.responsavel_avatar_url}
+            nome={t.responsavel_nome}
+            avatarUrl={t.responsavel_avatar_url}
             size="xs"
           />
         ) : (
