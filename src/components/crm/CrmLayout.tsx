@@ -79,6 +79,9 @@ export default function CrmLayout() {
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const isRoot = pathname === "/dashboard/crm" || pathname === "/dashboard/crm/";
+  usePageTracking();
+
+
 
   return (
     <SidebarProvider>
