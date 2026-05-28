@@ -558,6 +558,7 @@ ${proximoLinha}`;
         id: briefing.id,
         titulo: (briefing as any).titulo,
         payload: (briefing as any).payload,
+        campo_origens: (briefing as any).campo_origens ?? {},
       },
     }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   },
