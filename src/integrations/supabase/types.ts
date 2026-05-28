@@ -50928,28 +50928,17 @@ export type Database = {
         Args: { _novo_nome?: string; _template_id: string }
         Returns: string
       }
-      rpc_enviar_documento_aprovacao:
-        | {
-            Args: {
-              p_documento_id: string
-              p_lote_id?: string
-              p_pipeline_id: string
-              p_prazo_em?: string
-              p_tarefa_id?: string
-            }
-            Returns: string
-          }
-        | {
-            Args: {
-              p_documento_id: string
-              p_lote_id?: string
-              p_overrides?: Json
-              p_pipeline_id: string
-              p_prazo_em?: string
-              p_tarefa_id?: string
-            }
-            Returns: string
-          }
+      rpc_enviar_documento_aprovacao: {
+        Args: {
+          p_documento_id: string
+          p_lote_id?: string
+          p_overrides?: Json
+          p_pipeline_id: string
+          p_prazo_em?: string
+          p_tarefa_id?: string
+        }
+        Returns: string
+      }
       rpc_enviar_mensagem_urgente: {
         Args: {
           p_conteudo: string
