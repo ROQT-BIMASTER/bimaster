@@ -104,37 +104,44 @@ export default function ProjetoDetalhe({ shared = false }: ProjetoDetalheProps =
   const customBg = !!projeto?.bg_cor;
   const darkBg = isDarkColor(projeto?.bg_cor ?? null);
 
-  if (isLoading) {
-    return (
-      <SidebarProvider>
-        <div className="min-h-screen flex w-full bg-background">
-          <AppSidebar />
-          <main className="flex-1 flex items-center justify-center">
-            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-          </main>
-        </div>
-      </SidebarProvider>
-    );
-  }
-
-  if (!projeto) {
-    // Log denied access attempt and redirect
-    if (id) {
-      logProjectAccessDenied(id);
+  const Frame = ({ children }: { children: React.ReactNode }) => {
+    if (shared) {
+      return <div className="min-h-screen w-full bg-background">{children}</div>;
     }
     return (
       <SidebarProvider>
         <div className="min-h-screen flex w-full bg-background">
           <AppSidebar />
-          <main className="flex-1 flex flex-col items-center justify-center gap-3 text-muted-foreground">
-            <ShieldAlert className="h-8 w-8 text-destructive" />
-            <p>Você não tem permissão para acessar este projeto.</p>
-            <Button variant="outline" size="sm" onClick={() => navigate("/dashboard/projetos")}>
-              <ArrowLeft className="h-4 w-4 mr-1" /> Voltar aos Projetos
-            </Button>
-          </main>
+          {children}
         </div>
       </SidebarProvider>
+    );
+  };
+
+  if (isLoading) {
+    return (
+      <Frame>
+        <main className="flex-1 flex items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </main>
+      </Frame>
+    );
+  }
+
+  if (!projeto) {
+    if (id) {
+      logProjectAccessDenied(id);
+    }
+    return (
+      <Frame>
+        <main className="flex-1 flex flex-col items-center justify-center gap-3 text-muted-foreground">
+          <ShieldAlert className="h-8 w-8 text-destructive" />
+          <p>Você não tem permissão para acessar este projeto.</p>
+          <Button variant="outline" size="sm" onClick={() => navigate("/dashboard/projetos")}>
+            <ArrowLeft className="h-4 w-4 mr-1" /> Voltar aos Projetos
+          </Button>
+        </main>
+      </Frame>
     );
   }
 
