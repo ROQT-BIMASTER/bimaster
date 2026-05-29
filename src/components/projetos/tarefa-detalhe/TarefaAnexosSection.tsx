@@ -324,6 +324,15 @@ export function TarefaAnexosSection({
         fileName={previewState.name}
         bucketHint="projeto-anexos"
       />
+
+      <UploadAnexoDialog
+        open={uploadDialogOpen}
+        onOpenChange={setUploadDialogOpen}
+        tarefaId={tarefaId}
+        files={pendingFiles}
+        onConfirm={handleConfirmUpload}
+      />
     </>
   );
 }
+
