@@ -256,6 +256,27 @@ export type Database = {
         }
         Relationships: []
       }
+      admin_escopo_limitado: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          motivo: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          motivo?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          motivo?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       ads_accounts: {
         Row: {
           account_id: string
@@ -50056,11 +50077,15 @@ export type Database = {
       }
       get_user_combined_module_permissions: {
         Args: { _user_id: string }
-        Returns: string[]
+        Returns: {
+          modulo_codigo: string
+        }[]
       }
       get_user_combined_screen_permissions: {
         Args: { _user_id: string }
-        Returns: string[]
+        Returns: {
+          tela_codigo: string
+        }[]
       }
       get_user_empresa_ids: { Args: { _user_id: string }; Returns: number[] }
       get_user_module_permissions: {
