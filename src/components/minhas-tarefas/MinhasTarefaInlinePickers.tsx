@@ -189,8 +189,8 @@ export function MinhasTarefaColaboradoresInline({ tarefaId, projetoId }: ColabPr
         return { user_id: id, nome: p?.nome || null, avatar_url: p?.avatar_url || null };
       });
     },
-    enabled: open,
     staleTime: 30_000,
+    gcTime: 5 * 60_000,
   });
 
   const colabIds = new Set(colabs.map((c) => c.user_id));
