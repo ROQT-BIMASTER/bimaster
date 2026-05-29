@@ -50471,6 +50471,47 @@ export type Database = {
         Args: { p_sugestao_id: string }
         Returns: Json
       }
+      rpc_admin_security_audit: {
+        Args: {
+          p_action?: string
+          p_actor_id?: string
+          p_entity_types?: string[]
+          p_from?: string
+          p_limit?: number
+          p_offset?: number
+          p_search?: string
+          p_target_user_id?: string
+          p_to?: string
+        }
+        Returns: {
+          acao_descricao: string
+          action: string
+          actor_email: string
+          actor_id: string
+          actor_nome: string
+          componente_codigo: string
+          created_at: string
+          entity_type: string
+          id: string
+          modulo_codigo: string
+          new_data: Json
+          old_data: Json
+          target_departamento: string
+          target_role: string
+          target_user_id: string
+          target_user_nome: string
+          tela_codigo: string
+          total_count: number
+        }[]
+      }
+      rpc_admin_security_audit_actors: {
+        Args: never
+        Returns: {
+          email: string
+          id: string
+          nome: string
+        }[]
+      }
       rpc_alocar_op_em_container: {
         Args: {
           p_embarque_id: string
