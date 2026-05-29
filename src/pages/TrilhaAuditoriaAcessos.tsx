@@ -19,8 +19,10 @@ import {
   ArrowLeft,
   Download,
   Users,
+  ShieldCheck,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import AcoesAdminsTab from "@/components/auditoria/AcoesAdminsTab";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
@@ -108,6 +110,10 @@ export default function TrilhaAuditoriaAcessos() {
             <Monitor className="h-4 w-4 mr-1.5" />
             Múltiplos IPs
           </TabsTrigger>
+          <TabsTrigger value="acoes-admins">
+            <ShieldCheck className="h-4 w-4 mr-1.5" />
+            Ações de Admins
+          </TabsTrigger>
         </TabsList>
         <TabsContent value="trilha">
           <TrilhaCompleta filters={filters} setFilters={setFilters} />
@@ -124,6 +130,9 @@ export default function TrilhaAuditoriaAcessos() {
         </TabsContent>
         <TabsContent value="multi-ip">
           <MultiplosIPs />
+        </TabsContent>
+        <TabsContent value="acoes-admins">
+          <AcoesAdminsTab />
         </TabsContent>
       </Tabs>
     </div>
