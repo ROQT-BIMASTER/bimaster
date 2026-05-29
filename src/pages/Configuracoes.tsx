@@ -80,13 +80,14 @@ const LazyFallback = () => (
 );
 
 function Configuracoes() {
-  const { role: permRole } = usePermissions();
+  const { role: permRole, hasScreenPermission } = usePermissions();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeSection, setActiveSection] = useState("perfil");
   const [showPasswordDialog, setShowPasswordDialog] = useState(false);
   const [outrasOpcoesUnlocked, setOutrasOpcoesUnlocked] = useState(false);
+
   useEffect(() => {
     fetchProfile();
   }, []);
@@ -141,8 +142,12 @@ function Configuracoes() {
     );
   }
 
-  const isAdmin = userRole === 'admin';
+  // Acesso administrativo pode vir do papel admin OU de permissão explícita à tela "configuracoes"
+  // (usado para usuários de Suporte de TI sem o bypass de admin).
+  const isAdminRole = userRole === 'admin';
+  const isAdmin = isAdminRole || hasScreenPermission('configuracoes');
   const isSupervisor = userRole === 'supervisor';
+
 
   const getTipoUsuarioLabel = () => {
     switch (userRole) {

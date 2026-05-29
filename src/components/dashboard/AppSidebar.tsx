@@ -1403,8 +1403,10 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
           </SidebarGroup>
         )}
 
-        {/* Admin links — admin only */}
-        {isAdmin && (
+        {/* Admin links — admin OR usuário com permissão explícita à tela de configurações
+            (caso do Suporte de TI sem bypass admin) */}
+        {(isAdmin || hasPermission("configuracoes")) && (
+
           <SidebarGroup className="py-1 px-2">
             <Collapsible open={adminOpen} onOpenChange={setAdminOpen}>
               <CollapsibleTrigger className="w-full">
