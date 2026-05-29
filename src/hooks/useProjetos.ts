@@ -227,20 +227,22 @@ export function useProjetos(options: UseProjetosOptions = {}) {
         } as any)
         .select()
         .single();
-      if (error) throw error;
+      if (error) throw new Error(`[projeto] ${error.message}`);
 
-      await supabase
+      const { error: memberErr } = await supabase
         .from("projeto_membros")
         .insert({ projeto_id: data.id, user_id: user.id, papel: "coordenador" });
+      if (memberErr) throw new Error(`[membro coordenador] ${memberErr.message}`);
 
       // Insert department associations
       if (departamento_ids && departamento_ids.length > 0) {
-        await supabase
+        const { error: deptErr } = await supabase
           .from("projeto_departamentos")
           .insert(departamento_ids.map(dId => ({
             projeto_id: data.id,
             departamento_id: dId,
           })) as any);
+        if (deptErr) throw new Error(`[departamentos] ${deptErr.message}`);
       }
 
       // ============= Materializar seções/tarefas =============
