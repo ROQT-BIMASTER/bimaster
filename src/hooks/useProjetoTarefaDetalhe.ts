@@ -162,8 +162,15 @@ export function useProjetoTarefaDetalhe(tarefaId: string | undefined, produtoId?
     "text/plain", "text/csv",
   ];
 
+  type UploadAnexoInput = File | { file: File; notificarIds?: string[] };
+  const normalizeUpload = (input: UploadAnexoInput): { file: File; notificarIds: string[] } => {
+    if (input instanceof File) return { file: input, notificarIds: [] };
+    return { file: input.file, notificarIds: input.notificarIds || [] };
+  };
+
   const uploadAnexo = useMutation({
-    mutationFn: async (file: File) => {
+    mutationFn: async (input: UploadAnexoInput) => {
+      const { file, notificarIds } = normalizeUpload(input);
       // Validate file size
       if (file.size > MAX_FILE_SIZE) {
         throw new Error(`Arquivo "${file.name}" excede o limite de 20MB (${(file.size / 1048576).toFixed(1)}MB).`);
@@ -179,6 +186,8 @@ export function useProjetoTarefaDetalhe(tarefaId: string | undefined, produtoId?
         .upload(filePath, file);
       if (uploadError) throw uploadError;
 
+      const cleanedNotificados = Array.from(new Set((notificarIds || []).filter(id => id && id !== user!.id)));
+
       const { error } = await supabase.from("projeto_tarefa_anexos").insert({
         tarefa_id: tarefaId!,
         user_id: user!.id,
@@ -186,17 +195,25 @@ export function useProjetoTarefaDetalhe(tarefaId: string | undefined, produtoId?
         storage_path: filePath,
         tipo_arquivo: file.type,
         tamanho: file.size,
-      });
+        notificados: cleanedNotificados,
+      } as any);
       if (error) throw error;
 
       // Log audit with produtoId from hook param
       await logDocAudit({
         produtoId: produtoId || undefined,
         acao: "upload",
-        detalhes: { nome_arquivo: file.name, tamanho: file.size, tipo: file.type, tarefa_id: tarefaId },
+        detalhes: {
+          nome_arquivo: file.name,
+          tamanho: file.size,
+          tipo: file.type,
+          tarefa_id: tarefaId,
+          notificados: cleanedNotificados,
+        },
       });
     },
-    onMutate: async (file: File) => {
+    onMutate: async (input: UploadAnexoInput) => {
+      const { file } = normalizeUpload(input);
       const qk = ["tarefa-anexos", tarefaId];
       await queryClient.cancelQueries({ queryKey: qk });
       const previous = queryClient.getQueryData<TarefaAnexo[]>(qk);
@@ -227,6 +244,7 @@ export function useProjetoTarefaDetalhe(tarefaId: string | undefined, produtoId?
       queryClient.invalidateQueries({ queryKey: ["tarefa-anexos", tarefaId] });
     },
   });
+
 
   const deleteAnexo = useMutation({
     mutationFn: async (anexo: TarefaAnexo) => {
