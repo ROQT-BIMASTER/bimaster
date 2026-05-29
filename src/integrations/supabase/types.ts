@@ -51003,6 +51003,47 @@ export type Database = {
         Args: { p_intake_demanda_id: string; p_itens: Json }
         Returns: Json
       }
+      rpc_criar_projeto: {
+        Args: { _payload: Json }
+        Returns: {
+          alerta_antecipacao_dias: number
+          asana_gid: string | null
+          asana_last_sync_error: string | null
+          asana_last_sync_status: string | null
+          asana_last_synced_at: string | null
+          asana_team_gid: string | null
+          asana_workspace_gid: string | null
+          bg_cor: string | null
+          categoria_linha: string | null
+          codigo_integracao: string | null
+          cor: string | null
+          created_at: string | null
+          criador_id: string
+          data_fim_alvo: string | null
+          data_inicio: string | null
+          departamento_id: string | null
+          descricao: string | null
+          icone: string | null
+          id: string
+          marca: string | null
+          nome: string
+          origem_projeto: string | null
+          prazo_padrao_tarefa: number
+          regime_calendario: string
+          status: string | null
+          tipo: string
+          uf_feriados: string
+          updated_at: string | null
+          usa_feriados: boolean
+          visibilidade: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "projetos"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       rpc_crm_search: {
         Args: { _empresa_id: number; _limit?: number; _q: string }
         Returns: {
