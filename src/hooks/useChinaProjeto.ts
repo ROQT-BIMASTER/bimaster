@@ -276,28 +276,30 @@ export function useCriarProjetoChina() {
       const nome = `${submissao.produto_codigo} - ${submissao.produto_nome}`;
       const cor = "#6366f1";
 
-      // 1. Create project
-      const { data: projeto, error: projError } = await supabase
-        .from("projetos")
-        .insert({ nome, descricao: `Projeto de desenvolvimento do produto China: ${submissao.produto_codigo}`, cor, icone: "📦", criador_id: user.id })
-        .select()
-        .single();
+      const sections = TEMPLATES.desenvolvimento_produto.secoes;
+
+      // 1. Create project through the hardened backend path
+      const { data: projeto, error: projError } = await supabase.rpc("rpc_criar_projeto" as any, {
+        _payload: {
+          nome,
+          descricao: `Projeto de desenvolvimento do produto China: ${submissao.produto_codigo}`,
+          cor,
+          icone: "package",
+          tipo: "desenvolvimento_produto",
+          origem_projeto: "china",
+          secoes: sections.map((nomeSecao, i) => ({ nome: nomeSecao, ordem: i })),
+        },
+      });
       if (projError) throw projError;
 
-      // 2. Add creator as coordinator
-      await supabase
-        .from("projeto_membros")
-        .insert({ projeto_id: projeto.id, user_id: user.id, papel: "coordenador" });
-
-      // 3. Create sections from template
-      const sections = TEMPLATES.desenvolvimento_produto.secoes;
       const { data: secoesCriadas, error: secError } = await supabase
         .from("projeto_secoes")
-        .insert(sections.map((nome, i) => ({ projeto_id: projeto.id, nome, ordem: i })))
-        .select();
+        .select("id, nome, ordem")
+        .eq("projeto_id", projeto.id)
+        .in("nome", sections);
       if (secError) throw secError;
 
-      // 4. Create auto tasks per section
+      // 2. Create auto tasks per section
       const secoesMap = new Map((secoesCriadas as any[]).map((s) => [s.nome, s.id]));
 
       const tarefasToInsert: any[] = [];
