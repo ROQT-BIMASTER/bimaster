@@ -35953,6 +35953,7 @@ export type Database = {
           id: string
           metadata: Json
           nome: string
+          notificados: string[]
           storage_path: string
           tamanho: number | null
           tarefa_id: string
@@ -35965,6 +35966,7 @@ export type Database = {
           id?: string
           metadata?: Json
           nome: string
+          notificados?: string[]
           storage_path: string
           tamanho?: number | null
           tarefa_id: string
@@ -35977,6 +35979,7 @@ export type Database = {
           id?: string
           metadata?: Json
           nome?: string
+          notificados?: string[]
           storage_path?: string
           tamanho?: number | null
           tarefa_id?: string
