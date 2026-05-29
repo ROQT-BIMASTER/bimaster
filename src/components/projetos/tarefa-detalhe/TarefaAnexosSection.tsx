@@ -52,16 +52,17 @@ interface Anexo {
 }
 
 interface TarefaAnexosSectionProps {
+  tarefaId: string;
   anexos: Anexo[];
   produtoId: string | null;
-  uploadAnexo: { mutate: (file: File) => void };
+  uploadAnexo: { mutate: (input: File | { file: File; notificarIds?: string[] }) => void };
   deleteAnexo: { mutate: (anexo: Anexo) => void };
   getAnexoUrl: (path: string) => Promise<string | null>;
   sendToCofre: { mutate: (data: { anexoIds: string[]; produtoId: string; categoriasPorAnexo: Record<string, string> }) => void; isPending: boolean };
 }
 
 export function TarefaAnexosSection({
-  anexos, produtoId, uploadAnexo, deleteAnexo, getAnexoUrl, sendToCofre,
+  tarefaId, anexos, produtoId, uploadAnexo, deleteAnexo, getAnexoUrl, sendToCofre,
 }: TarefaAnexosSectionProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [selectedAnexoIds, setSelectedAnexoIds] = useState<string[]>([]);
@@ -69,6 +70,8 @@ export function TarefaAnexosSection({
   const [cofreDialogOpen, setCofreDialogOpen] = useState(false);
   const [previewState, setPreviewState] = useState<{ open: boolean; path: string; name: string }>({ open: false, path: "", name: "" });
   const [reimportingId, setReimportingId] = useState<string | null>(null);
+  const [pendingFiles, setPendingFiles] = useState<File[]>([]);
+  const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
 
   const toggleAnexoSelection = (id: string) => {
     setSelectedAnexoIds(prev =>
@@ -78,10 +81,17 @@ export function TarefaAnexosSection({
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
-    if (!files) return;
-    Array.from(files).forEach(f => uploadAnexo.mutate(f));
+    if (!files || files.length === 0) return;
+    setPendingFiles(Array.from(files));
+    setUploadDialogOpen(true);
     e.target.value = "";
   };
+
+  const handleConfirmUpload = (notificarIds: string[]) => {
+    pendingFiles.forEach(f => uploadAnexo.mutate({ file: f, notificarIds }));
+    setPendingFiles([]);
+  };
+
 
   // Classifies an attachment into one of: "storage" | "external" | "asana_legacy" | "expired" | "too_large"
   const classifyAnexo = (a: Anexo): "storage" | "external" | "asana_legacy" | "expired" | "too_large" => {
