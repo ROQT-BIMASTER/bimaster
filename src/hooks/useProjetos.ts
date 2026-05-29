@@ -331,36 +331,9 @@ export function useProjetos(options: UseProjetosOptions = {}) {
             .update({ uso_count: ((m as any)?.uso_count ?? 0) + 1 } as any)
             .eq("id", modelo_id);
         } catch { /* ignore */ }
-      } else {
-        // Template do sistema: comportamento original
-        const sections = TEMPLATES[template || "generico"].secoes;
-        const { error: secError } = await supabase
-          .from("projeto_secoes")
-          .insert(sections.map((nome, i) => ({
-            projeto_id: data.id,
-            nome,
-            ordem: i,
-          })));
-        if (secError) throw secError;
       }
+      // Seções do template do sistema e metas iniciais já foram criadas pela RPC rpc_criar_projeto.
 
-      // Metas iniciais (opcional)
-      if (metas_iniciais && metas_iniciais.length > 0) {
-        await supabase.from("projeto_metas" as any).insert(
-          metas_iniciais.map((m) => ({
-            projeto_id: data.id,
-            titulo: m.titulo,
-            tipo: m.tipo,
-            valor_alvo: m.valor_alvo,
-            valor_atual: 0,
-            unidade: m.unidade ?? null,
-            data_alvo: m.data_alvo ?? null,
-            peso: m.peso ?? 1,
-            status: "em_andamento",
-            created_by: user.id,
-          })) as any,
-        );
-      }
 
       return data;
     },
