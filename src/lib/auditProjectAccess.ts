@@ -12,7 +12,7 @@ export async function logProjectAccessDenied(projetoId: string): Promise<void> {
 
     await supabase.from("security_audit_log" as any).insert({
       action: "project_access_denied_client",
-      severity: "medium",
+      severity: "warn",
       user_id: user.id,
       metadata: {
         projeto_id: projetoId,
