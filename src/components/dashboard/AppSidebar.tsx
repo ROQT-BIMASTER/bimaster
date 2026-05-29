@@ -1339,23 +1339,26 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
         </SidebarGroup>
         )}
 
-        {/* Geral — only show if user has permissions beyond just ERP */}
-        {(isAdmin || moduleFilterOptions.some(m => m.code !== "integracao_erp")) && (
+        {/* Geral — Instalar App sempre visível (rota genérica); demais itens dependem de permissão */}
         <SidebarGroup className="py-1">
           <SidebarGroupContent>
             <SidebarMenu className="space-y-0.5 px-2">
-              {(isAdmin || hasPermission("relatorios")) && (
-                <MenuItemLink to="/dashboard/relatorios" icon={BarChart3} title="Relatórios" />
+              {(isAdmin || moduleFilterOptions.some(m => m.code !== "integracao_erp")) && (
+                <>
+                  {(isAdmin || hasPermission("relatorios")) && (
+                    <MenuItemLink to="/dashboard/relatorios" icon={BarChart3} title="Relatórios" />
+                  )}
+                  {(isAdmin || hasPermission("briefings_agente")) && (
+                    <MenuItemLink to="/dashboard/briefings" icon={Sparkles} title="Briefings" />
+                  )}
+                  <MenuItemLink to="/dashboard/chat" icon={MessageCircle} title="Chat" />
+                </>
               )}
-              {(isAdmin || hasPermission("briefings_agente")) && (
-                <MenuItemLink to="/dashboard/briefings" icon={Sparkles} title="Briefings" />
-              )}
-              <MenuItemLink to="/dashboard/chat" icon={MessageCircle} title="Chat" />
               <MenuItemLink to="/dashboard/instalar-app" icon={needRefresh ? RefreshCw : Download} title={needRefresh ? "Atualizar App" : t("nav.install_app")} />
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
-        )}
+
 
         <Separator className="mx-4 w-auto" />
 
