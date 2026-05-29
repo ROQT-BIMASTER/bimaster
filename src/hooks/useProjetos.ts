@@ -215,34 +215,31 @@ export function useProjetos(options: UseProjetosOptions = {}) {
       }
 
       const tipo = template || "generico";
-      const { data, error } = await supabase
-        .from("projetos")
-        .insert({
-          ...projetoData,
-          criador_id: user.id,
-          tipo,
-          ...(marca ? { marca } : {}),
-          ...(categoriaLinha ? { categoria_linha: categoriaLinha } : {}),
-          ...(origemProjeto ? { origem_projeto: origemProjeto } : {}),
-        } as any)
-        .select()
-        .single();
-      if (error) throw new Error(`[projeto] ${error.message}`);
 
-      const { error: memberErr } = await supabase
-        .from("projeto_membros")
-        .insert({ projeto_id: data.id, user_id: user.id, papel: "coordenador" });
-      if (memberErr) throw new Error(`[membro coordenador] ${memberErr.message}`);
+      // Seções iniciais do template do sistema (quando não houver modelo customizado)
+      const secoesIniciais = !modeloEstrutura
+        ? (TEMPLATES[tipo as TemplateKey]?.secoes ?? []).map((nome, i) => ({ nome, ordem: i }))
+        : [];
 
-      // Insert department associations
-      if (departamento_ids && departamento_ids.length > 0) {
-        const { error: deptErr } = await supabase
-          .from("projeto_departamentos")
-          .insert(departamento_ids.map(dId => ({
-            projeto_id: data.id,
-            departamento_id: dId,
-          })) as any);
-        if (deptErr) throw new Error(`[departamentos] ${deptErr.message}`);
+      const payload: any = {
+        ...projetoData,
+        tipo,
+        ...(marca ? { marca } : {}),
+        ...(categoriaLinha ? { categoria_linha: categoriaLinha } : {}),
+        ...(origemProjeto ? { origem_projeto: origemProjeto } : {}),
+        departamento_ids: departamento_ids ?? [],
+        secoes: secoesIniciais,
+        metas_iniciais: metas_iniciais ?? [],
+      };
+
+      const { data, error } = await supabase.rpc("rpc_criar_projeto" as any, {
+        _payload: payload,
+      });
+      if (error) {
+        const msg = error.message || "";
+        if (msg.includes("not_authenticated")) throw new Error("Sessão expirada. Faça login novamente.");
+        if (msg.includes("user_not_active")) throw new Error("Seu usuário ainda não está ativo. Contate o administrador.");
+        throw new Error(`[projeto] ${msg}`);
       }
 
       // ============= Materializar seções/tarefas =============
