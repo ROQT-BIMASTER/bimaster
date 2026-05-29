@@ -9,6 +9,8 @@ import { toast } from "sonner";
 import { StoragePreviewDialog } from "@/components/fabrica/StoragePreviewDialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { supabase } from "@/integrations/supabase/client";
+import { UploadAnexoDialog } from "./UploadAnexoDialog";
+
 
 const COFRE_CATEGORIAS = [
   "briefing", "arte_final", "rotulo", "ficha_tecnica", "laudo", "certificado", "orcamento", "nota_fiscal", "art", "outro"
