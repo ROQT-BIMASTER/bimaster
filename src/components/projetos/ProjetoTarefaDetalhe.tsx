@@ -1360,6 +1360,7 @@ export function ProjetoTarefaDetalhe({
 
                 {/* Anexos */}
                 <TarefaAnexosSection
+                  tarefaId={tarefa.id}
                   anexos={anexos}
                   produtoId={(tarefa as any).produto_id || null}
                   uploadAnexo={uploadAnexo}
@@ -1367,6 +1368,7 @@ export function ProjetoTarefaDetalhe({
                   getAnexoUrl={getAnexoUrl}
                   sendToCofre={sendToCofre}
                 />
+
 
                 {isProjetoProduto && (
                   <>
