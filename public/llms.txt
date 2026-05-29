@@ -1,0 +1,23 @@
+# Bimaster
+
+> Plataforma corporativa de gestão integrada de negócios: ERP, financeiro com DRE IFRS-18, gestão de projetos, trade marketing, marketing, fábrica/PLM, vendas, portal cliente e operações China–Brasil.
+
+Bimaster é um sistema web multi-módulo voltado a empresas que precisam centralizar
+operações industriais, comerciais e financeiras em uma única plataforma, com
+governança, RLS por tenant, auditoria e integrações com ERPs externos, Asana,
+Mapbox, Shipsgo, Phyllo e Stripe.
+
+O acesso ao produto é restrito a usuários autenticados; as páginas abaixo são as
+superfícies públicas e institucionais do site.
+
+## Pages
+
+- [Início](/): Visão geral institucional da plataforma Bimaster.
+- [Privacidade](/privacidade): Política de privacidade e tratamento de dados (LGPD).
+- [Termos de Uso](/termos): Termos e condições de uso da plataforma.
+- [Contato](/contato): Canais oficiais de atendimento, privacidade e segurança.
+
+## Optional
+
+- [Login](/auth/login): Tela de autenticação para usuários da plataforma.
+- [Segurança](/.well-known/security.txt): Política de divulgação responsável de vulnerabilidades.
