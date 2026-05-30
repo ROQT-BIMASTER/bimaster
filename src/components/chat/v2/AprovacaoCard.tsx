@@ -13,11 +13,16 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
-import { ClipboardCheck, ThumbsUp, ThumbsDown, Loader2, CheckCircle2, XCircle, Clock } from "lucide-react";
+import { ClipboardCheck, ThumbsUp, ThumbsDown, Loader2, CheckCircle2, XCircle, Clock, FileText, Download, ShieldCheck } from "lucide-react";
 import { useChatAprovacao } from "@/hooks/chat/useChatAprovacao";
+import { useAprovacaoDocumentos } from "@/hooks/chat/useAprovacaoDocumentos";
+import { ComprovanteAprovacaoDialog } from "./ComprovanteAprovacaoDialog";
+import { downloadAprovacaoDoc } from "./aprovacaoDocs";
+import { formatBytes } from "./utils";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { toast } from "sonner";
 
 interface Props {
   aprovacaoId: string;
@@ -27,8 +32,18 @@ interface Props {
 
 export function AprovacaoCard({ aprovacaoId, viewerUid, mine }: Props) {
   const { data: ap, isLoading, decidir } = useChatAprovacao(aprovacaoId);
+  const { data: documentos = [] } = useAprovacaoDocumentos(aprovacaoId);
   const [confirmaRejeicao, setConfirmaRejeicao] = useState(false);
   const [motivo, setMotivo] = useState("");
+  const [showComprovante, setShowComprovante] = useState(false);
+
+  const baixarDoc = async (doc: { storage_path: string; titulo: string }) => {
+    try {
+      await downloadAprovacaoDoc(doc.storage_path, doc.titulo);
+    } catch (e: any) {
+      toast.error("Erro ao baixar", { description: e?.message ?? "falha" });
+    }
+  };
 
   if (isLoading) {
     return (
@@ -95,6 +110,32 @@ export function AprovacaoCard({ aprovacaoId, viewerUid, mine }: Props) {
           mine ? "text-white/80" : "text-muted-foreground")}>
           {ap.descricao}
         </p>
+      )}
+
+      {documentos.length > 0 && (
+        <div className={cn("mb-2 space-y-1 rounded-md border p-1.5",
+          mine ? "border-white/30" : "border-border bg-muted/30")}>
+          {documentos.map((doc) => (
+            <button
+              key={doc.id}
+              type="button"
+              onClick={() => baixarDoc(doc)}
+              className={cn(
+                "w-full flex items-center gap-2 text-left text-xs rounded px-1 py-1 transition-colors",
+                mine ? "hover:bg-white/10" : "hover:bg-background",
+              )}
+            >
+              <FileText className="h-3.5 w-3.5 shrink-0" />
+              <span className="flex-1 min-w-0 truncate">{doc.titulo}</span>
+              {doc.size_bytes != null && (
+                <span className={cn("shrink-0", mine ? "text-white/60" : "text-muted-foreground")}>
+                  {formatBytes(doc.size_bytes)}
+                </span>
+              )}
+              <Download className="h-3.5 w-3.5 shrink-0" />
+            </button>
+          ))}
+        </div>
       )}
 
       {/* Botões de decisão (visíveis apenas quando pendente e viewer != solicitante) */}
@@ -176,8 +217,29 @@ export function AprovacaoCard({ aprovacaoId, viewerUid, mine }: Props) {
               <strong>Motivo:</strong> {ap.motivo}
             </p>
           )}
+          {ap.status === "aprovado" && (
+            <div className="mt-1.5 flex items-center gap-2 flex-wrap">
+              <span className="flex items-center gap-1">
+                <ShieldCheck className="h-3 w-3" /> Assinado eletronicamente (trilha de auditoria)
+              </span>
+              <Button
+                variant="link"
+                size="sm"
+                className={cn("h-auto p-0 text-[11px]", mine ? "text-white" : "text-primary")}
+                onClick={() => setShowComprovante(true)}
+              >
+                Ver comprovante
+              </Button>
+            </div>
+          )}
         </div>
       )}
+
+      <ComprovanteAprovacaoDialog
+        aprovacaoId={aprovacaoId}
+        open={showComprovante}
+        onOpenChange={setShowComprovante}
+      />
     </div>
   );
 }
