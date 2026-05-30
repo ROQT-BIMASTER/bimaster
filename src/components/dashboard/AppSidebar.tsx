@@ -1352,6 +1352,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
                     <MenuItemLink to="/dashboard/briefings" icon={Sparkles} title="Briefings" />
                   )}
                   <MenuItemLink to="/dashboard/chat" icon={MessageCircle} title="Chat" />
+                  <MenuItemLink to="/dashboard/chat/aprovacoes" icon={Inbox} title="Aprovações do Chat" />
                 </>
               )}
               <MenuItemLink to="/dashboard/instalar-app" icon={needRefresh ? RefreshCw : Download} title={needRefresh ? "Atualizar App" : t("nav.install_app")} />

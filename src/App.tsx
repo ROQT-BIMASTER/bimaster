@@ -112,6 +112,7 @@ const Kanban = lazyWithRetry(() => import("./pages/Kanban"));
 const Tarefas = lazyWithRetry(() => import("./pages/Tarefas"));
 const Mapa = lazyWithRetry(() => import("./pages/Mapa"));
 const Chat = lazyWithRetry(() => import("./pages/Chat"));
+const CentralAprovacoesChat = lazyWithRetry(() => import("./pages/CentralAprovacoesChat"));
 const AguardandoAprovacao = lazyWithRetry(() => import("./pages/AguardandoAprovacao"));
 const UsuarioBloqueado = lazyWithRetry(() => import("./pages/UsuarioBloqueado"));
 const NotFound = lazyWithRetry(() => import("./pages/NotFound"));
@@ -583,6 +584,7 @@ function AppContent() {
             <Route path="/dashboard/ranking" element={<ModuleRoute moduleCode="trade"><ScreenProtectedRoute screenCode="trade_ranking"><Ranking /></ScreenProtectedRoute></ModuleRoute>} />
             <Route path="/dashboard/tarefas" element={<ProtectedRoute><Tarefas /></ProtectedRoute>} />
             <Route path="/dashboard/chat" element={<ProtectedRoute><Chat /></ProtectedRoute>} />
+            <Route path="/dashboard/chat/aprovacoes" element={<ProtectedRoute><CentralAprovacoesChat /></ProtectedRoute>} />
             <Route path="/dashboard/configuracoes" element={<ScreenRoute screenCode="admin"><Configuracoes /></ScreenRoute>} />
             <Route path="/dashboard/importar-clientes" element={<ModuleRoute moduleCode="comercial"><ScreenProtectedRoute screenCode="comercial_importar"><ImportarClientes /></ScreenProtectedRoute></ModuleRoute>} />
             <Route path="/dashboard/auditoria" element={<ScreenRoute screenCode="auditoria"><Auditoria /></ScreenRoute>} />
