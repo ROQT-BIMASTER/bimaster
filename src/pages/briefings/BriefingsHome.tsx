@@ -272,10 +272,10 @@ export default function BriefingsHome() {
     queryKey: ["briefings_home_profiles", allProfileIds.join(",")],
     enabled: allProfileIds.length > 0,
     queryFn: async (): Promise<ProfileLite[]> => {
-      const { data, error } = await supabase
-        .from("chat_directory" as any)
-        .select("id, nome, avatar_url")
-        .in("id", allProfileIds);
+      const { data, error } = await (supabase.rpc as any)(
+        "get_chat_directory",
+        { _ids: allProfileIds },
+      );
       if (error) throw error;
       return ((data ?? []) as unknown) as ProfileLite[];
     },

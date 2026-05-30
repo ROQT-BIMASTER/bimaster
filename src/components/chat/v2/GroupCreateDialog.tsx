@@ -37,13 +37,11 @@ export function GroupCreateDialog({ open, onOpenChange, onCreated }: Props) {
       return;
     }
     (async () => {
-      // Diretório SECURITY DEFINER — bypassa RLS estrita de profiles.
-      const { data } = await supabase
-        .from("chat_directory" as any)
-        .select("id, nome")
-        .neq("id", user?.id ?? "")
-        .order("nome");
-      setUsuarios((data ?? []) as unknown as User[]);
+      // get_chat_directory (SECURITY DEFINER) devolve a empresa toda já
+      // ordenada por nome — filtramos o próprio usuário em JS.
+      const { data } = await (supabase.rpc as any)("get_chat_directory");
+      const all = (data ?? []) as unknown as User[];
+      setUsuarios(all.filter((u) => u.id !== (user?.id ?? "")));
     })();
   }, [open, user?.id]);
 

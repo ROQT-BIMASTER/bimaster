@@ -10,8 +10,6 @@ vi.mock("sonner", () => ({
   toast: Object.assign(toastMock, { success: toastMock, error: toastMock }),
 }));
 
-import { toast } from "sonner";
-
 class ResizeObserverMock {
   observe = vi.fn();
   unobserve = vi.fn();
@@ -20,21 +18,11 @@ class ResizeObserverMock {
 
 globalThis.ResizeObserver = ResizeObserverMock as any;
 
-function mockProfilesQuery() {
-  const users = [
-    { id: "user-2", nome: "Milene Harumi", email: "mharumi@rubyrose.com.br", avatar_url: null },
-    { id: "user-3", nome: "Milena Lacerda", email: "milena.lacerda@rubyrose.com.br", avatar_url: null },
-  ];
-
-  const query: any = {
-    select: vi.fn(() => query),
-    neq: vi.fn(() => query),
-    eq: vi.fn(() => query),
-    order: vi.fn().mockResolvedValue({ data: users, error: null }),
-  };
-
-  return query;
-}
+const directoryUsers = [
+  { id: "user-1", nome: "Eu Mesmo", avatar_url: null },
+  { id: "user-2", nome: "Milene Harumi", avatar_url: null },
+  { id: "user-3", nome: "Milena Lacerda", avatar_url: null },
+];
 
 describe("NovaConversaDialog", () => {
   beforeEach(() => {
@@ -43,11 +31,19 @@ describe("NovaConversaDialog", () => {
       data: { user: { id: "user-1" } },
       error: null,
     });
-    (supabase as any).rpc = vi.fn().mockResolvedValue({ data: "conversa-1", error: null });
-    (supabase.from as unknown as ReturnType<typeof vi.fn>).mockReturnValue(mockProfilesQuery());
+    // Diretório vem direto do rpc("get_chat_directory") — resolve sem encadeamento.
+    (supabase as any).rpc = vi.fn().mockImplementation((name: string) => {
+      if (name === "get_chat_directory") {
+        return Promise.resolve({ data: directoryUsers, error: null });
+      }
+      if (name === "rpc_chat_criar_conversa_privada") {
+        return Promise.resolve({ data: "conversa-1", error: null });
+      }
+      return Promise.resolve({ data: null, error: null });
+    });
   });
 
-  it("cria conversa privada via ação segura do backend e não insere direto em tabelas do chat", async () => {
+  it("cria conversa privada via ação segura do backend e lê o diretório via get_chat_directory", async () => {
     const onSuccess = vi.fn();
     const user = userEvent.setup();
 
@@ -64,10 +60,15 @@ describe("NovaConversaDialog", () => {
       expect(onSuccess).toHaveBeenCalledWith("conversa-1");
     });
 
-    // Diretório de usuários vem da view chat_directory (RLS-safe), não direto de `profiles`.
-    expect(supabase.from).toHaveBeenCalledWith("chat_directory");
+    // Diretório de usuários vem da função SECURITY DEFINER (RLS-safe).
+    expect(supabase.rpc).toHaveBeenCalledWith("get_chat_directory");
 
+    // Não acessa diretamente tabelas do chat nem a antiga view chat_directory.
+    expect(supabase.from).not.toHaveBeenCalledWith("chat_directory");
     expect(supabase.from).not.toHaveBeenCalledWith("conversas");
     expect(supabase.from).not.toHaveBeenCalledWith("conversas_participantes");
+
+    // O usuário atual (user-1) é filtrado em JS — não deve aparecer na lista.
+    expect(screen.queryByText("Eu Mesmo")).not.toBeInTheDocument();
   });
 });

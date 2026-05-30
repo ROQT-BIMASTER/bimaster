@@ -59,30 +59,27 @@ export function ProjetoMembrosDialog({ open, onOpenChange, projetoId, projetoTip
   const [removeMemberConfirm, setRemoveMemberConfirm] = useState<string | null>(null);
   const [showTeamDialog, setShowTeamDialog] = useState(false);
   const [selectedTeamIds, setSelectedTeamIds] = useState<string[]>([]);
+  const [teamSearch, setTeamSearch] = useState("");
   const [addingTeam, setAddingTeam] = useState(false);
 
   const isDevProduto = projetoTipo === "desenvolvimento_produto";
 
-  // Buscar subordinados do usuário logado
-  const { data: subordinados = [], isLoading: loadingSubordinados } = useQuery({
-    queryKey: ["subordinados_equipe", user?.id],
+  // "Adicionar Membros" agora lê o diretório corporativo inteiro
+  // (get_chat_directory, SECURITY DEFINER) em vez de get_subordinados —
+  // qualquer usuário ativo pode ser adicionado ao projeto. A hierarquia
+  // (get_subordinados) segue sendo a fonte de verdade em Trade/mapa/stores,
+  // onde só faz sentido enxergar a equipe direta.
+  const { data: allUsers = [], isLoading: loadingAllUsers } = useQuery({
+    queryKey: ["chat_directory_all", showTeamDialog],
     queryFn: async () => {
-      if (!user?.id) return [];
-      const { data, error } = await supabase.rpc("get_subordinados", { _user_id: user.id });
+      const { data, error } = await (supabase.rpc as any)("get_chat_directory");
       if (error) throw error;
-      // Buscar perfis dos subordinados
-      const ids = (data || []).map((s: any) => s.subordinado_id);
-      if (ids.length === 0) return [];
-      const { data: profiles } = await supabase
-        .from("profiles")
-        .select("id, nome, avatar_url, email")
-        .in("id", ids);
-      return profiles || [];
+      return (data ?? []) as { id: string; nome: string | null; avatar_url: string | null }[];
     },
-    enabled: showTeamDialog && !!user?.id,
+    enabled: showTeamDialog,
   });
 
-  // availableSubordinados is computed after membroUserIds below
+  // availableUsers is computed after membroUserIds below
 
   const toggleTeamUser = useCallback((id: string) => {
     setSelectedTeamIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
@@ -93,19 +90,20 @@ export function ProjetoMembrosDialog({ open, onOpenChange, projetoId, projetoTip
     setAddingTeam(true);
     try {
       for (const userId of selectedTeamIds) {
-        const sub = subordinados.find((s: any) => s.id === userId);
+        const profile = allUsers.find((u) => u.id === userId);
         await addMembro.mutateAsync({
           userId,
           papel: "membro",
-          profile: sub ? { nome: sub.nome, avatar_url: sub.avatar_url, email: sub.email } : undefined,
+          profile: profile ? { nome: profile.nome, avatar_url: profile.avatar_url } : undefined,
         });
       }
       setSelectedTeamIds([]);
+      setTeamSearch("");
       setShowTeamDialog(false);
     } finally {
       setAddingTeam(false);
     }
-  }, [selectedTeamIds, addMembro, subordinados]);
+  }, [selectedTeamIds, addMembro, allUsers]);
 
   const { data: secoes = [] } = useQuery({
     queryKey: ["projeto_secoes_list", projetoId],
@@ -125,16 +123,15 @@ export function ProjetoMembrosDialog({ open, onOpenChange, projetoId, projetoTip
     queryKey: ["search_profiles", search],
     queryFn: async () => {
       if (search.length < 2) return [];
-      // chat_directory bypassa RLS estrita de profiles (precisa pra que
-      // nao-admins consigam buscar colegas pra adicionar ao projeto).
-      // Email sumiu — busca eh so por nome.
-      const { data, error } = await supabase
-        .from("chat_directory" as any)
-        .select("id, nome, avatar_url")
-        .ilike("nome", `%${search}%`)
-        .limit(10);
+      // get_chat_directory devolve a empresa toda já ordenada por nome.
+      // Filtro/limite em JS para não depender de filtros encadeados sobre
+      // função RETURNS TABLE. Sem email/PII.
+      const { data, error } = await (supabase.rpc as any)("get_chat_directory");
       if (error) throw error;
-      return data;
+      const q = search.toLowerCase();
+      return ((data ?? []) as any[])
+        .filter((u) => (u.nome ?? "").toLowerCase().includes(q))
+        .slice(0, 10);
     },
     enabled: search.length >= 2,
   });
@@ -142,16 +139,22 @@ export function ProjetoMembrosDialog({ open, onOpenChange, projetoId, projetoTip
   const membroUserIds = useMemo(() => new Set(membros.map((m) => m.user_id)), [membros]);
   const filteredResults = searchResults.filter((p: any) => !membroUserIds.has(p.id));
 
-  const availableSubordinados = useMemo(() => {
-    return subordinados.filter((s: any) => !membroUserIds.has(s.id));
-  }, [subordinados, membroUserIds]);
+  const availableUsers = useMemo(() => {
+    const q = teamSearch.trim().toLowerCase();
+    return allUsers.filter((u) => {
+      if (u.id === user?.id) return false;
+      if (membroUserIds.has(u.id)) return false;
+      if (q && !(u.nome ?? "").toLowerCase().includes(q)) return false;
+      return true;
+    });
+  }, [allUsers, membroUserIds, teamSearch, user?.id]);
 
   const filteredMembros = useMemo(() => {
     if (search.length < 2) return membros;
     const q = search.toLowerCase();
     return membros.filter(m =>
       m.profile?.nome?.toLowerCase().includes(q)
-      // email saiu do chat_directory — busca apenas por nome agora
+      // email não vem do diretório; busca apenas por nome.
     );
   }, [membros, search]);
 
@@ -239,7 +242,7 @@ export function ProjetoMembrosDialog({ open, onOpenChange, projetoId, projetoTip
                   onClick={() => setShowTeamDialog(true)}
                 >
                   <Users className="h-4 w-4" />
-                  Adicionar da Equipe
+                  Adicionar Membros
                 </Button>
               </div>
               {filteredResults.length > 0 && (
@@ -253,9 +256,6 @@ export function ProjetoMembrosDialog({ open, onOpenChange, projetoId, projetoTip
                         </Avatar>
                         <div>
                           <p className="text-sm font-medium leading-none">{profile.nome}</p>
-                          {profile.email && (
-                            <p className="text-xs text-muted-foreground">{profile.email}</p>
-                          )}
                         </div>
                       </div>
                       <Button
@@ -265,7 +265,7 @@ export function ProjetoMembrosDialog({ open, onOpenChange, projetoId, projetoTip
                           addMembro.mutate({
                             userId: profile.id,
                             papel: "membro",
-                            profile: { nome: profile.nome, avatar_url: profile.avatar_url, email: profile.email },
+                            profile: { nome: profile.nome, avatar_url: profile.avatar_url },
                           });
                           setSearch("");
                         }}
@@ -427,31 +427,52 @@ export function ProjetoMembrosDialog({ open, onOpenChange, projetoId, projetoTip
           </AlertDialogContent>
         </AlertDialog>
 
-        {/* Sub-dialog: Adicionar da Equipe */}
-        <Dialog open={showTeamDialog} onOpenChange={(v) => { setShowTeamDialog(v); if (!v) setSelectedTeamIds([]); }}>
+        {/* Sub-dialog: Adicionar Membros (empresa toda) */}
+        <Dialog
+          open={showTeamDialog}
+          onOpenChange={(v) => {
+            setShowTeamDialog(v);
+            if (!v) {
+              setSelectedTeamIds([]);
+              setTeamSearch("");
+            }
+          }}
+        >
           <DialogContent className="max-w-md">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 <Users className="h-5 w-5" />
-                Adicionar da Minha Equipe
+                Adicionar Membros
               </DialogTitle>
               <DialogDescription>
-                Selecione membros da sua equipe para adicionar ao projeto.
+                Selecione pessoas da empresa para adicionar ao projeto.
               </DialogDescription>
             </DialogHeader>
 
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar por nome..."
+                value={teamSearch}
+                onChange={(e) => setTeamSearch(e.target.value)}
+                className="pl-9"
+              />
+            </div>
+
             <ScrollArea className="max-h-[300px]">
-              {loadingSubordinados ? (
+              {loadingAllUsers ? (
                 <div className="flex justify-center py-8">
                   <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                 </div>
-              ) : availableSubordinados.length === 0 ? (
+              ) : availableUsers.length === 0 ? (
                 <p className="text-sm text-muted-foreground text-center py-8">
-                  Todos os membros da equipe já estão no projeto.
+                  {teamSearch.trim()
+                    ? `Nenhuma pessoa encontrada para "${teamSearch.trim()}".`
+                    : "Todos os usuários já estão no projeto."}
                 </p>
               ) : (
                 <div className="space-y-1">
-                  {availableSubordinados.map((sub: any) => (
+                  {availableUsers.map((sub) => (
                     <label
                       key={sub.id}
                       className="flex items-center gap-3 p-2 rounded-md hover:bg-accent/50 cursor-pointer transition-colors"
@@ -467,8 +488,7 @@ export function ProjetoMembrosDialog({ open, onOpenChange, projetoId, projetoTip
                         </AvatarFallback>
                       </Avatar>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium truncate">{sub.nome}</p>
-                        <p className="text-xs text-muted-foreground truncate">{sub.email}</p>
+                        <p className="text-sm font-medium truncate">{sub.nome ?? "Sem nome"}</p>
                       </div>
                     </label>
                   ))}
@@ -477,7 +497,14 @@ export function ProjetoMembrosDialog({ open, onOpenChange, projetoId, projetoTip
             </ScrollArea>
 
             <div className="flex justify-end gap-2 pt-2">
-              <Button variant="outline" onClick={() => { setShowTeamDialog(false); setSelectedTeamIds([]); }}>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowTeamDialog(false);
+                  setSelectedTeamIds([]);
+                  setTeamSearch("");
+                }}
+              >
                 Cancelar
               </Button>
               <Button

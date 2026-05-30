@@ -49,10 +49,10 @@ export function MentionAutocomplete({ conversaId, query, onPick, ownUid, classNa
         .is("saiu_em", null);
       const ids = (parts ?? []).map((p) => p.usuario_id).filter((id) => id !== ownUid);
       if (!ids.length) return [];
-      const { data: profs } = await supabase
-        .from("chat_directory" as any)
-        .select("id, nome, avatar_url")
-        .in("id", ids);
+      const { data: profs } = await (supabase.rpc as any)(
+        "get_chat_directory",
+        { _ids: ids },
+      );
       return (profs as unknown as MentionMember[]) ?? [];
     },
   });

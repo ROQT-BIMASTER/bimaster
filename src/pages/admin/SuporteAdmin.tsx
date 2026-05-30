@@ -119,10 +119,10 @@ export default function SuporteAdmin() {
       const ownerIds = Array.from(new Set(((data ?? []) as any[]).map((t) => t.owner_id))).filter(Boolean);
       let ownersMap = new Map<string, { nome: string | null; avatar_url: string | null }>();
       if (ownerIds.length) {
-        const { data: dir } = await supabase
-          .from("chat_directory" as any)
-          .select("id, nome, avatar_url")
-          .in("id", ownerIds);
+        const { data: dir } = await (supabase.rpc as any)(
+          "get_chat_directory",
+          { _ids: ownerIds },
+        );
         ownersMap = new Map(((dir ?? []) as any[]).map((d) => [d.id, { nome: d.nome, avatar_url: d.avatar_url }]));
       }
       return ((data ?? []) as any[]).map((t) => ({ ...t, owner: ownersMap.get(t.owner_id) ?? null })) as Ticket[];
