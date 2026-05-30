@@ -49618,6 +49618,14 @@ export type Database = {
         }[]
       }
       get_atividades_kpis: { Args: never; Returns: Json }
+      get_chat_directory: {
+        Args: { _ids?: string[] }
+        Returns: {
+          avatar_url: string
+          id: string
+          nome: string
+        }[]
+      }
       get_concentracao_uf:
         | { Args: { p_empresa_id?: number }; Returns: Json }
         | { Args: { p_empresa_id?: number; p_ufs?: string[] }; Returns: Json }
