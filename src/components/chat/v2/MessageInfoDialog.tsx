@@ -54,10 +54,7 @@ export function MessageInfoDialog({ open, onOpenChange, mensagem, uid }: Props) 
             .select("user_id, lida_em")
             .eq("mensagem_id", mensagem.id),
           ids.length
-            ? supabase
-                .from("chat_directory" as any)
-                .select("id, nome, avatar_url")
-                .in("id", ids)
+            ? (supabase.rpc as any)("get_chat_directory", { _ids: ids })
             : Promise.resolve({ data: [] as any[] }),
         ]);
 

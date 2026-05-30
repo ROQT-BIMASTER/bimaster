@@ -43,16 +43,14 @@ export const NovaConversaDialog = ({ open, onOpenChange, onSuccess }: NovaConver
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Diretório SECURITY DEFINER — bypassa RLS estrita de profiles
-      // e expõe apenas id+nome+avatar de usuários ativos não-honeytoken.
-      const { data, error } = await supabase
-        .from("chat_directory" as any)
-        .select("id, nome, avatar_url")
-        .neq("id", user.id)
-        .order("nome");
+      // get_chat_directory (SECURITY DEFINER) devolve a empresa toda,
+      // já ordenada por nome — filtramos o próprio usuário em JS para
+      // não depender de filtros encadeados sobre RETURNS TABLE.
+      const { data, error } = await (supabase.rpc as any)("get_chat_directory");
 
       if (error) throw error;
-      setUsuarios((data as unknown as Usuario[]) || []);
+      const all = (data as unknown as Usuario[]) || [];
+      setUsuarios(all.filter((u) => u.id !== user.id));
     } catch (error) {
       logger.error("Erro ao carregar usuários:", error);
       toast.error("Erro", { description: "Não foi possível carregar os usuários" });

@@ -34,10 +34,9 @@ export function useBriefingMembros(briefingId: string | undefined) {
       if (error) throw error;
 
       const ids = (data as any[]).map((m) => m.user_id);
-      const { data: profiles } = await supabase
-        .from("chat_directory" as any)
-        .select("id, nome, avatar_url")
-        .in("id", ids);
+      const { data: profiles } = ids.length
+        ? await (supabase.rpc as any)("get_chat_directory", { _ids: ids })
+        : { data: [] as any[] };
 
       return (data as any[]).map((m) => ({
         ...m,

@@ -67,13 +67,15 @@ export function BriefingMembrosDialog({ open, onOpenChange, briefingId }: Props)
     queryKey: ["search_profiles_briefing", search],
     queryFn: async () => {
       if (search.trim().length < 2) return [];
-      const { data, error } = await supabase
-        .from("chat_directory" as any)
-        .select("id, nome, avatar_url")
-        .ilike("nome", `%${search.trim()}%`)
-        .limit(10);
+      // get_chat_directory devolve a empresa toda; filtramos por nome
+      // e cortamos a 10 itens em JS para não usar filtros encadeados
+      // sobre função RETURNS TABLE.
+      const { data, error } = await (supabase.rpc as any)("get_chat_directory");
       if (error) throw error;
-      return data || [];
+      const q = search.trim().toLowerCase();
+      return ((data ?? []) as any[])
+        .filter((u) => (u.nome ?? "").toLowerCase().includes(q))
+        .slice(0, 10);
     },
     enabled: open && isCoordinator && search.trim().length >= 2,
   });
