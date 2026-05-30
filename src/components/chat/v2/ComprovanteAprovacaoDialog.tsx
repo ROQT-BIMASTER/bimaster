@@ -58,10 +58,9 @@ export function ComprovanteAprovacaoDialog({ aprovacaoId, open, onOpenChange }: 
     queryFn: async (): Promise<Record<string, string>> => {
       const ids = [ap?.solicitante_id, ap?.decidido_por].filter(Boolean) as string[];
       if (ids.length === 0) return {};
-      const { data, error } = await supabase
-        .from("chat_directory" as any)
-        .select("id, nome")
-        .in("id", ids);
+      // get_chat_directory (SECURITY DEFINER) — consistente com o resto do
+      // chat; resolve nome contornando a RLS estrita de profiles.
+      const { data, error } = await (supabase.rpc as any)("get_chat_directory", { _ids: ids });
       if (error) throw error;
       const map: Record<string, string> = {};
       (data as any[] | null)?.forEach((p) => { map[p.id] = p.nome ?? "—"; });

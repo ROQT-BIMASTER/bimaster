@@ -2,7 +2,7 @@
  * useCentralAprovacoes — lista as aprovações do chat encaminhadas para a
  * Central (chat_aprovacoes.enviado_central = true). A RLS já limita o escopo:
  * participante da conversa vê as suas; admin vê todas. Resolve nomes de
- * solicitante/decisor via get_chat_directory e conta os documentos.
+ * solicitante/decisor via get_chat_directory (RPC) e conta os documentos.
  */
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -57,10 +57,8 @@ export function useCentralAprovacoes() {
       ) as string[];
       const nameMap = new Map<string, string>();
       if (personIds.length) {
-        const { data: dir } = await supabase
-          .from("chat_directory" as any)
-          .select("id, nome")
-          .in("id", personIds);
+        // get_chat_directory (SECURITY DEFINER) — consistente com o resto do chat.
+        const { data: dir } = await (supabase.rpc as any)("get_chat_directory", { _ids: personIds });
         (dir as any[] | null)?.forEach((p) => nameMap.set(p.id, p.nome ?? "—"));
       }
 
