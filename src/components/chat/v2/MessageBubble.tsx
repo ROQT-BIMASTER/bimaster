@@ -346,6 +346,14 @@ export function MessageBubble({ m, uid, isGrupo, onReply, participantesCount }: 
                 <DropdownMenuItem onClick={() => actions.togglePin.mutate({ id: m.id, conversaId: m.conversa_id, fixar: !m.fixada_em })}>
                   <Pin className="h-4 w-4 mr-2" /> {m.fixada_em ? "Desafixar" : "Fixar"}
                 </DropdownMenuItem>
+                {mine && m.tipo !== "urgente" && (
+                  <DropdownMenuItem
+                    onSelect={() => setTimeout(() => setCutucarOpen(true), 0)}
+                    className="text-destructive focus:text-destructive"
+                  >
+                    <AlertOctagon className="h-4 w-4 mr-2" /> Chamar atenção
+                  </DropdownMenuItem>
+                )}
                 {m.conteudo && m.conteudo.trim().length >= 2 && (
                   <>
                     <DropdownMenuSeparator />
