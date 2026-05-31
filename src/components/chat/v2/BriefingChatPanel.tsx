@@ -70,6 +70,10 @@ export function BriefingChatPanel({ briefingId }: Props) {
   const [cofreOpen, setCofreOpen] = useState(false);
   const [cofreDescricao, setCofreDescricao] = useState<string>("");
   const [cofreVinculaComentarioId, setCofreVinculaComentarioId] = useState<string | null>(null);
+  const [cofreInitialFile, setCofreInitialFile] = useState<File | null>(null);
+  const { abrirAprovacao, abrirUrgente } = useAbrirAcaoVinculada();
+
+
 
   // Marca como lido ao abrir / mudar de briefing
   useEffect(() => {
