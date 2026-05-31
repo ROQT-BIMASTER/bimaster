@@ -3734,7 +3734,9 @@ export type Database = {
           conversa_id: string
           created_at: string
           decidido_em: string | null
+          decidido_ip: string | null
           decidido_por: string | null
+          decidido_user_agent: string | null
           descricao: string | null
           id: string
           mensagem_id: string | null
@@ -3747,7 +3749,9 @@ export type Database = {
           conversa_id: string
           created_at?: string
           decidido_em?: string | null
+          decidido_ip?: string | null
           decidido_por?: string | null
+          decidido_user_agent?: string | null
           descricao?: string | null
           id?: string
           mensagem_id?: string | null
@@ -3760,7 +3764,9 @@ export type Database = {
           conversa_id?: string
           created_at?: string
           decidido_em?: string | null
+          decidido_ip?: string | null
           decidido_por?: string | null
+          decidido_user_agent?: string | null
           descricao?: string | null
           id?: string
           mensagem_id?: string | null
