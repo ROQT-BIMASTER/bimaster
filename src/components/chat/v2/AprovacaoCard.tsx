@@ -92,13 +92,10 @@ export function AprovacaoCard({ aprovacaoId, viewerUid, mine }: Props) {
   };
 
   return (
-    <div className={cn(
-      "rounded-lg border p-3 max-w-md w-full",
-      mine ? "bg-white/10 border-white/30 text-white" : "bg-card border-border",
-    )}>
+    <div className="rounded-lg border p-3 max-w-md w-full bg-card border-border text-foreground shadow-sm">
       <div className="flex items-center gap-2 mb-1.5">
-        <ClipboardCheck className={cn("h-4 w-4 shrink-0", mine ? "text-white" : "text-primary")} />
-        <span className={cn("text-[10px] font-semibold uppercase tracking-wider", mine ? "text-white/70" : "text-muted-foreground")}>
+        <ClipboardCheck className="h-4 w-4 shrink-0 text-primary" />
+        <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
           Pedido de aprovação
         </span>
         <Badge className={cn("ml-auto gap-1 text-[10px] h-4 px-1.5 border", statusBadge.cls)}>
@@ -106,50 +103,40 @@ export function AprovacaoCard({ aprovacaoId, viewerUid, mine }: Props) {
         </Badge>
       </div>
 
-      <p className={cn("text-sm font-medium leading-snug mb-1", mine && "text-white")}>{ap.titulo}</p>
+      <p className="text-sm font-medium leading-snug mb-1 text-foreground">{ap.titulo}</p>
       {ap.descricao && (
-        <p className={cn("text-xs whitespace-pre-wrap break-words leading-snug mb-2",
-          mine ? "text-white/80" : "text-muted-foreground")}>
+        <p className="text-xs whitespace-pre-wrap break-words leading-snug mb-2 text-muted-foreground">
           {ap.descricao}
         </p>
       )}
 
       {documentos.length > 0 && (
-        <div className={cn("mb-2 space-y-1 rounded-md border p-1.5",
-          mine ? "border-white/30" : "border-border bg-muted/30")}>
+        <div className="mb-2 space-y-1 rounded-md border border-border bg-muted/30 p-1.5">
           {documentos.map((doc) => (
             <div
               key={doc.id}
-              className={cn(
-                "w-full flex items-center gap-2 text-xs rounded px-1 py-1 transition-colors",
-                mine ? "hover:bg-white/10" : "hover:bg-background",
-              )}
+              className="w-full flex items-center gap-2 text-xs rounded px-1 py-1 transition-colors hover:bg-background"
             >
               <button
                 type="button"
                 onClick={() => baixarDoc(doc)}
                 className="flex items-center gap-2 flex-1 min-w-0 text-left"
               >
-                <FileText className="h-3.5 w-3.5 shrink-0" />
-                <span className="flex-1 min-w-0 truncate">{doc.titulo}</span>
+                <FileText className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                <span className="flex-1 min-w-0 truncate text-foreground">{doc.titulo}</span>
                 {doc.size_bytes != null && (
-                  <span className={cn("shrink-0", mine ? "text-white/60" : "text-muted-foreground")}>
+                  <span className="shrink-0 text-muted-foreground">
                     {formatBytes(doc.size_bytes)}
                   </span>
                 )}
-                <Download className="h-3.5 w-3.5 shrink-0" />
+                <Download className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
               </button>
               {ap.status === "aprovado" && (
                 <button
                   type="button"
                   onClick={() => setVincularDoc(doc)}
                   title="Vincular ao cofre oficial"
-                  className={cn(
-                    "shrink-0 flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-medium border transition-colors",
-                    mine
-                      ? "border-white/40 text-white hover:bg-white/15"
-                      : "border-primary/30 text-primary hover:bg-primary/10",
-                  )}
+                  className="shrink-0 flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-medium border transition-colors border-primary/30 text-primary hover:bg-primary/10"
                 >
                   <Archive className="h-3 w-3" /> Vincular
                 </button>
