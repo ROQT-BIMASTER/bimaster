@@ -32,7 +32,7 @@ interface Props {
   onAutoOpenConsumed?: () => void;
 }
 
-export function MessageInput({ conversaId, responderA, onClearReply, onTyping }: Props) {
+export function MessageInput({ conversaId, responderA, onClearReply, onTyping, autoOpenDialog, onAutoOpenConsumed }: Props) {
   const { user } = useAuth();
   const uid = user?.id ?? "";
   // Rascunho persistente por conversa (localStorage). Trocar de conversa
