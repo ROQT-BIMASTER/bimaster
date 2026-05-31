@@ -207,11 +207,23 @@ export function AprovacaoCard({ aprovacaoId, viewerUid, mine, mensagemId }: Prop
         </div>
       )}
 
-      {/* Mensagem para solicitante quando pendente */}
+      {/* Mensagem para solicitante quando pendente + ação de chamar atenção */}
       {ap.status === "pendente" && isSolicitante && (
-        <p className="mt-2 text-[10px] italic text-muted-foreground">
-          Aguardando decisão de outro participante.
-        </p>
+        <div className="mt-2 flex items-center justify-between gap-2 flex-wrap">
+          <p className="text-[10px] italic text-muted-foreground">
+            Aguardando decisão de outro participante.
+          </p>
+          {mensagemId && (
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-6 px-2 gap-1 text-[10px] border-destructive/40 text-destructive hover:bg-destructive/10"
+              onClick={() => setCutucarOpen(true)}
+            >
+              <AlertOctagon className="h-3 w-3" /> Chamar atenção
+            </Button>
+          )}
+        </div>
       )}
 
       {/* Detalhes da decisão */}
