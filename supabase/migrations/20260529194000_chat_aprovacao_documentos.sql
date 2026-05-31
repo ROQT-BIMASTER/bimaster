@@ -37,6 +37,12 @@ CREATE INDEX IF NOT EXISTS idx_chat_aprov_docs_conversa
 
 ALTER TABLE public.chat_aprovacao_documentos ENABLE ROW LEVEL SECURITY;
 
+-- Grants explícitos (convenção do projeto): authenticated lê via RLS;
+-- service_role (RPCs SECURITY DEFINER / Edge) tem acesso total. Não depender
+-- de defaults herdados.
+GRANT SELECT ON public.chat_aprovacao_documentos TO authenticated;
+GRANT ALL    ON public.chat_aprovacao_documentos TO service_role;
+
 -- SELECT: participantes ativos da conversa
 DROP POLICY IF EXISTS chat_aprov_docs_select ON public.chat_aprovacao_documentos;
 CREATE POLICY chat_aprov_docs_select ON public.chat_aprovacao_documentos
