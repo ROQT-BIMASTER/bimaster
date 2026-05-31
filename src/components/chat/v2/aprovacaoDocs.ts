@@ -4,6 +4,7 @@
  * foldername[1] = conversa_id (checa participação), foldername[3] = uploader uid.
  */
 import { supabase } from "@/integrations/supabase/client";
+import { validateFileForUpload } from "@/lib/utils/file-security";
 
 const BUCKET = "aprovacao-documentos";
 
@@ -22,6 +23,10 @@ export async function uploadAprovacaoDoc(
   userId: string,
   file: File,
 ): Promise<{ storage_path: string; mime_type: string; size_bytes: number; hash: string }> {
+  // validação de segurança (extensão/MIME/tamanho/double-extension/magic-bytes),
+  // mesmo helper usado nos anexos do chat (chat-anexos).
+  const check = await validateFileForUpload(file);
+  if (!check.valid) throw new Error(check.error ?? "Arquivo inválido");
   // hash calculado no cliente (Web Crypto) — base da trilha de auditoria
   const hash = await sha256Hex(file);
   const safe = file.name.replace(/[^\w.\-]+/g, "_").slice(0, 80);
