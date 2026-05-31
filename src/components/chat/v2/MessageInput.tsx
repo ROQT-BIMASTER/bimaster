@@ -61,6 +61,15 @@ export function MessageInput({ conversaId, responderA, onClearReply, onTyping, a
 
   useEffect(() => { taRef.current?.focus(); }, [conversaId, responderA]);
 
+  // Consome auto-open vindo de deep-link (Briefings/Projetos/Submissões → Pessoas)
+  useEffect(() => {
+    if (!autoOpenDialog) return;
+    if (autoOpenDialog === "aprovacao") setAprovacaoOpen(true);
+    else if (autoOpenDialog === "urgente") setUrgenteOpen(true);
+    onAutoOpenConsumed?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoOpenDialog, conversaId]);
+
   // Reset mentions ao trocar de conversa
   useEffect(() => {
     setMentions([]);
