@@ -25,6 +25,9 @@ import {
   FolderLock,
 } from "lucide-react";
 import { ProjetoCofreUploadDialog } from "@/components/projetos/cofre/ProjetoCofreUploadDialog";
+import { ChatComposerActionsBar } from "./ChatComposerActionsBar";
+import { useAbrirAcaoVinculada } from "@/hooks/chat/useAbrirAcaoVinculada";
+
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -110,6 +113,9 @@ export function ProjetoChatPanel({ projetoId }: Props) {
   const [novoComentario, setNovoComentario] = useState("");
   const [enviando, setEnviando] = useState(false);
   const [cofreOpen, setCofreOpen] = useState(false);
+  const [cofreInitialFile, setCofreInitialFile] = useState<File | null>(null);
+  const { abrirAprovacao, abrirUrgente } = useAbrirAcaoVinculada();
+
 
 
   // Marca como lido ao abrir / trocar de projeto.
@@ -434,19 +440,28 @@ export function ProjetoChatPanel({ projetoId }: Props) {
             className="resize-none border-0 focus-visible:ring-0 shadow-none px-1.5 py-1 min-h-0 text-sm"
           />
           <div className="flex items-center justify-between gap-2 mt-1">
-            <span className="text-[10px] text-muted-foreground px-1.5 flex items-center gap-1">
-              <AtSign className="h-3 w-3" /> Digite @ para mencionar um membro
-            </span>
+            <ChatComposerActionsBar
+              onAttachFile={(files) => {
+                const f = files[0];
+                if (!f) return;
+                setCofreInitialFile(f);
+                setCofreOpen(true);
+              }}
+              onCameraCapture={(f) => {
+                setCofreInitialFile(f);
+                setCofreOpen(true);
+              }}
+              onRequestApproval={() =>
+                abrirAprovacao({ tipo: "projeto", refId: projetoId, titulo: nomeProjeto })
+              }
+              onUrgentAlert={() =>
+                abrirUrgente({ tipo: "projeto", refId: projetoId, titulo: nomeProjeto })
+              }
+              onEmojiPick={(emoji) => setNovoComentario((prev) => prev + emoji)}
+              approvalTooltip="Solicitar aprovação (abre chat vinculado ao projeto)"
+              urgentTooltip="Chamar atenção (abre chat vinculado ao projeto)"
+            />
             <div className="flex items-center gap-1.5">
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => setCofreOpen(true)}
-                className="gap-1.5"
-                title="Anexar arquivo ao cofre do projeto"
-              >
-                <Paperclip className="h-3.5 w-3.5" /> Anexar ao cofre
-              </Button>
               <Button
                 size="sm"
                 disabled={enviando || !novoComentario.trim()}
@@ -462,9 +477,11 @@ export function ProjetoChatPanel({ projetoId }: Props) {
 
       <ProjetoCofreUploadDialog
         open={cofreOpen}
-        onOpenChange={setCofreOpen}
+        onOpenChange={(v) => { setCofreOpen(v); if (!v) setCofreInitialFile(null); }}
         projetoId={projetoId}
         descricaoInicial={novoComentario}
+        initialFile={cofreInitialFile}
+
         onUploaded={async ({ id: docId, nome }) => {
           const conteudo = novoComentario.trim() || `Documento adicionado ao cofre: ${nome}`;
           try {

@@ -29,6 +29,9 @@ import { validateFileForUpload } from "@/lib/utils/file-security";
 import { MessageTranslation } from "./chat/MessageTranslation";
 import { ChatAttachmentChip, type ChatAnexo } from "./chat/ChatAttachmentChip";
 import { ChatIaActionCard, type IaToolProposal } from "./chat/ChatIaActionCard";
+import { ChatComposerActionsBar } from "@/components/chat/v2/ChatComposerActionsBar";
+import { useAbrirAcaoVinculada } from "@/hooks/chat/useAbrirAcaoVinculada";
+
 
 interface Mensagem {
   id: string;
@@ -99,6 +102,7 @@ const REF_ICONS: Record<string, React.ReactNode> = {
 };
 
 export function ChinaChatPanel({ submissaoId, produtoNome, tipoRemetente, referenciasDisponiveis = [] }: Props) {
+  const { abrirAprovacao, abrirUrgente } = useAbrirAcaoVinculada();
   const { language: leitorIdioma, setLanguage } = useUserLanguage();
   const [mensagens, setMensagens] = useState<Mensagem[]>([]);
   const [translatingIds, setTranslatingIds] = useState<Set<string>>(new Set());
@@ -804,8 +808,28 @@ export function ChinaChatPanel({ submissaoId, produtoNome, tipoRemetente, refere
       {/* Input area */}
       {!isFinalizado && (
         <div className="border-t bg-card p-3 space-y-2 shrink-0">
-          {/* IA toolbar */}
+          {/* Composer ações padronizadas (paridade com Pessoas/Briefings/Projetos) */}
           <div className="flex items-center gap-1 flex-wrap">
+            <ChatComposerActionsBar
+              onAttachFile={(files) => handleSelectFiles(files)}
+              onCameraCapture={(f) => {
+                const dt = new DataTransfer();
+                dt.items.add(f);
+                handleSelectFiles(dt.files);
+              }}
+              onRequestApproval={() =>
+                abrirAprovacao({ tipo: "submissao", refId: submissaoId, titulo: `Submissão · ${produtoNome}` })
+              }
+              onUrgentAlert={() =>
+                abrirUrgente({ tipo: "submissao", refId: submissaoId, titulo: `Submissão · ${produtoNome}` })
+              }
+              onEmojiPick={(emoji) => setTexto((prev) => prev + emoji)}
+              disabled={enviando || uploadingAnexo}
+              approvalTooltip="Solicitar aprovação (abre chat vinculado à submissão)"
+              urgentTooltip="Chamar atenção (abre chat vinculado à submissão)"
+              accept="image/png,image/jpeg,image/webp,image/gif,application/pdf"
+            />
+            <div className="h-5 w-px bg-border mx-1" />
             <Button variant="outline" size="sm" className="h-7 text-[11px] gap-1" onClick={() => chamarIa("suggest")} disabled={!!iaPensando}>
               {iaPensando === "suggest" ? <Loader2 className="h-3 w-3 animate-spin" /> : <Wand2 className="h-3 w-3" />}
               Sugerir resposta
@@ -818,6 +842,7 @@ export function ChinaChatPanel({ submissaoId, produtoNome, tipoRemetente, refere
               Dica: digite <span className="font-mono">@IA</span> para chamar a assistente no chat
             </span>
           </div>
+
 
           {/* Reply preview */}
           {replyingTo && (

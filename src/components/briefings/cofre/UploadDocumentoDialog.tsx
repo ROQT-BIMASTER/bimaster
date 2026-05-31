@@ -25,12 +25,14 @@ interface Props {
   documentoAlvo?: BriefingDocumento | null;
   /** Descrição inicial (ex.: texto de um comentário sendo anexado ao cofre). */
   descricaoInicial?: string;
+  /** Arquivo pré-selecionado (ex.: captura de câmera vinda do composer). */
+  initialFile?: File | null;
   /** Callback após sucesso, recebe id e nome do documento criado/atualizado. */
   onUploaded?: (doc: { id: string; nome: string }) => void;
 }
 
 export function UploadDocumentoDialog({
-  open, onOpenChange, briefingId, documentoAlvo, descricaoInicial, onUploaded,
+  open, onOpenChange, briefingId, documentoAlvo, descricaoInicial, initialFile, onUploaded,
 }: Props) {
   const qc = useQueryClient();
   const [file, setFile] = useState<File | null>(null);
@@ -51,6 +53,11 @@ export function UploadDocumentoDialog({
   if (open && !documentoAlvo && descricaoInicial && !descricao) {
     setDescricao(descricaoInicial);
   }
+  if (open && initialFile && !file) {
+    setFile(initialFile);
+    if (!nome) setNome(initialFile.name.replace(/\.[^.]+$/, ""));
+  }
+
 
   const reset = () => {
     setFile(null); setNome(""); setDescricao(""); setCategoria("geral");
