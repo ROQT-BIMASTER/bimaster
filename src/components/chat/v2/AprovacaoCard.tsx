@@ -30,15 +30,18 @@ interface Props {
   aprovacaoId: string;
   viewerUid: string;
   mine: boolean;
+  /** Id da mensagem-âncora; usado para "Chamar atenção" sobre a aprovação. */
+  mensagemId?: string;
 }
 
-export function AprovacaoCard({ aprovacaoId, viewerUid, mine }: Props) {
+export function AprovacaoCard({ aprovacaoId, viewerUid, mine, mensagemId }: Props) {
   const { data: ap, isLoading, decidir } = useChatAprovacao(aprovacaoId);
   const { data: documentos = [] } = useAprovacaoDocumentos(aprovacaoId);
   const [confirmaRejeicao, setConfirmaRejeicao] = useState(false);
   const [motivo, setMotivo] = useState("");
   const [showComprovante, setShowComprovante] = useState(false);
   const [vincularDoc, setVincularDoc] = useState<typeof documentos[number] | null>(null);
+  const [cutucarOpen, setCutucarOpen] = useState(false);
 
   const baixarDoc = async (doc: { storage_path: string; titulo: string }) => {
     try {
