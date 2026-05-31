@@ -3663,6 +3663,81 @@ export type Database = {
           },
         ]
       }
+      chat_aprovacao_doc_vinculos: {
+        Row: {
+          aprovacao_id: string
+          briefing_id: string | null
+          bucket_destino: string
+          categoria_cofre: string | null
+          conversa_id: string
+          created_at: string
+          destino_tipo: string
+          documento_id: string
+          hash_arquivo: string | null
+          id: string
+          projeto_id: string | null
+          registro_destino_id: string
+          storage_path_destino: string
+          submissao_id: string | null
+          tarefa_id: string | null
+          tipo_documento: string | null
+          vinculado_por: string
+        }
+        Insert: {
+          aprovacao_id: string
+          briefing_id?: string | null
+          bucket_destino: string
+          categoria_cofre?: string | null
+          conversa_id: string
+          created_at?: string
+          destino_tipo: string
+          documento_id: string
+          hash_arquivo?: string | null
+          id?: string
+          projeto_id?: string | null
+          registro_destino_id: string
+          storage_path_destino: string
+          submissao_id?: string | null
+          tarefa_id?: string | null
+          tipo_documento?: string | null
+          vinculado_por: string
+        }
+        Update: {
+          aprovacao_id?: string
+          briefing_id?: string | null
+          bucket_destino?: string
+          categoria_cofre?: string | null
+          conversa_id?: string
+          created_at?: string
+          destino_tipo?: string
+          documento_id?: string
+          hash_arquivo?: string | null
+          id?: string
+          projeto_id?: string | null
+          registro_destino_id?: string
+          storage_path_destino?: string
+          submissao_id?: string | null
+          tarefa_id?: string | null
+          tipo_documento?: string | null
+          vinculado_por?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_aprovacao_doc_vinculos_aprovacao_id_fkey"
+            columns: ["aprovacao_id"]
+            isOneToOne: false
+            referencedRelation: "chat_aprovacoes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chat_aprovacao_doc_vinculos_documento_id_fkey"
+            columns: ["documento_id"]
+            isOneToOne: false
+            referencedRelation: "chat_aprovacao_documentos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       chat_aprovacao_documentos: {
         Row: {
           aprovacao_id: string
@@ -48534,6 +48609,16 @@ export type Database = {
       }
     }
     Functions: {
+      _aprov_vinc_validate_doc: {
+        Args: { p_documento_id: string }
+        Returns: {
+          aprovacao_id: string
+          conversa_id: string
+          documento_id: string
+          hash_arquivo: string
+          status_aprov: string
+        }[]
+      }
       _china_oc_snapshot_payload: { Args: { p_oc_id: string }; Returns: Json }
       _dispatch_backfill_alert: {
         Args: {
@@ -51417,6 +51502,53 @@ export type Database = {
       rpc_update_member_avatar: {
         Args: { _avatar_url: string; _member_id: string }
         Returns: undefined
+      }
+      rpc_vincular_aprovacao_briefing: {
+        Args: {
+          p_briefing_id: string
+          p_categoria: string
+          p_documento_id: string
+          p_mime: string
+          p_nome_arquivo: string
+          p_novo_arquivo_path: string
+          p_size: number
+        }
+        Returns: string
+      }
+      rpc_vincular_aprovacao_checklist_china: {
+        Args: {
+          p_documento_id: string
+          p_nome_arquivo: string
+          p_novo_arquivo_path: string
+          p_submissao_id: string
+          p_tipo_documento: string
+        }
+        Returns: string
+      }
+      rpc_vincular_aprovacao_projeto: {
+        Args: {
+          p_categoria: string
+          p_documento_id: string
+          p_mime: string
+          p_nome_arquivo: string
+          p_novo_arquivo_path: string
+          p_projeto_id: string
+          p_size: number
+        }
+        Returns: string
+      }
+      rpc_vincular_aprovacao_tarefa: {
+        Args: {
+          p_categoria: string
+          p_documento_id: string
+          p_mime: string
+          p_nome_arquivo: string
+          p_novo_arquivo_path: string
+          p_projeto_id: string
+          p_size: number
+          p_tarefa_id: string
+        }
+        Returns: string
       }
       rpc_vincular_concorrente_sugestao: {
         Args: { p_concorrente_id: string; p_sugestao_id: string }
