@@ -9940,6 +9940,8 @@ export type Database = {
           tipo: string
           ultima_mensagem_em: string | null
           updated_at: string
+          vinculo_id: string | null
+          vinculo_tipo: string | null
         }
         Insert: {
           arquivada_em?: string | null
@@ -9952,6 +9954,8 @@ export type Database = {
           tipo?: string
           ultima_mensagem_em?: string | null
           updated_at?: string
+          vinculo_id?: string | null
+          vinculo_tipo?: string | null
         }
         Update: {
           arquivada_em?: string | null
@@ -9964,6 +9968,8 @@ export type Database = {
           tipo?: string
           ultima_mensagem_em?: string | null
           updated_at?: string
+          vinculo_id?: string | null
+          vinculo_tipo?: string | null
         }
         Relationships: []
       }
@@ -51339,6 +51345,10 @@ export type Database = {
           empresa_nome: string
           fornecedor_codigo: string
         }[]
+      }
+      rpc_get_or_create_conversa_vinculada: {
+        Args: { p_ref_id: string; p_tipo: string; p_titulo: string }
+        Returns: string
       }
       rpc_get_revisao_documentos_mes:
         | {
