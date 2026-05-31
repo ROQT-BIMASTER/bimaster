@@ -32,6 +32,7 @@ export function ChatLayout({ initialConversaId = null, className, defaultShowInf
   const [conversaId, setConversaId] = useState<string | null>(initialConversaId);
   const [showInfo, setShowInfo] = useState(defaultShowInfo);
   const [modo, setModo] = useState<ChatModo>("pessoas");
+  const [autoOpenDialog, setAutoOpenDialog] = useState<"aprovacao" | "urgente" | null>(null);
   const isMobile = useIsMobile();
   const { isChinaUser, isBrasilUser } = useChinaUserContext();
   const { data: submissoes = [] } = useChinaSubmissoesChat();
@@ -39,6 +40,26 @@ export function ChatLayout({ initialConversaId = null, className, defaultShowInf
   const podeVerProjetos = useTemAcessoProjetos();
   const { user } = useAuth();
   useSuporteAgenteTrigger(user?.id);
+
+  // Deep-link de Briefings/Projetos/Submissões: ?conversaId=...&abrir=aprovacao|urgente
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const convId = params.get("conversaId");
+    const abrir = params.get("abrir");
+    if (convId) {
+      setModo("pessoas");
+      setConversaId(convId);
+      if (abrir === "aprovacao" || abrir === "urgente") {
+        setAutoOpenDialog(abrir);
+      }
+      // Limpa a URL para evitar reabrir no refresh
+      const url = new URL(window.location.href);
+      url.searchParams.delete("conversaId");
+      url.searchParams.delete("abrir");
+      window.history.replaceState({}, "", url.toString());
+    }
+  }, []);
 
   // Quando seleciona uma submissão, precisamos do nome do produto para
   // passar ao ChinaChatPanel. Pego direto da lista carregada pelo hook.
