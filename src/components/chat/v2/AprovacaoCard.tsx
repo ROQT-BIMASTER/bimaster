@@ -178,7 +178,7 @@ export function AprovacaoCard({ aprovacaoId, viewerUid, mine }: Props) {
             onChange={(e) => setMotivo(e.target.value)}
             placeholder="Motivo da rejeição (opcional)"
             rows={2}
-            className={cn(mine && "bg-background text-foreground")}
+            className="bg-background text-foreground"
           />
           <div className="flex gap-2">
             <Button
