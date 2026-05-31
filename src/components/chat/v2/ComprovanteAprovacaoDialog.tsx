@@ -82,7 +82,7 @@ export function ComprovanteAprovacaoDialog({ aprovacaoId, open, onOpenChange }: 
 
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <ShieldCheck className="h-5 w-5 text-emerald-600" />
+            <ShieldCheck className="h-5 w-5 text-success" />
             Comprovante de Aprovação Eletrônica
           </DialogTitle>
         </DialogHeader>

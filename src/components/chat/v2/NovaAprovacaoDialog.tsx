@@ -31,7 +31,7 @@ interface Props {
   conversaId: string;
 }
 
-const MAX_BYTES = 50 * 1024 * 1024; // casa com o file_size_limit do bucket
+const MAX_BYTES = 20 * 1024 * 1024; // casa com o file_size_limit do bucket (20MB, política do projeto)
 const ACCEPT = ".pdf,image/*,.doc,.docx,.xls,.xlsx";
 
 export function NovaAprovacaoDialog({ open, onOpenChange, conversaId }: Props) {
@@ -51,7 +51,7 @@ export function NovaAprovacaoDialog({ open, onOpenChange, conversaId }: Props) {
     const picked = Array.from(list);
     const tooBig = picked.find((f) => f.size > MAX_BYTES);
     if (tooBig) {
-      toast.error("Arquivo muito grande", { description: `${tooBig.name} excede 50MB.` });
+      toast.error("Arquivo muito grande", { description: `${tooBig.name} excede 20MB.` });
     }
     setFiles((prev) => [...prev, ...picked.filter((f) => f.size <= MAX_BYTES)]);
     if (inputRef.current) inputRef.current.value = "";
@@ -72,37 +72,41 @@ export function NovaAprovacaoDialog({ open, onOpenChange, conversaId }: Props) {
         descricao: descricao.trim() || undefined,
       });
 
-      if (files.length > 0) {
-        setUploading(true);
-        let ok = 0;
-        for (const file of files) {
-          try {
-            const up = await uploadAprovacaoDoc(conversaId, aprovacaoId, user.id, file);
-            const { error } = await supabase.rpc("rpc_chat_aprovacao_anexar_documento" as any, {
-              p_aprovacao_id: aprovacaoId,
-              p_titulo: file.name,
-              p_storage_path: up.storage_path,
-              p_mime_type: up.mime_type,
-              p_size_bytes: up.size_bytes,
-              p_hash: up.hash,
-            } as any);
-            if (error) throw error;
-            ok++;
-          } catch (e: any) {
-            toast.error(`Falha ao anexar ${file.name}`, { description: e?.message ?? "erro" });
-          }
+      let ok = 0;
+      setUploading(true);
+      for (const file of files) {
+        try {
+          const up = await uploadAprovacaoDoc(conversaId, aprovacaoId, user.id, file);
+          const { error } = await supabase.rpc("rpc_chat_aprovacao_anexar_documento" as any, {
+            p_aprovacao_id: aprovacaoId,
+            p_titulo: file.name,
+            p_storage_path: up.storage_path,
+            p_mime_type: up.mime_type,
+            p_size_bytes: up.size_bytes,
+            p_hash: up.hash,
+          } as any);
+          if (error) throw error;
+          ok++;
+        } catch (e: any) {
+          toast.error(`Falha ao anexar ${file.name}`, { description: e?.message ?? "erro" });
         }
-        if (ok > 0) toast.success(`${ok} documento(s) anexado(s)`);
       }
+      if (ok > 0) toast.success(`${ok} documento(s) anexado(s)`);
 
+      // Só encaminha à Central se houver ao menos 1 documento anexado —
+      // uma aprovação na Central sem documento contradiz o anexo obrigatório.
       if (destino === "central") {
-        const { error } = await supabase.rpc("rpc_chat_aprovacao_enviar_central" as any, {
-          p_aprovacao_id: aprovacaoId,
-        } as any);
-        if (error) {
-          toast.error("Falha ao enviar para a Central", { description: error.message });
+        if (ok === 0) {
+          toast.error("Aprovação criada sem documentos — não enviada à Central");
         } else {
-          toast.success("Enviado para a Central de Aprovações");
+          const { error } = await supabase.rpc("rpc_chat_aprovacao_enviar_central" as any, {
+            p_aprovacao_id: aprovacaoId,
+          } as any);
+          if (error) {
+            toast.error("Falha ao enviar para a Central", { description: error.message });
+          } else {
+            toast.success("Enviado para a Central de Aprovações");
+          }
         }
       }
 

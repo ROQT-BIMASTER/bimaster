@@ -23,9 +23,9 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 const COLUNAS: { key: "pendente" | "aprovado" | "rejeitado"; titulo: string; icon: React.ReactNode; cls: string }[] = [
-  { key: "pendente", titulo: "Pendentes", icon: <Clock className="h-4 w-4" />, cls: "text-amber-600" },
-  { key: "aprovado", titulo: "Aprovados", icon: <CheckCircle2 className="h-4 w-4" />, cls: "text-emerald-600" },
-  { key: "rejeitado", titulo: "Rejeitados", icon: <XCircle className="h-4 w-4" />, cls: "text-red-600" },
+  { key: "pendente", titulo: "Pendentes", icon: <Clock className="h-4 w-4" />, cls: "text-warning" },
+  { key: "aprovado", titulo: "Aprovados", icon: <CheckCircle2 className="h-4 w-4" />, cls: "text-success" },
+  { key: "rejeitado", titulo: "Rejeitados", icon: <XCircle className="h-4 w-4" />, cls: "text-destructive" },
 ];
 
 export default function CentralAprovacoesChat() {

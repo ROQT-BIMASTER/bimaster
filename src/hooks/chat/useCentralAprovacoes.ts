@@ -4,9 +4,10 @@
  * participante da conversa vê as suas; admin vê todas. Resolve nomes de
  * solicitante/decisor via get_chat_directory (RPC) e conta os documentos.
  */
-import { useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useEffect, useMemo } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { uniqueChannelName } from "@/lib/realtime/channelName";
 
 export interface CentralAprovacao {
   id: string;
@@ -25,8 +26,10 @@ export interface CentralAprovacao {
 }
 
 export function useCentralAprovacoes() {
+  const qc = useQueryClient();
+  const queryKey = ["central-aprovacoes"];
   const query = useQuery({
-    queryKey: ["central-aprovacoes"],
+    queryKey,
     staleTime: 15_000,
     queryFn: async (): Promise<CentralAprovacao[]> => {
       const { data: aprovacoes, error } = await supabase
@@ -70,6 +73,20 @@ export function useCentralAprovacoes() {
       })) as CentralAprovacao[];
     },
   });
+
+  // Realtime — atualiza a Central quando uma aprovação muda (decisão,
+  // encaminhamento). Filtra por enviado_central=true no servidor.
+  useEffect(() => {
+    const ch = supabase
+      .channel(uniqueChannelName("central-aprovacoes"))
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "chat_aprovacoes", filter: "enviado_central=eq.true" },
+        () => qc.invalidateQueries({ queryKey }),
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [qc]);
 
   const porStatus = useMemo(() => {
     const all = query.data ?? [];
