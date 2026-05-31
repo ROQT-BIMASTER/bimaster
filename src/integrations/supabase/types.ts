@@ -51312,6 +51312,10 @@ export type Database = {
         Args: { p_embarque_id: string }
         Returns: undefined
       }
+      rpc_garantir_usuario_em_comunicados: {
+        Args: { p_user_id: string }
+        Returns: undefined
+      }
       rpc_gerar_op_da_oc_china: {
         Args: {
           p_data_prevista?: string
