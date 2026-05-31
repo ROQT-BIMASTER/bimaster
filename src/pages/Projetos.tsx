@@ -12,6 +12,16 @@ import { Plus, FolderOpen, Loader2, MoreHorizontal, Trash2, CheckCircle2, Calend
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/dashboard/AppSidebar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useResolvedAvatarUrl } from "@/hooks/useResolvedAvatarUrl";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -100,6 +110,7 @@ export default function Projetos() {
   const { projetos, isLoading, deleteProjeto, finalizarProjeto, projetoMetrics, projetoMembros, projetoColaboradores } =
     useProjetos({ restrictToAccessible });
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [projetoParaExcluir, setProjetoParaExcluir] = useState<Projeto | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedUser, setSelectedUser] = useState<string>("all");
   const [selectedDept, setSelectedDept] = useState<string>("all");
@@ -409,7 +420,7 @@ export default function Projetos() {
                         projeto={projeto}
                         isFinalizado={isFinalizado}
                         onFinalize={() => finalizarProjeto.mutate(projeto.id)}
-                        onDelete={() => deleteProjeto.mutate(projeto.id)}
+                        onDelete={() => setProjetoParaExcluir(projeto)}
                       />
                     </div>
                   );
@@ -422,6 +433,43 @@ export default function Projetos() {
 
       <NovoProjetoDialog open={dialogOpen} onOpenChange={setDialogOpen} />
       <TourButton tourId={PROJETOS_LISTA_TOUR_ID} tourSteps={projetosListaTourSteps} title="Manual de Projetos" description="Aprenda a gerenciar seus projetos passo a passo" />
+
+      <AlertDialog
+        open={!!projetoParaExcluir}
+        onOpenChange={(open) => {
+          if (!open) setProjetoParaExcluir(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir projeto?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Você está prestes a excluir o projeto
+              {" "}<strong>"{projetoParaExcluir?.nome}"</strong>. Esta ação remove
+              todas as seções, tarefas, anexos do cofre, históricos e
+              configurações associadas, e não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleteProjeto.isPending}>
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction
+              disabled={deleteProjeto.isPending}
+              onClick={(e) => {
+                e.preventDefault();
+                if (!projetoParaExcluir) return;
+                deleteProjeto.mutate(projetoParaExcluir.id, {
+                  onSettled: () => setProjetoParaExcluir(null),
+                });
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleteProjeto.isPending ? "Excluindo..." : "Sim, excluir"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </SidebarProvider>
   );
 }
