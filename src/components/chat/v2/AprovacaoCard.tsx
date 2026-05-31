@@ -261,6 +261,18 @@ export function AprovacaoCard({ aprovacaoId, viewerUid, mine }: Props) {
         open={showComprovante}
         onOpenChange={setShowComprovante}
       />
+
+      <VincularDocAprovadoDialog
+        open={!!vincularDoc}
+        onOpenChange={(v) => { if (!v) setVincularDoc(null); }}
+        documento={vincularDoc ? {
+          id: vincularDoc.id,
+          storage_path: vincularDoc.storage_path,
+          titulo: vincularDoc.titulo,
+          mime_type: (vincularDoc as any).mime_type ?? null,
+          size_bytes: vincularDoc.size_bytes ?? null,
+        } : null}
+      />
     </div>
   );
 }
