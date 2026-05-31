@@ -76,18 +76,21 @@ export function VincularDocAprovadoDialog({ open, onOpenChange, documento }: Pro
     }
   }, [open]);
 
-  // listas
+  // listas — todas filtradas server-side por RLS / SECURITY DEFINER
   const submissoes = useQuery({
     queryKey: ["vinc-submissoes-china"],
     enabled: open && destino === "china_checklist",
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .from("china_produto_submissoes")
-        .select("id, nome_submissao, codigo_externo")
-        .order("created_at", { ascending: false })
-        .limit(200);
+      const { data, error } = await (supabase.rpc as any)(
+        "rpc_chat_vinculo_submissoes_china",
+      );
       if (error) throw error;
-      return (data ?? []) as { id: string; nome_submissao: string | null; codigo_externo: string | null }[];
+      return (data ?? []) as {
+        id: string;
+        produto_codigo: string | null;
+        produto_nome: string | null;
+        status: string | null;
+      }[];
     },
   });
 
@@ -95,10 +98,11 @@ export function VincularDocAprovadoDialog({ open, onOpenChange, documento }: Pro
     queryKey: ["vinc-briefings"],
     enabled: open && destino === "briefing",
     queryFn: async () => {
+      // RLS de `briefings` já restringe a membros/criador/admin
       const { data, error } = await (supabase as any)
         .from("briefings")
         .select("id, titulo")
-        .order("created_at", { ascending: false })
+        .order("updated_at", { ascending: false })
         .limit(200);
       if (error) throw error;
       return (data ?? []) as { id: string; titulo: string }[];
@@ -106,16 +110,18 @@ export function VincularDocAprovadoDialog({ open, onOpenChange, documento }: Pro
   });
 
   const projetos = useQuery({
-    queryKey: ["vinc-projetos"],
+    queryKey: ["vinc-projetos-acessiveis"],
     enabled: open && (destino === "projeto" || destino === "tarefa"),
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .from("projetos")
-        .select("id, nome")
-        .order("created_at", { ascending: false })
-        .limit(200);
+      const { data, error } = await (supabase.rpc as any)(
+        "get_accessible_projetos",
+        { _target_user_id: null, _include_all: false },
+      );
       if (error) throw error;
-      return (data ?? []) as { id: string; nome: string }[];
+      return (data ?? []).map((p: any) => ({ id: p.id, nome: p.nome })) as {
+        id: string;
+        nome: string;
+      }[];
     },
   });
 
@@ -123,14 +129,12 @@ export function VincularDocAprovadoDialog({ open, onOpenChange, documento }: Pro
     queryKey: ["vinc-tarefas", projetoId],
     enabled: open && destino === "tarefa" && !!projetoId,
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .from("projeto_tarefas")
-        .select("id, titulo")
-        .eq("projeto_id", projetoId)
-        .order("created_at", { ascending: false })
-        .limit(300);
+      const { data, error } = await (supabase.rpc as any)(
+        "rpc_chat_vinculo_tarefas_projeto",
+        { p_projeto_id: projetoId },
+      );
       if (error) throw error;
-      return (data ?? []) as { id: string; titulo: string }[];
+      return (data ?? []) as { id: string; titulo: string; status: string | null }[];
     },
   });
 
@@ -244,7 +248,7 @@ export function VincularDocAprovadoDialog({ open, onOpenChange, documento }: Pro
                     <SelectTrigger><SelectValue placeholder={submissoes.isLoading ? "Carregando..." : "Selecione"} /></SelectTrigger>
                     <SelectContent>
                       {(submissoes.data ?? []).map((s) => (
-                        <SelectItem key={s.id} value={s.id}>{s.nome_submissao || s.codigo_externo || s.id.slice(0,8)}</SelectItem>
+                        <SelectItem key={s.id} value={s.id}>{[s.produto_codigo, s.produto_nome].filter(Boolean).join(" — ") || s.id.slice(0,8)}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
