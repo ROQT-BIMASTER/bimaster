@@ -248,7 +248,7 @@ export function VincularDocAprovadoDialog({ open, onOpenChange, documento }: Pro
                     <SelectTrigger><SelectValue placeholder={submissoes.isLoading ? "Carregando..." : "Selecione"} /></SelectTrigger>
                     <SelectContent>
                       {(submissoes.data ?? []).map((s) => (
-                        <SelectItem key={s.id} value={s.id}>{s.nome_submissao || s.codigo_externo || s.id.slice(0,8)}</SelectItem>
+                        <SelectItem key={s.id} value={s.id}>{[s.produto_codigo, s.produto_nome].filter(Boolean).join(" — ") || s.id.slice(0,8)}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
