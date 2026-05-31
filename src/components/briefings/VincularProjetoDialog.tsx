@@ -170,13 +170,13 @@ export function VincularProjetoDialog({
 
   const salvar = async () => {
     const escolhido = projetos.find((p) => p.id === selecionado);
-    const payload: Record<string, any> = {
+    const payload = {
       projeto_id: selecionado,
       tarefa_id: selecionado ? tarefaSel : null,
     };
     const { error } = await supabase
       .from("briefings")
-      .update(payload)
+      .update(payload as never)
       .eq("id", briefingId);
     if (error) {
       toast.error(error.message || "Erro ao vincular projeto");
