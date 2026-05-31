@@ -24,9 +24,15 @@ interface Props {
   responderA: ChatMensagem | null;
   onClearReply: () => void;
   onTyping: () => void;
+  /** Quando definido, abre automaticamente o dialog correspondente assim
+   *  que o componente é montado. Usado para deep-links vindos de
+   *  Briefings/Projetos/Submissões. */
+  autoOpenDialog?: "aprovacao" | "urgente" | null;
+  /** Callback opcional para o pai limpar o autoOpenDialog após ser consumido. */
+  onAutoOpenConsumed?: () => void;
 }
 
-export function MessageInput({ conversaId, responderA, onClearReply, onTyping }: Props) {
+export function MessageInput({ conversaId, responderA, onClearReply, onTyping, autoOpenDialog, onAutoOpenConsumed }: Props) {
   const { user } = useAuth();
   const uid = user?.id ?? "";
   // Rascunho persistente por conversa (localStorage). Trocar de conversa
@@ -54,6 +60,15 @@ export function MessageInput({ conversaId, responderA, onClearReply, onTyping }:
   const { sendMessage } = useChatActions();
 
   useEffect(() => { taRef.current?.focus(); }, [conversaId, responderA]);
+
+  // Consome auto-open vindo de deep-link (Briefings/Projetos/Submissões → Pessoas)
+  useEffect(() => {
+    if (!autoOpenDialog) return;
+    if (autoOpenDialog === "aprovacao") setAprovacaoOpen(true);
+    else if (autoOpenDialog === "urgente") setUrgenteOpen(true);
+    onAutoOpenConsumed?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoOpenDialog, conversaId]);
 
   // Reset mentions ao trocar de conversa
   useEffect(() => {

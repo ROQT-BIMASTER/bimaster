@@ -21,9 +21,11 @@ interface Props {
   conversaId: string;
   onShowInfo: () => void;
   onBack?: () => void;
+  autoOpenDialog?: "aprovacao" | "urgente" | null;
+  onAutoOpenConsumed?: () => void;
 }
 
-export function ChatThread({ conversaId, onShowInfo }: Props) {
+export function ChatThread({ conversaId, onShowInfo, autoOpenDialog, onAutoOpenConsumed }: Props) {
   const { user } = useAuth();
   const uid = user?.id ?? "";
   const { data: conversas = [] } = useConversas();
@@ -247,6 +249,8 @@ export function ChatThread({ conversaId, onShowInfo }: Props) {
         responderA={responderA}
         onClearReply={() => setResponderA(null)}
         onTyping={enviarDigitando}
+        autoOpenDialog={autoOpenDialog}
+        onAutoOpenConsumed={onAutoOpenConsumed}
       />
     </div>
   );
