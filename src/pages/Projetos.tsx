@@ -110,6 +110,7 @@ export default function Projetos() {
   const { projetos, isLoading, deleteProjeto, finalizarProjeto, projetoMetrics, projetoMembros, projetoColaboradores } =
     useProjetos({ restrictToAccessible });
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [projetoParaExcluir, setProjetoParaExcluir] = useState<Projeto | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedUser, setSelectedUser] = useState<string>("all");
   const [selectedDept, setSelectedDept] = useState<string>("all");
