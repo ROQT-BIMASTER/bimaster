@@ -13,7 +13,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
-import { ClipboardCheck, ThumbsUp, ThumbsDown, Loader2, CheckCircle2, XCircle, Clock, FileText, Download, ShieldCheck, Archive } from "lucide-react";
+import { ClipboardCheck, ThumbsUp, ThumbsDown, Loader2, CheckCircle2, XCircle, Clock, FileText, Download, ShieldCheck, Archive, AlertOctagon } from "lucide-react";
 import { useChatAprovacao } from "@/hooks/chat/useChatAprovacao";
 import { useAprovacaoDocumentos } from "@/hooks/chat/useAprovacaoDocumentos";
 import { ComprovanteAprovacaoDialog } from "./ComprovanteAprovacaoDialog";
