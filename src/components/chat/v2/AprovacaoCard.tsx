@@ -205,16 +205,14 @@ export function AprovacaoCard({ aprovacaoId, viewerUid, mine }: Props) {
 
       {/* Mensagem para solicitante quando pendente */}
       {ap.status === "pendente" && isSolicitante && (
-        <p className={cn("mt-2 text-[10px] italic",
-          mine ? "text-white/60" : "text-muted-foreground")}>
+        <p className="mt-2 text-[10px] italic text-muted-foreground">
           Aguardando decisão de outro participante.
         </p>
       )}
 
       {/* Detalhes da decisão */}
       {ap.status !== "pendente" && ap.decidido_em && (
-        <div className={cn("mt-2 pt-2 border-t text-[11px]",
-          mine ? "border-white/30 text-white/80" : "border-border text-muted-foreground")}>
+        <div className="mt-2 pt-2 border-t text-[11px] border-border text-muted-foreground">
           <p>
             {ap.status === "aprovado" ? "Aprovado" : ap.status === "rejeitado" ? "Rejeitado" : "Cancelado"}
             {" em "}
@@ -233,7 +231,7 @@ export function AprovacaoCard({ aprovacaoId, viewerUid, mine }: Props) {
               <Button
                 variant="link"
                 size="sm"
-                className={cn("h-auto p-0 text-[11px]", mine ? "text-white" : "text-primary")}
+                className="h-auto p-0 text-[11px] text-primary"
                 onClick={() => setShowComprovante(true)}
               >
                 Ver comprovante
