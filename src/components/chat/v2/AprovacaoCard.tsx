@@ -274,6 +274,15 @@ export function AprovacaoCard({ aprovacaoId, viewerUid, mine, mensagemId }: Prop
           size_bytes: vincularDoc.size_bytes ?? null,
         } : null}
       />
+
+      {mensagemId && (
+        <CutucarDialog
+          open={cutucarOpen}
+          onOpenChange={setCutucarOpen}
+          mensagemAlvoId={mensagemId}
+          alvoResumo={`Aprovação: ${ap.titulo}`}
+        />
+      )}
     </div>
   );
 }
