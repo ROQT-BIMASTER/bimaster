@@ -31,11 +31,13 @@ interface Props {
   onOpenChange: (v: boolean) => void;
   projetoId: string;
   descricaoInicial?: string;
+  /** Arquivo pré-selecionado (ex.: captura de câmera vinda do composer). */
+  initialFile?: File | null;
   onUploaded?: (doc: { id: string; nome: string }) => void;
 }
 
 export function ProjetoCofreUploadDialog({
-  open, onOpenChange, projetoId, descricaoInicial, onUploaded,
+  open, onOpenChange, projetoId, descricaoInicial, initialFile, onUploaded,
 }: Props) {
   const qc = useQueryClient();
   const [file, setFile] = useState<File | null>(null);
@@ -50,6 +52,14 @@ export function ProjetoCofreUploadDialog({
   useEffect(() => {
     if (open && descricaoInicial && !descricao) setDescricao(descricaoInicial);
   }, [open, descricaoInicial]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (open && initialFile && !file) {
+      setFile(initialFile);
+      if (!nome) setNome(initialFile.name.replace(/\.[^.]+$/, ""));
+    }
+  }, [open, initialFile]); // eslint-disable-line react-hooks/exhaustive-deps
+
 
   const reset = () => {
     setFile(null); setNome(""); setDescricao(""); setCategoria("geral");
