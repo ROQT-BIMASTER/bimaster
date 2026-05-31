@@ -423,6 +423,12 @@ export function MessageBubble({ m, uid, isGrupo, onReply, participantesCount }: 
       <ForwardMessageDialog open={forwardOpen} onOpenChange={setForwardOpen} m={m} />
       <CriarTarefaDoChatDialog open={criarTarefaOpen} onOpenChange={setCriarTarefaOpen} mensagem={m} />
       {mine && <MessageInfoDialog open={infoOpen} onOpenChange={setInfoOpen} mensagem={m} uid={uid} />}
+      <CutucarDialog
+        open={cutucarOpen}
+        onOpenChange={setCutucarOpen}
+        mensagemAlvoId={m.id}
+        alvoResumo={m.conteudo?.slice(0, 160) || (m.metadata as any)?.aprovacao_titulo || "Mensagem"}
+      />
     </div>
   );
 }
