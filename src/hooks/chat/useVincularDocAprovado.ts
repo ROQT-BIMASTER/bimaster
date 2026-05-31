@@ -4,10 +4,11 @@
  *
  * Em todos os casos:
  *   1. baixa o blob do bucket `aprovacao-documentos`
- *   2. faz upload no bucket destino com path estruturado
- *   3. chama a RPC `rpc_vincular_aprovacao_*` que cria a linha no cofre
- *      correto, registra o vínculo (auditoria/dedupe) e posta msg de sistema
- *      na conversa origem.
+ *   2. faz upload no bucket destino com path estruturado iniciado pelo UID
+ *      do usuário (exigido pelas policies de storage)
+ *   3. chama a RPC `rpc_vincular_aprovacao_*` que valida acesso real ao
+ *      destino, cria a linha no cofre correto, registra o vínculo
+ *      (auditoria/dedupe) e posta msg de sistema na conversa origem.
  */
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -29,8 +30,29 @@ async function downloadAprovacaoBlob(path: string): Promise<Blob> {
   return data;
 }
 
+async function currentUid(): Promise<string> {
+  const { data } = await supabase.auth.getUser();
+  const uid = data.user?.id;
+  if (!uid) throw new Error("Sessão expirada");
+  return uid;
+}
+
 function safe(name: string) {
   return name.replace(/[^\w.\-]+/g, "_").slice(0, 80);
+}
+
+/** Traduz códigos de erro vindos das RPCs para mensagens amigáveis. */
+function translateError(e: any): string {
+  const msg: string = (e?.message ?? "").toString();
+  if (msg.includes("sem_acesso_submissao")) return "Você não tem acesso a esta submissão da China.";
+  if (msg.includes("sem_acesso_projeto")) return "Você não tem acesso a este projeto.";
+  if (msg.includes("sem_acesso_briefing")) return "Você não tem acesso a este briefing.";
+  if (msg.includes("tarefa_invalida")) return "Tarefa não pertence ao projeto selecionado.";
+  if (msg.includes("categoria_obrigatoria")) return "Selecione a categoria do cofre.";
+  if (msg.includes("tipo_documento_obrigatorio")) return "Selecione o tipo de documento.";
+  if (msg.includes("documento_nao_encontrado_ou_sem_acesso"))
+    return "Documento não encontrado ou você perdeu acesso à conversa.";
+  return msg || "Falha ao arquivar no cofre";
 }
 
 export type VincDestino = "china_checklist" | "briefing" | "projeto" | "tarefa";
@@ -44,8 +66,10 @@ export function useVincularDocAprovado() {
       submissao_id: string;
       tipo_documento: string;
     }) => {
+      const uid = await currentUid();
       const blob = await downloadAprovacaoBlob(input.storage_path_origem);
-      const path = `${input.submissao_id}/${input.tipo_documento}/${Date.now()}_${safe(input.nome_arquivo)}`;
+      // path começa com UID p/ satisfazer china_storage_insert_owned
+      const path = `${uid}/aprovacao-chat/${input.submissao_id}/${input.tipo_documento}/${Date.now()}_${safe(input.nome_arquivo)}`;
       const { error: upErr } = await supabase.storage
         .from("china-documentos")
         .upload(path, blob, {
@@ -69,9 +93,10 @@ export function useVincularDocAprovado() {
     onSuccess: () => {
       toast.success("Documento arquivado no cofre da Submissão China");
       qc.invalidateQueries({ queryKey: ["china-produto-documentos"] });
+      qc.invalidateQueries({ queryKey: ["china-ficha-docs"] });
     },
     onError: (e: any) =>
-      toast.error("Erro ao vincular", { description: e?.message ?? "Falha" }),
+      toast.error("Erro ao vincular", { description: translateError(e) }),
   });
 
   // 2) Briefing -----------------------------------------------------------------
@@ -81,6 +106,7 @@ export function useVincularDocAprovado() {
       categoria: string;
     }) => {
       const blob = await downloadAprovacaoBlob(input.storage_path_origem);
+      // briefing-cofre policy exige primeiro segmento = briefing_id
       const path = `${input.briefing_id}/${input.categoria}/${Date.now()}_${safe(input.nome_arquivo)}`;
       const { error: upErr } = await supabase.storage
         .from("briefing-cofre")
@@ -109,7 +135,7 @@ export function useVincularDocAprovado() {
       qc.invalidateQueries({ queryKey: ["briefing-documentos"] });
     },
     onError: (e: any) =>
-      toast.error("Erro ao vincular", { description: e?.message ?? "Falha" }),
+      toast.error("Erro ao vincular", { description: translateError(e) }),
   });
 
   // 3) Projeto (raiz) -----------------------------------------------------------
@@ -118,8 +144,10 @@ export function useVincularDocAprovado() {
       projeto_id: string;
       categoria: string;
     }) => {
+      const uid = await currentUid();
       const blob = await downloadAprovacaoBlob(input.storage_path_origem);
-      const path = `${input.projeto_id}/cofre/${crypto.randomUUID()}/${safe(input.nome_arquivo)}`;
+      // projeto-anexos policy exige primeiro segmento = auth.uid()
+      const path = `${uid}/aprovacao-chat/${input.projeto_id}/${input.categoria}/${Date.now()}_${safe(input.nome_arquivo)}`;
       const { error: upErr } = await supabase.storage
         .from("projeto-anexos")
         .upload(path, blob, {
@@ -147,7 +175,7 @@ export function useVincularDocAprovado() {
       qc.invalidateQueries({ queryKey: ["projeto-cofre-documentos"] });
     },
     onError: (e: any) =>
-      toast.error("Erro ao vincular", { description: e?.message ?? "Falha" }),
+      toast.error("Erro ao vincular", { description: translateError(e) }),
   });
 
   // 4) Tarefa -------------------------------------------------------------------
@@ -157,8 +185,9 @@ export function useVincularDocAprovado() {
       tarefa_id: string;
       categoria: string;
     }) => {
+      const uid = await currentUid();
       const blob = await downloadAprovacaoBlob(input.storage_path_origem);
-      const path = `${input.projeto_id}/${input.tarefa_id}/${Date.now()}_${safe(input.nome_arquivo)}`;
+      const path = `${uid}/aprovacao-chat/${input.projeto_id}/${input.tarefa_id}/${Date.now()}_${safe(input.nome_arquivo)}`;
       const { error: upErr } = await supabase.storage
         .from("projeto-anexos")
         .upload(path, blob, {
@@ -187,7 +216,7 @@ export function useVincularDocAprovado() {
       qc.invalidateQueries({ queryKey: ["tarefa-anexos"] });
     },
     onError: (e: any) =>
-      toast.error("Erro ao vincular", { description: e?.message ?? "Falha" }),
+      toast.error("Erro ao vincular", { description: translateError(e) }),
   });
 
   return { vincularChina, vincularBriefing, vincularProjeto, vincularTarefa };
