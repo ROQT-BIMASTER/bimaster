@@ -348,20 +348,25 @@ export function useProjetos(options: UseProjetosOptions = {}) {
     },
   });
 
+  // Soft delete: marca deleted_at; cron purga após 30 dias.
+  // RLS de SELECT filtra deleted_at IS NULL para usuários comuns,
+  // então o projeto some da listagem normal automaticamente.
   const deleteProjeto = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("projetos").delete().eq("id", id);
+      const { error } = await (supabase
+        .from("projetos") as any)
+        .update({ deleted_at: new Date().toISOString() })
+        .eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["projetos"] });
       queryClient.invalidateQueries({ queryKey: ["projetos-metrics"] });
       queryClient.invalidateQueries({ queryKey: ["projetos-membros"] });
-      toast.success("Projeto excluído!");
+      queryClient.invalidateQueries({ queryKey: ["projetos-lixeira"] });
+      toast.success("Projeto movido para a lixeira. Permanecerá por 30 dias.");
     },
     onError: (err: Error) => {
-      // Sem onError o botão "Excluir" parecia não fazer nada quando a operação
-      // falhava (RLS, FK restrita, rede). Agora o usuário vê o motivo real.
       toast.error("Não foi possível excluir o projeto: " + err.message);
     },
   });

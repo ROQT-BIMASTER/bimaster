@@ -39,6 +39,7 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { useIsGerenteGeralProjetos } from "@/hooks/useIsGerenteGeralProjetos";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { ProjetoKpiStrip } from "@/components/projetos/ProjetoKpiStrip";
+import { ProjetosLixeiraDialog } from "@/components/projetos/ProjetosLixeiraDialog";
 
 
 const VER_TODOS_KEY = "projetos:ver-todos";
