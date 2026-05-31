@@ -256,7 +256,7 @@ export function VincularDocAprovadoDialog({ open, onOpenChange, documento }: Pro
                       <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                       <SelectContent>
                         {checklist.categories.map((c) => (
-                          <SelectItem key={c.key} value={c.key}>{c.label_pt}</SelectItem>
+                          <SelectItem key={c.key} value={c.key}>{c.labelPt}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
@@ -269,7 +269,7 @@ export function VincularDocAprovadoDialog({ open, onOpenChange, documento }: Pro
                       <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                       <SelectContent>
                         {tiposChinaDisp.map((dt) => (
-                          <SelectItem key={dt.tipo} value={dt.tipo}>{dt.label_pt}</SelectItem>
+                          <SelectItem key={dt.tipo} value={dt.tipo}>{dt.labelPt}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
