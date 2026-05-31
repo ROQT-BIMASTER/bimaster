@@ -51,6 +51,7 @@ export function MessageBubble({ m, uid, isGrupo, onReply, participantesCount }: 
   const [forwardOpen, setForwardOpen] = useState(false);
   const [criarTarefaOpen, setCriarTarefaOpen] = useState(false);
   const [infoOpen, setInfoOpen] = useState(false);
+  const [cutucarOpen, setCutucarOpen] = useState(false);
   const tarefaVinculada = (m.metadata as any)?.tarefa_id as string | undefined;
   const tarefaTitulo = (m.metadata as any)?.tarefa_titulo as string | undefined;
   const tarefaProjetoId = (m.metadata as any)?.projeto_id as string | undefined;
