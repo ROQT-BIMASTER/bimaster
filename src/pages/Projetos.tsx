@@ -112,6 +112,7 @@ export default function Projetos() {
     useProjetos({ restrictToAccessible });
   const [dialogOpen, setDialogOpen] = useState(false);
   const [projetoParaExcluir, setProjetoParaExcluir] = useState<Projeto | null>(null);
+  const [lixeiraOpen, setLixeiraOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedUser, setSelectedUser] = useState<string>("all");
   const [selectedDept, setSelectedDept] = useState<string>("all");
@@ -241,6 +242,16 @@ export default function Projetos() {
                   </Tooltip>
                 )}
                 <GerarDocumentacaoButton />
+                {isAdmin && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setLixeiraOpen(true)}
+                    className="gap-2"
+                  >
+                    <Trash2 className="h-4 w-4" /> Lixeira
+                  </Button>
+                )}
                 <Button onClick={() => setDialogOpen(true)} className="gap-2 shadow-sm" data-tour="projetos-novo">
                   <Plus className="h-4 w-4" /> Novo Projeto
                 </Button>
@@ -433,6 +444,7 @@ export default function Projetos() {
       </div>
 
       <NovoProjetoDialog open={dialogOpen} onOpenChange={setDialogOpen} />
+      <ProjetosLixeiraDialog open={lixeiraOpen} onOpenChange={setLixeiraOpen} />
       <TourButton tourId={PROJETOS_LISTA_TOUR_ID} tourSteps={projetosListaTourSteps} title="Manual de Projetos" description="Aprenda a gerenciar seus projetos passo a passo" />
 
       <AlertDialog
@@ -443,12 +455,12 @@ export default function Projetos() {
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Excluir projeto?</AlertDialogTitle>
+            <AlertDialogTitle>Mover projeto para a lixeira?</AlertDialogTitle>
             <AlertDialogDescription>
-              Você está prestes a excluir o projeto
-              {" "}<strong>"{projetoParaExcluir?.nome}"</strong>. Esta ação remove
-              todas as seções, tarefas, anexos do cofre, históricos e
-              configurações associadas, e não pode ser desfeita.
+              O projeto <strong>"{projetoParaExcluir?.nome}"</strong> será movido para
+              a lixeira e permanecerá lá por 30 dias antes da remoção definitiva.
+              Apenas administradores podem restaurá-lo durante esse período,
+              mediante confirmação de senha.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
