@@ -102,6 +102,7 @@ const REF_ICONS: Record<string, React.ReactNode> = {
 };
 
 export function ChinaChatPanel({ submissaoId, produtoNome, tipoRemetente, referenciasDisponiveis = [] }: Props) {
+  const { abrirAprovacao, abrirUrgente } = useAbrirAcaoVinculada();
   const { language: leitorIdioma, setLanguage } = useUserLanguage();
   const [mensagens, setMensagens] = useState<Mensagem[]>([]);
   const [translatingIds, setTranslatingIds] = useState<Set<string>>(new Set());
