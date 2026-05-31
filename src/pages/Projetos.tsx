@@ -433,6 +433,43 @@ export default function Projetos() {
 
       <NovoProjetoDialog open={dialogOpen} onOpenChange={setDialogOpen} />
       <TourButton tourId={PROJETOS_LISTA_TOUR_ID} tourSteps={projetosListaTourSteps} title="Manual de Projetos" description="Aprenda a gerenciar seus projetos passo a passo" />
+
+      <AlertDialog
+        open={!!projetoParaExcluir}
+        onOpenChange={(open) => {
+          if (!open) setProjetoParaExcluir(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir projeto?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Você está prestes a excluir o projeto
+              {" "}<strong>"{projetoParaExcluir?.nome}"</strong>. Esta ação remove
+              todas as seções, tarefas, anexos do cofre, históricos e
+              configurações associadas, e não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleteProjeto.isPending}>
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction
+              disabled={deleteProjeto.isPending}
+              onClick={(e) => {
+                e.preventDefault();
+                if (!projetoParaExcluir) return;
+                deleteProjeto.mutate(projetoParaExcluir.id, {
+                  onSettled: () => setProjetoParaExcluir(null),
+                });
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleteProjeto.isPending ? "Excluindo..." : "Sim, excluir"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </SidebarProvider>
   );
 }
