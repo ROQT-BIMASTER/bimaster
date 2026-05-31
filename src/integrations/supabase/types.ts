@@ -3738,6 +3738,8 @@ export type Database = {
           decidido_por: string | null
           decidido_user_agent: string | null
           descricao: string | null
+          enviado_central: boolean
+          enviado_central_em: string | null
           id: string
           mensagem_id: string | null
           motivo: string | null
@@ -3753,6 +3755,8 @@ export type Database = {
           decidido_por?: string | null
           decidido_user_agent?: string | null
           descricao?: string | null
+          enviado_central?: boolean
+          enviado_central_em?: string | null
           id?: string
           mensagem_id?: string | null
           motivo?: string | null
@@ -3768,6 +3772,8 @@ export type Database = {
           decidido_por?: string | null
           decidido_user_agent?: string | null
           descricao?: string | null
+          enviado_central?: boolean
+          enviado_central_em?: string | null
           id?: string
           mensagem_id?: string | null
           motivo?: string | null
@@ -50736,6 +50742,10 @@ export type Database = {
       }
       rpc_chat_aprovacao_decidir: {
         Args: { p_aprovacao_id: string; p_motivo?: string; p_status: string }
+        Returns: undefined
+      }
+      rpc_chat_aprovacao_enviar_central: {
+        Args: { p_aprovacao_id: string }
         Returns: undefined
       }
       rpc_chat_criar_conversa_privada: {
