@@ -13,10 +13,11 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
-import { ClipboardCheck, ThumbsUp, ThumbsDown, Loader2, CheckCircle2, XCircle, Clock, FileText, Download, ShieldCheck } from "lucide-react";
+import { ClipboardCheck, ThumbsUp, ThumbsDown, Loader2, CheckCircle2, XCircle, Clock, FileText, Download, ShieldCheck, Archive } from "lucide-react";
 import { useChatAprovacao } from "@/hooks/chat/useChatAprovacao";
 import { useAprovacaoDocumentos } from "@/hooks/chat/useAprovacaoDocumentos";
 import { ComprovanteAprovacaoDialog } from "./ComprovanteAprovacaoDialog";
+import { VincularDocAprovadoDialog } from "./VincularDocAprovadoDialog";
 import { downloadAprovacaoDoc } from "./aprovacaoDocs";
 import { formatBytes } from "./utils";
 import { cn } from "@/lib/utils";
@@ -36,6 +37,7 @@ export function AprovacaoCard({ aprovacaoId, viewerUid, mine }: Props) {
   const [confirmaRejeicao, setConfirmaRejeicao] = useState(false);
   const [motivo, setMotivo] = useState("");
   const [showComprovante, setShowComprovante] = useState(false);
+  const [vincularDoc, setVincularDoc] = useState<typeof documentos[number] | null>(null);
 
   const baixarDoc = async (doc: { storage_path: string; titulo: string }) => {
     try {
@@ -116,24 +118,43 @@ export function AprovacaoCard({ aprovacaoId, viewerUid, mine }: Props) {
         <div className={cn("mb-2 space-y-1 rounded-md border p-1.5",
           mine ? "border-white/30" : "border-border bg-muted/30")}>
           {documentos.map((doc) => (
-            <button
+            <div
               key={doc.id}
-              type="button"
-              onClick={() => baixarDoc(doc)}
               className={cn(
-                "w-full flex items-center gap-2 text-left text-xs rounded px-1 py-1 transition-colors",
+                "w-full flex items-center gap-2 text-xs rounded px-1 py-1 transition-colors",
                 mine ? "hover:bg-white/10" : "hover:bg-background",
               )}
             >
-              <FileText className="h-3.5 w-3.5 shrink-0" />
-              <span className="flex-1 min-w-0 truncate">{doc.titulo}</span>
-              {doc.size_bytes != null && (
-                <span className={cn("shrink-0", mine ? "text-white/60" : "text-muted-foreground")}>
-                  {formatBytes(doc.size_bytes)}
-                </span>
+              <button
+                type="button"
+                onClick={() => baixarDoc(doc)}
+                className="flex items-center gap-2 flex-1 min-w-0 text-left"
+              >
+                <FileText className="h-3.5 w-3.5 shrink-0" />
+                <span className="flex-1 min-w-0 truncate">{doc.titulo}</span>
+                {doc.size_bytes != null && (
+                  <span className={cn("shrink-0", mine ? "text-white/60" : "text-muted-foreground")}>
+                    {formatBytes(doc.size_bytes)}
+                  </span>
+                )}
+                <Download className="h-3.5 w-3.5 shrink-0" />
+              </button>
+              {ap.status === "aprovado" && (
+                <button
+                  type="button"
+                  onClick={() => setVincularDoc(doc)}
+                  title="Vincular ao cofre oficial"
+                  className={cn(
+                    "shrink-0 flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-medium border transition-colors",
+                    mine
+                      ? "border-white/40 text-white hover:bg-white/15"
+                      : "border-primary/30 text-primary hover:bg-primary/10",
+                  )}
+                >
+                  <Archive className="h-3 w-3" /> Vincular
+                </button>
               )}
-              <Download className="h-3.5 w-3.5 shrink-0" />
-            </button>
+            </div>
           ))}
         </div>
       )}
@@ -239,6 +260,18 @@ export function AprovacaoCard({ aprovacaoId, viewerUid, mine }: Props) {
         aprovacaoId={aprovacaoId}
         open={showComprovante}
         onOpenChange={setShowComprovante}
+      />
+
+      <VincularDocAprovadoDialog
+        open={!!vincularDoc}
+        onOpenChange={(v) => { if (!v) setVincularDoc(null); }}
+        documento={vincularDoc ? {
+          id: vincularDoc.id,
+          storage_path: vincularDoc.storage_path,
+          titulo: vincularDoc.titulo,
+          mime_type: (vincularDoc as any).mime_type ?? null,
+          size_bytes: vincularDoc.size_bytes ?? null,
+        } : null}
       />
     </div>
   );
