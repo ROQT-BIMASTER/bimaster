@@ -249,6 +249,8 @@ export function ChatThread({ conversaId, onShowInfo, autoOpenDialog, onAutoOpenC
         responderA={responderA}
         onClearReply={() => setResponderA(null)}
         onTyping={enviarDigitando}
+        autoOpenDialog={autoOpenDialog}
+        onAutoOpenConsumed={onAutoOpenConsumed}
       />
     </div>
   );
