@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { ChatSidebar } from "./ChatSidebar";
 import { ChatThread } from "./ChatThread";
 import { ConversaInfoPanel } from "./ConversaInfoPanel";
