@@ -113,6 +113,9 @@ export function ProjetoChatPanel({ projetoId }: Props) {
   const [novoComentario, setNovoComentario] = useState("");
   const [enviando, setEnviando] = useState(false);
   const [cofreOpen, setCofreOpen] = useState(false);
+  const [cofreInitialFile, setCofreInitialFile] = useState<File | null>(null);
+  const { abrirAprovacao, abrirUrgente } = useAbrirAcaoVinculada();
+
 
 
   // Marca como lido ao abrir / trocar de projeto.
