@@ -288,7 +288,7 @@ function MapContent({
         heatmapRef.current.setData(heatmapData);
         heatmapRef.current.setMap(map);
       } else {
-        heatmapRef.current = new google.maps.visualization.HeatmapLayer({
+        heatmapRef.current = new (google.maps.visualization as any).HeatmapLayer({
           data: heatmapData,
           map,
           radius: 30,
