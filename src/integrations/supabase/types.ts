@@ -3663,6 +3663,72 @@ export type Database = {
           },
         ]
       }
+      chat_aprovacao_documentos: {
+        Row: {
+          aprovacao_id: string
+          assinado_em: string | null
+          assinado_por: string | null
+          conversa_id: string
+          created_at: string
+          hash_arquivo: string | null
+          id: string
+          mime_type: string | null
+          signed_storage_path: string | null
+          size_bytes: number | null
+          status: string
+          storage_path: string
+          titulo: string
+          uploader_id: string
+        }
+        Insert: {
+          aprovacao_id: string
+          assinado_em?: string | null
+          assinado_por?: string | null
+          conversa_id: string
+          created_at?: string
+          hash_arquivo?: string | null
+          id?: string
+          mime_type?: string | null
+          signed_storage_path?: string | null
+          size_bytes?: number | null
+          status?: string
+          storage_path: string
+          titulo: string
+          uploader_id: string
+        }
+        Update: {
+          aprovacao_id?: string
+          assinado_em?: string | null
+          assinado_por?: string | null
+          conversa_id?: string
+          created_at?: string
+          hash_arquivo?: string | null
+          id?: string
+          mime_type?: string | null
+          signed_storage_path?: string | null
+          size_bytes?: number | null
+          status?: string
+          storage_path?: string
+          titulo?: string
+          uploader_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_aprovacao_documentos_aprovacao_id_fkey"
+            columns: ["aprovacao_id"]
+            isOneToOne: false
+            referencedRelation: "chat_aprovacoes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chat_aprovacao_documentos_conversa_id_fkey"
+            columns: ["conversa_id"]
+            isOneToOne: false
+            referencedRelation: "conversas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       chat_aprovacoes: {
         Row: {
           conversa_id: string
@@ -50646,6 +50712,17 @@ export type Database = {
       rpc_chat_adicionar_participantes: {
         Args: { p_conversa_id: string; p_users: string[] }
         Returns: undefined
+      }
+      rpc_chat_aprovacao_anexar_documento: {
+        Args: {
+          p_aprovacao_id: string
+          p_hash?: string
+          p_mime_type?: string
+          p_size_bytes?: number
+          p_storage_path: string
+          p_titulo: string
+        }
+        Returns: string
       }
       rpc_chat_aprovacao_criar: {
         Args: { p_conversa_id: string; p_descricao?: string; p_titulo: string }
