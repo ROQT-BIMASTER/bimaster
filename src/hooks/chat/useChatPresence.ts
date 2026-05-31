@@ -15,7 +15,7 @@ export function useGlobalPresence(): { online: Set<string> } {
   const [online, setOnline] = useState<Set<string>>(new Set());
   useEffect(() => {
     if (!user?.id) return;
-    const ch = supabase.channel("chat-global-presence", {
+    const ch = supabase.channel(uniqueChannelName("chat-global-presence"), {
       config: { presence: { key: user.id } },
     });
     ch.on("presence", { event: "sync" }, () => {
