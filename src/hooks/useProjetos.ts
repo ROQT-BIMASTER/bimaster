@@ -359,6 +359,11 @@ export function useProjetos(options: UseProjetosOptions = {}) {
       queryClient.invalidateQueries({ queryKey: ["projetos-membros"] });
       toast.success("Projeto excluído!");
     },
+    onError: (err: Error) => {
+      // Sem onError o botão "Excluir" parecia não fazer nada quando a operação
+      // falhava (RLS, FK restrita, rede). Agora o usuário vê o motivo real.
+      toast.error("Não foi possível excluir o projeto: " + err.message);
+    },
   });
 
   const finalizarProjeto = useMutation({
