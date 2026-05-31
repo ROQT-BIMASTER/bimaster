@@ -13,11 +13,12 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
-import { ClipboardCheck, ThumbsUp, ThumbsDown, Loader2, CheckCircle2, XCircle, Clock, FileText, Download, ShieldCheck, Archive } from "lucide-react";
+import { ClipboardCheck, ThumbsUp, ThumbsDown, Loader2, CheckCircle2, XCircle, Clock, FileText, Download, ShieldCheck, Archive, AlertOctagon } from "lucide-react";
 import { useChatAprovacao } from "@/hooks/chat/useChatAprovacao";
 import { useAprovacaoDocumentos } from "@/hooks/chat/useAprovacaoDocumentos";
 import { ComprovanteAprovacaoDialog } from "./ComprovanteAprovacaoDialog";
 import { VincularDocAprovadoDialog } from "./VincularDocAprovadoDialog";
+import { CutucarDialog } from "./CutucarDialog";
 import { downloadAprovacaoDoc } from "./aprovacaoDocs";
 import { formatBytes } from "./utils";
 import { cn } from "@/lib/utils";
@@ -29,15 +30,18 @@ interface Props {
   aprovacaoId: string;
   viewerUid: string;
   mine: boolean;
+  /** Id da mensagem-âncora; usado para "Chamar atenção" sobre a aprovação. */
+  mensagemId?: string;
 }
 
-export function AprovacaoCard({ aprovacaoId, viewerUid, mine }: Props) {
+export function AprovacaoCard({ aprovacaoId, viewerUid, mine, mensagemId }: Props) {
   const { data: ap, isLoading, decidir } = useChatAprovacao(aprovacaoId);
   const { data: documentos = [] } = useAprovacaoDocumentos(aprovacaoId);
   const [confirmaRejeicao, setConfirmaRejeicao] = useState(false);
   const [motivo, setMotivo] = useState("");
   const [showComprovante, setShowComprovante] = useState(false);
   const [vincularDoc, setVincularDoc] = useState<typeof documentos[number] | null>(null);
+  const [cutucarOpen, setCutucarOpen] = useState(false);
 
   const baixarDoc = async (doc: { storage_path: string; titulo: string }) => {
     try {
@@ -203,11 +207,23 @@ export function AprovacaoCard({ aprovacaoId, viewerUid, mine }: Props) {
         </div>
       )}
 
-      {/* Mensagem para solicitante quando pendente */}
+      {/* Mensagem para solicitante quando pendente + ação de chamar atenção */}
       {ap.status === "pendente" && isSolicitante && (
-        <p className="mt-2 text-[10px] italic text-muted-foreground">
-          Aguardando decisão de outro participante.
-        </p>
+        <div className="mt-2 flex items-center justify-between gap-2 flex-wrap">
+          <p className="text-[10px] italic text-muted-foreground">
+            Aguardando decisão de outro participante.
+          </p>
+          {mensagemId && (
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-6 px-2 gap-1 text-[10px] border-destructive/40 text-destructive hover:bg-destructive/10"
+              onClick={() => setCutucarOpen(true)}
+            >
+              <AlertOctagon className="h-3 w-3" /> Chamar atenção
+            </Button>
+          )}
+        </div>
       )}
 
       {/* Detalhes da decisão */}
@@ -258,6 +274,15 @@ export function AprovacaoCard({ aprovacaoId, viewerUid, mine }: Props) {
           size_bytes: vincularDoc.size_bytes ?? null,
         } : null}
       />
+
+      {mensagemId && (
+        <CutucarDialog
+          open={cutucarOpen}
+          onOpenChange={setCutucarOpen}
+          mensagemAlvoId={mensagemId}
+          alvoResumo={`Aprovação: ${ap.titulo}`}
+        />
+      )}
     </div>
   );
 }

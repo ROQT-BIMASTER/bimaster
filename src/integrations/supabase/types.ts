@@ -51260,6 +51260,10 @@ export type Database = {
           trecho: string
         }[]
       }
+      rpc_cutucar_mensagem: {
+        Args: { p_mensagem_alvo_id: string; p_motivo: string }
+        Returns: string
+      }
       rpc_definir_prazo_item: {
         Args: { p_item_id: string; p_prazo_em: string }
         Returns: undefined

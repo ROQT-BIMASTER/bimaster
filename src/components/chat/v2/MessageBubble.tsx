@@ -4,9 +4,10 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { MoreVertical, Reply, Smile, Pin, Pencil, Trash2, Star, Copy, CornerUpRight, Check, CheckCheck, Languages, Loader2, ListPlus, ExternalLink, Info } from "lucide-react";
+import { MoreVertical, Reply, Smile, Pin, Pencil, Trash2, Star, Copy, CornerUpRight, Check, CheckCheck, Languages, Loader2, ListPlus, ExternalLink, Info, AlertOctagon } from "lucide-react";
 import { CriarTarefaDoChatDialog } from "./CriarTarefaDoChatDialog";
 import { MessageInfoDialog } from "./MessageInfoDialog";
+import { CutucarDialog } from "./CutucarDialog";
 import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import type { ChatMensagem } from "@/hooks/chat/types";
@@ -50,6 +51,7 @@ export function MessageBubble({ m, uid, isGrupo, onReply, participantesCount }: 
   const [forwardOpen, setForwardOpen] = useState(false);
   const [criarTarefaOpen, setCriarTarefaOpen] = useState(false);
   const [infoOpen, setInfoOpen] = useState(false);
+  const [cutucarOpen, setCutucarOpen] = useState(false);
   const tarefaVinculada = (m.metadata as any)?.tarefa_id as string | undefined;
   const tarefaTitulo = (m.metadata as any)?.tarefa_titulo as string | undefined;
   const tarefaProjetoId = (m.metadata as any)?.projeto_id as string | undefined;
@@ -113,7 +115,7 @@ export function MessageBubble({ m, uid, isGrupo, onReply, participantesCount }: 
     return (
       <div className={cn("flex w-full gap-2", mine ? "justify-end" : "justify-start")}>
         <div className="max-w-[88%] md:max-w-[520px] w-full">
-          <AprovacaoCard aprovacaoId={aprovacaoId} viewerUid={uid} mine={mine} />
+          <AprovacaoCard aprovacaoId={aprovacaoId} viewerUid={uid} mine={mine} mensagemId={m.id} />
           <p className={cn("text-[10px] mt-1", mine ? "text-right text-muted-foreground" : "text-muted-foreground")}>
             {formatHora(m.created_at)}
           </p>
@@ -344,6 +346,14 @@ export function MessageBubble({ m, uid, isGrupo, onReply, participantesCount }: 
                 <DropdownMenuItem onClick={() => actions.togglePin.mutate({ id: m.id, conversaId: m.conversa_id, fixar: !m.fixada_em })}>
                   <Pin className="h-4 w-4 mr-2" /> {m.fixada_em ? "Desafixar" : "Fixar"}
                 </DropdownMenuItem>
+                {mine && m.tipo !== "urgente" && (
+                  <DropdownMenuItem
+                    onSelect={() => setTimeout(() => setCutucarOpen(true), 0)}
+                    className="text-destructive focus:text-destructive"
+                  >
+                    <AlertOctagon className="h-4 w-4 mr-2" /> Chamar atenção
+                  </DropdownMenuItem>
+                )}
                 {m.conteudo && m.conteudo.trim().length >= 2 && (
                   <>
                     <DropdownMenuSeparator />
@@ -413,6 +423,12 @@ export function MessageBubble({ m, uid, isGrupo, onReply, participantesCount }: 
       <ForwardMessageDialog open={forwardOpen} onOpenChange={setForwardOpen} m={m} />
       <CriarTarefaDoChatDialog open={criarTarefaOpen} onOpenChange={setCriarTarefaOpen} mensagem={m} />
       {mine && <MessageInfoDialog open={infoOpen} onOpenChange={setInfoOpen} mensagem={m} uid={uid} />}
+      <CutucarDialog
+        open={cutucarOpen}
+        onOpenChange={setCutucarOpen}
+        mensagemAlvoId={m.id}
+        alvoResumo={m.conteudo?.slice(0, 160) || (m.metadata as any)?.aprovacao_titulo || "Mensagem"}
+      />
     </div>
   );
 }
