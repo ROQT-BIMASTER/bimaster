@@ -18,6 +18,7 @@ import { useChatAprovacao } from "@/hooks/chat/useChatAprovacao";
 import { useAprovacaoDocumentos } from "@/hooks/chat/useAprovacaoDocumentos";
 import { ComprovanteAprovacaoDialog } from "./ComprovanteAprovacaoDialog";
 import { VincularDocAprovadoDialog } from "./VincularDocAprovadoDialog";
+import { CutucarDialog } from "./CutucarDialog";
 import { downloadAprovacaoDoc } from "./aprovacaoDocs";
 import { formatBytes } from "./utils";
 import { cn } from "@/lib/utils";
