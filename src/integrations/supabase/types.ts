@@ -50875,6 +50875,23 @@ export type Database = {
           tipo: string
         }[]
       }
+      rpc_chat_vinculo_submissoes_china: {
+        Args: never
+        Returns: {
+          id: string
+          produto_codigo: string
+          produto_nome: string
+          status: string
+        }[]
+      }
+      rpc_chat_vinculo_tarefas_projeto: {
+        Args: { p_projeto_id: string }
+        Returns: {
+          id: string
+          status: string
+          titulo: string
+        }[]
+      }
       rpc_china_aceitar_oc: {
         Args: { p_oc_id: string }
         Returns: {
