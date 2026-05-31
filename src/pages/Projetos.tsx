@@ -420,7 +420,7 @@ export default function Projetos() {
                         projeto={projeto}
                         isFinalizado={isFinalizado}
                         onFinalize={() => finalizarProjeto.mutate(projeto.id)}
-                        onDelete={() => deleteProjeto.mutate(projeto.id)}
+                        onDelete={() => setProjetoParaExcluir(projeto)}
                       />
                     </div>
                   );
