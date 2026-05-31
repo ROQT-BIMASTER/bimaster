@@ -115,7 +115,7 @@ export function MessageBubble({ m, uid, isGrupo, onReply, participantesCount }: 
     return (
       <div className={cn("flex w-full gap-2", mine ? "justify-end" : "justify-start")}>
         <div className="max-w-[88%] md:max-w-[520px] w-full">
-          <AprovacaoCard aprovacaoId={aprovacaoId} viewerUid={uid} mine={mine} />
+          <AprovacaoCard aprovacaoId={aprovacaoId} viewerUid={uid} mine={mine} mensagemId={m.id} />
           <p className={cn("text-[10px] mt-1", mine ? "text-right text-muted-foreground" : "text-muted-foreground")}>
             {formatHora(m.created_at)}
           </p>
