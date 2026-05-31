@@ -37114,6 +37114,7 @@ export type Database = {
           criador_id: string
           data_fim_alvo: string | null
           data_inicio: string | null
+          deleted_at: string | null
           departamento_id: string | null
           descricao: string | null
           icone: string | null
@@ -37146,6 +37147,7 @@ export type Database = {
           criador_id: string
           data_fim_alvo?: string | null
           data_inicio?: string | null
+          deleted_at?: string | null
           departamento_id?: string | null
           descricao?: string | null
           icone?: string | null
@@ -37178,6 +37180,7 @@ export type Database = {
           criador_id?: string
           data_fim_alvo?: string | null
           data_inicio?: string | null
+          deleted_at?: string | null
           departamento_id?: string | null
           descricao?: string | null
           icone?: string | null
@@ -49683,6 +49686,7 @@ export type Database = {
           criador_id: string
           data_fim_alvo: string | null
           data_inicio: string | null
+          deleted_at: string | null
           departamento_id: string | null
           descricao: string | null
           icone: string | null
@@ -51230,6 +51234,7 @@ export type Database = {
           criador_id: string
           data_fim_alvo: string | null
           data_inicio: string | null
+          deleted_at: string | null
           departamento_id: string | null
           descricao: string | null
           icone: string | null
@@ -51436,6 +51441,7 @@ export type Database = {
         Args: { p_sugestao_id: string; p_vencedor_id: string }
         Returns: undefined
       }
+      rpc_purge_projetos_expirados: { Args: never; Returns: number }
       rpc_reabrir_cenario: { Args: { p_produto_id: string }; Returns: string }
       rpc_reabrir_disputa_sugestao: {
         Args: { p_sugestao_id: string }
@@ -51456,6 +51462,10 @@ export type Database = {
       rpc_rejeitar_sugestao_briefing: {
         Args: { p_sugestao_id: string }
         Returns: Json
+      }
+      rpc_restaurar_projeto: {
+        Args: { _projeto_id: string }
+        Returns: undefined
       }
       rpc_revogar_oficializacao_cofre: {
         Args: { p_item_id: string; p_motivo?: string }
