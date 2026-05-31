@@ -15,6 +15,9 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { ExternalLink, MessageSquare, Sparkles, Send, AtSign, FileText, Paperclip, FolderLock } from "lucide-react";
 import { UploadDocumentoDialog } from "@/components/briefings/cofre/UploadDocumentoDialog";
+import { ChatComposerActionsBar } from "./ChatComposerActionsBar";
+import { useAbrirAcaoVinculada } from "@/hooks/chat/useAbrirAcaoVinculada";
+
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
