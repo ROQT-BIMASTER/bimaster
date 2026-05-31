@@ -37,6 +37,7 @@ export function AprovacaoCard({ aprovacaoId, viewerUid, mine }: Props) {
   const [confirmaRejeicao, setConfirmaRejeicao] = useState(false);
   const [motivo, setMotivo] = useState("");
   const [showComprovante, setShowComprovante] = useState(false);
+  const [vincularDoc, setVincularDoc] = useState<typeof documentos[number] | null>(null);
 
   const baixarDoc = async (doc: { storage_path: string; titulo: string }) => {
     try {
