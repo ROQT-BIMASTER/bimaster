@@ -245,7 +245,7 @@ function MapContent({
   const map = useMap();
   const clustererRef = useRef<MarkerClusterer | null>(null);
   const markersRef = useRef<globalThis.Map<string, Marker>>(new globalThis.Map());
-  const heatmapRef = useRef<google.maps.visualization.HeatmapLayer | null>(null);
+  const heatmapRef = useRef<any>(null);
 
   // Initialize clusterer
   useEffect(() => {
