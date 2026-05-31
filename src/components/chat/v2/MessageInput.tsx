@@ -24,6 +24,12 @@ interface Props {
   responderA: ChatMensagem | null;
   onClearReply: () => void;
   onTyping: () => void;
+  /** Quando definido, abre automaticamente o dialog correspondente assim
+   *  que o componente é montado. Usado para deep-links vindos de
+   *  Briefings/Projetos/Submissões. */
+  autoOpenDialog?: "aprovacao" | "urgente" | null;
+  /** Callback opcional para o pai limpar o autoOpenDialog após ser consumido. */
+  onAutoOpenConsumed?: () => void;
 }
 
 export function MessageInput({ conversaId, responderA, onClearReply, onTyping }: Props) {
