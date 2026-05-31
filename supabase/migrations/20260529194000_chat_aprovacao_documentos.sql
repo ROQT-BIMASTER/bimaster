@@ -60,11 +60,13 @@ DO $$ BEGIN
 END $$;
 
 -- =========================================================================
--- Bucket de storage para os documentos das aprovações (privado, 50MB)
+-- Bucket de storage para os documentos das aprovações (privado, 20MB)
 -- =========================================================================
+-- 20MB = política de upload do projeto (igual a chat-anexos). DO UPDATE no
+-- limite garante que reaplicar a migration ajuste um bucket pré-existente.
 INSERT INTO storage.buckets (id, name, public, file_size_limit)
-VALUES ('aprovacao-documentos', 'aprovacao-documentos', false, 52428800)
-ON CONFLICT (id) DO NOTHING;
+VALUES ('aprovacao-documentos', 'aprovacao-documentos', false, 20971520)
+ON CONFLICT (id) DO UPDATE SET file_size_limit = EXCLUDED.file_size_limit;
 
 -- Path pattern: <conversa_id>/<aprovacao_id>/<uid>/<arquivo>
 -- foldername[1] = conversa_id (checa participação); foldername[3] = uploader uid.
