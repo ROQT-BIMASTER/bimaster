@@ -388,23 +388,32 @@ export function BriefingChatPanel({ briefingId }: Props) {
             className="resize-none border-0 focus-visible:ring-0 shadow-none px-1.5 py-1 min-h-0 text-sm"
           />
           <div className="flex items-center justify-between gap-2 mt-1">
-            <span className="text-[10px] text-muted-foreground px-1.5 flex items-center gap-1">
-              <AtSign className="h-3 w-3" /> Digite @ para mencionar um membro
-            </span>
+            <ChatComposerActionsBar
+              onAttachFile={(files) => {
+                const f = files[0];
+                if (!f) return;
+                setCofreVinculaComentarioId(null);
+                setCofreInitialFile(f);
+                setCofreDescricao(novoComentario);
+                setCofreOpen(true);
+              }}
+              onCameraCapture={(f) => {
+                setCofreVinculaComentarioId(null);
+                setCofreInitialFile(f);
+                setCofreDescricao(novoComentario);
+                setCofreOpen(true);
+              }}
+              onRequestApproval={() =>
+                abrirAprovacao({ tipo: "briefing", refId: briefingId, titulo: briefing.titulo })
+              }
+              onUrgentAlert={() =>
+                abrirUrgente({ tipo: "briefing", refId: briefingId, titulo: briefing.titulo })
+              }
+              onEmojiPick={(emoji) => setNovoComentario((prev) => prev + emoji)}
+              approvalTooltip="Solicitar aprovação (abre chat vinculado ao briefing)"
+              urgentTooltip="Chamar atenção (abre chat vinculado ao briefing)"
+            />
             <div className="flex items-center gap-1.5">
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => {
-                  setCofreVinculaComentarioId(null);
-                  setCofreDescricao(novoComentario);
-                  setCofreOpen(true);
-                }}
-                className="gap-1.5 border-briefing/30 text-briefing hover:bg-briefing/10"
-                title="Anexar arquivo ao cofre do briefing"
-              >
-                <Paperclip className="h-3.5 w-3.5" /> Anexar ao cofre
-              </Button>
               <Button
                 size="sm"
                 disabled={enviando || !novoComentario.trim()}
@@ -420,9 +429,11 @@ export function BriefingChatPanel({ briefingId }: Props) {
 
       <UploadDocumentoDialog
         open={cofreOpen}
-        onOpenChange={setCofreOpen}
+        onOpenChange={(v) => { setCofreOpen(v); if (!v) setCofreInitialFile(null); }}
         briefingId={briefingId}
         descricaoInicial={cofreDescricao}
+        initialFile={cofreInitialFile}
+
         onUploaded={async ({ id: docId, nome }) => {
           try {
             if (cofreVinculaComentarioId) {
