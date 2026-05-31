@@ -25,6 +25,9 @@ import {
   FolderLock,
 } from "lucide-react";
 import { ProjetoCofreUploadDialog } from "@/components/projetos/cofre/ProjetoCofreUploadDialog";
+import { ChatComposerActionsBar } from "./ChatComposerActionsBar";
+import { useAbrirAcaoVinculada } from "@/hooks/chat/useAbrirAcaoVinculada";
+
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
