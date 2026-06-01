@@ -1043,34 +1043,128 @@ export function ProjetoTarefaDetalhe({
                 <div>
                   <div className="flex items-center justify-between mb-2">
                     <h3 className="text-sm font-medium">Descrição</h3>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-7 text-[11px] gap-1 text-primary hover:text-primary"
-                      disabled={iaLoading === "suggest_fields"}
-                      onClick={async () => {
-                        const secaoNome = secoes.find(s => s.id === tarefa.secao_id)?.nome || "";
-                        try {
-                          const result = await suggestFields(tarefa.titulo, tarefa.descricao, "Projeto", secaoNome);
-                          setDescValue(result.descricao);
-                          onUpdate(tarefa.id, {
-                            descricao: result.descricao,
-                            prioridade: result.prioridade,
-                            estagio: result.estagio as any,
-                          });
-                          if (result.dias_prazo_sugerido && !tarefa.data_prazo) {
-                            const prazo = new Date();
-                            prazo.setDate(prazo.getDate() + result.dias_prazo_sugerido);
-                            onUpdate(tarefa.id, { data_prazo: prazo.toISOString().split("T")[0] });
-                          }
-                          toast.success("Campos preenchidos pela IA!");
-                        } catch { /* handled in hook */ }
-                      }}
-                    >
-                      {iaLoading === "suggest_fields" ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
-                      Sugerir com IA
-                    </Button>
+                    {!pendingAIDescricao && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 text-[11px] gap-1 text-primary hover:text-primary"
+                        disabled={iaLoading === "suggest_fields"}
+                        onClick={async () => {
+                          try {
+                            const result = await suggestFields(tarefa.titulo, tarefa.descricao, "Projeto", secoes.find(s => s.id === tarefa.secao_id)?.nome || "");
+                            let dataPrazo: string | null = null;
+                            if (result.dias_prazo_sugerido && !tarefa.data_prazo) {
+                              const prazo = new Date();
+                              prazo.setDate(prazo.getDate() + result.dias_prazo_sugerido);
+                              dataPrazo = prazo.toISOString().split("T")[0];
+                            }
+                            setPendingAIDescricao({
+                              descricao: result.descricao,
+                              prioridade: result.prioridade,
+                              estagio: result.estagio,
+                              dataPrazo,
+                              apply: {
+                                descricao: true,
+                                prioridade: result.prioridade !== tarefa.prioridade,
+                                estagio: result.estagio !== tarefa.estagio,
+                                dataPrazo: !!dataPrazo,
+                              },
+                            });
+                          } catch { /* handled in hook */ }
+                        }}
+                      >
+                        {iaLoading === "suggest_fields" ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
+                        Sugerir com IA
+                      </Button>
+                    )}
                   </div>
+
+                  {pendingAIDescricao && (
+                    <div className="mb-3 p-3 rounded-lg border border-primary/30 bg-primary/5 space-y-3">
+                      <p className="text-xs font-medium text-primary flex items-center gap-1.5">
+                        <Sparkles className="h-3.5 w-3.5" />
+                        Sugestões da IA — revise antes de aplicar
+                      </p>
+
+                      <div className="space-y-2">
+                        <label className="flex items-start gap-2 text-xs">
+                          <Checkbox
+                            checked={pendingAIDescricao.apply.descricao}
+                            onCheckedChange={(c) => setPendingAIDescricao(p => p && ({ ...p, apply: { ...p.apply, descricao: !!c } }))}
+                            className="mt-0.5"
+                          />
+                          <div className="flex-1 min-w-0">
+                            <span className="font-medium">Descrição</span>
+                            <Textarea
+                              value={pendingAIDescricao.descricao}
+                              onChange={(e) => setPendingAIDescricao(p => p && ({ ...p, descricao: e.target.value }))}
+                              className="mt-1 min-h-[80px] text-xs bg-background border-border/50 resize-none"
+                            />
+                          </div>
+                        </label>
+
+                        <label className="flex items-center gap-2 text-xs">
+                          <Checkbox
+                            checked={pendingAIDescricao.apply.prioridade}
+                            onCheckedChange={(c) => setPendingAIDescricao(p => p && ({ ...p, apply: { ...p.apply, prioridade: !!c } }))}
+                          />
+                          <span className="font-medium">Prioridade:</span>
+                          <span className="text-muted-foreground">{tarefa.prioridade || "—"}</span>
+                          <span className="text-muted-foreground">→</span>
+                          <span className="font-medium text-foreground">{pendingAIDescricao.prioridade}</span>
+                        </label>
+
+                        <label className="flex items-center gap-2 text-xs">
+                          <Checkbox
+                            checked={pendingAIDescricao.apply.estagio}
+                            onCheckedChange={(c) => setPendingAIDescricao(p => p && ({ ...p, apply: { ...p.apply, estagio: !!c } }))}
+                          />
+                          <span className="font-medium">Estágio:</span>
+                          <span className="text-muted-foreground">{tarefa.estagio || "—"}</span>
+                          <span className="text-muted-foreground">→</span>
+                          <span className="font-medium text-foreground">{pendingAIDescricao.estagio}</span>
+                        </label>
+
+                        {pendingAIDescricao.dataPrazo && (
+                          <label className="flex items-center gap-2 text-xs">
+                            <Checkbox
+                              checked={pendingAIDescricao.apply.dataPrazo}
+                              onCheckedChange={(c) => setPendingAIDescricao(p => p && ({ ...p, apply: { ...p.apply, dataPrazo: !!c } }))}
+                            />
+                            <span className="font-medium">Prazo sugerido:</span>
+                            <span className="font-medium text-foreground">{pendingAIDescricao.dataPrazo}</span>
+                          </label>
+                        )}
+                      </div>
+
+                      <div className="flex items-center justify-end gap-2 pt-1">
+                        <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setPendingAIDescricao(null)}>
+                          Descartar
+                        </Button>
+                        <Button
+                          size="sm"
+                          className="h-7 text-xs gap-1"
+                          disabled={!pendingAIDescricao.apply.descricao && !pendingAIDescricao.apply.prioridade && !pendingAIDescricao.apply.estagio && !pendingAIDescricao.apply.dataPrazo}
+                          onClick={() => {
+                            const updates: any = {};
+                            if (pendingAIDescricao.apply.descricao) {
+                              updates.descricao = pendingAIDescricao.descricao;
+                              setDescValue(pendingAIDescricao.descricao);
+                            }
+                            if (pendingAIDescricao.apply.prioridade) updates.prioridade = pendingAIDescricao.prioridade;
+                            if (pendingAIDescricao.apply.estagio) updates.estagio = pendingAIDescricao.estagio;
+                            if (pendingAIDescricao.apply.dataPrazo && pendingAIDescricao.dataPrazo) updates.data_prazo = pendingAIDescricao.dataPrazo;
+                            if (Object.keys(updates).length > 0) onUpdate(tarefa.id, updates);
+                            setPendingAIDescricao(null);
+                            toast.success("Sugestões aplicadas.");
+                          }}
+                        >
+                          Aplicar selecionadas
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+
                   <Textarea
                     value={descValue}
                     onChange={e => setDescValue(e.target.value)}
@@ -1079,6 +1173,7 @@ export function ProjetoTarefaDetalhe({
                     className="min-h-[80px] text-sm bg-muted/30 border-border/50 resize-none"
                   />
                 </div>
+
 
                 {/* Briefing da Tarefa */}
                 <div>
