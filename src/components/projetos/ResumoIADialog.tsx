@@ -1,13 +1,18 @@
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Sparkles, Loader2, BarChart3, AlertTriangle, CheckCircle2, Users } from "lucide-react";
+import { Sparkles, Loader2, BarChart3, AlertTriangle, CheckCircle2, Users, FileText } from "lucide-react";
 import ReactMarkdown from "react-markdown";
+import { toast } from "sonner";
+import { buildResumoProjetoPdf } from "@/lib/projetos/exportResumoProjetoPdf";
+import { triggerBlobDownload } from "@/lib/utils/storage-download";
 
 interface ResumoIADialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   projetoId: string;
+  projetoNome: string;
+  projetoCor?: string | null;
   getProjectSummary: (projetoId: string) => Promise<{
     summary: string;
     stats?: { total: number; concluidas: number; atrasadas: number; semResponsavel: number; altaPrioridade: number };
@@ -15,10 +20,11 @@ interface ResumoIADialogProps {
   loading: boolean;
 }
 
-export function ResumoIADialog({ open, onOpenChange, projetoId, getProjectSummary, loading }: ResumoIADialogProps) {
+export function ResumoIADialog({ open, onOpenChange, projetoId, projetoNome, projetoCor, getProjectSummary, loading }: ResumoIADialogProps) {
   const [summary, setSummary] = useState<string | null>(null);
   const [stats, setStats] = useState<any>(null);
   const [fetched, setFetched] = useState(false);
+  const [exporting, setExporting] = useState(false);
 
   const handleOpen = async (isOpen: boolean) => {
     onOpenChange(isOpen);
@@ -48,9 +54,35 @@ export function ResumoIADialog({ open, onOpenChange, projetoId, getProjectSummar
     }
   };
 
+  const handleExportPdf = async () => {
+    if (!summary) return;
+    setExporting(true);
+    try {
+      const { blob, filename } = buildResumoProjetoPdf({
+        projetoNome,
+        projetoCor,
+        summary,
+        stats,
+      });
+      const url = URL.createObjectURL(blob);
+      triggerBlobDownload(url, filename);
+      toast.success("PDF gerado com sucesso");
+    } catch (err) {
+      console.error("Erro ao gerar PDF do resumo", err);
+      toast.error("Não foi possível gerar o PDF");
+    } finally {
+      setExporting(false);
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={handleOpen}>
-      <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col">
+      <DialogContent
+        className="max-w-2xl max-h-[85vh] flex flex-col"
+        onPointerDownOutside={(e) => e.preventDefault()}
+        onInteractOutside={(e) => e.preventDefault()}
+        onEscapeKeyDown={(e) => e.preventDefault()}
+      >
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Sparkles className="h-5 w-5 text-primary" />
@@ -100,9 +132,13 @@ export function ResumoIADialog({ open, onOpenChange, projetoId, getProjectSummar
             <div className="prose prose-sm dark:prose-invert max-w-none">
               <ReactMarkdown>{summary}</ReactMarkdown>
             </div>
-            <div className="flex justify-end">
+            <div className="flex flex-wrap justify-end gap-2">
               <Button variant="outline" size="sm" onClick={handleRefresh} className="gap-1.5 text-xs">
                 <Sparkles className="h-3.5 w-3.5" /> Atualizar resumo
+              </Button>
+              <Button size="sm" onClick={handleExportPdf} disabled={exporting} className="gap-1.5 text-xs">
+                {exporting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileText className="h-3.5 w-3.5" />}
+                Exportar PDF profissional
               </Button>
             </div>
           </div>

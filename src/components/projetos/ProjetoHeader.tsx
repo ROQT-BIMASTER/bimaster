@@ -384,6 +384,8 @@ export function ProjetoHeader({
         open={resumoOpen}
         onOpenChange={setResumoOpen}
         projetoId={projeto.id}
+        projetoNome={projeto.nome}
+        projetoCor={projeto.cor}
         getProjectSummary={getProjectSummary}
         loading={loading === "project_summary"}
       />
