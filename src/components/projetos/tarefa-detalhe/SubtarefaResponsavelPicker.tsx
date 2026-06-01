@@ -136,7 +136,14 @@ export function SubtarefaResponsavelPicker({
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>{triggerEl}</PopoverTrigger>
-      <PopoverContent className="w-60 p-0 z-[60]" align="start" sideOffset={6} collisionPadding={8}>
+      <PopoverContent
+        className="w-60 p-0 z-[80]"
+        align="start"
+        sideOffset={6}
+        collisionPadding={8}
+        style={{ pointerEvents: "auto" }}
+        onOpenAutoFocus={(e) => e.preventDefault()}
+      >
         <Command>
           <CommandInput placeholder="Buscar membro..." />
           <CommandList>
