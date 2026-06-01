@@ -19,6 +19,7 @@ import { Button } from "@/components/ui/button";
 import { Search, Inbox, Clock, CheckCircle2, XCircle, FileText, ShieldCheck, Loader2 } from "lucide-react";
 import { useCentralAprovacoes, type CentralAprovacao } from "@/hooks/chat/useCentralAprovacoes";
 import { ComprovanteAprovacaoDialog } from "@/components/chat/v2/ComprovanteAprovacaoDialog";
+import { AprovacaoDetalheDialog } from "@/components/chat/v2/AprovacaoDetalheDialog";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
