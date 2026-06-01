@@ -183,8 +183,31 @@ export default function CenariosComparativo() {
               const isMaxMargem = maxMargem !== null && margem === maxMargem && margem > 0;
 
               return (
-                <Card key={produto.id} className="p-4 flex flex-col gap-3">
-                  <div className="space-y-1">
+                <Card key={produto.id} className="p-4 flex flex-col gap-3 relative">
+                  <TooltipProvider delayDuration={200}>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="absolute top-2 right-2">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6 text-muted-foreground hover:text-destructive"
+                            disabled={cenarios.length <= 1}
+                            onClick={() => setRemoverAlvo(produto)}
+                            aria-label="Remover cenário da concorrência"
+                          >
+                            <X className="h-3.5 w-3.5" />
+                          </Button>
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent side="left">
+                        {cenarios.length <= 1
+                          ? "Mantenha ao menos um cenário no grupo."
+                          : "Remover cenário da concorrência"}
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                  <div className="space-y-1 pr-7">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
                         {produto.codigo || "—"}
@@ -207,6 +230,7 @@ export default function CenariosComparativo() {
                       <p className="text-xs text-muted-foreground">{produto.cenario_label}</p>
                     )}
                   </div>
+
 
                   <div className="grid grid-cols-2 gap-2">
                     <div className="rounded-md border bg-muted/30 p-2">
