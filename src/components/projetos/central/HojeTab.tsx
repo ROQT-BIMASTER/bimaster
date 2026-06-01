@@ -169,6 +169,29 @@ export function HojeTab({ onGoToTarefas }: Props) {
     toast.success(done ? "Tarefa concluída!" : "Tarefa reaberta");
   };
 
+  const handleDeleteTarefa = async (t: MinaTarefa) => {
+    if (!user?.id || t.criador_id !== user.id) {
+      toast.error("Apenas o criador da tarefa pode excluí-la.");
+      return;
+    }
+    const { confirmExclusaoTarefa } = await import("@/lib/projetos/confirmConclusao");
+    const ok = await confirmExclusaoTarefa({ titulo: t.titulo });
+    if (!ok) return;
+    const { error } = await supabase
+      .from("projeto_tarefas")
+      .update({ excluida_em: new Date().toISOString(), excluida_por: user.id } as any)
+      .eq("id", t.id)
+      .eq("criador_id", user.id);
+    if (error) {
+      toast.error("Erro ao excluir tarefa");
+      return;
+    }
+    queryClient.invalidateQueries({ queryKey: ["minhas-tarefas"] });
+    queryClient.invalidateQueries({ queryKey: ["minhas-tarefas-lixeira"] });
+    queryClient.invalidateQueries({ queryKey: ["meus-projetos-recentes"] });
+    toast.success("Tarefa movida para a lixeira (30 dias)");
+  };
+
   return (
     <>
       <CentralToolbarPortal>
