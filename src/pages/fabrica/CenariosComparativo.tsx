@@ -340,6 +340,33 @@ export default function CenariosComparativo() {
         defaultGrupoId={grupoId}
         onSuccess={() => refetch()}
       />
+
+      <AlertDialog open={!!removerAlvo} onOpenChange={(o) => { if (!o && !removendo) setRemoverAlvo(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remover cenário da concorrência</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-2">
+                <div>
+                  <span className="font-medium text-foreground">{removerAlvo?.cenario_label || removerAlvo?.nome}</span>
+                  {removerAlvo?.codigo && (
+                    <span className="text-muted-foreground"> · {removerAlvo.codigo}</span>
+                  )}
+                </div>
+                <p>
+                  O cenário será arquivado e poderá ser restaurado em <strong>Cenários arquivados</strong>.
+                </p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={removendo}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={(e) => { e.preventDefault(); handleRemoverCenario(); }} disabled={removendo}>
+              {removendo ? "Removendo…" : "Remover"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </DashboardLayout>
   );
 }
