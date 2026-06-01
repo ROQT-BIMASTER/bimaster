@@ -82,6 +82,35 @@ export default function CenariosComparativo() {
   const [vencedor, setVencedor] = useState<CenarioProduto | null>(null);
   const [promoverOpen, setPromoverOpen] = useState(false);
   const [novoOpen, setNovoOpen] = useState(false);
+  const [removerAlvo, setRemoverAlvo] = useState<CenarioProduto | null>(null);
+  const [removendo, setRemovendo] = useState(false);
+  const qc = useQueryClient();
+
+  const handleRemoverCenario = async () => {
+    if (!removerAlvo) return;
+    setRemovendo(true);
+    try {
+      const { error } = await supabase
+        .from("fabrica_produtos")
+        .update({ ativo: false })
+        .eq("id", removerAlvo.id);
+      if (error) throw error;
+      toast.success("Cenário removido da concorrência. Disponível em Cenários arquivados.");
+      setRemoverAlvo(null);
+      await Promise.all([
+        qc.invalidateQueries({ queryKey: ["fabrica-cenarios-grupo"] }),
+        qc.invalidateQueries({ queryKey: ["fabrica-cenarios-grupos"] }),
+        qc.invalidateQueries({ queryKey: ["fabrica-cenarios-arquivados"] }),
+        qc.invalidateQueries({ queryKey: ["fabrica-cenarios-custos"] }),
+      ]);
+      refetch();
+    } catch (e: any) {
+      toast.error(e?.message ?? "Falha ao remover cenário");
+    } finally {
+      setRemovendo(false);
+    }
+  };
+
 
   const custosArr = useMemo(() => {
     return cenarios.map((c) => ({
