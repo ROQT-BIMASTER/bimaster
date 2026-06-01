@@ -231,11 +231,13 @@ function Row({
 /* -------------------------------- Seção UI ------------------------------- */
 
 function Section({
-  group, onToggle, onSelect, projetoPessoalId,
+  group, onToggle, onSelect, onDelete, currentUserId, projetoPessoalId,
 }: {
   group: SimpleGroup;
   onToggle: (id: string, done: boolean) => void;
   onSelect: (t: MinaTarefa) => void;
+  onDelete: (t: MinaTarefa) => void;
+  currentUserId: string | null;
   projetoPessoalId: string | null;
 }) {
   const [collapsed, setCollapsed] = useState(!!group.defaultCollapsed);
@@ -256,7 +258,15 @@ function Section({
       {!collapsed && (
         <>
           {group.items.map((t) => (
-            <Row key={t.id} t={t} onToggle={onToggle} onSelect={onSelect} projetoPessoalId={projetoPessoalId} />
+            <Row
+              key={t.id}
+              t={t}
+              onToggle={onToggle}
+              onSelect={onSelect}
+              onDelete={onDelete}
+              currentUserId={currentUserId}
+              projetoPessoalId={projetoPessoalId}
+            />
           ))}
           <button
             className="w-full text-left px-4 py-1.5 text-xs text-muted-foreground hover:bg-muted/20 border-b border-border/30"
