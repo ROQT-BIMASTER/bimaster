@@ -73,13 +73,35 @@ export function useTarefaMentionableUsers(tarefaId: string | null | undefined) {
       const idList = Array.from(ids);
       if (idList.length === 0) return [];
 
-      const { data: profiles } = await supabase
-        .from("profiles")
-        .select("id, nome, avatar_url")
-        .in("id", idList)
-        .order("nome");
+      // Map<id, MentionableUser> para mesclar fontes sem duplicar.
+      const merged = new Map<string, MentionableUser>();
 
-      return (profiles || []) as MentionableUser[];
+      // 1) Membros do projeto via RPC SECURITY DEFINER (contorna RLS estrita de profiles,
+      //    mesmo padrão de useProjetoMembros — sem ele o autocomplete só vê o próprio user).
+      if (tarefa?.projeto_id) {
+        const { data: dirRows } = await supabase
+          .rpc("get_projeto_membros_directory", { _projeto_id: tarefa.projeto_id });
+        (dirRows as any[] | null)?.forEach((p) => {
+          if (p?.id) merged.set(p.id, { id: p.id, nome: p.nome, avatar_url: p.avatar_url ?? null });
+        });
+      }
+
+      // 2) IDs extras (responsável, criador, criador/participantes do processo, user corrente)
+      //    que possam não estar em projeto_membros — busca o que a RLS de profiles permitir.
+      const extras = idList.filter((id) => !merged.has(id));
+      if (extras.length > 0) {
+        const { data: extraProfiles } = await supabase
+          .from("profiles")
+          .select("id, nome, avatar_url")
+          .in("id", extras);
+        (extraProfiles || []).forEach((p: any) => {
+          if (p?.id) merged.set(p.id, { id: p.id, nome: p.nome, avatar_url: p.avatar_url ?? null });
+        });
+      }
+
+      return Array.from(merged.values()).sort((a, b) =>
+        (a.nome || "").localeCompare(b.nome || "", "pt-BR"),
+      );
     },
   });
 }
