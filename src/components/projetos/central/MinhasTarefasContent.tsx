@@ -589,6 +589,26 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
     toast.success("Tarefa movida");
   }, [queryClient]);
 
+  const handleBridgeDelete = useCallback(async (tarefaId: string) => {
+    const live = bridgedTarefa?.id === tarefaId
+      ? bridgedTarefa
+      : (bridgedTarefa?.subtarefas?.find((s) => s.id === tarefaId) ?? null);
+    const { confirmExclusaoTarefa } = await import("@/lib/projetos/confirmConclusao");
+    const ok = await confirmExclusaoTarefa({
+      titulo: live?.titulo,
+      isSubtarefa: !!live?.parent_tarefa_id,
+    });
+    if (!ok) return;
+    const { error } = await supabase
+      .from("projeto_tarefas")
+      .update({ excluida_em: new Date().toISOString() } as any)
+      .eq("id", tarefaId);
+    if (error) { toast.error(error.message); return; }
+    toast.success(live?.parent_tarefa_id ? "Subtarefa movida para a lixeira" : "Tarefa movida para a lixeira");
+    queryClient.invalidateQueries({ queryKey: ["minhas-tarefas"] });
+    queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2"] });
+  }, [bridgedTarefa, queryClient]);
+
   const projects = useMemo(() => {
     const map = new Map<string, { id: string; nome: string; cor: string }>();
     tarefas.forEach((t) => map.set(t.projeto_id, { id: t.projeto_id, nome: t.projeto_nome, cor: t.projeto_cor }));
