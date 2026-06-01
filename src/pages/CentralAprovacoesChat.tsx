@@ -19,6 +19,7 @@ import { Button } from "@/components/ui/button";
 import { Search, Inbox, Clock, CheckCircle2, XCircle, FileText, ShieldCheck, Loader2 } from "lucide-react";
 import { useCentralAprovacoes, type CentralAprovacao } from "@/hooks/chat/useCentralAprovacoes";
 import { ComprovanteAprovacaoDialog } from "@/components/chat/v2/ComprovanteAprovacaoDialog";
+import { AprovacaoDetalheDialog } from "@/components/chat/v2/AprovacaoDetalheDialog";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -32,6 +33,7 @@ export default function CentralAprovacoesChat() {
   const { porStatus, isLoading } = useCentralAprovacoes();
   const [busca, setBusca] = useState("");
   const [comprovanteId, setComprovanteId] = useState<string | null>(null);
+  const [detalhe, setDetalhe] = useState<CentralAprovacao | null>(null);
 
   const filtrar = (lista: CentralAprovacao[]) => {
     const q = busca.trim().toLowerCase();
@@ -92,7 +94,11 @@ export default function CentralAprovacoesChat() {
                       </p>
                     ) : (
                       col.itens.map((a) => (
-                        <Card key={a.id} className="p-3 space-y-2">
+                        <Card
+                          key={a.id}
+                          className="p-3 space-y-2 cursor-pointer transition-colors hover:border-primary/40 hover:bg-accent/30"
+                          onClick={() => setDetalhe(a)}
+                        >
                           <p className="text-sm font-medium leading-snug">{a.titulo}</p>
                           {a.descricao && (
                             <p className="text-xs text-muted-foreground line-clamp-2">{a.descricao}</p>
@@ -107,16 +113,26 @@ export default function CentralAprovacoesChat() {
                             Solicitante: {a.solicitante_nome}
                             {a.decidido_nome ? ` · Decisor: ${a.decidido_nome}` : ""}
                           </p>
-                          {a.status === "aprovado" && (
+                          <div className="flex items-center gap-3 pt-1">
                             <Button
                               variant="link"
                               size="sm"
                               className="h-auto p-0 text-[11px] gap-1"
-                              onClick={() => setComprovanteId(a.id)}
+                              onClick={(e) => { e.stopPropagation(); setDetalhe(a); }}
                             >
-                              <ShieldCheck className="h-3 w-3" /> Ver comprovante
+                              <FileText className="h-3 w-3" /> Abrir detalhes
                             </Button>
-                          )}
+                            {a.status === "aprovado" && (
+                              <Button
+                                variant="link"
+                                size="sm"
+                                className="h-auto p-0 text-[11px] gap-1"
+                                onClick={(e) => { e.stopPropagation(); setComprovanteId(a.id); }}
+                              >
+                                <ShieldCheck className="h-3 w-3" /> Ver comprovante
+                              </Button>
+                            )}
+                          </div>
                         </Card>
                       ))
                     )}
@@ -135,6 +151,14 @@ export default function CentralAprovacoesChat() {
           onOpenChange={(v) => { if (!v) setComprovanteId(null); }}
         />
       )}
+
+      <AprovacaoDetalheDialog
+        aprovacaoId={detalhe?.id ?? null}
+        solicitanteNome={detalhe?.solicitante_nome}
+        decidiodoNome={detalhe?.decidido_nome ?? null}
+        open={!!detalhe}
+        onOpenChange={(v) => { if (!v) setDetalhe(null); }}
+      />
     </DashboardLayout>
   );
 }
