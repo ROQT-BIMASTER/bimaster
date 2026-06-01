@@ -11,6 +11,7 @@ import {
   ClipboardList,
   FolderPlus,
   Sparkles,
+  Trash2,
 } from "lucide-react";
 import {
   DropdownMenu,
