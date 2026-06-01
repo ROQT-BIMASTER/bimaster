@@ -1,13 +1,15 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Undo2, Trash2, Loader2 } from "lucide-react";
-import { format, formatDistanceToNow } from "date-fns";
+import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 interface TarefaExcluida {
   id: string;
   titulo: string;
   excluida_em: string;
+  parent_tarefa_id?: string | null;
 }
 
 interface ProjetoLixeiraDialogProps {
@@ -27,6 +29,9 @@ export function ProjetoLixeiraDialog({ open, onOpenChange, tarefas, loading, onR
             <Trash2 className="h-5 w-5 text-muted-foreground" />
             Lixeira
           </DialogTitle>
+          <p className="text-xs text-muted-foreground">
+            Itens são removidos definitivamente após 30 dias.
+          </p>
         </DialogHeader>
 
         {loading ? (
@@ -40,7 +45,12 @@ export function ProjetoLixeiraDialog({ open, onOpenChange, tarefas, loading, onR
             {tarefas.map(t => (
               <div key={t.id} className="flex items-center gap-3 px-3 py-2.5 rounded-md hover:bg-muted/50 group">
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm truncate">{t.titulo}</p>
+                  <p className="text-sm truncate flex items-center gap-2">
+                    <span className="truncate">{t.titulo}</span>
+                    {t.parent_tarefa_id && (
+                      <Badge variant="outline" className="text-[10px] py-0 px-1.5 shrink-0">Subtarefa</Badge>
+                    )}
+                  </p>
                   <p className="text-xs text-muted-foreground">
                     Excluída {formatDistanceToNow(new Date(t.excluida_em), { locale: ptBR, addSuffix: true })}
                   </p>
