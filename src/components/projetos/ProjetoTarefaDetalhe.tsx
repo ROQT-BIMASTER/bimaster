@@ -156,6 +156,22 @@ export function ProjetoTarefaDetalhe({
   const [produtoResults, setProdutoResults] = useState<ProdutoAcabado[]>([]);
   const [showProdutoSearch, setShowProdutoSearch] = useState(false);
   const [selectedSubtarefaId, setSelectedSubtarefaId] = useState<string | null>(null);
+
+  // Quando esta tarefa é uma subtarefa, busca título da tarefa pai para o botão "Voltar".
+  const parentTarefaId = (tarefa as any)?.parent_tarefa_id as string | null | undefined;
+  const { data: parentTarefaTitulo } = useQuery({
+    queryKey: ["parent-tarefa-titulo", parentTarefaId],
+    enabled: !!parentTarefaId,
+    staleTime: 5 * 60 * 1000,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("projeto_tarefas")
+        .select("titulo")
+        .eq("id", parentTarefaId!)
+        .maybeSingle();
+      return (data?.titulo as string | undefined) ?? null;
+    },
+  });
   const [editingSubtarefaId, setEditingSubtarefaId] = useState<string | null>(null);
   const [editingSubtarefaTitulo, setEditingSubtarefaTitulo] = useState("");
   // Derivado da lista live de subtarefas para refletir optimistic updates /
