@@ -709,6 +709,7 @@ export function MinhasTarefasSimples() {
           onUpdate={handleBridgeUpdate}
           onToggle={handleBridgeToggle}
           onAddSubtarefa={handleBridgeAddSubtarefa}
+          onDelete={handleBridgeDelete}
           secoes={bridgedSecoes}
           onMoveTarefa={handleBridgeMoveTarefa}
           projetoIdOverride={selectedProjetoId}
