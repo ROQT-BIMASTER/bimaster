@@ -708,7 +708,7 @@ export function MinhasTarefasSimples() {
                 <div
                   className={cn(
                     "grid items-center gap-3 px-4 py-2 text-[11px] uppercase tracking-wider text-muted-foreground border-b border-border/40 bg-background",
-                    "grid-cols-[24px_minmax(0,1fr)_120px_90px_110px_160px_120px]",
+                    "grid-cols-[24px_minmax(0,1fr)_120px_90px_110px_160px_120px_28px]",
                   )}
                 >
                   <span />
@@ -718,9 +718,18 @@ export function MinhasTarefasSimples() {
                   <span>Colaboradores</span>
                   <span>Projeto</span>
                   <span>Visibilidade</span>
+                  <span />
                 </div>
                 {groups.map((g) => (
-                  <Section key={g.key} group={g} onToggle={handleToggle} onSelect={handleSelect} projetoPessoalId={projetoPessoalId} />
+                  <Section
+                    key={g.key}
+                    group={g}
+                    onToggle={handleToggle}
+                    onSelect={handleSelect}
+                    onDelete={handleDeleteTarefa}
+                    currentUserId={user?.id ?? null}
+                    projetoPessoalId={projetoPessoalId}
+                  />
                 ))}
               </>
             )}
