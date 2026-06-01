@@ -124,6 +124,8 @@ interface ProjetoTarefaDetalheProps {
   onUpdate: (id: string, updates: Partial<ProjetoTarefa>) => void;
   onToggle: (tarefa: ProjetoTarefa) => void;
   onAddSubtarefa?: (titulo: string, parentId: string, secaoId: string) => void;
+  /** Soft-delete handler (tarefa ou subtarefa). Quando ausente, o botão de excluir não é renderizado. */
+  onDelete?: (tarefaId: string) => void;
   secoes?: ProjetoSecaoType[];
   onMoveTarefa?: (tarefaId: string, secaoOrigemId: string, secaoDestinoId: string) => void;
   projetoIdOverride?: string;
@@ -132,7 +134,7 @@ interface ProjetoTarefaDetalheProps {
 }
 
 export function ProjetoTarefaDetalhe({
-  tarefa, open, onOpenChange, onUpdate, onToggle, onAddSubtarefa, secoes = [], onMoveTarefa, projetoIdOverride, highlightCommentId = null,
+  tarefa, open, onOpenChange, onUpdate, onToggle, onAddSubtarefa, onDelete, secoes = [], onMoveTarefa, projetoIdOverride, highlightCommentId = null,
 }: ProjetoTarefaDetalheProps) {
   const navigate = useNavigate();
   const { id: routeProjetoId } = useParams<{ id: string }>();
