@@ -124,6 +124,8 @@ interface ProjetoTarefaDetalheProps {
   onUpdate: (id: string, updates: Partial<ProjetoTarefa>) => void;
   onToggle: (tarefa: ProjetoTarefa) => void;
   onAddSubtarefa?: (titulo: string, parentId: string, secaoId: string) => void;
+  /** Soft-delete handler (tarefa ou subtarefa). Quando ausente, o botão de excluir não é renderizado. */
+  onDelete?: (tarefaId: string) => void;
   secoes?: ProjetoSecaoType[];
   onMoveTarefa?: (tarefaId: string, secaoOrigemId: string, secaoDestinoId: string) => void;
   projetoIdOverride?: string;
@@ -132,7 +134,7 @@ interface ProjetoTarefaDetalheProps {
 }
 
 export function ProjetoTarefaDetalhe({
-  tarefa, open, onOpenChange, onUpdate, onToggle, onAddSubtarefa, secoes = [], onMoveTarefa, projetoIdOverride, highlightCommentId = null,
+  tarefa, open, onOpenChange, onUpdate, onToggle, onAddSubtarefa, onDelete, secoes = [], onMoveTarefa, projetoIdOverride, highlightCommentId = null,
 }: ProjetoTarefaDetalheProps) {
   const navigate = useNavigate();
   const { id: routeProjetoId } = useParams<{ id: string }>();
@@ -1354,6 +1356,17 @@ export function ProjetoTarefaDetalhe({
                             >
                               <ChevronRight className="h-3.5 w-3.5" />
                             </Button>
+                            {onDelete && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
+                                onClick={() => onDelete(st.id)}
+                                title="Mover subtarefa para a lixeira"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
+                            )}
                           </div>
                           {/* Row 2: inline admin controls */}
                           <div className="flex items-center gap-1.5 pl-6 flex-wrap">
@@ -1551,6 +1564,7 @@ export function ProjetoTarefaDetalhe({
           onOpenChange={(open) => { if (!open) setSelectedSubtarefaId(null); }}
           onUpdate={onUpdate}
           onToggle={onToggle}
+          onDelete={onDelete}
           secoes={secoes}
           onMoveTarefa={onMoveTarefa}
           projetoIdOverride={projetoId || (selectedSubtarefa as any).projeto_id}

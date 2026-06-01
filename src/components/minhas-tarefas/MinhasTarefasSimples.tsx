@@ -489,6 +489,26 @@ export function MinhasTarefasSimples() {
     queryClient.invalidateQueries({ queryKey: ["minhas-tarefas"] });
   }, [queryClient]);
 
+  const handleBridgeDelete = useCallback(async (tarefaId: string) => {
+    const live = bridgedTarefa?.id === tarefaId
+      ? bridgedTarefa
+      : (bridgedTarefa?.subtarefas?.find((s) => s.id === tarefaId) ?? null);
+    const { confirmExclusaoTarefa } = await import("@/lib/projetos/confirmConclusao");
+    const ok = await confirmExclusaoTarefa({
+      titulo: live?.titulo,
+      isSubtarefa: !!live?.parent_tarefa_id,
+    });
+    if (!ok) return;
+    const { error } = await supabase
+      .from("projeto_tarefas")
+      .update({ excluida_em: new Date().toISOString() } as any)
+      .eq("id", tarefaId);
+    if (error) { toast.error(error.message); return; }
+    toast.success(live?.parent_tarefa_id ? "Subtarefa movida para a lixeira" : "Tarefa movida para a lixeira");
+    queryClient.invalidateQueries({ queryKey: ["minhas-tarefas"] });
+    queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2"] });
+  }, [bridgedTarefa, queryClient]);
+
   /* ---------------------------------- UI ---------------------------------- */
   return (
     <TooltipProvider>
@@ -689,6 +709,7 @@ export function MinhasTarefasSimples() {
           onUpdate={handleBridgeUpdate}
           onToggle={handleBridgeToggle}
           onAddSubtarefa={handleBridgeAddSubtarefa}
+          onDelete={handleBridgeDelete}
           secoes={bridgedSecoes}
           onMoveTarefa={handleBridgeMoveTarefa}
           projetoIdOverride={selectedProjetoId}

@@ -72,7 +72,7 @@ export function ProjetoKanbanView({ projetoId, darkBg = false, filters = EMPTY_F
   const {
     secoes, tarefas: rawTarefas, secoesLoading, tarefasLoading,
     tarefasPorSecao: rawTarefasPorSecao, createTarefa, updateTarefa,
-    toggleTarefaCompleta, moveTarefaToSecao, createSecao, reorderTarefasSecao,
+    toggleTarefaCompleta, moveTarefaToSecao, createSecao, reorderTarefasSecao, softDeleteTarefa,
   } = useProjetoTarefas(projetoId);
 
   // Apply external filters/sort
@@ -395,6 +395,7 @@ export function ProjetoKanbanView({ projetoId, darkBg = false, filters = EMPTY_F
         onUpdate={(id, updates) => updateTarefa.mutate({ id, ...updates })}
         onToggle={(t) => toggleTarefaCompleta.mutate(t)}
         onAddSubtarefa={(titulo, parentId, secaoId) => createTarefa.mutate({ titulo, secao_id: secaoId, parent_tarefa_id: parentId })}
+        onDelete={(id) => softDeleteTarefa.mutate(id)}
         secoes={secoes}
         onMoveTarefa={(tarefaId, secaoOrigemId, secaoDestinoId) => moveTarefaToSecao.mutate({ tarefaId, secaoOrigemId, secaoDestinoId })}
       />
