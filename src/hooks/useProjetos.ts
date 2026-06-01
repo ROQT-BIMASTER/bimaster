@@ -353,10 +353,9 @@ export function useProjetos(options: UseProjetosOptions = {}) {
   // então o projeto some da listagem normal automaticamente.
   const deleteProjeto = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await (supabase
-        .from("projetos") as any)
-        .update({ deleted_at: new Date().toISOString() })
-        .eq("id", id);
+      const { error } = await supabase.rpc("rpc_soft_delete_projeto" as any, {
+        p_projeto_id: id,
+      });
       if (error) throw error;
     },
     onSuccess: () => {
