@@ -3663,6 +3663,68 @@ export type Database = {
           },
         ]
       }
+      chat_anexo_arquivamentos: {
+        Row: {
+          anexo_id: string
+          arquivado_por: string
+          briefing_id: string | null
+          bucket_destino: string
+          categoria_cofre: string | null
+          conversa_id: string
+          created_at: string
+          destino_tipo: string
+          id: string
+          projeto_id: string | null
+          registro_destino_id: string
+          storage_path_destino: string
+          submissao_id: string | null
+          tarefa_id: string | null
+          tipo_documento: string | null
+        }
+        Insert: {
+          anexo_id: string
+          arquivado_por: string
+          briefing_id?: string | null
+          bucket_destino: string
+          categoria_cofre?: string | null
+          conversa_id: string
+          created_at?: string
+          destino_tipo: string
+          id?: string
+          projeto_id?: string | null
+          registro_destino_id: string
+          storage_path_destino: string
+          submissao_id?: string | null
+          tarefa_id?: string | null
+          tipo_documento?: string | null
+        }
+        Update: {
+          anexo_id?: string
+          arquivado_por?: string
+          briefing_id?: string | null
+          bucket_destino?: string
+          categoria_cofre?: string | null
+          conversa_id?: string
+          created_at?: string
+          destino_tipo?: string
+          id?: string
+          projeto_id?: string | null
+          registro_destino_id?: string
+          storage_path_destino?: string
+          submissao_id?: string | null
+          tarefa_id?: string | null
+          tipo_documento?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_anexo_arquivamentos_anexo_id_fkey"
+            columns: ["anexo_id"]
+            isOneToOne: false
+            referencedRelation: "mensagens_anexos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       chat_aprovacao_doc_vinculos: {
         Row: {
           aprovacao_id: string
@@ -48618,6 +48680,17 @@ export type Database = {
       }
     }
     Functions: {
+      _anexo_chat_validate: {
+        Args: { p_anexo_id: string }
+        Returns: {
+          anexo_id: string
+          conversa_id: string
+          file_name: string
+          mime_type: string
+          size_bytes: number
+          storage_path: string
+        }[]
+      }
       _aprov_vinc_validate_doc: {
         Args: { p_documento_id: string }
         Returns: {
@@ -50783,6 +50856,53 @@ export type Database = {
           p_versao_id: string
         }
         Returns: Json
+      }
+      rpc_arquivar_anexo_chat_briefing: {
+        Args: {
+          p_anexo_id: string
+          p_briefing_id: string
+          p_categoria: string
+          p_mime: string
+          p_nome_arquivo: string
+          p_novo_arquivo_path: string
+          p_size: number
+        }
+        Returns: string
+      }
+      rpc_arquivar_anexo_chat_china: {
+        Args: {
+          p_anexo_id: string
+          p_nome_arquivo: string
+          p_novo_arquivo_path: string
+          p_submissao_id: string
+          p_tipo_documento: string
+        }
+        Returns: string
+      }
+      rpc_arquivar_anexo_chat_projeto: {
+        Args: {
+          p_anexo_id: string
+          p_categoria: string
+          p_mime: string
+          p_nome_arquivo: string
+          p_novo_arquivo_path: string
+          p_projeto_id: string
+          p_size: number
+        }
+        Returns: string
+      }
+      rpc_arquivar_anexo_chat_tarefa: {
+        Args: {
+          p_anexo_id: string
+          p_categoria: string
+          p_mime: string
+          p_nome_arquivo: string
+          p_novo_arquivo_path: string
+          p_projeto_id: string
+          p_size: number
+          p_tarefa_id: string
+        }
+        Returns: string
       }
       rpc_audit_usuarios_resumo: {
         Args: { p_from?: string; p_to?: string }
