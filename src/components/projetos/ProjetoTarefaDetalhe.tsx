@@ -1356,6 +1356,17 @@ export function ProjetoTarefaDetalhe({
                             >
                               <ChevronRight className="h-3.5 w-3.5" />
                             </Button>
+                            {onDelete && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
+                                onClick={() => onDelete(st.id)}
+                                title="Mover subtarefa para a lixeira"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
+                            )}
                           </div>
                           {/* Row 2: inline admin controls */}
                           <div className="flex items-center gap-1.5 pl-6 flex-wrap">
