@@ -33,6 +33,7 @@ export default function CentralAprovacoesChat() {
   const { porStatus, isLoading } = useCentralAprovacoes();
   const [busca, setBusca] = useState("");
   const [comprovanteId, setComprovanteId] = useState<string | null>(null);
+  const [detalhe, setDetalhe] = useState<CentralAprovacao | null>(null);
 
   const filtrar = (lista: CentralAprovacao[]) => {
     const q = busca.trim().toLowerCase();
