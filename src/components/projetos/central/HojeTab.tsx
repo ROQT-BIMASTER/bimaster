@@ -29,10 +29,11 @@ import { cn } from "@/lib/utils";
 
 const MAX_ITEMS = 8;
 
-function TarefaRow({ tarefa, onToggle, isCompact }: { tarefa: MinaTarefa; onToggle: (id: string, done: boolean) => void; isCompact: boolean }) {
+function TarefaRow({ tarefa, onToggle, onDelete, isCompact, currentUserId }: { tarefa: MinaTarefa; onToggle: (id: string, done: boolean) => void; onDelete: (tarefa: MinaTarefa) => void; isCompact: boolean; currentUserId: string | null }) {
   const navigate = useNavigate();
   const isDone = tarefa.status === "concluida";
   const isOverdue = !isDone && tarefa.data_prazo && new Date(tarefa.data_prazo) < new Date();
+  const podeExcluir = !!currentUserId && tarefa.criador_id === currentUserId;
 
   return (
     <div
@@ -84,6 +85,21 @@ function TarefaRow({ tarefa, onToggle, isCompact }: { tarefa: MinaTarefa; onTogg
             </TooltipContent>
           </Tooltip>
         )
+      )}
+      {podeExcluir && (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); onDelete(tarefa); }}
+              className="h-6 w-6 rounded-md inline-flex items-center justify-center text-muted-foreground opacity-0 group-hover:opacity-100 hover:text-destructive hover:bg-destructive/10 transition-all shrink-0"
+              aria-label="Mover para a lixeira"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent side="left">Mover para a lixeira (30 dias)</TooltipContent>
+        </Tooltip>
       )}
     </div>
   );
