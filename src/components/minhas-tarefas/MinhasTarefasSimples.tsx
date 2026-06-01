@@ -439,6 +439,31 @@ export function MinhasTarefasSimples() {
     toast.success(done ? "Tarefa concluída" : "Tarefa reaberta");
   }, [queryClient]);
 
+  /* ----------------------------- Soft delete ----------------------------- */
+  const handleDeleteTarefa = useCallback(async (t: MinaTarefa) => {
+    if (!user?.id || t.criador_id !== user.id) {
+      toast.error("Apenas o criador da tarefa pode excluí-la.");
+      return;
+    }
+    const { confirmExclusaoTarefa } = await import("@/lib/projetos/confirmConclusao");
+    const ok = await confirmExclusaoTarefa({
+      titulo: t.titulo,
+      isSubtarefa: !!t.parent_tarefa_id,
+    });
+    if (!ok) return;
+    const { error } = await supabase
+      .from("projeto_tarefas")
+      .update({ excluida_em: new Date().toISOString(), excluida_por: user.id } as any)
+      .eq("id", t.id);
+    if (error) {
+      toast.error("Não foi possível excluir a tarefa: " + error.message);
+      return;
+    }
+    toast.success("Tarefa movida para a lixeira. Permanecerá por 30 dias.");
+    queryClient.invalidateQueries({ queryKey: ["minhas-tarefas"] });
+    queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2"] });
+  }, [queryClient, user?.id]);
+
   /* ----------------------------- Detalhe sheet ---------------------------- */
   const handleSelect = useCallback((t: MinaTarefa) => {
     setDetailTarefa(t);
