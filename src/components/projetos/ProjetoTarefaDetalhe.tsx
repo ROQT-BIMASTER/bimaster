@@ -454,33 +454,24 @@ export function ProjetoTarefaDetalhe({
 
           {/* Top action bar — Asana-style flat header */}
           <div className="px-5 py-3 border-b border-border/60 flex items-center gap-2">
-            {(() => {
-              const parentId = (tarefa as any).parent_tarefa_id as string | undefined;
-              if (!parentId) return null;
-              let parentTitulo: string | undefined;
-              for (const sec of secoes) {
-                const found = (sec.tarefas || []).find((t: any) => t.id === parentId);
-                if (found) { parentTitulo = found.titulo; break; }
-              }
-              return (
-                <>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="gap-1.5 text-xs rounded-full h-8 px-2 -ml-1 text-muted-foreground hover:text-foreground"
-                    onClick={() => onOpenChange(false)}
-                    title={parentTitulo ? `Voltar para "${parentTitulo}"` : "Voltar para a tarefa"}
-                  >
-                    <ChevronLeft className="h-4 w-4" />
-                    <span className="max-w-[220px] truncate">
-                      {parentTitulo || "Voltar à tarefa"}
-                    </span>
-                  </Button>
-                  <Separator orientation="vertical" className="h-5 mx-1" />
-                  <Badge variant="outline" className="text-[10px] rounded-full px-2 py-0 h-5">Subtarefa</Badge>
-                </>
-              );
-            })()}
+            {(tarefa as any).parent_tarefa_id && (
+              <>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="gap-1.5 text-xs rounded-full h-8 px-2 -ml-1 text-muted-foreground hover:text-foreground"
+                  onClick={() => onOpenChange(false)}
+                  title={parentTarefaTitulo ? `Voltar para "${parentTarefaTitulo}"` : "Voltar para a tarefa"}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                  <span className="max-w-[220px] truncate">
+                    {parentTarefaTitulo || "Voltar à tarefa"}
+                  </span>
+                </Button>
+                <Separator orientation="vertical" className="h-5 mx-1" />
+                <Badge variant="outline" className="text-[10px] rounded-full px-2 py-0 h-5">Subtarefa</Badge>
+              </>
+            )}
             {/* Marcar como concluída - bloqueado durante validação pendente */}
             {isPendingValidation ? (
               <Badge className="text-[10px] bg-amber-500/20 text-amber-400 border-0 gap-1 rounded-full px-2.5 py-1">
