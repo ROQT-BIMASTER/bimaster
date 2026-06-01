@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
 import { useProjetoMembros } from "@/hooks/useProjetoMembros";
 import { useProjetoTarefas } from "@/hooks/useProjetoTarefas";
