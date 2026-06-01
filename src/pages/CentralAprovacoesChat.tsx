@@ -151,6 +151,14 @@ export default function CentralAprovacoesChat() {
           onOpenChange={(v) => { if (!v) setComprovanteId(null); }}
         />
       )}
+
+      <AprovacaoDetalheDialog
+        aprovacaoId={detalhe?.id ?? null}
+        solicitanteNome={detalhe?.solicitante_nome}
+        decidiodoNome={detalhe?.decidido_nome ?? null}
+        open={!!detalhe}
+        onOpenChange={(v) => { if (!v) setDetalhe(null); }}
+      />
     </DashboardLayout>
   );
 }
