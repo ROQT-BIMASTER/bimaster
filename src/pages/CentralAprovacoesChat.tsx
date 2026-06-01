@@ -94,7 +94,11 @@ export default function CentralAprovacoesChat() {
                       </p>
                     ) : (
                       col.itens.map((a) => (
-                        <Card key={a.id} className="p-3 space-y-2">
+                        <Card
+                          key={a.id}
+                          className="p-3 space-y-2 cursor-pointer transition-colors hover:border-primary/40 hover:bg-accent/30"
+                          onClick={() => setDetalhe(a)}
+                        >
                           <p className="text-sm font-medium leading-snug">{a.titulo}</p>
                           {a.descricao && (
                             <p className="text-xs text-muted-foreground line-clamp-2">{a.descricao}</p>
@@ -109,16 +113,26 @@ export default function CentralAprovacoesChat() {
                             Solicitante: {a.solicitante_nome}
                             {a.decidido_nome ? ` · Decisor: ${a.decidido_nome}` : ""}
                           </p>
-                          {a.status === "aprovado" && (
+                          <div className="flex items-center gap-3 pt-1">
                             <Button
                               variant="link"
                               size="sm"
                               className="h-auto p-0 text-[11px] gap-1"
-                              onClick={() => setComprovanteId(a.id)}
+                              onClick={(e) => { e.stopPropagation(); setDetalhe(a); }}
                             >
-                              <ShieldCheck className="h-3 w-3" /> Ver comprovante
+                              <FileText className="h-3 w-3" /> Abrir detalhes
                             </Button>
-                          )}
+                            {a.status === "aprovado" && (
+                              <Button
+                                variant="link"
+                                size="sm"
+                                className="h-auto p-0 text-[11px] gap-1"
+                                onClick={(e) => { e.stopPropagation(); setComprovanteId(a.id); }}
+                              >
+                                <ShieldCheck className="h-3 w-3" /> Ver comprovante
+                              </Button>
+                            )}
+                          </div>
                         </Card>
                       ))
                     )}
