@@ -13,7 +13,9 @@ import { ArquivarAnexoChatDialog } from "./ArquivarAnexoChatDialog";
 export function AnexoView({ anexo, mine }: { anexo: ChatAnexo; mine: boolean }) {
   const [url, setUrl] = useState<string | null>(null);
   const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [arquivarOpen, setArquivarOpen] = useState(false);
   const isImage = anexo.mime_type?.startsWith("image/");
+
   const isVideo = anexo.mime_type?.startsWith("video/");
   const isAudio = anexo.mime_type?.startsWith("audio/");
 
