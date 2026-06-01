@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { TarefaResponsavelAvatar } from "@/components/projetos/shared/TarefaResponsavelAvatar";
-import { AlertTriangle, FolderKanban, ArrowRight, Rocket, CalendarDays, CalendarOff, Search } from "lucide-react";
+import { AlertTriangle, FolderKanban, ArrowRight, Rocket, CalendarDays, CalendarOff, Search, Trash2 } from "lucide-react";
 import { format, isToday, isBefore, startOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { parseLocalDate } from "@/lib/utils/parseLocalDate";
@@ -20,6 +20,7 @@ import { isSemDatasPlanejadas } from "@/lib/utils/tarefaPlanejamento";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { useAuth } from "@/contexts/AuthContext";
 import { ProjetoHomeAtividades } from "@/components/projetos/home/ProjetoHomeAtividades";
 import { CentralToolbarPortal, CentralChipsPortal } from "@/components/projetos/central/CentralLayout";
 import { CentralChip } from "@/components/projetos/central/CentralChips";
@@ -28,10 +29,11 @@ import { cn } from "@/lib/utils";
 
 const MAX_ITEMS = 8;
 
-function TarefaRow({ tarefa, onToggle, isCompact }: { tarefa: MinaTarefa; onToggle: (id: string, done: boolean) => void; isCompact: boolean }) {
+function TarefaRow({ tarefa, onToggle, onDelete, isCompact, currentUserId }: { tarefa: MinaTarefa; onToggle: (id: string, done: boolean) => void; onDelete: (tarefa: MinaTarefa) => void; isCompact: boolean; currentUserId: string | null }) {
   const navigate = useNavigate();
   const isDone = tarefa.status === "concluida";
   const isOverdue = !isDone && tarefa.data_prazo && new Date(tarefa.data_prazo) < new Date();
+  const podeExcluir = !!currentUserId && tarefa.criador_id === currentUserId;
 
   return (
     <div
@@ -84,6 +86,21 @@ function TarefaRow({ tarefa, onToggle, isCompact }: { tarefa: MinaTarefa; onTogg
           </Tooltip>
         )
       )}
+      {podeExcluir && (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); onDelete(tarefa); }}
+              className="h-6 w-6 rounded-md inline-flex items-center justify-center text-muted-foreground opacity-0 group-hover:opacity-100 hover:text-destructive hover:bg-destructive/10 transition-all shrink-0"
+              aria-label="Mover para a lixeira"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent side="left">Mover para a lixeira (30 dias)</TooltipContent>
+        </Tooltip>
+      )}
     </div>
   );
 }
@@ -93,6 +110,8 @@ interface Props {
 }
 
 export function HojeTab({ onGoToTarefas }: Props) {
+  const { user } = useAuth();
+  const currentUserId = user?.id ?? null;
   const { data: tarefas = [], isLoading: loadingTarefas } = useMinhasTarefas();
   const { data: projetos = [], isLoading: loadingProjetos } = useMeusProjetosRecentes();
   const navigate = useNavigate();
@@ -148,6 +167,29 @@ export function HojeTab({ onGoToTarefas }: Props) {
     queryClient.invalidateQueries({ queryKey: ["minhas-tarefas"] });
     queryClient.invalidateQueries({ queryKey: ["meus-projetos-recentes"] });
     toast.success(done ? "Tarefa concluída!" : "Tarefa reaberta");
+  };
+
+  const handleDeleteTarefa = async (t: MinaTarefa) => {
+    if (!user?.id || t.criador_id !== user.id) {
+      toast.error("Apenas o criador da tarefa pode excluí-la.");
+      return;
+    }
+    const { confirmExclusaoTarefa } = await import("@/lib/projetos/confirmConclusao");
+    const ok = await confirmExclusaoTarefa({ titulo: t.titulo });
+    if (!ok) return;
+    const { error } = await supabase
+      .from("projeto_tarefas")
+      .update({ excluida_em: new Date().toISOString(), excluida_por: user.id } as any)
+      .eq("id", t.id)
+      .eq("criador_id", user.id);
+    if (error) {
+      toast.error("Erro ao excluir tarefa");
+      return;
+    }
+    queryClient.invalidateQueries({ queryKey: ["minhas-tarefas"] });
+    queryClient.invalidateQueries({ queryKey: ["minhas-tarefas-lixeira"] });
+    queryClient.invalidateQueries({ queryKey: ["meus-projetos-recentes"] });
+    toast.success("Tarefa movida para a lixeira (30 dias)");
   };
 
   return (
@@ -225,7 +267,7 @@ export function HojeTab({ onGoToTarefas }: Props) {
                   </button>
                   <div className="space-y-2">
                     {atrasadas.slice(0, MAX_ITEMS).map(t => (
-                      <TarefaRow key={t.id} tarefa={t} onToggle={handleToggle} isCompact={isCompact} />
+                      <TarefaRow key={t.id} tarefa={t} onToggle={handleToggle} onDelete={handleDeleteTarefa} currentUserId={currentUserId} isCompact={isCompact} />
                     ))}
                   </div>
                 </div>
@@ -241,7 +283,7 @@ export function HojeTab({ onGoToTarefas }: Props) {
                   </button>
                   <div className="space-y-2">
                     {hoje.slice(0, MAX_ITEMS - atrasadas.length).map(t => (
-                      <TarefaRow key={t.id} tarefa={t} onToggle={handleToggle} isCompact={isCompact} />
+                      <TarefaRow key={t.id} tarefa={t} onToggle={handleToggle} onDelete={handleDeleteTarefa} currentUserId={currentUserId} isCompact={isCompact} />
                     ))}
                   </div>
                 </div>
@@ -258,7 +300,7 @@ export function HojeTab({ onGoToTarefas }: Props) {
                   </button>
                   <div className="space-y-2">
                     {semData.slice(0, MAX_ITEMS - atrasadas.length - hoje.length).map(t => (
-                      <TarefaRow key={t.id} tarefa={t} onToggle={handleToggle} isCompact={isCompact} />
+                      <TarefaRow key={t.id} tarefa={t} onToggle={handleToggle} onDelete={handleDeleteTarefa} currentUserId={currentUserId} isCompact={isCompact} />
                     ))}
                   </div>
                 </div>

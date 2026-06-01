@@ -11,6 +11,7 @@ import {
   ClipboardList,
   FolderPlus,
   Sparkles,
+  Trash2,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -32,6 +33,8 @@ import { ProfileAvatarUpload } from "@/components/shared/ProfileAvatarUpload";
 import { CentralCopilotPanel } from "@/components/projetos/central/CentralCopilotPanel";
 import { CentralSettingsMenu } from "@/components/projetos/central/CentralSettingsMenu";
 import { ProjetoDensityToggle } from "@/components/projetos/ProjetoDensityToggle";
+import { Badge } from "@/components/ui/badge";
+import { MinhasTarefasLixeiraDialog, useMinhasTarefasLixeiraCount } from "@/components/minhas-tarefas/MinhasTarefasLixeiraDialog";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import type { CentralPreferences } from "@/hooks/useCentralPreferences";
@@ -75,6 +78,8 @@ export function CentralHeader({
   const [showNewTask, setShowNewTask] = useState(false);
   const [showNewProject, setShowNewProject] = useState(false);
   const [copilotOpen, setCopilotOpen] = useState(false);
+  const [lixeiraOpen, setLixeiraOpen] = useState(false);
+  const { data: lixeiraCount = 0 } = useMinhasTarefasLixeiraCount();
 
   // Ctrl/Cmd + J → toggle Copiloto
   useEffect(() => {
@@ -174,6 +179,32 @@ export function CentralHeader({
 
           <ProjetoDensityToggle />
 
+          <TooltipProvider delayDuration={200}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="relative gap-1.5"
+                  onClick={() => setLixeiraOpen(true)}
+                  aria-label="Lixeira pessoal"
+                >
+                  <Trash2 className="h-4 w-4" />
+                  <span className="hidden md:inline">Lixeira</span>
+                  {lixeiraCount > 0 && (
+                    <Badge variant="secondary" className="text-[10px] h-4 px-1 ml-0.5">
+                      {lixeiraCount}
+                    </Badge>
+                  )}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent className="max-w-xs">
+                Tarefas excluídas por você nos últimos 30 dias. Restaure dentro do prazo.
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+
+
           <CentralSettingsMenu
             bgColor={bgColor}
             onBgColorChange={onBgColorChange}
@@ -211,6 +242,7 @@ export function CentralHeader({
       <NovaTarefaMinhasDialog open={showNewTask} onOpenChange={setShowNewTask} />
       <NovoProjetoDialog open={showNewProject} onOpenChange={setShowNewProject} />
       <CentralCopilotPanel open={copilotOpen} onOpenChange={setCopilotOpen} />
+      <MinhasTarefasLixeiraDialog open={lixeiraOpen} onOpenChange={setLixeiraOpen} />
     </>
   );
 }
