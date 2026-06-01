@@ -72,7 +72,7 @@ export function ProjetoKanbanView({ projetoId, darkBg = false, filters = EMPTY_F
   const {
     secoes, tarefas: rawTarefas, secoesLoading, tarefasLoading,
     tarefasPorSecao: rawTarefasPorSecao, createTarefa, updateTarefa,
-    toggleTarefaCompleta, moveTarefaToSecao, createSecao, reorderTarefasSecao,
+    toggleTarefaCompleta, moveTarefaToSecao, createSecao, reorderTarefasSecao, softDeleteTarefa,
   } = useProjetoTarefas(projetoId);
 
   // Apply external filters/sort
