@@ -33,6 +33,8 @@ import { ProfileAvatarUpload } from "@/components/shared/ProfileAvatarUpload";
 import { CentralCopilotPanel } from "@/components/projetos/central/CentralCopilotPanel";
 import { CentralSettingsMenu } from "@/components/projetos/central/CentralSettingsMenu";
 import { ProjetoDensityToggle } from "@/components/projetos/ProjetoDensityToggle";
+import { Badge } from "@/components/ui/badge";
+import { MinhasTarefasLixeiraDialog, useMinhasTarefasLixeiraCount } from "@/components/minhas-tarefas/MinhasTarefasLixeiraDialog";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import type { CentralPreferences } from "@/hooks/useCentralPreferences";
