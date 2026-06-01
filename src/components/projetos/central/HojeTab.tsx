@@ -110,6 +110,8 @@ interface Props {
 }
 
 export function HojeTab({ onGoToTarefas }: Props) {
+  const { user } = useAuth();
+  const currentUserId = user?.id ?? null;
   const { data: tarefas = [], isLoading: loadingTarefas } = useMinhasTarefas();
   const { data: projetos = [], isLoading: loadingProjetos } = useMeusProjetosRecentes();
   const navigate = useNavigate();
