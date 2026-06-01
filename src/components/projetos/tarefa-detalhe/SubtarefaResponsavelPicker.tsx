@@ -146,7 +146,8 @@ export function SubtarefaResponsavelPicker({
                 <CommandItem
                   value="__me__"
                   onSelect={() => trocar(user.id)}
-                  className="text-xs"
+                  onMouseDown={(e) => handlePick(e, user.id)}
+                  className="text-xs cursor-pointer"
                 >
                   <UserPlus className="h-3.5 w-3.5 mr-2" />
                   Atribuir a mim
@@ -160,7 +161,8 @@ export function SubtarefaResponsavelPicker({
                   <CommandItem
                     value="__remove__"
                     onSelect={() => trocar(null)}
-                    className="text-xs text-destructive"
+                    onMouseDown={(e) => handlePick(e, null)}
+                    className="text-xs text-destructive cursor-pointer"
                   >
                     <X className="h-3.5 w-3.5 mr-2" />
                     Remover responsável
@@ -177,8 +179,9 @@ export function SubtarefaResponsavelPicker({
                       key={m.id}
                       value={m.profile?.nome || m.user_id}
                       onSelect={() => trocar(m.user_id)}
+                      onMouseDown={(e) => handlePick(e, m.user_id)}
                       className={cn(
-                        "text-xs",
+                        "text-xs cursor-pointer",
                         responsavelId === m.user_id && "bg-accent/60",
                       )}
                     >
