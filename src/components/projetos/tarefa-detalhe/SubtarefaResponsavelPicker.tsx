@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
 import { useProjetoMembros } from "@/hooks/useProjetoMembros";
 import { useProjetoTarefas } from "@/hooks/useProjetoTarefas";
@@ -46,24 +47,41 @@ export function SubtarefaResponsavelPicker({
   const { user } = useAuth();
   const { membros } = useProjetoMembros(projetoId);
   const { updateTarefa } = useProjetoTarefas(projetoId);
+  const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
 
   const trocar = (novoUserId: string | null) => {
     // Fecha o popover ANTES de disparar a mutation. O onMutate de updateTarefa
     // já aplica patch otimista no cache (responsavel_id + objeto responsavel
     // enriquecido a partir de teamMembers / projeto_membros), então a UI
-    // reflete a troca imediatamente — não precisamos travar o trigger com
-    // `disabled` enquanto a rede roda. Travar o botão fazia o usuário
-    // perceber lentidão mesmo quando a mudança já estava aplicada visualmente.
+    // reflete a troca imediatamente.
     setOpen(false);
     updateTarefa.mutate(
       { id: subtarefaId, responsavel_id: novoUserId } as any,
       {
         onSuccess: () => {
           toast.success(novoUserId ? "Responsável atualizado" : "Responsável removido");
+          // Garante que a view da tarefa-pai (que carrega `subtarefas` derivadas)
+          // recarregue, já que o patch otimista de `updateTarefa` foca em
+          // tarefas top-level. Sem isso, a UI da subtarefa pode demorar a
+          // refletir o novo responsável quando o componente pai não recompõe.
+          queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2", projetoId] });
+        },
+        onError: (err: any) => {
+          toast.error(err?.message || "Não foi possível atualizar o responsável");
         },
       },
     );
+  };
+
+  // cmdk's `onSelect` ocasionalmente não dispara quando o Popover está aninhado
+  // dentro de um Dialog (Radix focus trap / pointer-events). Disparamos também
+  // no `onMouseDown` como redundância — `preventDefault` evita que o blur do
+  // CommandInput cancele o handler antes do click chegar.
+  const handlePick = (e: React.MouseEvent, novoUserId: string | null) => {
+    e.preventDefault();
+    e.stopPropagation();
+    trocar(novoUserId);
   };
 
   const triggerEl =
@@ -128,7 +146,8 @@ export function SubtarefaResponsavelPicker({
                 <CommandItem
                   value="__me__"
                   onSelect={() => trocar(user.id)}
-                  className="text-xs"
+                  onMouseDown={(e) => handlePick(e, user.id)}
+                  className="text-xs cursor-pointer"
                 >
                   <UserPlus className="h-3.5 w-3.5 mr-2" />
                   Atribuir a mim
@@ -142,7 +161,8 @@ export function SubtarefaResponsavelPicker({
                   <CommandItem
                     value="__remove__"
                     onSelect={() => trocar(null)}
-                    className="text-xs text-destructive"
+                    onMouseDown={(e) => handlePick(e, null)}
+                    className="text-xs text-destructive cursor-pointer"
                   >
                     <X className="h-3.5 w-3.5 mr-2" />
                     Remover responsável
@@ -159,8 +179,9 @@ export function SubtarefaResponsavelPicker({
                       key={m.id}
                       value={m.profile?.nome || m.user_id}
                       onSelect={() => trocar(m.user_id)}
+                      onMouseDown={(e) => handlePick(e, m.user_id)}
                       className={cn(
-                        "text-xs",
+                        "text-xs cursor-pointer",
                         responsavelId === m.user_id && "bg-accent/60",
                       )}
                     >
