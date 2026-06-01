@@ -78,6 +78,8 @@ export function CentralHeader({
   const [showNewTask, setShowNewTask] = useState(false);
   const [showNewProject, setShowNewProject] = useState(false);
   const [copilotOpen, setCopilotOpen] = useState(false);
+  const [lixeiraOpen, setLixeiraOpen] = useState(false);
+  const { data: lixeiraCount = 0 } = useMinhasTarefasLixeiraCount();
 
   // Ctrl/Cmd + J → toggle Copiloto
   useEffect(() => {
