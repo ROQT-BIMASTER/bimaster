@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Button } from "@/components/ui/button";
@@ -8,11 +8,14 @@ import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useGrupoCenario, type CenarioProduto } from "@/hooks/useGrupoCenarios";
-import { ArrowLeft, Trophy, Layers, TrendingDown, TrendingUp, Plus, Sparkles, BarChart3 } from "lucide-react";
+import { ArrowLeft, Trophy, Layers, TrendingDown, TrendingUp, Plus, Sparkles, BarChart3, X } from "lucide-react";
 import { formatCurrency } from "@/lib/formatters";
 import { PromoverCenarioDialog } from "@/components/fabrica/cenarios/PromoverCenarioDialog";
 import { NovoCenarioDialog } from "@/components/fabrica/cenarios/NovoCenarioDialog";
 import { AnaliseInsumosComparativa } from "@/components/fabrica/cenarios/AnaliseInsumosComparativa";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { toast } from "sonner";
 
 interface CustoItem {
   produto_id: string;
@@ -79,6 +82,35 @@ export default function CenariosComparativo() {
   const [vencedor, setVencedor] = useState<CenarioProduto | null>(null);
   const [promoverOpen, setPromoverOpen] = useState(false);
   const [novoOpen, setNovoOpen] = useState(false);
+  const [removerAlvo, setRemoverAlvo] = useState<CenarioProduto | null>(null);
+  const [removendo, setRemovendo] = useState(false);
+  const qc = useQueryClient();
+
+  const handleRemoverCenario = async () => {
+    if (!removerAlvo) return;
+    setRemovendo(true);
+    try {
+      const { error } = await supabase
+        .from("fabrica_produtos")
+        .update({ ativo: false })
+        .eq("id", removerAlvo.id);
+      if (error) throw error;
+      toast.success("Cenário removido da concorrência. Disponível em Cenários arquivados.");
+      setRemoverAlvo(null);
+      await Promise.all([
+        qc.invalidateQueries({ queryKey: ["fabrica-cenarios-grupo"] }),
+        qc.invalidateQueries({ queryKey: ["fabrica-cenarios-grupos"] }),
+        qc.invalidateQueries({ queryKey: ["fabrica-cenarios-arquivados"] }),
+        qc.invalidateQueries({ queryKey: ["fabrica-cenarios-custos"] }),
+      ]);
+      refetch();
+    } catch (e: any) {
+      toast.error(e?.message ?? "Falha ao remover cenário");
+    } finally {
+      setRemovendo(false);
+    }
+  };
+
 
   const custosArr = useMemo(() => {
     return cenarios.map((c) => ({
@@ -151,8 +183,31 @@ export default function CenariosComparativo() {
               const isMaxMargem = maxMargem !== null && margem === maxMargem && margem > 0;
 
               return (
-                <Card key={produto.id} className="p-4 flex flex-col gap-3">
-                  <div className="space-y-1">
+                <Card key={produto.id} className="p-4 flex flex-col gap-3 relative">
+                  <TooltipProvider delayDuration={200}>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="absolute top-2 right-2">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6 text-muted-foreground hover:text-destructive"
+                            disabled={cenarios.length <= 1}
+                            onClick={() => setRemoverAlvo(produto)}
+                            aria-label="Remover cenário da concorrência"
+                          >
+                            <X className="h-3.5 w-3.5" />
+                          </Button>
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent side="left">
+                        {cenarios.length <= 1
+                          ? "Mantenha ao menos um cenário no grupo."
+                          : "Remover cenário da concorrência"}
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                  <div className="space-y-1 pr-7">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
                         {produto.codigo || "—"}
@@ -175,6 +230,7 @@ export default function CenariosComparativo() {
                       <p className="text-xs text-muted-foreground">{produto.cenario_label}</p>
                     )}
                   </div>
+
 
                   <div className="grid grid-cols-2 gap-2">
                     <div className="rounded-md border bg-muted/30 p-2">
@@ -284,6 +340,33 @@ export default function CenariosComparativo() {
         defaultGrupoId={grupoId}
         onSuccess={() => refetch()}
       />
+
+      <AlertDialog open={!!removerAlvo} onOpenChange={(o) => { if (!o && !removendo) setRemoverAlvo(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remover cenário da concorrência</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-2">
+                <div>
+                  <span className="font-medium text-foreground">{removerAlvo?.cenario_label || removerAlvo?.nome}</span>
+                  {removerAlvo?.codigo && (
+                    <span className="text-muted-foreground"> · {removerAlvo.codigo}</span>
+                  )}
+                </div>
+                <p>
+                  O cenário será arquivado e poderá ser restaurado em <strong>Cenários arquivados</strong>.
+                </p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={removendo}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={(e) => { e.preventDefault(); handleRemoverCenario(); }} disabled={removendo}>
+              {removendo ? "Removendo…" : "Remover"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </DashboardLayout>
   );
 }
