@@ -146,11 +146,13 @@ function VisibilidadeBadge({ value }: { value: string | null }) {
 }
 
 function Row({
-  t, onToggle, onSelect, projetoPessoalId,
+  t, onToggle, onSelect, onDelete, currentUserId, projetoPessoalId,
 }: {
   t: MinaTarefa;
   onToggle: (id: string, done: boolean) => void;
   onSelect: (t: MinaTarefa) => void;
+  onDelete: (t: MinaTarefa) => void;
+  currentUserId: string | null;
   projetoPessoalId: string | null;
 }) {
   const done = t.status === "concluida";
@@ -158,12 +160,13 @@ function Row({
   const now = startOfDay(new Date());
   const atrasada = !done && prazo && isBefore(startOfDay(prazo), now);
   const isPessoal = !!projetoPessoalId && t.projeto_id === projetoPessoalId;
+  const podeExcluir = !!currentUserId && t.criador_id === currentUserId;
 
   return (
     <div
       className={cn(
         "group grid items-center gap-3 px-4 py-2 border-b border-border/30 hover:bg-muted/30 cursor-pointer transition-colors",
-        "grid-cols-[24px_minmax(0,1fr)_120px_90px_110px_160px_120px]",
+        "grid-cols-[24px_minmax(0,1fr)_120px_90px_110px_160px_120px_28px]",
       )}
       onClick={() => onSelect(t)}
     >
@@ -204,6 +207,23 @@ function Row({
         />
       </div>
       <VisibilidadeBadge value={t.visibilidade} />
+      <div className="flex items-center justify-end" onClick={(e) => e.stopPropagation()}>
+        {podeExcluir ? (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                type="button"
+                onClick={() => onDelete(t)}
+                className="h-6 w-6 rounded-md inline-flex items-center justify-center text-muted-foreground opacity-0 group-hover:opacity-100 hover:text-destructive hover:bg-destructive/10 transition-all"
+                aria-label="Excluir tarefa"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent>Mover para a lixeira (30 dias)</TooltipContent>
+          </Tooltip>
+        ) : null}
+      </div>
     </div>
   );
 }
