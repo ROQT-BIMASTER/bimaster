@@ -366,6 +366,7 @@ export function ProjetoListView({ projetoId, darkBg = false, filters = EMPTY_FIL
         onUpdate={handleUpdateTarefa}
         onToggle={handleToggle}
         onAddSubtarefa={handleAddSubtarefa}
+        onDelete={(id) => softDeleteTarefa.mutate(id)}
         secoes={secoes}
         onMoveTarefa={handleMoveTarefa}
         highlightCommentId={selectedTarefaId === initialTarefaId ? highlightCommentId : null}
