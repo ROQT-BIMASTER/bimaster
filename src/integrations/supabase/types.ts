@@ -51592,6 +51592,10 @@ export type Database = {
         Args: { p_item_id: string; p_motivo?: string }
         Returns: undefined
       }
+      rpc_soft_delete_projeto: {
+        Args: { p_projeto_id: string }
+        Returns: undefined
+      }
       rpc_solicitar_revisao_item: {
         Args: { p_comentario?: string; p_item_id: string }
         Returns: undefined
@@ -51860,6 +51864,10 @@ export type Database = {
       }
       user_can_approve_price_table: {
         Args: { _tabela_id: string; _user_id: string }
+        Returns: boolean
+      }
+      user_can_manage_all_projetos: {
+        Args: { _user_id: string }
         Returns: boolean
       }
       user_can_manage_project_members: {
