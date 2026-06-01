@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
   CheckCircle2, ChevronDown, ChevronRight, ListChecks, LayoutGrid,
-  Calendar as CalendarIcon, Plus, Search, Lock, Users as UsersIcon, Flag,
+  Calendar as CalendarIcon, Plus, Search, Lock, Users as UsersIcon, Flag, Trash2,
 } from "lucide-react";
 import { format, isToday, isBefore, startOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -146,11 +146,13 @@ function VisibilidadeBadge({ value }: { value: string | null }) {
 }
 
 function Row({
-  t, onToggle, onSelect, projetoPessoalId,
+  t, onToggle, onSelect, onDelete, currentUserId, projetoPessoalId,
 }: {
   t: MinaTarefa;
   onToggle: (id: string, done: boolean) => void;
   onSelect: (t: MinaTarefa) => void;
+  onDelete: (t: MinaTarefa) => void;
+  currentUserId: string | null;
   projetoPessoalId: string | null;
 }) {
   const done = t.status === "concluida";
@@ -158,12 +160,13 @@ function Row({
   const now = startOfDay(new Date());
   const atrasada = !done && prazo && isBefore(startOfDay(prazo), now);
   const isPessoal = !!projetoPessoalId && t.projeto_id === projetoPessoalId;
+  const podeExcluir = !!currentUserId && t.criador_id === currentUserId;
 
   return (
     <div
       className={cn(
         "group grid items-center gap-3 px-4 py-2 border-b border-border/30 hover:bg-muted/30 cursor-pointer transition-colors",
-        "grid-cols-[24px_minmax(0,1fr)_120px_90px_110px_160px_120px]",
+        "grid-cols-[24px_minmax(0,1fr)_120px_90px_110px_160px_120px_28px]",
       )}
       onClick={() => onSelect(t)}
     >
@@ -204,6 +207,23 @@ function Row({
         />
       </div>
       <VisibilidadeBadge value={t.visibilidade} />
+      <div className="flex items-center justify-end" onClick={(e) => e.stopPropagation()}>
+        {podeExcluir ? (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                type="button"
+                onClick={() => onDelete(t)}
+                className="h-6 w-6 rounded-md inline-flex items-center justify-center text-muted-foreground opacity-0 group-hover:opacity-100 hover:text-destructive hover:bg-destructive/10 transition-all"
+                aria-label="Excluir tarefa"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent>Mover para a lixeira (30 dias)</TooltipContent>
+          </Tooltip>
+        ) : null}
+      </div>
     </div>
   );
 }
@@ -211,11 +231,13 @@ function Row({
 /* -------------------------------- Seção UI ------------------------------- */
 
 function Section({
-  group, onToggle, onSelect, projetoPessoalId,
+  group, onToggle, onSelect, onDelete, currentUserId, projetoPessoalId,
 }: {
   group: SimpleGroup;
   onToggle: (id: string, done: boolean) => void;
   onSelect: (t: MinaTarefa) => void;
+  onDelete: (t: MinaTarefa) => void;
+  currentUserId: string | null;
   projetoPessoalId: string | null;
 }) {
   const [collapsed, setCollapsed] = useState(!!group.defaultCollapsed);
@@ -236,7 +258,15 @@ function Section({
       {!collapsed && (
         <>
           {group.items.map((t) => (
-            <Row key={t.id} t={t} onToggle={onToggle} onSelect={onSelect} projetoPessoalId={projetoPessoalId} />
+            <Row
+              key={t.id}
+              t={t}
+              onToggle={onToggle}
+              onSelect={onSelect}
+              onDelete={onDelete}
+              currentUserId={currentUserId}
+              projetoPessoalId={projetoPessoalId}
+            />
           ))}
           <button
             className="w-full text-left px-4 py-1.5 text-xs text-muted-foreground hover:bg-muted/20 border-b border-border/30"
@@ -408,6 +438,31 @@ export function MinhasTarefasSimples() {
     queryClient.invalidateQueries({ queryKey: ["minhas-tarefas"] });
     toast.success(done ? "Tarefa concluída" : "Tarefa reaberta");
   }, [queryClient]);
+
+  /* ----------------------------- Soft delete ----------------------------- */
+  const handleDeleteTarefa = useCallback(async (t: MinaTarefa) => {
+    if (!user?.id || t.criador_id !== user.id) {
+      toast.error("Apenas o criador da tarefa pode excluí-la.");
+      return;
+    }
+    const { confirmExclusaoTarefa } = await import("@/lib/projetos/confirmConclusao");
+    const ok = await confirmExclusaoTarefa({
+      titulo: t.titulo,
+      isSubtarefa: !!t.parent_tarefa_id,
+    });
+    if (!ok) return;
+    const { error } = await supabase
+      .from("projeto_tarefas")
+      .update({ excluida_em: new Date().toISOString(), excluida_por: user.id } as any)
+      .eq("id", t.id);
+    if (error) {
+      toast.error("Não foi possível excluir a tarefa: " + error.message);
+      return;
+    }
+    toast.success("Tarefa movida para a lixeira. Permanecerá por 30 dias.");
+    queryClient.invalidateQueries({ queryKey: ["minhas-tarefas"] });
+    queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2"] });
+  }, [queryClient, user?.id]);
 
   /* ----------------------------- Detalhe sheet ---------------------------- */
   const handleSelect = useCallback((t: MinaTarefa) => {
@@ -678,7 +733,7 @@ export function MinhasTarefasSimples() {
                 <div
                   className={cn(
                     "grid items-center gap-3 px-4 py-2 text-[11px] uppercase tracking-wider text-muted-foreground border-b border-border/40 bg-background",
-                    "grid-cols-[24px_minmax(0,1fr)_120px_90px_110px_160px_120px]",
+                    "grid-cols-[24px_minmax(0,1fr)_120px_90px_110px_160px_120px_28px]",
                   )}
                 >
                   <span />
@@ -688,9 +743,18 @@ export function MinhasTarefasSimples() {
                   <span>Colaboradores</span>
                   <span>Projeto</span>
                   <span>Visibilidade</span>
+                  <span />
                 </div>
                 {groups.map((g) => (
-                  <Section key={g.key} group={g} onToggle={handleToggle} onSelect={handleSelect} projetoPessoalId={projetoPessoalId} />
+                  <Section
+                    key={g.key}
+                    group={g}
+                    onToggle={handleToggle}
+                    onSelect={handleSelect}
+                    onDelete={handleDeleteTarefa}
+                    currentUserId={user?.id ?? null}
+                    projetoPessoalId={projetoPessoalId}
+                  />
                 ))}
               </>
             )}
