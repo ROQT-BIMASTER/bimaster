@@ -335,12 +335,34 @@ Deno.serve(secureHandler(
     const SLA_TEXTO = "Prazo de retorno: até 24 horas úteis.";
 
     const history = await loadHistory(sb, ownerId);
+
+    // Detecta o que já foi dito antes no MESMO ticket, para evitar repetição.
+    const { data: msgsTicket } = await sb
+      .from("mensagens")
+      .select("remetente_id, conteudo")
+      .eq("ticket_id", ticket.id)
+      .eq("remetente_id", BOT_USER_ID);
+    const conteudosBot = (msgsTicket ?? []).map((m) => String(m.conteudo ?? ""));
+    const protocoloJaInformado = conteudosBot.some((c) => c.includes(protocolo));
+    const lgpdJaInformado = conteudosBot.some((c) => /revisad[ao] para melhoria|melhoria do atendimento/i.test(c));
+    const turnoDoBot = conteudosBot.length + 1;
+    const ultimaRespostaBot = conteudosBot.length ? conteudosBot[conteudosBot.length - 1] : "";
+
+    const contextoInteracao = [
+      `CONTEXTO DESTA INTERAÇÃO`,
+      `PROTOCOLO: ${protocolo}`,
+      `SLA: ${SLA_TEXTO}`,
+      `Esta é a ${turnoDoBot}ª resposta do atendimento neste ticket.`,
+      `Protocolo já foi informado ao usuário neste ticket: ${protocoloJaInformado ? "sim — NÃO repita protocolo nem prazo de 24h, salvo se ele perguntar" : "não — informe naturalmente quando registrar/escalar"}.`,
+      `Aviso LGPD já enviado neste ticket: ${lgpdJaInformado ? "sim — não repita" : "não — pode citar de forma curta na sua resposta"}.`,
+      ultimaRespostaBot
+        ? `Sua última resposta neste ticket foi: """${ultimaRespostaBot.slice(0, 400)}""". NÃO reuse as mesmas frases de abertura, agradecimento ou fechamento. Varie.`
+        : `Esta é sua primeira resposta neste ticket.`,
+    ].join("\n");
+
     const messages: any[] = [
       { role: "system", content: SYSTEM_PROMPT },
-      {
-        role: "system",
-        content: `CONTEXTO DESTA INTERAÇÃO\nPROTOCOLO: ${protocolo}\nSLA: ${SLA_TEXTO}\nUse esse protocolo literal quando precisar informá-lo ao usuário.`,
-      },
+      { role: "system", content: contextoInteracao },
       ...history,
     ];
 
@@ -380,34 +402,40 @@ Deno.serve(secureHandler(
       }
     }
 
-    // Fallback: nunca deixa o usuário sem resposta.
+    // Pool de variações para casos de fallback (evita texto fixo idêntico).
+    const aberturasFallback = [
+      "Recebi sua mensagem e já estou olhando aqui.",
+      "Anotado. Vou verificar o que aconteceu e te retorno.",
+      "Obrigada pelo aviso, já estou acompanhando esse caso.",
+    ];
+    const aberturaFallback = aberturasFallback[Math.floor(Math.random() * aberturasFallback.length)];
+
     if (!finalText) {
-      finalText = [
-        "Obrigada pelo contato. Recebi sua mensagem e já estou verificando aqui.",
-        `Sua demanda foi direcionada à nossa equipe técnica. Protocolo: ${protocolo}.`,
-        SLA_TEXTO,
-        "Posso ajudar com mais alguma coisa?",
-      ].join(" ");
+      // Sem texto da IA: monta resposta curta, só inclui protocolo/SLA se ainda não foram informados.
+      const partes = [aberturaFallback];
+      if (!protocoloJaInformado) {
+        partes.push(`Encaminhei para a equipe técnica — protocolo ${protocolo}, retorno em até 24h úteis.`);
+      } else {
+        partes.push("Encaminhei para a equipe técnica acompanhar.");
+      }
+      finalText = partes.join(" ");
     } else {
-      // Garantia: se a IA registrou tarefa/escalou e esqueceu de citar protocolo/SLA, anexa.
-      const faltaProtocolo = !finalText.includes(protocolo);
-      const faltaSla = !/24\s*h(oras)?/i.test(finalText);
-      if (usouRegistroOuEscalonamento && (faltaProtocolo || faltaSla)) {
-        finalText += `\n\nSua demanda foi direcionada à nossa equipe técnica. Protocolo: ${protocolo}. ${SLA_TEXTO}`;
+      // Se IA registrou/escalou agora e esqueceu de citar protocolo, anexa UMA vez (só se ainda não foi informado antes).
+      if (usouRegistroOuEscalonamento && !protocoloJaInformado && !finalText.includes(protocolo)) {
+        finalText += `\n\nProtocolo ${protocolo} — retorno em até 24h úteis.`;
       }
-      // Garantia: sempre encerrar perguntando se precisa de mais algo.
-      if (!/mais alguma coisa|mais algum ponto|posso ajudar com mais/i.test(finalText)) {
-        finalText += "\n\nPosso ajudar com mais alguma coisa?";
-      }
+      // aiFalhou no meio do loop com texto parcial: prioriza fallback humano.
       if (aiFalhou) {
-        finalText = [
-          "Obrigada pelo contato. Recebi sua mensagem e já estou verificando aqui.",
-          `Sua demanda foi direcionada à nossa equipe técnica. Protocolo: ${protocolo}.`,
-          SLA_TEXTO,
-          "Posso ajudar com mais alguma coisa?",
-        ].join(" ");
+        const partes = [aberturaFallback];
+        if (!protocoloJaInformado) {
+          partes.push(`Encaminhei para a equipe técnica — protocolo ${protocolo}, retorno em até 24h úteis.`);
+        } else {
+          partes.push("Encaminhei para a equipe técnica acompanhar.");
+        }
+        finalText = partes.join(" ");
       }
     }
+
 
 
     const prazoEm = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
