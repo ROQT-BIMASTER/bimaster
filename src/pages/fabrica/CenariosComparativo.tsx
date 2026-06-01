@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Button } from "@/components/ui/button";
@@ -8,11 +8,14 @@ import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useGrupoCenario, type CenarioProduto } from "@/hooks/useGrupoCenarios";
-import { ArrowLeft, Trophy, Layers, TrendingDown, TrendingUp, Plus, Sparkles, BarChart3 } from "lucide-react";
+import { ArrowLeft, Trophy, Layers, TrendingDown, TrendingUp, Plus, Sparkles, BarChart3, X } from "lucide-react";
 import { formatCurrency } from "@/lib/formatters";
 import { PromoverCenarioDialog } from "@/components/fabrica/cenarios/PromoverCenarioDialog";
 import { NovoCenarioDialog } from "@/components/fabrica/cenarios/NovoCenarioDialog";
 import { AnaliseInsumosComparativa } from "@/components/fabrica/cenarios/AnaliseInsumosComparativa";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { toast } from "sonner";
 
 interface CustoItem {
   produto_id: string;
