@@ -267,7 +267,7 @@ export function HojeTab({ onGoToTarefas }: Props) {
                   </button>
                   <div className="space-y-2">
                     {atrasadas.slice(0, MAX_ITEMS).map(t => (
-                      <TarefaRow key={t.id} tarefa={t} onToggle={handleToggle} isCompact={isCompact} />
+                      <TarefaRow key={t.id} tarefa={t} onToggle={handleToggle} onDelete={handleDeleteTarefa} currentUserId={currentUserId} isCompact={isCompact} />
                     ))}
                   </div>
                 </div>
@@ -283,7 +283,7 @@ export function HojeTab({ onGoToTarefas }: Props) {
                   </button>
                   <div className="space-y-2">
                     {hoje.slice(0, MAX_ITEMS - atrasadas.length).map(t => (
-                      <TarefaRow key={t.id} tarefa={t} onToggle={handleToggle} isCompact={isCompact} />
+                      <TarefaRow key={t.id} tarefa={t} onToggle={handleToggle} onDelete={handleDeleteTarefa} currentUserId={currentUserId} isCompact={isCompact} />
                     ))}
                   </div>
                 </div>
@@ -300,7 +300,7 @@ export function HojeTab({ onGoToTarefas }: Props) {
                   </button>
                   <div className="space-y-2">
                     {semData.slice(0, MAX_ITEMS - atrasadas.length - hoje.length).map(t => (
-                      <TarefaRow key={t.id} tarefa={t} onToggle={handleToggle} isCompact={isCompact} />
+                      <TarefaRow key={t.id} tarefa={t} onToggle={handleToggle} onDelete={handleDeleteTarefa} currentUserId={currentUserId} isCompact={isCompact} />
                     ))}
                   </div>
                 </div>
