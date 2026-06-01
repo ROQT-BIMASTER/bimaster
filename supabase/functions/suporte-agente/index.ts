@@ -30,50 +30,47 @@ const SYSTEM_PROMPT = `Você é a Equipe Ruby Rose — time de Customer Success 
 
 IDENTIDADE
 - Apresente-se como "Equipe Ruby Rose". Nunca diga que é IA, bot ou robô.
-- Se perguntarem diretamente, responda: "Sou parte do time de Customer Success com apoio de automação para agilizar seu atendimento."
+- Se perguntarem diretamente: "Sou parte do time de Customer Success com apoio de automação para agilizar seu atendimento."
 - Tom profissional, cordial, direto, em PT-BR. Sem emojis. Sem jargão técnico.
 
+NATURALIDADE (regra crítica — evitar repetição)
+- Trate como conversa real entre pessoas. Cada mensagem deve soar diferente da anterior.
+- NÃO repita literalmente saudações, agradecimentos, frases de fechamento ou perguntas usadas em turnos anteriores desta conversa. Releia o histórico antes de responder e varie a forma.
+- NÃO termine toda mensagem oferecendo ajuda extra. Só ofereça quando: (a) você acabou de resolver/entregar algo concreto, (b) o usuário parece estar finalizando, ou (c) a conversa está parada e precisa destravar. Mesmo assim, varie a forma e evite o clichê "Posso ajudar com mais alguma coisa?".
+- Quando estiver pedindo informação ou aguardando o usuário, basta fazer a pergunta — não anexe fecho.
+- Evite começar mensagens sempre com "Entendi" / "Obrigada". Alterne ou suprima quando não agregar.
+
 TÉCNICAS DE ATENDIMENTO (HEARD + 5 Whys)
-1. HEAR: confirme o que entendeu em 1 frase.
-2. EMPATHIZE: reconheça o impacto.
+1. HEAR: confirme o entendimento em 1 frase, sem repetir o que já foi confirmado antes.
+2. EMPATHIZE: reconheça impacto quando relevante (não em todo turno).
 3. APOLOGIZE quando houve falha do sistema.
 4. RESOLVE: dê o próximo passo claro.
 5. DIAGNOSE: 1 pergunta por turno (nunca questionário). Use os 5 porquês para vagueza.
 
 CLASSIFICAÇÃO OBRIGATÓRIA (TABULAÇÃO)
-- LOGO no primeiro turno em que tiver entendido o problema (1º ou 2º turno no máximo),
-  chame a tool definir_titulo_categoria informando:
+- LOGO no primeiro turno em que entender o problema (1º ou 2º turno no máximo), chame a tool definir_titulo_categoria:
     titulo: frase curta (máx 80 chars) descrevendo o problema do ponto de vista do usuário
     categoria: uma de [${CATEGORIAS.join(", ")}]
     prioridade: baixa | media | alta | critica
-- Sempre que entender melhor o caso, pode chamar de novo para refinar título/categoria.
-- Nunca deixe um ticket sem título e sem categoria.
+- Refine depois se entender melhor. Nunca deixe ticket sem título e categoria.
 
-REGRAS DE RESPOSTA (obrigatórias)
+REGRAS DE RESPOSTA
 - SEMPRE responda. Nunca deixe o usuário sem resposta.
-- Faça UMA pergunta por mensagem. Resposta curta (máx. 5 linhas).
-- Toda mensagem deve terminar perguntando se o usuário precisa de mais alguma coisa
-  (variações: "Posso ajudar com mais alguma coisa?", "Tem mais algum ponto que possamos resolver agora?").
-- Peça print apenas quando agregar (erro visual, layout quebrado, mensagem específica).
-- Nunca peça senha, token, CPF completo.
+- Uma pergunta por mensagem. Resposta curta (máx. 5 linhas).
+- Peça print apenas quando agregar. Nunca peça senha, token, CPF completo.
 
 ESCALONAMENTO E REGISTRO
-- Se sentimento negativo OU usuário pede humano OU 2 turnos sem evoluir: use tool escalar_para_admin.
-- Quando o problema estiver claro, use criar_tarefa_suporte para registrar (informe também a categoria).
-- Quando a tarefa for criada OU o ticket escalado, na MESMA resposta:
-  1. Agradeça o contato.
-  2. Informe: "Sua demanda foi direcionada à nossa equipe técnica."
-  3. Informe o PROTOCOLO exatamente como recebido na mensagem do sistema (campo PROTOCOLO).
-  4. Informe o prazo: "Prazo de retorno: até 24 horas úteis."
-  5. Termine perguntando: "Posso ajudar com mais alguma coisa?"
-- Quando o usuário sinalizar que está resolvido OU se despedir: use marcar_ticket_resolvido e finalize
-  agradecendo o contato + reforce o PROTOCOLO + prazo de 24h úteis caso precise retomar.
+- Se sentimento negativo, usuário pede humano, ou 2 turnos sem evoluir: use escalar_para_admin.
+- Quando o problema estiver claro, use criar_tarefa_suporte (informe também a categoria).
+- Ao registrar/escalar pela primeira vez no ticket, informe naturalmente, em uma frase curta e do seu jeito: que a equipe técnica vai assumir, o PROTOCOLO (campo PROTOCOLO do contexto) e o prazo de até 24 horas úteis. Não use bloco padronizado.
+- Em mensagens posteriores do MESMO ticket, NÃO repita protocolo nem prazo, salvo se o usuário perguntar.
+- Quando o usuário sinalizar que resolveu ou se despedir: use marcar_ticket_resolvido e finalize de forma curta e humana. Só cite o protocolo se ainda não tiver sido informado.
 
 CONHECIMENTO
-- Se a dúvida for sobre uso, busque na base de conhecimento antes de responder.
+- Se for dúvida de uso, busque na base de conhecimento antes de responder.
 
 PRIVACIDADE (LGPD)
-- Na primeira mensagem do dia, informe: "Esta conversa pode ser revisada para melhoria do atendimento."`;
+- Mencione UMA única vez por ticket, na primeira resposta, de forma natural e curta, que a conversa pode ser revisada para melhoria do atendimento. Nunca repita esse aviso depois.`;
 
 
 const TOOLS = [
@@ -338,12 +335,34 @@ Deno.serve(secureHandler(
     const SLA_TEXTO = "Prazo de retorno: até 24 horas úteis.";
 
     const history = await loadHistory(sb, ownerId);
+
+    // Detecta o que já foi dito antes no MESMO ticket, para evitar repetição.
+    const { data: msgsTicket } = await sb
+      .from("mensagens")
+      .select("remetente_id, conteudo")
+      .eq("ticket_id", ticket.id)
+      .eq("remetente_id", BOT_USER_ID);
+    const conteudosBot = (msgsTicket ?? []).map((m) => String(m.conteudo ?? ""));
+    const protocoloJaInformado = conteudosBot.some((c) => c.includes(protocolo));
+    const lgpdJaInformado = conteudosBot.some((c) => /revisad[ao] para melhoria|melhoria do atendimento/i.test(c));
+    const turnoDoBot = conteudosBot.length + 1;
+    const ultimaRespostaBot = conteudosBot.length ? conteudosBot[conteudosBot.length - 1] : "";
+
+    const contextoInteracao = [
+      `CONTEXTO DESTA INTERAÇÃO`,
+      `PROTOCOLO: ${protocolo}`,
+      `SLA: ${SLA_TEXTO}`,
+      `Esta é a ${turnoDoBot}ª resposta do atendimento neste ticket.`,
+      `Protocolo já foi informado ao usuário neste ticket: ${protocoloJaInformado ? "sim — NÃO repita protocolo nem prazo de 24h, salvo se ele perguntar" : "não — informe naturalmente quando registrar/escalar"}.`,
+      `Aviso LGPD já enviado neste ticket: ${lgpdJaInformado ? "sim — não repita" : "não — pode citar de forma curta na sua resposta"}.`,
+      ultimaRespostaBot
+        ? `Sua última resposta neste ticket foi: """${ultimaRespostaBot.slice(0, 400)}""". NÃO reuse as mesmas frases de abertura, agradecimento ou fechamento. Varie.`
+        : `Esta é sua primeira resposta neste ticket.`,
+    ].join("\n");
+
     const messages: any[] = [
       { role: "system", content: SYSTEM_PROMPT },
-      {
-        role: "system",
-        content: `CONTEXTO DESTA INTERAÇÃO\nPROTOCOLO: ${protocolo}\nSLA: ${SLA_TEXTO}\nUse esse protocolo literal quando precisar informá-lo ao usuário.`,
-      },
+      { role: "system", content: contextoInteracao },
       ...history,
     ];
 
@@ -383,34 +402,40 @@ Deno.serve(secureHandler(
       }
     }
 
-    // Fallback: nunca deixa o usuário sem resposta.
+    // Pool de variações para casos de fallback (evita texto fixo idêntico).
+    const aberturasFallback = [
+      "Recebi sua mensagem e já estou olhando aqui.",
+      "Anotado. Vou verificar o que aconteceu e te retorno.",
+      "Obrigada pelo aviso, já estou acompanhando esse caso.",
+    ];
+    const aberturaFallback = aberturasFallback[Math.floor(Math.random() * aberturasFallback.length)];
+
     if (!finalText) {
-      finalText = [
-        "Obrigada pelo contato. Recebi sua mensagem e já estou verificando aqui.",
-        `Sua demanda foi direcionada à nossa equipe técnica. Protocolo: ${protocolo}.`,
-        SLA_TEXTO,
-        "Posso ajudar com mais alguma coisa?",
-      ].join(" ");
+      // Sem texto da IA: monta resposta curta, só inclui protocolo/SLA se ainda não foram informados.
+      const partes = [aberturaFallback];
+      if (!protocoloJaInformado) {
+        partes.push(`Encaminhei para a equipe técnica — protocolo ${protocolo}, retorno em até 24h úteis.`);
+      } else {
+        partes.push("Encaminhei para a equipe técnica acompanhar.");
+      }
+      finalText = partes.join(" ");
     } else {
-      // Garantia: se a IA registrou tarefa/escalou e esqueceu de citar protocolo/SLA, anexa.
-      const faltaProtocolo = !finalText.includes(protocolo);
-      const faltaSla = !/24\s*h(oras)?/i.test(finalText);
-      if (usouRegistroOuEscalonamento && (faltaProtocolo || faltaSla)) {
-        finalText += `\n\nSua demanda foi direcionada à nossa equipe técnica. Protocolo: ${protocolo}. ${SLA_TEXTO}`;
+      // Se IA registrou/escalou agora e esqueceu de citar protocolo, anexa UMA vez (só se ainda não foi informado antes).
+      if (usouRegistroOuEscalonamento && !protocoloJaInformado && !finalText.includes(protocolo)) {
+        finalText += `\n\nProtocolo ${protocolo} — retorno em até 24h úteis.`;
       }
-      // Garantia: sempre encerrar perguntando se precisa de mais algo.
-      if (!/mais alguma coisa|mais algum ponto|posso ajudar com mais/i.test(finalText)) {
-        finalText += "\n\nPosso ajudar com mais alguma coisa?";
-      }
+      // aiFalhou no meio do loop com texto parcial: prioriza fallback humano.
       if (aiFalhou) {
-        finalText = [
-          "Obrigada pelo contato. Recebi sua mensagem e já estou verificando aqui.",
-          `Sua demanda foi direcionada à nossa equipe técnica. Protocolo: ${protocolo}.`,
-          SLA_TEXTO,
-          "Posso ajudar com mais alguma coisa?",
-        ].join(" ");
+        const partes = [aberturaFallback];
+        if (!protocoloJaInformado) {
+          partes.push(`Encaminhei para a equipe técnica — protocolo ${protocolo}, retorno em até 24h úteis.`);
+        } else {
+          partes.push("Encaminhei para a equipe técnica acompanhar.");
+        }
+        finalText = partes.join(" ");
       }
     }
+
 
 
     const prazoEm = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
