@@ -1,12 +1,14 @@
 import { useEffect, useState } from "react";
 import { signedAnexoUrl, formatBytes } from "./utils";
-import { FileText, Download, Loader2, X } from "lucide-react";
+import { FileText, Download, Loader2, X, Archive } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import type { ChatAnexo } from "@/hooks/chat/types";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { ArquivarAnexoChatDialog } from "./ArquivarAnexoChatDialog";
+
 
 export function AnexoView({ anexo, mine }: { anexo: ChatAnexo; mine: boolean }) {
   const [url, setUrl] = useState<string | null>(null);
