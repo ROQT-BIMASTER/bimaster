@@ -179,6 +179,32 @@ export function CentralHeader({
 
           <ProjetoDensityToggle />
 
+          <TooltipProvider delayDuration={200}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="relative gap-1.5"
+                  onClick={() => setLixeiraOpen(true)}
+                  aria-label="Lixeira pessoal"
+                >
+                  <Trash2 className="h-4 w-4" />
+                  <span className="hidden md:inline">Lixeira</span>
+                  {lixeiraCount > 0 && (
+                    <Badge variant="secondary" className="text-[10px] h-4 px-1 ml-0.5">
+                      {lixeiraCount}
+                    </Badge>
+                  )}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent className="max-w-xs">
+                Tarefas excluídas por você nos últimos 30 dias. Restaure dentro do prazo.
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+
+
           <CentralSettingsMenu
             bgColor={bgColor}
             onBgColorChange={onBgColorChange}
