@@ -51441,6 +51441,7 @@ export type Database = {
         Args: { p_sugestao_id: string; p_vencedor_id: string }
         Returns: undefined
       }
+      rpc_purge_projeto_tarefas_expiradas: { Args: never; Returns: number }
       rpc_purge_projetos_expirados: { Args: never; Returns: number }
       rpc_reabrir_cenario: { Args: { p_produto_id: string }; Returns: string }
       rpc_reabrir_disputa_sugestao: {
