@@ -32,7 +32,7 @@ import { ptBR } from "date-fns/locale";
 import {
   CheckCircle2, Circle, CalendarIcon, Paperclip, MessageSquare,
   Send, Upload, FileText, Image, File, Trash2, Download,
-  Package, FolderOpen, MessageCircle, Search, X, ArrowRightLeft, Plus, ShieldCheck, ChevronRight, ChevronDown, Clock, Sparkles, Loader2, Target, Maximize2, FileSpreadsheet, RotateCcw, Ship, Hash, Copy, Link2
+  Package, FolderOpen, MessageCircle, Search, X, ArrowRightLeft, Plus, ShieldCheck, ChevronLeft, ChevronRight, ChevronDown, Clock, Sparkles, Loader2, Target, Maximize2, FileSpreadsheet, RotateCcw, Ship, Hash, Copy, Link2
 } from "lucide-react";
 import { TarefaFocusMode } from "./TarefaFocusMode";
 import { ProjetoAprovacaoWorkflow } from "./ProjetoAprovacaoWorkflow";
@@ -156,6 +156,22 @@ export function ProjetoTarefaDetalhe({
   const [produtoResults, setProdutoResults] = useState<ProdutoAcabado[]>([]);
   const [showProdutoSearch, setShowProdutoSearch] = useState(false);
   const [selectedSubtarefaId, setSelectedSubtarefaId] = useState<string | null>(null);
+
+  // Quando esta tarefa é uma subtarefa, busca título da tarefa pai para o botão "Voltar".
+  const parentTarefaId = (tarefa as any)?.parent_tarefa_id as string | null | undefined;
+  const { data: parentTarefaTitulo } = useQuery({
+    queryKey: ["parent-tarefa-titulo", parentTarefaId],
+    enabled: !!parentTarefaId,
+    staleTime: 5 * 60 * 1000,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("projeto_tarefas")
+        .select("titulo")
+        .eq("id", parentTarefaId!)
+        .maybeSingle();
+      return (data?.titulo as string | undefined) ?? null;
+    },
+  });
   const [editingSubtarefaId, setEditingSubtarefaId] = useState<string | null>(null);
   const [editingSubtarefaTitulo, setEditingSubtarefaTitulo] = useState("");
   // Derivado da lista live de subtarefas para refletir optimistic updates /
@@ -454,6 +470,24 @@ export function ProjetoTarefaDetalhe({
 
           {/* Top action bar — Asana-style flat header */}
           <div className="px-5 py-3 border-b border-border/60 flex items-center gap-2">
+            {(tarefa as any).parent_tarefa_id && (
+              <>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="gap-1.5 text-xs rounded-full h-8 px-2 -ml-1 text-muted-foreground hover:text-foreground"
+                  onClick={() => onOpenChange(false)}
+                  title={parentTarefaTitulo ? `Voltar para "${parentTarefaTitulo}"` : "Voltar para a tarefa"}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                  <span className="max-w-[220px] truncate">
+                    {parentTarefaTitulo || "Voltar à tarefa"}
+                  </span>
+                </Button>
+                <Separator orientation="vertical" className="h-5 mx-1" />
+                <Badge variant="outline" className="text-[10px] rounded-full px-2 py-0 h-5">Subtarefa</Badge>
+              </>
+            )}
             {/* Marcar como concluída - bloqueado durante validação pendente */}
             {isPendingValidation ? (
               <Badge className="text-[10px] bg-amber-500/20 text-amber-400 border-0 gap-1 rounded-full px-2.5 py-1">
