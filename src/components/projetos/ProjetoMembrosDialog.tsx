@@ -78,6 +78,9 @@ export function ProjetoMembrosDialog({ open, onOpenChange, projetoId, projetoTip
   } | null>(null);
   const [removeAttempt, setRemoveAttempt] = useState(0);
   const [liveMessage, setLiveMessage] = useState<string>("");
+  const [removeFocusIndex, setRemoveFocusIndex] = useState<number | null>(null);
+  const [restoreFocusAfterRemove, setRestoreFocusAfterRemove] = useState(false);
+  const membrosListRef = useRef<HTMLDivElement | null>(null);
   const removingOverlayRef = useRef<HTMLDivElement | null>(null);
 
   // Focus trap: ao iniciar remoção, joga o foco para o overlay (que está
@@ -88,6 +91,30 @@ export function ProjetoMembrosDialog({ open, onOpenChange, projetoId, projetoTip
       removingOverlayRef.current.focus();
     }
   }, [removingMembro]);
+
+  // Restaura foco após remoção bem-sucedida (o membro removido sai do DOM,
+  // então mira o item no mesmo índice ou o anterior; fallback: botão "Adicionar Membros").
+  useEffect(() => {
+    if (!restoreFocusAfterRemove) return;
+    if (removingMembro || removeMemberConfirm) return;
+    const id = requestAnimationFrame(() => {
+      const list = membrosListRef.current;
+      const buttons = list
+        ? Array.from(list.querySelectorAll<HTMLButtonElement>('[data-testid="member-remove-btn"]'))
+        : [];
+      let target: HTMLElement | null = null;
+      if (buttons.length > 0 && removeFocusIndex !== null) {
+        target = buttons[Math.min(removeFocusIndex, buttons.length - 1)] ?? buttons[0];
+      }
+      if (!target) {
+        target = document.querySelector<HTMLButtonElement>('[data-testid="adicionar-membros-btn"]');
+      }
+      target?.focus();
+      setRestoreFocusAfterRemove(false);
+      setRemoveFocusIndex(null);
+    });
+    return () => cancelAnimationFrame(id);
+  }, [restoreFocusAfterRemove, removingMembro, removeMemberConfirm, removeFocusIndex, membros]);
 
   // Defensive: reset body pointer-events if Radix leaves it locked after close.
   useEffect(() => {
@@ -381,6 +408,7 @@ export function ProjetoMembrosDialog({ open, onOpenChange, projetoId, projetoTip
                   variant="outline"
                   size="sm"
                   className="shrink-0 gap-1.5"
+                  data-testid="adicionar-membros-btn"
                   onClick={() => setShowTeamDialog(true)}
                 >
                   <Users className="h-4 w-4" />
@@ -424,7 +452,7 @@ export function ProjetoMembrosDialog({ open, onOpenChange, projetoId, projetoTip
           <Separator />
 
           <ScrollArea className="flex-1 max-h-[55vh] overflow-auto">
-            <div className="space-y-3 pr-3">
+            <div ref={membrosListRef} data-testid="membros-list" className="space-y-3 pr-3">
               {filteredMembros.map((membro) => {
                 const papel = membro.papel || "membro";
                 const isManager = ["coordenador", "gestor_produto"].includes(papel);
@@ -490,7 +518,17 @@ export function ProjetoMembrosDialog({ open, onOpenChange, projetoId, projetoTip
                                 variant="ghost"
                                 size="icon"
                                 className="h-7 w-7 text-destructive hover:text-destructive"
-                                onClick={() => offboardingEnabled ? setWizardMembro(membro) : setRemoveMemberConfirm({ id: membro.id, nome: membro.profile?.nome || "membro" })}
+                                data-testid="member-remove-btn"
+                                data-member-id={membro.id}
+                                onClick={() => {
+                                  if (offboardingEnabled) {
+                                    setWizardMembro(membro);
+                                  } else {
+                                    const idx = filteredMembros.findIndex((m) => m.id === membro.id);
+                                    setRemoveFocusIndex(idx);
+                                    setRemoveMemberConfirm({ id: membro.id, nome: membro.profile?.nome || "membro" });
+                                  }
+                                }}
                               >
                                 <Trash2 className="h-3.5 w-3.5" />
                               </Button>
@@ -649,6 +687,7 @@ export function ProjetoMembrosDialog({ open, onOpenChange, projetoId, projetoTip
                 setRemovingMembro(null);
                 setRemoveMemberConfirm(null);
                 setRemoveAttempt(0);
+                setRestoreFocusAfterRemove(true);
               } catch (err) {
                 const anyErr = err as any;
                 const message =
