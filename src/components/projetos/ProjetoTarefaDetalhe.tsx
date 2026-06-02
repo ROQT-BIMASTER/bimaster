@@ -1651,10 +1651,10 @@ export function ProjetoTarefaDetalhe({
       )}
 
       {/* Subtask Detail - recursive */}
-      {selectedSubtarefa && (
+      {selectedSubtarefaId && (
         <ProjetoTarefaDetalhe
           tarefa={selectedSubtarefa}
-          open={!!selectedSubtarefa}
+          open={!!selectedSubtarefaId}
           onOpenChange={(open) => { if (!open) setSelectedSubtarefaId(null); }}
           onUpdate={onUpdate}
           onToggle={onToggle}
