@@ -1,4 +1,4 @@
-import { ArrowLeft, Link2, MoreHorizontal, Download, Users, ListPlus } from "lucide-react";
+import { ArrowLeft, Link2, MoreHorizontal, Download, Users, ListPlus, ExternalLink, Loader2, Send } from "lucide-react";
 import { useState } from "react";
 import { BriefingMembrosDialog } from "./BriefingMembrosDialog";
 import { useNavigate } from "react-router-dom";
