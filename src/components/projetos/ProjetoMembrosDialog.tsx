@@ -267,6 +267,39 @@ export function ProjetoMembrosDialog({ open, onOpenChange, projetoId, projetoTip
           )}
 
           <TabsContent value="membros" className="flex-1 overflow-hidden flex flex-col gap-4 mt-3">
+          {recentlyAdded.length > 0 && (
+            <div className="flex items-start gap-2 rounded-md border border-emerald-500/30 bg-emerald-500/5 p-2.5 text-xs">
+              <CheckCircle2 className="h-4 w-4 text-emerald-600 mt-0.5 shrink-0" />
+              <div className="flex-1">
+                <p className="font-medium text-foreground">
+                  {recentlyAdded.length === 1 ? "Membro adicionado" : `${recentlyAdded.length} membros adicionados`}
+                </p>
+                <p className="text-muted-foreground truncate">{recentlyAdded.join(", ")}</p>
+              </div>
+              <button
+                onClick={() => setRecentlyAdded([])}
+                className="text-muted-foreground hover:text-foreground"
+                aria-label="Dispensar"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          )}
+          {recentlyRemoved && (
+            <div className="flex items-start gap-2 rounded-md border bg-muted/40 p-2.5 text-xs">
+              <UserMinus className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+              <div className="flex-1">
+                <p className="font-medium text-foreground">{recentlyRemoved} foi removido(a) do projeto.</p>
+              </div>
+              <button
+                onClick={() => setRecentlyRemoved(null)}
+                className="text-muted-foreground hover:text-foreground"
+                aria-label="Dispensar"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          )}
           {isCoordinator && (
             <div className="space-y-2">
               <div className="flex gap-2">
