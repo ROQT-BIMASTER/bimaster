@@ -256,6 +256,28 @@ export default function BriefingWorkspace() {
         jaEmAprovacao={briefing.status === "em_aprovacao"}
         onEnviarAprovacao={() => setAprovDialogOpen(true)}
         onCancelarAprovacao={cancelarAprovacao}
+        rrtaskEnviando={rrtaskEnviando}
+        onEnviarRRTask={async () => {
+          try {
+            await enviarParaRRTask(briefing.id);
+            await recarregar();
+          } catch {
+            /* toast já exibido no hook */
+          }
+        }}
+        onReenviarRRTask={async () => {
+          try {
+            await enviarParaRRTask(briefing.id, { force: true });
+            await recarregar();
+          } catch {
+            /* toast já exibido no hook */
+          }
+        }}
+        onAbrirRRTask={
+          briefing.rrtask_page_url
+            ? () => window.open(briefing.rrtask_page_url!, "_blank", "noopener,noreferrer")
+            : undefined
+        }
       />
 
       <div className="flex-1 grid grid-cols-1 lg:grid-cols-[2fr_3fr] overflow-hidden">
