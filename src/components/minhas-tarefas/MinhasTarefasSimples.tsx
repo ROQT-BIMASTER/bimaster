@@ -844,6 +844,7 @@ export function MinhasTarefasSimples() {
           secoes={bridgedSecoes}
           onMoveTarefa={handleBridgeMoveTarefa}
           projetoIdOverride={selectedProjetoId}
+          externalSaving={isBridgeSaving}
         />
       </div>
     </TooltipProvider>
