@@ -51689,6 +51689,10 @@ export type Database = {
           valor_12m: number
         }[]
       }
+      rpc_sync_conversa_vinculada_participantes: {
+        Args: { p_conversa_id: string }
+        Returns: undefined
+      }
       rpc_translation_cache_get_batch: {
         Args: { p_hashes: string[] }
         Returns: {

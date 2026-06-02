@@ -24,7 +24,13 @@ export function useTarefaMentionableUsers(tarefaId: string | null | undefined) {
   return useQuery({
     queryKey: ["tarefa-mentionable-users", tarefaId, user?.id],
     enabled: !!tarefaId && !!user,
-    staleTime: 60 * 1000,
+    // Alinhado com useProjetoMembros (30s). Combinado com a invalidação
+    // disparada por invalidateProjetoMembershipCaches (Realtime/BroadcastChannel
+    // em projeto_membros), garante que membro recém-adicionado apareça no @
+    // sem reload manual.
+    staleTime: 15 * 1000,
+    refetchOnWindowFocus: true,
+    refetchOnMount: "always",
     queryFn: async (): Promise<MentionableUser[]> => {
       const ids = new Set<string>();
       if (user?.id) ids.add(user.id);

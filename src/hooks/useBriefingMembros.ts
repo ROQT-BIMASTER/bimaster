@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -44,7 +45,35 @@ export function useBriefingMembros(briefingId: string | undefined) {
       })) as BriefingMembro[];
     },
     enabled: !!briefingId && !!user,
+    // Espelha useProjetoMembros: lista de membros precisa refletir adições
+    // feitas por outros usuários sem aguardar staleTime global (5min).
+    staleTime: 30 * 1000,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: true,
   });
+
+  // Realtime: invalida o cache quando alguém entra/sai do briefing em qualquer
+  // sessão (sem isso, o membro recém-adicionado por outro usuário só aparece
+  // no @-mention após F5 ou re-focus).
+  useEffect(() => {
+    if (!briefingId) return;
+    const channel = supabase
+      .channel(`briefing_membros:${briefingId}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "briefing_membros", filter: `briefing_id=eq.${briefingId}` },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ["briefing_membros", briefingId] });
+          // Conversa vinculada do chat v2 também depende de participantes;
+          // a trigger no banco já sincroniza, mas a UI precisa rebuscar.
+          queryClient.invalidateQueries({ queryKey: ["chat-mention-members"] });
+        },
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [briefingId, queryClient]);
 
   const currentUserPapel = membros.find((m) => m.user_id === user?.id)?.papel;
   const isCoordinator =
