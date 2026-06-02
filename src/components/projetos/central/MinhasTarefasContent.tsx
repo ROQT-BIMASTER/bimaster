@@ -1645,6 +1645,7 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
         secoes={bridgedSecoes}
         onMoveTarefa={handleBridgeMoveTarefa}
         projetoIdOverride={selectedProjetoId}
+        externalSaving={isBridgeSaving}
       />
     </div>
   );
