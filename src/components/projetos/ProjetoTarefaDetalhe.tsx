@@ -1654,9 +1654,9 @@ export function ProjetoTarefaDetalhe({
         />
       )}
       {/* Focus Mode */}
-      {focusMode && tarefa && (
+      {focusMode && focusTarefa && (
         <TarefaFocusMode
-          tarefa={tarefa}
+          tarefa={focusTarefa}
           open={focusMode}
           onOpenChange={(open) => { setFocusMode(open); if (!open) onOpenChange(true); }}
           onUpdate={onUpdate}
