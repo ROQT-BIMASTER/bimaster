@@ -29,6 +29,9 @@ export interface Briefing {
   template_id: string | null;
   projeto_id: string | null;
   tarefa_id: string | null;
+  rrtask_page_id: string | null;
+  rrtask_page_url: string | null;
+  rrtask_synced_at: string | null;
 }
 
 export interface TemplateSection {
