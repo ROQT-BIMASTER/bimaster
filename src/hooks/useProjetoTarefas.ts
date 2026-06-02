@@ -589,11 +589,12 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
     },
     onError: (err: Error, _vars, context) => {
       if (context?.previous) queryClient.setQueryData(["projeto-tarefas-v2", projetoId], context.previous);
+      queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2", projetoId] });
       if (err.message === "__CANCELLED__") return; // usuário cancelou ou foi p/ fluxo de evidência
       toast.error("Erro ao atualizar status: " + err.message);
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2", projetoId] });
+      queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2", projetoId], refetchType: "none" });
     },
   });
 
