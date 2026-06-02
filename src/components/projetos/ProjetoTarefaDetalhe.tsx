@@ -1374,7 +1374,7 @@ export function ProjetoTarefaDetalhe({
                     const renderSub = (st: typeof allSubs[number]) => {
                       const stEstagioInfo = ESTAGIO_OPTIONS.find(e => e.value === st.estagio);
                       return (
-                        <div key={st.id} className="group border-b border-border/40 last:border-b-0 py-2 hover:bg-muted/20 transition-colors space-y-2 -mx-2 px-2 rounded-sm">
+                        <div key={getSubRowKey(st)} className="group border-b border-border/40 last:border-b-0 py-2 hover:bg-muted/20 transition-colors space-y-2 -mx-2 px-2 rounded-sm">
                           {/* Row 1: checkbox + title + open button */}
                           <div className="flex items-center gap-2">
                             <button onClick={() => onToggle(st)} className={cn(
