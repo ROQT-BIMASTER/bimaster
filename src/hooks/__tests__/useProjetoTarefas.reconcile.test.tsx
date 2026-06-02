@@ -242,7 +242,7 @@ describe("useProjetoTarefas — reconciliação banco ↔ cache", () => {
 
     // 2. Avança o debounce (600 ms) e deixa o refetch ativo concluir.
     await act(async () => {
-      await vi.advanceTimersByTimeAsync(700);
+      await new Promise((r) => setTimeout(r, 750));
     });
     await waitFor(() => {
       const t = result.current.tarefas.find((x) => x.id === TAREFA_ID);
@@ -268,7 +268,7 @@ describe("useProjetoTarefas — reconciliação banco ↔ cache", () => {
 
     // Reconcile
     await act(async () => {
-      await vi.advanceTimersByTimeAsync(700);
+      await new Promise((r) => setTimeout(r, 750));
     });
     await waitFor(() => {
       const t = result.current.tarefas.find((x) => x.id === TAREFA_ID);
@@ -297,7 +297,7 @@ describe("useProjetoTarefas — reconciliação banco ↔ cache", () => {
     });
 
     await act(async () => {
-      await vi.advanceTimersByTimeAsync(700);
+      await new Promise((r) => setTimeout(r, 750));
     });
     await waitFor(() => {
       const t = result.current.tarefas.find((x) => x.id === TAREFA_ID);
@@ -332,7 +332,7 @@ describe("useProjetoTarefas — reconciliação banco ↔ cache", () => {
 
     // Reconcile com banco
     await act(async () => {
-      await vi.advanceTimersByTimeAsync(700);
+      await new Promise((r) => setTimeout(r, 750));
     });
     await waitFor(() => {
       const s = result.current.tarefas.find((x) => x.id === SUB_ID);
@@ -355,11 +355,11 @@ describe("useProjetoTarefas — reconciliação banco ↔ cache", () => {
     });
 
     // Antes do debounce vencer: 0 refetches novos.
-    await act(async () => { await vi.advanceTimersByTimeAsync(300); });
+    await act(async () => { await new Promise((r) => setTimeout(r, 300)); });
     expect(rpc.mock.calls.length - callsAntes).toBeLessThanOrEqual(0);
 
     // Depois do debounce: exatamente 1 refetch (colapsa as duas mutações).
-    await act(async () => { await vi.advanceTimersByTimeAsync(500); });
+    await act(async () => { await new Promise((r) => setTimeout(r, 500)); });
     await waitFor(() => {
       expect(rpc.mock.calls.length - callsAntes).toBe(1);
     });
