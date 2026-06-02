@@ -549,27 +549,59 @@ export function ProjetoMembrosDialog({ open, onOpenChange, projetoId, projetoTip
               : `${removeMemberConfirm?.nome || "O membro"} perderá acesso ao projeto. Esta ação pode ser revertida adicionando-o novamente.`}
           </AlertDialogDescription>
         </AlertDialogHeader>
+        {removingMembro && (
+          <div
+            role="status"
+            aria-live="polite"
+            data-testid="alert-removing-status"
+            className="flex items-center gap-2 rounded-md border bg-muted/40 p-2 text-xs"
+          >
+            <Loader2 className="h-3.5 w-3.5 animate-spin text-destructive" />
+            <span>Processando remoção. Não feche esta janela.</span>
+          </div>
+        )}
+        {removeError && !removingMembro && (
+          <div
+            role="alert"
+            data-testid="remove-error"
+            className="flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/5 p-2 text-xs"
+          >
+            <AlertTriangle className="h-3.5 w-3.5 text-destructive mt-0.5 shrink-0" />
+            <div className="flex-1">
+              <p className="font-medium text-foreground">Não foi possível remover o membro.</p>
+              <p className="text-muted-foreground">{removeError}</p>
+            </div>
+          </div>
+        )}
         <AlertDialogFooter>
-          <AlertDialogCancel disabled={!!removingMembro}>Cancelar</AlertDialogCancel>
+          <AlertDialogCancel disabled={!!removingMembro} onClick={() => setRemoveError(null)}>
+            Cancelar
+          </AlertDialogCancel>
           <AlertDialogAction
             disabled={!!removingMembro}
             onClick={async (e) => {
               e.preventDefault();
               if (!removeMemberConfirm) return;
               const target = removeMemberConfirm;
+              setRemoveError(null);
               setRemovingMembro(target);
               try {
                 await removeMembro.mutateAsync(target.id);
                 setRecentlyRemoved(target.nome);
                 window.setTimeout(() => setRecentlyRemoved(null), 5000);
-              } finally {
                 setRemovingMembro(null);
                 setRemoveMemberConfirm(null);
+              } catch (err) {
+                setRemovingMembro(null);
+                setRemoveError(err instanceof Error ? err.message : "Erro desconhecido. Tente novamente.");
+                // mantém o AlertDialog aberto para nova tentativa
               }
             }}
           >
             {removingMembro ? (
               <><Loader2 className="h-4 w-4 animate-spin mr-2" /> Removendo…</>
+            ) : removeError ? (
+              "Tentar novamente"
             ) : (
               "Remover"
             )}
