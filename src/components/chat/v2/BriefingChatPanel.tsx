@@ -350,6 +350,10 @@ export function BriefingChatPanel({ briefingId }: Props) {
                     setCofreDescricao(c.body);
                     setCofreOpen(true);
                   }}
+                  onCutucar={() => {
+                    const docNome = (c.metadata as any)?.cofre_doc_nome as string | undefined;
+                    setCutucarItem({ id: c.id, resumo: c.body, docNome: docNome ?? null });
+                  }}
                 />
               ))}
             </div>
