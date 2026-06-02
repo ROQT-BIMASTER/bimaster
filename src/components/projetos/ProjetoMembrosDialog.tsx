@@ -227,6 +227,17 @@ export function ProjetoMembrosDialog({ open, onOpenChange, projetoId, projetoTip
         onInteractOutside={(e) => e.preventDefault()}
         onEscapeKeyDown={(e) => { if (removingMembro) e.preventDefault(); }}
       >
+        {/* Live region acessível: anuncia início/sucesso/erro da remoção
+            sem depender do overlay visual (que pode estar atrás de inert). */}
+        <div
+          role="status"
+          aria-live="polite"
+          aria-atomic="true"
+          data-testid="membros-live-region"
+          className="sr-only"
+        >
+          {liveMessage}
+        </div>
         {removingMembro && (
           <div
             ref={removingOverlayRef}
