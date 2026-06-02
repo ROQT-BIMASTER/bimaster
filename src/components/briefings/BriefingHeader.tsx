@@ -29,6 +29,10 @@ interface Props {
   jaEmAprovacao: boolean;
   onEnviarAprovacao: () => void;
   onCancelarAprovacao?: () => void;
+  onEnviarRRTask?: () => void;
+  onReenviarRRTask?: () => void;
+  onAbrirRRTask?: () => void;
+  rrtaskEnviando?: boolean;
 }
 
 export function BriefingHeader({
