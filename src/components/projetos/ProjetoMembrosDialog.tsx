@@ -200,7 +200,11 @@ export function ProjetoMembrosDialog({ open, onOpenChange, projetoId, projetoTip
     <>
     <Dialog open={open} onOpenChange={onOpenChange}>
 
-      <DialogContent className="max-w-3xl max-h-[90vh] flex flex-col">
+      <DialogContent
+        className="max-w-3xl max-h-[90vh] flex flex-col"
+        onPointerDownOutside={(e) => e.preventDefault()}
+        onInteractOutside={(e) => e.preventDefault()}
+      >
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <User className="h-5 w-5" /> Membros do Projeto
@@ -471,7 +475,11 @@ export function ProjetoMembrosDialog({ open, onOpenChange, projetoId, projetoTip
         }
       }}
     >
-      <DialogContent className="max-w-md">
+      <DialogContent
+        className="max-w-md"
+        onPointerDownOutside={(e) => e.preventDefault()}
+        onInteractOutside={(e) => e.preventDefault()}
+      >
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Users className="h-5 w-5" />
