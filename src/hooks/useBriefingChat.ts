@@ -74,6 +74,9 @@ export function useBriefingChat(briefingId: string | undefined) {
         template_id: b.template_id,
         projeto_id: b.projeto_id,
         tarefa_id: (b as any).tarefa_id ?? null,
+        rrtask_page_id: (b as any).rrtask_page_id ?? null,
+        rrtask_page_url: (b as any).rrtask_page_url ?? null,
+        rrtask_synced_at: (b as any).rrtask_synced_at ?? null,
       });
       setSections(((b as any).briefing_templates?.secoes ?? []) as TemplateSection[]);
 
