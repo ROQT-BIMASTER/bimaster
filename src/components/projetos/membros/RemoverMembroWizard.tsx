@@ -5,7 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Loader2, AlertTriangle, ArrowRight, UserMinus } from "lucide-react";
+import { Loader2, AlertTriangle, ArrowRight, UserMinus, CheckCircle2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useProjetoOffboarding } from "@/hooks/useProjetoOffboarding";
 import { MOTIVOS_OFFBOARDING, offboardingPayloadSchema, type MotivoOffboarding } from "@/lib/validations/projetoOffboarding";
