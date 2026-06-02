@@ -17,13 +17,13 @@ import { toast } from "sonner";
 export function useBridgeSaveRetry() {
   const [savingCount, setSavingCount] = useState(0);
   const fnRef = useRef<
-    <T>(label: string, op: () => Promise<T>) => Promise<{ ok: true; data: T } | { ok: false }>
+    <T>(label: string, op: () => PromiseLike<T>) => Promise<{ ok: true; data: T } | { ok: false }>
   >(null as any);
 
   const attemptSave = useCallback(
     async <T,>(
       label: string,
-      op: () => Promise<T>,
+      op: () => PromiseLike<T>,
     ): Promise<{ ok: true; data: T } | { ok: false }> => {
       setSavingCount((c) => c + 1);
       try {
