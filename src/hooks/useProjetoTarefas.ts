@@ -899,8 +899,10 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2", projetoId], refetchType: "none" });
+      scheduleReconcile();
     },
   });
+
 
   const updateSecao = useMutation({
     mutationFn: async ({
