@@ -12,10 +12,12 @@ import {
   Palette,
   Rows3,
   Rows4,
+  Pencil,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ProjetoBgColorPicker } from "./ProjetoBgColorPicker";
 import { useTarefaDensity } from "@/hooks/useTarefaDensity";
+import { EditarProjetoDialog } from "./EditarProjetoDialog";
 
 interface Props {
   projetoId: string;
