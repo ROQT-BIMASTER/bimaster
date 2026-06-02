@@ -134,8 +134,15 @@ interface ProjetoTarefaDetalheProps {
 }
 
 export function ProjetoTarefaDetalhe({
-  tarefa, open, onOpenChange, onUpdate, onToggle, onAddSubtarefa, onDelete, secoes = [], onMoveTarefa, projetoIdOverride, highlightCommentId = null,
+  tarefa: tarefaProp, open, onOpenChange, onUpdate, onToggle, onAddSubtarefa, onDelete, secoes = [], onMoveTarefa, projetoIdOverride, highlightCommentId = null,
 }: ProjetoTarefaDetalheProps) {
+  // Mantém o último snapshot aberto para que refetches/invalidations não
+  // desmontem a tela enquanto o usuário salva status ou subtarefas.
+  const lastOpenTarefaRef = useRef<ProjetoTarefa | null>(null);
+  if (open && tarefaProp) {
+    lastOpenTarefaRef.current = tarefaProp;
+  }
+  const tarefa = tarefaProp ?? (open ? lastOpenTarefaRef.current : null);
   const navigate = useNavigate();
   const { id: routeProjetoId } = useParams<{ id: string }>();
   const projetoId = projetoIdOverride || routeProjetoId;
