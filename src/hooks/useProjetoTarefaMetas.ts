@@ -90,7 +90,7 @@ export function useProjetoTarefaMetas(tarefaId: string | undefined) {
       toast.error(err.message);
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey });
+      queryClient.invalidateQueries({ queryKey, refetchType: "none" });
     },
   });
 
