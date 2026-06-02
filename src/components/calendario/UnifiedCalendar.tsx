@@ -6,11 +6,11 @@ import { ChevronLeft, ChevronRight, CalendarDays } from "lucide-react";
 import {
   startOfMonth, endOfMonth, startOfWeek, endOfWeek,
   eachDayOfInterval, addMonths, subMonths, addWeeks, subWeeks,
-  format, isSameMonth, isToday as isDateToday,
+  format, isSameMonth,
 } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
-import { getDateKey, parseLocalDate } from "@/utils/dateUtils";
+import { getDateKey, parseLocalDate, getToday } from "@/utils/dateUtils";
 import { packLanes, splitEventByWeekRow } from "@/lib/calendario/lanePacking";
 import { EventChip } from "./EventChip";
 import { EventBar, EVENT_LANE_HEIGHT, EVENT_LANE_GAP } from "./EventBar";
