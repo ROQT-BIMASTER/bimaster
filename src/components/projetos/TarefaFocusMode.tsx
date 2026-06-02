@@ -113,10 +113,12 @@ interface TarefaFocusModeProps {
   onAddSubtarefa?: (titulo: string, parentId: string, secaoId: string) => void;
   secoes?: ProjetoSecaoType[];
   projetoTipo?: string;
+  /** Persistência externa em andamento (bridge). Mostra "Salvando…" no header. */
+  externalSaving?: boolean;
 }
 
 export function TarefaFocusMode({
-  tarefa, open, onOpenChange, onUpdate, onToggle, onAddSubtarefa, secoes = [], projetoTipo,
+  tarefa, open, onOpenChange, onUpdate, onToggle, onAddSubtarefa, secoes = [], projetoTipo, externalSaving = false,
 }: TarefaFocusModeProps) {
   const confirm = useConfirm();
   const {
