@@ -176,7 +176,7 @@ export function RemoverMembroWizard({ open, onOpenChange, projetoId, membro, out
           </div>
         )}
 
-        {step === 3 && (
+        {!concluido && step === 3 && (
           <div className="space-y-3">
             <div className="space-y-1.5">
               <label className="text-xs font-medium">Motivo</label>
