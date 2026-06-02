@@ -384,5 +384,98 @@ export function useProjetos(options: UseProjetosOptions = {}) {
     },
   });
 
-  return { projetos, isLoading, createProjeto, deleteProjeto, finalizarProjeto, projetoMetrics, projetoMembros, projetoColaboradores };
+  /**
+   * Atualiza as configurações de um projeto já existente (campos do diálogo
+   * "Novo Projeto" que não são template/modelo nem metas iniciais).
+   *
+   * - Aplica `UPDATE` apenas nas chaves passadas em `patch`.
+   * - Reconcilia `projeto_departamentos` quando `departamento_ids` é informado.
+   * - Datas em string vazia devem ser convertidas para `null` antes de chamar.
+   */
+  const updateProjetoConfig = useMutation({
+    mutationFn: async (input: {
+      id: string;
+      patch: {
+        nome?: string;
+        descricao?: string | null;
+        cor?: string;
+        marca?: string | null;
+        categoria_linha?: string | null;
+        origem_projeto?: string | null;
+        regime_calendario?: "corridos" | "dias_uteis" | "uteis_com_sabado";
+        usa_feriados?: boolean;
+        uf_feriados?: string;
+        data_inicio?: string | null;
+        data_fim_alvo?: string | null;
+        prazo_padrao_tarefa?: number;
+        alerta_antecipacao_dias?: number;
+      };
+      departamento_ids?: string[];
+    }) => {
+      const { id, patch, departamento_ids } = input;
+
+      if (Object.keys(patch).length > 0) {
+        const { error } = await supabase
+          .from("projetos")
+          .update(patch as any)
+          .eq("id", id);
+        if (error) throw error;
+      }
+
+      if (departamento_ids) {
+        const { data: atuais, error: errAtuais } = await supabase
+          .from("projeto_departamentos")
+          .select("departamento_id")
+          .eq("projeto_id", id);
+        if (errAtuais) throw errAtuais;
+
+        const atuaisSet = new Set((atuais || []).map((r: any) => r.departamento_id));
+        const novosSet = new Set(departamento_ids);
+
+        const paraRemover = [...atuaisSet].filter((d) => !novosSet.has(d));
+        const paraAdicionar = [...novosSet].filter((d) => !atuaisSet.has(d));
+
+        if (paraRemover.length > 0) {
+          const { error } = await supabase
+            .from("projeto_departamentos")
+            .delete()
+            .eq("projeto_id", id)
+            .in("departamento_id", paraRemover);
+          if (error) throw error;
+        }
+        if (paraAdicionar.length > 0) {
+          const { error } = await supabase
+            .from("projeto_departamentos")
+            .insert(
+              paraAdicionar.map((dep) => ({
+                projeto_id: id,
+                departamento_id: dep,
+              })) as any,
+            );
+          if (error) throw error;
+        }
+      }
+    },
+    onSuccess: (_data, vars) => {
+      queryClient.invalidateQueries({ queryKey: ["projeto-single", vars.id] });
+      queryClient.invalidateQueries({ queryKey: ["projetos"] });
+      queryClient.invalidateQueries({ queryKey: ["projeto-departamentos-vinculos"] });
+      toast.success("Configurações do projeto atualizadas.");
+    },
+    onError: (err: Error) => {
+      toast.error("Não foi possível atualizar o projeto: " + err.message);
+    },
+  });
+
+  return {
+    projetos,
+    isLoading,
+    createProjeto,
+    updateProjetoConfig,
+    deleteProjeto,
+    finalizarProjeto,
+    projetoMetrics,
+    projetoMembros,
+    projetoColaboradores,
+  };
 }
