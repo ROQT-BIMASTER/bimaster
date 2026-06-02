@@ -28,9 +28,10 @@ const PRESET_COLORS = [
 interface ProjetoBgColorPickerProps {
   value: string | null;
   onChange: (cor: string | null) => void;
+  variant?: "popover" | "inline";
 }
 
-export function ProjetoBgColorPicker({ value, onChange }: ProjetoBgColorPickerProps) {
+export function ProjetoBgColorPicker({ value, onChange, variant = "popover" }: ProjetoBgColorPickerProps) {
   const [open, setOpen] = useState(false);
   const [hexInput, setHexInput] = useState(value || "");
 
@@ -39,6 +40,7 @@ export function ProjetoBgColorPicker({ value, onChange }: ProjetoBgColorPickerPr
     setHexInput(color);
     setOpen(false);
   };
+
 
   const handleRemove = () => {
     onChange(null);
@@ -60,6 +62,73 @@ export function ProjetoBgColorPicker({ value, onChange }: ProjetoBgColorPickerPr
     setHexInput(hex);
   };
 
+  const content = (
+    <div className="space-y-2">
+      <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Cor de fundo</p>
+      <div className="grid grid-cols-6 gap-1.5">
+        {PRESET_COLORS.map((color) => (
+          <button
+            key={color}
+            type="button"
+            className={cn(
+              "h-6 w-6 rounded-md border cursor-pointer transition-transform hover:scale-110 flex items-center justify-center",
+              color === "#FFFFFF" ? "border-border" : "border-transparent",
+              value === color && "ring-2 ring-primary ring-offset-1"
+            )}
+            style={{ backgroundColor: color }}
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleSelect(color); }}
+            onPointerDown={(e) => e.stopPropagation()}
+            title={color}
+          >
+            {value === color && <Check className={`h-3 w-3 ${isDarkHex(color) ? "text-white" : "text-black"}`} />}
+          </button>
+        ))}
+      </div>
+
+      <div className="border-t pt-2">
+        <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-1">Cor personalizada</p>
+        <div className="flex items-center gap-1.5">
+          <Input
+            value={hexInput}
+            onChange={(e) => handleHexChange(e.target.value)}
+            placeholder="#FF5733"
+            className="h-7 text-[11px] font-mono flex-1 px-2"
+            maxLength={7}
+            onKeyDown={(e) => e.key === "Enter" && handleHexSubmit()}
+            onPointerDown={(e) => e.stopPropagation()}
+          />
+          <Button
+            type="button"
+            size="sm"
+            variant="secondary"
+            className="h-7 w-7 p-0"
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleHexSubmit(); }}
+            onPointerDown={(e) => e.stopPropagation()}
+            disabled={!/^#[0-9A-Fa-f]{6}$/.test(hexInput)}
+          >
+            <Check className="h-3 w-3" />
+          </Button>
+        </div>
+      </div>
+
+      {value && (
+        <Button
+          variant="ghost"
+          size="sm"
+          className="w-full h-7 text-xs text-destructive gap-1"
+          onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleRemove(); }}
+          onPointerDown={(e) => e.stopPropagation()}
+        >
+          <X className="h-3 w-3" /> Remover cor
+        </Button>
+      )}
+    </div>
+  );
+
+  if (variant === "inline") {
+    return content;
+  }
+
   return (
     <Popover open={open} onOpenChange={(o) => { setOpen(o); if (o) setHexInput(value || ""); }}>
       <PopoverTrigger asChild>
@@ -72,63 +141,9 @@ export function ProjetoBgColorPicker({ value, onChange }: ProjetoBgColorPickerPr
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-[260px] p-3" align="start" side="bottom">
-        <div className="space-y-2">
-          <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Cor de fundo</p>
-          <div className="grid grid-cols-6 gap-1.5">
-            {PRESET_COLORS.map((color) => (
-              <button
-                key={color}
-                type="button"
-                className={cn(
-                  "h-6 w-6 rounded-md border cursor-pointer transition-transform hover:scale-110 flex items-center justify-center",
-                  color === "#FFFFFF" ? "border-border" : "border-transparent",
-                  value === color && "ring-2 ring-primary ring-offset-1"
-                )}
-                style={{ backgroundColor: color }}
-                onClick={() => handleSelect(color)}
-                title={color}
-              >
-                {value === color && <Check className={`h-3 w-3 ${isDarkHex(color) ? "text-white" : "text-black"}`} />}
-              </button>
-            ))}
-          </div>
-
-          <div className="border-t pt-2">
-            <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-1">Cor personalizada</p>
-            <div className="flex items-center gap-1.5">
-              <Input
-                value={hexInput}
-                onChange={(e) => handleHexChange(e.target.value)}
-                placeholder="#FF5733"
-                className="h-7 text-[11px] font-mono flex-1 px-2"
-                maxLength={7}
-                onKeyDown={(e) => e.key === "Enter" && handleHexSubmit()}
-              />
-              <Button
-                type="button"
-                size="sm"
-                variant="secondary"
-                className="h-7 w-7 p-0"
-                onClick={handleHexSubmit}
-                disabled={!/^#[0-9A-Fa-f]{6}$/.test(hexInput)}
-              >
-                <Check className="h-3 w-3" />
-              </Button>
-            </div>
-          </div>
-
-          {value && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="w-full h-7 text-xs text-destructive gap-1"
-              onClick={handleRemove}
-            >
-              <X className="h-3 w-3" /> Remover cor
-            </Button>
-          )}
-        </div>
+        {content}
       </PopoverContent>
     </Popover>
   );
+
 }
