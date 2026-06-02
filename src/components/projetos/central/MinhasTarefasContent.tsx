@@ -38,6 +38,7 @@ import { TarefaResponsavelAvatar } from "@/components/projetos/shared/TarefaResp
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { useBridgeSaveRetry } from "@/hooks/useBridgeSaveRetry";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCentralPreferences } from "@/hooks/useCentralPreferences";
 import {
