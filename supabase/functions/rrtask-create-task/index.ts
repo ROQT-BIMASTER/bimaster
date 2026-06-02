@@ -156,19 +156,23 @@ Deno.serve(
       }
       props["Tipo de entrega"] = { select: { name: tipoEntrega } };
 
-      const prazo = (pl.prazo as string | undefined) ?? (pl.prazo_entrega as string | undefined);
+      const prazoIso = extrairPrazoISO(
+        String(pl.prazo ?? (pl as any).Prazo ?? pl.prazo_entrega ?? ""),
+      );
       let semPrazo = false;
-      if (prazo && /^\d{4}-\d{2}-\d{2}/.test(String(prazo))) {
-        props["Prazo"] = {
-          date: { start: String(prazo).slice(0, 10) },
-        };
+      if (prazoIso) {
+        props["Prazo"] = { date: { start: prazoIso } };
       } else {
         semPrazo = true;
       }
 
-      if (pl.marca && MARCAS.has(String(pl.marca))) {
-        props["Marca"] = { multi_select: [{ name: String(pl.marca) }] };
-      }
+      const blob = Object.values(pl).filter((v) => typeof v === "string").join("  ");
+
+      const marca = ["Ruby Rose", "Melu", "Union"].find((mk) =>
+        new RegExp(mk, "i").test(blob)
+      );
+      if (marca) props["Marca"] = { multi_select: [{ name: marca }] };
+
       const colcamp = (pl.colecao as string | undefined) ?? (pl.campanha as string | undefined);
       if (colcamp) {
         props["Coleção/Campanha"] = { multi_select: [{ name: String(colcamp) }] };
@@ -181,11 +185,35 @@ Deno.serve(
           rich_text: [{ text: { content: String(nome).slice(0, 2000) } }],
         };
       }
+
       if (pl.sku) {
         props["SKU"] = { rich_text: [{ text: { content: String(pl.sku).slice(0, 2000) } }] };
+      } else {
+        const skuM = blob.match(/\b(HB|RR)[\s\-]?(\d{3,})\b/i);
+        if (skuM) {
+          props["SKU"] = {
+            rich_text: [{
+              text: { content: `${skuM[1].toUpperCase()}-${skuM[2]}` },
+            }],
+          };
+        }
       }
 
-      // 6. Build body (toggle Round 1)
+      // 6. Build body (toggle Round 1) — usa rótulos do template
+      let secoes: Array<{ key: string; label: string }> = [];
+      if (b.template_id) {
+        const { data: tpl } = await sb
+          .from("briefing_templates")
+          .select("secoes")
+          .eq("id", b.template_id)
+          .maybeSingle();
+        if (Array.isArray((tpl as any)?.secoes)) {
+          secoes = (tpl as any).secoes as Array<{ key: string; label: string }>;
+        }
+      }
+      const labelOf = (k: string) =>
+        secoes.find((s) => s.key === k)?.label ?? k;
+
       const innerBlocks: unknown[] = [
         {
           object: "block",
@@ -206,18 +234,26 @@ Deno.serve(
         });
       }
       for (const [k, v] of Object.entries(pl)) {
-        if (v == null || typeof v === "object") continue;
+        if (v == null || typeof v === "object" || String(v).trim() === "") continue;
         innerBlocks.push({
           object: "block",
-          type: "bulleted_list_item",
-          bulleted_list_item: {
-            rich_text: [{
-              type: "text",
-              text: { content: `${k}: ${String(v)}`.slice(0, 1900) },
-            }],
+          type: "paragraph",
+          paragraph: {
+            rich_text: [
+              {
+                type: "text",
+                text: { content: `${labelOf(k)}: ` },
+                annotations: { bold: true },
+              },
+              {
+                type: "text",
+                text: { content: String(v).slice(0, 1900) },
+              },
+            ],
           },
         });
       }
+
 
       const toggle = {
         object: "block",
