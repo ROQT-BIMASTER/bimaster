@@ -1675,8 +1675,10 @@ export function ProjetoTarefaDetalhe({
           onAddSubtarefa={onAddSubtarefa}
           secoes={secoes}
           projetoTipo={projetoTipo}
+          externalSaving={externalSaving}
         />
       )}
+
 
       {/* Briefing Dialogs */}
       {tarefa && (
