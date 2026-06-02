@@ -67,6 +67,19 @@ export function ProjetoMembrosDialog({ open, onOpenChange, projetoId, projetoTip
   const [teamSearch, setTeamSearch] = useState("");
   const [addingTeam, setAddingTeam] = useState(false);
 
+  // Defensive: reset body pointer-events if Radix leaves it locked after close.
+  useEffect(() => {
+    if (open) return;
+    const id = requestAnimationFrame(() => {
+      if (typeof document !== "undefined" && document.body.style.pointerEvents === "none") {
+        document.body.style.pointerEvents = "";
+      }
+    });
+    return () => cancelAnimationFrame(id);
+  }, [open]);
+
+
+
   const isDevProduto = projetoTipo === "desenvolvimento_produto";
 
   // "Adicionar Membros" agora lê o diretório corporativo inteiro
