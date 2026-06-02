@@ -5,3 +5,6 @@ verify_jwt = false
 
 [functions.crm-blip-ingest]
 verify_jwt = false
+
+[functions.rrtask-poll-status]
+verify_jwt = false
