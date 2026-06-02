@@ -51,7 +51,7 @@ export function UnifiedCalendar({
   banner,
   onPeriodChange,
 }: Props) {
-  const [currentDate, setCurrentDate] = useState(new Date());
+  const [currentDate, setCurrentDate] = useState(() => getToday());
   const [viewMode, setViewMode] = useState<ViewMode>("month");
 
   // Notifica mudanças de período (mês/semana visível) para wrappers (ex.: painel de Análise).
