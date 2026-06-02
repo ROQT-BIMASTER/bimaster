@@ -3,6 +3,7 @@ import { Circle, CheckCircle2, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ESTAGIO_PILL_COLORS, STATUS_ICON_CONFIG } from "@/lib/projetoConstants";
 import type { ProjetoTarefa } from "@/hooks/useProjetoTarefas";
+import { getToday, parseLocalDate } from "@/utils/dateUtils";
 
 interface Props {
   tarefa: ProjetoTarefa;
