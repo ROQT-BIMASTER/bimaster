@@ -638,9 +638,9 @@ export function ProjetoMembrosDialog({ open, onOpenChange, projetoId, projetoTip
               setRemoveAttempt(attempt);
               setRemoveError(null);
               setRemovingMembro(target);
-              // Sufixo invisível garante string única por tentativa — screen readers
-              // re-anunciam mesmo quando a mensagem semântica é igual.
-              setLiveMessage(`Removendo ${target.nome}… \u200B`.repeat(1) + `(tentativa ${attempt})`);
+              // Mensagem exata por contrato com o E2E; reanúncio é garantido
+              // pelo `key` da live region (não por mudar o texto).
+              setLiveMessage(`Removendo ${target.nome}…`);
               try {
                 await removeMembro.mutateAsync(target.id);
                 setRecentlyRemoved(target.nome);
