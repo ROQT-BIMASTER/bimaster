@@ -139,7 +139,7 @@ export function CentralSettingsMenu({
             Aparência
           </DropdownMenuLabel>
           <div className="px-2 pb-2 pt-1">
-            <ProjetoBgColorPicker value={bgColor} onChange={onBgColorChange} />
+            <ProjetoBgColorPicker value={bgColor} onChange={onBgColorChange} variant="inline" />
           </div>
 
           <DropdownMenuSeparator />
