@@ -242,7 +242,7 @@ export function useProjetoTarefaDetalhe(tarefaId: string | undefined, produtoId?
       toast.success("Anexo enviado!");
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ["tarefa-anexos", tarefaId] });
+      queryClient.invalidateQueries({ queryKey: ["tarefa-anexos", tarefaId], refetchType: "none" });
     },
   });
 
