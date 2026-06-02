@@ -600,15 +600,19 @@ export function ProjetoMembrosDialog({ open, onOpenChange, projetoId, projetoTip
               const target = removeMemberConfirm;
               setRemoveError(null);
               setRemovingMembro(target);
+              setLiveMessage(`Removendo ${target.nome}…`);
               try {
                 await removeMembro.mutateAsync(target.id);
                 setRecentlyRemoved(target.nome);
+                setLiveMessage(`${target.nome} foi removido(a) do projeto com sucesso.`);
                 window.setTimeout(() => setRecentlyRemoved(null), 5000);
                 setRemovingMembro(null);
                 setRemoveMemberConfirm(null);
               } catch (err) {
+                const msg = err instanceof Error ? err.message : "Erro desconhecido. Tente novamente.";
                 setRemovingMembro(null);
-                setRemoveError(err instanceof Error ? err.message : "Erro desconhecido. Tente novamente.");
+                setRemoveError(msg);
+                setLiveMessage(`Falha ao remover ${target.nome}: ${msg}. Você pode tentar novamente.`);
                 // mantém o AlertDialog aberto para nova tentativa
               }
             }}
