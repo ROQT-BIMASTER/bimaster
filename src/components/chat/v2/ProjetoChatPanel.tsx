@@ -117,6 +117,9 @@ export function ProjetoChatPanel({ projetoId }: Props) {
   const [cofreOpen, setCofreOpen] = useState(false);
   const [cofreInitialFile, setCofreInitialFile] = useState<File | null>(null);
   const { abrirAprovacao, abrirUrgente } = useAbrirAcaoVinculada();
+  const [cutucarItem, setCutucarItem] = useState<{ id: string; resumo: string } | null>(null);
+
+
 
 
 
