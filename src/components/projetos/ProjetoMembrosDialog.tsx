@@ -69,7 +69,14 @@ export function ProjetoMembrosDialog({ open, onOpenChange, projetoId, projetoTip
   const [addingTeam, setAddingTeam] = useState(false);
   const [recentlyAdded, setRecentlyAdded] = useState<string[]>([]);
   const [recentlyRemoved, setRecentlyRemoved] = useState<string | null>(null);
-  const [removeError, setRemoveError] = useState<string | null>(null);
+  const [removeError, setRemoveError] = useState<{
+    message: string;
+    code?: string;
+    hint?: string;
+    status?: number;
+    attempt: number;
+  } | null>(null);
+  const [removeAttempt, setRemoveAttempt] = useState(0);
   const [liveMessage, setLiveMessage] = useState<string>("");
   const removingOverlayRef = useRef<HTMLDivElement | null>(null);
 
@@ -232,13 +239,16 @@ export function ProjetoMembrosDialog({ open, onOpenChange, projetoId, projetoTip
         onInteractOutside={(e) => e.preventDefault()}
         onEscapeKeyDown={(e) => { if (removingMembro) e.preventDefault(); }}
       >
-        {/* Live region acessível: anuncia início/sucesso/erro da remoção
-            sem depender do overlay visual (que pode estar atrás de inert). */}
+        {/* Live region acessível: anuncia início/sucesso/erro da remoção.
+            O `key` muda a cada tentativa para forçar re-anúncio mesmo
+            quando o texto é idêntico (ex.: dois erros consecutivos). */}
         <div
+          key={`live-${removeAttempt}-${removingMembro ? "loading" : removeError ? "err" : "idle"}`}
           role="status"
           aria-live="polite"
           aria-atomic="true"
           data-testid="membros-live-region"
+          data-attempt={removeAttempt}
           className="sr-only"
         >
           {liveMessage}
@@ -584,17 +594,38 @@ export function ProjetoMembrosDialog({ open, onOpenChange, projetoId, projetoTip
           <div
             role="alert"
             data-testid="remove-error"
+            data-attempt={removeError.attempt}
             className="flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/5 p-2 text-xs"
           >
             <AlertTriangle className="h-3.5 w-3.5 text-destructive mt-0.5 shrink-0" />
-            <div className="flex-1">
-              <p className="font-medium text-foreground">Não foi possível remover o membro.</p>
-              <p className="text-muted-foreground">{removeError}</p>
+            <div className="flex-1 space-y-1">
+              <p className="font-medium text-foreground">
+                Não foi possível remover {removeMemberConfirm?.nome || "o membro"}.
+              </p>
+              <p className="text-muted-foreground">{removeError.message}</p>
+              {(removeError.code || removeError.status) && (
+                <p className="text-[10px] text-muted-foreground/80 font-mono">
+                  {removeError.status ? `HTTP ${removeError.status}` : null}
+                  {removeError.status && removeError.code ? " · " : null}
+                  {removeError.code ? `code: ${removeError.code}` : null}
+                </p>
+              )}
+              {removeError.hint && (
+                <p className="text-[10px] text-muted-foreground/80">Dica: {removeError.hint}</p>
+              )}
+              {removeError.attempt > 1 && (
+                <p className="text-[10px] text-muted-foreground/80">
+                  Tentativa {removeError.attempt}. Verifique sua conexão ou contate o administrador se o erro persistir.
+                </p>
+              )}
             </div>
           </div>
         )}
         <AlertDialogFooter>
-          <AlertDialogCancel disabled={!!removingMembro} onClick={() => setRemoveError(null)}>
+          <AlertDialogCancel
+            disabled={!!removingMembro}
+            onClick={() => { setRemoveError(null); setRemoveAttempt(0); }}
+          >
             Cancelar
           </AlertDialogCancel>
           <AlertDialogAction
@@ -603,8 +634,12 @@ export function ProjetoMembrosDialog({ open, onOpenChange, projetoId, projetoTip
               e.preventDefault();
               if (!removeMemberConfirm) return;
               const target = removeMemberConfirm;
+              const attempt = removeAttempt + 1;
+              setRemoveAttempt(attempt);
               setRemoveError(null);
               setRemovingMembro(target);
+              // Mensagem exata por contrato com o E2E; reanúncio é garantido
+              // pelo `key` da live region (não por mudar o texto).
               setLiveMessage(`Removendo ${target.nome}…`);
               try {
                 await removeMembro.mutateAsync(target.id);
@@ -613,14 +648,24 @@ export function ProjetoMembrosDialog({ open, onOpenChange, projetoId, projetoTip
                 window.setTimeout(() => setRecentlyRemoved(null), 5000);
                 setRemovingMembro(null);
                 setRemoveMemberConfirm(null);
+                setRemoveAttempt(0);
               } catch (err) {
-                const msg = err instanceof Error ? err.message : "Erro desconhecido. Tente novamente.";
+                const anyErr = err as any;
+                const message =
+                  anyErr?.message ||
+                  (typeof err === "string" ? err : "Erro desconhecido. Tente novamente.");
+                const code = anyErr?.code ?? anyErr?.error?.code;
+                const hint = anyErr?.hint ?? anyErr?.details;
+                const status = anyErr?.status ?? anyErr?.statusCode;
                 setRemovingMembro(null);
-                setRemoveError(msg);
-                setLiveMessage(`Falha ao remover ${target.nome}: ${msg}. Você pode tentar novamente.`);
+                setRemoveError({ message, code, hint, status, attempt });
+                setLiveMessage(
+                  `Falha ao remover ${target.nome} (tentativa ${attempt}): ${message}. Você pode tentar novamente.`,
+                );
                 // mantém o AlertDialog aberto para nova tentativa
               }
             }}
+          
           >
             {removingMembro ? (
               <><Loader2 className="h-4 w-4 animate-spin mr-2" /> Removendo…</>
