@@ -488,7 +488,7 @@ function EmptyState({
 }
 
 function ComentarioCard({
-  c, authorNome, campoLabel, isMe, mencionaMe, onOpen, onAnexarCofre,
+  c, authorNome, campoLabel, isMe, mencionaMe, onOpen, onAnexarCofre, onCutucar,
 }: {
   c: BriefingComentario;
   authorNome: string | null;
@@ -497,6 +497,7 @@ function ComentarioCard({
   mencionaMe: boolean;
   onOpen: () => void;
   onAnexarCofre: () => void;
+  onCutucar: () => void;
 }) {
   const cofreDocNome = (c.metadata as any)?.cofre_doc_nome as string | undefined;
   return (
@@ -539,14 +540,24 @@ function ComentarioCard({
             <FolderLock className="h-2.5 w-2.5" /> Cofre · {cofreDocNome}
           </Badge>
         ) : <span />}
-        <button
-          onClick={onAnexarCofre}
-          className="text-[10px] inline-flex items-center gap-1 text-briefing hover:underline"
-          title="Anexar arquivo ao cofre vinculado a este comentário"
-        >
-          <Paperclip className="h-3 w-3" />
-          {cofreDocNome ? "Substituir doc" : "Anexar ao cofre"}
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); onCutucar(); }}
+            className="text-[10px] inline-flex items-center gap-1 text-destructive hover:underline"
+            title="Chamar atenção dos participantes para este comentário"
+          >
+            <AlertOctagon className="h-3 w-3" /> Chamar atenção
+          </button>
+          <button
+            onClick={onAnexarCofre}
+            className="text-[10px] inline-flex items-center gap-1 text-briefing hover:underline"
+            title="Anexar arquivo ao cofre vinculado a este comentário"
+          >
+            <Paperclip className="h-3 w-3" />
+            {cofreDocNome ? "Substituir doc" : "Anexar ao cofre"}
+          </button>
+        </div>
       </div>
     </div>
   );
