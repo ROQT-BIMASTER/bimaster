@@ -160,7 +160,7 @@ describe("Modal lock durante remoção de membro", () => {
     // Overlay sumiu (não está mais "removendo").
     expect(screen.queryByTestId("removing-overlay")).toBeNull();
     // Controles voltaram a ficar habilitados para nova tentativa.
-    expect((screen.getByTestId("action-remover") as HTMLButtonElement).disabled).toBe(false);
+    expect(screen.getByTestId("action-remover").matches(":disabled")).toBe(false);
   });
 
   it("permite Esc fechar a modal somente quando não há remoção em andamento", () => {
