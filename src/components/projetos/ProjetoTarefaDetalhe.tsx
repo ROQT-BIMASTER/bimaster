@@ -131,11 +131,14 @@ interface ProjetoTarefaDetalheProps {
   projetoIdOverride?: string;
   /** Comentário a destacar/rolar (vindo de deep-link de menção). */
   highlightCommentId?: string | null;
+  /** Indica que uma persistência externa (bridge) está em andamento. Mostra o indicador de "Salvando…" no header e mantém o painel aberto. */
+  externalSaving?: boolean;
 }
 
 export function ProjetoTarefaDetalhe({
-  tarefa: tarefaProp, open, onOpenChange, onUpdate, onToggle, onAddSubtarefa, onDelete, secoes = [], onMoveTarefa, projetoIdOverride, highlightCommentId = null,
+  tarefa: tarefaProp, open, onOpenChange, onUpdate, onToggle, onAddSubtarefa, onDelete, secoes = [], onMoveTarefa, projetoIdOverride, highlightCommentId = null, externalSaving = false,
 }: ProjetoTarefaDetalheProps) {
+
   // Mantém o último snapshot aberto para que refetches/invalidations não
   // desmontem a tela enquanto o usuário salva status ou subtarefas.
   const lastOpenTarefaRef = useRef<ProjetoTarefa | null>(null);
