@@ -39,7 +39,7 @@ vi.mock("@/integrations/supabase/client", () => ({
     channel: vi.fn(() => {
       const api: any = {
         on: vi.fn((_event: string, _filter: any, handler: any) => {
-          mocks.state.mocks.state.realtimeHandler = handler;
+          mocks.state.realtimeHandler = handler;
           return api;
         }),
         subscribe: vi.fn(() => api),
