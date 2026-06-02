@@ -151,6 +151,63 @@ export function BriefingHeader({
           </Button>
         )}
 
+        {onEnviarRRTask && (
+          rrtaskJaCriada ? (
+            <>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onAbrirRRTask}
+                title="Abrir página da task no RR-Tasks"
+              >
+                <ExternalLink className="h-3.5 w-3.5 mr-1.5" />
+                Abrir no RR-Tasks
+              </Button>
+              {onReenviarRRTask && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={onReenviarRRTask}
+                  disabled={rrtaskEnviando}
+                  title="Reenviar dados para o RR-Tasks (atualiza a task existente)"
+                >
+                  {rrtaskEnviando ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    "Reenviar"
+                  )}
+                </Button>
+              )}
+            </>
+          ) : (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onEnviarRRTask}
+              disabled={!rrtaskFinalizado || rrtaskEnviando}
+              title={
+                rrtaskFinalizado
+                  ? "Criar task no RR-Tasks da agência"
+                  : "Disponível quando o briefing estiver finalizado"
+              }
+            >
+              {rrtaskEnviando ? (
+                <>
+                  <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                  Enviando…
+                </>
+              ) : (
+                <>
+                  <Send className="h-3.5 w-3.5 mr-1.5" />
+                  Enviar para produção
+                </>
+              )}
+            </Button>
+          )
+        )}
+
+
+
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon-sm">
