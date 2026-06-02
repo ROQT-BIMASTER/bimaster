@@ -419,8 +419,10 @@ export function TarefaFocusMode({
                   comentarios={displayComentarios}
                   messages={displayMessages}
                   subtarefas={tarefa.subtarefas?.map(s => ({ status: s.status, created_at: (s as any).created_at })) || []}
+                  tarefaCreatedAt={(tarefa as any)?.created_at}
                   accentColor={accentCor}
                 />
+
               </div>
 
               <Separator />
