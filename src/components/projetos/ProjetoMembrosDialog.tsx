@@ -450,18 +450,51 @@ export function ProjetoMembrosDialog({ open, onOpenChange, projetoId, projetoTip
     </Dialog>
 
     {/* Remove member confirmation */}
-    <AlertDialog open={!!removeMemberConfirm} onOpenChange={() => setRemoveMemberConfirm(null)}>
-      <AlertDialogContent>
+    <AlertDialog
+      open={!!removeMemberConfirm}
+      onOpenChange={(v) => {
+        // Bloqueia fechamento durante a remoção; só permite cancelar.
+        if (removingMembro) return;
+        if (!v) setRemoveMemberConfirm(null);
+      }}
+    >
+      <AlertDialogContent
+        onEscapeKeyDown={(e) => { if (removingMembro) e.preventDefault(); }}
+      >
         <AlertDialogHeader>
-          <AlertDialogTitle>Remover membro?</AlertDialogTitle>
+          <AlertDialogTitle>
+            {removingMembro ? `Removendo ${removingMembro.nome}…` : "Remover membro?"}
+          </AlertDialogTitle>
           <AlertDialogDescription>
-            O membro perderá acesso ao projeto. Esta ação pode ser revertida adicionando-o novamente.
+            {removingMembro
+              ? "Aguarde — revogando acesso e atualizando a equipe do projeto."
+              : `${removeMemberConfirm?.nome || "O membro"} perderá acesso ao projeto. Esta ação pode ser revertida adicionando-o novamente.`}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>Cancelar</AlertDialogCancel>
-          <AlertDialogAction onClick={() => { if (removeMemberConfirm) { removeMembro.mutate(removeMemberConfirm); setRemoveMemberConfirm(null); } }}>
-            Remover
+          <AlertDialogCancel disabled={!!removingMembro}>Cancelar</AlertDialogCancel>
+          <AlertDialogAction
+            disabled={!!removingMembro}
+            onClick={async (e) => {
+              e.preventDefault();
+              if (!removeMemberConfirm) return;
+              const target = removeMemberConfirm;
+              setRemovingMembro(target);
+              try {
+                await removeMembro.mutateAsync(target.id);
+                setRecentlyRemoved(target.nome);
+                window.setTimeout(() => setRecentlyRemoved(null), 5000);
+              } finally {
+                setRemovingMembro(null);
+                setRemoveMemberConfirm(null);
+              }
+            }}
+          >
+            {removingMembro ? (
+              <><Loader2 className="h-4 w-4 animate-spin mr-2" /> Removendo…</>
+            ) : (
+              "Remover"
+            )}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
