@@ -5,7 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Loader2, AlertTriangle, ArrowRight, UserMinus } from "lucide-react";
+import { Loader2, AlertTriangle, ArrowRight, UserMinus, CheckCircle2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useProjetoOffboarding } from "@/hooks/useProjetoOffboarding";
 import { MOTIVOS_OFFBOARDING, offboardingPayloadSchema, type MotivoOffboarding } from "@/lib/validations/projetoOffboarding";
@@ -27,6 +27,7 @@ export function RemoverMembroWizard({ open, onOpenChange, projetoId, membro, out
   const [novoSeguidor, setNovoSeguidor] = useState<string>(SEM_RESPONSAVEL);
   const [motivo, setMotivo] = useState<MotivoOffboarding>("desligamento");
   const [motivoDetalhe, setMotivoDetalhe] = useState("");
+  const [concluido, setConcluido] = useState(false);
   const { remover } = useProjetoOffboarding(projetoId);
 
   useEffect(() => {
@@ -36,6 +37,7 @@ export function RemoverMembroWizard({ open, onOpenChange, projetoId, membro, out
       setNovoSeguidor(SEM_RESPONSAVEL);
       setMotivo("desligamento");
       setMotivoDetalhe("");
+      setConcluido(false);
     } else {
       // Defensive: Radix Dialog + nested Selects/Portals occasionally leave
       // `pointer-events: none` on <body>, freezing the page until F5.
@@ -68,9 +70,9 @@ export function RemoverMembroWizard({ open, onOpenChange, projetoId, membro, out
     if (!parsed.success) return;
     try {
       await remover.mutateAsync(parsed.data);
-      // Close on next tick so React Query invalidations from onSuccess don't
-      // race with Radix's modal-stack unmount (causes body pointer-events lock).
-      setTimeout(() => onOpenChange(false), 0);
+      // Mantém o diálogo aberto com painel de confirmação;
+      // usuário fecha manualmente via "Fechar".
+      setConcluido(true);
     } catch {
       /* toast já exibido */
     }
@@ -86,7 +88,7 @@ export function RemoverMembroWizard({ open, onOpenChange, projetoId, membro, out
             Remover membro do projeto
           </DialogTitle>
           <DialogDescription>
-            Passo {step} de 3 — reatribua pendências antes de revogar o acesso.
+            {concluido ? "Remoção concluída." : `Passo ${step} de 3 — reatribua pendências antes de revogar o acesso.`}
           </DialogDescription>
         </DialogHeader>
 
@@ -101,7 +103,21 @@ export function RemoverMembroWizard({ open, onOpenChange, projetoId, membro, out
           </div>
         </div>
 
-        {step === 1 && (
+        {concluido && (
+          <div className="space-y-3">
+            <div className="flex items-start gap-3 rounded-md border border-emerald-500/30 bg-emerald-500/5 p-3">
+              <CheckCircle2 className="h-5 w-5 text-emerald-600 mt-0.5" />
+              <div className="space-y-1 text-sm">
+                <p className="font-medium">Membro removido com sucesso.</p>
+                <p className="text-xs text-muted-foreground">
+                  Disponível para restauração na aba "Ex-membros" por 15 dias.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {!concluido && step === 1 && (
           <div className="space-y-3">
             <p className="text-xs text-muted-foreground">
               Impacto no projeto. Comentários e arquivos criados pelo membro permanecem com a autoria original.
@@ -118,7 +134,7 @@ export function RemoverMembroWizard({ open, onOpenChange, projetoId, membro, out
           </div>
         )}
 
-        {step === 2 && (
+        {!concluido && step === 2 && (
           <div className="space-y-4">
             <p className="text-xs text-muted-foreground">
               Escolha para quem transferir. Se deixar "Sem responsável", as tarefas/itens ficarão sem responsável até alguém assumir.
@@ -160,7 +176,7 @@ export function RemoverMembroWizard({ open, onOpenChange, projetoId, membro, out
           </div>
         )}
 
-        {step === 3 && (
+        {!concluido && step === 3 && (
           <div className="space-y-3">
             <div className="space-y-1.5">
               <label className="text-xs font-medium">Motivo</label>
@@ -209,23 +225,29 @@ export function RemoverMembroWizard({ open, onOpenChange, projetoId, membro, out
         )}
 
         <DialogFooter className="gap-2">
-          {step > 1 && (
-            <Button variant="ghost" onClick={() => setStep((s) => (s - 1) as 1 | 2 | 3)} disabled={remover.isPending}>
-              Voltar
-            </Button>
-          )}
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={remover.isPending}>
-            Cancelar
-          </Button>
-          {step < 3 ? (
-            <Button onClick={() => setStep((s) => (s + 1) as 1 | 2 | 3)}>
-              Próximo <ArrowRight className="h-3.5 w-3.5 ml-1" />
-            </Button>
+          {concluido ? (
+            <Button onClick={() => onOpenChange(false)}>Fechar</Button>
           ) : (
-            <Button variant="destructive" onClick={handleConfirmar} disabled={remover.isPending}>
-              {remover.isPending && <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" />}
-              Remover do projeto
-            </Button>
+            <>
+              {step > 1 && (
+                <Button variant="ghost" onClick={() => setStep((s) => (s - 1) as 1 | 2 | 3)} disabled={remover.isPending}>
+                  Voltar
+                </Button>
+              )}
+              <Button variant="outline" onClick={() => onOpenChange(false)} disabled={remover.isPending}>
+                Cancelar
+              </Button>
+              {step < 3 ? (
+                <Button onClick={() => setStep((s) => (s + 1) as 1 | 2 | 3)}>
+                  Próximo <ArrowRight className="h-3.5 w-3.5 ml-1" />
+                </Button>
+              ) : (
+                <Button variant="destructive" onClick={handleConfirmar} disabled={remover.isPending}>
+                  {remover.isPending && <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" />}
+                  Remover do projeto
+                </Button>
+              )}
+            </>
           )}
         </DialogFooter>
       </DialogContent>
