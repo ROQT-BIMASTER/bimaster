@@ -69,6 +69,17 @@ export function ProjetoMembrosDialog({ open, onOpenChange, projetoId, projetoTip
   const [addingTeam, setAddingTeam] = useState(false);
   const [recentlyAdded, setRecentlyAdded] = useState<string[]>([]);
   const [recentlyRemoved, setRecentlyRemoved] = useState<string | null>(null);
+  const [removeError, setRemoveError] = useState<string | null>(null);
+  const removingOverlayRef = useRef<HTMLDivElement | null>(null);
+
+  // Focus trap: ao iniciar remoção, joga o foco para o overlay (que está
+  // dentro do DialogContent, então o focus-trap do Radix garante que Tab/Shift+Tab
+  // não vazem para fora — todo o restante do conteúdo está com `inert`).
+  useEffect(() => {
+    if (removingMembro && removingOverlayRef.current) {
+      removingOverlayRef.current.focus();
+    }
+  }, [removingMembro]);
 
   // Defensive: reset body pointer-events if Radix leaves it locked after close.
   useEffect(() => {
