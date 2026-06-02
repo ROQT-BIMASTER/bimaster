@@ -204,14 +204,10 @@ function wrapper(qc: QueryClient) {
 
 describe("useProjetoTarefas — reconciliação banco ↔ cache", () => {
   beforeEach(() => {
-    vi.useFakeTimers();
     mocks.state.rpcPayload = makePayload();
     mocks.state.updateTarefaArg = null;
     mocks.state.inserts = [];
     mocks.state.deletes = [];
-  });
-  afterEach(() => {
-    vi.useRealTimers();
   });
 
   async function setup() {
@@ -221,11 +217,10 @@ describe("useProjetoTarefas — reconciliação banco ↔ cache", () => {
     const { result } = renderHook(() => useProjetoTarefas(PROJETO_ID), {
       wrapper: wrapper(qc),
     });
-    // Resolve initial RPC
-    await vi.runOnlyPendingTimersAsync();
-    await waitFor(() => expect(result.current.tarefas.length).toBe(2));
+    await waitFor(() => expect(result.current.tarefas.length).toBe(2), { timeout: 2000 });
     return { qc, result };
   }
+
 
   it("data_inicio_planejada: patch otimista + reconcile coincidem com o servidor", async () => {
     const { result } = await setup();
