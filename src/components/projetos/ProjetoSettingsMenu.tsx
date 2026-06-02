@@ -59,6 +59,7 @@ export function ProjetoSettingsMenu({
   };
 
   return (
+    <>
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button
