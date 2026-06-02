@@ -141,7 +141,16 @@ export function ProjetoSecao({
           ) : (
             <ChevronDown className={`h-4 w-4 ${darkBg ? "text-white/50" : "text-muted-foreground"}`} />
           )}
-          <span className={cn("font-semibold text-sm", sectionColor.text)}>{nome}</span>
+          {onUpdateSecao ? (
+            <EditableSecaoTitle
+              nome={nome}
+              darkBg={darkBg}
+              onRename={async (novo) => { await onUpdateSecao(secaoId, { nome: novo }); }}
+              className={cn("font-semibold text-sm", sectionColor.text)}
+            />
+          ) : (
+            <span className={cn("font-semibold text-sm", sectionColor.text)}>{nome}</span>
+          )}
           <span className={`text-xs ml-1 ${darkBg ? "text-white/60" : "text-foreground/60"}`}>
             {completedCount}/{totalCount}
           </span>
