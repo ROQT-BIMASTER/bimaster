@@ -225,23 +225,29 @@ export function RemoverMembroWizard({ open, onOpenChange, projetoId, membro, out
         )}
 
         <DialogFooter className="gap-2">
-          {step > 1 && (
-            <Button variant="ghost" onClick={() => setStep((s) => (s - 1) as 1 | 2 | 3)} disabled={remover.isPending}>
-              Voltar
-            </Button>
-          )}
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={remover.isPending}>
-            Cancelar
-          </Button>
-          {step < 3 ? (
-            <Button onClick={() => setStep((s) => (s + 1) as 1 | 2 | 3)}>
-              Próximo <ArrowRight className="h-3.5 w-3.5 ml-1" />
-            </Button>
+          {concluido ? (
+            <Button onClick={() => onOpenChange(false)}>Fechar</Button>
           ) : (
-            <Button variant="destructive" onClick={handleConfirmar} disabled={remover.isPending}>
-              {remover.isPending && <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" />}
-              Remover do projeto
-            </Button>
+            <>
+              {step > 1 && (
+                <Button variant="ghost" onClick={() => setStep((s) => (s - 1) as 1 | 2 | 3)} disabled={remover.isPending}>
+                  Voltar
+                </Button>
+              )}
+              <Button variant="outline" onClick={() => onOpenChange(false)} disabled={remover.isPending}>
+                Cancelar
+              </Button>
+              {step < 3 ? (
+                <Button onClick={() => setStep((s) => (s + 1) as 1 | 2 | 3)}>
+                  Próximo <ArrowRight className="h-3.5 w-3.5 ml-1" />
+                </Button>
+              ) : (
+                <Button variant="destructive" onClick={handleConfirmar} disabled={remover.isPending}>
+                  {remover.isPending && <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" />}
+                  Remover do projeto
+                </Button>
+              )}
+            </>
           )}
         </DialogFooter>
       </DialogContent>
