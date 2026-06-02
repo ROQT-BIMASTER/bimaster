@@ -533,7 +533,10 @@ export function ProjetoMembrosDialog({ open, onOpenChange, projetoId, projetoTip
       onOpenChange={(v) => {
         // Bloqueia fechamento durante a remoção; só permite cancelar.
         if (removingMembro) return;
-        if (!v) setRemoveMemberConfirm(null);
+        if (!v) {
+          setRemoveMemberConfirm(null);
+          setRemoveError(null);
+        }
       }}
     >
       <AlertDialogContent
