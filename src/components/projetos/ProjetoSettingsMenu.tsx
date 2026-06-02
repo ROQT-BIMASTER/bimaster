@@ -12,10 +12,12 @@ import {
   Palette,
   Rows3,
   Rows4,
+  Pencil,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ProjetoBgColorPicker } from "./ProjetoBgColorPicker";
 import { useTarefaDensity } from "@/hooks/useTarefaDensity";
+import { EditarProjetoDialog } from "./EditarProjetoDialog";
 
 interface Props {
   projetoId: string;
@@ -47,6 +49,7 @@ export function ProjetoSettingsMenu({
 }: Props) {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
+  const [editarOpen, setEditarOpen] = useState(false);
   const { isCompact, toggle: toggleDensity } = useTarefaDensity();
   const DensityIcon = isCompact ? Rows4 : Rows3;
 
@@ -56,6 +59,7 @@ export function ProjetoSettingsMenu({
   };
 
   return (
+    <>
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button
@@ -77,6 +81,15 @@ export function ProjetoSettingsMenu({
         <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider px-2 py-1">
           Configurações do projeto
         </p>
+
+        <button
+          type="button"
+          onClick={handle(() => setEditarOpen(true))}
+          className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm hover:bg-muted transition-colors"
+        >
+          <Pencil className="h-4 w-4 text-muted-foreground" />
+          <span>Editar projeto</span>
+        </button>
 
         <button
           type="button"
@@ -161,5 +174,11 @@ export function ProjetoSettingsMenu({
         </button>
       </PopoverContent>
     </Popover>
+    <EditarProjetoDialog
+      projetoId={projetoId}
+      open={editarOpen}
+      onOpenChange={setEditarOpen}
+    />
+    </>
   );
 }
