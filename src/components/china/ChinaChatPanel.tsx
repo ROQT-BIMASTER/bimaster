@@ -1006,6 +1006,18 @@ export function ChinaChatPanel({ submissaoId, produtoNome, tipoRemetente, refere
           </div>
         </div>
       )}
+
+      <CutucarItemDialog
+        open={!!cutucarItem}
+        onOpenChange={(v) => { if (!v) setCutucarItem(null); }}
+        tipo="submissao"
+        refId={submissaoId}
+        tituloEscopo={`Submissão · ${produtoNome}`}
+        itemResumo={cutucarItem?.resumo ?? ""}
+        itemId={cutucarItem?.id}
+        itemTipo={cutucarItem?.docNome ? "documento" : "comentario"}
+        docNome={cutucarItem?.docNome ?? null}
+      />
     </Card>
   );
 }
