@@ -41,6 +41,7 @@ export default function BriefingWorkspace() {
   const deepLinkComentario = searchParams.get("comentario");
   const { briefing, sections, messages, loading, sending, enviar, recarregar } =
     useBriefingChat(id);
+  const { enviando: rrtaskEnviando, enviarParaRRTask } = useRRTask();
   const [input, setInput] = useState("");
   const [chatAttachments, setChatAttachments] = useState<ChatAttachment[]>([]);
   const [localPayload, setLocalPayload] = useState<Record<string, string>>({});
