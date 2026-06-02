@@ -115,7 +115,8 @@ export function useProjetoTarefaDetalhe(tarefaId: string | undefined, produtoId?
       toast.error(err.message);
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ["tarefa-comentarios", tarefaId] });
+      // refetchType:"none" mantém o patch otimista e evita flash/remount no painel de detalhes
+      queryClient.invalidateQueries({ queryKey: ["tarefa-comentarios", tarefaId], refetchType: "none" });
     },
   });
 
