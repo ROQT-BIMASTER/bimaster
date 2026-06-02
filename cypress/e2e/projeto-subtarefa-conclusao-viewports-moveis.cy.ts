@@ -7,8 +7,10 @@
  * exatamente no MESMO nó DOM (sem unmount/remount disparado pelo
  * reflow móvel + invalidação de cache do PATCH).
  *
- * Cada viewport é uma iteração independente, reabrindo o fluxo do
- * zero para isolar regressões específicas de breakpoint.
+ * Diagnóstico: em qualquer falha de identidade do nó DOM, captura
+ * screenshot rotulado + log estruturado com viewport, scrollTop atual,
+ * scrollTop esperado e contagem de [role="dialog"] no DOM. Isso é
+ * essencial em viewports móveis, onde reflow tardio é comum.
  */
 
 const PROJETO_ID = '85829768-7a07-4f44-a48b-f5288dc1a830';
@@ -59,11 +61,11 @@ const abrirSubtarefa = () => {
   cy.get('@painelSub').then(($el) => cy.wrap($el[0]).as('painelSubNode'));
 };
 
-const rolarPainel = (target: number) => {
-  cy.get('@painelSub').then(($p) => {
+const acharScroller = () => {
+  return cy.get('@painelSub').then(($p) => {
     const root = $p[0];
     const candidates = [root, ...Array.from(root.querySelectorAll('*'))];
-    const scroller = candidates.find((el) => {
+    return candidates.find((el) => {
       const cs = getComputedStyle(el as Element);
       const oy = cs.overflowY;
       return (
@@ -71,11 +73,64 @@ const rolarPainel = (target: number) => {
         (el as HTMLElement).scrollHeight > (el as HTMLElement).clientHeight + 20
       );
     }) as HTMLElement | undefined;
+  });
+};
 
+const rolarPainel = (target: number) => {
+  acharScroller().then((scroller) => {
     if (scroller) {
       scroller.scrollTop = target;
       scroller.dispatchEvent(new Event('scroll'));
     }
+  });
+};
+
+/**
+ * Faz a asserção de identidade do nó DOM e, em caso de falha,
+ * coleta diagnóstico (viewport, scrollTop, dialog count) +
+ * screenshot rotulado antes de propagar o erro.
+ */
+const assertMesmoNoComDiagnostico = (
+  label: string,
+  ctx: { viewport: string; expectedScroll: number | null },
+) => {
+  cy.get('@painelSub').should('be.visible');
+
+  cy.get('@painelSubNode').then((node) => {
+    cy.get('[role="dialog"]').last().then(($current) => {
+      const igual = $current[0] === (node as unknown as HTMLElement);
+      if (!igual) {
+        acharScroller().then((scroller) => {
+          cy.document().then((doc) => {
+            const diag = {
+              checkpoint: label,
+              viewport: ctx.viewport,
+              expectedScroll: ctx.expectedScroll,
+              actualScroll: scroller?.scrollTop ?? null,
+              dialogCount: doc.querySelectorAll('[role="dialog"]').length,
+              alertdialogCount: doc.querySelectorAll('[role="alertdialog"]').length,
+              currentTag: $current[0]?.tagName,
+              expectedTag: (node as unknown as HTMLElement)?.tagName,
+            };
+            // eslint-disable-next-line no-console
+            console.error('[REMOUNT][painelSub]', JSON.stringify(diag, null, 2));
+            Cypress.log({
+              name: 'remount-diag',
+              message: `${label} (${ctx.viewport})`,
+              consoleProps: () => diag,
+            });
+          });
+        });
+        cy.screenshot(
+          `remount-FAIL-${label}-${ctx.viewport}`.replace(/[^a-z0-9-]+/gi, '_'),
+          { capture: 'viewport' },
+        );
+      }
+      expect(
+        $current[0],
+        `painel da subtarefa remontou [${label}] em ${ctx.viewport}`,
+      ).to.eq(node);
+    });
   });
 };
 
@@ -92,14 +147,9 @@ describe('Projeto - conclusão de subtarefa em viewports móveis mantém o paine
         abrirSubtarefa();
         rolarPainel(SCROLL_TARGET);
 
-        // Checkpoint pós-abertura/scroll em viewport móvel.
-        cy.get('@painelSubNode').then((node) => {
-          cy.get('[role="dialog"]').last().then(($current) => {
-            expect(
-              $current[0],
-              `painel remontou após scroll em ${label}`,
-            ).to.eq(node);
-          });
+        assertMesmoNoComDiagnostico('pos-scroll', {
+          viewport: label,
+          expectedScroll: SCROLL_TARGET,
         });
 
         cy.get('@painelSub')
@@ -119,18 +169,11 @@ describe('Projeto - conclusão de subtarefa em viewports móveis mantém o paine
         cy.wait('@patchTarefa');
         cy.wait(400);
 
-        // Mesmo nó DOM após PATCH em viewport móvel.
-        cy.get('@painelSub').should('be.visible');
-        cy.get('@painelSubNode').then((node) => {
-          cy.get('[role="dialog"]').last().then(($current) => {
-            expect(
-              $current[0],
-              `painel remontou após PATCH em ${label}`,
-            ).to.eq(node);
-          });
+        assertMesmoNoComDiagnostico('pos-patch', {
+          viewport: label,
+          expectedScroll: SCROLL_TARGET,
         });
 
-        // Estado final.
         cy.get('@painelSub').contains(/Concluída/i).should('be.visible');
         cy.get('[role="alertdialog"]').should('not.exist');
         cy.get('[role="dialog"]').should('have.length.at.least', 2);
