@@ -319,6 +319,7 @@ export function MinhasTarefasSimples() {
   const [showNewTask, setShowNewTask] = useState(false);
   const [detailTarefa, setDetailTarefa] = useState<MinaTarefa | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
+  const { isSaving: isBridgeSaving, attemptSave } = useBridgeSaveRetry();
 
   const projects = useMemo(() => {
     const map = new Map<string, { id: string; nome: string; cor: string }>();
