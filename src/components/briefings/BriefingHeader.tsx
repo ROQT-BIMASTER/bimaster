@@ -1,4 +1,4 @@
-import { ArrowLeft, Link2, MoreHorizontal, Download, Users, ListPlus } from "lucide-react";
+import { ArrowLeft, Link2, MoreHorizontal, Download, Users, ListPlus, ExternalLink, Loader2, Send } from "lucide-react";
 import { useState } from "react";
 import { BriefingMembrosDialog } from "./BriefingMembrosDialog";
 import { useNavigate } from "react-router-dom";
@@ -29,6 +29,10 @@ interface Props {
   jaEmAprovacao: boolean;
   onEnviarAprovacao: () => void;
   onCancelarAprovacao?: () => void;
+  onEnviarRRTask?: () => void;
+  onReenviarRRTask?: () => void;
+  onAbrirRRTask?: () => void;
+  rrtaskEnviando?: boolean;
 }
 
 export function BriefingHeader({
@@ -45,11 +49,17 @@ export function BriefingHeader({
   jaEmAprovacao,
   onEnviarAprovacao,
   onCancelarAprovacao,
+  onEnviarRRTask,
+  onReenviarRRTask,
+  onAbrirRRTask,
+  rrtaskEnviando,
 }: Props) {
   const navigate = useNavigate();
   const [membrosOpen, setMembrosOpen] = useState(false);
   const tipo = getTipoMeta(briefing.tipo);
   const status = getStatusBadge(briefing.status);
+  const rrtaskJaCriada = !!briefing.rrtask_page_id;
+  const rrtaskFinalizado = briefing.status === "final";
 
   return (
     <div className={`border-b transition-colors ${projetoNome ? "bg-primary/5" : "bg-background"}`}>
@@ -140,6 +150,63 @@ export function BriefingHeader({
             Enviar para aprovação
           </Button>
         )}
+
+        {onEnviarRRTask && (
+          rrtaskJaCriada ? (
+            <>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onAbrirRRTask}
+                title="Abrir página da task no RR-Tasks"
+              >
+                <ExternalLink className="h-3.5 w-3.5 mr-1.5" />
+                Abrir no RR-Tasks
+              </Button>
+              {onReenviarRRTask && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={onReenviarRRTask}
+                  disabled={rrtaskEnviando}
+                  title="Reenviar dados para o RR-Tasks (atualiza a task existente)"
+                >
+                  {rrtaskEnviando ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    "Reenviar"
+                  )}
+                </Button>
+              )}
+            </>
+          ) : (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onEnviarRRTask}
+              disabled={!rrtaskFinalizado || rrtaskEnviando}
+              title={
+                rrtaskFinalizado
+                  ? "Criar task no RR-Tasks da agência"
+                  : "Disponível quando o briefing estiver finalizado"
+              }
+            >
+              {rrtaskEnviando ? (
+                <>
+                  <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                  Enviando…
+                </>
+              ) : (
+                <>
+                  <Send className="h-3.5 w-3.5 mr-1.5" />
+                  Enviar para produção
+                </>
+              )}
+            </Button>
+          )
+        )}
+
+
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
