@@ -23,9 +23,11 @@ import {
   ListTodo,
   Paperclip,
   FolderLock,
+  AlertOctagon,
 } from "lucide-react";
 import { ProjetoCofreUploadDialog } from "@/components/projetos/cofre/ProjetoCofreUploadDialog";
 import { ChatComposerActionsBar } from "./ChatComposerActionsBar";
+import { CutucarItemDialog } from "./CutucarItemDialog";
 import { useAbrirAcaoVinculada } from "@/hooks/chat/useAbrirAcaoVinculada";
 
 import { Button } from "@/components/ui/button";
