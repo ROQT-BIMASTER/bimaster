@@ -503,6 +503,7 @@ export function ProjetoMembrosDialog({ open, onOpenChange, projetoId, projetoTip
           )}
           </TabsContent>
         </Tabs>
+        </fieldset>
       </DialogContent>
     </Dialog>
 
