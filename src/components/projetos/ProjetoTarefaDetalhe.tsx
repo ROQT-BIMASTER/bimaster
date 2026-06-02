@@ -181,6 +181,47 @@ export function ProjetoTarefaDetalhe({
     if (!selectedSubtarefaId || !tarefa?.subtarefas) return null;
     return tarefa.subtarefas.find(st => st.id === selectedSubtarefaId) || null;
   }, [selectedSubtarefaId, tarefa?.subtarefas]);
+
+  // === Stable row key para subtarefas ===
+  // Evita unmount/remount do nó DOM quando o cache troca o tempId pelo id
+  // real (createTarefa.onSuccess). Sem isso, a subtarefa recém-criada pisca
+  // ao ganhar o id real porque o React vê uma key nova. Estratégia:
+  // - Cada subtarefa recebe um rowKey persistente armazenado em um Map ref.
+  // - Quando aparece um id real ainda não mapeado, procuramos uma entrada
+  //   temp órfã com mesmo (parent_tarefa_id + titulo) para reusar a rowKey,
+  //   garantindo continuidade visual durante o swap.
+  const rowKeyMapRef = useRef<Map<string, string>>(new Map());
+  const rowKeyCounterRef = useRef(0);
+  const getSubRowKey = useCallback(
+    (st: ProjetoTarefa): string => {
+      const map = rowKeyMapRef.current;
+      const existing = map.get(st.id);
+      if (existing) return existing;
+      // Tenta herdar de um tempId órfão com mesma assinatura (titulo + parent).
+      if (!st.id.startsWith("temp-")) {
+        for (const [k, v] of map) {
+          if (!k.startsWith("temp-")) continue;
+          // Pais batem? (mesmo nó host)
+          // Como a Map só guarda id→key, comparamos via lookup na lista atual.
+          const tempStill = tarefa?.subtarefas?.some(s => s.id === k);
+          if (tempStill) continue; // ainda existe, não é órfão
+          map.delete(k);
+          map.set(st.id, v);
+          return v;
+        }
+      }
+      const fresh = `sub-${++rowKeyCounterRef.current}`;
+      map.set(st.id, fresh);
+      return fresh;
+    },
+    [tarefa?.subtarefas],
+  );
+  // Limpa entradas órfãs do map quando a tarefa pai muda (evita memory leak).
+  useEffect(() => {
+    rowKeyMapRef.current = new Map();
+    rowKeyCounterRef.current = 0;
+  }, [tarefa?.id]);
+
   const { suggestFields, generateChecklist, loading: iaLoading } = useProjetoIA();
   const [pendingAISubtarefas, setPendingAISubtarefas] = useState<{ titulo: string; selected: boolean }[]>([]);
   const [pendingAIDescricao, setPendingAIDescricao] = useState<{
