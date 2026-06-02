@@ -80,9 +80,10 @@ export function useProjetoMembros(projetoId: string | undefined) {
     // outras abas sem aguardar staleTime de 5min do default global.
     staleTime: 30 * 1000,
     refetchOnMount: "always",
+    refetchOnWindowFocus: true,
   });
 
-  // Realtime: invalida cache quando alguém entra/sai do projeto em qualquer
+  // Realtime: invalida caches quando alguém entra/sai do projeto em qualquer
   // sessão (aceite de convite, remoção via tela de Equipe, etc.).
   useEffect(() => {
     if (!projetoId) return;
@@ -92,7 +93,10 @@ export function useProjetoMembros(projetoId: string | undefined) {
         "postgres_changes",
         { event: "*", schema: "public", table: "projeto_membros", filter: `projeto_id=eq.${projetoId}` },
         () => {
-          queryClient.invalidateQueries({ queryKey: ["projeto_membros", projetoId] });
+          invalidateProjetoMembershipCaches(queryClient, projetoId);
+          // Outra aba pode estar com um modal Radix aberto cujo overlay
+          // travou o body; destrava defensivamente.
+          unstickBodyPointerEvents();
         },
       )
       .subscribe();
@@ -100,6 +104,41 @@ export function useProjetoMembros(projetoId: string | undefined) {
       supabase.removeChannel(channel);
     };
   }, [projetoId, queryClient]);
+
+  // BroadcastChannel: caminho redundante e de baixa latência para abas no
+  // mesmo navegador. Cobre o caso em que o socket Realtime de uma aba em
+  // background foi pausado pelo browser.
+  useEffect(() => {
+    if (!projetoId || typeof BroadcastChannel === "undefined") return;
+    const bc = new BroadcastChannel(PROJETO_MEMBROS_BROADCAST_CHANNEL);
+    bc.onmessage = (event) => {
+      const data = event?.data as { type?: string; projetoId?: string } | undefined;
+      if (!data || data.projetoId !== projetoId) return;
+      if (data.type === "membro_removido" || data.type === "membro_alterado") {
+        invalidateProjetoMembershipCaches(queryClient, projetoId);
+        unstickBodyPointerEvents();
+      }
+    };
+    return () => {
+      bc.close();
+    };
+  }, [projetoId, queryClient]);
+
+  // Visibilitychange: ao voltar a aba, força re-sync e destrava body.
+  // Cobre cenários onde Realtime/BroadcastChannel falharam enquanto
+  // a aba estava em background.
+  useEffect(() => {
+    if (!projetoId || typeof document === "undefined") return;
+    const onVisible = () => {
+      if (document.visibilityState === "visible") {
+        invalidateProjetoMembershipCaches(queryClient, projetoId);
+        unstickBodyPointerEvents();
+      }
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
+  }, [projetoId, queryClient]);
+
 
   const isCoordinator = membros.some(
     (m) => m.user_id === user?.id && ["coordenador", "gestor_produto"].includes(m.papel)
