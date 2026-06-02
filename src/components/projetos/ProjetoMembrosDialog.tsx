@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useEffect } from "react";
+import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { ProjetoProdutosVinculados } from "./ProjetoProdutosVinculados";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -20,7 +20,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
 import { DEV_PAPEIS } from "@/lib/productDocAudit";
 import {
-  Search, UserPlus, Trash2, Shield, User, Crown, Palette, Eye, Lock, BarChart3, Settings, Users, Loader2, Mail, History, CheckCircle2, UserMinus, X,
+  Search, UserPlus, Trash2, Shield, User, Crown, Palette, Eye, Lock, BarChart3, Settings, Users, Loader2, Mail, History, CheckCircle2, UserMinus, X, AlertTriangle,
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ConvidarMembroPanel } from "@/components/projetos/convites/ConvidarMembroPanel";
@@ -69,6 +69,17 @@ export function ProjetoMembrosDialog({ open, onOpenChange, projetoId, projetoTip
   const [addingTeam, setAddingTeam] = useState(false);
   const [recentlyAdded, setRecentlyAdded] = useState<string[]>([]);
   const [recentlyRemoved, setRecentlyRemoved] = useState<string | null>(null);
+  const [removeError, setRemoveError] = useState<string | null>(null);
+  const removingOverlayRef = useRef<HTMLDivElement | null>(null);
+
+  // Focus trap: ao iniciar remoção, joga o foco para o overlay (que está
+  // dentro do DialogContent, então o focus-trap do Radix garante que Tab/Shift+Tab
+  // não vazem para fora — todo o restante do conteúdo está com `inert`).
+  useEffect(() => {
+    if (removingMembro && removingOverlayRef.current) {
+      removingOverlayRef.current.focus();
+    }
+  }, [removingMembro]);
 
   // Defensive: reset body pointer-events if Radix leaves it locked after close.
   useEffect(() => {
@@ -217,8 +228,17 @@ export function ProjetoMembrosDialog({ open, onOpenChange, projetoId, projetoTip
       >
         {removingMembro && (
           <div
-            className="absolute inset-0 z-50 flex items-center justify-center rounded-lg bg-background/70 backdrop-blur-[1px]"
+            ref={removingOverlayRef}
+            tabIndex={-1}
+            role="status"
             aria-live="polite"
+            aria-busy="true"
+            data-testid="removing-overlay"
+            className="absolute inset-0 z-50 flex items-center justify-center rounded-lg bg-background/70 backdrop-blur-[1px] outline-none"
+            onKeyDown={(e) => {
+              // Prende o foco: Tab/Shift+Tab/Esc/Enter/Space não saem do overlay.
+              if (["Tab", "Escape"].includes(e.key)) e.preventDefault();
+            }}
           >
             <div className="flex items-center gap-2 rounded-md border bg-card px-3 py-2 shadow-md text-sm">
               <Loader2 className="h-4 w-4 animate-spin text-destructive" />
@@ -513,7 +533,10 @@ export function ProjetoMembrosDialog({ open, onOpenChange, projetoId, projetoTip
       onOpenChange={(v) => {
         // Bloqueia fechamento durante a remoção; só permite cancelar.
         if (removingMembro) return;
-        if (!v) setRemoveMemberConfirm(null);
+        if (!v) {
+          setRemoveMemberConfirm(null);
+          setRemoveError(null);
+        }
       }}
     >
       <AlertDialogContent
@@ -529,27 +552,59 @@ export function ProjetoMembrosDialog({ open, onOpenChange, projetoId, projetoTip
               : `${removeMemberConfirm?.nome || "O membro"} perderá acesso ao projeto. Esta ação pode ser revertida adicionando-o novamente.`}
           </AlertDialogDescription>
         </AlertDialogHeader>
+        {removingMembro && (
+          <div
+            role="status"
+            aria-live="polite"
+            data-testid="alert-removing-status"
+            className="flex items-center gap-2 rounded-md border bg-muted/40 p-2 text-xs"
+          >
+            <Loader2 className="h-3.5 w-3.5 animate-spin text-destructive" />
+            <span>Processando remoção. Não feche esta janela.</span>
+          </div>
+        )}
+        {removeError && !removingMembro && (
+          <div
+            role="alert"
+            data-testid="remove-error"
+            className="flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/5 p-2 text-xs"
+          >
+            <AlertTriangle className="h-3.5 w-3.5 text-destructive mt-0.5 shrink-0" />
+            <div className="flex-1">
+              <p className="font-medium text-foreground">Não foi possível remover o membro.</p>
+              <p className="text-muted-foreground">{removeError}</p>
+            </div>
+          </div>
+        )}
         <AlertDialogFooter>
-          <AlertDialogCancel disabled={!!removingMembro}>Cancelar</AlertDialogCancel>
+          <AlertDialogCancel disabled={!!removingMembro} onClick={() => setRemoveError(null)}>
+            Cancelar
+          </AlertDialogCancel>
           <AlertDialogAction
             disabled={!!removingMembro}
             onClick={async (e) => {
               e.preventDefault();
               if (!removeMemberConfirm) return;
               const target = removeMemberConfirm;
+              setRemoveError(null);
               setRemovingMembro(target);
               try {
                 await removeMembro.mutateAsync(target.id);
                 setRecentlyRemoved(target.nome);
                 window.setTimeout(() => setRecentlyRemoved(null), 5000);
-              } finally {
                 setRemovingMembro(null);
                 setRemoveMemberConfirm(null);
+              } catch (err) {
+                setRemovingMembro(null);
+                setRemoveError(err instanceof Error ? err.message : "Erro desconhecido. Tente novamente.");
+                // mantém o AlertDialog aberto para nova tentativa
               }
             }}
           >
             {removingMembro ? (
               <><Loader2 className="h-4 w-4 animate-spin mr-2" /> Removendo…</>
+            ) : removeError ? (
+              "Tentar novamente"
             ) : (
               "Remover"
             )}
