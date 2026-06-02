@@ -44,7 +44,7 @@ export function ProjetoCalendarioView({ projetoId, darkBg = false, filters = EMP
 
   // Período visível (sincronizado com o UnifiedCalendar via onPeriodChange).
   const [periodoInfo, setPeriodoInfo] = useState(() => {
-    const today = new Date();
+    const today = getToday();
     return {
       inicio: startOfMonth(today),
       fim: endOfMonth(today),
