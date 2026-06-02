@@ -380,6 +380,7 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
   const [showNewTask, setShowNewTask] = useState(false);
   const [detailTarefa, setDetailTarefa] = useState<MinaTarefa | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
+  const { isSaving, attemptSave } = useBridgeSaveRetry();
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [showWeeklySummary, setShowWeeklySummary] = useState<boolean>(
     preferences.show_weekly_summary ?? true,
