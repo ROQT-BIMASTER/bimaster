@@ -2,7 +2,7 @@ import { logger } from "@/lib/logger";
 
 // Histórico de versões em CHANGELOG.md (raiz do repo).
 
-export const APP_VERSION = '3.5.04';
+export const APP_VERSION = '3.5.05';
 
 // Chave para armazenar versão no localStorage
 const VERSION_KEY = 'app_version';

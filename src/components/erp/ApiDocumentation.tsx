@@ -3620,6 +3620,9 @@ def verify_signature(payload: bytes, signature: str, secret: str) -> bool:
 
                 <div className="border rounded-xl p-5 space-y-3">
                   {[
+                    { version: "v4.4.32 / SDK v3.3.1 / APP v3.5.05", date: "2026-06-02", changes: [
+                      "PROJETOS — `get_projeto_tarefas_v2` reescrita para gatear acesso via `user_can_access_projeto` e retornar todas as seções e tarefas (não excluídas) do projeto a qualquer usuário com acesso. Remove o subset por `projeto_membro_secoes` que escondia seções recém-criadas após refresh e causava a impressão de que tarefas estavam sendo apagadas no projeto Redes. Bump `APP_VERSION` 3.5.04 → 3.5.05. Invariante grep: `grep -n \"3.5.05\" src/lib/version.ts | wc -l` ≥ 1.",
+                    ] },
                     { version: "v4.4.31 / SDK v3.3.1 / APP v3.5.04", date: "2026-06-02", changes: [
                       "PROJETOS — correção do retorno ao criar seção em projetos compartilhados. A regra de leitura de `projeto_secoes` agora reutiliza `user_can_access_projeto`, alinhando a visibilidade da seção recém-criada com a regra já ampliada para quem enxerga o projeto por membro, departamento ou vínculo em tarefa. Isso elimina a falha pós-inserção ao criar 'Nova Seção' no projeto Redes. Bump `APP_VERSION` 3.5.03 → 3.5.04 para acionar o mecanismo de atualização dos clientes. Sem mudança de frontend funcional, SDK ou OpenAPI público. Invariante grep: `grep -n \"3.5.04\" src/lib/version.ts | wc -l` ≥ 1.",
                     ] },
