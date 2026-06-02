@@ -136,6 +136,11 @@ export function ProjetoMembrosDialog({ open, onOpenChange, projetoId, projetoTip
       setTeamSearch("");
       if (addedNames.length > 0) {
         setRecentlyAdded(addedNames);
+        setLiveMessage(
+          addedNames.length === 1
+            ? `${addedNames[0]} foi adicionado(a) ao projeto.`
+            : `${addedNames.length} membros adicionados ao projeto: ${addedNames.join(", ")}.`,
+        );
         window.setTimeout(() => setRecentlyAdded([]), 6000);
       }
       // Mantém o sub-diálogo aberto: o usuário fecha manualmente via X ou "Cancelar".
