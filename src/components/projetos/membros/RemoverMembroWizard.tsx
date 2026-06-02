@@ -70,9 +70,9 @@ export function RemoverMembroWizard({ open, onOpenChange, projetoId, membro, out
     if (!parsed.success) return;
     try {
       await remover.mutateAsync(parsed.data);
-      // Close on next tick so React Query invalidations from onSuccess don't
-      // race with Radix's modal-stack unmount (causes body pointer-events lock).
-      setTimeout(() => onOpenChange(false), 0);
+      // Mantém o diálogo aberto com painel de confirmação;
+      // usuário fecha manualmente via "Fechar".
+      setConcluido(true);
     } catch {
       /* toast já exibido */
     }
