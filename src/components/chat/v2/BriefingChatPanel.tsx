@@ -13,9 +13,10 @@ import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { ExternalLink, MessageSquare, Sparkles, Send, AtSign, FileText, Paperclip, FolderLock } from "lucide-react";
+import { ExternalLink, MessageSquare, Sparkles, Send, AtSign, FileText, Paperclip, FolderLock, AlertOctagon } from "lucide-react";
 import { UploadDocumentoDialog } from "@/components/briefings/cofre/UploadDocumentoDialog";
 import { ChatComposerActionsBar } from "./ChatComposerActionsBar";
+import { CutucarItemDialog } from "./CutucarItemDialog";
 import { useAbrirAcaoVinculada } from "@/hooks/chat/useAbrirAcaoVinculada";
 
 import { Button } from "@/components/ui/button";
@@ -72,6 +73,9 @@ export function BriefingChatPanel({ briefingId }: Props) {
   const [cofreVinculaComentarioId, setCofreVinculaComentarioId] = useState<string | null>(null);
   const [cofreInitialFile, setCofreInitialFile] = useState<File | null>(null);
   const { abrirAprovacao, abrirUrgente } = useAbrirAcaoVinculada();
+  const [cutucarItem, setCutucarItem] = useState<{ id: string; resumo: string; docNome?: string | null } | null>(null);
+
+
 
 
 
@@ -346,6 +350,10 @@ export function BriefingChatPanel({ briefingId }: Props) {
                     setCofreDescricao(c.body);
                     setCofreOpen(true);
                   }}
+                  onCutucar={() => {
+                    const docNome = (c.metadata as any)?.cofre_doc_nome as string | undefined;
+                    setCutucarItem({ id: c.id, resumo: c.body, docNome: docNome ?? null });
+                  }}
                 />
               ))}
             </div>
@@ -456,6 +464,18 @@ export function BriefingChatPanel({ briefingId }: Props) {
           }
         }}
       />
+
+      <CutucarItemDialog
+        open={!!cutucarItem}
+        onOpenChange={(v) => { if (!v) setCutucarItem(null); }}
+        tipo="briefing"
+        refId={briefingId}
+        tituloEscopo={briefing?.titulo ?? "Briefing"}
+        itemResumo={cutucarItem?.resumo ?? ""}
+        itemId={cutucarItem?.id}
+        itemTipo={cutucarItem?.docNome ? "documento" : "comentario"}
+        docNome={cutucarItem?.docNome ?? null}
+      />
     </div>
   );
 }
@@ -480,7 +500,7 @@ function EmptyState({
 }
 
 function ComentarioCard({
-  c, authorNome, campoLabel, isMe, mencionaMe, onOpen, onAnexarCofre,
+  c, authorNome, campoLabel, isMe, mencionaMe, onOpen, onAnexarCofre, onCutucar,
 }: {
   c: BriefingComentario;
   authorNome: string | null;
@@ -489,6 +509,7 @@ function ComentarioCard({
   mencionaMe: boolean;
   onOpen: () => void;
   onAnexarCofre: () => void;
+  onCutucar: () => void;
 }) {
   const cofreDocNome = (c.metadata as any)?.cofre_doc_nome as string | undefined;
   return (
@@ -531,14 +552,24 @@ function ComentarioCard({
             <FolderLock className="h-2.5 w-2.5" /> Cofre · {cofreDocNome}
           </Badge>
         ) : <span />}
-        <button
-          onClick={onAnexarCofre}
-          className="text-[10px] inline-flex items-center gap-1 text-briefing hover:underline"
-          title="Anexar arquivo ao cofre vinculado a este comentário"
-        >
-          <Paperclip className="h-3 w-3" />
-          {cofreDocNome ? "Substituir doc" : "Anexar ao cofre"}
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); onCutucar(); }}
+            className="text-[10px] inline-flex items-center gap-1 text-destructive hover:underline"
+            title="Chamar atenção dos participantes para este comentário"
+          >
+            <AlertOctagon className="h-3 w-3" /> Chamar atenção
+          </button>
+          <button
+            onClick={onAnexarCofre}
+            className="text-[10px] inline-flex items-center gap-1 text-briefing hover:underline"
+            title="Anexar arquivo ao cofre vinculado a este comentário"
+          >
+            <Paperclip className="h-3 w-3" />
+            {cofreDocNome ? "Substituir doc" : "Anexar ao cofre"}
+          </button>
+        </div>
       </div>
     </div>
   );

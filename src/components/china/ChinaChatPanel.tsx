@@ -16,7 +16,7 @@ import {
 import {
   MessageSquare, Send, Loader2, Reply, X, Check, CheckCheck,
   Lock, Unlock, AtSign, Package, FileText, ClipboardList,
-  Paperclip, Sparkles, Languages, Wand2, ListTree,
+  Paperclip, Sparkles, Languages, Wand2, ListTree, AlertOctagon,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -30,6 +30,7 @@ import { MessageTranslation } from "./chat/MessageTranslation";
 import { ChatAttachmentChip, type ChatAnexo } from "./chat/ChatAttachmentChip";
 import { ChatIaActionCard, type IaToolProposal } from "./chat/ChatIaActionCard";
 import { ChatComposerActionsBar } from "@/components/chat/v2/ChatComposerActionsBar";
+import { CutucarItemDialog } from "@/components/chat/v2/CutucarItemDialog";
 import { useAbrirAcaoVinculada } from "@/hooks/chat/useAbrirAcaoVinculada";
 
 
@@ -103,6 +104,7 @@ const REF_ICONS: Record<string, React.ReactNode> = {
 
 export function ChinaChatPanel({ submissaoId, produtoNome, tipoRemetente, referenciasDisponiveis = [] }: Props) {
   const { abrirAprovacao, abrirUrgente } = useAbrirAcaoVinculada();
+  const [cutucarItem, setCutucarItem] = useState<{ id: string; resumo: string; docNome?: string | null } | null>(null);
   const { language: leitorIdioma, setLanguage } = useUserLanguage();
   const [mensagens, setMensagens] = useState<Mensagem[]>([]);
   const [translatingIds, setTranslatingIds] = useState<Set<string>>(new Set());
@@ -778,13 +780,31 @@ export function ChinaChatPanel({ submissaoId, produtoNome, tipoRemetente, refere
                     ))}
 
                     {!isFinalizado && !isIa && (
-                      <button
-                        onClick={() => setReplyingTo(msg)}
-                        className={`absolute -top-2 ${align === "right" ? "left-0 -translate-x-full" : "right-0 translate-x-full"} opacity-0 group-hover:opacity-100 transition-opacity bg-background border rounded-full p-1 shadow-sm`}
-                        title="Responder 回复"
+                      <div
+                        className={`absolute -top-2 ${align === "right" ? "left-0 -translate-x-full" : "right-0 translate-x-full"} opacity-0 group-hover:opacity-100 transition-opacity flex gap-1`}
                       >
-                        <Reply className="h-3 w-3 text-muted-foreground" />
-                      </button>
+                        <button
+                          onClick={() => setReplyingTo(msg)}
+                          className="bg-background border rounded-full p-1 shadow-sm"
+                          title="Responder 回复"
+                        >
+                          <Reply className="h-3 w-3 text-muted-foreground" />
+                        </button>
+                        <button
+                          onClick={() => {
+                            const primeiroAnexo = (msg.anexos || [])[0];
+                            setCutucarItem({
+                              id: msg.id,
+                              resumo: msg.conteudo?.slice(0, 160) ?? (primeiroAnexo?.nome ?? ""),
+                              docNome: primeiroAnexo?.nome ?? null,
+                            });
+                          }}
+                          className="bg-background border border-destructive/40 rounded-full p-1 shadow-sm"
+                          title="Chamar atenção 提醒"
+                        >
+                          <AlertOctagon className="h-3 w-3 text-destructive" />
+                        </button>
+                      </div>
                     )}
                   </div>
                 </div>
@@ -986,6 +1006,18 @@ export function ChinaChatPanel({ submissaoId, produtoNome, tipoRemetente, refere
           </div>
         </div>
       )}
+
+      <CutucarItemDialog
+        open={!!cutucarItem}
+        onOpenChange={(v) => { if (!v) setCutucarItem(null); }}
+        tipo="submissao"
+        refId={submissaoId}
+        tituloEscopo={`Submissão · ${produtoNome}`}
+        itemResumo={cutucarItem?.resumo ?? ""}
+        itemId={cutucarItem?.id}
+        itemTipo={cutucarItem?.docNome ? "documento" : "comentario"}
+        docNome={cutucarItem?.docNome ?? null}
+      />
     </Card>
   );
 }

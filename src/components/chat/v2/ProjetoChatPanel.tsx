@@ -23,9 +23,11 @@ import {
   ListTodo,
   Paperclip,
   FolderLock,
+  AlertOctagon,
 } from "lucide-react";
 import { ProjetoCofreUploadDialog } from "@/components/projetos/cofre/ProjetoCofreUploadDialog";
 import { ChatComposerActionsBar } from "./ChatComposerActionsBar";
+import { CutucarItemDialog } from "./CutucarItemDialog";
 import { useAbrirAcaoVinculada } from "@/hooks/chat/useAbrirAcaoVinculada";
 
 import { Button } from "@/components/ui/button";
@@ -115,6 +117,9 @@ export function ProjetoChatPanel({ projetoId }: Props) {
   const [cofreOpen, setCofreOpen] = useState(false);
   const [cofreInitialFile, setCofreInitialFile] = useState<File | null>(null);
   const { abrirAprovacao, abrirUrgente } = useAbrirAcaoVinculada();
+  const [cutucarItem, setCutucarItem] = useState<{ id: string; resumo: string } | null>(null);
+
+
 
 
 
@@ -399,6 +404,9 @@ export function ProjetoChatPanel({ projetoId }: Props) {
                       goProjeto();
                     }
                   }}
+                  onCutucar={() =>
+                    setCutucarItem({ id: c.id, resumo: c.conteudo ?? "" })
+                  }
                 />
               ))}
             </div>
@@ -498,6 +506,17 @@ export function ProjetoChatPanel({ projetoId }: Props) {
           }
         }}
       />
+
+      <CutucarItemDialog
+        open={!!cutucarItem}
+        onOpenChange={(v) => { if (!v) setCutucarItem(null); }}
+        tipo="projeto"
+        refId={projetoId}
+        tituloEscopo={nomeProjeto}
+        itemResumo={cutucarItem?.resumo ?? ""}
+        itemId={cutucarItem?.id}
+        itemTipo="comentario"
+      />
     </div>
   );
 }
@@ -526,18 +545,23 @@ function ComentarioCard({
   isMe,
   mencionaMe,
   onOpen,
+  onCutucar,
 }: {
   c: ProjetoComentarioAgg;
   isMe: boolean;
   mencionaMe: boolean;
   onOpen: () => void;
+  onCutucar: () => void;
 }) {
   const ehTarefa = c.origem === "tarefa" && !!c.tarefaRef;
   return (
-    <button
+    <div
+      role="button"
+      tabIndex={0}
       onClick={onOpen}
+      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onOpen(); } }}
       className={cn(
-        "w-full text-left rounded-lg border bg-card hover:bg-muted/40 transition-colors p-3 space-y-1.5 shadow-sm",
+        "w-full text-left rounded-lg border bg-card hover:bg-muted/40 transition-colors p-3 space-y-1.5 shadow-sm cursor-pointer",
         "border-l-2",
         ehTarefa ? "border-l-primary/40" : "border-l-muted-foreground/30",
         mencionaMe && "border-l-amber-500 bg-amber-500/[0.04]",
@@ -578,13 +602,21 @@ function ComentarioCard({
         </p>
       )}
       <p className="text-sm whitespace-pre-wrap line-clamp-4">{c.conteudo}</p>
-      <div className="flex items-center justify-end">
+      <div className="flex items-center justify-between gap-2">
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); onCutucar(); }}
+          className="text-[10px] inline-flex items-center gap-1 text-destructive hover:underline"
+          title="Chamar atenção dos participantes para este comentário"
+        >
+          <AlertOctagon className="h-3 w-3" /> Chamar atenção
+        </button>
         <span className="text-[10px] text-primary inline-flex items-center gap-1">
           {ehTarefa ? "Abrir tarefa" : "Abrir projeto"}{" "}
           <ExternalLink className="h-2.5 w-2.5" />
         </span>
       </div>
-    </button>
+    </div>
   );
 }
 
