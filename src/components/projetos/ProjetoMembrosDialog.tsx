@@ -20,7 +20,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
 import { DEV_PAPEIS } from "@/lib/productDocAudit";
 import {
-  Search, UserPlus, Trash2, Shield, User, Crown, Palette, Eye, Lock, BarChart3, Settings, Users, Loader2, Mail, History,
+  Search, UserPlus, Trash2, Shield, User, Crown, Palette, Eye, Lock, BarChart3, Settings, Users, Loader2, Mail, History, CheckCircle2, UserMinus, X,
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ConvidarMembroPanel } from "@/components/projetos/convites/ConvidarMembroPanel";
@@ -60,12 +60,15 @@ export function ProjetoMembrosDialog({ open, onOpenChange, projetoId, projetoTip
   const { user } = useAuth();
   const { enabled: offboardingEnabled } = useFeatureFlag("ff_offboarding_membros_v1");
   const [search, setSearch] = useState("");
-  const [removeMemberConfirm, setRemoveMemberConfirm] = useState<string | null>(null);
+  const [removeMemberConfirm, setRemoveMemberConfirm] = useState<{ id: string; nome: string } | null>(null);
+  const [removingMembro, setRemovingMembro] = useState<{ id: string; nome: string } | null>(null);
   const [wizardMembro, setWizardMembro] = useState<ProjetoMembro | null>(null);
   const [showTeamDialog, setShowTeamDialog] = useState(false);
   const [selectedTeamIds, setSelectedTeamIds] = useState<string[]>([]);
   const [teamSearch, setTeamSearch] = useState("");
   const [addingTeam, setAddingTeam] = useState(false);
+  const [recentlyAdded, setRecentlyAdded] = useState<string[]>([]);
+  const [recentlyRemoved, setRecentlyRemoved] = useState<string | null>(null);
 
   // Defensive: reset body pointer-events if Radix leaves it locked after close.
   useEffect(() => {
@@ -106,6 +109,7 @@ export function ProjetoMembrosDialog({ open, onOpenChange, projetoId, projetoTip
   const handleAddTeam = useCallback(async () => {
     if (selectedTeamIds.length === 0) return;
     setAddingTeam(true);
+    const addedNames: string[] = [];
     try {
       for (const userId of selectedTeamIds) {
         const profile = allUsers.find((u) => u.id === userId);
@@ -114,9 +118,14 @@ export function ProjetoMembrosDialog({ open, onOpenChange, projetoId, projetoTip
           papel: "membro",
           profile: profile ? { nome: profile.nome, avatar_url: profile.avatar_url } : undefined,
         });
+        if (profile?.nome) addedNames.push(profile.nome);
       }
       setSelectedTeamIds([]);
       setTeamSearch("");
+      if (addedNames.length > 0) {
+        setRecentlyAdded(addedNames);
+        window.setTimeout(() => setRecentlyAdded([]), 6000);
+      }
       // Mantém o sub-diálogo aberto: o usuário fecha manualmente via X ou "Cancelar".
     } finally {
       setAddingTeam(false);
@@ -258,6 +267,39 @@ export function ProjetoMembrosDialog({ open, onOpenChange, projetoId, projetoTip
           )}
 
           <TabsContent value="membros" className="flex-1 overflow-hidden flex flex-col gap-4 mt-3">
+          {recentlyAdded.length > 0 && (
+            <div className="flex items-start gap-2 rounded-md border border-emerald-500/30 bg-emerald-500/5 p-2.5 text-xs">
+              <CheckCircle2 className="h-4 w-4 text-emerald-600 mt-0.5 shrink-0" />
+              <div className="flex-1">
+                <p className="font-medium text-foreground">
+                  {recentlyAdded.length === 1 ? "Membro adicionado" : `${recentlyAdded.length} membros adicionados`}
+                </p>
+                <p className="text-muted-foreground truncate">{recentlyAdded.join(", ")}</p>
+              </div>
+              <button
+                onClick={() => setRecentlyAdded([])}
+                className="text-muted-foreground hover:text-foreground"
+                aria-label="Dispensar"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          )}
+          {recentlyRemoved && (
+            <div className="flex items-start gap-2 rounded-md border bg-muted/40 p-2.5 text-xs">
+              <UserMinus className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+              <div className="flex-1">
+                <p className="font-medium text-foreground">{recentlyRemoved} foi removido(a) do projeto.</p>
+              </div>
+              <button
+                onClick={() => setRecentlyRemoved(null)}
+                className="text-muted-foreground hover:text-foreground"
+                aria-label="Dispensar"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          )}
           {isCoordinator && (
             <div className="space-y-2">
               <div className="flex gap-2">
@@ -383,7 +425,7 @@ export function ProjetoMembrosDialog({ open, onOpenChange, projetoId, projetoTip
                                 variant="ghost"
                                 size="icon"
                                 className="h-7 w-7 text-destructive hover:text-destructive"
-                                onClick={() => offboardingEnabled ? setWizardMembro(membro) : setRemoveMemberConfirm(membro.id)}
+                                onClick={() => offboardingEnabled ? setWizardMembro(membro) : setRemoveMemberConfirm({ id: membro.id, nome: membro.profile?.nome || "membro" })}
                               >
                                 <Trash2 className="h-3.5 w-3.5" />
                               </Button>
@@ -447,18 +489,51 @@ export function ProjetoMembrosDialog({ open, onOpenChange, projetoId, projetoTip
     </Dialog>
 
     {/* Remove member confirmation */}
-    <AlertDialog open={!!removeMemberConfirm} onOpenChange={() => setRemoveMemberConfirm(null)}>
-      <AlertDialogContent>
+    <AlertDialog
+      open={!!removeMemberConfirm}
+      onOpenChange={(v) => {
+        // Bloqueia fechamento durante a remoção; só permite cancelar.
+        if (removingMembro) return;
+        if (!v) setRemoveMemberConfirm(null);
+      }}
+    >
+      <AlertDialogContent
+        onEscapeKeyDown={(e) => { if (removingMembro) e.preventDefault(); }}
+      >
         <AlertDialogHeader>
-          <AlertDialogTitle>Remover membro?</AlertDialogTitle>
+          <AlertDialogTitle>
+            {removingMembro ? `Removendo ${removingMembro.nome}…` : "Remover membro?"}
+          </AlertDialogTitle>
           <AlertDialogDescription>
-            O membro perderá acesso ao projeto. Esta ação pode ser revertida adicionando-o novamente.
+            {removingMembro
+              ? "Aguarde — revogando acesso e atualizando a equipe do projeto."
+              : `${removeMemberConfirm?.nome || "O membro"} perderá acesso ao projeto. Esta ação pode ser revertida adicionando-o novamente.`}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>Cancelar</AlertDialogCancel>
-          <AlertDialogAction onClick={() => { if (removeMemberConfirm) { removeMembro.mutate(removeMemberConfirm); setRemoveMemberConfirm(null); } }}>
-            Remover
+          <AlertDialogCancel disabled={!!removingMembro}>Cancelar</AlertDialogCancel>
+          <AlertDialogAction
+            disabled={!!removingMembro}
+            onClick={async (e) => {
+              e.preventDefault();
+              if (!removeMemberConfirm) return;
+              const target = removeMemberConfirm;
+              setRemovingMembro(target);
+              try {
+                await removeMembro.mutateAsync(target.id);
+                setRecentlyRemoved(target.nome);
+                window.setTimeout(() => setRecentlyRemoved(null), 5000);
+              } finally {
+                setRemovingMembro(null);
+                setRemoveMemberConfirm(null);
+              }
+            }}
+          >
+            {removingMembro ? (
+              <><Loader2 className="h-4 w-4 animate-spin mr-2" /> Removendo…</>
+            ) : (
+              "Remover"
+            )}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
