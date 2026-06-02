@@ -82,6 +82,28 @@ describe("ProjetoMembrosDialog — focus trap e bloqueio multi-tentativa", () =>
   };
 
   it("mantém focus trap e bloqueia Esc/clique fora em todas as tentativas até sucesso", () => {
+    const assertAlvoPreservado = (tentativa: number) => {
+      // O cabeçalho/aria-live do dialog continua referenciando exatamente o
+      // mesmo membro selecionado originalmente — nunca troca entre retries.
+      cy.get('[data-testid="remove-target-name"]')
+        .should("have.attr", "data-member-id", MEMBRO_ID)
+        .and("contain.text", MEMBRO_NOME);
+      cy.get('[data-testid="membros-live-region"]').should(
+        "contain.text",
+        `Removendo ${MEMBRO_NOME}`,
+      );
+      // E o payload enviado ao backend sempre carrega o mesmo membro_id.
+      cy.get("@remover.all").then((calls: any) => {
+        expect(calls).to.have.length(tentativa);
+        calls.forEach((call: any, idx: number) => {
+          expect(
+            call.request.body?.p_membro_id ?? call.request.body?.membro_id,
+            `tentativa ${idx + 1} -> membro_id correto`,
+          ).to.eq(MEMBRO_ID);
+        });
+      });
+    };
+
     for (let attempt = 1; attempt <= TOTAL_FALHAS; attempt += 1) {
       if (attempt === 1) {
         dispararRemocao();
@@ -92,6 +114,7 @@ describe("ProjetoMembrosDialog — focus trap e bloqueio multi-tentativa", () =>
       assertModalTravadaDuranteLoading();
 
       cy.wait("@remover");
+      assertAlvoPreservado(attempt);
       cy.get('[data-testid="remove-error"]').should("be.visible");
       cy.get('[data-testid="projeto-membros-dialog"]').should("be.visible");
     }
@@ -100,6 +123,7 @@ describe("ProjetoMembrosDialog — focus trap e bloqueio multi-tentativa", () =>
     cy.get('[data-testid="retry-remove-btn"]').click();
     assertModalTravadaDuranteLoading();
     cy.wait("@remover");
+    assertAlvoPreservado(TOTAL_FALHAS + 1);
 
     // Após sucesso o estado destrava: erro some e membro removido
     cy.get('[data-testid="remove-error"]').should("not.exist");
@@ -112,3 +136,4 @@ describe("ProjetoMembrosDialog — focus trap e bloqueio multi-tentativa", () =>
     cy.get('[data-testid="projeto-membros-dialog"]').should("not.exist");
   });
 });
+
