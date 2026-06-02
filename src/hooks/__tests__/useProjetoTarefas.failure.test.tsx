@@ -98,8 +98,8 @@ vi.mock("@/contexts/AuthContext", () => ({
 vi.mock("@/lib/projetos/auditoriaTarefa", () => ({ registrarAuditoriaTarefa: vi.fn(async () => {}) }));
 vi.mock("@/lib/projetos/confirmConclusao", () => ({ confirmConclusaoTarefa: vi.fn(async () => true) }));
 vi.mock("@/lib/logger", () => ({ logger: { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() } }));
-const toastErrorMock = vi.fn();
-vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: toastErrorMock, info: vi.fn() } }));
+const toastMocks = vi.hoisted(() => ({ error: vi.fn() }));
+vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: toastMocks.error, info: vi.fn() } }));
 
 import { useProjetoTarefas } from "@/hooks/useProjetoTarefas";
 
