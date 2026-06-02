@@ -14,6 +14,14 @@ function invalidateProjetoMembershipCaches(qc: QueryClient, projetoId: string | 
   qc.invalidateQueries({ queryKey: ["projeto-tarefas-v2", projetoId], refetchType: "active" });
   qc.invalidateQueries({ queryKey: ["projetos-membros"], refetchType: "active" });
   qc.invalidateQueries({ queryKey: ["projetos-team-data"], refetchType: "active" });
+  // Picker de @-menção em tarefas (TarefaChatPanel, TarefaComentariosSection,
+  // TarefaFocusMode, MinhasTarefaChat). Sem isso o cache de 60s segura a lista
+  // antiga e o membro recém-adicionado não aparece no autocomplete.
+  qc.invalidateQueries({ queryKey: ["tarefa-mentionable-users"], refetchType: "active" });
+  // Participantes da conversa vinculada (chat drawer v2 → MentionAutocomplete).
+  // A trigger no banco já adiciona o usuário em conversas_participantes; aqui
+  // garantimos que o cache local também recarrega.
+  qc.invalidateQueries({ queryKey: ["chat-mention-members"], refetchType: "active" });
 }
 
 export const PROJETO_MEMBROS_BROADCAST_CHANNEL = "projeto-membros-sync";
