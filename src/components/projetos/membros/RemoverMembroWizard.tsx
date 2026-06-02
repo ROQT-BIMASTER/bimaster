@@ -27,6 +27,7 @@ export function RemoverMembroWizard({ open, onOpenChange, projetoId, membro, out
   const [novoSeguidor, setNovoSeguidor] = useState<string>(SEM_RESPONSAVEL);
   const [motivo, setMotivo] = useState<MotivoOffboarding>("desligamento");
   const [motivoDetalhe, setMotivoDetalhe] = useState("");
+  const [concluido, setConcluido] = useState(false);
   const { remover } = useProjetoOffboarding(projetoId);
 
   useEffect(() => {
@@ -36,6 +37,7 @@ export function RemoverMembroWizard({ open, onOpenChange, projetoId, membro, out
       setNovoSeguidor(SEM_RESPONSAVEL);
       setMotivo("desligamento");
       setMotivoDetalhe("");
+      setConcluido(false);
     } else {
       // Defensive: Radix Dialog + nested Selects/Portals occasionally leave
       // `pointer-events: none` on <body>, freezing the page until F5.
