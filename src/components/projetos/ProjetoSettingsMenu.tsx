@@ -49,6 +49,7 @@ export function ProjetoSettingsMenu({
 }: Props) {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
+  const [editarOpen, setEditarOpen] = useState(false);
   const { isCompact, toggle: toggleDensity } = useTarefaDensity();
   const DensityIcon = isCompact ? Rows4 : Rows3;
 
