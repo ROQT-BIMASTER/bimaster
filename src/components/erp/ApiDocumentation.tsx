@@ -3620,6 +3620,9 @@ def verify_signature(payload: bytes, signature: str, secret: str) -> bool:
 
                 <div className="border rounded-xl p-5 space-y-3">
                   {[
+                    { version: "v4.4.31 / SDK v3.3.1 / APP v3.5.04", date: "2026-06-02", changes: [
+                      "PROJETOS — correção do retorno ao criar seção em projetos compartilhados. A regra de leitura de `projeto_secoes` agora reutiliza `user_can_access_projeto`, alinhando a visibilidade da seção recém-criada com a regra já ampliada para quem enxerga o projeto por membro, departamento ou vínculo em tarefa. Isso elimina a falha pós-inserção ao criar 'Nova Seção' no projeto Redes. Bump `APP_VERSION` 3.5.03 → 3.5.04 para acionar o mecanismo de atualização dos clientes. Sem mudança de frontend funcional, SDK ou OpenAPI público. Invariante grep: `grep -n \"3.5.04\" src/lib/version.ts | wc -l` ≥ 1.",
+                    ] },
                     { version: "v4.4.30 / SDK v3.3.1 / APP v3.5.03", date: "2026-05-25", changes: [
                       "FINANCEIRO — Cadastro do cancelamento do fornecedor Milvus (`fornecedor_codigo=2207`, `fornecedor_nome=MILVUS.COM LTDA`, `tipo=cancelamento`, `data_vigencia_fim=2026-05-07`, `numero_contrato=CANCELAMENTO-MILVUS-2026-05`). Comprovante: e-mail `Cancelamento_Milvus.eml` (ticket #181956 - 22849, suporte@milvus.com.br) anexado em `fornecedor-contratos/MILVUS/Cancelamento_Milvus.eml` (mime `message/rfc822`). Processo em 2 etapas confirmado pela Milvus em 18/05/2026; pagamento de maio quitado; último boleto pós-pago a ser emitido; responsável interno Thiago Vieira (Supervisor de TI). Bump `APP_VERSION` 3.5.02 → 3.5.03. Invariante grep: `grep -n \"3.5.03\" src/lib/version.ts | wc -l` ≥ 1.",
                     ] },
