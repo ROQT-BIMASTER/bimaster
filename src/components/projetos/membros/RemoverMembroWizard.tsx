@@ -36,6 +36,15 @@ export function RemoverMembroWizard({ open, onOpenChange, projetoId, membro, out
       setNovoSeguidor(SEM_RESPONSAVEL);
       setMotivo("desligamento");
       setMotivoDetalhe("");
+    } else {
+      // Defensive: Radix Dialog + nested Selects/Portals occasionally leave
+      // `pointer-events: none` on <body>, freezing the page until F5.
+      const id = requestAnimationFrame(() => {
+        if (typeof document !== "undefined" && document.body.style.pointerEvents === "none") {
+          document.body.style.pointerEvents = "";
+        }
+      });
+      return () => cancelAnimationFrame(id);
     }
   }, [open, membro?.id]);
 
@@ -59,11 +68,14 @@ export function RemoverMembroWizard({ open, onOpenChange, projetoId, membro, out
     if (!parsed.success) return;
     try {
       await remover.mutateAsync(parsed.data);
-      onOpenChange(false);
+      // Close on next tick so React Query invalidations from onSuccess don't
+      // race with Radix's modal-stack unmount (causes body pointer-events lock).
+      setTimeout(() => onOpenChange(false), 0);
     } catch {
       /* toast já exibido */
     }
   };
+
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
