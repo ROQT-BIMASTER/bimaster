@@ -66,7 +66,8 @@ export function useProjetoTarefaMetas(tarefaId: string | undefined) {
       toast.error(err.message);
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey });
+      // refetchType:"none" preserva o patch otimista e evita re-render que pisca o painel de detalhes
+      queryClient.invalidateQueries({ queryKey, refetchType: "none" });
     },
   });
 
