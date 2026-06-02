@@ -15,8 +15,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 // ---- supabase mock: capture the realtime handler so the test can fire it ----
 const mocks = vi.hoisted(() => {
-  const state: { realtimeHandler: ((payload: any) => void) | null } = {
-    realtimeHandler: null,
+  const state: { mocks.state.realtimeHandler: ((payload: any) => void) | null } = {
+    mocks.state.realtimeHandler: null,
   };
   return {
     state,
@@ -38,7 +38,7 @@ vi.mock("@/integrations/supabase/client", () => ({
     channel: vi.fn(() => {
       const api: any = {
         on: vi.fn((_event: string, _filter: any, handler: any) => {
-          mocks.state.realtimeHandler = handler;
+          mocks.state.mocks.state.realtimeHandler = handler;
           return api;
         }),
         subscribe: vi.fn(() => api),
@@ -78,8 +78,8 @@ describe("useProjetoMembros — cross-tab membership sync", () => {
   let invalidateSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
-    realtimeHandler = null;
-    removeChannel.mockClear();
+    mocks.state.realtimeHandler = null;
+    mocks.removeChannel.mockClear();
     document.body.style.pointerEvents = "";
     Object.defineProperty(document, "visibilityState", {
       configurable: true,
@@ -100,13 +100,13 @@ describe("useProjetoMembros — cross-tab membership sync", () => {
     renderHook(() => useProjetoMembros(PROJETO_ID), { wrapper: wrapper(qc) });
 
     // Wait until the effect registered the realtime handler.
-    await waitFor(() => expect(realtimeHandler).toBeTruthy());
+    await waitFor(() => expect(mocks.state.realtimeHandler).toBeTruthy());
 
     lockBodyPointerEvents();
     invalidateSpy.mockClear();
 
     act(() => {
-      realtimeHandler!({ eventType: "DELETE", old: { user_id: "user-current", projeto_id: PROJETO_ID } });
+      mocks.state.realtimeHandler!({ eventType: "DELETE", old: { user_id: "user-current", projeto_id: PROJETO_ID } });
     });
 
     const invalidatedKeys = invalidateSpy.mock.calls.map(
