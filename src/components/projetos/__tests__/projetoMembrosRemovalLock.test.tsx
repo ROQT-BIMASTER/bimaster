@@ -139,7 +139,7 @@ describe("Modal lock durante remoção de membro", () => {
     await waitFor(() => expect(screen.queryByTestId("removing-overlay")).toBeNull());
 
     // Após a remoção, controles voltam ao normal.
-    expect((screen.getByTestId("action-remover") as HTMLButtonElement).disabled).toBe(false);
+    expect(screen.getByTestId("action-remover").matches(":disabled")).toBe(false);
     expect(screen.queryByTestId("closed-marker")).toBeNull();
     expect(screen.queryByTestId("remove-error")).toBeNull();
   });
