@@ -21,6 +21,7 @@ import { BriefingView } from "./BriefingView";
 import { BriefingToTasksDialog } from "./BriefingToTasksDialog";
 import { useProjetoBriefing } from "@/hooks/useProjetoBriefing";
 import { GRID_COLS } from "./ProjetoListView";
+import { EditableSecaoTitle } from "./EditableSecaoTitle";
 import { VirtualizedRows } from "./VirtualizedRows";
 import { ColumnConfig, buildGridCols } from "./ColumnConfigPopover";
 
@@ -73,7 +74,7 @@ interface ProjetoSecaoProps {
   projetoDataInicio?: string | null;
   projetoDataFimAlvo?: string | null;
   projetoRegime?: RegimeCalendario;
-  onUpdateSecao?: (secaoId: string, updates: { data_inicio?: string | null; data_prazo?: string | null; dias_alerta_antes?: number }) => Promise<void> | void;
+  onUpdateSecao?: (secaoId: string, updates: { nome?: string; data_inicio?: string | null; data_prazo?: string | null; dias_alerta_antes?: number }) => Promise<void> | void;
   onToggleTarefa: (tarefa: ProjetoTarefa) => void;
   onSelectTarefa?: (tarefa: ProjetoTarefa) => void;
   onAddTarefa: (titulo: string, secaoId: string) => void;
@@ -132,16 +133,29 @@ export function ProjetoSecao({
   return (
     <div className={cn("mb-1 border-l-[3px]", sectionColor.border)}>
       <div className={`flex items-center gap-0 px-3 py-2.5 w-full ${darkBg ? "hover:bg-white/5" : "hover:bg-muted/30"}`}>
-        <button
-          onClick={() => setCollapsed(!collapsed)}
-          className="flex items-center gap-2 flex-1 min-w-0 transition-colors group"
-        >
-          {collapsed ? (
-            <ChevronRight className={`h-4 w-4 ${darkBg ? "text-white/50" : "text-muted-foreground"}`} />
+        <div className="flex items-center gap-2 flex-1 min-w-0">
+          <button
+            type="button"
+            onClick={() => setCollapsed(!collapsed)}
+            className="flex items-center transition-colors"
+            aria-label={collapsed ? "Expandir seção" : "Recolher seção"}
+          >
+            {collapsed ? (
+              <ChevronRight className={`h-4 w-4 ${darkBg ? "text-white/50" : "text-muted-foreground"}`} />
+            ) : (
+              <ChevronDown className={`h-4 w-4 ${darkBg ? "text-white/50" : "text-muted-foreground"}`} />
+            )}
+          </button>
+          {onUpdateSecao ? (
+            <EditableSecaoTitle
+              nome={nome}
+              darkBg={darkBg}
+              onRename={async (novo) => { await onUpdateSecao(secaoId, { nome: novo }); }}
+              className={cn("font-semibold text-sm", sectionColor.text)}
+            />
           ) : (
-            <ChevronDown className={`h-4 w-4 ${darkBg ? "text-white/50" : "text-muted-foreground"}`} />
+            <span className={cn("font-semibold text-sm", sectionColor.text)}>{nome}</span>
           )}
-          <span className={cn("font-semibold text-sm", sectionColor.text)}>{nome}</span>
           <span className={`text-xs ml-1 ${darkBg ? "text-white/60" : "text-foreground/60"}`}>
             {completedCount}/{totalCount}
           </span>
@@ -154,7 +168,7 @@ export function ProjetoSecao({
               />
             </div>
           )}
-        </button>
+        </div>
         {/* Prazo da seção */}
         {onUpdateSecao && (
           <div className="flex items-center gap-1 mr-1">

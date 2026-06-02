@@ -9,6 +9,7 @@ import { ProjetoTarefaDetalhe } from "./ProjetoTarefaDetalhe";
 import { NovaTarefaInline } from "./NovaTarefaInline";
 import { NovaSecaoInline } from "./NovaSecaoInline";
 import { KanbanSkeleton } from "./ProjetoSkeletons";
+import { EditableSecaoTitle } from "./EditableSecaoTitle";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -73,6 +74,7 @@ export function ProjetoKanbanView({ projetoId, darkBg = false, filters = EMPTY_F
     secoes, tarefas: rawTarefas, secoesLoading, tarefasLoading,
     tarefasPorSecao: rawTarefasPorSecao, createTarefa, updateTarefa,
     toggleTarefaCompleta, moveTarefaToSecao, createSecao, reorderTarefasSecao, softDeleteTarefa,
+    updateSecao,
   } = useProjetoTarefas(projetoId);
 
   // Apply external filters/sort
@@ -309,7 +311,12 @@ export function ProjetoKanbanView({ projetoId, darkBg = false, filters = EMPTY_F
                 {/* Column header */}
                 <div className={cn("px-3 py-3 border-b", darkBg ? "border-white/10" : "border-border/30")}>
                   <div className="flex items-center justify-between gap-2">
-                    <h3 className={cn("text-sm font-semibold truncate", darkBg ? "text-white" : "")}>{secao.nome}</h3>
+                    <EditableSecaoTitle
+                      nome={secao.nome}
+                      darkBg={darkBg}
+                      onRename={async (novo) => { await updateSecao.mutateAsync({ secaoId: secao.id, updates: { nome: novo } }); }}
+                      className={cn("text-sm font-semibold min-w-0", darkBg ? "text-white" : "")}
+                    />
                     <div className="flex items-center gap-1 flex-shrink-0">
                       <Badge variant="secondary" className={cn("text-[10px] px-1.5 h-5", darkBg && "bg-white/10 text-white/70")}>
                         {completedCount}/{secaoTarefas.length}
