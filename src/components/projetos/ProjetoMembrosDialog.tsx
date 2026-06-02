@@ -20,11 +20,14 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
 import { DEV_PAPEIS } from "@/lib/productDocAudit";
 import {
-  Search, UserPlus, Trash2, Shield, User, Crown, Palette, Eye, Lock, BarChart3, Settings, Users, Loader2, Mail,
+  Search, UserPlus, Trash2, Shield, User, Crown, Palette, Eye, Lock, BarChart3, Settings, Users, Loader2, Mail, History,
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ConvidarMembroPanel } from "@/components/projetos/convites/ConvidarMembroPanel";
 import { ConvitesPendentesList } from "@/components/projetos/convites/ConvitesPendentesList";
+import { useFeatureFlag } from "@/hooks/useFeatureFlags";
+import { RemoverMembroWizard } from "@/components/projetos/membros/RemoverMembroWizard";
+import { ExMembrosTab } from "@/components/projetos/membros/ExMembrosTab";
 
 const PAPEL_ICON_MAP: Record<string, React.ReactNode> = {
   gestor_produto: <Crown className="h-3.5 w-3.5 text-amber-500" />,
@@ -55,8 +58,10 @@ interface ProjetoSecao {
 export function ProjetoMembrosDialog({ open, onOpenChange, projetoId, projetoTipo }: ProjetoMembrosDialogProps) {
   const { membros, isLoading, isCoordinator, addMembro, removeMembro, updateSecoes, updatePapel } = useProjetoMembros(projetoId);
   const { user } = useAuth();
+  const { enabled: offboardingEnabled } = useFeatureFlag("ff_offboarding_membros_v1");
   const [search, setSearch] = useState("");
   const [removeMemberConfirm, setRemoveMemberConfirm] = useState<string | null>(null);
+  const [wizardMembro, setWizardMembro] = useState<ProjetoMembro | null>(null);
   const [showTeamDialog, setShowTeamDialog] = useState(false);
   const [selectedTeamIds, setSelectedTeamIds] = useState<string[]>([]);
   const [teamSearch, setTeamSearch] = useState("");
@@ -208,7 +213,18 @@ export function ProjetoMembrosDialog({ open, onOpenChange, projetoId, projetoTip
                 <Mail className="h-3.5 w-3.5" /> Convites
               </TabsTrigger>
             )}
+            {isCoordinator && offboardingEnabled && (
+              <TabsTrigger value="ex_membros" className="gap-1.5">
+                <History className="h-3.5 w-3.5" /> Ex-membros
+              </TabsTrigger>
+            )}
           </TabsList>
+
+          {isCoordinator && offboardingEnabled && (
+            <TabsContent value="ex_membros" className="flex-1 overflow-auto mt-3">
+              <ExMembrosTab projetoId={projetoId} canRestaurar={isCoordinator} />
+            </TabsContent>
+          )}
 
           {isCoordinator && (
             <TabsContent value="convites" className="flex-1 overflow-auto space-y-4 mt-3">
@@ -348,7 +364,7 @@ export function ProjetoMembrosDialog({ open, onOpenChange, projetoId, projetoTip
                                 variant="ghost"
                                 size="icon"
                                 className="h-7 w-7 text-destructive hover:text-destructive"
-                                onClick={() => setRemoveMemberConfirm(membro.id)}
+                                onClick={() => offboardingEnabled ? setWizardMembro(membro) : setRemoveMemberConfirm(membro.id)}
                               >
                                 <Trash2 className="h-3.5 w-3.5" />
                               </Button>
@@ -517,6 +533,16 @@ export function ProjetoMembrosDialog({ open, onOpenChange, projetoId, projetoTip
             </div>
           </DialogContent>
         </Dialog>
+
+        {offboardingEnabled && (
+          <RemoverMembroWizard
+            open={!!wizardMembro}
+            onOpenChange={(v) => !v && setWizardMembro(null)}
+            projetoId={projetoId}
+            membro={wizardMembro}
+            outrosMembros={membros}
+          />
+        )}
       </DialogContent>
     </Dialog>
   );

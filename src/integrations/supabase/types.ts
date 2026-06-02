@@ -35716,6 +35716,66 @@ export type Database = {
           },
         ]
       }
+      projeto_membros_audit: {
+        Row: {
+          id: string
+          motivo: string
+          motivo_detalhe: string | null
+          papel_anterior: string
+          projeto_id: string
+          reatribuicoes: Json
+          removido_em: string
+          removido_por: string
+          restaurado_em: string | null
+          restaurado_por: string | null
+          secoes_ids_anteriores: string[]
+          user_id_removido: string
+        }
+        Insert: {
+          id?: string
+          motivo: string
+          motivo_detalhe?: string | null
+          papel_anterior: string
+          projeto_id: string
+          reatribuicoes?: Json
+          removido_em?: string
+          removido_por: string
+          restaurado_em?: string | null
+          restaurado_por?: string | null
+          secoes_ids_anteriores?: string[]
+          user_id_removido: string
+        }
+        Update: {
+          id?: string
+          motivo?: string
+          motivo_detalhe?: string | null
+          papel_anterior?: string
+          projeto_id?: string
+          reatribuicoes?: Json
+          removido_em?: string
+          removido_por?: string
+          restaurado_em?: string | null
+          restaurado_por?: string | null
+          secoes_ids_anteriores?: string[]
+          user_id_removido?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "projeto_membros_audit_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "projetos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projeto_membros_audit_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "vw_projeto_produtividade"
+            referencedColumns: ["projeto_id"]
+          },
+        ]
+      }
       projeto_metas: {
         Row: {
           created_at: string
@@ -51583,6 +51643,19 @@ export type Database = {
       rpc_rejeitar_sugestao_briefing: {
         Args: { p_sugestao_id: string }
         Returns: Json
+      }
+      rpc_remover_membro_projeto: {
+        Args: {
+          _membro_id: string
+          _motivo: string
+          _motivo_detalhe?: string
+          _reatribuicoes: Json
+        }
+        Returns: string
+      }
+      rpc_restaurar_membro_projeto: {
+        Args: { _audit_id: string }
+        Returns: string
       }
       rpc_restaurar_projeto: {
         Args: { _projeto_id: string }
