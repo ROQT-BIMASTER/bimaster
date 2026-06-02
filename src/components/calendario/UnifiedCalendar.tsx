@@ -6,11 +6,11 @@ import { ChevronLeft, ChevronRight, CalendarDays } from "lucide-react";
 import {
   startOfMonth, endOfMonth, startOfWeek, endOfWeek,
   eachDayOfInterval, addMonths, subMonths, addWeeks, subWeeks,
-  format, isSameMonth, isToday as isDateToday,
+  format, isSameMonth,
 } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
-import { getDateKey, parseLocalDate } from "@/utils/dateUtils";
+import { getDateKey, parseLocalDate, getToday } from "@/utils/dateUtils";
 import { packLanes, splitEventByWeekRow } from "@/lib/calendario/lanePacking";
 import { EventChip } from "./EventChip";
 import { EventBar, EVENT_LANE_HEIGHT, EVENT_LANE_GAP } from "./EventBar";
@@ -51,7 +51,7 @@ export function UnifiedCalendar({
   banner,
   onPeriodChange,
 }: Props) {
-  const [currentDate, setCurrentDate] = useState(new Date());
+  const [currentDate, setCurrentDate] = useState(() => getToday());
   const [viewMode, setViewMode] = useState<ViewMode>("month");
 
   // Notifica mudanças de período (mês/semana visível) para wrappers (ex.: painel de Análise).
@@ -133,6 +133,10 @@ export function UnifiedCalendar({
     [multiDayByRow],
   );
 
+  // Chave de "hoje" em America/Sao_Paulo — usada para destacar a célula correta
+  // mesmo quando o navegador está em outro fuso.
+  const todayKey = useMemo(() => getDateKey(getToday()), []);
+
   const navigate = (dir: "prev" | "next") => {
     if (viewMode === "month") {
       setCurrentDate(dir === "prev" ? subMonths(currentDate, 1) : addMonths(currentDate, 1));
@@ -194,7 +198,7 @@ export function UnifiedCalendar({
             variant="outline"
             size="sm"
             className={cn("h-8 text-xs ml-2", darkBg && "bg-white/10 border-white/20 text-white hover:bg-white/20")}
-            onClick={() => setCurrentDate(new Date())}
+            onClick={() => setCurrentDate(getToday())}
           >
             Hoje
           </Button>
@@ -255,7 +259,7 @@ export function UnifiedCalendar({
                 const key = getDateKey(day);
                 const dayEvents = (key && singleDayByDate[key]) || [];
                 const isCurrentMonth = isSameMonth(day, currentDate);
-                const today = isDateToday(day);
+                const today = key === todayKey;
                 const isWeekend = ci >= 5;
                 return (
                   <div

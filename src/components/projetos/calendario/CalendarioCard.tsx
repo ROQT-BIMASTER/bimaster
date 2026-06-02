@@ -3,6 +3,7 @@ import { Circle, CheckCircle2, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ESTAGIO_PILL_COLORS, STATUS_ICON_CONFIG } from "@/lib/projetoConstants";
 import type { ProjetoTarefa } from "@/hooks/useProjetoTarefas";
+import { getToday, parseLocalDate } from "@/utils/dateUtils";
 
 interface Props {
   tarefa: ProjetoTarefa;
@@ -23,9 +24,10 @@ export function CalendarioCard({ tarefa, darkBg = false, compact = false, onClic
   const StatusIcon = cfg.completed ? CheckCircle2 : Circle;
   const isCompleted = cfg.completed;
 
-  const isLate = !isCompleted && tarefa.data_prazo
-    ? new Date(tarefa.data_prazo + "T23:59:59") < new Date()
-    : false;
+  // Atraso comparando em America/Sao_Paulo: prazo (meia-noite SP) < hoje SP.
+  const prazoSP = tarefa.data_prazo ? parseLocalDate(tarefa.data_prazo) : null;
+  const isLate = !isCompleted && prazoSP ? prazoSP.getTime() < getToday().getTime() : false;
+
 
   return (
     <button
