@@ -213,7 +213,25 @@ export function ProjetoMembrosDialog({ open, onOpenChange, projetoId, projetoTip
         className="max-w-3xl max-h-[90vh] flex flex-col"
         onPointerDownOutside={(e) => e.preventDefault()}
         onInteractOutside={(e) => e.preventDefault()}
+        onEscapeKeyDown={(e) => { if (removingMembro) e.preventDefault(); }}
       >
+        {removingMembro && (
+          <div
+            className="absolute inset-0 z-50 flex items-center justify-center rounded-lg bg-background/70 backdrop-blur-[1px]"
+            aria-live="polite"
+          >
+            <div className="flex items-center gap-2 rounded-md border bg-card px-3 py-2 shadow-md text-sm">
+              <Loader2 className="h-4 w-4 animate-spin text-destructive" />
+              <span>Removendo <strong>{removingMembro.nome}</strong>…</span>
+            </div>
+          </div>
+        )}
+        <fieldset
+          disabled={!!removingMembro}
+          className="contents disabled:opacity-60"
+          // @ts-expect-error inert é booleano nativo válido em HTML
+          inert={removingMembro ? "" : undefined}
+        >
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <User className="h-5 w-5" /> Membros do Projeto
@@ -485,6 +503,7 @@ export function ProjetoMembrosDialog({ open, onOpenChange, projetoId, projetoTip
           )}
           </TabsContent>
         </Tabs>
+        </fieldset>
       </DialogContent>
     </Dialog>
 
