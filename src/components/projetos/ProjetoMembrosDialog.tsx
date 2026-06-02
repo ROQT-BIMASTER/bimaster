@@ -184,7 +184,9 @@ export function ProjetoMembrosDialog({ open, onOpenChange, projetoId, projetoTip
     : DEV_PAPEIS.filter(p => ["coordenador", "membro"].includes(p.value));
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
+
       <DialogContent className="max-w-3xl max-h-[90vh] flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
