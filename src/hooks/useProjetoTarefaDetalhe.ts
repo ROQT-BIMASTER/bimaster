@@ -432,7 +432,7 @@ export function useProjetoTarefaDetalhe(tarefaId: string | undefined, produtoId?
       toast.error(err.message);
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ["tarefa-messages", tarefaId] });
+      queryClient.invalidateQueries({ queryKey: ["tarefa-messages", tarefaId], refetchType: "none" });
     },
   });
 
