@@ -49,11 +49,17 @@ export function BriefingHeader({
   jaEmAprovacao,
   onEnviarAprovacao,
   onCancelarAprovacao,
+  onEnviarRRTask,
+  onReenviarRRTask,
+  onAbrirRRTask,
+  rrtaskEnviando,
 }: Props) {
   const navigate = useNavigate();
   const [membrosOpen, setMembrosOpen] = useState(false);
   const tipo = getTipoMeta(briefing.tipo);
   const status = getStatusBadge(briefing.status);
+  const rrtaskJaCriada = !!briefing.rrtask_page_id;
+  const rrtaskFinalizado = briefing.status === "final";
 
   return (
     <div className={`border-b transition-colors ${projetoNome ? "bg-primary/5" : "bg-background"}`}>
