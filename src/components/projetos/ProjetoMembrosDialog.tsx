@@ -69,7 +69,14 @@ export function ProjetoMembrosDialog({ open, onOpenChange, projetoId, projetoTip
   const [addingTeam, setAddingTeam] = useState(false);
   const [recentlyAdded, setRecentlyAdded] = useState<string[]>([]);
   const [recentlyRemoved, setRecentlyRemoved] = useState<string | null>(null);
-  const [removeError, setRemoveError] = useState<string | null>(null);
+  const [removeError, setRemoveError] = useState<{
+    message: string;
+    code?: string;
+    hint?: string;
+    status?: number;
+    attempt: number;
+  } | null>(null);
+  const [removeAttempt, setRemoveAttempt] = useState(0);
   const [liveMessage, setLiveMessage] = useState<string>("");
   const removingOverlayRef = useRef<HTMLDivElement | null>(null);
 
