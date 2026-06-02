@@ -310,6 +310,16 @@ export function TarefaFocusMode({
               canEdit={canEditProjeto}
             />
           )}
+          {externalSaving && (
+            <span
+              className="flex items-center gap-1 text-[11px] text-muted-foreground"
+              aria-live="polite"
+              data-testid="focusmode-saving-indicator"
+            >
+              <Loader2 className="h-3 w-3 animate-spin" />
+              Salvando…
+            </span>
+          )}
           <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={() => onOpenChange(false)}>
             <Minimize2 className="h-3.5 w-3.5" />
             Sair do Foco
