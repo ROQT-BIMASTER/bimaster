@@ -20,7 +20,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
 import { DEV_PAPEIS } from "@/lib/productDocAudit";
 import {
-  Search, UserPlus, Trash2, Shield, User, Crown, Palette, Eye, Lock, BarChart3, Settings, Users, Loader2, Mail, History,
+  Search, UserPlus, Trash2, Shield, User, Crown, Palette, Eye, Lock, BarChart3, Settings, Users, Loader2, Mail, History, CheckCircle2, UserMinus, X,
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ConvidarMembroPanel } from "@/components/projetos/convites/ConvidarMembroPanel";
