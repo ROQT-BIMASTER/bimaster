@@ -328,8 +328,11 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
       toast.error(err.message);
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2", projetoId] });
-      queryClient.invalidateQueries({ queryKey: ["tarefa-movimentacoes", projetoId] });
+      // refetchType:"none" evita refetch imediato em cima do patch otimista
+      // (que causava re-mount/piscar das linhas). A view fica stale e é
+      // refetada silenciosamente no próximo gatilho/foco.
+      queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2", projetoId], refetchType: "none" });
+      queryClient.invalidateQueries({ queryKey: ["tarefa-movimentacoes", projetoId], refetchType: "none" });
     },
     // Toast suprimido intencionalmente: drag-and-drop precisa ser silencioso
     // (benchmark Asana). Erros continuam sendo notificados via onError.
