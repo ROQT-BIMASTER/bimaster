@@ -233,6 +233,14 @@ export function ProjetoTarefaDetalhe({
   } | null>(null);
   const [showConcluidas, setShowConcluidas] = useState(false);
   const [focusMode, setFocusMode] = useState(false);
+  // Mantém um snapshot da última `tarefa` enquanto o Focus Mode está aberto
+  // para evitar que o Dialog desmonte quando o prop `tarefa` ficar nulo
+  // momentaneamente durante refetches/invalidations das mutações.
+  const lastFocusTarefaRef = useRef<ProjetoTarefa | null>(null);
+  if (focusMode && tarefa) {
+    lastFocusTarefaRef.current = tarefa;
+  }
+  const focusTarefa = tarefa ?? (focusMode ? lastFocusTarefaRef.current : null);
   const [briefingDialogOpen, setBriefingDialogOpen] = useState(false);
   const [briefingTasksDialogOpen, setBriefingTasksDialogOpen] = useState(false);
   const { briefing: tarefaBriefing, saveBriefing: saveTarefaBriefing, deleteBriefing: deleteTarefaBriefing } = useProjetoBriefing(tarefa?.id);
@@ -1646,9 +1654,9 @@ export function ProjetoTarefaDetalhe({
         />
       )}
       {/* Focus Mode */}
-      {focusMode && tarefa && (
+      {focusMode && focusTarefa && (
         <TarefaFocusMode
-          tarefa={tarefa}
+          tarefa={focusTarefa}
           open={focusMode}
           onOpenChange={(open) => { setFocusMode(open); if (!open) onOpenChange(true); }}
           onUpdate={onUpdate}
