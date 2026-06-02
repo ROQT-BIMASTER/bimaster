@@ -28,9 +28,10 @@ const PRESET_COLORS = [
 interface ProjetoBgColorPickerProps {
   value: string | null;
   onChange: (cor: string | null) => void;
+  variant?: "popover" | "inline";
 }
 
-export function ProjetoBgColorPicker({ value, onChange }: ProjetoBgColorPickerProps) {
+export function ProjetoBgColorPicker({ value, onChange, variant = "popover" }: ProjetoBgColorPickerProps) {
   const [open, setOpen] = useState(false);
   const [hexInput, setHexInput] = useState(value || "");
 
@@ -39,6 +40,7 @@ export function ProjetoBgColorPicker({ value, onChange }: ProjetoBgColorPickerPr
     setHexInput(color);
     setOpen(false);
   };
+
 
   const handleRemove = () => {
     onChange(null);
