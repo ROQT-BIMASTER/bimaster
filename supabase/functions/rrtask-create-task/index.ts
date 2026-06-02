@@ -37,6 +37,15 @@ function brDate(iso: string): string {
   return `${d}/${m}/${y}`;
 }
 
+function extrairPrazoISO(texto: string): string | null {
+  if (!texto) return null;
+  let m = texto.match(/\b(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})\b/);
+  if (m) return `${m[3]}-${m[2].padStart(2, "0")}-${m[1].padStart(2, "0")}`;
+  m = texto.match(/\b(\d{4})-(\d{2})-(\d{2})\b/);
+  if (m) return `${m[1]}-${m[2]}-${m[3]}`;
+  return null;
+}
+
 Deno.serve(
   secureHandler(
     { auth: "jwt", rateLimit: 20, rateLimitPrefix: "rrtask-create-task" },
