@@ -88,7 +88,7 @@ export function RemoverMembroWizard({ open, onOpenChange, projetoId, membro, out
             Remover membro do projeto
           </DialogTitle>
           <DialogDescription>
-            Passo {step} de 3 — reatribua pendências antes de revogar o acesso.
+            {concluido ? "Remoção concluída." : `Passo ${step} de 3 — reatribua pendências antes de revogar o acesso.`}
           </DialogDescription>
         </DialogHeader>
 
