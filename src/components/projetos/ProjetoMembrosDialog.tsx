@@ -490,7 +490,17 @@ export function ProjetoMembrosDialog({ open, onOpenChange, projetoId, projetoTip
                                 variant="ghost"
                                 size="icon"
                                 className="h-7 w-7 text-destructive hover:text-destructive"
-                                onClick={() => offboardingEnabled ? setWizardMembro(membro) : setRemoveMemberConfirm({ id: membro.id, nome: membro.profile?.nome || "membro" })}
+                                data-testid="member-remove-btn"
+                                data-member-id={membro.id}
+                                onClick={() => {
+                                  if (offboardingEnabled) {
+                                    setWizardMembro(membro);
+                                  } else {
+                                    const idx = filteredMembros.findIndex((m) => m.id === membro.id);
+                                    setRemoveFocusIndex(idx);
+                                    setRemoveMemberConfirm({ id: membro.id, nome: membro.profile?.nome || "membro" });
+                                  }
+                                }}
                               >
                                 <Trash2 className="h-3.5 w-3.5" />
                               </Button>
