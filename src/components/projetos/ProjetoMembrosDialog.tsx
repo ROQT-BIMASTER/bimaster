@@ -426,126 +426,128 @@ export function ProjetoMembrosDialog({ open, onOpenChange, projetoId, projetoTip
           )}
           </TabsContent>
         </Tabs>
-
-        {/* Remove member confirmation */}
-        <AlertDialog open={!!removeMemberConfirm} onOpenChange={() => setRemoveMemberConfirm(null)}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Remover membro?</AlertDialogTitle>
-              <AlertDialogDescription>
-                O membro perderá acesso ao projeto. Esta ação pode ser revertida adicionando-o novamente.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancelar</AlertDialogCancel>
-              <AlertDialogAction onClick={() => { if (removeMemberConfirm) { removeMembro.mutate(removeMemberConfirm); setRemoveMemberConfirm(null); } }}>
-                Remover
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-
-        {/* Sub-dialog: Adicionar Membros (empresa toda) */}
-        <Dialog
-          open={showTeamDialog}
-          onOpenChange={(v) => {
-            setShowTeamDialog(v);
-            if (!v) {
-              setSelectedTeamIds([]);
-              setTeamSearch("");
-            }
-          }}
-        >
-          <DialogContent className="max-w-md">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <Users className="h-5 w-5" />
-                Adicionar Membros
-              </DialogTitle>
-              <DialogDescription>
-                Selecione pessoas da empresa para adicionar ao projeto.
-              </DialogDescription>
-            </DialogHeader>
-
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Buscar por nome..."
-                value={teamSearch}
-                onChange={(e) => setTeamSearch(e.target.value)}
-                className="pl-9"
-              />
-            </div>
-
-            <ScrollArea className="max-h-[300px]">
-              {loadingAllUsers ? (
-                <div className="flex justify-center py-8">
-                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                </div>
-              ) : availableUsers.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-8">
-                  {teamSearch.trim()
-                    ? `Nenhuma pessoa encontrada para "${teamSearch.trim()}".`
-                    : "Todos os usuários já estão no projeto."}
-                </p>
-              ) : (
-                <div className="space-y-1">
-                  {availableUsers.map((sub) => (
-                    <label
-                      key={sub.id}
-                      className="flex items-center gap-3 p-2 rounded-md hover:bg-accent/50 cursor-pointer transition-colors"
-                    >
-                      <Checkbox
-                        checked={selectedTeamIds.includes(sub.id)}
-                        onCheckedChange={() => toggleTeamUser(sub.id)}
-                      />
-                      <Avatar className="h-8 w-8">
-                        <AvatarImage src={sub.avatar_url || undefined} />
-                        <AvatarFallback className="text-xs bg-primary/10 text-primary">
-                          {sub.nome?.split(" ").map((n: string) => n[0]).slice(0, 2).join("").toUpperCase() || "?"}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium truncate">{sub.nome ?? "Sem nome"}</p>
-                      </div>
-                    </label>
-                  ))}
-                </div>
-              )}
-            </ScrollArea>
-
-            <div className="flex justify-end gap-2 pt-2">
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setShowTeamDialog(false);
-                  setSelectedTeamIds([]);
-                  setTeamSearch("");
-                }}
-              >
-                Cancelar
-              </Button>
-              <Button
-                onClick={handleAddTeam}
-                disabled={selectedTeamIds.length === 0 || addingTeam}
-              >
-                {addingTeam && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
-                Adicionar {selectedTeamIds.length > 0 ? `(${selectedTeamIds.length})` : ""}
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
-
-        {offboardingEnabled && (
-          <RemoverMembroWizard
-            open={!!wizardMembro}
-            onOpenChange={(v) => !v && setWizardMembro(null)}
-            projetoId={projetoId}
-            membro={wizardMembro}
-            outrosMembros={membros}
-          />
-        )}
       </DialogContent>
     </Dialog>
+
+    {/* Remove member confirmation */}
+    <AlertDialog open={!!removeMemberConfirm} onOpenChange={() => setRemoveMemberConfirm(null)}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Remover membro?</AlertDialogTitle>
+          <AlertDialogDescription>
+            O membro perderá acesso ao projeto. Esta ação pode ser revertida adicionando-o novamente.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+          <AlertDialogAction onClick={() => { if (removeMemberConfirm) { removeMembro.mutate(removeMemberConfirm); setRemoveMemberConfirm(null); } }}>
+            Remover
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+
+    {/* Sub-dialog: Adicionar Membros (empresa toda) */}
+    <Dialog
+      open={showTeamDialog}
+      onOpenChange={(v) => {
+        setShowTeamDialog(v);
+        if (!v) {
+          setSelectedTeamIds([]);
+          setTeamSearch("");
+        }
+      }}
+    >
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Users className="h-5 w-5" />
+            Adicionar Membros
+          </DialogTitle>
+          <DialogDescription>
+            Selecione pessoas da empresa para adicionar ao projeto.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Buscar por nome..."
+            value={teamSearch}
+            onChange={(e) => setTeamSearch(e.target.value)}
+            className="pl-9"
+          />
+        </div>
+
+        <ScrollArea className="max-h-[300px]">
+          {loadingAllUsers ? (
+            <div className="flex justify-center py-8">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : availableUsers.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-8">
+              {teamSearch.trim()
+                ? `Nenhuma pessoa encontrada para "${teamSearch.trim()}".`
+                : "Todos os usuários já estão no projeto."}
+            </p>
+          ) : (
+            <div className="space-y-1">
+              {availableUsers.map((sub) => (
+                <label
+                  key={sub.id}
+                  className="flex items-center gap-3 p-2 rounded-md hover:bg-accent/50 cursor-pointer transition-colors"
+                >
+                  <Checkbox
+                    checked={selectedTeamIds.includes(sub.id)}
+                    onCheckedChange={() => toggleTeamUser(sub.id)}
+                  />
+                  <Avatar className="h-8 w-8">
+                    <AvatarImage src={sub.avatar_url || undefined} />
+                    <AvatarFallback className="text-xs bg-primary/10 text-primary">
+                      {sub.nome?.split(" ").map((n: string) => n[0]).slice(0, 2).join("").toUpperCase() || "?"}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">{sub.nome ?? "Sem nome"}</p>
+                  </div>
+                </label>
+              ))}
+            </div>
+          )}
+        </ScrollArea>
+
+        <div className="flex justify-end gap-2 pt-2">
+          <Button
+            variant="outline"
+            onClick={() => {
+              setShowTeamDialog(false);
+              setSelectedTeamIds([]);
+              setTeamSearch("");
+            }}
+          >
+            Cancelar
+          </Button>
+          <Button
+            onClick={handleAddTeam}
+            disabled={selectedTeamIds.length === 0 || addingTeam}
+          >
+            {addingTeam && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+            Adicionar {selectedTeamIds.length > 0 ? `(${selectedTeamIds.length})` : ""}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+
+    {offboardingEnabled && (
+      <RemoverMembroWizard
+        open={!!wizardMembro}
+        onOpenChange={(v) => !v && setWizardMembro(null)}
+        projetoId={projetoId}
+        membro={wizardMembro}
+        outrosMembros={membros}
+      />
+    )}
+    </>
   );
 }
+
