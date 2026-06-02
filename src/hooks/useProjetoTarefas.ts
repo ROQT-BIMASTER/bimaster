@@ -738,13 +738,14 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
     onError: (err: Error, _vars, context) => {
       if (context) clearPendingListOp(pendingColaboradoresRef, context.tarefaId, context.userId);
       if (context?.previous) queryClient.setQueryData(["projeto-tarefas-v2", projetoId], context.previous);
+      queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2", projetoId] });
       toast.error(err.message);
     },
     onSuccess: (_data, _vars, context) => {
       if (context) schedulePendingCleanup(() => clearPendingListOp(pendingColaboradoresRef, context.tarefaId, context.userId));
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2", projetoId] });
+      queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2", projetoId], refetchType: "none" });
     },
   });
 
