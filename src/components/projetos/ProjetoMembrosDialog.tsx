@@ -408,6 +408,7 @@ export function ProjetoMembrosDialog({ open, onOpenChange, projetoId, projetoTip
                   variant="outline"
                   size="sm"
                   className="shrink-0 gap-1.5"
+                  data-testid="adicionar-membros-btn"
                   onClick={() => setShowTeamDialog(true)}
                 >
                   <Users className="h-4 w-4" />
