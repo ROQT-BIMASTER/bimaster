@@ -123,8 +123,8 @@ describe("Modal lock durante remoção de membro", () => {
     expect(fs.hasAttribute("inert")).toBe(true);
 
     // Botões internos ficam de fato desabilitados (herança do fieldset).
-    expect((screen.getByTestId("action-remover") as HTMLButtonElement).disabled).toBe(true);
-    expect((screen.getByTestId("some-other-button") as HTMLButtonElement).disabled).toBe(true);
+    expect(screen.getByTestId("action-remover").matches(":disabled")).toBe(true);
+    expect(screen.getByTestId("some-other-button").matches(":disabled")).toBe(true);
 
     // Esc não fecha.
     fireEvent.keyDown(screen.getByTestId("modal"), { key: "Escape" });
