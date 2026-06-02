@@ -268,7 +268,7 @@ export function useProjetoTarefaDetalhe(tarefaId: string | undefined, produtoId?
       toast.success("Anexo removido!");
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ["tarefa-anexos", tarefaId] });
+      queryClient.invalidateQueries({ queryKey: ["tarefa-anexos", tarefaId], refetchType: "none" });
     },
   });
 
