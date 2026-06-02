@@ -3,7 +3,7 @@ import { useProjetoTarefas, ProjetoTarefa } from "@/hooks/useProjetoTarefas";
 import { useTarefaDensity } from "@/hooks/useTarefaDensity";
 import { ProjetoFilters, ProjetoSort, EMPTY_FILTERS, DEFAULT_SORT } from "./ProjetoFilterSort";
 import { applyProjetoFilters, applyProjetoSort, hasActiveFilters } from "@/lib/projetoFilterUtils";
-import { parseLocalDate } from "@/utils/dateUtils";
+import { parseLocalDate, getToday } from "@/utils/dateUtils";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
