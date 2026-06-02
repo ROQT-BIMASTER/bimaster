@@ -60,12 +60,15 @@ export function ProjetoMembrosDialog({ open, onOpenChange, projetoId, projetoTip
   const { user } = useAuth();
   const { enabled: offboardingEnabled } = useFeatureFlag("ff_offboarding_membros_v1");
   const [search, setSearch] = useState("");
-  const [removeMemberConfirm, setRemoveMemberConfirm] = useState<string | null>(null);
+  const [removeMemberConfirm, setRemoveMemberConfirm] = useState<{ id: string; nome: string } | null>(null);
+  const [removingMembro, setRemovingMembro] = useState<{ id: string; nome: string } | null>(null);
   const [wizardMembro, setWizardMembro] = useState<ProjetoMembro | null>(null);
   const [showTeamDialog, setShowTeamDialog] = useState(false);
   const [selectedTeamIds, setSelectedTeamIds] = useState<string[]>([]);
   const [teamSearch, setTeamSearch] = useState("");
   const [addingTeam, setAddingTeam] = useState(false);
+  const [recentlyAdded, setRecentlyAdded] = useState<string[]>([]);
+  const [recentlyRemoved, setRecentlyRemoved] = useState<string | null>(null);
 
   // Defensive: reset body pointer-events if Radix leaves it locked after close.
   useEffect(() => {
