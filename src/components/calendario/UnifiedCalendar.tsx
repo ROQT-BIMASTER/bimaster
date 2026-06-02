@@ -133,6 +133,10 @@ export function UnifiedCalendar({
     [multiDayByRow],
   );
 
+  // Chave de "hoje" em America/Sao_Paulo — usada para destacar a célula correta
+  // mesmo quando o navegador está em outro fuso.
+  const todayKey = useMemo(() => getDateKey(getToday()), []);
+
   const navigate = (dir: "prev" | "next") => {
     if (viewMode === "month") {
       setCurrentDate(dir === "prev" ? subMonths(currentDate, 1) : addMonths(currentDate, 1));
