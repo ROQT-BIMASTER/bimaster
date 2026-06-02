@@ -569,23 +569,21 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
       const ok = await confirmConclusaoTarefa({});
       if (!ok) return;
     }
-    const { error } = await supabase.from("projeto_tarefas").update(updates as any).eq("id", id);
-    if (error) { toast.error("Erro ao atualizar"); return; }
+    const result = await attemptSave("Salvar tarefa", () =>
+      supabase.from("projeto_tarefas").update(updates as any).eq("id", id),
+    );
+    if (!result.ok) return; // mantém o painel aberto; toast oferece retry
     queryClient.invalidateQueries({ queryKey: ["minhas-tarefas"] });
-    // Reflete a mudança no estado local — mantém o Focus Mode aberto e
-    // sincronizado mesmo se a tarefa sair do escopo da query "minhas-tarefas"
-    // (ex.: ao ser marcada como concluída).
     if (detailTarefa && detailTarefa.id === id) {
       setDetailTarefa({ ...detailTarefa, ...updates } as MinaTarefa);
     }
-    // Se a subtarefa atualizada pertence à tarefa aberta, refetch da lista.
     if (detailTarefaId) {
       queryClient.setQueryData<ProjetoTarefa[]>(["projeto-tarefas-subtarefas-bridge", detailTarefaId], (old = []) =>
         old.map((st) => st.id === id ? ({ ...st, ...updates } as ProjetoTarefa) : st),
       );
       queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-subtarefas-bridge", detailTarefaId] });
     }
-  }, [queryClient, detailTarefa, detailTarefaId]);
+  }, [queryClient, detailTarefa, detailTarefaId, attemptSave]);
 
   const handleBridgeToggle = useCallback(async (t: ProjetoTarefa) => {
     const done = t.status !== "concluida";
@@ -599,10 +597,11 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
     }
     const update: Record<string, any> = { status: done ? "concluida" : "pendente" };
     update.data_conclusao = done ? new Date().toISOString() : null;
-    const { error } = await supabase.from("projeto_tarefas").update(update as never).eq("id", t.id);
-    if (error) { toast.error("Erro ao atualizar"); return; }
+    const result = await attemptSave(done ? "Concluir tarefa" : "Reabrir tarefa", () =>
+      supabase.from("projeto_tarefas").update(update as never).eq("id", t.id),
+    );
+    if (!result.ok) return;
     queryClient.invalidateQueries({ queryKey: ["minhas-tarefas"] });
-    // Reflete o novo status localmente para o Focus Mode não perder o item.
     if (detailTarefa && detailTarefa.id === t.id) {
       setDetailTarefa({ ...detailTarefa, ...update } as MinaTarefa);
     }
@@ -613,18 +612,20 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
       queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-subtarefas-bridge", detailTarefaId] });
     }
     toast.success(done ? "Tarefa concluida" : "Tarefa reaberta");
-  }, [queryClient, detailTarefa, detailTarefaId]);
+  }, [queryClient, detailTarefa, detailTarefaId, attemptSave]);
 
   const handleBridgeAddSubtarefa = useCallback(async (titulo: string, parentId: string, secaoId: string) => {
     if (!user?.id || !selectedProjetoId) return;
-    const { data, error } = await supabase.from("projeto_tarefas").insert({
-      titulo, parent_tarefa_id: parentId, secao_id: secaoId,
-      projeto_id: selectedProjetoId, responsavel_id: user.id,
-      status: "pendente", prioridade: "media", ordem: 999,
-    }).select("*").single();
-    if (error) { toast.error("Erro ao criar subtarefa"); return; }
+    const result = await attemptSave("Criar subtarefa", () =>
+      supabase.from("projeto_tarefas").insert({
+        titulo, parent_tarefa_id: parentId, secao_id: secaoId,
+        projeto_id: selectedProjetoId, responsavel_id: user.id,
+        status: "pendente", prioridade: "media", ordem: 999,
+      }).select("*").single(),
+    );
+    if (!result.ok) return;
+    const data = (result.data as any)?.data;
     queryClient.invalidateQueries({ queryKey: ["minhas-tarefas"] });
-    // Refetch das subtarefas da tarefa aberta para refletir no Focus Mode.
     if (detailTarefaId) {
       queryClient.setQueryData<ProjetoTarefa[]>(["projeto-tarefas-subtarefas-bridge", detailTarefaId], (old = []) => {
         if (!data || parentId !== detailTarefaId || old.some((st) => st.id === data.id)) return old;
@@ -633,7 +634,7 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
       queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-subtarefas-bridge", detailTarefaId] });
     }
     toast.success("Subtarefa criada");
-  }, [queryClient, user?.id, selectedProjetoId, detailTarefaId]);
+  }, [queryClient, user?.id, selectedProjetoId, detailTarefaId, attemptSave]);
 
   const handleBridgeMoveTarefa = useCallback(async (tarefaId: string, _o: string, secaoDestinoId: string) => {
     const { error } = await supabase.from("projeto_tarefas").update({ secao_id: secaoDestinoId }).eq("id", tarefaId);
