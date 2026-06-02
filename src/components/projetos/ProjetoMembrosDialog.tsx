@@ -213,7 +213,18 @@ export function ProjetoMembrosDialog({ open, onOpenChange, projetoId, projetoTip
                 <Mail className="h-3.5 w-3.5" /> Convites
               </TabsTrigger>
             )}
+            {isCoordinator && offboardingEnabled && (
+              <TabsTrigger value="ex_membros" className="gap-1.5">
+                <History className="h-3.5 w-3.5" /> Ex-membros
+              </TabsTrigger>
+            )}
           </TabsList>
+
+          {isCoordinator && offboardingEnabled && (
+            <TabsContent value="ex_membros" className="flex-1 overflow-auto mt-3">
+              <ExMembrosTab projetoId={projetoId} canRestaurar={isCoordinator} />
+            </TabsContent>
+          )}
 
           {isCoordinator && (
             <TabsContent value="convites" className="flex-1 overflow-auto space-y-4 mt-3">
