@@ -117,7 +117,7 @@ export function ProjetoMembrosDialog({ open, onOpenChange, projetoId, projetoTip
       }
       setSelectedTeamIds([]);
       setTeamSearch("");
-      setShowTeamDialog(false);
+      // Mantém o sub-diálogo aberto: o usuário fecha manualmente via X ou "Cancelar".
     } finally {
       setAddingTeam(false);
     }
