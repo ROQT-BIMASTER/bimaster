@@ -81,7 +81,11 @@ export function RemoverMembroWizard({ open, onOpenChange, projetoId, membro, out
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent
+        className="max-w-2xl"
+        onPointerDownOutside={(e) => e.preventDefault()}
+        onInteractOutside={(e) => e.preventDefault()}
+      >
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <UserMinus className="h-5 w-5 text-destructive" />
