@@ -120,7 +120,7 @@ describe("useProjetoTarefas — cenários de falha", () => {
     mocks.state.rpcPayload = basePayload();
     mocks.state.failFrom = false;
     mocks.state.failTimeout = false;
-    toastErrorMock.mockReset();
+    toastMocks.error.mockReset();
   });
 
   it("addResponsavel rejeitado pelo banco: rollback + reconcile espelha o servidor (USER_B não persiste)", async () => {
@@ -140,7 +140,7 @@ describe("useProjetoTarefas — cenários de falha", () => {
       expect(t?.responsaveis ?? []).toEqual([]);
       expect(t?.responsavel_id ?? null).toBeNull();
     });
-    expect(toastErrorMock).toHaveBeenCalled();
+    expect(toastMocks.error).toHaveBeenCalled();
   });
 
   it("addColaborador rejeitado: rollback remove o seguidor fantasma e o banco prevalece", async () => {
@@ -157,7 +157,7 @@ describe("useProjetoTarefas — cenários de falha", () => {
       const t = result.current.tarefas.find((x) => x.id === TAREFA_ID);
       expect(t?.colaboradores ?? []).toEqual([]);
     });
-    expect(toastErrorMock).toHaveBeenCalled();
+    expect(toastMocks.error).toHaveBeenCalled();
   });
 
   it("removeResponsavel falha: responsável removido otimisticamente volta para a lista", async () => {
@@ -178,7 +178,7 @@ describe("useProjetoTarefas — cenários de falha", () => {
       const t = result.current.tarefas.find((x) => x.id === TAREFA_ID);
       expect(t?.responsaveis?.map((r) => r.user_id)).toEqual([USER_B]);
     });
-    expect(toastErrorMock).toHaveBeenCalled();
+    expect(toastMocks.error).toHaveBeenCalled();
   });
 
   it("timeout em addResponsavel: mutação rejeita, rollback + reconcile mantêm consistência", async () => {
@@ -196,7 +196,7 @@ describe("useProjetoTarefas — cenários de falha", () => {
       const t = result.current.tarefas.find((x) => x.id === TAREFA_ID);
       expect(t?.responsaveis ?? []).toEqual([]);
     });
-    expect(toastErrorMock).toHaveBeenCalled();
+    expect(toastMocks.error).toHaveBeenCalled();
   });
 
   it("updateTarefa (data_inicio_planejada) falha: campo otimista é revertido e refletido do banco", async () => {
@@ -214,6 +214,6 @@ describe("useProjetoTarefas — cenários de falha", () => {
       const t = result.current.tarefas.find((x) => x.id === TAREFA_ID);
       expect((t as any)?.data_inicio_planejada ?? null).toBeNull();
     });
-    expect(toastErrorMock).toHaveBeenCalled();
+    expect(toastMocks.error).toHaveBeenCalled();
   });
 });
