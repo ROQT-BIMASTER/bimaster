@@ -3119,6 +3119,16 @@ export type Database = {
           payload: Json
           posicao_no_lote: number | null
           projeto_id: string | null
+          rrtask_aprovacao: string | null
+          rrtask_data_aprovacao: string | null
+          rrtask_etapa: string | null
+          rrtask_last_edited_time: string | null
+          rrtask_last_polled_at: string | null
+          rrtask_page_id: string | null
+          rrtask_page_url: string | null
+          rrtask_round: number
+          rrtask_status: string | null
+          rrtask_synced_at: string | null
           status: string
           tarefa_id: string | null
           template_id: string | null
@@ -3151,6 +3161,16 @@ export type Database = {
           payload?: Json
           posicao_no_lote?: number | null
           projeto_id?: string | null
+          rrtask_aprovacao?: string | null
+          rrtask_data_aprovacao?: string | null
+          rrtask_etapa?: string | null
+          rrtask_last_edited_time?: string | null
+          rrtask_last_polled_at?: string | null
+          rrtask_page_id?: string | null
+          rrtask_page_url?: string | null
+          rrtask_round?: number
+          rrtask_status?: string | null
+          rrtask_synced_at?: string | null
           status?: string
           tarefa_id?: string | null
           template_id?: string | null
@@ -3183,6 +3203,16 @@ export type Database = {
           payload?: Json
           posicao_no_lote?: number | null
           projeto_id?: string | null
+          rrtask_aprovacao?: string | null
+          rrtask_data_aprovacao?: string | null
+          rrtask_etapa?: string | null
+          rrtask_last_edited_time?: string | null
+          rrtask_last_polled_at?: string | null
+          rrtask_page_id?: string | null
+          rrtask_page_url?: string | null
+          rrtask_round?: number
+          rrtask_status?: string | null
+          rrtask_synced_at?: string | null
           status?: string
           tarefa_id?: string | null
           template_id?: string | null
@@ -38683,6 +38713,80 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: []
+      }
+      rr_solicitante_map: {
+        Row: {
+          area_solicitante: string
+          ativo: boolean
+          created_at: string
+          email: string
+          id: string
+          nome: string
+          notion_user_id: string | null
+        }
+        Insert: {
+          area_solicitante: string
+          ativo?: boolean
+          created_at?: string
+          email: string
+          id?: string
+          nome: string
+          notion_user_id?: string | null
+        }
+        Update: {
+          area_solicitante?: string
+          ativo?: boolean
+          created_at?: string
+          email?: string
+          id?: string
+          nome?: string
+          notion_user_id?: string | null
+        }
+        Relationships: []
+      }
+      rrtask_sync_log: {
+        Row: {
+          action: string
+          briefing_id: string
+          created_at: string
+          error_message: string | null
+          id: string
+          rrtask_page_id: string | null
+          solicitante_resolvido: boolean | null
+          status: string
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          briefing_id: string
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          rrtask_page_id?: string | null
+          solicitante_resolvido?: boolean | null
+          status: string
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          briefing_id?: string
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          rrtask_page_id?: string | null
+          solicitante_resolvido?: boolean | null
+          status?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rrtask_sync_log_briefing_id_fkey"
+            columns: ["briefing_id"]
+            isOneToOne: false
+            referencedRelation: "briefings"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       sale_items: {
         Row: {
