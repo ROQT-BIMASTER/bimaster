@@ -101,12 +101,16 @@ Deno.serve(
       // 4. Resolve solicitante
       const { data: prof } = await sb
         .from("profiles")
-        .select("nome_completo, email")
+        .select("nome, nome_completo, email")
         .eq("id", b.user_id)
         .maybeSingle();
 
       const email = (pl.solicitante_email as string | undefined) ?? prof?.email ?? null;
-      const nome = (pl.solicitante as string | undefined) ?? prof?.nome_completo ?? "Desconhecido";
+      const nome = (pl.solicitante as string | undefined)
+        || (prof as any)?.nome_completo
+        || (prof as any)?.nome
+        || prof?.email
+        || "Desconhecido";
 
       let area: string | null = null;
       let notionUserId: string | null = null;
