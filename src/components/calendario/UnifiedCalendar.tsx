@@ -194,7 +194,7 @@ export function UnifiedCalendar({
             variant="outline"
             size="sm"
             className={cn("h-8 text-xs ml-2", darkBg && "bg-white/10 border-white/20 text-white hover:bg-white/20")}
-            onClick={() => setCurrentDate(new Date())}
+            onClick={() => setCurrentDate(getToday())}
           >
             Hoje
           </Button>
