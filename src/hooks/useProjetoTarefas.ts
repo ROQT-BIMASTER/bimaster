@@ -385,10 +385,26 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
     },
     onError: (err: Error, _vars, context) => {
       if (context?.previous) queryClient.setQueryData(["projeto-tarefas-v2", projetoId], context.previous);
+      // Em erro, refetch agora para reconciliar com o servidor.
+      queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2", projetoId] });
       toast.error(err.message);
     },
+    onSuccess: ({ data }, _vars, context) => {
+      // Swap tempId → id real direto no cache, preservando o resto do
+      // snapshot otimista. Evita refetch e portanto evita re-mount da row.
+      if (data?.id && context?.tempId) {
+        patchView((v) => ({
+          ...v,
+          tarefas: v.tarefas.map(t =>
+            t.id === context.tempId
+              ? { ...t, id: data.id, codigo: (data as any).codigo ?? t.codigo, created_at: data.created_at || t.created_at }
+              : t,
+          ),
+        }));
+      }
+    },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2", projetoId] });
+      queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2", projetoId], refetchType: "none" });
     },
   });
 
