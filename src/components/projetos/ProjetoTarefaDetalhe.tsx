@@ -131,11 +131,14 @@ interface ProjetoTarefaDetalheProps {
   projetoIdOverride?: string;
   /** Comentário a destacar/rolar (vindo de deep-link de menção). */
   highlightCommentId?: string | null;
+  /** Indica que uma persistência externa (bridge) está em andamento. Mostra o indicador de "Salvando…" no header e mantém o painel aberto. */
+  externalSaving?: boolean;
 }
 
 export function ProjetoTarefaDetalhe({
-  tarefa: tarefaProp, open, onOpenChange, onUpdate, onToggle, onAddSubtarefa, onDelete, secoes = [], onMoveTarefa, projetoIdOverride, highlightCommentId = null,
+  tarefa: tarefaProp, open, onOpenChange, onUpdate, onToggle, onAddSubtarefa, onDelete, secoes = [], onMoveTarefa, projetoIdOverride, highlightCommentId = null, externalSaving = false,
 }: ProjetoTarefaDetalheProps) {
+
   // Mantém o último snapshot aberto para que refetches/invalidations não
   // desmontem a tela enquanto o usuário salva status ou subtarefas.
   const lastOpenTarefaRef = useRef<ProjetoTarefa | null>(null);
@@ -667,15 +670,16 @@ export function ProjetoTarefaDetalhe({
                       </h2>
                     )}
                   </div>
-                  {autoSaveStatus !== "idle" && (
+                  {(autoSaveStatus !== "idle" || externalSaving) && (
                     <span
                       className={cn(
                         "flex items-center gap-1 text-[11px] mt-1.5 shrink-0 transition-opacity",
-                        autoSaveStatus === "saving" ? "text-muted-foreground" : "text-emerald-500"
+                        externalSaving || autoSaveStatus === "saving" ? "text-muted-foreground" : "text-emerald-500"
                       )}
                       aria-live="polite"
+                      data-testid="tarefa-saving-indicator"
                     >
-                      {autoSaveStatus === "saving" ? (
+                      {externalSaving || autoSaveStatus === "saving" ? (
                         <>
                           <Loader2 className="h-3 w-3 animate-spin" />
                           Salvando…
@@ -1671,8 +1675,10 @@ export function ProjetoTarefaDetalhe({
           onAddSubtarefa={onAddSubtarefa}
           secoes={secoes}
           projetoTipo={projetoTipo}
+          externalSaving={externalSaving}
         />
       )}
+
 
       {/* Briefing Dialogs */}
       {tarefa && (
