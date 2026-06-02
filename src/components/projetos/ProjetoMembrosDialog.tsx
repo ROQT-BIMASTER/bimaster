@@ -70,6 +70,7 @@ export function ProjetoMembrosDialog({ open, onOpenChange, projetoId, projetoTip
   const [recentlyAdded, setRecentlyAdded] = useState<string[]>([]);
   const [recentlyRemoved, setRecentlyRemoved] = useState<string | null>(null);
   const [removeError, setRemoveError] = useState<string | null>(null);
+  const [liveMessage, setLiveMessage] = useState<string>("");
   const removingOverlayRef = useRef<HTMLDivElement | null>(null);
 
   // Focus trap: ao iniciar remoção, joga o foco para o overlay (que está
@@ -135,6 +136,11 @@ export function ProjetoMembrosDialog({ open, onOpenChange, projetoId, projetoTip
       setTeamSearch("");
       if (addedNames.length > 0) {
         setRecentlyAdded(addedNames);
+        setLiveMessage(
+          addedNames.length === 1
+            ? `${addedNames[0]} foi adicionado(a) ao projeto.`
+            : `${addedNames.length} membros adicionados ao projeto: ${addedNames.join(", ")}.`,
+        );
         window.setTimeout(() => setRecentlyAdded([]), 6000);
       }
       // Mantém o sub-diálogo aberto: o usuário fecha manualmente via X ou "Cancelar".
@@ -226,6 +232,17 @@ export function ProjetoMembrosDialog({ open, onOpenChange, projetoId, projetoTip
         onInteractOutside={(e) => e.preventDefault()}
         onEscapeKeyDown={(e) => { if (removingMembro) e.preventDefault(); }}
       >
+        {/* Live region acessível: anuncia início/sucesso/erro da remoção
+            sem depender do overlay visual (que pode estar atrás de inert). */}
+        <div
+          role="status"
+          aria-live="polite"
+          aria-atomic="true"
+          data-testid="membros-live-region"
+          className="sr-only"
+        >
+          {liveMessage}
+        </div>
         {removingMembro && (
           <div
             ref={removingOverlayRef}
@@ -588,15 +605,19 @@ export function ProjetoMembrosDialog({ open, onOpenChange, projetoId, projetoTip
               const target = removeMemberConfirm;
               setRemoveError(null);
               setRemovingMembro(target);
+              setLiveMessage(`Removendo ${target.nome}…`);
               try {
                 await removeMembro.mutateAsync(target.id);
                 setRecentlyRemoved(target.nome);
+                setLiveMessage(`${target.nome} foi removido(a) do projeto com sucesso.`);
                 window.setTimeout(() => setRecentlyRemoved(null), 5000);
                 setRemovingMembro(null);
                 setRemoveMemberConfirm(null);
               } catch (err) {
+                const msg = err instanceof Error ? err.message : "Erro desconhecido. Tente novamente.";
                 setRemovingMembro(null);
-                setRemoveError(err instanceof Error ? err.message : "Erro desconhecido. Tente novamente.");
+                setRemoveError(msg);
+                setLiveMessage(`Falha ao remover ${target.nome}: ${msg}. Você pode tentar novamente.`);
                 // mantém o AlertDialog aberto para nova tentativa
               }
             }}
