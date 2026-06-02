@@ -83,6 +83,15 @@ export function ProjetoSettingsMenu({
 
         <button
           type="button"
+          onClick={handle(() => setEditarOpen(true))}
+          className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm hover:bg-muted transition-colors"
+        >
+          <Pencil className="h-4 w-4 text-muted-foreground" />
+          <span>Editar projeto</span>
+        </button>
+
+        <button
+          type="button"
           onClick={handle(onAbrirMembros)}
           className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm hover:bg-muted transition-colors"
         >
