@@ -15,8 +15,9 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 // ---- supabase mock: capture the realtime handler so the test can fire it ----
 const mocks = vi.hoisted(() => {
-  const state: { mocks.state.realtimeHandler: ((payload: any) => void) | null } = {
-    mocks.state.realtimeHandler: null,
+  const state: { realtimeHandler: ((payload: any) => void) | null } = {
+    realtimeHandler: null,
+
   };
   return {
     state,
