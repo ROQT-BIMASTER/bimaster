@@ -13,9 +13,10 @@ import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { ExternalLink, MessageSquare, Sparkles, Send, AtSign, FileText, Paperclip, FolderLock } from "lucide-react";
+import { ExternalLink, MessageSquare, Sparkles, Send, AtSign, FileText, Paperclip, FolderLock, AlertOctagon } from "lucide-react";
 import { UploadDocumentoDialog } from "@/components/briefings/cofre/UploadDocumentoDialog";
 import { ChatComposerActionsBar } from "./ChatComposerActionsBar";
+import { CutucarItemDialog } from "./CutucarItemDialog";
 import { useAbrirAcaoVinculada } from "@/hooks/chat/useAbrirAcaoVinculada";
 
 import { Button } from "@/components/ui/button";
