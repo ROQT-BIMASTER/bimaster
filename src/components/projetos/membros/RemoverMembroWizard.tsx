@@ -134,7 +134,7 @@ export function RemoverMembroWizard({ open, onOpenChange, projetoId, membro, out
           </div>
         )}
 
-        {step === 2 && (
+        {!concluido && step === 2 && (
           <div className="space-y-4">
             <p className="text-xs text-muted-foreground">
               Escolha para quem transferir. Se deixar "Sem responsável", as tarefas/itens ficarão sem responsável até alguém assumir.
