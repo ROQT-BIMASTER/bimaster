@@ -21,6 +21,7 @@ import { BriefingView } from "./BriefingView";
 import { BriefingToTasksDialog } from "./BriefingToTasksDialog";
 import { useProjetoBriefing } from "@/hooks/useProjetoBriefing";
 import { GRID_COLS } from "./ProjetoListView";
+import { EditableSecaoTitle } from "./EditableSecaoTitle";
 import { VirtualizedRows } from "./VirtualizedRows";
 import { ColumnConfig, buildGridCols } from "./ColumnConfigPopover";
 
