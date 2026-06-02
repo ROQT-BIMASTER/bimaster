@@ -147,7 +147,7 @@ Deno.serve(
       let semPrazo = false;
       if (prazo && /^\d{4}-\d{2}-\d{2}/.test(String(prazo))) {
         props["Prazo"] = {
-          date: { start: String(prazo).slice(0, 10), time_zone: "America/Sao_Paulo" },
+          date: { start: String(prazo).slice(0, 10) },
         };
       } else {
         semPrazo = true;
