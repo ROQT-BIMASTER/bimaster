@@ -79,16 +79,33 @@ export function ProjetoListView({ projetoId, darkBg = false, filters = EMPTY_FIL
   // reflects optimistic updates and realtime invalidations without remounting.
   // Mantém um snapshot da última tarefa não-nula para evitar flicker durante
   // refetches curtos em que `find()` pode retornar undefined.
+  //
+  // IMPORTANTE: para evitar que o painel `ProjetoTarefaDetalhe` re-renderize
+  // 2-3x ao criar subtarefa (optimistic insert + swap tempId→id + eventual
+  // refetch), só retornamos uma referência NOVA quando o conteúdo relevante
+  // mudou de fato — comparando `updated_at` da tarefa pai + assinatura das
+  // subtarefas (id|updated_at|status|titulo). Conteúdo idêntico ⇒ mesma
+  // referência ⇒ React.memo não dispara render desnecessário.
   const lastTarefaRef = useRef<ProjetoTarefa | null>(null);
+  const lastSignatureRef = useRef<string>("");
   const selectedTarefa = useMemo(() => {
     if (!selectedTarefaId) {
       lastTarefaRef.current = null;
+      lastSignatureRef.current = "";
       return null;
     }
     const found = tarefas.find((t) => t.id === selectedTarefaId);
     if (!found) return lastTarefaRef.current;
-    const enriched = { ...found, subtarefas: tarefas.filter((st) => st.parent_tarefa_id === found.id) };
+    const subs = tarefas.filter((st) => st.parent_tarefa_id === found.id);
+    const signature =
+      `${found.id}|${found.updated_at}|${found.titulo}|${found.status}|${found.responsavel_id ?? ""}|${found.prioridade}|${found.data_prazo ?? ""}|${found.descricao ?? ""}|${found.estagio ?? ""}|${found.secao_id}|` +
+      subs.map((s) => `${s.id}:${s.updated_at}:${s.status}:${s.titulo}:${s.responsavel_id ?? ""}:${s.prioridade}:${s.estagio ?? ""}:${s.data_prazo ?? ""}`).join(";");
+    if (signature === lastSignatureRef.current && lastTarefaRef.current) {
+      return lastTarefaRef.current;
+    }
+    const enriched = { ...found, subtarefas: subs };
     lastTarefaRef.current = enriched as ProjetoTarefa;
+    lastSignatureRef.current = signature;
     return enriched;
   }, [selectedTarefaId, tarefas]);
   // Mantém reload-gate ativo enquanto há tarefa aberta: o PWA não recarrega
