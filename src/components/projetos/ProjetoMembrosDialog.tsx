@@ -70,6 +70,7 @@ export function ProjetoMembrosDialog({ open, onOpenChange, projetoId, projetoTip
   const [recentlyAdded, setRecentlyAdded] = useState<string[]>([]);
   const [recentlyRemoved, setRecentlyRemoved] = useState<string | null>(null);
   const [removeError, setRemoveError] = useState<string | null>(null);
+  const [liveMessage, setLiveMessage] = useState<string>("");
   const removingOverlayRef = useRef<HTMLDivElement | null>(null);
 
   // Focus trap: ao iniciar remoção, joga o foco para o overlay (que está
