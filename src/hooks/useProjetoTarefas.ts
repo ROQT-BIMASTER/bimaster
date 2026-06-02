@@ -328,8 +328,11 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
       toast.error(err.message);
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2", projetoId] });
-      queryClient.invalidateQueries({ queryKey: ["tarefa-movimentacoes", projetoId] });
+      // refetchType:"none" evita refetch imediato em cima do patch otimista
+      // (que causava re-mount/piscar das linhas). A view fica stale e é
+      // refetada silenciosamente no próximo gatilho/foco.
+      queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2", projetoId], refetchType: "none" });
+      queryClient.invalidateQueries({ queryKey: ["tarefa-movimentacoes", projetoId], refetchType: "none" });
     },
     // Toast suprimido intencionalmente: drag-and-drop precisa ser silencioso
     // (benchmark Asana). Erros continuam sendo notificados via onError.
@@ -382,10 +385,26 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
     },
     onError: (err: Error, _vars, context) => {
       if (context?.previous) queryClient.setQueryData(["projeto-tarefas-v2", projetoId], context.previous);
+      // Em erro, refetch agora para reconciliar com o servidor.
+      queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2", projetoId] });
       toast.error(err.message);
     },
+    onSuccess: ({ data }, _vars, context) => {
+      // Swap tempId → id real direto no cache, preservando o resto do
+      // snapshot otimista. Evita refetch e portanto evita re-mount da row.
+      if (data?.id && context?.tempId) {
+        patchView((v) => ({
+          ...v,
+          tarefas: v.tarefas.map(t =>
+            t.id === context.tempId
+              ? { ...t, id: data.id, codigo: (data as any).codigo ?? t.codigo, created_at: data.created_at || t.created_at }
+              : t,
+          ),
+        }));
+      }
+    },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2", projetoId] });
+      queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2", projetoId], refetchType: "none" });
     },
   });
 
@@ -489,6 +508,7 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
         pendingPrimaryRef.current = nextPrimary;
       }
       if (context?.previous) queryClient.setQueryData(["projeto-tarefas-v2", projetoId], context.previous);
+      queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2", projetoId] });
       if (err.message === "__CANCELLED__") return;
       toast.error(err.message);
     },
@@ -502,7 +522,7 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
       }
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2", projetoId] });
+      queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2", projetoId], refetchType: "none" });
     },
   });
 
@@ -569,11 +589,12 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
     },
     onError: (err: Error, _vars, context) => {
       if (context?.previous) queryClient.setQueryData(["projeto-tarefas-v2", projetoId], context.previous);
+      queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2", projetoId] });
       if (err.message === "__CANCELLED__") return; // usuário cancelou ou foi p/ fluxo de evidência
       toast.error("Erro ao atualizar status: " + err.message);
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2", projetoId] });
+      queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2", projetoId], refetchType: "none" });
     },
   });
 
@@ -601,16 +622,27 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
         created_at: new Date().toISOString(),
       };
       patchView((v) => ({ ...v, secoes: [...v.secoes, optimistic] }));
-      return { previous };
+      return { previous, tempId };
     },
     onError: (err: Error, _vars, context) => {
       if (context?.previous) queryClient.setQueryData(["projeto-tarefas-v2", projetoId], context.previous);
+      queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2", projetoId] });
       toast.error(err.message);
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2", projetoId] });
+      queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2", projetoId], refetchType: "none" });
     },
-    onSuccess: () => toast.success("Seção criada!"),
+    onSuccess: (data, _vars, context) => {
+      if (data?.id && context?.tempId) {
+        patchView((v) => ({
+          ...v,
+          secoes: v.secoes.map(s =>
+            s.id === context.tempId ? { ...s, id: data.id, created_at: (data as any).created_at || s.created_at } : s,
+          ),
+        }));
+      }
+      toast.success("Seção criada!");
+    },
   });
 
   const addColaborador = useMutation({
@@ -664,13 +696,14 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
     onError: (err: Error, _vars, context) => {
       if (context) clearPendingListOp(pendingColaboradoresRef, context.tarefaId, context.userId);
       if (context?.previous) queryClient.setQueryData(["projeto-tarefas-v2", projetoId], context.previous);
+      queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2", projetoId] });
       toast.error(err.message);
     },
     onSuccess: (_data, _vars, context) => {
       if (context) schedulePendingCleanup(() => clearPendingListOp(pendingColaboradoresRef, context.tarefaId, context.userId));
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2", projetoId] });
+      queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2", projetoId], refetchType: "none" });
     },
   });
 
@@ -705,13 +738,14 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
     onError: (err: Error, _vars, context) => {
       if (context) clearPendingListOp(pendingColaboradoresRef, context.tarefaId, context.userId);
       if (context?.previous) queryClient.setQueryData(["projeto-tarefas-v2", projetoId], context.previous);
+      queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2", projetoId] });
       toast.error(err.message);
     },
     onSuccess: (_data, _vars, context) => {
       if (context) schedulePendingCleanup(() => clearPendingListOp(pendingColaboradoresRef, context.tarefaId, context.userId));
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2", projetoId] });
+      queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2", projetoId], refetchType: "none" });
     },
   });
 
@@ -769,10 +803,11 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
     },
     onError: (err: Error, _vars, context) => {
       if (context?.previous) queryClient.setQueryData(["projeto-tarefas-v2", projetoId], context.previous);
+      queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2", projetoId] });
       toast.error(err.message);
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2", projetoId] });
+      queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2", projetoId], refetchType: "none" });
     },
   });
 
@@ -816,10 +851,11 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
     },
     onError: (err: Error, _vars, context) => {
       if (context?.previous) queryClient.setQueryData(["projeto-tarefas-v2", projetoId], context.previous);
+      queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2", projetoId] });
       toast.error(err.message);
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2", projetoId] });
+      queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2", projetoId], refetchType: "none" });
     },
   });
 
@@ -864,10 +900,11 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
     },
     onError: (err: Error, _vars, context) => {
       if (context?.previous) queryClient.setQueryData(["projeto-tarefas-v2", projetoId], context.previous);
+      queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2", projetoId] });
       toast.error("Erro ao excluir seção: " + err.message);
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2", projetoId] });
+      queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2", projetoId], refetchType: "none" });
     },
     onSuccess: () => toast.success("Seção excluída"),
   });
@@ -925,11 +962,12 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
     },
     onError: (err: Error, _vars, context) => {
       if (context?.previous) queryClient.setQueryData(["projeto-tarefas-v2", projetoId], context.previous);
+      queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2", projetoId] });
       if (err.message === "__CANCELLED__") return;
       toast.error(err.message);
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2", projetoId] });
+      queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2", projetoId], refetchType: "none" });
       queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-excluidas", projetoId] });
       queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-excluidas-count", projetoId] });
     },
@@ -1019,10 +1057,11 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
     },
     onError: (err: Error, _vars, context) => {
       if (context?.previous) queryClient.setQueryData(["projeto-tarefas-v2", projetoId], context.previous);
+      queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2", projetoId] });
       toast.error(err.message);
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2", projetoId] });
+      queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2", projetoId], refetchType: "none" });
     },
   });
 
