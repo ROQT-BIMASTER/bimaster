@@ -73,7 +73,7 @@ Deno.serve(
       const { data: b, error: be } = await sb
         .from("briefings")
         .select(
-          "id, user_id, titulo, codigo, tipo, status, completude, payload, rrtask_page_id, rrtask_page_url, rrtask_round",
+          "id, user_id, titulo, codigo, tipo, status, completude, payload, template_id, rrtask_page_id, rrtask_page_url, rrtask_round",
         )
         .eq("id", briefing_id)
         .single();
