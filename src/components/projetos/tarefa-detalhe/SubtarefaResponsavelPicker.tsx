@@ -143,6 +143,8 @@ export function SubtarefaResponsavelPicker({
         collisionPadding={8}
         style={{ pointerEvents: "auto" }}
         onOpenAutoFocus={(e) => e.preventDefault()}
+        onPointerDownOutside={(e) => e.stopPropagation()}
+        onInteractOutside={(e) => e.stopPropagation()}
       >
         <Command>
           <CommandInput placeholder="Buscar membro..." />

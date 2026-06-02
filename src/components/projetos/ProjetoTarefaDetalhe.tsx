@@ -498,14 +498,14 @@ export function ProjetoTarefaDetalhe({
           className="w-full sm:max-w-[580px] p-0 flex flex-col overflow-hidden"
           onPointerDownOutside={(e) => {
             // Evita que cliques em conteúdo portalizado (Popover, Select,
-            // Dropdown, Dialog aninhado) sejam tratados como "fora do Sheet"
-            // — sem isso, o Radix dá preventDefault no pointerdown e o
-            // onSelect do cmdk nunca dispara nos pickers de
-            // Responsável/Seguidores.
+            // Dropdown, Dialog aninhado, cmdk) sejam tratados como "fora do
+            // Sheet" — sem isso o Sheet (e o Sheet pai, quando este é uma
+            // subtarefa) fecha sozinho ao abrir o picker de Responsável/
+            // Seguidores.
             const target = e.target as HTMLElement | null;
             if (
               target?.closest(
-                "[data-radix-popper-content-wrapper], [role=dialog], [role=alertdialog], [role=menu], [role=listbox]"
+                "[data-radix-popper-content-wrapper], [data-radix-popover-content], [data-radix-select-content], [data-radix-dropdown-menu-content], [role=dialog], [role=alertdialog], [role=menu], [role=listbox], [cmdk-root], [cmdk-list], [cmdk-item]"
               )
             ) {
               e.preventDefault();
@@ -515,7 +515,7 @@ export function ProjetoTarefaDetalhe({
             const target = e.target as HTMLElement | null;
             if (
               target?.closest(
-                "[data-radix-popper-content-wrapper], [role=dialog], [role=alertdialog], [role=menu], [role=listbox]"
+                "[data-radix-popper-content-wrapper], [data-radix-popover-content], [data-radix-select-content], [data-radix-dropdown-menu-content], [role=dialog], [role=alertdialog], [role=menu], [role=listbox], [cmdk-root], [cmdk-list], [cmdk-item]"
               )
             ) {
               e.preventDefault();
