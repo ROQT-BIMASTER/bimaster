@@ -109,6 +109,7 @@ export function ProjetoMembrosDialog({ open, onOpenChange, projetoId, projetoTip
   const handleAddTeam = useCallback(async () => {
     if (selectedTeamIds.length === 0) return;
     setAddingTeam(true);
+    const addedNames: string[] = [];
     try {
       for (const userId of selectedTeamIds) {
         const profile = allUsers.find((u) => u.id === userId);
@@ -117,9 +118,14 @@ export function ProjetoMembrosDialog({ open, onOpenChange, projetoId, projetoTip
           papel: "membro",
           profile: profile ? { nome: profile.nome, avatar_url: profile.avatar_url } : undefined,
         });
+        if (profile?.nome) addedNames.push(profile.nome);
       }
       setSelectedTeamIds([]);
       setTeamSearch("");
+      if (addedNames.length > 0) {
+        setRecentlyAdded(addedNames);
+        window.setTimeout(() => setRecentlyAdded([]), 6000);
+      }
       // Mantém o sub-diálogo aberto: o usuário fecha manualmente via X ou "Cancelar".
     } finally {
       setAddingTeam(false);
