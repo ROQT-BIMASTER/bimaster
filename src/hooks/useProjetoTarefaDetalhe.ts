@@ -115,7 +115,8 @@ export function useProjetoTarefaDetalhe(tarefaId: string | undefined, produtoId?
       toast.error(err.message);
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ["tarefa-comentarios", tarefaId] });
+      // refetchType:"none" mantém o patch otimista e evita flash/remount no painel de detalhes
+      queryClient.invalidateQueries({ queryKey: ["tarefa-comentarios", tarefaId], refetchType: "none" });
     },
   });
 
@@ -241,7 +242,7 @@ export function useProjetoTarefaDetalhe(tarefaId: string | undefined, produtoId?
       toast.success("Anexo enviado!");
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ["tarefa-anexos", tarefaId] });
+      queryClient.invalidateQueries({ queryKey: ["tarefa-anexos", tarefaId], refetchType: "none" });
     },
   });
 
@@ -267,7 +268,7 @@ export function useProjetoTarefaDetalhe(tarefaId: string | undefined, produtoId?
       toast.success("Anexo removido!");
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ["tarefa-anexos", tarefaId] });
+      queryClient.invalidateQueries({ queryKey: ["tarefa-anexos", tarefaId], refetchType: "none" });
     },
   });
 
@@ -431,7 +432,7 @@ export function useProjetoTarefaDetalhe(tarefaId: string | undefined, produtoId?
       toast.error(err.message);
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ["tarefa-messages", tarefaId] });
+      queryClient.invalidateQueries({ queryKey: ["tarefa-messages", tarefaId], refetchType: "none" });
     },
   });
 
