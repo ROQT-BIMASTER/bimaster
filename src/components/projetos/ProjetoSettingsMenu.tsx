@@ -174,5 +174,11 @@ export function ProjetoSettingsMenu({
         </button>
       </PopoverContent>
     </Popover>
+    <EditarProjetoDialog
+      projetoId={projetoId}
+      open={editarOpen}
+      onOpenChange={setEditarOpen}
+    />
+    </>
   );
 }
