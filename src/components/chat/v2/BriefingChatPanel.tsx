@@ -73,6 +73,9 @@ export function BriefingChatPanel({ briefingId }: Props) {
   const [cofreVinculaComentarioId, setCofreVinculaComentarioId] = useState<string | null>(null);
   const [cofreInitialFile, setCofreInitialFile] = useState<File | null>(null);
   const { abrirAprovacao, abrirUrgente } = useAbrirAcaoVinculada();
+  const [cutucarItem, setCutucarItem] = useState<{ id: string; resumo: string; docNome?: string | null } | null>(null);
+
+
 
 
 
