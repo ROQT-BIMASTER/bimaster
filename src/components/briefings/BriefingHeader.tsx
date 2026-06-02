@@ -59,7 +59,7 @@ export function BriefingHeader({
   const tipo = getTipoMeta(briefing.tipo);
   const status = getStatusBadge(briefing.status);
   const rrtaskJaCriada = !!briefing.rrtask_page_id;
-  const rrtaskFinalizado = briefing.status === "final";
+  const rrtaskPronto = (briefing.completude ?? 0) >= 100;
 
   return (
     <div className={`border-b transition-colors ${projetoNome ? "bg-primary/5" : "bg-background"}`}>
@@ -184,11 +184,11 @@ export function BriefingHeader({
               variant="outline"
               size="sm"
               onClick={onEnviarRRTask}
-              disabled={!rrtaskFinalizado || rrtaskEnviando}
+              disabled={!rrtaskPronto || rrtaskEnviando}
               title={
-                rrtaskFinalizado
+                rrtaskPronto
                   ? "Criar task no RR-Tasks da agência"
-                  : "Disponível quando o briefing estiver finalizado"
+                  : "Disponível quando o briefing estiver 100% completo"
               }
             >
               {rrtaskEnviando ? (

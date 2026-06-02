@@ -64,7 +64,7 @@ Deno.serve(
       const { data: b, error: be } = await sb
         .from("briefings")
         .select(
-          "id, user_id, titulo, codigo, tipo, status, payload, rrtask_page_id, rrtask_page_url, rrtask_round",
+          "id, user_id, titulo, codigo, tipo, status, completude, payload, rrtask_page_id, rrtask_page_url, rrtask_round",
         )
         .eq("id", briefing_id)
         .single();
@@ -81,9 +81,9 @@ Deno.serve(
       }
       if (!allowed) return J({ error: "forbidden" }, 403);
 
-      // 3. Status guard
-      if (b.status !== "final" && !force) {
-        return J({ error: "briefing_not_final", status: b.status }, 409);
+      // 3. Completude guard
+      if ((b.completude ?? 0) < 100 && !force) {
+        return J({ error: "briefing_nao_pronto", completude: b.completude }, 409);
       }
 
       const pl = (b.payload ?? {}) as Record<string, unknown>;
