@@ -533,6 +533,16 @@ export function ProjetoMembrosDialog({ open, onOpenChange, projetoId, projetoTip
             </div>
           </DialogContent>
         </Dialog>
+
+        {offboardingEnabled && (
+          <RemoverMembroWizard
+            open={!!wizardMembro}
+            onOpenChange={(v) => !v && setWizardMembro(null)}
+            projetoId={projetoId}
+            membro={wizardMembro}
+            outrosMembros={membros}
+          />
+        )}
       </DialogContent>
     </Dialog>
   );
