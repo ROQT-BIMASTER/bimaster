@@ -622,16 +622,27 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
         created_at: new Date().toISOString(),
       };
       patchView((v) => ({ ...v, secoes: [...v.secoes, optimistic] }));
-      return { previous };
+      return { previous, tempId };
     },
     onError: (err: Error, _vars, context) => {
       if (context?.previous) queryClient.setQueryData(["projeto-tarefas-v2", projetoId], context.previous);
+      queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2", projetoId] });
       toast.error(err.message);
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2", projetoId] });
+      queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2", projetoId], refetchType: "none" });
     },
-    onSuccess: () => toast.success("Seção criada!"),
+    onSuccess: (data, _vars, context) => {
+      if (data?.id && context?.tempId) {
+        patchView((v) => ({
+          ...v,
+          secoes: v.secoes.map(s =>
+            s.id === context.tempId ? { ...s, id: data.id, created_at: (data as any).created_at || s.created_at } : s,
+          ),
+        }));
+      }
+      toast.success("Seção criada!");
+    },
   });
 
   const addColaborador = useMutation({
