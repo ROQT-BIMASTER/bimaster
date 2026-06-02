@@ -404,6 +404,9 @@ export function ProjetoChatPanel({ projetoId }: Props) {
                       goProjeto();
                     }
                   }}
+                  onCutucar={() =>
+                    setCutucarItem({ id: c.id, resumo: c.conteudo ?? "" })
+                  }
                 />
               ))}
             </div>
