@@ -539,8 +539,10 @@ export function MinhasTarefasSimples() {
       const ok = await confirmConclusaoTarefa({});
       if (!ok) return;
     }
-    const { error } = await supabase.from("projeto_tarefas").update(updates as any).eq("id", id);
-    if (error) { toast.error("Erro ao atualizar"); return; }
+    const result = await attemptSave("Salvar tarefa", () =>
+      supabase.from("projeto_tarefas").update(updates as any).eq("id", id),
+    );
+    if (!result.ok) return;
     queryClient.invalidateQueries({ queryKey: ["minhas-tarefas"] });
     if (detailTarefa && detailTarefa.id === id) {
       setDetailTarefa({ ...detailTarefa, ...updates } as MinaTarefa);
@@ -551,7 +553,7 @@ export function MinhasTarefasSimples() {
       );
       queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-subtarefas-bridge-mt", detailTarefaId] });
     }
-  }, [queryClient, detailTarefa, detailTarefaId]);
+  }, [queryClient, detailTarefa, detailTarefaId, attemptSave]);
 
   const handleBridgeToggle = useCallback(async (t: ProjetoTarefa) => {
     const done = t.status !== "concluida";
@@ -565,8 +567,10 @@ export function MinhasTarefasSimples() {
     }
     const update: Record<string, any> = { status: done ? "concluida" : "pendente" };
     update.data_conclusao = done ? new Date().toISOString() : null;
-    const { error } = await supabase.from("projeto_tarefas").update(update as never).eq("id", t.id);
-    if (error) { toast.error("Erro ao atualizar"); return; }
+    const result = await attemptSave(done ? "Concluir tarefa" : "Reabrir tarefa", () =>
+      supabase.from("projeto_tarefas").update(update as never).eq("id", t.id),
+    );
+    if (!result.ok) return;
     queryClient.invalidateQueries({ queryKey: ["minhas-tarefas"] });
     if (detailTarefa && detailTarefa.id === t.id) {
       setDetailTarefa({ ...detailTarefa, ...update } as MinaTarefa);
@@ -577,16 +581,19 @@ export function MinhasTarefasSimples() {
       );
       queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-subtarefas-bridge-mt", detailTarefaId] });
     }
-  }, [queryClient, detailTarefa, detailTarefaId]);
+  }, [queryClient, detailTarefa, detailTarefaId, attemptSave]);
 
   const handleBridgeAddSubtarefa = useCallback(async (titulo: string, parentId: string, secaoId: string) => {
     if (!user?.id || !selectedProjetoId) return;
-    const { data, error } = await supabase.from("projeto_tarefas").insert({
-      titulo, parent_tarefa_id: parentId, secao_id: secaoId,
-      projeto_id: selectedProjetoId, responsavel_id: user.id,
-      status: "pendente", prioridade: "media", ordem: 999,
-    }).select("*").single();
-    if (error) { toast.error("Erro ao criar subtarefa"); return; }
+    const result = await attemptSave("Criar subtarefa", () =>
+      supabase.from("projeto_tarefas").insert({
+        titulo, parent_tarefa_id: parentId, secao_id: secaoId,
+        projeto_id: selectedProjetoId, responsavel_id: user.id,
+        status: "pendente", prioridade: "media", ordem: 999,
+      }).select("*").single(),
+    );
+    if (!result.ok) return;
+    const data = (result.data as any)?.data;
     queryClient.invalidateQueries({ queryKey: ["minhas-tarefas"] });
     if (detailTarefaId) {
       queryClient.setQueryData<ProjetoTarefa[]>(["projeto-tarefas-subtarefas-bridge-mt", detailTarefaId], (old = []) => {
@@ -596,7 +603,7 @@ export function MinhasTarefasSimples() {
       queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-subtarefas-bridge-mt", detailTarefaId] });
     }
     toast.success("Subtarefa criada");
-  }, [queryClient, user?.id, selectedProjetoId, detailTarefaId]);
+  }, [queryClient, user?.id, selectedProjetoId, detailTarefaId, attemptSave]);
 
   const handleBridgeMoveTarefa = useCallback(async (tarefaId: string, _o: string, secaoDestinoId: string) => {
     const { error } = await supabase.from("projeto_tarefas").update({ secao_id: secaoDestinoId }).eq("id", tarefaId);
