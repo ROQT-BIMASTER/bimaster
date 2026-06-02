@@ -534,7 +534,10 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
       if (isCompleting) {
         // Confirmação obrigatória para evitar conclusão acidental por clique
         const { confirmConclusaoTarefa } = await import("@/lib/projetos/confirmConclusao");
-        const ok = await confirmConclusaoTarefa({ titulo: tarefa.titulo });
+        const ok = await confirmConclusaoTarefa({
+          titulo: tarefa.titulo,
+          isSubtarefa: !!tarefa.parent_tarefa_id,
+        });
         if (!ok) {
           // Sinaliza cancelamento para reverter o estado otimista
           throw new Error("__CANCELLED__");

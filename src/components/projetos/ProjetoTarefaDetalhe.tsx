@@ -505,7 +505,7 @@ export function ProjetoTarefaDetalhe({
             const target = e.target as HTMLElement | null;
             if (
               target?.closest(
-                "[data-radix-popper-content-wrapper], [role=dialog], [role=menu], [role=listbox]"
+                "[data-radix-popper-content-wrapper], [role=dialog], [role=alertdialog], [role=menu], [role=listbox]"
               )
             ) {
               e.preventDefault();
@@ -515,7 +515,7 @@ export function ProjetoTarefaDetalhe({
             const target = e.target as HTMLElement | null;
             if (
               target?.closest(
-                "[data-radix-popper-content-wrapper], [role=dialog], [role=menu], [role=listbox]"
+                "[data-radix-popper-content-wrapper], [role=dialog], [role=alertdialog], [role=menu], [role=listbox]"
               )
             ) {
               e.preventDefault();
@@ -1651,10 +1651,10 @@ export function ProjetoTarefaDetalhe({
       )}
 
       {/* Subtask Detail - recursive */}
-      {selectedSubtarefa && (
+      {selectedSubtarefaId && (
         <ProjetoTarefaDetalhe
           tarefa={selectedSubtarefa}
-          open={!!selectedSubtarefa}
+          open={!!selectedSubtarefaId}
           onOpenChange={(open) => { if (!open) setSelectedSubtarefaId(null); }}
           onUpdate={onUpdate}
           onToggle={onToggle}
