@@ -16,7 +16,7 @@ import {
 import {
   MessageSquare, Send, Loader2, Reply, X, Check, CheckCheck,
   Lock, Unlock, AtSign, Package, FileText, ClipboardList,
-  Paperclip, Sparkles, Languages, Wand2, ListTree,
+  Paperclip, Sparkles, Languages, Wand2, ListTree, AlertOctagon,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -30,6 +30,7 @@ import { MessageTranslation } from "./chat/MessageTranslation";
 import { ChatAttachmentChip, type ChatAnexo } from "./chat/ChatAttachmentChip";
 import { ChatIaActionCard, type IaToolProposal } from "./chat/ChatIaActionCard";
 import { ChatComposerActionsBar } from "@/components/chat/v2/ChatComposerActionsBar";
+import { CutucarItemDialog } from "@/components/chat/v2/CutucarItemDialog";
 import { useAbrirAcaoVinculada } from "@/hooks/chat/useAbrirAcaoVinculada";
 
 
