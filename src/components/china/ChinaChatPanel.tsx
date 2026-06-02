@@ -780,13 +780,31 @@ export function ChinaChatPanel({ submissaoId, produtoNome, tipoRemetente, refere
                     ))}
 
                     {!isFinalizado && !isIa && (
-                      <button
-                        onClick={() => setReplyingTo(msg)}
-                        className={`absolute -top-2 ${align === "right" ? "left-0 -translate-x-full" : "right-0 translate-x-full"} opacity-0 group-hover:opacity-100 transition-opacity bg-background border rounded-full p-1 shadow-sm`}
-                        title="Responder 回复"
+                      <div
+                        className={`absolute -top-2 ${align === "right" ? "left-0 -translate-x-full" : "right-0 translate-x-full"} opacity-0 group-hover:opacity-100 transition-opacity flex gap-1`}
                       >
-                        <Reply className="h-3 w-3 text-muted-foreground" />
-                      </button>
+                        <button
+                          onClick={() => setReplyingTo(msg)}
+                          className="bg-background border rounded-full p-1 shadow-sm"
+                          title="Responder 回复"
+                        >
+                          <Reply className="h-3 w-3 text-muted-foreground" />
+                        </button>
+                        <button
+                          onClick={() => {
+                            const primeiroAnexo = (msg.anexos || [])[0];
+                            setCutucarItem({
+                              id: msg.id,
+                              resumo: msg.conteudo?.slice(0, 160) ?? (primeiroAnexo?.nome ?? ""),
+                              docNome: primeiroAnexo?.nome ?? null,
+                            });
+                          }}
+                          className="bg-background border border-destructive/40 rounded-full p-1 shadow-sm"
+                          title="Chamar atenção 提醒"
+                        >
+                          <AlertOctagon className="h-3 w-3 text-destructive" />
+                        </button>
+                      </div>
                     )}
                   </div>
                 </div>
