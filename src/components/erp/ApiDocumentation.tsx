@@ -3620,6 +3620,9 @@ def verify_signature(payload: bytes, signature: str, secret: str) -> bool:
 
                 <div className="border rounded-xl p-5 space-y-3">
                   {[
+                    { version: "v4.4.34 / SDK v3.3.1 / APP v3.5.07", date: "2026-06-02", changes: [
+                      "PROJETOS — `projeto_secoes` teve as policies recriadas para permitir criação/edição/exclusão/leitura por usuários autenticados com acesso ao projeto via `user_can_access_projeto`, corrigindo o bloqueio de criação de seções. `user_can_access_projeto`, `user_can_access_secao` e `get_projeto_tarefas_v2` foram otimizadas para reduzir timeouts no quadro de tarefas, com índices novos para vínculos de membros, responsáveis, colaboradores e seguidores. Bump `APP_VERSION` 3.5.06 → 3.5.07. Invariante grep: `grep -n \"3.5.07\" src/lib/version.ts | wc -l` ≥ 1.",
+                    ] },
                     { version: "v4.4.33 / SDK v3.3.1 / APP v3.5.06", date: "2026-06-02", changes: [
                       "PROJETOS — `user_can_access_projeto` agora inclui projetos com `visibilidade='equipe'` (e `deleted_at IS NULL`) como acessíveis a qualquer usuário autenticado, além das regras já existentes (criador, membros, departamentos, vínculos em tarefas). Corrige `new row violates row-level security policy for table projeto_secoes` ao criar seção em projetos compartilhados com o time (caso projeto Redes). Projetos `visibilidade='privado'` continuam restritos. Bump `APP_VERSION` 3.5.05 → 3.5.06. Invariante grep: `grep -n \"3.5.06\" src/lib/version.ts | wc -l` ≥ 1.",
                     ] },
