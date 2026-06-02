@@ -578,6 +578,9 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
     }
     // Se a subtarefa atualizada pertence à tarefa aberta, refetch da lista.
     if (detailTarefaId) {
+      queryClient.setQueryData<ProjetoTarefa[]>(["projeto-tarefas-subtarefas-bridge", detailTarefaId], (old = []) =>
+        old.map((st) => st.id === id ? ({ ...st, ...updates } as ProjetoTarefa) : st),
+      );
       queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-subtarefas-bridge", detailTarefaId] });
     }
   }, [queryClient, detailTarefa, detailTarefaId]);
@@ -602,6 +605,9 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
       setDetailTarefa({ ...detailTarefa, ...update } as MinaTarefa);
     }
     if (detailTarefaId) {
+      queryClient.setQueryData<ProjetoTarefa[]>(["projeto-tarefas-subtarefas-bridge", detailTarefaId], (old = []) =>
+        old.map((st) => st.id === t.id ? ({ ...st, ...update } as ProjetoTarefa) : st),
+      );
       queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-subtarefas-bridge", detailTarefaId] });
     }
     toast.success(done ? "Tarefa concluida" : "Tarefa reaberta");
@@ -609,15 +615,19 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
 
   const handleBridgeAddSubtarefa = useCallback(async (titulo: string, parentId: string, secaoId: string) => {
     if (!user?.id || !selectedProjetoId) return;
-    const { error } = await supabase.from("projeto_tarefas").insert({
+    const { data, error } = await supabase.from("projeto_tarefas").insert({
       titulo, parent_tarefa_id: parentId, secao_id: secaoId,
       projeto_id: selectedProjetoId, responsavel_id: user.id,
       status: "pendente", prioridade: "media", ordem: 999,
-    });
+    }).select("*").single();
     if (error) { toast.error("Erro ao criar subtarefa"); return; }
     queryClient.invalidateQueries({ queryKey: ["minhas-tarefas"] });
     // Refetch das subtarefas da tarefa aberta para refletir no Focus Mode.
     if (detailTarefaId) {
+      queryClient.setQueryData<ProjetoTarefa[]>(["projeto-tarefas-subtarefas-bridge", detailTarefaId], (old = []) => {
+        if (!data || parentId !== detailTarefaId || old.some((st) => st.id === data.id)) return old;
+        return [...old, data as ProjetoTarefa];
+      });
       queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-subtarefas-bridge", detailTarefaId] });
     }
     toast.success("Subtarefa criada");
