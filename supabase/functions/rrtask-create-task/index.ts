@@ -25,7 +25,7 @@ const TIPO_ENTREGA_MAP: Record<string, string> = {
   material_interno: "Outro",
   evento: "Outro",
 };
-const MARCAS = new Set(["Ruby Rose", "Melu", "Union"]);
+
 
 const BodySchema = z.object({
   briefing_id: z.string().uuid(),
