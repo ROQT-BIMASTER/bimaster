@@ -103,7 +103,21 @@ export function RemoverMembroWizard({ open, onOpenChange, projetoId, membro, out
           </div>
         </div>
 
-        {step === 1 && (
+        {concluido && (
+          <div className="space-y-3">
+            <div className="flex items-start gap-3 rounded-md border border-emerald-500/30 bg-emerald-500/5 p-3">
+              <CheckCircle2 className="h-5 w-5 text-emerald-600 mt-0.5" />
+              <div className="space-y-1 text-sm">
+                <p className="font-medium">Membro removido com sucesso.</p>
+                <p className="text-xs text-muted-foreground">
+                  Disponível para restauração na aba "Ex-membros" por 15 dias.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {!concluido && step === 1 && (
           <div className="space-y-3">
             <p className="text-xs text-muted-foreground">
               Impacto no projeto. Comentários e arquivos criados pelo membro permanecem com a autoria original.
