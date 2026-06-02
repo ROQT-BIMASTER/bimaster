@@ -92,6 +92,30 @@ export function ProjetoMembrosDialog({ open, onOpenChange, projetoId, projetoTip
     }
   }, [removingMembro]);
 
+  // Restaura foco após remoção bem-sucedida (o membro removido sai do DOM,
+  // então mira o item no mesmo índice ou o anterior; fallback: botão "Adicionar Membros").
+  useEffect(() => {
+    if (!restoreFocusAfterRemove) return;
+    if (removingMembro || removeMemberConfirm) return;
+    const id = requestAnimationFrame(() => {
+      const list = membrosListRef.current;
+      const buttons = list
+        ? Array.from(list.querySelectorAll<HTMLButtonElement>('[data-testid="member-remove-btn"]'))
+        : [];
+      let target: HTMLElement | null = null;
+      if (buttons.length > 0 && removeFocusIndex !== null) {
+        target = buttons[Math.min(removeFocusIndex, buttons.length - 1)] ?? buttons[0];
+      }
+      if (!target) {
+        target = document.querySelector<HTMLButtonElement>('[data-testid="adicionar-membros-btn"]');
+      }
+      target?.focus();
+      setRestoreFocusAfterRemove(false);
+      setRemoveFocusIndex(null);
+    });
+    return () => cancelAnimationFrame(id);
+  }, [restoreFocusAfterRemove, removingMembro, removeMemberConfirm, removeFocusIndex, membros]);
+
   // Defensive: reset body pointer-events if Radix leaves it locked after close.
   useEffect(() => {
     if (open) return;
