@@ -259,7 +259,7 @@ export function UnifiedCalendar({
                 const key = getDateKey(day);
                 const dayEvents = (key && singleDayByDate[key]) || [];
                 const isCurrentMonth = isSameMonth(day, currentDate);
-                const today = isDateToday(day);
+                const today = key === todayKey;
                 const isWeekend = ci >= 5;
                 return (
                   <div
