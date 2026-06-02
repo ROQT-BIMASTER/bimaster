@@ -260,6 +260,38 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
     );
   };
 
+  // Reconciliação silenciosa pós-escrita: garante que data_inicio_planejada,
+  // responsaveis[] e colaboradores[] (ou qualquer campo que o patch otimista
+  // não cobre 100%) sejam materializados a partir do servidor. Debounced 600ms
+  // para colapsar rajadas de edição. Usa refetchQueries ativo — o
+  // placeholderData mantém a referência anterior até a resposta chegar, e
+  // como a signature em ProjetoListView compara campos relevantes, não há
+  // remount do painel de detalhe.
+  const reconcileTimerRef = useRef<number | null>(null);
+  const scheduleReconcile = (delayMs: number = 600) => {
+    if (!projetoId) return;
+    if (reconcileTimerRef.current) {
+      window.clearTimeout(reconcileTimerRef.current);
+    }
+    reconcileTimerRef.current = window.setTimeout(() => {
+      reconcileTimerRef.current = null;
+      void queryClient.refetchQueries({
+        queryKey: ["projeto-tarefas-v2", projetoId],
+        type: "active",
+        exact: true,
+      });
+    }, delayMs);
+  };
+  useEffect(() => {
+    return () => {
+      if (reconcileTimerRef.current) {
+        window.clearTimeout(reconcileTimerRef.current);
+        reconcileTimerRef.current = null;
+      }
+    };
+  }, []);
+
+
   // Movement history for ghost rows (kept separate — small payload)
   const { data: movimentacoes = [] } = useQuery({
     queryKey: ["tarefa-movimentacoes", projetoId],
