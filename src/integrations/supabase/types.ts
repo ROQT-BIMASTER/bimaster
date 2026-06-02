@@ -49508,6 +49508,22 @@ export type Database = {
         }[]
       }
       estoque_kpis_recorte: { Args: { filtros?: Json }; Returns: Json }
+      estoque_valores_por_filial: {
+        Args: { filtros?: Json }
+        Returns: {
+          abrev_par: string
+          empresa_par: number
+          pedidos_pendentes_qtd: number
+          skus_ativos: number
+          skus_com_pendente: number
+          skus_negativos: number
+          skus_sem_saldo: number
+          total_registros: number
+          ultima_sync: string
+          unidades_total: number
+          valor_total: number
+        }[]
+      }
       executar_desmontagem: {
         Args: {
           p_empresa: number
