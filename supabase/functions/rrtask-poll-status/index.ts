@@ -3,7 +3,7 @@
 // volta nas colunas rrtask_* da tabela `briefings`.
 //
 // - Chamada agendada (pg_cron */5 * * * *).
-// - Protegida por shared secret (`x-cron-secret` = CRON_SHARED_SECRET).
+// - Protegida por shared secret (`x-cron-secret` = CRON_SECRET).
 // - Cadência efetiva: 5 min em horário comercial (08-18 BRT, seg-sex implícito
 //   pelo cron host), 15 min fora — decidido logo no início.
 // - Leitura apenas, EXCETO write-back da "Data Aprovação Conteúdo" (regra R09)
@@ -42,7 +42,7 @@ Deno.serve(secureHandler(
 
     // 1. Cron shared secret
     const provided = req.headers.get("x-cron-secret") ?? "";
-    const expected = Deno.env.get("CRON_SHARED_SECRET") ?? "";
+    const expected = Deno.env.get("CRON_SECRET") ?? "";
     if (!expected || !timingSafeEqual(provided, expected)) {
       return J({ ok: false, error: "forbidden" }, 403);
     }
