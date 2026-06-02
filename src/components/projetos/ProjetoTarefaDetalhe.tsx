@@ -670,15 +670,16 @@ export function ProjetoTarefaDetalhe({
                       </h2>
                     )}
                   </div>
-                  {autoSaveStatus !== "idle" && (
+                  {(autoSaveStatus !== "idle" || externalSaving) && (
                     <span
                       className={cn(
                         "flex items-center gap-1 text-[11px] mt-1.5 shrink-0 transition-opacity",
-                        autoSaveStatus === "saving" ? "text-muted-foreground" : "text-emerald-500"
+                        externalSaving || autoSaveStatus === "saving" ? "text-muted-foreground" : "text-emerald-500"
                       )}
                       aria-live="polite"
+                      data-testid="tarefa-saving-indicator"
                     >
-                      {autoSaveStatus === "saving" ? (
+                      {externalSaving || autoSaveStatus === "saving" ? (
                         <>
                           <Loader2 className="h-3 w-3 animate-spin" />
                           Salvando…
