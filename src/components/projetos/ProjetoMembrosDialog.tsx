@@ -58,8 +58,10 @@ interface ProjetoSecao {
 export function ProjetoMembrosDialog({ open, onOpenChange, projetoId, projetoTipo }: ProjetoMembrosDialogProps) {
   const { membros, isLoading, isCoordinator, addMembro, removeMembro, updateSecoes, updatePapel } = useProjetoMembros(projetoId);
   const { user } = useAuth();
+  const { enabled: offboardingEnabled } = useFeatureFlag("ff_offboarding_membros_v1");
   const [search, setSearch] = useState("");
   const [removeMemberConfirm, setRemoveMemberConfirm] = useState<string | null>(null);
+  const [wizardMembro, setWizardMembro] = useState<ProjetoMembro | null>(null);
   const [showTeamDialog, setShowTeamDialog] = useState(false);
   const [selectedTeamIds, setSelectedTeamIds] = useState<string[]>([]);
   const [teamSearch, setTeamSearch] = useState("");
