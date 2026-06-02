@@ -1,9 +1,23 @@
 import { useEffect } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient, type QueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
+import { unstickBodyPointerEvents } from "@/lib/projetos/unstickBodyPointerEvents";
 import { toast } from "sonner";
+
+/** Chaves de cache reavaliadas quando a composição/permissões de um projeto mudam em qualquer aba. */
+function invalidateProjetoMembershipCaches(qc: QueryClient, projetoId: string | undefined) {
+  if (!projetoId) return;
+  qc.invalidateQueries({ queryKey: ["projeto_membros", projetoId], refetchType: "active" });
+  qc.invalidateQueries({ queryKey: ["projeto_ex_membros", projetoId], refetchType: "active" });
+  qc.invalidateQueries({ queryKey: ["projeto-tarefas-v2", projetoId], refetchType: "active" });
+  qc.invalidateQueries({ queryKey: ["projetos-membros"], refetchType: "active" });
+  qc.invalidateQueries({ queryKey: ["projetos-team-data"], refetchType: "active" });
+}
+
+export const PROJETO_MEMBROS_BROADCAST_CHANNEL = "projeto-membros-sync";
+
 
 export interface ProjetoMembro {
   id: string;
