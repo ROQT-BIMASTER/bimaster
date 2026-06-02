@@ -687,6 +687,7 @@ export function ProjetoMembrosDialog({ open, onOpenChange, projetoId, projetoTip
                 setRemovingMembro(null);
                 setRemoveMemberConfirm(null);
                 setRemoveAttempt(0);
+                setRestoreFocusAfterRemove(true);
               } catch (err) {
                 const anyErr = err as any;
                 const message =
