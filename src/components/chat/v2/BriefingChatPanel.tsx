@@ -464,6 +464,18 @@ export function BriefingChatPanel({ briefingId }: Props) {
           }
         }}
       />
+
+      <CutucarItemDialog
+        open={!!cutucarItem}
+        onOpenChange={(v) => { if (!v) setCutucarItem(null); }}
+        tipo="briefing"
+        refId={briefingId}
+        tituloEscopo={briefing?.titulo ?? "Briefing"}
+        itemResumo={cutucarItem?.resumo ?? ""}
+        itemId={cutucarItem?.id}
+        itemTipo={cutucarItem?.docNome ? "documento" : "comentario"}
+        docNome={cutucarItem?.docNome ?? null}
+      />
     </div>
   );
 }
