@@ -228,8 +228,17 @@ export function ProjetoMembrosDialog({ open, onOpenChange, projetoId, projetoTip
       >
         {removingMembro && (
           <div
-            className="absolute inset-0 z-50 flex items-center justify-center rounded-lg bg-background/70 backdrop-blur-[1px]"
+            ref={removingOverlayRef}
+            tabIndex={-1}
+            role="status"
             aria-live="polite"
+            aria-busy="true"
+            data-testid="removing-overlay"
+            className="absolute inset-0 z-50 flex items-center justify-center rounded-lg bg-background/70 backdrop-blur-[1px] outline-none"
+            onKeyDown={(e) => {
+              // Prende o foco: Tab/Shift+Tab/Esc/Enter/Space não saem do overlay.
+              if (["Tab", "Escape"].includes(e.key)) e.preventDefault();
+            }}
           >
             <div className="flex items-center gap-2 rounded-md border bg-card px-3 py-2 shadow-md text-sm">
               <Loader2 className="h-4 w-4 animate-spin text-destructive" />
