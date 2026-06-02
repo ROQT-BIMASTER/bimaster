@@ -73,7 +73,7 @@ interface ProjetoSecaoProps {
   projetoDataInicio?: string | null;
   projetoDataFimAlvo?: string | null;
   projetoRegime?: RegimeCalendario;
-  onUpdateSecao?: (secaoId: string, updates: { data_inicio?: string | null; data_prazo?: string | null; dias_alerta_antes?: number }) => Promise<void> | void;
+  onUpdateSecao?: (secaoId: string, updates: { nome?: string; data_inicio?: string | null; data_prazo?: string | null; dias_alerta_antes?: number }) => Promise<void> | void;
   onToggleTarefa: (tarefa: ProjetoTarefa) => void;
   onSelectTarefa?: (tarefa: ProjetoTarefa) => void;
   onAddTarefa: (titulo: string, secaoId: string) => void;
