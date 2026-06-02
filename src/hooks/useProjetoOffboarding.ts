@@ -99,7 +99,19 @@ export function useProjetoOffboarding(projetoId: string | undefined) {
       qc.invalidateQueries({ queryKey: ["projeto-tarefas-v2", projetoId] });
       qc.invalidateQueries({ queryKey: ["projetos-membros"] });
       qc.invalidateQueries({ queryKey: ["projetos-team-data"] });
+      // Notifica outras abas no mesmo navegador imediatamente — mais rápido
+      // que Realtime e funciona mesmo se a aba secundária pausou o socket.
+      if (typeof BroadcastChannel !== "undefined" && projetoId) {
+        try {
+          const bc = new BroadcastChannel("projeto-membros-sync");
+          bc.postMessage({ type: "membro_removido", projetoId });
+          bc.close();
+        } catch {
+          /* ignore — broadcast best-effort */
+        }
+      }
     },
+
     onError: (err: Error) => {
       toast.error(traduzirErro(err.message));
     },
