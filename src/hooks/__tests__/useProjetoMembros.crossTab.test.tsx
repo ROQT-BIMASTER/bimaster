@@ -14,8 +14,15 @@ import { createElement, type ReactNode } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 // ---- supabase mock: capture the realtime handler so the test can fire it ----
-let realtimeHandler: ((payload: any) => void) | null = null;
-const removeChannel = vi.fn();
+const mocks = vi.hoisted(() => {
+  const state: { realtimeHandler: ((payload: any) => void) | null } = {
+    realtimeHandler: null,
+  };
+  return {
+    state,
+    removeChannel: vi.fn(),
+  };
+});
 
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: {
@@ -31,16 +38,17 @@ vi.mock("@/integrations/supabase/client", () => ({
     channel: vi.fn(() => {
       const api: any = {
         on: vi.fn((_event: string, _filter: any, handler: any) => {
-          realtimeHandler = handler;
+          mocks.state.realtimeHandler = handler;
           return api;
         }),
         subscribe: vi.fn(() => api),
       };
       return api;
     }),
-    removeChannel,
+    removeChannel: mocks.removeChannel,
   },
 }));
+
 
 vi.mock("@/contexts/AuthContext", () => ({
   useAuth: () => ({ user: { id: "user-current" }, loading: false, session: {} }),
