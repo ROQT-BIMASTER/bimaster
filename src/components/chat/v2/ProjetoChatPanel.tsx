@@ -506,6 +506,17 @@ export function ProjetoChatPanel({ projetoId }: Props) {
           }
         }}
       />
+
+      <CutucarItemDialog
+        open={!!cutucarItem}
+        onOpenChange={(v) => { if (!v) setCutucarItem(null); }}
+        tipo="projeto"
+        refId={projetoId}
+        tituloEscopo={nomeProjeto}
+        itemResumo={cutucarItem?.resumo ?? ""}
+        itemId={cutucarItem?.id}
+        itemTipo="comentario"
+      />
     </div>
   );
 }
