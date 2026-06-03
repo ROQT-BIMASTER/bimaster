@@ -98,6 +98,7 @@ const CrmLayout = lazyWithRetry(() => import("./components/crm/CrmLayout"));
 const ConfigFornecedorVisibilidade = lazyWithRetry(() => import("./pages/ConfigFornecedorVisibilidade"));
 const BriefingsHome = lazyWithRetry(() => import("./pages/briefings/BriefingsHome"));
 const BriefingWorkspace = lazyWithRetry(() => import("./pages/briefings/BriefingWorkspace"));
+const ControladoriaProdutos = lazyWithRetry(() => import("./pages/controladoria/ControladoriaProdutos"));
 const PainelExecutivo = lazyWithRetry(() => import("./pages/PainelExecutivo"));
 const PerformanceVendas = lazyWithRetry(() => import("./pages/PerformanceVendas"));
 const AnaliseClientes = lazyWithRetry(() => import("./pages/AnaliseClientes"));
