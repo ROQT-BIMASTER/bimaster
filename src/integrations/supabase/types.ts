@@ -38761,6 +38761,114 @@ export type Database = {
         }
         Relationships: []
       }
+      rr_linhas: {
+        Row: {
+          afe_fabricante: string | null
+          cnpj_fabricante: string | null
+          fabricante: string | null
+          marca: string | null
+          nome: string | null
+          notion_page_id: string
+          origem: string | null
+          pct_anvisa: number | null
+          pct_composicao: number | null
+          pct_ean: number | null
+          publico_alvo: string | null
+          raw: Json | null
+          sac: string | null
+          selos: string[] | null
+          status: string | null
+          synced_at: string
+        }
+        Insert: {
+          afe_fabricante?: string | null
+          cnpj_fabricante?: string | null
+          fabricante?: string | null
+          marca?: string | null
+          nome?: string | null
+          notion_page_id: string
+          origem?: string | null
+          pct_anvisa?: number | null
+          pct_composicao?: number | null
+          pct_ean?: number | null
+          publico_alvo?: string | null
+          raw?: Json | null
+          sac?: string | null
+          selos?: string[] | null
+          status?: string | null
+          synced_at?: string
+        }
+        Update: {
+          afe_fabricante?: string | null
+          cnpj_fabricante?: string | null
+          fabricante?: string | null
+          marca?: string | null
+          nome?: string | null
+          notion_page_id?: string
+          origem?: string | null
+          pct_anvisa?: number | null
+          pct_composicao?: number | null
+          pct_ean?: number | null
+          publico_alvo?: string | null
+          raw?: Json | null
+          sac?: string | null
+          selos?: string[] | null
+          status?: string | null
+          synced_at?: string
+        }
+        Relationships: []
+      }
+      rr_produtos: {
+        Row: {
+          anvisa: string | null
+          categoria: string | null
+          composicao_en: boolean | null
+          composicao_pt: boolean | null
+          linha_notion_id: string | null
+          marca: string | null
+          nome_comercial: string | null
+          notion_page_id: string
+          raw: Json | null
+          sku: string | null
+          status: string | null
+          synced_at: string
+          ultima_revisao_regulatoria: string | null
+          wf: Json | null
+        }
+        Insert: {
+          anvisa?: string | null
+          categoria?: string | null
+          composicao_en?: boolean | null
+          composicao_pt?: boolean | null
+          linha_notion_id?: string | null
+          marca?: string | null
+          nome_comercial?: string | null
+          notion_page_id: string
+          raw?: Json | null
+          sku?: string | null
+          status?: string | null
+          synced_at?: string
+          ultima_revisao_regulatoria?: string | null
+          wf?: Json | null
+        }
+        Update: {
+          anvisa?: string | null
+          categoria?: string | null
+          composicao_en?: boolean | null
+          composicao_pt?: boolean | null
+          linha_notion_id?: string | null
+          marca?: string | null
+          nome_comercial?: string | null
+          notion_page_id?: string
+          raw?: Json | null
+          sku?: string | null
+          status?: string | null
+          synced_at?: string
+          ultima_revisao_regulatoria?: string | null
+          wf?: Json | null
+        }
+        Relationships: []
+      }
       rr_solicitante_map: {
         Row: {
           area_solicitante: string
@@ -38788,6 +38896,75 @@ export type Database = {
           id?: string
           nome?: string
           notion_user_id?: string | null
+        }
+        Relationships: []
+      }
+      rr_sync_log: {
+        Row: {
+          banco: string
+          created_at: string
+          error_message: string | null
+          id: string
+          status: string
+          upserts: number | null
+        }
+        Insert: {
+          banco: string
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          status: string
+          upserts?: number | null
+        }
+        Update: {
+          banco?: string
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          status?: string
+          upserts?: number | null
+        }
+        Relationships: []
+      }
+      rr_variantes: {
+        Row: {
+          codigo_tom: string | null
+          ean_provador: string | null
+          ean_unitario: string | null
+          nome_tom: string | null
+          notion_page_id: string
+          pantone: string | null
+          produto_notion_id: string | null
+          raw: Json | null
+          sku_individual: string | null
+          status: string | null
+          synced_at: string
+        }
+        Insert: {
+          codigo_tom?: string | null
+          ean_provador?: string | null
+          ean_unitario?: string | null
+          nome_tom?: string | null
+          notion_page_id: string
+          pantone?: string | null
+          produto_notion_id?: string | null
+          raw?: Json | null
+          sku_individual?: string | null
+          status?: string | null
+          synced_at?: string
+        }
+        Update: {
+          codigo_tom?: string | null
+          ean_provador?: string | null
+          ean_unitario?: string | null
+          nome_tom?: string | null
+          notion_page_id?: string
+          pantone?: string | null
+          produto_notion_id?: string | null
+          raw?: Json | null
+          sku_individual?: string | null
+          status?: string | null
+          synced_at?: string
         }
         Relationships: []
       }
