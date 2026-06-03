@@ -26,20 +26,20 @@ const NOMES: Record<SiglaUnidade, string> = {
   CX: 'Caixa',
 };
 
-/** Label completa: "UN — Unidade (1 un)", "BX — Display (12 un)", "CX — Caixa (96 un)". */
+/** Label completa: "1 — UN (Unidade)", "12 — BX (Display)", "96 — CX (Caixa)". */
 export function formatUnidadeMedida(code: string | number | null | undefined): string {
   if (code == null || code === '') return '—';
   const sigla = siglaUnidadeMedida(code);
   if (!sigla) return String(code);
   const n = Number(code);
-  return `${sigla} — ${NOMES[sigla]} (${n} un)`;
+  return `${n} — ${sigla} (${NOMES[sigla]})`;
 }
 
-/** Versão compacta para chips/atalhos: "UN", "BX 12", "CX 96". */
+/** Versão compacta para chips/atalhos: "1 UN", "12 BX", "96 CX". */
 export function formatUnidadeMedidaShort(code: string | number | null | undefined): string {
   if (code == null || code === '') return '—';
   const sigla = siglaUnidadeMedida(code);
   if (!sigla) return String(code);
   const n = Number(code);
-  return sigla === 'UN' ? 'UN' : `${sigla} ${n}`;
+  return `${n} ${sigla}`;
 }
