@@ -48,6 +48,16 @@ export default function EstoqueVisaoGeral() {
   const [selected, setSelected] = useState<EstoqueRow | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
 
+  const queryClient = useQueryClient();
+  const { syncFull, isSyncing, syncProgress } = useEstoqueErpSync();
+
+  const handleResync = async () => {
+    await syncFull();
+    await queryClient.invalidateQueries({ queryKey: ['estoque'] });
+    await queryClient.invalidateQueries({ queryKey: ['estoque-filter-options'] });
+    await queryClient.invalidateQueries({ queryKey: ['estoque-kpis'] });
+  };
+
   const handleSort = (key: EstoqueSortKey) => {
     if (sortBy === key) setSortDir(sortDir === 'asc' ? 'desc' : 'asc');
     else { setSortBy(key); setSortDir('desc'); }
