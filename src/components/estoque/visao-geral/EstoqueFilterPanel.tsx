@@ -12,6 +12,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { FILTROS_INICIAIS, FAIXA_LABELS, type EstoqueFiltros, type CurvaABC, type FaixaSaldo } from '@/lib/estoque/estoqueFilters';
 import { useEstoqueOptions } from '@/hooks/estoque/useEstoqueFiltrosOptions';
+import { formatUnidadeMedida } from '@/lib/estoque/unidadeMedida';
 import { cn } from '@/lib/utils';
 
 interface Props {
