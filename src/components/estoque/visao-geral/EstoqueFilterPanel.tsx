@@ -174,8 +174,8 @@ export function EstoqueFilterPanel({ filtros, setFiltros }: Props) {
                 onChange={(v) => setFiltros({ ...filtros, linhas: v })}
               />
               <MultiSelect
-                label="Unidade de venda (CX, UN, BX…)"
-                options={(options?.unidades ?? []).map((u) => ({ value: u, label: u }))}
+                label="Unidade de venda"
+                options={(options?.unidades ?? []).map((u) => ({ value: u, label: formatUnidadeMedida(u) }))}
                 selected={filtros.unidades}
                 onChange={(v) => setFiltros({ ...filtros, unidades: v })}
               />
