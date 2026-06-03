@@ -27,10 +27,11 @@ export function EstoqueUnidadeChips({ selected, onChange }: Props) {
           key={u}
           size="sm"
           variant={selected.includes(u) ? 'default' : 'outline'}
-          className="h-8 px-2.5 font-mono"
+          className="h-8 px-2.5"
           onClick={() => toggle(u)}
+          title={`Código ERP: ${u}`}
         >
-          {u}
+          {formatUnidadeMedidaShort(u)}
         </Button>
       ))}
     </div>
