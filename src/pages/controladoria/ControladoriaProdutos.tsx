@@ -90,7 +90,21 @@ export default function ControladoriaProdutos() {
   const [marca, setMarca] = useState<string>("__all__");
   const [status, setStatus] = useState<string>("__all__");
   const [soGargalo, setSoGargalo] = useState(false);
-  const [selecionado, setSelecionado] = useState<RrProduto | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const produtoParam = searchParams.get("produto");
+  const selecionado = useMemo(
+    () =>
+      produtoParam
+        ? (produtos ?? []).find((p) => p.notion_page_id === produtoParam) ?? null
+        : null,
+    [produtoParam, produtos],
+  );
+  const openProduto = (p: RrProduto | null) => {
+    const next = new URLSearchParams(searchParams);
+    if (p?.notion_page_id) next.set("produto", p.notion_page_id);
+    else next.delete("produto");
+    setSearchParams(next, { replace: false });
+  };
 
   const linhaMap = useMemo(() => {
     const m = new Map<string, string>();
