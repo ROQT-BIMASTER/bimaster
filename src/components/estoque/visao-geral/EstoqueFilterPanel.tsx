@@ -168,7 +168,7 @@ export function EstoqueFilterPanel({ filtros, setFiltros }: Props) {
             {/* CLASSIFICAÇÃO */}
             <Section title="Classificação">
               <MultiSelect
-                label="Linha / Marca"
+                label="Linha"
                 options={(options?.linhas ?? []).map((l) => ({ value: l, label: l }))}
                 selected={filtros.linhas}
                 onChange={(v) => setFiltros({ ...filtros, linhas: v })}
