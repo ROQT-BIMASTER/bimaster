@@ -253,6 +253,7 @@ export default function ControladoriaProdutos() {
                     <TableHead className="text-center">Comp.</TableHead>
                     <TableHead className="text-center">ANVISA</TableHead>
                     <TableHead>Workflow</TableHead>
+                    <TableHead>Motivo do gargalo</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
