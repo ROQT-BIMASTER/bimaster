@@ -61,6 +61,10 @@ export default function EstoqueModule() {
 
   // Módulos secundários agrupados
   const secondaryModules = {
+    "Relatórios": [
+      { title: "Valores por Filial", to: "/dashboard/estoque/valores-por-filial", icon: BarChart3, color: "text-indigo-600" },
+      { title: "Visão de Estoque", to: "/dashboard/estoque/visao-geral", icon: Archive, color: "text-amber-600" },
+    ],
     "Configurações": [
       { title: "Vinculações", to: "/dashboard/estoque/vinculacoes", icon: LinkIcon, color: "text-purple-600" },
       { title: "Inventário", to: "#", icon: Warehouse, color: "text-gray-400", disabled: true },

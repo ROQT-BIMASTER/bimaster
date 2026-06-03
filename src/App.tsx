@@ -259,6 +259,7 @@ const AnaliseEstoqueErp = lazyWithRetry(() => import("./pages/estoque/AnaliseEst
 const EstoqueVisaoGeral = lazyWithRetry(() => import("./pages/estoque/EstoqueVisaoGeral"));
 const EstoqueUnificadoPage = lazyWithRetry(() => import("./pages/estoque/EstoqueUnificadoPage"));
 const EstoqueAuditoriaDriftPage = lazyWithRetry(() => import("./pages/estoque/EstoqueAuditoriaDriftPage"));
+const EstoqueValoresPorFilial = lazyWithRetry(() => import("./pages/estoque/EstoqueValoresPorFilial"));
 const ComposicaoErpSyncPage = lazyWithRetry(() => import("./pages/composicao/ComposicaoErpSyncPage"));
 const FinancialPaymentCentral = lazyWithRetry(() => import("./pages/FinancialPaymentCentral"));
 const ContaPagarDetalhe = lazyWithRetry(() => import("./pages/ContaPagarDetalhe"));
@@ -795,6 +796,7 @@ function AppContent() {
             <Route path="/dashboard/estoque/visao-geral" element={<ModuleRoute moduleCode="estoque"><EstoqueVisaoGeral /></ModuleRoute>} />
             <Route path="/dashboard/estoque/unificado" element={<ModuleRoute moduleCode="estoque"><EstoqueUnificadoPage /></ModuleRoute>} />
             <Route path="/dashboard/estoque/auditoria-drift" element={<ModuleRoute moduleCode="estoque"><EstoqueAuditoriaDriftPage /></ModuleRoute>} />
+            <Route path="/dashboard/estoque/valores-por-filial" element={<ModuleRoute moduleCode="estoque"><EstoqueValoresPorFilial /></ModuleRoute>} />
             <Route path="/dashboard/composicao/sync" element={<ScreenRoute screenCode="admin"><ComposicaoErpSyncPage /></ScreenRoute>} />
             <Route path="/dashboard/financeiro/cobranca" element={<ModuleRoute moduleCode="financeiro"><ScreenProtectedRoute screenCode="financeiro_cobrancas"><CobrancaInadimplentes /></ScreenProtectedRoute></ModuleRoute>} />
             <Route path="/dashboard/financeiro/fluxo-de-caixa" element={<ModuleRoute moduleCode="financeiro"><ScreenProtectedRoute screenCode="financeiro_fluxo_caixa"><FluxoDeCaixa /></ScreenProtectedRoute></ModuleRoute>} />

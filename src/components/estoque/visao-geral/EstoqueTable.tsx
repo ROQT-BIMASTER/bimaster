@@ -30,6 +30,28 @@ interface ColDef {
   className?: string;
 }
 
+const CURVA_CLASS: Record<string, string> = {
+  A: 'bg-success/15 text-success border-success/30',
+  B: 'bg-blue-500/15 text-blue-600 border-blue-500/30 dark:text-blue-400',
+  C: 'bg-warning/15 text-warning border-warning/30',
+  D: 'bg-orange-500/15 text-orange-600 border-orange-500/30 dark:text-orange-400',
+  E: 'bg-destructive/15 text-destructive border-destructive/30',
+};
+
+function CurvaBadge({ c }: { c: string | null }) {
+  if (!c) return <span className="text-muted-foreground">—</span>;
+  return (
+    <span
+      className={cn(
+        'inline-block rounded border px-1.5 py-0.5 text-[10px] font-mono font-semibold',
+        CURVA_CLASS[c] ?? 'bg-muted text-muted-foreground border-border',
+      )}
+    >
+      {c}
+    </span>
+  );
+}
+
 const COLUMNS: ColDef[] = [
   { key: 'empresa_par', label: 'Empresa', sortable: true },
   { key: 'cod_produto', label: 'Cód. ERP', sortable: false },
@@ -54,7 +76,7 @@ export function EstoqueTable({
   return (
     <div className="space-y-3">
       <div className="rounded-lg border bg-card overflow-x-auto">
-        <Table>
+        <Table className="min-w-[1080px]">
           <TableHeader className="bg-muted/40">
             <TableRow>
               {COLUMNS.map((c) => (
@@ -142,10 +164,10 @@ export function EstoqueTable({
                       {formatCurrency(Number(r.custo_total ?? 0))}
                     </TableCell>
                     <TableCell className="text-center">
-                      {r.curva_fisica && <Badge variant="secondary" className="font-mono text-[10px]">{r.curva_fisica}</Badge>}
+                      <CurvaBadge c={r.curva_fisica} />
                     </TableCell>
                     <TableCell className="text-center">
-                      {r.curva_monetaria && <Badge variant="secondary" className="font-mono text-[10px]">{r.curva_monetaria}</Badge>}
+                      <CurvaBadge c={r.curva_monetaria} />
                     </TableCell>
                     <TableCell className="text-right text-xs text-muted-foreground">
                       {dias != null ? `há ${dias}d` : '—'}

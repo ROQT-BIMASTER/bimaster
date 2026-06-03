@@ -75,6 +75,14 @@ export function useEstoqueQuery({ filtros, page, pageSize, sortBy, sortDir }: Us
         d.setDate(d.getDate() - 180);
         q = q.or(`data_ultima_compra.is.null,data_ultima_compra.lt.${d.toISOString().slice(0, 10)}`);
       }
+      const hojeISO = new Date().toISOString().slice(0, 10);
+      if (filtros.vencidos) {
+        q = q.lt('validade', hojeISO);
+      } else if (filtros.validade_dias != null) {
+        const lim = new Date();
+        lim.setDate(lim.getDate() + filtros.validade_dias);
+        q = q.gte('validade', hojeISO).lte('validade', lim.toISOString().slice(0, 10));
+      }
 
       // Faixas client-side filter via saldo ranges (simplified):
       if (filtros.faixas_saldo.length && !filtros.apenas_com_saldo) {

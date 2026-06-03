@@ -17,6 +17,9 @@ import { useEstoqueKpis } from '@/hooks/estoque/useEstoqueKpis';
 import { EstoqueKpiBar } from '@/components/estoque/visao-geral/EstoqueKpiBar';
 import { EstoqueQuickChips } from '@/components/estoque/visao-geral/EstoqueQuickChips';
 import { EstoqueFilterPanel } from '@/components/estoque/visao-geral/EstoqueFilterPanel';
+import { EstoqueFilialSelect } from '@/components/estoque/visao-geral/EstoqueFilialSelect';
+import { EstoqueUnidadeChips } from '@/components/estoque/visao-geral/EstoqueUnidadeChips';
+import { EstoqueActiveFilters } from '@/components/estoque/visao-geral/EstoqueActiveFilters';
 import { EstoqueTable } from '@/components/estoque/visao-geral/EstoqueTable';
 import { EstoqueDetailDrawer } from '@/components/estoque/visao-geral/EstoqueDetailDrawer';
 import { EstoqueExportButton } from '@/components/estoque/visao-geral/EstoqueExportButton';
@@ -71,18 +74,30 @@ export default function EstoqueVisaoGeral() {
 
         <EstoqueKpiBar kpis={kpis} loading={kpisLoading} />
 
-        <div className="flex flex-col lg:flex-row lg:items-center gap-3">
-          <div className="relative flex-1 max-w-md">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              value={buscaTxt}
-              onChange={(e) => { setBuscaTxt(e.target.value); setPage(0); }}
-              placeholder="Buscar por produto, código ERP ou fabricante..."
-              className="pl-9 h-9"
+        <div className="space-y-3">
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="relative flex-1 min-w-[220px] max-w-md">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                value={buscaTxt}
+                onChange={(e) => { setBuscaTxt(e.target.value); setPage(0); }}
+                placeholder="Buscar por produto, código ERP ou fabricante..."
+                className="pl-9 h-9"
+              />
+            </div>
+            <EstoqueFilialSelect
+              selected={filtrosBase.empresa_ids}
+              onChange={(v) => handleSetFiltros({ ...filtrosBase, empresa_ids: v })}
+            />
+            <EstoqueUnidadeChips
+              selected={filtrosBase.unidades}
+              onChange={(v) => handleSetFiltros({ ...filtrosBase, unidades: v })}
             />
           </div>
           <EstoqueQuickChips filtros={filtrosBase} setFiltros={handleSetFiltros} />
         </div>
+
+        <EstoqueActiveFilters filtros={filtrosBase} setFiltros={handleSetFiltros} />
 
         <EstoqueTable
           rows={data?.rows ?? []}

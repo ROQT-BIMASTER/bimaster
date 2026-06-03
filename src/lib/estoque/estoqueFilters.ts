@@ -21,6 +21,8 @@ export interface EstoqueFiltros {
   valor_max: number | null;
   ultima_compra_dias: number | null; // 30, 60, 90, 180
   sem_compra: boolean;               // sem compra há +180d
+  validade_dias: number | null;      // a vencer em N dias (30, 60, 90)
+  vencidos: boolean;                 // validade já vencida
 }
 
 export const FILTROS_INICIAIS: EstoqueFiltros = {
@@ -39,6 +41,8 @@ export const FILTROS_INICIAIS: EstoqueFiltros = {
   valor_max: null,
   ultima_compra_dias: null,
   sem_compra: false,
+  validade_dias: null,
+  vencidos: false,
 };
 
 export function filtrosParaJsonb(f: EstoqueFiltros) {
@@ -57,6 +61,8 @@ export function filtrosParaJsonb(f: EstoqueFiltros) {
     valor_max: f.valor_max ?? undefined,
     ultima_compra_dias: f.ultima_compra_dias ?? undefined,
     sem_compra: f.sem_compra || undefined,
+    validade_dias: f.validade_dias ?? undefined,
+    vencidos: f.vencidos || undefined,
   };
 }
 

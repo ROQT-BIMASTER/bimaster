@@ -141,9 +141,10 @@ export const commandRoutes: CommandRoute[] = [
   // --- Estoque ---
   { title: "Estoque — Módulo", path: "/dashboard/estoque", module: "Estoque", icon: "Package", moduleCode: "estoque" },
   { title: "Distribuidoras", path: "/dashboard/estoque/distribuidoras", module: "Estoque", icon: "Building2", moduleCode: "estoque", screenCode: "estoque_distribuidoras" },
-  { title: "Produtos Master", path: "/dashboard/estoque/produtos", module: "Estoque", icon: "Package", moduleCode: "estoque", screenCode: "estoque_produtos" },
+  { title: "Produtos Master", path: "/dashboard/estoque/produtos-master", module: "Estoque", icon: "Package", moduleCode: "estoque", screenCode: "estoque_produtos_master" },
   { title: "Saldos Estoque", path: "/dashboard/estoque/saldos", module: "Estoque", icon: "BarChart3", moduleCode: "estoque", screenCode: "estoque_saldos" },
   { title: "Estoque Consolidado", path: "/dashboard/estoque/consolidado", module: "Estoque", icon: "Layers", moduleCode: "estoque", screenCode: "estoque_consolidado" },
+  { title: "Valores por Filial", path: "/dashboard/estoque/valores-por-filial", module: "Estoque", icon: "Building2", moduleCode: "estoque" },
 
   // --- Inteligência ---
   { title: "Painel Executivo", path: "/dashboard/painel-executivo", module: "Inteligência", icon: "BarChart3", screenCode: "intel_painel" },
