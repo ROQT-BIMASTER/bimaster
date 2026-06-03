@@ -427,7 +427,7 @@ Deno.serve(
         await sb.from("rrtask_sync_log").insert({
           briefing_id: b.id,
           user_id: ctx.userId,
-          action: "update",
+          action: "devolucao_resend",
           status: "success",
           rrtask_page_id: pageId,
           solicitante_resolvido: solicitanteResolvido,
