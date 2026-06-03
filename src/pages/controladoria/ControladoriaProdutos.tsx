@@ -30,7 +30,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { StatusPill } from "@/components/shared/StatusPill";
 import { cn } from "@/lib/utils";
 import { useRrLinhas, useRrProdutos, type RrProduto } from "@/hooks/useRrProdutos";
-import { WF_FIELDS, emGargalo, wfTone, type WfTone } from "@/lib/controladoria";
+import { WF_FIELDS, emGargalo, motivosGargalo, wfTone, type WfTone } from "@/lib/controladoria";
 
 const TONE_CELL: Record<WfTone, string> = {
   done: "bg-emerald-500/80",
@@ -253,6 +253,7 @@ export default function ControladoriaProdutos() {
                     <TableHead className="text-center">Comp.</TableHead>
                     <TableHead className="text-center">ANVISA</TableHead>
                     <TableHead>Workflow</TableHead>
+                    <TableHead>Motivo do gargalo</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -279,6 +280,7 @@ export default function ControladoriaProdutos() {
 
 function ProdutoRow({ p, linhaNome }: { p: RrProduto; linhaNome: string }) {
   const gargalo = emGargalo(p);
+  const motivos = motivosGargalo(p);
   return (
     <TableRow
       className={cn(
@@ -312,6 +314,44 @@ function ProdutoRow({ p, linhaNome }: { p: RrProduto; linhaNome: string }) {
       </TableCell>
       <TableCell>
         <WfStrip wf={p.wf} />
+      </TableCell>
+      <TableCell className="max-w-[280px]">
+        {motivos.length === 0 ? (
+          <span className="text-xs text-muted-foreground">—</span>
+        ) : (
+          <div className="flex flex-wrap gap-1">
+            {motivos.slice(0, 3).map((m) => (
+              <Tooltip key={m.label}>
+                <TooltipTrigger asChild>
+                  <span className="inline-flex items-center rounded-md border border-amber-500/30 bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-medium text-amber-700 dark:text-amber-200 cursor-help">
+                    {m.label}
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent className="text-xs">
+                  <div className="font-medium">{m.label}</div>
+                  <div className="text-muted-foreground">{m.detail}</div>
+                </TooltipContent>
+              </Tooltip>
+            ))}
+            {motivos.length > 3 && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="inline-flex items-center rounded-md border border-border bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground cursor-help">
+                    +{motivos.length - 3}
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent className="text-xs max-w-xs">
+                  {motivos.slice(3).map((m) => (
+                    <div key={m.label}>
+                      <span className="font-medium">{m.label}</span>
+                      <span className="text-muted-foreground"> · {m.detail}</span>
+                    </div>
+                  ))}
+                </TooltipContent>
+              </Tooltip>
+            )}
+          </div>
+        )}
       </TableCell>
     </TableRow>
   );

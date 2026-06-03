@@ -44,3 +44,24 @@ export function emGargalo(p: {
   );
   return wfBlock || !p.composicao_pt || !p.anvisa;
 }
+
+/**
+ * Lista legível dos motivos que colocam o produto em gargalo.
+ * Cada item: { label, detail } — label é o campo, detail é o status bloqueante.
+ */
+export function motivosGargalo(p: {
+  wf?: Record<string, string | null> | null;
+  composicao_pt?: boolean | null;
+  anvisa?: string | null;
+}): Array<{ label: string; detail: string }> {
+  const out: Array<{ label: string; detail: string }> = [];
+  if (!p.composicao_pt) out.push({ label: "Composição PT", detail: "ausente" });
+  if (!p.anvisa) out.push({ label: "ANVISA", detail: "sem registro" });
+  Object.entries(p.wf ?? {}).forEach(([field, value]) => {
+    if (value && BLOCK.includes(String(value).toUpperCase())) {
+      out.push({ label: field, detail: String(value) });
+    }
+  });
+  return out;
+}
+
