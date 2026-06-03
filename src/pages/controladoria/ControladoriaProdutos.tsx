@@ -283,7 +283,7 @@ export default function ControladoriaProdutos() {
                           ? linhaMap.get(p.linha_notion_id) ?? "—"
                           : "—"
                       }
-                      onClick={() => setSelecionado(p)}
+                      onClick={() => openProduto(p)}
                     />
                   ))}
                 </TableBody>
