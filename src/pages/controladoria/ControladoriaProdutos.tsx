@@ -30,7 +30,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { StatusPill } from "@/components/shared/StatusPill";
 import { cn } from "@/lib/utils";
 import { useRrLinhas, useRrProdutos, type RrProduto } from "@/hooks/useRrProdutos";
-import { WF_FIELDS, emGargalo, wfTone, type WfTone } from "@/lib/controladoria";
+import { WF_FIELDS, emGargalo, motivosGargalo, wfTone, type WfTone } from "@/lib/controladoria";
 
 const TONE_CELL: Record<WfTone, string> = {
   done: "bg-emerald-500/80",
