@@ -2,6 +2,7 @@ import { Button } from '@/components/ui/button';
 import { X } from 'lucide-react';
 import { FILTROS_INICIAIS, FAIXA_LABELS, type EstoqueFiltros } from '@/lib/estoque/estoqueFilters';
 import { useEstoqueOptions } from '@/hooks/estoque/useEstoqueFiltrosOptions';
+import { formatUnidadeMedidaShort } from '@/lib/estoque/unidadeMedida';
 
 interface Props {
   filtros: EstoqueFiltros;
