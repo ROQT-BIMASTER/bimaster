@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { AlertTriangle, Check, PackageSearch, X } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -89,7 +90,21 @@ export default function ControladoriaProdutos() {
   const [marca, setMarca] = useState<string>("__all__");
   const [status, setStatus] = useState<string>("__all__");
   const [soGargalo, setSoGargalo] = useState(false);
-  const [selecionado, setSelecionado] = useState<RrProduto | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const produtoParam = searchParams.get("produto");
+  const selecionado = useMemo(
+    () =>
+      produtoParam
+        ? (produtos ?? []).find((p) => p.notion_page_id === produtoParam) ?? null
+        : null,
+    [produtoParam, produtos],
+  );
+  const openProduto = (p: RrProduto | null) => {
+    const next = new URLSearchParams(searchParams);
+    if (p?.notion_page_id) next.set("produto", p.notion_page_id);
+    else next.delete("produto");
+    setSearchParams(next, { replace: false });
+  };
 
   const linhaMap = useMemo(() => {
     const m = new Map<string, string>();
@@ -268,7 +283,7 @@ export default function ControladoriaProdutos() {
                           ? linhaMap.get(p.linha_notion_id) ?? "—"
                           : "—"
                       }
-                      onClick={() => setSelecionado(p)}
+                      onClick={() => openProduto(p)}
                     />
                   ))}
                 </TableBody>
@@ -285,7 +300,7 @@ export default function ControladoriaProdutos() {
               : "—"
           }
           open={!!selecionado}
-          onOpenChange={(o) => !o && setSelecionado(null)}
+          onOpenChange={(o) => !o && openProduto(null)}
         />
       </div>
     </TooltipProvider>
