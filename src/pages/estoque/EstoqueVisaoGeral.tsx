@@ -113,10 +113,6 @@ export default function EstoqueVisaoGeral() {
               selected={filtrosBase.empresa_ids}
               onChange={(v) => handleSetFiltros({ ...filtrosBase, empresa_ids: v })}
             />
-            <EstoqueUnidadeChips
-              selected={filtrosBase.unidades}
-              onChange={(v) => handleSetFiltros({ ...filtrosBase, unidades: v })}
-            />
           </div>
           <EstoqueQuickChips filtros={filtrosBase} setFiltros={handleSetFiltros} />
         </div>
