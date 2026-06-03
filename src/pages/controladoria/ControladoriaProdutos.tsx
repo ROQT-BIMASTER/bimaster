@@ -300,7 +300,7 @@ export default function ControladoriaProdutos() {
               : "—"
           }
           open={!!selecionado}
-          onOpenChange={(o) => !o && setSelecionado(null)}
+          onOpenChange={(o) => !o && openProduto(null)}
         />
       </div>
     </TooltipProvider>
