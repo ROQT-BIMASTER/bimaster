@@ -19,7 +19,7 @@ const BATCH_SIZE = 200;
 
 // Opção A: ISO-8601 com offset BRT (-03:00) carimbado no momento do write-back.
 function isoBrtNow(): string {
-  return new Date().toISOString().replace("Z", "-03:00");
+  return new Date(Date.now() - 3 * 3600 * 1000).toISOString().replace("Z", "-03:00");
 }
 
 const sel = (p: unknown) =>
