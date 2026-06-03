@@ -88,6 +88,7 @@ export default function ControladoriaProdutos() {
   const [marca, setMarca] = useState<string>("__all__");
   const [status, setStatus] = useState<string>("__all__");
   const [soGargalo, setSoGargalo] = useState(false);
+  const [selecionado, setSelecionado] = useState<RrProduto | null>(null);
 
   const linhaMap = useMemo(() => {
     const m = new Map<string, string>();
