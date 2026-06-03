@@ -400,6 +400,7 @@ export default function BriefingWorkspace() {
               <TabsList className="bg-card">
                 <TabsTrigger value="canvas" className="text-xs">Canvas</TabsTrigger>
                 <TabsTrigger value="cofre" className="text-xs">Cofre de documentos</TabsTrigger>
+                <TabsTrigger value="historico" className="text-xs">Histórico</TabsTrigger>
               </TabsList>
 
               <TabsContent value="canvas" className="mt-4 space-y-5">
@@ -481,6 +482,10 @@ export default function BriefingWorkspace() {
 
               <TabsContent value="cofre" className="mt-4">
                 <CofreTab briefingId={briefing.id} tipoBriefing={briefing.tipo} />
+              </TabsContent>
+
+              <TabsContent value="historico" className="mt-4">
+                <BriefingVersoesTimeline briefingId={briefing.id} secoes={sections} />
               </TabsContent>
             </Tabs>
           </div>
