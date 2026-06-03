@@ -98,6 +98,7 @@ const CrmLayout = lazyWithRetry(() => import("./components/crm/CrmLayout"));
 const ConfigFornecedorVisibilidade = lazyWithRetry(() => import("./pages/ConfigFornecedorVisibilidade"));
 const BriefingsHome = lazyWithRetry(() => import("./pages/briefings/BriefingsHome"));
 const BriefingWorkspace = lazyWithRetry(() => import("./pages/briefings/BriefingWorkspace"));
+const ControladoriaProdutos = lazyWithRetry(() => import("./pages/controladoria/ControladoriaProdutos"));
 const PainelExecutivo = lazyWithRetry(() => import("./pages/PainelExecutivo"));
 const PerformanceVendas = lazyWithRetry(() => import("./pages/PerformanceVendas"));
 const AnaliseClientes = lazyWithRetry(() => import("./pages/AnaliseClientes"));
@@ -559,6 +560,7 @@ function AppContent() {
             <Route path="/dashboard/relatorios" element={<ScreenRoute screenCode="relatorios"><Relatorios /></ScreenRoute>} />
             <Route path="/dashboard/briefings" element={<ProtectedRoute><BriefingsHome /></ProtectedRoute>} />
             <Route path="/dashboard/briefings/:id" element={<ProtectedRoute><BriefingWorkspace /></ProtectedRoute>} />
+            <Route path="/dashboard/controladoria" element={<ProtectedRoute><ControladoriaProdutos /></ProtectedRoute>} />
             
             {/* Módulo de Marketing */}
             <Route path="/dashboard/marketing" element={<ModuleRoute moduleCode="marketing"><MarketingModule /></ModuleRoute>} />
