@@ -1,4 +1,5 @@
-import { AlertTriangle, Check, ChevronRight, Circle, Clock, X } from "lucide-react";
+import { useEffect, useState } from "react";
+import { AlertTriangle, Check, ChevronRight, Circle, Clock, Info, X } from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -19,13 +20,24 @@ interface ProdutoDrawerProps {
   onOpenChange: (open: boolean) => void;
 }
 
-const TONE_NODE: Record<WfTone, { ring: string; bg: string; icon: typeof Check; iconColor: string; label: string }> = {
+const TONE_NODE: Record<
+  WfTone,
+  {
+    ring: string;
+    bg: string;
+    icon: typeof Check;
+    iconColor: string;
+    label: string;
+    description: string;
+  }
+> = {
   done: {
     ring: "ring-emerald-500/40 border-emerald-500/60",
     bg: "bg-emerald-500/10",
     icon: Check,
     iconColor: "text-emerald-600",
     label: "Concluído",
+    description: "Etapa aprovada (OK, APROVADO, AF APROVADA).",
   },
   prog: {
     ring: "ring-amber-500/40 border-amber-500/60",
@@ -33,6 +45,7 @@ const TONE_NODE: Record<WfTone, { ring: string; bg: string; icon: typeof Check; 
     icon: Clock,
     iconColor: "text-amber-600",
     label: "Em andamento",
+    description: "Em execução (EM ANDAMENTO, AF ENVIADA, EM APROVAÇÃO, RECEBIDO).",
   },
   block: {
     ring: "ring-rose-500/40 border-rose-500/60",
@@ -40,6 +53,8 @@ const TONE_NODE: Record<WfTone, { ring: string; bg: string; icon: typeof Check; 
     icon: X,
     iconColor: "text-rose-600",
     label: "Bloqueado",
+    description:
+      "Travado por dependência (INCOMPLETO, AGUARDANDO INFORMAÇÃO, NÃO RECEBIDO).",
   },
   idle: {
     ring: "ring-slate-400/30 border-border",
@@ -47,20 +62,40 @@ const TONE_NODE: Record<WfTone, { ring: string; bg: string; icon: typeof Check; 
     icon: Circle,
     iconColor: "text-muted-foreground",
     label: "Não iniciado",
+    description: "Sem status registrado — ainda não começou.",
   },
 };
 
-function WorkflowNode({ field, value }: { field: string; value: string | null }) {
+function WorkflowNode({
+  field,
+  value,
+  selected,
+  onClick,
+}: {
+  field: string;
+  value: string | null;
+  selected: boolean;
+  onClick: () => void;
+}) {
   const tone = wfTone(value);
   const cfg = TONE_NODE[tone];
   const Icon = cfg.icon;
   return (
-    <div className="flex flex-col items-center gap-1.5 min-w-[110px]">
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "flex flex-col items-center gap-1.5 min-w-[110px] group focus:outline-none rounded-lg p-1 -m-1 transition-colors",
+        selected && "bg-primary/5 ring-1 ring-primary/30",
+      )}
+      aria-pressed={selected}
+    >
       <div
         className={cn(
-          "h-14 w-14 rounded-xl border-2 ring-4 flex items-center justify-center shadow-sm",
+          "h-14 w-14 rounded-xl border-2 ring-4 flex items-center justify-center shadow-sm transition-transform group-hover:scale-105",
           cfg.ring,
           cfg.bg,
+          selected && "scale-105",
         )}
       >
         <Icon className={cn("h-6 w-6", cfg.iconColor)} />
@@ -71,7 +106,7 @@ function WorkflowNode({ field, value }: { field: string; value: string | null })
           {value ?? cfg.label}
         </div>
       </div>
-    </div>
+    </button>
   );
 }
 
@@ -92,15 +127,111 @@ function NodeConnector({ tone }: { tone: WfTone }) {
   );
 }
 
+function Legend() {
+  return (
+    <div className="rounded-md border bg-muted/30 px-3 py-2 flex flex-wrap items-center gap-x-4 gap-y-1.5">
+      <div className="flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground">
+        <Info className="h-3.5 w-3.5" /> Legenda
+      </div>
+      {(Object.keys(TONE_NODE) as WfTone[]).map((t) => {
+        const cfg = TONE_NODE[t];
+        const Icon = cfg.icon;
+        return (
+          <div key={t} className="flex items-center gap-1.5" title={cfg.description}>
+            <span
+              className={cn(
+                "inline-flex h-5 w-5 items-center justify-center rounded border ring-2",
+                cfg.ring,
+                cfg.bg,
+              )}
+            >
+              <Icon className={cn("h-3 w-3", cfg.iconColor)} />
+            </span>
+            <span className={cn("text-[11px] font-medium", cfg.iconColor)}>{cfg.label}</span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function NodeDetails({
+  field,
+  value,
+  motivo,
+}: {
+  field: string;
+  value: string | null;
+  motivo?: { label: string; detail: string };
+}) {
+  const tone = wfTone(value);
+  const cfg = TONE_NODE[tone];
+  const Icon = cfg.icon;
+
+  const reason =
+    tone === "block"
+      ? motivo
+        ? `Bloqueado por: ${motivo.detail}. Esta etapa precisa de informação/aprovação antes de avançar.`
+        : "Etapa marcada como bloqueada. Verifique a dependência no Notion."
+      : tone === "prog"
+      ? "Execução em curso — aguardando conclusão ou aprovação."
+      : tone === "idle"
+      ? "Etapa ainda não foi iniciada — nenhum status registrado no Notion."
+      : "Etapa concluída — nenhuma ação pendente.";
+
+  return (
+    <div
+      className={cn(
+        "rounded-lg border p-4 space-y-2",
+        cfg.ring,
+        cfg.bg,
+      )}
+    >
+      <div className="flex items-center gap-2">
+        <span
+          className={cn(
+            "inline-flex h-7 w-7 items-center justify-center rounded-md border",
+            cfg.ring,
+            "bg-background/60",
+          )}
+        >
+          <Icon className={cn("h-4 w-4", cfg.iconColor)} />
+        </span>
+        <div className="flex-1 min-w-0">
+          <div className="text-sm font-semibold">{field}</div>
+          <div className={cn("text-[11px] uppercase tracking-wide font-medium", cfg.iconColor)}>
+            {value ?? cfg.label}
+          </div>
+        </div>
+      </div>
+      <p className="text-xs text-muted-foreground leading-relaxed">{reason}</p>
+      {tone === "block" && (
+        <div className="text-[11px] rounded border border-rose-500/30 bg-background/60 px-2 py-1.5 font-mono">
+          campo: <span className="font-semibold">{field}</span> · valor:{" "}
+          <span className="font-semibold">{value}</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function ProdutoWorkflowDrawer({
   produto,
   linhaNome,
   open,
   onOpenChange,
 }: ProdutoDrawerProps) {
+  const [selectedField, setSelectedField] = useState<string | null>(null);
+
+  // Reset node selection when product or open state changes
+  useEffect(() => {
+    setSelectedField(null);
+  }, [produto?.notion_page_id, open]);
+
   if (!produto) return null;
   const motivos = motivosGargalo(produto);
   const wf = produto.wf ?? {};
+  const motivoMap = new Map(motivos.map((m) => [m.label, m]));
 
   const stats = WF_FIELDS.reduce(
     (acc, f) => {
@@ -141,7 +272,7 @@ export function ProdutoWorkflowDrawer({
           </div>
 
           {/* Stats compactas do workflow */}
-          <div className="flex items-center gap-2 mt-3">
+          <div className="flex items-center gap-2 mt-3 flex-wrap">
             <StatPill tone="done" label="Concluídos" value={stats.done} />
             <StatPill tone="prog" label="Em andamento" value={stats.prog} />
             <StatPill tone="block" label="Bloqueados" value={stats.block} />
@@ -178,8 +309,14 @@ export function ProdutoWorkflowDrawer({
             )}
 
             {/* Workflow trilha estilo N8N */}
-            <section>
-              <h3 className="text-sm font-semibold mb-3">Trilha do workflow</h3>
+            <section className="space-y-3">
+              <div className="flex items-center justify-between gap-3 flex-wrap">
+                <h3 className="text-sm font-semibold">Trilha do workflow</h3>
+                <span className="text-[11px] text-muted-foreground">
+                  Clique em uma etapa para ver o detalhe
+                </span>
+              </div>
+              <Legend />
               <div className="rounded-lg border bg-gradient-to-b from-muted/20 to-transparent p-5 overflow-x-auto">
                 <div className="flex items-start min-w-max pb-2">
                   {WF_FIELDS.map((field, idx) => {
@@ -187,13 +324,28 @@ export function ProdutoWorkflowDrawer({
                     const tone = wfTone(v);
                     return (
                       <div key={field} className="flex items-start">
-                        <WorkflowNode field={field} value={v} />
+                        <WorkflowNode
+                          field={field}
+                          value={v}
+                          selected={selectedField === field}
+                          onClick={() =>
+                            setSelectedField((prev) => (prev === field ? null : field))
+                          }
+                        />
                         {idx < WF_FIELDS.length - 1 && <NodeConnector tone={tone} />}
                       </div>
                     );
                   })}
                 </div>
               </div>
+
+              {selectedField && (
+                <NodeDetails
+                  field={selectedField}
+                  value={wf[selectedField] ?? null}
+                  motivo={motivoMap.get(selectedField)}
+                />
+              )}
             </section>
 
             {/* Dados regulatórios */}
