@@ -3097,6 +3097,53 @@ export type Database = {
         }
         Relationships: []
       }
+      briefing_versoes: {
+        Row: {
+          body_md: string | null
+          briefing_id: string
+          enviado_em: string
+          enviado_por: string | null
+          id: string
+          motivo_devolucao: string | null
+          origem: string
+          payload_snapshot: Json
+          round: number
+          rrtask_page_id: string | null
+        }
+        Insert: {
+          body_md?: string | null
+          briefing_id: string
+          enviado_em?: string
+          enviado_por?: string | null
+          id?: string
+          motivo_devolucao?: string | null
+          origem?: string
+          payload_snapshot: Json
+          round: number
+          rrtask_page_id?: string | null
+        }
+        Update: {
+          body_md?: string | null
+          briefing_id?: string
+          enviado_em?: string
+          enviado_por?: string | null
+          id?: string
+          motivo_devolucao?: string | null
+          origem?: string
+          payload_snapshot?: Json
+          round?: number
+          rrtask_page_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "briefing_versoes_briefing_id_fkey"
+            columns: ["briefing_id"]
+            isOneToOne: false
+            referencedRelation: "briefings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       briefings: {
         Row: {
           campo_origens: Json
