@@ -21,7 +21,7 @@ import { EstoqueKpiBar } from '@/components/estoque/visao-geral/EstoqueKpiBar';
 import { EstoqueQuickChips } from '@/components/estoque/visao-geral/EstoqueQuickChips';
 import { EstoqueFilterPanel } from '@/components/estoque/visao-geral/EstoqueFilterPanel';
 import { EstoqueFilialSelect } from '@/components/estoque/visao-geral/EstoqueFilialSelect';
-import { EstoqueUnidadeChips } from '@/components/estoque/visao-geral/EstoqueUnidadeChips';
+
 import { EstoqueActiveFilters } from '@/components/estoque/visao-geral/EstoqueActiveFilters';
 import { EstoqueTable } from '@/components/estoque/visao-geral/EstoqueTable';
 import { EstoqueDetailDrawer } from '@/components/estoque/visao-geral/EstoqueDetailDrawer';
