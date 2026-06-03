@@ -32,7 +32,13 @@ export interface Briefing {
   rrtask_page_id: string | null;
   rrtask_page_url: string | null;
   rrtask_synced_at: string | null;
+  rrtask_aprovacao: string | null;
+  rrtask_status: string | null;
+  rrtask_etapa: string | null;
+  rrtask_data_aprovacao: string | null;
+  rrtask_last_polled_at: string | null;
 }
+
 
 export interface TemplateSection {
   key: string;
@@ -77,6 +83,12 @@ export function useBriefingChat(briefingId: string | undefined) {
         rrtask_page_id: (b as any).rrtask_page_id ?? null,
         rrtask_page_url: (b as any).rrtask_page_url ?? null,
         rrtask_synced_at: (b as any).rrtask_synced_at ?? null,
+        rrtask_aprovacao: (b as any).rrtask_aprovacao ?? null,
+        rrtask_status: (b as any).rrtask_status ?? null,
+        rrtask_etapa: (b as any).rrtask_etapa ?? null,
+        rrtask_data_aprovacao: (b as any).rrtask_data_aprovacao ?? null,
+        rrtask_last_polled_at: (b as any).rrtask_last_polled_at ?? null,
+
       });
       setSections(((b as any).briefing_templates?.secoes ?? []) as TemplateSection[]);
 
@@ -94,6 +106,21 @@ export function useBriefingChat(briefingId: string | undefined) {
   useEffect(() => {
     carregar();
   }, [carregar]);
+
+  // Realtime: atualiza o briefing quando o poll do RR-Tasks gravar as colunas-espelho.
+  useEffect(() => {
+    if (!briefingId) return;
+    const channel = supabase
+      .channel(`briefing-${briefingId}-rrtask`)
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "briefings", filter: `id=eq.${briefingId}` },
+        () => { carregar(); },
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [briefingId, carregar]);
+
 
   const enviar = useCallback(
     async (texto: string, attachments?: ChatAttachment[]) => {
