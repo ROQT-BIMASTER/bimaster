@@ -3,9 +3,10 @@
 // volta nas colunas rrtask_* da tabela `briefings`.
 //
 // - Chamada agendada (pg_cron */5 * * * *).
-// - Protegida por shared secret (`x-cron-secret` = CRON_SECRET).
-// - Cadência efetiva: 5 min em horário comercial (08-18 BRT, seg-sex implícito
-//   pelo cron host), 15 min fora — decidido logo no início.
+// - Protegida por `Authorization: Bearer <service_role>` — mesmo padrão do
+//   cron `asana-sync-hourly`, reaproveitando `email_queue_service_role_key`
+//   já populado no vault. Sem necessidade de secret manual adicional.
+// - Cadência efetiva: 5 min em horário comercial (08-18 BRT), 15 min fora.
 // - Leitura apenas, EXCETO write-back da "Data Aprovação Conteúdo" (regra R09)
 //   quando "Aprovação de Conteúdo" = "Aprovado" e a data está vazia.
 import { createClient } from "npm:@supabase/supabase-js@2";
@@ -18,8 +19,6 @@ const BATCH_SIZE = 200;
 
 // Opção A: ISO-8601 com offset BRT (-03:00) carimbado no momento do write-back.
 function isoBrtNow(): string {
-  // Notion aceita date.start em ISO-8601 com offset. Mantemos os milissegundos
-  // em UTC e apenas substituímos o "Z" por "-03:00" para sinalizar BRT.
   return new Date().toISOString().replace("Z", "-03:00");
 }
 
@@ -40,10 +39,13 @@ Deno.serve(secureHandler(
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
 
-    // 1. Cron shared secret
-    const provided = req.headers.get("x-cron-secret") ?? "";
-    const expected = Deno.env.get("CRON_SECRET") ?? "";
-    if (!expected || !timingSafeEqual(provided, expected)) {
+    // 1. Authorization: Bearer <service_role> (mesmo padrão do asana-sync-hourly)
+    const authHeader = req.headers.get("authorization") ?? "";
+    const provided = authHeader.toLowerCase().startsWith("bearer ")
+      ? authHeader.slice(7).trim()
+      : "";
+    const expected = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+    if (!expected || !provided || !timingSafeEqual(provided, expected)) {
       return J({ ok: false, error: "forbidden" }, 403);
     }
 
