@@ -1,7 +1,10 @@
 import { useState, useMemo, useEffect } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { DashboardLayout } from '@/components/dashboard/DashboardLayout';
 import { Input } from '@/components/ui/input';
-import { Search } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Search, RefreshCw } from 'lucide-react';
+import { useEstoqueErpSync } from '@/hooks/useEstoqueErpSync';
 
 function useDebounce<T>(value: T, delay = 300): T {
   const [v, setV] = useState(value);
