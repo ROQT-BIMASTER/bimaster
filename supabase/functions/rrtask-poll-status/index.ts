@@ -3,12 +3,10 @@
 // volta nas colunas rrtask_* da tabela `briefings`.
 //
 // - Chamada agendada (pg_cron */5 * * * *).
-// - Protegida por `Authorization: Bearer <SUPABASE_SERVICE_ROLE_KEY>` —
-//   comparação `timingSafeEqual` com a env var injetada pelo runtime
-//   (mesmo padrão do `asana-sync` para chamadas de cron). Imune a vault
-//   desatualizado e a rotações que esqueçam de atualizar o vault.
-//   O cron `rrtask-poll-status-every-5min` monta o header com
-//   `_get_vault_secret('email_queue_service_role_key')` (deve conter a SRK atual).
+// - Protegida por header `x-cron-secret` comparado (timingSafeEqual) ao valor
+//   do vault `rrtask_cron_secret`, lido via RPC SECURITY DEFINER
+//   `public._get_rrtask_cron_secret`. Cron e função leem da MESMA linha do
+//   vault — sem dependência da service-role key na comparação.
 // - Cadência efetiva: 5 min em horário comercial (08-18 BRT), 15 min fora.
 // - Leitura apenas, EXCETO write-back da "Data Aprovação Conteúdo" (regra R09)
 //   quando "Aprovação de Conteúdo" = "Aprovado" e a data está vazia.
@@ -42,17 +40,24 @@ Deno.serve(secureHandler(
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
 
-    // 1. Authorization: Bearer <SUPABASE_SERVICE_ROLE_KEY> — comparação
-    //    timingSafeEqual contra a env var do runtime (padrão asana-sync cron).
-    const authHeader = req.headers.get("authorization") ?? "";
-    const token = authHeader.toLowerCase().startsWith("bearer ")
-      ? authHeader.slice(7).trim()
-      : "";
-    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
-    if (!token || !serviceRoleKey) return J({ ok: false, error: "forbidden" }, 403);
+    // 0. Client admin (service role) precisa existir ANTES do guard, porque
+    //    a validação consulta o vault via RPC.
+    const admin = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+    );
+
+    // 1. Validação do cron secret (lido do vault via RPC SECURITY DEFINER).
+    const provided = req.headers.get("x-cron-secret") ?? "";
+    const { data: expected, error: vaultErr } = await admin.rpc(
+      "_get_rrtask_cron_secret",
+    );
+    if (vaultErr || !expected || !provided) {
+      return J({ ok: false, error: "forbidden" }, 403);
+    }
     const enc = new TextEncoder();
-    const a = enc.encode(token);
-    const b = enc.encode(serviceRoleKey);
+    const a = enc.encode(provided);
+    const b = enc.encode(expected as string);
     if (a.length !== b.length || !timingSafeEqual(a, b)) {
       return J({ ok: false, error: "forbidden" }, 403);
     }
@@ -68,10 +73,7 @@ Deno.serve(secureHandler(
     const rrToken = Deno.env.get("HUGGS_RR_TOKEN");
     if (!rrToken) return J({ ok: false, error: "rr_token_missing" }, 412);
 
-    const sb = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-    );
+    const sb = admin;
 
     // 3. Briefings com page no RR-Tasks — round-robin por last_polled_at
     const { data: rows, error: rowsErr } = await sb
