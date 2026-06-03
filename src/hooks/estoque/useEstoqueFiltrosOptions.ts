@@ -3,33 +3,32 @@ import { supabase } from '@/integrations/supabase/client';
 
 export interface EmpresaOption { id: number; nome: string }
 
+/**
+ * Catálogo de opções dos filtros da Visão de Estoque (filiais, linhas, unidades).
+ * Usa a RPC `estoque_filtro_opcoes` (SECURITY DEFINER) que devolve valores
+ * distintos respeitando as permissões do usuário — admin/gerente vê todas as
+ * filiais, demais usuários veem apenas as suas (`user_empresas`).
+ */
 export function useEstoqueOptions() {
   return useQuery({
     queryKey: ['estoque-filter-options'],
     staleTime: 10 * 60_000,
     queryFn: async () => {
-      // Buscar valores distintos via fetch paginado limitado
-      const { data, error } = await supabase
-        .from('erp_estoque_distribuidora')
-        .select('empresa_par,abrev_par,nome_linha,unidade_medida')
-        .limit(10000);
+      const { data, error } = await supabase.rpc('estoque_filtro_opcoes' as any);
       if (error) throw error;
 
-      const empresasMap = new Map<number, string>();
-      const linhas = new Set<string>();
-      const unidades = new Set<string>();
-      (data ?? []).forEach((r: any) => {
-        if (r.empresa_par != null) empresasMap.set(r.empresa_par, r.abrev_par || `Empresa ${r.empresa_par}`);
-        if (r.nome_linha) linhas.add(r.nome_linha);
-        if (r.unidade_medida) unidades.add(r.unidade_medida);
-      });
-      const empresas: EmpresaOption[] = Array.from(empresasMap.entries())
-        .map(([id, nome]) => ({ id, nome }))
+      const row: any = Array.isArray(data) ? data[0] : data;
+      const empresasRaw: Array<{ id: number; nome: string }> = Array.isArray(row?.empresas)
+        ? row.empresas
+        : [];
+      const empresas: EmpresaOption[] = empresasRaw
+        .map((e) => ({ id: Number(e.id), nome: e.nome }))
         .sort((a, b) => a.nome.localeCompare(b.nome));
+
       return {
         empresas,
-        linhas: Array.from(linhas).sort(),
-        unidades: Array.from(unidades).sort(),
+        linhas: (row?.linhas ?? []) as string[],
+        unidades: (row?.unidades ?? []) as string[],
       };
     },
   });

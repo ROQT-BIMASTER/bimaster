@@ -1,7 +1,10 @@
 import { useState, useMemo, useEffect } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { DashboardLayout } from '@/components/dashboard/DashboardLayout';
 import { Input } from '@/components/ui/input';
-import { Search } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Search, RefreshCw } from 'lucide-react';
+import { useEstoqueErpSync } from '@/hooks/useEstoqueErpSync';
 
 function useDebounce<T>(value: T, delay = 300): T {
   const [v, setV] = useState(value);
@@ -45,6 +48,16 @@ export default function EstoqueVisaoGeral() {
   const [selected, setSelected] = useState<EstoqueRow | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
 
+  const queryClient = useQueryClient();
+  const { syncFull, isSyncing, syncProgress } = useEstoqueErpSync();
+
+  const handleResync = async () => {
+    await syncFull();
+    await queryClient.invalidateQueries({ queryKey: ['estoque'] });
+    await queryClient.invalidateQueries({ queryKey: ['estoque-filter-options'] });
+    await queryClient.invalidateQueries({ queryKey: ['estoque-kpis'] });
+  };
+
   const handleSort = (key: EstoqueSortKey) => {
     if (sortBy === key) setSortDir(sortDir === 'asc' ? 'desc' : 'asc');
     else { setSortBy(key); setSortDir('desc'); }
@@ -67,6 +80,17 @@ export default function EstoqueVisaoGeral() {
             </p>
           </div>
           <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-9"
+              onClick={handleResync}
+              disabled={isSyncing}
+              title="Re-sincroniza o estoque de todas as filiais a partir do ERP"
+            >
+              <RefreshCw className={`h-4 w-4 mr-2 ${isSyncing ? 'animate-spin' : ''}`} />
+              {isSyncing ? `Sincronizando… ${syncProgress.elapsedSeconds}s` : 'Sincronizar ERP'}
+            </Button>
             <EstoqueExportButton filtros={filtros} total={data?.total ?? 0} />
             <EstoqueFilterPanel filtros={filtrosBase} setFiltros={handleSetFiltros} />
           </div>
