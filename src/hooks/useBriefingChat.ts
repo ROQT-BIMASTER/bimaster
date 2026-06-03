@@ -32,7 +32,13 @@ export interface Briefing {
   rrtask_page_id: string | null;
   rrtask_page_url: string | null;
   rrtask_synced_at: string | null;
+  rrtask_aprovacao: string | null;
+  rrtask_status: string | null;
+  rrtask_etapa: string | null;
+  rrtask_data_aprovacao: string | null;
+  rrtask_last_polled_at: string | null;
 }
+
 
 export interface TemplateSection {
   key: string;
