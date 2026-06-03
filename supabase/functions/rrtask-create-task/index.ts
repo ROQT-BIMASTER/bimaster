@@ -3,10 +3,14 @@
 // database RR-Tasks) a partir de um briefing local. Usa o token de integração
 // HUGGS_RR_TOKEN (não OAuth por usuário).
 //
+// PR-B — Snapshot por rodada em `briefing_versoes` + fluxo de devolução:
+//   quando o briefing volta como "Devolvido", o reenvio anexa um toggle
+//   Round N (sem apagar os anteriores) e bumpa o Round/properties.
+//
 // Contrato:
 //   request:  { briefing_id: uuid, force?: boolean }
-//   response: { ok, action: "create"|"update", page_id, page_url,
-//               solicitante_resolvido, warnings[] }
+//   response: { ok, action: "create"|"update"|"devolucao_resend", page_id,
+//               page_url, solicitante_resolvido, warnings[], round? }
 import { z } from "https://esm.sh/zod@3.23.8";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { secureHandler } from "../_shared/secure-handler.ts";
@@ -46,6 +50,70 @@ function extrairPrazoISO(texto: string): string | null {
   return null;
 }
 
+/** Monta os blocos internos do briefing (heading_2 + callout ⚠️ semPrazo + parágrafos). */
+function montarBlocosBriefing(
+  b: { titulo: string | null },
+  pl: Record<string, unknown>,
+  semPrazo: boolean,
+  labelOf: (k: string) => string,
+): unknown[] {
+  const blocos: unknown[] = [
+    {
+      object: "block",
+      type: "heading_2",
+      heading_2: {
+        rich_text: [{ type: "text", text: { content: b.titulo ?? "Briefing" } }],
+      },
+    },
+  ];
+  if (semPrazo) {
+    blocos.push({
+      object: "block",
+      type: "callout",
+      callout: {
+        icon: { emoji: "⚠️" },
+        rich_text: [{ type: "text", text: { content: "Prazo: A definir" } }],
+      },
+    });
+  }
+  for (const [k, v] of Object.entries(pl)) {
+    if (v == null || typeof v === "object" || String(v).trim() === "") continue;
+    blocos.push({
+      object: "block",
+      type: "paragraph",
+      paragraph: {
+        rich_text: [
+          {
+            type: "text",
+            text: { content: `${labelOf(k)}: ` },
+            annotations: { bold: true },
+          },
+          {
+            type: "text",
+            text: { content: String(v).slice(0, 1900) },
+          },
+        ],
+      },
+    });
+  }
+  return blocos;
+}
+
+/** Envolve os blocos num toggle "💬 Round N (dd/mm/aaaa)". */
+function montarToggleRound(round: number, blocos: unknown[]): unknown {
+  return {
+    object: "block",
+    type: "toggle",
+    toggle: {
+      rich_text: [{
+        type: "text",
+        text: { content: `💬 Round ${round} (${brDate(new Date().toISOString())})` },
+      }],
+      children: blocos.slice(0, 100),
+    },
+  };
+}
+
 Deno.serve(
   secureHandler(
     { auth: "jwt", rateLimit: 20, rateLimitPrefix: "rrtask-create-task" },
@@ -73,7 +141,7 @@ Deno.serve(
       const { data: b, error: be } = await sb
         .from("briefings")
         .select(
-          "id, user_id, titulo, codigo, tipo, status, completude, payload, template_id, rrtask_page_id, rrtask_page_url, rrtask_round",
+          "id, user_id, titulo, codigo, tipo, status, completude, payload, template_id, rrtask_page_id, rrtask_page_url, rrtask_round, rrtask_aprovacao",
         )
         .eq("id", briefing_id)
         .single();
@@ -199,7 +267,7 @@ Deno.serve(
         }
       }
 
-      // 6. Build body (toggle Round 1) — usa rótulos do template
+      // 6. Load template sections (for labelOf)
       let secoes: Array<{ key: string; label: string }> = [];
       if (b.template_id) {
         const { data: tpl } = await sb
@@ -214,61 +282,8 @@ Deno.serve(
       const labelOf = (k: string) =>
         secoes.find((s) => s.key === k)?.label ?? k;
 
-      const innerBlocks: unknown[] = [
-        {
-          object: "block",
-          type: "heading_2",
-          heading_2: {
-            rich_text: [{ type: "text", text: { content: b.titulo ?? "Briefing" } }],
-          },
-        },
-      ];
-      if (semPrazo) {
-        innerBlocks.push({
-          object: "block",
-          type: "callout",
-          callout: {
-            icon: { emoji: "⚠️" },
-            rich_text: [{ type: "text", text: { content: "Prazo: A definir" } }],
-          },
-        });
-      }
-      for (const [k, v] of Object.entries(pl)) {
-        if (v == null || typeof v === "object" || String(v).trim() === "") continue;
-        innerBlocks.push({
-          object: "block",
-          type: "paragraph",
-          paragraph: {
-            rich_text: [
-              {
-                type: "text",
-                text: { content: `${labelOf(k)}: ` },
-                annotations: { bold: true },
-              },
-              {
-                type: "text",
-                text: { content: String(v).slice(0, 1900) },
-              },
-            ],
-          },
-        });
-      }
-
-
-      const toggle = {
-        object: "block",
-        type: "toggle",
-        toggle: {
-          rich_text: [{
-            type: "text",
-            text: { content: `💬 Round 1 (${brDate(new Date().toISOString())})` },
-          }],
-          children: innerBlocks.slice(0, 100),
-        },
-      };
-
       // 7. Idempotency: probe existing page
-      let action: "create" | "update" = "create";
+      let action: "create" | "update" | "devolucao_resend" = "create";
       let pageId = (b.rrtask_page_id as string | null) ?? null;
       let pageUrl = (b.rrtask_page_url as string | null) ?? null;
 
@@ -281,53 +296,182 @@ Deno.serve(
           pageId = null;
           pageUrl = null;
         } else {
-          action = "update";
+          action = b.rrtask_aprovacao === "Devolvido" ? "devolucao_resend" : "update";
         }
       }
 
-      // 8. Write to Notion
-      const resp = action === "create"
-        ? await notion<{ id: string; url: string }>(token, "/pages", {
+      // 8. Write to Notion — três caminhos
+      if (action === "create") {
+        // CREATE: page nova com toggle Round 1
+        const blocosR1 = montarBlocosBriefing(b, pl, semPrazo, labelOf);
+        const toggleR1 = montarToggleRound(1, blocosR1);
+        const resp = await notion<{ id: string; url: string }>(token, "/pages", {
           method: "POST",
           body: JSON.stringify({
             parent: { database_id: RR_TASKS_DB_ID },
             properties: props,
-            children: [toggle],
+            children: [toggleR1],
           }),
-        })
-        : await notion<{ id: string; url: string }>(token, `/pages/${pageId}`, {
-          method: "PATCH",
-          body: JSON.stringify({ properties: props }),
+        });
+        if (!resp.ok || !resp.data) {
+          await sb.from("rrtask_sync_log").insert({
+            briefing_id: b.id,
+            user_id: ctx.userId,
+            action: "error",
+            status: "error",
+            error_message: `create: ${resp.status} ${resp.errorText ?? ""}`.slice(0, 1000),
+          });
+          return J({ error: "notion_write_failed", detail: resp.errorText }, 502);
+        }
+        pageId = resp.data.id;
+        pageUrl = resp.data.url ?? pageUrl;
+
+        await sb.from("briefings").update({
+          rrtask_page_id: pageId,
+          rrtask_page_url: pageUrl,
+          rrtask_synced_at: new Date().toISOString(),
+        }).eq("id", b.id);
+
+        await sb.from("briefing_versoes").insert({
+          briefing_id: b.id,
+          round: 1,
+          origem: "envio",
+          payload_snapshot: pl,
+          body_md: null,
+          rrtask_page_id: pageId,
+          enviado_por: ctx.userId,
         });
 
+        await sb.from("rrtask_sync_log").insert({
+          briefing_id: b.id,
+          user_id: ctx.userId,
+          action: "create",
+          status: "success",
+          rrtask_page_id: pageId,
+          solicitante_resolvido: solicitanteResolvido,
+        });
+
+        return J({
+          ok: true,
+          action: "create",
+          page_id: pageId,
+          page_url: pageUrl,
+          solicitante_resolvido: solicitanteResolvido,
+          warnings,
+        });
+      }
+
+      if (action === "devolucao_resend") {
+        // DEVOLUÇÃO: anexa toggle Round N + bumpa Round/Aprovação
+        const novoRound = (b.rrtask_round ?? 1) + 1;
+        const blocos = montarBlocosBriefing(b, pl, semPrazo, labelOf);
+        const toggle = montarToggleRound(novoRound, blocos);
+
+        // 8a. Append toggle aos children da página (não apaga anteriores)
+        const append = await notion(token, `/blocks/${pageId}/children`, {
+          method: "PATCH",
+          body: JSON.stringify({ children: [toggle] }),
+        });
+        if (!append.ok) {
+          await sb.from("rrtask_sync_log").insert({
+            briefing_id: b.id,
+            user_id: ctx.userId,
+            action: "error",
+            status: "error",
+            error_message:
+              `devolucao_resend/append: ${append.status} ${append.errorText ?? ""}`.slice(0, 1000),
+          });
+          return J({ error: "notion_write_failed", detail: append.errorText }, 502);
+        }
+
+        // 8b. Bumpa properties (Round + volta pra Pendente)
+        const patch = await notion(token, `/pages/${pageId}`, {
+          method: "PATCH",
+          body: JSON.stringify({
+            properties: {
+              "Round": { number: novoRound },
+              "Aprovação de Conteúdo": { select: { name: "Pendente" } },
+            },
+          }),
+        });
+        if (!patch.ok) {
+          await sb.from("rrtask_sync_log").insert({
+            briefing_id: b.id,
+            user_id: ctx.userId,
+            action: "error",
+            status: "error",
+            error_message:
+              `devolucao_resend/props: ${patch.status} ${patch.errorText ?? ""}`.slice(0, 1000),
+          });
+          return J({ error: "notion_write_failed", detail: patch.errorText }, 502);
+        }
+
+        // 8c. Espelho local + versão + log
+        await sb.from("briefings").update({
+          rrtask_round: novoRound,
+          rrtask_aprovacao: "Pendente",
+          rrtask_synced_at: new Date().toISOString(),
+        }).eq("id", b.id);
+
+        await sb.from("briefing_versoes").insert({
+          briefing_id: b.id,
+          round: novoRound,
+          origem: "revisao",
+          payload_snapshot: pl,
+          body_md: null,
+          motivo_devolucao: null,
+          rrtask_page_id: pageId,
+          enviado_por: ctx.userId,
+        });
+
+        await sb.from("rrtask_sync_log").insert({
+          briefing_id: b.id,
+          user_id: ctx.userId,
+          action: "update",
+          status: "success",
+          rrtask_page_id: pageId,
+          solicitante_resolvido: solicitanteResolvido,
+        });
+
+        return J({
+          ok: true,
+          action: "devolucao_resend",
+          round: novoRound,
+          page_id: pageId,
+          page_url: pageUrl,
+          solicitante_resolvido: solicitanteResolvido,
+          warnings,
+        });
+      }
+
+      // UPDATE normal (reenvio/force fora de devolução): re-PATCH só properties
+      const resp = await notion<{ id: string; url: string }>(token, `/pages/${pageId}`, {
+        method: "PATCH",
+        body: JSON.stringify({ properties: props }),
+      });
       if (!resp.ok || !resp.data) {
         await sb.from("rrtask_sync_log").insert({
           briefing_id: b.id,
           user_id: ctx.userId,
           action: "error",
           status: "error",
-          error_message: `${action}: ${resp.status} ${resp.errorText ?? ""}`.slice(0, 1000),
+          error_message: `update: ${resp.status} ${resp.errorText ?? ""}`.slice(0, 1000),
         });
         return J({ error: "notion_write_failed", detail: resp.errorText }, 502);
       }
-
       pageId = resp.data.id;
       pageUrl = resp.data.url ?? pageUrl;
 
-      // 9. Persist + log
-      await sb
-        .from("briefings")
-        .update({
-          rrtask_page_id: pageId,
-          rrtask_page_url: pageUrl,
-          rrtask_synced_at: new Date().toISOString(),
-        })
-        .eq("id", b.id);
+      await sb.from("briefings").update({
+        rrtask_page_id: pageId,
+        rrtask_page_url: pageUrl,
+        rrtask_synced_at: new Date().toISOString(),
+      }).eq("id", b.id);
 
       await sb.from("rrtask_sync_log").insert({
         briefing_id: b.id,
         user_id: ctx.userId,
-        action,
+        action: "update",
         status: "success",
         rrtask_page_id: pageId,
         solicitante_resolvido: solicitanteResolvido,
@@ -335,7 +479,7 @@ Deno.serve(
 
       return J({
         ok: true,
-        action,
+        action: "update",
         page_id: pageId,
         page_url: pageUrl,
         solicitante_resolvido: solicitanteResolvido,
