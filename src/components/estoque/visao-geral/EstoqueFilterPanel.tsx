@@ -12,6 +12,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { FILTROS_INICIAIS, FAIXA_LABELS, type EstoqueFiltros, type CurvaABC, type FaixaSaldo } from '@/lib/estoque/estoqueFilters';
 import { useEstoqueOptions } from '@/hooks/estoque/useEstoqueFiltrosOptions';
+import { formatUnidadeMedida } from '@/lib/estoque/unidadeMedida';
 import { cn } from '@/lib/utils';
 
 interface Props {
@@ -174,8 +175,8 @@ export function EstoqueFilterPanel({ filtros, setFiltros }: Props) {
                 onChange={(v) => setFiltros({ ...filtros, linhas: v })}
               />
               <MultiSelect
-                label="Unidade de venda (CX, UN, BX…)"
-                options={(options?.unidades ?? []).map((u) => ({ value: u, label: u }))}
+                label="Unidade de venda"
+                options={(options?.unidades ?? []).map((u) => ({ value: u, label: formatUnidadeMedida(u) }))}
                 selected={filtros.unidades}
                 onChange={(v) => setFiltros({ ...filtros, unidades: v })}
               />

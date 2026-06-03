@@ -2,6 +2,7 @@ import { Button } from '@/components/ui/button';
 import { X } from 'lucide-react';
 import { FILTROS_INICIAIS, FAIXA_LABELS, type EstoqueFiltros } from '@/lib/estoque/estoqueFilters';
 import { useEstoqueOptions } from '@/hooks/estoque/useEstoqueFiltrosOptions';
+import { formatUnidadeMedidaShort } from '@/lib/estoque/unidadeMedida';
 
 interface Props {
   filtros: EstoqueFiltros;
@@ -27,7 +28,7 @@ export function EstoqueActiveFilters({ filtros, setFiltros }: Props) {
   filtros.linhas.forEach((l) =>
     chips.push({ key: `lin-${l}`, label: `Linha: ${l}`, clear: () => patch({ linhas: filtros.linhas.filter((x) => x !== l) }) }));
   filtros.unidades.forEach((u) =>
-    chips.push({ key: `um-${u}`, label: `Unidade: ${u}`, clear: () => patch({ unidades: filtros.unidades.filter((x) => x !== u) }) }));
+    chips.push({ key: `um-${u}`, label: `Unidade: ${formatUnidadeMedidaShort(u)}`, clear: () => patch({ unidades: filtros.unidades.filter((x) => x !== u) }) }));
   filtros.curvas_fisicas.forEach((c) =>
     chips.push({ key: `cf-${c}`, label: `Curva F: ${c}`, clear: () => patch({ curvas_fisicas: filtros.curvas_fisicas.filter((x) => x !== c) }) }));
   filtros.curvas_monetarias.forEach((c) =>
