@@ -1,5 +1,6 @@
 import { Button } from '@/components/ui/button';
 import { useEstoqueOptions } from '@/hooks/estoque/useEstoqueFiltrosOptions';
+import { formatUnidadeMedidaShort } from '@/lib/estoque/unidadeMedida';
 
 interface Props {
   selected: string[];
