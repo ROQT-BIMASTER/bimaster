@@ -29,6 +29,7 @@ import { EnviarAprovacaoDialog } from "@/components/briefings/EnviarAprovacaoDia
 import { AprovacaoTimeline } from "@/components/briefings/AprovacaoTimeline";
 import { ExportarBriefingDialog } from "@/components/briefings/export/ExportarBriefingDialog";
 import { CofreTab } from "@/components/briefings/cofre/CofreTab";
+import { BriefingVersoesTimeline } from "@/components/briefings/BriefingVersoesTimeline";
 import { AnexarEvidenciaDialog } from "@/components/briefings/cofre/AnexarEvidenciaDialog";
 import { AttachImageButton, type ChatAttachment } from "@/components/briefings/chat/AttachImageButton";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
