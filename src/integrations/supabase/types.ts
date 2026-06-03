@@ -49836,6 +49836,14 @@ export type Database = {
           total: number
         }[]
       }
+      estoque_filtro_opcoes: {
+        Args: never
+        Returns: {
+          empresas: Json
+          linhas: string[]
+          unidades: string[]
+        }[]
+      }
       estoque_kpis_recorte: { Args: { filtros?: Json }; Returns: Json }
       estoque_valores_por_filial: {
         Args: { filtros?: Json }
