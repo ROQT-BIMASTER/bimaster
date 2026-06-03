@@ -31,6 +31,7 @@ import { StatusPill } from "@/components/shared/StatusPill";
 import { cn } from "@/lib/utils";
 import { useRrLinhas, useRrProdutos, type RrProduto } from "@/hooks/useRrProdutos";
 import { WF_FIELDS, emGargalo, motivosGargalo, wfTone, type WfTone } from "@/lib/controladoria";
+import { ProdutoWorkflowDrawer } from "@/components/controladoria/ProdutoWorkflowDrawer";
 
 const TONE_CELL: Record<WfTone, string> = {
   done: "bg-emerald-500/80",
@@ -88,6 +89,7 @@ export default function ControladoriaProdutos() {
   const [marca, setMarca] = useState<string>("__all__");
   const [status, setStatus] = useState<string>("__all__");
   const [soGargalo, setSoGargalo] = useState(false);
+  const [selecionado, setSelecionado] = useState<RrProduto | null>(null);
 
   const linhaMap = useMemo(() => {
     const m = new Map<string, string>();
@@ -266,6 +268,7 @@ export default function ControladoriaProdutos() {
                           ? linhaMap.get(p.linha_notion_id) ?? "—"
                           : "—"
                       }
+                      onClick={() => setSelecionado(p)}
                     />
                   ))}
                 </TableBody>
@@ -273,17 +276,38 @@ export default function ControladoriaProdutos() {
             )}
           </CardContent>
         </Card>
+
+        <ProdutoWorkflowDrawer
+          produto={selecionado}
+          linhaNome={
+            selecionado?.linha_notion_id
+              ? linhaMap.get(selecionado.linha_notion_id) ?? "—"
+              : "—"
+          }
+          open={!!selecionado}
+          onOpenChange={(o) => !o && setSelecionado(null)}
+        />
       </div>
     </TooltipProvider>
   );
 }
 
-function ProdutoRow({ p, linhaNome }: { p: RrProduto; linhaNome: string }) {
+function ProdutoRow({
+  p,
+  linhaNome,
+  onClick,
+}: {
+  p: RrProduto;
+  linhaNome: string;
+  onClick?: () => void;
+}) {
   const gargalo = emGargalo(p);
   const motivos = motivosGargalo(p);
   return (
     <TableRow
+      onClick={onClick}
       className={cn(
+        "cursor-pointer",
         gargalo && "border-l-2 border-l-amber-500 bg-amber-500/[0.03]",
       )}
     >
