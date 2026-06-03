@@ -177,6 +177,43 @@ export function BriefingHeader({
                 <ExternalLink className="h-3.5 w-3.5 mr-1.5" />
                 Abrir no RR-Tasks
               </Button>
+              {(() => {
+                const aprovacao = briefing.rrtask_aprovacao;
+                const tone = rrtaskAprovacaoTone(aprovacao);
+                const label = aprovacao ?? "aguardando…";
+                const dataAprov = parseLocalDate(briefing.rrtask_data_aprovacao);
+                const polled = briefing.rrtask_last_polled_at
+                  ? new Date(briefing.rrtask_last_polled_at)
+                  : null;
+                return (
+                  <TooltipProvider delayDuration={150}>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="inline-flex">
+                          <StatusPill tone={tone} dot>
+                            Na agência: {label}
+                          </StatusPill>
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent side="bottom" className="text-xs">
+                        <div className="space-y-0.5">
+                          <div>Status: {briefing.rrtask_status ?? "—"}</div>
+                          <div>Etapa: {briefing.rrtask_etapa ?? "—"}</div>
+                          {dataAprov && (
+                            <div>Aprovado em: {format(dataAprov, "dd/MM/yyyy")}</div>
+                          )}
+                          {polled && (
+                            <div className="text-muted-foreground">
+                              Atualizado {formatDistanceToNow(polled, { addSuffix: true, locale: ptBR })}
+                            </div>
+                          )}
+                        </div>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                );
+              })()}
+
               {onReenviarRRTask && (
                 <Button
                   variant="ghost"
