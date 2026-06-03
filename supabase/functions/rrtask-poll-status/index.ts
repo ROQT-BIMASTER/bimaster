@@ -66,8 +66,8 @@ Deno.serve(secureHandler(
       return J({ ok: true, skipped: "fora_de_janela", hora_brt: horaBRT });
     }
 
-    const token = Deno.env.get("HUGGS_RR_TOKEN");
-    if (!token) return J({ ok: false, error: "rr_token_missing" }, 412);
+    const rrToken = Deno.env.get("HUGGS_RR_TOKEN");
+    if (!rrToken) return J({ ok: false, error: "rr_token_missing" }, 412);
 
     const sb = createClient(
       Deno.env.get("SUPABASE_URL")!,
@@ -93,7 +93,7 @@ Deno.serve(secureHandler(
 
     for (const r of rows ?? []) {
       try {
-        const page = await notion<NotionPage>(token, `/pages/${r.rrtask_page_id}`);
+        const page = await notion<NotionPage>(rrToken, `/pages/${r.rrtask_page_id}`);
         if (!page.ok || !page.data) {
           erros++;
           await sb.from("rrtask_sync_log").insert({
@@ -135,7 +135,7 @@ Deno.serve(secureHandler(
         // R09 write-back: Aprovado + data vazia → carimbar agora (BRT)
         if (aprov === "Aprovado" && !dataAprov) {
           const iso = isoBrtNow();
-          const patch = await notion(token, `/pages/${r.rrtask_page_id}`, {
+          const patch = await notion(rrToken, `/pages/${r.rrtask_page_id}`, {
             method: "PATCH",
             body: JSON.stringify({
               properties: {
