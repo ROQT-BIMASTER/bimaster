@@ -292,12 +292,22 @@ export default function ControladoriaProdutos() {
   );
 }
 
-function ProdutoRow({ p, linhaNome }: { p: RrProduto; linhaNome: string }) {
+function ProdutoRow({
+  p,
+  linhaNome,
+  onClick,
+}: {
+  p: RrProduto;
+  linhaNome: string;
+  onClick?: () => void;
+}) {
   const gargalo = emGargalo(p);
   const motivos = motivosGargalo(p);
   return (
     <TableRow
+      onClick={onClick}
       className={cn(
+        "cursor-pointer",
         gargalo && "border-l-2 border-l-amber-500 bg-amber-500/[0.03]",
       )}
     >
