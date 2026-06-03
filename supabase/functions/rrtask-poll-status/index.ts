@@ -3,16 +3,17 @@
 // volta nas colunas rrtask_* da tabela `briefings`.
 //
 // - Chamada agendada (pg_cron */5 * * * *).
-// - Protegida por `Authorization: Bearer <service_role JWT>` — validação via
-//   `supabase.auth.getClaims(token)` checando `claims.role === 'service_role'`
-//   (mesmo padrão do `asana-sync`; aceita tanto a chave legacy quanto a do
-//   sistema novo de signing-keys, ao contrário de comparação literal de string).
+// - Protegida por `Authorization: Bearer <SUPABASE_SERVICE_ROLE_KEY>` —
+//   comparação `timingSafeEqual` com a env var injetada pelo runtime
+//   (mesmo padrão do `asana-sync` para chamadas de cron). Imune a vault
+//   desatualizado e a rotações que esqueçam de atualizar o vault.
 //   O cron `rrtask-poll-status-every-5min` monta o header com
-//   `_get_vault_secret('email_queue_service_role_key')`.
+//   `_get_vault_secret('email_queue_service_role_key')` (deve conter a SRK atual).
 // - Cadência efetiva: 5 min em horário comercial (08-18 BRT), 15 min fora.
 // - Leitura apenas, EXCETO write-back da "Data Aprovação Conteúdo" (regra R09)
 //   quando "Aprovação de Conteúdo" = "Aprovado" e a data está vazia.
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { timingSafeEqual } from "https://deno.land/std@0.224.0/crypto/timing_safe_equal.ts";
 import { secureHandler } from "../_shared/secure-handler.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { notion, type NotionPage } from "../_shared/notion-client.ts";
@@ -41,20 +42,18 @@ Deno.serve(secureHandler(
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
 
-    // 1. Authorization: Bearer <service_role JWT> — valida via getClaims
-    //    (mesmo padrão do asana-sync; aceita legacy e signing-keys)
+    // 1. Authorization: Bearer <SUPABASE_SERVICE_ROLE_KEY> — comparação
+    //    timingSafeEqual contra a env var do runtime (padrão asana-sync cron).
     const authHeader = req.headers.get("authorization") ?? "";
     const token = authHeader.toLowerCase().startsWith("bearer ")
       ? authHeader.slice(7).trim()
       : "";
-    if (!token) return J({ ok: false, error: "forbidden" }, 403);
-
-    const sbAuth = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_ANON_KEY")!,
-    );
-    const { data: claimsData, error: claimsErr } = await sbAuth.auth.getClaims(token);
-    if (claimsErr || claimsData?.claims?.role !== "service_role") {
+    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+    if (!token || !serviceRoleKey) return J({ ok: false, error: "forbidden" }, 403);
+    const enc = new TextEncoder();
+    const a = enc.encode(token);
+    const b = enc.encode(serviceRoleKey);
+    if (a.length !== b.length || !timingSafeEqual(a, b)) {
       return J({ ok: false, error: "forbidden" }, 403);
     }
 
