@@ -107,6 +107,21 @@ export function useBriefingChat(briefingId: string | undefined) {
     carregar();
   }, [carregar]);
 
+  // Realtime: atualiza o briefing quando o poll do RR-Tasks gravar as colunas-espelho.
+  useEffect(() => {
+    if (!briefingId) return;
+    const channel = supabase
+      .channel(`briefing-${briefingId}-rrtask`)
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "briefings", filter: `id=eq.${briefingId}` },
+        () => { carregar(); },
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [briefingId, carregar]);
+
+
   const enviar = useCallback(
     async (texto: string, attachments?: ChatAttachment[]) => {
       if (!briefingId || (!texto.trim() && !(attachments?.length))) return;
