@@ -267,6 +267,7 @@ export default function ControladoriaProdutos() {
                           ? linhaMap.get(p.linha_notion_id) ?? "—"
                           : "—"
                       }
+                      onClick={() => setSelecionado(p)}
                     />
                   ))}
                 </TableBody>
@@ -274,6 +275,17 @@ export default function ControladoriaProdutos() {
             )}
           </CardContent>
         </Card>
+
+        <ProdutoWorkflowDrawer
+          produto={selecionado}
+          linhaNome={
+            selecionado?.linha_notion_id
+              ? linhaMap.get(selecionado.linha_notion_id) ?? "—"
+              : "—"
+          }
+          open={!!selecionado}
+          onOpenChange={(o) => !o && setSelecionado(null)}
+        />
       </div>
     </TooltipProvider>
   );
