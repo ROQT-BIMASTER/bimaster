@@ -12,8 +12,22 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { StatusPill, type PillTone } from "@/components/shared/StatusPill";
+import { format, formatDistanceToNow } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { parseLocalDate } from "@/lib/utils/parseLocalDate";
 import { getStatusBadge, getTipoMeta } from "./briefing-types";
 import type { Briefing } from "@/hooks/useBriefingChat";
+
+function rrtaskAprovacaoTone(aprovacao: string | null): PillTone {
+  const v = (aprovacao ?? "").trim().toLowerCase();
+  if (v === "aprovado") return "emerald";
+  if (v === "devolvido" || v === "reprovado" || v === "recusado") return "rose";
+  if (v === "pendente" || v === "") return "slate";
+  return "neutral";
+}
+
 
 interface Props {
   briefing: Briefing;
