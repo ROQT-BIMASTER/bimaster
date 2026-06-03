@@ -1,0 +1,1 @@
+UPDATE public.briefings SET rrtask_aprovacao = 'Devolvido' WHERE titulo = 'Teste de criação';
