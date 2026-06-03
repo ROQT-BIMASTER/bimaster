@@ -42,20 +42,18 @@ Deno.serve(secureHandler(
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
 
-    // 1. Authorization: Bearer <service_role JWT> — valida via getClaims
-    //    (mesmo padrão do asana-sync; aceita legacy e signing-keys)
+    // 1. Authorization: Bearer <SUPABASE_SERVICE_ROLE_KEY> — comparação
+    //    timingSafeEqual contra a env var do runtime (padrão asana-sync cron).
     const authHeader = req.headers.get("authorization") ?? "";
     const token = authHeader.toLowerCase().startsWith("bearer ")
       ? authHeader.slice(7).trim()
       : "";
-    if (!token) return J({ ok: false, error: "forbidden" }, 403);
-
-    const sbAuth = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_ANON_KEY")!,
-    );
-    const { data: claimsData, error: claimsErr } = await sbAuth.auth.getClaims(token);
-    if (claimsErr || claimsData?.claims?.role !== "service_role") {
+    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+    if (!token || !serviceRoleKey) return J({ ok: false, error: "forbidden" }, 403);
+    const enc = new TextEncoder();
+    const a = enc.encode(token);
+    const b = enc.encode(serviceRoleKey);
+    if (a.length !== b.length || !timingSafeEqual(a, b)) {
       return J({ ok: false, error: "forbidden" }, 403);
     }
 
