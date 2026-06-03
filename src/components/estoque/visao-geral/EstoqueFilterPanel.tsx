@@ -62,7 +62,7 @@ function MultiSelect({
             <ChevronDown className="h-3.5 w-3.5 opacity-50 shrink-0" />
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-[280px] p-0" align="start">
+        <PopoverContent className="w-[280px] p-0 z-[60] pointer-events-auto" align="start">
           <Command>
             <CommandInput placeholder="Buscar..." className="h-9" />
             <CommandList>
