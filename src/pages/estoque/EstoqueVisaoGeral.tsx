@@ -80,6 +80,17 @@ export default function EstoqueVisaoGeral() {
             </p>
           </div>
           <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-9"
+              onClick={handleResync}
+              disabled={isSyncing}
+              title="Re-sincroniza o estoque de todas as filiais a partir do ERP"
+            >
+              <RefreshCw className={`h-4 w-4 mr-2 ${isSyncing ? 'animate-spin' : ''}`} />
+              {isSyncing ? `Sincronizando… ${syncProgress.elapsedSeconds}s` : 'Sincronizar ERP'}
+            </Button>
             <EstoqueExportButton filtros={filtros} total={data?.total ?? 0} />
             <EstoqueFilterPanel filtros={filtrosBase} setFiltros={handleSetFiltros} />
           </div>
