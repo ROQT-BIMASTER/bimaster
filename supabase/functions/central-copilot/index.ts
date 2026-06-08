@@ -539,7 +539,7 @@ function escolherModelo(userMsg: string): string {
     "estratégia","estrategia","cronograma","prestação de contas","prestacao de contas",
     "ordem", "como organizar", "qual a melhor",
   ];
-  if (reasoningKeywords.some((k) => t.includes(k))) return "openai/gpt-5.2";
+  if (reasoningKeywords.some((k) => t.includes(k))) return "openai/gpt-5.5-pro";
   return "google/gemini-3-flash-preview";
 }
 
