@@ -9,7 +9,7 @@ import { toast } from "sonner";
 import { StoragePreviewDialog } from "@/components/fabrica/StoragePreviewDialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { supabase } from "@/integrations/supabase/client";
-import { UploadAnexoDialog } from "./UploadAnexoDialog";
+import { UploadAnexoDialog, type UploadConfirmPayload } from "./UploadAnexoDialog";
 
 
 const COFRE_CATEGORIAS = [
