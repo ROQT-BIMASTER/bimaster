@@ -47,6 +47,7 @@ import { useProjetoIA } from "@/hooks/useProjetoIA";
 import { AISubtarefasSuggestions } from "./tarefa-detalhe/AISubtarefasSuggestions";
 import { ProjetoCorSelector } from "./tarefa-detalhe/ProjetoCorSelector";
 import { useConfirm } from "@/hooks/useConfirm";
+import { ChatAnexoCard } from "./chat/ChatAnexoCard";
 
 const ESTAGIO_OPTIONS = [
   { value: "briefing", label: "Briefing", color: "bg-purple-500/20 text-purple-400" },
