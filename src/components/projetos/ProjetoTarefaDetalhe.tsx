@@ -599,7 +599,7 @@ export function ProjetoTarefaDetalhe({
               <Badge className="text-[10px] bg-destructive/20 text-destructive border-0">✗ Rejeitada — Corrija e reenvie</Badge>
             )}
             <div className="flex items-center gap-2 ml-auto">
-              {tarefa.numero_processo && (
+              {tarefa.numero_processo && canViewUI("acao_numero_processo") && (
                 <button
                   type="button"
                   onClick={() => {
@@ -617,34 +617,40 @@ export function ProjetoTarefaDetalhe({
               {tarefa.codigo && (
                 <span className="text-xs text-muted-foreground font-mono">{tarefa.codigo}</span>
               )}
-              <Button
-                variant={chatOpen ? "default" : "ghost"}
-                size="sm"
-                className="gap-1.5 text-xs rounded-full h-8 px-3"
-                onClick={() => setChatOpen(!chatOpen)}
-              >
-                <MessageCircle className="h-3.5 w-3.5" />
-                Chat {messages.length > 0 && `(${messages.length})`}
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="gap-1.5 text-xs rounded-full h-8 px-3"
-                onClick={() => copyTarefaLink(tarefa.projeto_id, tarefa.id)}
-                title="Copiar link da tarefa"
-              >
-                <Link2 className="h-3.5 w-3.5" />
-                Copiar link
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="gap-1.5 text-xs rounded-full h-8 px-3"
-                onClick={() => setFocusMode(true)}
-              >
-                <Maximize2 className="h-3.5 w-3.5" />
-                Foco
-              </Button>
+              {canViewUI("acao_chat") && (
+                <Button
+                  variant={chatOpen ? "default" : "ghost"}
+                  size="sm"
+                  className="gap-1.5 text-xs rounded-full h-8 px-3"
+                  onClick={() => setChatOpen(!chatOpen)}
+                >
+                  <MessageCircle className="h-3.5 w-3.5" />
+                  Chat {messages.length > 0 && `(${messages.length})`}
+                </Button>
+              )}
+              {canViewUI("acao_copiar_link") && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="gap-1.5 text-xs rounded-full h-8 px-3"
+                  onClick={() => copyTarefaLink(tarefa.projeto_id, tarefa.id)}
+                  title="Copiar link da tarefa"
+                >
+                  <Link2 className="h-3.5 w-3.5" />
+                  Copiar link
+                </Button>
+              )}
+              {canViewUI("acao_foco") && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="gap-1.5 text-xs rounded-full h-8 px-3"
+                  onClick={() => setFocusMode(true)}
+                >
+                  <Maximize2 className="h-3.5 w-3.5" />
+                  Foco
+                </Button>
+              )}
             </div>
           </div>
 
