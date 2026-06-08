@@ -36488,6 +36488,38 @@ export type Database = {
           },
         ]
       }
+      projeto_tarefa_chat_preferencias: {
+        Row: {
+          archived: boolean
+          muted: boolean
+          tarefa_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          archived?: boolean
+          muted?: boolean
+          tarefa_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          archived?: boolean
+          muted?: boolean
+          tarefa_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "projeto_tarefa_chat_preferencias_tarefa_id_fkey"
+            columns: ["tarefa_id"]
+            isOneToOne: false
+            referencedRelation: "projeto_tarefas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       projeto_tarefa_colaboradores: {
         Row: {
           created_at: string | null
@@ -36637,6 +36669,7 @@ export type Database = {
       }
       projeto_tarefa_messages: {
         Row: {
+          anexo_id: string | null
           conteudo: string
           created_at: string
           id: string
@@ -36645,6 +36678,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          anexo_id?: string | null
           conteudo: string
           created_at?: string
           id?: string
@@ -36653,6 +36687,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          anexo_id?: string | null
           conteudo?: string
           created_at?: string
           id?: string
@@ -36661,6 +36696,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "projeto_tarefa_messages_anexo_id_fkey"
+            columns: ["anexo_id"]
+            isOneToOne: false
+            referencedRelation: "projeto_tarefa_anexos"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "projeto_tarefa_messages_tarefa_id_fkey"
             columns: ["tarefa_id"]
@@ -51454,9 +51496,11 @@ export type Database = {
       rpc_chat_tarefas_do_usuario: {
         Args: never
         Returns: {
+          archived: boolean
           codigo: string
           is_subtask: boolean
           mencoes_abertas: number
+          muted: boolean
           nao_lidas: number
           parent_tarefa_id: string
           parent_titulo: string
