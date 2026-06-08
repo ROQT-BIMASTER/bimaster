@@ -812,6 +812,7 @@ export default function BriefingsHome() {
                       </TableHead>
                       <TableHead>Tipo</TableHead>
                       <TableHead>Status</TableHead>
+                      <TableHead>Agência</TableHead>
                       <TableHead>Responsável</TableHead>
                       <TableHead>Equipe</TableHead>
                       <TableHead>Projeto / Tarefa</TableHead>
