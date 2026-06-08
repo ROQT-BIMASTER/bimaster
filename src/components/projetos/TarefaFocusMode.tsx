@@ -791,7 +791,7 @@ export function TarefaFocusMode({
                                       title: "Tirar documento do Cofre?",
                                       description: `Deseja realmente retirar "${doc.nome_arquivo}" do Cofre? O arquivo bruto permanece nos anexos da tarefa e a operação fica registrada na auditoria.`,
                                       confirmLabel: "Sim, retirar",
-                                      variant: "destructive",
+                                      destructive: true,
                                     });
                                     if (!ok) return;
                                     await removeFromCofre.mutateAsync({
