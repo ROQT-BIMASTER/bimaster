@@ -461,6 +461,8 @@ export default function BriefingsHome() {
     briefings,
     filtroTipo,
     filtroStatus,
+    filtroAgencia,
+    filtroRodada,
     filtroProjeto,
     escopo,
     busca,
