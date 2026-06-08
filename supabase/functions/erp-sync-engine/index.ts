@@ -1367,50 +1367,64 @@ Deno.serve(secureHandler({
   const startMs = Date.now();
   const cors = getCorsHeaders(req);
 
-  // ─── Auth gate: require authenticated admin user ───
+  // ─── Cron bypass: x-cron-secret OR service-role bearer ───
+  const cronSecret = req.headers.get("x-cron-secret");
+  const expectedCronSecret = Deno.env.get("CRON_SECRET");
+  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+  const bearer = req.headers.get("Authorization")?.startsWith("Bearer ")
+    ? req.headers.get("Authorization")!.replace("Bearer ", "")
+    : "";
+  const isCron =
+    (!!cronSecret && !!expectedCronSecret && cronSecret === expectedCronSecret) ||
+    (!!bearer && !!serviceRoleKey && bearer === serviceRoleKey);
+
   let authUserId: string | undefined;
-  try {
-    const auth = await validateAnyAuth(req);
-    authUserId = auth.userId;
-    if (!authUserId) {
+  if (!isCron) {
+    // ─── Auth gate: require authenticated admin user ───
+    try {
+      const auth = await validateAnyAuth(req);
+      authUserId = auth.userId;
+      if (!authUserId) {
+        return new Response(
+          JSON.stringify({ error: "Autenticação de usuário obrigatória" }),
+          { status: 401, headers: { ...cors, "Content-Type": "application/json" } },
+        );
+      }
+    } catch (err) {
+      const status = err instanceof AuthError ? err.status : 401;
+      const message = err instanceof Error ? err.message : "Não autorizado";
       return new Response(
-        JSON.stringify({ error: "Autenticação de usuário obrigatória" }),
-        { status: 401, headers: { ...cors, "Content-Type": "application/json" } },
+        JSON.stringify({ error: message }),
+        { status, headers: { ...cors, "Content-Type": "application/json" } },
       );
     }
-  } catch (err) {
-    const status = err instanceof AuthError ? err.status : 401;
-    const message = err instanceof Error ? err.message : "Não autorizado";
-    return new Response(
-      JSON.stringify({ error: message }),
-      { status, headers: { ...cors, "Content-Type": "application/json" } },
-    );
-  }
 
-  // Authorization: require admin role
-  try {
-    const adminClient = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-    );
-    const { data: roleRow, error: roleErr } = await adminClient
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", authUserId)
-      .eq("role", "admin")
-      .maybeSingle();
-    if (roleErr || !roleRow) {
+    // Authorization: require admin role
+    try {
+      const adminClient = createClient(
+        Deno.env.get("SUPABASE_URL")!,
+        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+      );
+      const { data: roleRow, error: roleErr } = await adminClient
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", authUserId)
+        .eq("role", "admin")
+        .maybeSingle();
+      if (roleErr || !roleRow) {
+        return new Response(
+          JSON.stringify({ error: "Acesso restrito a administradores" }),
+          { status: 403, headers: { ...cors, "Content-Type": "application/json" } },
+        );
+      }
+    } catch (_e) {
       return new Response(
         JSON.stringify({ error: "Acesso restrito a administradores" }),
         { status: 403, headers: { ...cors, "Content-Type": "application/json" } },
       );
     }
-  } catch (_e) {
-    return new Response(
-      JSON.stringify({ error: "Acesso restrito a administradores" }),
-      { status: 403, headers: { ...cors, "Content-Type": "application/json" } },
-    );
   }
+
 
   try {
     const url = new URL(req.url);
