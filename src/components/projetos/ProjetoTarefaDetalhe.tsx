@@ -1164,7 +1164,7 @@ export function ProjetoTarefaDetalhe({
                 <Separator />
 
                 {/* Marcos/Metas */}
-                <MetasSection tarefaId={tarefa.id} />
+                {canViewUI("secao_metas") && <MetasSection tarefaId={tarefa.id} />}
 
                 <Separator />
 
