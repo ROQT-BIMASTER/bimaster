@@ -259,13 +259,38 @@ export function PromoverAnexoCofreDialog({
 
             {!creatingPasta ? (
               <>
+                {meuDeptoId && meuDepto?.nome && (
+                  <div className="flex items-center justify-between rounded-md border border-border bg-muted/20 px-2 py-1.5">
+                    <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                      <Users className="h-3 w-3" />
+                      <span>
+                        Só da minha equipe (<span className="font-medium text-foreground">{meuDepto.nome}</span>)
+                      </span>
+                      {filtrarMinhaEquipe && totalOcultas > 0 && (
+                        <span className="text-muted-foreground/80">
+                          · {totalOcultas} oculta{totalOcultas === 1 ? "" : "s"}
+                        </span>
+                      )}
+                    </div>
+                    <Switch
+                      checked={filtrarMinhaEquipe}
+                      onCheckedChange={setFiltrarMinhaEquipe}
+                      aria-label="Filtrar pastas pela minha equipe"
+                    />
+                  </div>
+                )}
                 <Select value={pastaId} onValueChange={setPastaId}>
                   <SelectTrigger id="cofre-pasta" className="h-9 text-sm">
                     <SelectValue placeholder="Sem pasta" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value={SEM_PASTA}>Sem pasta (raiz)</SelectItem>
-                    {pastas.map((p) => (
+                    {pastasVisiveis.length === 0 && (
+                      <div className="px-2 py-1.5 text-[11px] text-muted-foreground">
+                        Nenhuma pasta para a sua equipe.
+                      </div>
+                    )}
+                    {pastasVisiveis.map((p) => (
                       <SelectItem key={p.id} value={p.id}>
                         {p.nome}
                         {p.departamento?.nome ? ` — ${p.departamento.nome}` : ""}
