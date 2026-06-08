@@ -73,7 +73,7 @@ export function ProjetoKanbanView({ projetoId, darkBg = false, filters = EMPTY_F
   const {
     secoes, tarefas: rawTarefas, secoesLoading, tarefasLoading,
     tarefasPorSecao: rawTarefasPorSecao, createTarefa, updateTarefa,
-    toggleTarefaCompleta, moveTarefaToSecao, createSecao, reorderTarefasSecao, softDeleteTarefa,
+    toggleTarefaCompleta, confirmAndToggleTarefa, moveTarefaToSecao, createSecao, reorderTarefasSecao, softDeleteTarefa,
     updateSecao,
   } = useProjetoTarefas(projetoId);
 
@@ -349,7 +349,7 @@ export function ProjetoKanbanView({ projetoId, darkBg = false, filters = EMPTY_F
                             key={tarefa.id}
                             tarefa={tarefa}
                             onSelect={() => setSelectedTarefaId(tarefa.id)}
-                            onToggle={() => toggleTarefaCompleta.mutate(tarefa)}
+                            onToggle={() => void confirmAndToggleTarefa(tarefa)}
                             darkBg={darkBg}
                             isDragActive={activeId === tarefa.id}
                             metasProgress={metasProgress[tarefa.id]}
@@ -400,7 +400,7 @@ export function ProjetoKanbanView({ projetoId, darkBg = false, filters = EMPTY_F
         open={!!selectedTarefaId}
         onOpenChange={(open) => { if (!open) setSelectedTarefaId(null); }}
         onUpdate={(id, updates) => updateTarefa.mutate({ id, ...updates })}
-        onToggle={(t) => toggleTarefaCompleta.mutate(t)}
+        onToggle={(t) => void confirmAndToggleTarefa(t)}
         onAddSubtarefa={(titulo, parentId, secaoId) => createTarefa.mutate({ titulo, secao_id: secaoId, parent_tarefa_id: parentId })}
         onDelete={(id) => softDeleteTarefa.mutate(id)}
         secoes={secoes}

@@ -337,6 +337,13 @@ export function TarefaFocusMode({
           // e fecha o modo foco no meio da operação.
           e.preventDefault();
         }}
+        onFocusOutside={(e) => {
+          // Quando um AlertDialog global (montado fora da árvore do Focus)
+          // abre, ele rouba o foco — Radix dispara `focusOutside` aqui.
+          // Sem este preventDefault, em alguns caminhos de re-render o
+          // Focus Mode fechava antes do usuário confirmar.
+          e.preventDefault();
+        }}
         onInteractOutside={(e) => {
           e.preventDefault();
         }}

@@ -566,18 +566,15 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
       const isCompleting = tarefa.status !== "concluida";
       logger.debug(`[toggleTarefaCompleta] tarefa: ${tarefa.id} isCompleting: ${isCompleting}`);
 
-      if (isCompleting) {
-        // Confirmação obrigatória para evitar conclusão acidental por clique
-        const { confirmConclusaoTarefa } = await import("@/lib/projetos/confirmConclusao");
-        const ok = await confirmConclusaoTarefa({
-          titulo: tarefa.titulo,
-          isSubtarefa: !!tarefa.parent_tarefa_id,
-        });
-        if (!ok) {
-          // Sinaliza cancelamento para reverter o estado otimista
-          throw new Error("__CANCELLED__");
-        }
+      // NOTA: a confirmação do usuário acontece ANTES de chamar `.mutate()`
+      // (ver `confirmAndToggleTarefa` abaixo). Aqui dentro da mutation NÃO
+      // abrimos AlertDialog — fazer isso causava o Focus Mode fechar antes do
+      // confirm, pois o `onMutate` (update otimista) rodava antes do diálogo
+      // aparecer e o AlertDialog global montado no App entrava como nova
+      // layer Radix por cima do Dialog do Focus, derrubando-o em alguns
+      // caminhos de re-render.
 
+      if (isCompleting) {
         const { data: esp } = await supabase
           .from("processo_tarefa_espelho" as any)
           .select("*")
@@ -628,13 +625,43 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
     onError: (err: Error, _vars, context) => {
       if (context?.previous) queryClient.setQueryData(["projeto-tarefas-v2", projetoId], context.previous);
       queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2", projetoId] });
-      if (err.message === "__CANCELLED__") return; // usuário cancelou ou foi p/ fluxo de evidência
+      if (err.message === "__CANCELLED__") return; // fluxo de evidência tomou conta
       toast.error("Erro ao atualizar status: " + err.message);
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2", projetoId], refetchType: "none" });
     },
   });
+
+  /**
+   * Wrapper que confirma com o usuário ANTES de disparar a mutation.
+   *
+   * Crítico para o Modo Foco: se a confirmação rodasse dentro de `mutationFn`,
+   * o `onMutate` aplicaria o update otimista (mudando `status`/`data_conclusao`)
+   * antes do AlertDialog abrir — o que disparava re-render de `selectedTarefa`
+   * em `ProjetoListView` (signature inclui `s.status` das subtarefas) e
+   * derrubava o Dialog do Focus Mode.
+   *
+   * Fluxo atual:
+   *   1. confirmação (AlertDialog global) — nenhum estado da tarefa muda
+   *   2. usuário aceita → mutate() → onMutate (otimista) + DB update
+   *   3. usuário cancela → nada acontece
+   */
+  const confirmAndToggleTarefa = async (tarefa: ProjetoTarefa) => {
+    const isCompleting = tarefa.status !== "concluida";
+    if (!isCompleting) {
+      // Reabrir não exige confirmação.
+      toggleTarefaCompleta.mutate(tarefa);
+      return;
+    }
+    const { confirmConclusaoTarefa } = await import("@/lib/projetos/confirmConclusao");
+    const ok = await confirmConclusaoTarefa({
+      titulo: tarefa.titulo,
+      isSubtarefa: !!tarefa.parent_tarefa_id,
+    });
+    if (!ok) return;
+    toggleTarefaCompleta.mutate(tarefa);
+  };
 
   const createSecao = useMutation({
     mutationFn: async (nome: string) => {
@@ -1183,6 +1210,7 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
     createTarefa,
     updateTarefa,
     toggleTarefaCompleta,
+    confirmAndToggleTarefa,
     moveTarefaToSecao,
     createSecao,
     updateSecao,
