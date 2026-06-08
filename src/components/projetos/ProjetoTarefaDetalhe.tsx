@@ -1551,11 +1551,11 @@ export function ProjetoTarefaDetalhe({
 
                             {st.data_prazo && (
                               <span className={cn("text-[10px] px-1.5 py-0.5 rounded",
-                                new Date(st.data_prazo) < new Date() && st.status !== "concluida"
+                                parseLocalDateOrNow(st.data_prazo) < new Date() && st.status !== "concluida"
                                   ? "text-destructive bg-destructive/10"
                                   : "text-muted-foreground bg-muted/50"
                               )}>
-                                {format(new Date(st.data_prazo), "dd MMM", { locale: ptBR })}
+                                {format(parseLocalDateOrNow(st.data_prazo), "dd MMM", { locale: ptBR })}
                               </span>
                             )}
                           </div>
