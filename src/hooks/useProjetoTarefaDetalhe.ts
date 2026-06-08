@@ -357,6 +357,37 @@ export function useProjetoTarefaDetalhe(tarefaId: string | undefined, produtoId?
     onError: (err: Error) => toast.error(err.message),
   });
 
+  // ===== Remove from Cofre (soft) =====
+  const removeFromCofre = useMutation({
+    mutationFn: async ({ cofreDocId, projetoId }: { cofreDocId: string; projetoId?: string }) => {
+      // Mesma alçada da publicação: admin_cofre / coordenador
+      if (projetoId) {
+        const { data: canPublish } = await supabase.rpc("can_publish_to_cofre", {
+          _user_id: user!.id,
+          _projeto_id: projetoId,
+        });
+        if (!canPublish) {
+          throw new Error("Apenas usuários com papel 'Admin. Cofre' ou 'Coordenador' podem retirar documentos do Cofre.");
+        }
+      }
+      const { error } = await supabase
+        .from("fabrica_revisao_documentos" as any)
+        .update({
+          status: "removido",
+          removed_at: new Date().toISOString(),
+          removed_by: user!.id,
+        } as any)
+        .eq("id", cofreDocId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["cofre-docs-tarefa", tarefaId] });
+      queryClient.invalidateQueries({ queryKey: ["cofre-docs"] });
+      toast.success("Documento retirado do Cofre.");
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+
   // ===== Chat Messages (Realtime) =====
   const { data: messages = [] } = useQuery({
     queryKey: ["tarefa-messages", tarefaId],
