@@ -250,7 +250,11 @@ export function PromoverAnexoCofreDialog({
                   variant="ghost"
                   size="sm"
                   className="h-6 px-2 text-xs"
-                  onClick={() => setCreatingPasta(true)}
+                  onClick={() => {
+                    setCreatingPasta(true);
+                    // Pré-seleciona a equipe do usuário ao criar nova pasta
+                    if (meuDeptoId) setNovaPastaEquipe(meuDeptoId);
+                  }}
                 >
                   <FolderPlus className="h-3 w-3 mr-1" /> Nova pasta
                 </Button>
