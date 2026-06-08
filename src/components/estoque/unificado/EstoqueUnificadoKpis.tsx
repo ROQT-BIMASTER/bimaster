@@ -3,7 +3,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { formatCurrency } from '@/lib/formatters';
 import { Boxes, Package, PackageOpen, Layers, Info } from 'lucide-react';
 import type { EstoqueUnificadoRow } from '@/hooks/estoque/useEstoqueUnificado';
-import { converterParaModo, type ModoExibicao } from '@/lib/estoque/modoExibicao';
+import { converterParaModo, equivalenteEmCaixas, formatCx, type ModoExibicao } from '@/lib/estoque/modoExibicao';
 
 interface Props {
   rows: EstoqueUnificadoRow[];
@@ -27,6 +27,20 @@ export function EstoqueUnificadoKpis({ rows, total, loading, modo = 'fisico' }: 
     { cx: 0, bx: 0, un: 0, un_eq: 0, custo: 0 },
   );
 
+  // Equivalente em CX fracionário (apoio a compras)
+  let cxEq = 0;
+  let semFatorCx = 0;
+  rows.forEach((r) => {
+    const v = equivalenteEmCaixas(r);
+    if (v == null) semFatorCx += 1;
+    else cxEq += v;
+  });
+
+  const cxEqHint = semFatorCx
+    ? `${semFatorCx} produto(s) sem fator de CX`
+    : 'soma fracionária — base para compras';
+  const tooltipCxEq = 'Soma de (Total em UN ÷ fator CX) por produto-raiz. Pode ser fracionário porque sobras em BX/UN formam caixas parciais.';
+
   let items: { icon: any; label: string; value: string; hint: string; tooltip?: string }[] = [];
 
   const tooltipEqUn = 'Soma de cada folha (UN) sob o produto-raiz, multiplicada pelo fator acumulado da BOM (Pai → Mãe → Filho). Para sortimentos heterogêneos, considera todas as ramificações: Σ (qtd_pai_mãe × qtd_mãe_filho).';
@@ -37,6 +51,7 @@ export function EstoqueUnificadoKpis({ rows, total, loading, modo = 'fisico' }: 
       { icon: Package, label: 'Displays / Box', value: fmt(totals.bx), hint: 'BX físicos' },
       { icon: PackageOpen, label: 'Unidades', value: fmt(totals.un), hint: 'UN físicas' },
       { icon: Layers, label: 'Equivalente em UN', value: fmt(totals.un_eq), hint: 'Se tudo fosse desmontado', tooltip: tooltipEqUn },
+      { icon: Boxes, label: 'Equivalente em CX', value: formatCx(cxEq), hint: cxEqHint, tooltip: tooltipCxEq },
       { icon: Layers, label: 'Custo total', value: formatCurrency(totals.custo), hint: `${total.toLocaleString('pt-BR')} produtos-raiz` },
     ];
   } else {
@@ -60,13 +75,14 @@ export function EstoqueUnificadoKpis({ rows, total, loading, modo = 'fisico' }: 
         tooltip: tooltipEqUn,
       },
       { icon: Layers, label: 'Equivalente em UN', value: fmt(totals.un_eq), hint: 'base da conversão', tooltip: tooltipEqUn },
+      { icon: Boxes, label: 'Equivalente em CX', value: formatCx(cxEq), hint: cxEqHint, tooltip: tooltipCxEq },
       { icon: Layers, label: 'Custo total', value: formatCurrency(totals.custo), hint: `${total.toLocaleString('pt-BR')} produtos-raiz` },
     ];
   }
 
   return (
     <TooltipProvider delayDuration={150}>
-      <div className={`grid grid-cols-2 md:grid-cols-3 ${modo === 'fisico' ? 'lg:grid-cols-5' : 'lg:grid-cols-3'} gap-3`}>
+      <div className={`grid grid-cols-2 md:grid-cols-3 ${modo === 'fisico' ? 'lg:grid-cols-6' : 'lg:grid-cols-4'} gap-3`}>
         {items.map((it) => (
           <Card key={it.label} className="p-3">
             <div className="flex items-start gap-3">

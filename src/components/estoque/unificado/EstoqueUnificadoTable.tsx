@@ -2,10 +2,11 @@ import { Fragment, useState } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ArrowDown, ArrowUp, ArrowUpDown, Barcode, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { ArrowDown, ArrowUp, ArrowUpDown, Barcode, ChevronDown, ChevronLeft, ChevronRight, Info } from 'lucide-react';
 import { formatCurrency } from '@/lib/formatters';
 import type { EstoqueUnificadoRow, UseEstoqueUnificadoOpts } from '@/hooks/estoque/useEstoqueUnificado';
-import { converterParaModo, MODO_COL_LABEL, type ModoExibicao } from '@/lib/estoque/modoExibicao';
+import { converterParaModo, equivalenteEmCaixas, formatCx, MODO_COL_LABEL, type ModoExibicao } from '@/lib/estoque/modoExibicao';
 import { EstoqueUnificadoSkuBreakdown } from './EstoqueUnificadoSkuBreakdown';
 
 interface Props {
@@ -48,10 +49,11 @@ export function EstoqueUnificadoTable(p: Props) {
     </TableHead>
   );
 
-  // +1 = chevron column
-  const colspan = (isFisico ? 8 : 6) + 1;
+  // +1 chevron, +1 nova coluna "≡ em CX"
+  const colspan = (isFisico ? 8 : 6) + 1 + 1;
 
   return (
+    <TooltipProvider delayDuration={150}>
     <div className="rounded-md border bg-card">
       <Table>
         <TableHeader>
@@ -70,6 +72,19 @@ export function EstoqueUnificadoTable(p: Props) {
             ) : (
               <Th k="saldo_total_em_unidades" label={MODO_COL_LABEL[modo]} num />
             )}
+            <TableHead className="text-right">
+              <span className="inline-flex items-center gap-1 font-medium">
+                ≡ em CX
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="h-3 w-3 text-muted-foreground/60 cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="max-w-xs text-xs">
+                    Equivalente em caixas máster: Total em UN ÷ fator CX. Pode ser fracionário — usado para apoiar compras.
+                  </TooltipContent>
+                </Tooltip>
+              </span>
+            </TableHead>
             <Th k="custo_total" label="Custo total" num />
             <TableHead className="text-right">SKUs</TableHead>
           </TableRow>
@@ -136,6 +151,24 @@ export function EstoqueUnificadoTable(p: Props) {
                   ) : (
                     <TableCell className="text-right tabular-nums font-semibold">{fmt(conv)}</TableCell>
                   )}
+                  <TableCell className="text-right tabular-nums text-muted-foreground">
+                    {(() => {
+                      const cx = equivalenteEmCaixas(r);
+                      if (cx == null) {
+                        return (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="cursor-help">—</span>
+                            </TooltipTrigger>
+                            <TooltipContent side="top" className="text-xs">
+                              Sem fator de conversão CX
+                            </TooltipContent>
+                          </Tooltip>
+                        );
+                      }
+                      return <span>{formatCx(cx)} <span className="text-[10px] opacity-70">CX</span></span>;
+                    })()}
+                  </TableCell>
                   <TableCell className="text-right tabular-nums">{formatCurrency(Number(r.custo_total ?? 0))}</TableCell>
                   <TableCell className="text-right tabular-nums">{r.skus_envolvidos}</TableCell>
                 </TableRow>
@@ -166,5 +199,6 @@ export function EstoqueUnificadoTable(p: Props) {
         </div>
       </div>
     </div>
+    </TooltipProvider>
   );
 }
