@@ -189,7 +189,7 @@ export function useProjetoTarefaDetalhe(tarefaId: string | undefined, produtoId?
 
       const cleanedNotificados = Array.from(new Set((notificarIds || []).filter(id => id && id !== user!.id)));
 
-      const { error } = await supabase.from("projeto_tarefa_anexos").insert({
+      const { data: inserted, error } = await supabase.from("projeto_tarefa_anexos").insert({
         tarefa_id: tarefaId!,
         user_id: user!.id,
         nome: file.name,
@@ -197,7 +197,7 @@ export function useProjetoTarefaDetalhe(tarefaId: string | undefined, produtoId?
         tipo_arquivo: file.type,
         tamanho: file.size,
         notificados: cleanedNotificados,
-      } as any);
+      } as any).select("id").single();
       if (error) throw error;
 
       // Log audit with produtoId from hook param
@@ -212,6 +212,8 @@ export function useProjetoTarefaDetalhe(tarefaId: string | undefined, produtoId?
           notificados: cleanedNotificados,
         },
       });
+
+      return { id: (inserted as any)?.id as string, nome: file.name };
     },
     onMutate: async (input: UploadAnexoInput) => {
       const { file } = normalizeUpload(input);
