@@ -1210,6 +1210,7 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
     createTarefa,
     updateTarefa,
     toggleTarefaCompleta,
+    confirmAndToggleTarefa,
     moveTarefaToSecao,
     createSecao,
     updateSecao,
