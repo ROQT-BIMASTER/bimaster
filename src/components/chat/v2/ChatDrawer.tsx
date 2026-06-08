@@ -36,6 +36,7 @@ export function ChatDrawerProvider({ children }: { children: ReactNode }) {
   return (
     <Ctx.Provider value={{ open, setOpen, abrir }}>
       {children}
+      <FloatingActionDock />
       <ChatErrorBoundary name="ChatFloatingButton" fallback={null}>
         <ChatFloatingButton />
       </ChatErrorBoundary>
