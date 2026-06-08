@@ -555,16 +555,35 @@ export const GerenciamentoUsuarios = () => {
     }
   };
 
-  const filteredUsuarios = usuarios.filter(u =>
-    u.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    u.email.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const [aprovacaoFilter, setAprovacaoFilter] = useState<"pendentes" | "aprovados" | "todos">("pendentes");
+
+  const pendentesCount = usuarios.filter(u => !u.aprovado).length;
+  const aprovadosCount = usuarios.filter(u => u.aprovado).length;
+
+  const filteredUsuarios = usuarios
+    .filter(u => {
+      if (aprovacaoFilter === "pendentes") return !u.aprovado;
+      if (aprovacaoFilter === "aprovados") return u.aprovado;
+      return true;
+    })
+    .filter(u =>
+      u.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      u.email.toLowerCase().includes(searchTerm.toLowerCase())
+    );
 
   const totalPages = Math.ceil(filteredUsuarios.length / ITEMS_PER_PAGE);
   const paginatedUsuarios = filteredUsuarios.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
 
-  // Reset page when search changes
-  useEffect(() => { setCurrentPage(1); }, [searchTerm]);
+  // Reset page when search/filter changes
+  useEffect(() => { setCurrentPage(1); }, [searchTerm, aprovacaoFilter]);
+
+  // Quando entra novo usuário pendente, força aba "pendentes" se houver
+  useEffect(() => {
+    if (pendentesCount > 0 && aprovacaoFilter === "aprovados" && usuarios.length > 0) {
+      // não força automaticamente — apenas destaca via badge
+    }
+  }, [pendentesCount, aprovacaoFilter, usuarios.length]);
+
 
   return (
     <div className="space-y-4">
@@ -805,6 +824,58 @@ export const GerenciamentoUsuarios = () => {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
+            {pendentesCount > 0 && (
+              <div className="flex items-center justify-between gap-3 rounded-md border border-warning/40 bg-warning/10 p-3">
+                <div className="flex items-center gap-2 text-sm">
+                  <ShieldCheck className="h-4 w-4 text-warning-foreground" />
+                  <span>
+                    <strong>{pendentesCount}</strong> {pendentesCount === 1 ? "usuário aguardando" : "usuários aguardando"} aprovação
+                  </span>
+                </div>
+                {aprovacaoFilter !== "pendentes" && (
+                  <Button size="sm" variant="outline" onClick={() => setAprovacaoFilter("pendentes")}>
+                    Revisar pendentes
+                  </Button>
+                )}
+              </div>
+            )}
+
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                variant={aprovacaoFilter === "pendentes" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setAprovacaoFilter("pendentes")}
+                className="gap-2"
+              >
+                Pendentes
+                <Badge variant={aprovacaoFilter === "pendentes" ? "secondary" : "outline"}>
+                  {pendentesCount}
+                </Badge>
+              </Button>
+              <Button
+                variant={aprovacaoFilter === "aprovados" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setAprovacaoFilter("aprovados")}
+                className="gap-2"
+              >
+                Aprovados
+                <Badge variant={aprovacaoFilter === "aprovados" ? "secondary" : "outline"}>
+                  {aprovadosCount}
+                </Badge>
+              </Button>
+              <Button
+                variant={aprovacaoFilter === "todos" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setAprovacaoFilter("todos")}
+                className="gap-2"
+              >
+                Todos
+                <Badge variant={aprovacaoFilter === "todos" ? "secondary" : "outline"}>
+                  {usuarios.length}
+                </Badge>
+              </Button>
+            </div>
+
             <div className="relative">
               <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
               <Input
@@ -814,6 +885,7 @@ export const GerenciamentoUsuarios = () => {
                 className="pl-9"
               />
             </div>
+
 
             <div className="rounded-md border">
               <Table>
