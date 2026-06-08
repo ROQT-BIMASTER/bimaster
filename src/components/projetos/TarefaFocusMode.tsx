@@ -47,6 +47,7 @@ import { useProjetoIA } from "@/hooks/useProjetoIA";
 import { AISubtarefasSuggestions } from "./tarefa-detalhe/AISubtarefasSuggestions";
 import { ProjetoCorSelector } from "./tarefa-detalhe/ProjetoCorSelector";
 import { useConfirm } from "@/hooks/useConfirm";
+import { ChatAnexoCard } from "./chat/ChatAnexoCard";
 
 const ESTAGIO_OPTIONS = [
   { value: "briefing", label: "Briefing", color: "bg-purple-500/20 text-purple-400" },
@@ -211,6 +212,29 @@ export function TarefaFocusMode({
   const handleChatSubmit = (text: string, mentionIds: string[]) => {
     sendMessage.mutate({ conteudo: text, mentions: mentionIds });
     setChatValue("");
+  };
+
+  const chatFileInputRef = useRef<HTMLInputElement>(null);
+  const [chatUploading, setChatUploading] = useState(false);
+
+  const handleChatFileSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setChatUploading(true);
+    try {
+      const { id } = await uploadAnexo.mutateAsync(file);
+      await sendMessage.mutateAsync({
+        conteudo: chatValue.trim() || file.name,
+        mentions: [],
+        anexoId: id,
+      });
+      setChatValue("");
+    } catch (err: any) {
+      toast.error(err?.message ?? "Falha ao enviar anexo no chat.");
+    } finally {
+      setChatUploading(false);
+    }
   };
 
   const handleCommentSubmit = (text: string, mentionIds: string[]) => {
@@ -1015,11 +1039,25 @@ export function TarefaFocusMode({
                         </AvatarFallback>
                       </Avatar>
                       <div className={cn(
-                        "max-w-[80%] rounded-lg px-3 py-2 text-xs",
+                        "max-w-[80%] rounded-lg px-3 py-2 text-xs space-y-1",
                         isMe ? "bg-primary/20" : "bg-muted"
                       )}>
                         <p className="font-medium text-[10px] mb-0.5">{m.autor?.nome?.split(" ")[0]}</p>
-                        <p className="whitespace-pre-wrap">{renderMentionText(m.conteudo)}</p>
+                        {m.conteudo && (
+                          <p className="whitespace-pre-wrap">{renderMentionText(m.conteudo)}</p>
+                        )}
+                        {m.anexo && (
+                          <ChatAnexoCard
+                            anexo={m.anexo}
+                            getUrl={getAnexoUrl}
+                            ownVariant={isMe}
+                            compact
+                            canPromoteToCofre={isAdminCofre}
+                            produtoId={(tarefa as any)?.produto_id ?? null}
+                            projetoId={(tarefa as any)?.projeto_id ?? null}
+                            sendToCofre={sendToCofre}
+                          />
+                        )}
                         <p className="text-[9px] text-muted-foreground mt-1">
                           {format(new Date(m.created_at), "HH:mm", { locale: ptBR })}
                         </p>
@@ -1030,7 +1068,7 @@ export function TarefaFocusMode({
                 <div ref={chatEndRef} />
               </div>
             </ScrollArea>
-            <div className="p-3 border-t border-border/50">
+            <div className="p-3 border-t border-border/50 space-y-2">
               <MentionInput
                 value={chatValue}
                 onChange={setChatValue}
@@ -1039,10 +1077,35 @@ export function TarefaFocusMode({
                 placeholder="Digite uma mensagem..."
                 minRows={1}
               />
+              <div className="flex items-center justify-between">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 px-2 gap-1.5 text-[11px]"
+                  onClick={() => chatFileInputRef.current?.click()}
+                  disabled={chatUploading}
+                  title="Anexar arquivo (vai para os anexos da tarefa automaticamente)"
+                >
+                  {chatUploading ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Paperclip className="h-3.5 w-3.5" />
+                  )}
+                  {chatUploading ? "Enviando…" : "Anexar"}
+                </Button>
+                <span className="text-[9px] text-muted-foreground">Anexos vão para a tarefa</span>
+              </div>
+              <input
+                ref={chatFileInputRef}
+                type="file"
+                hidden
+                onChange={handleChatFileSelected}
+              />
             </div>
           </div>
         </div>
       </DialogContent>
+
 
       {/* Briefing Dialogs */}
       {tarefa && (

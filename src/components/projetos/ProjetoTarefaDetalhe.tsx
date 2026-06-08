@@ -1671,6 +1671,12 @@ export function ProjetoTarefaDetalhe({
                 teamMembers={teamMembers}
                 currentUserId={user?.id || null}
                 onClose={() => setChatOpen(false)}
+                uploadAnexo={uploadAnexo}
+                getAnexoUrl={getAnexoUrl}
+                sendToCofre={sendToCofre}
+                canPromoteToCofre={currentUserPapel === "admin_cofre" || currentUserPapel === "coordenador"}
+                produtoId={(tarefa as any)?.produto_id ?? null}
+                projetoId={projetoId}
               />
             )}
           </div>
