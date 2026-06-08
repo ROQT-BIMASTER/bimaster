@@ -15,6 +15,13 @@ export type EscopoKanban =
   | { escopo: "projeto"; projetoId: string | undefined; secaoId?: string | null }
   | { escopo: "secao"; secaoId: string | undefined };
 
+export type TipoOrigemItem =
+  | "briefing"
+  | "china_submissao"
+  | "documento_storage"
+  | "documento_externo"
+  | "outro";
+
 export interface KanbanItem {
   id: string;
   documento_id: string;
@@ -49,6 +56,10 @@ export interface KanbanItem {
   secao_nome: string | null;
   tarefa_titulo: string | null;
   lote_nome: string | null;
+  // origem do item (briefing, submissão china, documento, etc.)
+  briefing_id: string | null;
+  submissao_id: string | null;
+  tipo_origem: TipoOrigemItem;
 }
 
 export interface KanbanEtapa {
