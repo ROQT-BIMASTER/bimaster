@@ -115,10 +115,13 @@ interface TarefaFocusModeProps {
   projetoTipo?: string;
   /** Persistência externa em andamento (bridge). Mostra "Salvando…" no header. */
   externalSaving?: boolean;
+  /** Arma a intenção explícita de sair do foco no pai (guard anti-fechamento colateral). */
+  requestExitFocus?: () => void;
 }
 
 export function TarefaFocusMode({
   tarefa, open, onOpenChange, onUpdate, onToggle, onAddSubtarefa, secoes = [], projetoTipo, externalSaving = false,
+  requestExitFocus,
 }: TarefaFocusModeProps) {
   const confirm = useConfirm();
   const {
