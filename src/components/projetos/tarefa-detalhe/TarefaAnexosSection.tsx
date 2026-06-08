@@ -9,7 +9,7 @@ import { toast } from "sonner";
 import { StoragePreviewDialog } from "@/components/fabrica/StoragePreviewDialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { supabase } from "@/integrations/supabase/client";
-import { UploadAnexoDialog } from "./UploadAnexoDialog";
+import { UploadAnexoDialog, type UploadConfirmPayload } from "./UploadAnexoDialog";
 
 
 const COFRE_CATEGORIAS = [
@@ -55,14 +55,19 @@ interface TarefaAnexosSectionProps {
   tarefaId: string;
   anexos: Anexo[];
   produtoId: string | null;
-  uploadAnexo: { mutate: (input: File | { file: File; notificarIds?: string[] }) => void };
+  projetoId?: string | null;
+  /** Papel do usuário atual no projeto (para alçada do Cofre). */
+  currentUserPapel?: string | null;
+  uploadAnexo: { mutateAsync: (input: File | { file: File; notificarIds?: string[] }) => Promise<any> };
   deleteAnexo: { mutate: (anexo: Anexo) => void };
   getAnexoUrl: (path: string) => Promise<string | null>;
-  sendToCofre: { mutate: (data: { anexoIds: string[]; produtoId: string; categoriasPorAnexo: Record<string, string> }) => void; isPending: boolean };
+  sendToCofre: { mutateAsync: (data: { anexoIds: string[]; produtoId: string; categoriasPorAnexo: Record<string, string>; projetoId?: string }) => Promise<any>; isPending: boolean };
+  removeFromCofre?: { mutateAsync: (data: { cofreDocId: string; projetoId?: string }) => Promise<any>; isPending: boolean };
 }
 
 export function TarefaAnexosSection({
-  tarefaId, anexos, produtoId, uploadAnexo, deleteAnexo, getAnexoUrl, sendToCofre,
+  tarefaId, anexos, produtoId, projetoId, currentUserPapel,
+  uploadAnexo, deleteAnexo, getAnexoUrl, sendToCofre, removeFromCofre,
 }: TarefaAnexosSectionProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [selectedAnexoIds, setSelectedAnexoIds] = useState<string[]>([]);
@@ -87,9 +92,39 @@ export function TarefaAnexosSection({
     e.target.value = "";
   };
 
-  const handleConfirmUpload = (notificarIds: string[]) => {
-    pendingFiles.forEach(f => uploadAnexo.mutate({ file: f, notificarIds }));
+  const canPublishToCofre =
+    currentUserPapel === "admin_cofre" || currentUserPapel === "coordenador";
+
+  const handleConfirmUpload = async (payload: UploadConfirmPayload) => {
+    const files = pendingFiles;
     setPendingFiles([]);
+    if (files.length === 0) return;
+
+    try {
+      const results = await Promise.all(
+        files.map(f => uploadAnexo.mutateAsync({ file: f, notificarIds: payload.notificarIds })),
+      );
+
+      // Se usuário marcou "Promover ao Cofre" no upload, dispara sendToCofre
+      if (payload.cofre && produtoId && canPublishToCofre) {
+        const anexoIds = results
+          .map((r: any) => (r && typeof r === "object" ? r.id : null))
+          .filter((id): id is string => !!id);
+        if (anexoIds.length > 0) {
+          const categoriasPorAnexo = Object.fromEntries(
+            anexoIds.map((id) => [id, payload.cofre!.categoria]),
+          );
+          await sendToCofre.mutateAsync({
+            anexoIds,
+            produtoId,
+            categoriasPorAnexo,
+            projetoId: projetoId || undefined,
+          });
+        }
+      }
+    } catch {
+      // toasts são exibidos nas mutations
+    }
   };
 
 
@@ -150,11 +185,12 @@ export function TarefaAnexosSection({
       toast.error("Selecione uma categoria para cada documento.");
       return;
     }
-    sendToCofre.mutate({
+    sendToCofre.mutateAsync({
       anexoIds: selectedAnexoIds,
       produtoId,
       categoriasPorAnexo,
-    });
+      projetoId: projetoId || undefined,
+    }).catch(() => {});
     setCofreDialogOpen(false);
     setSelectedAnexoIds([]);
     setCategoriasPorAnexo({});
@@ -331,6 +367,8 @@ export function TarefaAnexosSection({
         tarefaId={tarefaId}
         files={pendingFiles}
         onConfirm={handleConfirmUpload}
+        produtoId={produtoId}
+        canPublishToCofre={canPublishToCofre}
       />
     </>
   );

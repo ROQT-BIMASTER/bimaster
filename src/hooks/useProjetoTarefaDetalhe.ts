@@ -189,7 +189,7 @@ export function useProjetoTarefaDetalhe(tarefaId: string | undefined, produtoId?
 
       const cleanedNotificados = Array.from(new Set((notificarIds || []).filter(id => id && id !== user!.id)));
 
-      const { error } = await supabase.from("projeto_tarefa_anexos").insert({
+      const { data: inserted, error } = await supabase.from("projeto_tarefa_anexos").insert({
         tarefa_id: tarefaId!,
         user_id: user!.id,
         nome: file.name,
@@ -197,7 +197,7 @@ export function useProjetoTarefaDetalhe(tarefaId: string | undefined, produtoId?
         tipo_arquivo: file.type,
         tamanho: file.size,
         notificados: cleanedNotificados,
-      } as any);
+      } as any).select("id").single();
       if (error) throw error;
 
       // Log audit with produtoId from hook param
@@ -212,6 +212,8 @@ export function useProjetoTarefaDetalhe(tarefaId: string | undefined, produtoId?
           notificados: cleanedNotificados,
         },
       });
+
+      return { id: (inserted as any)?.id as string, nome: file.name };
     },
     onMutate: async (input: UploadAnexoInput) => {
       const { file } = normalizeUpload(input);
@@ -351,6 +353,37 @@ export function useProjetoTarefaDetalhe(tarefaId: string | undefined, produtoId?
         });
       });
       toast.success("Documentos enviados ao Cofre!");
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+
+  // ===== Remove from Cofre (soft) =====
+  const removeFromCofre = useMutation({
+    mutationFn: async ({ cofreDocId, projetoId }: { cofreDocId: string; projetoId?: string }) => {
+      // Mesma alçada da publicação: admin_cofre / coordenador
+      if (projetoId) {
+        const { data: canPublish } = await supabase.rpc("can_publish_to_cofre", {
+          _user_id: user!.id,
+          _projeto_id: projetoId,
+        });
+        if (!canPublish) {
+          throw new Error("Apenas usuários com papel 'Admin. Cofre' ou 'Coordenador' podem retirar documentos do Cofre.");
+        }
+      }
+      const { error } = await supabase
+        .from("fabrica_revisao_documentos" as any)
+        .update({
+          status: "removido",
+          removed_at: new Date().toISOString(),
+          removed_by: user!.id,
+        } as any)
+        .eq("id", cofreDocId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["cofre-docs-tarefa", tarefaId] });
+      queryClient.invalidateQueries({ queryKey: ["cofre-docs"] });
+      toast.success("Documento retirado do Cofre.");
     },
     onError: (err: Error) => toast.error(err.message),
   });
@@ -519,6 +552,7 @@ export function useProjetoTarefaDetalhe(tarefaId: string | undefined, produtoId?
     deleteAnexo,
     getAnexoUrl,
     sendToCofre,
+    removeFromCofre,
     messages,
     sendMessage,
     searchProdutos,

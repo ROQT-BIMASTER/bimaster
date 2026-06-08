@@ -6,6 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { uniqueChannelName } from "@/lib/realtime/channelName";
 import { registrarAuditoriaTarefa } from "@/lib/projetos/auditoriaTarefa";
+import { todayBR, nowSaoPauloISO } from "@/lib/utils/parseLocalDate";
 
 export interface ProjetoSecao {
   id: string;
@@ -594,8 +595,8 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
         .from("projeto_tarefas")
         .update({
           status: isCompleting ? "concluida" : "pendente",
-          data_conclusao: isCompleting ? new Date().toISOString().split("T")[0] : null,
-          updated_at: new Date().toISOString(),
+          data_conclusao: isCompleting ? todayBR() : null,
+          updated_at: nowSaoPauloISO(),
         })
         .eq("id", tarefa.id);
       if (error) throw error;
@@ -619,7 +620,7 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
         tarefas: v.tarefas.map(t => t.id === tarefa.id ? {
           ...t,
           status: isCompleting ? "concluida" : "pendente",
-          data_conclusao: isCompleting ? new Date().toISOString().split("T")[0] : null,
+          data_conclusao: isCompleting ? todayBR() : null,
         } : t),
       }));
       return { previous };

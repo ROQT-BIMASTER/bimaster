@@ -29,6 +29,7 @@ import { cn } from "@/lib/utils";
 import { copyTarefaLink } from "@/lib/utils/copyDeepLink";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { parseLocalDate, parseLocalDateOrNow, formatLocalDate } from "@/lib/utils/parseLocalDate";
 import {
   CheckCircle2, Circle, CalendarIcon, Paperclip, MessageSquare,
   Send, Upload, FileText, Image, File, Trash2, Download,
@@ -155,7 +156,7 @@ export function ProjetoTarefaDetalhe({
   const { user } = useAuth();
   const {
     comentarios, addComentario, anexos, uploadAnexo, deleteAnexo, getAnexoUrl,
-    sendToCofre, messages, sendMessage, searchProdutos, teamMembers, linkedProduto,
+    sendToCofre, removeFromCofre, messages, sendMessage, searchProdutos, teamMembers, linkedProduto,
   } = useProjetoTarefaDetalhe(tarefa?.id, (tarefa as any)?.produto_id);
   const [editingTitle, setEditingTitle] = useState(false);
   const [titleValue, setTitleValue] = useState("");
@@ -262,7 +263,7 @@ export function ProjetoTarefaDetalhe({
   const [briefingTasksDialogOpen, setBriefingTasksDialogOpen] = useState(false);
   const { briefing: tarefaBriefing, saveBriefing: saveTarefaBriefing, deleteBriefing: deleteTarefaBriefing } = useProjetoBriefing(tarefa?.id);
   const { data: chinaVinculo } = useProjetoChinaVinculo(projetoId);
-  const { membros: projetoMembros } = useProjetoMembros(projetoId);
+  const { membros: projetoMembros, currentUserPapel } = useProjetoMembros(projetoId);
   const { canView: canViewUI } = useUIPermissions(TAREFA_DETALHE_TELA);
   const { data: projetoTipo } = useQuery({
     queryKey: ["projeto-tipo", projetoId],
@@ -819,17 +820,17 @@ export function ProjetoTarefaDetalhe({
                       <Button variant="outline" size="sm" className={cn("h-8 justify-start text-xs gap-1.5", !tarefa.data_prazo && "border-destructive/50 text-destructive")}>
                         <CalendarIcon className="h-3.5 w-3.5" />
                         {tarefa.data_prazo
-                          ? format(new Date(tarefa.data_prazo), "dd MMM yyyy", { locale: ptBR })
+                          ? format(parseLocalDateOrNow(tarefa.data_prazo), "dd MMM yyyy", { locale: ptBR })
                           : "Definir prazo (obrigatório)"}
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0" align="start">
                       <Calendar
                         mode="single"
-                        selected={tarefa.data_prazo ? new Date(tarefa.data_prazo) : undefined}
+                        selected={parseLocalDate(tarefa.data_prazo) ?? undefined}
                         onSelect={d => {
                           if (d) {
-                            onUpdate(tarefa.id, { data_prazo: d.toISOString().split("T")[0] });
+                            onUpdate(tarefa.id, { data_prazo: formatLocalDate(d) });
                             setDatePicker(false);
                           }
                         }}
@@ -1550,11 +1551,11 @@ export function ProjetoTarefaDetalhe({
 
                             {st.data_prazo && (
                               <span className={cn("text-[10px] px-1.5 py-0.5 rounded",
-                                new Date(st.data_prazo) < new Date() && st.status !== "concluida"
+                                parseLocalDateOrNow(st.data_prazo) < new Date() && st.status !== "concluida"
                                   ? "text-destructive bg-destructive/10"
                                   : "text-muted-foreground bg-muted/50"
                               )}>
-                                {format(new Date(st.data_prazo), "dd MMM", { locale: ptBR })}
+                                {format(parseLocalDateOrNow(st.data_prazo), "dd MMM", { locale: ptBR })}
                               </span>
                             )}
                           </div>
@@ -1610,10 +1611,13 @@ export function ProjetoTarefaDetalhe({
                   tarefaId={tarefa.id}
                   anexos={anexos}
                   produtoId={(tarefa as any).produto_id || null}
+                  projetoId={projetoId}
+                  currentUserPapel={currentUserPapel}
                   uploadAnexo={uploadAnexo}
                   deleteAnexo={deleteAnexo}
                   getAnexoUrl={getAnexoUrl}
                   sendToCofre={sendToCofre}
+                  removeFromCofre={removeFromCofre}
                 />
 
 

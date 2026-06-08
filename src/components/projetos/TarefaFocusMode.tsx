@@ -28,13 +28,14 @@ import { BriefingToTasksDialog } from "./BriefingToTasksDialog";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
+import { parseLocalDate, parseLocalDateOrNow, formatLocalDate } from "@/lib/utils/parseLocalDate";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
 import {
   Minimize2, CheckCircle2, Circle, CalendarIcon, Paperclip, MessageSquare,
   MessageCircle, Upload, FileText, Image, File, Trash2, Download,
-  Target, Plus, BarChart3, FolderOpen, ShieldCheck, AlertTriangle, FileSpreadsheet, Lock,
+  Target, Plus, BarChart3, FolderOpen, ShieldCheck, AlertTriangle, FileSpreadsheet, Lock, ArrowDownToLine,
   Sparkles, Wand2, Loader2
 } from "lucide-react";
 import { CofreOficialTab } from "./CofreOficialTab";
@@ -126,7 +127,7 @@ export function TarefaFocusMode({
   const confirm = useConfirm();
   const {
     comentarios, addComentario, anexos, uploadAnexo, deleteAnexo, getAnexoUrl,
-    messages, sendMessage, sendToCofre, teamMembers, linkedProduto, searchProdutos,
+    messages, sendMessage, sendToCofre, removeFromCofre, teamMembers, linkedProduto, searchProdutos,
   } = useProjetoTarefaDetalhe(tarefa?.id, (tarefa as any)?.produto_id);
   const { metas, addMeta, toggleMeta, deleteMeta } = useProjetoTarefaMetas(tarefa?.id);
   const { user } = useAuth();
@@ -170,6 +171,7 @@ export function TarefaFocusMode({
         .from("fabrica_revisao_documentos" as any)
         .select("*")
         .eq("origem_projeto_tarefa_id", tarefa!.id)
+        .is("removed_at", null)
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data as any[];
@@ -414,16 +416,16 @@ export function TarefaFocusMode({
                     <Button variant="outline" size="sm" className="h-8 justify-start text-xs gap-1.5">
                       <CalendarIcon className="h-3.5 w-3.5" />
                       {tarefa.data_prazo
-                        ? format(new Date(tarefa.data_prazo), "dd MMM yyyy", { locale: ptBR })
+                        ? format(parseLocalDateOrNow(tarefa.data_prazo), "dd MMM yyyy", { locale: ptBR })
                         : "Definir prazo"}
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0" align="start">
                     <Calendar
                       mode="single"
-                      selected={tarefa.data_prazo ? new Date(tarefa.data_prazo) : undefined}
+                      selected={parseLocalDate(tarefa.data_prazo) ?? undefined}
                       onSelect={d => {
-                        onUpdate(tarefa.id, { data_prazo: d ? d.toISOString().split("T")[0] : null });
+                        onUpdate(tarefa.id, { data_prazo: formatLocalDate(d ?? null) });
                         setDatePicker(false);
                       }}
                       className="p-3 pointer-events-auto"
@@ -776,6 +778,30 @@ export function TarefaFocusMode({
                                 <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4 gap-0.5">
                                   <ShieldCheck className="h-2.5 w-2.5" /> Visível Fábrica
                                 </Badge>
+                              )}
+                              {isAdminCofre && (
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-7 w-7 text-amber-600 hover:text-amber-700"
+                                  title="Tirar do Cofre"
+                                  disabled={removeFromCofre.isPending}
+                                  onClick={async () => {
+                                    const ok = await confirm({
+                                      title: "Tirar documento do Cofre?",
+                                      description: `Deseja realmente retirar "${doc.nome_arquivo}" do Cofre? O arquivo bruto permanece nos anexos da tarefa e a operação fica registrada na auditoria.`,
+                                      confirmLabel: "Sim, retirar",
+                                      destructive: true,
+                                    });
+                                    if (!ok) return;
+                                    await removeFromCofre.mutateAsync({
+                                      cofreDocId: doc.id,
+                                      projetoId: (tarefa as any).projeto_id,
+                                    });
+                                  }}
+                                >
+                                  <ArrowDownToLine className="h-3.5 w-3.5" />
+                                </Button>
                               )}
                             </div>
                             {/* Version history per document */}

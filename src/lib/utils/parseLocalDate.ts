@@ -1,4 +1,16 @@
 /**
+ * Conversões de data padronizadas no fuso horário Brasil (America/Sao_Paulo).
+ *
+ * Política do sistema (vale para qualquer país onde o banco esteja hospedado):
+ * - Leitura de coluna Postgres DATE  → `parseLocalDate`
+ * - Escrita em coluna Postgres DATE  → `formatLocalDate`
+ * - "Agora" em coluna timestamptz    → `nowSaoPauloISO`
+ *
+ * NUNCA usar `new Date("YYYY-MM-DD")` ou `d.toISOString().split("T")[0]` para
+ * colunas DATE — ambos produzem shift UTC e gravam o dia anterior em SP.
+ */
+
+/**
  * Converte uma string de data do Postgres em Date local, sem shift de timezone.
  *
  * Strings no formato "YYYY-MM-DD" (tipo `DATE` do Postgres) são interpretadas
@@ -25,4 +37,69 @@ export function parseLocalDate(s: string | Date | null | undefined): Date | null
  */
 export function parseLocalDateOrNow(s: string | Date | null | undefined): Date {
   return parseLocalDate(s) ?? new Date();
+}
+
+/**
+ * Formata uma `Date` em string `YYYY-MM-DD` usando os componentes LOCAIS
+ * (ano/mês/dia do fuso do navegador), próprio para gravação em coluna
+ * Postgres `DATE`. NUNCA usar `d.toISOString().split("T")[0]` — ISO usa UTC
+ * e em SP (UTC-3) o usuário que seleciona "02 jun" às 21h grava "03 jun".
+ */
+export function formatLocalDate(d: Date | null | undefined): string | null {
+  if (!d) return null;
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+const SAO_PAULO_TZ = "America/Sao_Paulo";
+
+/**
+ * Retorna o instante atual como ISO string com offset explícito de
+ * São Paulo (ex.: `2026-06-08T14:32:11.000-03:00`), independentemente
+ * do timezone do servidor/banco. Use em colunas `timestamptz` quando o
+ * "agora" precisa refletir o fuso Brasil (auditoria, data_conclusao
+ * registrada manualmente em update etc.).
+ */
+export function nowSaoPauloISO(date: Date = new Date()): string {
+  // Extrai partes no TZ de SP via Intl
+  const fmt = new Intl.DateTimeFormat("en-US", {
+    timeZone: SAO_PAULO_TZ,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  });
+  const parts = Object.fromEntries(fmt.formatToParts(date).map((p) => [p.type, p.value]));
+  const ms = String(date.getMilliseconds()).padStart(3, "0");
+  // Offset de SP: -02:00 no horário de verão (não vigente desde 2019) ou -03:00 padrão.
+  // Detecta dinamicamente comparando o "wall time" de SP com o UTC do mesmo instante.
+  const utcWall = Date.UTC(
+    Number(parts.year),
+    Number(parts.month) - 1,
+    Number(parts.day),
+    Number(parts.hour === "24" ? "00" : parts.hour),
+    Number(parts.minute),
+    Number(parts.second),
+  );
+  const diffMin = Math.round((utcWall - date.getTime()) / 60000);
+  const sign = diffMin >= 0 ? "+" : "-";
+  const abs = Math.abs(diffMin);
+  const offH = String(Math.floor(abs / 60)).padStart(2, "0");
+  const offM = String(abs % 60).padStart(2, "0");
+  const hh = parts.hour === "24" ? "00" : parts.hour;
+  return `${parts.year}-${parts.month}-${parts.day}T${hh}:${parts.minute}:${parts.second}.${ms}${sign}${offH}:${offM}`;
+}
+
+/**
+ * Atalho: data de hoje no fuso Brasil em formato `YYYY-MM-DD` para colunas DATE.
+ */
+export function todayBR(): string {
+  const nowSp = nowSaoPauloISO();
+  // "YYYY-MM-DD" é os primeiros 10 chars do ISO em wall-time de SP
+  return nowSp.slice(0, 10);
 }
