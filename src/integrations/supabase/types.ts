@@ -49171,6 +49171,24 @@ export type Database = {
         }
         Relationships: []
       }
+      vw_estoque_unificado_skus: {
+        Row: {
+          abrev_par: string | null
+          cod_produto: number | null
+          codigo_barras_ean: string | null
+          contribuicao_un: number | null
+          custo_total: number | null
+          empresa: number | null
+          fator_pai_para_filho: number | null
+          fator_un_acumulado: number | null
+          nivel: number | null
+          nome_prod: string | null
+          pai_cod: number | null
+          produto_raiz: number | null
+          saldo: number | null
+        }
+        Relationships: []
+      }
       vw_extrato_conta_corrente: {
         Row: {
           conta_bancaria_id: string | null
