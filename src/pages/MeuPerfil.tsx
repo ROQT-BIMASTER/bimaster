@@ -35,6 +35,32 @@ const maskCpfPartial = (cpfRaw: string | null | undefined) => {
   return `***.${d.slice(3, 6)}.${d.slice(6, 9)}-**`;
 };
 
+const formatCpfFull = (cpfRaw: string | null | undefined) => {
+  const d = onlyDigits(cpfRaw || "");
+  if (d.length !== 11) return d || "Não informado";
+  return `${d.slice(0, 3)}.${d.slice(3, 6)}.${d.slice(6, 9)}-${d.slice(9, 11)}`;
+};
+
+const maskRgPartial = (rg: string | null | undefined) => {
+  const v = (rg || "").trim();
+  if (!v) return "Não informado";
+  if (v.length <= 3) return "*".repeat(v.length);
+  // Mostra só os 2 últimos caracteres
+  return `${"*".repeat(Math.max(v.length - 2, 3))}${v.slice(-2)}`;
+};
+
+const maskEmailPartial = (email: string | null | undefined) => {
+  const v = (email || "").trim();
+  if (!v || !v.includes("@")) return v || "Não informado";
+  const [local, domain] = v.split("@");
+  const head = local.slice(0, Math.min(2, local.length));
+  const maskedLocal = `${head}${"*".repeat(Math.max(local.length - head.length, 3))}`;
+  const [domName, ...rest] = domain.split(".");
+  const domHead = domName.slice(0, 1);
+  const maskedDom = `${domHead}${"*".repeat(Math.max(domName.length - 1, 2))}`;
+  return `${maskedLocal}@${maskedDom}${rest.length ? "." + rest.join(".") : ""}`;
+};
+
 const ALLOWED_AVATAR_TYPES = ["image/png", "image/jpeg", "image/webp"];
 const MAX_AVATAR_BYTES = 2 * 1024 * 1024;
 
