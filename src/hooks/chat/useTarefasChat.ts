@@ -43,6 +43,49 @@ export type TarefaChatFiltro =
   | "mencoes"
   | "arquivadas";
 
+export type TarefaChatOrdenacao =
+  | "ultima_mensagem"
+  | "projeto"
+  | "tarefa"
+  | "subtarefa"
+  | "status";
+
+/**
+ * Ordena a lista conforme critério escolhido pelo usuário.
+ * - ultima_mensagem (default): mais recentes primeiro.
+ * - projeto/tarefa/status: alfabético asc.
+ * - subtarefa: subtarefas primeiro, depois alfabético.
+ */
+export function ordenarTarefasChat(
+  list: TarefaChatItem[],
+  ordem: TarefaChatOrdenacao,
+): TarefaChatItem[] {
+  const r = [...list];
+  switch (ordem) {
+    case "projeto":
+      r.sort((a, b) => a.projeto_nome.localeCompare(b.projeto_nome) || a.titulo.localeCompare(b.titulo));
+      break;
+    case "tarefa":
+      r.sort((a, b) => a.titulo.localeCompare(b.titulo));
+      break;
+    case "subtarefa":
+      r.sort((a, b) => Number(b.is_subtask) - Number(a.is_subtask) || a.titulo.localeCompare(b.titulo));
+      break;
+    case "status":
+      r.sort((a, b) => (a.status ?? "").localeCompare(b.status ?? "") || a.titulo.localeCompare(b.titulo));
+      break;
+    case "ultima_mensagem":
+    default:
+      r.sort((a, b) => {
+        const ta = a.ultima_mensagem_em ? new Date(a.ultima_mensagem_em).getTime() : 0;
+        const tb = b.ultima_mensagem_em ? new Date(b.ultima_mensagem_em).getTime() : 0;
+        return tb - ta;
+      });
+      break;
+  }
+  return r;
+}
+
 /**
  * Filtra a lista respeitando o filtro selecionado.
  * - Arquivadas só aparecem quando o filtro for "arquivadas".
@@ -72,6 +115,9 @@ export function filtrarTarefasChat(
     (t) =>
       t.titulo.toLowerCase().includes(q) ||
       t.projeto_nome.toLowerCase().includes(q) ||
+      (t.parent_titulo ?? "").toLowerCase().includes(q) ||
+      (t.codigo ?? "").toLowerCase().includes(q) ||
+      (t.status ?? "").toLowerCase().includes(q) ||
       (t.ultima_mensagem ?? "").toLowerCase().includes(q),
   );
 }
