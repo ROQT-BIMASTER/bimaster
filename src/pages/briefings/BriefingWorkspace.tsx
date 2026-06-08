@@ -509,6 +509,7 @@ export default function BriefingWorkspace() {
         onOpenChange={setAprovDialogOpen}
         briefingId={briefing.id}
         briefingTitulo={briefing.titulo}
+        briefingTipo={briefing.tipo}
         onEnviado={async () => {
           await recarregar();
           setAprovRefresh((x) => x + 1);
