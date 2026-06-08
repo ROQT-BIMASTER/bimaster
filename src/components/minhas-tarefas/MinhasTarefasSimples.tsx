@@ -441,6 +441,17 @@ export function MinhasTarefasSimples() {
     toast.success(done ? "Tarefa concluída" : "Tarefa reaberta");
   }, [queryClient]);
 
+  /* ----------------------------- Alterar prazo (DnD) ---------------------- */
+  const handleChangePrazo = useCallback(async (id: string, novaData: string | null) => {
+    const { error } = await supabase
+      .from("projeto_tarefas")
+      .update({ data_prazo: novaData } as never)
+      .eq("id", id);
+    if (error) { toast.error("Erro ao atualizar prazo"); return; }
+    queryClient.invalidateQueries({ queryKey: ["minhas-tarefas"] });
+    toast.success("Prazo atualizado");
+  }, [queryClient]);
+
   /* ----------------------------- Soft delete ----------------------------- */
   const handleDeleteTarefa = useCallback(async (t: MinaTarefa) => {
     if (!user?.id || t.criador_id !== user.id) {
@@ -827,7 +838,7 @@ export function MinhasTarefasSimples() {
             )}
           </Card>
         ) : view === "board" ? (
-          <MinhasTarefasBoard tarefas={filtered} onToggle={handleToggle} onSelect={handleSelect} />
+          <MinhasTarefasBoard tarefas={filtered} onToggle={handleToggle} onSelect={handleSelect} onChangePrazo={handleChangePrazo} />
         ) : (
           <MinhasTarefasCalendar tarefas={filtered} onSelect={handleSelect} />
         )}
