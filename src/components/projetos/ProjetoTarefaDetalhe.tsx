@@ -1707,7 +1707,16 @@ export function ProjetoTarefaDetalhe({
         <TarefaFocusMode
           tarefa={focusTarefa}
           open={focusMode}
-          onOpenChange={(open) => { setFocusMode(open); if (!open) onOpenChange(true); }}
+          onOpenChange={(open) => {
+            if (!open && !closeFocusIntentRef.current) {
+              // Fechamento não solicitado (re-render colateral / Radix). Ignora.
+              return;
+            }
+            closeFocusIntentRef.current = false;
+            setFocusMode(open);
+            if (!open) onOpenChange(true);
+          }}
+          requestExitFocus={() => { closeFocusIntentRef.current = true; }}
           onUpdate={onUpdate}
           onToggle={onToggle}
           onAddSubtarefa={onAddSubtarefa}
