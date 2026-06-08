@@ -8113,6 +8113,57 @@ export type Database = {
           },
         ]
       }
+      cofre_produto_pastas: {
+        Row: {
+          cor: string | null
+          created_at: string
+          criado_por: string | null
+          departamento_id: string | null
+          descricao: string | null
+          id: string
+          nome: string
+          produto_id: string
+          updated_at: string
+        }
+        Insert: {
+          cor?: string | null
+          created_at?: string
+          criado_por?: string | null
+          departamento_id?: string | null
+          descricao?: string | null
+          id?: string
+          nome: string
+          produto_id: string
+          updated_at?: string
+        }
+        Update: {
+          cor?: string | null
+          created_at?: string
+          criado_por?: string | null
+          departamento_id?: string | null
+          descricao?: string | null
+          id?: string
+          nome?: string
+          produto_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cofre_produto_pastas_departamento_id_fkey"
+            columns: ["departamento_id"]
+            isOneToOne: false
+            referencedRelation: "departamentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cofre_produto_pastas_departamento_id_fkey"
+            columns: ["departamento_id"]
+            isOneToOne: false
+            referencedRelation: "mv_analise_departamentos"
+            referencedColumns: ["departamento_id"]
+          },
+        ]
+      }
       cofre_share_tokens: {
         Row: {
           access_count: number
@@ -20392,6 +20443,7 @@ export type Database = {
           metadata: Json | null
           nome_arquivo: string
           origem_projeto_tarefa_id: string | null
+          pasta_id: string | null
           produto_id: string
           removed_at: string | null
           removed_by: string | null
@@ -20416,6 +20468,7 @@ export type Database = {
           metadata?: Json | null
           nome_arquivo: string
           origem_projeto_tarefa_id?: string | null
+          pasta_id?: string | null
           produto_id: string
           removed_at?: string | null
           removed_by?: string | null
@@ -20440,6 +20493,7 @@ export type Database = {
           metadata?: Json | null
           nome_arquivo?: string
           origem_projeto_tarefa_id?: string | null
+          pasta_id?: string | null
           produto_id?: string
           removed_at?: string | null
           removed_by?: string | null
@@ -20469,6 +20523,13 @@ export type Database = {
             columns: ["origem_projeto_tarefa_id"]
             isOneToOne: false
             referencedRelation: "projeto_tarefas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_revisao_documentos_pasta_id_fkey"
+            columns: ["pasta_id"]
+            isOneToOne: false
+            referencedRelation: "cofre_produto_pastas"
             referencedColumns: ["id"]
           },
           {
