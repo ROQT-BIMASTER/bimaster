@@ -7,6 +7,8 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { useTour } from "./TourProvider";
+import { FloatingActionSlot } from "@/components/ui/floating-action-dock";
+
 
 interface TourButtonProps {
   tourId: string;
@@ -40,17 +42,18 @@ export function TourButton({
   if (isActive) return null;
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button
-          variant="outline"
-          size="icon"
-          className="fixed bottom-24 right-6 z-50 h-12 w-12 rounded-full shadow-lg hover:shadow-xl transition-all duration-200 bg-primary text-primary-foreground hover:bg-primary/90 border-none"
-          aria-label="Ajuda interativa"
-        >
-          <HelpCircle className="h-6 w-6" />
-        </Button>
-      </PopoverTrigger>
+    <FloatingActionSlot order={30}>
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <Button
+            variant="outline"
+            size="icon"
+            className="h-12 w-12 rounded-full shadow-lg hover:shadow-xl transition-all duration-200 bg-primary text-primary-foreground hover:bg-primary/90 border-none"
+            aria-label="Ajuda interativa"
+          >
+            <HelpCircle className="h-6 w-6" />
+          </Button>
+        </PopoverTrigger>
       <PopoverContent 
         className="w-72" 
         align="end" 
@@ -94,7 +97,8 @@ export function TourButton({
             </p>
           )}
         </div>
-      </PopoverContent>
-    </Popover>
+        </PopoverContent>
+      </Popover>
+    </FloatingActionSlot>
   );
 }

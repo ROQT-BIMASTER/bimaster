@@ -8,6 +8,8 @@ import { ChatLayout } from "./ChatLayout";
 import { Badge } from "@/components/ui/badge";
 import { useBrowserPathname } from "@/hooks/useBrowserPathname";
 import { ChatErrorBoundary } from "./ChatErrorBoundary";
+import { FloatingActionDock, FloatingActionSlot } from "@/components/ui/floating-action-dock";
+
 
 interface ChatDrawerCtx {
   open: boolean;
@@ -34,6 +36,7 @@ export function ChatDrawerProvider({ children }: { children: ReactNode }) {
   return (
     <Ctx.Provider value={{ open, setOpen, abrir }}>
       {children}
+      <FloatingActionDock />
       <ChatErrorBoundary name="ChatFloatingButton" fallback={null}>
         <ChatFloatingButton />
       </ChatErrorBoundary>
@@ -83,24 +86,27 @@ function ChatFloatingButton() {
   if (!pathname.startsWith("/dashboard")) return null;
 
   return (
-    <button
-      onClick={() => abrir()}
-      onMouseEnter={() => setShortcut(true)}
-      onMouseLeave={() => setShortcut(false)}
-      className="fixed bottom-5 right-5 z-40 h-12 w-12 rounded-full bg-primary text-primary-foreground shadow-lg hover:scale-105 transition-transform flex items-center justify-center"
-      title="Chat (Ctrl+Shift+M)"
-    >
-      <MessageCircle className="h-5 w-5" />
-      {total > 0 && (
-        <Badge className="absolute -top-1 -right-1 h-5 min-w-5 px-1 text-[10px] rounded-full bg-emerald-600 hover:bg-emerald-600">
-          {total > 99 ? "99+" : total}
-        </Badge>
-      )}
-      {shortcut && (
-        <span className="absolute right-14 bg-popover text-popover-foreground text-xs px-2 py-1 rounded shadow whitespace-nowrap border border-border">
-          Chat <span className="text-muted-foreground ml-1">Ctrl+Shift+M</span>
-        </span>
-      )}
-    </button>
+    <FloatingActionSlot order={10}>
+      <button
+        onClick={() => abrir()}
+        onMouseEnter={() => setShortcut(true)}
+        onMouseLeave={() => setShortcut(false)}
+        className="relative h-12 w-12 rounded-full bg-primary text-primary-foreground shadow-lg hover:scale-105 transition-transform flex items-center justify-center"
+        title="Chat (Ctrl+Shift+M)"
+      >
+        <MessageCircle className="h-5 w-5" />
+        {total > 0 && (
+          <Badge className="absolute -top-1 -right-1 h-5 min-w-5 px-1 text-[10px] rounded-full bg-emerald-600 hover:bg-emerald-600">
+            {total > 99 ? "99+" : total}
+          </Badge>
+        )}
+        {shortcut && (
+          <span className="absolute right-14 bg-popover text-popover-foreground text-xs px-2 py-1 rounded shadow whitespace-nowrap border border-border">
+            Chat <span className="text-muted-foreground ml-1">Ctrl+Shift+M</span>
+          </span>
+        )}
+      </button>
+    </FloatingActionSlot>
   );
 }
+
