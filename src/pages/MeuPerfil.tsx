@@ -136,6 +136,76 @@ export default function MeuPerfil() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [acceptedTerms, setAcceptedTerms] = useState(false);
 
+  // Step-up para revelar dados sensíveis (CPF/RG/Email)
+  const REVEAL_TTL_MS = 30_000;
+  const [revealed, setRevealed] = useState(false);
+  const [revealOpen, setRevealOpen] = useState(false);
+  const [revealPassword, setRevealPassword] = useState("");
+  const [revealing, setRevealing] = useState(false);
+  const [revealExpiresAt, setRevealExpiresAt] = useState<number | null>(null);
+  const revealTimerRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (revealTimerRef.current) window.clearTimeout(revealTimerRef.current);
+    };
+  }, []);
+
+  const hideSensitive = () => {
+    setRevealed(false);
+    setRevealExpiresAt(null);
+    if (revealTimerRef.current) {
+      window.clearTimeout(revealTimerRef.current);
+      revealTimerRef.current = null;
+    }
+  };
+
+  const handleRevealSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user?.id || !profile?.email) return;
+    if (!revealPassword) {
+      toast.error("Informe sua senha para confirmar");
+      return;
+    }
+    setRevealing(true);
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email: profile.email,
+        password: revealPassword,
+      });
+      if (error) {
+        toast.error("Senha incorreta");
+        return;
+      }
+      // Registrar acesso em auditoria (não bloqueia em caso de erro)
+      try {
+        await supabase.from("sensitive_data_access_log").insert({
+          user_id: user.id,
+          table_name: "profiles",
+          record_id: user.id,
+          action: "reveal_own_pii",
+        });
+      } catch {
+        // silent — auditoria é best-effort
+      }
+      setRevealed(true);
+      const expiresAt = Date.now() + REVEAL_TTL_MS;
+      setRevealExpiresAt(expiresAt);
+      if (revealTimerRef.current) window.clearTimeout(revealTimerRef.current);
+      revealTimerRef.current = window.setTimeout(() => {
+        hideSensitive();
+      }, REVEAL_TTL_MS);
+      setRevealOpen(false);
+      setRevealPassword("");
+      toast.success("Dados revelados por 30 segundos");
+    } catch (err) {
+      logger.error("[MeuPerfil] reveal error");
+      toast.error("Não foi possível confirmar sua identidade");
+    } finally {
+      setRevealing(false);
+    }
+  };
+
   useEffect(() => {
     let active = true;
     (async () => {
