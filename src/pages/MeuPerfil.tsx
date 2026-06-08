@@ -618,64 +618,38 @@ export default function MeuPerfil() {
           {/* Card: Dados de cadastro (somente leitura) */}
           <Card>
             <CardHeader>
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <CardTitle className="text-base">Dados de cadastro</CardTitle>
-                  <CardDescription>
-                    Exibidos de forma parcial por proteção de dados (LGPD). Para alterar estes campos,
-                    entre em contato com o administrador do sistema.
-                  </CardDescription>
-                </div>
-                {revealed ? (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={hideSensitive}
-                  >
-                    <EyeOff className="h-4 w-4 mr-2" />
-                    Ocultar
-                  </Button>
-                ) : (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setRevealOpen(true)}
-                  >
-                    <Eye className="h-4 w-4 mr-2" />
-                    Mostrar completos
-                  </Button>
-                )}
-              </div>
-              {revealed && revealExpiresAt && (
-                <p className="text-xs text-muted-foreground mt-2">
-                  Dados visíveis por tempo limitado. O acesso fica registrado em auditoria.
-                </p>
-              )}
+              <CardTitle className="text-base">Dados de cadastro</CardTitle>
+              <CardDescription>
+                Exibidos de forma parcial por proteção de dados (LGPD). Cada campo pode ser revelado
+                individualmente após confirmação de senha; a liberação dura 30 segundos e fica registrada
+                em auditoria. Para alterar estes campos, entre em contato com o administrador do sistema.
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <ReadOnlyField
+                <SensitiveField
                   label="E-mail corporativo"
-                  value={
-                    revealed
-                      ? profile?.email ?? "Não informado"
-                      : maskEmailPartial(profile?.email)
-                  }
-                  hint={revealed ? undefined : "Exibido parcialmente. Clique em 'Mostrar completos'."}
+                  reveal={reveals.email}
+                  maskedValue={maskEmailPartial(profile?.email)}
+                  fullValue={profile?.email ?? "Não informado"}
+                  onReveal={() => setRevealOpen("email")}
+                  onHide={() => clearReveal("email")}
                 />
-                <ReadOnlyField
+                <SensitiveField
                   label="CPF"
-                  value={
-                    revealed ? formatCpfFull(profile?.cpf) : maskCpfPartial(profile?.cpf)
-                  }
-                  hint={revealed ? undefined : "Exibido parcialmente. Clique em 'Mostrar completos'."}
+                  reveal={reveals.cpf}
+                  maskedValue={maskCpfPartial(profile?.cpf)}
+                  fullValue={formatCpfFull(profile?.cpf)}
+                  onReveal={() => setRevealOpen("cpf")}
+                  onHide={() => clearReveal("cpf")}
                 />
-                <ReadOnlyField
+                <SensitiveField
                   label="RG"
-                  value={revealed ? profile?.rg || "Não informado" : maskRgPartial(profile?.rg)}
-                  hint={revealed ? undefined : "Exibido parcialmente. Clique em 'Mostrar completos'."}
+                  reveal={reveals.rg}
+                  maskedValue={maskRgPartial(profile?.rg)}
+                  fullValue={profile?.rg || "Não informado"}
+                  onReveal={() => setRevealOpen("rg")}
+                  onHide={() => clearReveal("rg")}
                 />
                 <ReadOnlyField
                   label="Data de cadastro"
@@ -689,12 +663,14 @@ export default function MeuPerfil() {
             </CardContent>
           </Card>
 
-          {/* Diálogo de step-up para revelar dados sensíveis */}
+          {/* Diálogo de step-up para revelar um campo específico */}
           <Dialog
-            open={revealOpen}
+            open={revealOpen !== null}
             onOpenChange={(open) => {
-              setRevealOpen(open);
-              if (!open) setRevealPassword("");
+              if (!open) {
+                setRevealOpen(null);
+                setRevealPassword("");
+              }
             }}
           >
             <DialogContent>
@@ -704,8 +680,14 @@ export default function MeuPerfil() {
                   Confirme sua identidade
                 </DialogTitle>
                 <DialogDescription>
-                  Para exibir CPF, RG e e-mail completos, informe sua senha de acesso. Os dados ficarão
-                  visíveis por 30 segundos e o acesso será registrado em auditoria.
+                  Para exibir{" "}
+                  <strong>
+                    {revealOpen === "cpf" && "o CPF completo"}
+                    {revealOpen === "rg" && "o RG completo"}
+                    {revealOpen === "email" && "o e-mail completo"}
+                  </strong>
+                  , informe sua senha de acesso. O dado ficará visível por 30 segundos e o acesso será
+                  registrado em auditoria.
                 </DialogDescription>
               </DialogHeader>
               <form onSubmit={handleRevealSubmit} className="space-y-4">
@@ -720,12 +702,15 @@ export default function MeuPerfil() {
                     autoFocus
                     required
                   />
+                  <p className="text-xs text-muted-foreground">
+                    Após 5 senhas incorretas em 10 minutos, novas tentativas ficam bloqueadas por 15 minutos.
+                  </p>
                 </div>
                 <DialogFooter>
                   <Button
                     type="button"
                     variant="outline"
-                    onClick={() => setRevealOpen(false)}
+                    onClick={() => setRevealOpen(null)}
                     disabled={revealing}
                   >
                     Cancelar
@@ -742,6 +727,7 @@ export default function MeuPerfil() {
               </form>
             </DialogContent>
           </Dialog>
+
 
 
           {/* Card: Segurança / Senha */}
