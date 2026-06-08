@@ -171,6 +171,7 @@ export function useAplicarTemplate(briefingId: string) {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["briefing-documentos", briefingId] });
       toast.success("Checklist aplicado");
+      triggerRRTaskDocsSync(briefingId);
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -186,8 +187,10 @@ export function useAtualizarDocumento(briefingId: string) {
         .eq("id", args.id);
       if (error) throw error;
     },
-    onSuccess: () =>
-      qc.invalidateQueries({ queryKey: ["briefing-documentos", briefingId] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["briefing-documentos", briefingId] });
+      triggerRRTaskDocsSync(briefingId);
+    },
     onError: (e: Error) => toast.error(e.message),
   });
 }
