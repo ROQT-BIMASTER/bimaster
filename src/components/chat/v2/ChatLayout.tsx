@@ -215,6 +215,7 @@ export function ChatLayout({ initialConversaId = null, className, defaultShowInf
             podeAlternarModo={podeAlternarModo}
             podeVerBriefings={podeVerBriefings}
             podeVerProjetos={podeVerProjetos}
+            podeVerTarefas={podeVerTarefas}
             className="w-full"
           />
         ) : (
@@ -243,6 +244,7 @@ export function ChatLayout({ initialConversaId = null, className, defaultShowInf
           podeAlternarModo={podeAlternarModo}
           podeVerBriefings={podeVerBriefings}
           podeVerProjetos={podeVerProjetos}
+          podeVerTarefas={podeVerTarefas}
           className="w-[320px] shrink-0"
         />
         <div className="flex-1 min-w-0 flex">
