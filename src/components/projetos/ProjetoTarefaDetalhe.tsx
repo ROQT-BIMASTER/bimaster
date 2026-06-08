@@ -807,6 +807,7 @@ export function ProjetoTarefaDetalhe({
                   </>)}
 
                   {/* Data prazo */}
+                  {canViewUI("campo_data_prazo") && (<>
                   <span className="text-muted-foreground">Data prazo <span className="text-destructive">*</span></span>
                   <Popover open={datePicker} onOpenChange={setDatePicker}>
                     <PopoverTrigger asChild>
@@ -831,8 +832,10 @@ export function ProjetoTarefaDetalhe({
                       />
                     </PopoverContent>
                   </Popover>
+                  </>)}
 
                   {/* Data Início Planejada */}
+                  {canViewUI("campo_inicio_planejado") && (<>
                   <span className="text-muted-foreground">Início planejado <span className="text-destructive">*</span></span>
                   <Popover>
                     <PopoverTrigger asChild>
@@ -856,8 +859,10 @@ export function ProjetoTarefaDetalhe({
                       />
                     </PopoverContent>
                   </Popover>
+                  </>)}
 
                   {/* Alertar antes */}
+                  {canViewUI("campo_alertar_antes") && (<>
                   <span className="text-muted-foreground">Alertar antes</span>
                   <Select
                     value={String((tarefa as any).dias_alerta_antes ?? 2)}
@@ -870,8 +875,10 @@ export function ProjetoTarefaDetalhe({
                       ))}
                     </SelectContent>
                   </Select>
+                  </>)}
 
                   {/* Risk badge */}
+                  {canViewUI("campo_risco") && (<>
                   <span className="text-muted-foreground">Risco</span>
                   <div>
                     <TarefaRiskBadge
@@ -881,9 +888,10 @@ export function ProjetoTarefaDetalhe({
                     />
                     {!tarefa.data_prazo && <span className="text-xs text-muted-foreground">Defina um prazo</span>}
                   </div>
+                  </>)}
 
                   {/* Responsável + Seguidores editáveis */}
-                  {projetoId && (
+                  {projetoId && canViewUI("campo_responsavel_seguidores") && (
                     <TarefaResponsavelSeguidoresEditor
                       tarefaId={tarefa.id}
                       projetoId={projetoId}
@@ -892,6 +900,8 @@ export function ProjetoTarefaDetalhe({
                       onSetResponsavelPrincipal={(userId) => onUpdate(tarefa.id, { responsavel_id: userId })}
                     />
                   )}
+
+
 
                   {/* Produto vinculado - apenas em projetos de produto */}
                   {isProjetoProduto && (
