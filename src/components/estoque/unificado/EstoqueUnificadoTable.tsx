@@ -2,10 +2,11 @@ import { Fragment, useState } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ArrowDown, ArrowUp, ArrowUpDown, Barcode, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { ArrowDown, ArrowUp, ArrowUpDown, Barcode, ChevronDown, ChevronLeft, ChevronRight, Info } from 'lucide-react';
 import { formatCurrency } from '@/lib/formatters';
 import type { EstoqueUnificadoRow, UseEstoqueUnificadoOpts } from '@/hooks/estoque/useEstoqueUnificado';
-import { converterParaModo, MODO_COL_LABEL, type ModoExibicao } from '@/lib/estoque/modoExibicao';
+import { converterParaModo, equivalenteEmCaixas, formatCx, MODO_COL_LABEL, type ModoExibicao } from '@/lib/estoque/modoExibicao';
 import { EstoqueUnificadoSkuBreakdown } from './EstoqueUnificadoSkuBreakdown';
 
 interface Props {
