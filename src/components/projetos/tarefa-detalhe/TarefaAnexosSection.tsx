@@ -367,6 +367,8 @@ export function TarefaAnexosSection({
         tarefaId={tarefaId}
         files={pendingFiles}
         onConfirm={handleConfirmUpload}
+        produtoId={produtoId}
+        canPublishToCofre={canPublishToCofre}
       />
     </>
   );
