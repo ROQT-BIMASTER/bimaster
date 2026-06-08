@@ -3,6 +3,33 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
+// Dispara push incremental dos documentos do cofre para a página RR-Tasks da
+// agência, se o briefing já tiver sido enviado (rrtask_page_id != null).
+// Falhas (incluindo task_not_created) são silenciosas — é um best-effort.
+let _rrtaskSyncTimers = new Map<string, ReturnType<typeof setTimeout>>();
+async function triggerRRTaskDocsSync(briefingId: string) {
+  const existing = _rrtaskSyncTimers.get(briefingId);
+  if (existing) clearTimeout(existing);
+  const t = setTimeout(async () => {
+    _rrtaskSyncTimers.delete(briefingId);
+    try {
+      const { data: b } = await (supabase as any)
+        .from("briefings")
+        .select("rrtask_page_id")
+        .eq("id", briefingId)
+        .maybeSingle();
+      if (!b?.rrtask_page_id) return;
+      await supabase.functions.invoke("rrtask-sync-documentos", {
+        body: { briefing_id: briefingId },
+      });
+    } catch {
+      // silencioso — sync de docs é best-effort
+    }
+  }, 500);
+  _rrtaskSyncTimers.set(briefingId, t);
+}
+
+
 export type BriefingDocStatus = "pendente" | "recebido" | "aprovado" | "rejeitado";
 
 export type DriveSyncStatus = "desabilitado" | "pendente" | "enviado" | "erro";
@@ -144,6 +171,7 @@ export function useAplicarTemplate(briefingId: string) {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["briefing-documentos", briefingId] });
       toast.success("Checklist aplicado");
+      triggerRRTaskDocsSync(briefingId);
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -159,8 +187,10 @@ export function useAtualizarDocumento(briefingId: string) {
         .eq("id", args.id);
       if (error) throw error;
     },
-    onSuccess: () =>
-      qc.invalidateQueries({ queryKey: ["briefing-documentos", briefingId] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["briefing-documentos", briefingId] });
+      triggerRRTaskDocsSync(briefingId);
+    },
     onError: (e: Error) => toast.error(e.message),
   });
 }

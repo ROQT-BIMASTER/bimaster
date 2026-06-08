@@ -127,6 +127,19 @@ export function UploadDocumentoDialog({
       toast.success("Documento enviado");
       qc.invalidateQueries({ queryKey: ["briefing-documentos", briefingId] });
       onUploaded?.({ id: docId, nome: nome.trim() });
+      // Push incremental para RR-Tasks (best-effort; ignora se task não criada)
+      try {
+        const { data: b } = await (supabase as any)
+          .from("briefings")
+          .select("rrtask_page_id")
+          .eq("id", briefingId)
+          .maybeSingle();
+        if (b?.rrtask_page_id) {
+          await supabase.functions.invoke("rrtask-sync-documentos", {
+            body: { briefing_id: briefingId },
+          });
+        }
+      } catch { /* silencioso */ }
       reset();
       onOpenChange(false);
     } catch (err: any) {

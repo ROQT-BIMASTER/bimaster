@@ -16,6 +16,13 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { secureHandler } from "../_shared/secure-handler.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { notion, type NotionPage } from "../_shared/notion-client.ts";
+import {
+  appendDocsToPage,
+  buildCofreDocBlocks,
+  headingAdicionadoEm,
+  loadCofreDocs,
+  markDocsEnviados,
+} from "../_shared/rrtask-cofre-docs.ts";
 
 const RR_TASKS_DB_ID = "372b20a2-47b7-819f-9f50-e264014848b4";
 
@@ -302,9 +309,14 @@ Deno.serve(
 
       // 8. Write to Notion — três caminhos
       if (action === "create") {
-        // CREATE: page nova com toggle Round 1
+        // CREATE: page nova com toggle Round 1 (briefing + docs do cofre)
         const blocosR1 = montarBlocosBriefing(b, pl, semPrazo, labelOf);
-        const toggleR1 = montarToggleRound(1, blocosR1);
+        const cofreDocsCreate = await loadCofreDocs(sb, b.id, { onlyNew: false });
+        const cofreBlocksCreate = buildCofreDocBlocks(
+          cofreDocsCreate,
+          "Documentos do Cofre",
+        );
+        const toggleR1 = montarToggleRound(1, [...blocosR1, ...cofreBlocksCreate]);
         const resp = await notion<{ id: string; url: string }>(token, "/pages", {
           method: "POST",
           body: JSON.stringify({
@@ -325,6 +337,12 @@ Deno.serve(
         }
         pageId = resp.data.id;
         pageUrl = resp.data.url ?? pageUrl;
+
+        const documentos_sincronizados = await markDocsEnviados(
+          sb,
+          cofreDocsCreate,
+          pageId,
+        );
 
         await sb.from("briefings").update({
           rrtask_page_id: pageId,
@@ -357,6 +375,8 @@ Deno.serve(
           page_id: pageId,
           page_url: pageUrl,
           solicitante_resolvido: solicitanteResolvido,
+          documentos_sincronizados,
+          documentos_totais: cofreDocsCreate.length,
           warnings,
         });
       }
@@ -365,7 +385,12 @@ Deno.serve(
         // DEVOLUÇÃO: anexa toggle Round N + bumpa Round/Aprovação
         const novoRound = (b.rrtask_round ?? 1) + 1;
         const blocos = montarBlocosBriefing(b, pl, semPrazo, labelOf);
-        const toggle = montarToggleRound(novoRound, blocos);
+        const cofreDocsRound = await loadCofreDocs(sb, b.id, { onlyNew: true });
+        const cofreBlocksRound = buildCofreDocBlocks(
+          cofreDocsRound,
+          `Documentos novos do Round ${novoRound}`,
+        );
+        const toggle = montarToggleRound(novoRound, [...blocos, ...cofreBlocksRound]);
 
         // 8a. Append toggle aos children da página (não apaga anteriores)
         const append = await notion(token, `/blocks/${pageId}/children`, {
@@ -407,6 +432,12 @@ Deno.serve(
         }
 
         // 8c. Espelho local + versão + log
+        const documentos_sincronizados = await markDocsEnviados(
+          sb,
+          cofreDocsRound,
+          pageId!,
+        );
+
         await sb.from("briefings").update({
           rrtask_round: novoRound,
           rrtask_aprovacao: "Pendente",
@@ -440,6 +471,8 @@ Deno.serve(
           page_id: pageId,
           page_url: pageUrl,
           solicitante_resolvido: solicitanteResolvido,
+          documentos_sincronizados,
+          documentos_totais: cofreDocsRound.length,
           warnings,
         });
       }
@@ -462,6 +495,22 @@ Deno.serve(
       pageId = resp.data.id;
       pageUrl = resp.data.url ?? pageUrl;
 
+      // UPDATE também sincroniza novos documentos do cofre (append na página)
+      const cofreDocsUpd = await loadCofreDocs(sb, b.id, { onlyNew: true });
+      let documentos_sincronizados = 0;
+      if (cofreDocsUpd.length) {
+        const blocks = buildCofreDocBlocks(cofreDocsUpd, headingAdicionadoEm());
+        const r = await appendDocsToPage(token, pageId!, blocks);
+        if (r.ok) {
+          documentos_sincronizados = await markDocsEnviados(sb, cofreDocsUpd, pageId!);
+        } else {
+          warnings.push(
+            `Falha ao anexar documentos do cofre: ${r.status} ${r.errorText ?? ""}`
+              .slice(0, 300),
+          );
+        }
+      }
+
       await sb.from("briefings").update({
         rrtask_page_id: pageId,
         rrtask_page_url: pageUrl,
@@ -483,6 +532,8 @@ Deno.serve(
         page_id: pageId,
         page_url: pageUrl,
         solicitante_resolvido: solicitanteResolvido,
+        documentos_sincronizados,
+        documentos_totais: cofreDocsUpd.length,
         warnings,
       });
     },
