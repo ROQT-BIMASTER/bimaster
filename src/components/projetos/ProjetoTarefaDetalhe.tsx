@@ -1087,6 +1087,7 @@ export function ProjetoTarefaDetalhe({
                 </div>
 
                 {/* Retrabalho toggle */}
+                {canViewUI("secao_retrabalho") && (<>
                 <Separator />
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
@@ -1129,6 +1130,7 @@ export function ProjetoTarefaDetalhe({
                     </Select>
                   )}
                 </div>
+                </>)}
 
                 {/* Approval Panel */}
                 {(tarefa as any).validacao_status === "pendente_validacao" && (
@@ -1145,12 +1147,16 @@ export function ProjetoTarefaDetalhe({
                 )}
 
                 {/* Dependências */}
-                <Separator />
-                <ProjetoTarefaDependencias tarefaId={tarefa.id} projetoId={tarefa.projeto_id} />
+                {canViewUI("secao_dependencias") && (<>
+                  <Separator />
+                  <ProjetoTarefaDependencias tarefaId={tarefa.id} projetoId={tarefa.projeto_id} />
+                </>)}
 
                 {/* Workflow de Aprovação Multi-Etapa */}
-                <Separator />
-                <ProjetoAprovacaoWorkflow tarefaId={tarefa.id} />
+                {canViewUI("secao_workflow_aprovacao") && (<>
+                  <Separator />
+                  <ProjetoAprovacaoWorkflow tarefaId={tarefa.id} />
+                </>)}
 
 
 
