@@ -103,12 +103,40 @@ export function PromoverAnexoCofreDialog({
 
   const { pastasQuery, createPasta } = useCofreProdutoPastas(produtoId);
   const { data: departamentos = [] } = useDepartamentosOptions();
+  const { data: meuDepto } = useMeuDepartamento();
   const pastas = pastasQuery.data ?? [];
+
+  // Filtro automático "minha equipe": liga por padrão quando o usuário
+  // tem departamento atribuído. Pastas sem equipe (globais) sempre aparecem.
+  const [filtrarMinhaEquipe, setFiltrarMinhaEquipe] = useState(true);
+  const meuDeptoId = meuDepto?.id ?? null;
+
+  const pastasVisiveis = useMemo(() => {
+    if (!filtrarMinhaEquipe || !meuDeptoId) return pastas;
+    return pastas.filter(
+      (p) => p.departamento_id === meuDeptoId || p.departamento_id === null,
+    );
+  }, [pastas, filtrarMinhaEquipe, meuDeptoId]);
+
+  const totalOcultas = pastas.length - pastasVisiveis.length;
 
   const pastaSelecionada = useMemo(
     () => pastas.find((p) => p.id === pastaId) || null,
     [pastas, pastaId],
   );
+
+  // Se a pasta atualmente selecionada for filtrada para fora, volta para "sem pasta"
+  // para evitar gravar um valor que o usuário não vê mais.
+  if (
+    pastaId !== SEM_PASTA &&
+    pastaSelecionada &&
+    filtrarMinhaEquipe &&
+    meuDeptoId &&
+    pastaSelecionada.departamento_id !== meuDeptoId &&
+    pastaSelecionada.departamento_id !== null
+  ) {
+    setPastaId(SEM_PASTA);
+  }
 
   const resetState = () => {
     setCategoria("");
