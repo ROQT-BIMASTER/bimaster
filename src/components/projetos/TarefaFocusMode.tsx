@@ -273,9 +273,39 @@ export function TarefaFocusMode({
 
   const completedMetas = displayMetas.filter(m => m.concluida).length;
 
+  // Handler de fechamento: o modo foco só sai por ação explícita do usuário
+  // (botão "Sair do Foco" ou Esc). Atualizações de dados (concluir marco,
+  // subtarefa, mudar responsável/data, etc.) abrem AlertDialog/Popover/Select
+  // portalizados que o Radix interpreta como "interação fora" e fechariam o
+  // Dialog sozinho — gerando a sensação de "piscar e sair do foco".
+  const handleOpenChangeSafe = (next: boolean) => {
+    // Permitimos apenas o fluxo de fechar; nunca abrimos via Radix aqui.
+    if (next) return;
+    onOpenChange(false);
+  };
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[98vw] w-[98vw] h-[95vh] p-0 gap-0 flex flex-col overflow-hidden">
+    <Dialog open={open} onOpenChange={handleOpenChangeSafe}>
+      <DialogContent
+        className="max-w-[98vw] w-[98vw] h-[95vh] p-0 gap-0 flex flex-col overflow-hidden"
+        onPointerDownOutside={(e) => {
+          // Bloqueia fechamento por clique em conteúdo portalizado
+          // (AlertDialog de confirmação, Popover de calendário, Select de
+          // status/prioridade, Dropdown, cmdk, etc.). Sem isso, ao concluir
+          // uma subtarefa/marco o Radix detecta o AlertDialog como "fora"
+          // e fecha o modo foco no meio da operação.
+          e.preventDefault();
+        }}
+        onInteractOutside={(e) => {
+          e.preventDefault();
+        }}
+        onEscapeKeyDown={(e) => {
+          // Esc fecha — comportamento esperado. Mas se houver overlay
+          // portalizado aberto (AlertDialog/Popover), o próprio overlay
+          // captura o Esc primeiro, então aqui só chega quando nada está
+          // aberto sobre o foco.
+          // Mantém comportamento padrão (fechar).
+        }}
+      >
         {/* Header */}
         <div
           className="flex items-center gap-3 px-6 py-3 border-b border-border/50 flex-shrink-0"
