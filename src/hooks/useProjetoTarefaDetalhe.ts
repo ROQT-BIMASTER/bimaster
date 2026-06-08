@@ -29,6 +29,14 @@ export interface TarefaAnexo {
   created_at: string;
 }
 
+export interface TarefaMessageAnexo {
+  id: string;
+  nome: string;
+  storage_path: string;
+  tipo_arquivo: string | null;
+  tamanho: number | null;
+}
+
 export interface TarefaMessage {
   id: string;
   tarefa_id: string;
@@ -36,6 +44,8 @@ export interface TarefaMessage {
   conteudo: string;
   mentions: string[];
   created_at: string;
+  anexo_id?: string | null;
+  anexo?: TarefaMessageAnexo | null;
   autor?: { nome: string; avatar_url: string | null };
 }
 
@@ -399,17 +409,29 @@ export function useProjetoTarefaDetalhe(tarefaId: string | undefined, produtoId?
         .order("created_at", { ascending: true });
       if (error) throw error;
 
-      const userIds = [...new Set((data as any[]).map(m => m.user_id))];
+      const rows = (data as any[]) ?? [];
+      const userIds = [...new Set(rows.map(m => m.user_id))];
       let profiles: Record<string, { nome: string; avatar_url: string | null }> = {};
       if (userIds.length > 0) {
         const { data: p } = await supabase.from("profiles").select("id, nome, avatar_url").in("id", userIds);
         if (p) profiles = Object.fromEntries(p.map(x => [x.id, { nome: x.nome, avatar_url: x.avatar_url }]));
       }
 
-      return (data as any[]).map(m => ({
+      const anexoIds = [...new Set(rows.map(m => m.anexo_id).filter(Boolean))] as string[];
+      let anexosMap: Record<string, TarefaMessageAnexo> = {};
+      if (anexoIds.length > 0) {
+        const { data: aRows } = await supabase
+          .from("projeto_tarefa_anexos")
+          .select("id, nome, storage_path, tipo_arquivo, tamanho")
+          .in("id", anexoIds);
+        if (aRows) anexosMap = Object.fromEntries(aRows.map((x: any) => [x.id, x]));
+      }
+
+      return rows.map(m => ({
         ...m,
         mentions: m.mentions || [],
         autor: profiles[m.user_id] || { nome: "Usuário", avatar_url: null },
+        anexo: m.anexo_id ? anexosMap[m.anexo_id] ?? null : null,
       })) as TarefaMessage[];
     },
     enabled: !!tarefaId && !!user,
@@ -433,16 +455,17 @@ export function useProjetoTarefaDetalhe(tarefaId: string | undefined, produtoId?
   }, [tarefaId, queryClient]);
 
   const sendMessage = useMutation({
-    mutationFn: async ({ conteudo, mentions }: { conteudo: string; mentions?: string[] }) => {
+    mutationFn: async ({ conteudo, mentions, anexoId }: { conteudo: string; mentions?: string[]; anexoId?: string | null }) => {
       const { error } = await supabase.from("projeto_tarefa_messages" as any).insert({
         tarefa_id: tarefaId!,
         user_id: user!.id,
         conteudo,
         mentions: mentions || [],
+        anexo_id: anexoId ?? null,
       } as any);
       if (error) throw error;
     },
-    onMutate: async ({ conteudo, mentions }) => {
+    onMutate: async ({ conteudo, mentions, anexoId }) => {
       const qk = ["tarefa-messages", tarefaId];
       await queryClient.cancelQueries({ queryKey: qk });
       const previous = queryClient.getQueryData<TarefaMessage[]>(qk);
@@ -455,6 +478,7 @@ export function useProjetoTarefaDetalhe(tarefaId: string | undefined, produtoId?
         conteudo,
         mentions: mentions || [],
         created_at: new Date().toISOString(),
+        anexo_id: anexoId ?? null,
         autor: me ? { nome: me.nome, avatar_url: me.avatar_url } : { nome: "Você", avatar_url: null },
       };
       queryClient.setQueryData<TarefaMessage[]>(qk, (old) => [...(old || []), optimistic]);
