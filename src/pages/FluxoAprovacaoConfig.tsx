@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,6 +33,18 @@ const CHECKLIST_TIPOS = [
 
 export default function FluxoAprovacaoConfig() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const handleVoltar = () => {
+    if (location.key && location.key !== "default") {
+      navigate(-1);
+      return;
+    }
+    if (location.pathname.startsWith("/admin/")) {
+      navigate("/admin");
+    } else {
+      navigate("/dashboard/aprovacao-artes");
+    }
+  };
   const qc = useQueryClient();
   const { isAdmin, isManager } = useUserRole();
   const canDuplicate = isAdmin || isManager;
@@ -162,7 +174,7 @@ export default function FluxoAprovacaoConfig() {
     <div className="space-y-6 p-6">
       {/* Header */}
       <div className="flex items-center gap-3">
-        <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard/aprovacao-artes")}>
+        <Button variant="ghost" size="icon" onClick={handleVoltar}>
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <div className="p-2 rounded-lg bg-primary/10">
