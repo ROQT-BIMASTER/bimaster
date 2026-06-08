@@ -127,16 +127,18 @@ export function PromoverAnexoCofreDialog({
 
   // Se a pasta atualmente selecionada for filtrada para fora, volta para "sem pasta"
   // para evitar gravar um valor que o usuário não vê mais.
-  if (
-    pastaId !== SEM_PASTA &&
-    pastaSelecionada &&
-    filtrarMinhaEquipe &&
-    meuDeptoId &&
-    pastaSelecionada.departamento_id !== meuDeptoId &&
-    pastaSelecionada.departamento_id !== null
-  ) {
-    setPastaId(SEM_PASTA);
-  }
+  useEffect(() => {
+    if (
+      pastaId !== SEM_PASTA &&
+      pastaSelecionada &&
+      filtrarMinhaEquipe &&
+      meuDeptoId &&
+      pastaSelecionada.departamento_id !== meuDeptoId &&
+      pastaSelecionada.departamento_id !== null
+    ) {
+      setPastaId(SEM_PASTA);
+    }
+  }, [pastaId, pastaSelecionada, filtrarMinhaEquipe, meuDeptoId]);
 
   const resetState = () => {
     setCategoria("");
