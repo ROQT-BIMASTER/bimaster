@@ -70,6 +70,7 @@ function lazyWithRetry<T extends ComponentType<any>>(
 // Lazy load das páginas com retry automático
 const Index = lazyWithRetry(() => import("./pages/Index"));
 const Auth = lazyWithRetry(() => import("./pages/Auth"));
+const Signup = lazyWithRetry(() => import("./pages/Signup"));
 const Privacidade = lazyWithRetry(() => import("./pages/Privacidade"));
 const Termos = lazyWithRetry(() => import("./pages/Termos"));
 const Contato = lazyWithRetry(() => import("./pages/Contato"));
@@ -533,7 +534,7 @@ function AppContent() {
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/auth/login" element={<Auth />} />
-            <Route path="/auth/signup" element={<Navigate to="/auth/login" replace />} />
+            <Route path="/auth/signup" element={<Signup />} />
             <Route path="/auth/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/aguardando-aprovacao" element={<AguardandoAprovacao />} />
