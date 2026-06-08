@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { ArrowRight, CheckCircle2, ChevronRight, ClipboardCheck, Plus, User } from "lucide-react";
+import { ClipboardCheck, Search, AlertTriangle } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -29,6 +30,8 @@ interface Config {
   nome: string;
   descricao: string | null;
   checklist_tipo: string;
+  etapas_count: number;
+  etapas_com_resp: number;
 }
 
 interface Etapa {
@@ -47,6 +50,14 @@ interface Profile {
   email: string | null;
 }
 
+const TIPO_LABEL: Record<string, string> = {
+  artes_geral: "Artes",
+  embalagem: "Embalagem",
+  doc_regulatoria: "Regulatório",
+  generico: "Genérico",
+  outro: "Outro",
+};
+
 export function EnviarAprovacaoDialog({
   open,
   onOpenChange,
@@ -61,13 +72,17 @@ export function EnviarAprovacaoDialog({
   const [prazo, setPrazo] = useState<string>("");
   const [loading, setLoading] = useState(false);
   const [enviando, setEnviando] = useState(false);
+  const [busca, setBusca] = useState("");
+  const [tipoFiltro, setTipoFiltro] = useState<string>("todos");
 
-  // Carrega templates ativos
+  // Carrega templates ativos + contagem de etapas
   useEffect(() => {
     if (!open) return;
     setConfigId(null);
     setEtapas([]);
     setPrazo("");
+    setBusca("");
+    setTipoFiltro("todos");
     (async () => {
       const { data, error } = await supabase
         .from("fluxo_aprovacao_config")
@@ -78,7 +93,29 @@ export function EnviarAprovacaoDialog({
         toast.error("Erro ao carregar fluxos");
         return;
       }
-      setConfigs((data ?? []) as Config[]);
+      const lista = (data ?? []) as Omit<Config, "etapas_count" | "etapas_com_resp">[];
+      const ids = lista.map((c) => c.id);
+      let etapasByConfig: Record<string, { total: number; com_resp: number }> = {};
+      if (ids.length > 0) {
+        const { data: ets } = await supabase
+          .from("fluxo_aprovacao_etapas")
+          .select("config_id, responsavel_id, responsavel_secundario_id, ativo")
+          .in("config_id", ids)
+          .eq("ativo", true);
+        (ets ?? []).forEach((e: any) => {
+          const cur = etapasByConfig[e.config_id] ?? { total: 0, com_resp: 0 };
+          cur.total += 1;
+          if (e.responsavel_id || e.responsavel_secundario_id) cur.com_resp += 1;
+          etapasByConfig[e.config_id] = cur;
+        });
+      }
+      setConfigs(
+        lista.map((c) => ({
+          ...c,
+          etapas_count: etapasByConfig[c.id]?.total ?? 0,
+          etapas_com_resp: etapasByConfig[c.id]?.com_resp ?? 0,
+        })),
+      );
     })();
   }, [open]);
 
@@ -99,7 +136,6 @@ export function EnviarAprovacaoDialog({
       const lista = (ets ?? []) as Etapa[];
       setEtapas(lista);
 
-      // Busca profiles dos responsáveis
       const ids = Array.from(
         new Set(
           lista
@@ -121,6 +157,25 @@ export function EnviarAprovacaoDialog({
       setLoading(false);
     })();
   }, [configId]);
+
+  const tiposDisponiveis = useMemo(() => {
+    const s = new Set<string>();
+    configs.forEach((c) => s.add(c.checklist_tipo));
+    return Array.from(s).sort();
+  }, [configs]);
+
+  const configsFiltrados = useMemo(() => {
+    const q = busca.trim().toLowerCase();
+    return configs.filter((c) => {
+      if (tipoFiltro !== "todos" && c.checklist_tipo !== tipoFiltro) return false;
+      if (!q) return true;
+      return (
+        c.nome.toLowerCase().includes(q) ||
+        (c.descricao ?? "").toLowerCase().includes(q) ||
+        c.checklist_tipo.toLowerCase().includes(q)
+      );
+    });
+  }, [configs, busca, tipoFiltro]);
 
   const podeEnviar = useMemo(() => {
     if (!configId || etapas.length === 0) return false;
@@ -178,8 +233,59 @@ export function EnviarAprovacaoDialog({
 
         <div className="space-y-4">
           <div>
-            <Label className="mb-2 block">Fluxo de aprovação</Label>
-            <ScrollArea className="max-h-44 border rounded-md">
+            <div className="flex items-center justify-between mb-2">
+              <Label>
+                Fluxo de aprovação
+                <span className="ml-2 text-[11px] font-normal text-muted-foreground">
+                  {configsFiltrados.length} de {configs.length} disponíveis
+                </span>
+              </Label>
+            </div>
+
+            {configs.length > 0 && (
+              <div className="space-y-2 mb-2">
+                <div className="relative">
+                  <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                  <Input
+                    value={busca}
+                    onChange={(e) => setBusca(e.target.value)}
+                    placeholder="Buscar por nome, descrição ou tipo…"
+                    className="h-8 pl-7 text-sm"
+                  />
+                </div>
+                {tiposDisponiveis.length > 1 && (
+                  <div className="flex flex-wrap gap-1">
+                    <button
+                      type="button"
+                      onClick={() => setTipoFiltro("todos")}
+                      className={`text-[11px] px-2 py-0.5 rounded-full border transition-colors ${
+                        tipoFiltro === "todos"
+                          ? "bg-primary text-primary-foreground border-primary"
+                          : "bg-background hover:bg-muted border-border"
+                      }`}
+                    >
+                      Todos
+                    </button>
+                    {tiposDisponiveis.map((t) => (
+                      <button
+                        key={t}
+                        type="button"
+                        onClick={() => setTipoFiltro(t)}
+                        className={`text-[11px] px-2 py-0.5 rounded-full border transition-colors ${
+                          tipoFiltro === t
+                            ? "bg-primary text-primary-foreground border-primary"
+                            : "bg-background hover:bg-muted border-border"
+                        }`}
+                      >
+                        {TIPO_LABEL[t] ?? t}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            <ScrollArea className="max-h-72 h-72 border rounded-md">
               {configs.length === 0 ? (
                 <div className="text-xs text-muted-foreground p-4 text-center">
                   Nenhum fluxo cadastrado. Peça ao admin para criar em{" "}
@@ -188,26 +294,72 @@ export function EnviarAprovacaoDialog({
                   </a>
                   .
                 </div>
+              ) : configsFiltrados.length === 0 ? (
+                <div className="text-xs text-muted-foreground p-4 text-center space-y-2">
+                  <div>Nenhum fluxo corresponde ao filtro.</div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setBusca("");
+                      setTipoFiltro("todos");
+                    }}
+                  >
+                    Limpar filtros
+                  </Button>
+                </div>
               ) : (
                 <div className="p-1">
-                  {configs.map((c) => (
-                    <button
-                      key={c.id}
-                      type="button"
-                      onClick={() => setConfigId(c.id)}
-                      className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors ${
-                        configId === c.id
-                          ? "bg-primary/10 ring-1 ring-primary/40"
-                          : "hover:bg-muted"
-                      }`}
-                    >
-                      <div className="font-medium">{c.nome}</div>
-                      <div className="text-[11px] text-muted-foreground">
-                        {c.checklist_tipo}
-                        {c.descricao ? ` · ${c.descricao}` : ""}
-                      </div>
-                    </button>
-                  ))}
+                  {configsFiltrados.map((c) => {
+                    const semEtapas = c.etapas_count === 0;
+                    const semResp = !semEtapas && c.etapas_com_resp < c.etapas_count;
+                    return (
+                      <button
+                        key={c.id}
+                        type="button"
+                        onClick={() => setConfigId(c.id)}
+                        className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors ${
+                          configId === c.id
+                            ? "bg-primary/10 ring-1 ring-primary/40"
+                            : "hover:bg-muted"
+                        }`}
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0 flex-1">
+                            <div className="font-medium truncate">{c.nome}</div>
+                            <div className="text-[11px] text-muted-foreground truncate">
+                              {TIPO_LABEL[c.checklist_tipo] ?? c.checklist_tipo}
+                              {c.descricao ? ` · ${c.descricao}` : ""}
+                            </div>
+                          </div>
+                          <div className="flex flex-col items-end gap-1 shrink-0">
+                            {semEtapas ? (
+                              <Badge
+                                variant="outline"
+                                className="text-[10px] border-amber-300 text-amber-700 bg-amber-50 dark:bg-amber-950/30"
+                              >
+                                <AlertTriangle className="h-3 w-3 mr-1" />
+                                Sem etapas
+                              </Badge>
+                            ) : (
+                              <Badge variant="secondary" className="text-[10px]">
+                                {c.etapas_count} etapa{c.etapas_count !== 1 ? "s" : ""}
+                              </Badge>
+                            )}
+                            {semResp && (
+                              <Badge
+                                variant="outline"
+                                className="text-[10px] border-amber-300 text-amber-700"
+                              >
+                                Sem responsável
+                              </Badge>
+                            )}
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
                 </div>
               )}
             </ScrollArea>
