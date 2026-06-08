@@ -86,9 +86,8 @@ export function EstoqueUnificadoTable(p: Props) {
             const key = `${r.empresa}-${r.produto_raiz}`;
             const isExpanded = expandedKey === key;
             return (
-              <>
+              <Fragment key={key}>
                 <TableRow
-                  key={key}
                   className="cursor-pointer hover:bg-muted/40"
                   onClick={() => p.onRowClick(r)}
                   data-state={isExpanded ? 'selected' : undefined}
