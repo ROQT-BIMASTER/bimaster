@@ -4,7 +4,7 @@ import { z } from "zod";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
-import { Camera, Loader2, Save, ShieldCheck, UserCircle, Lock, X } from "lucide-react";
+import { Camera, Loader2, Save, ShieldCheck, UserCircle, Lock, X, Eye, EyeOff } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
