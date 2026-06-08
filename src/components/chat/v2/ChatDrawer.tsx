@@ -8,6 +8,8 @@ import { ChatLayout } from "./ChatLayout";
 import { Badge } from "@/components/ui/badge";
 import { useBrowserPathname } from "@/hooks/useBrowserPathname";
 import { ChatErrorBoundary } from "./ChatErrorBoundary";
+import { FloatingActionDock, FloatingActionSlot } from "@/components/ui/floating-action-dock";
+
 
 interface ChatDrawerCtx {
   open: boolean;
