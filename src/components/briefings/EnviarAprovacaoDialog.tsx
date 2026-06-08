@@ -64,6 +64,7 @@ export function EnviarAprovacaoDialog({
   onOpenChange,
   briefingId,
   briefingTitulo,
+  briefingTipo,
   onEnviado,
 }: Props) {
   const [configs, setConfigs] = useState<Config[]>([]);
@@ -75,8 +76,10 @@ export function EnviarAprovacaoDialog({
   const [enviando, setEnviando] = useState(false);
   const [busca, setBusca] = useState("");
   const [tipoFiltro, setTipoFiltro] = useState<string>("todos");
+  const [padraoConfigId, setPadraoConfigId] = useState<string | null>(null);
+  const [padraoCarregado, setPadraoCarregado] = useState(false);
 
-  // Carrega templates ativos + contagem de etapas
+  // Carrega templates ativos + contagem de etapas + padrão por tipo
   useEffect(() => {
     if (!open) return;
     setConfigId(null);
@@ -84,12 +87,23 @@ export function EnviarAprovacaoDialog({
     setPrazo("");
     setBusca("");
     setTipoFiltro("todos");
+    setPadraoConfigId(null);
+    setPadraoCarregado(false);
     (async () => {
-      const { data, error } = await supabase
-        .from("fluxo_aprovacao_config")
-        .select("id, nome, descricao, checklist_tipo")
-        .eq("ativo", true)
-        .order("nome");
+      const [{ data, error }, padraoRes] = await Promise.all([
+        supabase
+          .from("fluxo_aprovacao_config")
+          .select("id, nome, descricao, checklist_tipo")
+          .eq("ativo", true)
+          .order("nome"),
+        briefingTipo
+          ? (supabase as any)
+              .from("briefing_tipo_fluxo_padrao")
+              .select("config_id, prazo_dias_default")
+              .eq("tipo", briefingTipo)
+              .maybeSingle()
+          : Promise.resolve({ data: null, error: null }),
+      ]);
       if (error) {
         toast.error("Erro ao carregar fluxos");
         return;
@@ -117,8 +131,23 @@ export function EnviarAprovacaoDialog({
           etapas_com_resp: etapasByConfig[c.id]?.com_resp ?? 0,
         })),
       );
+
+      // Aplicar padrão se houver e se o config ainda estiver ativo
+      const padrao: any = (padraoRes as any)?.data;
+      if (padrao?.config_id && lista.some((c) => c.id === padrao.config_id)) {
+        setPadraoConfigId(padrao.config_id);
+        setConfigId(padrao.config_id);
+        if (padrao.prazo_dias_default && padrao.prazo_dias_default > 0) {
+          const d = new Date();
+          d.setDate(d.getDate() + Number(padrao.prazo_dias_default));
+          const iso = d.toISOString().slice(0, 10);
+          setPrazo(iso);
+        }
+      }
+      setPadraoCarregado(true);
     })();
-  }, [open]);
+  }, [open, briefingTipo]);
+
 
   // Carrega etapas do config selecionado
   useEffect(() => {
