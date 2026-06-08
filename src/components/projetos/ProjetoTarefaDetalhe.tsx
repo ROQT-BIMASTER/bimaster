@@ -556,7 +556,7 @@ export function ProjetoTarefaDetalhe({
                 <Clock className="h-3 w-3" />
                 Pendente de Aprovação
               </Badge>
-            ) : (
+            ) : canViewUI("acao_marcar_concluida") ? (
               <Button
                 variant={isCompleted ? "default" : "outline"}
                 size="sm"
@@ -570,7 +570,7 @@ export function ProjetoTarefaDetalhe({
                 {isCompleted ? <CheckCircle2 className="h-4 w-4" /> : <Circle className="h-4 w-4" />}
                 {isCompleted ? "Concluída" : "Marcar como concluída"}
               </Button>
-            )}
+            ) : null}
             {/* Enviar para Validação (dev produto) ou Enviar ao Superior (genérico) */}
             {isCompleted && !(tarefa as any).validacao_status && projetoTipo === 'desenvolvimento_produto' && (
               <Button
