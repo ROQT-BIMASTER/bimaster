@@ -833,11 +833,126 @@ export default function MeuPerfil() {
               </form>
             </CardContent>
           </Card>
+
+          {/* Card: Auditoria de acessos a dados sensíveis */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <ShieldCheck className="h-4 w-4 text-primary" />
+                Auditoria — Revelações de dados sensíveis
+              </CardTitle>
+              <CardDescription>
+                Registro completo de quando, qual dado e por quanto tempo seus dados sensíveis foram exibidos
+                no perfil. Administradores enxergam o registro de todos os usuários.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {auditLoading ? (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground py-4">
+                  <Loader2 className="h-4 w-4 animate-spin" /> Carregando…
+                </div>
+              ) : auditRows.length === 0 ? (
+                <p className="text-sm text-muted-foreground py-4">
+                  Nenhuma revelação registrada nos últimos acessos.
+                </p>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="text-left text-xs text-muted-foreground border-b border-border">
+                        <th className="py-2 pr-3 font-medium">Data / hora</th>
+                        <th className="py-2 pr-3 font-medium">Campo</th>
+                        <th className="py-2 pr-3 font-medium">Duração</th>
+                        <th className="py-2 pr-3 font-medium">Encerrado em</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {auditRows.map((row) => {
+                        const granted = new Date(row.granted_at);
+                        const expires = new Date(row.expires_at);
+                        const ended = row.hidden_at ? new Date(row.hidden_at) : expires;
+                        const durationMs = Math.max(ended.getTime() - granted.getTime(), 0);
+                        const durationSec = Math.round(durationMs / 1000);
+                        const endedReason = row.hidden_at ? "ocultado pelo usuário" : "expirou";
+                        return (
+                          <tr key={row.id} className="border-b border-border/50">
+                            <td className="py-2 pr-3 whitespace-nowrap">
+                              {format(granted, "dd/MM/yyyy HH:mm:ss", { locale: ptBR })}
+                            </td>
+                            <td className="py-2 pr-3 uppercase font-medium">
+                              {row.field}
+                            </td>
+                            <td className="py-2 pr-3 whitespace-nowrap">
+                              {durationSec}s
+                            </td>
+                            <td className="py-2 pr-3 text-muted-foreground whitespace-nowrap">
+                              {format(ended, "HH:mm:ss", { locale: ptBR })} ({endedReason})
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </div>
       </div>
     </TooltipProvider>
   );
 }
+
+function SensitiveField({
+  label,
+  reveal,
+  maskedValue,
+  fullValue,
+  onReveal,
+  onHide,
+}: {
+  label: string;
+  reveal: { grantId: string; value: string | null; expiresAt: number } | null;
+  maskedValue: string;
+  fullValue: string;
+  onReveal: () => void;
+  onHide: () => void;
+}) {
+  const isRevealed = reveal !== null;
+  const secondsLeft = isRevealed
+    ? Math.max(Math.ceil((reveal!.expiresAt - Date.now()) / 1000), 0)
+    : 0;
+  return (
+    <div className="space-y-1">
+      <div className="flex items-center justify-between">
+        <Label className="text-xs text-muted-foreground">{label}</Label>
+        {isRevealed ? (
+          <button
+            type="button"
+            onClick={onHide}
+            className="text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1"
+          >
+            <EyeOff className="h-3 w-3" />
+            Ocultar ({secondsLeft}s)
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={onReveal}
+            className="text-xs text-primary hover:underline inline-flex items-center gap-1"
+          >
+            <Eye className="h-3 w-3" />
+            Mostrar
+          </button>
+        )}
+      </div>
+      <div className="px-3 py-2 rounded-md border border-border bg-muted/40 text-sm text-foreground font-mono">
+        {isRevealed ? reveal!.value || "—" : maskedValue}
+      </div>
+    </div>
+  );
+}
+
 
 function ReadOnlyField({
   label,
