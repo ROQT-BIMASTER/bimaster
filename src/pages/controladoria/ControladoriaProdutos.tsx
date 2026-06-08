@@ -1,6 +1,8 @@
 import { useMemo, useState } from "react";
-import { useSearchParams } from "react-router-dom";
-import { AlertTriangle, Check, PackageSearch, X } from "lucide-react";
+import { Link, useSearchParams } from "react-router-dom";
+import { AlertTriangle, ArrowLeft, Check, PackageSearch, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
+
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import {
@@ -160,7 +162,13 @@ export default function ControladoriaProdutos() {
   return (
     <TooltipProvider delayDuration={200}>
       <div className="p-6 space-y-6">
-        <ProjetoBackButton fallbackTo="/dashboard" />
+        <Button variant="ghost" size="sm" asChild className="gap-1.5 -ml-2">
+          <Link to="/dashboard">
+            <ArrowLeft className="h-4 w-4" />
+            Voltar ao menu inicial
+          </Link>
+        </Button>
+
         <header className="space-y-1">
           <div className="flex items-center gap-2">
             <PackageSearch className="h-5 w-5 text-primary" />
