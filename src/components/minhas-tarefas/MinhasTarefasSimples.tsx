@@ -838,7 +838,7 @@ export function MinhasTarefasSimples() {
             )}
           </Card>
         ) : view === "board" ? (
-          <MinhasTarefasBoard tarefas={filtered} onToggle={handleToggle} onSelect={handleSelect} />
+          <MinhasTarefasBoard tarefas={filtered} onToggle={handleToggle} onSelect={handleSelect} onChangePrazo={handleChangePrazo} />
         ) : (
           <MinhasTarefasCalendar tarefas={filtered} onSelect={handleSelect} />
         )}
