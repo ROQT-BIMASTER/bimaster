@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Search, MessageSquarePlus, Users, MoreVertical, Star, Archive, BellOff, Plus, Pin, VolumeX, Package, MessageCircle, SearchCheck, FileText, AtSign, Briefcase } from "lucide-react";
+import { Search, MessageSquarePlus, Users, MoreVertical, Star, Archive, BellOff, Plus, Pin, VolumeX, Package, MessageCircle, SearchCheck, FileText, AtSign, Briefcase, CheckSquare, GitBranch } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useConversas, filtrarConversas, type ChatFiltro } from "@/hooks/chat/useConversas";
 import { useGlobalPresence } from "@/hooks/chat/useChatPresence";
@@ -14,6 +14,9 @@ import { useChatActions } from "@/hooks/chat/useChatActions";
 import { useChinaSubmissoesChat, filtrarSubmissoesChat, type ChinaSubmissaoChatItem } from "@/hooks/chat/useChinaSubmissoesChat";
 import { useBriefingsChat, filtrarBriefingsChat, type BriefingChatItem } from "@/hooks/chat/useBriefingsChat";
 import { useProjetosChat, filtrarProjetosChat, type ProjetoChatItem } from "@/hooks/chat/useProjetosChat";
+import { useTarefasChat, filtrarTarefasChat, type TarefaChatItem, type TarefaChatFiltro } from "@/hooks/chat/useTarefasChat";
+import { formatDistanceToNow } from "date-fns";
+import { ptBR } from "date-fns/locale";
 import { initials, formatRelativo, nomeConversa } from "./utils";
 import type { ChatConversa } from "@/hooks/chat/types";
 import { NovaConversaDialog } from "../NovaConversaDialog";
@@ -35,6 +38,8 @@ interface Props {
   podeVerBriefings?: boolean;
   /** Se true, a aba "Projetos" aparece (usuário é membro de algum projeto). */
   podeVerProjetos?: boolean;
+  /** Se true, a aba "Tarefas" aparece (mesmo gate de Projetos). */
+  podeVerTarefas?: boolean;
 }
 
 export function ChatSidebar({
@@ -46,13 +51,15 @@ export function ChatSidebar({
   podeAlternarModo,
   podeVerBriefings = false,
   podeVerProjetos = false,
+  podeVerTarefas = false,
 }: Props) {
-  // Quantas abas mostrar: pessoas sempre; submissões, briefings e projetos são opt-in.
+  // Quantas abas mostrar: pessoas sempre; submissões, briefings, projetos e tarefas são opt-in.
   const tabsCount =
     1 +
     (podeAlternarModo ? 1 : 0) +
     (podeVerBriefings ? 1 : 0) +
-    (podeVerProjetos ? 1 : 0);
+    (podeVerProjetos ? 1 : 0) +
+    (podeVerTarefas ? 1 : 0);
   const showToggle = tabsCount > 1;
   return (
     <aside className={cn("flex flex-col h-full bg-card border-r border-border", className)}>
