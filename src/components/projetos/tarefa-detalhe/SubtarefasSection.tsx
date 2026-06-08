@@ -70,7 +70,7 @@ export function SubtarefasSection({
   onOpenSubtarefa,
   hideHeader = false,
 }: SubtarefasSectionProps) {
-  const { iaLoading, generateChecklist } = useProjetoIA();
+  const { loading: iaLoading, generateChecklist } = useProjetoIA();
   const [subtarefaValue, setSubtarefaValue] = useState("");
   const [editingSubtarefaId, setEditingSubtarefaId] = useState<string | null>(null);
   const [editingSubtarefaTitulo, setEditingSubtarefaTitulo] = useState("");
