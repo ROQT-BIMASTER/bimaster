@@ -151,14 +151,14 @@ export function EstoqueUnificadoTable(p: Props) {
                   ) : (
                     <TableCell className="text-right tabular-nums font-semibold">{fmt(conv)}</TableCell>
                   )}
-                  <TableCell className="text-right tabular-nums text-muted-foreground">
+                  <TableCell className="text-right tabular-nums text-primary font-semibold bg-primary/5">
                     {(() => {
                       const cx = equivalenteEmCaixas(r);
                       if (cx == null) {
                         return (
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <span className="cursor-help">—</span>
+                              <span className="cursor-help text-muted-foreground">—</span>
                             </TooltipTrigger>
                             <TooltipContent side="top" className="text-xs">
                               Sem fator de conversão CX
