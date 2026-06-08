@@ -432,6 +432,12 @@ Deno.serve(
         }
 
         // 8c. Espelho local + versão + log
+        const documentos_sincronizados = await markDocsEnviados(
+          sb,
+          cofreDocsRound,
+          pageId!,
+        );
+
         await sb.from("briefings").update({
           rrtask_round: novoRound,
           rrtask_aprovacao: "Pendente",
@@ -465,6 +471,8 @@ Deno.serve(
           page_id: pageId,
           page_url: pageUrl,
           solicitante_resolvido: solicitanteResolvido,
+          documentos_sincronizados,
+          documentos_totais: cofreDocsRound.length,
           warnings,
         });
       }
