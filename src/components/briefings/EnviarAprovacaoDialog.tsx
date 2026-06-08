@@ -262,6 +262,30 @@ export function EnviarAprovacaoDialog({
         </DialogHeader>
 
         <div className="space-y-4">
+          {padraoCarregado && padraoConfigId && (
+            <div className="flex items-start gap-2 rounded-md border border-primary/30 bg-primary/5 p-2.5 text-xs">
+              <ClipboardCheck className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <div className="font-medium text-primary">
+                  Fluxo padrão aplicado pela agência
+                </div>
+                <div className="text-muted-foreground">
+                  Pré-selecionamos o fluxo configurado para este tipo de briefing.
+                  Você ainda pode trocar abaixo se necessário.
+                </div>
+              </div>
+            </div>
+          )}
+          {padraoCarregado && !padraoConfigId && briefingTipo && (
+            <div className="text-[11px] text-muted-foreground bg-muted/40 rounded-md p-2">
+              Sua agência ainda não definiu um fluxo padrão para este tipo de
+              briefing. Selecione abaixo ou peça para configurar em{" "}
+              <a href="/admin/briefings-fluxos" className="text-primary hover:underline">
+                /admin/briefings-fluxos
+              </a>
+              .
+            </div>
+          )}
           <div>
             <div className="flex items-center justify-between mb-2">
               <Label>
