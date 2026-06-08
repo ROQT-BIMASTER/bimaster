@@ -15,6 +15,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ProjetoTarefa, ProjetoSecao as ProjetoSecaoType } from "@/hooks/useProjetoTarefas";
+import { acquireDetailGate, releaseDetailGate } from "@/hooks/projetoTarefasOpenGate";
 import { useProjetoTarefaDetalhe } from "@/hooks/useProjetoTarefaDetalhe";
 import { useProjetoTarefaMetas } from "@/hooks/useProjetoTarefaMetas";
 import { TaskEvolutionChart } from "./TaskEvolutionChart";
@@ -202,6 +203,15 @@ export function TarefaFocusMode({
   useEffect(() => {
     if (tarefa) setDescValue(tarefa.descricao || "");
   }, [tarefa?.id]);
+
+  // Gate adicional: mantém o detalhe travado enquanto o Foco estiver aberto,
+  // independente do pai. Garante zero refetch ativo na lista durante edições.
+  const focusProjetoId = (tarefa as any)?.projeto_id as string | undefined;
+  useEffect(() => {
+    if (!open || !focusProjetoId) return;
+    acquireDetailGate(focusProjetoId);
+    return () => releaseDetailGate(focusProjetoId);
+  }, [open, focusProjetoId]);
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
