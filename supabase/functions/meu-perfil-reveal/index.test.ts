@@ -12,6 +12,10 @@
 //  7) Após o TTL expirar, o grant correspondente fica fora da janela ativa
 //     (expires_at < now()) — garantindo que nenhum dado completo permanece
 //     acessível fora do TTL.
+//  8) O bloqueio temporário é removido automaticamente quando a janela de
+//     rate limit expira e a senha correta volta a liberar o campo.
+//  9) Durante o lockout a senha correta é bloqueada; ao expirar a janela,
+//     a MESMA senha volta a funcionar (desbloqueio puramente temporal).
 //
 // Como rodar (em IDE local):
 //   deno test -A supabase/functions/meu-perfil-reveal/index.test.ts
