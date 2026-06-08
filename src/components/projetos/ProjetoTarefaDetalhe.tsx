@@ -501,7 +501,13 @@ export function ProjetoTarefaDetalhe({
 
   return (
     <>
-      <Sheet open={open && !focusMode} onOpenChange={onOpenChange}>
+      <Sheet open={open && !focusMode} onOpenChange={(next) => {
+        // Defesa: enquanto o Modo Foco estiver ativo, ignoramos qualquer
+        // pedido de fechamento do Sheet pai — assim re-renders colaterais
+        // não derrubam o estado e não fazem a tela "saltar" para o Sheet.
+        if (focusMode) return;
+        onOpenChange(next);
+      }}>
         <SheetContent
           side="right"
           className="w-full sm:max-w-[580px] p-0 flex flex-col overflow-hidden"
