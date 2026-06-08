@@ -49350,6 +49350,10 @@ export type Database = {
         Args: { p_etapa_ordem: number; p_status: string }
         Returns: string
       }
+      _set_rrtask_webhook_secret: {
+        Args: { _value: string }
+        Returns: undefined
+      }
       accept_projeto_convite: { Args: { _token: string }; Returns: Json }
       access_review_decide: {
         Args: { _decision: string; _item_id: string; _notes?: string }
