@@ -33,3 +33,18 @@ export function converterParaModo(
   const f = Number(row.fator_bx_para_un || 0);
   return f > 0 ? totalUn / f : null;
 }
+
+/**
+ * Equivalente em caixas máster (pode ser fracionário).
+ * Retorna null quando o fator CX não está disponível.
+ */
+export function equivalenteEmCaixas(row: EstoqueUnificadoRow): number | null {
+  const totalUn = Number(row.saldo_total_em_unidades || 0);
+  const f = Number(row.fator_cx_para_un || 0);
+  return f > 0 ? totalUn / f : null;
+}
+
+export function formatCx(value: number | null | undefined): string {
+  if (value == null || !Number.isFinite(Number(value))) return '—';
+  return Number(value).toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+}
