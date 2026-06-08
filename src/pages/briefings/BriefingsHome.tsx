@@ -861,8 +861,6 @@ export default function BriefingsHome() {
                         ? tarefasMap.get(b.tarefa_id)
                         : null;
                       const naoLido = naoLidoFn(b);
-
-                      const naoLido = naoLidoFn(b);
                       const agenciaKey: AgenciaFiltro = b.rrtask_page_id
                         ? normalizeAprovacao(b.rrtask_aprovacao)
                         : "nao_enviado";
