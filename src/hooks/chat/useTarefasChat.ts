@@ -43,6 +43,49 @@ export type TarefaChatFiltro =
   | "mencoes"
   | "arquivadas";
 
+export type TarefaChatOrdenacao =
+  | "ultima_mensagem"
+  | "projeto"
+  | "tarefa"
+  | "subtarefa"
+  | "status";
+
+/**
+ * Ordena a lista conforme critério escolhido pelo usuário.
+ * - ultima_mensagem (default): mais recentes primeiro.
+ * - projeto/tarefa/status: alfabético asc.
+ * - subtarefa: subtarefas primeiro, depois alfabético.
+ */
+export function ordenarTarefasChat(
+  list: TarefaChatItem[],
+  ordem: TarefaChatOrdenacao,
+): TarefaChatItem[] {
+  const r = [...list];
+  switch (ordem) {
+    case "projeto":
+      r.sort((a, b) => a.projeto_nome.localeCompare(b.projeto_nome) || a.titulo.localeCompare(b.titulo));
+      break;
+    case "tarefa":
+      r.sort((a, b) => a.titulo.localeCompare(b.titulo));
+      break;
+    case "subtarefa":
+      r.sort((a, b) => Number(b.is_subtask) - Number(a.is_subtask) || a.titulo.localeCompare(b.titulo));
+      break;
+    case "status":
+      r.sort((a, b) => (a.status ?? "").localeCompare(b.status ?? "") || a.titulo.localeCompare(b.titulo));
+      break;
+    case "ultima_mensagem":
+    default:
+      r.sort((a, b) => {
+        const ta = a.ultima_mensagem_em ? new Date(a.ultima_mensagem_em).getTime() : 0;
+        const tb = b.ultima_mensagem_em ? new Date(b.ultima_mensagem_em).getTime() : 0;
+        return tb - ta;
+      });
+      break;
+  }
+  return r;
+}
+
 /**
  * Filtra a lista respeitando o filtro selecionado.
  * - Arquivadas só aparecem quando o filtro for "arquivadas".
@@ -72,6 +115,9 @@ export function filtrarTarefasChat(
     (t) =>
       t.titulo.toLowerCase().includes(q) ||
       t.projeto_nome.toLowerCase().includes(q) ||
+      (t.parent_titulo ?? "").toLowerCase().includes(q) ||
+      (t.codigo ?? "").toLowerCase().includes(q) ||
+      (t.status ?? "").toLowerCase().includes(q) ||
       (t.ultima_mensagem ?? "").toLowerCase().includes(q),
   );
 }
@@ -157,5 +203,54 @@ export function useTarefaChatPreferencia() {
     },
     onError: (e: any) =>
       toast.error(e?.message ?? "Falha ao atualizar preferência"),
+  });
+}
+
+/**
+ * Mutation em lote para silenciar/arquivar várias conversas de uma vez.
+ * Usa RPC `rpc_tarefa_chat_set_preferencia_bulk` que aplica de forma atômica
+ * e dispara o trigger de auditoria para cada tarefa alterada.
+ */
+export function useTarefaChatPreferenciaBulk() {
+  const qc = useQueryClient();
+  const { user } = useAuth();
+  return useMutation({
+    mutationFn: async (args: {
+      tarefaIds: string[];
+      muted?: boolean;
+      archived?: boolean;
+    }) => {
+      if (!user) throw new Error("Sessão expirada");
+      if (!args.tarefaIds.length) return 0;
+      const { data, error } = await (supabase as any).rpc(
+        "rpc_tarefa_chat_set_preferencia_bulk",
+        {
+          p_tarefa_ids: args.tarefaIds,
+          p_muted: typeof args.muted === "boolean" ? args.muted : null,
+          p_archived: typeof args.archived === "boolean" ? args.archived : null,
+        },
+      );
+      if (error) throw error;
+      return (data as number) ?? args.tarefaIds.length;
+    },
+    onSuccess: (count, vars) => {
+      qc.invalidateQueries({ queryKey: ["chat-tarefas", user?.id] });
+      const n = Number(count) || vars.tarefaIds.length;
+      if (typeof vars.muted === "boolean") {
+        toast.success(
+          vars.muted
+            ? `${n} conversa(s) silenciada(s)`
+            : `Notificações reativadas em ${n} conversa(s)`,
+        );
+      } else if (typeof vars.archived === "boolean") {
+        toast.success(
+          vars.archived
+            ? `${n} conversa(s) arquivada(s)`
+            : `${n} conversa(s) restaurada(s)`,
+        );
+      }
+    },
+    onError: (e: any) =>
+      toast.error(e?.message ?? "Falha ao aplicar ação em lote"),
   });
 }

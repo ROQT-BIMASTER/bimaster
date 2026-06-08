@@ -36520,6 +36520,45 @@ export type Database = {
           },
         ]
       }
+      projeto_tarefa_chat_preferencias_audit: {
+        Row: {
+          action: string
+          changed_by: string
+          created_at: string
+          id: string
+          new_archived: boolean | null
+          new_muted: boolean | null
+          previous_archived: boolean | null
+          previous_muted: boolean | null
+          tarefa_id: string
+          user_id: string
+        }
+        Insert: {
+          action: string
+          changed_by: string
+          created_at?: string
+          id?: string
+          new_archived?: boolean | null
+          new_muted?: boolean | null
+          previous_archived?: boolean | null
+          previous_muted?: boolean | null
+          tarefa_id: string
+          user_id: string
+        }
+        Update: {
+          action?: string
+          changed_by?: string
+          created_at?: string
+          id?: string
+          new_archived?: boolean | null
+          new_muted?: boolean | null
+          previous_archived?: boolean | null
+          previous_muted?: boolean | null
+          tarefa_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       projeto_tarefa_colaboradores: {
         Row: {
           created_at: string | null
@@ -52147,6 +52186,14 @@ export type Database = {
       rpc_tarefa_chat_marcar_lida: {
         Args: { p_tarefa_id: string }
         Returns: undefined
+      }
+      rpc_tarefa_chat_set_preferencia_bulk: {
+        Args: {
+          p_archived?: boolean
+          p_muted?: boolean
+          p_tarefa_ids: string[]
+        }
+        Returns: number
       }
       rpc_translation_cache_get_batch: {
         Args: { p_hashes: string[] }
