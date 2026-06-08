@@ -1736,6 +1736,8 @@ export function ProjetoTarefaDetalhe({
           onUpdate={onUpdate}
           onToggle={onToggle}
           onAddSubtarefa={onAddSubtarefa}
+          onDelete={onDelete}
+          onOpenSubtarefa={(subId) => setSelectedSubtarefaId(subId)}
           secoes={secoes}
           projetoTipo={projetoTipo}
           externalSaving={externalSaving}
