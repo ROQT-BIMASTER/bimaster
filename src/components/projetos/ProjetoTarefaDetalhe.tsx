@@ -258,6 +258,7 @@ export function ProjetoTarefaDetalhe({
   const { briefing: tarefaBriefing, saveBriefing: saveTarefaBriefing, deleteBriefing: deleteTarefaBriefing } = useProjetoBriefing(tarefa?.id);
   const { data: chinaVinculo } = useProjetoChinaVinculo(projetoId);
   const { membros: projetoMembros } = useProjetoMembros(projetoId);
+  const { canView: canViewUI } = useUIPermissions(TAREFA_DETALHE_TELA);
   const { data: projetoTipo } = useQuery({
     queryKey: ["projeto-tipo", projetoId],
     queryFn: async () => {
