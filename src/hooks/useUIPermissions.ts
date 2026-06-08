@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePermissions } from "@/contexts/PermissionsContext";
+import { useUserRole } from "@/hooks/useUserRole";
 import { logger } from "@/lib/logger";
 import { uniqueChannelName } from "@/lib/realtime/channelName";
 
@@ -17,16 +18,28 @@ interface UIPermissionRule {
 }
 
 /**
+ * Sentinel usado para indicar "regra global válida para todos os perfis".
+ * Quando o admin oculta um componente, a regra é gravada com role='__all__'
+ * e vale para qualquer usuário NÃO administrador.
+ */
+const GLOBAL_ROLE = "__all__";
+
+/**
  * Hook para controle granular de componentes/ações por tela.
- * Combina regras por role e por departamento (departamento sobrepõe role).
  *
- * Reflete mudanças do admin sem espera de cache:
+ * Modelo de visibilidade:
+ *  - Admin SEMPRE vê tudo (bypass total).
+ *  - Para os demais usuários, regras seguem precedência:
+ *      departamento > role específico > regra global (__all__) > default (visível)
+ *
+ * Reflete mudanças do admin quase em tempo real:
  *  - staleTime curto (60s) + refetchOnWindowFocus
  *  - assinatura Realtime em `public.ui_permissions` filtrada por `tela_codigo`
  */
 export function useUIPermissions(telaCodigo: string) {
   const { session } = useAuth();
   const { role } = usePermissions();
+  const { isAdmin } = useUserRole();
   const queryClient = useQueryClient();
 
   const { data: rules = [], isLoading } = useQuery({
@@ -42,11 +55,9 @@ export function useUIPermissions(telaCodigo: string) {
 
       const deptId = profile?.departamento_id;
 
-      const conditions: string[] = [];
+      const conditions: string[] = [`role.eq.${GLOBAL_ROLE}`];
       if (role) conditions.push(`role.eq.${role}`);
       if (deptId) conditions.push(`departamento_id.eq.${deptId}`);
-
-      if (conditions.length === 0) return [];
 
       const { data, error } = await supabase
         .from("ui_permissions")
@@ -91,21 +102,33 @@ export function useUIPermissions(telaCodigo: string) {
   }, [telaCodigo, session?.user?.id, queryClient]);
 
   const getRule = (componenteCodigo: string): UIPermissionRule | undefined => {
+    // Precedência: departamento > role específico > global
     const deptRule = rules.find(
-      (r) => r.componente_codigo === componenteCodigo && r.departamento_id != null
+      (r) => r.componente_codigo === componenteCodigo && r.departamento_id != null,
     );
     if (deptRule) return deptRule;
+
+    const roleRule = rules.find(
+      (r) =>
+        r.componente_codigo === componenteCodigo &&
+        r.role != null &&
+        r.role !== GLOBAL_ROLE,
+    );
+    if (roleRule) return roleRule;
+
     return rules.find(
-      (r) => r.componente_codigo === componenteCodigo && r.role != null
+      (r) => r.componente_codigo === componenteCodigo && r.role === GLOBAL_ROLE,
     );
   };
 
   const isComponentVisible = (componenteCodigo: string): boolean => {
+    if (isAdmin) return true;
     const rule = getRule(componenteCodigo);
     return rule ? rule.visivel : true;
   };
 
   const isComponentEditable = (componenteCodigo: string): boolean => {
+    if (isAdmin) return true;
     const rule = getRule(componenteCodigo);
     return rule ? rule.editavel : true;
   };

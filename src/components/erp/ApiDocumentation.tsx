@@ -3620,6 +3620,9 @@ def verify_signature(payload: bytes, signature: str, secret: str) -> bool:
 
                 <div className="border rounded-xl p-5 space-y-3">
                   {[
+                    { version: "v4.4.40 / SDK v3.3.1 / APP v3.5.13", date: "2026-06-08", changes: [
+                      "PROJETOS — Visibilidade do painel de Detalhe de Tarefa passa a ser GLOBAL: o que o admin oculta em `/dashboard/admin/visibilidade-detalhe-tarefa` fica oculto para TODOS os usuários (vendedor, supervisor, gerente, marketing, etc.). O administrador é automaticamente isento e continua vendo tudo (bypass em `useUIPermissions` via `useUserRole().isAdmin`). Regras são gravadas com sentinel `role='__all__'`/`departamento_id=null`. Tela ADM simplificada: removidos os seletores 'Por perfil' / 'Por departamento'; lista única com switch global por componente. Migration de dados consolida regras antigas (ex.: regras só de `vendedor`) em escopo global e remove as específicas. Precedência mantida no hook: departamento > role específico > global > default. Bump `APP_VERSION` 3.5.12 → 3.5.13. Invariante grep: `grep -n \"3.5.13\" src/lib/version.ts | wc -l` ≥ 1.",
+                    ] },
                     { version: "v4.4.39 / SDK v3.3.1 / APP v3.5.12", date: "2026-06-08", changes: [
                       "RELEASE — Bump `APP_VERSION` 3.5.11 → 3.5.12 consolidando o fix de visibilidade do painel Minhas Tarefas (Realtime em `ui_permissions` + `useUIPermissions` consumido por `MinhasTarefaDetail`). Invariante grep: `grep -n \"3.5.12\" src/lib/version.ts | wc -l` ≥ 1.",
                     ] },
