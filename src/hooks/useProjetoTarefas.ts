@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { uniqueChannelName } from "@/lib/realtime/channelName";
 import { registrarAuditoriaTarefa } from "@/lib/projetos/auditoriaTarefa";
 import { todayBR, nowSaoPauloISO } from "@/lib/utils/parseLocalDate";
+import { isDetailGateActive, subscribeDetailGate } from "@/hooks/projetoTarefasOpenGate";
 
 export interface ProjetoSecao {
   id: string;
@@ -269,13 +270,25 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
   // como a signature em ProjetoListView compara campos relevantes, não há
   // remount do painel de detalhe.
   const reconcileTimerRef = useRef<number | null>(null);
+  const reconcilePendingRef = useRef(false);
   const scheduleReconcile = (delayMs: number = 600) => {
     if (!projetoId) return;
+    // Enquanto houver um painel de detalhe / Modo Foco aberto neste projeto,
+    // NÃO refetchamos a query principal — a edição já está aplicada via
+    // patch otimista no cache; um refetch ativo aqui troca a referência da
+    // lista e causa "piscar / F5 visual" e (no caso do foco) pode derrubar
+    // o Dialog em alguns caminhos de re-render. A reconciliação fica
+    // pendente e é flushada quando o último gate liberar.
+    if (isDetailGateActive(projetoId)) {
+      reconcilePendingRef.current = true;
+      return;
+    }
     if (reconcileTimerRef.current) {
       window.clearTimeout(reconcileTimerRef.current);
     }
     reconcileTimerRef.current = window.setTimeout(() => {
       reconcileTimerRef.current = null;
+      reconcilePendingRef.current = false;
       void queryClient.refetchQueries({
         queryKey: ["projeto-tarefas-v2", projetoId],
         type: "active",
@@ -291,6 +304,21 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
       }
     };
   }, []);
+  // Flush diferido: quando o último painel/foco fecha, se há reconciliação
+  // pendente, dispara um refetch silencioso para alinhar com o backend.
+  useEffect(() => {
+    if (!projetoId) return;
+    return subscribeDetailGate(() => {
+      if (!reconcilePendingRef.current) return;
+      if (isDetailGateActive(projetoId)) return;
+      reconcilePendingRef.current = false;
+      void queryClient.refetchQueries({
+        queryKey: ["projeto-tarefas-v2", projetoId],
+        type: "active",
+        exact: true,
+      });
+    });
+  }, [projetoId, queryClient]);
 
 
   // Movement history for ghost rows (kept separate — small payload)

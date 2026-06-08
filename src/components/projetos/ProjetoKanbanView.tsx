@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import { acquireReloadGate, releaseReloadGate } from "@/lib/pwaReloadGate";
+import { acquireDetailGate, releaseDetailGate } from "@/hooks/projetoTarefasOpenGate";
 import { useProjetoTarefas, ProjetoTarefa, ProjetoSecao } from "@/hooks/useProjetoTarefas";
 import { ProjetoFilters, ProjetoSort, EMPTY_FILTERS, DEFAULT_SORT } from "./ProjetoFilterSort";
 import { applyProjetoFilters, applyProjetoSort, hasActiveFilters } from "@/lib/projetoFilterUtils";
@@ -133,8 +134,12 @@ export function ProjetoKanbanView({ projetoId, darkBg = false, filters = EMPTY_F
   useEffect(() => {
     if (!selectedTarefaId) return;
     acquireReloadGate();
-    return () => releaseReloadGate();
-  }, [selectedTarefaId]);
+    acquireDetailGate(projetoId);
+    return () => {
+      releaseReloadGate();
+      releaseDetailGate(projetoId);
+    };
+  }, [selectedTarefaId, projetoId]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [overColumnId, setOverColumnId] = useState<string | null>(null);
   const [quickAddSecaoId, setQuickAddSecaoId] = useState<string | null>(null);

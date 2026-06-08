@@ -78,6 +78,7 @@ import { CentralChip } from "@/components/projetos/central/CentralChips";
 import { BarChart3, RotateCcw, Trash2 } from "lucide-react";
 import type { ProjetoTarefa, ProjetoSecao } from "@/hooks/useProjetoTarefas";
 import { registrarAuditoriaTarefa } from "@/lib/projetos/auditoriaTarefa";
+import { acquireDetailGate, releaseDetailGate } from "@/hooks/projetoTarefasOpenGate";
 
 const ListRow = memo(function ListRow({
   tarefa, onToggle, onSelect, selected, onSelectToggle, messageCount,
@@ -504,6 +505,14 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
 
   const selectedProjetoId = detailTarefa?.projeto_id;
   const detailTarefaId = detailTarefa?.id;
+
+  // Gate: enquanto a tarefa estiver aberta na Central, evita refetch ativo
+  // de `projeto-tarefas-v2` causando piscar e fechamento colateral do foco.
+  useEffect(() => {
+    if (!detailOpen || !selectedProjetoId) return;
+    acquireDetailGate(selectedProjetoId);
+    return () => releaseDetailGate(selectedProjetoId);
+  }, [detailOpen, selectedProjetoId]);
 
   // Subtarefas ao vivo da tarefa aberta — alimenta o Focus Mode sem precisar
   // fechar/reabrir o modal a cada nova subtarefa.

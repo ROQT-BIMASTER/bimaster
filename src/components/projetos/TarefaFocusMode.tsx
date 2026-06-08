@@ -1,6 +1,7 @@
 import { secureDownload } from "@/lib/utils/secure-download";
 import { useState, useRef, useEffect, useMemo } from "react";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -14,6 +15,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ProjetoTarefa, ProjetoSecao as ProjetoSecaoType } from "@/hooks/useProjetoTarefas";
+import { acquireDetailGate, releaseDetailGate } from "@/hooks/projetoTarefasOpenGate";
 import { useProjetoTarefaDetalhe } from "@/hooks/useProjetoTarefaDetalhe";
 import { useProjetoTarefaMetas } from "@/hooks/useProjetoTarefaMetas";
 import { TaskEvolutionChart } from "./TaskEvolutionChart";
@@ -202,6 +204,15 @@ export function TarefaFocusMode({
     if (tarefa) setDescValue(tarefa.descricao || "");
   }, [tarefa?.id]);
 
+  // Gate adicional: mantém o detalhe travado enquanto o Foco estiver aberto,
+  // independente do pai. Garante zero refetch ativo na lista durante edições.
+  const focusProjetoId = (tarefa as any)?.projeto_id as string | undefined;
+  useEffect(() => {
+    if (!open || !focusProjetoId) return;
+    acquireDetailGate(focusProjetoId);
+    return () => releaseDetailGate(focusProjetoId);
+  }, [open, focusProjetoId]);
+
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
@@ -355,6 +366,12 @@ export function TarefaFocusMode({
           // Mantém comportamento padrão (fechar).
         }}
       >
+        <VisuallyHidden>
+          <DialogTitle>Modo Foco — {tarefa.titulo}</DialogTitle>
+          <DialogDescription>
+            Visualização ampliada da tarefa com edição inline de status, prioridade, estágio, responsável, subtarefas e anexos. Use o botão Sair do Foco ou Esc para fechar.
+          </DialogDescription>
+        </VisuallyHidden>
         {/* Header */}
         <div
           className="flex items-center gap-3 px-6 py-3 border-b border-border/50 flex-shrink-0"
