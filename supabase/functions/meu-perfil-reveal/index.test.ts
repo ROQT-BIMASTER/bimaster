@@ -270,3 +270,112 @@ Deno.test({
     await cleanupAttemptsAndGrants(userId);
   },
 });
+
+// ---------------------------------------------------------------------------
+// 8) Bloqueio temporário é removido automaticamente após expirar a janela
+//    de rate limit (10 min) — a senha correta volta a liberar o campo.
+//    Simulamos a passagem do tempo empurrando `attempted_at` das 5 falhas
+//    para fora da janela de 10 min.
+// ---------------------------------------------------------------------------
+Deno.test({
+  name: "bloqueio temporário expira após TTL e senha correta volta a funcionar",
+  ignore: !(hasRealCreds && hasService),
+  fn: async () => {
+    const jwt = await loginAsTestUser();
+    const supa = createClient(SUPABASE_URL, ANON_KEY, {
+      global: { headers: { Authorization: `Bearer ${jwt}` } },
+    });
+    const userId = (await supa.auth.getUser()).data.user!.id;
+    const admin = createClient(SUPABASE_URL, SERVICE_ROLE);
+    await cleanupAttemptsAndGrants(userId);
+
+    // (a) Dispara 5 falhas para acionar lockout.
+    for (let i = 0; i < 5; i++) {
+      const r = await call({ field: "cpf", password: `errada-${i}` }, { jwt });
+      assertEquals(r.status, 401);
+    }
+    // (b) Confirma lockout: senha correta é bloqueada com 429.
+    const blocked = await call(
+      { field: "cpf", password: TEST_PASSWORD },
+      { jwt },
+    );
+    assertEquals(blocked.status, 429);
+    assertEquals(blocked.json.value, undefined);
+
+    // (c) Simula expiração do TTL de bloqueio: envelhece todas as falhas
+    //     para 11 minutos atrás (fora da janela de rate limit de 10 min).
+    const past = new Date(Date.now() - 11 * 60_000).toISOString();
+    const { error: updErr } = await admin
+      .from("profile_reveal_attempts")
+      .update({ attempted_at: past })
+      .eq("user_id", userId)
+      .eq("success", false);
+    assertEquals(updErr, null);
+
+    // (d) Senha correta deve voltar a liberar o campo, dentro do TTL de 30s.
+    const ok = await call(
+      { field: "cpf", password: TEST_PASSWORD },
+      { jwt },
+    );
+    assertEquals(ok.status, 200, `esperava 200, recebi ${ok.status}: ${JSON.stringify(ok.json)}`);
+    assertEquals(ok.json.field, "cpf");
+    assertEquals(ok.json.ttl_seconds, 30);
+    assert(ok.json.grant_id, "grant_id ausente após desbloqueio");
+    assert(ok.json.value, "value ausente após desbloqueio");
+
+    // expires_at deve estar a no máximo ~30s no futuro.
+    const msToExpiry = new Date(ok.json.expires_at).getTime() - Date.now();
+    assert(msToExpiry > 0 && msToExpiry <= 30_000 + 2_000,
+      `expires_at fora do TTL esperado: ${msToExpiry}ms`);
+
+    await cleanupAttemptsAndGrants(userId);
+  },
+});
+
+// ---------------------------------------------------------------------------
+// 9) Durante o bloqueio, a senha correta NÃO libera o campo. Só após expirar
+//    a janela de bloqueio a mesma senha volta a funcionar — confirma que o
+//    desbloqueio é puramente temporal, não depende de "limpar" tentativas.
+// ---------------------------------------------------------------------------
+Deno.test({
+  name: "senha correta é bloqueada durante lockout e liberada após expirar",
+  ignore: !(hasRealCreds && hasService),
+  fn: async () => {
+    const jwt = await loginAsTestUser();
+    const supa = createClient(SUPABASE_URL, ANON_KEY, {
+      global: { headers: { Authorization: `Bearer ${jwt}` } },
+    });
+    const userId = (await supa.auth.getUser()).data.user!.id;
+    const admin = createClient(SUPABASE_URL, SERVICE_ROLE);
+    await cleanupAttemptsAndGrants(userId);
+
+    for (let i = 0; i < 5; i++) {
+      await call({ field: "rg", password: `errada-${i}` }, { jwt });
+    }
+    const stillBlocked = await call(
+      { field: "rg", password: TEST_PASSWORD },
+      { jwt },
+    );
+    assertEquals(stillBlocked.status, 429);
+    assertEquals(stillBlocked.json.value, undefined);
+
+    // Envelhece as falhas para fora da janela (sem deletar) — o desbloqueio
+    // é função apenas do tempo decorrido.
+    const past = new Date(Date.now() - 11 * 60_000).toISOString();
+    await admin
+      .from("profile_reveal_attempts")
+      .update({ attempted_at: past })
+      .eq("user_id", userId)
+      .eq("success", false);
+
+    const released = await call(
+      { field: "rg", password: TEST_PASSWORD },
+      { jwt },
+    );
+    assertEquals(released.status, 200);
+    assertEquals(released.json.field, "rg");
+    assert(released.json.value, "value ausente após desbloqueio temporal");
+
+    await cleanupAttemptsAndGrants(userId);
+  },
+});
