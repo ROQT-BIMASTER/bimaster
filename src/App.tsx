@@ -852,6 +852,7 @@ function AppContent() {
               <Route path="/dashboard/admin/security/hardening-v2" element={<ScreenRoute screenCode="admin"><SecurityHardeningCenterV2 /></ScreenRoute>} />
               <Route path="/dashboard/security/mfa" element={<ProtectedRoute><MfaSettingsPage /></ProtectedRoute>} />
               <Route path="/dashboard/projetos/admin/visibilidade" element={<ScreenRoute screenCode="admin"><VisibilidadeTarefas /></ScreenRoute>} />
+              <Route path="/dashboard/admin/visibilidade-detalhe-tarefa" element={<ScreenRoute screenCode="admin"><VisibilidadeDetalheTarefa /></ScreenRoute>} />
               <Route path="/dashboard/ajuda/projetos-visibilidade" element={<ProtectedRoute><VisibilidadeProjetosAjuda /></ProtectedRoute>} />
              <Route path="/dashboard/projetos/:id" element={<ModuleRoute moduleCode="projetos"><ScreenProtectedRoute screenCode="projetos_dashboard"><ProjetoDetalhe /></ScreenProtectedRoute></ModuleRoute>} />
              <Route path="/dashboard/projetos/:id/produtividade" element={<ModuleRoute moduleCode="projetos"><ScreenProtectedRoute screenCode="projetos_dashboard"><ProdutividadeProjeto /></ScreenProtectedRoute></ModuleRoute>} />
