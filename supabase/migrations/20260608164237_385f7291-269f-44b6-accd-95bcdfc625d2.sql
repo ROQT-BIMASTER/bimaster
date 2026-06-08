@@ -1,0 +1,2 @@
+ALTER TABLE public.rrtask_sync_log DROP CONSTRAINT rrtask_sync_log_action_check;
+ALTER TABLE public.rrtask_sync_log ADD CONSTRAINT rrtask_sync_log_action_check CHECK (action = ANY (ARRAY['create'::text, 'update'::text, 'poll'::text, 'error'::text, 'webhook'::text, 'devolucao_resend'::text, 'docs_sync'::text]));
