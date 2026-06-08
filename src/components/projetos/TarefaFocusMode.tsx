@@ -127,7 +127,7 @@ export function TarefaFocusMode({
   const confirm = useConfirm();
   const {
     comentarios, addComentario, anexos, uploadAnexo, deleteAnexo, getAnexoUrl,
-    messages, sendMessage, sendToCofre, teamMembers, linkedProduto, searchProdutos,
+    messages, sendMessage, sendToCofre, removeFromCofre, teamMembers, linkedProduto, searchProdutos,
   } = useProjetoTarefaDetalhe(tarefa?.id, (tarefa as any)?.produto_id);
   const { metas, addMeta, toggleMeta, deleteMeta } = useProjetoTarefaMetas(tarefa?.id);
   const { user } = useAuth();
