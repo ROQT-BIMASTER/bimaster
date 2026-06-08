@@ -34600,6 +34600,8 @@ export type Database = {
         Row: {
           aprovado: boolean
           avatar_url: string | null
+          cargo: string | null
+          cpf: string | null
           created_at: string | null
           departamento_id: string | null
           email: string
@@ -34608,6 +34610,7 @@ export type Database = {
           is_honeytoken: boolean
           nome: string
           preferred_language: string
+          rg: string | null
           status: string
           supervisor_id: string | null
           telefone: string | null
@@ -34617,6 +34620,8 @@ export type Database = {
         Insert: {
           aprovado?: boolean
           avatar_url?: string | null
+          cargo?: string | null
+          cpf?: string | null
           created_at?: string | null
           departamento_id?: string | null
           email: string
@@ -34625,6 +34630,7 @@ export type Database = {
           is_honeytoken?: boolean
           nome: string
           preferred_language?: string
+          rg?: string | null
           status?: string
           supervisor_id?: string | null
           telefone?: string | null
@@ -34634,6 +34640,8 @@ export type Database = {
         Update: {
           aprovado?: boolean
           avatar_url?: string | null
+          cargo?: string | null
+          cpf?: string | null
           created_at?: string | null
           departamento_id?: string | null
           email?: string
@@ -34642,6 +34650,7 @@ export type Database = {
           is_honeytoken?: boolean
           nome?: string
           preferred_language?: string
+          rg?: string | null
           status?: string
           supervisor_id?: string | null
           telefone?: string | null

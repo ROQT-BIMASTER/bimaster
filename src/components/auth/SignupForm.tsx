@@ -1,46 +1,147 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Eye, EyeOff, UserPlus } from "lucide-react";
+import { Eye, EyeOff, UserPlus, Camera, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { logger } from "@/lib/logger";
 import { toast } from "sonner";
 
+// -----------------------------------------------------------------------------
+// Máscaras e validações locais (sem nova dependência)
+// -----------------------------------------------------------------------------
+const onlyDigits = (s: string) => s.replace(/\D+/g, "");
+
+const maskCPF = (s: string) => {
+  const d = onlyDigits(s).slice(0, 11);
+  return d
+    .replace(/^(\d{3})(\d)/, "$1.$2")
+    .replace(/^(\d{3})\.(\d{3})(\d)/, "$1.$2.$3")
+    .replace(/\.(\d{3})(\d)/, ".$1-$2");
+};
+
+const maskTelefone = (s: string) => {
+  const d = onlyDigits(s).slice(0, 11);
+  if (d.length <= 10) {
+    return d
+      .replace(/^(\d{2})(\d)/, "($1) $2")
+      .replace(/(\d{4})(\d)/, "$1-$2");
+  }
+  return d
+    .replace(/^(\d{2})(\d)/, "($1) $2")
+    .replace(/(\d{5})(\d)/, "$1-$2");
+};
+
+const isValidCPF = (raw: string) => {
+  const cpf = onlyDigits(raw);
+  if (cpf.length !== 11) return false;
+  if (/^(\d)\1{10}$/.test(cpf)) return false;
+  let sum = 0;
+  for (let i = 0; i < 9; i++) sum += parseInt(cpf[i], 10) * (10 - i);
+  let dv1 = 11 - (sum % 11);
+  if (dv1 >= 10) dv1 = 0;
+  if (dv1 !== parseInt(cpf[9], 10)) return false;
+  sum = 0;
+  for (let i = 0; i < 10; i++) sum += parseInt(cpf[i], 10) * (11 - i);
+  let dv2 = 11 - (sum % 11);
+  if (dv2 >= 10) dv2 = 0;
+  return dv2 === parseInt(cpf[10], 10);
+};
+
+// -----------------------------------------------------------------------------
+
 const signupSchema = z.object({
-  nome: z
+  nome: z.string().trim().min(2, "Informe seu nome completo").max(120),
+  cargo: z.string().trim().min(2, "Informe seu cargo ou função").max(100),
+  email: z.string().trim().email("Email inválido").max(255).toLowerCase(),
+  telefone: z
     .string()
     .trim()
-    .min(2, "Informe seu nome completo")
-    .max(120, "Nome deve ter no máximo 120 caracteres"),
-  email: z
+    .refine((v) => onlyDigits(v).length >= 10 && onlyDigits(v).length <= 11, {
+      message: "Telefone inválido (use DDD + número)",
+    }),
+  cpf: z
     .string()
     .trim()
-    .email("Email inválido")
-    .max(255, "Email deve ter no máximo 255 caracteres")
-    .toLowerCase(),
-  password: z
-    .string()
-    .min(8, "A senha deve ter no mínimo 8 caracteres")
-    .max(100, "A senha deve ter no máximo 100 caracteres"),
+    .refine((v) => isValidCPF(v), { message: "CPF inválido" }),
+  rg: z.string().trim().min(4, "Informe um RG válido").max(20),
+  password: z.string().min(8, "A senha deve ter no mínimo 8 caracteres").max(100),
   confirmPassword: z.string(),
 }).strict().refine((d) => d.password === d.confirmPassword, {
   message: "As senhas não coincidem",
   path: ["confirmPassword"],
 });
 
+const ALLOWED_AVATAR_TYPES = ["image/png", "image/jpeg", "image/webp"];
+const MAX_AVATAR_BYTES = 2 * 1024 * 1024;
+
 export const SignupForm = () => {
   const navigate = useNavigate();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const [nome, setNome] = useState("");
+  const [cargo, setCargo] = useState("");
   const [email, setEmail] = useState("");
+  const [telefone, setTelefone] = useState("");
+  const [cpf, setCpf] = useState("");
+  const [rg, setRg] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [honeypot, setHoneypot] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+
+  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!ALLOWED_AVATAR_TYPES.includes(file.type)) {
+      toast.error("Formato inválido", { description: "Use PNG, JPG ou WebP." });
+      return;
+    }
+    if (file.size > MAX_AVATAR_BYTES) {
+      toast.error("Imagem muito grande", { description: "O limite é 2 MB." });
+      return;
+    }
+    setAvatarFile(file);
+    const reader = new FileReader();
+    reader.onload = () => setAvatarPreview(typeof reader.result === "string" ? reader.result : null);
+    reader.readAsDataURL(file);
+  };
+
+  const clearAvatar = () => {
+    setAvatarFile(null);
+    setAvatarPreview(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const uploadAvatar = async (userId: string) => {
+    if (!avatarFile) return;
+    try {
+      const ext = avatarFile.name.split(".").pop()?.toLowerCase() || "png";
+      const path = `${userId}/avatar-${Date.now()}.${ext}`;
+      const { error: upErr } = await supabase.storage
+        .from("avatars")
+        .upload(path, avatarFile, { upsert: true, contentType: avatarFile.type });
+      if (upErr) {
+        logger.error("[SignupForm] avatar upload:", upErr.message);
+        toast.warning("Foto não enviada", { description: "Você poderá enviar a foto depois pelo seu perfil." });
+        return;
+      }
+      const { error: updErr } = await supabase
+        .from("profiles")
+        .update({ avatar_url: path })
+        .eq("id", userId);
+      if (updErr) logger.error("[SignupForm] avatar profile update:", updErr.message);
+    } catch (e) {
+      logger.error("[SignupForm] avatar exception:", e);
+    }
+  };
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -52,14 +153,25 @@ export const SignupForm = () => {
     }
 
     try {
-      const validated = signupSchema.parse({ nome, email, password, confirmPassword });
+      const validated = signupSchema.parse({
+        nome, cargo, email, telefone, cpf, rg, password, confirmPassword,
+      });
       setLoading(true);
+
+      const cpfDigits = onlyDigits(validated.cpf);
+      const telefoneDigits = onlyDigits(validated.telefone);
 
       const { data, error } = await supabase.auth.signUp({
         email: validated.email,
         password: validated.password,
         options: {
-          data: { nome: validated.nome },
+          data: {
+            nome: validated.nome,
+            cargo: validated.cargo,
+            telefone: telefoneDigits,
+            cpf: cpfDigits,
+            rg: validated.rg,
+          },
           emailRedirectTo: `${window.location.origin}/aguardando-aprovacao`,
         },
       });
@@ -67,9 +179,7 @@ export const SignupForm = () => {
       if (error) {
         const msg = error.message?.toLowerCase() ?? "";
         if (msg.includes("already") || msg.includes("registered") || msg.includes("exists")) {
-          toast.error("Email já cadastrado", {
-            description: "Use o link 'Entrar' ou recupere sua senha.",
-          });
+          toast.error("Email já cadastrado", { description: "Use o link 'Entrar' ou recupere sua senha." });
         } else if (msg.includes("password")) {
           toast.error("Senha não atende aos requisitos", { description: error.message });
         } else {
@@ -78,7 +188,11 @@ export const SignupForm = () => {
         return;
       }
 
-      // Se o e-mail já foi confirmado automaticamente, tentamos logar e cair na fila de aprovação.
+      const userId = data.user?.id ?? null;
+
+      // Faz upload do avatar (se houver) — não bloqueia o fluxo em caso de erro.
+      if (userId) await uploadAvatar(userId);
+
       if (data.session) {
         toast.success("Cadastro realizado", {
           description: "Sua conta está aguardando aprovação do administrador.",
@@ -87,7 +201,6 @@ export const SignupForm = () => {
         return;
       }
 
-      // Fallback: caso a sessão não venha (ex.: confirmação por e-mail ativada)
       const { error: loginError } = await supabase.auth.signInWithPassword({
         email: validated.email,
         password: validated.password,
@@ -101,16 +214,22 @@ export const SignupForm = () => {
         return;
       }
 
+      if (avatarFile) {
+        // Re-tenta upload caso o primeiro tenha falhado por ausência de sessão.
+        const { data: sessData } = await supabase.auth.getUser();
+        if (sessData.user?.id) await uploadAvatar(sessData.user.id);
+      }
+
       toast.success("Cadastro realizado", {
         description: "Sua conta está aguardando aprovação do administrador.",
       });
       navigate("/aguardando-aprovacao", { replace: true });
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        toast.error("Erro de validação", { description: error.errors[0].message });
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        toast.error("Erro de validação", { description: err.errors[0].message });
         return;
       }
-      logger.error("[SignupForm] erro:", error);
+      logger.error("[SignupForm] erro");
       toast.error("Erro ao criar conta", { description: "Tente novamente em instantes." });
     } finally {
       setLoading(false);
@@ -130,72 +249,93 @@ export const SignupForm = () => {
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSignup} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="nome">Nome completo</Label>
-            <Input
-              id="nome"
-              type="text"
-              placeholder="Seu nome"
-              value={nome}
-              onChange={(e) => setNome(e.target.value)}
-              required
-              maxLength={120}
-              autoComplete="name"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="email">Email corporativo</Label>
-            <Input
-              id="email"
-              type="email"
-              placeholder="seu@email.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              maxLength={255}
-              autoComplete="email"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="password">Senha</Label>
-            <div className="relative">
-              <Input
-                id="password"
-                type={showPassword ? "text" : "password"}
-                placeholder="Mínimo 8 caracteres"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                maxLength={100}
-                autoComplete="new-password"
-                className="pr-10"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                tabIndex={-1}
-                aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
-              >
-                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-              </button>
+          {/* Avatar */}
+          <div className="flex items-center gap-4">
+            <div className="relative h-16 w-16 rounded-full border border-border bg-muted overflow-hidden flex items-center justify-center">
+              {avatarPreview ? (
+                <img src={avatarPreview} alt="Pré-visualização da foto" className="h-full w-full object-cover" />
+              ) : (
+                <Camera className="h-6 w-6 text-muted-foreground" />
+              )}
+            </div>
+            <div className="flex-1">
+              <Label htmlFor="avatar" className="block mb-1">Foto de perfil</Label>
+              <div className="flex items-center gap-2">
+                <Input
+                  ref={fileInputRef}
+                  id="avatar"
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp"
+                  onChange={handleAvatarChange}
+                  className="text-xs file:mr-2 file:rounded file:border-0 file:bg-secondary file:text-secondary-foreground file:px-3 file:py-1"
+                />
+                {avatarFile && (
+                  <Button type="button" variant="ghost" size="icon" onClick={clearAvatar} aria-label="Remover foto">
+                    <X className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
+              <p className="text-[11px] text-muted-foreground mt-1">Opcional. PNG, JPG ou WebP até 2 MB.</p>
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="confirmPassword">Confirmar senha</Label>
-            <Input
-              id="confirmPassword"
-              type={showPassword ? "text" : "password"}
-              placeholder="Repita a senha"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              required
-              maxLength={100}
-              autoComplete="new-password"
-            />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="nome">Nome completo</Label>
+              <Input id="nome" value={nome} onChange={(e) => setNome(e.target.value)} required maxLength={120} autoComplete="name" placeholder="Seu nome" />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="cargo">Cargo / Função</Label>
+              <Input id="cargo" value={cargo} onChange={(e) => setCargo(e.target.value)} required maxLength={100} placeholder="Ex.: Analista Comercial" />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="email">Email corporativo</Label>
+              <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required maxLength={255} autoComplete="email" placeholder="seu@email.com" />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="telefone">Telefone</Label>
+              <Input id="telefone" inputMode="tel" value={telefone} onChange={(e) => setTelefone(maskTelefone(e.target.value))} required placeholder="(11) 99999-9999" autoComplete="tel" />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="cpf">CPF</Label>
+              <Input id="cpf" inputMode="numeric" value={cpf} onChange={(e) => setCpf(maskCPF(e.target.value))} required placeholder="000.000.000-00" autoComplete="off" />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="rg">RG</Label>
+              <Input id="rg" value={rg} onChange={(e) => setRg(e.target.value)} required maxLength={20} placeholder="Documento de identidade" autoComplete="off" />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="password">Senha</Label>
+              <div className="relative">
+                <Input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  maxLength={100}
+                  autoComplete="new-password"
+                  className="pr-10"
+                  placeholder="Mínimo 8 caracteres"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  tabIndex={-1}
+                  aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="confirmPassword">Confirmar senha</Label>
+              <Input id="confirmPassword" type={showPassword ? "text" : "password"} value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required maxLength={100} autoComplete="new-password" placeholder="Repita a senha" />
+            </div>
           </div>
 
           {/* Honeypot */}
