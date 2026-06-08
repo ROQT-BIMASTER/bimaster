@@ -148,3 +148,48 @@ export function useCapacidadeMontagem(empresa: number | null, raizCod: number | 
     },
   });
 }
+
+export interface EstoqueUnificadoSkuRow {
+  empresa: number;
+  produto_raiz: number;
+  cod_produto: number;
+  nome_prod: string | null;
+  abrev_par: string | null;
+  codigo_barras_ean: string | null;
+  nivel: number | null; // 1=CX, 2=BX, 3=UN
+  pai_cod: number | null;
+  fator_pai_para_filho: number | null;
+  fator_un_acumulado: number;
+  saldo: number;
+  custo_total: number;
+  contribuicao_un: number;
+}
+
+/**
+ * Lista todos os SKUs (CX / BX / UN) que compõem um produto-raiz,
+ * incluindo o fator aplicado e a contribuição em unidades equivalentes.
+ * Permite ao usuário auditar item-a-item a memória de cálculo da linha-pai.
+ */
+export function useEstoqueUnificadoSkus(empresa: number | null, raiz: number | null) {
+  return useQuery({
+    queryKey: ['estoque-unificado-skus', empresa, raiz],
+    enabled: empresa != null && raiz != null,
+    staleTime: 60_000,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('vw_estoque_unificado_skus' as any)
+        .select('*')
+        .eq('empresa', empresa!)
+        .eq('produto_raiz', raiz!);
+      if (error) throw error;
+      const rows = (data ?? []) as unknown as EstoqueUnificadoSkuRow[];
+      // Ordena: nível asc (CX→BX→UN), depois pelo código
+      return rows.sort((a, b) => {
+        const na = a.nivel ?? 99;
+        const nb = b.nivel ?? 99;
+        if (na !== nb) return na - nb;
+        return a.cod_produto - b.cod_produto;
+      });
+    },
+  });
+}
