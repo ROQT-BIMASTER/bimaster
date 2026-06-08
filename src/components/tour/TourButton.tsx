@@ -7,6 +7,8 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { useTour } from "./TourProvider";
+import { FloatingActionSlot } from "@/components/ui/floating-action-dock";
+
 
 interface TourButtonProps {
   tourId: string;
