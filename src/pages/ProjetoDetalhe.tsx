@@ -32,6 +32,8 @@ import { ProcessoModulosResumoBanner } from "@/components/processos/ProcessoModu
 import { ProjetoChatTab } from "@/components/projetos/ProjetoChatTab";
 import { ProjetoCopilotPanel } from "@/components/projetos/ProjetoCopilotPanel";
 import { Sparkles, ExternalLink } from "lucide-react";
+import { FloatingActionSlot } from "@/components/ui/floating-action-dock";
+
 
 function isDarkColor(hex: string | null): boolean {
   if (!hex) return false;
