@@ -113,6 +113,10 @@ interface TarefaFocusModeProps {
   onUpdate: (id: string, updates: Partial<ProjetoTarefa>) => void;
   onToggle: (tarefa: ProjetoTarefa) => void;
   onAddSubtarefa?: (titulo: string, parentId: string, secaoId: string) => void;
+  /** Soft-delete handler (tarefa/subtarefa). */
+  onDelete?: (tarefaId: string) => void;
+  /** Abre o detalhe de uma subtarefa por cima do Modo Foco, sem fechá-lo. */
+  onOpenSubtarefa?: (subtarefaId: string) => void;
   secoes?: ProjetoSecaoType[];
   projetoTipo?: string;
   /** Persistência externa em andamento (bridge). Mostra "Salvando…" no header. */
@@ -122,7 +126,8 @@ interface TarefaFocusModeProps {
 }
 
 export function TarefaFocusMode({
-  tarefa, open, onOpenChange, onUpdate, onToggle, onAddSubtarefa, secoes = [], projetoTipo, externalSaving = false,
+  tarefa, open, onOpenChange, onUpdate, onToggle, onAddSubtarefa, onDelete, onOpenSubtarefa,
+  secoes = [], projetoTipo, externalSaving = false,
   requestExitFocus,
 }: TarefaFocusModeProps) {
   const confirm = useConfirm();
