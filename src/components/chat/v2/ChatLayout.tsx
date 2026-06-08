@@ -18,8 +18,8 @@ import { useSuporteAgenteTrigger } from "@/hooks/useSuporteAgenteTrigger";
 import { useAuth } from "@/contexts/AuthContext";
 import { useImpersonation } from "@/contexts/ImpersonationContext";
 
-/** Modo do chat: pessoas, submissões China, briefings ou projetos. */
-export type ChatModo = "pessoas" | "submissoes" | "briefings" | "projetos";
+/** Modo do chat: pessoas, submissões China, briefings, projetos ou tarefas. */
+export type ChatModo = "pessoas" | "submissoes" | "briefings" | "projetos" | "tarefas";
 
 interface Props {
   initialConversaId?: string | null;
