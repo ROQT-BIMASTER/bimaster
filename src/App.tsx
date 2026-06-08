@@ -368,6 +368,7 @@ const EstoqueSaldos = lazyWithRetry(() => import("./pages/EstoqueSaldos"));
 const EstoqueConsolidado = lazyWithRetry(() => import("./pages/EstoqueConsolidado"));
 const EstoqueVinculacoes = lazyWithRetry(() => import("./pages/EstoqueVinculacoes"));
 const FluxoAprovacaoConfig = lazyWithRetry(() => import("./pages/FluxoAprovacaoConfig"));
+const BriefingsFluxosPadrao = lazyWithRetry(() => import("./pages/admin/BriefingsFluxosPadrao"));
 const ChecklistComposicao = lazyWithRetry(() => import("./pages/ChecklistComposicao"));
 const RecebimentoAmostra = lazyWithRetry(() => import("./pages/RecebimentoAmostra"));
 const AnaliseEmbalagem = lazyWithRetry(() => import("./pages/AnaliseEmbalagem"));
@@ -754,6 +755,7 @@ function AppContent() {
             {/* Templates de Alçadas de Aprovação (configuração admin do motor reutilizado pelo Kanban dentro da tarefa) */}
             <Route path="/dashboard/aprovacao-artes/configuracao" element={<ModuleRoute moduleCode="aprovacao_artes"><ScreenProtectedRoute screenCode="aprovacao_artes_config"><FluxoAprovacaoConfig /></ScreenProtectedRoute></ModuleRoute>} />
             <Route path="/admin/templates-alcadas" element={<ScreenRoute screenCode="admin"><FluxoAprovacaoConfig /></ScreenRoute>} />
+            <Route path="/admin/briefings-fluxos" element={<ScreenRoute screenCode="admin"><BriefingsFluxosPadrao /></ScreenRoute>} />
             <Route path="/admin/versoes-clientes" element={<ScreenRoute screenCode="admin"><VersoesClientes /></ScreenRoute>} />
             <Route path="/admin/cofre-templates" element={<ScreenRoute screenCode="admin"><CofreTemplates /></ScreenRoute>} />
             <Route path="/admin/integracoes/google-drive" element={<ScreenRoute screenCode="admin"><IntegracaoGoogleDrive /></ScreenRoute>} />
