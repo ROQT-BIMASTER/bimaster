@@ -33,6 +33,7 @@ import { BriefingVersoesTimeline } from "@/components/briefings/BriefingVersoesT
 import { AnexarEvidenciaDialog } from "@/components/briefings/cofre/AnexarEvidenciaDialog";
 import { AttachImageButton, type ChatAttachment } from "@/components/briefings/chat/AttachImageButton";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { BriefingAprovacaoBanner } from "@/components/briefings/BriefingAprovacaoBanner";
 
 export default function BriefingWorkspace() {
   const { id } = useParams<{ id: string }>();
@@ -40,6 +41,7 @@ export default function BriefingWorkspace() {
   const [searchParams] = useSearchParams();
   const deepLinkCampo = searchParams.get("campo");
   const deepLinkComentario = searchParams.get("comentario");
+  const aprovacaoItemId = searchParams.get("aprovacao");
   const { briefing, sections, messages, loading, sending, enviar, recarregar } =
     useBriefingChat(id);
   const { enviando: rrtaskEnviando, enviarParaRRTask } = useRRTask();
@@ -129,7 +131,7 @@ export default function BriefingWorkspace() {
     if (!sending) textareaRef.current?.focus();
   }, [sending, messages.length]);
 
-  const readOnly = briefing?.status === "em_aprovacao";
+  const readOnly = briefing?.status === "em_aprovacao" || !!aprovacaoItemId;
 
   const handleSubmit = async (e?: React.FormEvent) => {
     e?.preventDefault();
@@ -393,6 +395,7 @@ export default function BriefingWorkspace() {
         {/* Canvas */}
         <ScrollArea className="min-h-0 bg-muted/30">
           <div className="p-6 max-w-3xl mx-auto space-y-5">
+            {aprovacaoItemId && <BriefingAprovacaoBanner itemId={aprovacaoItemId} />}
             {briefing.status === "em_aprovacao" && (
               <AprovacaoTimeline briefingId={briefing.id} refreshKey={aprovRefresh} />
             )}

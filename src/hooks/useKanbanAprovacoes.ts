@@ -15,6 +15,13 @@ export type EscopoKanban =
   | { escopo: "projeto"; projetoId: string | undefined; secaoId?: string | null }
   | { escopo: "secao"; secaoId: string | undefined };
 
+export type TipoOrigemItem =
+  | "briefing"
+  | "china_submissao"
+  | "documento_storage"
+  | "documento_externo"
+  | "outro";
+
 export interface KanbanItem {
   id: string;
   documento_id: string;
@@ -49,6 +56,10 @@ export interface KanbanItem {
   secao_nome: string | null;
   tarefa_titulo: string | null;
   lote_nome: string | null;
+  // origem do item (briefing, submissão china, documento, etc.)
+  briefing_id: string | null;
+  submissao_id: string | null;
+  tipo_origem: TipoOrigemItem;
 }
 
 export interface KanbanEtapa {
@@ -88,7 +99,7 @@ export function useKanbanAprovacoes(escopo: EscopoKanban) {
           projetos(nome),
           projeto_secoes(nome),
           projeto_tarefas(titulo),
-          fluxo_aprovacao_instancias(lote_nome)
+          fluxo_aprovacao_instancias(lote_nome, briefing_id, submissao_id)
         `)
         .order("created_at", { ascending: false });
 
@@ -161,6 +172,17 @@ export function useKanbanAprovacoes(escopo: EscopoKanban) {
         secao_nome: r.projeto_secoes?.nome ?? null,
         tarefa_titulo: r.projeto_tarefas?.titulo ?? null,
         lote_nome: r.fluxo_aprovacao_instancias?.lote_nome ?? null,
+        briefing_id: r.fluxo_aprovacao_instancias?.briefing_id ?? null,
+        submissao_id: r.fluxo_aprovacao_instancias?.submissao_id ?? null,
+        tipo_origem: (r.fluxo_aprovacao_instancias?.briefing_id
+          ? "briefing"
+          : r.fluxo_aprovacao_instancias?.submissao_id
+            ? "china_submissao"
+            : r.china_produto_documentos?.arquivo_path
+              ? "documento_storage"
+              : r.china_produto_documentos?.arquivo_url
+                ? "documento_externo"
+                : "outro") as TipoOrigemItem,
       }));
 
       // resolve nomes responsáveis
