@@ -368,6 +368,7 @@ const EstoqueSaldos = lazyWithRetry(() => import("./pages/EstoqueSaldos"));
 const EstoqueConsolidado = lazyWithRetry(() => import("./pages/EstoqueConsolidado"));
 const EstoqueVinculacoes = lazyWithRetry(() => import("./pages/EstoqueVinculacoes"));
 const FluxoAprovacaoConfig = lazyWithRetry(() => import("./pages/FluxoAprovacaoConfig"));
+const BriefingsFluxosPadrao = lazyWithRetry(() => import("./pages/admin/BriefingsFluxosPadrao"));
 const ChecklistComposicao = lazyWithRetry(() => import("./pages/ChecklistComposicao"));
 const RecebimentoAmostra = lazyWithRetry(() => import("./pages/RecebimentoAmostra"));
 const AnaliseEmbalagem = lazyWithRetry(() => import("./pages/AnaliseEmbalagem"));
