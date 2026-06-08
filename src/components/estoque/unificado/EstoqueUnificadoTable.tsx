@@ -151,6 +151,24 @@ export function EstoqueUnificadoTable(p: Props) {
                   ) : (
                     <TableCell className="text-right tabular-nums font-semibold">{fmt(conv)}</TableCell>
                   )}
+                  <TableCell className="text-right tabular-nums text-muted-foreground">
+                    {(() => {
+                      const cx = equivalenteEmCaixas(r);
+                      if (cx == null) {
+                        return (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="cursor-help">—</span>
+                            </TooltipTrigger>
+                            <TooltipContent side="top" className="text-xs">
+                              Sem fator de conversão CX
+                            </TooltipContent>
+                          </Tooltip>
+                        );
+                      }
+                      return <span>{formatCx(cx)} <span className="text-[10px] opacity-70">CX</span></span>;
+                    })()}
+                  </TableCell>
                   <TableCell className="text-right tabular-nums">{formatCurrency(Number(r.custo_total ?? 0))}</TableCell>
                   <TableCell className="text-right tabular-nums">{r.skus_envolvidos}</TableCell>
                 </TableRow>
