@@ -97,7 +97,8 @@ export function TourButton({
             </p>
           )}
         </div>
-      </PopoverContent>
-    </Popover>
+        </PopoverContent>
+      </Popover>
+    </FloatingActionSlot>
   );
 }
