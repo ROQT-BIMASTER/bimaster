@@ -131,7 +131,7 @@ export default function BriefingWorkspace() {
     if (!sending) textareaRef.current?.focus();
   }, [sending, messages.length]);
 
-  const readOnly = briefing?.status === "em_aprovacao";
+  const readOnly = briefing?.status === "em_aprovacao" || !!aprovacaoItemId;
 
   const handleSubmit = async (e?: React.FormEvent) => {
     e?.preventDefault();
