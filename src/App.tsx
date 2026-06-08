@@ -1011,6 +1011,7 @@ const App = () => {
 
                     <EspelhoEvidenceListener />
                     <ConfirmConclusaoListener />
+                    <MembershipRealtimeListener />
                     <AppContent />
                     </ConfirmDialogProvider>
                   </TooltipProvider>
