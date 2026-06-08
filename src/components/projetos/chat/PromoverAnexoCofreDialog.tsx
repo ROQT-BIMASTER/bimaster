@@ -29,7 +29,10 @@ import { FolderPlus, Loader2, ShieldCheck, X } from "lucide-react";
 import {
   useCofreProdutoPastas,
   useDepartamentosOptions,
+  useMeuDepartamento,
 } from "@/hooks/cofre/useCofreProdutoPastas";
+import { Switch } from "@/components/ui/switch";
+import { Users } from "lucide-react";
 
 export const COFRE_CATEGORIAS = [
   "briefing",
