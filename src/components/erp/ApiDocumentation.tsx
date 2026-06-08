@@ -3620,6 +3620,9 @@ def verify_signature(payload: bytes, signature: str, secret: str) -> bool:
 
                 <div className="border rounded-xl p-5 space-y-3">
                   {[
+                    { version: "v4.4.39 / SDK v3.3.1 / APP v3.5.12", date: "2026-06-08", changes: [
+                      "RELEASE — Bump `APP_VERSION` 3.5.11 → 3.5.12 consolidando o fix de visibilidade do painel Minhas Tarefas (Realtime em `ui_permissions` + `useUIPermissions` consumido por `MinhasTarefaDetail`). Invariante grep: `grep -n \"3.5.12\" src/lib/version.ts | wc -l` ≥ 1.",
+                    ] },
                     { version: "v4.4.38 / SDK v3.3.1 / APP v3.5.11", date: "2026-06-08", changes: [
                       "PROJETOS — Configurações de visibilidade do painel de tarefa passam a valer também no painel de Minhas Tarefas/Central de Trabalho (`src/components/minhas-tarefas/MinhasTarefaDetail.tsx` agora consome `useUIPermissions('tarefa_detalhe').canView`). Catálogo `src/config/tarefa-detalhe-componentes.ts` ganhou novos códigos: `secao_anexos`, `secao_chat`, `campo_observacoes`, `acao_abrir_no_projeto`. Hook `useUIPermissions` reduziu `staleTime` de 5 min para 60 s, ativou `refetchOnWindowFocus` e passou a assinar Realtime em `public.ui_permissions` filtrado por `tela_codigo`, invalidando o cache assim que o admin grava regra nova. Migration `ALTER PUBLICATION supabase_realtime ADD TABLE public.ui_permissions`. Bump `APP_VERSION` 3.5.10 → 3.5.11. Invariante grep: `grep -n \"3.5.11\" src/lib/version.ts | wc -l` ≥ 1.",
                     ] },
