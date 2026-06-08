@@ -34596,6 +34596,66 @@ export type Database = {
           },
         ]
       }
+      profile_reveal_attempts: {
+        Row: {
+          attempted_at: string
+          id: string
+          ip: unknown
+          success: boolean
+          user_id: string
+        }
+        Insert: {
+          attempted_at?: string
+          id?: string
+          ip?: unknown
+          success: boolean
+          user_id: string
+        }
+        Update: {
+          attempted_at?: string
+          id?: string
+          ip?: unknown
+          success?: boolean
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profile_reveal_grants: {
+        Row: {
+          created_at: string
+          expires_at: string
+          field: string
+          granted_at: string
+          hidden_at: string | null
+          id: string
+          ip: unknown
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at: string
+          field: string
+          granted_at?: string
+          hidden_at?: string | null
+          id?: string
+          ip?: unknown
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          field?: string
+          granted_at?: string
+          hidden_at?: string | null
+          id?: string
+          ip?: unknown
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           aprovado: boolean
@@ -51178,6 +51238,10 @@ export type Database = {
           p_user_id: string
         }
         Returns: undefined
+      }
+      mark_profile_reveal_hidden: {
+        Args: { _grant_id: string }
+        Returns: boolean
       }
       mask_cpf: { Args: { _cpf: string }; Returns: string }
       mask_email: { Args: { _email: string }; Returns: string }
