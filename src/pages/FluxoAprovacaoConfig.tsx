@@ -33,6 +33,18 @@ const CHECKLIST_TIPOS = [
 
 export default function FluxoAprovacaoConfig() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const handleVoltar = () => {
+    if (location.key && location.key !== "default") {
+      navigate(-1);
+      return;
+    }
+    if (location.pathname.startsWith("/admin/")) {
+      navigate("/admin");
+    } else {
+      navigate("/dashboard/aprovacao-artes");
+    }
+  };
   const qc = useQueryClient();
   const { isAdmin, isManager } = useUserRole();
   const canDuplicate = isAdmin || isManager;
