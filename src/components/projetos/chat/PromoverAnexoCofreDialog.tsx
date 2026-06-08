@@ -5,7 +5,7 @@
  * Permite escolher a categoria e a pasta/coleção (com vínculo opcional a
  * uma equipe/departamento). Pastas novas podem ser criadas inline.
  */
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Dialog,
   DialogContent,
