@@ -214,6 +214,29 @@ export function TarefaFocusMode({
     setChatValue("");
   };
 
+  const chatFileInputRef = useRef<HTMLInputElement>(null);
+  const [chatUploading, setChatUploading] = useState(false);
+
+  const handleChatFileSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setChatUploading(true);
+    try {
+      const { id } = await uploadAnexo.mutateAsync(file);
+      await sendMessage.mutateAsync({
+        conteudo: chatValue.trim() || file.name,
+        mentions: [],
+        anexoId: id,
+      });
+      setChatValue("");
+    } catch (err: any) {
+      toast.error(err?.message ?? "Falha ao enviar anexo no chat.");
+    } finally {
+      setChatUploading(false);
+    }
+  };
+
   const handleCommentSubmit = (text: string, mentionIds: string[]) => {
     addComentario.mutate({ conteudo: text, mentions: mentionIds });
   };
