@@ -171,6 +171,7 @@ export function TarefaFocusMode({
         .from("fabrica_revisao_documentos" as any)
         .select("*")
         .eq("origem_projeto_tarefa_id", tarefa!.id)
+        .is("removed_at", null)
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data as any[];
