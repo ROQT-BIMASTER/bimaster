@@ -18,6 +18,8 @@ import { cn } from '@/lib/utils';
 interface Props {
   filtros: EstoqueFiltros;
   setFiltros: (f: EstoqueFiltros) => void;
+  /** Exibe a seção Validade/Vencimento. Telas cuja RPC não filtra validade devem passar false. */
+  showValidade?: boolean;
 }
 
 const CURVAS: CurvaABC[] = ['A', 'B', 'C', 'D', 'E'];
@@ -83,7 +85,7 @@ function MultiSelect({
   );
 }
 
-export function EstoqueFilterPanel({ filtros, setFiltros }: Props) {
+export function EstoqueFilterPanel({ filtros, setFiltros, showValidade = true }: Props) {
   const { data: options } = useEstoqueOptions();
   const empresas = options?.empresas ?? [];
 
@@ -229,6 +231,7 @@ export function EstoqueFilterPanel({ filtros, setFiltros }: Props) {
             </Section>
 
             {/* VALIDADE / VENCIMENTO */}
+            {showValidade && (
             <Section title="Validade / Vencimento">
               <div className="grid grid-cols-4 gap-1.5">
                 {[30, 60, 90].map((d) => (
@@ -253,6 +256,7 @@ export function EstoqueFilterPanel({ filtros, setFiltros }: Props) {
               </div>
               <p className="text-[11px] text-muted-foreground">Usa validade/lote sincronizados do ERP.</p>
             </Section>
+            )}
 
             {/* TEMPO */}
             <Section title="Tempo">

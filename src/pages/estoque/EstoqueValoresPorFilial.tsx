@@ -1,22 +1,34 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { DashboardLayout } from '@/components/dashboard/DashboardLayout';
 import { Card, CardContent } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { KpiCard } from '@/components/ui/kpi-card';
 import {
   Building2, DollarSign, Boxes, PackageCheck, PackageX,
-  ArrowDown, ArrowUp, ArrowUpDown, AlertTriangle,
+  ArrowDown, ArrowUp, ArrowUpDown, AlertTriangle, Search,
 } from 'lucide-react';
 import { formatCurrency } from '@/lib/formatters';
 import { FILTROS_INICIAIS, type EstoqueFiltros } from '@/lib/estoque/estoqueFilters';
 import {
   useEstoqueValoresPorFilial, type EstoqueFilialRow,
 } from '@/hooks/estoque/useEstoqueValoresPorFilial';
+import { EstoqueFilialSelect } from '@/components/estoque/visao-geral/EstoqueFilialSelect';
+import { EstoqueUnidadeChips } from '@/components/estoque/visao-geral/EstoqueUnidadeChips';
+import { EstoqueFilterPanel } from '@/components/estoque/visao-geral/EstoqueFilterPanel';
+import { EstoqueActiveFilters } from '@/components/estoque/visao-geral/EstoqueActiveFilters';
 import { cn } from '@/lib/utils';
+
+function useDebounce<T>(value: T, delay = 300): T {
+  const [v, setV] = useState(value);
+  useEffect(() => {
+    const id = setTimeout(() => setV(value), delay);
+    return () => clearTimeout(id);
+  }, [value, delay]);
+  return v;
+}
 
 type SortKey = 'valor_total' | 'unidades_total' | 'skus_ativos' | 'skus_negativos' | 'abrev_par';
 
@@ -29,13 +41,15 @@ const COLUMNS: { key: SortKey; label: string; align?: 'right' | 'left' | 'center
 ];
 
 export default function EstoqueValoresPorFilial() {
-  const [apenasComSaldo, setApenasComSaldo] = useState(false);
+  const [filtrosBase, setFiltrosBase] = useState<EstoqueFiltros>(FILTROS_INICIAIS);
+  const [buscaTxt, setBuscaTxt] = useState('');
+  const buscaDebounced = useDebounce(buscaTxt, 300);
   const [sortBy, setSortBy] = useState<SortKey>('valor_total');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
 
   const filtros: EstoqueFiltros = useMemo(
-    () => ({ ...FILTROS_INICIAIS, apenas_com_saldo: apenasComSaldo }),
-    [apenasComSaldo],
+    () => ({ ...filtrosBase, busca: buscaDebounced }),
+    [filtrosBase, buscaDebounced],
   );
 
   const { data: rows, isLoading } = useEstoqueValoresPorFilial(filtros);
@@ -92,10 +106,7 @@ export default function EstoqueValoresPorFilial() {
               Valor financeiro e cobertura de estoque consolidados por filial (dados do ERP).
             </p>
           </div>
-          <div className="flex items-center gap-2 rounded-lg border bg-card px-3 py-2">
-            <Switch id="somente-saldo" checked={apenasComSaldo} onCheckedChange={setApenasComSaldo} />
-            <Label htmlFor="somente-saldo" className="text-sm cursor-pointer">Somente com saldo</Label>
-          </div>
+          <EstoqueFilterPanel filtros={filtrosBase} setFiltros={setFiltrosBase} showValidade={false} />
         </div>
 
         {/* KPIs consolidados */}
@@ -136,6 +147,30 @@ export default function EstoqueValoresPorFilial() {
             variant={totais.negativos > 0 ? 'destructive' : 'default'}
             loading={isLoading}
           />
+        </div>
+
+        {/* Filtros */}
+        <div className="space-y-3">
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="relative flex-1 min-w-[220px] max-w-md">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                value={buscaTxt}
+                onChange={(e) => setBuscaTxt(e.target.value)}
+                placeholder="Buscar por produto, código ERP ou fabricante..."
+                className="pl-9 h-9"
+              />
+            </div>
+            <EstoqueFilialSelect
+              selected={filtrosBase.empresa_ids}
+              onChange={(v) => setFiltrosBase({ ...filtrosBase, empresa_ids: v })}
+            />
+            <EstoqueUnidadeChips
+              selected={filtrosBase.unidades}
+              onChange={(v) => setFiltrosBase({ ...filtrosBase, unidades: v })}
+            />
+          </div>
+          <EstoqueActiveFilters filtros={filtrosBase} setFiltros={setFiltrosBase} />
         </div>
 
         {/* Ranking visual por valor */}
