@@ -5,21 +5,23 @@ import { ConversaInfoPanel } from "./ConversaInfoPanel";
 import { ChinaChatPanel } from "@/components/china/ChinaChatPanel";
 import { BriefingChatPanel } from "./BriefingChatPanel";
 import { ProjetoChatPanel } from "./ProjetoChatPanel";
+import { TarefaChatPanel } from "./TarefaChatPanel";
 import { useChinaUserContext } from "@/hooks/useChinaUserContext";
 import { useChinaSubmissoesChat } from "@/hooks/chat/useChinaSubmissoesChat";
 import { useTemAcessoBriefings } from "@/hooks/chat/useTemAcessoBriefings";
 import { useTemAcessoProjetos } from "@/hooks/chat/useTemAcessoProjetos";
+import { useTemAcessoTarefas } from "@/hooks/chat/useTemAcessoTarefas";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, MessageSquare, Package, FileText, Briefcase } from "lucide-react";
+import { ArrowLeft, MessageSquare, Package, FileText, Briefcase, CheckSquare } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { EnablePushBanner } from "@/components/notifications/EnablePushBanner";
 import { useSuporteAgenteTrigger } from "@/hooks/useSuporteAgenteTrigger";
 import { useAuth } from "@/contexts/AuthContext";
 import { useImpersonation } from "@/contexts/ImpersonationContext";
 
-/** Modo do chat: pessoas, submissões China, briefings ou projetos. */
-export type ChatModo = "pessoas" | "submissoes" | "briefings" | "projetos";
+/** Modo do chat: pessoas, submissões China, briefings, projetos ou tarefas. */
+export type ChatModo = "pessoas" | "submissoes" | "briefings" | "projetos" | "tarefas";
 
 interface Props {
   initialConversaId?: string | null;
@@ -38,6 +40,7 @@ export function ChatLayout({ initialConversaId = null, className, defaultShowInf
   const { data: submissoes = [] } = useChinaSubmissoesChat();
   const podeVerBriefings = useTemAcessoBriefings();
   const podeVerProjetos = useTemAcessoProjetos();
+  const podeVerTarefas = useTemAcessoTarefas();
   const { user } = useAuth();
   useSuporteAgenteTrigger(user?.id);
 
@@ -82,6 +85,26 @@ export function ChatLayout({ initialConversaId = null, className, defaultShowInf
   };
 
   const renderPainelCentro = () => {
+    if (modo === "tarefas") {
+      if (!conversaId) {
+        return (
+          <div className="flex-1 flex flex-col items-center justify-center text-center px-6">
+            <CheckSquare className="h-16 w-16 text-muted-foreground/40 mb-4" />
+            <h3 className="text-lg font-semibold">Selecione uma tarefa</h3>
+            <p className="text-sm text-muted-foreground max-w-sm mt-1">
+              Escolha uma tarefa ou subtarefa na lista para abrir o chat e
+              responder a mensagens trocadas dentro dela.
+            </p>
+          </div>
+        );
+      }
+      return (
+        <div className="flex-1 min-w-0 flex">
+          <TarefaChatPanel tarefaId={conversaId} />
+        </div>
+      );
+    }
+
     if (modo === "projetos") {
       if (!conversaId) {
         return (
@@ -192,6 +215,7 @@ export function ChatLayout({ initialConversaId = null, className, defaultShowInf
             podeAlternarModo={podeAlternarModo}
             podeVerBriefings={podeVerBriefings}
             podeVerProjetos={podeVerProjetos}
+            podeVerTarefas={podeVerTarefas}
             className="w-full"
           />
         ) : (
@@ -220,6 +244,7 @@ export function ChatLayout({ initialConversaId = null, className, defaultShowInf
           podeAlternarModo={podeAlternarModo}
           podeVerBriefings={podeVerBriefings}
           podeVerProjetos={podeVerProjetos}
+          podeVerTarefas={podeVerTarefas}
           className="w-[320px] shrink-0"
         />
         <div className="flex-1 min-w-0 flex">

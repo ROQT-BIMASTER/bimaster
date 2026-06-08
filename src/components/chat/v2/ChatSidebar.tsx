@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Search, MessageSquarePlus, Users, MoreVertical, Star, Archive, BellOff, Plus, Pin, VolumeX, Package, MessageCircle, SearchCheck, FileText, AtSign, Briefcase } from "lucide-react";
+import { Search, MessageSquarePlus, Users, MoreVertical, Star, Archive, BellOff, Plus, Pin, VolumeX, Package, MessageCircle, SearchCheck, FileText, AtSign, Briefcase, CheckSquare, GitBranch } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useConversas, filtrarConversas, type ChatFiltro } from "@/hooks/chat/useConversas";
 import { useGlobalPresence } from "@/hooks/chat/useChatPresence";
@@ -14,6 +14,9 @@ import { useChatActions } from "@/hooks/chat/useChatActions";
 import { useChinaSubmissoesChat, filtrarSubmissoesChat, type ChinaSubmissaoChatItem } from "@/hooks/chat/useChinaSubmissoesChat";
 import { useBriefingsChat, filtrarBriefingsChat, type BriefingChatItem } from "@/hooks/chat/useBriefingsChat";
 import { useProjetosChat, filtrarProjetosChat, type ProjetoChatItem } from "@/hooks/chat/useProjetosChat";
+import { useTarefasChat, filtrarTarefasChat, type TarefaChatItem, type TarefaChatFiltro } from "@/hooks/chat/useTarefasChat";
+import { formatDistanceToNow } from "date-fns";
+import { ptBR } from "date-fns/locale";
 import { initials, formatRelativo, nomeConversa } from "./utils";
 import type { ChatConversa } from "@/hooks/chat/types";
 import { NovaConversaDialog } from "../NovaConversaDialog";
@@ -35,6 +38,8 @@ interface Props {
   podeVerBriefings?: boolean;
   /** Se true, a aba "Projetos" aparece (usuário é membro de algum projeto). */
   podeVerProjetos?: boolean;
+  /** Se true, a aba "Tarefas" aparece (mesmo gate de Projetos). */
+  podeVerTarefas?: boolean;
 }
 
 export function ChatSidebar({
@@ -46,13 +51,15 @@ export function ChatSidebar({
   podeAlternarModo,
   podeVerBriefings = false,
   podeVerProjetos = false,
+  podeVerTarefas = false,
 }: Props) {
-  // Quantas abas mostrar: pessoas sempre; submissões, briefings e projetos são opt-in.
+  // Quantas abas mostrar: pessoas sempre; submissões, briefings, projetos e tarefas são opt-in.
   const tabsCount =
     1 +
     (podeAlternarModo ? 1 : 0) +
     (podeVerBriefings ? 1 : 0) +
-    (podeVerProjetos ? 1 : 0);
+    (podeVerProjetos ? 1 : 0) +
+    (podeVerTarefas ? 1 : 0);
   const showToggle = tabsCount > 1;
   return (
     <aside className={cn("flex flex-col h-full bg-card border-r border-border", className)}>
@@ -72,11 +79,13 @@ export function ChatSidebar({
             <TabsList
               className={cn(
                 "h-8 w-full grid",
-                tabsCount === 4
-                  ? "grid-cols-4"
-                  : tabsCount === 3
-                    ? "grid-cols-3"
-                    : "grid-cols-2",
+                tabsCount === 5
+                  ? "grid-cols-5"
+                  : tabsCount === 4
+                    ? "grid-cols-4"
+                    : tabsCount === 3
+                      ? "grid-cols-3"
+                      : "grid-cols-2",
               )}
             >
               <TabsTrigger value="pessoas" className="text-[11px] gap-1">
@@ -97,6 +106,11 @@ export function ChatSidebar({
                   <Briefcase className="h-3.5 w-3.5" /> Projetos
                 </TabsTrigger>
               )}
+              {podeVerTarefas && (
+                <TabsTrigger value="tarefas" className="text-[11px] gap-1">
+                  <CheckSquare className="h-3.5 w-3.5" /> Tarefas
+                </TabsTrigger>
+              )}
             </TabsList>
           </Tabs>
         </div>
@@ -114,6 +128,11 @@ export function ChatSidebar({
         />
       ) : modo === "projetos" ? (
         <SidebarProjetosContent
+          conversaSelecionada={conversaSelecionada}
+          onSelectConversa={onSelectConversa}
+        />
+      ) : modo === "tarefas" ? (
+        <SidebarTarefasContent
           conversaSelecionada={conversaSelecionada}
           onSelectConversa={onSelectConversa}
         />
@@ -807,6 +826,158 @@ function ProjetoItem({
           </div>
           <p className="text-[10px] text-muted-foreground mt-0.5 truncate capitalize">
             {p.status}
+          </p>
+        </div>
+      </button>
+    </li>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// MODO "TAREFAS" — agrega tarefas e subtarefas em que o usuário participa
+// e que tenham chat ativo. Usado para receber, no hub central, notificações
+// de mensagens trocadas dentro de tarefas/subtarefas.
+// ---------------------------------------------------------------------------
+
+function SidebarTarefasContent({
+  conversaSelecionada,
+  onSelectConversa,
+}: {
+  conversaSelecionada: string | null;
+  onSelectConversa: (id: string) => void;
+}) {
+  const [busca, setBusca] = useState("");
+  const [filtro, setFiltro] = useState<TarefaChatFiltro>("todas");
+  const { data: tarefas = [], isLoading } = useTarefasChat();
+  const filtradas = useMemo(
+    () => filtrarTarefasChat(tarefas, busca, filtro),
+    [tarefas, busca, filtro],
+  );
+  const totalNaoLidas = tarefas.reduce((s, t) => s + (t.nao_lidas || 0), 0);
+  const totalMencoes = tarefas.reduce((s, t) => s + (t.mencoes_abertas || 0), 0);
+
+  return (
+    <>
+      <header className="px-3 py-3 border-b border-border flex items-center gap-2">
+        <h3 className="font-semibold text-sm flex-1">
+          Tarefas {totalNaoLidas > 0 && <Badge variant="secondary" className="ml-1">{totalNaoLidas}</Badge>}
+        </h3>
+      </header>
+
+      <div className="px-3 py-2 border-b border-border space-y-2">
+        <div className="relative">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            value={busca}
+            onChange={(e) => setBusca(e.target.value)}
+            placeholder="Buscar tarefa ou trecho…"
+            className="pl-8 h-9"
+          />
+        </div>
+        <Tabs value={filtro} onValueChange={(v) => setFiltro(v as TarefaChatFiltro)}>
+          <TabsList className="grid grid-cols-4 h-7 w-full">
+            <TabsTrigger value="todas" className="text-[11px] px-1">Todas</TabsTrigger>
+            <TabsTrigger value="nao_lidas" className="text-[11px] px-1">
+              Não lidas {totalNaoLidas > 0 && <span className="ml-0.5">({totalNaoLidas})</span>}
+            </TabsTrigger>
+            <TabsTrigger value="mencoes" className="text-[11px] px-1">
+              @ {totalMencoes > 0 && <span>({totalMencoes})</span>}
+            </TabsTrigger>
+            <TabsTrigger value="subtarefas" className="text-[11px] px-1">Subt.</TabsTrigger>
+          </TabsList>
+        </Tabs>
+      </div>
+
+      <ScrollArea className="flex-1">
+        {isLoading && <p className="text-xs text-muted-foreground p-4">Carregando...</p>}
+        {!isLoading && filtradas.length === 0 && (
+          <div className="p-6 text-center text-xs text-muted-foreground">
+            Nenhuma tarefa com conversa.
+          </div>
+        )}
+        <ul className="py-1">
+          {filtradas.map((t) => (
+            <TarefaItem
+              key={t.tarefa_id}
+              t={t}
+              ativa={t.tarefa_id === conversaSelecionada}
+              onSelect={() => onSelectConversa(t.tarefa_id)}
+            />
+          ))}
+        </ul>
+      </ScrollArea>
+    </>
+  );
+}
+
+function TarefaItem({
+  t, ativa, onSelect,
+}: {
+  t: TarefaChatItem;
+  ativa: boolean;
+  onSelect: () => void;
+}) {
+  const previewTxt = t.ultima_mensagem
+    ? `${t.ultimo_autor_nome ?? "Alguém"}: ${t.ultima_mensagem}`
+    : "Sem mensagens";
+  const corBg = t.projeto_cor ?? "#6366f1";
+  const tempo = t.ultima_mensagem_em
+    ? formatDistanceToNow(new Date(t.ultima_mensagem_em), { addSuffix: false, locale: ptBR })
+    : "";
+  const temMencao = t.mencoes_abertas > 0;
+
+  return (
+    <li>
+      <button
+        onClick={onSelect}
+        className={cn(
+          "w-full text-left px-3 py-2.5 flex items-center gap-3 hover:bg-muted/50 transition-colors relative",
+          ativa && "bg-muted",
+        )}
+      >
+        <div className="relative shrink-0">
+          <Avatar className="h-11 w-11">
+            <AvatarFallback
+              className="text-white"
+              style={{ backgroundColor: corBg }}
+            >
+              {t.is_subtask ? <GitBranch className="h-5 w-5" /> : <CheckSquare className="h-5 w-5" />}
+            </AvatarFallback>
+          </Avatar>
+          {temMencao && (
+            <span
+              className="absolute -top-0.5 -right-0.5 h-4 w-4 rounded-full bg-amber-500 ring-2 ring-card flex items-center justify-center"
+              title={`${t.mencoes_abertas} menção(ões) a você`}
+            >
+              <AtSign className="h-2.5 w-2.5 text-white" />
+            </span>
+          )}
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center justify-between gap-2">
+            <span className={cn("truncate text-sm", t.nao_lidas > 0 && "font-semibold")}>
+              {t.titulo}
+            </span>
+            <span className="text-[10px] text-muted-foreground shrink-0">{tempo}</span>
+          </div>
+          <div className="flex items-center justify-between gap-2 mt-0.5">
+            <span className={cn("truncate text-xs text-muted-foreground", t.nao_lidas > 0 && "text-foreground")}>
+              {previewTxt}
+            </span>
+            <div className="flex items-center gap-1 shrink-0">
+              {t.nao_lidas > 0 && (
+                <Badge className="h-4 min-w-4 px-1 text-[10px] rounded-full bg-emerald-600 hover:bg-emerald-600">
+                  {t.nao_lidas}
+                </Badge>
+              )}
+            </div>
+          </div>
+          <p className="text-[10px] text-muted-foreground mt-0.5 truncate">
+            <Briefcase className="h-2.5 w-2.5 inline mr-0.5 -mt-0.5" />
+            {t.projeto_nome}
+            {t.is_subtask && t.parent_titulo && (
+              <> · subt. de "{t.parent_titulo}"</>
+            )}
           </p>
         </div>
       </button>
