@@ -41,6 +41,7 @@ export default function BriefingWorkspace() {
   const [searchParams] = useSearchParams();
   const deepLinkCampo = searchParams.get("campo");
   const deepLinkComentario = searchParams.get("comentario");
+  const aprovacaoItemId = searchParams.get("aprovacao");
   const { briefing, sections, messages, loading, sending, enviar, recarregar } =
     useBriefingChat(id);
   const { enviando: rrtaskEnviando, enviarParaRRTask } = useRRTask();
