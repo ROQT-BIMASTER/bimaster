@@ -3620,6 +3620,9 @@ def verify_signature(payload: bytes, signature: str, secret: str) -> bool:
 
                 <div className="border rounded-xl p-5 space-y-3">
                   {[
+                    { version: "v4.4.35 / SDK v3.3.1 / APP v3.5.08", date: "2026-06-08", changes: [
+                      "ESTOQUE — RPC `estoque_filtro_opcoes` (SECURITY DEFINER, STABLE) passa a alimentar o painel de filtros com empresas/linhas/unidades distintas respeitando RLS, eliminando o truncamento de 10.000 linhas no client. Botão 'Sincronizar ERP' adicionado ao cabeçalho de Visão Geral aciona `sync-estoque-full` e invalida os caches `estoque`, `estoque-filter-options` e `estoque-kpis`. Linha de chips 'Unidade' removida da Visão Geral (já disponível no painel de filtros). Bump `APP_VERSION` 3.5.07 → 3.5.08. Invariante grep: `grep -n \"3.5.08\" src/lib/version.ts | wc -l` ≥ 1.",
+                    ] },
                     { version: "v4.4.34 / SDK v3.3.1 / APP v3.5.07", date: "2026-06-02", changes: [
                       "PROJETOS — `projeto_secoes` teve as policies recriadas para permitir criação/edição/exclusão/leitura por usuários autenticados com acesso ao projeto via `user_can_access_projeto`, corrigindo o bloqueio de criação de seções. `user_can_access_projeto`, `user_can_access_secao` e `get_projeto_tarefas_v2` foram otimizadas para reduzir timeouts no quadro de tarefas, com índices novos para vínculos de membros, responsáveis, colaboradores e seguidores. Bump `APP_VERSION` 3.5.06 → 3.5.07. Invariante grep: `grep -n \"3.5.07\" src/lib/version.ts | wc -l` ≥ 1.",
                     ] },
