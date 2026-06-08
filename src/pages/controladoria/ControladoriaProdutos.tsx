@@ -33,6 +33,8 @@ import { cn } from "@/lib/utils";
 import { useRrLinhas, useRrProdutos, type RrProduto } from "@/hooks/useRrProdutos";
 import { WF_FIELDS, emGargalo, motivosGargalo, wfTone, type WfTone } from "@/lib/controladoria";
 import { ProdutoWorkflowDrawer } from "@/components/controladoria/ProdutoWorkflowDrawer";
+import { ProjetoBackButton } from "@/components/projetos/ProjetoBackButton";
+
 
 const TONE_CELL: Record<WfTone, string> = {
   done: "bg-emerald-500/80",
@@ -158,6 +160,7 @@ export default function ControladoriaProdutos() {
   return (
     <TooltipProvider delayDuration={200}>
       <div className="p-6 space-y-6">
+        <ProjetoBackButton fallbackTo="/dashboard" />
         <header className="space-y-1">
           <div className="flex items-center gap-2">
             <PackageSearch className="h-5 w-5 text-primary" />
@@ -170,6 +173,7 @@ export default function ControladoriaProdutos() {
             destaque para gargalos de regulatório e workflow gráfico.
           </p>
         </header>
+
 
         {/* Resumo */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
