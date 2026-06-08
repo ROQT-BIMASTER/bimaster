@@ -853,14 +853,24 @@ function SidebarTarefasContent({
     () => filtrarTarefasChat(tarefas, busca, filtro),
     [tarefas, busca, filtro],
   );
-  const totalNaoLidas = tarefas.reduce((s, t) => s + (t.nao_lidas || 0), 0);
-  const totalMencoes = tarefas.reduce((s, t) => s + (t.mencoes_abertas || 0), 0);
+
+  // Contadores por categoria (ignorando arquivadas e silenciadas para o total
+  // visível de não lidas — silenciadas continuam no escopo, mas não somam
+  // para o badge de alerta no header).
+  const visiveis = tarefas.filter((t) => !t.archived);
+  const naoLidasTotal = visiveis.filter((t) => !t.muted).reduce((s, t) => s + (t.nao_lidas || 0), 0);
+  const totalMencoes = visiveis.reduce((s, t) => s + (t.mencoes_abertas || 0), 0);
+  const countTarefas = visiveis.filter((t) => !t.is_subtask && (t.nao_lidas || 0) > 0 && !t.muted)
+    .reduce((s, t) => s + t.nao_lidas, 0);
+  const countSubtarefas = visiveis.filter((t) => t.is_subtask && (t.nao_lidas || 0) > 0 && !t.muted)
+    .reduce((s, t) => s + t.nao_lidas, 0);
+  const arquivadasCount = tarefas.filter((t) => t.archived).length;
 
   return (
     <>
       <header className="px-3 py-3 border-b border-border flex items-center gap-2">
         <h3 className="font-semibold text-sm flex-1">
-          Tarefas {totalNaoLidas > 0 && <Badge variant="secondary" className="ml-1">{totalNaoLidas}</Badge>}
+          Tarefas {naoLidasTotal > 0 && <Badge variant="secondary" className="ml-1">{naoLidasTotal}</Badge>}
         </h3>
       </header>
 
@@ -875,15 +885,27 @@ function SidebarTarefasContent({
           />
         </div>
         <Tabs value={filtro} onValueChange={(v) => setFiltro(v as TarefaChatFiltro)}>
-          <TabsList className="grid grid-cols-4 h-7 w-full">
-            <TabsTrigger value="todas" className="text-[11px] px-1">Todas</TabsTrigger>
+          <TabsList className="grid grid-cols-3 h-7 w-full">
+            <TabsTrigger value="todas" className="text-[11px] px-1">
+              Todas {naoLidasTotal > 0 && <span className="ml-0.5">({naoLidasTotal})</span>}
+            </TabsTrigger>
+            <TabsTrigger value="tarefas" className="text-[11px] px-1">
+              Tarefas {countTarefas > 0 && <span className="ml-0.5">({countTarefas})</span>}
+            </TabsTrigger>
+            <TabsTrigger value="subtarefas" className="text-[11px] px-1">
+              Subt. {countSubtarefas > 0 && <span className="ml-0.5">({countSubtarefas})</span>}
+            </TabsTrigger>
+          </TabsList>
+          <TabsList className="grid grid-cols-3 h-7 w-full mt-1">
             <TabsTrigger value="nao_lidas" className="text-[11px] px-1">
-              Não lidas {totalNaoLidas > 0 && <span className="ml-0.5">({totalNaoLidas})</span>}
+              Não lidas {naoLidasTotal > 0 && <span className="ml-0.5">({naoLidasTotal})</span>}
             </TabsTrigger>
             <TabsTrigger value="mencoes" className="text-[11px] px-1">
               @ {totalMencoes > 0 && <span>({totalMencoes})</span>}
             </TabsTrigger>
-            <TabsTrigger value="subtarefas" className="text-[11px] px-1">Subt.</TabsTrigger>
+            <TabsTrigger value="arquivadas" className="text-[11px] px-1">
+              Arquiv. {arquivadasCount > 0 && <span className="ml-0.5">({arquivadasCount})</span>}
+            </TabsTrigger>
           </TabsList>
         </Tabs>
       </div>
@@ -892,7 +914,9 @@ function SidebarTarefasContent({
         {isLoading && <p className="text-xs text-muted-foreground p-4">Carregando...</p>}
         {!isLoading && filtradas.length === 0 && (
           <div className="p-6 text-center text-xs text-muted-foreground">
-            Nenhuma tarefa com conversa.
+            {filtro === "arquivadas"
+              ? "Nenhuma conversa arquivada."
+              : "Nenhuma tarefa com conversa."}
           </div>
         )}
         <ul className="py-1">
@@ -917,6 +941,7 @@ function TarefaItem({
   ativa: boolean;
   onSelect: () => void;
 }) {
+  const prefMutation = useTarefaChatPreferencia();
   const previewTxt = t.ultima_mensagem
     ? `${t.ultimo_autor_nome ?? "Alguém"}: ${t.ultima_mensagem}`
     : "Sem mensagens";
@@ -925,14 +950,16 @@ function TarefaItem({
     ? formatDistanceToNow(new Date(t.ultima_mensagem_em), { addSuffix: false, locale: ptBR })
     : "";
   const temMencao = t.mencoes_abertas > 0;
+  const mostrarBadgeNaoLidas = t.nao_lidas > 0 && !t.muted;
 
   return (
-    <li>
+    <li className="group relative">
       <button
         onClick={onSelect}
         className={cn(
           "w-full text-left px-3 py-2.5 flex items-center gap-3 hover:bg-muted/50 transition-colors relative",
           ativa && "bg-muted",
+          t.archived && "opacity-60",
         )}
       >
         <div className="relative shrink-0">
@@ -955,18 +982,25 @@ function TarefaItem({
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between gap-2">
-            <span className={cn("truncate text-sm", t.nao_lidas > 0 && "font-semibold")}>
-              {t.titulo}
+            <span className={cn("truncate text-sm flex items-center gap-1", mostrarBadgeNaoLidas && "font-semibold")}>
+              {t.muted && <VolumeX className="h-3 w-3 text-muted-foreground shrink-0" />}
+              {t.archived && <Archive className="h-3 w-3 text-muted-foreground shrink-0" />}
+              <span className="truncate">{t.titulo}</span>
             </span>
             <span className="text-[10px] text-muted-foreground shrink-0">{tempo}</span>
           </div>
           <div className="flex items-center justify-between gap-2 mt-0.5">
-            <span className={cn("truncate text-xs text-muted-foreground", t.nao_lidas > 0 && "text-foreground")}>
+            <span className={cn("truncate text-xs text-muted-foreground", mostrarBadgeNaoLidas && "text-foreground")}>
               {previewTxt}
             </span>
             <div className="flex items-center gap-1 shrink-0">
-              {t.nao_lidas > 0 && (
+              {mostrarBadgeNaoLidas && (
                 <Badge className="h-4 min-w-4 px-1 text-[10px] rounded-full bg-emerald-600 hover:bg-emerald-600">
+                  {t.nao_lidas}
+                </Badge>
+              )}
+              {t.nao_lidas > 0 && t.muted && (
+                <Badge variant="outline" className="h-4 min-w-4 px-1 text-[10px] rounded-full">
                   {t.nao_lidas}
                 </Badge>
               )}
@@ -981,6 +1015,41 @@ function TarefaItem({
           </p>
         </div>
       </button>
+
+      {/* Ações por item: silenciar/arquivar — visível no hover */}
+      <div className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button size="icon" variant="ghost" className="h-7 w-7" onClick={(e) => e.stopPropagation()}>
+              <MoreVertical className="h-3.5 w-3.5" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+            <DropdownMenuItem
+              onClick={() =>
+                prefMutation.mutate({ tarefaId: t.tarefa_id, muted: !t.muted })
+              }
+            >
+              {t.muted ? (
+                <><BellOff className="h-3.5 w-3.5 mr-2 opacity-50" />Reativar notificações</>
+              ) : (
+                <><VolumeX className="h-3.5 w-3.5 mr-2" />Silenciar conversa</>
+              )}
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() =>
+                prefMutation.mutate({ tarefaId: t.tarefa_id, archived: !t.archived })
+              }
+            >
+              {t.archived ? (
+                <><Archive className="h-3.5 w-3.5 mr-2 opacity-50" />Restaurar conversa</>
+              ) : (
+                <><Archive className="h-3.5 w-3.5 mr-2" />Arquivar conversa</>
+              )}
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
     </li>
   );
 }
