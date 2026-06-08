@@ -253,6 +253,11 @@ export function ProjetoTarefaDetalhe({
     lastFocusTarefaRef.current = tarefa;
   }
   const focusTarefa = tarefa ?? (focusMode ? lastFocusTarefaRef.current : null);
+  // Guard: o Focus Mode só pode ser fechado por intenção explícita do usuário
+  // ("Sair do Foco" / Esc). Qualquer outro caminho de fechamento (re-render
+  // colateral por invalidação de query após concluir subtarefa/marco, mudar
+  // responsável, calendário, etc.) é ignorado para evitar "piscar e sair do foco".
+  const closeFocusIntentRef = useRef(false);
   const [briefingDialogOpen, setBriefingDialogOpen] = useState(false);
   const [briefingTasksDialogOpen, setBriefingTasksDialogOpen] = useState(false);
   const { briefing: tarefaBriefing, saveBriefing: saveTarefaBriefing, deleteBriefing: deleteTarefaBriefing } = useProjetoBriefing(tarefa?.id);
