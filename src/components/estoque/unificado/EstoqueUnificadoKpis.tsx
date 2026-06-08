@@ -41,7 +41,7 @@ export function EstoqueUnificadoKpis({ rows, total, loading, modo = 'fisico' }: 
     : 'soma fracionária — base para compras';
   const tooltipCxEq = 'Soma de (Total em UN ÷ fator CX) por produto-raiz. Pode ser fracionário porque sobras em BX/UN formam caixas parciais.';
 
-  let items: { icon: any; label: string; value: string; hint: string; tooltip?: string }[] = [];
+  let items: { icon: any; label: string; value: string; hint: string; tooltip?: string; highlight?: boolean }[] = [];
 
   const tooltipEqUn = 'Soma de cada folha (UN) sob o produto-raiz, multiplicada pelo fator acumulado da BOM (Pai → Mãe → Filho). Para sortimentos heterogêneos, considera todas as ramificações: Σ (qtd_pai_mãe × qtd_mãe_filho).';
 
@@ -51,7 +51,7 @@ export function EstoqueUnificadoKpis({ rows, total, loading, modo = 'fisico' }: 
       { icon: Package, label: 'Displays / Box', value: fmt(totals.bx), hint: 'BX físicos' },
       { icon: PackageOpen, label: 'Unidades', value: fmt(totals.un), hint: 'UN físicas' },
       { icon: Layers, label: 'Equivalente em UN', value: fmt(totals.un_eq), hint: 'Se tudo fosse desmontado', tooltip: tooltipEqUn },
-      { icon: Boxes, label: 'Equivalente em CX', value: formatCx(cxEq), hint: cxEqHint, tooltip: tooltipCxEq },
+      { icon: Boxes, label: 'Equivalente em CX', value: formatCx(cxEq), hint: cxEqHint, tooltip: tooltipCxEq, highlight: true },
       { icon: Layers, label: 'Custo total', value: formatCurrency(totals.custo), hint: `${total.toLocaleString('pt-BR')} produtos-raiz` },
     ];
   } else {
@@ -75,7 +75,7 @@ export function EstoqueUnificadoKpis({ rows, total, loading, modo = 'fisico' }: 
         tooltip: tooltipEqUn,
       },
       { icon: Layers, label: 'Equivalente em UN', value: fmt(totals.un_eq), hint: 'base da conversão', tooltip: tooltipEqUn },
-      { icon: Boxes, label: 'Equivalente em CX', value: formatCx(cxEq), hint: cxEqHint, tooltip: tooltipCxEq },
+      { icon: Boxes, label: 'Equivalente em CX', value: formatCx(cxEq), hint: cxEqHint, tooltip: tooltipCxEq, highlight: true },
       { icon: Layers, label: 'Custo total', value: formatCurrency(totals.custo), hint: `${total.toLocaleString('pt-BR')} produtos-raiz` },
     ];
   }
@@ -84,14 +84,21 @@ export function EstoqueUnificadoKpis({ rows, total, loading, modo = 'fisico' }: 
     <TooltipProvider delayDuration={150}>
       <div className={`grid grid-cols-2 md:grid-cols-3 ${modo === 'fisico' ? 'lg:grid-cols-6' : 'lg:grid-cols-4'} gap-3`}>
         {items.map((it) => (
-          <Card key={it.label} className="p-3">
+          <Card
+            key={it.label}
+            className={
+              it.highlight
+                ? 'p-3 border-primary/40 bg-primary/5 ring-1 ring-primary/30 shadow-sm'
+                : 'p-3'
+            }
+          >
             <div className="flex items-start gap-3">
-              <div className="rounded-md bg-muted p-2">
-                <it.icon className="h-4 w-4 text-muted-foreground" />
+              <div className={it.highlight ? 'rounded-md bg-primary/15 p-2' : 'rounded-md bg-muted p-2'}>
+                <it.icon className={it.highlight ? 'h-4 w-4 text-primary' : 'h-4 w-4 text-muted-foreground'} />
               </div>
               <div className="min-w-0">
                 <div className="flex items-center gap-1">
-                  <p className="text-xs text-muted-foreground">{it.label}</p>
+                  <p className={it.highlight ? 'text-xs font-medium text-primary' : 'text-xs text-muted-foreground'}>{it.label}</p>
                   {it.tooltip && (
                     <Tooltip>
                       <TooltipTrigger asChild>
@@ -103,7 +110,7 @@ export function EstoqueUnificadoKpis({ rows, total, loading, modo = 'fisico' }: 
                     </Tooltip>
                   )}
                 </div>
-                <p className="text-lg font-bold leading-tight">{loading ? '—' : it.value}</p>
+                <p className={it.highlight ? 'text-lg font-bold leading-tight text-primary' : 'text-lg font-bold leading-tight'}>{loading ? '—' : it.value}</p>
                 <p className="text-[11px] text-muted-foreground truncate">{it.hint}</p>
               </div>
             </div>
