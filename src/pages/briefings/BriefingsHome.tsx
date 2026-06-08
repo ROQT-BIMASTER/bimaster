@@ -733,6 +733,38 @@ export default function BriefingsHome() {
                 </SelectContent>
               </Select>
 
+              <Select
+                value={filtroAgencia}
+                onValueChange={(v) => setFiltroAgencia(v as AgenciaFiltro)}
+              >
+                <SelectTrigger className="w-[200px]">
+                  <SelectValue placeholder="Agência" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Toda a agência</SelectItem>
+                  <SelectItem value="nao_enviado">Não enviado</SelectItem>
+                  <SelectItem value="pendente">Enviado / Pendente</SelectItem>
+                  <SelectItem value="em_revisao">Em revisão</SelectItem>
+                  <SelectItem value="aprovado">Aprovado</SelectItem>
+                  <SelectItem value="rejeitado">Rejeitado</SelectItem>
+                </SelectContent>
+              </Select>
+
+              <Select
+                value={filtroRodada}
+                onValueChange={(v) => setFiltroRodada(v as RodadaFiltro)}
+              >
+                <SelectTrigger className="w-[140px]">
+                  <SelectValue placeholder="Rodada" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todas rodadas</SelectItem>
+                  <SelectItem value="1">Rodada 1</SelectItem>
+                  <SelectItem value="2">Rodada 2</SelectItem>
+                  <SelectItem value="3+">Rodada 3+</SelectItem>
+                </SelectContent>
+              </Select>
+
               <Select value={filtroProjeto} onValueChange={setFiltroProjeto}>
                 <SelectTrigger className="w-[220px]">
                   <SelectValue placeholder="Projeto" />
