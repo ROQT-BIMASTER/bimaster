@@ -49344,10 +49344,15 @@ export type Database = {
         Returns: number
       }
       _get_rrtask_cron_secret: { Args: never; Returns: string }
+      _get_rrtask_webhook_secret: { Args: never; Returns: string }
       _get_vault_secret: { Args: { p_name: string }; Returns: string }
       _kanban_coluna_universal: {
         Args: { p_etapa_ordem: number; p_status: string }
         Returns: string
+      }
+      _set_rrtask_webhook_secret: {
+        Args: { _value: string }
+        Returns: undefined
       }
       accept_projeto_convite: { Args: { _token: string }; Returns: Json }
       access_review_decide: {

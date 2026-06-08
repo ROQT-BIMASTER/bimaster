@@ -1,37 +1,31 @@
 // Edge Function: rrtask-poll-status
-// Fase 2 — Lê o status das tasks RR-Tasks (Notion da agência) e espelha de
-// volta nas colunas rrtask_* da tabela `briefings`.
 //
-// - Chamada agendada (pg_cron */5 * * * *).
-// - Protegida por header `x-cron-secret` comparado (timingSafeEqual) ao valor
-//   do vault `rrtask_cron_secret`, lido via RPC SECURITY DEFINER
-//   `public._get_rrtask_cron_secret`. Cron e função leem da MESMA linha do
-//   vault — sem dependência da service-role key na comparação.
-// - Cadência efetiva: 5 min em horário comercial (08-18 BRT), 15 min fora.
-// - Leitura apenas, EXCETO write-back da "Data Aprovação Conteúdo" (regra R09)
-//   quando "Aprovação de Conteúdo" = "Aprovado" e a data está vazia.
+// Dois modos:
+//
+// 1) Modo CRON (sem body OU body vazio):
+//    - Disparado por pg_cron a cada 5 min.
+//    - Autenticação por header `x-cron-secret` (timingSafeEqual com vault).
+//    - Cadência: 5 min em horário comercial (08-18 BRT), 15 min fora.
+//    - Processa lote round-robin de até 200 briefings (ordenado por last_polled_at).
+//
+// 2) Modo SINGLE on-demand (body: { briefing_id }):
+//    - Autenticação por JWT do usuário (Authorization: Bearer ...).
+//    - Só processa o briefing solicitado, sem janela de cadência.
+//    - Usado pela UI para refletir o status da agência ao abrir o briefing,
+//      como reforço caso o webhook do Notion ainda não tenha entregue.
+//
+// Toda a lógica de leitura+update vive em _shared/rrtask-apply-page.ts e é
+// compartilhada com `rrtask-webhook` (push do Notion).
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { timingSafeEqual } from "https://deno.land/std@0.224.0/crypto/timing_safe_equal.ts";
 import { secureHandler } from "../_shared/secure-handler.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
-import { notion, type NotionPage } from "../_shared/notion-client.ts";
+import { applyRrtaskPage, type BriefingMirrorRow } from "../_shared/rrtask-apply-page.ts";
 
 const BATCH_SIZE = 200;
 
-// Opção A: ISO-8601 com offset BRT (-03:00) carimbado no momento do write-back.
-function isoBrtNow(): string {
-  return new Date(Date.now() - 3 * 3600 * 1000).toISOString().replace("Z", "-03:00");
-}
-
-const sel = (p: unknown) =>
-  (p as { select?: { name?: string } } | null)?.select?.name ?? null;
-const st = (p: unknown) =>
-  (p as { status?: { name?: string } } | null)?.status?.name ?? null;
-const dt = (p: unknown) =>
-  (p as { date?: { start?: string } } | null)?.date?.start ?? null;
-
 Deno.serve(secureHandler(
-  { auth: "none", rateLimit: 30, rateLimitPrefix: "rrtask-poll-status" },
+  { auth: "none", rateLimit: 60, rateLimitPrefix: "rrtask-poll-status" },
   async (req) => {
     const corsHeaders = getCorsHeaders(req);
     const J = (body: unknown, status = 200) =>
@@ -40,14 +34,61 @@ Deno.serve(secureHandler(
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
 
-    // 0. Client admin (service role) precisa existir ANTES do guard, porque
-    //    a validação consulta o vault via RPC.
     const admin = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
-    // 1. Validação do cron secret (lido do vault via RPC SECURITY DEFINER).
+    const rrToken = Deno.env.get("HUGGS_RR_TOKEN");
+    if (!rrToken) return J({ ok: false, error: "rr_token_missing" }, 412);
+
+    // Lê body (pode ser vazio em chamadas do cron).
+    let body: { briefing_id?: string } = {};
+    try {
+      const raw = await req.text();
+      if (raw && raw.trim().length > 0) body = JSON.parse(raw);
+    } catch {
+      return J({ ok: false, error: "invalid_json" }, 400);
+    }
+
+    // ===================== MODO SINGLE (on-demand, JWT) =====================
+    if (body.briefing_id && typeof body.briefing_id === "string") {
+      const authHeader = req.headers.get("Authorization") ?? "";
+      if (!authHeader.startsWith("Bearer ")) {
+        return J({ ok: false, error: "unauthorized" }, 401);
+      }
+      const userClient = createClient(
+        Deno.env.get("SUPABASE_URL")!,
+        Deno.env.get("SUPABASE_ANON_KEY")!,
+        { global: { headers: { Authorization: authHeader } } },
+      );
+      const token = authHeader.replace("Bearer ", "");
+      const { data: claims, error: claimsErr } = await userClient.auth.getClaims(token);
+      if (claimsErr || !claims?.claims?.sub) {
+        return J({ ok: false, error: "unauthorized" }, 401);
+      }
+
+      const { data: row, error: rowErr } = await admin
+        .from("briefings")
+        .select("id, rrtask_page_id, rrtask_last_edited_time, rrtask_aprovacao, rrtask_data_aprovacao")
+        .eq("id", body.briefing_id)
+        .maybeSingle();
+
+      if (rowErr) return J({ ok: false, error: rowErr.message }, 500);
+      if (!row || !row.rrtask_page_id) {
+        return J({ ok: true, skipped: "no_rrtask_page" });
+      }
+
+      const outcome = await applyRrtaskPage({
+        sb: admin,
+        rrToken,
+        briefing: row as BriefingMirrorRow,
+        source: "poll",
+      });
+      return J({ ok: true, mode: "single", outcome });
+    }
+
+    // ===================== MODO CRON (lote, cron-secret) =====================
     const provided = req.headers.get("x-cron-secret") ?? "";
     const { data: expected, error: vaultErr } = await admin.rpc(
       "_get_rrtask_cron_secret",
@@ -62,7 +103,7 @@ Deno.serve(secureHandler(
       return J({ ok: false, error: "forbidden" }, 403);
     }
 
-    // 2. Janela de cadência: 5 min comercial / 15 min fora
+    // Janela de cadência: 5 min comercial / 15 min fora.
     const now = new Date();
     const horaBRT = (now.getUTCHours() - 3 + 24) % 24;
     const comercial = horaBRT >= 8 && horaBRT < 18;
@@ -70,13 +111,7 @@ Deno.serve(secureHandler(
       return J({ ok: true, skipped: "fora_de_janela", hora_brt: horaBRT });
     }
 
-    const rrToken = Deno.env.get("HUGGS_RR_TOKEN");
-    if (!rrToken) return J({ ok: false, error: "rr_token_missing" }, 412);
-
-    const sb = admin;
-
-    // 3. Briefings com page no RR-Tasks — round-robin por last_polled_at
-    const { data: rows, error: rowsErr } = await sb
+    const { data: rows, error: rowsErr } = await admin
       .from("briefings")
       .select(
         "id, rrtask_page_id, rrtask_last_edited_time, rrtask_aprovacao, rrtask_data_aprovacao",
@@ -94,116 +129,29 @@ Deno.serve(secureHandler(
 
     for (const r of rows ?? []) {
       try {
-        const page = await notion<NotionPage>(rrToken, `/pages/${r.rrtask_page_id}`);
-        if (!page.ok || !page.data) {
-          erros++;
-          await sb.from("rrtask_sync_log").insert({
-            briefing_id: r.id,
-            action: "poll",
-            status: "error",
-            rrtask_page_id: r.rrtask_page_id,
-            error_message: `notion_${page.status}: ${page.errorText?.slice(0, 200) ?? ""}`,
-          });
-          continue;
-        }
-        if (page.data.archived || page.data.in_trash) {
-          // Não atualiza nem registra erro — só carimba o poll para round-robin
-          await sb
-            .from("briefings")
-            .update({ rrtask_last_polled_at: new Date().toISOString() })
-            .eq("id", r.id);
-          continue;
-        }
-
-        const lastEdited = page.data.last_edited_time ?? null;
-
-        // Skip rápido: nada mudou. Apenas carimba last_polled_at.
-        if (lastEdited && lastEdited === r.rrtask_last_edited_time) {
-          await sb
-            .from("briefings")
-            .update({ rrtask_last_polled_at: new Date().toISOString() })
-            .eq("id", r.id);
-          semMudanca++;
-          continue;
-        }
-
-        const P = (page.data.properties ?? {}) as Record<string, unknown>;
-        const aprov = sel(P["Aprovação de Conteúdo"]);
-        const status = st(P["Status"]);
-        const etapa = sel(P["Etapa"]);
-        let dataAprov = dt(P["Data Aprovação Conteúdo"]);
-
-        // R09 write-back: Aprovado + data vazia → carimbar agora (BRT)
-        if (aprov === "Aprovado" && !dataAprov) {
-          const iso = isoBrtNow();
-          const patch = await notion(rrToken, `/pages/${r.rrtask_page_id}`, {
-            method: "PATCH",
-            body: JSON.stringify({
-              properties: {
-                "Data Aprovação Conteúdo": { date: { start: iso } },
-              },
-            }),
-          });
-          if (patch.ok) {
-            dataAprov = iso;
-            writeBacks++;
-          } else {
-            await sb.from("rrtask_sync_log").insert({
-              briefing_id: r.id,
-              action: "poll",
-              status: "error",
-              rrtask_page_id: r.rrtask_page_id,
-              error_message: `r09_writeback_${patch.status}: ${patch.errorText?.slice(0, 200) ?? ""}`,
-            });
-          }
-        }
-
-        const { error: upErr } = await sb
-          .from("briefings")
-          .update({
-            rrtask_aprovacao: aprov,
-            rrtask_status: status,
-            rrtask_etapa: etapa,
-            rrtask_data_aprovacao: dataAprov ? dataAprov.slice(0, 10) : null,
-            rrtask_last_edited_time: lastEdited,
-            rrtask_last_polled_at: new Date().toISOString(),
-          })
-          .eq("id", r.id);
-
-        if (upErr) {
-          erros++;
-          await sb.from("rrtask_sync_log").insert({
-            briefing_id: r.id,
-            action: "poll",
-            status: "error",
-            rrtask_page_id: r.rrtask_page_id,
-            error_message: `db_update: ${upErr.message}`,
-          });
-          continue;
-        }
-
-        atualizadas++;
-        await sb.from("rrtask_sync_log").insert({
-          briefing_id: r.id,
-          action: "poll",
-          status: "success",
-          rrtask_page_id: r.rrtask_page_id,
+        const outcome = await applyRrtaskPage({
+          sb: admin,
+          rrToken,
+          briefing: r as BriefingMirrorRow,
+          source: "poll",
         });
+        if (outcome.kind === "updated") {
+          atualizadas++;
+          if (outcome.write_back) writeBacks++;
+        } else if (outcome.kind === "no_change" || outcome.kind === "archived") {
+          semMudanca++;
+        } else {
+          erros++;
+        }
       } catch (e) {
         erros++;
         console.error(`[rrtask-poll-status] briefing ${r.id}`, e);
-        await sb.from("rrtask_sync_log").insert({
-          briefing_id: r.id,
-          action: "poll",
-          status: "error",
-          rrtask_page_id: r.rrtask_page_id,
-          error_message: (e as Error)?.message?.slice(0, 300) ?? "unknown",
-        }).then(() => {}, () => {});
       }
     }
 
     return J({
       ok: true,
+      mode: "cron",
       processadas: rows?.length ?? 0,
       atualizadas,
       sem_mudanca: semMudanca,

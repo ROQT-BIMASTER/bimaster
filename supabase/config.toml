@@ -9,5 +9,9 @@ verify_jwt = false
 [functions.rrtask-poll-status]
 verify_jwt = false
 
+[functions.rrtask-webhook]
+verify_jwt = false
+
+
 [functions.rr-sync]
 verify_jwt = false
