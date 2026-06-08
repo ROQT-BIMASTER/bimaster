@@ -55,14 +55,19 @@ interface TarefaAnexosSectionProps {
   tarefaId: string;
   anexos: Anexo[];
   produtoId: string | null;
-  uploadAnexo: { mutate: (input: File | { file: File; notificarIds?: string[] }) => void };
+  projetoId?: string | null;
+  /** Papel do usuário atual no projeto (para alçada do Cofre). */
+  currentUserPapel?: string | null;
+  uploadAnexo: { mutateAsync: (input: File | { file: File; notificarIds?: string[] }) => Promise<any> };
   deleteAnexo: { mutate: (anexo: Anexo) => void };
   getAnexoUrl: (path: string) => Promise<string | null>;
-  sendToCofre: { mutate: (data: { anexoIds: string[]; produtoId: string; categoriasPorAnexo: Record<string, string> }) => void; isPending: boolean };
+  sendToCofre: { mutateAsync: (data: { anexoIds: string[]; produtoId: string; categoriasPorAnexo: Record<string, string>; projetoId?: string }) => Promise<any>; isPending: boolean };
+  removeFromCofre?: { mutateAsync: (data: { cofreDocId: string; projetoId?: string }) => Promise<any>; isPending: boolean };
 }
 
 export function TarefaAnexosSection({
-  tarefaId, anexos, produtoId, uploadAnexo, deleteAnexo, getAnexoUrl, sendToCofre,
+  tarefaId, anexos, produtoId, projetoId, currentUserPapel,
+  uploadAnexo, deleteAnexo, getAnexoUrl, sendToCofre, removeFromCofre,
 }: TarefaAnexosSectionProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [selectedAnexoIds, setSelectedAnexoIds] = useState<string[]>([]);
