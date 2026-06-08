@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { uniqueChannelName } from "@/lib/realtime/channelName";
 import { registrarAuditoriaTarefa } from "@/lib/projetos/auditoriaTarefa";
 import { todayBR, nowSaoPauloISO } from "@/lib/utils/parseLocalDate";
+import { isDetailGateActive, subscribeDetailGate } from "@/hooks/projetoTarefasOpenGate";
 
 export interface ProjetoSecao {
   id: string;
