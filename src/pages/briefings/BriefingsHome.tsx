@@ -227,6 +227,8 @@ export default function BriefingsHome() {
   const [filtroTipo, setFiltroTipo] = useState<string>("__todos");
   const [escopo, setEscopo] = useState<EscopoFiltro>("todos");
   const [filtroStatus, setFiltroStatus] = useState<StatusFiltro>("todos");
+  const [filtroAgencia, setFiltroAgencia] = useState<AgenciaFiltro>("todos");
+  const [filtroRodada, setFiltroRodada] = useState<RodadaFiltro>("todos");
   const [filtroProjeto, setFiltroProjeto] = useState<string>("__todos");
   const [busca, setBusca] = useState("");
   const [sortBy, setSortBy] = useState<SortKey>("updated_at");
