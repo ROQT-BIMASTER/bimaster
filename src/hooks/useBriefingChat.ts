@@ -121,6 +121,23 @@ export function useBriefingChat(briefingId: string | undefined) {
     return () => { supabase.removeChannel(channel); };
   }, [briefingId, carregar]);
 
+  // On-demand: ao abrir o briefing, força um poll único no RR-Tasks
+  // para refletir mudanças de status da agência sem esperar o cron de 5 min.
+  // É um reforço — o caminho padrão agora é via webhook do Notion (rrtask-webhook).
+  useEffect(() => {
+    if (!briefingId) return;
+    let cancelled = false;
+    // Pequeno debounce para evitar disparo quando o usuário só passa pela rota.
+    const timer = setTimeout(() => {
+      if (cancelled) return;
+      supabase.functions
+        .invoke("rrtask-poll-status", { body: { briefing_id: briefingId } })
+        .catch(() => { /* silencioso — só reforço */ });
+    }, 400);
+    return () => { cancelled = true; clearTimeout(timer); };
+  }, [briefingId]);
+
+
 
   const enviar = useCallback(
     async (texto: string, attachments?: ChatAttachment[]) => {
