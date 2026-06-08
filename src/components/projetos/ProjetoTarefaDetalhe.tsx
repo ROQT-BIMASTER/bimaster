@@ -819,17 +819,17 @@ export function ProjetoTarefaDetalhe({
                       <Button variant="outline" size="sm" className={cn("h-8 justify-start text-xs gap-1.5", !tarefa.data_prazo && "border-destructive/50 text-destructive")}>
                         <CalendarIcon className="h-3.5 w-3.5" />
                         {tarefa.data_prazo
-                          ? format(new Date(tarefa.data_prazo), "dd MMM yyyy", { locale: ptBR })
+                          ? format(parseLocalDateOrNow(tarefa.data_prazo), "dd MMM yyyy", { locale: ptBR })
                           : "Definir prazo (obrigatório)"}
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0" align="start">
                       <Calendar
                         mode="single"
-                        selected={tarefa.data_prazo ? new Date(tarefa.data_prazo) : undefined}
+                        selected={parseLocalDate(tarefa.data_prazo) ?? undefined}
                         onSelect={d => {
                           if (d) {
-                            onUpdate(tarefa.id, { data_prazo: d.toISOString().split("T")[0] });
+                            onUpdate(tarefa.id, { data_prazo: formatLocalDate(d) });
                             setDatePicker(false);
                           }
                         }}
