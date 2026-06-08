@@ -1494,18 +1494,31 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
         {/* User info — always visible */}
         {userName && (
           <div className="px-4 py-3 flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ backgroundColor: 'var(--color-primary-raw)' }}>
-              <span className="text-xs font-bold text-white">
-                {userName.charAt(0).toUpperCase()}
-              </span>
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium truncate text-[var(--sidebar-text-active-raw)]">{userName}</p>
-              <p className="text-xs text-[var(--sidebar-text-muted-raw)]">{t("nav.connected")}</p>
-            </div>
+            <NavLink
+              to="/meu-perfil"
+              className="flex items-center gap-3 flex-1 min-w-0 rounded-md hover:bg-[var(--sidebar-hover-raw)] transition-colors -mx-1 px-1 py-1"
+              title="Meu Perfil"
+            >
+              <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ backgroundColor: 'var(--color-primary-raw)' }}>
+                <span className="text-xs font-bold text-white">
+                  {userName.charAt(0).toUpperCase()}
+                </span>
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium truncate text-[var(--sidebar-text-active-raw)]">{userName}</p>
+                <p className="text-xs text-[var(--sidebar-text-muted-raw)]">{t("nav.connected")}</p>
+              </div>
+            </NavLink>
             <div className="flex items-center gap-1">
               <ThemeSelectorPopover />
               <LanguagePreferencePopover />
+              <NavLink
+                to="/meu-perfil"
+                title="Meu Perfil"
+                className="p-1.5 rounded-md text-[var(--sidebar-text-muted-raw)] hover:text-[var(--sidebar-text-hover-raw)] hover:bg-[var(--sidebar-hover-raw)] transition-colors"
+              >
+                <UserCircle className="h-4 w-4" />
+              </NavLink>
               {hasModulePermission("configuracoes") && (
                 <NavLink to="/dashboard/configuracoes" className="p-1.5 rounded-md text-[var(--sidebar-text-muted-raw)] hover:text-[var(--sidebar-text-hover-raw)] hover:bg-[var(--sidebar-hover-raw)] transition-colors">
                   <Settings className="h-4 w-4" />

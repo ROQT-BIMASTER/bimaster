@@ -71,6 +71,7 @@ function lazyWithRetry<T extends ComponentType<any>>(
 const Index = lazyWithRetry(() => import("./pages/Index"));
 const Auth = lazyWithRetry(() => import("./pages/Auth"));
 const Signup = lazyWithRetry(() => import("./pages/Signup"));
+const MeuPerfil = lazyWithRetry(() => import("./pages/MeuPerfil"));
 const Privacidade = lazyWithRetry(() => import("./pages/Privacidade"));
 const Termos = lazyWithRetry(() => import("./pages/Termos"));
 const Contato = lazyWithRetry(() => import("./pages/Contato"));
@@ -547,6 +548,7 @@ function AppContent() {
             
             {/* Protected Routes */}
             <Route path="/dashboard" element={<ProtectedRoute><DashboardRedirect /></ProtectedRoute>} />
+            <Route path="/meu-perfil" element={<ProtectedRoute><MeuPerfil /></ProtectedRoute>} />
             {/* Módulo CRM — acesso restrito a administradores */}
             <Route path="/dashboard/crm" element={<CrmAdminRoute><CrmLayout /></CrmAdminRoute>}>
               <Route index element={<CrmHome />} />
