@@ -115,10 +115,13 @@ interface TarefaFocusModeProps {
   projetoTipo?: string;
   /** Persistência externa em andamento (bridge). Mostra "Salvando…" no header. */
   externalSaving?: boolean;
+  /** Arma a intenção explícita de sair do foco no pai (guard anti-fechamento colateral). */
+  requestExitFocus?: () => void;
 }
 
 export function TarefaFocusMode({
   tarefa, open, onOpenChange, onUpdate, onToggle, onAddSubtarefa, secoes = [], projetoTipo, externalSaving = false,
+  requestExitFocus,
 }: TarefaFocusModeProps) {
   const confirm = useConfirm();
   const {
@@ -281,6 +284,13 @@ export function TarefaFocusMode({
   const handleOpenChangeSafe = (next: boolean) => {
     // Permitimos apenas o fluxo de fechar; nunca abrimos via Radix aqui.
     if (next) return;
+    // Marca intenção explícita no pai (Esc / X interno do Radix).
+    requestExitFocus?.();
+    onOpenChange(false);
+  };
+
+  const handleExitFocusClick = () => {
+    requestExitFocus?.();
     onOpenChange(false);
   };
   return (
@@ -350,7 +360,7 @@ export function TarefaFocusMode({
               Salvando…
             </span>
           )}
-          <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={() => onOpenChange(false)}>
+          <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={handleExitFocusClick}>
             <Minimize2 className="h-3.5 w-3.5" />
             Sair do Foco
           </Button>
