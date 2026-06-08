@@ -552,6 +552,7 @@ export function useProjetoTarefaDetalhe(tarefaId: string | undefined, produtoId?
     deleteAnexo,
     getAnexoUrl,
     sendToCofre,
+    removeFromCofre,
     messages,
     sendMessage,
     searchProdutos,
