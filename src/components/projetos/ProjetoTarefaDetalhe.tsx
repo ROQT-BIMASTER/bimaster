@@ -63,6 +63,8 @@ import { SubtarefaResponsavelPicker } from "./tarefa-detalhe/SubtarefaResponsave
 import { TarefaChinaDocsSection } from "./tarefa-detalhe/TarefaChinaDocsSection";
 import { TarefaProcessoSection } from "./tarefa-detalhe/TarefaProcessoSection";
 import { TarefaAprovacoesSection } from "./aprovacoes/TarefaAprovacoesSection";
+import { useUIPermissions } from "@/hooks/useUIPermissions";
+import { TAREFA_DETALHE_TELA } from "@/config/tarefa-detalhe-componentes";
 
 const ESTAGIO_OPTIONS = [
   { value: "briefing", label: "Briefing", color: "bg-purple-500/20 text-purple-400" },
