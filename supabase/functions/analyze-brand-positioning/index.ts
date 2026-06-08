@@ -33,11 +33,12 @@ Deno.serve(secureHandler({ auth: "none", rateLimit: 10, rateLimitPrefix: "analyz
       });
     }
 
-    // Fetch brand
+    // Fetch brand — somente do próprio usuário (proteção IDOR)
     const { data: brand, error: brandError } = await supabaseAdmin
       .from("our_brands")
       .select("*")
       .eq("id", brand_id)
+      .eq("created_by", user.id)
       .single();
 
     if (brandError || !brand) {
@@ -53,11 +54,12 @@ Deno.serve(secureHandler({ auth: "none", rateLimit: 10, rateLimitPrefix: "analyz
     }
     const { data: competitors } = await competitorsQuery.limit(10);
 
-    // Fetch competitor intelligence
+    // Fetch competitor intelligence — restrito ao escopo do usuário (vendedor ou supervisor)
     const competitorNames = (competitors || []).map(c => c.name);
     const { data: intelligence } = await supabaseAdmin
       .from("competitor_intelligence")
       .select("*")
+      .or(`vendedor_id.eq.${user.id},supervisor_id.eq.${user.id}`)
       .order("created_at", { ascending: false })
       .limit(50);
 
