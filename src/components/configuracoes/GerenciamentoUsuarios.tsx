@@ -595,24 +595,22 @@ export const GerenciamentoUsuarios = () => {
               <CardDescription>Adicione, edite ou remova usuários do sistema</CardDescription>
             </div>
             <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                onClick={async () => {
-                  if (!confirm("Aplicar o pacote de acesso padrão a todos os usuários ativos que ainda não o tenham? Acessos extras existentes não serão removidos.")) return;
-                  const { data, error } = await supabase.rpc("aplicar_acesso_padrao_em_massa");
-                  if (error) {
-                    toast.error("Erro", { description: error.message });
-                    return;
-                  }
-                  const r = data as { modulos_concedidos: number; telas_concedidas: number };
-                  toast.success("Acesso padrão aplicado", {
-                    description: `${r.telas_concedidas} tela(s) e ${r.modulos_concedidos} módulo(s) concedido(s).`,
-                  });
-                }}
-              >
-                <ShieldCheck className="w-4 h-4 mr-2" />
-                Aplicar acesso padrão
-              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline">
+                    <ShieldCheck className="w-4 h-4 mr-2" />
+                    Aplicar acesso padrão
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-64">
+                  <DropdownMenuItem onSelect={() => setAcessoPadraoSingleOpen(true)}>
+                    Aplicar a um usuário específico…
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onSelect={() => setAcessoPadraoMassaOpen(true)}>
+                    Aplicar a todos os usuários ativos
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
               <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                 <DialogTrigger asChild>
                   <Button onClick={() => { setEditingUser(null); setErrors({}); }}>
