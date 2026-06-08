@@ -6,6 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { uniqueChannelName } from "@/lib/realtime/channelName";
 import { registrarAuditoriaTarefa } from "@/lib/projetos/auditoriaTarefa";
+import { todayBR, nowSaoPauloISO } from "@/lib/utils/parseLocalDate";
 
 export interface ProjetoSecao {
   id: string;
