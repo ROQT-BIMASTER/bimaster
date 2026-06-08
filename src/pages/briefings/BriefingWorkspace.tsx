@@ -33,6 +33,7 @@ import { BriefingVersoesTimeline } from "@/components/briefings/BriefingVersoesT
 import { AnexarEvidenciaDialog } from "@/components/briefings/cofre/AnexarEvidenciaDialog";
 import { AttachImageButton, type ChatAttachment } from "@/components/briefings/chat/AttachImageButton";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { BriefingAprovacaoBanner } from "@/components/briefings/BriefingAprovacaoBanner";
 
 export default function BriefingWorkspace() {
   const { id } = useParams<{ id: string }>();
