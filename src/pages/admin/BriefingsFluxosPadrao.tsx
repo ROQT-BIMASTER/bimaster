@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { ClipboardCheck, ExternalLink, Save, Trash2, AlertTriangle } from "lucide-react";
+import { ClipboardCheck, ExternalLink, Save, Trash2, AlertTriangle, ArrowLeft, Plus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -164,7 +164,15 @@ export default function BriefingsFluxosPadrao() {
 
   return (
     <div className="container mx-auto py-6 max-w-5xl">
-      <div className="flex items-start justify-between mb-6">
+      <div className="mb-4">
+        <Button asChild variant="ghost" size="sm" className="-ml-2 text-muted-foreground hover:text-foreground">
+          <Link to="/dashboard/briefings">
+            <ArrowLeft className="h-4 w-4 mr-1.5" />
+            Voltar para Briefings
+          </Link>
+        </Button>
+      </div>
+      <div className="flex items-start justify-between mb-6 gap-4 flex-wrap">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
             <ClipboardCheck className="h-6 w-6 text-primary" />
@@ -176,12 +184,20 @@ export default function BriefingsFluxosPadrao() {
             escolhido.
           </p>
         </div>
-        <Button asChild variant="outline" size="sm">
-          <Link to="/admin/templates-alcadas">
-            <ExternalLink className="h-3.5 w-3.5 mr-1.5" />
-            Templates de alçada
-          </Link>
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button asChild variant="outline" size="sm">
+            <Link to="/admin/templates-alcadas">
+              <ExternalLink className="h-3.5 w-3.5 mr-1.5" />
+              Templates de alçada
+            </Link>
+          </Button>
+          <Button asChild size="sm">
+            <Link to="/admin/templates-alcadas?novo=1">
+              <Plus className="h-3.5 w-3.5 mr-1.5" />
+              Novo fluxo de aprovação
+            </Link>
+          </Button>
+        </div>
       </div>
 
       <div className="border rounded-lg bg-card">

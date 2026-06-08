@@ -27,7 +27,10 @@ import {
   Trash2,
   Archive,
   ArchiveRestore,
+  Settings,
 } from "lucide-react";
+import { Link } from "react-router-dom";
+import { useUserRole } from "@/hooks/useUserRole";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -223,6 +226,9 @@ export default function BriefingsHome() {
   const [creating, setCreating] = useState(false);
   const [tipoSel, setTipoSel] = useState<Tipo>("");
   const [titulo, setTitulo] = useState("");
+
+  const { isGerente } = useUserRole();
+  const canConfigure = isAdmin || isGerente;
 
   const [filtroTipo, setFiltroTipo] = useState<string>("__todos");
   const [escopo, setEscopo] = useState<EscopoFiltro>("todos");
@@ -702,7 +708,23 @@ export default function BriefingsHome() {
                 );
               })}
             </div>
+
+            {canConfigure && (
+              <div className="space-y-1 pt-2 border-t border-border/60">
+                <div className="px-2 pb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                  Configurações
+                </div>
+                <Link
+                  to="/admin/briefings-fluxos"
+                  className="w-full flex items-center gap-2 rounded-md px-3 py-2 text-sm transition hover:bg-muted text-foreground"
+                >
+                  <Settings className="h-4 w-4 shrink-0" />
+                  <span className="truncate">Fluxos de aprovação</span>
+                </Link>
+              </div>
+            )}
           </aside>
+
 
           {/* Tabela */}
           <section className="space-y-4 min-w-0 flex flex-col min-h-0">
