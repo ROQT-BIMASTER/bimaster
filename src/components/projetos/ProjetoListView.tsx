@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import { acquireReloadGate, releaseReloadGate } from "@/lib/pwaReloadGate";
+import { acquireDetailGate, releaseDetailGate } from "@/hooks/projetoTarefasOpenGate";
 import { useProjetoTarefas, ProjetoTarefa } from "@/hooks/useProjetoTarefas";
 import { useProjeto } from "@/hooks/useProjetos";
 import { useMetasProgress } from "@/hooks/useMetasProgress";
@@ -119,8 +120,12 @@ export function ProjetoListView({ projetoId, darkBg = false, filters = EMPTY_FIL
   useEffect(() => {
     if (!selectedTarefaId) return;
     acquireReloadGate();
-    return () => releaseReloadGate();
-  }, [selectedTarefaId]);
+    acquireDetailGate(projetoId);
+    return () => {
+      releaseReloadGate();
+      releaseDetailGate(projetoId);
+    };
+  }, [selectedTarefaId, projetoId]);
   const [iaDialogOpen, setIaDialogOpen] = useState(false);
   const { createTasksWithAI, createFromFile, loading: iaLoading } = useProjetoIA();
   const [columns, setColumns] = useState<ColumnConfig[]>(loadColumnConfig);
