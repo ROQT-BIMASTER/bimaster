@@ -1034,7 +1034,7 @@ export function ProjetoTarefaDetalhe({
                   )}
 
                   {/* Processo (nº processo + pesquisa/configuração para Gerente) */}
-                  {projetoId && (
+                  {projetoId && canViewUI("campo_processo") && (
                     <TarefaProcessoSection
                       tarefaId={tarefa.id}
                       projetoId={projetoId}
@@ -1044,7 +1044,7 @@ export function ProjetoTarefaDetalhe({
                   )}
 
                   {/* Widget Produto China */}
-                  {isProjetoProduto && chinaVinculo && (
+                  {isProjetoProduto && chinaVinculo && canViewUI("campo_china") && (
                     <>
                       <span className="text-muted-foreground flex items-center gap-1">
                         <Ship className="h-3.5 w-3.5" /> Produto China
@@ -1054,10 +1054,12 @@ export function ProjetoTarefaDetalhe({
                   )}
 
                   {/* Módulos Vinculados */}
-                  <ModulosVinculadosWidget tarefaId={tarefa?.id} />
+                  {canViewUI("campo_modulos_vinculados") && (
+                    <ModulosVinculadosWidget tarefaId={tarefa?.id} />
+                  )}
 
                   {/* Mover para Seção */}
-                  {secoes.length > 1 && onMoveTarefa && (
+                  {secoes.length > 1 && onMoveTarefa && canViewUI("campo_mover_para") && (
                     <>
                       <span className="text-muted-foreground flex items-center gap-1">
                         <ArrowRightLeft className="h-3.5 w-3.5" /> Mover para
