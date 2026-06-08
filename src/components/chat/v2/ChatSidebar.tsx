@@ -79,11 +79,13 @@ export function ChatSidebar({
             <TabsList
               className={cn(
                 "h-8 w-full grid",
-                tabsCount === 4
-                  ? "grid-cols-4"
-                  : tabsCount === 3
-                    ? "grid-cols-3"
-                    : "grid-cols-2",
+                tabsCount === 5
+                  ? "grid-cols-5"
+                  : tabsCount === 4
+                    ? "grid-cols-4"
+                    : tabsCount === 3
+                      ? "grid-cols-3"
+                      : "grid-cols-2",
               )}
             >
               <TabsTrigger value="pessoas" className="text-[11px] gap-1">
@@ -104,6 +106,11 @@ export function ChatSidebar({
                   <Briefcase className="h-3.5 w-3.5" /> Projetos
                 </TabsTrigger>
               )}
+              {podeVerTarefas && (
+                <TabsTrigger value="tarefas" className="text-[11px] gap-1">
+                  <CheckSquare className="h-3.5 w-3.5" /> Tarefas
+                </TabsTrigger>
+              )}
             </TabsList>
           </Tabs>
         </div>
@@ -121,6 +128,11 @@ export function ChatSidebar({
         />
       ) : modo === "projetos" ? (
         <SidebarProjetosContent
+          conversaSelecionada={conversaSelecionada}
+          onSelectConversa={onSelectConversa}
+        />
+      ) : modo === "tarefas" ? (
+        <SidebarTarefasContent
           conversaSelecionada={conversaSelecionada}
           onSelectConversa={onSelectConversa}
         />
