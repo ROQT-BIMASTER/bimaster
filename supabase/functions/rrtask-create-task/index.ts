@@ -16,6 +16,13 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { secureHandler } from "../_shared/secure-handler.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { notion, type NotionPage } from "../_shared/notion-client.ts";
+import {
+  appendDocsToPage,
+  buildCofreDocBlocks,
+  headingAdicionadoEm,
+  loadCofreDocs,
+  markDocsEnviados,
+} from "../_shared/rrtask-cofre-docs.ts";
 
 const RR_TASKS_DB_ID = "372b20a2-47b7-819f-9f50-e264014848b4";
 
