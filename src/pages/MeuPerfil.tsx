@@ -4,7 +4,7 @@ import { z } from "zod";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
-import { Camera, Loader2, Save, ShieldCheck, UserCircle, Lock, X } from "lucide-react";
+import { Camera, Loader2, Save, ShieldCheck, UserCircle, Lock, X, Eye, EyeOff } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -17,6 +17,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Separator } from "@/components/ui/separator";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 // ---------- helpers ----------
 const onlyDigits = (s: string) => (s || "").replace(/\D+/g, "");
@@ -33,6 +41,32 @@ const maskCpfPartial = (cpfRaw: string | null | undefined) => {
   const d = onlyDigits(cpfRaw || "");
   if (d.length !== 11) return d || "Não informado";
   return `***.${d.slice(3, 6)}.${d.slice(6, 9)}-**`;
+};
+
+const formatCpfFull = (cpfRaw: string | null | undefined) => {
+  const d = onlyDigits(cpfRaw || "");
+  if (d.length !== 11) return d || "Não informado";
+  return `${d.slice(0, 3)}.${d.slice(3, 6)}.${d.slice(6, 9)}-${d.slice(9, 11)}`;
+};
+
+const maskRgPartial = (rg: string | null | undefined) => {
+  const v = (rg || "").trim();
+  if (!v) return "Não informado";
+  if (v.length <= 3) return "*".repeat(v.length);
+  // Mostra só os 2 últimos caracteres
+  return `${"*".repeat(Math.max(v.length - 2, 3))}${v.slice(-2)}`;
+};
+
+const maskEmailPartial = (email: string | null | undefined) => {
+  const v = (email || "").trim();
+  if (!v || !v.includes("@")) return v || "Não informado";
+  const [local, domain] = v.split("@");
+  const head = local.slice(0, Math.min(2, local.length));
+  const maskedLocal = `${head}${"*".repeat(Math.max(local.length - head.length, 3))}`;
+  const [domName, ...rest] = domain.split(".");
+  const domHead = domName.slice(0, 1);
+  const maskedDom = `${domHead}${"*".repeat(Math.max(domName.length - 1, 2))}`;
+  return `${maskedLocal}@${maskedDom}${rest.length ? "." + rest.join(".") : ""}`;
 };
 
 const ALLOWED_AVATAR_TYPES = ["image/png", "image/jpeg", "image/webp"];
@@ -101,6 +135,76 @@ export default function MeuPerfil() {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [acceptedTerms, setAcceptedTerms] = useState(false);
+
+  // Step-up para revelar dados sensíveis (CPF/RG/Email)
+  const REVEAL_TTL_MS = 30_000;
+  const [revealed, setRevealed] = useState(false);
+  const [revealOpen, setRevealOpen] = useState(false);
+  const [revealPassword, setRevealPassword] = useState("");
+  const [revealing, setRevealing] = useState(false);
+  const [revealExpiresAt, setRevealExpiresAt] = useState<number | null>(null);
+  const revealTimerRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (revealTimerRef.current) window.clearTimeout(revealTimerRef.current);
+    };
+  }, []);
+
+  const hideSensitive = () => {
+    setRevealed(false);
+    setRevealExpiresAt(null);
+    if (revealTimerRef.current) {
+      window.clearTimeout(revealTimerRef.current);
+      revealTimerRef.current = null;
+    }
+  };
+
+  const handleRevealSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user?.id || !profile?.email) return;
+    if (!revealPassword) {
+      toast.error("Informe sua senha para confirmar");
+      return;
+    }
+    setRevealing(true);
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email: profile.email,
+        password: revealPassword,
+      });
+      if (error) {
+        toast.error("Senha incorreta");
+        return;
+      }
+      // Registrar acesso em auditoria (não bloqueia em caso de erro)
+      try {
+        await supabase.from("sensitive_data_access_log").insert({
+          user_id: user.id,
+          table_name: "profiles",
+          record_id: user.id,
+          action: "reveal_own_pii",
+        });
+      } catch {
+        // silent — auditoria é best-effort
+      }
+      setRevealed(true);
+      const expiresAt = Date.now() + REVEAL_TTL_MS;
+      setRevealExpiresAt(expiresAt);
+      if (revealTimerRef.current) window.clearTimeout(revealTimerRef.current);
+      revealTimerRef.current = window.setTimeout(() => {
+        hideSensitive();
+      }, REVEAL_TTL_MS);
+      setRevealOpen(false);
+      setRevealPassword("");
+      toast.success("Dados revelados por 30 segundos");
+    } catch (err) {
+      logger.error("[MeuPerfil] reveal error");
+      toast.error("Não foi possível confirmar sua identidade");
+    } finally {
+      setRevealing(false);
+    }
+  };
 
   useEffect(() => {
     let active = true;
@@ -415,20 +519,65 @@ export default function MeuPerfil() {
           {/* Card: Dados de cadastro (somente leitura) */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">Dados de cadastro</CardTitle>
-              <CardDescription>
-                Para alterar estes campos, entre em contato com o administrador do sistema.
-              </CardDescription>
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <CardTitle className="text-base">Dados de cadastro</CardTitle>
+                  <CardDescription>
+                    Exibidos de forma parcial por proteção de dados (LGPD). Para alterar estes campos,
+                    entre em contato com o administrador do sistema.
+                  </CardDescription>
+                </div>
+                {revealed ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={hideSensitive}
+                  >
+                    <EyeOff className="h-4 w-4 mr-2" />
+                    Ocultar
+                  </Button>
+                ) : (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setRevealOpen(true)}
+                  >
+                    <Eye className="h-4 w-4 mr-2" />
+                    Mostrar completos
+                  </Button>
+                )}
+              </div>
+              {revealed && revealExpiresAt && (
+                <p className="text-xs text-muted-foreground mt-2">
+                  Dados visíveis por tempo limitado. O acesso fica registrado em auditoria.
+                </p>
+              )}
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <ReadOnlyField label="E-mail corporativo" value={profile?.email ?? "Não informado"} />
+                <ReadOnlyField
+                  label="E-mail corporativo"
+                  value={
+                    revealed
+                      ? profile?.email ?? "Não informado"
+                      : maskEmailPartial(profile?.email)
+                  }
+                  hint={revealed ? undefined : "Exibido parcialmente. Clique em 'Mostrar completos'."}
+                />
                 <ReadOnlyField
                   label="CPF"
-                  value={maskCpfPartial(profile?.cpf)}
-                  hint="Exibido parcialmente por proteção de dados (LGPD)."
+                  value={
+                    revealed ? formatCpfFull(profile?.cpf) : maskCpfPartial(profile?.cpf)
+                  }
+                  hint={revealed ? undefined : "Exibido parcialmente. Clique em 'Mostrar completos'."}
                 />
-                <ReadOnlyField label="RG" value={profile?.rg || "Não informado"} />
+                <ReadOnlyField
+                  label="RG"
+                  value={revealed ? profile?.rg || "Não informado" : maskRgPartial(profile?.rg)}
+                  hint={revealed ? undefined : "Exibido parcialmente. Clique em 'Mostrar completos'."}
+                />
                 <ReadOnlyField
                   label="Data de cadastro"
                   value={
@@ -440,6 +589,61 @@ export default function MeuPerfil() {
               </div>
             </CardContent>
           </Card>
+
+          {/* Diálogo de step-up para revelar dados sensíveis */}
+          <Dialog
+            open={revealOpen}
+            onOpenChange={(open) => {
+              setRevealOpen(open);
+              if (!open) setRevealPassword("");
+            }}
+          >
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  <ShieldCheck className="h-4 w-4 text-primary" />
+                  Confirme sua identidade
+                </DialogTitle>
+                <DialogDescription>
+                  Para exibir CPF, RG e e-mail completos, informe sua senha de acesso. Os dados ficarão
+                  visíveis por 30 segundos e o acesso será registrado em auditoria.
+                </DialogDescription>
+              </DialogHeader>
+              <form onSubmit={handleRevealSubmit} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="revealPassword">Senha atual</Label>
+                  <Input
+                    id="revealPassword"
+                    type="password"
+                    value={revealPassword}
+                    onChange={(e) => setRevealPassword(e.target.value)}
+                    autoComplete="current-password"
+                    autoFocus
+                    required
+                  />
+                </div>
+                <DialogFooter>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setRevealOpen(false)}
+                    disabled={revealing}
+                  >
+                    Cancelar
+                  </Button>
+                  <Button type="submit" disabled={revealing || !revealPassword}>
+                    {revealing ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <Eye className="h-4 w-4 mr-2" />
+                    )}
+                    Confirmar e mostrar
+                  </Button>
+                </DialogFooter>
+              </form>
+            </DialogContent>
+          </Dialog>
+
 
           {/* Card: Segurança / Senha */}
           <Card>
