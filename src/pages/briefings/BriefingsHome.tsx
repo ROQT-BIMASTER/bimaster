@@ -267,7 +267,7 @@ export default function BriefingsHome() {
       const { data, error } = await supabase
         .from("briefings")
         .select(
-          "id, tipo, titulo, status, completude, updated_at, user_id, projeto_id, tarefa_id",
+          "id, tipo, titulo, status, completude, updated_at, user_id, projeto_id, tarefa_id, rrtask_page_id, rrtask_aprovacao, rrtask_status, rrtask_etapa, rrtask_round, rrtask_synced_at",
         )
         .order("updated_at", { ascending: false });
       if (error) throw error;
