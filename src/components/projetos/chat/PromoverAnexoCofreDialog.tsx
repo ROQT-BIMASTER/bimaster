@@ -1,12 +1,11 @@
 /**
- * PromoverAnexoCofreDialog — diálogo enxuto para promover um anexo da
- * conversa (chat de tarefa) para o Cofre do produto vinculado à tarefa.
+ * PromoverAnexoCofreDialog — diálogo para promover um anexo da conversa
+ * (chat de tarefa) para o Cofre do produto vinculado à tarefa.
  *
- * Reusa `sendToCofre` de `useProjetoTarefaDetalhe`, com mesma validação
- * de papel (`admin_cofre` / `coordenador`) e mesma lista de categorias
- * exibida na aba "Fora do Cofre" da tarefa.
+ * Permite escolher a categoria e a pasta/coleção (com vínculo opcional a
+ * uma equipe/departamento). Pastas novas podem ser criadas inline.
  */
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -24,8 +23,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { Loader2, ShieldCheck } from "lucide-react";
+import { FolderPlus, Loader2, ShieldCheck, X } from "lucide-react";
+import {
+  useCofreProdutoPastas,
+  useDepartamentosOptions,
+} from "@/hooks/cofre/useCofreProdutoPastas";
 
 export const COFRE_CATEGORIAS = [
   "briefing",
@@ -53,6 +57,9 @@ export const COFRE_CATEGORIA_LABELS: Record<string, string> = {
   outro: "Outro",
 };
 
+const SEM_PASTA = "__sem_pasta__";
+const SEM_EQUIPE = "__sem_equipe__";
+
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -66,6 +73,7 @@ interface Props {
       produtoId: string;
       categoriasPorAnexo: Record<string, string>;
       projetoId?: string;
+      pastasPorAnexo?: Record<string, string | null>;
     }) => Promise<unknown>;
     isPending?: boolean;
   };
@@ -83,7 +91,49 @@ export function PromoverAnexoCofreDialog({
   onPromoted,
 }: Props) {
   const [categoria, setCategoria] = useState<string>("");
+  const [pastaId, setPastaId] = useState<string>(SEM_PASTA);
   const [submitting, setSubmitting] = useState(false);
+
+  const [creatingPasta, setCreatingPasta] = useState(false);
+  const [novaPastaNome, setNovaPastaNome] = useState("");
+  const [novaPastaEquipe, setNovaPastaEquipe] = useState<string>(SEM_EQUIPE);
+
+  const { pastasQuery, createPasta } = useCofreProdutoPastas(produtoId);
+  const { data: departamentos = [] } = useDepartamentosOptions();
+  const pastas = pastasQuery.data ?? [];
+
+  const pastaSelecionada = useMemo(
+    () => pastas.find((p) => p.id === pastaId) || null,
+    [pastas, pastaId],
+  );
+
+  const resetState = () => {
+    setCategoria("");
+    setPastaId(SEM_PASTA);
+    setCreatingPasta(false);
+    setNovaPastaNome("");
+    setNovaPastaEquipe(SEM_EQUIPE);
+  };
+
+  const handleCreatePasta = async () => {
+    const nome = novaPastaNome.trim();
+    if (!nome) {
+      toast.error("Informe o nome da pasta.");
+      return;
+    }
+    try {
+      const pasta = await createPasta.mutateAsync({
+        nome,
+        departamento_id: novaPastaEquipe === SEM_EQUIPE ? null : novaPastaEquipe,
+      });
+      setPastaId(pasta.id);
+      setCreatingPasta(false);
+      setNovaPastaNome("");
+      setNovaPastaEquipe(SEM_EQUIPE);
+    } catch {
+      /* toast já tratado no hook */
+    }
+  };
 
   const handleConfirm = async () => {
     if (!categoria) {
@@ -92,16 +142,18 @@ export function PromoverAnexoCofreDialog({
     }
     setSubmitting(true);
     try {
+      const pastaFinal = pastaId === SEM_PASTA ? null : pastaId;
       await sendToCofre.mutateAsync({
         anexoIds: [anexoId],
         produtoId,
         categoriasPorAnexo: { [anexoId]: categoria },
+        pastasPorAnexo: { [anexoId]: pastaFinal },
         projetoId: projetoId || undefined,
       });
       toast.success("Documento promovido ao Cofre.");
       onPromoted?.(categoria);
       onOpenChange(false);
-      setCategoria("");
+      resetState();
     } catch (err: any) {
       toast.error(err?.message ?? "Falha ao promover ao Cofre.");
     } finally {
@@ -110,7 +162,15 @@ export function PromoverAnexoCofreDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={(o) => { if (!submitting) onOpenChange(o); }}>
+    <Dialog
+      open={open}
+      onOpenChange={(o) => {
+        if (!submitting) {
+          onOpenChange(o);
+          if (!o) resetState();
+        }
+      }}
+    >
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
@@ -144,6 +204,103 @@ export function PromoverAnexoCofreDialog({
                 ))}
               </SelectContent>
             </Select>
+          </div>
+
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between">
+              <Label htmlFor="cofre-pasta" className="text-xs">
+                Pasta / Coleção
+              </Label>
+              {!creatingPasta && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 px-2 text-xs"
+                  onClick={() => setCreatingPasta(true)}
+                >
+                  <FolderPlus className="h-3 w-3 mr-1" /> Nova pasta
+                </Button>
+              )}
+            </div>
+
+            {!creatingPasta ? (
+              <>
+                <Select value={pastaId} onValueChange={setPastaId}>
+                  <SelectTrigger id="cofre-pasta" className="h-9 text-sm">
+                    <SelectValue placeholder="Sem pasta" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={SEM_PASTA}>Sem pasta (raiz)</SelectItem>
+                    {pastas.map((p) => (
+                      <SelectItem key={p.id} value={p.id}>
+                        {p.nome}
+                        {p.departamento?.nome ? ` — ${p.departamento.nome}` : ""}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {pastaSelecionada?.departamento?.nome && (
+                  <p className="text-[11px] text-muted-foreground">
+                    Equipe: {pastaSelecionada.departamento.nome}
+                  </p>
+                )}
+              </>
+            ) : (
+              <div className="space-y-2 rounded-md border border-border bg-muted/20 p-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-medium">Criar pasta</span>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6"
+                    onClick={() => {
+                      setCreatingPasta(false);
+                      setNovaPastaNome("");
+                      setNovaPastaEquipe(SEM_EQUIPE);
+                    }}
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                </div>
+                <Input
+                  value={novaPastaNome}
+                  onChange={(e) => setNovaPastaNome(e.target.value)}
+                  placeholder="Nome da pasta"
+                  className="h-8 text-sm"
+                />
+                <Select value={novaPastaEquipe} onValueChange={setNovaPastaEquipe}>
+                  <SelectTrigger className="h-8 text-sm">
+                    <SelectValue placeholder="Equipe (opcional)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={SEM_EQUIPE}>Sem equipe</SelectItem>
+                    {departamentos.map((d) => (
+                      <SelectItem key={d.id} value={d.id}>
+                        {d.nome}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button
+                  type="button"
+                  size="sm"
+                  className="w-full h-8"
+                  onClick={handleCreatePasta}
+                  disabled={createPasta.isPending || !novaPastaNome.trim()}
+                >
+                  {createPasta.isPending ? (
+                    <>
+                      <Loader2 className="h-3 w-3 mr-1.5 animate-spin" />
+                      Criando…
+                    </>
+                  ) : (
+                    "Criar e usar"
+                  )}
+                </Button>
+              </div>
+            )}
           </div>
         </div>
 
