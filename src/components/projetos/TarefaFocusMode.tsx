@@ -790,7 +790,7 @@ export function TarefaFocusMode({
                                     const ok = await confirm({
                                       title: "Tirar documento do Cofre?",
                                       description: `Deseja realmente retirar "${doc.nome_arquivo}" do Cofre? O arquivo bruto permanece nos anexos da tarefa e a operação fica registrada na auditoria.`,
-                                      confirmText: "Sim, retirar",
+                                      confirmLabel: "Sim, retirar",
                                       variant: "destructive",
                                     });
                                     if (!ok) return;
