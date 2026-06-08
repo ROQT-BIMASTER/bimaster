@@ -904,7 +904,7 @@ export function ProjetoTarefaDetalhe({
 
 
                   {/* Produto vinculado - apenas em projetos de produto */}
-                  {isProjetoProduto && (
+                  {isProjetoProduto && canViewUI("campo_produto") && (
                     <>
                       <span className="text-muted-foreground flex items-center gap-1">
                         <Package className="h-3.5 w-3.5" /> Produto
