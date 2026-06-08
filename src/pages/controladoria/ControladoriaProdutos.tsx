@@ -160,7 +160,7 @@ export default function ControladoriaProdutos() {
   return (
     <TooltipProvider delayDuration={200}>
       <div className="p-6 space-y-6">
-        <ProjetoBackButton fallbackTo="/dashboard" />
+        <ProjetoBackButton fallbackTo="/dashboard" label="Voltar ao menu inicial" />
         <header className="space-y-1">
           <div className="flex items-center gap-2">
             <PackageSearch className="h-5 w-5 text-primary" />
