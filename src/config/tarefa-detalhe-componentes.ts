@@ -58,6 +58,10 @@ export const TAREFA_DETALHE_CATALOGO: CatalogoGrupo[] = [
       { codigo: "secao_dependencias", label: "Dependências" },
       { codigo: "secao_workflow_aprovacao", label: "Workflow de Aprovação (alçadas)" },
       { codigo: "secao_metas", label: "Marcos / Metas" },
+      { codigo: "secao_anexos", label: "Anexos da tarefa" },
+      { codigo: "secao_chat", label: "Chat da tarefa" },
+      { codigo: "campo_observacoes", label: "Observações (Minhas Tarefas)" },
+      { codigo: "acao_abrir_no_projeto", label: "Abrir no projeto (Minhas Tarefas)" },
     ],
   },
 ];
