@@ -15,7 +15,7 @@ import { useChatActions } from "@/hooks/chat/useChatActions";
 import { useChinaSubmissoesChat, filtrarSubmissoesChat, type ChinaSubmissaoChatItem } from "@/hooks/chat/useChinaSubmissoesChat";
 import { useBriefingsChat, filtrarBriefingsChat, type BriefingChatItem } from "@/hooks/chat/useBriefingsChat";
 import { useProjetosChat, filtrarProjetosChat, type ProjetoChatItem } from "@/hooks/chat/useProjetosChat";
-import { useTarefasChat, filtrarTarefasChat, useTarefaChatPreferencia, type TarefaChatItem, type TarefaChatFiltro } from "@/hooks/chat/useTarefasChat";
+import { useTarefasChat, filtrarTarefasChat, ordenarTarefasChat, useTarefaChatPreferencia, useTarefaChatPreferenciaBulk, type TarefaChatItem, type TarefaChatFiltro, type TarefaChatOrdenacao } from "@/hooks/chat/useTarefasChat";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { initials, formatRelativo, nomeConversa } from "./utils";
