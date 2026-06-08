@@ -29,6 +29,7 @@ import { cn } from "@/lib/utils";
 import { copyTarefaLink } from "@/lib/utils/copyDeepLink";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { parseLocalDate, parseLocalDateOrNow, formatLocalDate } from "@/lib/utils/parseLocalDate";
 import {
   CheckCircle2, Circle, CalendarIcon, Paperclip, MessageSquare,
   Send, Upload, FileText, Image, File, Trash2, Download,
