@@ -172,6 +172,17 @@ export function useKanbanAprovacoes(escopo: EscopoKanban) {
         secao_nome: r.projeto_secoes?.nome ?? null,
         tarefa_titulo: r.projeto_tarefas?.titulo ?? null,
         lote_nome: r.fluxo_aprovacao_instancias?.lote_nome ?? null,
+        briefing_id: r.fluxo_aprovacao_instancias?.briefing_id ?? null,
+        submissao_id: r.fluxo_aprovacao_instancias?.submissao_id ?? null,
+        tipo_origem: (r.fluxo_aprovacao_instancias?.briefing_id
+          ? "briefing"
+          : r.fluxo_aprovacao_instancias?.submissao_id
+            ? "china_submissao"
+            : r.china_produto_documentos?.arquivo_path
+              ? "documento_storage"
+              : r.china_produto_documentos?.arquivo_url
+                ? "documento_externo"
+                : "outro") as TipoOrigemItem,
       }));
 
       // resolve nomes responsáveis
