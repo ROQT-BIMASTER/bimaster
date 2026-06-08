@@ -620,7 +620,7 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
         tarefas: v.tarefas.map(t => t.id === tarefa.id ? {
           ...t,
           status: isCompleting ? "concluida" : "pendente",
-          data_conclusao: isCompleting ? new Date().toISOString().split("T")[0] : null,
+          data_conclusao: isCompleting ? todayBR() : null,
         } : t),
       }));
       return { previous };
