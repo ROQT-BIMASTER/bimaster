@@ -779,6 +779,30 @@ export function TarefaFocusMode({
                                   <ShieldCheck className="h-2.5 w-2.5" /> Visível Fábrica
                                 </Badge>
                               )}
+                              {isAdminCofre && (
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-7 w-7 text-amber-600 hover:text-amber-700"
+                                  title="Tirar do Cofre"
+                                  disabled={removeFromCofre.isPending}
+                                  onClick={async () => {
+                                    const ok = await confirm({
+                                      title: "Tirar documento do Cofre?",
+                                      description: `Deseja realmente retirar "${doc.nome_arquivo}" do Cofre? O arquivo bruto permanece nos anexos da tarefa e a operação fica registrada na auditoria.`,
+                                      confirmText: "Sim, retirar",
+                                      variant: "destructive",
+                                    });
+                                    if (!ok) return;
+                                    await removeFromCofre.mutateAsync({
+                                      cofreDocId: doc.id,
+                                      projetoId: (tarefa as any).projeto_id,
+                                    });
+                                  }}
+                                >
+                                  <ArrowDownToLine className="h-3.5 w-3.5" />
+                                </Button>
+                              )}
                             </div>
                             {/* Version history per document */}
                             <DocVersionHistory
