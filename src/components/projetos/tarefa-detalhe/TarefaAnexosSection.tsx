@@ -92,9 +92,39 @@ export function TarefaAnexosSection({
     e.target.value = "";
   };
 
-  const handleConfirmUpload = (notificarIds: string[]) => {
-    pendingFiles.forEach(f => uploadAnexo.mutate({ file: f, notificarIds }));
+  const canPublishToCofre =
+    currentUserPapel === "admin_cofre" || currentUserPapel === "coordenador";
+
+  const handleConfirmUpload = async (payload: UploadConfirmPayload) => {
+    const files = pendingFiles;
     setPendingFiles([]);
+    if (files.length === 0) return;
+
+    try {
+      const results = await Promise.all(
+        files.map(f => uploadAnexo.mutateAsync({ file: f, notificarIds: payload.notificarIds })),
+      );
+
+      // Se usuário marcou "Promover ao Cofre" no upload, dispara sendToCofre
+      if (payload.cofre && produtoId && canPublishToCofre) {
+        const anexoIds = results
+          .map((r: any) => (r && typeof r === "object" ? r.id : null))
+          .filter((id): id is string => !!id);
+        if (anexoIds.length > 0) {
+          const categoriasPorAnexo = Object.fromEntries(
+            anexoIds.map((id) => [id, payload.cofre!.categoria]),
+          );
+          await sendToCofre.mutateAsync({
+            anexoIds,
+            produtoId,
+            categoriasPorAnexo,
+            projetoId: projetoId || undefined,
+          });
+        }
+      }
+    } catch {
+      // toasts são exibidos nas mutations
+    }
   };
 
 
