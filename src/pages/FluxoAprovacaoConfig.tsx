@@ -174,7 +174,7 @@ export default function FluxoAprovacaoConfig() {
     <div className="space-y-6 p-6">
       {/* Header */}
       <div className="flex items-center gap-3">
-        <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard/aprovacao-artes")}>
+        <Button variant="ghost" size="icon" onClick={handleVoltar}>
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <div className="p-2 rounded-lg bg-primary/10">
