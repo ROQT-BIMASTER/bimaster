@@ -366,15 +366,17 @@ export function ProjetoListView({ projetoId, darkBg = false, filters = EMPTY_FIL
 
         <div className={`flex items-center gap-2 border-t ${darkBg ? "border-white/10" : "border-border/30"}`}>
           <NovaSecaoInline onAdd={(nome) => createSecao.mutate(nome)} darkBg={darkBg} />
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-8 text-xs gap-1.5 mr-2 text-primary hover:text-primary"
-            onClick={() => setIaDialogOpen(true)}
-          >
-            <Sparkles className="h-3.5 w-3.5" />
-            Criar com IA
-          </Button>
+          {isAdmin && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 text-xs gap-1.5 mr-2 text-primary hover:text-primary"
+              onClick={() => setIaDialogOpen(true)}
+            >
+              <Sparkles className="h-3.5 w-3.5" />
+              Criar com IA
+            </Button>
+          )}
         </div>
       </div>
 
