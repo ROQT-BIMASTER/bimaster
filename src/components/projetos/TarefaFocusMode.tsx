@@ -284,6 +284,13 @@ export function TarefaFocusMode({
   const handleOpenChangeSafe = (next: boolean) => {
     // Permitimos apenas o fluxo de fechar; nunca abrimos via Radix aqui.
     if (next) return;
+    // Marca intenção explícita no pai (Esc / X interno do Radix).
+    requestExitFocus?.();
+    onOpenChange(false);
+  };
+
+  const handleExitFocusClick = () => {
+    requestExitFocus?.();
     onOpenChange(false);
   };
   return (
