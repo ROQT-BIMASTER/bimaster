@@ -199,5 +199,6 @@ export function EstoqueUnificadoTable(p: Props) {
         </div>
       </div>
     </div>
+    </TooltipProvider>
   );
 }
