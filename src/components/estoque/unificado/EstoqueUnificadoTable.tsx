@@ -49,10 +49,11 @@ export function EstoqueUnificadoTable(p: Props) {
     </TableHead>
   );
 
-  // +1 = chevron column
-  const colspan = (isFisico ? 8 : 6) + 1;
+  // +1 chevron, +1 nova coluna "≡ em CX"
+  const colspan = (isFisico ? 8 : 6) + 1 + 1;
 
   return (
+    <TooltipProvider delayDuration={150}>
     <div className="rounded-md border bg-card">
       <Table>
         <TableHeader>
@@ -71,6 +72,19 @@ export function EstoqueUnificadoTable(p: Props) {
             ) : (
               <Th k="saldo_total_em_unidades" label={MODO_COL_LABEL[modo]} num />
             )}
+            <TableHead className="text-right">
+              <span className="inline-flex items-center gap-1 font-medium">
+                ≡ em CX
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="h-3 w-3 text-muted-foreground/60 cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="max-w-xs text-xs">
+                    Equivalente em caixas máster: Total em UN ÷ fator CX. Pode ser fracionário — usado para apoiar compras.
+                  </TooltipContent>
+                </Tooltip>
+              </span>
+            </TableHead>
             <Th k="custo_total" label="Custo total" num />
             <TableHead className="text-right">SKUs</TableHead>
           </TableRow>
