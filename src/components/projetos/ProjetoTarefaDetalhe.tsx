@@ -745,6 +745,7 @@ export function ProjetoTarefaDetalhe({
                 {/* Fields grid */}
                 <div className="grid grid-cols-[120px_1fr] gap-y-3 gap-x-3 text-sm">
                   {/* Status */}
+                  {canViewUI("campo_status") && (<>
                   <span className="text-muted-foreground">Status</span>
                   <Select value={isPendingValidation ? "pendente_validacao" : tarefa.status} onValueChange={v => {
                     if (isPendingValidation) { toast.error("Aguardando aprovação. Não é possível alterar o status."); return; }
@@ -763,6 +764,7 @@ export function ProjetoTarefaDetalhe({
                       {STATUS_OPTIONS.map(s => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
                     </SelectContent>
                   </Select>
+                  </>)}
 
                   {/* Prioridade */}
                   <span className="text-muted-foreground">Prioridade</span>
