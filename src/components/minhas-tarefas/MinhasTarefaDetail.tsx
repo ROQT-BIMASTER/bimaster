@@ -18,6 +18,8 @@ import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useMinhasTarefaDetalhe } from "@/hooks/useMinhasTarefaDetalhe";
+import { useUIPermissions } from "@/hooks/useUIPermissions";
+import { TAREFA_DETALHE_TELA } from "@/config/tarefa-detalhe-componentes";
 import { MinhasTarefaAnexos } from "./MinhasTarefaAnexos";
 import { MinhasTarefaChat } from "./MinhasTarefaChat";
 import type { MinaTarefa } from "@/hooks/useMinhasTarefas";
@@ -54,6 +56,7 @@ export function MinhasTarefaDetail({ tarefa, open, onOpenChange }: Props) {
 
   const { anexos, uploadAnexo, deleteAnexo, getAnexoUrl, messages, sendMessage, teamMembers } =
     useMinhasTarefaDetalhe(open && tarefa ? tarefa.id : undefined);
+  const { canView } = useUIPermissions(TAREFA_DETALHE_TELA);
 
   const resetFields = (t: MinaTarefa) => {
     setTitulo(t.titulo);
@@ -130,77 +133,85 @@ export function MinhasTarefaDetail({ tarefa, open, onOpenChange }: Props) {
 
           {/* Status & Priority row */}
           <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-muted-foreground">Status</label>
-              <Select value={status} onValueChange={setStatus}>
-                <SelectTrigger className="h-9 text-xs">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {statusOptions.map(o => (
-                    <SelectItem key={o.value} value={o.value}>
-                      <div className="flex items-center gap-2">
-                        <o.icon className={cn("h-3.5 w-3.5", o.color)} />
-                        {o.label}
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            {canView("campo_status") && (
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-muted-foreground">Status</label>
+                <Select value={status} onValueChange={setStatus}>
+                  <SelectTrigger className="h-9 text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {statusOptions.map(o => (
+                      <SelectItem key={o.value} value={o.value}>
+                        <div className="flex items-center gap-2">
+                          <o.icon className={cn("h-3.5 w-3.5", o.color)} />
+                          {o.label}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
 
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-muted-foreground">Prioridade</label>
-              <Select value={prioridade} onValueChange={setPrioridade}>
-                <SelectTrigger className="h-9 text-xs">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {prioridadeOptions.map(o => (
-                    <SelectItem key={o.value} value={o.value}>
-                      <div className="flex items-center gap-2">
-                        <Flag className={cn("h-3.5 w-3.5", o.color.includes("destructive") ? "text-destructive" : o.color.includes("warning") ? "text-warning" : o.color.includes("primary") ? "text-primary" : "text-muted-foreground")} />
-                        {o.label}
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            {canView("campo_prioridade") && (
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-muted-foreground">Prioridade</label>
+                <Select value={prioridade} onValueChange={setPrioridade}>
+                  <SelectTrigger className="h-9 text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {prioridadeOptions.map(o => (
+                      <SelectItem key={o.value} value={o.value}>
+                        <div className="flex items-center gap-2">
+                          <Flag className={cn("h-3.5 w-3.5", o.color.includes("destructive") ? "text-destructive" : o.color.includes("warning") ? "text-warning" : o.color.includes("primary") ? "text-primary" : "text-muted-foreground")} />
+                          {o.label}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
           </div>
 
           {/* Due date */}
-          <div className="space-y-1.5">
-            <label className="text-xs font-medium text-muted-foreground">Prazo</label>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="outline" className={cn("w-full justify-start text-left font-normal h-9 text-xs", !dataPrazo && "text-muted-foreground")}>
-                  <CalendarIcon className="mr-2 h-3.5 w-3.5" />
-                  {dataPrazo ? format(dataPrazo, "PPP", { locale: ptBR }) : "Sem prazo definido"}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  mode="single"
-                  selected={dataPrazo}
-                  onSelect={setDataPrazo}
-                  initialFocus
-                  className="p-3 pointer-events-auto"
-                />
-              </PopoverContent>
-            </Popover>
-          </div>
+          {canView("campo_data_prazo") && (
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-muted-foreground">Prazo</label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className={cn("w-full justify-start text-left font-normal h-9 text-xs", !dataPrazo && "text-muted-foreground")}>
+                    <CalendarIcon className="mr-2 h-3.5 w-3.5" />
+                    {dataPrazo ? format(dataPrazo, "PPP", { locale: ptBR }) : "Sem prazo definido"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={dataPrazo}
+                    onSelect={setDataPrazo}
+                    initialFocus
+                    className="p-3 pointer-events-auto"
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+          )}
 
           {/* Description */}
-          <div className="space-y-1.5">
-            <label className="text-xs font-medium text-muted-foreground">Observações</label>
-            <Textarea
-              value={descricao}
-              onChange={(e) => setDescricao(e.target.value)}
-              placeholder="Adicione observações sobre esta tarefa..."
-              className="min-h-[80px] text-sm resize-none"
-            />
-          </div>
+          {canView("campo_observacoes") && (
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-muted-foreground">Observações</label>
+              <Textarea
+                value={descricao}
+                onChange={(e) => setDescricao(e.target.value)}
+                placeholder="Adicione observações sobre esta tarefa..."
+                className="min-h-[80px] text-sm resize-none"
+              />
+            </div>
+          )}
 
           {/* Actions */}
           <div className="flex gap-2">
@@ -208,38 +219,44 @@ export function MinhasTarefaDetail({ tarefa, open, onOpenChange }: Props) {
               <Save className="h-4 w-4" />
               {saving ? "Salvando..." : "Salvar alterações"}
             </Button>
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => {
-                onOpenChange(false);
-                navigate(`/dashboard/projetos/${tarefa.projeto_id}`);
-              }}
-              title="Abrir no projeto"
-            >
-              <ExternalLink className="h-4 w-4" />
-            </Button>
+            {canView("acao_abrir_no_projeto") && (
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => {
+                  onOpenChange(false);
+                  navigate(`/dashboard/projetos/${tarefa.projeto_id}`);
+                }}
+                title="Abrir no projeto"
+              >
+                <ExternalLink className="h-4 w-4" />
+              </Button>
+            )}
           </div>
 
-          <Separator />
+          {canView("secao_anexos") && (
+            <>
+              <Separator />
+              <MinhasTarefaAnexos
+                anexos={anexos}
+                uploadAnexo={uploadAnexo}
+                deleteAnexo={deleteAnexo}
+                getAnexoUrl={getAnexoUrl}
+              />
+            </>
+          )}
 
-          {/* Anexos */}
-          <MinhasTarefaAnexos
-            anexos={anexos}
-            uploadAnexo={uploadAnexo}
-            deleteAnexo={deleteAnexo}
-            getAnexoUrl={getAnexoUrl}
-          />
-
-          <Separator />
-
-          {/* Chat */}
-          <MinhasTarefaChat
-            messages={messages}
-            sendMessage={sendMessage}
-            teamMembers={teamMembers}
-            currentUserId={user?.id || null}
-          />
+          {canView("secao_chat") && (
+            <>
+              <Separator />
+              <MinhasTarefaChat
+                messages={messages}
+                sendMessage={sendMessage}
+                teamMembers={teamMembers}
+                currentUserId={user?.id || null}
+              />
+            </>
+          )}
         </div>
       </SheetContent>
     </Sheet>
