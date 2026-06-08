@@ -63,6 +63,8 @@ import { SubtarefaResponsavelPicker } from "./tarefa-detalhe/SubtarefaResponsave
 import { TarefaChinaDocsSection } from "./tarefa-detalhe/TarefaChinaDocsSection";
 import { TarefaProcessoSection } from "./tarefa-detalhe/TarefaProcessoSection";
 import { TarefaAprovacoesSection } from "./aprovacoes/TarefaAprovacoesSection";
+import { useUIPermissions } from "@/hooks/useUIPermissions";
+import { TAREFA_DETALHE_TELA } from "@/config/tarefa-detalhe-componentes";
 
 const ESTAGIO_OPTIONS = [
   { value: "briefing", label: "Briefing", color: "bg-purple-500/20 text-purple-400" },
@@ -256,6 +258,7 @@ export function ProjetoTarefaDetalhe({
   const { briefing: tarefaBriefing, saveBriefing: saveTarefaBriefing, deleteBriefing: deleteTarefaBriefing } = useProjetoBriefing(tarefa?.id);
   const { data: chinaVinculo } = useProjetoChinaVinculo(projetoId);
   const { membros: projetoMembros } = useProjetoMembros(projetoId);
+  const { canView: canViewUI } = useUIPermissions(TAREFA_DETALHE_TELA);
   const { data: projetoTipo } = useQuery({
     queryKey: ["projeto-tipo", projetoId],
     queryFn: async () => {
@@ -553,7 +556,7 @@ export function ProjetoTarefaDetalhe({
                 <Clock className="h-3 w-3" />
                 Pendente de Aprovação
               </Badge>
-            ) : (
+            ) : canViewUI("acao_marcar_concluida") ? (
               <Button
                 variant={isCompleted ? "default" : "outline"}
                 size="sm"
@@ -567,7 +570,7 @@ export function ProjetoTarefaDetalhe({
                 {isCompleted ? <CheckCircle2 className="h-4 w-4" /> : <Circle className="h-4 w-4" />}
                 {isCompleted ? "Concluída" : "Marcar como concluída"}
               </Button>
-            )}
+            ) : null}
             {/* Enviar para Validação (dev produto) ou Enviar ao Superior (genérico) */}
             {isCompleted && !(tarefa as any).validacao_status && projetoTipo === 'desenvolvimento_produto' && (
               <Button
@@ -596,7 +599,7 @@ export function ProjetoTarefaDetalhe({
               <Badge className="text-[10px] bg-destructive/20 text-destructive border-0">✗ Rejeitada — Corrija e reenvie</Badge>
             )}
             <div className="flex items-center gap-2 ml-auto">
-              {tarefa.numero_processo && (
+              {tarefa.numero_processo && canViewUI("acao_numero_processo") && (
                 <button
                   type="button"
                   onClick={() => {
@@ -614,34 +617,40 @@ export function ProjetoTarefaDetalhe({
               {tarefa.codigo && (
                 <span className="text-xs text-muted-foreground font-mono">{tarefa.codigo}</span>
               )}
-              <Button
-                variant={chatOpen ? "default" : "ghost"}
-                size="sm"
-                className="gap-1.5 text-xs rounded-full h-8 px-3"
-                onClick={() => setChatOpen(!chatOpen)}
-              >
-                <MessageCircle className="h-3.5 w-3.5" />
-                Chat {messages.length > 0 && `(${messages.length})`}
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="gap-1.5 text-xs rounded-full h-8 px-3"
-                onClick={() => copyTarefaLink(tarefa.projeto_id, tarefa.id)}
-                title="Copiar link da tarefa"
-              >
-                <Link2 className="h-3.5 w-3.5" />
-                Copiar link
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="gap-1.5 text-xs rounded-full h-8 px-3"
-                onClick={() => setFocusMode(true)}
-              >
-                <Maximize2 className="h-3.5 w-3.5" />
-                Foco
-              </Button>
+              {canViewUI("acao_chat") && (
+                <Button
+                  variant={chatOpen ? "default" : "ghost"}
+                  size="sm"
+                  className="gap-1.5 text-xs rounded-full h-8 px-3"
+                  onClick={() => setChatOpen(!chatOpen)}
+                >
+                  <MessageCircle className="h-3.5 w-3.5" />
+                  Chat {messages.length > 0 && `(${messages.length})`}
+                </Button>
+              )}
+              {canViewUI("acao_copiar_link") && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="gap-1.5 text-xs rounded-full h-8 px-3"
+                  onClick={() => copyTarefaLink(tarefa.projeto_id, tarefa.id)}
+                  title="Copiar link da tarefa"
+                >
+                  <Link2 className="h-3.5 w-3.5" />
+                  Copiar link
+                </Button>
+              )}
+              {canViewUI("acao_foco") && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="gap-1.5 text-xs rounded-full h-8 px-3"
+                  onClick={() => setFocusMode(true)}
+                >
+                  <Maximize2 className="h-3.5 w-3.5" />
+                  Foco
+                </Button>
+              )}
             </div>
           </div>
 
@@ -736,6 +745,7 @@ export function ProjetoTarefaDetalhe({
                 {/* Fields grid */}
                 <div className="grid grid-cols-[120px_1fr] gap-y-3 gap-x-3 text-sm">
                   {/* Status */}
+                  {canViewUI("campo_status") && (<>
                   <span className="text-muted-foreground">Status</span>
                   <Select value={isPendingValidation ? "pendente_validacao" : tarefa.status} onValueChange={v => {
                     if (isPendingValidation) { toast.error("Aguardando aprovação. Não é possível alterar o status."); return; }
@@ -754,8 +764,10 @@ export function ProjetoTarefaDetalhe({
                       {STATUS_OPTIONS.map(s => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
                     </SelectContent>
                   </Select>
+                  </>)}
 
                   {/* Prioridade */}
+                  {canViewUI("campo_prioridade") && (<>
                   <span className="text-muted-foreground">Prioridade</span>
                   <Select value={tarefa.prioridade} onValueChange={v => onUpdate(tarefa.id, { prioridade: v })}>
                     <SelectTrigger className="h-8 text-xs border-0 bg-transparent hover:bg-muted/40 px-2 [&>svg]:opacity-40 justify-start gap-2">
@@ -770,9 +782,11 @@ export function ProjetoTarefaDetalhe({
                       {PRIORIDADE_OPTIONS.map(p => <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>)}
                     </SelectContent>
                   </Select>
+                  </>)}
 
 
                   {/* Estágio */}
+                  {canViewUI("campo_estagio") && (<>
                   <span className="text-muted-foreground">Estágio</span>
                   <Select value={tarefa.estagio || ""} onValueChange={v => onUpdate(tarefa.id, { estagio: v } as any)}>
                     <SelectTrigger className="h-8 text-xs">
@@ -790,8 +804,10 @@ export function ProjetoTarefaDetalhe({
                       ))}
                     </SelectContent>
                   </Select>
+                  </>)}
 
                   {/* Data prazo */}
+                  {canViewUI("campo_data_prazo") && (<>
                   <span className="text-muted-foreground">Data prazo <span className="text-destructive">*</span></span>
                   <Popover open={datePicker} onOpenChange={setDatePicker}>
                     <PopoverTrigger asChild>
@@ -816,8 +832,10 @@ export function ProjetoTarefaDetalhe({
                       />
                     </PopoverContent>
                   </Popover>
+                  </>)}
 
                   {/* Data Início Planejada */}
+                  {canViewUI("campo_inicio_planejado") && (<>
                   <span className="text-muted-foreground">Início planejado <span className="text-destructive">*</span></span>
                   <Popover>
                     <PopoverTrigger asChild>
@@ -841,8 +859,10 @@ export function ProjetoTarefaDetalhe({
                       />
                     </PopoverContent>
                   </Popover>
+                  </>)}
 
                   {/* Alertar antes */}
+                  {canViewUI("campo_alertar_antes") && (<>
                   <span className="text-muted-foreground">Alertar antes</span>
                   <Select
                     value={String((tarefa as any).dias_alerta_antes ?? 2)}
@@ -855,8 +875,10 @@ export function ProjetoTarefaDetalhe({
                       ))}
                     </SelectContent>
                   </Select>
+                  </>)}
 
                   {/* Risk badge */}
+                  {canViewUI("campo_risco") && (<>
                   <span className="text-muted-foreground">Risco</span>
                   <div>
                     <TarefaRiskBadge
@@ -866,9 +888,10 @@ export function ProjetoTarefaDetalhe({
                     />
                     {!tarefa.data_prazo && <span className="text-xs text-muted-foreground">Defina um prazo</span>}
                   </div>
+                  </>)}
 
                   {/* Responsável + Seguidores editáveis */}
-                  {projetoId && (
+                  {projetoId && canViewUI("campo_responsavel_seguidores") && (
                     <TarefaResponsavelSeguidoresEditor
                       tarefaId={tarefa.id}
                       projetoId={projetoId}
@@ -878,8 +901,10 @@ export function ProjetoTarefaDetalhe({
                     />
                   )}
 
+
+
                   {/* Produto vinculado - apenas em projetos de produto */}
-                  {isProjetoProduto && (
+                  {isProjetoProduto && canViewUI("campo_produto") && (
                     <>
                       <span className="text-muted-foreground flex items-center gap-1">
                         <Package className="h-3.5 w-3.5" /> Produto
@@ -1009,7 +1034,7 @@ export function ProjetoTarefaDetalhe({
                   )}
 
                   {/* Processo (nº processo + pesquisa/configuração para Gerente) */}
-                  {projetoId && (
+                  {projetoId && canViewUI("campo_processo") && (
                     <TarefaProcessoSection
                       tarefaId={tarefa.id}
                       projetoId={projetoId}
@@ -1019,7 +1044,7 @@ export function ProjetoTarefaDetalhe({
                   )}
 
                   {/* Widget Produto China */}
-                  {isProjetoProduto && chinaVinculo && (
+                  {isProjetoProduto && chinaVinculo && canViewUI("campo_china") && (
                     <>
                       <span className="text-muted-foreground flex items-center gap-1">
                         <Ship className="h-3.5 w-3.5" /> Produto China
@@ -1029,10 +1054,12 @@ export function ProjetoTarefaDetalhe({
                   )}
 
                   {/* Módulos Vinculados */}
-                  <ModulosVinculadosWidget tarefaId={tarefa?.id} />
+                  {canViewUI("campo_modulos_vinculados") && (
+                    <ModulosVinculadosWidget tarefaId={tarefa?.id} />
+                  )}
 
                   {/* Mover para Seção */}
-                  {secoes.length > 1 && onMoveTarefa && (
+                  {secoes.length > 1 && onMoveTarefa && canViewUI("campo_mover_para") && (
                     <>
                       <span className="text-muted-foreground flex items-center gap-1">
                         <ArrowRightLeft className="h-3.5 w-3.5" /> Mover para
@@ -1060,6 +1087,7 @@ export function ProjetoTarefaDetalhe({
                 </div>
 
                 {/* Retrabalho toggle */}
+                {canViewUI("secao_retrabalho") && (<>
                 <Separator />
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
@@ -1102,6 +1130,7 @@ export function ProjetoTarefaDetalhe({
                     </Select>
                   )}
                 </div>
+                </>)}
 
                 {/* Approval Panel */}
                 {(tarefa as any).validacao_status === "pendente_validacao" && (
@@ -1118,12 +1147,16 @@ export function ProjetoTarefaDetalhe({
                 )}
 
                 {/* Dependências */}
-                <Separator />
-                <ProjetoTarefaDependencias tarefaId={tarefa.id} projetoId={tarefa.projeto_id} />
+                {canViewUI("secao_dependencias") && (<>
+                  <Separator />
+                  <ProjetoTarefaDependencias tarefaId={tarefa.id} projetoId={tarefa.projeto_id} />
+                </>)}
 
                 {/* Workflow de Aprovação Multi-Etapa */}
-                <Separator />
-                <ProjetoAprovacaoWorkflow tarefaId={tarefa.id} />
+                {canViewUI("secao_workflow_aprovacao") && (<>
+                  <Separator />
+                  <ProjetoAprovacaoWorkflow tarefaId={tarefa.id} />
+                </>)}
 
 
 
@@ -1131,7 +1164,7 @@ export function ProjetoTarefaDetalhe({
                 <Separator />
 
                 {/* Marcos/Metas */}
-                <MetasSection tarefaId={tarefa.id} />
+                {canViewUI("secao_metas") && <MetasSection tarefaId={tarefa.id} />}
 
                 <Separator />
 
