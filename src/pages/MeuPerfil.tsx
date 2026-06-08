@@ -136,68 +136,130 @@ export default function MeuPerfil() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [acceptedTerms, setAcceptedTerms] = useState(false);
 
-  // Step-up para revelar dados sensíveis (CPF/RG/Email)
-  const REVEAL_TTL_MS = 30_000;
-  const [revealed, setRevealed] = useState(false);
-  const [revealOpen, setRevealOpen] = useState(false);
+  // Step-up por campo: cada campo (cpf/rg/email) tem sua própria janela TTL.
+  type RevealField = "cpf" | "rg" | "email";
+  type RevealState = {
+    grantId: string;
+    value: string | null;
+    expiresAt: number;
+  };
+  const [reveals, setReveals] = useState<Record<RevealField, RevealState | null>>({
+    cpf: null,
+    rg: null,
+    email: null,
+  });
+  const [revealOpen, setRevealOpen] = useState<RevealField | null>(null);
   const [revealPassword, setRevealPassword] = useState("");
   const [revealing, setRevealing] = useState(false);
-  const [revealExpiresAt, setRevealExpiresAt] = useState<number | null>(null);
-  const revealTimerRef = useRef<number | null>(null);
+  const [tick, setTick] = useState(0); // força re-render do contador
+  const revealTimersRef = useRef<Record<RevealField, number | null>>({
+    cpf: null,
+    rg: null,
+    email: null,
+  });
+
+  // Tick a cada 1s enquanto houver algum campo revelado (para countdown)
+  useEffect(() => {
+    const anyActive = Object.values(reveals).some((r) => r !== null);
+    if (!anyActive) return;
+    const id = window.setInterval(() => setTick((t) => t + 1), 1000);
+    return () => window.clearInterval(id);
+  }, [reveals]);
 
   useEffect(() => {
     return () => {
-      if (revealTimerRef.current) window.clearTimeout(revealTimerRef.current);
+      for (const k of ["cpf", "rg", "email"] as RevealField[]) {
+        const t = revealTimersRef.current[k];
+        if (t) window.clearTimeout(t);
+      }
     };
   }, []);
 
-  const hideSensitive = () => {
-    setRevealed(false);
-    setRevealExpiresAt(null);
-    if (revealTimerRef.current) {
-      window.clearTimeout(revealTimerRef.current);
-      revealTimerRef.current = null;
+  const clearReveal = async (field: RevealField, opts?: { skipRpc?: boolean }) => {
+    const current = reveals[field];
+    setReveals((prev) => ({ ...prev, [field]: null }));
+    const t = revealTimersRef.current[field];
+    if (t) {
+      window.clearTimeout(t);
+      revealTimersRef.current[field] = null;
+    }
+    if (current && !opts?.skipRpc) {
+      try {
+        await supabase.rpc("mark_profile_reveal_hidden", { _grant_id: current.grantId });
+      } catch {
+        // best-effort
+      }
+      // recarrega auditoria
+      loadAudit();
     }
   };
 
   const handleRevealSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user?.id || !profile?.email) return;
+    if (!revealOpen || !user?.id) return;
     if (!revealPassword) {
       toast.error("Informe sua senha para confirmar");
       return;
     }
     setRevealing(true);
     try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email: profile.email,
-        password: revealPassword,
+      const { data, error } = await supabase.functions.invoke("meu-perfil-reveal", {
+        body: { field: revealOpen, password: revealPassword },
       });
+
       if (error) {
-        toast.error("Senha incorreta");
+        // Tenta extrair mensagem amigável do contexto
+        const ctx = (error as any)?.context;
+        let serverMsg: string | null = null;
+        let status: number | null = null;
+        try {
+          if (ctx instanceof Response) {
+            status = ctx.status;
+            const j = await ctx.clone().json().catch(() => null);
+            serverMsg = j?.message || j?.error || null;
+          }
+        } catch {}
+        if (status === 429) {
+          toast.error("Muitas tentativas", {
+            description: serverMsg || "Aguarde alguns minutos antes de tentar novamente.",
+          });
+        } else if (status === 401) {
+          toast.error("Senha incorreta");
+        } else {
+          toast.error(serverMsg || "Não foi possível confirmar sua identidade");
+        }
         return;
       }
-      // Registrar acesso em auditoria (não bloqueia em caso de erro)
-      try {
-        await supabase.from("sensitive_data_access_log").insert({
-          user_id: user.id,
-          table_name: "profiles",
-          record_id: user.id,
-          action: "reveal_own_pii",
-        });
-      } catch {
-        // silent — auditoria é best-effort
+
+      if (!data || typeof data !== "object" || !("value" in data)) {
+        toast.error("Resposta inválida do servidor");
+        return;
       }
-      setRevealed(true);
-      const expiresAt = Date.now() + REVEAL_TTL_MS;
-      setRevealExpiresAt(expiresAt);
-      if (revealTimerRef.current) window.clearTimeout(revealTimerRef.current);
-      revealTimerRef.current = window.setTimeout(() => {
-        hideSensitive();
-      }, REVEAL_TTL_MS);
-      setRevealOpen(false);
+
+      const field = revealOpen;
+      const expiresAt = new Date(data.expires_at as string).getTime();
+      setReveals((prev) => ({
+        ...prev,
+        [field]: {
+          grantId: String(data.grant_id),
+          value: (data.value as string) ?? null,
+          expiresAt,
+        },
+      }));
+
+      const prevTimer = revealTimersRef.current[field];
+      if (prevTimer) window.clearTimeout(prevTimer);
+      revealTimersRef.current[field] = window.setTimeout(() => {
+        clearReveal(field, { skipRpc: true });
+        loadAudit();
+      }, Math.max(expiresAt - Date.now(), 500));
+
+      setRevealOpen(null);
       setRevealPassword("");
-      toast.success("Dados revelados por 30 segundos");
+      toast.success("Dado revelado", {
+        description: `Visível por ${data.ttl_seconds ?? 30} segundos.`,
+      });
+      loadAudit();
     } catch (err) {
       logger.error("[MeuPerfil] reveal error");
       toast.error("Não foi possível confirmar sua identidade");
@@ -205,6 +267,43 @@ export default function MeuPerfil() {
       setRevealing(false);
     }
   };
+
+  // Auditoria (apenas próprias concessões, mais recentes primeiro)
+  type AuditRow = {
+    id: string;
+    field: string;
+    granted_at: string;
+    expires_at: string;
+    hidden_at: string | null;
+    ip: string | null;
+  };
+  const [auditRows, setAuditRows] = useState<AuditRow[]>([]);
+  const [auditLoading, setAuditLoading] = useState(false);
+
+  const loadAudit = async () => {
+    if (!user?.id) return;
+    setAuditLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from("profile_reveal_grants")
+        .select("id, field, granted_at, expires_at, hidden_at, ip")
+        .eq("user_id", user.id)
+        .order("granted_at", { ascending: false })
+        .limit(20);
+      if (error) throw error;
+      setAuditRows((data || []) as AuditRow[]);
+    } catch {
+      // silent
+    } finally {
+      setAuditLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadAudit();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
+
 
   useEffect(() => {
     let active = true;
