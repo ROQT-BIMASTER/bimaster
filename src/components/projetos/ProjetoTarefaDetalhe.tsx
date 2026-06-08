@@ -767,6 +767,7 @@ export function ProjetoTarefaDetalhe({
                   </>)}
 
                   {/* Prioridade */}
+                  {canViewUI("campo_prioridade") && (<>
                   <span className="text-muted-foreground">Prioridade</span>
                   <Select value={tarefa.prioridade} onValueChange={v => onUpdate(tarefa.id, { prioridade: v })}>
                     <SelectTrigger className="h-8 text-xs border-0 bg-transparent hover:bg-muted/40 px-2 [&>svg]:opacity-40 justify-start gap-2">
@@ -781,6 +782,7 @@ export function ProjetoTarefaDetalhe({
                       {PRIORIDADE_OPTIONS.map(p => <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>)}
                     </SelectContent>
                   </Select>
+                  </>)}
 
 
                   {/* Estágio */}
