@@ -10,23 +10,27 @@ import { TarefaResponsavelAvatar } from "@/components/projetos/shared/TarefaResp
 import {
   DndContext,
   DragOverlay,
-  closestCenter,
+  pointerWithin,
+  rectIntersection,
   KeyboardSensor,
   PointerSensor,
   useSensor,
   useSensors,
+  useDraggable,
+  useDroppable,
   type DragStartEvent,
   type DragEndEvent,
   type DragOverEvent,
-  useDroppable,
+  type CollisionDetection,
 } from "@dnd-kit/core";
-import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { parseLocalDate } from "@/lib/utils/parseLocalDate";
 
 interface Props {
   tarefas: MinaTarefa[];
   onToggle: (id: string, done: boolean) => void;
   onSelect: (t: MinaTarefa) => void;
+  onChangePrazo?: (id: string, novaData: string | null) => void;
 }
 
 type ColumnKey = "overdue" | "today" | "upcoming" | "done";
@@ -38,13 +42,32 @@ const COLUMNS: { key: ColumnKey; title: string; icon: React.ReactNode; color: st
   { key: "done", title: "Concluídas", icon: <CheckCircle2 className="h-4 w-4 text-success" />, color: "text-success" },
 ];
 
+function toIsoDate(d: Date): string {
+  // YYYY-MM-DD em horário local
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${dd}`;
+}
+
+function tarefaColumn(t: MinaTarefa): ColumnKey {
+  if (t.status === "concluida") return "done";
+  const prazo = parseLocalDate(t.data_prazo);
+  if (!prazo) return "upcoming";
+  const d = startOfDay(prazo);
+  const now = startOfDay(new Date());
+  if (d < now) return "overdue";
+  if (isToday(d)) return "today";
+  return "upcoming";
+}
+
 function DroppableColumn({ id, children, isOver }: { id: string; children: React.ReactNode; isOver: boolean }) {
   const { setNodeRef } = useDroppable({ id });
   return (
     <div
       ref={setNodeRef}
-      className={`space-y-2 max-h-[calc(100vh-320px)] overflow-y-auto pr-1 rounded-lg transition-all duration-200 min-h-[80px] ${
-        isOver ? "bg-primary/5 ring-2 ring-primary/20 scale-[1.01]" : ""
+      className={`space-y-2 max-h-[calc(100vh-320px)] overflow-y-auto pr-1 rounded-lg transition-all duration-200 min-h-[120px] p-1 ${
+        isOver ? "bg-primary/5 ring-2 ring-primary/20" : ""
       }`}
     >
       {children}
@@ -61,51 +84,52 @@ function DraggableCard({
   onToggle: (id: string, done: boolean) => void;
   onSelect: (t: MinaTarefa) => void;
 }) {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id: tarefa.id });
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+    id: tarefa.id,
+    data: { tarefa },
+  });
 
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
+  const style: React.CSSProperties = {
+    transform: CSS.Translate.toString(transform),
     opacity: isDragging ? 0.4 : 1,
     borderLeftColor: tarefa.projeto_cor,
   };
 
   const isDone = tarefa.status === "concluida";
-  const isOverdue = !isDone && tarefa.data_prazo && new Date(tarefa.data_prazo) < new Date();
+  const prazo = parseLocalDate(tarefa.data_prazo);
+  const isOverdue = !isDone && prazo && prazo < startOfDay(new Date());
 
   return (
     <Card
       ref={setNodeRef}
       style={style}
-      className={`hover:shadow-md transition-all border-l-3 ${isDragging ? "shadow-xl z-50" : ""}`}
-      onClick={() => onSelect(tarefa)}
+      {...attributes}
+      {...listeners}
+      className={`hover:shadow-md transition-all border-l-3 touch-none cursor-grab active:cursor-grabbing ${
+        isDragging ? "shadow-xl z-50" : ""
+      }`}
     >
       <CardContent className="p-3 space-y-2">
         <div className="flex items-start gap-2">
-          <button
-            {...attributes}
-            {...listeners}
-            className="mt-1 cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground touch-none"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <GripVertical className="h-4 w-4" />
-          </button>
+          <GripVertical className="h-4 w-4 mt-1 text-muted-foreground shrink-0" />
           <Checkbox
             checked={isDone}
             onCheckedChange={(checked) => onToggle(tarefa.id, !!checked)}
+            onPointerDown={(e) => e.stopPropagation()}
             onClick={(e) => e.stopPropagation()}
             className="mt-0.5 rounded-full h-4 w-4"
           />
-          <span className={`text-sm flex-1 ${isDone ? "line-through text-muted-foreground" : ""}`}>
+          <button
+            type="button"
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={(e) => {
+              e.stopPropagation();
+              onSelect(tarefa);
+            }}
+            className={`text-sm flex-1 text-left ${isDone ? "line-through text-muted-foreground" : ""}`}
+          >
             {tarefa.titulo}
-          </span>
+          </button>
         </div>
         <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
           <div className="flex items-center gap-1">
@@ -119,9 +143,9 @@ function DraggableCard({
               avatarUrl={tarefa.responsavel_avatar_url}
               size="xs"
             />
-            {tarefa.data_prazo && (
+            {prazo && (
               <span className={isOverdue ? "text-destructive font-medium" : ""}>
-                {format(new Date(tarefa.data_prazo), "d MMM", { locale: ptBR })}
+                {format(prazo, "d MMM", { locale: ptBR })}
               </span>
             )}
           </div>
@@ -151,35 +175,37 @@ function OverlayCard({ tarefa }: { tarefa: MinaTarefa }) {
             {tarefa.titulo}
           </span>
         </div>
-        <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
-          <div className="h-2 w-2 rounded-full" style={{ backgroundColor: tarefa.projeto_cor }} />
-          <span className="truncate max-w-[100px]">{tarefa.projeto_nome}</span>
-        </div>
       </CardContent>
     </Card>
   );
 }
 
-export function MinhasTarefasBoard({ tarefas, onToggle, onSelect }: Props) {
+export function MinhasTarefasBoard({ tarefas, onToggle, onSelect, onChangePrazo }: Props) {
   const [activeId, setActiveId] = useState<string | null>(null);
-  const [overColumnId, setOverColumnId] = useState<string | null>(null);
+  const [overColumnId, setOverColumnId] = useState<ColumnKey | null>(null);
 
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
     useSensor(KeyboardSensor),
   );
 
-  const groups = useMemo(() => {
-    const now = startOfDay(new Date());
-    const result: Record<ColumnKey, MinaTarefa[]> = { overdue: [], today: [], upcoming: [], done: [] };
+  // Prioriza droppable da coluna sob o cursor; fallback para intersecção de retângulos.
+  const collisionDetection: CollisionDetection = useCallback((args) => {
+    const pointer = pointerWithin(args);
+    if (pointer.length > 0) {
+      const col = pointer.find((c) => COLUMNS.some((k) => k.key === c.id));
+      if (col) return [col];
+      return pointer;
+    }
+    const rect = rectIntersection(args);
+    const col = rect.find((c) => COLUMNS.some((k) => k.key === c.id));
+    return col ? [col] : rect;
+  }, []);
 
+  const groups = useMemo(() => {
+    const result: Record<ColumnKey, MinaTarefa[]> = { overdue: [], today: [], upcoming: [], done: [] };
     for (const t of tarefas) {
-      if (t.status === "concluida") { result.done.push(t); continue; }
-      if (!t.data_prazo) { result.upcoming.push(t); continue; }
-      const d = startOfDay(new Date(t.data_prazo));
-      if (d < now) result.overdue.push(t);
-      else if (isToday(d)) result.today.push(t);
-      else result.upcoming.push(t);
+      result[tarefaColumn(t)].push(t);
     }
     result.done = result.done.slice(0, 10);
     return result;
@@ -194,66 +220,62 @@ export function MinhasTarefasBoard({ tarefas, onToggle, onSelect }: Props) {
     setActiveId(event.active.id as string);
   }, []);
 
-  const resolveColumnKey = useCallback(
-    (id: string | null): ColumnKey | null => {
-      if (!id) return null;
-      if (COLUMNS.some((c) => c.key === id)) return id as ColumnKey;
-      // id is a task id — find which column it currently belongs to
-      const t = tarefas.find((x) => x.id === id);
-      if (!t) return null;
-      if (t.status === "concluida") return "done";
-      if (!t.data_prazo) return "upcoming";
-      const d = startOfDay(new Date(t.data_prazo));
-      const now = startOfDay(new Date());
-      if (d < now) return "overdue";
-      if (isToday(d)) return "today";
-      return "upcoming";
-    },
-    [tarefas]
-  );
-
   const handleDragOver = useCallback((event: DragOverEvent) => {
-    const overId = event.over?.id as string | null;
-    const col = resolveColumnKey(overId);
-    if (col) setOverColumnId(col);
-  }, [resolveColumnKey]);
+    const overId = event.over?.id as string | undefined;
+    if (!overId) {
+      setOverColumnId(null);
+      return;
+    }
+    if (COLUMNS.some((c) => c.key === overId)) {
+      setOverColumnId(overId as ColumnKey);
+    }
+  }, []);
 
   const handleDragEnd = useCallback(
     (event: DragEndEvent) => {
       setActiveId(null);
       setOverColumnId(null);
 
-      const overId = event.over?.id as string | null;
-      if (!overId || !event.active.id) return;
-
-      const targetKey = resolveColumnKey(overId);
+      const overId = event.over?.id as string | undefined;
+      if (!overId) return;
+      const targetKey = COLUMNS.find((c) => c.key === overId)?.key;
       if (!targetKey) return;
-      const targetColumn = COLUMNS.find((c) => c.key === targetKey)!;
 
       const taskId = event.active.id as string;
       const task = tarefas.find((t) => t.id === taskId);
       if (!task) return;
 
-      // Determine current column
-      const currentColumn = task.status === "concluida" ? "done" : (() => {
-        if (!task.data_prazo) return "upcoming";
-        const d = startOfDay(new Date(task.data_prazo));
-        const now = startOfDay(new Date());
-        if (d < now) return "overdue";
-        if (isToday(d)) return "today";
-        return "upcoming";
-      })();
+      const currentColumn = tarefaColumn(task);
+      if (currentColumn === targetKey) return;
 
-      if (currentColumn === targetColumn.key) return;
-
-      // Execute the action
-      if (targetColumn.key === "done") {
+      if (targetKey === "done") {
         onToggle(taskId, true);
-      } else if (currentColumn === "done") {
+        return;
+      }
+      if (currentColumn === "done") {
         onToggle(taskId, false);
+        // segue ajustando data abaixo, se aplicável
+      }
+
+      if (!onChangePrazo) return;
+
+      const today = startOfDay(new Date());
+      if (targetKey === "today") {
+        onChangePrazo(taskId, toIsoDate(today));
+      } else if (targetKey === "overdue") {
+        const ontem = new Date(today);
+        ontem.setDate(ontem.getDate() - 1);
+        onChangePrazo(taskId, toIsoDate(ontem));
+      } else if (targetKey === "upcoming") {
+        const prazo = parseLocalDate(task.data_prazo);
+        if (!prazo || prazo <= today) {
+          const amanha = new Date(today);
+          amanha.setDate(amanha.getDate() + 1);
+          onChangePrazo(taskId, toIsoDate(amanha));
+        }
       }
     },
-    [onToggle, tarefas, resolveColumnKey]
+    [onToggle, onChangePrazo, tarefas]
   );
 
   const handleDragCancel = useCallback(() => {
@@ -264,7 +286,7 @@ export function MinhasTarefasBoard({ tarefas, onToggle, onSelect }: Props) {
   return (
     <DndContext
       sensors={sensors}
-      collisionDetection={closestCenter}
+      collisionDetection={collisionDetection}
       onDragStart={handleDragStart}
       onDragOver={handleDragOver}
       onDragEnd={handleDragEnd}
@@ -287,7 +309,7 @@ export function MinhasTarefasBoard({ tarefas, onToggle, onSelect }: Props) {
                 <div className={`text-center py-12 text-muted-foreground text-xs border-2 border-dashed rounded-lg transition-all ${
                   overColumnId === col.key ? "border-primary/40 bg-primary/5 text-primary" : "border-border/30"
                 }`}>
-                  {overColumnId === col.key ? "Solte aqui ↓" : "Nenhuma tarefa"}
+                  {overColumnId === col.key ? "Solte aqui" : "Nenhuma tarefa"}
                 </div>
               )}
             </DroppableColumn>
