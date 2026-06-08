@@ -1,8 +1,10 @@
-import { useQuery } from "@tanstack/react-query";
+import { useEffect } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePermissions } from "@/contexts/PermissionsContext";
 import { logger } from "@/lib/logger";
+import { uniqueChannelName } from "@/lib/realtime/channelName";
 
 interface UIPermissionRule {
   id: string;
@@ -16,21 +18,22 @@ interface UIPermissionRule {
 
 /**
  * Hook para controle granular de componentes/ações por tela.
- * Combina regras por role e por departamento.
- * Departamento tem prioridade sobre role.
- * 
- * Reutiliza role do PermissionsContext (evita query redundante).
+ * Combina regras por role e por departamento (departamento sobrepõe role).
+ *
+ * Reflete mudanças do admin sem espera de cache:
+ *  - staleTime curto (60s) + refetchOnWindowFocus
+ *  - assinatura Realtime em `public.ui_permissions` filtrada por `tela_codigo`
  */
 export function useUIPermissions(telaCodigo: string) {
   const { session } = useAuth();
   const { role } = usePermissions();
+  const queryClient = useQueryClient();
 
   const { data: rules = [], isLoading } = useQuery({
     queryKey: ["ui-permissions", telaCodigo, session?.user?.id, role],
     queryFn: async () => {
       if (!session?.user?.id) return [];
 
-      // Get user's department (only query needed - role comes from context)
       const { data: profile } = await supabase
         .from("profiles")
         .select("departamento_id")
@@ -39,7 +42,6 @@ export function useUIPermissions(telaCodigo: string) {
 
       const deptId = profile?.departamento_id;
 
-      // Build OR filter for matching rules
       const conditions: string[] = [];
       if (role) conditions.push(`role.eq.${role}`);
       if (deptId) conditions.push(`departamento_id.eq.${deptId}`);
@@ -60,12 +62,34 @@ export function useUIPermissions(telaCodigo: string) {
       return (data || []) as UIPermissionRule[];
     },
     enabled: !!session?.user?.id,
-    staleTime: 5 * 60 * 1000,
+    staleTime: 60 * 1000,
+    refetchOnWindowFocus: true,
   });
 
-  /**
-   * Resolve a rule for a component. Department rules take priority over role rules.
-   */
+  useEffect(() => {
+    if (!session?.user?.id) return;
+    const channel = supabase
+      .channel(uniqueChannelName(`ui-permissions-${telaCodigo}`))
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "ui_permissions",
+          filter: `tela_codigo=eq.${telaCodigo}`,
+        },
+        () => {
+          queryClient.invalidateQueries({
+            queryKey: ["ui-permissions", telaCodigo],
+          });
+        },
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [telaCodigo, session?.user?.id, queryClient]);
+
   const getRule = (componenteCodigo: string): UIPermissionRule | undefined => {
     const deptRule = rules.find(
       (r) => r.componente_codigo === componenteCodigo && r.departamento_id != null
@@ -86,7 +110,6 @@ export function useUIPermissions(telaCodigo: string) {
     return rule ? rule.editavel : true;
   };
 
-  // Convenience shortcuts
   const canView = (componenteCodigo: string) => isComponentVisible(componenteCodigo);
   const canEdit = (componenteCodigo: string) => isComponentEditable(componenteCodigo);
 
