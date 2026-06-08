@@ -99,7 +99,7 @@ export function useKanbanAprovacoes(escopo: EscopoKanban) {
           projetos(nome),
           projeto_secoes(nome),
           projeto_tarefas(titulo),
-          fluxo_aprovacao_instancias(lote_nome)
+          fluxo_aprovacao_instancias(lote_nome, briefing_id, submissao_id)
         `)
         .order("created_at", { ascending: false });
 
