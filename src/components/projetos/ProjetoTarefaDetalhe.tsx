@@ -786,6 +786,7 @@ export function ProjetoTarefaDetalhe({
 
 
                   {/* Estágio */}
+                  {canViewUI("campo_estagio") && (<>
                   <span className="text-muted-foreground">Estágio</span>
                   <Select value={tarefa.estagio || ""} onValueChange={v => onUpdate(tarefa.id, { estagio: v } as any)}>
                     <SelectTrigger className="h-8 text-xs">
@@ -803,6 +804,7 @@ export function ProjetoTarefaDetalhe({
                       ))}
                     </SelectContent>
                   </Select>
+                  </>)}
 
                   {/* Data prazo */}
                   <span className="text-muted-foreground">Data prazo <span className="text-destructive">*</span></span>
