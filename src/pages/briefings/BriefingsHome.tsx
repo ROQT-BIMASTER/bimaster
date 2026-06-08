@@ -118,6 +118,12 @@ interface BriefingRow {
   user_id: string;
   projeto_id: string | null;
   tarefa_id: string | null;
+  rrtask_page_id: string | null;
+  rrtask_aprovacao: string | null;
+  rrtask_status: string | null;
+  rrtask_etapa: string | null;
+  rrtask_round: number | null;
+  rrtask_synced_at: string | null;
 }
 
 interface MembroLite {
@@ -154,8 +160,50 @@ const STATUS_LABEL: Record<string, string> = {
   arquivado: "Arquivado",
 };
 
+type AgenciaFiltro =
+  | "todos"
+  | "nao_enviado"
+  | "pendente"
+  | "em_revisao"
+  | "aprovado"
+  | "rejeitado";
+
+function normalizeAprovacao(v: string | null | undefined): AgenciaFiltro {
+  if (!v) return "pendente";
+  const s = v.trim().toLowerCase();
+  if (s.includes("aprov")) return "aprovado";
+  if (s.includes("revis")) return "em_revisao";
+  if (s.includes("rejeit") || s.includes("reprov")) return "rejeitado";
+  return "pendente";
+}
+
+const AGENCIA_LABEL: Record<AgenciaFiltro, string> = {
+  todos: "Toda a agência",
+  nao_enviado: "Não enviado",
+  pendente: "Enviado / Pendente",
+  em_revisao: "Em revisão",
+  aprovado: "Aprovado",
+  rejeitado: "Rejeitado",
+};
+
+function agenciaBadgeClass(a: AgenciaFiltro): string {
+  switch (a) {
+    case "aprovado":
+      return "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30";
+    case "em_revisao":
+      return "bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30";
+    case "rejeitado":
+      return "bg-destructive/15 text-destructive border-destructive/30";
+    case "pendente":
+      return "bg-primary/10 text-primary border-primary/30";
+    default:
+      return "bg-muted text-muted-foreground border-border";
+  }
+}
+
 type EscopoFiltro = "todos" | "meus" | "compartilhados";
 type StatusFiltro = "todos" | "rascunho" | "em_andamento" | "final" | "arquivado";
+type RodadaFiltro = "todos" | "1" | "2" | "3+";
 type SortKey = "updated_at" | "titulo" | "completude";
 
 function iniciais(nome?: string | null) {
