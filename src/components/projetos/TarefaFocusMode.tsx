@@ -356,6 +356,12 @@ export function TarefaFocusMode({
           // Mantém comportamento padrão (fechar).
         }}
       >
+        <VisuallyHidden>
+          <DialogTitle>Modo Foco — {tarefa.titulo}</DialogTitle>
+          <DialogDescription>
+            Visualização ampliada da tarefa com edição inline de status, prioridade, estágio, responsável, subtarefas e anexos. Use o botão Sair do Foco ou Esc para fechar.
+          </DialogDescription>
+        </VisuallyHidden>
         {/* Header */}
         <div
           className="flex items-center gap-3 px-6 py-3 border-b border-border/50 flex-shrink-0"
