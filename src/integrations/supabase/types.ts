@@ -36462,6 +36462,32 @@ export type Database = {
           },
         ]
       }
+      projeto_tarefa_chat_leituras: {
+        Row: {
+          last_read_at: string
+          tarefa_id: string
+          user_id: string
+        }
+        Insert: {
+          last_read_at?: string
+          tarefa_id: string
+          user_id: string
+        }
+        Update: {
+          last_read_at?: string
+          tarefa_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "projeto_tarefa_chat_leituras_tarefa_id_fkey"
+            columns: ["tarefa_id"]
+            isOneToOne: false
+            referencedRelation: "projeto_tarefas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       projeto_tarefa_colaboradores: {
         Row: {
           created_at: string | null
@@ -51425,6 +51451,27 @@ export type Database = {
           tipo: string
         }[]
       }
+      rpc_chat_tarefas_do_usuario: {
+        Args: never
+        Returns: {
+          codigo: string
+          is_subtask: boolean
+          mencoes_abertas: number
+          nao_lidas: number
+          parent_tarefa_id: string
+          parent_titulo: string
+          projeto_cor: string
+          projeto_id: string
+          projeto_nome: string
+          status: string
+          tarefa_id: string
+          titulo: string
+          ultima_mensagem: string
+          ultima_mensagem_em: string
+          ultimo_autor_id: string
+          ultimo_autor_nome: string
+        }[]
+      }
       rpc_chat_vinculo_submissoes_china: {
         Args: never
         Returns: {
@@ -52051,6 +52098,10 @@ export type Database = {
       }
       rpc_sync_conversa_vinculada_participantes: {
         Args: { p_conversa_id: string }
+        Returns: undefined
+      }
+      rpc_tarefa_chat_marcar_lida: {
+        Args: { p_tarefa_id: string }
         Returns: undefined
       }
       rpc_translation_cache_get_batch: {
