@@ -395,6 +395,7 @@ export default function BriefingWorkspace() {
         {/* Canvas */}
         <ScrollArea className="min-h-0 bg-muted/30">
           <div className="p-6 max-w-3xl mx-auto space-y-5">
+            {aprovacaoItemId && <BriefingAprovacaoBanner itemId={aprovacaoItemId} />}
             {briefing.status === "em_aprovacao" && (
               <AprovacaoTimeline briefingId={briefing.id} refreshKey={aprovRefresh} />
             )}
