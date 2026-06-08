@@ -1611,10 +1611,13 @@ export function ProjetoTarefaDetalhe({
                   tarefaId={tarefa.id}
                   anexos={anexos}
                   produtoId={(tarefa as any).produto_id || null}
+                  projetoId={projetoId}
+                  currentUserPapel={currentUserPapel}
                   uploadAnexo={uploadAnexo}
                   deleteAnexo={deleteAnexo}
                   getAnexoUrl={getAnexoUrl}
                   sendToCofre={sendToCofre}
+                  removeFromCofre={removeFromCofre}
                 />
 
 
