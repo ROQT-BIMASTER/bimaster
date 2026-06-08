@@ -22,6 +22,7 @@ interface Props {
   onOpenChange: (open: boolean) => void;
   briefingId: string;
   briefingTitulo: string;
+  briefingTipo?: string;
   onEnviado: () => void;
 }
 
