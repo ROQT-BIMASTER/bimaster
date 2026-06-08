@@ -118,6 +118,12 @@ interface BriefingRow {
   user_id: string;
   projeto_id: string | null;
   tarefa_id: string | null;
+  rrtask_page_id: string | null;
+  rrtask_aprovacao: string | null;
+  rrtask_status: string | null;
+  rrtask_etapa: string | null;
+  rrtask_round: number | null;
+  rrtask_synced_at: string | null;
 }
 
 interface MembroLite {
@@ -154,8 +160,50 @@ const STATUS_LABEL: Record<string, string> = {
   arquivado: "Arquivado",
 };
 
+type AgenciaFiltro =
+  | "todos"
+  | "nao_enviado"
+  | "pendente"
+  | "em_revisao"
+  | "aprovado"
+  | "rejeitado";
+
+function normalizeAprovacao(v: string | null | undefined): AgenciaFiltro {
+  if (!v) return "pendente";
+  const s = v.trim().toLowerCase();
+  if (s.includes("aprov")) return "aprovado";
+  if (s.includes("revis")) return "em_revisao";
+  if (s.includes("rejeit") || s.includes("reprov")) return "rejeitado";
+  return "pendente";
+}
+
+const AGENCIA_LABEL: Record<AgenciaFiltro, string> = {
+  todos: "Toda a agência",
+  nao_enviado: "Não enviado",
+  pendente: "Enviado / Pendente",
+  em_revisao: "Em revisão",
+  aprovado: "Aprovado",
+  rejeitado: "Rejeitado",
+};
+
+function agenciaBadgeClass(a: AgenciaFiltro): string {
+  switch (a) {
+    case "aprovado":
+      return "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30";
+    case "em_revisao":
+      return "bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30";
+    case "rejeitado":
+      return "bg-destructive/15 text-destructive border-destructive/30";
+    case "pendente":
+      return "bg-primary/10 text-primary border-primary/30";
+    default:
+      return "bg-muted text-muted-foreground border-border";
+  }
+}
+
 type EscopoFiltro = "todos" | "meus" | "compartilhados";
 type StatusFiltro = "todos" | "rascunho" | "em_andamento" | "final" | "arquivado";
+type RodadaFiltro = "todos" | "1" | "2" | "3+";
 type SortKey = "updated_at" | "titulo" | "completude";
 
 function iniciais(nome?: string | null) {
@@ -179,6 +227,8 @@ export default function BriefingsHome() {
   const [filtroTipo, setFiltroTipo] = useState<string>("__todos");
   const [escopo, setEscopo] = useState<EscopoFiltro>("todos");
   const [filtroStatus, setFiltroStatus] = useState<StatusFiltro>("todos");
+  const [filtroAgencia, setFiltroAgencia] = useState<AgenciaFiltro>("todos");
+  const [filtroRodada, setFiltroRodada] = useState<RodadaFiltro>("todos");
   const [filtroProjeto, setFiltroProjeto] = useState<string>("__todos");
   const [busca, setBusca] = useState("");
   const [sortBy, setSortBy] = useState<SortKey>("updated_at");
@@ -217,7 +267,7 @@ export default function BriefingsHome() {
       const { data, error } = await supabase
         .from("briefings")
         .select(
-          "id, tipo, titulo, status, completude, updated_at, user_id, projeto_id, tarefa_id",
+          "id, tipo, titulo, status, completude, updated_at, user_id, projeto_id, tarefa_id, rrtask_page_id, rrtask_aprovacao, rrtask_status, rrtask_etapa, rrtask_round, rrtask_synced_at",
         )
         .order("updated_at", { ascending: false });
       if (error) throw error;
@@ -374,6 +424,20 @@ export default function BriefingsHome() {
       if (filtroTipo !== "__todos" && b.tipo !== filtroTipo) return false;
       if (filtroStatus !== "todos" && b.status !== filtroStatus) return false;
       if (filtroProjeto !== "__todos" && b.projeto_id !== filtroProjeto) return false;
+      if (filtroAgencia !== "todos") {
+        if (filtroAgencia === "nao_enviado") {
+          if (b.rrtask_page_id) return false;
+        } else {
+          if (!b.rrtask_page_id) return false;
+          if (normalizeAprovacao(b.rrtask_aprovacao) !== filtroAgencia) return false;
+        }
+      }
+      if (filtroRodada !== "todos") {
+        const r = b.rrtask_round ?? 0;
+        if (filtroRodada === "1" && r !== 1) return false;
+        if (filtroRodada === "2" && r !== 2) return false;
+        if (filtroRodada === "3+" && r < 3) return false;
+      }
       if (escopo === "meus" && b.user_id !== uid) return false;
       if (escopo === "compartilhados") {
         if (b.user_id === uid) return false;
@@ -397,6 +461,8 @@ export default function BriefingsHome() {
     briefings,
     filtroTipo,
     filtroStatus,
+    filtroAgencia,
+    filtroRodada,
     filtroProjeto,
     escopo,
     busca,
@@ -667,6 +733,38 @@ export default function BriefingsHome() {
                 </SelectContent>
               </Select>
 
+              <Select
+                value={filtroAgencia}
+                onValueChange={(v) => setFiltroAgencia(v as AgenciaFiltro)}
+              >
+                <SelectTrigger className="w-[200px]">
+                  <SelectValue placeholder="Agência" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Toda a agência</SelectItem>
+                  <SelectItem value="nao_enviado">Não enviado</SelectItem>
+                  <SelectItem value="pendente">Enviado / Pendente</SelectItem>
+                  <SelectItem value="em_revisao">Em revisão</SelectItem>
+                  <SelectItem value="aprovado">Aprovado</SelectItem>
+                  <SelectItem value="rejeitado">Rejeitado</SelectItem>
+                </SelectContent>
+              </Select>
+
+              <Select
+                value={filtroRodada}
+                onValueChange={(v) => setFiltroRodada(v as RodadaFiltro)}
+              >
+                <SelectTrigger className="w-[140px]">
+                  <SelectValue placeholder="Rodada" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todas rodadas</SelectItem>
+                  <SelectItem value="1">Rodada 1</SelectItem>
+                  <SelectItem value="2">Rodada 2</SelectItem>
+                  <SelectItem value="3+">Rodada 3+</SelectItem>
+                </SelectContent>
+              </Select>
+
               <Select value={filtroProjeto} onValueChange={setFiltroProjeto}>
                 <SelectTrigger className="w-[220px]">
                   <SelectValue placeholder="Projeto" />
@@ -714,6 +812,7 @@ export default function BriefingsHome() {
                       </TableHead>
                       <TableHead>Tipo</TableHead>
                       <TableHead>Status</TableHead>
+                      <TableHead>Agência</TableHead>
                       <TableHead>Responsável</TableHead>
                       <TableHead>Equipe</TableHead>
                       <TableHead>Projeto / Tarefa</TableHead>
@@ -762,11 +861,27 @@ export default function BriefingsHome() {
                         ? tarefasMap.get(b.tarefa_id)
                         : null;
                       const naoLido = naoLidoFn(b);
+                      const agenciaKey: AgenciaFiltro = b.rrtask_page_id
+                        ? normalizeAprovacao(b.rrtask_aprovacao)
+                        : "nao_enviado";
+                      const rodada = b.rrtask_round ?? 1;
+                      const agenciaTooltip = b.rrtask_page_id
+                        ? [
+                            `Aprovação: ${b.rrtask_aprovacao ?? "Pendente"}`,
+                            b.rrtask_status ? `Status: ${b.rrtask_status}` : null,
+                            b.rrtask_etapa ? `Etapa: ${b.rrtask_etapa}` : null,
+                            b.rrtask_synced_at
+                              ? `Sincronizado em ${new Date(b.rrtask_synced_at).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })}`
+                              : null,
+                          ]
+                            .filter(Boolean)
+                            .join("\n")
+                        : "Briefing ainda não enviado à agência";
 
                       return (
                         <TableRow
                           key={b.id}
-                          className="cursor-pointer"
+                          className={`cursor-pointer ${agenciaKey === "em_revisao" ? "border-l-2 border-amber-500/60" : agenciaKey === "rejeitado" ? "border-l-2 border-destructive/60" : agenciaKey === "aprovado" ? "border-l-2 border-emerald-500/60" : ""}`}
                           onClick={() => navigate(`/dashboard/briefings/${b.id}`)}
                         >
                           <TableCell>
@@ -789,6 +904,20 @@ export default function BriefingsHome() {
                             >
                               {STATUS_LABEL[b.status] ?? b.status.replace("_", " ")}
                             </Badge>
+                          </TableCell>
+                          <TableCell title={agenciaTooltip}>
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span
+                                className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-medium ${agenciaBadgeClass(agenciaKey)}`}
+                              >
+                                {AGENCIA_LABEL[agenciaKey]}
+                              </span>
+                              {b.rrtask_page_id && (
+                                <span className="inline-flex items-center rounded-full border border-border bg-muted px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground">
+                                  R{rodada}
+                                </span>
+                              )}
+                            </div>
                           </TableCell>
                           <TableCell>
                             <div className="flex items-center gap-2 min-w-0">
