@@ -35,7 +35,7 @@ import { toast } from "sonner";
 import {
   Minimize2, CheckCircle2, Circle, CalendarIcon, Paperclip, MessageSquare,
   MessageCircle, Upload, FileText, Image, File, Trash2, Download,
-  Target, Plus, BarChart3, FolderOpen, ShieldCheck, AlertTriangle, FileSpreadsheet, Lock,
+  Target, Plus, BarChart3, FolderOpen, ShieldCheck, AlertTriangle, FileSpreadsheet, Lock, ArrowDownToLine,
   Sparkles, Wand2, Loader2
 } from "lucide-react";
 import { CofreOficialTab } from "./CofreOficialTab";
