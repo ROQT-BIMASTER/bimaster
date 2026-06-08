@@ -78,7 +78,7 @@ export function ItemAprovacaoDrawer({ item, open, onOpenChange }: Props) {
               className="w-full"
               onClick={() => {
                 onOpenChange(false);
-                navigate(`/dashboard/china/submissoes/${item!.submissao_id}?aprovacao=${item!.id}`);
+                navigate(`/dashboard/fabrica-china/submissao/${item!.submissao_id}?aprovacao=${item!.id}`);
               }}
             >
               <Eye className="h-3.5 w-3.5 mr-2" /> Abrir submissão
