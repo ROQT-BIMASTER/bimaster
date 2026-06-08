@@ -38,7 +38,7 @@ export function ProjetoListView({ projetoId, darkBg = false, filters = EMPTY_FIL
   const {
     secoes, tarefas, tarefasPorSecao, ghostsPorSecao,
     secoesLoading, tarefasLoading,
-    createTarefa, updateTarefa, toggleTarefaCompleta, moveTarefaToSecao, createSecao,
+    createTarefa, updateTarefa, toggleTarefaCompleta, confirmAndToggleTarefa, moveTarefaToSecao, createSecao,
     updateSecao, deleteSecao,
     toggleSecaoBriefing, addColaborador, removeColaborador, teamMembers,
     softDeleteTarefa,
@@ -173,7 +173,9 @@ export function ProjetoListView({ projetoId, darkBg = false, filters = EMPTY_FIL
   };
 
   const handleToggle = (tarefa: ProjetoTarefa) => {
-    toggleTarefaCompleta.mutate(tarefa);
+    // Confirma ANTES de mutar para não derrubar o Modo Foco (ver
+    // confirmAndToggleTarefa em useProjetoTarefas).
+    void confirmAndToggleTarefa(tarefa);
   };
 
   const handleSelectTarefa = (tarefa: ProjetoTarefa) => {
