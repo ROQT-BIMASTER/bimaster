@@ -647,56 +647,16 @@ export function TarefaFocusMode({
 
               <Separator />
 
-              {/* Subtarefas */}
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="text-sm font-medium">
-                    Subtarefas
-                    {tarefa.subtarefas && tarefa.subtarefas.length > 0 && (
-                      <span className="text-muted-foreground ml-1">
-                        ({tarefa.subtarefas.filter(s => s.status === "concluida").length}/{tarefa.subtarefas.length})
-                      </span>
-                    )}
-                  </h3>
-                  {canUseIA && onAddSubtarefa && (
-                    <AISubtarefasSuggestions
-                      tarefaTitulo={tarefa.titulo}
-                      tarefaDescricao={tarefa.descricao}
-                      estagio={(tarefa as any).estagio || null}
-                      projetoNome={projetoCor?.nome || null}
-                      onAdd={handleAISubtarefas}
-                      accentColor={accentCor}
-                    />
-                  )}
-                </div>
-                <div className="space-y-1 mb-2">
-                  {tarefa.subtarefas?.map(st => (
-                    <div key={st.id} className="flex items-center gap-2 group">
-                      <button onClick={() => onToggle(st)} className="flex-shrink-0">
-                        {st.status === "concluida"
-                          ? <CheckCircle2 className="h-4 w-4 text-emerald-400" />
-                          : <Circle className="h-4 w-4 text-muted-foreground hover:text-foreground" />
-                        }
-                      </button>
-                      <span className={cn("text-xs flex-1", st.status === "concluida" && "line-through text-muted-foreground")}>
-                        {st.titulo}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-                {onAddSubtarefa && (
-                  <div className="flex items-center gap-2">
-                    <Input
-                      value={subtarefaValue}
-                      onChange={e => setSubtarefaValue(e.target.value)}
-                      onKeyDown={e => e.key === "Enter" && handleAddSubtarefa()}
-                      placeholder="Adicionar subtarefa..."
-                      className="h-8 text-sm"
-                    />
-                    <Button size="sm" variant="ghost" onClick={handleAddSubtarefa} className="h-8">Adicionar</Button>
-                  </div>
-                )}
-              </div>
+              {/* Subtarefas — paridade total com o detalhe normal */}
+              <SubtarefasSection
+                tarefa={tarefa}
+                projetoId={(tarefa as any).projeto_id ?? null}
+                onUpdate={onUpdate}
+                onToggle={onToggle}
+                onAddSubtarefa={onAddSubtarefa}
+                onDelete={onDelete}
+                onOpenSubtarefa={onOpenSubtarefa}
+              />
 
               <Separator />
 
