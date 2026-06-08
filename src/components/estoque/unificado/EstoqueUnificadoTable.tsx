@@ -146,7 +146,7 @@ export function EstoqueUnificadoTable(p: Props) {
                     </TableCell>
                   </TableRow>
                 )}
-              </>
+              </Fragment>
             );
           })}
         </TableBody>
