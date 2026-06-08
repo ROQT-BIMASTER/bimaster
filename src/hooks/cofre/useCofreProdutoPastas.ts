@@ -88,3 +88,32 @@ export function useDepartamentosOptions() {
     staleTime: 5 * 60 * 1000,
   });
 }
+
+/**
+ * Departamento (equipe) do usuário logado — usado para filtrar
+ * automaticamente as pastas do Cofre relevantes para a equipe.
+ */
+export function useMeuDepartamento() {
+  const { user } = useAuth();
+  return useQuery({
+    queryKey: ["meu-departamento", user?.id],
+    enabled: !!user?.id,
+    staleTime: 5 * 60 * 1000,
+    queryFn: async () => {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("departamento_id")
+        .eq("id", user!.id)
+        .maybeSingle();
+      const departamentoId = profile?.departamento_id ?? null;
+      if (!departamentoId) return { id: null as string | null, nome: null as string | null };
+      const { data: dept } = await supabase
+        .from("departamentos")
+        .select("id, nome")
+        .eq("id", departamentoId)
+        .maybeSingle();
+      return { id: dept?.id ?? null, nome: dept?.nome ?? null };
+    },
+  });
+}
+

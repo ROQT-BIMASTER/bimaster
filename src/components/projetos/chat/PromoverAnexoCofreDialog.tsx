@@ -5,7 +5,7 @@
  * Permite escolher a categoria e a pasta/coleção (com vínculo opcional a
  * uma equipe/departamento). Pastas novas podem ser criadas inline.
  */
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -29,7 +29,10 @@ import { FolderPlus, Loader2, ShieldCheck, X } from "lucide-react";
 import {
   useCofreProdutoPastas,
   useDepartamentosOptions,
+  useMeuDepartamento,
 } from "@/hooks/cofre/useCofreProdutoPastas";
+import { Switch } from "@/components/ui/switch";
+import { Users } from "lucide-react";
 
 export const COFRE_CATEGORIAS = [
   "briefing",
@@ -100,12 +103,42 @@ export function PromoverAnexoCofreDialog({
 
   const { pastasQuery, createPasta } = useCofreProdutoPastas(produtoId);
   const { data: departamentos = [] } = useDepartamentosOptions();
+  const { data: meuDepto } = useMeuDepartamento();
   const pastas = pastasQuery.data ?? [];
+
+  // Filtro automático "minha equipe": liga por padrão quando o usuário
+  // tem departamento atribuído. Pastas sem equipe (globais) sempre aparecem.
+  const [filtrarMinhaEquipe, setFiltrarMinhaEquipe] = useState(true);
+  const meuDeptoId = meuDepto?.id ?? null;
+
+  const pastasVisiveis = useMemo(() => {
+    if (!filtrarMinhaEquipe || !meuDeptoId) return pastas;
+    return pastas.filter(
+      (p) => p.departamento_id === meuDeptoId || p.departamento_id === null,
+    );
+  }, [pastas, filtrarMinhaEquipe, meuDeptoId]);
+
+  const totalOcultas = pastas.length - pastasVisiveis.length;
 
   const pastaSelecionada = useMemo(
     () => pastas.find((p) => p.id === pastaId) || null,
     [pastas, pastaId],
   );
+
+  // Se a pasta atualmente selecionada for filtrada para fora, volta para "sem pasta"
+  // para evitar gravar um valor que o usuário não vê mais.
+  useEffect(() => {
+    if (
+      pastaId !== SEM_PASTA &&
+      pastaSelecionada &&
+      filtrarMinhaEquipe &&
+      meuDeptoId &&
+      pastaSelecionada.departamento_id !== meuDeptoId &&
+      pastaSelecionada.departamento_id !== null
+    ) {
+      setPastaId(SEM_PASTA);
+    }
+  }, [pastaId, pastaSelecionada, filtrarMinhaEquipe, meuDeptoId]);
 
   const resetState = () => {
     setCategoria("");
@@ -217,7 +250,11 @@ export function PromoverAnexoCofreDialog({
                   variant="ghost"
                   size="sm"
                   className="h-6 px-2 text-xs"
-                  onClick={() => setCreatingPasta(true)}
+                  onClick={() => {
+                    setCreatingPasta(true);
+                    // Pré-seleciona a equipe do usuário ao criar nova pasta
+                    if (meuDeptoId) setNovaPastaEquipe(meuDeptoId);
+                  }}
                 >
                   <FolderPlus className="h-3 w-3 mr-1" /> Nova pasta
                 </Button>
@@ -226,13 +263,38 @@ export function PromoverAnexoCofreDialog({
 
             {!creatingPasta ? (
               <>
+                {meuDeptoId && meuDepto?.nome && (
+                  <div className="flex items-center justify-between rounded-md border border-border bg-muted/20 px-2 py-1.5">
+                    <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                      <Users className="h-3 w-3" />
+                      <span>
+                        Só da minha equipe (<span className="font-medium text-foreground">{meuDepto.nome}</span>)
+                      </span>
+                      {filtrarMinhaEquipe && totalOcultas > 0 && (
+                        <span className="text-muted-foreground/80">
+                          · {totalOcultas} oculta{totalOcultas === 1 ? "" : "s"}
+                        </span>
+                      )}
+                    </div>
+                    <Switch
+                      checked={filtrarMinhaEquipe}
+                      onCheckedChange={setFiltrarMinhaEquipe}
+                      aria-label="Filtrar pastas pela minha equipe"
+                    />
+                  </div>
+                )}
                 <Select value={pastaId} onValueChange={setPastaId}>
                   <SelectTrigger id="cofre-pasta" className="h-9 text-sm">
                     <SelectValue placeholder="Sem pasta" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value={SEM_PASTA}>Sem pasta (raiz)</SelectItem>
-                    {pastas.map((p) => (
+                    {pastasVisiveis.length === 0 && (
+                      <div className="px-2 py-1.5 text-[11px] text-muted-foreground">
+                        Nenhuma pasta para a sua equipe.
+                      </div>
+                    )}
+                    {pastasVisiveis.map((p) => (
                       <SelectItem key={p.id} value={p.id}>
                         {p.nome}
                         {p.departamento?.nome ? ` — ${p.departamento.nome}` : ""}
