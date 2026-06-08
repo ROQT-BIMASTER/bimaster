@@ -28,7 +28,7 @@ const SaveBrandSchema = z
 Deno.serve(
   secureHandler(
     { auth: "jwt", rateLimit: 30, rateLimitPrefix: "save-brand-analysis" },
-    async (req) => {
+    async (req, ctx) => {
       const cors = getCorsHeaders(req);
       const headers = { ...cors, "Content-Type": "application/json" };
 
@@ -38,6 +38,19 @@ Deno.serve(
       const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
       const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
       const supabase = createClient(supabaseUrl, supabaseKey);
+
+      // Ownership check (proteção IDOR) — service role bypassa RLS
+      const { data: existing } = await supabase
+        .from("our_brands")
+        .select("created_by")
+        .eq("id", brand_id)
+        .maybeSingle();
+      if (!existing || existing.created_by !== ctx.userId) {
+        return new Response(
+          JSON.stringify({ error: "Acesso negado a esta marca" }),
+          { status: 403, headers }
+        );
+      }
 
       const brandDescription = `${brand_data.description ?? ""}\n\n${brand_data.mission ?? ""}`.trim();
 
@@ -56,6 +69,7 @@ Deno.serve(
           category: product.category || null,
           sku: product.sku || null,
           active: true,
+          created_by: ctx.userId,
         }));
 
         const { error: productsError, data: insertedProducts } = await supabase
