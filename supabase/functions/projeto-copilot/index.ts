@@ -535,7 +535,7 @@ function escolherModelo(userMsg: string): string {
     "ata", "reunião longa", "reuniao longa", "explique por quê", "por que",
   ];
   if (reasoningKeywords.some((k) => t.includes(k))) {
-    return "openai/gpt-5.2";
+    return "openai/gpt-5.5-pro";
   }
   return "google/gemini-3-flash-preview";
 }
