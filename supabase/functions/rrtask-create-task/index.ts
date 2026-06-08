@@ -309,9 +309,14 @@ Deno.serve(
 
       // 8. Write to Notion — três caminhos
       if (action === "create") {
-        // CREATE: page nova com toggle Round 1
+        // CREATE: page nova com toggle Round 1 (briefing + docs do cofre)
         const blocosR1 = montarBlocosBriefing(b, pl, semPrazo, labelOf);
-        const toggleR1 = montarToggleRound(1, blocosR1);
+        const cofreDocsCreate = await loadCofreDocs(sb, b.id, { onlyNew: false });
+        const cofreBlocksCreate = buildCofreDocBlocks(
+          cofreDocsCreate,
+          "Documentos do Cofre",
+        );
+        const toggleR1 = montarToggleRound(1, [...blocosR1, ...cofreBlocksCreate]);
         const resp = await notion<{ id: string; url: string }>(token, "/pages", {
           method: "POST",
           body: JSON.stringify({
@@ -332,6 +337,12 @@ Deno.serve(
         }
         pageId = resp.data.id;
         pageUrl = resp.data.url ?? pageUrl;
+
+        const documentos_sincronizados = await markDocsEnviados(
+          sb,
+          cofreDocsCreate,
+          pageId,
+        );
 
         await sb.from("briefings").update({
           rrtask_page_id: pageId,
@@ -364,6 +375,8 @@ Deno.serve(
           page_id: pageId,
           page_url: pageUrl,
           solicitante_resolvido: solicitanteResolvido,
+          documentos_sincronizados,
+          documentos_totais: cofreDocsCreate.length,
           warnings,
         });
       }
@@ -372,7 +385,12 @@ Deno.serve(
         // DEVOLUÇÃO: anexa toggle Round N + bumpa Round/Aprovação
         const novoRound = (b.rrtask_round ?? 1) + 1;
         const blocos = montarBlocosBriefing(b, pl, semPrazo, labelOf);
-        const toggle = montarToggleRound(novoRound, blocos);
+        const cofreDocsRound = await loadCofreDocs(sb, b.id, { onlyNew: true });
+        const cofreBlocksRound = buildCofreDocBlocks(
+          cofreDocsRound,
+          `Documentos novos do Round ${novoRound}`,
+        );
+        const toggle = montarToggleRound(novoRound, [...blocos, ...cofreBlocksRound]);
 
         // 8a. Append toggle aos children da página (não apaga anteriores)
         const append = await notion(token, `/blocks/${pageId}/children`, {
