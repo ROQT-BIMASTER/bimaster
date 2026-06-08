@@ -205,3 +205,52 @@ export function useTarefaChatPreferencia() {
       toast.error(e?.message ?? "Falha ao atualizar preferência"),
   });
 }
+
+/**
+ * Mutation em lote para silenciar/arquivar várias conversas de uma vez.
+ * Usa RPC `rpc_tarefa_chat_set_preferencia_bulk` que aplica de forma atômica
+ * e dispara o trigger de auditoria para cada tarefa alterada.
+ */
+export function useTarefaChatPreferenciaBulk() {
+  const qc = useQueryClient();
+  const { user } = useAuth();
+  return useMutation({
+    mutationFn: async (args: {
+      tarefaIds: string[];
+      muted?: boolean;
+      archived?: boolean;
+    }) => {
+      if (!user) throw new Error("Sessão expirada");
+      if (!args.tarefaIds.length) return 0;
+      const { data, error } = await (supabase as any).rpc(
+        "rpc_tarefa_chat_set_preferencia_bulk",
+        {
+          p_tarefa_ids: args.tarefaIds,
+          p_muted: typeof args.muted === "boolean" ? args.muted : null,
+          p_archived: typeof args.archived === "boolean" ? args.archived : null,
+        },
+      );
+      if (error) throw error;
+      return (data as number) ?? args.tarefaIds.length;
+    },
+    onSuccess: (count, vars) => {
+      qc.invalidateQueries({ queryKey: ["chat-tarefas", user?.id] });
+      const n = Number(count) || vars.tarefaIds.length;
+      if (typeof vars.muted === "boolean") {
+        toast.success(
+          vars.muted
+            ? `${n} conversa(s) silenciada(s)`
+            : `Notificações reativadas em ${n} conversa(s)`,
+        );
+      } else if (typeof vars.archived === "boolean") {
+        toast.success(
+          vars.archived
+            ? `${n} conversa(s) arquivada(s)`
+            : `${n} conversa(s) restaurada(s)`,
+        );
+      }
+    },
+    onError: (e: any) =>
+      toast.error(e?.message ?? "Falha ao aplicar ação em lote"),
+  });
+}
