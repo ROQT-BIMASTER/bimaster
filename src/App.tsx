@@ -7,6 +7,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { ConfirmDialogProvider } from "@/components/ui/confirm-dialog";
 import { EspelhoEvidenceListener } from "@/components/processos/EspelhoEvidenceListener";
 import { ConfirmConclusaoListener } from "@/components/projetos/ConfirmConclusaoListener";
+import { MembershipRealtimeListener } from "@/components/projetos/MembershipRealtimeListener";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import ErrorPage from "@/pages/ErrorPage";
@@ -1010,6 +1011,7 @@ const App = () => {
 
                     <EspelhoEvidenceListener />
                     <ConfirmConclusaoListener />
+                    <MembershipRealtimeListener />
                     <AppContent />
                     </ConfirmDialogProvider>
                   </TooltipProvider>
