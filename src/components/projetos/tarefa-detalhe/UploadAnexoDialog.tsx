@@ -5,17 +5,42 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { File, Send, Users, Search } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { File, Send, Users, Search, FolderOpen, Lock } from "lucide-react";
 import { useTarefaMentionableUsers } from "@/hooks/useTarefaMentionableUsers";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+
+const COFRE_CATEGORIAS = [
+  { value: "briefing", label: "Briefing" },
+  { value: "arte_final", label: "Arte Final" },
+  { value: "rotulo", label: "Rótulo" },
+  { value: "ficha_tecnica", label: "Ficha Técnica" },
+  { value: "laudo", label: "Laudo" },
+  { value: "certificado", label: "Certificado" },
+  { value: "orcamento", label: "Orçamento" },
+  { value: "nota_fiscal", label: "Nota Fiscal" },
+  { value: "art", label: "ART" },
+  { value: "outro", label: "Outro" },
+];
+
+export interface UploadConfirmPayload {
+  notificarIds: string[];
+  cofre?: { categoria: string };
+}
 
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   tarefaId: string | null;
   files: File[];
-  onConfirm: (notificarIds: string[]) => void;
+  onConfirm: (payload: UploadConfirmPayload) => void;
+  /** Se a tarefa tem produto vinculado, habilita opção de promover ao Cofre. */
+  produtoId?: string | null;
+  /** Se o usuário atual tem alçada (admin_cofre / coordenador) para publicar. */
+  canPublishToCofre?: boolean;
 }
 
 function formatFileSize(bytes: number) {
@@ -24,11 +49,13 @@ function formatFileSize(bytes: number) {
   return `${(bytes / 1048576).toFixed(1)} MB`;
 }
 
-export function UploadAnexoDialog({ open, onOpenChange, tarefaId, files, onConfirm }: Props) {
+export function UploadAnexoDialog({ open, onOpenChange, tarefaId, files, onConfirm, produtoId, canPublishToCofre }: Props) {
   const { user } = useAuth();
   const { data: mentionables = [], isLoading } = useTarefaMentionableUsers(tarefaId);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [search, setSearch] = useState("");
+  const [sendToCofre, setSendToCofre] = useState(false);
+  const [categoria, setCategoria] = useState<string>("outro");
 
   // Pre-select responsável da tarefa (se diferente do uploader)
   useEffect(() => {
@@ -51,6 +78,14 @@ export function UploadAnexoDialog({ open, onOpenChange, tarefaId, files, onConfi
     return () => { cancelled = true; };
   }, [open, tarefaId, user?.id]);
 
+  // Reset cofre state ao reabrir
+  useEffect(() => {
+    if (open) {
+      setSendToCofre(false);
+      setCategoria("outro");
+    }
+  }, [open]);
+
   const toggle = (id: string) => {
     setSelected(prev => {
       const next = new Set(prev);
@@ -63,8 +98,13 @@ export function UploadAnexoDialog({ open, onOpenChange, tarefaId, files, onConfi
     .filter(u => u.id !== user?.id)
     .filter(u => !search || u.nome?.toLowerCase().includes(search.toLowerCase()));
 
+  const cofreAvailable = !!produtoId && !!canPublishToCofre;
+
   const handleConfirm = (withNotify: boolean) => {
-    onConfirm(withNotify ? Array.from(selected) : []);
+    onConfirm({
+      notificarIds: withNotify ? Array.from(selected) : [],
+      cofre: sendToCofre && cofreAvailable ? { categoria } : undefined,
+    });
     onOpenChange(false);
     setSearch("");
   };
@@ -92,6 +132,48 @@ export function UploadAnexoDialog({ open, onOpenChange, tarefaId, files, onConfi
               </div>
             ))}
           </div>
+
+          {/* Promover ao Cofre */}
+          {produtoId ? (
+            cofreAvailable ? (
+              <div className="rounded-md border border-emerald-500/30 bg-emerald-500/5 p-3 space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="cofre-toggle" className="text-xs font-medium flex items-center gap-1.5 cursor-pointer">
+                    <FolderOpen className="h-3.5 w-3.5 text-emerald-500" />
+                    Promover ao Cofre do produto
+                  </Label>
+                  <Switch
+                    id="cofre-toggle"
+                    checked={sendToCofre}
+                    onCheckedChange={setSendToCofre}
+                  />
+                </div>
+                {sendToCofre && (
+                  <div className="space-y-1">
+                    <Label className="text-[10px] text-muted-foreground">Categoria do(s) documento(s)</Label>
+                    <Select value={categoria} onValueChange={setCategoria}>
+                      <SelectTrigger className="h-8 text-xs">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {COFRE_CATEGORIAS.map(c => (
+                          <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-[10px] text-muted-foreground">
+                      Após o upload, o(s) arquivo(s) serão publicados no Cofre do produto vinculado.
+                    </p>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="rounded-md border border-amber-500/30 bg-amber-500/5 p-2 text-[11px] text-amber-600 flex items-center gap-2">
+                <Lock className="h-3.5 w-3.5" />
+                Apenas Admin. Cofre ou Coordenador pode promover documentos ao Cofre.
+              </div>
+            )
+          ) : null}
 
           <div className="space-y-2">
             <div className="flex items-center justify-between">
