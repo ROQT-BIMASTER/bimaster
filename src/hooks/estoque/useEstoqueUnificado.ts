@@ -60,27 +60,37 @@ export function useEstoqueUnificado(opts: UseEstoqueUnificadoOpts) {
 
       const rows = (data ?? []) as unknown as EstoqueUnificadoRow[];
 
-      // Enriquecer com nomes do SKU raiz
+      // Enriquecer com nomes do SKU raiz por (empresa, cod_produto).
+      // ATENÇÃO: o mesmo cod_produto existe em várias filiais com abrev_par
+      // diferente — chavear só por cod_produto faz uma filial herdar o nome
+      // de outra (bug histórico: linha da empresa 11 aparecia como "RUBY ROSE - PR").
       const codigos = Array.from(new Set(rows.map((r) => r.produto_raiz).filter(Boolean)));
-      let nomes: Record<number, { nome: string | null; abrev: string | null }> = {};
-      if (codigos.length) {
+      const empresas = Array.from(new Set(rows.map((r) => r.empresa).filter((v) => v != null)));
+      const nomes = new Map<string, { nome: string | null; abrev: string | null }>();
+      if (codigos.length && empresas.length) {
         const { data: estData } = await supabase
           .from('erp_estoque_distribuidora')
-          .select('cod_produto,nome_prod,abrev_par')
+          .select('empresa_par,cod_produto,nome_prod,abrev_par')
           .in('cod_produto', codigos)
-          .limit(codigos.length * 5);
+          .in('empresa_par', empresas)
+          .limit(codigos.length * empresas.length * 4);
         (estData ?? []).forEach((e: any) => {
-          if (e.cod_produto != null && !nomes[e.cod_produto]) {
-            nomes[e.cod_produto] = { nome: e.nome_prod, abrev: e.abrev_par };
+          if (e.cod_produto == null || e.empresa_par == null) return;
+          const key = `${e.empresa_par}|${e.cod_produto}`;
+          if (!nomes.has(key)) {
+            nomes.set(key, { nome: e.nome_prod, abrev: e.abrev_par });
           }
         });
       }
 
-      let enriched = rows.map((r) => ({
-        ...r,
-        raiz_nome: nomes[r.produto_raiz]?.nome ?? null,
-        raiz_abrev: nomes[r.produto_raiz]?.abrev ?? null,
-      }));
+      let enriched = rows.map((r) => {
+        const hit = nomes.get(`${r.empresa}|${r.produto_raiz}`);
+        return {
+          ...r,
+          raiz_nome: hit?.nome ?? null,
+          raiz_abrev: hit?.abrev ?? null,
+        };
+      });
 
       if (opts.busca) {
         const b = opts.busca.toLowerCase();
