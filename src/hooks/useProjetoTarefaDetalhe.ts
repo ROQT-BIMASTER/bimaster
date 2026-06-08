@@ -29,6 +29,14 @@ export interface TarefaAnexo {
   created_at: string;
 }
 
+export interface TarefaMessageAnexo {
+  id: string;
+  nome: string;
+  storage_path: string;
+  tipo_arquivo: string | null;
+  tamanho: number | null;
+}
+
 export interface TarefaMessage {
   id: string;
   tarefa_id: string;
@@ -36,6 +44,8 @@ export interface TarefaMessage {
   conteudo: string;
   mentions: string[];
   created_at: string;
+  anexo_id?: string | null;
+  anexo?: TarefaMessageAnexo | null;
   autor?: { nome: string; avatar_url: string | null };
 }
 
