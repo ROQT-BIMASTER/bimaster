@@ -291,7 +291,7 @@ export function useProjetoTarefaDetalhe(tarefaId: string | undefined, produtoId?
 
   // ===== Send to Cofre =====
   const sendToCofre = useMutation({
-    mutationFn: async ({ anexoIds, produtoId, categoriasPorAnexo, projetoId }: { anexoIds: string[]; produtoId: string; categoriasPorAnexo: Record<string, string>; projetoId?: string }) => {
+    mutationFn: async ({ anexoIds, produtoId, categoriasPorAnexo, projetoId, pastasPorAnexo }: { anexoIds: string[]; produtoId: string; categoriasPorAnexo: Record<string, string>; projetoId?: string; pastasPorAnexo?: Record<string, string | null> }) => {
       // === CRITICAL: Validate admin_cofre role before publishing ===
       if (projetoId) {
         const { data: canPublish } = await supabase.rpc("can_publish_to_cofre", {
@@ -327,6 +327,7 @@ export function useProjetoTarefaDetalhe(tarefaId: string | undefined, produtoId?
           tipo_arquivo: anexo.tipo_arquivo,
           tamanho: anexo.tamanho,
           categoria: categoriasPorAnexo[anexo.id] || "outro",
+          pasta_id: pastasPorAnexo?.[anexo.id] ?? null,
           status: "ativo",
           enviado_por: user!.id,
           origem_projeto_tarefa_id: tarefaId || null,
