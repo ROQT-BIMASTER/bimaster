@@ -495,6 +495,22 @@ Deno.serve(
       pageId = resp.data.id;
       pageUrl = resp.data.url ?? pageUrl;
 
+      // UPDATE também sincroniza novos documentos do cofre (append na página)
+      const cofreDocsUpd = await loadCofreDocs(sb, b.id, { onlyNew: true });
+      let documentos_sincronizados = 0;
+      if (cofreDocsUpd.length) {
+        const blocks = buildCofreDocBlocks(cofreDocsUpd, headingAdicionadoEm());
+        const r = await appendDocsToPage(token, pageId!, blocks);
+        if (r.ok) {
+          documentos_sincronizados = await markDocsEnviados(sb, cofreDocsUpd, pageId!);
+        } else {
+          warnings.push(
+            `Falha ao anexar documentos do cofre: ${r.status} ${r.errorText ?? ""}`
+              .slice(0, 300),
+          );
+        }
+      }
+
       await sb.from("briefings").update({
         rrtask_page_id: pageId,
         rrtask_page_url: pageUrl,
@@ -516,6 +532,8 @@ Deno.serve(
         page_id: pageId,
         page_url: pageUrl,
         solicitante_resolvido: solicitanteResolvido,
+        documentos_sincronizados,
+        documentos_totais: cofreDocsUpd.length,
         warnings,
       });
     },
