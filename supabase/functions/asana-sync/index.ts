@@ -795,6 +795,19 @@ Deno.serve(secureHandler({ auth: "none", rateLimit: 10, rateLimitPrefix: "asana-
         if (!targetUserId) return json({ error: "user_id obrigatório" }, 400);
         if (!asanaPat) return json({ error: "Token do Asana não configurado" }, 400);
 
+        // Restrição: somente admin pode replay de outro usuário (proteção cross-user).
+        // Cron (isCron=true) também é permitido para automação.
+        if (!isCron && targetUserId !== userId) {
+          const { data: isAdmin } = await adminClient.rpc("has_role", {
+            _user_id: userId,
+            _role: "admin",
+          });
+          if (!isAdmin) {
+            return json({ error: "Acesso restrito a administradores" }, 403);
+          }
+        }
+
+
         const { data: userMapping } = await adminClient
           .from("asana_sync_mappings")
           .select("asana_gid, workspace_gid")
