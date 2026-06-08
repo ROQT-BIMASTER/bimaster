@@ -11,6 +11,9 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Checkbox } from "@/components/ui/checkbox";
 import { UserPlus, Pencil, Trash2, Search, CheckCircle, XCircle, Lock, ChevronLeft, ChevronRight, ShieldCheck, Sparkles } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { userSchema } from "@/lib/validations/user";
 import { supabase } from "@/integrations/supabase/client";
 import { logger } from "@/lib/logger";
@@ -53,6 +56,45 @@ export const GerenciamentoUsuarios = () => {
   const [mfaRetry, setMfaRetry] = useState<{ userId: string; userEmail: string; password: string } | null>(null);
   const [mfaRetrying, setMfaRetrying] = useState(false);
   const ITEMS_PER_PAGE = 20;
+
+  const [acessoPadraoSingleOpen, setAcessoPadraoSingleOpen] = useState(false);
+  const [acessoPadraoMassaOpen, setAcessoPadraoMassaOpen] = useState(false);
+  const [acessoPadraoUserId, setAcessoPadraoUserId] = useState<string | null>(null);
+  const [acessoPadraoComboOpen, setAcessoPadraoComboOpen] = useState(false);
+  const [aplicandoAcessoPadrao, setAplicandoAcessoPadrao] = useState(false);
+
+  const handleAplicarAcessoPadraoSingle = async () => {
+    if (!acessoPadraoUserId) return;
+    setAplicandoAcessoPadrao(true);
+    const { data, error } = await supabase.rpc("aplicar_acesso_padrao", { _user_id: acessoPadraoUserId });
+    setAplicandoAcessoPadrao(false);
+    if (error) {
+      toast.error("Erro", { description: error.message });
+      return;
+    }
+    const r = (data ?? {}) as { modulos_concedidos?: number; telas_concedidas?: number };
+    toast.success("Acesso padrão aplicado", {
+      description: `${r.telas_concedidas ?? 0} tela(s) e ${r.modulos_concedidos ?? 0} módulo(s) concedido(s).`,
+    });
+    setAcessoPadraoSingleOpen(false);
+    setAcessoPadraoUserId(null);
+  };
+
+  const handleAplicarAcessoPadraoMassa = async () => {
+    setAplicandoAcessoPadrao(true);
+    const { data, error } = await supabase.rpc("aplicar_acesso_padrao_em_massa");
+    setAplicandoAcessoPadrao(false);
+    if (error) {
+      toast.error("Erro", { description: error.message });
+      return;
+    }
+    const r = (data ?? {}) as { modulos_concedidos?: number; telas_concedidas?: number };
+    toast.success("Acesso padrão aplicado", {
+      description: `${r.telas_concedidas ?? 0} tela(s) e ${r.modulos_concedidos ?? 0} módulo(s) concedido(s).`,
+    });
+    setAcessoPadraoMassaOpen(false);
+  };
+
 
   const [novoUsuario, setNovoUsuario] = useState<{
     nome: string;
