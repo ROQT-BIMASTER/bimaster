@@ -172,6 +172,19 @@ export function AnexarEvidenciaDialog({
         is_checklist_item: viraChecklist,
         categoria: categoriaFinal,
       });
+      // Push incremental para RR-Tasks (best-effort)
+      try {
+        const { data: b } = await (supabase as any)
+          .from("briefings")
+          .select("rrtask_page_id")
+          .eq("id", briefingId)
+          .maybeSingle();
+        if (b?.rrtask_page_id) {
+          await supabase.functions.invoke("rrtask-sync-documentos", {
+            body: { briefing_id: briefingId },
+          });
+        }
+      } catch { /* silencioso */ }
       reset();
       onOpenChange(false);
     } catch (err: any) {
