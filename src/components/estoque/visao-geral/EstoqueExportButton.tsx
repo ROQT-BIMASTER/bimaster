@@ -5,6 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { exportToExcel } from '@/utils/excelExport';
 import type { EstoqueFiltros } from '@/lib/estoque/estoqueFilters';
+import { siglaUnidadeMedida } from '@/lib/estoque/unidadeMedida';
 
 interface Props {
   filtros: EstoqueFiltros;

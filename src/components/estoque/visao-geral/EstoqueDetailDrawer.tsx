@@ -2,6 +2,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sh
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { formatCurrency } from '@/lib/formatters';
+import { formatUnidadeMedida } from '@/lib/estoque/unidadeMedida';
 import type { EstoqueRow } from '@/hooks/estoque/useEstoqueQuery';
 
 interface Props {
@@ -38,7 +39,7 @@ export function EstoqueDetailDrawer({ row, open, onOpenChange }: Props) {
                 <Field label="Custo unitário" value={formatCurrency(Number(row.custo_unitario ?? 0))} />
                 <Field label="Custo total" value={formatCurrency(Number(row.custo_total ?? 0))} />
                 <Field label="Valor venda" value={row.valor_venda ? formatCurrency(Number(row.valor_venda)) : null} />
-                <Field label="Unidade" value={row.unidade_medida} />
+                <Field label="Unidade" value={formatUnidadeMedida(row.unidade_medida)} />
                 <Field label="Linha" value={row.nome_linha} />
                 <Field label="Última compra" value={row.data_ultima_compra ? new Date(row.data_ultima_compra).toLocaleDateString('pt-BR') : null} />
                 <Field label="Curva Física" value={row.curva_fisica && <Badge variant="secondary">{row.curva_fisica}</Badge>} />
