@@ -1055,6 +1055,87 @@ export const GerenciamentoUsuarios = () => {
         </AlertDialogContent>
       </AlertDialog>
       <StepUpDialog {...stepUpDialogProps} />
+
+      <Dialog open={acessoPadraoSingleOpen} onOpenChange={(o) => { setAcessoPadraoSingleOpen(o); if (!o) setAcessoPadraoUserId(null); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Aplicar acesso padrão a um usuário</DialogTitle>
+            <DialogDescription>
+              Concede o pacote de acesso padrão (módulos e telas pré-configurados) apenas ao usuário selecionado. Acessos extras já existentes não serão removidos.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label>Usuário</Label>
+            <Popover open={acessoPadraoComboOpen} onOpenChange={setAcessoPadraoComboOpen}>
+              <PopoverTrigger asChild>
+                <Button variant="outline" role="combobox" className="w-full justify-between font-normal">
+                  {acessoPadraoUserId
+                    ? (() => {
+                        const u = usuarios.find((x) => x.id === acessoPadraoUserId);
+                        return u ? `${u.nome} — ${u.email}` : "Selecionar usuário";
+                      })()
+                    : "Selecionar usuário"}
+                  <Search className="w-4 h-4 ml-2 opacity-60" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="p-0 w-[--radix-popover-trigger-width]" align="start">
+                <Command>
+                  <CommandInput placeholder="Buscar por nome ou email..." />
+                  <CommandList>
+                    <CommandEmpty>Nenhum usuário encontrado.</CommandEmpty>
+                    <CommandGroup>
+                      {usuarios.map((u) => (
+                        <CommandItem
+                          key={u.id}
+                          value={`${u.nome} ${u.email}`}
+                          onSelect={() => {
+                            setAcessoPadraoUserId(u.id);
+                            setAcessoPadraoComboOpen(false);
+                          }}
+                        >
+                          <div className="flex flex-col">
+                            <span className="text-sm">{u.nome}</span>
+                            <span className="text-xs text-muted-foreground">{u.email}</span>
+                          </div>
+                          {!u.aprovado && (
+                            <Badge variant="outline" className="ml-auto">Pendente</Badge>
+                          )}
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAcessoPadraoSingleOpen(false)} disabled={aplicandoAcessoPadrao}>
+              Cancelar
+            </Button>
+            <Button onClick={handleAplicarAcessoPadraoSingle} disabled={!acessoPadraoUserId || aplicandoAcessoPadrao}>
+              <ShieldCheck className="w-4 h-4 mr-2" />
+              {aplicandoAcessoPadrao ? "Aplicando..." : "Aplicar acesso padrão"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog open={acessoPadraoMassaOpen} onOpenChange={setAcessoPadraoMassaOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Aplicar acesso padrão a todos os usuários ativos?</AlertDialogTitle>
+            <AlertDialogDescription>
+              O pacote de acesso padrão será concedido a todos os usuários ativos que ainda não o tenham. Acessos extras já existentes não serão removidos.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={aplicandoAcessoPadrao}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={(e) => { e.preventDefault(); handleAplicarAcessoPadraoMassa(); }} disabled={aplicandoAcessoPadrao}>
+              {aplicandoAcessoPadrao ? "Aplicando..." : "Aplicar a todos"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
