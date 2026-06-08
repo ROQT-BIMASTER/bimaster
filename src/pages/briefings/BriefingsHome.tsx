@@ -424,6 +424,20 @@ export default function BriefingsHome() {
       if (filtroTipo !== "__todos" && b.tipo !== filtroTipo) return false;
       if (filtroStatus !== "todos" && b.status !== filtroStatus) return false;
       if (filtroProjeto !== "__todos" && b.projeto_id !== filtroProjeto) return false;
+      if (filtroAgencia !== "todos") {
+        if (filtroAgencia === "nao_enviado") {
+          if (b.rrtask_page_id) return false;
+        } else {
+          if (!b.rrtask_page_id) return false;
+          if (normalizeAprovacao(b.rrtask_aprovacao) !== filtroAgencia) return false;
+        }
+      }
+      if (filtroRodada !== "todos") {
+        const r = b.rrtask_round ?? 0;
+        if (filtroRodada === "1" && r !== 1) return false;
+        if (filtroRodada === "2" && r !== 2) return false;
+        if (filtroRodada === "3+" && r < 3) return false;
+      }
       if (escopo === "meus" && b.user_id !== uid) return false;
       if (escopo === "compartilhados") {
         if (b.user_id === uid) return false;
