@@ -595,8 +595,8 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
         .from("projeto_tarefas")
         .update({
           status: isCompleting ? "concluida" : "pendente",
-          data_conclusao: isCompleting ? new Date().toISOString().split("T")[0] : null,
-          updated_at: new Date().toISOString(),
+          data_conclusao: isCompleting ? todayBR() : null,
+          updated_at: nowSaoPauloISO(),
         })
         .eq("id", tarefa.id);
       if (error) throw error;
