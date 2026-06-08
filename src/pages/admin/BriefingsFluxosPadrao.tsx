@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { ClipboardCheck, ExternalLink, Save, Trash2, AlertTriangle } from "lucide-react";
+import { ClipboardCheck, ExternalLink, Save, Trash2, AlertTriangle, ArrowLeft, Plus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
