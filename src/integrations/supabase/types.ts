@@ -3097,6 +3097,44 @@ export type Database = {
         }
         Relationships: []
       }
+      briefing_tipo_fluxo_padrao: {
+        Row: {
+          config_id: string
+          created_at: string
+          observacao: string | null
+          prazo_dias_default: number | null
+          tipo: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          config_id: string
+          created_at?: string
+          observacao?: string | null
+          prazo_dias_default?: number | null
+          tipo: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          config_id?: string
+          created_at?: string
+          observacao?: string | null
+          prazo_dias_default?: number | null
+          tipo?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "briefing_tipo_fluxo_padrao_config_id_fkey"
+            columns: ["config_id"]
+            isOneToOne: false
+            referencedRelation: "fluxo_aprovacao_config"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       briefing_versoes: {
         Row: {
           body_md: string | null
