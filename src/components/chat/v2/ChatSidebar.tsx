@@ -849,15 +849,19 @@ function SidebarTarefasContent({
 }) {
   const [busca, setBusca] = useState("");
   const [filtro, setFiltro] = useState<TarefaChatFiltro>("todas");
+  const [ordem, setOrdem] = useState<TarefaChatOrdenacao>("ultima_mensagem");
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selecionados, setSelecionados] = useState<Set<string>>(new Set());
   const { data: tarefas = [], isLoading } = useTarefasChat();
+  const bulkMutation = useTarefaChatPreferenciaBulk();
+
   const filtradas = useMemo(
-    () => filtrarTarefasChat(tarefas, busca, filtro),
-    [tarefas, busca, filtro],
+    () => ordenarTarefasChat(filtrarTarefasChat(tarefas, busca, filtro), ordem),
+    [tarefas, busca, filtro, ordem],
   );
 
-  // Contadores por categoria (ignorando arquivadas e silenciadas para o total
-  // visível de não lidas — silenciadas continuam no escopo, mas não somam
-  // para o badge de alerta no header).
+  // Contadores por categoria — silenciadas não contam para o badge global,
+  // mas seguem visíveis e com histórico preservado.
   const visiveis = tarefas.filter((t) => !t.archived);
   const naoLidasTotal = visiveis.filter((t) => !t.muted).reduce((s, t) => s + (t.nao_lidas || 0), 0);
   const totalMencoes = visiveis.reduce((s, t) => s + (t.mencoes_abertas || 0), 0);
@@ -867,12 +871,71 @@ function SidebarTarefasContent({
     .reduce((s, t) => s + t.nao_lidas, 0);
   const arquivadasCount = tarefas.filter((t) => t.archived).length;
 
+  const toggleSelecionado = (id: string) => {
+    setSelecionados((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+  const selecionarTodosVisiveis = () => {
+    setSelecionados(new Set(filtradas.map((t) => t.tarefa_id)));
+  };
+  const limparSelecao = () => setSelecionados(new Set());
+  const sairSelectionMode = () => {
+    setSelectionMode(false);
+    limparSelecao();
+  };
+
+  const aplicarBulk = async (args: { muted?: boolean; archived?: boolean }) => {
+    const ids = Array.from(selecionados);
+    if (!ids.length) return;
+    await bulkMutation.mutateAsync({ tarefaIds: ids, ...args });
+    sairSelectionMode();
+  };
+
+  const ORDEM_LABELS: Record<TarefaChatOrdenacao, string> = {
+    ultima_mensagem: "Última mensagem",
+    projeto: "Projeto",
+    tarefa: "Tarefa (A-Z)",
+    subtarefa: "Subtarefas primeiro",
+    status: "Status",
+  };
+
   return (
     <>
       <header className="px-3 py-3 border-b border-border flex items-center gap-2">
         <h3 className="font-semibold text-sm flex-1">
           Tarefas {naoLidasTotal > 0 && <Badge variant="secondary" className="ml-1">{naoLidasTotal}</Badge>}
         </h3>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button size="icon" variant="ghost" className="h-8 w-8" title={`Ordenar: ${ORDEM_LABELS[ordem]}`}>
+              <ArrowUpDown className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            {(Object.keys(ORDEM_LABELS) as TarefaChatOrdenacao[]).map((k) => (
+              <DropdownMenuItem
+                key={k}
+                onClick={() => setOrdem(k)}
+                className={cn(ordem === k && "font-semibold text-primary")}
+              >
+                {ORDEM_LABELS[k]}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
+        <Button
+          size="icon"
+          variant={selectionMode ? "secondary" : "ghost"}
+          className="h-8 w-8"
+          onClick={() => (selectionMode ? sairSelectionMode() : setSelectionMode(true))}
+          title="Selecionar várias"
+        >
+          {selectionMode ? <X className="h-4 w-4" /> : <CheckSquare2 className="h-4 w-4" />}
+        </Button>
       </header>
 
       <div className="px-3 py-2 border-b border-border space-y-2">
@@ -881,7 +944,7 @@ function SidebarTarefasContent({
           <Input
             value={busca}
             onChange={(e) => setBusca(e.target.value)}
-            placeholder="Buscar tarefa ou trecho…"
+            placeholder="Buscar por projeto, tarefa, status, mensagem…"
             className="pl-8 h-9"
           />
         </div>
@@ -911,6 +974,52 @@ function SidebarTarefasContent({
         </Tabs>
       </div>
 
+      {selectionMode && (
+        <div className="px-3 py-2 border-b border-border bg-muted/40 flex items-center gap-2 text-[11px]">
+          <span className="font-medium">{selecionados.size} selecionada(s)</span>
+          <button
+            onClick={selecionarTodosVisiveis}
+            className="text-primary hover:underline"
+            type="button"
+          >
+            Selecionar todas
+          </button>
+          {selecionados.size > 0 && (
+            <button onClick={limparSelecao} className="text-muted-foreground hover:underline" type="button">
+              Limpar
+            </button>
+          )}
+          <div className="flex-1" />
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                size="sm"
+                variant="secondary"
+                className="h-7 text-[11px]"
+                disabled={selecionados.size === 0 || bulkMutation.isPending}
+              >
+                Ações em lote
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => aplicarBulk({ muted: true })}>
+                <VolumeX className="h-3.5 w-3.5 mr-2" /> Silenciar selecionadas
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => aplicarBulk({ muted: false })}>
+                <BellOff className="h-3.5 w-3.5 mr-2 opacity-60" /> Reativar notificações
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => aplicarBulk({ archived: true })}>
+                <Archive className="h-3.5 w-3.5 mr-2" /> Arquivar selecionadas
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => aplicarBulk({ archived: false })}>
+                <Archive className="h-3.5 w-3.5 mr-2 opacity-60" /> Restaurar selecionadas
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      )}
+
       <ScrollArea className="flex-1">
         {isLoading && <p className="text-xs text-muted-foreground p-4">Carregando...</p>}
         {!isLoading && filtradas.length === 0 && (
@@ -926,7 +1035,13 @@ function SidebarTarefasContent({
               key={t.tarefa_id}
               t={t}
               ativa={t.tarefa_id === conversaSelecionada}
-              onSelect={() => onSelectConversa(t.tarefa_id)}
+              selectionMode={selectionMode}
+              selecionado={selecionados.has(t.tarefa_id)}
+              onToggleSelecionado={() => toggleSelecionado(t.tarefa_id)}
+              onSelect={() => {
+                if (selectionMode) toggleSelecionado(t.tarefa_id);
+                else onSelectConversa(t.tarefa_id);
+              }}
             />
           ))}
         </ul>
@@ -936,11 +1051,14 @@ function SidebarTarefasContent({
 }
 
 function TarefaItem({
-  t, ativa, onSelect,
+  t, ativa, onSelect, selectionMode, selecionado, onToggleSelecionado,
 }: {
   t: TarefaChatItem;
   ativa: boolean;
   onSelect: () => void;
+  selectionMode: boolean;
+  selecionado: boolean;
+  onToggleSelecionado: () => void;
 }) {
   const prefMutation = useTarefaChatPreferencia();
   const previewTxt = t.ultima_mensagem
@@ -961,8 +1079,17 @@ function TarefaItem({
           "w-full text-left px-3 py-2.5 flex items-center gap-3 hover:bg-muted/50 transition-colors relative",
           ativa && "bg-muted",
           t.archived && "opacity-60",
+          selecionado && "bg-primary/10",
         )}
       >
+        {selectionMode && (
+          <Checkbox
+            checked={selecionado}
+            onCheckedChange={onToggleSelecionado}
+            onClick={(e) => e.stopPropagation()}
+            className="shrink-0"
+          />
+        )}
         <div className="relative shrink-0">
           <Avatar className="h-11 w-11">
             <AvatarFallback
@@ -1013,44 +1140,47 @@ function TarefaItem({
             {t.is_subtask && t.parent_titulo && (
               <> · subt. de "{t.parent_titulo}"</>
             )}
+            {t.status && <> · {t.status}</>}
           </p>
         </div>
       </button>
 
-      {/* Ações por item: silenciar/arquivar — visível no hover */}
-      <div className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button size="icon" variant="ghost" className="h-7 w-7" onClick={(e) => e.stopPropagation()}>
-              <MoreVertical className="h-3.5 w-3.5" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
-            <DropdownMenuItem
-              onClick={() =>
-                prefMutation.mutate({ tarefaId: t.tarefa_id, muted: !t.muted })
-              }
-            >
-              {t.muted ? (
-                <><BellOff className="h-3.5 w-3.5 mr-2 opacity-50" />Reativar notificações</>
-              ) : (
-                <><VolumeX className="h-3.5 w-3.5 mr-2" />Silenciar conversa</>
-              )}
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() =>
-                prefMutation.mutate({ tarefaId: t.tarefa_id, archived: !t.archived })
-              }
-            >
-              {t.archived ? (
-                <><Archive className="h-3.5 w-3.5 mr-2 opacity-50" />Restaurar conversa</>
-              ) : (
-                <><Archive className="h-3.5 w-3.5 mr-2" />Arquivar conversa</>
-              )}
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
+      {/* Ações por item: silenciar/arquivar — visível no hover (ocultas em modo seleção) */}
+      {!selectionMode && (
+        <div className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button size="icon" variant="ghost" className="h-7 w-7" onClick={(e) => e.stopPropagation()}>
+                <MoreVertical className="h-3.5 w-3.5" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+              <DropdownMenuItem
+                onClick={() =>
+                  prefMutation.mutate({ tarefaId: t.tarefa_id, muted: !t.muted })
+                }
+              >
+                {t.muted ? (
+                  <><BellOff className="h-3.5 w-3.5 mr-2 opacity-50" />Reativar notificações</>
+                ) : (
+                  <><VolumeX className="h-3.5 w-3.5 mr-2" />Silenciar conversa</>
+                )}
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() =>
+                  prefMutation.mutate({ tarefaId: t.tarefa_id, archived: !t.archived })
+                }
+              >
+                {t.archived ? (
+                  <><Archive className="h-3.5 w-3.5 mr-2 opacity-50" />Restaurar conversa</>
+                ) : (
+                  <><Archive className="h-3.5 w-3.5 mr-2" />Arquivar conversa</>
+                )}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      )}
     </li>
   );
 }
