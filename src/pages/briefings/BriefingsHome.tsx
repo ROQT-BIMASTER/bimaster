@@ -227,6 +227,10 @@ export default function BriefingsHome() {
   const [tipoSel, setTipoSel] = useState<Tipo>("");
   const [titulo, setTitulo] = useState("");
 
+
+  const { isAdmin, isGerente } = useUserRole();
+  const canConfigure = isAdmin || isGerente;
+
   const [filtroTipo, setFiltroTipo] = useState<string>("__todos");
   const [escopo, setEscopo] = useState<EscopoFiltro>("todos");
   const [filtroStatus, setFiltroStatus] = useState<StatusFiltro>("todos");
