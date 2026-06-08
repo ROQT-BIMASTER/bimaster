@@ -519,20 +519,65 @@ export default function MeuPerfil() {
           {/* Card: Dados de cadastro (somente leitura) */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">Dados de cadastro</CardTitle>
-              <CardDescription>
-                Para alterar estes campos, entre em contato com o administrador do sistema.
-              </CardDescription>
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <CardTitle className="text-base">Dados de cadastro</CardTitle>
+                  <CardDescription>
+                    Exibidos de forma parcial por proteção de dados (LGPD). Para alterar estes campos,
+                    entre em contato com o administrador do sistema.
+                  </CardDescription>
+                </div>
+                {revealed ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={hideSensitive}
+                  >
+                    <EyeOff className="h-4 w-4 mr-2" />
+                    Ocultar
+                  </Button>
+                ) : (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setRevealOpen(true)}
+                  >
+                    <Eye className="h-4 w-4 mr-2" />
+                    Mostrar completos
+                  </Button>
+                )}
+              </div>
+              {revealed && revealExpiresAt && (
+                <p className="text-xs text-muted-foreground mt-2">
+                  Dados visíveis por tempo limitado. O acesso fica registrado em auditoria.
+                </p>
+              )}
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <ReadOnlyField label="E-mail corporativo" value={profile?.email ?? "Não informado"} />
+                <ReadOnlyField
+                  label="E-mail corporativo"
+                  value={
+                    revealed
+                      ? profile?.email ?? "Não informado"
+                      : maskEmailPartial(profile?.email)
+                  }
+                  hint={revealed ? undefined : "Exibido parcialmente. Clique em 'Mostrar completos'."}
+                />
                 <ReadOnlyField
                   label="CPF"
-                  value={maskCpfPartial(profile?.cpf)}
-                  hint="Exibido parcialmente por proteção de dados (LGPD)."
+                  value={
+                    revealed ? formatCpfFull(profile?.cpf) : maskCpfPartial(profile?.cpf)
+                  }
+                  hint={revealed ? undefined : "Exibido parcialmente. Clique em 'Mostrar completos'."}
                 />
-                <ReadOnlyField label="RG" value={profile?.rg || "Não informado"} />
+                <ReadOnlyField
+                  label="RG"
+                  value={revealed ? profile?.rg || "Não informado" : maskRgPartial(profile?.rg)}
+                  hint={revealed ? undefined : "Exibido parcialmente. Clique em 'Mostrar completos'."}
+                />
                 <ReadOnlyField
                   label="Data de cadastro"
                   value={
@@ -544,6 +589,61 @@ export default function MeuPerfil() {
               </div>
             </CardContent>
           </Card>
+
+          {/* Diálogo de step-up para revelar dados sensíveis */}
+          <Dialog
+            open={revealOpen}
+            onOpenChange={(open) => {
+              setRevealOpen(open);
+              if (!open) setRevealPassword("");
+            }}
+          >
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  <ShieldCheck className="h-4 w-4 text-primary" />
+                  Confirme sua identidade
+                </DialogTitle>
+                <DialogDescription>
+                  Para exibir CPF, RG e e-mail completos, informe sua senha de acesso. Os dados ficarão
+                  visíveis por 30 segundos e o acesso será registrado em auditoria.
+                </DialogDescription>
+              </DialogHeader>
+              <form onSubmit={handleRevealSubmit} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="revealPassword">Senha atual</Label>
+                  <Input
+                    id="revealPassword"
+                    type="password"
+                    value={revealPassword}
+                    onChange={(e) => setRevealPassword(e.target.value)}
+                    autoComplete="current-password"
+                    autoFocus
+                    required
+                  />
+                </div>
+                <DialogFooter>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setRevealOpen(false)}
+                    disabled={revealing}
+                  >
+                    Cancelar
+                  </Button>
+                  <Button type="submit" disabled={revealing || !revealPassword}>
+                    {revealing ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <Eye className="h-4 w-4 mr-2" />
+                    )}
+                    Confirmar e mostrar
+                  </Button>
+                </DialogFooter>
+              </form>
+            </DialogContent>
+          </Dialog>
+
 
           {/* Card: Segurança / Senha */}
           <Card>
