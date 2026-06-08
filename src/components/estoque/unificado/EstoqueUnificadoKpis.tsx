@@ -3,7 +3,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { formatCurrency } from '@/lib/formatters';
 import { Boxes, Package, PackageOpen, Layers, Info } from 'lucide-react';
 import type { EstoqueUnificadoRow } from '@/hooks/estoque/useEstoqueUnificado';
-import { converterParaModo, type ModoExibicao } from '@/lib/estoque/modoExibicao';
+import { converterParaModo, equivalenteEmCaixas, formatCx, type ModoExibicao } from '@/lib/estoque/modoExibicao';
 
 interface Props {
   rows: EstoqueUnificadoRow[];
