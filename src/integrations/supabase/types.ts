@@ -20393,6 +20393,8 @@ export type Database = {
           nome_arquivo: string
           origem_projeto_tarefa_id: string | null
           produto_id: string
+          removed_at: string | null
+          removed_by: string | null
           revisao_id: string | null
           status: string | null
           tamanho: number | null
@@ -20415,6 +20417,8 @@ export type Database = {
           nome_arquivo: string
           origem_projeto_tarefa_id?: string | null
           produto_id: string
+          removed_at?: string | null
+          removed_by?: string | null
           revisao_id?: string | null
           status?: string | null
           tamanho?: number | null
@@ -20437,6 +20441,8 @@ export type Database = {
           nome_arquivo?: string
           origem_projeto_tarefa_id?: string | null
           produto_id?: string
+          removed_at?: string | null
+          removed_by?: string | null
           revisao_id?: string | null
           status?: string | null
           tamanho?: number | null
@@ -49160,6 +49166,7 @@ export type Database = {
         }
         Returns: string
       }
+      app_now_br: { Args: never; Returns: string }
       archive_old_audit_logs: { Args: never; Returns: undefined }
       atualizar_perfil_credito_cliente:
         | {
