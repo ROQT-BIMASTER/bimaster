@@ -862,10 +862,28 @@ export default function BriefingsHome() {
                         : null;
                       const naoLido = naoLidoFn(b);
 
+                      const naoLido = naoLidoFn(b);
+                      const agenciaKey: AgenciaFiltro = b.rrtask_page_id
+                        ? normalizeAprovacao(b.rrtask_aprovacao)
+                        : "nao_enviado";
+                      const rodada = b.rrtask_round ?? 1;
+                      const agenciaTooltip = b.rrtask_page_id
+                        ? [
+                            `Aprovação: ${b.rrtask_aprovacao ?? "Pendente"}`,
+                            b.rrtask_status ? `Status: ${b.rrtask_status}` : null,
+                            b.rrtask_etapa ? `Etapa: ${b.rrtask_etapa}` : null,
+                            b.rrtask_synced_at
+                              ? `Sincronizado em ${new Date(b.rrtask_synced_at).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })}`
+                              : null,
+                          ]
+                            .filter(Boolean)
+                            .join("\n")
+                        : "Briefing ainda não enviado à agência";
+
                       return (
                         <TableRow
                           key={b.id}
-                          className="cursor-pointer"
+                          className={`cursor-pointer ${agenciaKey === "em_revisao" ? "border-l-2 border-amber-500/60" : agenciaKey === "rejeitado" ? "border-l-2 border-destructive/60" : agenciaKey === "aprovado" ? "border-l-2 border-emerald-500/60" : ""}`}
                           onClick={() => navigate(`/dashboard/briefings/${b.id}`)}
                         >
                           <TableCell>
@@ -888,6 +906,20 @@ export default function BriefingsHome() {
                             >
                               {STATUS_LABEL[b.status] ?? b.status.replace("_", " ")}
                             </Badge>
+                          </TableCell>
+                          <TableCell title={agenciaTooltip}>
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span
+                                className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-medium ${agenciaBadgeClass(agenciaKey)}`}
+                              >
+                                {AGENCIA_LABEL[agenciaKey]}
+                              </span>
+                              {b.rrtask_page_id && (
+                                <span className="inline-flex items-center rounded-full border border-border bg-muted px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground">
+                                  R{rodada}
+                                </span>
+                              )}
+                            </div>
                           </TableCell>
                           <TableCell>
                             <div className="flex items-center gap-2 min-w-0">
