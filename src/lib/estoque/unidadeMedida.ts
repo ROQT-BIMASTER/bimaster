@@ -9,10 +9,14 @@
  * Os limites seguem a prática da operação: displays comerciais raramente
  * passam de 48 itens; acima disso já é caixa máster.
  */
-export type SiglaUnidade = 'UN' | 'BX' | 'CX';
+export type SiglaUnidade = 'UN' | 'BX' | 'CX' | string;
 
 export function siglaUnidadeMedida(code: string | number | null | undefined): SiglaUnidade | null {
   if (code == null || code === '') return null;
+  // Fallback inteligente: se já vier como sigla (string não-numérica), devolve em maiúsculas.
+  if (typeof code === 'string' && code.trim() !== '' && !/^-?\d+(\.\d+)?$/.test(code.trim())) {
+    return code.trim().toUpperCase();
+  }
   const n = Number(code);
   if (!Number.isFinite(n) || n <= 0) return null;
   if (n === 1) return 'UN';

@@ -5,6 +5,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { ArrowDown, ArrowUp, ArrowUpDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import { formatCurrency } from '@/lib/formatters';
 import { classificarFaixa, FAIXA_BADGE, FAIXA_LABELS, diasDesde } from '@/lib/estoque/estoqueFilters';
+import { formatUnidadeMedida, siglaUnidadeMedida } from '@/lib/estoque/unidadeMedida';
 import type { EstoqueRow, EstoqueSortKey } from '@/hooks/estoque/useEstoqueQuery';
 import { cn } from '@/lib/utils';
 
@@ -139,7 +140,7 @@ export function EstoqueTable({
                       )}
                     </TableCell>
                     <TableCell className="text-xs text-muted-foreground truncate max-w-[160px]">{r.nome_linha}</TableCell>
-                    <TableCell className="text-xs text-center">{r.unidade_medida}</TableCell>
+                    <TableCell className="text-xs text-center font-mono" title={formatUnidadeMedida(r.unidade_medida)}>{siglaUnidadeMedida(r.unidade_medida) ?? '—'}</TableCell>
                     <TableCell className="text-right">
                       <div className="inline-flex items-center gap-1.5">
                         <span className="font-semibold tabular-nums">

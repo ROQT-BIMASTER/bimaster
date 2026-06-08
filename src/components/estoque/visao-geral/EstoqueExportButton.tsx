@@ -5,6 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { exportToExcel } from '@/utils/excelExport';
 import type { EstoqueFiltros } from '@/lib/estoque/estoqueFilters';
+import { siglaUnidadeMedida } from '@/lib/estoque/unidadeMedida';
 
 interface Props {
   filtros: EstoqueFiltros;
@@ -50,7 +51,8 @@ export function EstoqueExportButton({ filtros, total }: Props) {
         Cod_Fabricante: r.cod_fabricante,
         Produto: r.nome_prod,
         Linha: r.nome_linha,
-        UM: r.unidade_medida,
+        UM: siglaUnidadeMedida(r.unidade_medida) ?? '—',
+        UM_Qtd: r.unidade_medida != null && r.unidade_medida !== '' ? Number(r.unidade_medida) : null,
         Saldo: Number(r.saldo ?? 0),
         Pedido_Pendente: Number(r.pedido_pendente ?? 0),
         Custo_Unitario: Number(r.custo_unitario ?? 0),
