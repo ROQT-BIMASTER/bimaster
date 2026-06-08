@@ -357,8 +357,14 @@ export const LoginForm = () => {
                 ⚠️ Você está offline. Conecte-se para fazer login.
               </p>
             )}
+            <p className="text-center text-sm text-muted-foreground">
+              Ainda não tem conta?{" "}
+              <Link to="/auth/signup" className="text-primary hover:underline">
+                Criar conta
+              </Link>
+            </p>
             <p className="text-center text-xs text-muted-foreground">
-              Acesso restrito. Contate o administrador para obter uma conta.
+              Novos cadastros ficam pendentes de aprovação do administrador.
             </p>
           </form>
         </CardContent>
