@@ -185,11 +185,12 @@ export function TarefaAnexosSection({
       toast.error("Selecione uma categoria para cada documento.");
       return;
     }
-    sendToCofre.mutate({
+    sendToCofre.mutateAsync({
       anexoIds: selectedAnexoIds,
       produtoId,
       categoriasPorAnexo,
-    });
+      projetoId: projetoId || undefined,
+    }).catch(() => {});
     setCofreDialogOpen(false);
     setSelectedAnexoIds([]);
     setCategoriasPorAnexo({});
