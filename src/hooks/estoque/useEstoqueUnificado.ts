@@ -178,7 +178,7 @@ export function useEstoqueUnificado(opts: UseEstoqueUnificadoOpts) {
       const totalGroups = consolidated.length;
       const from = opts.page * opts.pageSize;
       const pageRows = consolidated.slice(from, from + opts.pageSize);
-      return { rows: pageRows, total: totalGroups };
+      return { rows: pageRows, total: totalGroups, aggregateRows: consolidated };
     },
   });
 }
