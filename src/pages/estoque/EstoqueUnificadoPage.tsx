@@ -221,6 +221,31 @@ export default function EstoqueUnificadoPage() {
                 Limpar
               </Button>
             )}
+
+            <span className="mx-1 h-5 w-px bg-border" aria-hidden />
+
+            <MultiSelectChip
+              label="Marca"
+              options={marcasLinhasOpts?.marcas ?? []}
+              selected={marcas}
+              onChange={(v) => { setMarcas(v); setPage(0); }}
+            />
+            <MultiSelectChip
+              label="Linha"
+              options={marcasLinhasOpts?.linhas ?? []}
+              selected={linhas}
+              onChange={(v) => { setLinhas(v); setPage(0); }}
+            />
+            {(marcas.length > 0 || linhas.length > 0) && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 text-xs"
+                onClick={() => { setMarcas([]); setLinhas([]); setPage(0); }}
+              >
+                Limpar marca/linha
+              </Button>
+            )}
           </div>
         </div>
 
