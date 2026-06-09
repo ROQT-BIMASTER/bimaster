@@ -1,13 +1,14 @@
-import { Fragment, useState } from 'react';
+import { Fragment, useMemo, useState } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { ArrowDown, ArrowUp, ArrowUpDown, Barcode, ChevronDown, ChevronLeft, ChevronRight, Info } from 'lucide-react';
+import { AlertTriangle, ArrowDown, ArrowUp, ArrowUpDown, Barcode, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, Clock, Info } from 'lucide-react';
 import { formatCurrency } from '@/lib/formatters';
 import type { EstoqueUnificadoRow, UseEstoqueUnificadoOpts } from '@/hooks/estoque/useEstoqueUnificado';
 import { converterParaModo, disponivelEmCaixas, formatCx, MODO_COL_LABEL, type ModoExibicao } from '@/lib/estoque/modoExibicao';
 import { EstoqueUnificadoSkuBreakdown } from './EstoqueUnificadoSkuBreakdown';
+import { resumirValidacao, useEstoqueValidacaoErp, type ValidacaoErpRow } from '@/hooks/estoque/useEstoqueValidacaoErp';
 
 interface Props {
   rows: EstoqueUnificadoRow[];
