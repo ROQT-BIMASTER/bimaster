@@ -8,7 +8,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { KpiCard } from '@/components/ui/kpi-card';
 import {
   Building2, DollarSign, Boxes, PackageCheck, PackageX,
-  ArrowDown, ArrowUp, ArrowUpDown, AlertTriangle, Search,
+  ArrowDown, ArrowUp, ArrowUpDown, AlertTriangle, Search, Info,
 } from 'lucide-react';
 import { formatCurrency } from '@/lib/formatters';
 import { FILTROS_INICIAIS, type EstoqueFiltros } from '@/lib/estoque/estoqueFilters';
@@ -19,7 +19,30 @@ import { EstoqueFilialSelect } from '@/components/estoque/visao-geral/EstoqueFil
 import { EstoqueUnidadeChips } from '@/components/estoque/visao-geral/EstoqueUnidadeChips';
 import { EstoqueFilterPanel } from '@/components/estoque/visao-geral/EstoqueFilterPanel';
 import { EstoqueActiveFilters } from '@/components/estoque/visao-geral/EstoqueActiveFilters';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
+
+const FATOR_NOTA_BAIXA = 3.5;
+const FATOR_TOOLTIP =
+  'Valor bruto do ERP multiplicado por 3,5 para compensar a prática de nota baixa do cliente. Aplica-se somente a esta tela.';
+
+function FatorBadge({ className }: { className?: string }) {
+  return (
+    <TooltipProvider delayDuration={150}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Badge variant="secondary" className={cn('gap-1 font-medium cursor-help', className)}>
+            <Info className="h-3 w-3" />
+            ×3,5
+          </Badge>
+        </TooltipTrigger>
+        <TooltipContent side="top" className="max-w-xs text-xs">
+          {FATOR_TOOLTIP}
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+}
 
 function useDebounce<T>(value: T, delay = 300): T {
   const [v, setV] = useState(value);
