@@ -50174,6 +50174,30 @@ export type Database = {
         }[]
       }
       estoque_kpis_recorte: { Args: { filtros?: Json }; Returns: Json }
+      estoque_validar_consolidado_erp: {
+        Args: { p_empresas?: number[]; p_produto_raizes: number[] }
+        Returns: {
+          cache_bloqueado_total_em_unidades: number
+          cache_custo_total: number
+          cache_disponivel_total_em_unidades: number
+          cache_saldo_em_caixas: number
+          cache_saldo_total_em_unidades: number
+          delta_bloqueado_total_em_unidades: number
+          delta_custo_total: number
+          delta_disponivel_total_em_unidades: number
+          delta_saldo_total_em_unidades: number
+          erp_bloqueado_total_em_unidades: number
+          erp_custo_total: number
+          erp_disponivel_total_em_unidades: number
+          erp_saldo_em_caixas: number
+          erp_saldo_total_em_unidades: number
+          filiais_count: number
+          filiais_defasadas: number
+          filiais_sync: Json
+          produto_raiz: number
+          ultima_sync: string
+        }[]
+      }
       estoque_valores_por_filial: {
         Args: { filtros?: Json }
         Returns: {
