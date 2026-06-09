@@ -266,6 +266,11 @@ export function EstoqueUnificadoTable(p: Props) {
                   className="cursor-pointer hover:bg-muted/40"
                   onClick={() => p.onRowClick(r)}
                   data-state={isExpanded ? 'selected' : undefined}
+                  data-produto-raiz={r.produto_raiz}
+                  data-marca={r.marca ?? ''}
+                  data-linha={r.linha ?? ''}
+                  data-empresa={r.empresa}
+                  data-filiais-count={r.filiais_count ?? 1}
                 >
                   <TableCell
                     className="w-8 p-1"
