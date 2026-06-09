@@ -136,6 +136,7 @@ export default function EstoqueValoresPorFilial() {
             </h1>
             <p className="text-sm text-muted-foreground">
               Valor financeiro e cobertura de estoque consolidados por filial (dados do ERP).
+              <span className="ml-1">Valores ajustados pelo fator de nota baixa (×3,5).</span>
             </p>
           </div>
           <EstoqueFilterPanel filtros={filtrosBase} setFiltros={setFiltrosBase} showValidade={false} />
