@@ -346,6 +346,18 @@ export function useEstoqueUnificado(opts: UseEstoqueUnificadoOpts) {
           acc.custo_total += Number(r.custo_total || 0);
           acc.skus_envolvidos = Math.max(acc.skus_envolvidos, Number(r.skus_envolvidos || 0));
           acc.pedidos_count = Number(acc.pedidos_count || 0) + Number(r.pedidos_count || 0);
+          // Prefere o primeiro valor não-nulo encontrado; loga divergência
+          // entre filiais do mesmo produto-raiz (sinaliza lookup sujo).
+          if (r.marca && acc.marca && r.marca !== acc.marca) {
+            logger.warn('[useEstoqueUnificado] marca divergente entre filiais', {
+              produto_raiz: k, marca_a: acc.marca, marca_b: r.marca,
+            });
+          }
+          if (r.linha && acc.linha && r.linha !== acc.linha) {
+            logger.warn('[useEstoqueUnificado] linha divergente entre filiais', {
+              produto_raiz: k, linha_a: acc.linha, linha_b: r.linha,
+            });
+          }
           acc.marca = acc.marca ?? r.marca ?? null;
           acc.linha = acc.linha ?? r.linha ?? null;
           acc.fator_cx_para_un = acc.fator_cx_para_un ?? r.fator_cx_para_un ?? null;
