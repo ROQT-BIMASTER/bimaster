@@ -259,6 +259,10 @@ export default function EstoqueUnificadoPage() {
                 Limpar marca/linha
               </Button>
             )}
+
+            <span className="mx-1 h-5 w-px bg-border" aria-hidden />
+
+            <EstoqueUnificadoColumnsMenu isHidden={isHidden} toggle={toggle} reset={reset} />
           </div>
         </div>
 
@@ -272,10 +276,12 @@ export default function EstoqueUnificadoPage() {
           sortDir={sortDir}
           setPage={setPage}
           setSort={handleSort}
+          isHidden={isHidden}
           onRowClick={(r) => { setSelected(r); setDrawerOpen(true); }}
           modo={modo}
           consolidado={consolidar}
         />
+
 
         <EstoqueUnificadoDrawer row={selected} open={drawerOpen} onOpenChange={setDrawerOpen} />
       </div>
