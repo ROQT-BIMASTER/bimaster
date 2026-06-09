@@ -114,6 +114,23 @@ export function EstoqueUnificadoTable(p: Props) {
               </span>
             </TableHead>
             <TableHead className="text-right">
+              <button
+                onClick={() => p.setSort('pedidos_count' as any)}
+                className="inline-flex items-center gap-1 font-medium hover:text-foreground"
+              >
+                Pedidos
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="h-3 w-3 text-muted-foreground/60 cursor-help" onClick={(e) => e.stopPropagation()} />
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="max-w-xs text-xs">
+                    Quantidade de pedidos em aberto (distintos) que contêm SKUs deste produto-raiz.
+                  </TooltipContent>
+                </Tooltip>
+                <SortIcon active={p.sortBy === ('pedidos_count' as any)} dir={p.sortDir} />
+              </button>
+            </TableHead>
+            <TableHead className="text-right">
               <span className="inline-flex items-center gap-1 font-medium">
                 ≡ em CX
                 <Tooltip>
