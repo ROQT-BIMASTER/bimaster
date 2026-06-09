@@ -125,7 +125,7 @@ export function useEstoqueUnificado(opts: UseEstoqueUnificadoOpts) {
           codChunks.map((cs) =>
             supabase
               .from('erp_estoque_distribuidora')
-              .select('cod_produto,nome_prod')
+              .select('cod_produto,nome_prod,nome_linha')
               .in('cod_produto', cs)
               .range(0, 19999),
           ),
@@ -135,6 +135,29 @@ export function useEstoqueUnificado(opts: UseEstoqueUnificadoOpts) {
             if (e.cod_produto == null) return;
             if (!nomesPorCod.has(e.cod_produto) && e.nome_prod) {
               nomesPorCod.set(e.cod_produto, e.nome_prod);
+            }
+            if (!linhaPorCod.has(e.cod_produto) && e.nome_linha) {
+              linhaPorCod.set(e.cod_produto, e.nome_linha);
+            }
+          });
+        });
+
+        // Marca por SKU — vem do catálogo rr_produtos (sku == cod_produto)
+        const marcaResults = await Promise.all(
+          codChunks.map((cs) =>
+            supabase
+              .from('rr_produtos')
+              .select('sku,marca')
+              .in('sku', cs as any)
+              .range(0, 19999),
+          ),
+        );
+        marcaResults.forEach(({ data }) => {
+          (data ?? []).forEach((e: any) => {
+            const cod = Number(e?.sku);
+            if (!Number.isFinite(cod)) return;
+            if (!marcaPorCod.has(cod) && e.marca) {
+              marcaPorCod.set(cod, String(e.marca));
             }
           });
         });
@@ -159,6 +182,57 @@ export function useEstoqueUnificado(opts: UseEstoqueUnificadoOpts) {
               }
             });
           });
+
+          // Pedidos abertos: 2 passos para evitar embed pesado.
+          // 1) Lista de pedidos abertos das empresas em jogo.
+          // 2) Itens desses pedidos cujo produto_codigo casa com algum cod_produto.
+          try {
+            const STATUS_ABERTOS = ['aberto', 'aguardando', 'aprovado', 'em_separacao', 'em_separação', 'pendente', 'novo'];
+            const { data: pedidosData } = await supabase
+              .from('oms_pedidos')
+              .select('id,empresa_id,status')
+              .in('empresa_id', empresas)
+              .in('status', STATUS_ABERTOS)
+              .range(0, 19999);
+            const pedidoEmpresa = new Map<string, number>();
+            const pedidoIds: string[] = [];
+            (pedidosData ?? []).forEach((p: any) => {
+              if (!p?.id) return;
+              pedidoEmpresa.set(String(p.id), Number(p.empresa_id));
+              pedidoIds.push(String(p.id));
+            });
+
+            if (pedidoIds.length) {
+              const pedidoChunks = toChunks(pedidoIds, CHUNK);
+              const codigosStr = codigos.map((c) => String(c));
+              const itensResults = await Promise.all(
+                pedidoChunks.map((ps) =>
+                  supabase
+                    .from('oms_pedido_itens')
+                    .select('pedido_id,produto_codigo')
+                    .in('pedido_id', ps)
+                    .in('produto_codigo', codigosStr)
+                    .range(0, 49999),
+                ),
+              );
+              itensResults.forEach(({ data }) => {
+                (data ?? []).forEach((it: any) => {
+                  const empresaId = pedidoEmpresa.get(String(it.pedido_id));
+                  const cod = Number(it.produto_codigo);
+                  if (!Number.isFinite(cod) || empresaId == null) return;
+                  const key = `${empresaId}|${cod}`;
+                  let set = pedidosPorEmpresaCod.get(key);
+                  if (!set) {
+                    set = new Set();
+                    pedidosPorEmpresaCod.set(key, set);
+                  }
+                  set.add(String(it.pedido_id));
+                });
+              });
+            }
+          } catch (e) {
+            logger.warn('[useEstoqueUnificado] falha ao hidratar pedidos abertos', { error: e });
+          }
         }
       }
 
