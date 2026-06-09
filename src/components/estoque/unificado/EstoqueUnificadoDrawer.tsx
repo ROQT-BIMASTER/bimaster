@@ -73,7 +73,7 @@ export function EstoqueUnificadoDrawer({ row, open, onOpenChange }: Props) {
                 <Card className="p-4 bg-muted/40">
                   <p className="text-xs text-muted-foreground">Se desmontar 100% do estoque até a unidade:</p>
                   <p className="text-3xl font-bold tabular-nums">{fmt(row.saldo_total_em_unidades)} <span className="text-sm font-normal text-muted-foreground">unidades</span></p>
-                  <p className="text-xs text-muted-foreground mt-2">Custo total acumulado: {formatCurrency(Number(row.custo_total ?? 0))}</p>
+                  
                 </Card>
               </section>
 
