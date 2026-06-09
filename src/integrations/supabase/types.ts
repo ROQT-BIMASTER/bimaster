@@ -37388,7 +37388,11 @@ export type Database = {
           produto_id: string | null
           projeto_id: string
           responsavel_id: string | null
+          rr_produto_notion_id: string | null
+          rr_variante_notion_id: string | null
+          rrtask_page_id: string | null
           secao_id: string
+          sprint: string | null
           status: string | null
           tem_briefing: boolean
           tipo_tarefa: string | null
@@ -37426,7 +37430,11 @@ export type Database = {
           produto_id?: string | null
           projeto_id: string
           responsavel_id?: string | null
+          rr_produto_notion_id?: string | null
+          rr_variante_notion_id?: string | null
+          rrtask_page_id?: string | null
           secao_id: string
+          sprint?: string | null
           status?: string | null
           tem_briefing?: boolean
           tipo_tarefa?: string | null
@@ -37464,7 +37472,11 @@ export type Database = {
           produto_id?: string | null
           projeto_id?: string
           responsavel_id?: string | null
+          rr_produto_notion_id?: string | null
+          rr_variante_notion_id?: string | null
+          rrtask_page_id?: string | null
           secao_id?: string
+          sprint?: string | null
           status?: string | null
           tem_briefing?: boolean
           tipo_tarefa?: string | null
@@ -37515,6 +37527,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_projeto_produtividade"
             referencedColumns: ["projeto_id"]
+          },
+          {
+            foreignKeyName: "projeto_tarefas_rr_produto_notion_id_fkey"
+            columns: ["rr_produto_notion_id"]
+            isOneToOne: false
+            referencedRelation: "rr_produtos"
+            referencedColumns: ["notion_page_id"]
+          },
+          {
+            foreignKeyName: "projeto_tarefas_rr_variante_notion_id_fkey"
+            columns: ["rr_variante_notion_id"]
+            isOneToOne: false
+            referencedRelation: "rr_variantes"
+            referencedColumns: ["notion_page_id"]
           },
           {
             foreignKeyName: "projeto_tarefas_secao_id_fkey"
