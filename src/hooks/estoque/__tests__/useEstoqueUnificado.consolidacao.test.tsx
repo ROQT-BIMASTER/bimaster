@@ -123,10 +123,24 @@ describe('useEstoqueUnificado — paridade entre modos consolidado / não consol
     await waitFor(() => expect(offHook.result.current.data).toBeTruthy());
     await waitFor(() => expect(onHook.result.current.data).toBeTruthy());
 
-    expect(offHook.result.current.data!.total).toBe(3); // por filial
-    expect(onHook.result.current.data!.total).toBe(2);  // consolidado
-    // aggregateRows é sempre o consolidado canônico
-    expect(offHook.result.current.data!.aggregateRows.length).toBe(2);
-    expect(onHook.result.current.data!.aggregateRows.length).toBe(2);
+    const off = offHook.result.current.data!;
+    const on = onHook.result.current.data!;
+
+    // Linhas exibidas na tabela: não consolidado mostra 1 linha por (empresa, produto_raiz);
+    // consolidado agrupa por produto_raiz. Universo agregado é sempre o consolidado canônico.
+    expect(off.rows.length).toBe(3);
+    expect(on.rows.length).toBe(2);
+    expect(off.rows.length).toBeGreaterThan(on.rows.length);
+    expect(off.total).toBe(off.rows.length);
+    expect(on.total).toBe(on.rows.length);
+    // Diferença bate exatamente com o nº de filiais extras consolidadas
+    const extrasPorConsolidacao = on.aggregateRows.reduce(
+      (s, r: any) => s + Math.max(0, (r.filiais_count ?? 1) - 1),
+      0,
+    );
+    expect(off.rows.length - on.rows.length).toBe(extrasPorConsolidacao);
+
+    expect(off.aggregateRows.length).toBe(2);
+    expect(on.aggregateRows.length).toBe(2);
   });
 });
