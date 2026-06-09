@@ -110,8 +110,11 @@ export function useEstoqueUnificado(opts: UseEstoqueUnificadoOpts) {
       }
 
       if (!consolidar) {
-        return { rows: enriched, total: count ?? 0 };
+        const from = opts.page * opts.pageSize;
+        const pageRows = enriched.slice(from, from + opts.pageSize);
+        return { rows: pageRows, total: enriched.length, aggregateRows: enriched };
       }
+
 
       // -------- Modo consolidado: agrupa por produto_raiz --------
       // Chave normalizada como Number para evitar duplicatas se o PostgREST
