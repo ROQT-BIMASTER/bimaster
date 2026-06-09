@@ -133,18 +133,17 @@ function renderNode(node: TreeNode, depth: number, totalUn: number): JSX.Element
 export function EstoqueUnificadoSkuBreakdown({ row }: Props) {
   const { data, isLoading } = useEstoqueUnificadoSkus(row.empresa, row.produto_raiz);
 
-  const { tree, orphans, totalUn, totalCusto, somaCX, somaBX, somaUN, somaBloq, somaDisp, somaPend } = useMemo(() => {
+  const { tree, orphans, totalUn, somaCX, somaBX, somaUN, somaBloq, somaDisp, somaPend } = useMemo(() => {
     const rows = data ?? [];
     const { tree, orphans } = buildTree(rows);
     const totalUn = rows.reduce((acc, r) => acc + Number(r.contribuicao_un ?? 0), 0);
-    const totalCusto = rows.reduce((acc, r) => acc + Number(r.custo_total ?? 0), 0);
     const somaCX = rows.filter((r) => r.nivel === 1).reduce((a, r) => a + Number(r.saldo ?? 0), 0);
     const somaBX = rows.filter((r) => r.nivel === 2).reduce((a, r) => a + Number(r.saldo ?? 0), 0);
     const somaUN = rows.filter((r) => r.nivel === 3).reduce((a, r) => a + Number(r.saldo ?? 0), 0);
     const somaBloq = rows.reduce((a, r) => a + Number(r.contribuicao_bloqueado_un ?? 0), 0);
     const somaDisp = rows.reduce((a, r) => a + Number(r.contribuicao_disponivel_un ?? 0), 0);
     const somaPend = rows.reduce((a, r) => a + Number(r.contribuicao_pendente_un ?? 0), 0);
-    return { tree, orphans, totalUn, totalCusto, somaCX, somaBX, somaUN, somaBloq, somaDisp, somaPend };
+    return { tree, orphans, totalUn, somaCX, somaBX, somaUN, somaBloq, somaDisp, somaPend };
   }, [data]);
 
   const divergeTotal = Math.abs(totalUn - Number(row.saldo_total_em_unidades ?? 0)) > 0.5;
