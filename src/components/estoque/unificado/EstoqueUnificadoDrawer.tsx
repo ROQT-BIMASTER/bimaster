@@ -1,15 +1,12 @@
-import { useState } from 'react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 
 import { useBomPath, useCapacidadeMontagem, type EstoqueUnificadoRow } from '@/hooks/estoque/useEstoqueUnificado';
 import { useEstoqueMovimentos } from '@/hooks/estoque/useEstoqueMovimentos';
 import { disponivelEmCaixas, formatCx } from '@/lib/estoque/modoExibicao';
-import { Boxes, Package, PackageOpen, GitBranch, Wrench, History, Wand2 } from 'lucide-react';
-import { TransformacaoWizard } from './TransformacaoWizard';
+import { Boxes, Package, PackageOpen, GitBranch, Wrench, History } from 'lucide-react';
 
 interface Props {
   row: EstoqueUnificadoRow | null;
@@ -23,24 +20,16 @@ export function EstoqueUnificadoDrawer({ row, open, onOpenChange }: Props) {
   const { data: paths, isLoading: loadingPath } = useBomPath(row?.empresa ?? null, row?.produto_raiz ?? null);
   const { data: capacidade } = useCapacidadeMontagem(row?.empresa ?? null, row?.produto_raiz ?? null);
   const { data: movs } = useEstoqueMovimentos(row?.empresa ?? null, row?.produto_raiz ?? null);
-  const [wizardOpen, setWizardOpen] = useState(false);
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="right" className="w-full sm:max-w-2xl p-0 flex flex-col">
         <SheetHeader className="px-6 py-4 border-b">
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0">
-              <SheetTitle className="text-base truncate">{row?.raiz_nome ?? 'Produto'}</SheetTitle>
-              <p className="text-xs text-muted-foreground">
-                Empresa {row?.raiz_abrev ?? row?.empresa} · Cód. raiz {row?.produto_raiz}
-              </p>
-            </div>
-            {row && (
-              <Button size="sm" onClick={() => setWizardOpen(true)}>
-                <Wand2 className="h-4 w-4 mr-2" /> Transformar
-              </Button>
-            )}
+          <div className="min-w-0">
+            <SheetTitle className="text-base truncate">{row?.raiz_nome ?? 'Produto'}</SheetTitle>
+            <p className="text-xs text-muted-foreground">
+              Empresa {row?.raiz_abrev ?? row?.empresa} · Cód. raiz {row?.produto_raiz}
+            </p>
           </div>
         </SheetHeader>
 
@@ -88,7 +77,7 @@ export function EstoqueUnificadoDrawer({ row, open, onOpenChange }: Props) {
               {/* Disponibilidade para venda */}
               <section className="space-y-2">
                 <h3 className="text-sm font-semibold">Disponibilidade para venda</h3>
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                   <Card className="p-3">
                     <div className="text-[11px] text-muted-foreground">Bloqueado</div>
                     <div className="text-xl font-bold tabular-nums">{fmt(row.bloqueado_total_em_unidades)}</div>
@@ -97,13 +86,17 @@ export function EstoqueUnificadoDrawer({ row, open, onOpenChange }: Props) {
                   <Card className="p-3 border-success/40 bg-success/5">
                     <div className="text-[11px] font-medium text-success">Disponível</div>
                     <div className="text-xl font-bold tabular-nums text-success">{fmt(row.disponivel_total_em_unidades)}</div>
-                    <div className="text-[10px] text-muted-foreground">
-                      saldo − bloqueado
+                    <div className="text-[10px] text-muted-foreground">saldo − bloqueado (UN)</div>
+                  </Card>
+                  <Card className="p-3 border-success/40 bg-success/5">
+                    <div className="text-[11px] font-medium text-success">Disponível em CX</div>
+                    <div className="text-xl font-bold tabular-nums text-success">
                       {(() => {
                         const cxDisp = disponivelEmCaixas(row);
-                        return cxDisp != null ? <> · ≈ <strong className="text-success">{formatCx(cxDisp)} CX</strong></> : null;
+                        return cxDisp != null ? formatCx(cxDisp) : '—';
                       })()}
                     </div>
+                    <div className="text-[10px] text-muted-foreground">caixas máster equivalentes</div>
                   </Card>
                   <Card className="p-3">
                     <div className="text-[11px] text-muted-foreground">Pendente</div>
