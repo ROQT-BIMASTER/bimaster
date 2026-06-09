@@ -318,6 +318,7 @@ export function EstoqueUnificadoTable(p: Props) {
                                   <TableCell className="text-right tabular-nums text-muted-foreground">{fmt(f.bloqueado_total_em_unidades)}</TableCell>
                                   <TableCell className="text-right tabular-nums font-semibold text-success">{fmt(f.disponivel_total_em_unidades)}</TableCell>
                                   <TableCell className="text-right tabular-nums text-muted-foreground">{fmt(f.pendente_total_em_unidades)}</TableCell>
+                                  <TableCell className="text-right tabular-nums">{f.pedidos_count && f.pedidos_count > 0 ? f.pedidos_count.toLocaleString('pt-BR') : <span className="text-muted-foreground">—</span>}</TableCell>
                                   
                                 </TableRow>
                               ))}
