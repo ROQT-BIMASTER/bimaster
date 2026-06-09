@@ -5,10 +5,14 @@ import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { AlertTriangle, ArrowDown, ArrowUp, ArrowUpDown, Barcode, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, Clock, Info } from 'lucide-react';
 
-import type { EstoqueUnificadoRow, UseEstoqueUnificadoOpts } from '@/hooks/estoque/useEstoqueUnificado';
+import type { EstoqueUnificadoRow } from '@/hooks/estoque/useEstoqueUnificado';
 import { converterParaModo, disponivelEmCaixas, formatCx, MODO_COL_LABEL, type ModoExibicao } from '@/lib/estoque/modoExibicao';
 import { EstoqueUnificadoSkuBreakdown } from './EstoqueUnificadoSkuBreakdown';
 import { resumirValidacao, useEstoqueValidacaoErp, type ValidacaoErpRow } from '@/hooks/estoque/useEstoqueValidacaoErp';
+import {
+  BACKEND_SORT_KEYS,
+  type EstoqueUnifColId,
+} from '@/hooks/estoque/useEstoqueUnificadoTablePrefs';
 
 interface Props {
   rows: EstoqueUnificadoRow[];
@@ -16,10 +20,11 @@ interface Props {
   loading?: boolean;
   page: number;
   pageSize: number;
-  sortBy: UseEstoqueUnificadoOpts['sortBy'];
+  sortBy: EstoqueUnifColId;
   sortDir: 'asc' | 'desc';
   setPage: (n: number) => void;
-  setSort: (key: UseEstoqueUnificadoOpts['sortBy']) => void;
+  setSort: (key: EstoqueUnifColId) => void;
+  isHidden: (id: EstoqueUnifColId) => boolean;
   onRowClick: (r: EstoqueUnificadoRow) => void;
   modo?: ModoExibicao;
   consolidado?: boolean;
@@ -31,6 +36,32 @@ const fmt = (n: number | null | undefined) =>
 function SortIcon({ active, dir }: { active: boolean; dir: 'asc' | 'desc' }) {
   if (!active) return <ArrowUpDown className="ml-1 h-3 w-3 inline opacity-40" />;
   return dir === 'asc' ? <ArrowUp className="ml-1 h-3 w-3 inline" /> : <ArrowDown className="ml-1 h-3 w-3 inline" />;
+}
+
+// Acessores para sort client-side em colunas não suportadas pelo backend.
+function clientSortValue(r: EstoqueUnificadoRow, id: EstoqueUnifColId): string | number {
+  switch (id) {
+    case 'empresa':
+      return r.filial_nome ?? r.raiz_abrev ?? `Empresa ${r.empresa}`;
+    case 'produto_raiz':
+      return r.raiz_nome ?? r.produto_raiz ?? '';
+    case 'ean_raiz':
+      return r.ean_raiz ?? '';
+    case 'bloqueado_total_em_unidades':
+      return Number(r.bloqueado_total_em_unidades ?? 0);
+    case 'disponivel_total_em_unidades':
+      return Number(r.disponivel_total_em_unidades ?? 0);
+    case 'pendente_total_em_unidades':
+      return Number(r.pendente_total_em_unidades ?? 0);
+    case 'em_cx': {
+      const cx = disponivelEmCaixas(r);
+      return cx == null ? -Infinity : Number(cx);
+    }
+    case 'skus_envolvidos':
+      return Number(r.skus_envolvidos ?? 0);
+    default:
+      return 0;
+  }
 }
 
 export function EstoqueUnificadoTable(p: Props) {
@@ -47,20 +78,66 @@ export function EstoqueUnificadoTable(p: Props) {
   );
   const { data: validacaoMap } = useEstoqueValidacaoErp(raizesVisiveis, undefined, consolidado);
 
-  const Th = ({ k, label, num }: { k: Props['sortBy']; label: string; num?: boolean }) => (
-    <TableHead className={num ? 'text-right' : ''}>
+  // Sort client-side se a coluna não for suportada pelo backend.
+  const displayRows = useMemo(() => {
+    if (BACKEND_SORT_KEYS.has(p.sortBy)) return p.rows;
+    const dir = p.sortDir === 'asc' ? 1 : -1;
+    const copy = [...p.rows];
+    copy.sort((a, b) => {
+      const va = clientSortValue(a, p.sortBy);
+      const vb = clientSortValue(b, p.sortBy);
+      if (typeof va === 'number' && typeof vb === 'number') return (va - vb) * dir;
+      return String(va).localeCompare(String(vb), 'pt-BR') * dir;
+    });
+    return copy;
+  }, [p.rows, p.sortBy, p.sortDir]);
+
+  const H = (id: EstoqueUnifColId) => p.sortBy === id;
+
+  // Helper para cabeçalho ordenável
+  const SortHead = ({
+    id,
+    label,
+    num,
+    extra,
+    className,
+  }: {
+    id: EstoqueUnifColId;
+    label: React.ReactNode;
+    num?: boolean;
+    extra?: React.ReactNode;
+    className?: string;
+  }) => (
+    <TableHead className={`${num ? 'text-right' : ''} ${className ?? ''}`}>
       <button
-        onClick={() => p.setSort(k)}
-        className="inline-flex items-center font-medium hover:text-foreground"
+        onClick={() => p.setSort(id)}
+        className="inline-flex items-center gap-1 font-medium hover:text-foreground"
       >
         {label}
-        <SortIcon active={p.sortBy === k} dir={p.sortDir} />
+        {extra}
+        <SortIcon active={H(id)} dir={p.sortDir} />
       </button>
     </TableHead>
   );
 
-  // +1 chevron, +3 colunas (Bloqueado, Disponível, Pendente) +1 Pedidos +1 "≡ em CX"
-  const colspan = (isFisico ? 8 : 6) + 1 + 3 + 1 + 1;
+  // Contagem dinâmica do colspan (1 chevron + visíveis).
+  const visibleCount =
+    1 +
+    (p.isHidden('empresa') ? 0 : 1) +
+    1 + // produto_raiz fixa
+    (p.isHidden('ean_raiz') ? 0 : 1) +
+    (isFisico
+      ? (p.isHidden('saldo_em_caixas') ? 0 : 1) +
+        (p.isHidden('saldo_em_displays') ? 0 : 1) +
+        (p.isHidden('saldo_em_unidades') ? 0 : 1) +
+        (p.isHidden('saldo_total_em_unidades') ? 0 : 1)
+      : (p.isHidden('saldo_total_em_unidades') ? 0 : 1)) +
+    (p.isHidden('bloqueado_total_em_unidades') ? 0 : 1) +
+    (p.isHidden('disponivel_total_em_unidades') ? 0 : 1) +
+    (p.isHidden('pendente_total_em_unidades') ? 0 : 1) +
+    (p.isHidden('pedidos_count') ? 0 : 1) +
+    (p.isHidden('em_cx') ? 0 : 1) +
+    (p.isHidden('skus_envolvidos') ? 0 : 1);
 
   return (
     <TooltipProvider delayDuration={150}>
@@ -69,92 +146,117 @@ export function EstoqueUnificadoTable(p: Props) {
         <TableHeader>
           <TableRow>
             <TableHead className="w-8" />
-            <TableHead>Empresa</TableHead>
-            <TableHead>Produto-raiz</TableHead>
-            <TableHead className="hidden md:table-cell">EAN raiz</TableHead>
+            {!p.isHidden('empresa') && <SortHead id="empresa" label="Empresa" />}
+            <SortHead id="produto_raiz" label="Produto-raiz" />
+            {!p.isHidden('ean_raiz') && (
+              <SortHead id="ean_raiz" label="EAN raiz" className="hidden md:table-cell" />
+            )}
             {isFisico ? (
               <>
-                <Th k="saldo_em_caixas" label="Caixas" num />
-                <Th k="saldo_em_displays" label="Displays" num />
-                <Th k="saldo_em_unidades" label="Unidades" num />
-                <Th k="saldo_total_em_unidades" label="≡ Total em UN" num />
+                {!p.isHidden('saldo_em_caixas') && <SortHead id="saldo_em_caixas" label="Caixas" num />}
+                {!p.isHidden('saldo_em_displays') && <SortHead id="saldo_em_displays" label="Displays" num />}
+                {!p.isHidden('saldo_em_unidades') && <SortHead id="saldo_em_unidades" label="Unidades" num />}
+                {!p.isHidden('saldo_total_em_unidades') && <SortHead id="saldo_total_em_unidades" label="≡ Total em UN" num />}
               </>
             ) : (
-              <Th k="saldo_total_em_unidades" label={MODO_COL_LABEL[modo]} num />
+              !p.isHidden('saldo_total_em_unidades') && <SortHead id="saldo_total_em_unidades" label={MODO_COL_LABEL[modo]} num />
             )}
-            <TableHead className="text-right">
-              <span className="inline-flex items-center gap-1 font-medium" title="Saldo bloqueado em estoque (avaria, quarentena, endereço travado)">
-                Bloqueado
-              </span>
-            </TableHead>
-            <TableHead className="text-right">
-              <span className="inline-flex items-center gap-1 font-medium text-success" title="Disponível para venda = Saldo − Bloqueado">
-                Disponível
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Info className="h-3 w-3 text-success/70 cursor-help" />
-                  </TooltipTrigger>
-                  <TooltipContent side="top" className="max-w-xs text-xs">
-                    Disponível para venda = Saldo total em UN − Bloqueado (avaria/quarentena/endereço travado). Não abate pedido pendente, pois esse já foi reservado mas ainda não saiu fisicamente.
-                  </TooltipContent>
-                </Tooltip>
-              </span>
-            </TableHead>
-            <TableHead className="text-right">
-              <span className="inline-flex items-center gap-1 font-medium" title="Quantidade comprometida em pedidos de venda em aberto, ainda não faturados">
-                Pendente
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Info className="h-3 w-3 text-muted-foreground/60 cursor-help" />
-                  </TooltipTrigger>
-                  <TooltipContent side="top" className="max-w-xs text-xs">
-                    Pedidos de venda em aberto (ainda não faturados). Informativo — não abate do Disponível porque o saldo ainda existe fisicamente.
-                  </TooltipContent>
-                </Tooltip>
-              </span>
-            </TableHead>
-            <TableHead className="text-right">
-              <button
-                onClick={() => p.setSort('pedidos_count' as any)}
-                className="inline-flex items-center gap-1 font-medium hover:text-foreground"
-              >
-                Pedidos
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Info className="h-3 w-3 text-muted-foreground/60 cursor-help" onClick={(e) => e.stopPropagation()} />
-                  </TooltipTrigger>
-                  <TooltipContent side="top" className="max-w-xs text-xs">
-                    Quantidade de pedidos em aberto (distintos) que contêm SKUs deste produto-raiz.
-                  </TooltipContent>
-                </Tooltip>
-                <SortIcon active={p.sortBy === ('pedidos_count' as any)} dir={p.sortDir} />
-              </button>
-            </TableHead>
-            <TableHead className="text-right">
-              <span className="inline-flex items-center gap-1 font-medium">
-                ≡ em CX
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Info className="h-3 w-3 text-muted-foreground/60 cursor-help" />
-                  </TooltipTrigger>
-                  <TooltipContent side="top" className="max-w-xs text-xs">
-                    Equivalente em caixas máster do <strong>Disponível</strong>: Disponível em UN ÷ fator CX. Pode ser fracionário — base para decisão de compras.
-                  </TooltipContent>
-                </Tooltip>
-              </span>
-            </TableHead>
-            
-            <TableHead className="text-right">SKUs</TableHead>
+            {!p.isHidden('bloqueado_total_em_unidades') && (
+              <SortHead
+                id="bloqueado_total_em_unidades"
+                label="Bloqueado"
+                num
+              />
+            )}
+            {!p.isHidden('disponivel_total_em_unidades') && (
+              <TableHead className="text-right">
+                <button
+                  onClick={() => p.setSort('disponivel_total_em_unidades')}
+                  className="inline-flex items-center gap-1 font-medium text-success hover:opacity-80"
+                  title="Disponível para venda = Saldo − Bloqueado"
+                >
+                  Disponível
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Info className="h-3 w-3 text-success/70 cursor-help" onClick={(e) => e.stopPropagation()} />
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="max-w-xs text-xs">
+                      Disponível para venda = Saldo total em UN − Bloqueado (avaria/quarentena/endereço travado). Não abate pedido pendente, pois esse já foi reservado mas ainda não saiu fisicamente.
+                    </TooltipContent>
+                  </Tooltip>
+                  <SortIcon active={H('disponivel_total_em_unidades')} dir={p.sortDir} />
+                </button>
+              </TableHead>
+            )}
+            {!p.isHidden('pendente_total_em_unidades') && (
+              <TableHead className="text-right">
+                <button
+                  onClick={() => p.setSort('pendente_total_em_unidades')}
+                  className="inline-flex items-center gap-1 font-medium hover:text-foreground"
+                  title="Quantidade comprometida em pedidos de venda em aberto, ainda não faturados"
+                >
+                  Pendente
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Info className="h-3 w-3 text-muted-foreground/60 cursor-help" onClick={(e) => e.stopPropagation()} />
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="max-w-xs text-xs">
+                      Pedidos de venda em aberto (ainda não faturados). Informativo — não abate do Disponível porque o saldo ainda existe fisicamente.
+                    </TooltipContent>
+                  </Tooltip>
+                  <SortIcon active={H('pendente_total_em_unidades')} dir={p.sortDir} />
+                </button>
+              </TableHead>
+            )}
+            {!p.isHidden('pedidos_count') && (
+              <TableHead className="text-right">
+                <button
+                  onClick={() => p.setSort('pedidos_count')}
+                  className="inline-flex items-center gap-1 font-medium hover:text-foreground"
+                >
+                  Pedidos
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Info className="h-3 w-3 text-muted-foreground/60 cursor-help" onClick={(e) => e.stopPropagation()} />
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="max-w-xs text-xs">
+                      Quantidade de pedidos em aberto (distintos) que contêm SKUs deste produto-raiz.
+                    </TooltipContent>
+                  </Tooltip>
+                  <SortIcon active={H('pedidos_count')} dir={p.sortDir} />
+                </button>
+              </TableHead>
+            )}
+            {!p.isHidden('em_cx') && (
+              <TableHead className="text-right">
+                <button
+                  onClick={() => p.setSort('em_cx')}
+                  className="inline-flex items-center gap-1 font-medium hover:text-foreground"
+                >
+                  ≡ em CX
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Info className="h-3 w-3 text-muted-foreground/60 cursor-help" onClick={(e) => e.stopPropagation()} />
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="max-w-xs text-xs">
+                      Equivalente em caixas máster do <strong>Disponível</strong>: Disponível em UN ÷ fator CX. Pode ser fracionário — base para decisão de compras.
+                    </TooltipContent>
+                  </Tooltip>
+                  <SortIcon active={H('em_cx')} dir={p.sortDir} />
+                </button>
+              </TableHead>
+            )}
+            {!p.isHidden('skus_envolvidos') && <SortHead id="skus_envolvidos" label="SKUs" num />}
           </TableRow>
         </TableHeader>
         <TableBody>
-          {p.loading && p.rows.length === 0 && (
-            <TableRow><TableCell colSpan={colspan} className="text-center py-10 text-muted-foreground">Carregando…</TableCell></TableRow>
+          {p.loading && displayRows.length === 0 && (
+            <TableRow><TableCell colSpan={visibleCount} className="text-center py-10 text-muted-foreground">Carregando…</TableCell></TableRow>
           )}
-          {!p.loading && p.rows.length === 0 && (
-            <TableRow><TableCell colSpan={colspan} className="text-center py-10 text-muted-foreground">Nenhum produto encontrado.</TableCell></TableRow>
+          {!p.loading && displayRows.length === 0 && (
+            <TableRow><TableCell colSpan={visibleCount} className="text-center py-10 text-muted-foreground">Nenhum produto encontrado.</TableCell></TableRow>
           )}
-          {p.rows.map((r) => {
+          {displayRows.map((r) => {
             const conv = isFisico ? null : converterParaModo(r, modo);
             const key = consolidado ? `c-${r.produto_raiz}` : `${r.empresa}-${r.produto_raiz}`;
             const isExpanded = expandedKey === key;
@@ -182,38 +284,40 @@ export function EstoqueUnificadoTable(p: Props) {
                       {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
                     </Button>
                   </TableCell>
-                  <TableCell>
-                    {consolidado ? (
-                      (() => {
-                        const count = r.filiais_count ?? 1;
-                        const first = (r.filiais ?? [])[0];
-                        const firstLabel =
-                          first?.filial_nome ?? first?.abrev ?? r.filial_nome ?? r.raiz_abrev ?? null;
-                        const label =
-                          count > 1
-                            ? `${count} filiais`
-                            : firstLabel
-                              ? `${firstLabel} · 1 filial`
-                              : '1 filial';
-                        return (
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Badge variant="secondary" className="cursor-help">
-                                {label}
-                              </Badge>
-                            </TooltipTrigger>
-                            <TooltipContent side="top" className="max-w-xs text-xs">
-                              {(r.filiais ?? [])
-                                .map((f) => f.filial_nome || f.abrev || `Empresa ${f.empresa}`)
-                                .join(' · ')}
-                            </TooltipContent>
-                          </Tooltip>
-                        );
-                      })()
-                    ) : (
-                      <Badge variant="outline">{r.filial_nome ?? r.raiz_abrev ?? `Empresa ${r.empresa}`}</Badge>
-                    )}
-                  </TableCell>
+                  {!p.isHidden('empresa') && (
+                    <TableCell>
+                      {consolidado ? (
+                        (() => {
+                          const count = r.filiais_count ?? 1;
+                          const first = (r.filiais ?? [])[0];
+                          const firstLabel =
+                            first?.filial_nome ?? first?.abrev ?? r.filial_nome ?? r.raiz_abrev ?? null;
+                          const label =
+                            count > 1
+                              ? `${count} filiais`
+                              : firstLabel
+                                ? `${firstLabel} · 1 filial`
+                                : '1 filial';
+                          return (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Badge variant="secondary" className="cursor-help">
+                                  {label}
+                                </Badge>
+                              </TooltipTrigger>
+                              <TooltipContent side="top" className="max-w-xs text-xs">
+                                {(r.filiais ?? [])
+                                  .map((f) => f.filial_nome || f.abrev || `Empresa ${f.empresa}`)
+                                  .join(' · ')}
+                              </TooltipContent>
+                            </Tooltip>
+                          );
+                        })()
+                      ) : (
+                        <Badge variant="outline">{r.filial_nome ?? r.raiz_abrev ?? `Empresa ${r.empresa}`}</Badge>
+                      )}
+                    </TableCell>
+                  )}
                   <TableCell>
                     <div className="flex items-center gap-2">
                       <div className="flex flex-col min-w-0">
@@ -225,66 +329,89 @@ export function EstoqueUnificadoTable(p: Props) {
                       )}
                     </div>
                   </TableCell>
-                  <TableCell className="hidden md:table-cell">
-                    {r.ean_raiz ? (
-                      <span className="inline-flex items-center gap-1 font-mono text-[11px] text-muted-foreground">
-                        <Barcode className="h-3 w-3" />
-                        {r.ean_raiz}
-                      </span>
-                    ) : (
-                      <span className="text-[11px] text-muted-foreground/60">—</span>
-                    )}
-                  </TableCell>
+                  {!p.isHidden('ean_raiz') && (
+                    <TableCell className="hidden md:table-cell">
+                      {r.ean_raiz ? (
+                        <span className="inline-flex items-center gap-1 font-mono text-[11px] text-muted-foreground">
+                          <Barcode className="h-3 w-3" />
+                          {r.ean_raiz}
+                        </span>
+                      ) : (
+                        <span className="text-[11px] text-muted-foreground/60">—</span>
+                      )}
+                    </TableCell>
+                  )}
                   {isFisico ? (
                     <>
-                      <TableCell className="text-right tabular-nums">{fmt(r.saldo_em_caixas)}</TableCell>
-                      <TableCell className="text-right tabular-nums">{fmt(r.saldo_em_displays)}</TableCell>
-                      <TableCell className="text-right tabular-nums">{fmt(r.saldo_em_unidades)}</TableCell>
-                      <TableCell className="text-right tabular-nums font-semibold">{fmt(r.saldo_total_em_unidades)}</TableCell>
+                      {!p.isHidden('saldo_em_caixas') && (
+                        <TableCell className="text-right tabular-nums">{fmt(r.saldo_em_caixas)}</TableCell>
+                      )}
+                      {!p.isHidden('saldo_em_displays') && (
+                        <TableCell className="text-right tabular-nums">{fmt(r.saldo_em_displays)}</TableCell>
+                      )}
+                      {!p.isHidden('saldo_em_unidades') && (
+                        <TableCell className="text-right tabular-nums">{fmt(r.saldo_em_unidades)}</TableCell>
+                      )}
+                      {!p.isHidden('saldo_total_em_unidades') && (
+                        <TableCell className="text-right tabular-nums font-semibold">{fmt(r.saldo_total_em_unidades)}</TableCell>
+                      )}
                     </>
                   ) : (
-                    <TableCell className="text-right tabular-nums font-semibold">{fmt(conv)}</TableCell>
+                    !p.isHidden('saldo_total_em_unidades') && (
+                      <TableCell className="text-right tabular-nums font-semibold">{fmt(conv)}</TableCell>
+                    )
                   )}
-                  <TableCell className="text-right tabular-nums text-muted-foreground">
-                    {fmt(r.bloqueado_total_em_unidades)}
-                  </TableCell>
-                  <TableCell className="text-right tabular-nums font-semibold text-success bg-success/5">
-                    {fmt(r.disponivel_total_em_unidades)}
-                  </TableCell>
-                  <TableCell className="text-right tabular-nums text-muted-foreground">
-                    {fmt(r.pendente_total_em_unidades)}
-                  </TableCell>
-                  <TableCell className="text-right tabular-nums">
-                    {r.pedidos_count && r.pedidos_count > 0 ? (
-                      <span className="font-medium">{r.pedidos_count.toLocaleString('pt-BR')}</span>
-                    ) : (
-                      <span className="text-muted-foreground">—</span>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-right tabular-nums text-primary font-semibold bg-primary/5">
-                    {(() => {
-                      const cx = disponivelEmCaixas(r);
-                      if (cx == null) {
-                        return (
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <span className="cursor-help text-muted-foreground">—</span>
-                            </TooltipTrigger>
-                            <TooltipContent side="top" className="text-xs">
-                              Sem fator de conversão CX
-                            </TooltipContent>
-                          </Tooltip>
-                        );
-                      }
-                      return <span>{formatCx(cx)} <span className="text-[10px] opacity-70">CX</span></span>;
-                    })()}
-                  </TableCell>
-                  
-                  <TableCell className="text-right tabular-nums">{r.skus_envolvidos}</TableCell>
+                  {!p.isHidden('bloqueado_total_em_unidades') && (
+                    <TableCell className="text-right tabular-nums text-muted-foreground">
+                      {fmt(r.bloqueado_total_em_unidades)}
+                    </TableCell>
+                  )}
+                  {!p.isHidden('disponivel_total_em_unidades') && (
+                    <TableCell className="text-right tabular-nums font-semibold text-success bg-success/5">
+                      {fmt(r.disponivel_total_em_unidades)}
+                    </TableCell>
+                  )}
+                  {!p.isHidden('pendente_total_em_unidades') && (
+                    <TableCell className="text-right tabular-nums text-muted-foreground">
+                      {fmt(r.pendente_total_em_unidades)}
+                    </TableCell>
+                  )}
+                  {!p.isHidden('pedidos_count') && (
+                    <TableCell className="text-right tabular-nums">
+                      {r.pedidos_count && r.pedidos_count > 0 ? (
+                        <span className="font-medium">{r.pedidos_count.toLocaleString('pt-BR')}</span>
+                      ) : (
+                        <span className="text-muted-foreground">—</span>
+                      )}
+                    </TableCell>
+                  )}
+                  {!p.isHidden('em_cx') && (
+                    <TableCell className="text-right tabular-nums text-primary font-semibold bg-primary/5">
+                      {(() => {
+                        const cx = disponivelEmCaixas(r);
+                        if (cx == null) {
+                          return (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <span className="cursor-help text-muted-foreground">—</span>
+                              </TooltipTrigger>
+                              <TooltipContent side="top" className="text-xs">
+                                Sem fator de conversão CX
+                              </TooltipContent>
+                            </Tooltip>
+                          );
+                        }
+                        return <span>{formatCx(cx)} <span className="text-[10px] opacity-70">CX</span></span>;
+                      })()}
+                    </TableCell>
+                  )}
+                  {!p.isHidden('skus_envolvidos') && (
+                    <TableCell className="text-right tabular-nums">{r.skus_envolvidos}</TableCell>
+                  )}
                 </TableRow>
                 {isExpanded && (
                   <TableRow key={`${key}-expanded`} className="hover:bg-transparent bg-muted/20">
-                    <TableCell colSpan={colspan} className="p-0">
+                    <TableCell colSpan={visibleCount} className="p-0">
                       {consolidado ? (
                         <div className="p-3 space-y-1">
                           <div className="text-[11px] uppercase tracking-wide text-muted-foreground px-1">
@@ -302,7 +429,6 @@ export function EstoqueUnificadoTable(p: Props) {
                                 <TableHead className="text-right text-success">Disponível</TableHead>
                                 <TableHead className="text-right">Pendente</TableHead>
                                 <TableHead className="text-right">Pedidos</TableHead>
-                                
                               </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -319,7 +445,6 @@ export function EstoqueUnificadoTable(p: Props) {
                                   <TableCell className="text-right tabular-nums font-semibold text-success">{fmt(f.disponivel_total_em_unidades)}</TableCell>
                                   <TableCell className="text-right tabular-nums text-muted-foreground">{fmt(f.pendente_total_em_unidades)}</TableCell>
                                   <TableCell className="text-right tabular-nums">{f.pedidos_count && f.pedidos_count > 0 ? f.pedidos_count.toLocaleString('pt-BR') : <span className="text-muted-foreground">—</span>}</TableCell>
-                                  
                                 </TableRow>
                               ))}
                             </TableBody>
@@ -378,7 +503,6 @@ function ValidacaoBadge({ validacao }: { validacao: ValidacaoErpRow | undefined 
     resumo.status === 'defasado' ? `${validacao.filiais_defasadas} filial(is) defasada(s)` :
     'Conferido com ERP';
 
-  // Em status "ok" exibimos somente um ícone discreto ao passar o mouse — sem badge ruidoso.
   const isOk = resumo.status === 'ok';
 
   return (
