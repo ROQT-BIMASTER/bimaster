@@ -261,7 +261,7 @@ export function EstoqueUnificadoTable(p: Props) {
                                 <TableHead className="text-right">Bloqueado</TableHead>
                                 <TableHead className="text-right text-success">Disponível</TableHead>
                                 <TableHead className="text-right">Pendente</TableHead>
-                                <TableHead className="text-right">Custo</TableHead>
+                                
                               </TableRow>
                             </TableHeader>
                             <TableBody>
