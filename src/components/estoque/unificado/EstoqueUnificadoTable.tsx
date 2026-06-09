@@ -131,7 +131,7 @@ export function EstoqueUnificadoTable(p: Props) {
           )}
           {p.rows.map((r) => {
             const conv = isFisico ? null : converterParaModo(r, modo);
-            const key = `${r.empresa}-${r.produto_raiz}`;
+            const key = consolidado ? `c-${r.produto_raiz}` : `${r.empresa}-${r.produto_raiz}`;
             const isExpanded = expandedKey === key;
             return (
               <Fragment key={key}>
@@ -152,12 +152,27 @@ export function EstoqueUnificadoTable(p: Props) {
                       size="icon"
                       className="h-6 w-6"
                       aria-label={isExpanded ? 'Recolher SKUs' : 'Expandir SKUs'}
-                      title={isExpanded ? 'Recolher SKUs' : 'Ver SKUs e regra de cálculo'}
+                      title={isExpanded ? 'Recolher' : consolidado ? 'Ver detalhamento por filial' : 'Ver SKUs e regra de cálculo'}
                     >
                       {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
                     </Button>
                   </TableCell>
-                  <TableCell><Badge variant="outline">{r.raiz_abrev ?? r.empresa}</Badge></TableCell>
+                  <TableCell>
+                    {consolidado ? (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Badge variant="secondary" className="cursor-help">
+                            {(r.filiais_count ?? 1)} filia{(r.filiais_count ?? 1) > 1 ? 'is' : 'l'}
+                          </Badge>
+                        </TooltipTrigger>
+                        <TooltipContent side="top" className="max-w-xs text-xs">
+                          {(r.filiais ?? []).map((f) => f.abrev || `Empresa ${f.empresa}`).join(' · ')}
+                        </TooltipContent>
+                      </Tooltip>
+                    ) : (
+                      <Badge variant="outline">{r.raiz_abrev ?? r.empresa}</Badge>
+                    )}
+                  </TableCell>
                   <TableCell>
                     <div className="flex flex-col">
                       <span className="text-sm font-medium leading-tight">{r.raiz_nome ?? `Produto ${r.produto_raiz}`}</span>
