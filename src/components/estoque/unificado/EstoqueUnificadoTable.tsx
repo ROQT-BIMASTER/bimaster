@@ -36,6 +36,7 @@ export function EstoqueUnificadoTable(p: Props) {
   const totalPages = Math.max(1, Math.ceil(p.total / p.pageSize));
   const modo: ModoExibicao = p.modo ?? 'fisico';
   const isFisico = modo === 'fisico';
+  const consolidado = !!p.consolidado;
   const [expandedKey, setExpandedKey] = useState<string | null>(null);
 
   const Th = ({ k, label, num }: { k: Props['sortBy']; label: string; num?: boolean }) => (
