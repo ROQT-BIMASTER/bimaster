@@ -6,7 +6,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { ArrowDown, ArrowUp, ArrowUpDown, Barcode, ChevronDown, ChevronLeft, ChevronRight, Info } from 'lucide-react';
 import { formatCurrency } from '@/lib/formatters';
 import type { EstoqueUnificadoRow, UseEstoqueUnificadoOpts } from '@/hooks/estoque/useEstoqueUnificado';
-import { converterParaModo, equivalenteEmCaixas, formatCx, MODO_COL_LABEL, type ModoExibicao } from '@/lib/estoque/modoExibicao';
+import { converterParaModo, disponivelEmCaixas, formatCx, MODO_COL_LABEL, type ModoExibicao } from '@/lib/estoque/modoExibicao';
 import { EstoqueUnificadoSkuBreakdown } from './EstoqueUnificadoSkuBreakdown';
 
 interface Props {
