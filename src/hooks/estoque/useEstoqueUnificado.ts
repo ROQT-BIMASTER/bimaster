@@ -109,16 +109,9 @@ export function useEstoqueUnificado(opts: UseEstoqueUnificadoOpts) {
         );
       }
 
-      if (!consolidar) {
-        const from = opts.page * opts.pageSize;
-        const pageRows = enriched.slice(from, from + opts.pageSize);
-        return { rows: pageRows, total: enriched.length, aggregateRows: enriched };
-      }
-
-
-      // -------- Modo consolidado: agrupa por produto_raiz --------
-      // Chave normalizada como Number para evitar duplicatas se o PostgREST
-      // devolver produto_raiz como string em alguma linha (defensivo).
+      // -------- Consolidação canônica (sempre executada) --------
+      // Garante que os KPIs (aggregateRows) sejam idênticos em ambos os modos,
+      // pois derivam SEMPRE do mesmo conjunto consolidado por produto_raiz.
       const groups = new Map<number, EstoqueUnificadoRow>();
       for (const r of enriched) {
         const k = Number(r.produto_raiz);
@@ -166,19 +159,29 @@ export function useEstoqueUnificado(opts: UseEstoqueUnificadoOpts) {
 
       const consolidated = Array.from(groups.values());
 
-      // Ordena pelo mesmo sortBy/sortDir
+      // Ordena ambas as listas pelo mesmo sortBy/sortDir
       const dir = opts.sortDir === 'asc' ? 1 : -1;
       const key = opts.sortBy;
-      consolidated.sort((a, b) => {
+      const sortFn = (a: EstoqueUnificadoRow, b: EstoqueUnificadoRow) => {
         const va = Number((a as any)[key] ?? 0);
         const vb = Number((b as any)[key] ?? 0);
         return (va - vb) * dir;
-      });
+      };
+      consolidated.sort(sortFn);
+      enriched.sort(sortFn);
 
-      const totalGroups = consolidated.length;
+      // Display rows: consolidados ou por filial conforme toggle.
+      // KPIs (aggregateRows) sempre derivam do conjunto consolidado canônico
+      // para garantir totais idênticos nos dois modos.
+      const displaySource = consolidar ? consolidated : enriched;
       const from = opts.page * opts.pageSize;
-      const pageRows = consolidated.slice(from, from + opts.pageSize);
-      return { rows: pageRows, total: totalGroups, aggregateRows: consolidated };
+      const pageRows = displaySource.slice(from, from + opts.pageSize);
+      return {
+        rows: pageRows,
+        total: displaySource.length,
+        aggregateRows: consolidated,
+      };
+
     },
   });
 }
