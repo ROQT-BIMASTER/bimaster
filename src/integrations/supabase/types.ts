@@ -14421,6 +14421,80 @@ export type Database = {
           },
         ]
       }
+      estoque_copilot_mensagens: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          model: string | null
+          role: string
+          sources: Json | null
+          thread_id: string
+          tool_calls: Json | null
+        }
+        Insert: {
+          content?: string
+          created_at?: string
+          id?: string
+          model?: string | null
+          role: string
+          sources?: Json | null
+          thread_id: string
+          tool_calls?: Json | null
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          model?: string | null
+          role?: string
+          sources?: Json | null
+          thread_id?: string
+          tool_calls?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "estoque_copilot_mensagens_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "estoque_copilot_threads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      estoque_copilot_threads: {
+        Row: {
+          created_at: string
+          expires_at: string
+          filtros_snapshot: Json
+          id: string
+          salvo: boolean
+          titulo: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at?: string
+          filtros_snapshot?: Json
+          id?: string
+          salvo?: boolean
+          titulo?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          filtros_snapshot?: Json
+          id?: string
+          salvo?: boolean
+          titulo?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       estoque_distribuidoras: {
         Row: {
           ativo: boolean | null
