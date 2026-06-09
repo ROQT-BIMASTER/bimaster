@@ -71,34 +71,71 @@ export function useEstoqueUnificado(opts: UseEstoqueUnificadoOpts) {
 
       const rawRows = (data ?? []) as unknown as EstoqueUnificadoRow[];
 
-      // Enriquecer com nomes do SKU raiz por (empresa, cod_produto).
+      // Enriquecer com nomes do SKU raiz.
+      // - nome_prod: idêntico entre filiais → consultado apenas por cod_produto
+      //   (evita produto cartesiano que estourava o teto implícito do PostgREST
+      //   e fazia muitos produtos caírem no fallback "Produto N").
+      // - abrev_par: varia por filial → consultado por (empresa, cod_produto).
+      // Ambas as queries são paginadas em lotes para nunca depender de max_rows.
       const codigos = Array.from(new Set(rawRows.map((r) => r.produto_raiz).filter(Boolean)));
       const empresas = Array.from(new Set(rawRows.map((r) => r.empresa).filter((v) => v != null)));
-      const nomes = new Map<string, { nome: string | null; abrev: string | null }>();
-      if (codigos.length && empresas.length) {
-        const { data: estData } = await supabase
-          .from('erp_estoque_distribuidora')
-          .select('empresa_par,cod_produto,nome_prod,abrev_par')
-          .in('cod_produto', codigos)
-          .in('empresa_par', empresas)
-          .limit(codigos.length * empresas.length * 4);
-        (estData ?? []).forEach((e: any) => {
-          if (e.cod_produto == null || e.empresa_par == null) return;
-          const key = `${e.empresa_par}|${e.cod_produto}`;
-          if (!nomes.has(key)) {
-            nomes.set(key, { nome: e.nome_prod, abrev: e.abrev_par });
-          }
+      const nomesPorCod = new Map<number, string | null>();
+      const abrevPorEmpresaCod = new Map<string, string | null>();
+
+      const CHUNK = 500;
+      const toChunks = <T,>(arr: T[], size: number): T[][] => {
+        const out: T[][] = [];
+        for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
+        return out;
+      };
+
+      if (codigos.length) {
+        const codChunks = toChunks(codigos, CHUNK);
+
+        const nomeResults = await Promise.all(
+          codChunks.map((cs) =>
+            supabase
+              .from('erp_estoque_distribuidora')
+              .select('cod_produto,nome_prod')
+              .in('cod_produto', cs),
+          ),
+        );
+        nomeResults.forEach(({ data }) => {
+          (data ?? []).forEach((e: any) => {
+            if (e.cod_produto == null) return;
+            if (!nomesPorCod.has(e.cod_produto) && e.nome_prod) {
+              nomesPorCod.set(e.cod_produto, e.nome_prod);
+            }
+          });
         });
+
+        if (empresas.length) {
+          const abrevResults = await Promise.all(
+            codChunks.map((cs) =>
+              supabase
+                .from('erp_estoque_distribuidora')
+                .select('empresa_par,cod_produto,abrev_par')
+                .in('cod_produto', cs)
+                .in('empresa_par', empresas),
+            ),
+          );
+          abrevResults.forEach(({ data }) => {
+            (data ?? []).forEach((e: any) => {
+              if (e.cod_produto == null || e.empresa_par == null) return;
+              const key = `${e.empresa_par}|${e.cod_produto}`;
+              if (!abrevPorEmpresaCod.has(key)) {
+                abrevPorEmpresaCod.set(key, e.abrev_par ?? null);
+              }
+            });
+          });
+        }
       }
 
-      let enriched = rawRows.map((r) => {
-        const hit = nomes.get(`${r.empresa}|${r.produto_raiz}`);
-        return {
-          ...r,
-          raiz_nome: hit?.nome ?? null,
-          raiz_abrev: hit?.abrev ?? null,
-        };
-      });
+      let enriched = rawRows.map((r) => ({
+        ...r,
+        raiz_nome: nomesPorCod.get(r.produto_raiz) ?? null,
+        raiz_abrev: abrevPorEmpresaCod.get(`${r.empresa}|${r.produto_raiz}`) ?? null,
+      }));
 
       if (opts.busca) {
         const b = opts.busca.toLowerCase();
