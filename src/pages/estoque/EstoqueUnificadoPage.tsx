@@ -99,6 +99,8 @@ export default function EstoqueUnificadoPage() {
   const [pageSize] = useState(50);
   const [sortBy, setSortBy] = useState<UseEstoqueUnificadoOpts['sortBy']>('saldo_total_em_unidades');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
+  const [marcas, setMarcas] = useState<string[]>([]);
+  const [linhas, setLinhas] = useState<string[]>([]);
 
   const [selected, setSelected] = useState<EstoqueUnificadoRow | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -106,8 +108,10 @@ export default function EstoqueUnificadoPage() {
   const [modo, setModo] = useState<ModoExibicao>('fisico');
 
   const { data: opts } = useEstoqueOptions();
+  const { data: marcasLinhasOpts } = useMarcasLinhasOptions();
   const { data, isFetching, refetch, error } = useEstoqueUnificado({
     empresaIds, busca: buscaDeb, somenteComSaldo, page, pageSize, sortBy, sortDir, consolidar,
+    marcas, linhas,
   });
 
   useEffect(() => {
