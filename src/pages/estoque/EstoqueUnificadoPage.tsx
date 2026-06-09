@@ -14,8 +14,13 @@ import {
   type EstoqueUnificadoRow,
   type UseEstoqueUnificadoOpts,
 } from '@/hooks/estoque/useEstoqueUnificado';
+import {
+  BACKEND_SORT_KEYS,
+  useEstoqueUnificadoTablePrefs,
+} from '@/hooks/estoque/useEstoqueUnificadoTablePrefs';
 import { EstoqueUnificadoKpis } from '@/components/estoque/unificado/EstoqueUnificadoKpis';
 import { EstoqueUnificadoTable } from '@/components/estoque/unificado/EstoqueUnificadoTable';
+import { EstoqueUnificadoColumnsMenu } from '@/components/estoque/unificado/EstoqueUnificadoColumnsMenu';
 import { EstoqueUnificadoDrawer } from '@/components/estoque/unificado/EstoqueUnificadoDrawer';
 import { Badge } from '@/components/ui/badge';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
@@ -23,6 +28,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { cn } from '@/lib/utils';
 import type { ModoExibicao } from '@/lib/estoque/modoExibicao';
+
 
 function MultiSelectChip({
   label, options, selected, onChange,
