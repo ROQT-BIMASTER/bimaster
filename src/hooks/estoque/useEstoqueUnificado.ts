@@ -91,6 +91,9 @@ export function useEstoqueUnificado(opts: UseEstoqueUnificadoOpts) {
       const nomesPorCod = new Map<number, string | null>();
       const abrevPorEmpresaCod = new Map<string, string | null>();
       const filialNomePorEmpresa = new Map<number, string | null>();
+      const linhaPorCod = new Map<number, string | null>();
+      const marcaPorCod = new Map<number, string | null>();
+      const pedidosPorEmpresaCod = new Map<string, Set<string | number>>();
 
       const CHUNK = 500;
       const toChunks = <T,>(arr: T[], size: number): T[][] => {
