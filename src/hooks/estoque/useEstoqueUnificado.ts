@@ -248,11 +248,15 @@ export function useEstoqueUnificado(opts: UseEstoqueUnificadoOpts) {
 
       let enriched = rawRows.map((r) => {
         const abrev = abrevPorEmpresaCod.get(`${r.empresa}|${r.produto_raiz}`) ?? null;
+        const pedSet = pedidosPorEmpresaCod.get(`${r.empresa}|${r.produto_raiz}`);
         return {
           ...r,
           raiz_nome: nomesPorCod.get(r.produto_raiz) ?? null,
           raiz_abrev: abrev,
           filial_nome: resolveFilialNome(r.empresa, abrev),
+          marca: marcaPorCod.get(r.produto_raiz) ?? null,
+          linha: linhaPorCod.get(r.produto_raiz) ?? null,
+          pedidos_count: pedSet ? pedSet.size : 0,
         };
       });
 
@@ -263,6 +267,15 @@ export function useEstoqueUnificado(opts: UseEstoqueUnificadoOpts) {
             String(r.produto_raiz).includes(b) ||
             (r.raiz_nome ?? '').toLowerCase().includes(b),
         );
+      }
+
+      if (opts.marcas && opts.marcas.length) {
+        const set = new Set(opts.marcas.map((m) => m.toLowerCase()));
+        enriched = enriched.filter((r) => r.marca && set.has(String(r.marca).toLowerCase()));
+      }
+      if (opts.linhas && opts.linhas.length) {
+        const set = new Set(opts.linhas.map((m) => m.toLowerCase()));
+        enriched = enriched.filter((r) => r.linha && set.has(String(r.linha).toLowerCase()));
       }
 
       // -------- Consolidação canônica (sempre executada) --------
