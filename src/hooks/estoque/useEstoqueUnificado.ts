@@ -155,10 +155,11 @@ export function useEstoqueUnificado(opts: UseEstoqueUnificadoOpts) {
       }
 
       const resolveFilialNome = (empresaId: number, abrev: string | null | undefined): string | null => {
-        // `abrev_par` (ERP) é a fonte canônica do nome da filial.
-        if (abrev) return abrev;
+        // `dim_empresa.nome_empresa` é a fonte canônica editável do nome da filial.
+        // `abrev_par` (ERP) é apenas fallback para empresas ainda não cadastradas.
         const oficial = filialNomePorEmpresa.get(Number(empresaId));
         if (oficial) return oficial;
+        if (abrev) return abrev;
         return null;
       };
 
