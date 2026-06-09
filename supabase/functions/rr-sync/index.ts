@@ -151,6 +151,7 @@ Deno.serve(secureHandler(
           pct_anvisa: rollNum(P["% c/ Anvisa"]),
           raw: P,
           synced_at: now,
+          source_system: "notion",
         };
       });
       if (rows.length) {
@@ -187,7 +188,7 @@ Deno.serve(secureHandler(
           wf,
           raw: P,
           synced_at: now,
-          origem: "notion",
+          source_system: "notion",
         };
       });
       if (rows.length) {
@@ -219,7 +220,7 @@ Deno.serve(secureHandler(
           produto_notion_id: rel1(P["Produto"]),
           raw: P,
           synced_at: now,
-          origem: "notion",
+          source_system: "notion",
         };
       });
       if (rows.length) {
