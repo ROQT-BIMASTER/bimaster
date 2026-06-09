@@ -94,17 +94,21 @@ export function useEstoqueUnificado(opts: UseEstoqueUnificadoOpts) {
         return out;
       };
 
-      // Nome oficial das filiais (tabela `empresas`). É essa a fonte usada
-      // no restante do sistema (EmpresaContext, RPC `estoque_filtro_opcoes`).
+      // Nome da filial: `abrev_par` no ERP já é o nome correto da filial
+      // (ex.: "RUBY ROSE-PE" para empresa 8). Como fallback, usamos
+      // `dim_empresa.nome_empresa` (id numérico bate com `empresa_par`).
+      // NÃO consultar `public.empresas` aqui — `empresas.id` é PK interna do
+      // cadastro e não corresponde ao id ERP, gerando mismatch de nome.
       if (empresas.length) {
-        const { data: empresasData } = await supabase
-          .from('empresas')
-          .select('id,nome')
-          .in('id', empresas);
-        (empresasData ?? []).forEach((e: any) => {
-          if (e?.id != null) filialNomePorEmpresa.set(Number(e.id), e.nome ?? null);
+        const { data: dimData } = await supabase
+          .from('dim_empresa')
+          .select('id_empresa,nome_empresa')
+          .in('id_empresa', empresas);
+        (dimData ?? []).forEach((e: any) => {
+          if (e?.id_empresa != null) filialNomePorEmpresa.set(Number(e.id_empresa), e.nome_empresa ?? null);
         });
       }
+
 
       if (codigos.length) {
         const codChunks = toChunks(codigos, CHUNK);
@@ -151,11 +155,13 @@ export function useEstoqueUnificado(opts: UseEstoqueUnificadoOpts) {
       }
 
       const resolveFilialNome = (empresaId: number, abrev: string | null | undefined): string | null => {
+        // `abrev_par` (ERP) é a fonte canônica do nome da filial.
+        if (abrev) return abrev;
         const oficial = filialNomePorEmpresa.get(Number(empresaId));
         if (oficial) return oficial;
-        if (abrev) return abrev;
         return null;
       };
+
 
       let enriched = rawRows.map((r) => {
         const abrev = abrevPorEmpresaCod.get(`${r.empresa}|${r.produto_raiz}`) ?? null;
