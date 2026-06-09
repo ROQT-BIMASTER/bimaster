@@ -1,9 +1,9 @@
 import { Card } from '@/components/ui/card';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { formatCurrency } from '@/lib/formatters';
-import { Boxes, Package, PackageOpen, Layers, Info } from 'lucide-react';
+import { Boxes, Package, PackageOpen, Layers, Info, ShieldCheck, Lock, Clock } from 'lucide-react';
 import type { EstoqueUnificadoRow } from '@/hooks/estoque/useEstoqueUnificado';
-import { converterParaModo, equivalenteEmCaixas, formatCx, type ModoExibicao } from '@/lib/estoque/modoExibicao';
+import { converterParaModo, disponivelEmCaixas, formatCx, type ModoExibicao } from '@/lib/estoque/modoExibicao';
 
 interface Props {
   rows: EstoqueUnificadoRow[];
@@ -14,6 +14,17 @@ interface Props {
 
 const fmt = (n: number) => Math.round(n).toLocaleString('pt-BR');
 
+type Variant = 'default' | 'primary' | 'success';
+
+interface KpiItem {
+  icon: any;
+  label: string;
+  value: string;
+  hint: string;
+  tooltip?: string;
+  variant?: Variant;
+}
+
 export function EstoqueUnificadoKpis({ rows, total, loading, modo = 'fisico' }: Props) {
   const totals = rows.reduce(
     (acc, r) => {
@@ -21,37 +32,45 @@ export function EstoqueUnificadoKpis({ rows, total, loading, modo = 'fisico' }: 
       acc.bx += Number(r.saldo_em_displays || 0);
       acc.un += Number(r.saldo_em_unidades || 0);
       acc.un_eq += Number(r.saldo_total_em_unidades || 0);
+      acc.bloq += Number(r.bloqueado_total_em_unidades || 0);
+      acc.disp += Number(r.disponivel_total_em_unidades || 0);
+      acc.pend += Number(r.pendente_total_em_unidades || 0);
       acc.custo += Number(r.custo_total || 0);
       return acc;
     },
-    { cx: 0, bx: 0, un: 0, un_eq: 0, custo: 0 },
+    { cx: 0, bx: 0, un: 0, un_eq: 0, bloq: 0, disp: 0, pend: 0, custo: 0 },
   );
 
-  // Equivalente em CX fracionário (apoio a compras)
-  let cxEq = 0;
+  // Disponível em CX (apoio a vendas/compras)
+  let cxDisp = 0;
   let semFatorCx = 0;
   rows.forEach((r) => {
-    const v = equivalenteEmCaixas(r);
+    const v = disponivelEmCaixas(r);
     if (v == null) semFatorCx += 1;
-    else cxEq += v;
+    else cxDisp += v;
   });
 
-  const cxEqHint = semFatorCx
+  const cxDispHint = semFatorCx
     ? `${semFatorCx} produto(s) sem fator de CX`
-    : 'soma fracionária — base para compras';
-  const tooltipCxEq = 'Soma de (Total em UN ÷ fator CX) por produto-raiz. Pode ser fracionário porque sobras em BX/UN formam caixas parciais.';
+    : 'caixas vendáveis (sobras viram CX parcial)';
+  const tooltipCxDisp = 'Soma de (Disponível em UN ÷ fator CX) por produto-raiz. Reflete quantas caixas máster estão realmente livres para venda, abatendo o estoque bloqueado.';
+  const tooltipEqUn = 'Soma de cada folha (UN) sob o produto-raiz, multiplicada pelo fator acumulado da BOM (Pai → Mãe → Filho).';
+  const tooltipDisp = 'Disponível para venda = Saldo total em UN − Bloqueado. Não abate pedido pendente (o saldo ainda existe fisicamente).';
+  const tooltipBloq = 'Estoque travado por avaria, quarentena ou endereço bloqueado — somado por SKU e convertido a UN.';
+  const tooltipPend = 'Pedidos de venda em aberto, ainda não faturados — informativo, não abate do Disponível.';
 
-  let items: { icon: any; label: string; value: string; hint: string; tooltip?: string; highlight?: boolean }[] = [];
-
-  const tooltipEqUn = 'Soma de cada folha (UN) sob o produto-raiz, multiplicada pelo fator acumulado da BOM (Pai → Mãe → Filho). Para sortimentos heterogêneos, considera todas as ramificações: Σ (qtd_pai_mãe × qtd_mãe_filho).';
+  let items: KpiItem[] = [];
 
   if (modo === 'fisico') {
     items = [
       { icon: Boxes, label: 'Caixas Master', value: fmt(totals.cx), hint: 'CX físicas' },
       { icon: Package, label: 'Displays / Box', value: fmt(totals.bx), hint: 'BX físicos' },
       { icon: PackageOpen, label: 'Unidades', value: fmt(totals.un), hint: 'UN físicas' },
-      { icon: Layers, label: 'Equivalente em UN', value: fmt(totals.un_eq), hint: 'Se tudo fosse desmontado', tooltip: tooltipEqUn },
-      { icon: Boxes, label: 'Equivalente em CX', value: formatCx(cxEq), hint: cxEqHint, tooltip: tooltipCxEq, highlight: true },
+      { icon: Layers, label: 'Total em UN', value: fmt(totals.un_eq), hint: 'saldo bruto desmontado', tooltip: tooltipEqUn },
+      { icon: Lock, label: 'Bloqueado em UN', value: fmt(totals.bloq), hint: 'avaria · quarentena · endereço', tooltip: tooltipBloq },
+      { icon: ShieldCheck, label: 'Disponível em UN', value: fmt(totals.disp), hint: 'pronto para venda', tooltip: tooltipDisp, variant: 'success' },
+      { icon: Clock, label: 'Pendente em UN', value: fmt(totals.pend), hint: 'pedidos em aberto', tooltip: tooltipPend },
+      { icon: Boxes, label: 'Disponível em CX', value: formatCx(cxDisp), hint: cxDispHint, tooltip: tooltipCxDisp, variant: 'primary' },
       { icon: Layers, label: 'Custo total', value: formatCurrency(totals.custo), hint: `${total.toLocaleString('pt-BR')} produtos-raiz` },
     ];
   } else {
@@ -69,36 +88,55 @@ export function EstoqueUnificadoKpis({ rows, total, loading, modo = 'fisico' }: 
         icon: iconMap[modo],
         label: labelMap[modo],
         value: fmt(somaConv),
-        hint: semFator
-          ? `${semFator} produto(s) sem fator de conversão`
-          : 'convertido a partir do equivalente em UN',
+        hint: semFator ? `${semFator} produto(s) sem fator de conversão` : 'convertido do equivalente em UN',
         tooltip: tooltipEqUn,
       },
-      { icon: Layers, label: 'Equivalente em UN', value: fmt(totals.un_eq), hint: 'base da conversão', tooltip: tooltipEqUn },
-      { icon: Boxes, label: 'Equivalente em CX', value: formatCx(cxEq), hint: cxEqHint, tooltip: tooltipCxEq, highlight: true },
+      { icon: Lock, label: 'Bloqueado em UN', value: fmt(totals.bloq), hint: 'travado em estoque', tooltip: tooltipBloq },
+      { icon: ShieldCheck, label: 'Disponível em UN', value: fmt(totals.disp), hint: 'pronto para venda', tooltip: tooltipDisp, variant: 'success' },
+      { icon: Clock, label: 'Pendente em UN', value: fmt(totals.pend), hint: 'pedidos em aberto', tooltip: tooltipPend },
+      { icon: Boxes, label: 'Disponível em CX', value: formatCx(cxDisp), hint: cxDispHint, tooltip: tooltipCxDisp, variant: 'primary' },
       { icon: Layers, label: 'Custo total', value: formatCurrency(totals.custo), hint: `${total.toLocaleString('pt-BR')} produtos-raiz` },
     ];
   }
 
+  const cardCls = (v: Variant | undefined) => {
+    if (v === 'primary') return 'p-3 border-primary/40 bg-primary/5 ring-1 ring-primary/30 shadow-sm';
+    if (v === 'success') return 'p-3 border-success/40 bg-success/5 ring-1 ring-success/30 shadow-sm';
+    return 'p-3';
+  };
+  const iconWrapCls = (v: Variant | undefined) => {
+    if (v === 'primary') return 'rounded-md bg-primary/15 p-2';
+    if (v === 'success') return 'rounded-md bg-success/15 p-2';
+    return 'rounded-md bg-muted p-2';
+  };
+  const iconCls = (v: Variant | undefined) => {
+    if (v === 'primary') return 'h-4 w-4 text-primary';
+    if (v === 'success') return 'h-4 w-4 text-success';
+    return 'h-4 w-4 text-muted-foreground';
+  };
+  const labelCls = (v: Variant | undefined) => {
+    if (v === 'primary') return 'text-xs font-medium text-primary';
+    if (v === 'success') return 'text-xs font-medium text-success';
+    return 'text-xs text-muted-foreground';
+  };
+  const valueCls = (v: Variant | undefined) => {
+    if (v === 'primary') return 'text-lg font-bold leading-tight text-primary';
+    if (v === 'success') return 'text-lg font-bold leading-tight text-success';
+    return 'text-lg font-bold leading-tight';
+  };
+
   return (
     <TooltipProvider delayDuration={150}>
-      <div className={`grid grid-cols-2 md:grid-cols-3 ${modo === 'fisico' ? 'lg:grid-cols-6' : 'lg:grid-cols-4'} gap-3`}>
+      <div className={`grid grid-cols-2 md:grid-cols-3 ${modo === 'fisico' ? 'lg:grid-cols-5 xl:grid-cols-9' : 'lg:grid-cols-3 xl:grid-cols-6'} gap-3`}>
         {items.map((it) => (
-          <Card
-            key={it.label}
-            className={
-              it.highlight
-                ? 'p-3 border-primary/40 bg-primary/5 ring-1 ring-primary/30 shadow-sm'
-                : 'p-3'
-            }
-          >
+          <Card key={it.label} className={cardCls(it.variant)}>
             <div className="flex items-start gap-3">
-              <div className={it.highlight ? 'rounded-md bg-primary/15 p-2' : 'rounded-md bg-muted p-2'}>
-                <it.icon className={it.highlight ? 'h-4 w-4 text-primary' : 'h-4 w-4 text-muted-foreground'} />
+              <div className={iconWrapCls(it.variant)}>
+                <it.icon className={iconCls(it.variant)} />
               </div>
               <div className="min-w-0">
                 <div className="flex items-center gap-1">
-                  <p className={it.highlight ? 'text-xs font-medium text-primary' : 'text-xs text-muted-foreground'}>{it.label}</p>
+                  <p className={labelCls(it.variant)}>{it.label}</p>
                   {it.tooltip && (
                     <Tooltip>
                       <TooltipTrigger asChild>
@@ -110,7 +148,7 @@ export function EstoqueUnificadoKpis({ rows, total, loading, modo = 'fisico' }: 
                     </Tooltip>
                   )}
                 </div>
-                <p className={it.highlight ? 'text-lg font-bold leading-tight text-primary' : 'text-lg font-bold leading-tight'}>{loading ? '—' : it.value}</p>
+                <p className={valueCls(it.variant)}>{loading ? '—' : it.value}</p>
                 <p className="text-[11px] text-muted-foreground truncate">{it.hint}</p>
               </div>
             </div>
