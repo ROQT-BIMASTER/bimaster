@@ -21,6 +21,7 @@ interface Props {
   setSort: (key: UseEstoqueUnificadoOpts['sortBy']) => void;
   onRowClick: (r: EstoqueUnificadoRow) => void;
   modo?: ModoExibicao;
+  consolidado?: boolean;
 }
 
 const fmt = (n: number | null | undefined) =>
