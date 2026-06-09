@@ -174,8 +174,14 @@ export interface EstoqueUnificadoSkuRow {
   fator_pai_para_filho: number | null;
   fator_un_acumulado: number;
   saldo: number;
+  bloqueado: number;
+  pendente: number;
+  disponivel: number;
   custo_total: number;
   contribuicao_un: number;
+  contribuicao_bloqueado_un: number;
+  contribuicao_disponivel_un: number;
+  contribuicao_pendente_un: number;
 }
 
 /**
