@@ -73,6 +73,37 @@ export function EstoqueUnificadoTable(p: Props) {
               <Th k="saldo_total_em_unidades" label={MODO_COL_LABEL[modo]} num />
             )}
             <TableHead className="text-right">
+              <span className="inline-flex items-center gap-1 font-medium" title="Saldo bloqueado em estoque (avaria, quarentena, endereço travado)">
+                Bloqueado
+              </span>
+            </TableHead>
+            <TableHead className="text-right">
+              <span className="inline-flex items-center gap-1 font-medium text-success" title="Disponível para venda = Saldo − Bloqueado">
+                Disponível
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="h-3 w-3 text-success/70 cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="max-w-xs text-xs">
+                    Disponível para venda = Saldo total em UN − Bloqueado (avaria/quarentena/endereço travado). Não abate pedido pendente, pois esse já foi reservado mas ainda não saiu fisicamente.
+                  </TooltipContent>
+                </Tooltip>
+              </span>
+            </TableHead>
+            <TableHead className="text-right">
+              <span className="inline-flex items-center gap-1 font-medium" title="Quantidade comprometida em pedidos de venda em aberto, ainda não faturados">
+                Pendente
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="h-3 w-3 text-muted-foreground/60 cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="max-w-xs text-xs">
+                    Pedidos de venda em aberto (ainda não faturados). Informativo — não abate do Disponível porque o saldo ainda existe fisicamente.
+                  </TooltipContent>
+                </Tooltip>
+              </span>
+            </TableHead>
+            <TableHead className="text-right">
               <span className="inline-flex items-center gap-1 font-medium">
                 ≡ em CX
                 <Tooltip>
@@ -80,7 +111,7 @@ export function EstoqueUnificadoTable(p: Props) {
                     <Info className="h-3 w-3 text-muted-foreground/60 cursor-help" />
                   </TooltipTrigger>
                   <TooltipContent side="top" className="max-w-xs text-xs">
-                    Equivalente em caixas máster: Total em UN ÷ fator CX. Pode ser fracionário — usado para apoiar compras.
+                    Equivalente em caixas máster do <strong>Disponível</strong>: Disponível em UN ÷ fator CX. Pode ser fracionário — base para decisão de compras.
                   </TooltipContent>
                 </Tooltip>
               </span>
