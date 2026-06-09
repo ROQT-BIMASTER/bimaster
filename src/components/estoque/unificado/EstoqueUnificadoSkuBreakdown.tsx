@@ -46,10 +46,10 @@ function SkuLine({
 
   return (
     <div
-      className="grid grid-cols-12 gap-2 items-center py-1.5 px-2 rounded hover:bg-muted/40 text-xs"
-      style={{ paddingLeft: `${depth * 20 + 8}px` }}
+      className="grid grid-cols-14 gap-2 items-center py-1.5 px-2 rounded hover:bg-muted/40 text-xs"
+      style={{ paddingLeft: `${depth * 20 + 8}px`, gridTemplateColumns: 'repeat(14, minmax(0, 1fr))' }}
     >
-      <div className="col-span-5 flex items-center gap-2 min-w-0">
+      <div className="col-span-4 flex items-center gap-2 min-w-0">
         <Badge variant="outline" className="text-[10px] gap-1 shrink-0" title={label}>
           <Icon className="h-2.5 w-2.5" />
           {sigla}
@@ -60,6 +60,15 @@ function SkuLine({
         </span>
       </div>
       <div className="col-span-1 text-right tabular-nums">{fmt(sku.saldo)}</div>
+      <div className="col-span-1 text-right tabular-nums text-muted-foreground" title="Bloqueado">
+        {fmt(sku.bloqueado)}
+      </div>
+      <div className="col-span-1 text-right tabular-nums text-success font-semibold" title="Disponível = Saldo − Bloqueado">
+        {fmt(sku.disponivel)}
+      </div>
+      <div className="col-span-1 text-right tabular-nums text-muted-foreground" title="Pedido pendente">
+        {fmt(sku.pendente)}
+      </div>
       <div className="col-span-2 text-right tabular-nums text-muted-foreground">
         × {fmtFator(sku.fator_un_acumulado)}
       </div>
@@ -125,7 +134,7 @@ function renderNode(node: TreeNode, depth: number, totalUn: number): JSX.Element
 export function EstoqueUnificadoSkuBreakdown({ row }: Props) {
   const { data, isLoading } = useEstoqueUnificadoSkus(row.empresa, row.produto_raiz);
 
-  const { tree, orphans, totalUn, totalCusto, somaCX, somaBX, somaUN } = useMemo(() => {
+  const { tree, orphans, totalUn, totalCusto, somaCX, somaBX, somaUN, somaBloq, somaDisp, somaPend } = useMemo(() => {
     const rows = data ?? [];
     const { tree, orphans } = buildTree(rows);
     const totalUn = rows.reduce((acc, r) => acc + Number(r.contribuicao_un ?? 0), 0);
@@ -133,22 +142,29 @@ export function EstoqueUnificadoSkuBreakdown({ row }: Props) {
     const somaCX = rows.filter((r) => r.nivel === 1).reduce((a, r) => a + Number(r.saldo ?? 0), 0);
     const somaBX = rows.filter((r) => r.nivel === 2).reduce((a, r) => a + Number(r.saldo ?? 0), 0);
     const somaUN = rows.filter((r) => r.nivel === 3).reduce((a, r) => a + Number(r.saldo ?? 0), 0);
-    return { tree, orphans, totalUn, totalCusto, somaCX, somaBX, somaUN };
+    const somaBloq = rows.reduce((a, r) => a + Number(r.contribuicao_bloqueado_un ?? 0), 0);
+    const somaDisp = rows.reduce((a, r) => a + Number(r.contribuicao_disponivel_un ?? 0), 0);
+    const somaPend = rows.reduce((a, r) => a + Number(r.contribuicao_pendente_un ?? 0), 0);
+    return { tree, orphans, totalUn, totalCusto, somaCX, somaBX, somaUN, somaBloq, somaDisp, somaPend };
   }, [data]);
 
   const divergeTotal = Math.abs(totalUn - Number(row.saldo_total_em_unidades ?? 0)) > 0.5;
 
   const handleCopiarCSV = async () => {
     const rows = data ?? [];
-    const header = ['Nivel', 'Codigo', 'Nome', 'Pai', 'Saldo', 'Fator UN', 'Contribuicao UN', 'Custo total'];
+    const header = ['Nivel', 'Codigo', 'Nome', 'Pai', 'Saldo', 'Bloqueado', 'Disponivel', 'Pendente', 'Fator UN', 'Contribuicao UN', 'Contribuicao Disponivel UN', 'Custo total'];
     const lines = rows.map((r) => [
       nivelInfo(r.nivel).sigla,
       r.cod_produto,
       (r.nome_prod ?? '').replace(/[\r\n;]/g, ' '),
       r.pai_cod ?? '',
       r.saldo,
+      r.bloqueado,
+      r.disponivel,
+      r.pendente,
       r.fator_un_acumulado,
       r.contribuicao_un,
+      r.contribuicao_disponivel_un,
       r.custo_total,
     ].join(';'));
     const csv = [header.join(';'), ...lines].join('\n');
@@ -201,9 +217,15 @@ export function EstoqueUnificadoSkuBreakdown({ row }: Props) {
       </div>
 
       {/* Cabeçalho da grade */}
-      <div className="grid grid-cols-12 gap-2 items-center px-2 text-[10px] uppercase tracking-wider text-muted-foreground border-b border-border pb-1">
-        <div className="col-span-5">SKU (nível · código · descrição)</div>
+      <div
+        className="grid gap-2 items-center px-2 text-[10px] uppercase tracking-wider text-muted-foreground border-b border-border pb-1"
+        style={{ gridTemplateColumns: 'repeat(14, minmax(0, 1fr))' }}
+      >
+        <div className="col-span-4">SKU (nível · código · descrição)</div>
         <div className="col-span-1 text-right">Saldo</div>
+        <div className="col-span-1 text-right">Bloq</div>
+        <div className="col-span-1 text-right text-success">Disp</div>
+        <div className="col-span-1 text-right">Pend</div>
         <div className="col-span-2 text-right">× Fator UN</div>
         <div className="col-span-2 text-right">= Contribuição UN</div>
         <div className="col-span-1 text-right">% total</div>
@@ -228,7 +250,8 @@ export function EstoqueUnificadoSkuBreakdown({ row }: Props) {
       )}
 
       {/* Totalizador batendo com a linha-pai */}
-      <div className="mt-3 pt-3 border-t border-border space-y-1.5">
+      <div className="mt-3 pt-3 border-t border-border space-y-2">
+        {/* Linha 1: somas físicas por nível */}
         <div className="grid grid-cols-12 gap-2 text-xs">
           <div className="col-span-5 font-semibold flex items-center gap-2">
             Totais da composição
@@ -260,9 +283,33 @@ export function EstoqueUnificadoSkuBreakdown({ row }: Props) {
             {formatCurrency(totalCusto)}
           </div>
         </div>
+
+        {/* Linha 2: bloqueado / disponível / pendente em UN equivalente */}
+        <div className="grid grid-cols-12 gap-2 text-xs items-end">
+          <div className="col-span-5 text-[10px] text-muted-foreground">
+            Convertido em UN equivalente (saldo bruto vs reservas):
+          </div>
+          <div className="col-span-2 text-right tabular-nums text-muted-foreground">
+            <span className="text-[9px] uppercase block">Bloqueado UN</span>
+            {fmt(somaBloq)}
+          </div>
+          <div className="col-span-2 text-right tabular-nums text-success font-bold">
+            <span className="text-[9px] uppercase block">Disponível UN</span>
+            {fmt(somaDisp)}
+          </div>
+          <div className="col-span-2 text-right tabular-nums text-muted-foreground">
+            <span className="text-[9px] uppercase block">Pendente UN</span>
+            {fmt(somaPend)}
+          </div>
+          <div className="col-span-1" />
+        </div>
+
         <div className="text-[10px] text-muted-foreground px-1">
           Linha-pai reporta: CX {fmt(row.saldo_em_caixas)} · BX {fmt(row.saldo_em_displays)} · UN{' '}
-          {fmt(row.saldo_em_unidades)} · Total UN <strong>{fmt(row.saldo_total_em_unidades)}</strong> · Custo{' '}
+          {fmt(row.saldo_em_unidades)} · Total UN <strong>{fmt(row.saldo_total_em_unidades)}</strong> ·{' '}
+          <span className="text-success">Disp. <strong>{fmt(row.disponivel_total_em_unidades)}</strong></span>{' '}
+          · Bloq. <strong>{fmt(row.bloqueado_total_em_unidades)}</strong> · Pend.{' '}
+          <strong>{fmt(row.pendente_total_em_unidades)}</strong> · Custo{' '}
           <strong>{formatCurrency(Number(row.custo_total ?? 0))}</strong>
           {divergeTotal && (
             <span className="text-yellow-700 dark:text-yellow-400">

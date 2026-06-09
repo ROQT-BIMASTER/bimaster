@@ -77,6 +77,29 @@ export function EstoqueUnificadoDrawer({ row, open, onOpenChange }: Props) {
                 </Card>
               </section>
 
+              {/* Disponibilidade para venda */}
+              <section className="space-y-2">
+                <h3 className="text-sm font-semibold">Disponibilidade para venda</h3>
+                <div className="grid grid-cols-3 gap-2">
+                  <Card className="p-3">
+                    <div className="text-[11px] text-muted-foreground">Bloqueado</div>
+                    <div className="text-xl font-bold tabular-nums">{fmt(row.bloqueado_total_em_unidades)}</div>
+                    <div className="text-[10px] text-muted-foreground">UN equivalentes</div>
+                  </Card>
+                  <Card className="p-3 border-success/40 bg-success/5">
+                    <div className="text-[11px] font-medium text-success">Disponível</div>
+                    <div className="text-xl font-bold tabular-nums text-success">{fmt(row.disponivel_total_em_unidades)}</div>
+                    <div className="text-[10px] text-muted-foreground">saldo − bloqueado</div>
+                  </Card>
+                  <Card className="p-3">
+                    <div className="text-[11px] text-muted-foreground">Pendente</div>
+                    <div className="text-xl font-bold tabular-nums">{fmt(row.pendente_total_em_unidades)}</div>
+                    <div className="text-[10px] text-muted-foreground">pedidos em aberto</div>
+                  </Card>
+                </div>
+              </section>
+
+
               {/* Capacidade de remontagem */}
               <section className="space-y-2">
                 <h3 className="text-sm font-semibold flex items-center gap-2">
