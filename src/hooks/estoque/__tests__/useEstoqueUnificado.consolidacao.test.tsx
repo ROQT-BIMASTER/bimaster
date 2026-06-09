@@ -37,11 +37,12 @@ const DIM_EMPRESA_ROWS = [
   { id_empresa: 2, nome_empresa: 'Filial Rio de Janeiro' },
 ];
 
-// `abrev_par` no ERP é a fonte canônica do nome da filial (ganha sobre dim_empresa).
+// `dim_empresa.nome_empresa` é a fonte canônica (ganha sobre `abrev_par` do ERP).
+// Aqui ABREV traz valores DIFERENTES de DIM para provar a prioridade.
 const ABREV_ROWS = [
-  { empresa_par: 1, cod_produto: 100, abrev_par: 'Filial São Paulo' },
-  { empresa_par: 2, cod_produto: 100, abrev_par: 'Filial Rio de Janeiro' },
-  { empresa_par: 1, cod_produto: 200, abrev_par: 'Filial São Paulo' },
+  { empresa_par: 1, cod_produto: 100, abrev_par: 'ERP ABREV SP ERRADO' },
+  { empresa_par: 2, cod_produto: 100, abrev_par: 'ERP ABREV RJ ERRADO' },
+  { empresa_par: 1, cod_produto: 200, abrev_par: 'ERP ABREV SP ERRADO' },
 ];
 
 vi.mock('@/integrations/supabase/client', () => {
