@@ -1,13 +1,14 @@
-import { Fragment, useState } from 'react';
+import { Fragment, useMemo, useState } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { ArrowDown, ArrowUp, ArrowUpDown, Barcode, ChevronDown, ChevronLeft, ChevronRight, Info } from 'lucide-react';
+import { AlertTriangle, ArrowDown, ArrowUp, ArrowUpDown, Barcode, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, Clock, Info } from 'lucide-react';
 import { formatCurrency } from '@/lib/formatters';
 import type { EstoqueUnificadoRow, UseEstoqueUnificadoOpts } from '@/hooks/estoque/useEstoqueUnificado';
 import { converterParaModo, disponivelEmCaixas, formatCx, MODO_COL_LABEL, type ModoExibicao } from '@/lib/estoque/modoExibicao';
 import { EstoqueUnificadoSkuBreakdown } from './EstoqueUnificadoSkuBreakdown';
+import { resumirValidacao, useEstoqueValidacaoErp, type ValidacaoErpRow } from '@/hooks/estoque/useEstoqueValidacaoErp';
 
 interface Props {
   rows: EstoqueUnificadoRow[];
@@ -38,6 +39,13 @@ export function EstoqueUnificadoTable(p: Props) {
   const isFisico = modo === 'fisico';
   const consolidado = !!p.consolidado;
   const [expandedKey, setExpandedKey] = useState<string | null>(null);
+
+  // Validação cache vs ERP — só roda em modo consolidado, para os SKUs visíveis.
+  const raizesVisiveis = useMemo(
+    () => (consolidado ? p.rows.map((r) => r.produto_raiz) : []),
+    [consolidado, p.rows],
+  );
+  const { data: validacaoMap } = useEstoqueValidacaoErp(raizesVisiveis, undefined, consolidado);
 
   const Th = ({ k, label, num }: { k: Props['sortBy']; label: string; num?: boolean }) => (
     <TableHead className={num ? 'text-right' : ''}>
@@ -174,9 +182,14 @@ export function EstoqueUnificadoTable(p: Props) {
                     )}
                   </TableCell>
                   <TableCell>
-                    <div className="flex flex-col">
-                      <span className="text-sm font-medium leading-tight">{r.raiz_nome ?? `Produto ${r.produto_raiz}`}</span>
-                      <span className="text-[11px] text-muted-foreground">Cód. {r.produto_raiz}</span>
+                    <div className="flex items-center gap-2">
+                      <div className="flex flex-col min-w-0">
+                        <span className="text-sm font-medium leading-tight truncate">{r.raiz_nome ?? `Produto ${r.produto_raiz}`}</span>
+                        <span className="text-[11px] text-muted-foreground">Cód. {r.produto_raiz}</span>
+                      </div>
+                      {consolidado && validacaoMap && (
+                        <ValidacaoBadge validacao={validacaoMap.get(r.produto_raiz)} />
+                      )}
                     </div>
                   </TableCell>
                   <TableCell className="hidden md:table-cell">
@@ -297,5 +310,112 @@ export function EstoqueUnificadoTable(p: Props) {
       </div>
     </div>
     </TooltipProvider>
+  );
+}
+
+function pctFmt(v: number) {
+  return `${(v * 100).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%`;
+}
+
+function ValidacaoBadge({ validacao }: { validacao: ValidacaoErpRow | undefined }) {
+  if (!validacao) return null;
+  const resumo = resumirValidacao(validacao);
+
+  const Icon =
+    resumo.status === 'divergente' ? AlertTriangle :
+    resumo.status === 'defasado' ? Clock :
+    CheckCircle2;
+
+  const colorCls =
+    resumo.status === 'divergente' ? 'text-destructive' :
+    resumo.status === 'defasado' ? 'text-warning' :
+    'text-success/70';
+
+  const label =
+    resumo.status === 'divergente' ? `Divergência ERP ${pctFmt(resumo.pior_desvio_rel)}` :
+    resumo.status === 'defasado' ? `${validacao.filiais_defasadas} filial(is) defasada(s)` :
+    'Conferido com ERP';
+
+  // Em status "ok" exibimos somente um ícone discreto ao passar o mouse — sem badge ruidoso.
+  const isOk = resumo.status === 'ok';
+
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <button
+          type="button"
+          className={`shrink-0 inline-flex items-center gap-1 rounded px-1 py-0.5 text-[10px] font-medium cursor-help ${
+            isOk ? 'opacity-40 hover:opacity-100' : `${colorCls} bg-current/10`
+          }`}
+          aria-label={label}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <Icon className={`h-3 w-3 ${colorCls}`} />
+          {!isOk && <span className={colorCls}>{resumo.status === 'divergente' ? pctFmt(resumo.pior_desvio_rel) : 'sync'}</span>}
+        </button>
+      </TooltipTrigger>
+      <TooltipContent side="right" className="max-w-sm text-xs space-y-2">
+        <div className="font-medium">{label}</div>
+        <table className="w-full text-[11px] tabular-nums">
+          <thead className="text-muted-foreground">
+            <tr>
+              <th className="text-left font-normal">Métrica</th>
+              <th className="text-right font-normal">Cache</th>
+              <th className="text-right font-normal">ERP</th>
+              <th className="text-right font-normal">Δ</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Total UN</td>
+              <td className="text-right">{Math.round(validacao.cache_saldo_total_em_unidades).toLocaleString('pt-BR')}</td>
+              <td className="text-right">{Math.round(validacao.erp_saldo_total_em_unidades).toLocaleString('pt-BR')}</td>
+              <td className={`text-right ${resumo.rel_saldo > 0 ? 'text-destructive font-medium' : ''}`}>
+                {Math.round(validacao.delta_saldo_total_em_unidades).toLocaleString('pt-BR')}
+              </td>
+            </tr>
+            <tr>
+              <td>Bloqueado</td>
+              <td className="text-right">{Math.round(validacao.cache_bloqueado_total_em_unidades).toLocaleString('pt-BR')}</td>
+              <td className="text-right">{Math.round(validacao.erp_bloqueado_total_em_unidades).toLocaleString('pt-BR')}</td>
+              <td className={`text-right ${resumo.rel_bloqueado > 0 ? 'text-destructive font-medium' : ''}`}>
+                {Math.round(validacao.delta_bloqueado_total_em_unidades).toLocaleString('pt-BR')}
+              </td>
+            </tr>
+            <tr>
+              <td>Disponível</td>
+              <td className="text-right">{Math.round(validacao.cache_disponivel_total_em_unidades).toLocaleString('pt-BR')}</td>
+              <td className="text-right">{Math.round(validacao.erp_disponivel_total_em_unidades).toLocaleString('pt-BR')}</td>
+              <td className={`text-right ${resumo.rel_disponivel > 0 ? 'text-destructive font-medium' : ''}`}>
+                {Math.round(validacao.delta_disponivel_total_em_unidades).toLocaleString('pt-BR')}
+              </td>
+            </tr>
+            <tr>
+              <td>Custo</td>
+              <td className="text-right">{formatCurrency(validacao.cache_custo_total)}</td>
+              <td className="text-right">{formatCurrency(validacao.erp_custo_total)}</td>
+              <td className={`text-right ${resumo.rel_custo > 0 ? 'text-destructive font-medium' : ''}`}>
+                {formatCurrency(validacao.delta_custo_total)}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <div className="border-t pt-1 space-y-0.5">
+          <div className="text-muted-foreground">Sincronização por filial:</div>
+          {validacao.filiais_sync.map((f) => {
+            const idade = f.idade_horas ?? 0;
+            const stale = idade > 24;
+            return (
+              <div key={f.empresa} className="flex justify-between gap-2">
+                <span>{f.abrev || `Empresa ${f.empresa}`}</span>
+                <span className={stale ? 'text-warning' : 'text-muted-foreground'}>
+                  {idade < 1 ? `${Math.round(idade * 60)} min` : `${Math.round(idade)}h`} atrás
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      </TooltipContent>
+    </Tooltip>
   );
 }
