@@ -22,6 +22,8 @@ import { EstoqueUnificadoKpis } from '@/components/estoque/unificado/EstoqueUnif
 import { EstoqueUnificadoTable } from '@/components/estoque/unificado/EstoqueUnificadoTable';
 import { EstoqueUnificadoColumnsMenu } from '@/components/estoque/unificado/EstoqueUnificadoColumnsMenu';
 import { EstoqueUnificadoDrawer } from '@/components/estoque/unificado/EstoqueUnificadoDrawer';
+import { EstoqueCopilotPanel } from '@/components/estoque/unificado/EstoqueCopilotPanel';
+import { EstoqueCopilotFAB } from '@/components/estoque/unificado/EstoqueCopilotFAB';
 import { Badge } from '@/components/ui/badge';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -112,6 +114,7 @@ export default function EstoqueUnificadoPage() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [recalculando, setRecalculando] = useState(false);
   const [modo, setModo] = useState<ModoExibicao>('fisico');
+  const [copilotOpen, setCopilotOpen] = useState(false);
 
   // Quando o sort selecionado não é nativo do backend, mantemos um sort estável
   // (default) para a query e o sort real é aplicado client-side na tabela.
@@ -157,6 +160,48 @@ export default function EstoqueUnificadoPage() {
     if (!empresaIds.length) return 'Todas as empresas';
     return `${empresaIds.length} empresa(s)`;
   }, [empresaIds]);
+
+  const kpisSnapshot = useMemo(() => {
+    const rows = data?.aggregateRows ?? [];
+    const acc = rows.reduce(
+      (a, r) => {
+        a.caixas += Number(r.saldo_em_caixas || 0);
+        a.displays += Number(r.saldo_em_displays || 0);
+        a.unidades += Number(r.saldo_em_unidades || 0);
+        a.total_un += Number(r.saldo_total_em_unidades || 0);
+        a.bloqueado += Number(r.bloqueado_total_em_unidades || 0);
+        a.disponivel += Number(r.disponivel_total_em_unidades || 0);
+        a.pendente += Number(r.pendente_total_em_unidades || 0);
+        const fcx = Number(r.fator_cx_para_un ?? 0);
+        if (fcx > 0) a.equivalente_cx += Number(r.disponivel_total_em_unidades || 0) / fcx;
+        return a;
+      },
+      { caixas: 0, displays: 0, unidades: 0, total_un: 0, bloqueado: 0, disponivel: 0, pendente: 0, equivalente_cx: 0 },
+    );
+    return {
+      caixas: Math.round(acc.caixas),
+      displays: Math.round(acc.displays),
+      unidades: Math.round(acc.unidades),
+      total_un: Math.round(acc.total_un),
+      bloqueado: Math.round(acc.bloqueado),
+      disponivel: Math.round(acc.disponivel),
+      pendente: Math.round(acc.pendente),
+      equivalente_cx: Math.round(acc.equivalente_cx * 10) / 10,
+    };
+  }, [data?.aggregateRows]);
+
+  const copilotFiltros = useMemo(
+    () => ({
+      empresaIds,
+      marcas,
+      linhas,
+      busca: buscaDeb,
+      somenteComSaldo,
+      consolidar,
+      modo,
+    }),
+    [empresaIds, marcas, linhas, buscaDeb, somenteComSaldo, consolidar, modo],
+  );
 
   return (
     <DashboardLayout>
@@ -285,6 +330,14 @@ export default function EstoqueUnificadoPage() {
 
         <EstoqueUnificadoDrawer row={selected} open={drawerOpen} onOpenChange={setDrawerOpen} />
       </div>
+
+      <EstoqueCopilotFAB onClick={() => setCopilotOpen(true)} />
+      <EstoqueCopilotPanel
+        open={copilotOpen}
+        onOpenChange={setCopilotOpen}
+        filtros={copilotFiltros}
+        kpisSnapshot={kpisSnapshot}
+      />
     </DashboardLayout>
   );
 }

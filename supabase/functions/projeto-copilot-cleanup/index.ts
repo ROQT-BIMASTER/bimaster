@@ -55,7 +55,13 @@ Deno.serve(secureHandler({ auth: "apikey", rateLimit: 0, rateLimitPrefix: "proje
   try {
     const projeto = await cleanupScope(admin, "projeto_copilot_threads", "projeto_copilot_relatorios", "projeto-relatorios");
     const central = await cleanupScope(admin, "central_copilot_threads", "central_copilot_relatorios", "projeto-relatorios");
-    return new Response(JSON.stringify({ ok: true, projeto, central }), {
+    // Estoque copilot não tem relatórios em storage; apenas expira threads/mensagens.
+    const { count: estoqueThCount } = await admin.from("estoque_copilot_threads")
+      .delete({ count: "exact" })
+      .eq("salvo", false)
+      .lt("expires_at", new Date().toISOString());
+    const estoque = { threads_apagadas: estoqueThCount ?? 0, relatorios_apagados: 0, arquivos_removidos: 0 };
+    return new Response(JSON.stringify({ ok: true, projeto, central, estoque }), {
       headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
     });
   } catch (e: any) {
