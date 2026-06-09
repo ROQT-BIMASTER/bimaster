@@ -8,7 +8,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { KpiCard } from '@/components/ui/kpi-card';
 import {
   Building2, DollarSign, Boxes, PackageCheck, PackageX,
-  ArrowDown, ArrowUp, ArrowUpDown, AlertTriangle, Search,
+  ArrowDown, ArrowUp, ArrowUpDown, AlertTriangle, Search, Info,
 } from 'lucide-react';
 import { formatCurrency } from '@/lib/formatters';
 import { FILTROS_INICIAIS, type EstoqueFiltros } from '@/lib/estoque/estoqueFilters';
@@ -19,7 +19,30 @@ import { EstoqueFilialSelect } from '@/components/estoque/visao-geral/EstoqueFil
 import { EstoqueUnidadeChips } from '@/components/estoque/visao-geral/EstoqueUnidadeChips';
 import { EstoqueFilterPanel } from '@/components/estoque/visao-geral/EstoqueFilterPanel';
 import { EstoqueActiveFilters } from '@/components/estoque/visao-geral/EstoqueActiveFilters';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
+
+const FATOR_NOTA_BAIXA = 3.5;
+const FATOR_TOOLTIP =
+  'Valor bruto do ERP multiplicado por 3,5 para compensar a prática de nota baixa do cliente. Aplica-se somente a esta tela.';
+
+function FatorBadge({ className }: { className?: string }) {
+  return (
+    <TooltipProvider delayDuration={150}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Badge variant="secondary" className={cn('gap-1 font-medium cursor-help', className)}>
+            <Info className="h-3 w-3" />
+            ×3,5
+          </Badge>
+        </TooltipTrigger>
+        <TooltipContent side="top" className="max-w-xs text-xs">
+          {FATOR_TOOLTIP}
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+}
 
 function useDebounce<T>(value: T, delay = 300): T {
   const [v, setV] = useState(value);
@@ -52,7 +75,16 @@ export default function EstoqueValoresPorFilial() {
     [filtrosBase, buscaDebounced],
   );
 
-  const { data: rows, isLoading } = useEstoqueValoresPorFilial(filtros);
+  const { data: rowsRaw, isLoading } = useEstoqueValoresPorFilial(filtros);
+
+  const rows = useMemo(
+    () =>
+      (rowsRaw ?? []).map((r) => ({
+        ...r,
+        valor_total: r.valor_total * FATOR_NOTA_BAIXA,
+      })),
+    [rowsRaw],
+  );
 
   const totais = useMemo(() => {
     const list = rows ?? [];
@@ -104,6 +136,7 @@ export default function EstoqueValoresPorFilial() {
             </h1>
             <p className="text-sm text-muted-foreground">
               Valor financeiro e cobertura de estoque consolidados por filial (dados do ERP).
+              <span className="ml-1">Valores ajustados pelo fator de nota baixa (×3,5).</span>
             </p>
           </div>
           <EstoqueFilterPanel filtros={filtrosBase} setFiltros={setFiltrosBase} showValidade={false} />
@@ -112,9 +145,9 @@ export default function EstoqueValoresPorFilial() {
         {/* KPIs consolidados */}
         <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3">
           <KpiCard
-            title="Valor total em estoque"
+            title="Valor total em estoque (×3,5)"
             value={formatCurrency(totais.valor)}
-            subtitle={`${totais.filiais} filial(is)`}
+            subtitle={`${totais.filiais} filial(is) • ajuste nota baixa`}
             icon={DollarSign}
             variant="info"
             loading={isLoading}
@@ -176,7 +209,10 @@ export default function EstoqueValoresPorFilial() {
         {/* Ranking visual por valor */}
         <Card>
           <CardContent className="p-4 space-y-3">
-            <h2 className="text-sm font-semibold text-muted-foreground">Ranking por valor em estoque</h2>
+            <div className="flex items-center gap-2">
+              <h2 className="text-sm font-semibold text-muted-foreground">Ranking por valor em estoque</h2>
+              <FatorBadge />
+            </div>
             {isLoading ? (
               <div className="space-y-2">
                 {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-8 w-full" />)}
@@ -225,6 +261,7 @@ export default function EstoqueValoresPorFilial() {
                   >
                     <span className={cn('inline-flex items-center gap-1', c.align === 'right' && 'flex-row-reverse')}>
                       {c.label}
+                      {c.key === 'valor_total' && <FatorBadge className="text-[10px] px-1.5 py-0" />}
                       {sortBy === c.key
                         ? (sortDir === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />)
                         : <ArrowUpDown className="h-3 w-3 opacity-30" />}
