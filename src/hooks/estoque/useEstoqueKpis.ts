@@ -20,6 +20,8 @@ export function useEstoqueKpis(filtros: EstoqueFiltros) {
   return useQuery({
     queryKey: ['estoque-kpis-recorte', filtros],
     staleTime: 30_000,
+    refetchInterval: 5 * 60_000,
+    refetchIntervalInBackground: false,
     queryFn: async () => {
       const { data, error } = await supabase.rpc('estoque_kpis_recorte', {
         filtros: filtrosParaJsonb(filtros) as any,

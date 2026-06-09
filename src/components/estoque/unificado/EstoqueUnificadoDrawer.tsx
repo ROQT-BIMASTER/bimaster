@@ -180,16 +180,6 @@ export function EstoqueUnificadoDrawer({ row, open, onOpenChange }: Props) {
           )}
         </ScrollArea>
       </SheetContent>
-
-      {row && (
-        <TransformacaoWizard
-          open={wizardOpen}
-          onOpenChange={setWizardOpen}
-          empresa={row.empresa}
-          paiCod={row.produto_raiz}
-          paiNome={row.raiz_nome}
-        />
-      )}
     </Sheet>
   );
 }
