@@ -97,7 +97,7 @@ export default function EstoqueUnificadoPage() {
           </Button>
         </div>
 
-        <EstoqueUnificadoKpis rows={data?.rows ?? []} total={data?.total ?? 0} loading={isFetching} modo={modo} />
+        <EstoqueUnificadoKpis rows={data?.aggregateRows ?? []} total={data?.total ?? 0} loading={isFetching} modo={modo} />
 
         <div className="flex flex-col lg:flex-row lg:items-center gap-3">
           <div className="relative flex-1 max-w-md">
