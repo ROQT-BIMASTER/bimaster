@@ -46,8 +46,8 @@ function SkuLine({
 
   return (
     <div
-      className="grid grid-cols-14 gap-2 items-center py-1.5 px-2 rounded hover:bg-muted/40 text-xs"
-      style={{ paddingLeft: `${depth * 20 + 8}px`, gridTemplateColumns: 'repeat(14, minmax(0, 1fr))' }}
+      className="grid gap-2 items-center py-1.5 px-2 rounded hover:bg-muted/40 text-xs"
+      style={{ paddingLeft: `${depth * 20 + 8}px`, gridTemplateColumns: 'repeat(13, minmax(0, 1fr))' }}
     >
       <div className="col-span-4 flex items-center gap-2 min-w-0">
         <Badge variant="outline" className="text-[10px] gap-1 shrink-0" title={label}>
@@ -78,7 +78,6 @@ function SkuLine({
       <div className="col-span-1 text-right tabular-nums text-[10px] text-muted-foreground">
         {pct.toFixed(1)}%
       </div>
-      <div className="col-span-1 text-right tabular-nums">{formatCurrency(Number(sku.custo_total ?? 0))}</div>
     </div>
   );
 }
