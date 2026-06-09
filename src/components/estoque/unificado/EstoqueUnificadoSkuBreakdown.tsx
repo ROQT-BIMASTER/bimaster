@@ -3,7 +3,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Boxes, Package, PackageOpen, Copy, Info, AlertTriangle } from 'lucide-react';
-import { formatCurrency } from '@/lib/formatters';
+
 import { toast } from 'sonner';
 import {
   useEstoqueUnificadoSkus,
@@ -46,8 +46,8 @@ function SkuLine({
 
   return (
     <div
-      className="grid grid-cols-14 gap-2 items-center py-1.5 px-2 rounded hover:bg-muted/40 text-xs"
-      style={{ paddingLeft: `${depth * 20 + 8}px`, gridTemplateColumns: 'repeat(14, minmax(0, 1fr))' }}
+      className="grid gap-2 items-center py-1.5 px-2 rounded hover:bg-muted/40 text-xs"
+      style={{ paddingLeft: `${depth * 20 + 8}px`, gridTemplateColumns: 'repeat(13, minmax(0, 1fr))' }}
     >
       <div className="col-span-4 flex items-center gap-2 min-w-0">
         <Badge variant="outline" className="text-[10px] gap-1 shrink-0" title={label}>
@@ -78,7 +78,6 @@ function SkuLine({
       <div className="col-span-1 text-right tabular-nums text-[10px] text-muted-foreground">
         {pct.toFixed(1)}%
       </div>
-      <div className="col-span-1 text-right tabular-nums">{formatCurrency(Number(sku.custo_total ?? 0))}</div>
     </div>
   );
 }
@@ -134,25 +133,24 @@ function renderNode(node: TreeNode, depth: number, totalUn: number): JSX.Element
 export function EstoqueUnificadoSkuBreakdown({ row }: Props) {
   const { data, isLoading } = useEstoqueUnificadoSkus(row.empresa, row.produto_raiz);
 
-  const { tree, orphans, totalUn, totalCusto, somaCX, somaBX, somaUN, somaBloq, somaDisp, somaPend } = useMemo(() => {
+  const { tree, orphans, totalUn, somaCX, somaBX, somaUN, somaBloq, somaDisp, somaPend } = useMemo(() => {
     const rows = data ?? [];
     const { tree, orphans } = buildTree(rows);
     const totalUn = rows.reduce((acc, r) => acc + Number(r.contribuicao_un ?? 0), 0);
-    const totalCusto = rows.reduce((acc, r) => acc + Number(r.custo_total ?? 0), 0);
     const somaCX = rows.filter((r) => r.nivel === 1).reduce((a, r) => a + Number(r.saldo ?? 0), 0);
     const somaBX = rows.filter((r) => r.nivel === 2).reduce((a, r) => a + Number(r.saldo ?? 0), 0);
     const somaUN = rows.filter((r) => r.nivel === 3).reduce((a, r) => a + Number(r.saldo ?? 0), 0);
     const somaBloq = rows.reduce((a, r) => a + Number(r.contribuicao_bloqueado_un ?? 0), 0);
     const somaDisp = rows.reduce((a, r) => a + Number(r.contribuicao_disponivel_un ?? 0), 0);
     const somaPend = rows.reduce((a, r) => a + Number(r.contribuicao_pendente_un ?? 0), 0);
-    return { tree, orphans, totalUn, totalCusto, somaCX, somaBX, somaUN, somaBloq, somaDisp, somaPend };
+    return { tree, orphans, totalUn, somaCX, somaBX, somaUN, somaBloq, somaDisp, somaPend };
   }, [data]);
 
   const divergeTotal = Math.abs(totalUn - Number(row.saldo_total_em_unidades ?? 0)) > 0.5;
 
   const handleCopiarCSV = async () => {
     const rows = data ?? [];
-    const header = ['Nivel', 'Codigo', 'Nome', 'Pai', 'Saldo', 'Bloqueado', 'Disponivel', 'Pendente', 'Fator UN', 'Contribuicao UN', 'Contribuicao Disponivel UN', 'Custo total'];
+    const header = ['Nivel', 'Codigo', 'Nome', 'Pai', 'Saldo', 'Bloqueado', 'Disponivel', 'Pendente', 'Fator UN', 'Contribuicao UN', 'Contribuicao Disponivel UN'];
     const lines = rows.map((r) => [
       nivelInfo(r.nivel).sigla,
       r.cod_produto,
@@ -165,7 +163,6 @@ export function EstoqueUnificadoSkuBreakdown({ row }: Props) {
       r.fator_un_acumulado,
       r.contribuicao_un,
       r.contribuicao_disponivel_un,
-      r.custo_total,
     ].join(';'));
     const csv = [header.join(';'), ...lines].join('\n');
     try {
@@ -219,7 +216,7 @@ export function EstoqueUnificadoSkuBreakdown({ row }: Props) {
       {/* Cabeçalho da grade */}
       <div
         className="grid gap-2 items-center px-2 text-[10px] uppercase tracking-wider text-muted-foreground border-b border-border pb-1"
-        style={{ gridTemplateColumns: 'repeat(14, minmax(0, 1fr))' }}
+        style={{ gridTemplateColumns: 'repeat(13, minmax(0, 1fr))' }}
       >
         <div className="col-span-4">SKU (nível · código · descrição)</div>
         <div className="col-span-1 text-right">Saldo</div>
@@ -229,7 +226,6 @@ export function EstoqueUnificadoSkuBreakdown({ row }: Props) {
         <div className="col-span-2 text-right">× Fator UN</div>
         <div className="col-span-2 text-right">= Contribuição UN</div>
         <div className="col-span-1 text-right">% total</div>
-        <div className="col-span-1 text-right">Custo</div>
       </div>
 
       {/* Árvore */}
@@ -274,13 +270,9 @@ export function EstoqueUnificadoSkuBreakdown({ row }: Props) {
             <span className="text-[9px] uppercase block">UN</span>
             {fmt(somaUN)}
           </div>
-          <div className="col-span-2 text-right tabular-nums font-bold">
+          <div className="col-span-4 text-right tabular-nums font-bold">
             <span className="text-[9px] uppercase block text-muted-foreground">Σ Total UN</span>
             {fmt(totalUn)}
-          </div>
-          <div className="col-span-2 text-right tabular-nums">
-            <span className="text-[9px] uppercase block text-muted-foreground">Custo total</span>
-            {formatCurrency(totalCusto)}
           </div>
         </div>
 
@@ -309,8 +301,7 @@ export function EstoqueUnificadoSkuBreakdown({ row }: Props) {
           {fmt(row.saldo_em_unidades)} · Total UN <strong>{fmt(row.saldo_total_em_unidades)}</strong> ·{' '}
           <span className="text-success">Disp. <strong>{fmt(row.disponivel_total_em_unidades)}</strong></span>{' '}
           · Bloq. <strong>{fmt(row.bloqueado_total_em_unidades)}</strong> · Pend.{' '}
-          <strong>{fmt(row.pendente_total_em_unidades)}</strong> · Custo{' '}
-          <strong>{formatCurrency(Number(row.custo_total ?? 0))}</strong>
+          <strong>{fmt(row.pendente_total_em_unidades)}</strong>
           {divergeTotal && (
             <span className="text-yellow-700 dark:text-yellow-400">
               {' '}

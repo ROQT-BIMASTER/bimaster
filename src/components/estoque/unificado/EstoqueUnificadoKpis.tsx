@@ -1,6 +1,6 @@
 import { Card } from '@/components/ui/card';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { formatCurrency } from '@/lib/formatters';
+
 import { Boxes, Package, PackageOpen, Layers, Info, ShieldCheck, Lock, Clock } from 'lucide-react';
 import type { EstoqueUnificadoRow } from '@/hooks/estoque/useEstoqueUnificado';
 import { converterParaModo, disponivelEmCaixas, formatCx, type ModoExibicao } from '@/lib/estoque/modoExibicao';
@@ -71,7 +71,6 @@ export function EstoqueUnificadoKpis({ rows, total, loading, modo = 'fisico' }: 
       { icon: ShieldCheck, label: 'Disponível em UN', value: fmt(totals.disp), hint: 'pronto para venda', tooltip: tooltipDisp, variant: 'success' },
       { icon: Clock, label: 'Pendente em UN', value: fmt(totals.pend), hint: 'pedidos em aberto', tooltip: tooltipPend },
       { icon: Boxes, label: 'Disponível em CX', value: formatCx(cxDisp), hint: cxDispHint, tooltip: tooltipCxDisp, variant: 'primary' },
-      { icon: Layers, label: 'Custo total', value: formatCurrency(totals.custo), hint: `${total.toLocaleString('pt-BR')} produtos-raiz` },
     ];
   } else {
     let somaConv = 0;
@@ -95,7 +94,7 @@ export function EstoqueUnificadoKpis({ rows, total, loading, modo = 'fisico' }: 
       { icon: ShieldCheck, label: 'Disponível em UN', value: fmt(totals.disp), hint: 'pronto para venda', tooltip: tooltipDisp, variant: 'success' },
       { icon: Clock, label: 'Pendente em UN', value: fmt(totals.pend), hint: 'pedidos em aberto', tooltip: tooltipPend },
       { icon: Boxes, label: 'Disponível em CX', value: formatCx(cxDisp), hint: cxDispHint, tooltip: tooltipCxDisp, variant: 'primary' },
-      { icon: Layers, label: 'Custo total', value: formatCurrency(totals.custo), hint: `${total.toLocaleString('pt-BR')} produtos-raiz` },
+      
     ];
   }
 

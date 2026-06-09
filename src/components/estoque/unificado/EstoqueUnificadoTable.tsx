@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { AlertTriangle, ArrowDown, ArrowUp, ArrowUpDown, Barcode, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, Clock, Info } from 'lucide-react';
-import { formatCurrency } from '@/lib/formatters';
+
 import type { EstoqueUnificadoRow, UseEstoqueUnificadoOpts } from '@/hooks/estoque/useEstoqueUnificado';
 import { converterParaModo, disponivelEmCaixas, formatCx, MODO_COL_LABEL, type ModoExibicao } from '@/lib/estoque/modoExibicao';
 import { EstoqueUnificadoSkuBreakdown } from './EstoqueUnificadoSkuBreakdown';
@@ -126,7 +126,7 @@ export function EstoqueUnificadoTable(p: Props) {
                 </Tooltip>
               </span>
             </TableHead>
-            <Th k="custo_total" label="Custo total" num />
+            
             <TableHead className="text-right">SKUs</TableHead>
           </TableRow>
         </TableHeader>
@@ -239,7 +239,7 @@ export function EstoqueUnificadoTable(p: Props) {
                       return <span>{formatCx(cx)} <span className="text-[10px] opacity-70">CX</span></span>;
                     })()}
                   </TableCell>
-                  <TableCell className="text-right tabular-nums">{formatCurrency(Number(r.custo_total ?? 0))}</TableCell>
+                  
                   <TableCell className="text-right tabular-nums">{r.skus_envolvidos}</TableCell>
                 </TableRow>
                 {isExpanded && (
@@ -261,7 +261,7 @@ export function EstoqueUnificadoTable(p: Props) {
                                 <TableHead className="text-right">Bloqueado</TableHead>
                                 <TableHead className="text-right text-success">Disponível</TableHead>
                                 <TableHead className="text-right">Pendente</TableHead>
-                                <TableHead className="text-right">Custo</TableHead>
+                                
                               </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -277,7 +277,7 @@ export function EstoqueUnificadoTable(p: Props) {
                                   <TableCell className="text-right tabular-nums text-muted-foreground">{fmt(f.bloqueado_total_em_unidades)}</TableCell>
                                   <TableCell className="text-right tabular-nums font-semibold text-success">{fmt(f.disponivel_total_em_unidades)}</TableCell>
                                   <TableCell className="text-right tabular-nums text-muted-foreground">{fmt(f.pendente_total_em_unidades)}</TableCell>
-                                  <TableCell className="text-right tabular-nums">{formatCurrency(Number(f.custo_total ?? 0))}</TableCell>
+                                  
                                 </TableRow>
                               ))}
                             </TableBody>
@@ -388,14 +388,6 @@ function ValidacaoBadge({ validacao }: { validacao: ValidacaoErpRow | undefined 
               <td className="text-right">{Math.round(validacao.erp_disponivel_total_em_unidades).toLocaleString('pt-BR')}</td>
               <td className={`text-right ${resumo.rel_disponivel > 0 ? 'text-destructive font-medium' : ''}`}>
                 {Math.round(validacao.delta_disponivel_total_em_unidades).toLocaleString('pt-BR')}
-              </td>
-            </tr>
-            <tr>
-              <td>Custo</td>
-              <td className="text-right">{formatCurrency(validacao.cache_custo_total)}</td>
-              <td className="text-right">{formatCurrency(validacao.erp_custo_total)}</td>
-              <td className={`text-right ${resumo.rel_custo > 0 ? 'text-destructive font-medium' : ''}`}>
-                {formatCurrency(validacao.delta_custo_total)}
               </td>
             </tr>
           </tbody>
