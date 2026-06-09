@@ -151,7 +151,7 @@ export function EstoqueUnificadoSkuBreakdown({ row }: Props) {
 
   const handleCopiarCSV = async () => {
     const rows = data ?? [];
-    const header = ['Nivel', 'Codigo', 'Nome', 'Pai', 'Saldo', 'Bloqueado', 'Disponivel', 'Pendente', 'Fator UN', 'Contribuicao UN', 'Contribuicao Disponivel UN', 'Custo total'];
+    const header = ['Nivel', 'Codigo', 'Nome', 'Pai', 'Saldo', 'Bloqueado', 'Disponivel', 'Pendente', 'Fator UN', 'Contribuicao UN', 'Contribuicao Disponivel UN'];
     const lines = rows.map((r) => [
       nivelInfo(r.nivel).sigla,
       r.cod_produto,
@@ -164,7 +164,6 @@ export function EstoqueUnificadoSkuBreakdown({ row }: Props) {
       r.fator_un_acumulado,
       r.contribuicao_un,
       r.contribuicao_disponivel_un,
-      r.custo_total,
     ].join(';'));
     const csv = [header.join(';'), ...lines].join('\n');
     try {
