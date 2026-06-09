@@ -39192,6 +39192,7 @@ export type Database = {
           marca: string | null
           nome_comercial: string | null
           notion_page_id: string
+          origem: string
           raw: Json | null
           sku: string | null
           status: string | null
@@ -39208,6 +39209,7 @@ export type Database = {
           marca?: string | null
           nome_comercial?: string | null
           notion_page_id: string
+          origem?: string
           raw?: Json | null
           sku?: string | null
           status?: string | null
@@ -39224,6 +39226,7 @@ export type Database = {
           marca?: string | null
           nome_comercial?: string | null
           notion_page_id?: string
+          origem?: string
           raw?: Json | null
           sku?: string | null
           status?: string | null
@@ -39297,6 +39300,7 @@ export type Database = {
           ean_unitario: string | null
           nome_tom: string | null
           notion_page_id: string
+          origem: string
           pantone: string | null
           produto_notion_id: string | null
           raw: Json | null
@@ -39310,6 +39314,7 @@ export type Database = {
           ean_unitario?: string | null
           nome_tom?: string | null
           notion_page_id: string
+          origem?: string
           pantone?: string | null
           produto_notion_id?: string | null
           raw?: Json | null
@@ -39323,6 +39328,7 @@ export type Database = {
           ean_unitario?: string | null
           nome_tom?: string | null
           notion_page_id?: string
+          origem?: string
           pantone?: string | null
           produto_notion_id?: string | null
           raw?: Json | null
