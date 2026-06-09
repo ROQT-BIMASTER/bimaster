@@ -217,8 +217,67 @@ export default function EstoqueUnificadoPage() {
           </div>
           <Button variant="outline" size="sm" onClick={recalcular} disabled={recalculando}>
             <RefreshCw className={`h-4 w-4 mr-2 ${recalculando ? 'animate-spin' : ''}`} />
-            Recalcular níveis
-          </Button>
+          <div className="flex items-center gap-2">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" disabled={isFetching || !(data?.aggregateRows?.length)}>
+                  <Download className="h-4 w-4 mr-2" />
+                  Exportar
+                  <ChevronDown className="h-3 w-3 ml-1 opacity-60" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="z-[60]">
+                <DropdownMenuItem
+                  onClick={async () => {
+                    try {
+                      const rows = consolidar
+                        ? (data?.aggregateRows ?? [])
+                        : (data?.aggregateRows ?? []).flatMap((r) => r.filiais_rows ?? [r]);
+                      const empresasLabels = (opts?.empresas ?? [])
+                        .filter((e) => empresaIds.includes(e.id))
+                        .map((e) => e.nome);
+                      await exportEstoqueToXlsx(rows, kpisSnapshot, {
+                        empresaIds, empresasLabels, marcas, linhas, busca: buscaDeb,
+                        somenteComSaldo, consolidar, modo,
+                      });
+                      toast.success('Planilha gerada com sucesso.');
+                    } catch (e: any) {
+                      toast.error('Falha ao gerar Excel: ' + (e?.message ?? 'erro desconhecido'));
+                    }
+                  }}
+                >
+                  <FileSpreadsheet className="h-4 w-4 mr-2" />
+                  Excel (.xlsx)
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => {
+                    try {
+                      const rows = consolidar
+                        ? (data?.aggregateRows ?? [])
+                        : (data?.aggregateRows ?? []).flatMap((r) => r.filiais_rows ?? [r]);
+                      const empresasLabels = (opts?.empresas ?? [])
+                        .filter((e) => empresaIds.includes(e.id))
+                        .map((e) => e.nome);
+                      exportEstoqueToPdf(rows, kpisSnapshot, {
+                        empresaIds, empresasLabels, marcas, linhas, busca: buscaDeb,
+                        somenteComSaldo, consolidar, modo,
+                      });
+                      toast.success('PDF gerado com sucesso.');
+                    } catch (e: any) {
+                      toast.error('Falha ao gerar PDF: ' + (e?.message ?? 'erro desconhecido'));
+                    }
+                  }}
+                >
+                  <FileText className="h-4 w-4 mr-2" />
+                  PDF
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <Button variant="outline" size="sm" onClick={recalcular} disabled={recalculando}>
+              <RefreshCw className={`h-4 w-4 mr-2 ${recalculando ? 'animate-spin' : ''}`} />
+              Recalcular níveis
+            </Button>
+          </div>
         </div>
 
         <EstoqueUnificadoKpis rows={data?.aggregateRows ?? []} total={data?.total ?? 0} loading={isFetching} modo={modo} />
