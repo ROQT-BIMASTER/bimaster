@@ -302,6 +302,9 @@ export function useEstoqueUnificado(opts: UseEstoqueUnificadoOpts) {
             pendente_total_em_unidades: Number(r.pendente_total_em_unidades || 0),
             custo_total: Number(r.custo_total || 0),
             skus_envolvidos: Number(r.skus_envolvidos || 0),
+            pedidos_count: Number(r.pedidos_count || 0),
+            marca: r.marca ?? null,
+            linha: r.linha ?? null,
             filiais_count: 1,
             filiais: [{ empresa: r.empresa, abrev: r.raiz_abrev ?? null, nome: r.raiz_nome ?? null, filial_nome: r.filial_nome ?? null }],
             filiais_rows: [r],
@@ -316,6 +319,9 @@ export function useEstoqueUnificado(opts: UseEstoqueUnificadoOpts) {
           acc.pendente_total_em_unidades += Number(r.pendente_total_em_unidades || 0);
           acc.custo_total += Number(r.custo_total || 0);
           acc.skus_envolvidos = Math.max(acc.skus_envolvidos, Number(r.skus_envolvidos || 0));
+          acc.pedidos_count = Number(acc.pedidos_count || 0) + Number(r.pedidos_count || 0);
+          acc.marca = acc.marca ?? r.marca ?? null;
+          acc.linha = acc.linha ?? r.linha ?? null;
           acc.fator_cx_para_un = acc.fator_cx_para_un ?? r.fator_cx_para_un ?? null;
           acc.fator_bx_para_un = acc.fator_bx_para_un ?? r.fator_bx_para_un ?? null;
           acc.ean_raiz = acc.ean_raiz ?? r.ean_raiz ?? null;
