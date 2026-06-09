@@ -302,8 +302,7 @@ export function EstoqueUnificadoSkuBreakdown({ row }: Props) {
           {fmt(row.saldo_em_unidades)} · Total UN <strong>{fmt(row.saldo_total_em_unidades)}</strong> ·{' '}
           <span className="text-success">Disp. <strong>{fmt(row.disponivel_total_em_unidades)}</strong></span>{' '}
           · Bloq. <strong>{fmt(row.bloqueado_total_em_unidades)}</strong> · Pend.{' '}
-          <strong>{fmt(row.pendente_total_em_unidades)}</strong> · Custo{' '}
-          <strong>{formatCurrency(Number(row.custo_total ?? 0))}</strong>
+          <strong>{fmt(row.pendente_total_em_unidades)}</strong>
           {divergeTotal && (
             <span className="text-yellow-700 dark:text-yellow-400">
               {' '}
