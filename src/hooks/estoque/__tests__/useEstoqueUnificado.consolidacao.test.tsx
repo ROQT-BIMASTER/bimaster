@@ -32,6 +32,11 @@ const RAW_ROWS = [
   },
 ];
 
+const EMPRESAS_ROWS = [
+  { id: 1, nome: 'Filial São Paulo' },
+  { id: 2, nome: 'Filial Rio de Janeiro' },
+];
+
 vi.mock('@/integrations/supabase/client', () => {
   const fromHandler = (table: string) => {
     if (table === 'vw_estoque_unificado') {
@@ -41,6 +46,13 @@ vi.mock('@/integrations/supabase/client', () => {
         gt: () => builder,
         order: () => builder,
         range: () => Promise.resolve({ data: RAW_ROWS, error: null }),
+      };
+      return builder;
+    }
+    if (table === 'empresas') {
+      const builder: any = {
+        select: () => builder,
+        in: () => Promise.resolve({ data: EMPRESAS_ROWS, error: null }),
       };
       return builder;
     }
