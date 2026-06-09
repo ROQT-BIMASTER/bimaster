@@ -389,6 +389,36 @@ export function useEstoqueUnificado(opts: UseEstoqueUnificadoOpts) {
       const displaySource = consolidar ? consolidated : enriched;
       const from = opts.page * opts.pageSize;
       const pageRows = displaySource.slice(from, from + opts.pageSize);
+
+      // Diagnóstico: rastreia produto-raiz "watch" (cód. 9558) quando aparece
+      // após qualquer filtro ativo, para auditoria de leak de filtro.
+      if (import.meta.env.DEV) {
+        const WATCH = new Set<number>([9558]);
+        const hits = displaySource.filter((r) => WATCH.has(Number(r.produto_raiz)));
+        if (hits.length) {
+          // eslint-disable-next-line no-console
+          console.debug('[useEstoqueUnificado] watch hit', {
+            filtros: {
+              empresaIds: opts.empresaIds,
+              busca: opts.busca,
+              marcas: opts.marcas,
+              linhas: opts.linhas,
+              somenteComSaldo: opts.somenteComSaldo,
+              consolidar,
+            },
+            hits: hits.map((r) => ({
+              empresa: r.empresa,
+              produto_raiz: r.produto_raiz,
+              marca: r.marca,
+              linha: r.linha,
+              raiz_nome: r.raiz_nome,
+              saldo_total_em_unidades: r.saldo_total_em_unidades,
+              filiais_count: r.filiais_count,
+            })),
+          });
+        }
+      }
+
       return {
         rows: pageRows,
         total: displaySource.length,
