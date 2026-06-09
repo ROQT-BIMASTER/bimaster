@@ -75,7 +75,16 @@ export default function EstoqueValoresPorFilial() {
     [filtrosBase, buscaDebounced],
   );
 
-  const { data: rows, isLoading } = useEstoqueValoresPorFilial(filtros);
+  const { data: rowsRaw, isLoading } = useEstoqueValoresPorFilial(filtros);
+
+  const rows = useMemo(
+    () =>
+      (rowsRaw ?? []).map((r) => ({
+        ...r,
+        valor_total: r.valor_total * FATOR_NOTA_BAIXA,
+      })),
+    [rowsRaw],
+  );
 
   const totais = useMemo(() => {
     const list = rows ?? [];
