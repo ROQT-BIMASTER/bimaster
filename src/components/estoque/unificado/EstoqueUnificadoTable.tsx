@@ -182,9 +182,18 @@ export function EstoqueUnificadoTable(p: Props) {
                   ) : (
                     <TableCell className="text-right tabular-nums font-semibold">{fmt(conv)}</TableCell>
                   )}
+                  <TableCell className="text-right tabular-nums text-muted-foreground">
+                    {fmt(r.bloqueado_total_em_unidades)}
+                  </TableCell>
+                  <TableCell className="text-right tabular-nums font-semibold text-success bg-success/5">
+                    {fmt(r.disponivel_total_em_unidades)}
+                  </TableCell>
+                  <TableCell className="text-right tabular-nums text-muted-foreground">
+                    {fmt(r.pendente_total_em_unidades)}
+                  </TableCell>
                   <TableCell className="text-right tabular-nums text-primary font-semibold bg-primary/5">
                     {(() => {
-                      const cx = equivalenteEmCaixas(r);
+                      const cx = disponivelEmCaixas(r);
                       if (cx == null) {
                         return (
                           <Tooltip>
