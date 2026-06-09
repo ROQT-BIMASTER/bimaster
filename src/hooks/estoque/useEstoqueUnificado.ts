@@ -20,9 +20,11 @@ export interface EstoqueUnificadoRow {
   // hidratado pelo enrich:
   raiz_nome?: string | null;
   raiz_abrev?: string | null;
+  // nome oficial da filial (tabela `empresas`); fallback para abrev_par e por fim código
+  filial_nome?: string | null;
   // hidratado quando consolidado=true:
   filiais_count?: number;
-  filiais?: Array<{ empresa: number; abrev: string | null; nome: string | null }>;
+  filiais?: Array<{ empresa: number; abrev: string | null; nome: string | null; filial_nome: string | null }>;
   filiais_rows?: EstoqueUnificadoRow[];
 }
 
