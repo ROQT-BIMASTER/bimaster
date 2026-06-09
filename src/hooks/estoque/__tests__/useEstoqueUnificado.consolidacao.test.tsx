@@ -63,21 +63,14 @@ vi.mock('@/integrations/supabase/client', () => {
       };
       return builder;
     }
-    // erp_estoque_distribuidora — devolve nomes/abreviações com base no select pedido.
-    let lastSelect = '';
+    // erp_estoque_distribuidora — devolve ABREV_ROWS para qualquer select.
+    // O loop de nomes lê só cod_produto/nome_prod (campos ausentes = ignorados),
+    // o loop de abreviações lê abrev_par.
     const enrichBuilder: any = {
-      select: (cols: string) => {
-        lastSelect = cols ?? '';
-        return enrichBuilder;
-      },
+      select: () => enrichBuilder,
       in: () => enrichBuilder,
-      limit: () => Promise.resolve({ data: [], error: null }),
-      range: () => {
-        if (lastSelect.includes('abrev_par')) {
-          return Promise.resolve({ data: ABREV_ROWS, error: null });
-        }
-        return Promise.resolve({ data: [], error: null });
-      },
+      limit: () => Promise.resolve({ data: ABREV_ROWS, error: null }),
+      range: () => Promise.resolve({ data: ABREV_ROWS, error: null }),
     };
     return enrichBuilder;
   };
