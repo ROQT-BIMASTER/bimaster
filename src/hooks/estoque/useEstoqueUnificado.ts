@@ -97,7 +97,8 @@ export function useEstoqueUnificado(opts: UseEstoqueUnificadoOpts) {
             supabase
               .from('erp_estoque_distribuidora')
               .select('cod_produto,nome_prod')
-              .in('cod_produto', cs),
+              .in('cod_produto', cs)
+              .range(0, 19999),
           ),
         );
         nomeResults.forEach(({ data }) => {
@@ -116,7 +117,8 @@ export function useEstoqueUnificado(opts: UseEstoqueUnificadoOpts) {
                 .from('erp_estoque_distribuidora')
                 .select('empresa_par,cod_produto,abrev_par')
                 .in('cod_produto', cs)
-                .in('empresa_par', empresas),
+                .in('empresa_par', empresas)
+                .range(0, 19999),
             ),
           );
           abrevResults.forEach(({ data }) => {
