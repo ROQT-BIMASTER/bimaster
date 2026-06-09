@@ -174,6 +174,7 @@ export default function EstoqueUnificadoPage() {
           setSort={handleSort}
           onRowClick={(r) => { setSelected(r); setDrawerOpen(true); }}
           modo={modo}
+          consolidado={consolidar}
         />
 
         <EstoqueUnificadoDrawer row={selected} open={drawerOpen} onOpenChange={setDrawerOpen} />
