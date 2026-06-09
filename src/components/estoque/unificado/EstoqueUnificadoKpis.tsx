@@ -127,7 +127,7 @@ export function EstoqueUnificadoKpis({ rows, total, loading, modo = 'fisico' }: 
 
   return (
     <TooltipProvider delayDuration={150}>
-      <div className={`grid grid-cols-2 md:grid-cols-3 ${modo === 'fisico' ? 'lg:grid-cols-5 xl:grid-cols-9' : 'lg:grid-cols-3 xl:grid-cols-6'} gap-3`}>
+      <div className={`grid grid-cols-2 md:grid-cols-4 ${modo === 'fisico' ? 'lg:grid-cols-4 xl:grid-cols-8' : 'lg:grid-cols-5 xl:grid-cols-5'} gap-3`}>
         {items.map((it) => (
           <Card key={it.label} className={cardCls(it.variant)}>
             <div className="flex items-start gap-2">
