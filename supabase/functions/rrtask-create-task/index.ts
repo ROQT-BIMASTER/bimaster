@@ -208,6 +208,18 @@ Deno.serve(
         );
       }
 
+      // PR-D2b: resolver user Huggs do solicitante (por email) para gravar
+      // como responsável da tarefa nativa espelho. Best-effort.
+      let responsavelUserId: string | null = null;
+      if (email) {
+        const { data: rp } = await sb
+          .from("profiles")
+          .select("id")
+          .eq("email", email)
+          .maybeSingle();
+        responsavelUserId = (rp?.id as string | undefined) ?? null;
+      }
+
       // 5. Build properties (schema v3 — nomes EXATOS com acentos)
       const props: Record<string, unknown> = {
         "Nome do Pedido": {
