@@ -143,4 +143,53 @@ describe('useEstoqueUnificado — paridade entre modos consolidado / não consol
     expect(off.aggregateRows.length).toBe(2);
     expect(on.aggregateRows.length).toBe(2);
   });
+
+  it('cada linha consolidada corresponde ao conjunto correto de filiais (chaves e somatórios)', async () => {
+    const w = wrapper();
+    const offHook = renderHook(() => useEstoqueUnificado({ ...baseOpts, consolidar: false }), { wrapper: w });
+    const onHook = renderHook(() => useEstoqueUnificado({ ...baseOpts, consolidar: true }), { wrapper: w });
+
+    await waitFor(() => expect(offHook.result.current.data).toBeTruthy());
+    await waitFor(() => expect(onHook.result.current.data).toBeTruthy());
+
+    const off = offHook.result.current.data!.rows;
+    const on = onHook.result.current.data!.rows;
+
+    // 1) Mesmo universo de produto_raiz dos dois lados
+    const offRaizes = new Set(off.map((r) => Number(r.produto_raiz)));
+    const onRaizes = new Set(on.map((r) => Number(r.produto_raiz)));
+    expect([...onRaizes].sort()).toEqual([...offRaizes].sort());
+
+    // 2) produto_raiz é único no modo consolidado
+    expect(on.length).toBe(new Set(on.map((r) => Number(r.produto_raiz))).size);
+
+    // 3) Agrupando o não-consolidado por produto_raiz, o conjunto de empresas
+    //    deve coincidir exatamente com `filiais` da linha consolidada correspondente.
+    const offByRaiz = new Map<number, typeof off>();
+    for (const r of off) {
+      const k = Number(r.produto_raiz);
+      const arr = offByRaiz.get(k) ?? [];
+      arr.push(r);
+      offByRaiz.set(k, arr);
+    }
+
+    for (const cons of on) {
+      const k = Number(cons.produto_raiz);
+      const filiaisOff = offByRaiz.get(k) ?? [];
+      const empresasOff = new Set(filiaisOff.map((r) => r.empresa));
+      const empresasCons = new Set((cons.filiais ?? []).map((f: any) => f.empresa));
+      expect([...empresasCons].sort()).toEqual([...empresasOff].sort());
+      expect(cons.filiais_count ?? filiaisOff.length).toBe(filiaisOff.length);
+
+      // filiais_rows da linha consolidada espelha 1:1 as linhas não-consolidadas
+      const rowsEmpresas = new Set((cons.filiais_rows ?? []).map((r: any) => r.empresa));
+      expect([...rowsEmpresas].sort()).toEqual([...empresasOff].sort());
+
+      // Soma das filiais bate com o agregado da linha consolidada
+      const sumOff = filiaisOff.reduce((s, r) => s + Number(r.saldo_total_em_unidades || 0), 0);
+      expect(Number(cons.saldo_total_em_unidades)).toBe(sumOff);
+      const custoOff = filiaisOff.reduce((s, r) => s + Number(r.custo_total || 0), 0);
+      expect(Number(cons.custo_total)).toBe(custoOff);
+    }
+  });
 });
