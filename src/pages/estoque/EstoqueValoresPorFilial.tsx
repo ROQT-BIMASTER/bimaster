@@ -145,9 +145,9 @@ export default function EstoqueValoresPorFilial() {
         {/* KPIs consolidados */}
         <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3">
           <KpiCard
-            title="Valor total em estoque"
+            title="Valor total em estoque (×3,5)"
             value={formatCurrency(totais.valor)}
-            subtitle={`${totais.filiais} filial(is)`}
+            subtitle={`${totais.filiais} filial(is) • ajuste nota baixa`}
             icon={DollarSign}
             variant="info"
             loading={isLoading}
