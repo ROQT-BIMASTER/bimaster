@@ -199,7 +199,7 @@ export function useEstoqueUnificado(opts: UseEstoqueUnificadoOpts) {
             custo_total: Number(r.custo_total || 0),
             skus_envolvidos: Number(r.skus_envolvidos || 0),
             filiais_count: 1,
-            filiais: [{ empresa: r.empresa, abrev: r.raiz_abrev ?? null, nome: r.raiz_nome ?? null }],
+            filiais: [{ empresa: r.empresa, abrev: r.raiz_abrev ?? null, nome: r.raiz_nome ?? null, filial_nome: r.filial_nome ?? null }],
             filiais_rows: [r],
           });
         } else {
