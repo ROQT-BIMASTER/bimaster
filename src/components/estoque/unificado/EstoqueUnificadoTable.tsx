@@ -254,6 +254,13 @@ export function EstoqueUnificadoTable(p: Props) {
                   <TableCell className="text-right tabular-nums text-muted-foreground">
                     {fmt(r.pendente_total_em_unidades)}
                   </TableCell>
+                  <TableCell className="text-right tabular-nums">
+                    {r.pedidos_count && r.pedidos_count > 0 ? (
+                      <span className="font-medium">{r.pedidos_count.toLocaleString('pt-BR')}</span>
+                    ) : (
+                      <span className="text-muted-foreground">—</span>
+                    )}
+                  </TableCell>
                   <TableCell className="text-right tabular-nums text-primary font-semibold bg-primary/5">
                     {(() => {
                       const cx = disponivelEmCaixas(r);
