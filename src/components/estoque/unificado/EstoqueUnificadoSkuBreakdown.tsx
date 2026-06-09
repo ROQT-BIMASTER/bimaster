@@ -217,7 +217,7 @@ export function EstoqueUnificadoSkuBreakdown({ row }: Props) {
       {/* Cabeçalho da grade */}
       <div
         className="grid gap-2 items-center px-2 text-[10px] uppercase tracking-wider text-muted-foreground border-b border-border pb-1"
-        style={{ gridTemplateColumns: 'repeat(14, minmax(0, 1fr))' }}
+        style={{ gridTemplateColumns: 'repeat(13, minmax(0, 1fr))' }}
       >
         <div className="col-span-4">SKU (nível · código · descrição)</div>
         <div className="col-span-1 text-right">Saldo</div>
@@ -227,7 +227,6 @@ export function EstoqueUnificadoSkuBreakdown({ row }: Props) {
         <div className="col-span-2 text-right">× Fator UN</div>
         <div className="col-span-2 text-right">= Contribuição UN</div>
         <div className="col-span-1 text-right">% total</div>
-        <div className="col-span-1 text-right">Custo</div>
       </div>
 
       {/* Árvore */}
