@@ -14861,11 +14861,14 @@ export type Database = {
       estoque_unificado_cache: {
         Row: {
           atualizado_em: string
+          bloqueado_total_em_unidades: number
           custo_total: number
+          disponivel_total_em_unidades: number
           ean_raiz: string | null
           empresa: number
           fator_bx_para_un: number | null
           fator_cx_para_un: number | null
+          pendente_total_em_unidades: number
           produto_raiz: number
           saldo_em_caixas: number
           saldo_em_displays: number
@@ -14875,11 +14878,14 @@ export type Database = {
         }
         Insert: {
           atualizado_em?: string
+          bloqueado_total_em_unidades?: number
           custo_total?: number
+          disponivel_total_em_unidades?: number
           ean_raiz?: string | null
           empresa: number
           fator_bx_para_un?: number | null
           fator_cx_para_un?: number | null
+          pendente_total_em_unidades?: number
           produto_raiz: number
           saldo_em_caixas?: number
           saldo_em_displays?: number
@@ -14889,11 +14895,14 @@ export type Database = {
         }
         Update: {
           atualizado_em?: string
+          bloqueado_total_em_unidades?: number
           custo_total?: number
+          disponivel_total_em_unidades?: number
           ean_raiz?: string | null
           empresa?: number
           fator_bx_para_un?: number | null
           fator_cx_para_un?: number | null
+          pendente_total_em_unidades?: number
           produto_raiz?: number
           saldo_em_caixas?: number
           saldo_em_displays?: number
@@ -49131,11 +49140,14 @@ export type Database = {
       }
       vw_estoque_unificado: {
         Row: {
+          bloqueado_total_em_unidades: number | null
           custo_total: number | null
+          disponivel_total_em_unidades: number | null
           ean_raiz: string | null
           empresa: number | null
           fator_bx_para_un: number | null
           fator_cx_para_un: number | null
+          pendente_total_em_unidades: number | null
           produto_raiz: number | null
           saldo_em_caixas: number | null
           saldo_em_displays: number | null
@@ -49144,11 +49156,14 @@ export type Database = {
           skus_envolvidos: number | null
         }
         Insert: {
+          bloqueado_total_em_unidades?: number | null
           custo_total?: number | null
+          disponivel_total_em_unidades?: number | null
           ean_raiz?: string | null
           empresa?: number | null
           fator_bx_para_un?: number | null
           fator_cx_para_un?: number | null
+          pendente_total_em_unidades?: number | null
           produto_raiz?: number | null
           saldo_em_caixas?: number | null
           saldo_em_displays?: number | null
@@ -49157,11 +49172,14 @@ export type Database = {
           skus_envolvidos?: number | null
         }
         Update: {
+          bloqueado_total_em_unidades?: number | null
           custo_total?: number | null
+          disponivel_total_em_unidades?: number | null
           ean_raiz?: string | null
           empresa?: number | null
           fator_bx_para_un?: number | null
           fator_cx_para_un?: number | null
+          pendente_total_em_unidades?: number | null
           produto_raiz?: number | null
           saldo_em_caixas?: number | null
           saldo_em_displays?: number | null
@@ -49174,16 +49192,22 @@ export type Database = {
       vw_estoque_unificado_skus: {
         Row: {
           abrev_par: string | null
+          bloqueado: number | null
           cod_produto: number | null
           codigo_barras_ean: string | null
+          contribuicao_bloqueado_un: number | null
+          contribuicao_disponivel_un: number | null
+          contribuicao_pendente_un: number | null
           contribuicao_un: number | null
           custo_total: number | null
+          disponivel: number | null
           empresa: number | null
           fator_pai_para_filho: number | null
           fator_un_acumulado: number | null
           nivel: number | null
           nome_prod: string | null
           pai_cod: number | null
+          pendente: number | null
           produto_raiz: number | null
           saldo: number | null
         }
