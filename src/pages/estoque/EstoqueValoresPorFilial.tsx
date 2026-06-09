@@ -209,7 +209,10 @@ export default function EstoqueValoresPorFilial() {
         {/* Ranking visual por valor */}
         <Card>
           <CardContent className="p-4 space-y-3">
-            <h2 className="text-sm font-semibold text-muted-foreground">Ranking por valor em estoque</h2>
+            <div className="flex items-center gap-2">
+              <h2 className="text-sm font-semibold text-muted-foreground">Ranking por valor em estoque</h2>
+              <FatorBadge />
+            </div>
             {isLoading ? (
               <div className="space-y-2">
                 {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-8 w-full" />)}
