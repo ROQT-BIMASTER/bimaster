@@ -39141,6 +39141,7 @@ export type Database = {
           raw: Json | null
           sac: string | null
           selos: string[] | null
+          source_system: string
           status: string | null
           synced_at: string
         }
@@ -39159,6 +39160,7 @@ export type Database = {
           raw?: Json | null
           sac?: string | null
           selos?: string[] | null
+          source_system?: string
           status?: string | null
           synced_at?: string
         }
@@ -39177,6 +39179,7 @@ export type Database = {
           raw?: Json | null
           sac?: string | null
           selos?: string[] | null
+          source_system?: string
           status?: string | null
           synced_at?: string
         }
@@ -39192,9 +39195,9 @@ export type Database = {
           marca: string | null
           nome_comercial: string | null
           notion_page_id: string
-          origem: string
           raw: Json | null
           sku: string | null
+          source_system: string
           status: string | null
           synced_at: string
           ultima_revisao_regulatoria: string | null
@@ -39209,9 +39212,9 @@ export type Database = {
           marca?: string | null
           nome_comercial?: string | null
           notion_page_id: string
-          origem?: string
           raw?: Json | null
           sku?: string | null
+          source_system?: string
           status?: string | null
           synced_at?: string
           ultima_revisao_regulatoria?: string | null
@@ -39226,9 +39229,9 @@ export type Database = {
           marca?: string | null
           nome_comercial?: string | null
           notion_page_id?: string
-          origem?: string
           raw?: Json | null
           sku?: string | null
+          source_system?: string
           status?: string | null
           synced_at?: string
           ultima_revisao_regulatoria?: string | null
@@ -39300,11 +39303,11 @@ export type Database = {
           ean_unitario: string | null
           nome_tom: string | null
           notion_page_id: string
-          origem: string
           pantone: string | null
           produto_notion_id: string | null
           raw: Json | null
           sku_individual: string | null
+          source_system: string
           status: string | null
           synced_at: string
         }
@@ -39314,11 +39317,11 @@ export type Database = {
           ean_unitario?: string | null
           nome_tom?: string | null
           notion_page_id: string
-          origem?: string
           pantone?: string | null
           produto_notion_id?: string | null
           raw?: Json | null
           sku_individual?: string | null
+          source_system?: string
           status?: string | null
           synced_at?: string
         }
@@ -39328,11 +39331,11 @@ export type Database = {
           ean_unitario?: string | null
           nome_tom?: string | null
           notion_page_id?: string
-          origem?: string
           pantone?: string | null
           produto_notion_id?: string | null
           raw?: Json | null
           sku_individual?: string | null
+          source_system?: string
           status?: string | null
           synced_at?: string
         }
