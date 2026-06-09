@@ -161,6 +161,48 @@ export default function EstoqueUnificadoPage() {
     return `${empresaIds.length} empresa(s)`;
   }, [empresaIds]);
 
+  const kpisSnapshot = useMemo(() => {
+    const rows = data?.aggregateRows ?? [];
+    const acc = rows.reduce(
+      (a, r) => {
+        a.caixas += Number(r.saldo_em_caixas || 0);
+        a.displays += Number(r.saldo_em_displays || 0);
+        a.unidades += Number(r.saldo_em_unidades || 0);
+        a.total_un += Number(r.saldo_total_em_unidades || 0);
+        a.bloqueado += Number(r.bloqueado_total_em_unidades || 0);
+        a.disponivel += Number(r.disponivel_total_em_unidades || 0);
+        a.pendente += Number(r.pendente_total_em_unidades || 0);
+        const fcx = Number(r.fator_cx_para_un ?? 0);
+        if (fcx > 0) a.equivalente_cx += Number(r.disponivel_total_em_unidades || 0) / fcx;
+        return a;
+      },
+      { caixas: 0, displays: 0, unidades: 0, total_un: 0, bloqueado: 0, disponivel: 0, pendente: 0, equivalente_cx: 0 },
+    );
+    return {
+      caixas: Math.round(acc.caixas),
+      displays: Math.round(acc.displays),
+      unidades: Math.round(acc.unidades),
+      total_un: Math.round(acc.total_un),
+      bloqueado: Math.round(acc.bloqueado),
+      disponivel: Math.round(acc.disponivel),
+      pendente: Math.round(acc.pendente),
+      equivalente_cx: Math.round(acc.equivalente_cx * 10) / 10,
+    };
+  }, [data?.aggregateRows]);
+
+  const copilotFiltros = useMemo(
+    () => ({
+      empresaIds,
+      marcas,
+      linhas,
+      busca: buscaDeb,
+      somenteComSaldo,
+      consolidar,
+      modo,
+    }),
+    [empresaIds, marcas, linhas, buscaDeb, somenteComSaldo, consolidar, modo],
+  );
+
   return (
     <DashboardLayout>
       <div className="space-y-5">
