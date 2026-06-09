@@ -52511,6 +52511,7 @@ export type Database = {
         Args: {
           _briefing_id: string
           _data_prazo: string
+          _responsavel_user_id?: string
           _rrtask_page_id: string
           _sku: string
           _titulo: string
