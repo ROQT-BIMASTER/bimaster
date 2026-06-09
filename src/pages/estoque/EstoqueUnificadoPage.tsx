@@ -16,7 +16,6 @@ import {
 import { EstoqueUnificadoKpis } from '@/components/estoque/unificado/EstoqueUnificadoKpis';
 import { EstoqueUnificadoTable } from '@/components/estoque/unificado/EstoqueUnificadoTable';
 import { EstoqueUnificadoDrawer } from '@/components/estoque/unificado/EstoqueUnificadoDrawer';
-import { DriftErpKpi } from '@/components/estoque/unificado/DriftErpKpi';
 import { Badge } from '@/components/ui/badge';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import type { ModoExibicao } from '@/lib/estoque/modoExibicao';
@@ -99,7 +98,6 @@ export default function EstoqueUnificadoPage() {
         </div>
 
         <EstoqueUnificadoKpis rows={data?.rows ?? []} total={data?.total ?? 0} loading={isFetching} modo={modo} />
-        <DriftErpKpi empresaIds={empresaIds} />
 
         <div className="flex flex-col lg:flex-row lg:items-center gap-3">
           <div className="relative flex-1 max-w-md">
