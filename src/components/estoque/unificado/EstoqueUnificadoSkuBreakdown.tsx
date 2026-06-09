@@ -46,10 +46,10 @@ function SkuLine({
 
   return (
     <div
-      className="grid grid-cols-12 gap-2 items-center py-1.5 px-2 rounded hover:bg-muted/40 text-xs"
-      style={{ paddingLeft: `${depth * 20 + 8}px` }}
+      className="grid grid-cols-14 gap-2 items-center py-1.5 px-2 rounded hover:bg-muted/40 text-xs"
+      style={{ paddingLeft: `${depth * 20 + 8}px`, gridTemplateColumns: 'repeat(14, minmax(0, 1fr))' }}
     >
-      <div className="col-span-5 flex items-center gap-2 min-w-0">
+      <div className="col-span-4 flex items-center gap-2 min-w-0">
         <Badge variant="outline" className="text-[10px] gap-1 shrink-0" title={label}>
           <Icon className="h-2.5 w-2.5" />
           {sigla}
@@ -60,6 +60,15 @@ function SkuLine({
         </span>
       </div>
       <div className="col-span-1 text-right tabular-nums">{fmt(sku.saldo)}</div>
+      <div className="col-span-1 text-right tabular-nums text-muted-foreground" title="Bloqueado">
+        {fmt(sku.bloqueado)}
+      </div>
+      <div className="col-span-1 text-right tabular-nums text-success font-semibold" title="Disponível = Saldo − Bloqueado">
+        {fmt(sku.disponivel)}
+      </div>
+      <div className="col-span-1 text-right tabular-nums text-muted-foreground" title="Pedido pendente">
+        {fmt(sku.pendente)}
+      </div>
       <div className="col-span-2 text-right tabular-nums text-muted-foreground">
         × {fmtFator(sku.fator_un_acumulado)}
       </div>
