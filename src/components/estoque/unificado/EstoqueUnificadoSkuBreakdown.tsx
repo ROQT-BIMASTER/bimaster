@@ -134,7 +134,7 @@ function renderNode(node: TreeNode, depth: number, totalUn: number): JSX.Element
 export function EstoqueUnificadoSkuBreakdown({ row }: Props) {
   const { data, isLoading } = useEstoqueUnificadoSkus(row.empresa, row.produto_raiz);
 
-  const { tree, orphans, totalUn, totalCusto, somaCX, somaBX, somaUN } = useMemo(() => {
+  const { tree, orphans, totalUn, totalCusto, somaCX, somaBX, somaUN, somaBloq, somaDisp, somaPend } = useMemo(() => {
     const rows = data ?? [];
     const { tree, orphans } = buildTree(rows);
     const totalUn = rows.reduce((acc, r) => acc + Number(r.contribuicao_un ?? 0), 0);
@@ -142,22 +142,29 @@ export function EstoqueUnificadoSkuBreakdown({ row }: Props) {
     const somaCX = rows.filter((r) => r.nivel === 1).reduce((a, r) => a + Number(r.saldo ?? 0), 0);
     const somaBX = rows.filter((r) => r.nivel === 2).reduce((a, r) => a + Number(r.saldo ?? 0), 0);
     const somaUN = rows.filter((r) => r.nivel === 3).reduce((a, r) => a + Number(r.saldo ?? 0), 0);
-    return { tree, orphans, totalUn, totalCusto, somaCX, somaBX, somaUN };
+    const somaBloq = rows.reduce((a, r) => a + Number(r.contribuicao_bloqueado_un ?? 0), 0);
+    const somaDisp = rows.reduce((a, r) => a + Number(r.contribuicao_disponivel_un ?? 0), 0);
+    const somaPend = rows.reduce((a, r) => a + Number(r.contribuicao_pendente_un ?? 0), 0);
+    return { tree, orphans, totalUn, totalCusto, somaCX, somaBX, somaUN, somaBloq, somaDisp, somaPend };
   }, [data]);
 
   const divergeTotal = Math.abs(totalUn - Number(row.saldo_total_em_unidades ?? 0)) > 0.5;
 
   const handleCopiarCSV = async () => {
     const rows = data ?? [];
-    const header = ['Nivel', 'Codigo', 'Nome', 'Pai', 'Saldo', 'Fator UN', 'Contribuicao UN', 'Custo total'];
+    const header = ['Nivel', 'Codigo', 'Nome', 'Pai', 'Saldo', 'Bloqueado', 'Disponivel', 'Pendente', 'Fator UN', 'Contribuicao UN', 'Contribuicao Disponivel UN', 'Custo total'];
     const lines = rows.map((r) => [
       nivelInfo(r.nivel).sigla,
       r.cod_produto,
       (r.nome_prod ?? '').replace(/[\r\n;]/g, ' '),
       r.pai_cod ?? '',
       r.saldo,
+      r.bloqueado,
+      r.disponivel,
+      r.pendente,
       r.fator_un_acumulado,
       r.contribuicao_un,
+      r.contribuicao_disponivel_un,
       r.custo_total,
     ].join(';'));
     const csv = [header.join(';'), ...lines].join('\n');
