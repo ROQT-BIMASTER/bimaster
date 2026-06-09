@@ -9,6 +9,9 @@ export interface EstoqueUnificadoRow {
   saldo_em_displays: number;
   saldo_em_unidades: number;
   saldo_total_em_unidades: number;
+  bloqueado_total_em_unidades: number;
+  disponivel_total_em_unidades: number;
+  pendente_total_em_unidades: number;
   custo_total: number;
   skus_envolvidos: number;
   fator_cx_para_un: number | null;
