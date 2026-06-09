@@ -44,11 +44,12 @@ vi.mock('@/integrations/supabase/client', () => {
       };
       return builder;
     }
-    // erp_estoque_distribuidora (enriquecimento de nomes)
+    // erp_estoque_distribuidora (enriquecimento de nomes/abreviações)
     const enrichBuilder: any = {
       select: () => enrichBuilder,
       in: () => enrichBuilder,
       limit: () => Promise.resolve({ data: [], error: null }),
+      range: () => Promise.resolve({ data: [], error: null }),
     };
     return enrichBuilder;
   };
