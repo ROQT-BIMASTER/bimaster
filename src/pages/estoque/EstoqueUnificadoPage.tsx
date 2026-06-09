@@ -99,7 +99,6 @@ export default function EstoqueUnificadoPage() {
         </div>
 
         <EstoqueUnificadoKpis rows={data?.rows ?? []} total={data?.total ?? 0} loading={isFetching} modo={modo} />
-        <DriftErpKpi empresaIds={empresaIds} />
 
         <div className="flex flex-col lg:flex-row lg:items-center gap-3">
           <div className="relative flex-1 max-w-md">
