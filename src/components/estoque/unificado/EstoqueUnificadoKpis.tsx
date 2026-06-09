@@ -94,7 +94,7 @@ export function EstoqueUnificadoKpis({ rows, total, loading, modo = 'fisico' }: 
       { icon: ShieldCheck, label: 'Disponível em UN', value: fmt(totals.disp), hint: 'pronto para venda', tooltip: tooltipDisp, variant: 'success' },
       { icon: Clock, label: 'Pendente em UN', value: fmt(totals.pend), hint: 'pedidos em aberto', tooltip: tooltipPend },
       { icon: Boxes, label: 'Disponível em CX', value: formatCx(cxDisp), hint: cxDispHint, tooltip: tooltipCxDisp, variant: 'primary' },
-      { icon: Layers, label: 'Custo total', value: formatCurrency(totals.custo), hint: `${total.toLocaleString('pt-BR')} produtos-raiz` },
+      
     ];
   }
 
