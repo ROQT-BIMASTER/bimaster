@@ -50,8 +50,23 @@ export interface UseEstoqueUnificadoOpts {
  * a partir de `erp_estoque_distribuidora`.
  */
 export function useEstoqueUnificado(opts: UseEstoqueUnificadoOpts) {
+  // Normaliza a queryKey para que arrays fora de ordem (empresaIds/marcas/linhas)
+  // ou espaços em branco na busca não disfarcem mudanças reais e tampouco causem
+  // cache miss desnecessário.
+  const normalizedKey = {
+    empresaIds: [...opts.empresaIds].sort((a, b) => a - b),
+    busca: (opts.busca ?? '').trim().toLowerCase(),
+    somenteComSaldo: !!opts.somenteComSaldo,
+    page: opts.page,
+    pageSize: opts.pageSize,
+    sortBy: opts.sortBy,
+    sortDir: opts.sortDir,
+    consolidar: !!opts.consolidar,
+    marcas: [...(opts.marcas ?? [])].sort(),
+    linhas: [...(opts.linhas ?? [])].sort(),
+  };
   return useQuery({
-    queryKey: ['estoque-unificado', opts],
+    queryKey: ['estoque-unificado', normalizedKey],
     placeholderData: keepPreviousData,
     staleTime: 60_000,
     refetchInterval: 5 * 60_000,
@@ -260,12 +275,17 @@ export function useEstoqueUnificado(opts: UseEstoqueUnificadoOpts) {
         };
       });
 
-      if (opts.busca) {
-        const b = opts.busca.toLowerCase();
-        enriched = enriched.filter(
-          (r) =>
-            String(r.produto_raiz).includes(b) ||
-            (r.raiz_nome ?? '').toLowerCase().includes(b),
+      // Busca endurecida: trim, mínimo 2 chars; código numérico exige match exato
+      // (evita "55" puxar 9558). Texto pesquisa em nome, marca e linha.
+      const rawBusca = (opts.busca ?? '').trim().toLowerCase();
+      if (rawBusca.length >= 2) {
+        const isNumeric = /^\d+$/.test(rawBusca);
+        enriched = enriched.filter((r) =>
+          isNumeric
+            ? String(r.produto_raiz) === rawBusca
+            : (r.raiz_nome ?? '').toLowerCase().includes(rawBusca)
+              || (r.marca ?? '').toLowerCase().includes(rawBusca)
+              || (r.linha ?? '').toLowerCase().includes(rawBusca),
         );
       }
 
@@ -276,6 +296,12 @@ export function useEstoqueUnificado(opts: UseEstoqueUnificadoOpts) {
       if (opts.linhas && opts.linhas.length) {
         const set = new Set(opts.linhas.map((m) => m.toLowerCase()));
         enriched = enriched.filter((r) => r.linha && set.has(String(r.linha).toLowerCase()));
+      }
+
+      // Filtro defensivo client-side de "Apenas com saldo": espelha o filtro
+      // server-side e impede que linhas com saldo 0 vazem por cache stale.
+      if (opts.somenteComSaldo) {
+        enriched = enriched.filter((r) => Number(r.saldo_total_em_unidades || 0) > 0);
       }
 
       // -------- Consolidação canônica (sempre executada) --------
@@ -320,6 +346,18 @@ export function useEstoqueUnificado(opts: UseEstoqueUnificadoOpts) {
           acc.custo_total += Number(r.custo_total || 0);
           acc.skus_envolvidos = Math.max(acc.skus_envolvidos, Number(r.skus_envolvidos || 0));
           acc.pedidos_count = Number(acc.pedidos_count || 0) + Number(r.pedidos_count || 0);
+          // Prefere o primeiro valor não-nulo encontrado; loga divergência
+          // entre filiais do mesmo produto-raiz (sinaliza lookup sujo).
+          if (r.marca && acc.marca && r.marca !== acc.marca) {
+            logger.warn('[useEstoqueUnificado] marca divergente entre filiais', {
+              produto_raiz: k, marca_a: acc.marca, marca_b: r.marca,
+            });
+          }
+          if (r.linha && acc.linha && r.linha !== acc.linha) {
+            logger.warn('[useEstoqueUnificado] linha divergente entre filiais', {
+              produto_raiz: k, linha_a: acc.linha, linha_b: r.linha,
+            });
+          }
           acc.marca = acc.marca ?? r.marca ?? null;
           acc.linha = acc.linha ?? r.linha ?? null;
           acc.fator_cx_para_un = acc.fator_cx_para_un ?? r.fator_cx_para_un ?? null;
@@ -351,6 +389,36 @@ export function useEstoqueUnificado(opts: UseEstoqueUnificadoOpts) {
       const displaySource = consolidar ? consolidated : enriched;
       const from = opts.page * opts.pageSize;
       const pageRows = displaySource.slice(from, from + opts.pageSize);
+
+      // Diagnóstico: rastreia produto-raiz "watch" (cód. 9558) quando aparece
+      // após qualquer filtro ativo, para auditoria de leak de filtro.
+      if (import.meta.env.DEV) {
+        const WATCH = new Set<number>([9558]);
+        const hits = displaySource.filter((r) => WATCH.has(Number(r.produto_raiz)));
+        if (hits.length) {
+          // eslint-disable-next-line no-console
+          console.debug('[useEstoqueUnificado] watch hit', {
+            filtros: {
+              empresaIds: opts.empresaIds,
+              busca: opts.busca,
+              marcas: opts.marcas,
+              linhas: opts.linhas,
+              somenteComSaldo: opts.somenteComSaldo,
+              consolidar,
+            },
+            hits: hits.map((r) => ({
+              empresa: r.empresa,
+              produto_raiz: r.produto_raiz,
+              marca: r.marca,
+              linha: r.linha,
+              raiz_nome: r.raiz_nome,
+              saldo_total_em_unidades: r.saldo_total_em_unidades,
+              filiais_count: r.filiais_count,
+            })),
+          });
+        }
+      }
+
       return {
         rows: pageRows,
         total: displaySource.length,
