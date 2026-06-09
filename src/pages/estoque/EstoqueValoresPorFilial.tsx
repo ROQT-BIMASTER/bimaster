@@ -16,7 +16,7 @@ import {
   useEstoqueValoresPorFilial, type EstoqueFilialRow,
 } from '@/hooks/estoque/useEstoqueValoresPorFilial';
 import { EstoqueFilialSelect } from '@/components/estoque/visao-geral/EstoqueFilialSelect';
-import { EstoqueUnidadeChips } from '@/components/estoque/visao-geral/EstoqueUnidadeChips';
+
 import { EstoqueFilterPanel } from '@/components/estoque/visao-geral/EstoqueFilterPanel';
 import { EstoqueActiveFilters } from '@/components/estoque/visao-geral/EstoqueActiveFilters';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -197,10 +197,6 @@ export default function EstoqueValoresPorFilial() {
             <EstoqueFilialSelect
               selected={filtrosBase.empresa_ids}
               onChange={(v) => setFiltrosBase({ ...filtrosBase, empresa_ids: v })}
-            />
-            <EstoqueUnidadeChips
-              selected={filtrosBase.unidades}
-              onChange={(v) => setFiltrosBase({ ...filtrosBase, unidades: v })}
             />
           </div>
           <EstoqueActiveFilters filtros={filtrosBase} setFiltros={setFiltrosBase} />
