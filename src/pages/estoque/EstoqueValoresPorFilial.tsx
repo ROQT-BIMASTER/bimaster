@@ -198,10 +198,6 @@ export default function EstoqueValoresPorFilial() {
               selected={filtrosBase.empresa_ids}
               onChange={(v) => setFiltrosBase({ ...filtrosBase, empresa_ids: v })}
             />
-            <EstoqueUnidadeChips
-              selected={filtrosBase.unidades}
-              onChange={(v) => setFiltrosBase({ ...filtrosBase, unidades: v })}
-            />
           </div>
           <EstoqueActiveFilters filtros={filtrosBase} setFiltros={setFiltrosBase} />
         </div>
