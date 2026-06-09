@@ -7,6 +7,7 @@ import { Card } from '@/components/ui/card';
 
 import { useBomPath, useCapacidadeMontagem, type EstoqueUnificadoRow } from '@/hooks/estoque/useEstoqueUnificado';
 import { useEstoqueMovimentos } from '@/hooks/estoque/useEstoqueMovimentos';
+import { disponivelEmCaixas, formatCx } from '@/lib/estoque/modoExibicao';
 import { Boxes, Package, PackageOpen, GitBranch, Wrench, History, Wand2 } from 'lucide-react';
 import { TransformacaoWizard } from './TransformacaoWizard';
 
