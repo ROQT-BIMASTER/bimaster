@@ -116,7 +116,7 @@ Deno.serve(secureHandler(
 
     const { data: rows, error: rowsErr } = await admin
       .from("briefings")
-      .select("id, rrtask_page_id, rrtask_last_edited_time, rrtask_aprovacao, rrtask_data_aprovacao")
+      .select("id, rrtask_page_id, rrtask_last_edited_time, rrtask_aprovacao, rrtask_data_aprovacao, tarefa_id")
       .eq("rrtask_page_id", pageId)
       .limit(1);
 
