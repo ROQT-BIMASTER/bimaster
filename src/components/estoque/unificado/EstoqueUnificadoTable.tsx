@@ -169,12 +169,14 @@ export function EstoqueUnificadoTable(p: Props) {
                     {consolidado ? (
                       (() => {
                         const count = r.filiais_count ?? 1;
-                        const firstAbrev = (r.filiais ?? [])[0]?.abrev ?? r.raiz_abrev ?? null;
+                        const first = (r.filiais ?? [])[0];
+                        const firstLabel =
+                          first?.filial_nome ?? first?.abrev ?? r.filial_nome ?? r.raiz_abrev ?? null;
                         const label =
                           count > 1
                             ? `${count} filiais`
-                            : firstAbrev
-                              ? `${firstAbrev} · 1 filial`
+                            : firstLabel
+                              ? `${firstLabel} · 1 filial`
                               : '1 filial';
                         return (
                           <Tooltip>
@@ -184,13 +186,15 @@ export function EstoqueUnificadoTable(p: Props) {
                               </Badge>
                             </TooltipTrigger>
                             <TooltipContent side="top" className="max-w-xs text-xs">
-                              {(r.filiais ?? []).map((f) => f.abrev || `Empresa ${f.empresa}`).join(' · ')}
+                              {(r.filiais ?? [])
+                                .map((f) => f.filial_nome || f.abrev || `Empresa ${f.empresa}`)
+                                .join(' · ')}
                             </TooltipContent>
                           </Tooltip>
                         );
                       })()
                     ) : (
-                      <Badge variant="outline">{r.raiz_abrev ?? r.empresa}</Badge>
+                      <Badge variant="outline">{r.filial_nome ?? r.raiz_abrev ?? `Empresa ${r.empresa}`}</Badge>
                     )}
                   </TableCell>
                   <TableCell>
