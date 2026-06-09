@@ -58,16 +58,12 @@ export function useEstoqueUnificado(opts: UseEstoqueUnificadoOpts) {
       if (opts.somenteComSaldo) q = q.gt('saldo_total_em_unidades', 0);
       q = q.order(opts.sortBy, { ascending: opts.sortDir === 'asc', nullsFirst: false });
 
-      if (!consolidar) {
-        const from = opts.page * opts.pageSize;
-        const to = from + opts.pageSize - 1;
-        q = q.range(from, to);
-      } else {
-        // limite alto para cobrir o cache inteiro filtrado (≈3267 raízes × N filiais)
-        q = q.range(0, 19999);
-      }
+      // Sempre carrega o dataset completo filtrado (cache pequeno) para que os
+      // KPIs reflitam o total real, idêntico em ambos os modos. Paginação é client-side.
+      q = q.range(0, 19999);
 
-      const { data, error, count } = await q;
+      const { data, error } = await q;
+
       if (error) {
         logger.error('[useEstoqueUnificado] erro ao consultar vw_estoque_unificado', { error });
         throw error;
