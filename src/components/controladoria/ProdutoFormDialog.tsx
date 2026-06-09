@@ -48,12 +48,12 @@ interface Props {
 
 const NULL_SENTINEL = "__none__";
 
-function emptyWf(): Record<string, string | null> {
-  const out: Record<string, string | null> = {};
-  WF_FIELDS.forEach((f) => {
-    out[f] = null;
-  });
-  return out;
+function wfDefaultNovo(): Record<string, string | null> {
+  return Object.fromEntries(WF_FIELDS.map((f) => [f, "NÃO INICIADO"]));
+}
+
+function wfBaseEdicao(): Record<string, string | null> {
+  return Object.fromEntries(WF_FIELDS.map((f) => [f, null]));
 }
 
 function defaultValues(editing?: RrProduto | null): RrProdutoInput {
@@ -69,10 +69,11 @@ function defaultValues(editing?: RrProduto | null): RrProdutoInput {
       composicao_en: false,
       anvisa: null,
       ultima_revisao_regulatoria: null,
-      wf: emptyWf(),
+      wf: wfDefaultNovo(),
     };
   }
-  const wf = { ...emptyWf(), ...(editing.wf ?? {}) };
+  const wf = { ...wfBaseEdicao(), ...(editing.wf ?? {}) };
+
   return {
     sku: editing.sku ?? "",
     nome_comercial: editing.nome_comercial ?? "",
