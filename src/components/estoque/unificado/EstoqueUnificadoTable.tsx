@@ -167,16 +167,28 @@ export function EstoqueUnificadoTable(p: Props) {
                   </TableCell>
                   <TableCell>
                     {consolidado ? (
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Badge variant="secondary" className="cursor-help">
-                            {(r.filiais_count ?? 1)} filia{(r.filiais_count ?? 1) > 1 ? 'is' : 'l'}
-                          </Badge>
-                        </TooltipTrigger>
-                        <TooltipContent side="top" className="max-w-xs text-xs">
-                          {(r.filiais ?? []).map((f) => f.abrev || `Empresa ${f.empresa}`).join(' · ')}
-                        </TooltipContent>
-                      </Tooltip>
+                      (() => {
+                        const count = r.filiais_count ?? 1;
+                        const firstAbrev = (r.filiais ?? [])[0]?.abrev ?? r.raiz_abrev ?? null;
+                        const label =
+                          count > 1
+                            ? `${count} filiais`
+                            : firstAbrev
+                              ? `${firstAbrev} · 1 filial`
+                              : '1 filial';
+                        return (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Badge variant="secondary" className="cursor-help">
+                                {label}
+                              </Badge>
+                            </TooltipTrigger>
+                            <TooltipContent side="top" className="max-w-xs text-xs">
+                              {(r.filiais ?? []).map((f) => f.abrev || `Empresa ${f.empresa}`).join(' · ')}
+                            </TooltipContent>
+                          </Tooltip>
+                        );
+                      })()
                     ) : (
                       <Badge variant="outline">{r.raiz_abrev ?? r.empresa}</Badge>
                     )}
