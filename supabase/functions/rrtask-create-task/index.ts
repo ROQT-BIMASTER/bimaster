@@ -582,7 +582,7 @@ Deno.serve(
           _data_prazo: prazoIso ?? null,
           _sku: pl.sku ? String(pl.sku) : null,
           _user_id: b.user_id,
-            _responsavel_user_id: responsavelUserId,
+          _responsavel_user_id: responsavelUserId,
         });
       } catch (e) {
         await sb.from("rrtask_sync_log").insert({
