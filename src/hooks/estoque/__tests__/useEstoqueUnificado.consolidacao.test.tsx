@@ -32,9 +32,16 @@ const RAW_ROWS = [
   },
 ];
 
-const EMPRESAS_ROWS = [
-  { id: 1, nome: 'Filial São Paulo' },
-  { id: 2, nome: 'Filial Rio de Janeiro' },
+const DIM_EMPRESA_ROWS = [
+  { id_empresa: 1, nome_empresa: 'Filial São Paulo' },
+  { id_empresa: 2, nome_empresa: 'Filial Rio de Janeiro' },
+];
+
+// `abrev_par` no ERP é a fonte canônica do nome da filial (ganha sobre dim_empresa).
+const ABREV_ROWS = [
+  { empresa_par: 1, cod_produto: 100, abrev_par: 'Filial São Paulo' },
+  { empresa_par: 2, cod_produto: 100, abrev_par: 'Filial Rio de Janeiro' },
+  { empresa_par: 1, cod_produto: 200, abrev_par: 'Filial São Paulo' },
 ];
 
 vi.mock('@/integrations/supabase/client', () => {
@@ -49,19 +56,21 @@ vi.mock('@/integrations/supabase/client', () => {
       };
       return builder;
     }
-    if (table === 'empresas') {
+    if (table === 'dim_empresa') {
       const builder: any = {
         select: () => builder,
-        in: () => Promise.resolve({ data: EMPRESAS_ROWS, error: null }),
+        in: () => Promise.resolve({ data: DIM_EMPRESA_ROWS, error: null }),
       };
       return builder;
     }
-    // erp_estoque_distribuidora (enriquecimento de nomes/abreviações)
+    // erp_estoque_distribuidora — devolve ABREV_ROWS para qualquer select.
+    // O loop de nomes lê só cod_produto/nome_prod (campos ausentes = ignorados),
+    // o loop de abreviações lê abrev_par.
     const enrichBuilder: any = {
       select: () => enrichBuilder,
       in: () => enrichBuilder,
-      limit: () => Promise.resolve({ data: [], error: null }),
-      range: () => Promise.resolve({ data: [], error: null }),
+      limit: () => Promise.resolve({ data: ABREV_ROWS, error: null }),
+      range: () => Promise.resolve({ data: ABREV_ROWS, error: null }),
     };
     return enrichBuilder;
   };
