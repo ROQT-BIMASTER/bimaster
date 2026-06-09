@@ -49,8 +49,8 @@ export function EstoqueUnificadoTable(p: Props) {
     </TableHead>
   );
 
-  // +1 chevron, +1 nova coluna "≡ em CX"
-  const colspan = (isFisico ? 8 : 6) + 1 + 1;
+  // +1 chevron, +3 colunas novas (Bloqueado, Disponível, Pendente) +1 "≡ em CX"
+  const colspan = (isFisico ? 8 : 6) + 1 + 3 + 1;
 
   return (
     <TooltipProvider delayDuration={150}>
