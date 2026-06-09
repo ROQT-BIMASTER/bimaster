@@ -132,14 +132,16 @@ export async function applyRrtaskPage(opts: {
     return { kind: "error", message: upErr.message };
   }
 
-  // PR-D2b: espelha status/etapa na projeto_tarefa nativa (read-only mirror).
-  if (briefing.tarefa_id) {
+  // PR-D2b-fix: espelha status/etapa na projeto_tarefa nativa, pareando por
+  // rrtask_page_id (chave única real do RR). briefings.tarefa_id fica 100%
+  // do fluxo de tarefas genéricas — não é mais usado pelo espelho RR.
+  if (briefing.rrtask_page_id) {
     try {
       await sb.from("projeto_tarefas")
         .update({ status, estagio: etapa, updated_at: nowIso })
-        .eq("id", briefing.tarefa_id);
+        .eq("rrtask_page_id", briefing.rrtask_page_id);
     } catch (e) {
-      console.error(`[rrtask-apply-page] mirror tarefa ${briefing.tarefa_id}`, e);
+      console.error(`[rrtask-apply-page] mirror page ${briefing.rrtask_page_id}`, e);
     }
   }
 
