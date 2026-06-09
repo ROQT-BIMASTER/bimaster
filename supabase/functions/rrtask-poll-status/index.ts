@@ -70,7 +70,7 @@ Deno.serve(secureHandler(
 
       const { data: row, error: rowErr } = await admin
         .from("briefings")
-        .select("id, rrtask_page_id, rrtask_last_edited_time, rrtask_aprovacao, rrtask_data_aprovacao")
+        .select("id, rrtask_page_id, rrtask_last_edited_time, rrtask_aprovacao, rrtask_data_aprovacao, tarefa_id")
         .eq("id", body.briefing_id)
         .maybeSingle();
 
@@ -114,7 +114,7 @@ Deno.serve(secureHandler(
     const { data: rows, error: rowsErr } = await admin
       .from("briefings")
       .select(
-        "id, rrtask_page_id, rrtask_last_edited_time, rrtask_aprovacao, rrtask_data_aprovacao",
+        "id, rrtask_page_id, rrtask_last_edited_time, rrtask_aprovacao, rrtask_data_aprovacao, tarefa_id",
       )
       .not("rrtask_page_id", "is", null)
       .order("rrtask_last_polled_at", { ascending: true, nullsFirst: true })

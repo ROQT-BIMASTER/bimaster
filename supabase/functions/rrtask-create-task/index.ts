@@ -350,6 +350,27 @@ Deno.serve(
           rrtask_synced_at: new Date().toISOString(),
         }).eq("id", b.id);
 
+        // PR-D2b: materializa projeto_tarefa nativa espelhando a RR-Task.
+        try {
+          await sb.rpc("rpc_rrtask_materializar_tarefa", {
+            _briefing_id: b.id,
+            _rrtask_page_id: pageId,
+            _titulo: b.titulo ?? "Briefing",
+            _data_prazo: prazoIso ?? null,
+            _sku: pl.sku ? String(pl.sku) : null,
+            _user_id: b.user_id,
+          });
+        } catch (e) {
+          await sb.from("rrtask_sync_log").insert({
+            briefing_id: b.id,
+            user_id: ctx.userId,
+            action: "error",
+            status: "error",
+            rrtask_page_id: pageId,
+            error_message: `materialize_failed: ${String((e as Error)?.message ?? e).slice(0, 500)}`,
+          });
+        }
+
         await sb.from("briefing_versoes").insert({
           briefing_id: b.id,
           round: 1,
@@ -444,6 +465,27 @@ Deno.serve(
           rrtask_synced_at: new Date().toISOString(),
         }).eq("id", b.id);
 
+        // PR-D2b: best-effort mirror (cria a tarefa nativa caso ainda não exista).
+        try {
+          await sb.rpc("rpc_rrtask_materializar_tarefa", {
+            _briefing_id: b.id,
+            _rrtask_page_id: pageId,
+            _titulo: b.titulo ?? "Briefing",
+            _data_prazo: prazoIso ?? null,
+            _sku: pl.sku ? String(pl.sku) : null,
+            _user_id: b.user_id,
+          });
+        } catch (e) {
+          await sb.from("rrtask_sync_log").insert({
+            briefing_id: b.id,
+            user_id: ctx.userId,
+            action: "error",
+            status: "error",
+            rrtask_page_id: pageId,
+            error_message: `materialize_failed: ${String((e as Error)?.message ?? e).slice(0, 500)}`,
+          });
+        }
+
         await sb.from("briefing_versoes").insert({
           briefing_id: b.id,
           round: novoRound,
@@ -516,6 +558,27 @@ Deno.serve(
         rrtask_page_url: pageUrl,
         rrtask_synced_at: new Date().toISOString(),
       }).eq("id", b.id);
+
+      // PR-D2b: materializa/atualiza projeto_tarefa nativa espelhando a RR-Task.
+      try {
+        await sb.rpc("rpc_rrtask_materializar_tarefa", {
+          _briefing_id: b.id,
+          _rrtask_page_id: pageId,
+          _titulo: b.titulo ?? "Briefing",
+          _data_prazo: prazoIso ?? null,
+          _sku: pl.sku ? String(pl.sku) : null,
+          _user_id: b.user_id,
+        });
+      } catch (e) {
+        await sb.from("rrtask_sync_log").insert({
+          briefing_id: b.id,
+          user_id: ctx.userId,
+          action: "error",
+          status: "error",
+          rrtask_page_id: pageId,
+          error_message: `materialize_failed: ${String((e as Error)?.message ?? e).slice(0, 500)}`,
+        });
+      }
 
       await sb.from("rrtask_sync_log").insert({
         briefing_id: b.id,

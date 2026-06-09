@@ -18,6 +18,7 @@ export interface BriefingMirrorRow {
   rrtask_last_edited_time: string | null;
   rrtask_aprovacao?: string | null;
   rrtask_data_aprovacao?: string | null;
+  tarefa_id?: string | null;
 }
 
 const sel = (p: unknown) =>
@@ -129,6 +130,17 @@ export async function applyRrtaskPage(opts: {
       error_message: `db_update: ${upErr.message}`,
     });
     return { kind: "error", message: upErr.message };
+  }
+
+  // PR-D2b: espelha status/etapa na projeto_tarefa nativa (read-only mirror).
+  if (briefing.tarefa_id) {
+    try {
+      await sb.from("projeto_tarefas")
+        .update({ status, estagio: etapa, updated_at: nowIso })
+        .eq("id", briefing.tarefa_id);
+    } catch (e) {
+      console.error(`[rrtask-apply-page] mirror tarefa ${briefing.tarefa_id}`, e);
+    }
   }
 
   await sb.from("rrtask_sync_log").insert({
