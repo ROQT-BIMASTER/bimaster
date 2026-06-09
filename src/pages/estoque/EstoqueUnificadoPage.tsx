@@ -4,10 +4,11 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { Search, RefreshCw } from 'lucide-react';
+import { Search, RefreshCw, ChevronDown, Check } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useEstoqueOptions } from '@/hooks/estoque/useEstoqueFiltrosOptions';
+import { useMarcasLinhasOptions } from '@/hooks/estoque/useMarcasLinhasOptions';
 import {
   useEstoqueUnificado,
   type EstoqueUnificadoRow,
@@ -18,7 +19,66 @@ import { EstoqueUnificadoTable } from '@/components/estoque/unificado/EstoqueUni
 import { EstoqueUnificadoDrawer } from '@/components/estoque/unificado/EstoqueUnificadoDrawer';
 import { Badge } from '@/components/ui/badge';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { cn } from '@/lib/utils';
 import type { ModoExibicao } from '@/lib/estoque/modoExibicao';
+
+function MultiSelectChip({
+  label, options, selected, onChange,
+}: {
+  label: string;
+  options: string[];
+  selected: string[];
+  onChange: (v: string[]) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const toggle = (v: string) => {
+    if (selected.includes(v)) onChange(selected.filter((x) => x !== v));
+    else onChange([...selected, v]);
+  };
+  const triggerLabel =
+    selected.length === 0
+      ? label
+      : selected.length === 1
+        ? `${label}: ${selected[0]}`
+        : `${label}: ${selected.length}`;
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          variant={selected.length ? 'default' : 'outline'}
+          size="sm"
+          className="h-7 text-xs gap-1"
+        >
+          {triggerLabel}
+          <ChevronDown className="h-3 w-3 opacity-60" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-[260px] p-0 z-[60]" align="start">
+        <Command>
+          <CommandInput placeholder={`Buscar ${label.toLowerCase()}...`} className="h-9" />
+          <CommandList>
+            <CommandEmpty>Nada encontrado.</CommandEmpty>
+            <CommandGroup>
+              {selected.length > 0 && (
+                <CommandItem onSelect={() => onChange([])} className="text-muted-foreground">
+                  Limpar seleção
+                </CommandItem>
+              )}
+              {options.map((o) => (
+                <CommandItem key={o} onSelect={() => toggle(o)}>
+                  <Check className={cn('h-4 w-4 mr-2', selected.includes(o) ? 'opacity-100' : 'opacity-0')} />
+                  {o}
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  );
+}
 
 function useDebounce<T>(value: T, delay = 300): T {
   const [v, setV] = useState(value);
@@ -39,6 +99,8 @@ export default function EstoqueUnificadoPage() {
   const [pageSize] = useState(50);
   const [sortBy, setSortBy] = useState<UseEstoqueUnificadoOpts['sortBy']>('saldo_total_em_unidades');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
+  const [marcas, setMarcas] = useState<string[]>([]);
+  const [linhas, setLinhas] = useState<string[]>([]);
 
   const [selected, setSelected] = useState<EstoqueUnificadoRow | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -46,8 +108,10 @@ export default function EstoqueUnificadoPage() {
   const [modo, setModo] = useState<ModoExibicao>('fisico');
 
   const { data: opts } = useEstoqueOptions();
+  const { data: marcasLinhasOpts } = useMarcasLinhasOptions();
   const { data, isFetching, refetch, error } = useEstoqueUnificado({
     empresaIds, busca: buscaDeb, somenteComSaldo, page, pageSize, sortBy, sortDir, consolidar,
+    marcas, linhas,
   });
 
   useEffect(() => {
@@ -155,6 +219,31 @@ export default function EstoqueUnificadoPage() {
             {empresaIds.length > 0 && (
               <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => { setEmpresaIds([]); setPage(0); }}>
                 Limpar
+              </Button>
+            )}
+
+            <span className="mx-1 h-5 w-px bg-border" aria-hidden />
+
+            <MultiSelectChip
+              label="Marca"
+              options={marcasLinhasOpts?.marcas ?? []}
+              selected={marcas}
+              onChange={(v) => { setMarcas(v); setPage(0); }}
+            />
+            <MultiSelectChip
+              label="Linha"
+              options={marcasLinhasOpts?.linhas ?? []}
+              selected={linhas}
+              onChange={(v) => { setLinhas(v); setPage(0); }}
+            />
+            {(marcas.length > 0 || linhas.length > 0) && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 text-xs"
+                onClick={() => { setMarcas([]); setLinhas([]); setPage(0); }}
+              >
+                Limpar marca/linha
               </Button>
             )}
           </div>

@@ -59,8 +59,8 @@ export function EstoqueUnificadoTable(p: Props) {
     </TableHead>
   );
 
-  // +1 chevron, +3 colunas novas (Bloqueado, Disponível, Pendente) +1 "≡ em CX"
-  const colspan = (isFisico ? 8 : 6) + 1 + 3 + 1;
+  // +1 chevron, +3 colunas (Bloqueado, Disponível, Pendente) +1 Pedidos +1 "≡ em CX"
+  const colspan = (isFisico ? 8 : 6) + 1 + 3 + 1 + 1;
 
   return (
     <TooltipProvider delayDuration={150}>
@@ -112,6 +112,23 @@ export function EstoqueUnificadoTable(p: Props) {
                   </TooltipContent>
                 </Tooltip>
               </span>
+            </TableHead>
+            <TableHead className="text-right">
+              <button
+                onClick={() => p.setSort('pedidos_count' as any)}
+                className="inline-flex items-center gap-1 font-medium hover:text-foreground"
+              >
+                Pedidos
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="h-3 w-3 text-muted-foreground/60 cursor-help" onClick={(e) => e.stopPropagation()} />
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="max-w-xs text-xs">
+                    Quantidade de pedidos em aberto (distintos) que contêm SKUs deste produto-raiz.
+                  </TooltipContent>
+                </Tooltip>
+                <SortIcon active={p.sortBy === ('pedidos_count' as any)} dir={p.sortDir} />
+              </button>
             </TableHead>
             <TableHead className="text-right">
               <span className="inline-flex items-center gap-1 font-medium">
@@ -237,6 +254,13 @@ export function EstoqueUnificadoTable(p: Props) {
                   <TableCell className="text-right tabular-nums text-muted-foreground">
                     {fmt(r.pendente_total_em_unidades)}
                   </TableCell>
+                  <TableCell className="text-right tabular-nums">
+                    {r.pedidos_count && r.pedidos_count > 0 ? (
+                      <span className="font-medium">{r.pedidos_count.toLocaleString('pt-BR')}</span>
+                    ) : (
+                      <span className="text-muted-foreground">—</span>
+                    )}
+                  </TableCell>
                   <TableCell className="text-right tabular-nums text-primary font-semibold bg-primary/5">
                     {(() => {
                       const cx = disponivelEmCaixas(r);
@@ -277,6 +301,7 @@ export function EstoqueUnificadoTable(p: Props) {
                                 <TableHead className="text-right">Bloqueado</TableHead>
                                 <TableHead className="text-right text-success">Disponível</TableHead>
                                 <TableHead className="text-right">Pendente</TableHead>
+                                <TableHead className="text-right">Pedidos</TableHead>
                                 
                               </TableRow>
                             </TableHeader>
@@ -293,6 +318,7 @@ export function EstoqueUnificadoTable(p: Props) {
                                   <TableCell className="text-right tabular-nums text-muted-foreground">{fmt(f.bloqueado_total_em_unidades)}</TableCell>
                                   <TableCell className="text-right tabular-nums font-semibold text-success">{fmt(f.disponivel_total_em_unidades)}</TableCell>
                                   <TableCell className="text-right tabular-nums text-muted-foreground">{fmt(f.pendente_total_em_unidades)}</TableCell>
+                                  <TableCell className="text-right tabular-nums">{f.pedidos_count && f.pedidos_count > 0 ? f.pedidos_count.toLocaleString('pt-BR') : <span className="text-muted-foreground">—</span>}</TableCell>
                                   
                                 </TableRow>
                               ))}
