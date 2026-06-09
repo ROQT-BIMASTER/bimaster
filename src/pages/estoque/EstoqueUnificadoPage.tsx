@@ -103,8 +103,8 @@ export default function EstoqueUnificadoPage() {
   const [consolidar, setConsolidar] = useState(false);
   const [page, setPage] = useState(0);
   const [pageSize] = useState(50);
-  const [sortBy, setSortBy] = useState<UseEstoqueUnificadoOpts['sortBy']>('saldo_total_em_unidades');
-  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
+  const tablePrefs = useEstoqueUnificadoTablePrefs();
+  const { sortBy, sortDir, isHidden, toggle, reset, setSort } = tablePrefs;
   const [marcas, setMarcas] = useState<string[]>([]);
   const [linhas, setLinhas] = useState<string[]>([]);
 
@@ -113,10 +113,17 @@ export default function EstoqueUnificadoPage() {
   const [recalculando, setRecalculando] = useState(false);
   const [modo, setModo] = useState<ModoExibicao>('fisico');
 
+  // Quando o sort selecionado não é nativo do backend, mantemos um sort estável
+  // (default) para a query e o sort real é aplicado client-side na tabela.
+  const backendSortBy: UseEstoqueUnificadoOpts['sortBy'] = BACKEND_SORT_KEYS.has(sortBy)
+    ? (sortBy as UseEstoqueUnificadoOpts['sortBy'])
+    : 'saldo_total_em_unidades';
+
   const { data: opts } = useEstoqueOptions();
   const { data: marcasLinhasOpts } = useMarcasLinhasOptions();
   const { data, isFetching, refetch, error } = useEstoqueUnificado({
-    empresaIds, busca: buscaDeb, somenteComSaldo, page, pageSize, sortBy, sortDir, consolidar,
+    empresaIds, busca: buscaDeb, somenteComSaldo, page, pageSize,
+    sortBy: backendSortBy, sortDir, consolidar,
     marcas, linhas,
   });
 
@@ -124,11 +131,11 @@ export default function EstoqueUnificadoPage() {
     if (error) toast.error('Falha ao carregar estoque unificado: ' + ((error as any)?.message ?? 'erro desconhecido'));
   }, [error]);
 
-  const handleSort = (k: UseEstoqueUnificadoOpts['sortBy']) => {
-    if (sortBy === k) setSortDir(sortDir === 'asc' ? 'desc' : 'asc');
-    else { setSortBy(k); setSortDir('desc'); }
+  const handleSort = (k: typeof sortBy) => {
+    setSort(k);
     setPage(0);
   };
+
 
   const recalcular = async () => {
     setRecalculando(true);
