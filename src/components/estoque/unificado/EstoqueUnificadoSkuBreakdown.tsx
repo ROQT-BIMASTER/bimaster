@@ -3,7 +3,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Boxes, Package, PackageOpen, Copy, Info, AlertTriangle } from 'lucide-react';
-import { formatCurrency } from '@/lib/formatters';
+
 import { toast } from 'sonner';
 import {
   useEstoqueUnificadoSkus,
