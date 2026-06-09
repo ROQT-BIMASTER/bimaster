@@ -83,6 +83,7 @@ export function useEstoqueUnificado(opts: UseEstoqueUnificadoOpts) {
       const empresas = Array.from(new Set(rawRows.map((r) => r.empresa).filter((v) => v != null)));
       const nomesPorCod = new Map<number, string | null>();
       const abrevPorEmpresaCod = new Map<string, string | null>();
+      const filialNomePorEmpresa = new Map<number, string | null>();
 
       const CHUNK = 500;
       const toChunks = <T,>(arr: T[], size: number): T[][] => {
@@ -90,6 +91,18 @@ export function useEstoqueUnificado(opts: UseEstoqueUnificadoOpts) {
         for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
         return out;
       };
+
+      // Nome oficial das filiais (tabela `empresas`). É essa a fonte usada
+      // no restante do sistema (EmpresaContext, RPC `estoque_filtro_opcoes`).
+      if (empresas.length) {
+        const { data: empresasData } = await supabase
+          .from('empresas')
+          .select('id,nome')
+          .in('id', empresas);
+        (empresasData ?? []).forEach((e: any) => {
+          if (e?.id != null) filialNomePorEmpresa.set(Number(e.id), e.nome ?? null);
+        });
+      }
 
       if (codigos.length) {
         const codChunks = toChunks(codigos, CHUNK);
@@ -135,11 +148,22 @@ export function useEstoqueUnificado(opts: UseEstoqueUnificadoOpts) {
         }
       }
 
-      let enriched = rawRows.map((r) => ({
-        ...r,
-        raiz_nome: nomesPorCod.get(r.produto_raiz) ?? null,
-        raiz_abrev: abrevPorEmpresaCod.get(`${r.empresa}|${r.produto_raiz}`) ?? null,
-      }));
+      const resolveFilialNome = (empresaId: number, abrev: string | null | undefined): string | null => {
+        const oficial = filialNomePorEmpresa.get(Number(empresaId));
+        if (oficial) return oficial;
+        if (abrev) return abrev;
+        return null;
+      };
+
+      let enriched = rawRows.map((r) => {
+        const abrev = abrevPorEmpresaCod.get(`${r.empresa}|${r.produto_raiz}`) ?? null;
+        return {
+          ...r,
+          raiz_nome: nomesPorCod.get(r.produto_raiz) ?? null,
+          raiz_abrev: abrev,
+          filial_nome: resolveFilialNome(r.empresa, abrev),
+        };
+      });
 
       if (opts.busca) {
         const b = opts.busca.toLowerCase();
