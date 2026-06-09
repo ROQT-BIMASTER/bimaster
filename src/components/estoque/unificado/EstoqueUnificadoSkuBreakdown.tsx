@@ -250,7 +250,8 @@ export function EstoqueUnificadoSkuBreakdown({ row }: Props) {
       )}
 
       {/* Totalizador batendo com a linha-pai */}
-      <div className="mt-3 pt-3 border-t border-border space-y-1.5">
+      <div className="mt-3 pt-3 border-t border-border space-y-2">
+        {/* Linha 1: somas físicas por nível */}
         <div className="grid grid-cols-12 gap-2 text-xs">
           <div className="col-span-5 font-semibold flex items-center gap-2">
             Totais da composição
@@ -282,9 +283,33 @@ export function EstoqueUnificadoSkuBreakdown({ row }: Props) {
             {formatCurrency(totalCusto)}
           </div>
         </div>
+
+        {/* Linha 2: bloqueado / disponível / pendente em UN equivalente */}
+        <div className="grid grid-cols-12 gap-2 text-xs items-end">
+          <div className="col-span-5 text-[10px] text-muted-foreground">
+            Convertido em UN equivalente (saldo bruto vs reservas):
+          </div>
+          <div className="col-span-2 text-right tabular-nums text-muted-foreground">
+            <span className="text-[9px] uppercase block">Bloqueado UN</span>
+            {fmt(somaBloq)}
+          </div>
+          <div className="col-span-2 text-right tabular-nums text-success font-bold">
+            <span className="text-[9px] uppercase block">Disponível UN</span>
+            {fmt(somaDisp)}
+          </div>
+          <div className="col-span-2 text-right tabular-nums text-muted-foreground">
+            <span className="text-[9px] uppercase block">Pendente UN</span>
+            {fmt(somaPend)}
+          </div>
+          <div className="col-span-1" />
+        </div>
+
         <div className="text-[10px] text-muted-foreground px-1">
           Linha-pai reporta: CX {fmt(row.saldo_em_caixas)} · BX {fmt(row.saldo_em_displays)} · UN{' '}
-          {fmt(row.saldo_em_unidades)} · Total UN <strong>{fmt(row.saldo_total_em_unidades)}</strong> · Custo{' '}
+          {fmt(row.saldo_em_unidades)} · Total UN <strong>{fmt(row.saldo_total_em_unidades)}</strong> ·{' '}
+          <span className="text-success">Disp. <strong>{fmt(row.disponivel_total_em_unidades)}</strong></span>{' '}
+          · Bloq. <strong>{fmt(row.bloqueado_total_em_unidades)}</strong> · Pend.{' '}
+          <strong>{fmt(row.pendente_total_em_unidades)}</strong> · Custo{' '}
           <strong>{formatCurrency(Number(row.custo_total ?? 0))}</strong>
           {divergeTotal && (
             <span className="text-yellow-700 dark:text-yellow-400">
