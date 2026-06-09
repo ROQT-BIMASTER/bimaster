@@ -117,6 +117,11 @@ export default function EstoqueUnificadoPage() {
             <Switch id="com-saldo" checked={somenteComSaldo} onCheckedChange={(v) => { setSomenteComSaldo(v); setPage(0); }} />
           </div>
 
+          <div className="flex items-center gap-2" title="Soma os saldos do mesmo SKU em todas as empresas">
+            <Label htmlFor="consolidar" className="text-sm">Consolidar empresas</Label>
+            <Switch id="consolidar" checked={consolidar} onCheckedChange={(v) => { setConsolidar(v); setPage(0); }} />
+          </div>
+
           <ToggleGroup
             type="single"
             value={modo}
