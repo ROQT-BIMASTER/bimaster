@@ -187,6 +187,7 @@ Deno.serve(secureHandler(
           wf,
           raw: P,
           synced_at: now,
+          origem: "notion",
         };
       });
       if (rows.length) {
