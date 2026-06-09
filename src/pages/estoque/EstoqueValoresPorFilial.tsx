@@ -16,7 +16,7 @@ import {
   useEstoqueValoresPorFilial, type EstoqueFilialRow,
 } from '@/hooks/estoque/useEstoqueValoresPorFilial';
 import { EstoqueFilialSelect } from '@/components/estoque/visao-geral/EstoqueFilialSelect';
-import { EstoqueUnidadeChips } from '@/components/estoque/visao-geral/EstoqueUnidadeChips';
+
 import { EstoqueFilterPanel } from '@/components/estoque/visao-geral/EstoqueFilterPanel';
 import { EstoqueActiveFilters } from '@/components/estoque/visao-geral/EstoqueActiveFilters';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
