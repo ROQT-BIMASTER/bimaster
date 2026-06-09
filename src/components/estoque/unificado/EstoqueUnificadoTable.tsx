@@ -230,9 +230,49 @@ export function EstoqueUnificadoTable(p: Props) {
                   <TableCell className="text-right tabular-nums">{r.skus_envolvidos}</TableCell>
                 </TableRow>
                 {isExpanded && (
-                  <TableRow key={`${key}-expanded`} className="hover:bg-transparent">
+                  <TableRow key={`${key}-expanded`} className="hover:bg-transparent bg-muted/20">
                     <TableCell colSpan={colspan} className="p-0">
-                      <EstoqueUnificadoSkuBreakdown row={r} />
+                      {consolidado ? (
+                        <div className="p-3 space-y-1">
+                          <div className="text-[11px] uppercase tracking-wide text-muted-foreground px-1">
+                            Detalhamento por filial
+                          </div>
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead>Filial</TableHead>
+                                <TableHead className="text-right">Caixas</TableHead>
+                                <TableHead className="text-right">Displays</TableHead>
+                                <TableHead className="text-right">Unidades</TableHead>
+                                <TableHead className="text-right">≡ Total UN</TableHead>
+                                <TableHead className="text-right">Bloqueado</TableHead>
+                                <TableHead className="text-right text-success">Disponível</TableHead>
+                                <TableHead className="text-right">Pendente</TableHead>
+                                <TableHead className="text-right">Custo</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {(r.filiais_rows ?? []).map((f) => (
+                                <TableRow key={`${key}-f-${f.empresa}`}>
+                                  <TableCell>
+                                    <Badge variant="outline">{f.raiz_abrev ?? f.empresa}</Badge>
+                                  </TableCell>
+                                  <TableCell className="text-right tabular-nums">{fmt(f.saldo_em_caixas)}</TableCell>
+                                  <TableCell className="text-right tabular-nums">{fmt(f.saldo_em_displays)}</TableCell>
+                                  <TableCell className="text-right tabular-nums">{fmt(f.saldo_em_unidades)}</TableCell>
+                                  <TableCell className="text-right tabular-nums font-semibold">{fmt(f.saldo_total_em_unidades)}</TableCell>
+                                  <TableCell className="text-right tabular-nums text-muted-foreground">{fmt(f.bloqueado_total_em_unidades)}</TableCell>
+                                  <TableCell className="text-right tabular-nums font-semibold text-success">{fmt(f.disponivel_total_em_unidades)}</TableCell>
+                                  <TableCell className="text-right tabular-nums text-muted-foreground">{fmt(f.pendente_total_em_unidades)}</TableCell>
+                                  <TableCell className="text-right tabular-nums">{formatCurrency(Number(f.custo_total ?? 0))}</TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        </div>
+                      ) : (
+                        <EstoqueUnificadoSkuBreakdown row={r} />
+                      )}
                     </TableCell>
                   </TableRow>
                 )}
