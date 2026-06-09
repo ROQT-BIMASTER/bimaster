@@ -261,6 +261,7 @@ export default function EstoqueValoresPorFilial() {
                   >
                     <span className={cn('inline-flex items-center gap-1', c.align === 'right' && 'flex-row-reverse')}>
                       {c.label}
+                      {c.key === 'valor_total' && <FatorBadge className="text-[10px] px-1.5 py-0" />}
                       {sortBy === c.key
                         ? (sortDir === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />)
                         : <ArrowUpDown className="h-3 w-3 opacity-30" />}
