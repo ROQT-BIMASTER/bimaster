@@ -1,7 +1,7 @@
 import ExcelJS from 'exceljs';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { formatInTimeZone } from 'date-fns-tz';
+
 import type { EstoqueUnificadoRow } from '@/hooks/estoque/useEstoqueUnificado';
 import type { ModoExibicao } from '@/lib/estoque/modoExibicao';
 
