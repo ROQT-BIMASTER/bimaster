@@ -205,4 +205,35 @@ describe('useEstoqueUnificado — paridade entre modos consolidado / não consol
       expect(Number(cons.custo_total)).toBe(custoOff);
     }
   });
+
+  it('linhas carregam o nome oficial da filial (sem cair para número)', async () => {
+    const w = wrapper();
+    const offHook = renderHook(() => useEstoqueUnificado({ ...baseOpts, consolidar: false }), { wrapper: w });
+    const onHook = renderHook(() => useEstoqueUnificado({ ...baseOpts, consolidar: true }), { wrapper: w });
+
+    await waitFor(() => expect(offHook.result.current.data).toBeTruthy());
+    await waitFor(() => expect(onHook.result.current.data).toBeTruthy());
+
+    const off = offHook.result.current.data!.rows;
+    const on = onHook.result.current.data!.rows;
+
+    const nomeEsperado: Record<number, string> = {
+      1: 'Filial São Paulo',
+      2: 'Filial Rio de Janeiro',
+    };
+
+    for (const r of off) {
+      expect(r.filial_nome).toBe(nomeEsperado[r.empresa]);
+      expect(r.filial_nome).not.toMatch(/^\d+$/);
+    }
+
+    for (const cons of on) {
+      for (const f of cons.filiais ?? []) {
+        expect(f.filial_nome).toBe(nomeEsperado[f.empresa]);
+      }
+      for (const fr of cons.filiais_rows ?? []) {
+        expect(fr.filial_nome).toBe(nomeEsperado[fr.empresa]);
+      }
+    }
+  });
 });
