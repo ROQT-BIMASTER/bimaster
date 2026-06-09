@@ -35,13 +35,22 @@ export function converterParaModo(
 }
 
 /**
- * Equivalente em caixas máster (pode ser fracionário).
- * Retorna null quando o fator CX não está disponível.
+ * Equivalente em caixas máster do TOTAL em UN (saldo bruto, sem abater bloqueado).
  */
 export function equivalenteEmCaixas(row: EstoqueUnificadoRow): number | null {
   const totalUn = Number(row.saldo_total_em_unidades || 0);
   const f = Number(row.fator_cx_para_un || 0);
   return f > 0 ? totalUn / f : null;
+}
+
+/**
+ * Equivalente em caixas máster do DISPONÍVEL (saldo − bloqueado).
+ * É o número que importa para apoio a vendas/compras.
+ */
+export function disponivelEmCaixas(row: EstoqueUnificadoRow): number | null {
+  const dispUn = Number(row.disponivel_total_em_unidades || 0);
+  const f = Number(row.fator_cx_para_un || 0);
+  return f > 0 ? dispUn / f : null;
 }
 
 export function formatCx(value: number | null | undefined): string {
