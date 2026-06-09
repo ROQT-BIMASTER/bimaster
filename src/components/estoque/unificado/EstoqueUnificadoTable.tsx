@@ -312,3 +312,110 @@ export function EstoqueUnificadoTable(p: Props) {
     </TooltipProvider>
   );
 }
+
+function pctFmt(v: number) {
+  return `${(v * 100).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%`;
+}
+
+function ValidacaoBadge({ validacao }: { validacao: ValidacaoErpRow | undefined }) {
+  if (!validacao) return null;
+  const resumo = resumirValidacao(validacao);
+
+  const Icon =
+    resumo.status === 'divergente' ? AlertTriangle :
+    resumo.status === 'defasado' ? Clock :
+    CheckCircle2;
+
+  const colorCls =
+    resumo.status === 'divergente' ? 'text-destructive' :
+    resumo.status === 'defasado' ? 'text-warning' :
+    'text-success/70';
+
+  const label =
+    resumo.status === 'divergente' ? `Divergência ERP ${pctFmt(resumo.pior_desvio_rel)}` :
+    resumo.status === 'defasado' ? `${validacao.filiais_defasadas} filial(is) defasada(s)` :
+    'Conferido com ERP';
+
+  // Em status "ok" exibimos somente um ícone discreto ao passar o mouse — sem badge ruidoso.
+  const isOk = resumo.status === 'ok';
+
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <button
+          type="button"
+          className={`shrink-0 inline-flex items-center gap-1 rounded px-1 py-0.5 text-[10px] font-medium cursor-help ${
+            isOk ? 'opacity-40 hover:opacity-100' : `${colorCls} bg-current/10`
+          }`}
+          aria-label={label}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <Icon className={`h-3 w-3 ${colorCls}`} />
+          {!isOk && <span className={colorCls}>{resumo.status === 'divergente' ? pctFmt(resumo.pior_desvio_rel) : 'sync'}</span>}
+        </button>
+      </TooltipTrigger>
+      <TooltipContent side="right" className="max-w-sm text-xs space-y-2">
+        <div className="font-medium">{label}</div>
+        <table className="w-full text-[11px] tabular-nums">
+          <thead className="text-muted-foreground">
+            <tr>
+              <th className="text-left font-normal">Métrica</th>
+              <th className="text-right font-normal">Cache</th>
+              <th className="text-right font-normal">ERP</th>
+              <th className="text-right font-normal">Δ</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Total UN</td>
+              <td className="text-right">{Math.round(validacao.cache_saldo_total_em_unidades).toLocaleString('pt-BR')}</td>
+              <td className="text-right">{Math.round(validacao.erp_saldo_total_em_unidades).toLocaleString('pt-BR')}</td>
+              <td className={`text-right ${resumo.rel_saldo > 0 ? 'text-destructive font-medium' : ''}`}>
+                {Math.round(validacao.delta_saldo_total_em_unidades).toLocaleString('pt-BR')}
+              </td>
+            </tr>
+            <tr>
+              <td>Bloqueado</td>
+              <td className="text-right">{Math.round(validacao.cache_bloqueado_total_em_unidades).toLocaleString('pt-BR')}</td>
+              <td className="text-right">{Math.round(validacao.erp_bloqueado_total_em_unidades).toLocaleString('pt-BR')}</td>
+              <td className={`text-right ${resumo.rel_bloqueado > 0 ? 'text-destructive font-medium' : ''}`}>
+                {Math.round(validacao.delta_bloqueado_total_em_unidades).toLocaleString('pt-BR')}
+              </td>
+            </tr>
+            <tr>
+              <td>Disponível</td>
+              <td className="text-right">{Math.round(validacao.cache_disponivel_total_em_unidades).toLocaleString('pt-BR')}</td>
+              <td className="text-right">{Math.round(validacao.erp_disponivel_total_em_unidades).toLocaleString('pt-BR')}</td>
+              <td className={`text-right ${resumo.rel_disponivel > 0 ? 'text-destructive font-medium' : ''}`}>
+                {Math.round(validacao.delta_disponivel_total_em_unidades).toLocaleString('pt-BR')}
+              </td>
+            </tr>
+            <tr>
+              <td>Custo</td>
+              <td className="text-right">{formatCurrency(validacao.cache_custo_total)}</td>
+              <td className="text-right">{formatCurrency(validacao.erp_custo_total)}</td>
+              <td className={`text-right ${resumo.rel_custo > 0 ? 'text-destructive font-medium' : ''}`}>
+                {formatCurrency(validacao.delta_custo_total)}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <div className="border-t pt-1 space-y-0.5">
+          <div className="text-muted-foreground">Sincronização por filial:</div>
+          {validacao.filiais_sync.map((f) => {
+            const idade = f.idade_horas ?? 0;
+            const stale = idade > 24;
+            return (
+              <div key={f.empresa} className="flex justify-between gap-2">
+                <span>{f.abrev || `Empresa ${f.empresa}`}</span>
+                <span className={stale ? 'text-warning' : 'text-muted-foreground'}>
+                  {idade < 1 ? `${Math.round(idade * 60)} min` : `${Math.round(idade)}h`} atrás
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      </TooltipContent>
+    </Tooltip>
+  );
+}
