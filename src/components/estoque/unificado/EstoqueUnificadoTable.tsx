@@ -239,7 +239,7 @@ export function EstoqueUnificadoTable(p: Props) {
                       return <span>{formatCx(cx)} <span className="text-[10px] opacity-70">CX</span></span>;
                     })()}
                   </TableCell>
-                  <TableCell className="text-right tabular-nums">{formatCurrency(Number(r.custo_total ?? 0))}</TableCell>
+                  
                   <TableCell className="text-right tabular-nums">{r.skus_envolvidos}</TableCell>
                 </TableRow>
                 {isExpanded && (
