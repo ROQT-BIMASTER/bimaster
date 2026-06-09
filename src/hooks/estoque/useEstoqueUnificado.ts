@@ -50,8 +50,23 @@ export interface UseEstoqueUnificadoOpts {
  * a partir de `erp_estoque_distribuidora`.
  */
 export function useEstoqueUnificado(opts: UseEstoqueUnificadoOpts) {
+  // Normaliza a queryKey para que arrays fora de ordem (empresaIds/marcas/linhas)
+  // ou espaços em branco na busca não disfarcem mudanças reais e tampouco causem
+  // cache miss desnecessário.
+  const normalizedKey = {
+    empresaIds: [...opts.empresaIds].sort((a, b) => a - b),
+    busca: (opts.busca ?? '').trim().toLowerCase(),
+    somenteComSaldo: !!opts.somenteComSaldo,
+    page: opts.page,
+    pageSize: opts.pageSize,
+    sortBy: opts.sortBy,
+    sortDir: opts.sortDir,
+    consolidar: !!opts.consolidar,
+    marcas: [...(opts.marcas ?? [])].sort(),
+    linhas: [...(opts.linhas ?? [])].sort(),
+  };
   return useQuery({
-    queryKey: ['estoque-unificado', opts],
+    queryKey: ['estoque-unificado', normalizedKey],
     placeholderData: keepPreviousData,
     staleTime: 60_000,
     refetchInterval: 5 * 60_000,
