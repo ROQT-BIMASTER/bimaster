@@ -390,14 +390,6 @@ function ValidacaoBadge({ validacao }: { validacao: ValidacaoErpRow | undefined 
                 {Math.round(validacao.delta_disponivel_total_em_unidades).toLocaleString('pt-BR')}
               </td>
             </tr>
-            <tr>
-              <td>Custo</td>
-              <td className="text-right">{formatCurrency(validacao.cache_custo_total)}</td>
-              <td className="text-right">{formatCurrency(validacao.erp_custo_total)}</td>
-              <td className={`text-right ${resumo.rel_custo > 0 ? 'text-destructive font-medium' : ''}`}>
-                {formatCurrency(validacao.delta_custo_total)}
-              </td>
-            </tr>
           </tbody>
         </table>
         <div className="border-t pt-1 space-y-0.5">
