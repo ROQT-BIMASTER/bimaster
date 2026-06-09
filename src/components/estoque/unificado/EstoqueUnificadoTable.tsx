@@ -277,7 +277,7 @@ export function EstoqueUnificadoTable(p: Props) {
                                   <TableCell className="text-right tabular-nums text-muted-foreground">{fmt(f.bloqueado_total_em_unidades)}</TableCell>
                                   <TableCell className="text-right tabular-nums font-semibold text-success">{fmt(f.disponivel_total_em_unidades)}</TableCell>
                                   <TableCell className="text-right tabular-nums text-muted-foreground">{fmt(f.pendente_total_em_unidades)}</TableCell>
-                                  <TableCell className="text-right tabular-nums">{formatCurrency(Number(f.custo_total ?? 0))}</TableCell>
+                                  
                                 </TableRow>
                               ))}
                             </TableBody>
