@@ -114,6 +114,7 @@ export default function EstoqueUnificadoPage() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [recalculando, setRecalculando] = useState(false);
   const [modo, setModo] = useState<ModoExibicao>('fisico');
+  const [copilotOpen, setCopilotOpen] = useState(false);
 
   // Quando o sort selecionado não é nativo do backend, mantemos um sort estável
   // (default) para a query e o sort real é aplicado client-side na tabela.
