@@ -52507,6 +52507,17 @@ export type Database = {
         Args: { p_item_id: string; p_motivo?: string }
         Returns: undefined
       }
+      rpc_rrtask_materializar_tarefa: {
+        Args: {
+          _briefing_id: string
+          _data_prazo: string
+          _rrtask_page_id: string
+          _sku: string
+          _titulo: string
+          _user_id: string
+        }
+        Returns: string
+      }
       rpc_soft_delete_projeto: {
         Args: { p_projeto_id: string }
         Returns: undefined
