@@ -40,6 +40,13 @@ export function EstoqueUnificadoTable(p: Props) {
   const consolidado = !!p.consolidado;
   const [expandedKey, setExpandedKey] = useState<string | null>(null);
 
+  // Validação cache vs ERP — só roda em modo consolidado, para os SKUs visíveis.
+  const raizesVisiveis = useMemo(
+    () => (consolidado ? p.rows.map((r) => r.produto_raiz) : []),
+    [consolidado, p.rows],
+  );
+  const { data: validacaoMap } = useEstoqueValidacaoErp(raizesVisiveis, undefined, consolidado);
+
   const Th = ({ k, label, num }: { k: Props['sortBy']; label: string; num?: boolean }) => (
     <TableHead className={num ? 'text-right' : ''}>
       <button
