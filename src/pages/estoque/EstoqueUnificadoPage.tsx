@@ -35,6 +35,7 @@ export default function EstoqueUnificadoPage() {
   const buscaDeb = useDebounce(busca, 300);
   const [empresaIds, setEmpresaIds] = useState<number[]>([]);
   const [somenteComSaldo, setSomenteComSaldo] = useState(true);
+  const [consolidar, setConsolidar] = useState(false);
   const [page, setPage] = useState(0);
   const [pageSize] = useState(50);
   const [sortBy, setSortBy] = useState<UseEstoqueUnificadoOpts['sortBy']>('saldo_total_em_unidades');
@@ -47,7 +48,7 @@ export default function EstoqueUnificadoPage() {
 
   const { data: opts } = useEstoqueOptions();
   const { data, isFetching, refetch, error } = useEstoqueUnificado({
-    empresaIds, busca: buscaDeb, somenteComSaldo, page, pageSize, sortBy, sortDir,
+    empresaIds, busca: buscaDeb, somenteComSaldo, page, pageSize, sortBy, sortDir, consolidar,
   });
 
   useEffect(() => {
@@ -116,6 +117,11 @@ export default function EstoqueUnificadoPage() {
             <Switch id="com-saldo" checked={somenteComSaldo} onCheckedChange={(v) => { setSomenteComSaldo(v); setPage(0); }} />
           </div>
 
+          <div className="flex items-center gap-2" title="Soma os saldos do mesmo SKU em todas as empresas">
+            <Label htmlFor="consolidar" className="text-sm">Consolidar empresas</Label>
+            <Switch id="consolidar" checked={consolidar} onCheckedChange={(v) => { setConsolidar(v); setPage(0); }} />
+          </div>
+
           <ToggleGroup
             type="single"
             value={modo}
@@ -168,6 +174,7 @@ export default function EstoqueUnificadoPage() {
           setSort={handleSort}
           onRowClick={(r) => { setSelected(r); setDrawerOpen(true); }}
           modo={modo}
+          consolidado={consolidar}
         />
 
         <EstoqueUnificadoDrawer row={selected} open={drawerOpen} onOpenChange={setDrawerOpen} />

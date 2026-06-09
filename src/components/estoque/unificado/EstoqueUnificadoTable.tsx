@@ -21,6 +21,7 @@ interface Props {
   setSort: (key: UseEstoqueUnificadoOpts['sortBy']) => void;
   onRowClick: (r: EstoqueUnificadoRow) => void;
   modo?: ModoExibicao;
+  consolidado?: boolean;
 }
 
 const fmt = (n: number | null | undefined) =>
@@ -35,6 +36,7 @@ export function EstoqueUnificadoTable(p: Props) {
   const totalPages = Math.max(1, Math.ceil(p.total / p.pageSize));
   const modo: ModoExibicao = p.modo ?? 'fisico';
   const isFisico = modo === 'fisico';
+  const consolidado = !!p.consolidado;
   const [expandedKey, setExpandedKey] = useState<string | null>(null);
 
   const Th = ({ k, label, num }: { k: Props['sortBy']; label: string; num?: boolean }) => (
@@ -129,7 +131,7 @@ export function EstoqueUnificadoTable(p: Props) {
           )}
           {p.rows.map((r) => {
             const conv = isFisico ? null : converterParaModo(r, modo);
-            const key = `${r.empresa}-${r.produto_raiz}`;
+            const key = consolidado ? `c-${r.produto_raiz}` : `${r.empresa}-${r.produto_raiz}`;
             const isExpanded = expandedKey === key;
             return (
               <Fragment key={key}>
@@ -150,12 +152,27 @@ export function EstoqueUnificadoTable(p: Props) {
                       size="icon"
                       className="h-6 w-6"
                       aria-label={isExpanded ? 'Recolher SKUs' : 'Expandir SKUs'}
-                      title={isExpanded ? 'Recolher SKUs' : 'Ver SKUs e regra de cálculo'}
+                      title={isExpanded ? 'Recolher' : consolidado ? 'Ver detalhamento por filial' : 'Ver SKUs e regra de cálculo'}
                     >
                       {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
                     </Button>
                   </TableCell>
-                  <TableCell><Badge variant="outline">{r.raiz_abrev ?? r.empresa}</Badge></TableCell>
+                  <TableCell>
+                    {consolidado ? (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Badge variant="secondary" className="cursor-help">
+                            {(r.filiais_count ?? 1)} filia{(r.filiais_count ?? 1) > 1 ? 'is' : 'l'}
+                          </Badge>
+                        </TooltipTrigger>
+                        <TooltipContent side="top" className="max-w-xs text-xs">
+                          {(r.filiais ?? []).map((f) => f.abrev || `Empresa ${f.empresa}`).join(' · ')}
+                        </TooltipContent>
+                      </Tooltip>
+                    ) : (
+                      <Badge variant="outline">{r.raiz_abrev ?? r.empresa}</Badge>
+                    )}
+                  </TableCell>
                   <TableCell>
                     <div className="flex flex-col">
                       <span className="text-sm font-medium leading-tight">{r.raiz_nome ?? `Produto ${r.produto_raiz}`}</span>
@@ -213,9 +230,49 @@ export function EstoqueUnificadoTable(p: Props) {
                   <TableCell className="text-right tabular-nums">{r.skus_envolvidos}</TableCell>
                 </TableRow>
                 {isExpanded && (
-                  <TableRow key={`${key}-expanded`} className="hover:bg-transparent">
+                  <TableRow key={`${key}-expanded`} className="hover:bg-transparent bg-muted/20">
                     <TableCell colSpan={colspan} className="p-0">
-                      <EstoqueUnificadoSkuBreakdown row={r} />
+                      {consolidado ? (
+                        <div className="p-3 space-y-1">
+                          <div className="text-[11px] uppercase tracking-wide text-muted-foreground px-1">
+                            Detalhamento por filial
+                          </div>
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead>Filial</TableHead>
+                                <TableHead className="text-right">Caixas</TableHead>
+                                <TableHead className="text-right">Displays</TableHead>
+                                <TableHead className="text-right">Unidades</TableHead>
+                                <TableHead className="text-right">≡ Total UN</TableHead>
+                                <TableHead className="text-right">Bloqueado</TableHead>
+                                <TableHead className="text-right text-success">Disponível</TableHead>
+                                <TableHead className="text-right">Pendente</TableHead>
+                                <TableHead className="text-right">Custo</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {(r.filiais_rows ?? []).map((f) => (
+                                <TableRow key={`${key}-f-${f.empresa}`}>
+                                  <TableCell>
+                                    <Badge variant="outline">{f.raiz_abrev ?? f.empresa}</Badge>
+                                  </TableCell>
+                                  <TableCell className="text-right tabular-nums">{fmt(f.saldo_em_caixas)}</TableCell>
+                                  <TableCell className="text-right tabular-nums">{fmt(f.saldo_em_displays)}</TableCell>
+                                  <TableCell className="text-right tabular-nums">{fmt(f.saldo_em_unidades)}</TableCell>
+                                  <TableCell className="text-right tabular-nums font-semibold">{fmt(f.saldo_total_em_unidades)}</TableCell>
+                                  <TableCell className="text-right tabular-nums text-muted-foreground">{fmt(f.bloqueado_total_em_unidades)}</TableCell>
+                                  <TableCell className="text-right tabular-nums font-semibold text-success">{fmt(f.disponivel_total_em_unidades)}</TableCell>
+                                  <TableCell className="text-right tabular-nums text-muted-foreground">{fmt(f.pendente_total_em_unidades)}</TableCell>
+                                  <TableCell className="text-right tabular-nums">{formatCurrency(Number(f.custo_total ?? 0))}</TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        </div>
+                      ) : (
+                        <EstoqueUnificadoSkuBreakdown row={r} />
+                      )}
                     </TableCell>
                   </TableRow>
                 )}
