@@ -182,9 +182,14 @@ export function EstoqueUnificadoTable(p: Props) {
                     )}
                   </TableCell>
                   <TableCell>
-                    <div className="flex flex-col">
-                      <span className="text-sm font-medium leading-tight">{r.raiz_nome ?? `Produto ${r.produto_raiz}`}</span>
-                      <span className="text-[11px] text-muted-foreground">Cód. {r.produto_raiz}</span>
+                    <div className="flex items-center gap-2">
+                      <div className="flex flex-col min-w-0">
+                        <span className="text-sm font-medium leading-tight truncate">{r.raiz_nome ?? `Produto ${r.produto_raiz}`}</span>
+                        <span className="text-[11px] text-muted-foreground">Cód. {r.produto_raiz}</span>
+                      </div>
+                      {consolidado && validacaoMap && (
+                        <ValidacaoBadge validacao={validacaoMap.get(r.produto_raiz)} />
+                      )}
                     </div>
                   </TableCell>
                   <TableCell className="hidden md:table-cell">
