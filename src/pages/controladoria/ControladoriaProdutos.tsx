@@ -1,6 +1,8 @@
 import { useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { AlertTriangle, ArrowLeft, Check, PackageSearch, X } from "lucide-react";
+import { AlertTriangle, ArrowLeft, Check, PackageSearch, Plus, X } from "lucide-react";
+import { ProdutoFormDialog } from "@/components/controladoria/ProdutoFormDialog";
+import { LinhaFormDialog } from "@/components/controladoria/LinhaFormDialog";
 import { Button } from "@/components/ui/button";
 
 import { Card, CardContent } from "@/components/ui/card";
@@ -94,6 +96,9 @@ export default function ControladoriaProdutos() {
   const [marca, setMarca] = useState<string>("__all__");
   const [status, setStatus] = useState<string>("__all__");
   const [soGargalo, setSoGargalo] = useState(false);
+  const [produtoFormOpen, setProdutoFormOpen] = useState(false);
+  const [linhaFormOpen, setLinhaFormOpen] = useState(false);
+  const [editing, setEditing] = useState<RrProduto | null>(null);
   const [searchParams, setSearchParams] = useSearchParams();
   const produtoParam = searchParams.get("produto");
   const selecionado = useMemo(
@@ -175,6 +180,18 @@ export default function ControladoriaProdutos() {
             <h1 className="text-2xl font-semibold tracking-tight">
               Controladoria de Produtos
             </h1>
+            <div className="ml-auto flex items-center gap-2">
+              <Button
+                size="sm"
+                onClick={() => {
+                  setEditing(null);
+                  setProdutoFormOpen(true);
+                }}
+              >
+                <Plus className="h-4 w-4 mr-1" />
+                Novo produto
+              </Button>
+            </div>
           </div>
           <p className="text-sm text-muted-foreground">
             Visão global da planilha de produtos sincronizada da agência, com
@@ -225,6 +242,14 @@ export default function ControladoriaProdutos() {
                 ))}
               </SelectContent>
             </Select>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setLinhaFormOpen(true)}
+            >
+              <Plus className="h-4 w-4 mr-1" />
+              Nova linha
+            </Button>
             <Select value={status} onValueChange={setStatus}>
               <SelectTrigger className="w-48">
                 <SelectValue placeholder="Status" />
@@ -313,6 +338,24 @@ export default function ControladoriaProdutos() {
           }
           open={!!selecionado}
           onOpenChange={(o) => !o && openProduto(null)}
+          onEdit={(p) => {
+            setEditing(p);
+            setProdutoFormOpen(true);
+          }}
+        />
+
+        <ProdutoFormDialog
+          open={produtoFormOpen}
+          onOpenChange={(o) => {
+            setProdutoFormOpen(o);
+            if (!o) setEditing(null);
+          }}
+          editingItem={editing}
+        />
+
+        <LinhaFormDialog
+          open={linhaFormOpen}
+          onOpenChange={setLinhaFormOpen}
         />
       </div>
     </TooltipProvider>

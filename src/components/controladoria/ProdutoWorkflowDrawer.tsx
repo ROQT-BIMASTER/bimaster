@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { AlertTriangle, Check, ChevronRight, Circle, Clock, Info, X } from "lucide-react";
+import { AlertTriangle, Check, ChevronRight, Circle, Clock, Info, Pencil, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import {
   Sheet,
   SheetContent,
@@ -18,6 +19,7 @@ interface ProdutoDrawerProps {
   linhaNome?: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onEdit?: (produto: RrProduto) => void;
 }
 
 const TONE_NODE: Record<
@@ -220,6 +222,7 @@ export function ProdutoWorkflowDrawer({
   linhaNome,
   open,
   onOpenChange,
+  onEdit,
 }: ProdutoDrawerProps) {
   const [selectedField, setSelectedField] = useState<string | null>(null);
 
@@ -269,6 +272,17 @@ export function ProdutoWorkflowDrawer({
                 </span>
               </SheetDescription>
             </div>
+            {onEdit && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => onEdit(produto)}
+                className="shrink-0"
+              >
+                <Pencil className="h-3.5 w-3.5 mr-1" />
+                Editar
+              </Button>
+            )}
           </div>
 
           {/* Stats compactas do workflow */}
