@@ -48,6 +48,8 @@ export function useEstoqueUnificado(opts: UseEstoqueUnificadoOpts) {
     placeholderData: keepPreviousData,
     staleTime: 60_000,
     queryFn: async () => {
+      const consolidar = !!opts.consolidar;
+
       let q = supabase
         .from('vw_estoque_unificado' as any)
         .select('*', { count: 'estimated' });
@@ -56,9 +58,14 @@ export function useEstoqueUnificado(opts: UseEstoqueUnificadoOpts) {
       if (opts.somenteComSaldo) q = q.gt('saldo_total_em_unidades', 0);
       q = q.order(opts.sortBy, { ascending: opts.sortDir === 'asc', nullsFirst: false });
 
-      const from = opts.page * opts.pageSize;
-      const to = from + opts.pageSize - 1;
-      q = q.range(from, to);
+      if (!consolidar) {
+        const from = opts.page * opts.pageSize;
+        const to = from + opts.pageSize - 1;
+        q = q.range(from, to);
+      } else {
+        // limite alto para cobrir o cache inteiro filtrado (≈3267 raízes × N filiais)
+        q = q.range(0, 19999);
+      }
 
       const { data, error, count } = await q;
       if (error) {
@@ -66,14 +73,11 @@ export function useEstoqueUnificado(opts: UseEstoqueUnificadoOpts) {
         throw error;
       }
 
-      const rows = (data ?? []) as unknown as EstoqueUnificadoRow[];
+      const rawRows = (data ?? []) as unknown as EstoqueUnificadoRow[];
 
       // Enriquecer com nomes do SKU raiz por (empresa, cod_produto).
-      // ATENÇÃO: o mesmo cod_produto existe em várias filiais com abrev_par
-      // diferente — chavear só por cod_produto faz uma filial herdar o nome
-      // de outra (bug histórico: linha da empresa 11 aparecia como "RUBY ROSE - PR").
-      const codigos = Array.from(new Set(rows.map((r) => r.produto_raiz).filter(Boolean)));
-      const empresas = Array.from(new Set(rows.map((r) => r.empresa).filter((v) => v != null)));
+      const codigos = Array.from(new Set(rawRows.map((r) => r.produto_raiz).filter(Boolean)));
+      const empresas = Array.from(new Set(rawRows.map((r) => r.empresa).filter((v) => v != null)));
       const nomes = new Map<string, { nome: string | null; abrev: string | null }>();
       if (codigos.length && empresas.length) {
         const { data: estData } = await supabase
@@ -91,7 +95,7 @@ export function useEstoqueUnificado(opts: UseEstoqueUnificadoOpts) {
         });
       }
 
-      let enriched = rows.map((r) => {
+      let enriched = rawRows.map((r) => {
         const hit = nomes.get(`${r.empresa}|${r.produto_raiz}`);
         return {
           ...r,
@@ -109,7 +113,66 @@ export function useEstoqueUnificado(opts: UseEstoqueUnificadoOpts) {
         );
       }
 
-      return { rows: enriched, total: count ?? 0 };
+      if (!consolidar) {
+        return { rows: enriched, total: count ?? 0 };
+      }
+
+      // -------- Modo consolidado: agrupa por produto_raiz --------
+      const groups = new Map<number, EstoqueUnificadoRow>();
+      for (const r of enriched) {
+        const k = r.produto_raiz;
+        const acc = groups.get(k);
+        if (!acc) {
+          groups.set(k, {
+            ...r,
+            saldo_em_caixas: Number(r.saldo_em_caixas || 0),
+            saldo_em_displays: Number(r.saldo_em_displays || 0),
+            saldo_em_unidades: Number(r.saldo_em_unidades || 0),
+            saldo_total_em_unidades: Number(r.saldo_total_em_unidades || 0),
+            bloqueado_total_em_unidades: Number(r.bloqueado_total_em_unidades || 0),
+            disponivel_total_em_unidades: Number(r.disponivel_total_em_unidades || 0),
+            pendente_total_em_unidades: Number(r.pendente_total_em_unidades || 0),
+            custo_total: Number(r.custo_total || 0),
+            skus_envolvidos: Number(r.skus_envolvidos || 0),
+            filiais_count: 1,
+            filiais: [{ empresa: r.empresa, abrev: r.raiz_abrev ?? null, nome: r.raiz_nome ?? null }],
+            filiais_rows: [r],
+          });
+        } else {
+          acc.saldo_em_caixas += Number(r.saldo_em_caixas || 0);
+          acc.saldo_em_displays += Number(r.saldo_em_displays || 0);
+          acc.saldo_em_unidades += Number(r.saldo_em_unidades || 0);
+          acc.saldo_total_em_unidades += Number(r.saldo_total_em_unidades || 0);
+          acc.bloqueado_total_em_unidades += Number(r.bloqueado_total_em_unidades || 0);
+          acc.disponivel_total_em_unidades += Number(r.disponivel_total_em_unidades || 0);
+          acc.pendente_total_em_unidades += Number(r.pendente_total_em_unidades || 0);
+          acc.custo_total += Number(r.custo_total || 0);
+          acc.skus_envolvidos = Math.max(acc.skus_envolvidos, Number(r.skus_envolvidos || 0));
+          acc.fator_cx_para_un = acc.fator_cx_para_un ?? r.fator_cx_para_un ?? null;
+          acc.fator_bx_para_un = acc.fator_bx_para_un ?? r.fator_bx_para_un ?? null;
+          acc.ean_raiz = acc.ean_raiz ?? r.ean_raiz ?? null;
+          acc.raiz_nome = acc.raiz_nome ?? r.raiz_nome ?? null;
+          acc.filiais_count = (acc.filiais_count ?? 0) + 1;
+          acc.filiais!.push({ empresa: r.empresa, abrev: r.raiz_abrev ?? null, nome: r.raiz_nome ?? null });
+          acc.filiais_rows!.push(r);
+        }
+      }
+
+      const consolidated = Array.from(groups.values());
+
+      // Ordena pelo mesmo sortBy/sortDir
+      const dir = opts.sortDir === 'asc' ? 1 : -1;
+      const key = opts.sortBy;
+      consolidated.sort((a, b) => {
+        const va = Number((a as any)[key] ?? 0);
+        const vb = Number((b as any)[key] ?? 0);
+        return (va - vb) * dir;
+      });
+
+      const totalGroups = consolidated.length;
+      const from = opts.page * opts.pageSize;
+      const pageRows = consolidated.slice(from, from + opts.pageSize);
+      return { rows: pageRows, total: totalGroups };
     },
   });
 }
