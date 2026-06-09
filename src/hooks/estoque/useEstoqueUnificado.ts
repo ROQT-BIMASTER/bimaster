@@ -20,6 +20,10 @@ export interface EstoqueUnificadoRow {
   // hidratado pelo enrich:
   raiz_nome?: string | null;
   raiz_abrev?: string | null;
+  // hidratado quando consolidado=true:
+  filiais_count?: number;
+  filiais?: Array<{ empresa: number; abrev: string | null; nome: string | null }>;
+  filiais_rows?: EstoqueUnificadoRow[];
 }
 
 export interface UseEstoqueUnificadoOpts {
@@ -30,6 +34,7 @@ export interface UseEstoqueUnificadoOpts {
   pageSize: number;
   sortBy: 'saldo_total_em_unidades' | 'custo_total' | 'saldo_em_caixas' | 'saldo_em_displays' | 'saldo_em_unidades';
   sortDir: 'asc' | 'desc';
+  consolidar?: boolean;
 }
 
 /**
