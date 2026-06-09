@@ -271,13 +271,9 @@ export function EstoqueUnificadoSkuBreakdown({ row }: Props) {
             <span className="text-[9px] uppercase block">UN</span>
             {fmt(somaUN)}
           </div>
-          <div className="col-span-2 text-right tabular-nums font-bold">
+          <div className="col-span-4 text-right tabular-nums font-bold">
             <span className="text-[9px] uppercase block text-muted-foreground">Σ Total UN</span>
             {fmt(totalUn)}
-          </div>
-          <div className="col-span-2 text-right tabular-nums">
-            <span className="text-[9px] uppercase block text-muted-foreground">Custo total</span>
-            {formatCurrency(totalCusto)}
           </div>
         </div>
 
