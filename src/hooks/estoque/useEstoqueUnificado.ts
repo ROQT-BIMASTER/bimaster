@@ -118,13 +118,20 @@ export function useEstoqueUnificado(opts: UseEstoqueUnificadoOpts) {
       }
 
       // -------- Modo consolidado: agrupa por produto_raiz --------
+      // Chave normalizada como Number para evitar duplicatas se o PostgREST
+      // devolver produto_raiz como string em alguma linha (defensivo).
       const groups = new Map<number, EstoqueUnificadoRow>();
       for (const r of enriched) {
-        const k = r.produto_raiz;
+        const k = Number(r.produto_raiz);
+        if (!Number.isFinite(k)) {
+          logger.warn('[useEstoqueUnificado] produto_raiz inválido — linha ignorada na consolidação', { row: r });
+          continue;
+        }
         const acc = groups.get(k);
         if (!acc) {
           groups.set(k, {
             ...r,
+            produto_raiz: k,
             saldo_em_caixas: Number(r.saldo_em_caixas || 0),
             saldo_em_displays: Number(r.saldo_em_displays || 0),
             saldo_em_unidades: Number(r.saldo_em_unidades || 0),
