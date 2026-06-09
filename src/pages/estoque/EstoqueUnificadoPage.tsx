@@ -215,8 +215,6 @@ export default function EstoqueUnificadoPage() {
               Visão consolidada por produto-raiz com saldos físicos em <strong>caixa</strong>, <strong>display</strong> e <strong>unidade</strong>, e equivalência matemática total.
             </p>
           </div>
-          <Button variant="outline" size="sm" onClick={recalcular} disabled={recalculando}>
-            <RefreshCw className={`h-4 w-4 mr-2 ${recalculando ? 'animate-spin' : ''}`} />
           <div className="flex items-center gap-2">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
