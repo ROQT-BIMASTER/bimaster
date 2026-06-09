@@ -219,6 +219,7 @@ Deno.serve(secureHandler(
           produto_notion_id: rel1(P["Produto"]),
           raw: P,
           synced_at: now,
+          origem: "notion",
         };
       });
       if (rows.length) {
