@@ -35,6 +35,7 @@ export default function EstoqueUnificadoPage() {
   const buscaDeb = useDebounce(busca, 300);
   const [empresaIds, setEmpresaIds] = useState<number[]>([]);
   const [somenteComSaldo, setSomenteComSaldo] = useState(true);
+  const [consolidar, setConsolidar] = useState(false);
   const [page, setPage] = useState(0);
   const [pageSize] = useState(50);
   const [sortBy, setSortBy] = useState<UseEstoqueUnificadoOpts['sortBy']>('saldo_total_em_unidades');
@@ -47,7 +48,7 @@ export default function EstoqueUnificadoPage() {
 
   const { data: opts } = useEstoqueOptions();
   const { data, isFetching, refetch, error } = useEstoqueUnificado({
-    empresaIds, busca: buscaDeb, somenteComSaldo, page, pageSize, sortBy, sortDir,
+    empresaIds, busca: buscaDeb, somenteComSaldo, page, pageSize, sortBy, sortDir, consolidar,
   });
 
   useEffect(() => {
