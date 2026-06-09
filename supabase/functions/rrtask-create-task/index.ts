@@ -208,6 +208,18 @@ Deno.serve(
         );
       }
 
+      // PR-D2b: resolver user Huggs do solicitante (por email) para gravar
+      // como responsável da tarefa nativa espelho. Best-effort.
+      let responsavelUserId: string | null = null;
+      if (email) {
+        const { data: rp } = await sb
+          .from("profiles")
+          .select("id")
+          .eq("email", email)
+          .maybeSingle();
+        responsavelUserId = (rp?.id as string | undefined) ?? null;
+      }
+
       // 5. Build properties (schema v3 — nomes EXATOS com acentos)
       const props: Record<string, unknown> = {
         "Nome do Pedido": {
@@ -359,6 +371,7 @@ Deno.serve(
             _data_prazo: prazoIso ?? null,
             _sku: pl.sku ? String(pl.sku) : null,
             _user_id: b.user_id,
+            _responsavel_user_id: responsavelUserId,
           });
         } catch (e) {
           await sb.from("rrtask_sync_log").insert({
@@ -474,6 +487,7 @@ Deno.serve(
             _data_prazo: prazoIso ?? null,
             _sku: pl.sku ? String(pl.sku) : null,
             _user_id: b.user_id,
+            _responsavel_user_id: responsavelUserId,
           });
         } catch (e) {
           await sb.from("rrtask_sync_log").insert({
@@ -568,6 +582,7 @@ Deno.serve(
           _data_prazo: prazoIso ?? null,
           _sku: pl.sku ? String(pl.sku) : null,
           _user_id: b.user_id,
+          _responsavel_user_id: responsavelUserId,
         });
       } catch (e) {
         await sb.from("rrtask_sync_log").insert({
