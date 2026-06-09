@@ -236,4 +236,56 @@ describe('useEstoqueUnificado — paridade entre modos consolidado / não consol
       }
     }
   });
+
+  it('coluna "Empresa" nunca exibe apenas número (consolidado e não consolidado)', async () => {
+    const w = wrapper();
+    const offHook = renderHook(() => useEstoqueUnificado({ ...baseOpts, consolidar: false }), { wrapper: w });
+    const onHook = renderHook(() => useEstoqueUnificado({ ...baseOpts, consolidar: true }), { wrapper: w });
+
+    await waitFor(() => expect(offHook.result.current.data).toBeTruthy());
+    await waitFor(() => expect(onHook.result.current.data).toBeTruthy());
+
+    const off = offHook.result.current.data!.rows;
+    const on = onHook.result.current.data!.rows;
+
+    // Espelha a lógica de render do EstoqueUnificadoTable.tsx
+    const labelNaoConsolidado = (r: any) =>
+      r.filial_nome ?? r.raiz_abrev ?? `Empresa ${r.empresa}`;
+    const labelConsolidadoFiliais = (f: any) =>
+      f.filial_nome || f.abrev || `Empresa ${f.empresa}`;
+    const labelConsolidadoBadge = (r: any) => {
+      const count = r.filiais_count ?? 1;
+      const first = (r.filiais ?? [])[0];
+      const firstLabel =
+        first?.filial_nome ?? first?.abrev ?? r.filial_nome ?? r.raiz_abrev ?? null;
+      return count > 1 ? `${count} filiais` : firstLabel ? `${firstLabel} · 1 filial` : '1 filial';
+    };
+
+    const isApenasNumero = (s: string | null | undefined) =>
+      typeof s === 'string' && /^\d+$/.test(s.trim());
+
+    for (const r of off) {
+      const label = labelNaoConsolidado(r);
+      expect(label).toBeTruthy();
+      expect(isApenasNumero(label)).toBe(false);
+      expect(label).not.toMatch(/^Empresa\s+\d+$/);
+    }
+
+    for (const cons of on) {
+      const badge = labelConsolidadoBadge(cons);
+      expect(isApenasNumero(badge)).toBe(false);
+      expect(badge).not.toMatch(/^Empresa\s+\d+$/);
+
+      for (const f of cons.filiais ?? []) {
+        const l = labelConsolidadoFiliais(f);
+        expect(isApenasNumero(l)).toBe(false);
+        expect(l).not.toMatch(/^Empresa\s+\d+$/);
+      }
+      for (const fr of cons.filiais_rows ?? []) {
+        const l = fr.filial_nome ?? fr.raiz_abrev ?? `Empresa ${fr.empresa}`;
+        expect(isApenasNumero(l)).toBe(false);
+        expect(l).not.toMatch(/^Empresa\s+\d+$/);
+      }
+    }
+  });
 });
