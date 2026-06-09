@@ -99,9 +99,10 @@ export function EstoqueUnificadoKpis({ rows, total, loading, modo = 'fisico' }: 
   }
 
   const cardCls = (v: Variant | undefined) => {
-    if (v === 'primary') return 'p-3 border-primary/40 bg-primary/5 ring-1 ring-primary/30 shadow-sm';
-    if (v === 'success') return 'p-3 border-success/40 bg-success/5 ring-1 ring-success/30 shadow-sm';
-    return 'p-3';
+    const base = 'p-3 h-full flex items-stretch';
+    if (v === 'primary') return `${base} border-primary/40 bg-primary/5 ring-1 ring-primary/30 shadow-sm`;
+    if (v === 'success') return `${base} border-success/40 bg-success/5 ring-1 ring-success/30 shadow-sm`;
+    return base;
   };
   const iconWrapCls = (v: Variant | undefined) => {
     if (v === 'primary') return 'rounded-md bg-primary/15 p-1.5 shrink-0';
@@ -119,7 +120,7 @@ export function EstoqueUnificadoKpis({ rows, total, loading, modo = 'fisico' }: 
     return 'text-xs text-muted-foreground truncate';
   };
   const valueCls = (v: Variant | undefined) => {
-    const base = 'font-bold leading-tight tabular-nums truncate text-base xl:text-[15px] 2xl:text-lg';
+    const base = 'font-bold leading-tight tabular-nums truncate text-lg';
     if (v === 'primary') return `${base} text-primary`;
     if (v === 'success') return `${base} text-success`;
     return base;
