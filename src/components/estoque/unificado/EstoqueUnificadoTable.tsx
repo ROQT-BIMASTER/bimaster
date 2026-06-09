@@ -284,7 +284,7 @@ export function EstoqueUnificadoTable(p: Props) {
                               {(r.filiais_rows ?? []).map((f) => (
                                 <TableRow key={`${key}-f-${f.empresa}`}>
                                   <TableCell>
-                                    <Badge variant="outline">{f.raiz_abrev ?? f.empresa}</Badge>
+                                    <Badge variant="outline">{f.filial_nome ?? f.raiz_abrev ?? `Empresa ${f.empresa}`}</Badge>
                                   </TableCell>
                                   <TableCell className="text-right tabular-nums">{fmt(f.saldo_em_caixas)}</TableCell>
                                   <TableCell className="text-right tabular-nums">{fmt(f.saldo_em_displays)}</TableCell>
