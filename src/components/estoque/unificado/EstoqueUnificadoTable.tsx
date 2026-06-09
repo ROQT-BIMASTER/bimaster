@@ -126,7 +126,7 @@ export function EstoqueUnificadoTable(p: Props) {
                 </Tooltip>
               </span>
             </TableHead>
-            <Th k="custo_total" label="Custo total" num />
+            
             <TableHead className="text-right">SKUs</TableHead>
           </TableRow>
         </TableHeader>
