@@ -131,17 +131,17 @@ export function EstoqueUnificadoKpis({ rows, total, loading, modo = 'fisico' }: 
       <div className={`grid grid-cols-2 md:grid-cols-3 ${modo === 'fisico' ? 'lg:grid-cols-5 xl:grid-cols-9' : 'lg:grid-cols-3 xl:grid-cols-6'} gap-3`}>
         {items.map((it) => (
           <Card key={it.label} className={cardCls(it.variant)}>
-            <div className="flex items-start gap-3">
+            <div className="flex items-start gap-2">
               <div className={iconWrapCls(it.variant)}>
                 <it.icon className={iconCls(it.variant)} />
               </div>
-              <div className="min-w-0">
-                <div className="flex items-center gap-1">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-1 min-w-0">
                   <p className={labelCls(it.variant)}>{it.label}</p>
                   {it.tooltip && (
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <Info className="h-3 w-3 text-muted-foreground/60 cursor-help" />
+                        <Info className="h-3 w-3 text-muted-foreground/60 cursor-help shrink-0" />
                       </TooltipTrigger>
                       <TooltipContent side="top" className="max-w-xs text-xs">
                         {it.tooltip}
@@ -149,7 +149,7 @@ export function EstoqueUnificadoKpis({ rows, total, loading, modo = 'fisico' }: 
                     </Tooltip>
                   )}
                 </div>
-                <p className={valueCls(it.variant)}>{loading ? '—' : it.value}</p>
+                <p className={valueCls(it.variant)} title={it.value}>{loading ? '—' : it.value}</p>
                 <p className="text-[11px] text-muted-foreground truncate">{it.hint}</p>
               </div>
             </div>
