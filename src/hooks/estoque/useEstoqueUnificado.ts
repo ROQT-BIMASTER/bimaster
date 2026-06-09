@@ -217,7 +217,7 @@ export function useEstoqueUnificado(opts: UseEstoqueUnificadoOpts) {
           acc.ean_raiz = acc.ean_raiz ?? r.ean_raiz ?? null;
           acc.raiz_nome = acc.raiz_nome ?? r.raiz_nome ?? null;
           acc.filiais_count = (acc.filiais_count ?? 0) + 1;
-          acc.filiais!.push({ empresa: r.empresa, abrev: r.raiz_abrev ?? null, nome: r.raiz_nome ?? null });
+          acc.filiais!.push({ empresa: r.empresa, abrev: r.raiz_abrev ?? null, nome: r.raiz_nome ?? null, filial_nome: r.filial_nome ?? null });
           acc.filiais_rows!.push(r);
         }
       }
