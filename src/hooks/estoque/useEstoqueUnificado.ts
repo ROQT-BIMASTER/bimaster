@@ -275,12 +275,17 @@ export function useEstoqueUnificado(opts: UseEstoqueUnificadoOpts) {
         };
       });
 
-      if (opts.busca) {
-        const b = opts.busca.toLowerCase();
-        enriched = enriched.filter(
-          (r) =>
-            String(r.produto_raiz).includes(b) ||
-            (r.raiz_nome ?? '').toLowerCase().includes(b),
+      // Busca endurecida: trim, mínimo 2 chars; código numérico exige match exato
+      // (evita "55" puxar 9558). Texto pesquisa em nome, marca e linha.
+      const rawBusca = (opts.busca ?? '').trim().toLowerCase();
+      if (rawBusca.length >= 2) {
+        const isNumeric = /^\d+$/.test(rawBusca);
+        enriched = enriched.filter((r) =>
+          isNumeric
+            ? String(r.produto_raiz) === rawBusca
+            : (r.raiz_nome ?? '').toLowerCase().includes(rawBusca)
+              || (r.marca ?? '').toLowerCase().includes(rawBusca)
+              || (r.linha ?? '').toLowerCase().includes(rawBusca),
         );
       }
 
@@ -291,6 +296,12 @@ export function useEstoqueUnificado(opts: UseEstoqueUnificadoOpts) {
       if (opts.linhas && opts.linhas.length) {
         const set = new Set(opts.linhas.map((m) => m.toLowerCase()));
         enriched = enriched.filter((r) => r.linha && set.has(String(r.linha).toLowerCase()));
+      }
+
+      // Filtro defensivo client-side de "Apenas com saldo": espelha o filtro
+      // server-side e impede que linhas com saldo 0 vazem por cache stale.
+      if (opts.somenteComSaldo) {
+        enriched = enriched.filter((r) => Number(r.saldo_total_em_unidades || 0) > 0);
       }
 
       // -------- Consolidação canônica (sempre executada) --------
