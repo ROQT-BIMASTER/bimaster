@@ -105,9 +105,9 @@ export function EstoqueUnificadoKpis({ rows, total, loading, modo = 'fisico' }: 
     return 'p-3';
   };
   const iconWrapCls = (v: Variant | undefined) => {
-    if (v === 'primary') return 'rounded-md bg-primary/15 p-2';
-    if (v === 'success') return 'rounded-md bg-success/15 p-2';
-    return 'rounded-md bg-muted p-2';
+    if (v === 'primary') return 'rounded-md bg-primary/15 p-1.5 shrink-0';
+    if (v === 'success') return 'rounded-md bg-success/15 p-1.5 shrink-0';
+    return 'rounded-md bg-muted p-1.5 shrink-0';
   };
   const iconCls = (v: Variant | undefined) => {
     if (v === 'primary') return 'h-4 w-4 text-primary';
@@ -115,14 +115,15 @@ export function EstoqueUnificadoKpis({ rows, total, loading, modo = 'fisico' }: 
     return 'h-4 w-4 text-muted-foreground';
   };
   const labelCls = (v: Variant | undefined) => {
-    if (v === 'primary') return 'text-xs font-medium text-primary';
-    if (v === 'success') return 'text-xs font-medium text-success';
-    return 'text-xs text-muted-foreground';
+    if (v === 'primary') return 'text-xs font-medium text-primary truncate';
+    if (v === 'success') return 'text-xs font-medium text-success truncate';
+    return 'text-xs text-muted-foreground truncate';
   };
   const valueCls = (v: Variant | undefined) => {
-    if (v === 'primary') return 'text-lg font-bold leading-tight text-primary';
-    if (v === 'success') return 'text-lg font-bold leading-tight text-success';
-    return 'text-lg font-bold leading-tight';
+    const base = 'font-bold leading-tight tabular-nums truncate text-base xl:text-[15px] 2xl:text-lg';
+    if (v === 'primary') return `${base} text-primary`;
+    if (v === 'success') return `${base} text-success`;
+    return base;
   };
 
   return (
