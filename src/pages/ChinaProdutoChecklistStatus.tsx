@@ -1,5 +1,5 @@
-import { useMemo, useState } from "react";
-import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
+import { useLocation, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import {
   ListChecks,
@@ -46,6 +46,7 @@ import {
   type MergedChecklistCategory,
 } from "@/hooks/useMergedChinaChecklist";
 import { toast } from "sonner";
+import { ChecklistItemPainel } from "@/components/china/checklist/ChecklistItemPainel";
 
 interface DocRow {
   id: string;
@@ -337,7 +338,7 @@ function downloadBlob(content: BlobPart, mime: string, filename: string) {
 
 export default function ChinaProdutoChecklistStatus() {
   const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
+  
   const location = useLocation();
   const backTo =
     (location.state as { from?: string } | null)?.from ??
@@ -361,6 +362,13 @@ export default function ChinaProdutoChecklistStatus() {
 
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<FilterKey>(initialFilter);
+  const [painelTipo, setPainelTipo] = useState<string | null>(null);
+
+  // Deep-link via ?item=<tipo>
+  useEffect(() => {
+    const param = new URLSearchParams(location.search).get("item");
+    if (param) setPainelTipo(param);
+  }, [location.search]);
 
   const { data: submissao } = useQuery({
     queryKey: ["china-ficha", id],
@@ -434,18 +442,14 @@ export default function ChinaProdutoChecklistStatus() {
   };
 
   const handleOpenFocus = (tipo: string) => {
-    if (!id) return;
-    navigate(
-      `/dashboard/fabrica-china/produto/${id}?focus=${encodeURIComponent(tipo)}`,
-    );
+    setPainelTipo(tipo);
   };
 
   /**
-   * Anexar pendências de uma categoria: abre o Modo Foco posicionado no
+   * Anexar pendências de uma categoria: abre o painel posicionado no
    * primeiro item ainda não enviado (pendente, rejeitado ou não criado).
    */
   const handleAttachPendentes = (cat: MergedChecklistCategory) => {
-    if (!id) return;
     const firstPending = cat.tipos.find((t) => {
       const doc = docsByTipo.get(t);
       return !isSentToBrazil(doc) || doc?.status === "rejeitado";
@@ -454,9 +458,7 @@ export default function ChinaProdutoChecklistStatus() {
       toast.info("Nenhum item pendente nesta categoria.");
       return;
     }
-    navigate(
-      `/dashboard/fabrica-china/produto/${id}?focus=${encodeURIComponent(firstPending)}`,
-    );
+    setPainelTipo(firstPending);
   };
 
   const buildExportRows = () => {
@@ -696,11 +698,16 @@ export default function ChinaProdutoChecklistStatus() {
               size="sm"
               variant="outline"
               className="h-8 text-xs"
-              onClick={() =>
-                navigate(`/dashboard/fabrica-china/produto/${id}?focus=__overview__`)
-              }
+              onClick={() => {
+                const firstPending = allTipos.find((t) => {
+                  const d = docsByTipo.get(t);
+                  return !isSentToBrazil(d) || d?.status === "rejeitado";
+                });
+                if (firstPending) setPainelTipo(firstPending);
+                else toast.info("Nenhum item pendente.");
+              }}
             >
-              Abrir Modo Foco
+              Abrir item pendente
             </Button>
           </div>
         </Card>
@@ -768,6 +775,24 @@ export default function ChinaProdutoChecklistStatus() {
           })
         )}
       </div>
+
+      {painelTipo && (() => {
+        const cat = allCats.find((c) => c.tipos.includes(painelTipo));
+        const label = getLabel(painelTipo);
+        return (
+          <ChecklistItemPainel
+            open={!!painelTipo}
+            onOpenChange={(o) => {
+              if (!o) setPainelTipo(null);
+            }}
+            submissaoId={id}
+            tipoDocumento={painelTipo}
+            labelPt={label.pt}
+            labelCn={label.cn}
+            fluxo={cat?.fluxo === "brasil_envia" ? "brasil_envia" : "china_envia"}
+          />
+        );
+      })()}
     </ChinaPageShell>
   );
 }
