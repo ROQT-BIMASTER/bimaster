@@ -10254,6 +10254,298 @@ export type Database = {
           },
         ]
       }
+      copilot_audit_log: {
+        Row: {
+          category: string
+          copilot_id: string
+          created_at: string
+          diff: Json
+          id: string
+          proposal_id: string | null
+          result_ref: Json
+          reverses_audit_id: string | null
+          tool_name: string
+          undoable: boolean
+          user_id: string
+        }
+        Insert: {
+          category: string
+          copilot_id: string
+          created_at?: string
+          diff?: Json
+          id?: string
+          proposal_id?: string | null
+          result_ref?: Json
+          reverses_audit_id?: string | null
+          tool_name: string
+          undoable: boolean
+          user_id: string
+        }
+        Update: {
+          category?: string
+          copilot_id?: string
+          created_at?: string
+          diff?: Json
+          id?: string
+          proposal_id?: string | null
+          result_ref?: Json
+          reverses_audit_id?: string | null
+          tool_name?: string
+          undoable?: boolean
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "copilot_audit_log_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "copilot_proposals"
+            referencedColumns: ["proposal_id"]
+          },
+          {
+            foreignKeyName: "copilot_audit_log_reverses_audit_id_fkey"
+            columns: ["reverses_audit_id"]
+            isOneToOne: false
+            referencedRelation: "copilot_audit_log"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      copilot_chunks: {
+        Row: {
+          chunk_index: number
+          created_at: string
+          document_id: string
+          embedding: unknown
+          id: string
+          metadata: Json
+          text: string
+        }
+        Insert: {
+          chunk_index: number
+          created_at?: string
+          document_id: string
+          embedding: unknown
+          id?: string
+          metadata?: Json
+          text: string
+        }
+        Update: {
+          chunk_index?: number
+          created_at?: string
+          document_id?: string
+          embedding?: unknown
+          id?: string
+          metadata?: Json
+          text?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "copilot_chunks_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "copilot_documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      copilot_documents: {
+        Row: {
+          acl_scope: Json
+          archived_at: string | null
+          content: string
+          copilot_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          language: string
+          metadata: Json
+          source_ref: string
+          source_type: string
+          tenant_id: string | null
+          title: string | null
+          updated_at: string
+        }
+        Insert: {
+          acl_scope?: Json
+          archived_at?: string | null
+          content: string
+          copilot_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          language?: string
+          metadata?: Json
+          source_ref: string
+          source_type: string
+          tenant_id?: string | null
+          title?: string | null
+          updated_at?: string
+        }
+        Update: {
+          acl_scope?: Json
+          archived_at?: string | null
+          content?: string
+          copilot_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          language?: string
+          metadata?: Json
+          source_ref?: string
+          source_type?: string
+          tenant_id?: string | null
+          title?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      copilot_index_queue: {
+        Row: {
+          attempts: number
+          created_at: string
+          document_id: string
+          id: string
+          last_error: string | null
+          priority: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          attempts?: number
+          created_at?: string
+          document_id: string
+          id?: string
+          last_error?: string | null
+          priority?: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          attempts?: number
+          created_at?: string
+          document_id?: string
+          id?: string
+          last_error?: string | null
+          priority?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "copilot_index_queue_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "copilot_documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      copilot_proposals: {
+        Row: {
+          args_hash: string
+          audit_id: string | null
+          category: string
+          client_action_id: string | null
+          consumed_at: string | null
+          created_at: string
+          expires_at: string
+          preview: Json
+          proposal_id: string
+          requires_step_up: boolean
+          scope_key: string | null
+          tool_name: string
+          user_id: string
+        }
+        Insert: {
+          args_hash: string
+          audit_id?: string | null
+          category: string
+          client_action_id?: string | null
+          consumed_at?: string | null
+          created_at?: string
+          expires_at: string
+          preview?: Json
+          proposal_id: string
+          requires_step_up?: boolean
+          scope_key?: string | null
+          tool_name: string
+          user_id: string
+        }
+        Update: {
+          args_hash?: string
+          audit_id?: string | null
+          category?: string
+          client_action_id?: string | null
+          consumed_at?: string | null
+          created_at?: string
+          expires_at?: string
+          preview?: Json
+          proposal_id?: string
+          requires_step_up?: boolean
+          scope_key?: string | null
+          tool_name?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      copilot_runs: {
+        Row: {
+          citations_count: number
+          classifier_confidence: number | null
+          copilot_id: string
+          created_at: string
+          error_code: string | null
+          id: string
+          latency_ms: number | null
+          model: string
+          rag_breach_blocked: number
+          request_id: string
+          routed_complexity: string
+          tokens_completion: number | null
+          tokens_prompt: number | null
+          tool_calls: Json
+          unverifiable_numbers: number
+          user_id: string | null
+        }
+        Insert: {
+          citations_count?: number
+          classifier_confidence?: number | null
+          copilot_id: string
+          created_at?: string
+          error_code?: string | null
+          id?: string
+          latency_ms?: number | null
+          model: string
+          rag_breach_blocked?: number
+          request_id: string
+          routed_complexity: string
+          tokens_completion?: number | null
+          tokens_prompt?: number | null
+          tool_calls?: Json
+          unverifiable_numbers?: number
+          user_id?: string | null
+        }
+        Update: {
+          citations_count?: number
+          classifier_confidence?: number | null
+          copilot_id?: string
+          created_at?: string
+          error_code?: string | null
+          id?: string
+          latency_ms?: number | null
+          model?: string
+          rag_breach_blocked?: number
+          request_id?: string
+          routed_complexity?: string
+          tokens_completion?: number | null
+          tokens_prompt?: number | null
+          tool_calls?: Json
+          unverifiable_numbers?: number
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       corporate_event_access: {
         Row: {
           can_approve_events: boolean | null
@@ -51463,6 +51755,22 @@ export type Database = {
       }
       mask_cpf: { Args: { _cpf: string }; Returns: string }
       mask_email: { Args: { _email: string }; Returns: string }
+      match_copilot_chunks: {
+        Args: {
+          match_count?: number
+          p_copilot_id?: string
+          p_filters?: Json
+          p_user_id?: string
+          query_embedding: unknown
+        }
+        Returns: {
+          chunk_id: string
+          doc_id: string
+          metadata: Json
+          score: number
+          text: string
+        }[]
+      }
       mfa_is_enforced_for_user: { Args: { _user_id: string }; Returns: boolean }
       mfa_step_up_validate: {
         Args: { _scope: string; _token: string; _user_id: string }
