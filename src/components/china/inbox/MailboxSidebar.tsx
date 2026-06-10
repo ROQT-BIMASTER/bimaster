@@ -76,6 +76,7 @@ const CHINA_GROUPS: FolderGroup[] = [
   },
   {
     titleKey: "grupoOutros",
+    collapsible: true,
     folders: [
       { key: "starred", i18nKey: "starred", icon: Star, countKey: "starred" },
       { key: "oc", i18nKey: "oc", icon: ShoppingBag, countKey: "inbox" },
