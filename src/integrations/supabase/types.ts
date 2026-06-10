@@ -50564,10 +50564,6 @@ export type Database = {
           total_breaches: number
         }[]
       }
-      admin_set_copilot_v2_flag: {
-        Args: { p_ativo: boolean; p_codigo: string }
-        Returns: undefined
-      }
       admin_tarefas_cron_status: {
         Args: never
         Returns: {
