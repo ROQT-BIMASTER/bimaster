@@ -31,6 +31,8 @@ interface FolderDef {
 interface FolderGroup {
   /** Chave i18n em `inbox.sidebar.<groupKey>` (opcional). */
   titleKey?: string;
+  /** Quando true, grupo inicia colapsado e exibe um cabeçalho clicável. */
+  collapsible?: boolean;
   folders: FolderDef[];
 }
 
