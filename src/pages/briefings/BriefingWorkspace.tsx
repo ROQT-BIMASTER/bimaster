@@ -39,6 +39,7 @@ import { useResolvedBackTo } from "@/lib/navigation/withReturnTo";
 export default function BriefingWorkspace() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { backTo } = useResolvedBackTo("/dashboard/briefings");
   const [searchParams] = useSearchParams();
   const deepLinkCampo = searchParams.get("campo");
   const deepLinkComentario = searchParams.get("comentario");
