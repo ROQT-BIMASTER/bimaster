@@ -76,7 +76,7 @@ export function useProjetoCopilot(projetoId: string | null) {
     setMessages((m) => [...m, optimistic]);
     try {
       const { data, error } = await supabase.functions.invoke(
-        v2 ? "projeto-copilot-v2" : "projeto-copilot",
+        "projeto-copilot-v2",
         {
           body: {
             projeto_id: projetoId,
