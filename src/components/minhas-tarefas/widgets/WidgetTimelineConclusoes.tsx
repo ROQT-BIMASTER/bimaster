@@ -18,7 +18,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
-import { parseLocalDate } from "@/lib/utils/parseLocalDate";
+import { parseLocalDate, getToday } from "@/lib/utils/parseLocalDate";
 import type { MinaTarefa } from "@/hooks/useMinhasTarefas";
 
 type WindowOption = 7 | 14 | 30;
@@ -29,7 +29,7 @@ export function WidgetTimelineConclusoes({ tarefas }: { tarefas: MinaTarefa[] })
   const [windowDays, setWindowDays] = useState<WindowOption>(DEFAULT_WINDOW);
 
   const { data, total, fallbackCount } = useMemo(() => {
-    const now = startOfDay(new Date());
+    const now = getToday();
     const counts = new Map<string, number>();
     for (let i = 0; i < windowDays; i++) {
       const d = subDays(now, windowDays - 1 - i);

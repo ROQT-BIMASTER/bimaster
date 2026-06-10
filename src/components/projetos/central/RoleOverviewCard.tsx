@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { UserCheck, Users, ChevronRight, EyeOff } from "lucide-react";
 import { isToday, startOfDay } from "date-fns";
-import { parseLocalDate } from "@/lib/utils/parseLocalDate";
+import { parseLocalDate, getToday } from "@/lib/utils/parseLocalDate";
 import type { MinaTarefa } from "@/hooks/useMinhasTarefas";
 
 interface Props {
@@ -21,7 +21,7 @@ interface Props {
  */
 export function RoleOverviewCard({ tarefas, currentRole, onSelectRole, onHide }: Props) {
   const stats = useMemo(() => {
-    const now = startOfDay(new Date());
+    const now = getToday();
     const init = () => ({ ativas: 0, atrasadas: 0, hoje: 0 });
     const responsavel = init();
     const colaborador = init();

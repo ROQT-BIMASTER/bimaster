@@ -24,7 +24,7 @@ import {
   type CollisionDetection,
 } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
-import { parseLocalDate } from "@/lib/utils/parseLocalDate";
+import { parseLocalDate, getToday, formatLocalDate } from "@/lib/utils/parseLocalDate";
 
 interface Props {
   tarefas: MinaTarefa[];
@@ -43,11 +43,8 @@ const COLUMNS: { key: ColumnKey; title: string; icon: React.ReactNode; color: st
 ];
 
 function toIsoDate(d: Date): string {
-  // YYYY-MM-DD em horário local
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const dd = String(d.getDate()).padStart(2, "0");
-  return `${y}-${m}-${dd}`;
+  // Componentes locais em YYYY-MM-DD (sem shift UTC) — equivalente a formatLocalDate
+  return formatLocalDate(d) ?? "";
 }
 
 function tarefaColumn(t: MinaTarefa): ColumnKey {
@@ -55,7 +52,7 @@ function tarefaColumn(t: MinaTarefa): ColumnKey {
   const prazo = parseLocalDate(t.data_prazo);
   if (!prazo) return "upcoming";
   const d = startOfDay(prazo);
-  const now = startOfDay(new Date());
+  const now = getToday();
   if (d < now) return "overdue";
   if (isToday(d)) return "today";
   return "upcoming";
@@ -97,7 +94,7 @@ function DraggableCard({
 
   const isDone = tarefa.status === "concluida";
   const prazo = parseLocalDate(tarefa.data_prazo);
-  const isOverdue = !isDone && prazo && prazo < startOfDay(new Date());
+  const isOverdue = !isDone && prazo && prazo < getToday();
 
   return (
     <Card
@@ -259,7 +256,7 @@ export function MinhasTarefasBoard({ tarefas, onToggle, onSelect, onChangePrazo 
 
       if (!onChangePrazo) return;
 
-      const today = startOfDay(new Date());
+      const today = getToday();
       if (targetKey === "today") {
         onChangePrazo(taskId, toIsoDate(today));
       } else if (targetKey === "overdue") {

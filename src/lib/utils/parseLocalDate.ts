@@ -103,3 +103,27 @@ export function todayBR(): string {
   // "YYYY-MM-DD" é os primeiros 10 chars do ISO em wall-time de SP
   return nowSp.slice(0, 10);
 }
+
+/**
+ * Re-export canônico de `getToday` (definido em `@/utils/dateUtils`).
+ * Retorna meia-noite de HOJE no fuso `America/Sao_Paulo`, independente
+ * do fuso do navegador/servidor. Use sempre que precisar de "agora normalizado
+ * ao início do dia" para comparações com `data_prazo` / `data_conclusao`.
+ */
+export { getToday } from "@/utils/dateUtils";
+
+/**
+ * Hora atual (0–23) no fuso `America/Sao_Paulo`. Usar para saudações
+ * "Bom dia / Boa tarde / Boa noite" sem depender do fuso do navegador.
+ */
+export function getCurrentHourBR(date: Date = new Date()): number {
+  const fmt = new Intl.DateTimeFormat("en-US", {
+    timeZone: SAO_PAULO_TZ,
+    hour: "2-digit",
+    hour12: false,
+  });
+  const value = fmt.format(date);
+  // Intl pode devolver "24" para meia-noite em alguns runtimes — normaliza.
+  const h = Number(value === "24" ? "0" : value);
+  return Number.isFinite(h) ? h : new Date(date).getHours();
+}

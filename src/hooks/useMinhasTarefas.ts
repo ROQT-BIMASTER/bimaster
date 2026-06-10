@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { isToday, addDays, isBefore, startOfDay } from "date-fns";
-import { parseLocalDate } from "@/lib/utils/parseLocalDate";
+import { parseLocalDate, getToday } from "@/lib/utils/parseLocalDate";
 import { isSemDatasPlanejadas } from "@/lib/utils/tarefaPlanejamento";
 import { uniqueChannelName } from "@/lib/realtime/channelName";
 import { logger } from "@/lib/logger";
@@ -149,7 +149,10 @@ export function useMinhasTarefas() {
 }
 
 export function groupTarefas(tarefas: MinaTarefa[]): TarefaGroup[] {
-  const now = startOfDay(new Date());
+  // `getToday()` retorna meia-noite no fuso America/Sao_Paulo,
+  // garantindo classificação correta de Atrasadas/Hoje/Esta semana
+  // independente do fuso do navegador ou do servidor.
+  const now = getToday();
   const nextWeek = addDays(now, 7);
 
   const atrasadas: MinaTarefa[] = [];
@@ -172,7 +175,7 @@ export function groupTarefas(tarefas: MinaTarefa[]): TarefaGroup[] {
       continue;
     }
 
-    const prazo = startOfDay(parseLocalDate(t.data_prazo) ?? new Date());
+    const prazo = startOfDay(parseLocalDate(t.data_prazo) ?? now);
 
     if (isBefore(prazo, now)) {
       atrasadas.push(t);

@@ -28,7 +28,7 @@ import { useSystemProfiles } from "@/hooks/useSystemProfiles";
 import { cn } from "@/lib/utils";
 import { format, formatDistanceToNow, isToday, isBefore, startOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { parseLocalDate } from "@/lib/utils/parseLocalDate";
+import { parseLocalDate, nowSaoPauloISO, getToday } from "@/lib/utils/parseLocalDate";
 import { isSemDatasPlanejadas } from "@/lib/utils/tarefaPlanejamento";
 import {
   Tooltip, TooltipContent, TooltipProvider, TooltipTrigger,
@@ -605,7 +605,7 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
       if (!ok) return;
     }
     const update: Record<string, any> = { status: done ? "concluida" : "pendente" };
-    update.data_conclusao = done ? new Date().toISOString() : null;
+    update.data_conclusao = done ? nowSaoPauloISO() : null;
     const result = await attemptSave(done ? "Concluir tarefa" : "Reabrir tarefa", () =>
       supabase.from("projeto_tarefas").update(update as never).eq("id", t.id),
     );
@@ -664,7 +664,7 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
     if (!ok) return;
     const { error } = await supabase
       .from("projeto_tarefas")
-      .update({ excluida_em: new Date().toISOString() } as any)
+      .update({ excluida_em: nowSaoPauloISO() } as any)
       .eq("id", tarefaId);
     if (error) { toast.error(error.message); return; }
     toast.success(live?.parent_tarefa_id ? "Subtarefa movida para a lixeira" : "Tarefa movida para a lixeira");
@@ -860,8 +860,8 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
         const aP = PRIORITY_WEIGHT[a.prioridade || "media"] ?? 2;
         const bP = PRIORITY_WEIGHT[b.prioridade || "media"] ?? 2;
         if (aP !== bP) return bP - aP;
-        const aD = a.data_prazo ? new Date(a.data_prazo).getTime() : Number.POSITIVE_INFINITY;
-        const bD = b.data_prazo ? new Date(b.data_prazo).getTime() : Number.POSITIVE_INFINITY;
+        const aD = parseLocalDate(a.data_prazo)?.getTime() ?? Number.POSITIVE_INFINITY;
+        const bD = parseLocalDate(b.data_prazo)?.getTime() ?? Number.POSITIVE_INFINITY;
         return aD - bD;
       });
       const finalSorted = applyManualOrder(sorted, manualOrder);
@@ -878,7 +878,7 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
       if (!ok) return;
     }
     const update: Record<string, any> = { status: done ? "concluida" : "pendente" };
-    update.data_conclusao = done ? new Date().toISOString() : null;
+    update.data_conclusao = done ? nowSaoPauloISO() : null;
     const { error } = await supabase.from("projeto_tarefas").update(update as never).eq("id", tarefaId);
     if (error) { toast.error("Erro ao atualizar tarefa"); return; }
     queryClient.invalidateQueries({ queryKey: ["minhas-tarefas"] });
@@ -918,7 +918,7 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
     if (!ok) return;
     const { error } = await supabase
       .from("projeto_tarefas")
-      .update({ status: "concluida", data_conclusao: new Date().toISOString() })
+      .update({ status: "concluida", data_conclusao: nowSaoPauloISO() })
       .in("id", ids);
     if (error) { toast.error("Erro ao concluir tarefas"); return; }
 
@@ -952,7 +952,7 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
     const uid = authData.user?.id ?? null;
     const { error } = await supabase
       .from("projeto_tarefas")
-      .update({ excluida_em: new Date().toISOString(), excluida_por: uid } as any)
+      .update({ excluida_em: nowSaoPauloISO(), excluida_por: uid } as any)
       .in("id", ids);
     if (error) { toast.error("Erro ao excluir tarefas"); return; }
 
@@ -979,7 +979,7 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
   // Contadores para os chips de filtro (sobre o dataset completo, sem busca
   // nem filtros opcionais; replicam a base que o antigo CentralKPIs usava).
   const chipCounts = useMemo(() => {
-    const now = startOfDay(new Date());
+    const now = getToday();
     const pendentes = tarefas.filter((t) => t.status !== "concluida");
     return {
       todas: pendentes.length,

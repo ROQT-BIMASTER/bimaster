@@ -29,7 +29,7 @@ import {
   isSameWeek,
 } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { parseLocalDate } from "@/lib/utils/parseLocalDate";
+import { parseLocalDate, getToday } from "@/lib/utils/parseLocalDate";
 import {
   LineChart,
   Line,
@@ -91,7 +91,7 @@ export function ResumoSemanal({ tarefas, loading, onHide }: Props) {
   const [weekOffset, setWeekOffset] = useState(0);
 
   const data = useMemo(() => {
-    const now = new Date();
+    const now = getToday();
     const reference = addWeeks(now, weekOffset);
 
     const curStart = startOfWeek(reference, { weekStartsOn: 1 });

@@ -2,15 +2,20 @@ import { useMemo } from "react";
 import { format, startOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { AlertTriangle } from "lucide-react";
+import { parseLocalDate, getToday } from "@/lib/utils/parseLocalDate";
 import type { MinaTarefa } from "@/hooks/useMinhasTarefas";
 import { TarefaResponsavelAvatar } from "@/components/projetos/shared/TarefaResponsavelAvatar";
 
 export function WidgetListaAtrasadas({ tarefas }: { tarefas: MinaTarefa[] }) {
   const atrasadas = useMemo(() => {
-    const now = startOfDay(new Date());
+    const now = getToday();
     return tarefas
-      .filter((t) => t.status !== "concluida" && t.data_prazo && startOfDay(new Date(t.data_prazo)) < now)
-      .sort((a, b) => new Date(a.data_prazo!).getTime() - new Date(b.data_prazo!).getTime())
+      .filter((t) => {
+        if (t.status === "concluida") return false;
+        const p = parseLocalDate(t.data_prazo);
+        return p && startOfDay(p) < now;
+      })
+      .sort((a, b) => (parseLocalDate(a.data_prazo)?.getTime() ?? 0) - (parseLocalDate(b.data_prazo)?.getTime() ?? 0))
       .slice(0, 8);
   }, [tarefas]);
 
@@ -35,7 +40,7 @@ export function WidgetListaAtrasadas({ tarefas }: { tarefas: MinaTarefa[] }) {
             size="xs"
           />
           <span className="text-xs text-destructive font-medium shrink-0">
-            {format(new Date(t.data_prazo!), "dd/MM", { locale: ptBR })}
+            {format(parseLocalDate(t.data_prazo) ?? getToday(), "dd/MM", { locale: ptBR })}
           </span>
         </div>
       ))}
