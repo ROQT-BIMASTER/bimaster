@@ -12,6 +12,12 @@ versionamento conforme [SemVer](https://semver.org/) quando aplicável.
 
 ---
 
+## v3.5.37
+
+Auditoria e extensão do helper `detectFileKind` para todas as superfícies internas restantes: chat de tarefa inline (`TarefaChatPanel`), chat de submissões China (`ChatAttachmentChip`), anexos de "Minhas Tarefas" (`MinhasTarefaAnexos`), detalhe e Focus Mode da tarefa (`ProjetoTarefaDetalhe`, `TarefaFocusMode`), Cofre Oficial do projeto (`CofreOficialTab`), drawer de aprovações (`ItemAprovacaoDrawer`), RR-Tasks cofre (`RrTaskCofrePanel`) e Mission Control task files (`TaskFiles`). Assinaturas de `getFileIcon`/`iconFor` passam a receber `(nome, tipo)` para permitir fallback por extensão quando o MIME está nulo. Sem mudança de backend ou layout.
+
+---
+
 ## v3.5.36
 
 Detecção unificada de tipo de arquivo em todos os anexos de chat e listas. Novo helper compartilhado `src/lib/utils/detectFileKind.ts` (image/pdf/video/audio/other) que considera MIME e cai para extensão do nome. Aplicado em `AnexoView` (chat v2: pessoas, submissões, briefing, projeto, tarefas), `ConversaMediaGallery` (galeria de mídia), `ChatAnexoCard` (chat da tarefa, com ícone vermelho para PDFs), `TarefaAnexosSection` (lista de anexos da tarefa) e `ProjetoArquivosView` / `ArquivoPreviewDialog` (refit para usar a util). Corrige anexos antigos sem `mime_type` (uploads do Asana, paste de imagem) que apareciam como cartão genérico em vez de thumbnail/player.
