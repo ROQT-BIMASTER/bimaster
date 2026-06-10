@@ -1099,6 +1099,19 @@ export function ChinaChecklistFocusMode({
                     Enviar {draftDocs.length} rascunho(s) ao Brasil
                   </Button>
                 )}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-1.5"
+                  title="Ver checklist em quadro Kanban"
+                  onClick={() => {
+                    setIsOpen(false);
+                    navigate(`/dashboard/fabrica-china/produto/${submissaoId}/checklist-status?view=kanban`);
+                  }}
+                >
+                  <LayoutGrid className="h-3.5 w-3.5" />
+                  Kanban
+                </Button>
                 {/* Templates menu */}
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
