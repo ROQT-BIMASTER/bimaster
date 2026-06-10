@@ -617,13 +617,62 @@ export function useEstoqueUnificadoSkus(empresa: number | null, raiz: number | n
       }
 
       const rows = baseRows.concat(complementoRows);
+
+      // Hidratação de nomes faltantes: 1) cruzar dentro do próprio merge
+      // (mesmo cod_produto pode vir nomeado em outra filial), 2) buscar em
+      // erp_estoque_distribuidora sem filtro de empresa, 3) cair em fabrica_produtos.
+      const nomePorCod = new Map<number, string>();
+      rows.forEach((r) => {
+        if (r.nome_prod && !nomePorCod.has(r.cod_produto)) nomePorCod.set(r.cod_produto, r.nome_prod);
+      });
+      const semNome = Array.from(new Set(rows.filter((r) => !r.nome_prod).map((r) => r.cod_produto)));
+      if (semNome.length) {
+        try {
+          const { data } = await supabase
+            .from('erp_estoque_distribuidora')
+            .select('cod_produto,nome_prod')
+            .in('cod_produto', semNome)
+            .range(0, 19999);
+          (data ?? []).forEach((e: any) => {
+            if (e?.cod_produto != null && e.nome_prod && !nomePorCod.has(e.cod_produto)) {
+              nomePorCod.set(e.cod_produto, e.nome_prod);
+            }
+          });
+        } catch (e) {
+          logger.warn('[useEstoqueUnificadoSkus] fallback erp nome falhou', { error: e });
+        }
+        const aindaSem = semNome.filter((c) => !nomePorCod.has(c));
+        if (aindaSem.length) {
+          try {
+            const codStr = aindaSem.map((c) => String(c));
+            const { data } = await supabase
+              .from('fabrica_produtos')
+              .select('codigo_erp,sku,nome,nome_comercial')
+              .or(`codigo_erp.in.(${codStr.join(',')}),sku.in.(${codStr.join(',')})`)
+              .range(0, 19999);
+            (data ?? []).forEach((e: any) => {
+              const nome = e?.nome_comercial || e?.nome;
+              if (!nome) return;
+              [e?.codigo_erp, e?.sku].forEach((v) => {
+                const cod = Number(v);
+                if (Number.isFinite(cod) && !nomePorCod.has(cod)) nomePorCod.set(cod, nome);
+              });
+            });
+          } catch (e) {
+            logger.warn('[useEstoqueUnificadoSkus] fallback fabrica nome falhou', { error: e });
+          }
+        }
+      }
+      const hidratadas = rows.map((r) => (r.nome_prod ? r : { ...r, nome_prod: nomePorCod.get(r.cod_produto) ?? null }));
+
       // Ordena: nível asc (CX→BX→UN), depois pelo código
-      return rows.sort((a, b) => {
+      return hidratadas.sort((a, b) => {
         const na = a.nivel ?? 99;
         const nb = b.nivel ?? 99;
         if (na !== nb) return na - nb;
         return a.cod_produto - b.cod_produto;
       });
+
     },
   });
 }
