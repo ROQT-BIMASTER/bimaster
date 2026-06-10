@@ -414,15 +414,28 @@ export function MailboxReadingPane({
 
         {/* Conversa — chat China-Brasil contextualizado nesta submissão */}
         <section className="mt-6">
-          <button
-            type="button"
-            onClick={() => setChatOpen((v) => !v)}
-            className="flex w-full items-center gap-2 rounded-md border border-border bg-card/40 px-3 py-2 text-xs font-semibold hover:bg-card/60 transition-colors"
-          >
-            {chatOpen ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
-            <MessageSquare className="h-3.5 w-3.5 text-primary" />
-            <span>{t("inbox.blocks.conversa")}</span>
-          </button>
+          <div className="flex w-full items-center gap-2 rounded-md border border-border bg-card/40 px-2 py-1 text-xs font-semibold">
+            <button
+              type="button"
+              onClick={() => setChatOpen((v) => !v)}
+              className="flex flex-1 items-center gap-2 rounded-sm px-1 py-1 hover:bg-card/60 transition-colors text-left"
+            >
+              {chatOpen ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
+              <MessageSquare className="h-3.5 w-3.5 text-primary" />
+              <span>{t("inbox.blocks.conversa")}</span>
+            </button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-6 gap-1 px-2 text-[11px] font-normal text-muted-foreground hover:text-foreground"
+              onClick={() => setChatFullscreen(true)}
+              title="Abrir conversa em tela cheia"
+            >
+              <Maximize2 className="h-3 w-3" />
+              Expandir
+            </Button>
+          </div>
           {chatOpen && (
             <div className="mt-2 h-[480px] overflow-hidden rounded-md border border-border">
               <ChinaChatPanel
@@ -435,6 +448,26 @@ export function MailboxReadingPane({
           )}
         </section>
       </div>
+
+      {/* Chat em tela cheia (Dialog) */}
+      <Dialog open={chatFullscreen} onOpenChange={setChatFullscreen}>
+        <DialogContent className="max-w-3xl p-0 flex flex-col h-[85vh]">
+          <DialogHeader className="border-b border-border px-4 py-2.5">
+            <DialogTitle className="text-sm font-semibold truncate">
+              <MessageSquare className="inline h-4 w-4 mr-1.5 text-primary" />
+              {t("inbox.blocks.conversa")} · {item.produto_codigo} — {item.produto_nome}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 min-h-0 overflow-hidden">
+            <ChinaChatPanel
+              key={`fs-${item.submissao_id}`}
+              submissaoId={item.submissao_id}
+              produtoNome={item.produto_nome}
+              tipoRemetente={isBrasilUser ? "brasil" : "china"}
+            />
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
