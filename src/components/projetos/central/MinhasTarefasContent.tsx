@@ -28,7 +28,7 @@ import { useSystemProfiles } from "@/hooks/useSystemProfiles";
 import { cn } from "@/lib/utils";
 import { format, formatDistanceToNow, isToday, isBefore, startOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { parseLocalDate, nowSaoPauloISO } from "@/lib/utils/parseLocalDate";
+import { parseLocalDate, nowSaoPauloISO, getToday } from "@/lib/utils/parseLocalDate";
 import { isSemDatasPlanejadas } from "@/lib/utils/tarefaPlanejamento";
 import {
   Tooltip, TooltipContent, TooltipProvider, TooltipTrigger,
@@ -979,7 +979,7 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
   // Contadores para os chips de filtro (sobre o dataset completo, sem busca
   // nem filtros opcionais; replicam a base que o antigo CentralKPIs usava).
   const chipCounts = useMemo(() => {
-    const now = startOfDay(new Date());
+    const now = getToday();
     const pendentes = tarefas.filter((t) => t.status !== "concluida");
     return {
       todas: pendentes.length,
