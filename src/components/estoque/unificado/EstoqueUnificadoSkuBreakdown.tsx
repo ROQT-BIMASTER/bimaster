@@ -327,14 +327,8 @@ export function EstoqueUnificadoSkuBreakdown({ row }: Props) {
         </details>
       )}
 
-      {/* (sentinel para fechar bloco antigo de orphans abaixo) */}
-      {false && (
-        <div>
-          {orphans.map((o) => (
-            <SkuLine key={`orphan-x-${o.cod_produto}`} sku={o} depth={0} totalUn={totalUn} />
-          ))}
-        </div>
-      )}
+
+
 
       {/* Totalizador batendo com a linha-pai */}
       <div className="mt-3 pt-3 border-t border-border space-y-2">
