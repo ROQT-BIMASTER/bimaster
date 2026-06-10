@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect, useRef } from "react";
 import { Projeto } from "@/hooks/useProjetos";
 import { ProjetoTarefa } from "@/hooks/useProjetoTarefas";
 import { Button } from "@/components/ui/button";
-import { Plus, List, LayoutGrid, Calendar, CalendarDays, BarChart3, FileText, FileSpreadsheet, ShieldCheck, Sparkles, Users, UsersRound, Target, CalendarClock, Search, X, ChevronDown, MoreHorizontal, Link2 } from "lucide-react";
+import { Plus, List, LayoutGrid, Calendar, CalendarDays, BarChart3, FileText, FileSpreadsheet, ShieldCheck, Sparkles, Users, UsersRound, Target, CalendarClock, Search, X, ChevronDown, MoreHorizontal, Link2, KanbanSquare } from "lucide-react";
 import { copyProjetoLink } from "@/lib/utils/copyDeepLink";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -78,6 +78,13 @@ export function ProjetoHeader({
   const [membrosOpen, setMembrosOpen] = useState(false);
   const [quickAddOpen, setQuickAddOpen] = useState(false);
   const [lixeiraOpenLocal, setLixeiraOpenLocal] = useState(false);
+
+  // Para o projeto-âncora RR-Tasks (tipo='rr_tasks') anexamos uma aba extra
+  // "Espelho RR". Para qualquer outro tipo, `workTabs === WORK_TABS` (mesma
+  // referência) — zero impacto no caminho de produção.
+  const workTabs = projeto.tipo === "rr_tasks"
+    ? [...WORK_TABS, { value: "rr_board", icon: KanbanSquare, label: "Espelho RR" }]
+    : WORK_TABS;
   // Lixeira: controlado externamente (Fase 2 — lazy load) ou estado local legacy.
   const lixeiraOpen = lixeiraOpenProp ?? lixeiraOpenLocal;
   const setLixeiraOpen = (v: boolean) => {
@@ -209,7 +216,7 @@ export function ProjetoHeader({
             darkBg ? "bg-white/10" : customBg ? "bg-black/10" : "bg-muted"
           )}>
             {/* Work tabs */}
-            {WORK_TABS.map(tab => {
+            {workTabs.map(tab => {
               const Icon = tab.icon;
               return (
                 <button key={tab.value} onClick={() => onTabChange(tab.value)} className={cn(tabCls(activeTab === tab.value), "flex-shrink-0")}>
@@ -271,7 +278,7 @@ export function ProjetoHeader({
             <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider px-2 py-1">
               Trabalho
             </p>
-            {WORK_TABS.map(tab => {
+            {workTabs.map(tab => {
               const Icon = tab.icon;
               const isActive = activeTab === tab.value;
               return (
