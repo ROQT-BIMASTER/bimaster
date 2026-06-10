@@ -38,6 +38,7 @@ export interface CopilotMessage {
 }
 
 export function useProjetoCopilot(projetoId: string | null) {
+  const v2 = useCopilotV2Flag("projeto");
   const [threadId, setThreadId] = useState<string | null>(null);
   const [messages, setMessages] = useState<CopilotMessage[]>([]);
   const [sending, setSending] = useState(false);
