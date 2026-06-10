@@ -196,7 +196,7 @@ export function SubmissionCopilotPanel({ open, onOpenChange, initialQuery = "" }
     setLoading(true);
     setResultado(null);
     const { data, error } = await invokeChat<Resultado>(
-      "china-submission-copilot",
+      "china-submission-copilot-v2",
       { submissao_id: selecionada.id, idioma, profundidade },
       { timeoutMs: 150_000 },
     );
