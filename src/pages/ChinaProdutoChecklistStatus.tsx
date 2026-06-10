@@ -775,6 +775,24 @@ export default function ChinaProdutoChecklistStatus() {
           })
         )}
       </div>
+
+      {painelTipo && (() => {
+        const cat = allCats.find((c) => c.tipos.includes(painelTipo));
+        const label = getLabel(painelTipo);
+        return (
+          <ChecklistItemPainel
+            open={!!painelTipo}
+            onOpenChange={(o) => {
+              if (!o) setPainelTipo(null);
+            }}
+            submissaoId={id}
+            tipoDocumento={painelTipo}
+            labelPt={label.pt}
+            labelCn={label.cn}
+            fluxo={cat?.fluxo === "brasil_envia" ? "brasil_envia" : "china_envia"}
+          />
+        );
+      })()}
     </ChinaPageShell>
   );
 }
