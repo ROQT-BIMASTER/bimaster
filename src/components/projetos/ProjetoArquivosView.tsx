@@ -296,7 +296,7 @@ export function ProjetoArquivosView({ projetoId, darkBg = false }: ProjetoArquiv
                   className="flex items-center gap-3 px-4 py-3 hover:bg-muted/30 transition-colors cursor-pointer"
                   onClick={() => setPreviewing(anexo)}
                 >
-                  {getFileIcon(anexo.tipo)}
+                  {getFileIcon(detectKind(anexo.nome, anexo.tipo))}
                   <div className="flex-1 min-w-0">
                     <p className={cn("text-sm font-medium truncate", textColor)}>{anexo.nome}</p>
                     <p className={cn("text-[11px]", textMuted)}>
