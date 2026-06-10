@@ -362,6 +362,13 @@ export default function ChinaProdutoChecklistStatus() {
 
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<FilterKey>(initialFilter);
+  const [painelTipo, setPainelTipo] = useState<string | null>(null);
+
+  // Deep-link via ?item=<tipo>
+  useEffect(() => {
+    const param = new URLSearchParams(location.search).get("item");
+    if (param) setPainelTipo(param);
+  }, [location.search]);
 
   const { data: submissao } = useQuery({
     queryKey: ["china-ficha", id],
