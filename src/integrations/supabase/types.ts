@@ -50552,6 +50552,22 @@ export type Database = {
         Args: { p_expires_at?: string; p_reason: string; p_user_id: string }
         Returns: undefined
       }
+      admin_copilot_v2_stats: {
+        Args: { p_days?: number }
+        Returns: {
+          avg_latency_ms: number
+          avg_unverifiable: number
+          copilot_id: string
+          is_v2: boolean
+          last_run: string
+          runs: number
+          total_breaches: number
+        }[]
+      }
+      admin_set_copilot_v2_flag: {
+        Args: { p_ativo: boolean; p_codigo: string }
+        Returns: undefined
+      }
       admin_tarefas_cron_status: {
         Args: never
         Returns: {
