@@ -74,6 +74,25 @@ describe("classificarGaps", () => {
     expect(r.statusByCodigo.get(7498)).toBe("faltante");
   });
 
+  it("cenário 10043→4211→3413: complemento BOM trazendo saldo real → sem gaps", () => {
+    // Antes do fix, 4211 e 3413 eram excluídos do complemento porque tinham
+    // estoque na empresa (sob raiz própria), e 10043 aparecia como
+    // "sem_filhos_mapeados". Agora o complemento traz o saldo real, e a árvore
+    // não deve reportar gap algum.
+    const tree = [
+      mk(10043, 1, 11, 11, "CX BLUSH BATOM SOMBRA", [
+        mk(4211, 2, 3, 3, "BX BLUSH BATOM SOMBRA", [
+          mk(3413, 3, 880, 878, "UN BLUSH BATOM SOMBRA"),
+        ]),
+      ]),
+    ];
+    const r = classificarGaps(tree);
+    expect(r.semFilhosMapeados).toBe(0);
+    expect(r.faltantesBX).toBe(0);
+    expect(r.faltantesUN).toBe(0);
+    expect(temAlgumGap(r)).toBe(false);
+  });
+
   it("usar=saldo respeita escolha", () => {
     const tree = [mk(1, 1, 10, 10, "CX", [mk(2, 2, 5, 0, "BX")])];
     expect(classificarGaps(tree, { usar: "disponivel" }).faltantesBX).toBe(1);
