@@ -1,6 +1,8 @@
-import { ExternalLink, FileText } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { ExternalLink, FileText, Briefcase, ArrowRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { buildReturnToTarget } from "@/lib/navigation/withReturnTo";
+import { supabase } from "@/integrations/supabase/client";
 import {
   Sheet,
   SheetContent,
@@ -12,6 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { BriefingVersoesTimeline } from "@/components/briefings/BriefingVersoesTimeline";
+import { RrTaskCofrePanel } from "@/components/rr-tasks/RrTaskCofrePanel";
 import {
   wfTone,
   emGargalo,
@@ -19,6 +22,33 @@ import {
   WF_FIELDS,
 } from "@/lib/controladoria";
 import type { RrTaskMirror } from "@/hooks/useRrTasksMirror";
+
+function useProjetoSecaoLabels(projetoId: string | null, secaoId: string | null) {
+  return useQuery({
+    queryKey: ["rr-drilldown-projeto", projetoId, secaoId],
+    enabled: !!projetoId,
+    queryFn: async () => {
+      const [proj, sec] = await Promise.all([
+        supabase
+          .from("projetos")
+          .select("id, nome")
+          .eq("id", projetoId!)
+          .maybeSingle(),
+        secaoId
+          ? supabase
+              .from("projeto_secoes")
+              .select("id, nome")
+              .eq("id", secaoId)
+              .maybeSingle()
+          : Promise.resolve({ data: null, error: null } as const),
+      ]);
+      return {
+        projetoNome: (proj.data as any)?.nome ?? null,
+        secaoNome: (sec.data as any)?.nome ?? null,
+      };
+    },
+  });
+}
 
 interface Props {
   task: RrTaskMirror | null;
