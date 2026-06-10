@@ -12,6 +12,12 @@ versionamento conforme [SemVer](https://semver.org/) quando aplicável.
 
 ---
 
+## v3.5.38
+
+Cobertura ampliada de detecção de mídia em `detectFileKind`: extensões adicionais para imagem (`apng`, `tif/tiff`, `ico`, `jfif`, `jxl`, `jp2`), vídeo (`wmv`, `flv`, `ogv`, `3gp`, `mpeg`, `mts`, `m2ts`, `ts`) e áudio (`wma`, `amr`, `aiff`, `mid/midi`, `weba`, `caf`). Novos helpers `getFileExtension` e `getFileExtensionLabel` para rótulos de fallback. `ArquivoPreviewDialog` agora renderiza vídeo e áudio inline com player nativo, e o estado "tipo não suportado" mostra um chip com a extensão do arquivo (ex.: `DOCX`, `ZIP`) em vez de mensagem genérica. Sem mudanças de backend.
+
+---
+
 ## v3.5.37
 
 Auditoria e extensão do helper `detectFileKind` para todas as superfícies internas restantes: chat de tarefa inline (`TarefaChatPanel`), chat de submissões China (`ChatAttachmentChip`), anexos de "Minhas Tarefas" (`MinhasTarefaAnexos`), detalhe e Focus Mode da tarefa (`ProjetoTarefaDetalhe`, `TarefaFocusMode`), Cofre Oficial do projeto (`CofreOficialTab`), drawer de aprovações (`ItemAprovacaoDrawer`), RR-Tasks cofre (`RrTaskCofrePanel`) e Mission Control task files (`TaskFiles`). Assinaturas de `getFileIcon`/`iconFor` passam a receber `(nome, tipo)` para permitir fallback por extensão quando o MIME está nulo. Sem mudança de backend ou layout.
