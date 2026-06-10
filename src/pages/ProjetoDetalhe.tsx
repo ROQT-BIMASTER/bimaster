@@ -205,6 +205,11 @@ export default function ProjetoDetalhe({ shared = false }: ProjetoDetalheProps =
             )}
           </div>
 
+          {showRrBreadcrumb && (
+            <RrTasksBreadcrumb tarefaId={originTarefaId} />
+          )}
+
+
           <ProjetoHeader
             projeto={projeto}
             activeTab={activeTab}
