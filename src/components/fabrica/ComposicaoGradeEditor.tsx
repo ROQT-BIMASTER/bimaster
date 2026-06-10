@@ -147,7 +147,7 @@ export function ComposicaoGradeEditor({ produtoPaiId, items, onChange }: Composi
       setCarregando(true);
       const { data, error } = await supabase
         .from("fabrica_produtos")
-        .select("id, nome, codigo, codigo_barras_ean, foto_url, linha, marca, categoria, is_sugestao, vencedor_produto_id")
+        .select("id, nome, codigo, codigo_barras_ean, foto_url, linha, marca, categoria, is_sugestao, vencedor_produto_id, is_provador")
         .eq("ativo", true)
         .eq("modo", "oficial")
         .neq("tipo", "MP")
