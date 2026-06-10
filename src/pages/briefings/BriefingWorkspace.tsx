@@ -34,10 +34,12 @@ import { AnexarEvidenciaDialog } from "@/components/briefings/cofre/AnexarEviden
 import { AttachImageButton, type ChatAttachment } from "@/components/briefings/chat/AttachImageButton";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { BriefingAprovacaoBanner } from "@/components/briefings/BriefingAprovacaoBanner";
+import { useResolvedBackTo } from "@/lib/navigation/withReturnTo";
 
 export default function BriefingWorkspace() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { backTo } = useResolvedBackTo("/dashboard/briefings");
   const [searchParams] = useSearchParams();
   const deepLinkCampo = searchParams.get("campo");
   const deepLinkComentario = searchParams.get("comentario");
@@ -236,7 +238,7 @@ export default function BriefingWorkspace() {
       <BriefingHeader
         briefing={briefing}
         projetoNome={projetoNome}
-        onVoltar={() => navigate("/dashboard/briefings")}
+        onVoltar={() => navigate(backTo)}
         onVincularProjeto={() => setVincDialogOpen(true)}
         onAbrirProjeto={
           briefing.projeto_id
