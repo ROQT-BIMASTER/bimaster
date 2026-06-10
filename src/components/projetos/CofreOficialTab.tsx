@@ -123,7 +123,7 @@ export function CofreOficialTab({ produtoId, projetoId, isReadOnly }: CofreOfici
           <div className="space-y-2">
             {cofreDocs.map((doc: any) => (
               <div key={doc.id} className="flex items-center gap-2 p-2.5 rounded-md bg-muted/30 border border-border/30">
-                {getFileIcon(doc.tipo_arquivo)}
+                {getFileIcon(doc.nome_arquivo, doc.tipo_arquivo)}
                 <div className="flex-1 min-w-0">
                   <p className="text-xs font-medium truncate">{doc.nome_arquivo}</p>
                   <div className="flex items-center gap-2 mt-0.5">

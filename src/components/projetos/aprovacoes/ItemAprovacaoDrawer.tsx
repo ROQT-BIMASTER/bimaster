@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { detectFileKind } from "@/lib/utils/detectFileKind";
 import { useNavigate } from "react-router-dom";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";

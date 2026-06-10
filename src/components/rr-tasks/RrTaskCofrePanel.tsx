@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { detectFileKind } from "@/lib/utils/detectFileKind";
 import { useQuery } from "@tanstack/react-query";
 import { formatDistanceToNow, format } from "date-fns";
 import { ptBR } from "date-fns/locale";

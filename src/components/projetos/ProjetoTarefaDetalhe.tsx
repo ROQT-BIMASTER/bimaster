@@ -1,4 +1,5 @@
 import { secureDownload } from "@/lib/utils/secure-download";
+import { detectFileKind } from "@/lib/utils/detectFileKind";
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";

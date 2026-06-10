@@ -57,7 +57,7 @@ export function MinhasTarefaAnexos({ anexos, uploadAnexo, deleteAnexo, getAnexoU
         <div className="space-y-1">
           {anexos.map(a => (
             <div key={a.id} className="flex items-center gap-2 p-1.5 rounded-md bg-muted/30 border border-border/30">
-              {getFileIcon(a.tipo_arquivo)}
+              {getFileIcon(a.nome, a.tipo_arquivo)}
               <div className="flex-1 min-w-0">
                 <p className="text-[11px] font-medium truncate">{a.nome}</p>
                 <p className="text-[9px] text-muted-foreground">{formatFileSize(a.tamanho)}</p>
