@@ -371,6 +371,11 @@ export default function Projetos() {
                         <div className="min-w-0">
                           <div className="flex items-center gap-2">
                             <p className="font-medium text-sm text-foreground truncate group-hover:text-primary transition-colors">{projeto.nome}</p>
+                            {projeto.tipo === "rr_tasks" && (
+                              <Badge variant="outline" className="text-[9px] px-1.5 py-0 shrink-0 gap-1 border-border/60">
+                                Integração · Espelho
+                              </Badge>
+                            )}
                             {projeto.departamento_id && (() => {
                               const dept = allDepartments.find((d: any) => d.id === projeto.departamento_id);
                               return dept ? (
