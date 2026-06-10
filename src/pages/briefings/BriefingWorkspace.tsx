@@ -34,6 +34,7 @@ import { AnexarEvidenciaDialog } from "@/components/briefings/cofre/AnexarEviden
 import { AttachImageButton, type ChatAttachment } from "@/components/briefings/chat/AttachImageButton";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { BriefingAprovacaoBanner } from "@/components/briefings/BriefingAprovacaoBanner";
+import { useResolvedBackTo } from "@/lib/navigation/withReturnTo";
 
 export default function BriefingWorkspace() {
   const { id } = useParams<{ id: string }>();
