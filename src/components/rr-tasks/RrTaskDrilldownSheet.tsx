@@ -88,9 +88,14 @@ export function RrTaskDrilldownSheet({ task, open, onOpenChange }: Props) {
             <Button
               size="sm"
               variant="outline"
-              onClick={() =>
-                navigate(`/dashboard/briefings/${task.briefing_id}`)
-              }
+              onClick={() => {
+                const { url, state } = buildReturnToTarget(
+                  `/dashboard/briefings/${task.briefing_id}`,
+                  "/dashboard/rr-tasks",
+                  { fromLabel: "RR-Tasks (espelho)" },
+                );
+                navigate(url, { state });
+              }}
             >
               <FileText className="h-3.5 w-3.5 mr-1.5" />
               Abrir briefing
