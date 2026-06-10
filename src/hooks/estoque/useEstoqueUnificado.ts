@@ -227,12 +227,12 @@ export function useEstoqueUnificado(opts: UseEstoqueUnificadoOpts) {
           }
         }
 
-        // Marca por SKU — vem do catálogo rr_produtos (sku == cod_produto)
+        // Marca + nome (fallback) por SKU — catálogo rr_produtos (sku == cod_produto)
         const marcaResults = await Promise.all(
           codChunks.map((cs) =>
             supabase
               .from('rr_produtos')
-              .select('sku,marca')
+              .select('sku,marca,nome_comercial')
               .in('sku', cs as any)
               .range(0, 19999),
           ),
@@ -243,6 +243,11 @@ export function useEstoqueUnificado(opts: UseEstoqueUnificadoOpts) {
             if (!Number.isFinite(cod)) return;
             if (!marcaPorCod.has(cod) && e.marca) {
               marcaPorCod.set(cod, String(e.marca));
+            }
+            // rr_produtos.nome_comercial entra como fallback antes do "Produto N"
+            const nomeRR = typeof e?.nome_comercial === 'string' ? e.nome_comercial.trim() : '';
+            if (nomeRR && !nomesPorCod.get(cod)) {
+              nomesPorCod.set(cod, nomeRR);
             }
           });
         });
