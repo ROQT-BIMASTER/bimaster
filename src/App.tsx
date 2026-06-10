@@ -321,6 +321,8 @@ const ProjetoVincularChina = lazyWithRetry(() => import("./pages/ProjetoVincular
 const ProdutoBrasilCadastro = lazyWithRetry(() => import("./pages/ProdutoBrasilCadastro"));
 const ProdutosBrasilListagem = lazyWithRetry(() => import("./pages/ProdutosBrasilListagem"));
 const ProjetosRelatorios = lazyWithRetry(() => import("./pages/ProjetosRelatorios"));
+const ReportsV2Home = lazyWithRetry(() => import("./pages/admin/ReportsV2Home"));
+const ReportWizard = lazyWithRetry(() => import("./pages/admin/ReportWizard"));
 const CalendarioCorporativo = lazyWithRetry(() => import("./pages/admin/CalendarioCorporativo"));
 const ProjetosSaude = lazyWithRetry(() => import("./pages/admin/ProjetosSaude"));
 const CustosTecnologia = lazyWithRetry(() => import("./pages/admin/CustosTecnologia"));
@@ -566,6 +568,10 @@ function AppContent() {
             <Route path="/dashboard/qa-agent" element={<ScreenRoute screenCode="ai_analytics"><QAAgent /></ScreenRoute>} />
             <Route path="/dashboard/agente-huggs" element={<ScreenRoute screenCode="ai_analytics"><AgenteHuggs /></ScreenRoute>} />
             <Route path="/dashboard/relatorios" element={<ScreenRoute screenCode="relatorios"><Relatorios /></ScreenRoute>} />
+            <Route path="/dashboard/admin/relatorios-v2" element={<ProtectedRoute><ReportsV2Home /></ProtectedRoute>} />
+            <Route path="/dashboard/admin/relatorios-v2/novo" element={<ProtectedRoute><ReportWizard /></ProtectedRoute>} />
+            <Route path="/dashboard/admin/relatorios-v2/:reportId" element={<ProtectedRoute><ReportWizard /></ProtectedRoute>} />
+
             <Route path="/dashboard/briefings" element={<ProtectedRoute><BriefingsHome /></ProtectedRoute>} />
             <Route path="/dashboard/briefings/:id" element={<ProtectedRoute><BriefingWorkspace /></ProtectedRoute>} />
             <Route path="/dashboard/controladoria" element={<ProtectedRoute><ControladoriaProdutos /></ProtectedRoute>} />
