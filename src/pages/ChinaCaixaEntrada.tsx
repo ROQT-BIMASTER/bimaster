@@ -20,6 +20,7 @@ import { ChinaDocPreviewDialog } from "@/components/china/ChinaDocPreviewDialog"
 import { MailboxSidebar } from "@/components/china/inbox/MailboxSidebar";
 import { MailboxList } from "@/components/china/inbox/MailboxList";
 import { MailboxReadingPane } from "@/components/china/inbox/MailboxReadingPane";
+import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { ChinaInboxOCAba } from "@/components/china/inbox-oc/ChinaInboxOCAba";
 import { SnoozeMenu } from "@/components/china/inbox/SnoozeMenu";
 import {
@@ -553,6 +554,33 @@ export default function ChinaCaixaEntrada() {
       {/* Layout 3 colunas (desktop) ou pilha (mobile) */}
       {isDesktop ? (
         <div className="h-[calc(100vh-220px)] overflow-hidden rounded-md border border-border bg-card/20">
+          {viewMode === "kanban" && folder !== "oc" ? (
+            <MailboxKanban
+              items={items}
+              progressItems={progressItems}
+              selectedId={selectedId}
+              perspective={isBrasilUser ? "brasil" : "china"}
+              onJumpFolder={(f) => { setViewMode("list"); setFolder(f); }}
+              onSelectGroup={(g: MailboxGroup) => {
+                const targetFolder: MailboxFolder =
+                  g.submissao_status === "aprovado" ? "approved"
+                  : g.submissao_status === "rejeitado" ? (isBrasilUser ? "rejected" : "returned")
+                  : g.submissao_status === "enviado_brasil" ? "sent_brazil"
+                  : (g.submissao_status === "em_revisao" || g.submissao_status === "enviado") ? "in_analysis"
+                  : "awaiting_send";
+                if (folder !== targetFolder) setFolder(targetFolder);
+                const firstDoc = g.docs[0];
+                if (firstDoc) {
+                  const id = firstDoc.is_virtual
+                    ? `${firstDoc.submissao_id}:virtual:${firstDoc.tipo_documento ?? "_"}`
+                    : firstDoc.documento_id ?? firstDoc.submissao_id;
+                  setSelectedId(id);
+                } else {
+                  setSelectedId(g.submissao_id);
+                }
+              }}
+            />
+          ) : (
           <ResizablePanelGroup direction="horizontal">
             <ResizablePanel defaultSize={18} minSize={14} maxSize={28}>
               <MailboxSidebar
@@ -569,41 +597,13 @@ export default function ChinaCaixaEntrada() {
                 <ChinaInboxOCAba />
               </ResizablePanel>
             ) : (<>
-            <ResizablePanel defaultSize={viewMode === "kanban" ? 64 : 36} minSize={24}>
+            <ResizablePanel defaultSize={36} minSize={24}>
               {isLoading ? (
                 <div className="space-y-2 p-3">
                   {[...Array(6)].map((_, i) => (
                     <div key={i} className="h-12 animate-pulse rounded bg-muted/30" />
                   ))}
                 </div>
-              ) : viewMode === "kanban" ? (
-                <MailboxKanban
-                  items={items}
-                  progressItems={progressItems}
-                  selectedId={selectedId}
-                  perspective={isBrasilUser ? "brasil" : "china"}
-                  onJumpFolder={(f) => { setViewMode("list"); setFolder(f); }}
-                  onSelectGroup={(g: MailboxGroup) => {
-                    // Garante que a pasta-alvo seja a "natural" do estado da submissão,
-                    // para que a lista carregue os docs e o ReadingPane funcione.
-                    const targetFolder: MailboxFolder =
-                      g.submissao_status === "aprovado" ? "approved"
-                      : g.submissao_status === "rejeitado" ? (isBrasilUser ? "rejected" : "returned")
-                      : g.submissao_status === "enviado_brasil" ? "sent_brazil"
-                      : (g.submissao_status === "em_revisao" || g.submissao_status === "enviado") ? "in_analysis"
-                      : "awaiting_send";
-                    if (folder !== targetFolder) setFolder(targetFolder);
-                    const firstDoc = g.docs[0];
-                    if (firstDoc) {
-                      const id = firstDoc.is_virtual
-                        ? `${firstDoc.submissao_id}:virtual:${firstDoc.tipo_documento ?? "_"}`
-                        : firstDoc.documento_id ?? firstDoc.submissao_id;
-                      setSelectedId(id);
-                    } else {
-                      setSelectedId(g.submissao_id);
-                    }
-                  }}
-                />
               ) : (
                 <MailboxList
                   items={items}
@@ -645,6 +645,7 @@ export default function ChinaCaixaEntrada() {
             </ResizablePanel>
             </>)}
           </ResizablePanelGroup>
+          )}
         </div>
       ) : (
         <div className="space-y-2">
@@ -712,6 +713,31 @@ export default function ChinaCaixaEntrada() {
         tipoDocumento={previewDoc?.tipo_documento ?? undefined}
       />
       <SubmissionCopilotPanel open={copilotOpen} onOpenChange={setCopilotOpen} initialQuery={search} />
+
+      {/* Reading pane como Sheet lateral (modo Kanban) */}
+      <Sheet
+        open={viewMode === "kanban" && isDesktop && !!selectedItem}
+        onOpenChange={(o) => { if (!o) setSelectedId(null); }}
+      >
+        <SheetContent side="right" className="w-full sm:max-w-[560px] p-0 flex flex-col">
+          {selectedItem && (
+            <MailboxReadingPane
+              item={selectedItem}
+              isBrasilUser={isBrasilUser}
+              isChinaUser={isChinaUser}
+              onView={(it) => setPreviewDoc(it)}
+              onCorrigir={handleCorrigir}
+              onEnviarBrasil={handleEnviarBrasil}
+              onToggleRead={handleToggleRead}
+              onToggleStar={handleToggleStar}
+              onBack={() => setSelectedId(null)}
+              loading={loading}
+              error={enviarBrasil.isError ? (enviarBrasil.error as any)?.message ?? t("inbox.blocks.falhaEnviarBrasil") : null}
+              onRetryEnvio={lastEnvioVars && enviarBrasil.isError ? handleRetryEnvio : undefined}
+            />
+          )}
+        </SheetContent>
+      </Sheet>
     </ChinaPageShell>
   );
 }
