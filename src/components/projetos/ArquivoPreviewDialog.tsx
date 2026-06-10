@@ -22,8 +22,9 @@ interface Props {
 
 export function ArquivoPreviewDialog({ open, onOpenChange, arquivo, projetoId }: Props) {
   const navigate = useNavigate();
-  const isImage = !!arquivo?.tipo?.startsWith("image/");
-  const isPdf = !!arquivo?.tipo?.includes("pdf");
+  const kind = arquivo ? detectKind(arquivo.nome, arquivo.tipo) : "other";
+  const isImage = kind === "image";
+  const isPdf = kind === "pdf";
 
   const { data: url, isLoading } = useSignedThumbUrl(
     "projeto-anexos",
