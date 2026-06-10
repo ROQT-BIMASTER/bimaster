@@ -714,6 +714,31 @@ export default function ChinaCaixaEntrada() {
         tipoDocumento={previewDoc?.tipo_documento ?? undefined}
       />
       <SubmissionCopilotPanel open={copilotOpen} onOpenChange={setCopilotOpen} initialQuery={search} />
+
+      {/* Reading pane como Sheet lateral (modo Kanban) */}
+      <Sheet
+        open={viewMode === "kanban" && isDesktop && !!selectedItem}
+        onOpenChange={(o) => { if (!o) setSelectedId(null); }}
+      >
+        <SheetContent side="right" className="w-full sm:max-w-[560px] p-0 flex flex-col">
+          {selectedItem && (
+            <MailboxReadingPane
+              item={selectedItem}
+              isBrasilUser={isBrasilUser}
+              isChinaUser={isChinaUser}
+              onView={(it) => setPreviewDoc(it)}
+              onCorrigir={handleCorrigir}
+              onEnviarBrasil={handleEnviarBrasil}
+              onToggleRead={handleToggleRead}
+              onToggleStar={handleToggleStar}
+              onBack={() => setSelectedId(null)}
+              loading={loading}
+              error={enviarBrasil.isError ? (enviarBrasil.error as any)?.message ?? t("inbox.blocks.falhaEnviarBrasil") : null}
+              onRetryEnvio={lastEnvioVars && enviarBrasil.isError ? handleRetryEnvio : undefined}
+            />
+          )}
+        </SheetContent>
+      </Sheet>
     </ChinaPageShell>
   );
 }
