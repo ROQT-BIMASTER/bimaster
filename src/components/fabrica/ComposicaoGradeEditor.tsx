@@ -46,6 +46,7 @@ interface GradeItem {
   cor_hex?: string;
   linha?: string;
   marca?: string;
+  is_provador?: boolean;
 }
 
 interface ProdutoDisponivel {
@@ -57,6 +58,7 @@ interface ProdutoDisponivel {
   linha: string | null;
   marca: string | null;
   categoria: string | null;
+  is_provador?: boolean | null;
 }
 
 interface ComposicaoGradeEditorProps {
