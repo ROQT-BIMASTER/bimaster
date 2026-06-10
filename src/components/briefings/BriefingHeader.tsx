@@ -213,6 +213,9 @@ export function BriefingHeader({
                   </TooltipProvider>
                 );
               })()}
+              <Badge variant="ghost" className="font-normal" title="Esta tarefa está espelhada no board RR-Tasks (somente leitura)">
+                espelhada em RR-Tasks
+              </Badge>
 
               {onReenviarRRTask && (
                 <Button
