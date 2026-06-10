@@ -119,27 +119,47 @@ interface TreeNode {
 }
 
 function buildTree(rows: EstoqueUnificadoSkuRow[]): { tree: TreeNode[]; orphans: TreeNode[] } {
-  const byCod = new Map<number, TreeNode>();
-  rows.forEach((r) => byCod.set(r.cod_produto, { sku: r, children: [] }));
+  // Chave composta: o mesmo cod_produto pode aparecer sob pais diferentes
+  // (ex.: SKU compartilhado por BX e CX em hierarquias paralelas). Usar só
+  // cod_produto colidia e duplicava ramos. produto_raiz+pai+cod+nivel é único.
+  const keyOf = (r: { produto_raiz: number; pai_cod: number | null; cod_produto: number; nivel: number | null }) =>
+    `${Number(r.produto_raiz)}|${r.pai_cod == null ? 'root' : Number(r.pai_cod)}|${Number(r.cod_produto)}|${r.nivel ?? 0}`;
+
+  const byKey = new Map<string, TreeNode>();
+  // Para anexar filhos: index por cod_produto -> chaves candidatas a pai
+  const codToKeys = new Map<number, string[]>();
+  rows.forEach((r) => {
+    const k = keyOf(r);
+    if (byKey.has(k)) return; // dedup defensivo
+    const node: TreeNode = { sku: r, children: [] };
+    byKey.set(k, node);
+    const arr = codToKeys.get(Number(r.cod_produto)) ?? [];
+    arr.push(k);
+    codToKeys.set(Number(r.cod_produto), arr);
+  });
+
   const roots: TreeNode[] = [];
   const orphans: TreeNode[] = [];
 
-  for (const node of byCod.values()) {
+  for (const node of byKey.values()) {
     const { sku } = node;
-    // Nó raiz: nivel=1 (CX) OU sem pai mapeado e é o próprio produto_raiz
-    if (sku.pai_cod != null && byCod.has(sku.pai_cod)) {
-      byCod.get(sku.pai_cod)!.children.push(node);
-    } else if (sku.cod_produto === sku.produto_raiz || sku.nivel === 1) {
+    if (sku.pai_cod != null) {
+      // Tenta achar o pai exato (mesmo produto_raiz). Se não houver, anexa ao primeiro.
+      const candidatos = codToKeys.get(Number(sku.pai_cod)) ?? [];
+      const paiKey =
+        candidatos.find((ck) => byKey.get(ck)?.sku.produto_raiz === sku.produto_raiz) ?? candidatos[0];
+      if (paiKey && byKey.has(paiKey)) {
+        byKey.get(paiKey)!.children.push(node);
+        continue;
+      }
+    }
+    if (sku.cod_produto === sku.produto_raiz || sku.nivel === 1) {
       roots.push(node);
     } else {
-      // Órfão: pai não mapeado. Preserva subárvore (filhos foram atachados via
-      // byCod ao longo do loop) para que ramos inteiros continuem visíveis sob
-      // "Sem composição BOM mapeada" em vez de sumir silenciosamente.
       orphans.push(node);
     }
   }
 
-  // Ordena filhos por nível, depois código
   const sortNode = (n: TreeNode) => {
     n.children.sort((a, b) => {
       const na = a.sku.nivel ?? 99;
@@ -151,6 +171,9 @@ function buildTree(rows: EstoqueUnificadoSkuRow[]): { tree: TreeNode[]; orphans:
   };
   roots.forEach(sortNode);
   orphans.forEach(sortNode);
+
+  return { tree: roots, orphans };
+}
 
   return { tree: roots, orphans };
 }
