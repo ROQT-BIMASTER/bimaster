@@ -197,5 +197,11 @@ export function useRrTasksMirror() {
         } satisfies RrTaskMirror;
       });
     },
+    {
+      // Fallback de polling: Realtime cobre o caso normal; este intervalo
+      // garante recuperação automática caso a conexão Realtime caia.
+      refetchInterval: 60 * 1000,
+      refetchIntervalInBackground: false,
+    },
   );
 }
