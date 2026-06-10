@@ -1,3 +1,5 @@
+import { useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useSupabaseQuery } from "@/hooks/useSupabaseQuery";
 
@@ -33,9 +35,37 @@ export interface RrTaskMirror {
   produto: RrTaskGargalo | null;
 }
 
+const QUERY_KEY = ["rr_tasks_mirror"];
+
 export function useRrTasksMirror() {
+  const qc = useQueryClient();
+
+  useEffect(() => {
+    const channel = supabase
+      .channel("rr-tasks-mirror")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "briefings" },
+        () => {
+          qc.invalidateQueries({ queryKey: QUERY_KEY });
+        },
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "projeto_tarefas" },
+        () => {
+          qc.invalidateQueries({ queryKey: QUERY_KEY });
+        },
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [qc]);
+
   return useSupabaseQuery<RrTaskMirror[]>(
-    ["rr_tasks_mirror"],
+    QUERY_KEY,
     async () => {
       // 1) Tarefas espelho
       const { data: tasks, error } = await supabase
@@ -79,9 +109,10 @@ export function useRrTasksMirror() {
         supabase
           .from("briefings")
           .select(
-            "id, rrtask_page_id, rrtask_round, rrtask_aprovacao, rrtask_page_url",
+            "id, rrtask_page_id, rrtask_round, rrtask_aprovacao, rrtask_page_url, updated_at",
           )
-          .in("rrtask_page_id", pageIds),
+          .in("rrtask_page_id", pageIds)
+          .order("updated_at", { ascending: false }),
         produtoIds.length
           ? supabase
               .from("rr_produtos")
@@ -122,6 +153,8 @@ export function useRrTasksMirror() {
         respByTask.set(r.tarefa_id, list);
       });
 
+      // Briefings já vêm ordenados por updated_at DESC; manter o primeiro
+      // (mais recente) em caso de múltiplos briefings com o mesmo page_id.
       const briefingByPage = new Map<string, {
         id: string;
         rrtask_round: number | null;
