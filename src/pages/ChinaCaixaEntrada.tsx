@@ -1,7 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import { buildReturnToTarget } from "@/lib/navigation/withReturnTo";
-import { Inbox, RefreshCw, Search, X, Trash2, RotateCcw, Clock, Calculator, History, Sparkles, CheckCheck, Loader2 } from "lucide-react";
+import { Inbox, RefreshCw, Search, X, Trash2, RotateCcw, Clock, Calculator, History, Sparkles, CheckCheck, Loader2, LayoutGrid, Rows3, MoreHorizontal } from "lucide-react";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { MailboxKanban } from "@/components/china/inbox/MailboxKanban";
+import type { MailboxGroup } from "@/lib/china/groupMailboxItems";
 import { SubmissionCopilotPanel } from "@/components/china/SubmissionCopilotPanel";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -109,6 +115,13 @@ export default function ChinaCaixaEntrada() {
   const [copilotOpen, setCopilotOpen] = useState(false);
   const searchInputRef = useRef<HTMLInputElement | null>(null);
   const [groupMode, setGroupMode] = useChinaInboxGroupMode(folder);
+  const [viewMode, setViewMode] = useState<"list" | "kanban">(() => {
+    if (typeof window === "undefined") return "list";
+    return (localStorage.getItem("china_inbox_view") as "list" | "kanban") || "list";
+  });
+  useEffect(() => {
+    try { localStorage.setItem("china_inbox_view", viewMode); } catch { /* ignore */ }
+  }, [viewMode]);
 
   // Reset seleção ao trocar pasta
   useEffect(() => {
@@ -339,46 +352,21 @@ export default function ChinaCaixaEntrada() {
         iconTone="primary"
         actions={
           <div className="flex items-center gap-1.5">
-            <Button
-              variant="outline"
+            <ToggleGroup
+              type="single"
               size="sm"
-              onClick={async () => {
-                try {
-                  const { data, error } = await (supabase as any).rpc("rpc_china_normalize_legacy_status");
-                  if (error) throw error;
-                  const n = Array.isArray(data) ? data.length : 0;
-                  await queryClient.invalidateQueries({ queryKey: ["china-mailbox-dataset"] });
-                  await refetch();
-                  toast.success(
-                    n > 0
-                      ? t("inbox.toasts.recalcOk", { count: n })
-                      : t("inbox.toasts.recalcNenhuma"),
-                  );
-                } catch (e: any) {
-                  toast.error(t("inbox.toasts.recalcErro"), { description: e?.message });
-                }
-              }}
-              disabled={isFetching}
+              value={viewMode}
+              onValueChange={(v) => v && setViewMode(v as "list" | "kanban")}
+              className="rounded-md border border-border"
             >
-              <Calculator className="h-4 w-4 mr-1.5" />
-              {t("inbox.actions.recalcular")}
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCopilotOpen(true)}
-            >
-              <Sparkles className="h-4 w-4 mr-1.5" />
-              {t("inbox.actions.copiloto")}
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => navigate("/dashboard/fabrica-china/auditoria-normalizacao")}
-            >
-              <History className="h-4 w-4 mr-1.5" />
-              {t("inbox.actions.auditoria")}
-            </Button>
+              <ToggleGroupItem value="list" className="h-7 px-2 text-xs gap-1" title="Visão lista">
+                <Rows3 className="h-3.5 w-3.5" /> Lista
+              </ToggleGroupItem>
+              <ToggleGroupItem value="kanban" className="h-7 px-2 text-xs gap-1" title="Visão Kanban">
+                <LayoutGrid className="h-3.5 w-3.5" /> Kanban
+              </ToggleGroupItem>
+            </ToggleGroup>
+
             <Button
               variant="outline"
               size="sm"
@@ -396,10 +384,49 @@ export default function ChinaCaixaEntrada() {
                 <span className="ml-1 text-[10px] opacity-70">({unreadVisibleCount})</span>
               )}
             </Button>
-            <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching}>
-              <RefreshCw className={`h-4 w-4 mr-1.5 ${isFetching ? "animate-spin" : ""}`} />
-              {t("inbox.actions.atualizar")}
+
+            <Button variant="outline" size="sm" onClick={() => setCopilotOpen(true)}>
+              <Sparkles className="h-4 w-4 mr-1.5" />
+              {t("inbox.actions.copiloto")}
             </Button>
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="gap-1.5" title="Mais ações">
+                  <MoreHorizontal className="h-4 w-4" />
+                  Ações
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuItem onSelect={() => refetch()} disabled={isFetching}>
+                  <RefreshCw className={`h-4 w-4 mr-2 ${isFetching ? "animate-spin" : ""}`} />
+                  {t("inbox.actions.atualizar")}
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onSelect={async () => {
+                    try {
+                      const { data, error } = await (supabase as any).rpc("rpc_china_normalize_legacy_status");
+                      if (error) throw error;
+                      const n = Array.isArray(data) ? data.length : 0;
+                      await queryClient.invalidateQueries({ queryKey: ["china-mailbox-dataset"] });
+                      await refetch();
+                      toast.success(n > 0 ? t("inbox.toasts.recalcOk", { count: n }) : t("inbox.toasts.recalcNenhuma"));
+                    } catch (e: any) {
+                      toast.error(t("inbox.toasts.recalcErro"), { description: e?.message });
+                    }
+                  }}
+                  disabled={isFetching}
+                >
+                  <Calculator className="h-4 w-4 mr-2" />
+                  {t("inbox.actions.recalcular")}
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onSelect={() => navigate("/dashboard/fabrica-china/auditoria-normalizacao")}>
+                  <History className="h-4 w-4 mr-2" />
+                  {t("inbox.actions.auditoria")}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         }
       />
@@ -542,13 +569,41 @@ export default function ChinaCaixaEntrada() {
                 <ChinaInboxOCAba />
               </ResizablePanel>
             ) : (<>
-            <ResizablePanel defaultSize={36} minSize={24}>
+            <ResizablePanel defaultSize={viewMode === "kanban" ? 64 : 36} minSize={24}>
               {isLoading ? (
                 <div className="space-y-2 p-3">
                   {[...Array(6)].map((_, i) => (
                     <div key={i} className="h-12 animate-pulse rounded bg-muted/30" />
                   ))}
                 </div>
+              ) : viewMode === "kanban" ? (
+                <MailboxKanban
+                  items={items}
+                  progressItems={progressItems}
+                  selectedId={selectedId}
+                  perspective={isBrasilUser ? "brasil" : "china"}
+                  onJumpFolder={(f) => { setViewMode("list"); setFolder(f); }}
+                  onSelectGroup={(g: MailboxGroup) => {
+                    // Garante que a pasta-alvo seja a "natural" do estado da submissão,
+                    // para que a lista carregue os docs e o ReadingPane funcione.
+                    const targetFolder: MailboxFolder =
+                      g.submissao_status === "aprovado" ? "approved"
+                      : g.submissao_status === "rejeitado" ? (isBrasilUser ? "rejected" : "returned")
+                      : g.submissao_status === "enviado_brasil" ? "sent_brazil"
+                      : (g.submissao_status === "em_revisao" || g.submissao_status === "enviado") ? "in_analysis"
+                      : "awaiting_send";
+                    if (folder !== targetFolder) setFolder(targetFolder);
+                    const firstDoc = g.docs[0];
+                    if (firstDoc) {
+                      const id = firstDoc.is_virtual
+                        ? `${firstDoc.submissao_id}:virtual:${firstDoc.tipo_documento ?? "_"}`
+                        : firstDoc.documento_id ?? firstDoc.submissao_id;
+                      setSelectedId(id);
+                    } else {
+                      setSelectedId(g.submissao_id);
+                    }
+                  }}
+                />
               ) : (
                 <MailboxList
                   items={items}
