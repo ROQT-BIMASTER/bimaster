@@ -59,9 +59,16 @@ function SkuLine({
           {sigla}
         </Badge>
         <span className="font-mono text-[10px] text-muted-foreground shrink-0">{sku.cod_produto}</span>
-        <span className="truncate" title={sku.nome_prod ?? ''}>
-          {sku.nome_prod ?? `Produto ${sku.cod_produto}`}
-        </span>
+        {sku.nome_prod ? (
+          <span className="truncate" title={sku.nome_prod}>{sku.nome_prod}</span>
+        ) : (
+          <span
+            className="truncate italic text-muted-foreground"
+            title="Sem descrição cadastrada em ERP, Fábrica ou Catálogo RR"
+          >
+            Produto {sku.cod_produto}
+          </span>
+        )}
         {gapStatus === 'faltante' && (
           <Badge
             variant="outline"
