@@ -605,7 +605,7 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
       if (!ok) return;
     }
     const update: Record<string, any> = { status: done ? "concluida" : "pendente" };
-    update.data_conclusao = done ? new Date().toISOString() : null;
+    update.data_conclusao = done ? nowSaoPauloISO() : null;
     const result = await attemptSave(done ? "Concluir tarefa" : "Reabrir tarefa", () =>
       supabase.from("projeto_tarefas").update(update as never).eq("id", t.id),
     );
@@ -664,7 +664,7 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
     if (!ok) return;
     const { error } = await supabase
       .from("projeto_tarefas")
-      .update({ excluida_em: new Date().toISOString() } as any)
+      .update({ excluida_em: nowSaoPauloISO() } as any)
       .eq("id", tarefaId);
     if (error) { toast.error(error.message); return; }
     toast.success(live?.parent_tarefa_id ? "Subtarefa movida para a lixeira" : "Tarefa movida para a lixeira");
@@ -918,7 +918,7 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
     if (!ok) return;
     const { error } = await supabase
       .from("projeto_tarefas")
-      .update({ status: "concluida", data_conclusao: new Date().toISOString() })
+      .update({ status: "concluida", data_conclusao: nowSaoPauloISO() })
       .in("id", ids);
     if (error) { toast.error("Erro ao concluir tarefas"); return; }
 
@@ -952,7 +952,7 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
     const uid = authData.user?.id ?? null;
     const { error } = await supabase
       .from("projeto_tarefas")
-      .update({ excluida_em: new Date().toISOString(), excluida_por: uid } as any)
+      .update({ excluida_em: nowSaoPauloISO(), excluida_por: uid } as any)
       .in("id", ids);
     if (error) { toast.error("Erro ao excluir tarefas"); return; }
 

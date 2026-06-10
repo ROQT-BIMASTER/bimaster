@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { CalendarIcon, ExternalLink, CheckCircle2, Clock, AlertTriangle, Flag, Save } from "lucide-react";
+import { parseLocalDate, getToday, nowSaoPauloISO, formatLocalDate } from "@/lib/utils/parseLocalDate";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -63,7 +64,7 @@ export function MinhasTarefaDetail({ tarefa, open, onOpenChange }: Props) {
     setDescricao("");
     setStatus(t.status);
     setPrioridade(t.prioridade || "media");
-    setDataPrazo(t.data_prazo ? new Date(t.data_prazo) : undefined);
+    setDataPrazo(parseLocalDate(t.data_prazo) ?? undefined);
   };
 
   const handleOpenChange = (o: boolean) => {
@@ -77,7 +78,8 @@ export function MinhasTarefaDetail({ tarefa, open, onOpenChange }: Props) {
     resetFields(tarefa);
   }
 
-  const isOverdue = tarefa.status !== "concluida" && tarefa.data_prazo && new Date(tarefa.data_prazo) < new Date();
+  const prazoLocal = parseLocalDate(tarefa.data_prazo);
+  const isOverdue = tarefa.status !== "concluida" && !!prazoLocal && prazoLocal < getToday();
 
   const handleSave = async () => {
     if (status === "concluida" && tarefa.status !== "concluida") {
@@ -90,10 +92,10 @@ export function MinhasTarefaDetail({ tarefa, open, onOpenChange }: Props) {
       titulo,
       status,
       prioridade,
-      data_prazo: dataPrazo ? format(dataPrazo, "yyyy-MM-dd") : null,
+      data_prazo: dataPrazo ? formatLocalDate(dataPrazo) : null,
     };
     if (status === "concluida" && tarefa.status !== "concluida") {
-      update.data_conclusao = new Date().toISOString();
+      update.data_conclusao = nowSaoPauloISO();
     } else if (status !== "concluida") {
       update.data_conclusao = null;
     }
