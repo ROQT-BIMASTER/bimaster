@@ -251,7 +251,7 @@ export function TarefaAnexosSection({
                       ? <AlertTriangle className="h-5 w-5 text-amber-500" />
                       : isExternal
                         ? <ExternalLink className="h-5 w-5 text-blue-400" />
-                        : getFileIcon(a.tipo_arquivo)}
+                        : getFileIcon(a.nome, a.tipo_arquivo)}
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-medium truncate">{a.nome}</p>
                       <p className="text-[10px] text-muted-foreground">
@@ -324,7 +324,7 @@ export function TarefaAnexosSection({
               <div className="mt-2 space-y-2">
                 {anexos.filter(a => selectedAnexoIds.includes(a.id)).map(a => (
                   <div key={a.id} className="flex items-center gap-2 text-xs p-2 bg-muted/30 rounded-md">
-                    {getFileIcon(a.tipo_arquivo)}
+                    {getFileIcon(a.nome, a.tipo_arquivo)}
                     <span className="truncate flex-1 min-w-0">{a.nome}</span>
                     <Select
                       value={categoriasPorAnexo[a.id] || ""}
