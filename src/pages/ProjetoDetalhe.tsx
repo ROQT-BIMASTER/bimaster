@@ -61,6 +61,11 @@ export default function ProjetoDetalhe({ shared = false }: ProjetoDetalheProps =
   const deepTab = searchParams.get("tab");
   const deepMensagemId = searchParams.get("mensagem");
   const [activeTab, setActiveTab] = useState(deepTab === "chat" ? "chat" : "lista");
+  // Captura o tarefaId e o from uma única vez, antes da limpeza dos params,
+  // para alimentar o breadcrumb de origem (RR-Tasks › Briefing › Tarefa).
+  const [originTarefaId] = useState<string | null>(() => searchParams.get("tarefa"));
+  const [originFrom] = useState<string | null>(() => searchParams.get("from"));
+  const showRrBreadcrumb = originFrom === "/dashboard/rr-tasks";
 
   // Limpa os params da URL depois de consumi-los para que reload/share não dispare de novo.
   useEffect(() => {
