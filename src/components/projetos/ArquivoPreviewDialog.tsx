@@ -25,11 +25,15 @@ export function ArquivoPreviewDialog({ open, onOpenChange, arquivo, projetoId }:
   const kind = arquivo ? detectFileKind(arquivo.nome, arquivo.tipo) : "other";
   const isImage = kind === "image";
   const isPdf = kind === "pdf";
+  const isVideo = kind === "video";
+  const isAudio = kind === "audio";
+  const hasInlinePreview = isImage || isPdf || isVideo || isAudio;
+  const extLabel = arquivo ? getFileExtensionLabel(arquivo.nome) : "Arquivo";
 
   const { data: url, isLoading } = useSignedThumbUrl(
     "projeto-anexos",
     arquivo?.storage_path ?? null,
-    open && (isImage || isPdf),
+    open && hasInlinePreview,
   );
 
   if (!arquivo) return null;
