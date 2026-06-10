@@ -4,6 +4,7 @@ import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { z } from "https://esm.sh/zod@3.23.8";
 import { callLegacyCopilot } from "../_shared/copilot-tools/proxy-legacy.ts";
 import { wrapLegacyCopilotReply } from "../_shared/copilot-tools/contract-wrap.ts";
+import { enqueueCopilotDoc } from "../_shared/copilot-tools/enqueue-doc.ts";
 
 // passthrough — legacy function owns full schema (filtros, kpis_snapshot, ...).
 const Body = z.object({
@@ -62,6 +63,16 @@ Deno.serve(async (req) => {
     supabase: sb,
     startedAtMs,
     model: typeof proxied.data.model === "string" ? proxied.data.model : undefined,
+  });
+  await enqueueCopilotDoc(sb, {
+    copilotId: "estoque",
+    sourceType: "copilot_thread",
+    sourceRef: String(parsed.data.thread_id ?? wrapped.runId),
+    title: `estoque · ${String(parsed.data.user_message).slice(0, 80)}`,
+    content: `Q: ${parsed.data.user_message}\n\nA: ${String(proxied.data.reply ?? "")}`,
+    aclScope: { owner: userId },
+    metadata: { run_id: wrapped.runId },
+    createdBy: userId,
   });
   return new Response(JSON.stringify(wrapped.payload), {
     headers: { ...corsHeaders, "Content-Type": "application/json" },

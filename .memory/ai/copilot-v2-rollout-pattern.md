@@ -13,8 +13,12 @@ Estratégia de migração incremental (Fases 1–4) sem reescrever os copilotos 
 - Observability: queries em `copilot_runs WHERE meta->>'contract_version'='v2.0'` por `copilot_id` mostram volume v2 e ratio de números não verificáveis.
 - Crons (pg_cron + pg_net): `copilot-rag-indexer-hot-every-minute` (drena `copilot_index_queue` priority=hot) e `reports-alerts-evaluator-every-5min`.
 
-Próximas fases:
-- Fase 5: triggers em tabelas-fonte enfileirando em `copilot_index_queue` (≤2KB inline, demais `priority=normal`). Ainda não implementado — segurança primeiro.
+Fase 5 (implementada — junho/2026):
+- RPC `enqueue_copilot_document(p_copilot_id,p_source_type,p_source_ref,p_title,p_content,p_acl_scope,p_metadata,p_priority,p_created_by)` SECURITY DEFINER, EXECUTE só para `service_role` (revogado de PUBLIC/anon/authenticated). Faz upsert idempotente em `copilot_documents` por `(copilot_id, source_type, source_ref) WHERE archived_at IS NULL`, limpa `copilot_chunks` antigos e enfileira em `copilot_index_queue`.
+- Helper `_shared/copilot-tools/enqueue-doc.ts` (`enqueueCopilotDoc`) — best-effort, nunca lança. Cada wrapper v2 chama após `wrapLegacyCopilotReply` com `sourceType='copilot_thread'`, `sourceRef = thread_id ?? run_id`, `aclScope={owner:userId, ...escopo}`, `priority='hot'` (texto curto Q+A entra inline ≤2KB, caso contrário fila).
+- Não foram adicionadas triggers em tabelas de negócio (alto volume + risco): pipeline RAG v2 só consome o que os wrappers v2 produzem mais o que for inserido sob demanda por scripts/admin.
+
+Próxima fase:
 - Fase 6: depois de 2 semanas com flag default-on sem incidentes, inlinear o wrapper dentro do legado e remover a duplicação.
 
-Tabelas/Edge envolvidas: `feature_flags`, `copilot_runs`, `copilot_index_queue`, `_shared/copilot-tools/contract-wrap.ts`, `_shared/copilot-tools/proxy-legacy.ts`.
+Tabelas/Edge envolvidas: `feature_flags`, `copilot_runs`, `copilot_documents`, `copilot_chunks`, `copilot_index_queue`, `enqueue_copilot_document`, `_shared/copilot-tools/contract-wrap.ts`, `_shared/copilot-tools/proxy-legacy.ts`, `_shared/copilot-tools/enqueue-doc.ts`.
