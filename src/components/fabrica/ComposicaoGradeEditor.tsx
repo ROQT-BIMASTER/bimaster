@@ -16,6 +16,7 @@ import {
 import { Search, Plus, Trash2, Package, Filter, Loader2, GripVertical } from "lucide-react";
 import { toast } from "sonner";
 import { ColorPickerPopover } from "@/components/fabrica/ColorPickerPopover";
+import { ProvadorBadge } from "@/components/fabrica/ProvadorBadge";
 import {
   DndContext,
   closestCenter,
