@@ -18,6 +18,7 @@ import {
 import { downloadStorageBlob, triggerBlobDownload } from "@/lib/utils/storage-download";
 import { toast } from "sonner";
 import { PromoverChecklistDialog } from "./PromoverChecklistDialog";
+import { detectFileKind } from "@/lib/utils/detectFileKind";
 
 export interface ChatAnexo {
   path: string;

@@ -54,6 +54,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { initials } from "./utils";
+import { detectFileKind } from "@/lib/utils/detectFileKind";
 
 interface Props {
   tarefaId: string;
