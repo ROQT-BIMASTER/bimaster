@@ -93,7 +93,28 @@ describe("classificarGaps", () => {
     expect(temAlgumGap(r)).toBe(false);
   });
 
-  it("usar=saldo respeita escolha", () => {
+  it("cenário 2324→{2325→2331,...}: CX raiz sem saldo na filial ainda ancora árvore", () => {
+    // Caso real (raiz 2324 empresa 11): a CX não existe no estoque dessa
+    // filial. Após o fix na função de complemento, a raiz é emitida com
+    // saldo=0, e todos os BX/UN filhos aparecem corretamente — nada cai como
+    // órfão.
+    const tree = [
+      mk(2324, 1, 0, 0, "CX BATOM LIQUIDO MOOD RUBYROSE", [
+        mk(2325, 2, 109, 107, "BX DESIRE", [mk(2331, 3, 625, 625, "UN DESIRE")]),
+        mk(2332, 2, 169, 164, "BX SATISFACTION", [mk(2333, 3, 228, 228, "UN SATISFACTION")]),
+      ]),
+    ];
+    const r = classificarGaps(tree);
+    // 2324 tem saldo 0 (CX sem físico nessa filial) e tem filhos mapeados →
+    // não deve ser marcado como sem_filhos_mapeados nem como faltante (pai
+    // sem saldo).
+    expect(r.semFilhosMapeados).toBe(0);
+    expect(r.faltantesCX).toBe(0);
+    expect(r.faltantesBX).toBe(0);
+    expect(r.faltantesUN).toBe(0);
+    expect(temAlgumGap(r)).toBe(false);
+  });
+
     const tree = [mk(1, 1, 10, 10, "CX", [mk(2, 2, 5, 0, "BX")])];
     expect(classificarGaps(tree, { usar: "disponivel" }).faltantesBX).toBe(1);
     expect(classificarGaps(tree, { usar: "saldo" }).faltantesBX).toBe(0);
