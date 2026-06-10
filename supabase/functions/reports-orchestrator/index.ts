@@ -99,9 +99,9 @@ Deno.serve(
         // Audit
         await sb.from("report_audit_log").insert({
           report_id: report.report_id,
-          actor_user_id: ctx?.userId ?? null,
+          actor_id: ctx?.userId ?? null,
           action,
-          findings_count: findings.length,
+          diff: { findings_count: findings.length, status: row.status },
         }).then(() => undefined, () => undefined);
 
         return json({ ok: true, reportId: report.report_id, status: row.status, findings }, 200, cors);
