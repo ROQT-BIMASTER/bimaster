@@ -43,10 +43,20 @@ interface Anexo {
 
 const VIEW_KEY = "projeto-arquivos-view";
 
-function getFileIcon(tipo: string | null, className = "h-5 w-5") {
-  if (!tipo) return <File className={cn(className, "text-muted-foreground")} />;
-  if (tipo.startsWith("image/")) return <ImageIcon className={cn(className, "text-blue-400")} />;
-  if (tipo.includes("pdf")) return <FileText className={cn(className, "text-red-400")} />;
+const IMG_EXT = new Set(["png", "jpg", "jpeg", "gif", "webp", "avif", "svg", "bmp"]);
+const PDF_EXT = new Set(["pdf"]);
+export function detectKind(nome: string, tipo: string | null): "image" | "pdf" | "other" {
+  if (tipo?.startsWith("image/")) return "image";
+  if (tipo?.includes("pdf")) return "pdf";
+  const ext = nome.split(".").pop()?.toLowerCase() ?? "";
+  if (IMG_EXT.has(ext)) return "image";
+  if (PDF_EXT.has(ext)) return "pdf";
+  return "other";
+}
+
+function getFileIcon(kind: "image" | "pdf" | "other", className = "h-5 w-5") {
+  if (kind === "image") return <ImageIcon className={cn(className, "text-blue-400")} />;
+  if (kind === "pdf") return <FileText className={cn(className, "text-red-400")} />;
   return <File className={cn(className, "text-muted-foreground")} />;
 }
 
@@ -70,7 +80,8 @@ interface CardProps {
 }
 
 function ArquivoCard({ anexo, onOpen, onDownload, darkBg }: CardProps) {
-  const isImage = !!anexo.tipo?.startsWith("image/");
+  const kind = detectKind(anexo.nome, anexo.tipo);
+  const isImage = kind === "image";
   const { data: url } = useSignedThumbUrl("projeto-anexos", isImage ? anexo.storage_path : null, isImage);
   const ext = fileExt(anexo.nome);
 
@@ -83,7 +94,7 @@ function ArquivoCard({ anexo, onOpen, onDownload, darkBg }: CardProps) {
       onClick={() => onOpen(anexo)}
     >
       <div className="flex items-start gap-2 px-3 py-2.5 border-b border-border/30">
-        {getFileIcon(anexo.tipo, "h-4 w-4 shrink-0 mt-0.5")}
+        {getFileIcon(kind, "h-4 w-4 shrink-0 mt-0.5")}
         <div className="flex-1 min-w-0">
           <p className={cn("text-xs font-medium truncate", darkBg && "text-white")}>{anexo.nome}</p>
           <p className={cn("text-[10px] truncate", darkBg ? "text-white/60" : "text-muted-foreground")}>
@@ -114,7 +125,7 @@ function ArquivoCard({ anexo, onOpen, onDownload, darkBg }: CardProps) {
           <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
         ) : (
           <div className="flex flex-col items-center gap-2">
-            {getFileIcon(anexo.tipo, "h-10 w-10 opacity-60")}
+            {getFileIcon(kind, "h-10 w-10 opacity-60")}
             {ext && (
               <Badge variant="outline" className="text-[10px] font-mono">
                 {ext}
@@ -285,7 +296,7 @@ export function ProjetoArquivosView({ projetoId, darkBg = false }: ProjetoArquiv
                   className="flex items-center gap-3 px-4 py-3 hover:bg-muted/30 transition-colors cursor-pointer"
                   onClick={() => setPreviewing(anexo)}
                 >
-                  {getFileIcon(anexo.tipo)}
+                  {getFileIcon(detectKind(anexo.nome, anexo.tipo))}
                   <div className="flex-1 min-w-0">
                     <p className={cn("text-sm font-medium truncate", textColor)}>{anexo.nome}</p>
                     <p className={cn("text-[11px]", textMuted)}>
