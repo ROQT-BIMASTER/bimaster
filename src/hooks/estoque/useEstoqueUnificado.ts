@@ -669,7 +669,11 @@ export function useEstoqueUnificadoSkus(empresa: number | null, raiz: number | n
           }
         }
       }
-      const hidratadas = rows.map((r) => (r.nome_prod ? r : { ...r, nome_prod: nomePorCod.get(r.cod_produto) ?? null }));
+      const hidratadas = rows.map((r) => {
+        const cur = r.nome_prod;
+        if (cur && cur.trim() !== '' && cur.trim().toLowerCase() !== `produto ${r.cod_produto}`) return r;
+        return { ...r, nome_prod: nomePorCod.get(r.cod_produto) ?? null };
+      });
 
       // Ordena: nível asc (CX→BX→UN), depois pelo código
       return hidratadas.sort((a, b) => {
