@@ -384,6 +384,17 @@ export default function ChinaProdutoChecklistStatus() {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<FilterKey>(initialFilter);
   const [painelTipo, setPainelTipo] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<"table" | "kanban">(() => {
+    if (typeof window === "undefined") return "table";
+    return (localStorage.getItem("china_checklist_status_view") as "table" | "kanban") || "table";
+  });
+  useEffect(() => {
+    try {
+      localStorage.setItem("china_checklist_status_view", viewMode);
+    } catch {
+      // ignore
+    }
+  }, [viewMode]);
 
   // Deep-link via ?item=<tipo>
   useEffect(() => {
