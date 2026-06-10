@@ -321,6 +321,8 @@ const ProjetoVincularChina = lazyWithRetry(() => import("./pages/ProjetoVincular
 const ProdutoBrasilCadastro = lazyWithRetry(() => import("./pages/ProdutoBrasilCadastro"));
 const ProdutosBrasilListagem = lazyWithRetry(() => import("./pages/ProdutosBrasilListagem"));
 const ProjetosRelatorios = lazyWithRetry(() => import("./pages/ProjetosRelatorios"));
+const ReportsV2Home = lazyWithRetry(() => import("./pages/admin/ReportsV2Home"));
+const ReportWizard = lazyWithRetry(() => import("./pages/admin/ReportWizard"));
 const CalendarioCorporativo = lazyWithRetry(() => import("./pages/admin/CalendarioCorporativo"));
 const ProjetosSaude = lazyWithRetry(() => import("./pages/admin/ProjetosSaude"));
 const CustosTecnologia = lazyWithRetry(() => import("./pages/admin/CustosTecnologia"));
