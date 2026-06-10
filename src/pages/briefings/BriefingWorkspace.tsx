@@ -237,7 +237,7 @@ export default function BriefingWorkspace() {
       <BriefingHeader
         briefing={briefing}
         projetoNome={projetoNome}
-        onVoltar={() => navigate("/dashboard/briefings")}
+        onVoltar={() => navigate(backTo)}
         onVincularProjeto={() => setVincDialogOpen(true)}
         onAbrirProjeto={
           briefing.projeto_id
