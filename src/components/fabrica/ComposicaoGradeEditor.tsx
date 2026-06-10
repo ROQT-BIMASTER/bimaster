@@ -209,6 +209,7 @@ export function ComposicaoGradeEditor({ produtoPaiId, items, onChange }: Composi
       cor_numero: "",
       linha: produto.linha || "",
       marca: produto.marca || "",
+      is_provador: !!produto.is_provador,
     };
     onChange([...items, novo]);
   };
