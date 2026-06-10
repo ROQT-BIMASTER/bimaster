@@ -8,16 +8,17 @@ import type { ChatAnexo } from "@/hooks/chat/types";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { ArquivarAnexoChatDialog } from "./ArquivarAnexoChatDialog";
+import { detectFileKind } from "@/lib/utils/detectFileKind";
 
 
 export function AnexoView({ anexo, mine }: { anexo: ChatAnexo; mine: boolean }) {
   const [url, setUrl] = useState<string | null>(null);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [arquivarOpen, setArquivarOpen] = useState(false);
-  const isImage = anexo.mime_type?.startsWith("image/");
-
-  const isVideo = anexo.mime_type?.startsWith("video/");
-  const isAudio = anexo.mime_type?.startsWith("audio/");
+  const kind = detectFileKind(anexo.file_name, anexo.mime_type);
+  const isImage = kind === "image";
+  const isVideo = kind === "video";
+  const isAudio = kind === "audio";
 
   useEffect(() => {
     let alive = true;
