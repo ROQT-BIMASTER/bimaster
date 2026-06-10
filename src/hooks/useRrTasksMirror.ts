@@ -25,6 +25,9 @@ export interface RrTaskMirror {
   rrtask_page_id: string;
   rr_produto_notion_id: string | null;
   created_at: string;
+  // tarefa-side (deep-link no Projetos)
+  projeto_id: string | null;
+  secao_id: string | null;
   // briefing-side
   briefing_id: string | null;
   rrtask_round: number | null;
@@ -71,7 +74,7 @@ export function useRrTasksMirror() {
       const { data: tasks, error } = await supabase
         .from("projeto_tarefas")
         .select(
-          "id, titulo, status, estagio, data_prazo, rrtask_page_id, rr_produto_notion_id, created_at",
+          "id, titulo, status, estagio, data_prazo, rrtask_page_id, rr_produto_notion_id, created_at, projeto_id, secao_id",
         )
         .not("rrtask_page_id", "is", null)
         .order("created_at", { ascending: false });
@@ -86,6 +89,8 @@ export function useRrTasksMirror() {
         rrtask_page_id: string;
         rr_produto_notion_id: string | null;
         created_at: string;
+        projeto_id: string | null;
+        secao_id: string | null;
       }>;
 
       if (rows.length === 0) return [];

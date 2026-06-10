@@ -1,6 +1,8 @@
-import { ExternalLink, FileText } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { ExternalLink, FileText, Briefcase, ArrowRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { buildReturnToTarget } from "@/lib/navigation/withReturnTo";
+import { supabase } from "@/integrations/supabase/client";
 import {
   Sheet,
   SheetContent,
@@ -12,6 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { BriefingVersoesTimeline } from "@/components/briefings/BriefingVersoesTimeline";
+import { RrTaskCofrePanel } from "@/components/rr-tasks/RrTaskCofrePanel";
 import {
   wfTone,
   emGargalo,
@@ -19,6 +22,33 @@ import {
   WF_FIELDS,
 } from "@/lib/controladoria";
 import type { RrTaskMirror } from "@/hooks/useRrTasksMirror";
+
+function useProjetoSecaoLabels(projetoId: string | null, secaoId: string | null) {
+  return useQuery({
+    queryKey: ["rr-drilldown-projeto", projetoId, secaoId],
+    enabled: !!projetoId,
+    queryFn: async () => {
+      const [proj, sec] = await Promise.all([
+        supabase
+          .from("projetos")
+          .select("id, nome")
+          .eq("id", projetoId!)
+          .maybeSingle(),
+        secaoId
+          ? supabase
+              .from("projeto_secoes")
+              .select("id, nome")
+              .eq("id", secaoId)
+              .maybeSingle()
+          : Promise.resolve({ data: null, error: null } as const),
+      ]);
+      return {
+        projetoNome: (proj.data as any)?.nome ?? null,
+        secaoNome: (sec.data as any)?.nome ?? null,
+      };
+    },
+  });
+}
 
 interface Props {
   task: RrTaskMirror | null;
@@ -48,7 +78,41 @@ const toneClass: Record<string, string> = {
 
 export function RrTaskDrilldownSheet({ task, open, onOpenChange }: Props) {
   const navigate = useNavigate();
+  const { data: projetoLabels } = useProjetoSecaoLabels(
+    task?.projeto_id ?? null,
+    task?.secao_id ?? null,
+  );
   if (!task) return null;
+
+  const goToTarefa = () => {
+    if (!task.projeto_id) return;
+    const { url, state } = buildReturnToTarget(
+      `/dashboard/projetos/${task.projeto_id}?tarefa=${task.id}`,
+      "/dashboard/rr-tasks",
+      { fromLabel: "RR-Tasks (espelho)" },
+    );
+    navigate(url, { state });
+  };
+
+  const goToProjeto = () => {
+    if (!task.projeto_id) return;
+    const { url, state } = buildReturnToTarget(
+      `/dashboard/projetos/${task.projeto_id}`,
+      "/dashboard/rr-tasks",
+      { fromLabel: "RR-Tasks (espelho)" },
+    );
+    navigate(url, { state });
+  };
+
+  const goToBriefingCofre = () => {
+    if (!task.briefing_id) return;
+    const { url, state } = buildReturnToTarget(
+      `/dashboard/briefings/${task.briefing_id}?tab=cofre`,
+      "/dashboard/rr-tasks",
+      { fromLabel: "RR-Tasks (espelho)" },
+    );
+    navigate(url, { state });
+  };
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -84,7 +148,59 @@ export function RrTaskDrilldownSheet({ task, open, onOpenChange }: Props) {
               </a>
             </Button>
           )}
-          {task.briefing_id && (
+        {task.projeto_id && (
+          <>
+            <Separator className="my-5" />
+            <section>
+              <h4 className="text-sm font-semibold mb-2 flex items-center gap-1.5">
+                <Briefcase className="h-3.5 w-3.5 text-muted-foreground" />
+                Tarefa no projeto
+              </h4>
+              <div className="rounded-md border border-border p-3 space-y-2">
+                <div className="text-sm">
+                  <div className="font-medium truncate">
+                    {projetoLabels?.projetoNome ?? "Projeto"}
+                    {projetoLabels?.secaoNome && (
+                      <span className="text-muted-foreground font-normal">
+                        {" · "}
+                        {projetoLabels.secaoNome}
+                      </span>
+                    )}
+                  </div>
+                  <div className="text-xs text-muted-foreground truncate">
+                    {task.titulo ?? "Sem título"}
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <Button size="sm" onClick={goToTarefa}>
+                    <ArrowRight className="h-3.5 w-3.5 mr-1.5" />
+                    Abrir tarefa
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={goToProjeto}>
+                    Abrir projeto
+                  </Button>
+                </div>
+              </div>
+            </section>
+          </>
+        )}
+
+        {task.briefing_id && (
+          <>
+            <Separator className="my-5" />
+            <section>
+              <h4 className="text-sm font-semibold mb-2">
+                Cofre de documentos do briefing
+              </h4>
+              <RrTaskCofrePanel
+                briefingId={task.briefing_id}
+                onOpenBriefingCofre={goToBriefingCofre}
+              />
+            </section>
+          </>
+        )}
+
+        {task.briefing_id && (
             <Button
               size="sm"
               variant="outline"
