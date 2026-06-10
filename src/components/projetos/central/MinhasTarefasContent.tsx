@@ -885,6 +885,19 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
     toast.success(done ? "Tarefa concluída! ✓" : "Tarefa reaberta");
   }, [queryClient, tarefas]);
 
+  const handleChangePrazo = useCallback(async (tarefaId: string, novaData: string | null) => {
+    const { error } = await supabase
+      .from("projeto_tarefas")
+      .update({ data_prazo: novaData } as never)
+      .eq("id", tarefaId);
+    if (error) {
+      toast.error("Não foi possível atualizar o prazo");
+      return;
+    }
+    queryClient.invalidateQueries({ queryKey: ["minhas-tarefas"] });
+    toast.success("Prazo atualizado");
+  }, [queryClient]);
+
   const handleSelectTask = useCallback((t: MinaTarefa) => {
     setDetailTarefa(t);
     setDetailOpen(true);
@@ -1634,7 +1647,7 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
             </Card>
           </div>
         ) : view === "board" ? (
-          <MinhasTarefasBoard tarefas={filtered} onToggle={handleToggle} onSelect={handleSelectTask} />
+          <MinhasTarefasBoard tarefas={filtered} onToggle={handleToggle} onChangePrazo={handleChangePrazo} onSelect={handleSelectTask} />
         ) : view === "calendar" ? (
           <MinhasTarefasCalendar tarefas={filtered} onSelect={handleSelectTask} />
         ) : (

@@ -1,9 +1,12 @@
-import { useQuery } from "@tanstack/react-query";
+import { useEffect } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { isToday, addDays, isBefore, startOfDay } from "date-fns";
 import { parseLocalDate } from "@/lib/utils/parseLocalDate";
 import { isSemDatasPlanejadas } from "@/lib/utils/tarefaPlanejamento";
+import { uniqueChannelName } from "@/lib/realtime/channelName";
+import { logger } from "@/lib/logger";
 
 export interface MinaTarefa {
   id: string;
@@ -42,8 +45,9 @@ export interface TarefaGroup {
 
 export function useMinhasTarefas() {
   const { user } = useAuth();
+  const qc = useQueryClient();
 
-  return useQuery({
+  const query = useQuery({
     queryKey: ["minhas-tarefas", user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
@@ -84,6 +88,64 @@ export function useMinhasTarefas() {
     },
     enabled: !!user?.id,
   });
+
+  // Realtime: invalida a lista quando qualquer tarefa muda OU quando o usuário
+  // é adicionado/removido como responsável ou colaborador em outro ambiente.
+  // Debounce de 250ms coalesce rajadas (criação em lote, edição de equipe).
+  // Falhas de canal são silenciosas — a query continua funcionando manualmente
+  // e na refocagem da janela. Mantém o comportamento atual em produção como
+  // fallback caso o realtime esteja indisponível.
+  useEffect(() => {
+    if (!user?.id) return;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const invalidate = () => {
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => {
+        qc.invalidateQueries({ queryKey: ["minhas-tarefas", user.id] });
+      }, 250);
+    };
+
+    const channelName = uniqueChannelName(`minhas-tarefas-rt:${user.id}`);
+    const channel = supabase
+      .channel(channelName)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "projeto_tarefas" },
+        invalidate,
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "projeto_tarefa_responsaveis",
+          filter: `user_id=eq.${user.id}`,
+        },
+        invalidate,
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "projeto_tarefa_colaboradores",
+          filter: `user_id=eq.${user.id}`,
+        },
+        invalidate,
+      )
+      .subscribe((status, err) => {
+        if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
+          logger.warn(`[useMinhasTarefas] Realtime status=${status}`, { error: err });
+        }
+      });
+
+    return () => {
+      if (timer) clearTimeout(timer);
+      supabase.removeChannel(channel).catch(() => {});
+    };
+  }, [user?.id, qc]);
+
+  return query;
 }
 
 export function groupTarefas(tarefas: MinaTarefa[]): TarefaGroup[] {
