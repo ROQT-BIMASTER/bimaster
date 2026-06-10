@@ -51304,6 +51304,30 @@ export type Database = {
         }[]
       }
       estoque_kpis_recorte: { Args: { filtros?: Json }; Returns: Json }
+      estoque_unificado_bom_complemento: {
+        Args: { p_empresa: number; p_raiz: number }
+        Returns: {
+          abrev_par: string
+          bloqueado: number
+          cod_produto: number
+          codigo_barras_ean: string
+          contribuicao_bloqueado_un: number
+          contribuicao_disponivel_un: number
+          contribuicao_pendente_un: number
+          contribuicao_un: number
+          custo_total: number
+          disponivel: number
+          empresa: number
+          fator_pai_para_filho: number
+          fator_un_acumulado: number
+          nivel: number
+          nome_prod: string
+          pai_cod: number
+          pendente: number
+          produto_raiz: number
+          saldo: number
+        }[]
+      }
       estoque_validar_consolidado_erp: {
         Args: { p_empresas?: number[]; p_produto_raizes: number[] }
         Returns: {
