@@ -172,7 +172,7 @@ export function EstoqueUnificadoSkuBreakdown({ row }: Props) {
   const { data, isLoading } = useEstoqueUnificadoSkus(row.empresa, row.produto_raiz);
   const [filtrarSoLacunas, setFiltrarSoLacunas] = useState(false);
 
-  const { tree, orphans, totalUn, somaCX, somaBX, somaUN, somaBloq, somaDisp, somaPend } = useMemo(() => {
+  const { tree, orphans, totalUn, somaCX, somaBX, somaUN, somaBloq, somaDisp, somaPend, gaps } = useMemo(() => {
     const rows = data ?? [];
     const { tree, orphans } = buildTree(rows);
     const totalUn = rows.reduce((acc, r) => acc + Number(r.contribuicao_un ?? 0), 0);
@@ -182,14 +182,17 @@ export function EstoqueUnificadoSkuBreakdown({ row }: Props) {
     const somaBloq = rows.reduce((a, r) => a + Number(r.contribuicao_bloqueado_un ?? 0), 0);
     const somaDisp = rows.reduce((a, r) => a + Number(r.contribuicao_disponivel_un ?? 0), 0);
     const somaPend = rows.reduce((a, r) => a + Number(r.contribuicao_pendente_un ?? 0), 0);
-    return { tree, orphans, totalUn, somaCX, somaBX, somaUN, somaBloq, somaDisp, somaPend };
+    const gaps = classificarGaps(tree);
+    return { tree, orphans, totalUn, somaCX, somaBX, somaUN, somaBloq, somaDisp, somaPend, gaps };
   }, [data]);
+
+  const haGaps = temAlgumGap(gaps);
 
   const divergeTotal = Math.abs(totalUn - Number(row.saldo_total_em_unidades ?? 0)) > 0.5;
 
   const handleCopiarCSV = async () => {
     const rows = data ?? [];
-    const header = ['Nivel', 'Codigo', 'Nome', 'Pai', 'Saldo', 'Bloqueado', 'Disponivel', 'Pendente', 'Fator UN', 'Contribuicao UN', 'Contribuicao Disponivel UN'];
+    const header = ['Nivel', 'Codigo', 'Nome', 'Pai', 'Saldo', 'Bloqueado', 'Disponivel', 'Pendente', 'Fator UN', 'Contribuicao UN', 'Contribuicao Disponivel UN', 'Status'];
     const lines = rows.map((r) => [
       nivelInfo(r.nivel).sigla,
       r.cod_produto,
@@ -202,6 +205,7 @@ export function EstoqueUnificadoSkuBreakdown({ row }: Props) {
       r.fator_un_acumulado,
       r.contribuicao_un,
       r.contribuicao_disponivel_un,
+      gaps.statusByCodigo.get(r.cod_produto) ?? 'ok',
     ].join(';'));
     const csv = [header.join(';'), ...lines].join('\n');
     try {
@@ -252,6 +256,26 @@ export function EstoqueUnificadoSkuBreakdown({ row }: Props) {
         </div>
       </div>
 
+      {/* Banner de lacunas — só renderiza quando há algum gap */}
+      {haGaps && (
+        <div className="flex items-start gap-2 text-[11px] bg-warning/10 border border-warning/40 text-warning rounded p-2.5">
+          <AlertTriangle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+          <div className="flex-1 space-y-1">
+            <p className="font-semibold">Hierarquia com lacunas físicas</p>
+            <p className="text-foreground/80">
+              {gaps.faltantesCX > 0 && <>{gaps.faltantesCX} caixa(s) sem saldo · </>}
+              {gaps.faltantesBX > 0 && <>{gaps.faltantesBX} display(s) sem saldo (sob CX com estoque) · </>}
+              {gaps.faltantesUN > 0 && <>{gaps.faltantesUN} cor(es) sem unidades físicas (sob BX com estoque) · </>}
+              {gaps.semFilhosMapeados > 0 && <>{gaps.semFilhosMapeados} nível(is) sem composição BOM mapeada</>}
+            </p>
+          </div>
+          <label className="flex items-center gap-2 text-[10px] text-foreground/80 shrink-0 cursor-pointer">
+            <Switch checked={filtrarSoLacunas} onCheckedChange={setFiltrarSoLacunas} />
+            Mostrar só lacunas
+          </label>
+        </div>
+      )}
+
       {/* Cabeçalho da grade */}
       <div
         className="grid gap-2 items-center px-2 text-[10px] uppercase tracking-wider text-muted-foreground border-b border-border pb-1"
@@ -269,7 +293,7 @@ export function EstoqueUnificadoSkuBreakdown({ row }: Props) {
 
       {/* Árvore */}
       <div className="space-y-0.5">
-        {tree.flatMap((node) => renderNode(node, 0, totalUn))}
+        {tree.flatMap((node) => renderNode(node, 0, totalUn, gaps.statusByCodigo, gaps.ramosComGap, filtrarSoLacunas))}
       </div>
 
       {/* Avulsos */}
@@ -279,7 +303,35 @@ export function EstoqueUnificadoSkuBreakdown({ row }: Props) {
             Sem composição BOM mapeada
           </p>
           {orphans.map((o) => (
-            <SkuLine key={`orphan-${o.cod_produto}`} sku={o} depth={0} totalUn={totalUn} />
+            <SkuLine key={`orphan-${o.cod_produto}`} sku={o} depth={0} totalUn={totalUn} gapStatus={gaps.statusByCodigo.get(o.cod_produto)} />
+          ))}
+        </div>
+      )}
+
+      {/* Cores sem físico — detalhamento das UN faltantes */}
+      {gaps.coresFaltantes.length > 0 && (
+        <details className="bg-warning/5 border border-warning/30 rounded p-2.5">
+          <summary className="cursor-pointer text-xs font-semibold text-warning flex items-center gap-2">
+            <AlertCircle className="h-3.5 w-3.5" />
+            Cores sem físico ({gaps.coresFaltantes.length})
+          </summary>
+          <ul className="mt-2 space-y-1 text-[11px]">
+            {gaps.coresFaltantes.map((c) => (
+              <li key={c.codigo} className="flex items-center gap-2 px-1">
+                <span className="font-mono text-[10px] text-muted-foreground">{c.codigo}</span>
+                <span className="flex-1 truncate">{c.nome}</span>
+                <span className="text-muted-foreground text-[10px]">em {c.paiBX}</span>
+              </li>
+            ))}
+          </ul>
+        </details>
+      )}
+
+      {/* (sentinel para fechar bloco antigo de orphans abaixo) */}
+      {false && (
+        <div>
+          {orphans.map((o) => (
+            <SkuLine key={`orphan-x-${o.cod_produto}`} sku={o} depth={0} totalUn={totalUn} />
           ))}
         </div>
       )}
