@@ -8,7 +8,7 @@
 //   - meta.copilot_v2.executive_summary_stripped (true when we hid numbers)
 // And writes one row in `copilot_runs` per invocation for observability.
 
-import { stripMarkdown } from "../copilot/text.ts";
+import { getPlainText } from "../copilot/text.ts";
 import { extractNumbers, verifyToken } from "../copilot/numbers.ts";
 import type { Citation } from "../copilot/types.ts";
 
@@ -92,7 +92,7 @@ export async function wrapLegacyCopilotReply<T extends Record<string, unknown>>(
 ): Promise<WrapOutput<T>> {
   const sources = input.legacy.sources ?? [];
   const reply = String(input.legacy.reply ?? "");
-  const plain = stripMarkdown(reply);
+  const plain = getPlainText(reply);
   const citations = buildCitationsFromSources(sources);
   // For C2 we treat every paragraph that has ANY source mention as covered.
   // Without per-paragraph citation spans (legacy doesn't emit them), we apply
