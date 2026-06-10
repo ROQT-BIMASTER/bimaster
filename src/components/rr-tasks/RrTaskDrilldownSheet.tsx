@@ -148,7 +148,59 @@ export function RrTaskDrilldownSheet({ task, open, onOpenChange }: Props) {
               </a>
             </Button>
           )}
-          {task.briefing_id && (
+        {task.projeto_id && (
+          <>
+            <Separator className="my-5" />
+            <section>
+              <h4 className="text-sm font-semibold mb-2 flex items-center gap-1.5">
+                <Briefcase className="h-3.5 w-3.5 text-muted-foreground" />
+                Tarefa no projeto
+              </h4>
+              <div className="rounded-md border border-border p-3 space-y-2">
+                <div className="text-sm">
+                  <div className="font-medium truncate">
+                    {projetoLabels?.projetoNome ?? "Projeto"}
+                    {projetoLabels?.secaoNome && (
+                      <span className="text-muted-foreground font-normal">
+                        {" · "}
+                        {projetoLabels.secaoNome}
+                      </span>
+                    )}
+                  </div>
+                  <div className="text-xs text-muted-foreground truncate">
+                    {task.titulo ?? "Sem título"}
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <Button size="sm" onClick={goToTarefa}>
+                    <ArrowRight className="h-3.5 w-3.5 mr-1.5" />
+                    Abrir tarefa
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={goToProjeto}>
+                    Abrir projeto
+                  </Button>
+                </div>
+              </div>
+            </section>
+          </>
+        )}
+
+        {task.briefing_id && (
+          <>
+            <Separator className="my-5" />
+            <section>
+              <h4 className="text-sm font-semibold mb-2">
+                Cofre de documentos do briefing
+              </h4>
+              <RrTaskCofrePanel
+                briefingId={task.briefing_id}
+                onOpenBriefingCofre={goToBriefingCofre}
+              />
+            </section>
+          </>
+        )}
+
+        {task.briefing_id && (
             <Button
               size="sm"
               variant="outline"
