@@ -51250,6 +51250,20 @@ export type Database = {
       }
       encrypt_token: { Args: { p_token: string }; Returns: string }
       enfileirar_cobrancas_automaticas: { Args: never; Returns: number }
+      enqueue_copilot_document: {
+        Args: {
+          p_acl_scope?: Json
+          p_content: string
+          p_copilot_id: string
+          p_created_by?: string
+          p_metadata?: Json
+          p_priority?: string
+          p_source_ref: string
+          p_source_type: string
+          p_title: string
+        }
+        Returns: string
+      }
       enqueue_email: {
         Args: { payload: Json; queue_name: string }
         Returns: number
