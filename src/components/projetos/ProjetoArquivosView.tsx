@@ -80,7 +80,8 @@ interface CardProps {
 }
 
 function ArquivoCard({ anexo, onOpen, onDownload, darkBg }: CardProps) {
-  const isImage = !!anexo.tipo?.startsWith("image/");
+  const kind = detectKind(anexo.nome, anexo.tipo);
+  const isImage = kind === "image";
   const { data: url } = useSignedThumbUrl("projeto-anexos", isImage ? anexo.storage_path : null, isImage);
   const ext = fileExt(anexo.nome);
 
@@ -93,7 +94,7 @@ function ArquivoCard({ anexo, onOpen, onDownload, darkBg }: CardProps) {
       onClick={() => onOpen(anexo)}
     >
       <div className="flex items-start gap-2 px-3 py-2.5 border-b border-border/30">
-        {getFileIcon(anexo.tipo, "h-4 w-4 shrink-0 mt-0.5")}
+        {getFileIcon(kind, "h-4 w-4 shrink-0 mt-0.5")}
         <div className="flex-1 min-w-0">
           <p className={cn("text-xs font-medium truncate", darkBg && "text-white")}>{anexo.nome}</p>
           <p className={cn("text-[10px] truncate", darkBg ? "text-white/60" : "text-muted-foreground")}>
@@ -124,7 +125,7 @@ function ArquivoCard({ anexo, onOpen, onDownload, darkBg }: CardProps) {
           <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
         ) : (
           <div className="flex flex-col items-center gap-2">
-            {getFileIcon(anexo.tipo, "h-10 w-10 opacity-60")}
+            {getFileIcon(kind, "h-10 w-10 opacity-60")}
             {ext && (
               <Badge variant="outline" className="text-[10px] font-mono">
                 {ext}
