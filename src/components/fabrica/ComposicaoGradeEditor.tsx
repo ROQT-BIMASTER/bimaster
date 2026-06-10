@@ -95,7 +95,12 @@ function SortableGradeRow({ item, index, onUpdateQtd, onUpdateCor, onUpdateCorHe
         </button>
       </TableCell>
       <TableCell className="py-1 text-[11px] font-mono">{item.codigo}</TableCell>
-      <TableCell className="py-1 text-[11px] truncate max-w-[160px]">{item.nome}</TableCell>
+      <TableCell className="py-1 text-[11px] max-w-[160px]">
+        <div className="flex items-center gap-1.5 min-w-0">
+          <span className="truncate">{item.nome}</span>
+          {item.is_provador && <ProvadorBadge size="xs" className="shrink-0" />}
+        </div>
+      </TableCell>
       <TableCell className="py-1">
         <div className="flex items-center gap-1">
           <ColorPickerPopover
