@@ -860,8 +860,8 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
         const aP = PRIORITY_WEIGHT[a.prioridade || "media"] ?? 2;
         const bP = PRIORITY_WEIGHT[b.prioridade || "media"] ?? 2;
         if (aP !== bP) return bP - aP;
-        const aD = a.data_prazo ? new Date(a.data_prazo).getTime() : Number.POSITIVE_INFINITY;
-        const bD = b.data_prazo ? new Date(b.data_prazo).getTime() : Number.POSITIVE_INFINITY;
+        const aD = parseLocalDate(a.data_prazo)?.getTime() ?? Number.POSITIVE_INFINITY;
+        const bD = parseLocalDate(b.data_prazo)?.getTime() ?? Number.POSITIVE_INFINITY;
         return aD - bD;
       });
       const finalSorted = applyManualOrder(sorted, manualOrder);
