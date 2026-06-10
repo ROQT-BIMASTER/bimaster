@@ -33,6 +33,7 @@ import { ProjetoChatTab } from "@/components/projetos/ProjetoChatTab";
 import { ProjetoCopilotPanel } from "@/components/projetos/ProjetoCopilotPanel";
 import { Sparkles, ExternalLink } from "lucide-react";
 import { FloatingActionSlot } from "@/components/ui/floating-action-dock";
+import { RrTasksBoardView } from "@/components/rr-tasks/RrTasksBoardView";
 
 
 function isDarkColor(hex: string | null): boolean {
