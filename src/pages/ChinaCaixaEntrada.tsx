@@ -115,6 +115,13 @@ export default function ChinaCaixaEntrada() {
   const [copilotOpen, setCopilotOpen] = useState(false);
   const searchInputRef = useRef<HTMLInputElement | null>(null);
   const [groupMode, setGroupMode] = useChinaInboxGroupMode(folder);
+  const [viewMode, setViewMode] = useState<"list" | "kanban">(() => {
+    if (typeof window === "undefined") return "list";
+    return (localStorage.getItem("china_inbox_view") as "list" | "kanban") || "list";
+  });
+  useEffect(() => {
+    try { localStorage.setItem("china_inbox_view", viewMode); } catch { /* ignore */ }
+  }, [viewMode]);
 
   // Reset seleção ao trocar pasta
   useEffect(() => {
