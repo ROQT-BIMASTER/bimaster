@@ -13,7 +13,7 @@ import { evaluateAwaitingSend, AWAITING_SEND_REASON_LABEL } from "@/lib/china/aw
 import { groupBySubmissao, type MailboxGroup } from "@/lib/china/groupMailboxItems";
 import { type ChinaInboxGroupMode, isGroupModeForced } from "@/hooks/useChinaInboxGroupMode";
 import { ReadStatusLegend } from "./ReadStatusLegend";
-import { ChecklistPendingSheet } from "./ChecklistPendingSheet";
+
 import { useChinaI18n } from "@/hooks/useChinaI18n";
 
 type TFn = (key: string, opts?: Record<string, unknown>) => string;
@@ -371,12 +371,9 @@ export function MailboxList({
   const allChecked =
     filtered.length > 0 && filtered.every(({ item: i }) => selectedIds.has(i.submissao_id));
 
-  // Drawer lateral de "Checklist pendente" — substitui a antiga expansão inline.
-  const [openChecklistFor, setOpenChecklistFor] = useState<string | null>(null);
-  const openGroup = useMemo(
-    () => groups.find((g) => g.submissao_id === openChecklistFor) ?? null,
-    [groups, openChecklistFor],
-  );
+  const navigate = useNavigate();
+  const openChecklistStatus = (submissao_id: string) =>
+    navigate(`/dashboard/fabrica-china/produto/${submissao_id}/checklist-status?from=${folder}`);
 
   return (
     <div className="flex h-full flex-col">
@@ -492,20 +489,10 @@ export function MailboxList({
               onToggleStar={onToggleStar}
               onEnviarGrupoBrasil={onEnviarGrupoBrasil}
               onOpenSubmissao={onOpenSubmissao}
-              onOpenChecklist={(id) => setOpenChecklistFor(id)}
+              onOpenChecklist={openChecklistStatus}
             />
           ))}
       </ul>
-      <ChecklistPendingSheet
-        open={openChecklistFor !== null}
-        onOpenChange={(o) => !o && setOpenChecklistFor(null)}
-        group={openGroup}
-        folder={folder}
-        onSelectItem={onSelect}
-        onEnviarGrupoBrasil={onEnviarGrupoBrasil}
-        onEnviarItemBrasil={onEnviarItemBrasil}
-        onOpenSubmissao={onOpenSubmissao}
-      />
     </div>
   );
 }
