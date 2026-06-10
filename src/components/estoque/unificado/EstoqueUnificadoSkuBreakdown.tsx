@@ -38,10 +38,12 @@ function SkuLine({
   sku,
   depth,
   totalUn,
+  gapStatus,
 }: {
   sku: EstoqueUnificadoSkuRow;
   depth: number;
   totalUn: number;
+  gapStatus?: GapStatus;
 }) {
   const { sigla, label, Icon } = nivelInfo(sku.nivel);
   const pct = totalUn > 0 ? (Number(sku.contribuicao_un) / totalUn) * 100 : 0;
@@ -60,6 +62,26 @@ function SkuLine({
         <span className="truncate" title={sku.nome_prod ?? ''}>
           {sku.nome_prod ?? `Produto ${sku.cod_produto}`}
         </span>
+        {gapStatus === 'faltante' && (
+          <Badge
+            variant="outline"
+            className="text-[9px] gap-1 shrink-0 border-warning/40 bg-warning/10 text-warning"
+            title="Nível superior tem saldo, mas este SKU está zerado"
+          >
+            <AlertTriangle className="h-2.5 w-2.5" />
+            Sem físico
+          </Badge>
+        )}
+        {gapStatus === 'sem_filhos_mapeados' && (
+          <Badge
+            variant="outline"
+            className="text-[9px] gap-1 shrink-0 border-warning/40 bg-warning/10 text-warning"
+            title="Este nível tem saldo, mas não há composição (BOM) cadastrada para os filhos"
+          >
+            <AlertCircle className="h-2.5 w-2.5" />
+            BOM incompleta
+          </Badge>
+        )}
       </div>
       <div className="col-span-1 text-right tabular-nums">{fmt(sku.saldo)}</div>
       <div className="col-span-1 text-right tabular-nums text-muted-foreground" title="Bloqueado">
