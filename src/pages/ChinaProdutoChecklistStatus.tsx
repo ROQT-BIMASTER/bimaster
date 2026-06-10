@@ -442,18 +442,14 @@ export default function ChinaProdutoChecklistStatus() {
   };
 
   const handleOpenFocus = (tipo: string) => {
-    if (!id) return;
-    navigate(
-      `/dashboard/fabrica-china/produto/${id}?focus=${encodeURIComponent(tipo)}`,
-    );
+    setPainelTipo(tipo);
   };
 
   /**
-   * Anexar pendências de uma categoria: abre o Modo Foco posicionado no
+   * Anexar pendências de uma categoria: abre o painel posicionado no
    * primeiro item ainda não enviado (pendente, rejeitado ou não criado).
    */
   const handleAttachPendentes = (cat: MergedChecklistCategory) => {
-    if (!id) return;
     const firstPending = cat.tipos.find((t) => {
       const doc = docsByTipo.get(t);
       return !isSentToBrazil(doc) || doc?.status === "rejeitado";
@@ -462,9 +458,7 @@ export default function ChinaProdutoChecklistStatus() {
       toast.info("Nenhum item pendente nesta categoria.");
       return;
     }
-    navigate(
-      `/dashboard/fabrica-china/produto/${id}?focus=${encodeURIComponent(firstPending)}`,
-    );
+    setPainelTipo(firstPending);
   };
 
   const buildExportRows = () => {
