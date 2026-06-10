@@ -37,10 +37,11 @@ import { Badge } from "@/components/ui/badge";
 import { MinhasTarefasLixeiraDialog, useMinhasTarefasLixeiraCount } from "@/components/minhas-tarefas/MinhasTarefasLixeiraDialog";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { getToday, getCurrentHourBR } from "@/lib/utils/parseLocalDate";
 import type { CentralPreferences } from "@/hooks/useCentralPreferences";
 
 function getGreeting() {
-  const h = new Date().getHours();
+  const h = getCurrentHourBR();
   if (h < 12) return "Bom dia";
   if (h < 18) return "Boa tarde";
   return "Boa noite";
@@ -109,7 +110,7 @@ export function CentralHeader({
 
   const firstName =
     profileData?.nome?.split(" ")[0] || user?.email?.split("@")[0] || "";
-  const today = format(new Date(), "EEEE, d 'de' MMMM", { locale: ptBR });
+  const today = format(getToday(), "EEEE, d 'de' MMMM", { locale: ptBR });
 
   return (
     <>

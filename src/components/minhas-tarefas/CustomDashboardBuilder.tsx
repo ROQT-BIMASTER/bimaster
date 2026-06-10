@@ -21,7 +21,7 @@ import {
 import { KpiCard } from "@/components/ui/kpi-card";
 import { Clock, AlertTriangle, CheckCircle2, TrendingUp } from "lucide-react";
 import { isToday, startOfDay, startOfWeek, endOfWeek, isWithinInterval } from "date-fns";
-import { parseLocalDate } from "@/lib/utils/parseLocalDate";
+import { parseLocalDate, getToday } from "@/lib/utils/parseLocalDate";
 import type { MinaTarefa } from "@/hooks/useMinhasTarefas";
 
 // Widget renderers
@@ -38,7 +38,7 @@ interface Props {
 }
 
 function KpiWidget({ type, tarefas }: { type: string; tarefas: MinaTarefa[] }) {
-  const now = startOfDay(new Date());
+  const now = getToday();
   const weekStart = startOfWeek(now, { weekStartsOn: 1 });
   const weekEnd = endOfWeek(now, { weekStartsOn: 1 });
 

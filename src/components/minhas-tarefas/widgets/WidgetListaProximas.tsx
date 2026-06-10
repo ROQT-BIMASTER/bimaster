@@ -2,13 +2,13 @@ import { useMemo } from "react";
 import { format, startOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { CalendarClock } from "lucide-react";
-import { parseLocalDate } from "@/lib/utils/parseLocalDate";
+import { parseLocalDate, getToday } from "@/lib/utils/parseLocalDate";
 import type { MinaTarefa } from "@/hooks/useMinhasTarefas";
 import { TarefaResponsavelAvatar } from "@/components/projetos/shared/TarefaResponsavelAvatar";
 
 export function WidgetListaProximas({ tarefas }: { tarefas: MinaTarefa[] }) {
   const proximas = useMemo(() => {
-    const now = startOfDay(new Date());
+    const now = getToday();
     return tarefas
       .filter((t) => {
         if (t.status === "concluida") return false;
@@ -40,7 +40,7 @@ export function WidgetListaProximas({ tarefas }: { tarefas: MinaTarefa[] }) {
             size="xs"
           />
           <span className="text-xs text-muted-foreground shrink-0">
-            {format(parseLocalDate(t.data_prazo) ?? new Date(), "dd/MM", { locale: ptBR })}
+            {format(parseLocalDate(t.data_prazo) ?? getToday(), "dd/MM", { locale: ptBR })}
           </span>
         </div>
       ))}

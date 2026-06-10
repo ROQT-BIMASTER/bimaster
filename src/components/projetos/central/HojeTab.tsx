@@ -15,7 +15,7 @@ import { TarefaResponsavelAvatar } from "@/components/projetos/shared/TarefaResp
 import { AlertTriangle, FolderKanban, ArrowRight, Rocket, CalendarDays, CalendarOff, Search, Trash2 } from "lucide-react";
 import { format, isToday, isBefore, startOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { parseLocalDate } from "@/lib/utils/parseLocalDate";
+import { parseLocalDate, getToday, nowSaoPauloISO } from "@/lib/utils/parseLocalDate";
 import { isSemDatasPlanejadas } from "@/lib/utils/tarefaPlanejamento";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
@@ -32,7 +32,8 @@ const MAX_ITEMS = 8;
 function TarefaRow({ tarefa, onToggle, onDelete, isCompact, currentUserId }: { tarefa: MinaTarefa; onToggle: (id: string, done: boolean) => void; onDelete: (tarefa: MinaTarefa) => void; isCompact: boolean; currentUserId: string | null }) {
   const navigate = useNavigate();
   const isDone = tarefa.status === "concluida";
-  const isOverdue = !isDone && tarefa.data_prazo && new Date(tarefa.data_prazo) < new Date();
+  const prazoLocal = parseLocalDate(tarefa.data_prazo);
+  const isOverdue = !isDone && !!prazoLocal && prazoLocal < getToday();
   const podeExcluir = !!currentUserId && tarefa.criador_id === currentUserId;
 
   return (
@@ -66,7 +67,7 @@ function TarefaRow({ tarefa, onToggle, onDelete, isCompact, currentUserId }: { t
       {tarefa.data_prazo ? (
         <span className={`text-xs font-medium shrink-0 ${isOverdue ? "text-destructive" : "text-muted-foreground"}`}>
           {isOverdue && <AlertTriangle className="h-3 w-3 inline mr-0.5 -mt-0.5" />}
-          {format(new Date(tarefa.data_prazo), "d MMM", { locale: ptBR })}
+          {format(prazoLocal ?? getToday(), "d MMM", { locale: ptBR })}
         </span>
       ) : (
         !isDone && (
@@ -119,7 +120,7 @@ export function HojeTab({ onGoToTarefas }: Props) {
   const [search, setSearch] = useState("");
   const { isCompact } = useTarefaDensity();
 
-  const now = startOfDay(new Date());
+  const now = getToday();
   const pendentes = tarefas.filter(t => t.status !== "concluida");
   const q = search.trim().toLowerCase();
   const matchSearch = (t: MinaTarefa) =>
@@ -158,7 +159,7 @@ export function HojeTab({ onGoToTarefas }: Props) {
       if (!ok) return;
     }
     const update: any = { status: done ? "concluida" : "pendente" };
-    update.data_conclusao = done ? new Date().toISOString() : null;
+    update.data_conclusao = done ? nowSaoPauloISO() : null;
     const { error } = await supabase.from("projeto_tarefas").update(update).eq("id", id);
     if (error) {
       toast.error("Erro ao atualizar tarefa");
@@ -179,7 +180,7 @@ export function HojeTab({ onGoToTarefas }: Props) {
     if (!ok) return;
     const { error } = await supabase
       .from("projeto_tarefas")
-      .update({ excluida_em: new Date().toISOString(), excluida_por: user.id } as any)
+      .update({ excluida_em: nowSaoPauloISO(), excluida_por: user.id } as any)
       .eq("id", t.id)
       .eq("criador_id", user.id);
     if (error) {

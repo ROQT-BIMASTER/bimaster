@@ -12,7 +12,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Send, Search } from "lucide-react";
 import { format, isToday, isBefore, startOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { parseLocalDate } from "@/lib/utils/parseLocalDate";
+import { parseLocalDate, getToday } from "@/lib/utils/parseLocalDate";
 import { CentralToolbarPortal, CentralChipsPortal } from "@/components/projetos/central/CentralLayout";
 import { CentralChip } from "@/components/projetos/central/CentralChips";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -21,7 +21,7 @@ import { cn } from "@/lib/utils";
 
 const Row = memo(function Row({ t, onOpen, isCompact }: { t: DelegadaTarefa; onOpen: (t: DelegadaTarefa) => void; isCompact: boolean }) {
   const prazoDate = parseLocalDate(t.data_prazo);
-  const isOverdue = prazoDate && prazoDate < new Date() && t.status !== "concluida";
+  const isOverdue = prazoDate && startOfDay(prazoDate) < getToday() && t.status !== "concluida";
   return (
     <div
       role="button"
@@ -93,7 +93,7 @@ export function DelegadasContent({ naoLidas = 0, onGoToInbox }: DelegadasProps =
   }, [tarefas]);
 
   const chipCounts = useMemo(() => {
-    const now = startOfDay(new Date());
+    const now = getToday();
     const pendentes = tarefas.filter((t) => t.status !== "concluida");
     return {
       pendentes: pendentes.length,
@@ -110,7 +110,7 @@ export function DelegadasContent({ naoLidas = 0, onGoToInbox }: DelegadasProps =
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    const now = startOfDay(new Date());
+    const now = getToday();
     return tarefas.filter((t) => {
       if (statusFilter === "pendentes" && t.status === "concluida") return false;
       if (statusFilter === "concluidas" && t.status !== "concluida") return false;

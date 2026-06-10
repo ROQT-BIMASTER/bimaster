@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { KpiCard } from "@/components/ui/kpi-card";
 import { CheckCircle2, AlertTriangle, Clock, TrendingUp } from "lucide-react";
 import { isToday, startOfWeek, isWithinInterval, endOfWeek, startOfDay } from "date-fns";
-import { parseLocalDate } from "@/lib/utils/parseLocalDate";
+import { parseLocalDate, getToday } from "@/lib/utils/parseLocalDate";
 import type { MinaTarefa } from "@/hooks/useMinhasTarefas";
 
 interface Props {
@@ -12,7 +12,7 @@ interface Props {
 
 export function MinhasTarefasKPIs({ tarefas, loading }: Props) {
   const metrics = useMemo(() => {
-    const now = startOfDay(new Date());
+    const now = getToday();
     const weekStart = startOfWeek(now, { weekStartsOn: 1 });
     const weekEnd = endOfWeek(now, { weekStartsOn: 1 });
 
