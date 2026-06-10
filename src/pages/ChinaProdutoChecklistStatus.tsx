@@ -771,6 +771,18 @@ export default function ChinaProdutoChecklistStatus() {
               </ToggleGroupItem>
             ))}
           </ToggleGroup>
+          <ToggleGroup
+            type="single"
+            value={viewMode}
+            onValueChange={(v) => v && setViewMode(v as "table" | "kanban")}
+          >
+            <ToggleGroupItem value="table" className="h-7 px-2 text-[11px]" aria-label="Visualização em tabela">
+              <Rows3 className="h-3.5 w-3.5" />
+            </ToggleGroupItem>
+            <ToggleGroupItem value="kanban" className="h-7 px-2 text-[11px]" aria-label="Visualização em kanban">
+              <LayoutGrid className="h-3.5 w-3.5" />
+            </ToggleGroupItem>
+          </ToggleGroup>
           <span className="ml-auto text-[11px] text-muted-foreground">
             {totalVisible} de {totalGlobal} itens
           </span>
