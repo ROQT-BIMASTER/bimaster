@@ -338,7 +338,7 @@ function downloadBlob(content: BlobPart, mime: string, filename: string) {
 
 export default function ChinaProdutoChecklistStatus() {
   const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
+  
   const location = useLocation();
   const backTo =
     (location.state as { from?: string } | null)?.from ??
