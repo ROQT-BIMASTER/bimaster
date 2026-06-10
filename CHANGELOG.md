@@ -12,7 +12,19 @@ versionamento conforme [SemVer](https://semver.org/) quando aplicável.
 
 ---
 
-## v3.5.39
+## v3.5.40
+
+Central de Trabalho — padronização do fuso horário Brasil em calendários:
+
+- Cálculos de "hoje", "atrasada", "esta semana" e "concluída hoje" passaram a usar `getToday()` (meia-noite em `America/Sao_Paulo`) em vez de `new Date()` local do navegador. Afeta `useMinhasTarefas.groupTarefas`, `HojeTab`, `RoleOverviewCard`, `ResumoSemanal`, `DelegadasContent`, `MinhasTarefasBoard`, `MinhasTarefasKPIs`, `MinhasTarefasSimples`, `CustomDashboardBuilder` e widgets `WidgetListaProximas` / `WidgetListaAtrasadas` / `WidgetTimelineConclusoes`.
+- Saudação ("Bom dia / tarde / noite") e label "EEEE, d 'de' MMMM" no header passam a usar `getCurrentHourBR()` e `getToday()` (Intl com `America/Sao_Paulo`).
+- Gravação de `data_conclusao` e `excluida_em` (timestamptz) agora usa `nowSaoPauloISO()` em `MinhasTarefasContent`, `HojeTab` e `MinhasTarefasSimples`, garantindo offset Brasil explícito em vez do instante UTC do navegador.
+- Leitura/ordenação por `data_prazo` (coluna `DATE`) substitui `new Date(string)` por `parseLocalDate` (`MinhasTarefasContent`, `MinhasTarefasBoard`, `WidgetListaAtrasadas`, `HojeTab`) — elimina o shift UTC que classificava tarefas de hoje como atrasadas após as 21h.
+- `MinhasTarefasBoard.toIsoDate` agora usa `formatLocalDate` para gravar `data_prazo` arrastado no Kanban, mantendo a data local correta.
+- `src/lib/utils/parseLocalDate.ts` reexporta `getToday` (canônico) e adiciona `getCurrentHourBR()` — ponto único de entrada para "agora em São Paulo".
+- Sem mudança de schema, RLS, GRANT, SDK, OpenAPI ou layout.
+
+---
 
 Central de Trabalho — Kanban e atualização em tempo real:
 
