@@ -306,9 +306,7 @@ export function EstoqueUnificadoSkuBreakdown({ row }: Props) {
           <p className="text-[10px] uppercase tracking-wider text-muted-foreground pt-2 px-2">
             Sem composição BOM mapeada
           </p>
-          {orphans.map((o) => (
-            <SkuLine key={`orphan-${o.cod_produto}`} sku={o} depth={0} totalUn={totalUn} gapStatus={gaps.statusByCodigo.get(o.cod_produto)} />
-          ))}
+          {orphans.flatMap((node) => renderNode(node, 0, totalUn, gaps.statusByCodigo, gaps.ramosComGap, filtrarSoLacunas))}
         </div>
       )}
 
