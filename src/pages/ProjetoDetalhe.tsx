@@ -34,6 +34,7 @@ import { ProjetoCopilotPanel } from "@/components/projetos/ProjetoCopilotPanel";
 import { Sparkles, ExternalLink } from "lucide-react";
 import { FloatingActionSlot } from "@/components/ui/floating-action-dock";
 import { RrTasksBoardView } from "@/components/rr-tasks/RrTasksBoardView";
+import { RrTasksBreadcrumb } from "@/components/rr-tasks/RrTasksBreadcrumb";
 
 
 function isDarkColor(hex: string | null): boolean {
