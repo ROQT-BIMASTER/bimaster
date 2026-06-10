@@ -111,11 +111,11 @@ interface TreeNode {
   children: TreeNode[];
 }
 
-function buildTree(rows: EstoqueUnificadoSkuRow[]): { tree: TreeNode[]; orphans: EstoqueUnificadoSkuRow[] } {
+function buildTree(rows: EstoqueUnificadoSkuRow[]): { tree: TreeNode[]; orphans: TreeNode[] } {
   const byCod = new Map<number, TreeNode>();
   rows.forEach((r) => byCod.set(r.cod_produto, { sku: r, children: [] }));
   const roots: TreeNode[] = [];
-  const orphans: EstoqueUnificadoSkuRow[] = [];
+  const orphans: TreeNode[] = [];
 
   for (const node of byCod.values()) {
     const { sku } = node;
@@ -125,7 +125,10 @@ function buildTree(rows: EstoqueUnificadoSkuRow[]): { tree: TreeNode[]; orphans:
     } else if (sku.cod_produto === sku.produto_raiz || sku.nivel === 1) {
       roots.push(node);
     } else {
-      orphans.push(sku);
+      // Órfão: pai não mapeado. Preserva subárvore (filhos foram atachados via
+      // byCod ao longo do loop) para que ramos inteiros continuem visíveis sob
+      // "Sem composição BOM mapeada" em vez de sumir silenciosamente.
+      orphans.push(node);
     }
   }
 
@@ -140,6 +143,7 @@ function buildTree(rows: EstoqueUnificadoSkuRow[]): { tree: TreeNode[]; orphans:
     n.children.forEach(sortNode);
   };
   roots.forEach(sortNode);
+  orphans.forEach(sortNode);
 
   return { tree: roots, orphans };
 }
@@ -302,9 +306,7 @@ export function EstoqueUnificadoSkuBreakdown({ row }: Props) {
           <p className="text-[10px] uppercase tracking-wider text-muted-foreground pt-2 px-2">
             Sem composição BOM mapeada
           </p>
-          {orphans.map((o) => (
-            <SkuLine key={`orphan-${o.cod_produto}`} sku={o} depth={0} totalUn={totalUn} gapStatus={gaps.statusByCodigo.get(o.cod_produto)} />
-          ))}
+          {orphans.flatMap((node) => renderNode(node, 0, totalUn, gaps.statusByCodigo, gaps.ramosComGap, filtrarSoLacunas))}
         </div>
       )}
 
