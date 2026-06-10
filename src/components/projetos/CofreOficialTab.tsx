@@ -17,10 +17,12 @@ import { ptBR } from "date-fns/locale";
 import { ShieldCheck, Download, FileText, Image, File, Lock, XCircle } from "lucide-react";
 import { toast } from "sonner";
 
-function getFileIcon(tipo: string | null) {
-  if (!tipo) return <File className="h-4 w-4" />;
-  if (tipo.startsWith("image/")) return <Image className="h-4 w-4 text-blue-400" />;
-  if (tipo.includes("pdf")) return <FileText className="h-4 w-4 text-red-400" />;
+import { detectFileKind } from "@/lib/utils/detectFileKind";
+
+function getFileIcon(nome: string, tipo: string | null) {
+  const kind = detectFileKind(nome, tipo);
+  if (kind === "image") return <Image className="h-4 w-4 text-blue-400" />;
+  if (kind === "pdf") return <FileText className="h-4 w-4 text-red-400" />;
   return <File className="h-4 w-4 text-muted-foreground" />;
 }
 
@@ -121,7 +123,7 @@ export function CofreOficialTab({ produtoId, projetoId, isReadOnly }: CofreOfici
           <div className="space-y-2">
             {cofreDocs.map((doc: any) => (
               <div key={doc.id} className="flex items-center gap-2 p-2.5 rounded-md bg-muted/30 border border-border/30">
-                {getFileIcon(doc.tipo_arquivo)}
+                {getFileIcon(doc.nome_arquivo, doc.tipo_arquivo)}
                 <div className="flex-1 min-w-0">
                   <p className="text-xs font-medium truncate">{doc.nome_arquivo}</p>
                   <div className="flex items-center gap-2 mt-0.5">

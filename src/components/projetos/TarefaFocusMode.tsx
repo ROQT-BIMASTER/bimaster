@@ -1,4 +1,5 @@
 import { secureDownload } from "@/lib/utils/secure-download";
+import { detectFileKind } from "@/lib/utils/detectFileKind";
 import { useState, useRef, useEffect, useMemo } from "react";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
@@ -85,10 +86,10 @@ const COFRE_CATEGORIA_LABELS: Record<string, string> = {
   art: "ART", outro: "Outro",
 };
 
-function getFileIcon(tipo: string | null) {
-  if (!tipo) return <File className="h-5 w-5" />;
-  if (tipo.startsWith("image/")) return <Image className="h-5 w-5 text-blue-400" />;
-  if (tipo.includes("pdf")) return <FileText className="h-5 w-5 text-red-400" />;
+function getFileIcon(nome: string, tipo: string | null) {
+  const kind = detectFileKind(nome, tipo);
+  if (kind === "image") return <Image className="h-5 w-5 text-blue-400" />;
+  if (kind === "pdf") return <FileText className="h-5 w-5 text-red-400" />;
   return <File className="h-5 w-5 text-muted-foreground" />;
 }
 
@@ -732,7 +733,7 @@ export function TarefaFocusMode({
                           const inCofre = cofreDocs.some((d: any) => d.nome_arquivo === a.nome);
                           return (
                             <div key={a.id} className={cn("flex items-center gap-2 p-2 rounded-md border border-border/30", inCofre ? "bg-emerald-500/5" : "bg-muted/30")}>
-                              {getFileIcon(a.tipo_arquivo)}
+                              {getFileIcon(a.nome, a.tipo_arquivo)}
                               <div className="flex-1 min-w-0">
                                 <p className="text-xs font-medium truncate">{a.nome}</p>
                                 <p className="text-[10px] text-muted-foreground">{formatFileSize(a.tamanho)}</p>
@@ -771,7 +772,7 @@ export function TarefaFocusMode({
                         {cofreDocs.map((doc: any) => (
                           <div key={doc.id} className="space-y-1">
                             <div className="flex items-center gap-2 p-2.5 rounded-md bg-emerald-500/5 border border-emerald-500/20">
-                              {getFileIcon(doc.tipo_arquivo)}
+                              {getFileIcon(doc.nome_arquivo, doc.tipo_arquivo)}
                               <div className="flex-1 min-w-0">
                                 <p className="text-xs font-medium truncate">{doc.nome_arquivo}</p>
                                 <div className="flex items-center gap-2 mt-0.5">
@@ -856,7 +857,7 @@ export function TarefaFocusMode({
                               }}
                               className="flex-shrink-0"
                             />
-                            {getFileIcon(a.tipo_arquivo)}
+                            {getFileIcon(a.nome, a.tipo_arquivo)}
                             <div className="flex-1 min-w-0">
                               <p className="text-xs font-medium truncate">{a.nome}</p>
                               <p className="text-[10px] text-muted-foreground">{formatFileSize(a.tamanho)}</p>

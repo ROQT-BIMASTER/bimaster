@@ -4,10 +4,12 @@ import { Button } from "@/components/ui/button";
 import { Paperclip, Upload, Download, Trash2, File, FileText, Image } from "lucide-react";
 import type { MinhaTarefaAnexo } from "@/hooks/useMinhasTarefaDetalhe";
 
-function getFileIcon(tipo: string | null) {
-  if (!tipo) return <File className="h-4 w-4 text-muted-foreground" />;
-  if (tipo.startsWith("image/")) return <Image className="h-4 w-4 text-primary" />;
-  if (tipo.includes("pdf")) return <FileText className="h-4 w-4 text-destructive" />;
+import { detectFileKind } from "@/lib/utils/detectFileKind";
+
+function getFileIcon(nome: string, tipo: string | null) {
+  const kind = detectFileKind(nome, tipo);
+  if (kind === "image") return <Image className="h-4 w-4 text-primary" />;
+  if (kind === "pdf") return <FileText className="h-4 w-4 text-destructive" />;
   return <File className="h-4 w-4 text-muted-foreground" />;
 }
 
@@ -55,7 +57,7 @@ export function MinhasTarefaAnexos({ anexos, uploadAnexo, deleteAnexo, getAnexoU
         <div className="space-y-1">
           {anexos.map(a => (
             <div key={a.id} className="flex items-center gap-2 p-1.5 rounded-md bg-muted/30 border border-border/30">
-              {getFileIcon(a.tipo_arquivo)}
+              {getFileIcon(a.nome, a.tipo_arquivo)}
               <div className="flex-1 min-w-0">
                 <p className="text-[11px] font-medium truncate">{a.nome}</p>
                 <p className="text-[9px] text-muted-foreground">{formatFileSize(a.tamanho)}</p>

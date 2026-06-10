@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { detectFileKind } from "@/lib/utils/detectFileKind";
 import { useNavigate } from "react-router-dom";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
@@ -132,8 +133,8 @@ export function ItemAprovacaoDrawer({ item, open, onOpenChange }: Props) {
       case "briefing": return <Sparkles className="h-4 w-4 text-primary" />;
       case "china_submissao": return <Anchor className="h-4 w-4 text-primary" />;
       case "documento_storage": {
-        const tipo = (item!.documento_tipo || "").toLowerCase();
-        if (tipo.startsWith("image/")) return <ImageIcon className="h-4 w-4 text-primary" />;
+        const kind = detectFileKind(item!.documento_nome ?? "", item!.documento_tipo ?? null);
+        if (kind === "image") return <ImageIcon className="h-4 w-4 text-primary" />;
         return <FileType2 className="h-4 w-4 text-primary" />;
       }
       default: return <FileText className="h-4 w-4 text-primary" />;

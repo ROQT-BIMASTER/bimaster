@@ -54,6 +54,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { initials } from "./utils";
+import { detectFileKind } from "@/lib/utils/detectFileKind";
 
 interface Props {
   tarefaId: string;
@@ -393,7 +394,7 @@ function AnexoCard({
   ownVariant: boolean;
 }) {
   const [url, setUrl] = useState<string | null>(null);
-  const isImage = (anexo.tipo_arquivo ?? "").startsWith("image/");
+  const isImage = detectFileKind(anexo.nome, anexo.tipo_arquivo) === "image";
 
   useEffect(() => {
     let cancel = false;
