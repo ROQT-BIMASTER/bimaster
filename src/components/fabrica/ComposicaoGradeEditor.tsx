@@ -337,7 +337,12 @@ export function ComposicaoGradeEditor({ produtoPaiId, items, onChange }: Composi
                       </Button>
                     </TableCell>
                     <TableCell className="py-1.5 text-[11px] font-mono">{p.codigo}</TableCell>
-                    <TableCell className="py-1.5 text-[11px] font-medium truncate max-w-[180px]">{p.nome}</TableCell>
+                    <TableCell className="py-1.5 text-[11px] font-medium max-w-[180px]">
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <span className="truncate">{p.nome}</span>
+                        {p.is_provador && <ProvadorBadge size="xs" className="shrink-0" />}
+                      </div>
+                    </TableCell>
                     <TableCell className="py-1.5 text-[10px] text-muted-foreground">{p.linha || "—"}</TableCell>
                     <TableCell className="py-1.5 text-[10px] font-mono text-muted-foreground">{p.codigo_barras_ean || "—"}</TableCell>
                   </TableRow>
