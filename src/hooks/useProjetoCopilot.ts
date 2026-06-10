@@ -1,5 +1,6 @@
 import { useCallback, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useCopilotV2Flag } from "@/hooks/useCopilotV2Flag";
 import { toast } from "sonner";
 
 export interface CopilotSource {
@@ -73,13 +74,16 @@ export function useProjetoCopilot(projetoId: string | null) {
     };
     setMessages((m) => [...m, optimistic]);
     try {
-      const { data, error } = await supabase.functions.invoke("projeto-copilot", {
-        body: {
-          projeto_id: projetoId,
-          thread_id: threadId ?? undefined,
-          user_message: trimmed,
+      const { data, error } = await supabase.functions.invoke(
+        v2 ? "projeto-copilot-v2" : "projeto-copilot",
+        {
+          body: {
+            projeto_id: projetoId,
+            thread_id: threadId ?? undefined,
+            user_message: trimmed,
+          },
         },
-      });
+      );
       if (error) throw error;
       if (data?.error) throw new Error(typeof data.error === "string" ? data.error : "Falha no copiloto.");
       const newThreadId = data.thread_id as string;
