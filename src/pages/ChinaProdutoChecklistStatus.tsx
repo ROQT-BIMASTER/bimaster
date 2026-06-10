@@ -698,11 +698,16 @@ export default function ChinaProdutoChecklistStatus() {
               size="sm"
               variant="outline"
               className="h-8 text-xs"
-              onClick={() =>
-                navigate(`/dashboard/fabrica-china/produto/${id}?focus=__overview__`)
-              }
+              onClick={() => {
+                const firstPending = allTipos.find((t) => {
+                  const d = docsByTipo.get(t);
+                  return !isSentToBrazil(d) || d?.status === "rejeitado";
+                });
+                if (firstPending) setPainelTipo(firstPending);
+                else toast.info("Nenhum item pendente.");
+              }}
             >
-              Abrir Modo Foco
+              Abrir item pendente
             </Button>
           </div>
         </Card>
