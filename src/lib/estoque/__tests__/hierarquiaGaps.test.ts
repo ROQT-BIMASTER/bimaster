@@ -53,6 +53,9 @@ describe("classificarGaps", () => {
     ];
     const r = classificarGaps(tree);
     expect(temAlgumGap(r)).toBe(false);
+  });
+
+
 
   it("cenário real (7494→7496→7498): UN incluído pelo complemento vira faltante", () => {
     // Reproduz o caso do print: BX com saldo, UN filho com saldo 0
