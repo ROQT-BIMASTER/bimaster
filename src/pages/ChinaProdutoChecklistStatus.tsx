@@ -14,6 +14,8 @@ import {
   FileText,
   FileSpreadsheet,
   Send,
+  LayoutGrid,
+  Rows3,
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -122,6 +124,25 @@ function classifyForFilter(doc: DocRow | undefined): Exclude<FilterKey, "todos">
   if (doc.status === "rejeitado") return "rejeitados";
   if (SENT_STATUSES.has(doc.status)) return "enviados";
   return "pendentes";
+}
+
+type KanbanBucket = "nao_criados" | "pendente" | "ajuste" | "enviado" | "aprovado";
+
+const KANBAN_COLUMNS: Array<{ key: KanbanBucket; label: string; accent: string }> = [
+  { key: "nao_criados", label: "Não criados", accent: "bg-muted text-muted-foreground border-border" },
+  { key: "pendente", label: "Pendente análise", accent: "bg-primary/15 text-primary border-primary/30" },
+  { key: "ajuste", label: "Em ajuste", accent: "bg-amber-500/15 text-amber-500 border-amber-500/30" },
+  { key: "enviado", label: "Enviado", accent: "bg-primary/15 text-primary border-primary/30" },
+  { key: "aprovado", label: "Aprovado", accent: "bg-emerald-500/15 text-emerald-500 border-emerald-500/30" },
+];
+
+function bucketOf(doc: DocRow | undefined): KanbanBucket {
+  if (!doc) return "nao_criados";
+  const s = doc.status;
+  if (s === "aprovado" || s === "ciencia") return "aprovado";
+  if (s === "rejeitado" || s === "contestado") return "ajuste";
+  if (s === "enviado" || s === "enviado_brasil") return "enviado";
+  return "pendente";
 }
 
 interface CategoryBlockProps {
@@ -336,6 +357,110 @@ function downloadBlob(content: BlobPart, mime: string, filename: string) {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
+interface KanbanViewProps {
+  cats: MergedChecklistCategory[];
+  visibleByCat: Map<string, string[]>;
+  docsByTipo: Map<string, DocRow>;
+  getLabel: (tipo: string) => { pt: string; cn?: string };
+  onOpenItem: (tipo: string) => void;
+}
+
+function KanbanView({ cats, visibleByCat, docsByTipo, getLabel, onOpenItem }: KanbanViewProps) {
+  type Card = {
+    tipo: string;
+    doc: DocRow | undefined;
+    cat: MergedChecklistCategory;
+  };
+  const buckets = new Map<KanbanBucket, Card[]>();
+  for (const col of KANBAN_COLUMNS) buckets.set(col.key, []);
+  for (const cat of cats) {
+    const visible = visibleByCat.get(cat.key) ?? [];
+    for (const tipo of visible) {
+      const doc = docsByTipo.get(tipo);
+      buckets.get(bucketOf(doc))!.push({ tipo, doc, cat });
+    }
+  }
+
+  return (
+    <div className="flex gap-3 overflow-x-auto pb-2">
+      {KANBAN_COLUMNS.map((col) => {
+        const items = buckets.get(col.key) ?? [];
+        return (
+          <div
+            key={col.key}
+            className="flex min-w-[260px] max-w-[300px] flex-1 flex-col rounded-md border border-border bg-muted/20"
+          >
+            <header className="flex items-center justify-between gap-2 border-b border-border/60 px-3 py-2">
+              <span className="text-[11px] font-semibold uppercase tracking-wide text-foreground">
+                {col.label}
+              </span>
+              <Badge variant="outline" className={cn("h-5 px-1.5 text-[10px]", col.accent)}>
+                {items.length}
+              </Badge>
+            </header>
+            <div className="flex flex-col gap-2 p-2">
+              {items.length === 0 ? (
+                <p className="px-2 py-3 text-center text-[10.5px] text-muted-foreground/60">
+                  Nenhum item
+                </p>
+              ) : (
+                items.map(({ tipo, doc, cat }) => {
+                  const label = getLabel(tipo);
+                  const FluxoIcon = cat.fluxo === "china_envia" ? ArrowUpRight : ArrowDownLeft;
+                  const status = doc?.status ?? "nao_criado";
+                  const statusLabel =
+                    status === "nao_criado"
+                      ? "Não criado"
+                      : STATUS_LABEL[status] ?? status;
+                  const statusCls =
+                    status === "nao_criado"
+                      ? "bg-muted text-muted-foreground border-border"
+                      : STATUS_CLS[status] ?? "bg-muted text-muted-foreground border-border";
+                  const lastUpdate = doc?.oficializado_em ?? doc?.created_at ?? null;
+                  return (
+                    <button
+                      key={tipo}
+                      type="button"
+                      onClick={() => onOpenItem(tipo)}
+                      className="flex flex-col gap-1 rounded border border-border bg-card px-2.5 py-2 text-left transition-colors hover:border-primary/40 hover:bg-card/80"
+                    >
+                      <div className="flex items-start gap-1.5">
+                        <FluxoIcon className="mt-0.5 h-3 w-3 shrink-0 text-muted-foreground" />
+                        <p className="line-clamp-2 flex-1 text-[11.5px] font-medium leading-tight text-foreground">
+                          {label.pt}
+                        </p>
+                      </div>
+                      <p className="truncate text-[10px] text-muted-foreground/80">
+                        {cat.labelPt}
+                      </p>
+                      {doc?.nome_arquivo && (
+                        <p className="truncate text-[10px] text-muted-foreground/70">
+                          {doc.nome_arquivo}
+                        </p>
+                      )}
+                      <div className="mt-0.5 flex items-center justify-between gap-1">
+                        <Badge
+                          variant="outline"
+                          className={cn("h-4 px-1.5 text-[9.5px] font-medium", statusCls)}
+                        >
+                          {statusLabel}
+                        </Badge>
+                        <span className="text-[9.5px] text-muted-foreground/70">
+                          {lastUpdate ? formatDate(lastUpdate).split(" ")[0] : "—"}
+                        </span>
+                      </div>
+                    </button>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 export default function ChinaProdutoChecklistStatus() {
   const { id } = useParams<{ id: string }>();
   
@@ -363,6 +488,17 @@ export default function ChinaProdutoChecklistStatus() {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<FilterKey>(initialFilter);
   const [painelTipo, setPainelTipo] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<"table" | "kanban">(() => {
+    if (typeof window === "undefined") return "table";
+    return (localStorage.getItem("china_checklist_status_view") as "table" | "kanban") || "table";
+  });
+  useEffect(() => {
+    try {
+      localStorage.setItem("china_checklist_status_view", viewMode);
+    } catch {
+      // ignore
+    }
+  }, [viewMode]);
 
   // Deep-link via ?item=<tipo>
   useEffect(() => {
@@ -739,6 +875,18 @@ export default function ChinaProdutoChecklistStatus() {
               </ToggleGroupItem>
             ))}
           </ToggleGroup>
+          <ToggleGroup
+            type="single"
+            value={viewMode}
+            onValueChange={(v) => v && setViewMode(v as "table" | "kanban")}
+          >
+            <ToggleGroupItem value="table" className="h-7 px-2 text-[11px]" aria-label="Visualização em tabela">
+              <Rows3 className="h-3.5 w-3.5" />
+            </ToggleGroupItem>
+            <ToggleGroupItem value="kanban" className="h-7 px-2 text-[11px]" aria-label="Visualização em kanban">
+              <LayoutGrid className="h-3.5 w-3.5" />
+            </ToggleGroupItem>
+          </ToggleGroup>
           <span className="ml-auto text-[11px] text-muted-foreground">
             {totalVisible} de {totalGlobal} itens
           </span>
@@ -752,6 +900,14 @@ export default function ChinaProdutoChecklistStatus() {
           <Card className="p-8 text-center text-sm text-muted-foreground">
             Nenhuma categoria configurada para este produto.
           </Card>
+        ) : viewMode === "kanban" ? (
+          <KanbanView
+            cats={allCats}
+            visibleByCat={visibleByCat}
+            docsByTipo={docsByTipo}
+            getLabel={getLabel}
+            onOpenItem={setPainelTipo}
+          />
         ) : (
           allCats.map((cat) => {
             const visible = visibleByCat.get(cat.key) ?? [];
