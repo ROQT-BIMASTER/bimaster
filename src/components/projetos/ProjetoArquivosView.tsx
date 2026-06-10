@@ -1,16 +1,29 @@
 import { secureDownload } from "@/lib/utils/secure-download";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { FileText, Image, File, Search, Download, Paperclip, Loader2, FolderOpen } from "lucide-react";
+import {
+  FileText,
+  Image as ImageIcon,
+  File,
+  Search,
+  Download,
+  Paperclip,
+  Loader2,
+  FolderOpen,
+  LayoutGrid,
+  List as ListIcon,
+} from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { useSignedThumbUrl } from "@/hooks/useSignedThumbUrl";
+import { ArquivoPreviewDialog } from "./ArquivoPreviewDialog";
 
 interface ProjetoArquivosViewProps {
   projetoId: string;
@@ -28,11 +41,18 @@ interface Anexo {
   tarefa_titulo?: string;
 }
 
-function getFileIcon(tipo: string | null) {
-  if (!tipo) return <File className="h-5 w-5 text-muted-foreground" />;
-  if (tipo.startsWith("image/")) return <Image className="h-5 w-5 text-blue-400" />;
-  if (tipo.includes("pdf")) return <FileText className="h-5 w-5 text-red-400" />;
-  return <File className="h-5 w-5 text-muted-foreground" />;
+const VIEW_KEY = "projeto-arquivos-view";
+
+function getFileIcon(tipo: string | null, className = "h-5 w-5") {
+  if (!tipo) return <File className={cn(className, "text-muted-foreground")} />;
+  if (tipo.startsWith("image/")) return <ImageIcon className={cn(className, "text-blue-400")} />;
+  if (tipo.includes("pdf")) return <FileText className={cn(className, "text-red-400")} />;
+  return <File className={cn(className, "text-muted-foreground")} />;
+}
+
+function fileExt(nome: string) {
+  const i = nome.lastIndexOf(".");
+  return i >= 0 ? nome.slice(i + 1).toUpperCase() : "";
 }
 
 function formatSize(bytes: number | null) {
@@ -42,9 +62,84 @@ function formatSize(bytes: number | null) {
   return `${(bytes / 1048576).toFixed(1)} MB`;
 }
 
+interface CardProps {
+  anexo: Anexo;
+  onOpen: (a: Anexo) => void;
+  onDownload: (a: Anexo) => void;
+  darkBg: boolean;
+}
+
+function ArquivoCard({ anexo, onOpen, onDownload, darkBg }: CardProps) {
+  const isImage = !!anexo.tipo?.startsWith("image/");
+  const { data: url } = useSignedThumbUrl("projeto-anexos", isImage ? anexo.storage_path : null, isImage);
+  const ext = fileExt(anexo.nome);
+
+  return (
+    <Card
+      className={cn(
+        "overflow-hidden cursor-pointer transition-all hover:shadow-md hover:border-primary/40 group",
+        darkBg && "bg-white/5 border-white/10 hover:border-white/30",
+      )}
+      onClick={() => onOpen(anexo)}
+    >
+      <div className="flex items-start gap-2 px-3 py-2.5 border-b border-border/30">
+        {getFileIcon(anexo.tipo, "h-4 w-4 shrink-0 mt-0.5")}
+        <div className="flex-1 min-w-0">
+          <p className={cn("text-xs font-medium truncate", darkBg && "text-white")}>{anexo.nome}</p>
+          <p className={cn("text-[10px] truncate", darkBg ? "text-white/60" : "text-muted-foreground")}>
+            ✓ {anexo.tarefa_titulo}
+          </p>
+        </div>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-6 w-6 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
+          onClick={e => {
+            e.stopPropagation();
+            onDownload(anexo);
+          }}
+        >
+          <Download className="h-3 w-3" />
+        </Button>
+      </div>
+      <div className={cn("relative aspect-video bg-muted/40 flex items-center justify-center", darkBg && "bg-black/30")}>
+        {isImage && url ? (
+          <img
+            src={url}
+            alt={anexo.nome}
+            loading="lazy"
+            className="absolute inset-0 w-full h-full object-cover"
+          />
+        ) : isImage ? (
+          <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+        ) : (
+          <div className="flex flex-col items-center gap-2">
+            {getFileIcon(anexo.tipo, "h-10 w-10 opacity-60")}
+            {ext && (
+              <Badge variant="outline" className="text-[10px] font-mono">
+                {ext}
+              </Badge>
+            )}
+          </div>
+        )}
+      </div>
+    </Card>
+  );
+}
+
 export function ProjetoArquivosView({ projetoId, darkBg = false }: ProjetoArquivosViewProps) {
   const [search, setSearch] = useState("");
+  const [view, setView] = useState<"grid" | "list">("grid");
+  const [previewing, setPreviewing] = useState<Anexo | null>(null);
   const { user } = useAuth();
+
+  useEffect(() => {
+    const stored = localStorage.getItem(VIEW_KEY);
+    if (stored === "grid" || stored === "list") setView(stored);
+  }, []);
+  useEffect(() => {
+    localStorage.setItem(VIEW_KEY, view);
+  }, [view]);
 
   // Fetch allowed section IDs for current user
   const { data: allowedSecaoIds } = useQuery({
@@ -75,14 +170,12 @@ export function ProjetoArquivosView({ projetoId, darkBg = false }: ProjetoArquiv
     queryKey: ["projeto-arquivos", projetoId, allowedSecaoIds],
     enabled: secaoIdsResolved,
     queryFn: async () => {
-      // Get all task IDs for this project
       const { data: tarefas } = await supabase
         .from("projeto_tarefas")
         .select("id, titulo, secao_id")
         .eq("projeto_id", projetoId);
       if (!tarefas || tarefas.length === 0) return [];
 
-      // Filter tasks by allowed sections
       const filteredTarefas = allowedSecaoIds
         ? tarefas.filter(t => allowedSecaoIds.includes(t.secao_id))
         : tarefas;
@@ -91,7 +184,6 @@ export function ProjetoArquivosView({ projetoId, darkBg = false }: ProjetoArquiv
       const tarefaIds = filteredTarefas.map(t => t.id);
       if (tarefaIds.length === 0) return [];
 
-      // Get all anexos for those tasks
       const { data: anexosData } = await supabase
         .from("projeto_tarefa_anexos" as any)
         .select("*")
@@ -129,8 +221,8 @@ export function ProjetoArquivosView({ projetoId, darkBg = false }: ProjetoArquiv
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-3">
-        <div className="relative flex-1 max-w-sm">
+      <div className="flex items-center gap-3 flex-wrap">
+        <div className="relative flex-1 max-w-sm min-w-[200px]">
           <Search className={cn("absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4", textMuted)} />
           <Input
             placeholder="Buscar arquivos..."
@@ -143,6 +235,26 @@ export function ProjetoArquivosView({ projetoId, darkBg = false }: ProjetoArquiv
           <Paperclip className="h-3 w-3 mr-1" />
           {anexos.length} arquivo{anexos.length !== 1 ? "s" : ""}
         </Badge>
+        <div className={cn("ml-auto flex items-center gap-0.5 rounded-md border p-0.5", darkBg && "border-white/20")}>
+          <Button
+            size="sm"
+            variant={view === "grid" ? "secondary" : "ghost"}
+            className="h-7 w-7 p-0"
+            onClick={() => setView("grid")}
+            title="Grade"
+          >
+            <LayoutGrid className="h-3.5 w-3.5" />
+          </Button>
+          <Button
+            size="sm"
+            variant={view === "list" ? "secondary" : "ghost"}
+            className="h-7 w-7 p-0"
+            onClick={() => setView("list")}
+            title="Lista"
+          >
+            <ListIcon className="h-3.5 w-3.5" />
+          </Button>
+        </div>
       </div>
 
       {filtered.length === 0 ? (
@@ -151,12 +263,28 @@ export function ProjetoArquivosView({ projetoId, darkBg = false }: ProjetoArquiv
           <p className="text-sm">{anexos.length === 0 ? "Nenhum arquivo neste projeto ainda." : "Nenhum arquivo encontrado."}</p>
           <p className="text-xs">Arquivos anexados às tarefas aparecerão aqui.</p>
         </div>
+      ) : view === "grid" ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {filtered.map(anexo => (
+            <ArquivoCard
+              key={anexo.id}
+              anexo={anexo}
+              onOpen={setPreviewing}
+              onDownload={handleDownload}
+              darkBg={darkBg}
+            />
+          ))}
+        </div>
       ) : (
         <Card className={cardBg}>
           <CardContent className="p-0">
             <div className="divide-y divide-border/30">
               {filtered.map(anexo => (
-                <div key={anexo.id} className="flex items-center gap-3 px-4 py-3 hover:bg-muted/30 transition-colors">
+                <div
+                  key={anexo.id}
+                  className="flex items-center gap-3 px-4 py-3 hover:bg-muted/30 transition-colors cursor-pointer"
+                  onClick={() => setPreviewing(anexo)}
+                >
                   {getFileIcon(anexo.tipo)}
                   <div className="flex-1 min-w-0">
                     <p className={cn("text-sm font-medium truncate", textColor)}>{anexo.nome}</p>
@@ -165,7 +293,15 @@ export function ProjetoArquivosView({ projetoId, darkBg = false }: ProjetoArquiv
                       {anexo.created_at && ` • ${format(new Date(anexo.created_at), "dd MMM yyyy", { locale: ptBR })}`}
                     </p>
                   </div>
-                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleDownload(anexo)}>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={e => {
+                      e.stopPropagation();
+                      handleDownload(anexo);
+                    }}
+                  >
                     <Download className="h-4 w-4" />
                   </Button>
                 </div>
@@ -174,6 +310,13 @@ export function ProjetoArquivosView({ projetoId, darkBg = false }: ProjetoArquiv
           </CardContent>
         </Card>
       )}
+
+      <ArquivoPreviewDialog
+        open={!!previewing}
+        onOpenChange={v => !v && setPreviewing(null)}
+        arquivo={previewing}
+        projetoId={projetoId}
+      />
     </div>
   );
 }
