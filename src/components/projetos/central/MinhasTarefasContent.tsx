@@ -886,8 +886,6 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
   }, [queryClient, tarefas]);
 
   const handleChangePrazo = useCallback(async (tarefaId: string, novaData: string | null) => {
-    const tarefa: any = tarefas.find((t) => t.id === tarefaId);
-    const prazoAnterior = tarefa?.data_prazo ?? null;
     const { error } = await supabase
       .from("projeto_tarefas")
       .update({ data_prazo: novaData } as never)
@@ -898,17 +896,7 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
     }
     queryClient.invalidateQueries({ queryKey: ["minhas-tarefas"] });
     toast.success("Prazo atualizado");
-    // Auditoria best-effort (não bloqueia UI).
-    registrarAuditoriaTarefa({
-      tarefaId,
-      projetoId: tarefa?.projeto_id ?? null,
-      parentTarefaId: tarefa?.parent_tarefa_id ?? null,
-      isSubtarefa: !!tarefa?.parent_tarefa_id,
-      tituloSnapshot: tarefa?.titulo ?? null,
-      action: "prazo_alterado",
-      metadata: { source: "central-kanban", de: prazoAnterior, para: novaData },
-    }).catch(() => {});
-  }, [queryClient, tarefas]);
+  }, [queryClient]);
 
   const handleSelectTask = useCallback((t: MinaTarefa) => {
     setDetailTarefa(t);
