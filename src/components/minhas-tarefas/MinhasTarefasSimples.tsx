@@ -25,7 +25,7 @@ import { cn } from "@/lib/utils";
 
 import { useMinhasTarefas, type MinaTarefa } from "@/hooks/useMinhasTarefas";
 import { useAuth } from "@/contexts/AuthContext";
-import { parseLocalDate } from "@/lib/utils/parseLocalDate";
+import { parseLocalDate, getToday, getCurrentHourBR, nowSaoPauloISO } from "@/lib/utils/parseLocalDate";
 import { supabase } from "@/integrations/supabase/client";
 
 import { NovaTarefaMinhasDialog } from "@/components/projetos/NovaTarefaMinhasDialog";
@@ -42,7 +42,7 @@ import { useProjetoPessoal } from "@/hooks/useProjetoPessoal";
 import type { ProjetoTarefa, ProjetoSecao } from "@/hooks/useProjetoTarefas";
 
 function getGreeting() {
-  const h = new Date().getHours();
+  const h = getCurrentHourBR();
   if (h < 12) return "Bom dia";
   if (h < 18) return "Boa tarde";
   return "Boa noite";
@@ -85,7 +85,7 @@ interface SimpleGroup {
 }
 
 function groupAsanaStyle(tarefas: MinaTarefa[]): SimpleGroup[] {
-  const now = startOfDay(new Date());
+  const now = getToday();
   const in7 = new Date(now);
   in7.setDate(in7.getDate() + 7);
 
@@ -158,7 +158,7 @@ function Row({
 }) {
   const done = t.status === "concluida";
   const prazo = parseLocalDate(t.data_prazo);
-  const now = startOfDay(new Date());
+  const now = getToday();
   const atrasada = !done && prazo && isBefore(startOfDay(prazo), now);
   const isPessoal = !!projetoPessoalId && t.projeto_id === projetoPessoalId;
   const podeExcluir = !!currentUserId && t.criador_id === currentUserId;
@@ -307,7 +307,7 @@ export function MinhasTarefasSimples() {
   });
 
   const firstName = (profileData?.nome || user?.email || "").split(/[\s@]/)[0] || "";
-  const today = format(new Date(), "EEEE, d 'de' MMMM", { locale: ptBR });
+  const today = format(getToday(), "EEEE, d 'de' MMMM", { locale: ptBR });
 
   const [view, setView] = useState<ViewMode>("list");
   const [search, setSearch] = useState("");
@@ -334,7 +334,7 @@ export function MinhasTarefasSimples() {
   // Contadores dos chips — calculados sobre o dataset completo para não
   // saltarem ao aplicar busca/projeto/prioridade.
   const chipCounts = useMemo(() => {
-    const now = startOfDay(new Date());
+    const now = getToday();
     const pend = tarefas.filter((t) => t.status !== "concluida");
     return {
       todas: pend.length,
@@ -356,7 +356,7 @@ export function MinhasTarefasSimples() {
   }, [tarefas]);
 
   const filtered = useMemo(() => {
-    const now = startOfDay(new Date());
+    const now = getToday();
     let result = tarefas;
     if (quickFilter !== "all") {
       result = result.filter((t) => {
@@ -433,7 +433,7 @@ export function MinhasTarefasSimples() {
     }
     const update: Record<string, any> = {
       status: done ? "concluida" : "pendente",
-      data_conclusao: done ? new Date().toISOString() : null,
+      data_conclusao: done ? nowSaoPauloISO() : null,
     };
     const { error } = await supabase.from("projeto_tarefas").update(update as never).eq("id", id);
     if (error) { toast.error("Erro ao atualizar tarefa"); return; }
@@ -466,7 +466,7 @@ export function MinhasTarefasSimples() {
     if (!ok) return;
     const { error } = await supabase
       .from("projeto_tarefas")
-      .update({ excluida_em: new Date().toISOString(), excluida_por: user.id } as any)
+      .update({ excluida_em: nowSaoPauloISO(), excluida_por: user.id } as any)
       .eq("id", t.id);
     if (error) {
       toast.error("Não foi possível excluir a tarefa: " + error.message);
@@ -577,7 +577,7 @@ export function MinhasTarefasSimples() {
       if (!ok) return;
     }
     const update: Record<string, any> = { status: done ? "concluida" : "pendente" };
-    update.data_conclusao = done ? new Date().toISOString() : null;
+    update.data_conclusao = done ? nowSaoPauloISO() : null;
     const result = await attemptSave(done ? "Concluir tarefa" : "Reabrir tarefa", () =>
       supabase.from("projeto_tarefas").update(update as never).eq("id", t.id),
     );
@@ -634,7 +634,7 @@ export function MinhasTarefasSimples() {
     if (!ok) return;
     const { error } = await supabase
       .from("projeto_tarefas")
-      .update({ excluida_em: new Date().toISOString() } as any)
+      .update({ excluida_em: nowSaoPauloISO() } as any)
       .eq("id", tarefaId);
     if (error) { toast.error(error.message); return; }
     toast.success(live?.parent_tarefa_id ? "Subtarefa movida para a lixeira" : "Tarefa movida para a lixeira");
