@@ -1,5 +1,6 @@
 import { useCallback, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useCopilotV2Flag } from "@/hooks/useCopilotV2Flag";
 import { toast } from "sonner";
 
 export interface CentralSource { tipo: string; id: string; label: string }
@@ -30,6 +31,7 @@ export interface CentralMessage {
 }
 
 export function useCentralCopilot() {
+  const v2 = useCopilotV2Flag("central");
   const [threadId, setThreadId] = useState<string | null>(null);
   const [messages, setMessages] = useState<CentralMessage[]>([]);
   const [sending, setSending] = useState(false);
@@ -57,9 +59,10 @@ export function useCentralCopilot() {
     };
     setMessages((m) => [...m, optimistic]);
     try {
-      const { data, error } = await supabase.functions.invoke("central-copilot", {
-        body: { thread_id: threadId ?? undefined, user_message: trimmed },
-      });
+      const { data, error } = await supabase.functions.invoke(
+        v2 ? "central-copilot-v2" : "central-copilot",
+        { body: { thread_id: threadId ?? undefined, user_message: trimmed } },
+      );
       if (error) throw error;
       if (data?.error) throw new Error(typeof data.error === "string" ? data.error : "Falha no copiloto.");
       setThreadId(data.thread_id as string);
@@ -79,7 +82,7 @@ export function useCentralCopilot() {
     } finally {
       setSending(false);
     }
-  }, [threadId]);
+  }, [threadId, v2]);
 
   const applyProposal = useCallback(async (acaoId: string, password: string) => {
     try {
