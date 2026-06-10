@@ -323,7 +323,7 @@ const ProdutosBrasilListagem = lazyWithRetry(() => import("./pages/ProdutosBrasi
 const ProjetosRelatorios = lazyWithRetry(() => import("./pages/ProjetosRelatorios"));
 const ReportsV2Home = lazyWithRetry(() => import("./pages/admin/ReportsV2Home"));
 const ReportWizard = lazyWithRetry(() => import("./pages/admin/ReportWizard"));
-const CopilotV2Rollout = lazyWithRetry(() => import("./pages/admin/CopilotV2Rollout"));
+
 const CalendarioCorporativo = lazyWithRetry(() => import("./pages/admin/CalendarioCorporativo"));
 const ProjetosSaude = lazyWithRetry(() => import("./pages/admin/ProjetosSaude"));
 const CustosTecnologia = lazyWithRetry(() => import("./pages/admin/CustosTecnologia"));
