@@ -92,7 +92,7 @@ export async function wrapLegacyCopilotReply<T extends Record<string, unknown>>(
 ): Promise<WrapOutput<T>> {
   const sources = input.legacy.sources ?? [];
   const reply = String(input.legacy.reply ?? "");
-  const plain = stripMarkdown(reply);
+  const plain = getPlainText(reply);
   const citations = buildCitationsFromSources(sources);
   // For C2 we treat every paragraph that has ANY source mention as covered.
   // Without per-paragraph citation spans (legacy doesn't emit them), we apply
