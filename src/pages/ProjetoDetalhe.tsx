@@ -34,6 +34,7 @@ import { ProjetoCopilotPanel } from "@/components/projetos/ProjetoCopilotPanel";
 import { Sparkles, ExternalLink } from "lucide-react";
 import { FloatingActionSlot } from "@/components/ui/floating-action-dock";
 import { RrTasksBoardView } from "@/components/rr-tasks/RrTasksBoardView";
+import { RrTasksBreadcrumb } from "@/components/rr-tasks/RrTasksBreadcrumb";
 
 
 function isDarkColor(hex: string | null): boolean {
@@ -60,6 +61,11 @@ export default function ProjetoDetalhe({ shared = false }: ProjetoDetalheProps =
   const deepTab = searchParams.get("tab");
   const deepMensagemId = searchParams.get("mensagem");
   const [activeTab, setActiveTab] = useState(deepTab === "chat" ? "chat" : "lista");
+  // Captura o tarefaId e o from uma única vez, antes da limpeza dos params,
+  // para alimentar o breadcrumb de origem (RR-Tasks › Briefing › Tarefa).
+  const [originTarefaId] = useState<string | null>(() => searchParams.get("tarefa"));
+  const [originFrom] = useState<string | null>(() => searchParams.get("from"));
+  const showRrBreadcrumb = originFrom === "/dashboard/rr-tasks";
 
   // Limpa os params da URL depois de consumi-los para que reload/share não dispare de novo.
   useEffect(() => {
@@ -198,6 +204,11 @@ export default function ProjetoDetalhe({ shared = false }: ProjetoDetalheProps =
               </Badge>
             )}
           </div>
+
+          {showRrBreadcrumb && (
+            <RrTasksBreadcrumb tarefaId={originTarefaId} />
+          )}
+
 
           <ProjetoHeader
             projeto={projeto}
