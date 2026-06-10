@@ -157,6 +157,76 @@ export function useEstoqueUnificado(opts: UseEstoqueUnificadoOpts) {
           });
         });
 
+        // Fallback em cascata para nomes ausentes (ex.: raiz sem linha física
+        // na empresa filtrada, ou tipo divergente). Roda só para os faltantes.
+        const faltantes = codigos.filter((c) => !nomesPorCod.get(c));
+        if (faltantes.length) {
+          const faltChunks = toChunks(faltantes, CHUNK);
+
+          // 1) vw_estoque_unificado_skus (nivel=1) — tem nome_prod independente da filial
+          try {
+            const skuResults = await Promise.all(
+              faltChunks.map((cs) =>
+                supabase
+                  .from('vw_estoque_unificado_skus' as any)
+                  .select('cod_produto,nome_prod')
+                  .in('cod_produto', cs)
+                  .eq('nivel', 1)
+                  .range(0, 19999),
+              ),
+            );
+            skuResults.forEach(({ data }) => {
+              (data ?? []).forEach((e: any) => {
+                if (e?.cod_produto != null && e.nome_prod && !nomesPorCod.has(e.cod_produto)) {
+                  nomesPorCod.set(e.cod_produto, e.nome_prod);
+                }
+              });
+            });
+          } catch (e) {
+            logger.warn('[useEstoqueUnificado] fallback skus view falhou', { error: e });
+          }
+
+          // 2) fabrica_produtos por codigo_erp / sku
+          const aindaFaltam = codigos.filter((c) => !nomesPorCod.get(c));
+          if (aindaFaltam.length) {
+            try {
+              const codStr = aindaFaltam.map((c) => String(c));
+              const codStrChunks = toChunks(codStr, CHUNK);
+              const fpResults = await Promise.all(
+                codStrChunks.map((cs) =>
+                  supabase
+                    .from('fabrica_produtos')
+                    .select('codigo_erp,sku,nome,nome_comercial')
+                    .or(`codigo_erp.in.(${cs.join(',')}),sku.in.(${cs.join(',')})`)
+                    .range(0, 19999),
+                ),
+              );
+              fpResults.forEach(({ data }) => {
+                (data ?? []).forEach((e: any) => {
+                  const nome = e?.nome_comercial || e?.nome;
+                  if (!nome) return;
+                  const candidates = [e?.codigo_erp, e?.sku].filter((v) => v != null);
+                  candidates.forEach((v) => {
+                    const cod = Number(v);
+                    if (Number.isFinite(cod) && !nomesPorCod.has(cod)) {
+                      nomesPorCod.set(cod, nome);
+                    }
+                  });
+                });
+              });
+            } catch (e) {
+              logger.warn('[useEstoqueUnificado] fallback fabrica_produtos falhou', { error: e });
+            }
+          }
+
+          if (import.meta.env.DEV) {
+            const semNome = codigos.filter((c) => !nomesPorCod.get(c));
+            if (semNome.length) {
+              logger.warn('[useEstoqueUnificado] raízes sem nome após fallbacks', { codigos: semNome.slice(0, 20), total: semNome.length });
+            }
+          }
+        }
+
         // Marca por SKU — vem do catálogo rr_produtos (sku == cod_produto)
         const marcaResults = await Promise.all(
           codChunks.map((cs) =>
@@ -176,6 +246,7 @@ export function useEstoqueUnificado(opts: UseEstoqueUnificadoOpts) {
             }
           });
         });
+
 
         if (empresas.length) {
           const abrevResults = await Promise.all(
