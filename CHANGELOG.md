@@ -12,6 +12,12 @@ versionamento conforme [SemVer](https://semver.org/) quando aplicável.
 
 ---
 
+## v3.5.36
+
+Detecção unificada de tipo de arquivo em todos os anexos de chat e listas. Novo helper compartilhado `src/lib/utils/detectFileKind.ts` (image/pdf/video/audio/other) que considera MIME e cai para extensão do nome. Aplicado em `AnexoView` (chat v2: pessoas, submissões, briefing, projeto, tarefas), `ConversaMediaGallery` (galeria de mídia), `ChatAnexoCard` (chat da tarefa, com ícone vermelho para PDFs), `TarefaAnexosSection` (lista de anexos da tarefa) e `ProjetoArquivosView` / `ArquivoPreviewDialog` (refit para usar a util). Corrige anexos antigos sem `mime_type` (uploads do Asana, paste de imagem) que apareciam como cartão genérico em vez de thumbnail/player.
+
+---
+
 ## v3.5.35
 
 Aba Arquivos do projeto: detecção de tipo por extensão quando o MIME está nulo. Helper `detectKind(nome, tipo)` em `ProjetoArquivosView.tsx` classifica `image` / `pdf` / `other` consultando primeiro o MIME e caindo para a extensão do arquivo (png/jpg/jpeg/gif/webp/avif/svg/bmp → image; pdf → pdf). Corrige thumbnails de imagens antigas (sem `tipo` salvo) que apareciam apenas como badge "PNG" sem preview, e iframes de PDFs no `ArquivoPreviewDialog.tsx`. Sem backend, sem migration.
