@@ -11,7 +11,7 @@ import { wrapLegacyCopilotReply } from "../_shared/copilot-tools/contract-wrap.t
 const Body = z.object({
   thread_id: z.string().uuid().optional(),
   user_message: z.string().min(1).max(8000),
-}).strict();
+}).passthrough();
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });

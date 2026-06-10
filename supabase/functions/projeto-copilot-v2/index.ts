@@ -9,7 +9,7 @@ const Body = z.object({
   projeto_id: z.string().uuid(),
   thread_id: z.string().uuid().optional(),
   user_message: z.string().min(1).max(8000),
-}).strict();
+}).passthrough();
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });

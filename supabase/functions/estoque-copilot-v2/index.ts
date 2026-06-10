@@ -5,10 +5,11 @@ import { z } from "https://esm.sh/zod@3.23.8";
 import { callLegacyCopilot } from "../_shared/copilot-tools/proxy-legacy.ts";
 import { wrapLegacyCopilotReply } from "../_shared/copilot-tools/contract-wrap.ts";
 
+// passthrough — legacy function owns full schema (filtros, kpis_snapshot, ...).
 const Body = z.object({
   thread_id: z.string().uuid().optional(),
   user_message: z.string().min(1).max(8000),
-}).strict();
+}).passthrough();
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
