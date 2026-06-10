@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { invokeChat } from "@/lib/ai/invokeChat";
-import { useCopilotV2Flag } from "@/hooks/useCopilotV2Flag";
+
 import { toast } from "sonner";
 
 export interface EstoqueCopilotFiltros {
