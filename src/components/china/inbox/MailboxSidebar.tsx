@@ -90,8 +90,16 @@ export function MailboxSidebar({ folder, counts, onSelect, onCompose, forceChina
   const { t } = useChinaI18n();
   const useChina = forceChinaLayout || isChinaUser;
   const groups = useChina ? CHINA_GROUPS : BRASIL_GROUPS;
-
-  return (
+  // Estado de colapso dos grupos colapsáveis (default = fechado).
+  // Se a pasta atual pertence ao grupo, força aberto para evitar "perder" a seleção.
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
+  const isGroupOpen = (g: FolderGroup, gi: number) => {
+    if (!g.collapsible) return true;
+    if (g.folders.some((f) => f.key === folder)) return true;
+    return collapsed[gi] === false; // default false → fechado
+  };
+  const toggleGroup = (gi: number) =>
+    setCollapsed((prev) => ({ ...prev, [gi]: !(prev[gi] === false) ? false : true }));
     <aside className="flex h-full flex-col border-r border-border bg-card/40">
       <div className="p-3">
         <Button
