@@ -1,6 +1,6 @@
 ---
 name: Copilot v2 Rollout Pattern
-description: Wrappers `<copilot>-v2` aplicam contrato C1/C2, gravam `copilot_runs` com `copilot_id='<id>@v2'` e painel admin `/dashboard/admin/copilot-v2-rollout` controla flags `ff_copilot_v2_*`
+description: Wrappers `<copilot>-v2` aplicam contrato C1/C2, gravam `copilot_runs` com `copilot_id='<id>@v2'` e painel admin `/dashboard/admin/copilot-v2-rollout` controla flags `ff_copilot_v2_*` (default ON em 2026-06-10 para central/projeto/estoque/china; sofia segue OFF até migrar chat textual)
 type: feature
 ---
 
@@ -20,7 +20,12 @@ Fase 5 (implementada — junho/2026):
 - Helper `_shared/copilot-tools/enqueue-doc.ts` (`enqueueCopilotDoc`) — best-effort, nunca lança. Cada wrapper v2 chama após `wrapLegacyCopilotReply` com `sourceType='copilot_thread'`, `sourceRef = thread_id ?? run_id`, `aclScope={owner:userId, ...escopo}`, `priority='hot'` (texto curto Q+A entra inline ≤2KB, caso contrário fila).
 - Não foram adicionadas triggers em tabelas de negócio (alto volume + risco): pipeline RAG v2 só consome o que os wrappers v2 produzem mais o que for inserido sob demanda por scripts/admin.
 
+Fase 7 (ativação controlada — iniciada 2026-06-10):
+- Flags `ff_copilot_v2_central|projeto|estoque|china` setadas para `ativo=true` via UPDATE em `feature_flags`. Sofia (`ff_copilot_v2_sofia`) permanece OFF (sem chat invoke direto).
+- Rollback: usar painel `/dashboard/admin/copilot-v2-rollout` (RPC `admin_set_copilot_v2_flag`) para desligar a flag específica. Cache do hook `useCopilotV2Flag` é resetado em reload completo.
+- Janela de observação: 14 dias monitorando `admin_copilot_v2_stats(14)` — promover a Fase 6 (inline + remoção do legado) só se ratio de números não verificáveis ≤ 0,20 e p95 latency v2 ≤ 1,2× legacy.
+
 Próxima fase:
-- Fase 6: depois de 2 semanas com flag default-on sem incidentes, inlinear o wrapper dentro do legado e remover a duplicação.
+- Fase 6: após janela de 14 dias estável, inlinear `wrapLegacyCopilotReply` dentro dos copilotos legados (central/projeto/estoque/china), remover wrappers `*-v2` e o helper `proxy-legacy.ts`, e arquivar este pattern.
 
 Tabelas/Edge envolvidas: `feature_flags`, `copilot_runs`, `copilot_documents`, `copilot_chunks`, `copilot_index_queue`, `enqueue_copilot_document`, `_shared/copilot-tools/contract-wrap.ts`, `_shared/copilot-tools/proxy-legacy.ts`, `_shared/copilot-tools/enqueue-doc.ts`.
