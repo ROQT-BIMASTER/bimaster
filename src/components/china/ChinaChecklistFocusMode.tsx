@@ -22,8 +22,9 @@ import { ChinaUploadPreviewDialog } from "./ChinaUploadPreviewDialog";
 import {
   Maximize2, X, Send, Save, Upload, Loader2, CheckCircle2, Clock, XCircle,
   FileText, Eye, Trash2, Image as ImageIcon, CalendarIcon, AlertCircle,
-  Plus, FolderPlus, Pencil, Bookmark, BookmarkPlus, FileWarning,
+  Plus, FolderPlus, Pencil, Bookmark, BookmarkPlus, FileWarning, LayoutGrid,
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { useRevisoesPorSubmissao } from "@/hooks/useChinaRevisoes";
 import { DialogContestarDocumento } from "./DialogContestarDocumento";
 import { ChecklistGovernancePanel } from "./ChecklistGovernancePanel";
@@ -134,6 +135,7 @@ export function ChinaChecklistFocusMode({
   const confirm = useConfirm();
   const { t } = useChinaI18n();
   const [isOpen, setIsOpen] = useState(false);
+  const navigate = useNavigate();
   const { bgStyle, BgColorButton } = usePageBgColor("china_checklist_focus");
   const [activeCat, setActiveCat] = useState(DOCUMENT_CATEGORIES[0].key);
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -1097,6 +1099,19 @@ export function ChinaChecklistFocusMode({
                     Enviar {draftDocs.length} rascunho(s) ao Brasil
                   </Button>
                 )}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-1.5"
+                  title="Ver checklist em quadro Kanban"
+                  onClick={() => {
+                    setIsOpen(false);
+                    navigate(`/dashboard/fabrica-china/produto/${submissaoId}/checklist-status?view=kanban`);
+                  }}
+                >
+                  <LayoutGrid className="h-3.5 w-3.5" />
+                  Kanban
+                </Button>
                 {/* Templates menu */}
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>

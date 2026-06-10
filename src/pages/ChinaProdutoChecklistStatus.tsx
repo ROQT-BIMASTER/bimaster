@@ -490,6 +490,8 @@ export default function ChinaProdutoChecklistStatus() {
   const [painelTipo, setPainelTipo] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<"table" | "kanban">(() => {
     if (typeof window === "undefined") return "table";
+    const urlView = new URLSearchParams(location.search).get("view");
+    if (urlView === "table" || urlView === "kanban") return urlView;
     return (localStorage.getItem("china_checklist_status_view") as "table" | "kanban") || "table";
   });
   useEffect(() => {
