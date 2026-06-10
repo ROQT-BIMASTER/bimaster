@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Download, ExternalLink, FileText, File as FileIcon, Loader2 } from "lucide-react";
 import { secureDownload } from "@/lib/utils/secure-download";
 import { useSignedThumbUrl } from "@/hooks/useSignedThumbUrl";
+import { detectKind } from "./ProjetoArquivosView";
 import { buildReturnToTarget } from "@/lib/navigation/withReturnTo";
 
 interface Props {
