@@ -31,7 +31,7 @@ export interface CentralMessage {
 }
 
 export function useCentralCopilot() {
-  const v2 = useCopilotV2Flag("central");
+  
   const [threadId, setThreadId] = useState<string | null>(null);
   const [messages, setMessages] = useState<CentralMessage[]>([]);
   const [sending, setSending] = useState(false);
