@@ -157,6 +157,76 @@ export function useEstoqueUnificado(opts: UseEstoqueUnificadoOpts) {
           });
         });
 
+        // Fallback em cascata para nomes ausentes (ex.: raiz sem linha física
+        // na empresa filtrada, ou tipo divergente). Roda só para os faltantes.
+        const faltantes = codigos.filter((c) => !nomesPorCod.get(c));
+        if (faltantes.length) {
+          const faltChunks = toChunks(faltantes, CHUNK);
+
+          // 1) vw_estoque_unificado_skus (nivel=1) — tem nome_prod independente da filial
+          try {
+            const skuResults = await Promise.all(
+              faltChunks.map((cs) =>
+                supabase
+                  .from('vw_estoque_unificado_skus' as any)
+                  .select('cod_produto,nome_prod')
+                  .in('cod_produto', cs)
+                  .eq('nivel', 1)
+                  .range(0, 19999),
+              ),
+            );
+            skuResults.forEach(({ data }) => {
+              (data ?? []).forEach((e: any) => {
+                if (e?.cod_produto != null && e.nome_prod && !nomesPorCod.has(e.cod_produto)) {
+                  nomesPorCod.set(e.cod_produto, e.nome_prod);
+                }
+              });
+            });
+          } catch (e) {
+            logger.warn('[useEstoqueUnificado] fallback skus view falhou', { error: e });
+          }
+
+          // 2) fabrica_produtos por codigo_erp / sku
+          const aindaFaltam = codigos.filter((c) => !nomesPorCod.get(c));
+          if (aindaFaltam.length) {
+            try {
+              const codStr = aindaFaltam.map((c) => String(c));
+              const codStrChunks = toChunks(codStr, CHUNK);
+              const fpResults = await Promise.all(
+                codStrChunks.map((cs) =>
+                  supabase
+                    .from('fabrica_produtos')
+                    .select('codigo_erp,sku,nome,nome_comercial')
+                    .or(`codigo_erp.in.(${cs.join(',')}),sku.in.(${cs.join(',')})`)
+                    .range(0, 19999),
+                ),
+              );
+              fpResults.forEach(({ data }) => {
+                (data ?? []).forEach((e: any) => {
+                  const nome = e?.nome_comercial || e?.nome;
+                  if (!nome) return;
+                  const candidates = [e?.codigo_erp, e?.sku].filter((v) => v != null);
+                  candidates.forEach((v) => {
+                    const cod = Number(v);
+                    if (Number.isFinite(cod) && !nomesPorCod.has(cod)) {
+                      nomesPorCod.set(cod, nome);
+                    }
+                  });
+                });
+              });
+            } catch (e) {
+              logger.warn('[useEstoqueUnificado] fallback fabrica_produtos falhou', { error: e });
+            }
+          }
+
+          if (import.meta.env.DEV) {
+            const semNome = codigos.filter((c) => !nomesPorCod.get(c));
+            if (semNome.length) {
+              logger.warn('[useEstoqueUnificado] raízes sem nome após fallbacks', { codigos: semNome.slice(0, 20), total: semNome.length });
+            }
+          }
+        }
+
         // Marca por SKU — vem do catálogo rr_produtos (sku == cod_produto)
         const marcaResults = await Promise.all(
           codChunks.map((cs) =>
@@ -176,6 +246,7 @@ export function useEstoqueUnificado(opts: UseEstoqueUnificadoOpts) {
             }
           });
         });
+
 
         if (empresas.length) {
           const abrevResults = await Promise.all(
@@ -546,13 +617,62 @@ export function useEstoqueUnificadoSkus(empresa: number | null, raiz: number | n
       }
 
       const rows = baseRows.concat(complementoRows);
+
+      // Hidratação de nomes faltantes: 1) cruzar dentro do próprio merge
+      // (mesmo cod_produto pode vir nomeado em outra filial), 2) buscar em
+      // erp_estoque_distribuidora sem filtro de empresa, 3) cair em fabrica_produtos.
+      const nomePorCod = new Map<number, string>();
+      rows.forEach((r) => {
+        if (r.nome_prod && !nomePorCod.has(r.cod_produto)) nomePorCod.set(r.cod_produto, r.nome_prod);
+      });
+      const semNome = Array.from(new Set(rows.filter((r) => !r.nome_prod).map((r) => r.cod_produto)));
+      if (semNome.length) {
+        try {
+          const { data } = await supabase
+            .from('erp_estoque_distribuidora')
+            .select('cod_produto,nome_prod')
+            .in('cod_produto', semNome)
+            .range(0, 19999);
+          (data ?? []).forEach((e: any) => {
+            if (e?.cod_produto != null && e.nome_prod && !nomePorCod.has(e.cod_produto)) {
+              nomePorCod.set(e.cod_produto, e.nome_prod);
+            }
+          });
+        } catch (e) {
+          logger.warn('[useEstoqueUnificadoSkus] fallback erp nome falhou', { error: e });
+        }
+        const aindaSem = semNome.filter((c) => !nomePorCod.has(c));
+        if (aindaSem.length) {
+          try {
+            const codStr = aindaSem.map((c) => String(c));
+            const { data } = await supabase
+              .from('fabrica_produtos')
+              .select('codigo_erp,sku,nome,nome_comercial')
+              .or(`codigo_erp.in.(${codStr.join(',')}),sku.in.(${codStr.join(',')})`)
+              .range(0, 19999);
+            (data ?? []).forEach((e: any) => {
+              const nome = e?.nome_comercial || e?.nome;
+              if (!nome) return;
+              [e?.codigo_erp, e?.sku].forEach((v) => {
+                const cod = Number(v);
+                if (Number.isFinite(cod) && !nomePorCod.has(cod)) nomePorCod.set(cod, nome);
+              });
+            });
+          } catch (e) {
+            logger.warn('[useEstoqueUnificadoSkus] fallback fabrica nome falhou', { error: e });
+          }
+        }
+      }
+      const hidratadas = rows.map((r) => (r.nome_prod ? r : { ...r, nome_prod: nomePorCod.get(r.cod_produto) ?? null }));
+
       // Ordena: nível asc (CX→BX→UN), depois pelo código
-      return rows.sort((a, b) => {
+      return hidratadas.sort((a, b) => {
         const na = a.nivel ?? 99;
         const nb = b.nivel ?? 99;
         if (na !== nb) return na - nb;
         return a.cod_produto - b.cod_produto;
       });
+
     },
   });
 }
