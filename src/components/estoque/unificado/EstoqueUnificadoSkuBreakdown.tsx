@@ -186,7 +186,7 @@ function renderNode(
   if (filtrarSoLacunas && !ramosComGap.has(node.sku.cod_produto)) return [];
   const out: JSX.Element[] = [
     <SkuLine
-      key={`sku-${node.sku.cod_produto}`}
+      key={`sku-${node.sku.produto_raiz}-${node.sku.pai_cod ?? 'root'}-${node.sku.cod_produto}-${node.sku.nivel ?? 0}-${depth}`}
       sku={node.sku}
       depth={depth}
       totalUn={totalUn}
