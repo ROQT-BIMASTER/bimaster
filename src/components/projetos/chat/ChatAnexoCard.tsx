@@ -17,6 +17,7 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import type { TarefaMessageAnexo } from "@/hooks/useProjetoTarefaDetalhe";
 import { PromoverAnexoCofreDialog } from "./PromoverAnexoCofreDialog";
+import { detectFileKind } from "@/lib/utils/detectFileKind";
 
 interface Props {
   anexo: TarefaMessageAnexo;
@@ -58,7 +59,9 @@ export function ChatAnexoCard({
   const [imgUrl, setImgUrl] = useState<string | null>(null);
   const [promoteOpen, setPromoteOpen] = useState(false);
   const [promoted, setPromoted] = useState(false);
-  const isImage = (anexo.tipo_arquivo ?? "").startsWith("image/");
+  const kind = detectFileKind(anexo.nome, anexo.tipo_arquivo);
+  const isImage = kind === "image";
+  const isPdf = kind === "pdf";
 
   useEffect(() => {
     let cancel = false;
@@ -123,7 +126,7 @@ export function ChatAnexoCard({
           </button>
         ) : (
           <div className="flex items-center gap-2 p-2">
-            <FileText className={cn("shrink-0 opacity-70", compact ? "h-4 w-4" : "h-5 w-5")} />
+            <FileText className={cn("shrink-0", isPdf ? "text-red-400" : "opacity-70", compact ? "h-4 w-4" : "h-5 w-5")} />
             <div className="flex-1 min-w-0">
               <div className={cn("font-medium truncate", compact ? "text-[11px]" : "text-xs")}>
                 {anexo.nome}

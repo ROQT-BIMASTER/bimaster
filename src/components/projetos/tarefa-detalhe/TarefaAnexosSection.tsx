@@ -10,6 +10,7 @@ import { StoragePreviewDialog } from "@/components/fabrica/StoragePreviewDialog"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { supabase } from "@/integrations/supabase/client";
 import { UploadAnexoDialog, type UploadConfirmPayload } from "./UploadAnexoDialog";
+import { detectFileKind } from "@/lib/utils/detectFileKind";
 
 
 const COFRE_CATEGORIAS = [
@@ -29,10 +30,10 @@ const COFRE_CATEGORIA_LABELS: Record<string, string> = {
   outro: "Outro",
 };
 
-function getFileIcon(tipo: string | null) {
-  if (!tipo) return <File className="h-5 w-5" />;
-  if (tipo.startsWith("image/")) return <Image className="h-5 w-5 text-blue-400" />;
-  if (tipo.includes("pdf")) return <FileText className="h-5 w-5 text-red-400" />;
+function getFileIcon(nome: string, tipo: string | null) {
+  const kind = detectFileKind(nome, tipo);
+  if (kind === "image") return <Image className="h-5 w-5 text-blue-400" />;
+  if (kind === "pdf") return <FileText className="h-5 w-5 text-red-400" />;
   return <File className="h-5 w-5 text-muted-foreground" />;
 }
 
@@ -250,7 +251,7 @@ export function TarefaAnexosSection({
                       ? <AlertTriangle className="h-5 w-5 text-amber-500" />
                       : isExternal
                         ? <ExternalLink className="h-5 w-5 text-blue-400" />
-                        : getFileIcon(a.tipo_arquivo)}
+                        : getFileIcon(a.nome, a.tipo_arquivo)}
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-medium truncate">{a.nome}</p>
                       <p className="text-[10px] text-muted-foreground">
@@ -323,7 +324,7 @@ export function TarefaAnexosSection({
               <div className="mt-2 space-y-2">
                 {anexos.filter(a => selectedAnexoIds.includes(a.id)).map(a => (
                   <div key={a.id} className="flex items-center gap-2 text-xs p-2 bg-muted/30 rounded-md">
-                    {getFileIcon(a.tipo_arquivo)}
+                    {getFileIcon(a.nome, a.tipo_arquivo)}
                     <span className="truncate flex-1 min-w-0">{a.nome}</span>
                     <Select
                       value={categoriasPorAnexo[a.id] || ""}

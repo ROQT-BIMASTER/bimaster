@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Download, ExternalLink, FileText, File as FileIcon, Loader2 } from "lucide-react";
 import { secureDownload } from "@/lib/utils/secure-download";
 import { useSignedThumbUrl } from "@/hooks/useSignedThumbUrl";
-import { detectKind } from "./ProjetoArquivosView";
+import { detectFileKind } from "@/lib/utils/detectFileKind";
 import { buildReturnToTarget } from "@/lib/navigation/withReturnTo";
 
 interface Props {
@@ -22,7 +22,7 @@ interface Props {
 
 export function ArquivoPreviewDialog({ open, onOpenChange, arquivo, projetoId }: Props) {
   const navigate = useNavigate();
-  const kind = arquivo ? detectKind(arquivo.nome, arquivo.tipo) : "other";
+  const kind = arquivo ? detectFileKind(arquivo.nome, arquivo.tipo) : "other";
   const isImage = kind === "image";
   const isPdf = kind === "pdf";
 
