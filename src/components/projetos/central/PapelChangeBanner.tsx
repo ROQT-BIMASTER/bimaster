@@ -9,6 +9,7 @@ import { RefreshCw, ExternalLink, Check, CheckCheck } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useNavigate } from "react-router-dom";
+import { nowSaoPauloISO } from "@/lib/utils/parseLocalDate";
 
 interface RoleChangeNotif {
   id: string;
@@ -56,7 +57,7 @@ export function PapelChangeBanner() {
     mutationFn: async (ids: string[]) => {
       const { error } = await supabase
         .from("notifications")
-        .update({ read: true, read_at: new Date().toISOString() })
+        .update({ read: true, read_at: nowSaoPauloISO() })
         .in("id", ids);
       if (error) throw error;
     },
