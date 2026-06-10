@@ -26,10 +26,10 @@ export function useCopilotV2Flag(copilotId: CopilotV2Id): boolean {
       try {
         const { data } = await (supabase as any)
           .from("feature_flags")
-          .select("enabled")
-          .eq("name", flagName)
+          .select("ativo")
+          .eq("codigo", flagName)
           .maybeSingle();
-        const v = !!data?.enabled;
+        const v = !!data?.ativo;
         cache.set(flagName, v);
         if (!cancelled) setEnabled(v);
       } catch {
