@@ -12,6 +12,12 @@ versionamento conforme [SemVer](https://semver.org/) quando aplicável.
 
 ---
 
+## v3.5.35
+
+Aba Arquivos do projeto: detecção de tipo por extensão quando o MIME está nulo. Helper `detectKind(nome, tipo)` em `ProjetoArquivosView.tsx` classifica `image` / `pdf` / `other` consultando primeiro o MIME e caindo para a extensão do arquivo (png/jpg/jpeg/gif/webp/avif/svg/bmp → image; pdf → pdf). Corrige thumbnails de imagens antigas (sem `tipo` salvo) que apareciam apenas como badge "PNG" sem preview, e iframes de PDFs no `ArquivoPreviewDialog.tsx`. Sem backend, sem migration.
+
+---
+
 ## Histórico (extraído de `src/lib/version.ts`)
 
 ## PR-105 — v3.4.74
