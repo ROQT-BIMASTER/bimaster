@@ -1,8 +1,9 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Switch } from '@/components/ui/switch';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Boxes, Package, PackageOpen, Copy, Info, AlertTriangle } from 'lucide-react';
+import { Boxes, Package, PackageOpen, Copy, Info, AlertTriangle, AlertCircle } from 'lucide-react';
 
 import { toast } from 'sonner';
 import {
@@ -10,6 +11,7 @@ import {
   type EstoqueUnificadoRow,
   type EstoqueUnificadoSkuRow,
 } from '@/hooks/estoque/useEstoqueUnificado';
+import { classificarGaps, temAlgumGap, type GapStatus } from '@/lib/estoque/hierarquiaGaps';
 
 interface Props {
   row: EstoqueUnificadoRow;
