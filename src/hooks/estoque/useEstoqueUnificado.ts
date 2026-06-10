@@ -606,26 +606,32 @@ export function useEstoqueUnificadoSkus(empresa: number | null, raiz: number | n
 
       const baseRows = (viewRes.data ?? []) as unknown as EstoqueUnificadoSkuRow[];
 
-      // Complemento: SKUs da BOM sem registro físico nessa empresa. Se falhar
-      // (ex.: RPC ainda não disponível em outro ambiente), seguimos com a view.
-      let complementoRows: EstoqueUnificadoSkuRow[] = [];
+      // Complemento: SKUs da BOM (inclui inferência de nome a partir do pai BX
+      // feita no backend). Mantemos os dois conjuntos completos; o complemento
+      // serve como fallback de nome para SKUs que aparecem na view sem descrição.
+      let complementoData: EstoqueUnificadoSkuRow[] = [];
       if (!complRes.error && Array.isArray(complRes.data)) {
-        const presentes = new Set(baseRows.map((r) => r.cod_produto));
-        complementoRows = (complRes.data as unknown as EstoqueUnificadoSkuRow[]).filter(
-          (r) => !presentes.has(r.cod_produto),
-        );
+        complementoData = complRes.data as unknown as EstoqueUnificadoSkuRow[];
       }
+      const presentes = new Set(baseRows.map((r) => r.cod_produto));
+      const complementoRows = complementoData.filter((r) => !presentes.has(r.cod_produto));
 
       const rows = baseRows.concat(complementoRows);
 
-      // Hidratação de nomes faltantes: 1) cruzar dentro do próprio merge
-      // (mesmo cod_produto pode vir nomeado em outra filial), 2) buscar em
-      // erp_estoque_distribuidora sem filtro de empresa, 3) cair em fabrica_produtos.
+      // Hidratação de nomes faltantes: 1) usar nome inferido pelo complemento
+      // (pai BX → filho UN), 2) cruzar dentro do próprio merge (mesmo cod_produto
+      // pode vir nomeado em outra filial), 3) buscar em erp_estoque_distribuidora
+      // sem filtro de empresa, 4) cair em fabrica_produtos.
       const nomePorCod = new Map<number, string>();
+      complementoData.forEach((r) => {
+        if (r.nome_prod && !nomePorCod.has(r.cod_produto)) nomePorCod.set(r.cod_produto, r.nome_prod);
+      });
       rows.forEach((r) => {
         if (r.nome_prod && !nomePorCod.has(r.cod_produto)) nomePorCod.set(r.cod_produto, r.nome_prod);
       });
-      const semNome = Array.from(new Set(rows.filter((r) => !r.nome_prod).map((r) => r.cod_produto)));
+      const isGenerico = (n: string | null | undefined, cod: number) =>
+        !n || n.trim() === '' || n.trim().toLowerCase() === `produto ${cod}`;
+      const semNome = Array.from(new Set(rows.filter((r) => isGenerico(r.nome_prod, r.cod_produto) && !nomePorCod.has(r.cod_produto)).map((r) => r.cod_produto)));
       if (semNome.length) {
         try {
           const { data } = await supabase
@@ -663,7 +669,11 @@ export function useEstoqueUnificadoSkus(empresa: number | null, raiz: number | n
           }
         }
       }
-      const hidratadas = rows.map((r) => (r.nome_prod ? r : { ...r, nome_prod: nomePorCod.get(r.cod_produto) ?? null }));
+      const hidratadas = rows.map((r) => {
+        const cur = r.nome_prod;
+        if (cur && cur.trim() !== '' && cur.trim().toLowerCase() !== `produto ${r.cod_produto}`) return r;
+        return { ...r, nome_prod: nomePorCod.get(r.cod_produto) ?? null };
+      });
 
       // Ordena: nível asc (CX→BX→UN), depois pelo código
       return hidratadas.sort((a, b) => {
