@@ -16,6 +16,7 @@ import {
 import { Search, Plus, Trash2, Package, Filter, Loader2, GripVertical } from "lucide-react";
 import { toast } from "sonner";
 import { ColorPickerPopover } from "@/components/fabrica/ColorPickerPopover";
+import { ProvadorBadge } from "@/components/fabrica/ProvadorBadge";
 import {
   DndContext,
   closestCenter,
@@ -45,6 +46,7 @@ interface GradeItem {
   cor_hex?: string;
   linha?: string;
   marca?: string;
+  is_provador?: boolean;
 }
 
 interface ProdutoDisponivel {
@@ -56,6 +58,7 @@ interface ProdutoDisponivel {
   linha: string | null;
   marca: string | null;
   categoria: string | null;
+  is_provador?: boolean | null;
 }
 
 interface ComposicaoGradeEditorProps {
@@ -92,7 +95,12 @@ function SortableGradeRow({ item, index, onUpdateQtd, onUpdateCor, onUpdateCorHe
         </button>
       </TableCell>
       <TableCell className="py-1 text-[11px] font-mono">{item.codigo}</TableCell>
-      <TableCell className="py-1 text-[11px] truncate max-w-[160px]">{item.nome}</TableCell>
+      <TableCell className="py-1 text-[11px] max-w-[160px]">
+        <div className="flex items-center gap-1.5 min-w-0">
+          <span className="truncate">{item.nome}</span>
+          {item.is_provador && <ProvadorBadge size="xs" className="shrink-0" />}
+        </div>
+      </TableCell>
       <TableCell className="py-1">
         <div className="flex items-center gap-1">
           <ColorPickerPopover
@@ -139,7 +147,7 @@ export function ComposicaoGradeEditor({ produtoPaiId, items, onChange }: Composi
       setCarregando(true);
       const { data, error } = await supabase
         .from("fabrica_produtos")
-        .select("id, nome, codigo, codigo_barras_ean, foto_url, linha, marca, categoria, is_sugestao, vencedor_produto_id")
+        .select("id, nome, codigo, codigo_barras_ean, foto_url, linha, marca, categoria, is_sugestao, vencedor_produto_id, is_provador")
         .eq("ativo", true)
         .eq("modo", "oficial")
         .neq("tipo", "MP")
@@ -201,6 +209,7 @@ export function ComposicaoGradeEditor({ produtoPaiId, items, onChange }: Composi
       cor_numero: "",
       linha: produto.linha || "",
       marca: produto.marca || "",
+      is_provador: !!produto.is_provador,
     };
     onChange([...items, novo]);
   };
@@ -328,7 +337,12 @@ export function ComposicaoGradeEditor({ produtoPaiId, items, onChange }: Composi
                       </Button>
                     </TableCell>
                     <TableCell className="py-1.5 text-[11px] font-mono">{p.codigo}</TableCell>
-                    <TableCell className="py-1.5 text-[11px] font-medium truncate max-w-[180px]">{p.nome}</TableCell>
+                    <TableCell className="py-1.5 text-[11px] font-medium max-w-[180px]">
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <span className="truncate">{p.nome}</span>
+                        {p.is_provador && <ProvadorBadge size="xs" className="shrink-0" />}
+                      </div>
+                    </TableCell>
                     <TableCell className="py-1.5 text-[10px] text-muted-foreground">{p.linha || "—"}</TableCell>
                     <TableCell className="py-1.5 text-[10px] font-mono text-muted-foreground">{p.codigo_barras_ean || "—"}</TableCell>
                   </TableRow>
