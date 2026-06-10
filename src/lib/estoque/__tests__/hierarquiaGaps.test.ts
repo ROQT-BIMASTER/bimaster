@@ -80,4 +80,3 @@ describe("classificarGaps", () => {
     expect(classificarGaps(tree, { usar: "saldo" }).faltantesBX).toBe(0);
   });
 });
-});
