@@ -129,7 +129,7 @@ export function useEstoqueCopilot({ filtros, kpisSnapshot, enabled }: UseEstoque
       setMessages((prev) => [...prev, optimistic]);
 
       const { data, error } = await invokeChat<{ thread_id: string; reply: string }>(
-        v2 ? "estoque-copilot-v2" : "estoque-copilot",
+        "estoque-copilot-v2",
         {
           thread_id: activeThreadId ?? undefined,
           user_message: trimmed,
