@@ -46,6 +46,7 @@ import {
   type MergedChecklistCategory,
 } from "@/hooks/useMergedChinaChecklist";
 import { toast } from "sonner";
+import { ChecklistItemPainel } from "@/components/china/checklist/ChecklistItemPainel";
 
 interface DocRow {
   id: string;
