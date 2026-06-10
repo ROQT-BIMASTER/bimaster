@@ -47,7 +47,7 @@ interface UseEstoqueCopilotArgs {
 }
 
 export function useEstoqueCopilot({ filtros, kpisSnapshot, enabled }: UseEstoqueCopilotArgs) {
-  const v2 = useCopilotV2Flag("estoque");
+  
   const [threads, setThreads] = useState<EstoqueCopilotThread[]>([]);
   const [activeThreadId, setActiveThreadId] = useState<string | null>(null);
   const [messages, setMessages] = useState<EstoqueCopilotMessage[]>([]);
