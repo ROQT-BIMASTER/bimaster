@@ -572,7 +572,7 @@ function AppContent() {
             <Route path="/dashboard/admin/relatorios-v2" element={<ProtectedRoute><ReportsV2Home /></ProtectedRoute>} />
             <Route path="/dashboard/admin/relatorios-v2/novo" element={<ProtectedRoute><ReportWizard /></ProtectedRoute>} />
             <Route path="/dashboard/admin/relatorios-v2/:reportId" element={<ProtectedRoute><ReportWizard /></ProtectedRoute>} />
-            <Route path="/dashboard/admin/copilot-v2-rollout" element={<ProtectedRoute><CopilotV2Rollout /></ProtectedRoute>} />
+            
 
             <Route path="/dashboard/briefings" element={<ProtectedRoute><BriefingsHome /></ProtectedRoute>} />
             <Route path="/dashboard/briefings/:id" element={<ProtectedRoute><BriefingWorkspace /></ProtectedRoute>} />
