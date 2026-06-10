@@ -8,6 +8,7 @@ import { FileText, Download, Loader2, X, Image as ImageIcon, Film, Music } from 
 import { signedAnexoUrl, formatBytes } from "./utils";
 import { toast } from "sonner";
 import type { ChatAnexo } from "@/hooks/chat/types";
+import { detectFileKind } from "@/lib/utils/detectFileKind";
 
 /**
  * Galeria de mídia/arquivos de uma conversa.
@@ -42,15 +43,11 @@ export function ConversaMediaGallery({ conversaId }: { conversaId: string }) {
   });
 
   const lista = data ?? [];
-  const imagens = lista.filter((a) => a.mime_type?.startsWith("image/"));
-  const videos = lista.filter((a) => a.mime_type?.startsWith("video/"));
-  const audios = lista.filter((a) => a.mime_type?.startsWith("audio/"));
-  const arquivos = lista.filter(
-    (a) =>
-      !a.mime_type?.startsWith("image/") &&
-      !a.mime_type?.startsWith("video/") &&
-      !a.mime_type?.startsWith("audio/"),
-  );
+  const withKind = lista.map((a) => ({ a, kind: detectFileKind(a.file_name, a.mime_type) }));
+  const imagens = withKind.filter((x) => x.kind === "image").map((x) => x.a);
+  const videos = withKind.filter((x) => x.kind === "video").map((x) => x.a);
+  const audios = withKind.filter((x) => x.kind === "audio").map((x) => x.a);
+  const arquivos = withKind.filter((x) => x.kind === "other" || x.kind === "pdf").map((x) => x.a);
 
   return (
     <div className="p-3 border-t border-border">
