@@ -12,6 +12,16 @@ versionamento conforme [SemVer](https://semver.org/) quando aplicável.
 
 ---
 
+## v3.5.39
+
+Central de Trabalho — Kanban e atualização em tempo real:
+
+- Corrigido drag-and-drop do Kanban de "Minhas Tarefas": arrastar um cartão para **Atrasadas**, **Hoje** ou **A fazer** agora altera o prazo da tarefa (antes só **Concluídas** funcionava). Novo handler `handleChangePrazo` em `MinhasTarefasContent` atualiza `projeto_tarefas.data_prazo` e invalida a query; regras do board preservadas (não recua prazos futuros, reabre quando sai de "Concluídas").
+- `useMinhasTarefas` passou a assinar realtime em `projeto_tarefas`, `projeto_tarefa_responsaveis` (filtro `user_id=eq.<uid>`) e `projeto_tarefa_colaboradores` (idem), com debounce de 250 ms e invalidação de `["minhas-tarefas", uid]`. Cobertura derivada: Kanban, lista, `HojeTab`, `RoleOverviewCard`, `ResumoSemanal` e `PapelChangeBanner` atualizam sem F5 quando outro usuário menciona, adiciona/remove o usuário, muda prazo, conclui ou cria subtarefa.
+- Migração aditiva: `projeto_tarefa_responsaveis` e `projeto_tarefa_colaboradores` adicionadas à publicação `supabase_realtime` com `REPLICA IDENTITY FULL`. Sem mudança de RLS, GRANTs, SDK, OpenAPI ou layout.
+
+---
+
 ## v3.5.38
 
 Cobertura ampliada de detecção de mídia em `detectFileKind`: extensões adicionais para imagem (`apng`, `tif/tiff`, `ico`, `jfif`, `jxl`, `jp2`), vídeo (`wmv`, `flv`, `ogv`, `3gp`, `mpeg`, `mts`, `m2ts`, `ts`) e áudio (`wma`, `amr`, `aiff`, `mid/midi`, `weba`, `caf`). Novos helpers `getFileExtension` e `getFileExtensionLabel` para rótulos de fallback. `ArquivoPreviewDialog` agora renderiza vídeo e áudio inline com player nativo, e o estado "tipo não suportado" mostra um chip com a extensão do arquivo (ex.: `DOCX`, `ZIP`) em vez de mensagem genérica. Sem mudanças de backend.
