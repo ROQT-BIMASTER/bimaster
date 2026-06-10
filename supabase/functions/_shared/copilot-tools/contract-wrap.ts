@@ -8,7 +8,7 @@
 //   - meta.copilot_v2.executive_summary_stripped (true when we hid numbers)
 // And writes one row in `copilot_runs` per invocation for observability.
 
-import { stripMarkdown } from "../copilot/text.ts";
+import { getPlainText } from "../copilot/text.ts";
 import { extractNumbers, verifyToken } from "../copilot/numbers.ts";
 import type { Citation } from "../copilot/types.ts";
 
