@@ -352,46 +352,21 @@ export default function ChinaCaixaEntrada() {
         iconTone="primary"
         actions={
           <div className="flex items-center gap-1.5">
-            <Button
-              variant="outline"
+            <ToggleGroup
+              type="single"
               size="sm"
-              onClick={async () => {
-                try {
-                  const { data, error } = await (supabase as any).rpc("rpc_china_normalize_legacy_status");
-                  if (error) throw error;
-                  const n = Array.isArray(data) ? data.length : 0;
-                  await queryClient.invalidateQueries({ queryKey: ["china-mailbox-dataset"] });
-                  await refetch();
-                  toast.success(
-                    n > 0
-                      ? t("inbox.toasts.recalcOk", { count: n })
-                      : t("inbox.toasts.recalcNenhuma"),
-                  );
-                } catch (e: any) {
-                  toast.error(t("inbox.toasts.recalcErro"), { description: e?.message });
-                }
-              }}
-              disabled={isFetching}
+              value={viewMode}
+              onValueChange={(v) => v && setViewMode(v as "list" | "kanban")}
+              className="rounded-md border border-border"
             >
-              <Calculator className="h-4 w-4 mr-1.5" />
-              {t("inbox.actions.recalcular")}
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCopilotOpen(true)}
-            >
-              <Sparkles className="h-4 w-4 mr-1.5" />
-              {t("inbox.actions.copiloto")}
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => navigate("/dashboard/fabrica-china/auditoria-normalizacao")}
-            >
-              <History className="h-4 w-4 mr-1.5" />
-              {t("inbox.actions.auditoria")}
-            </Button>
+              <ToggleGroupItem value="list" className="h-7 px-2 text-xs gap-1" title="Visão lista">
+                <Rows3 className="h-3.5 w-3.5" /> Lista
+              </ToggleGroupItem>
+              <ToggleGroupItem value="kanban" className="h-7 px-2 text-xs gap-1" title="Visão Kanban">
+                <LayoutGrid className="h-3.5 w-3.5" /> Kanban
+              </ToggleGroupItem>
+            </ToggleGroup>
+
             <Button
               variant="outline"
               size="sm"
@@ -409,10 +384,49 @@ export default function ChinaCaixaEntrada() {
                 <span className="ml-1 text-[10px] opacity-70">({unreadVisibleCount})</span>
               )}
             </Button>
-            <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching}>
-              <RefreshCw className={`h-4 w-4 mr-1.5 ${isFetching ? "animate-spin" : ""}`} />
-              {t("inbox.actions.atualizar")}
+
+            <Button variant="outline" size="sm" onClick={() => setCopilotOpen(true)}>
+              <Sparkles className="h-4 w-4 mr-1.5" />
+              {t("inbox.actions.copiloto")}
             </Button>
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="gap-1.5" title="Mais ações">
+                  <MoreHorizontal className="h-4 w-4" />
+                  Ações
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuItem onSelect={() => refetch()} disabled={isFetching}>
+                  <RefreshCw className={`h-4 w-4 mr-2 ${isFetching ? "animate-spin" : ""}`} />
+                  {t("inbox.actions.atualizar")}
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onSelect={async () => {
+                    try {
+                      const { data, error } = await (supabase as any).rpc("rpc_china_normalize_legacy_status");
+                      if (error) throw error;
+                      const n = Array.isArray(data) ? data.length : 0;
+                      await queryClient.invalidateQueries({ queryKey: ["china-mailbox-dataset"] });
+                      await refetch();
+                      toast.success(n > 0 ? t("inbox.toasts.recalcOk", { count: n }) : t("inbox.toasts.recalcNenhuma"));
+                    } catch (e: any) {
+                      toast.error(t("inbox.toasts.recalcErro"), { description: e?.message });
+                    }
+                  }}
+                  disabled={isFetching}
+                >
+                  <Calculator className="h-4 w-4 mr-2" />
+                  {t("inbox.actions.recalcular")}
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onSelect={() => navigate("/dashboard/fabrica-china/auditoria-normalizacao")}>
+                  <History className="h-4 w-4 mr-2" />
+                  {t("inbox.actions.auditoria")}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         }
       />
