@@ -393,7 +393,7 @@ function AnexoCard({
   ownVariant: boolean;
 }) {
   const [url, setUrl] = useState<string | null>(null);
-  const isImage = (anexo.tipo_arquivo ?? "").startsWith("image/");
+  const isImage = detectFileKind(anexo.nome, anexo.tipo_arquivo) === "image";
 
   useEffect(() => {
     let cancel = false;

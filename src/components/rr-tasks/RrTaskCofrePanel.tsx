@@ -41,17 +41,12 @@ interface Props {
   onOpenBriefingCofre?: () => void;
 }
 
-function iconFor(mime: string | null | undefined) {
-  if (!mime) return FileIcon;
-  if (mime.startsWith("image/")) return FileImage;
-  if (mime === "application/pdf") return FileText;
-  if (
-    mime.includes("spreadsheet") ||
-    mime.includes("excel") ||
-    mime === "text/csv"
-  )
-    return FileSpreadsheet;
-  if (mime.includes("zip") || mime.includes("compressed")) return FileArchive;
+function iconFor(nome: string, mime: string | null | undefined) {
+  const kind = detectFileKind(nome, mime ?? null);
+  if (kind === "image") return FileImage;
+  if (kind === "pdf") return FileText;
+  if (mime?.includes("spreadsheet") || mime?.includes("excel") || mime === "text/csv") return FileSpreadsheet;
+  if (mime?.includes("zip") || mime?.includes("compressed")) return FileArchive;
   return FileIcon;
 }
 
@@ -202,7 +197,7 @@ export function RrTaskCofrePanel({ briefingId, onOpenBriefingCofre }: Props) {
         {/* Lista compacta */}
         <ul className="space-y-2">
           {visible.map((d) => {
-            const Icon = iconFor(d.mime_type);
+            const Icon = iconFor(d.nome, d.mime_type);
             return (
               <li
                 key={d.id}

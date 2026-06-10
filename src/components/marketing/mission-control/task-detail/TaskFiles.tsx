@@ -34,11 +34,12 @@ const statusConfig: Record<string, { label: string; icon: typeof Clock; color: s
   rejeitado: { label: 'Rejeitado', icon: XCircle, color: 'text-red-500' }
 };
 
-function getFileIcon(tipo?: string | null) {
-  if (!tipo) return File;
-  if (tipo.startsWith('image/')) return Image;
-  if (tipo.startsWith('video/')) return Film;
-  return FileText;
+function getFileIcon(nome: string, tipo?: string | null) {
+  const kind = detectFileKind(nome, tipo ?? null);
+  if (kind === "image") return Image;
+  if (kind === "video") return Film;
+  if (kind === "pdf") return FileText;
+  return File;
 }
 
 function formatFileSize(bytes?: number | null): string {
@@ -142,7 +143,7 @@ export function TaskFiles({ tarefaId, files }: TaskFilesProps) {
       {/* Files list */}
       <div className="space-y-2">
         {files.map(file => {
-          const FileIcon = getFileIcon(file.tipo);
+          const FileIcon = getFileIcon(file.nome, file.tipo);
           const status = statusConfig[file.status] || statusConfig.pendente;
           const StatusIcon = status.icon;
 

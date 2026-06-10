@@ -39,7 +39,7 @@ interface Props {
 }
 
 export function ChatAttachmentChip({ anexo, isLightBg, mensagemId, submissaoId }: Props) {
-  const isImage = anexo.mime.startsWith("image/");
+  const isImage = detectFileKind(anexo.nome, anexo.mime) === "image";
   const [imgUrl, setImgUrl] = useState<string | null>(null);
   const [downloading, setDownloading] = useState(false);
   const [promoverOpen, setPromoverOpen] = useState(false);

@@ -4,10 +4,12 @@ import { Button } from "@/components/ui/button";
 import { Paperclip, Upload, Download, Trash2, File, FileText, Image } from "lucide-react";
 import type { MinhaTarefaAnexo } from "@/hooks/useMinhasTarefaDetalhe";
 
-function getFileIcon(tipo: string | null) {
-  if (!tipo) return <File className="h-4 w-4 text-muted-foreground" />;
-  if (tipo.startsWith("image/")) return <Image className="h-4 w-4 text-primary" />;
-  if (tipo.includes("pdf")) return <FileText className="h-4 w-4 text-destructive" />;
+import { detectFileKind } from "@/lib/utils/detectFileKind";
+
+function getFileIcon(nome: string, tipo: string | null) {
+  const kind = detectFileKind(nome, tipo);
+  if (kind === "image") return <Image className="h-4 w-4 text-primary" />;
+  if (kind === "pdf") return <FileText className="h-4 w-4 text-destructive" />;
   return <File className="h-4 w-4 text-muted-foreground" />;
 }
 

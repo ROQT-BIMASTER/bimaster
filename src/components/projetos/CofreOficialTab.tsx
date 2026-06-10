@@ -17,10 +17,12 @@ import { ptBR } from "date-fns/locale";
 import { ShieldCheck, Download, FileText, Image, File, Lock, XCircle } from "lucide-react";
 import { toast } from "sonner";
 
-function getFileIcon(tipo: string | null) {
-  if (!tipo) return <File className="h-4 w-4" />;
-  if (tipo.startsWith("image/")) return <Image className="h-4 w-4 text-blue-400" />;
-  if (tipo.includes("pdf")) return <FileText className="h-4 w-4 text-red-400" />;
+import { detectFileKind } from "@/lib/utils/detectFileKind";
+
+function getFileIcon(nome: string, tipo: string | null) {
+  const kind = detectFileKind(nome, tipo);
+  if (kind === "image") return <Image className="h-4 w-4 text-blue-400" />;
+  if (kind === "pdf") return <FileText className="h-4 w-4 text-red-400" />;
   return <File className="h-4 w-4 text-muted-foreground" />;
 }
 

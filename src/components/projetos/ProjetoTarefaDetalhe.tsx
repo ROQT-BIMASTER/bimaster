@@ -106,10 +106,10 @@ const COFRE_CATEGORIA_LABELS: Record<string, string> = {
   outro: "Outro",
 };
 
-function getFileIcon(tipo: string | null) {
-  if (!tipo) return <File className="h-5 w-5" />;
-  if (tipo.startsWith("image/")) return <Image className="h-5 w-5 text-blue-400" />;
-  if (tipo.includes("pdf")) return <FileText className="h-5 w-5 text-red-400" />;
+function getFileIcon(nome: string, tipo: string | null) {
+  const kind = detectFileKind(nome, tipo);
+  if (kind === "image") return <Image className="h-5 w-5 text-blue-400" />;
+  if (kind === "pdf") return <FileText className="h-5 w-5 text-red-400" />;
   return <File className="h-5 w-5 text-muted-foreground" />;
 }
 
