@@ -148,6 +148,29 @@ export default function ProjetoDetalhe({ shared = false }: ProjetoDetalheProps =
     );
   }
 
+  // Render condicional para o projeto-âncora RR-Tasks (tipo='rr_tasks').
+  // Early-return: nenhum outro tipo de projeto é afetado — o fluxo padrão
+  // (ProjetoHeader + abas Lista/Quadro/Cronograma/...) segue intacto abaixo.
+  if (projeto.tipo === "rr_tasks") {
+    return (
+      <Frame>
+        <main className="flex-1 overflow-auto">
+          <div className="p-4 sm:p-6 space-y-4">
+            <div className="flex items-center gap-2">
+              {!shared && <SidebarTrigger />}
+              <ProjetoBackButton label="Projetos" className="text-muted-foreground" />
+              <Badge variant="outline" className="ml-1 gap-1.5">
+                Integração · Espelho (somente leitura)
+              </Badge>
+            </div>
+            <RrTasksBoardView embedded />
+          </div>
+        </main>
+      </Frame>
+    );
+  }
+
+
   return (
     <Frame>
       <main
