@@ -216,7 +216,7 @@ export function ProjetoHeader({
             darkBg ? "bg-white/10" : customBg ? "bg-black/10" : "bg-muted"
           )}>
             {/* Work tabs */}
-            {WORK_TABS.map(tab => {
+            {workTabs.map(tab => {
               const Icon = tab.icon;
               return (
                 <button key={tab.value} onClick={() => onTabChange(tab.value)} className={cn(tabCls(activeTab === tab.value), "flex-shrink-0")}>
@@ -278,7 +278,7 @@ export function ProjetoHeader({
             <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider px-2 py-1">
               Trabalho
             </p>
-            {WORK_TABS.map(tab => {
+            {workTabs.map(tab => {
               const Icon = tab.icon;
               const isActive = activeTab === tab.value;
               return (
