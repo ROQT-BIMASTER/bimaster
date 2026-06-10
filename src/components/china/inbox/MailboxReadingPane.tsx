@@ -1,9 +1,13 @@
 import { useEffect, useState } from "react";
-import { ExternalLink, FileText, Star, MailOpen, Mail, ArrowLeft, Download, Clock, MessageSquare, ChevronDown, ChevronRight, Link2, Send, Loader2, AlertCircle, RotateCw } from "lucide-react";
+import { ExternalLink, FileText, Star, MailOpen, Mail, ArrowLeft, Download, Clock, MessageSquare, ChevronDown, ChevronRight, Link2, Send, Loader2, AlertCircle, RotateCw, MoreHorizontal, Maximize2 } from "lucide-react";
 import { ChinaChatPanel } from "@/components/china/ChinaChatPanel";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useNavigate, useLocation } from "react-router-dom";
 import { buildReturnToTarget } from "@/lib/navigation/withReturnTo";
 import { cn } from "@/lib/utils";
@@ -31,6 +35,10 @@ interface Props {
   loading?: boolean;
   error?: string | null;
   onRetryEnvio?: () => void;
+  /** Compacta toolbar (esconde PDF/Abrir submissão num menu overflow). */
+  compact?: boolean;
+  /** Estado inicial do collapsible de Conversa (default: lê localStorage). */
+  chatDefaultOpen?: boolean;
 }
 
 export function MailboxReadingPane({
@@ -46,6 +54,8 @@ export function MailboxReadingPane({
   loading,
   error,
   onRetryEnvio,
+  compact,
+  chatDefaultOpen,
 }: Props) {
   const navigate = useNavigate();
   const location = useLocation();
@@ -55,13 +65,17 @@ export function MailboxReadingPane({
     const { url, state } = buildReturnToTarget(target, fromPath, { fromLabel: t("inbox.title") });
     navigate(url, { state });
   };
-  
+
   const [chatOpen, setChatOpen] = useState<boolean>(() => {
+    if (typeof chatDefaultOpen === "boolean") return chatDefaultOpen;
     try { return localStorage.getItem("china-inbox-chat-open") !== "0"; } catch { return true; }
   });
   useEffect(() => {
+    // Só persiste se a página não está forçando estado inicial
+    if (typeof chatDefaultOpen === "boolean") return;
     try { localStorage.setItem("china-inbox-chat-open", chatOpen ? "1" : "0"); } catch { /* ignore */ }
-  }, [chatOpen]);
+  }, [chatOpen, chatDefaultOpen]);
+  const [chatFullscreen, setChatFullscreen] = useState(false);
   const unsnooze = useUnsnoozeSubmissao();
 
   const handleExportPdf = async () => {
@@ -136,25 +150,47 @@ export function MailboxReadingPane({
         {!item.is_deleted && (
           <SnoozeMenu submissaoId={item.submissao_id} />
         )}
-        <Button
-          variant="ghost"
-          size="sm"
-          className="h-7 gap-1.5 text-xs"
-          onClick={handleExportPdf}
-          title={t("inbox.actions.exportarPdfTitle")}
-        >
-          <Download className="h-3.5 w-3.5" />
-          {t("inbox.actions.exportarPdf")}
-        </Button>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="h-7 gap-1.5 text-xs"
-          onClick={() => goWithReturn(`/dashboard/fabrica-china/submissao/${item.submissao_id}`)}
-        >
-          <ExternalLink className="h-3.5 w-3.5" />
-          {t("inbox.actions.abrirSubmissao")}
-        </Button>
+        {compact ? (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-7 w-7" title="Mais ações">
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuItem onClick={handleExportPdf}>
+                <Download className="h-3.5 w-3.5 mr-2" />
+                {t("inbox.actions.exportarPdf")}
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => goWithReturn(`/dashboard/fabrica-china/submissao/${item.submissao_id}`)}>
+                <ExternalLink className="h-3.5 w-3.5 mr-2" />
+                {t("inbox.actions.abrirSubmissao")}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        ) : (
+          <>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 gap-1.5 text-xs"
+              onClick={handleExportPdf}
+              title={t("inbox.actions.exportarPdfTitle")}
+            >
+              <Download className="h-3.5 w-3.5" />
+              {t("inbox.actions.exportarPdf")}
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 gap-1.5 text-xs"
+              onClick={() => goWithReturn(`/dashboard/fabrica-china/submissao/${item.submissao_id}`)}
+            >
+              <ExternalLink className="h-3.5 w-3.5" />
+              {t("inbox.actions.abrirSubmissao")}
+            </Button>
+          </>
+        )}
       </div>
 
       {item.snooze_until && (
@@ -378,15 +414,28 @@ export function MailboxReadingPane({
 
         {/* Conversa — chat China-Brasil contextualizado nesta submissão */}
         <section className="mt-6">
-          <button
-            type="button"
-            onClick={() => setChatOpen((v) => !v)}
-            className="flex w-full items-center gap-2 rounded-md border border-border bg-card/40 px-3 py-2 text-xs font-semibold hover:bg-card/60 transition-colors"
-          >
-            {chatOpen ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
-            <MessageSquare className="h-3.5 w-3.5 text-primary" />
-            <span>{t("inbox.blocks.conversa")}</span>
-          </button>
+          <div className="flex w-full items-center gap-2 rounded-md border border-border bg-card/40 px-2 py-1 text-xs font-semibold">
+            <button
+              type="button"
+              onClick={() => setChatOpen((v) => !v)}
+              className="flex flex-1 items-center gap-2 rounded-sm px-1 py-1 hover:bg-card/60 transition-colors text-left"
+            >
+              {chatOpen ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
+              <MessageSquare className="h-3.5 w-3.5 text-primary" />
+              <span>{t("inbox.blocks.conversa")}</span>
+            </button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-6 gap-1 px-2 text-[11px] font-normal text-muted-foreground hover:text-foreground"
+              onClick={() => setChatFullscreen(true)}
+              title="Abrir conversa em tela cheia"
+            >
+              <Maximize2 className="h-3 w-3" />
+              Expandir
+            </Button>
+          </div>
           {chatOpen && (
             <div className="mt-2 h-[480px] overflow-hidden rounded-md border border-border">
               <ChinaChatPanel
@@ -399,6 +448,26 @@ export function MailboxReadingPane({
           )}
         </section>
       </div>
+
+      {/* Chat em tela cheia (Dialog) */}
+      <Dialog open={chatFullscreen} onOpenChange={setChatFullscreen}>
+        <DialogContent className="max-w-3xl p-0 flex flex-col h-[85vh]">
+          <DialogHeader className="border-b border-border px-4 py-2.5">
+            <DialogTitle className="text-sm font-semibold truncate">
+              <MessageSquare className="inline h-4 w-4 mr-1.5 text-primary" />
+              {t("inbox.blocks.conversa")} · {item.produto_codigo} — {item.produto_nome}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 min-h-0 overflow-hidden">
+            <ChinaChatPanel
+              key={`fs-${item.submissao_id}`}
+              submissaoId={item.submissao_id}
+              produtoNome={item.produto_nome}
+              tipoRemetente={isBrasilUser ? "brasil" : "china"}
+            />
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

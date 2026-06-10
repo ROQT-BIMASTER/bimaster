@@ -20,7 +20,7 @@ import { ChinaDocPreviewDialog } from "@/components/china/ChinaDocPreviewDialog"
 import { MailboxSidebar } from "@/components/china/inbox/MailboxSidebar";
 import { MailboxList } from "@/components/china/inbox/MailboxList";
 import { MailboxReadingPane } from "@/components/china/inbox/MailboxReadingPane";
-import { Sheet, SheetContent } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetClose } from "@/components/ui/sheet";
 import { ChinaInboxOCAba } from "@/components/china/inbox-oc/ChinaInboxOCAba";
 import { SnoozeMenu } from "@/components/china/inbox/SnoozeMenu";
 import {
@@ -719,22 +719,56 @@ export default function ChinaCaixaEntrada() {
         open={viewMode === "kanban" && isDesktop && !!selectedItem}
         onOpenChange={(o) => { if (!o) setSelectedId(null); }}
       >
-        <SheetContent side="right" className="w-full sm:max-w-[560px] p-0 flex flex-col">
+        <SheetContent
+          side="right"
+          hideClose
+          className="w-full sm:max-w-[600px] p-0 flex flex-col"
+        >
           {selectedItem && (
-            <MailboxReadingPane
-              item={selectedItem}
-              isBrasilUser={isBrasilUser}
-              isChinaUser={isChinaUser}
-              onView={(it) => setPreviewDoc(it)}
-              onCorrigir={handleCorrigir}
-              onEnviarBrasil={handleEnviarBrasil}
-              onToggleRead={handleToggleRead}
-              onToggleStar={handleToggleStar}
-              onBack={() => setSelectedId(null)}
-              loading={loading}
-              error={enviarBrasil.isError ? (enviarBrasil.error as any)?.message ?? t("inbox.blocks.falhaEnviarBrasil") : null}
-              onRetryEnvio={lastEnvioVars && enviarBrasil.isError ? handleRetryEnvio : undefined}
-            />
+            <>
+              <div className="flex items-center gap-2 border-b border-border bg-card/40 px-3 py-2">
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-1.5 text-[10.5px] tabular-nums text-muted-foreground">
+                    {selectedItem.produto_codigo}
+                    {selectedItem.submissao_status && (
+                      <span className="rounded-sm bg-muted/60 px-1 py-px text-[9.5px] uppercase tracking-wide">
+                        {selectedItem.submissao_status}
+                      </span>
+                    )}
+                  </div>
+                  <div className="truncate text-sm font-semibold leading-tight">
+                    {selectedItem.produto_nome}
+                  </div>
+                </div>
+                <SheetClose asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 shrink-0"
+                    title="Fechar"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </SheetClose>
+              </div>
+              <div className="flex-1 min-h-0">
+                <MailboxReadingPane
+                  item={selectedItem}
+                  isBrasilUser={isBrasilUser}
+                  isChinaUser={isChinaUser}
+                  onView={(it) => setPreviewDoc(it)}
+                  onCorrigir={handleCorrigir}
+                  onEnviarBrasil={handleEnviarBrasil}
+                  onToggleRead={handleToggleRead}
+                  onToggleStar={handleToggleStar}
+                  loading={loading}
+                  error={enviarBrasil.isError ? (enviarBrasil.error as any)?.message ?? t("inbox.blocks.falhaEnviarBrasil") : null}
+                  onRetryEnvio={lastEnvioVars && enviarBrasil.isError ? handleRetryEnvio : undefined}
+                  compact
+                  chatDefaultOpen={false}
+                />
+              </div>
+            </>
           )}
         </SheetContent>
       </Sheet>
