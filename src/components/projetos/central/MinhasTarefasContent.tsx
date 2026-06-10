@@ -28,7 +28,7 @@ import { useSystemProfiles } from "@/hooks/useSystemProfiles";
 import { cn } from "@/lib/utils";
 import { format, formatDistanceToNow, isToday, isBefore, startOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { parseLocalDate } from "@/lib/utils/parseLocalDate";
+import { parseLocalDate, nowSaoPauloISO } from "@/lib/utils/parseLocalDate";
 import { isSemDatasPlanejadas } from "@/lib/utils/tarefaPlanejamento";
 import {
   Tooltip, TooltipContent, TooltipProvider, TooltipTrigger,
