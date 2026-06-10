@@ -843,6 +843,111 @@ export type Database = {
         }
         Relationships: []
       }
+      alert_events: {
+        Row: {
+          acknowledged_at: string | null
+          acknowledged_by: string | null
+          created_at: string
+          id: string
+          metric_id: string | null
+          payload: Json
+          rule_id: string
+          run_id: string | null
+          variation: number | null
+        }
+        Insert: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          created_at?: string
+          id?: string
+          metric_id?: string | null
+          payload?: Json
+          rule_id: string
+          run_id?: string | null
+          variation?: number | null
+        }
+        Update: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          created_at?: string
+          id?: string
+          metric_id?: string | null
+          payload?: Json
+          rule_id?: string
+          run_id?: string | null
+          variation?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "alert_events_rule_id_fkey"
+            columns: ["rule_id"]
+            isOneToOne: false
+            referencedRelation: "alert_rules"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "alert_events_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "report_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      alert_rules: {
+        Row: {
+          channels: Json
+          created_at: string
+          enabled: boolean
+          id: string
+          metric_id: string | null
+          owner_user_id: string | null
+          params: Json
+          report_id: string | null
+          rule_type: string
+          schedule_based: boolean
+        }
+        Insert: {
+          channels?: Json
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          metric_id?: string | null
+          owner_user_id?: string | null
+          params?: Json
+          report_id?: string | null
+          rule_type: string
+          schedule_based?: boolean
+        }
+        Update: {
+          channels?: Json
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          metric_id?: string | null
+          owner_user_id?: string | null
+          params?: Json
+          report_id?: string | null
+          rule_type?: string
+          schedule_based?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "alert_rules_metric_id_fkey"
+            columns: ["metric_id"]
+            isOneToOne: false
+            referencedRelation: "metric_definitions"
+            referencedColumns: ["metric_id"]
+          },
+          {
+            foreignKeyName: "alert_rules_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "report_definitions"
+            referencedColumns: ["report_id"]
+          },
+        ]
+      }
       analytics_metrics: {
         Row: {
           account_id: string | null
@@ -28454,6 +28559,133 @@ export type Database = {
         }
         Relationships: []
       }
+      metric_definitions: {
+        Row: {
+          created_at: string
+          current_version: number
+          description: string | null
+          formatting: Json
+          id: string
+          language: string
+          lineage: Json
+          metric_id: string
+          name: string
+          owner_user_id: string | null
+          status: string
+          target: number | null
+          unit: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          current_version?: number
+          description?: string | null
+          formatting?: Json
+          id?: string
+          language?: string
+          lineage?: Json
+          metric_id: string
+          name: string
+          owner_user_id?: string | null
+          status?: string
+          target?: number | null
+          unit: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          current_version?: number
+          description?: string | null
+          formatting?: Json
+          id?: string
+          language?: string
+          lineage?: Json
+          metric_id?: string
+          name?: string
+          owner_user_id?: string | null
+          status?: string
+          target?: number | null
+          unit?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      metric_runs: {
+        Row: {
+          computed_at: string
+          context: Json
+          id: string
+          metric_id: string
+          metric_version: number
+          period_end: string
+          period_start: string
+          value: number
+        }
+        Insert: {
+          computed_at?: string
+          context?: Json
+          id?: string
+          metric_id: string
+          metric_version: number
+          period_end: string
+          period_start: string
+          value: number
+        }
+        Update: {
+          computed_at?: string
+          context?: Json
+          id?: string
+          metric_id?: string
+          metric_version?: number
+          period_end?: string
+          period_start?: string
+          value?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "metric_runs_metric_id_fkey"
+            columns: ["metric_id"]
+            isOneToOne: false
+            referencedRelation: "metric_definitions"
+            referencedColumns: ["metric_id"]
+          },
+        ]
+      }
+      metric_versions: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          definition_snapshot: Json
+          id: string
+          metric_id: string
+          version: number
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          definition_snapshot: Json
+          id?: string
+          metric_id: string
+          version: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          definition_snapshot?: Json
+          id?: string
+          metric_id?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "metric_versions_metric_id_fkey"
+            columns: ["metric_id"]
+            isOneToOne: false
+            referencedRelation: "metric_definitions"
+            referencedColumns: ["metric_id"]
+          },
+        ]
+      }
       mfa_enrollments: {
         Row: {
           created_at: string
@@ -38908,6 +39140,204 @@ export type Database = {
           },
         ]
       }
+      report_artifacts: {
+        Row: {
+          created_at: string
+          format: string
+          id: string
+          run_id: string
+          size_bytes: number | null
+          storage_path: string | null
+          uri: string | null
+        }
+        Insert: {
+          created_at?: string
+          format: string
+          id?: string
+          run_id: string
+          size_bytes?: number | null
+          storage_path?: string | null
+          uri?: string | null
+        }
+        Update: {
+          created_at?: string
+          format?: string
+          id?: string
+          run_id?: string
+          size_bytes?: number | null
+          storage_path?: string | null
+          uri?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "report_artifacts_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "report_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      report_audit_log: {
+        Row: {
+          action: string
+          actor_id: string | null
+          created_at: string
+          diff: Json
+          id: string
+          metric_id: string | null
+          report_id: string | null
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          created_at?: string
+          diff?: Json
+          id?: string
+          metric_id?: string | null
+          report_id?: string | null
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          created_at?: string
+          diff?: Json
+          id?: string
+          metric_id?: string | null
+          report_id?: string | null
+        }
+        Relationships: []
+      }
+      report_definitions: {
+        Row: {
+          audience: string
+          created_at: string
+          expected_action: string
+          frequency: string
+          id: string
+          language: string
+          layout_spec: Json
+          layout_spec_version: number
+          metric_refs: Json
+          owner_user_id: string | null
+          question: string
+          report_id: string
+          scope: Json
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          audience: string
+          created_at?: string
+          expected_action: string
+          frequency: string
+          id?: string
+          language?: string
+          layout_spec?: Json
+          layout_spec_version?: number
+          metric_refs?: Json
+          owner_user_id?: string | null
+          question: string
+          report_id: string
+          scope?: Json
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          audience?: string
+          created_at?: string
+          expected_action?: string
+          frequency?: string
+          id?: string
+          language?: string
+          layout_spec?: Json
+          layout_spec_version?: number
+          metric_refs?: Json
+          owner_user_id?: string | null
+          question?: string
+          report_id?: string
+          scope?: Json
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      report_deliveries: {
+        Row: {
+          channel: string
+          created_at: string
+          error: string | null
+          id: string
+          run_id: string
+          sent_at: string | null
+          status: string
+          target: string
+        }
+        Insert: {
+          channel: string
+          created_at?: string
+          error?: string | null
+          id?: string
+          run_id: string
+          sent_at?: string | null
+          status?: string
+          target: string
+        }
+        Update: {
+          channel?: string
+          created_at?: string
+          error?: string | null
+          id?: string
+          run_id?: string
+          sent_at?: string | null
+          status?: string
+          target?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "report_deliveries_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "report_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      report_event_triggers: {
+        Row: {
+          created_at: string
+          enabled: boolean
+          event_name: string
+          id: string
+          report_id: string
+        }
+        Insert: {
+          created_at?: string
+          enabled?: boolean
+          event_name: string
+          id?: string
+          report_id: string
+        }
+        Update: {
+          created_at?: string
+          enabled?: boolean
+          event_name?: string
+          id?: string
+          report_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "report_event_triggers_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "report_definitions"
+            referencedColumns: ["report_id"]
+          },
+        ]
+      }
       report_history: {
         Row: {
           file_url: string | null
@@ -38945,6 +39375,279 @@ export type Database = {
             columns: ["scheduled_report_id"]
             isOneToOne: false
             referencedRelation: "scheduled_reports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      report_insights: {
+        Row: {
+          confidence: number | null
+          created_at: string
+          id: string
+          kind: string
+          payload: Json
+          run_id: string
+        }
+        Insert: {
+          confidence?: number | null
+          created_at?: string
+          id?: string
+          kind: string
+          payload: Json
+          run_id: string
+        }
+        Update: {
+          confidence?: number | null
+          created_at?: string
+          id?: string
+          kind?: string
+          payload?: Json
+          run_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "report_insights_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "report_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      report_permissions: {
+        Row: {
+          granted_at: string
+          granted_by: string | null
+          id: string
+          report_id: string
+          role: string
+          user_id: string
+        }
+        Insert: {
+          granted_at?: string
+          granted_by?: string | null
+          id?: string
+          report_id: string
+          role: string
+          user_id: string
+        }
+        Update: {
+          granted_at?: string
+          granted_by?: string | null
+          id?: string
+          report_id?: string
+          role?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "report_permissions_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "report_definitions"
+            referencedColumns: ["report_id"]
+          },
+        ]
+      }
+      report_pins: {
+        Row: {
+          pinned_at: string
+          report_id: string
+          user_id: string
+        }
+        Insert: {
+          pinned_at?: string
+          report_id: string
+          user_id: string
+        }
+        Update: {
+          pinned_at?: string
+          report_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "report_pins_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "report_definitions"
+            referencedColumns: ["report_id"]
+          },
+        ]
+      }
+      report_runs: {
+        Row: {
+          alerts_evaluated_at: string | null
+          created_at: string
+          errors: Json | null
+          id: string
+          latency_ms: number | null
+          metric_snapshot: Json
+          mode: string
+          narrative: string | null
+          period_end: string | null
+          period_start: string | null
+          report_id: string
+          status: string
+          trigger_source: string
+          triggered_by: string | null
+        }
+        Insert: {
+          alerts_evaluated_at?: string | null
+          created_at?: string
+          errors?: Json | null
+          id?: string
+          latency_ms?: number | null
+          metric_snapshot?: Json
+          mode: string
+          narrative?: string | null
+          period_end?: string | null
+          period_start?: string | null
+          report_id: string
+          status?: string
+          trigger_source?: string
+          triggered_by?: string | null
+        }
+        Update: {
+          alerts_evaluated_at?: string | null
+          created_at?: string
+          errors?: Json | null
+          id?: string
+          latency_ms?: number | null
+          metric_snapshot?: Json
+          mode?: string
+          narrative?: string | null
+          period_end?: string | null
+          period_start?: string | null
+          report_id?: string
+          status?: string
+          trigger_source?: string
+          triggered_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "report_runs_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "report_definitions"
+            referencedColumns: ["report_id"]
+          },
+        ]
+      }
+      report_schedules: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          cron_spec: string
+          enabled: boolean
+          id: string
+          last_run_at: string | null
+          next_run_at: string | null
+          report_id: string
+          timezone: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          cron_spec: string
+          enabled?: boolean
+          id?: string
+          last_run_at?: string | null
+          next_run_at?: string | null
+          report_id: string
+          timezone?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          cron_spec?: string
+          enabled?: boolean
+          id?: string
+          last_run_at?: string | null
+          next_run_at?: string | null
+          report_id?: string
+          timezone?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "report_schedules_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "report_definitions"
+            referencedColumns: ["report_id"]
+          },
+        ]
+      }
+      report_subscriptions: {
+        Row: {
+          channel: string
+          created_at: string
+          report_id: string
+          user_id: string
+        }
+        Insert: {
+          channel?: string
+          created_at?: string
+          report_id: string
+          user_id: string
+        }
+        Update: {
+          channel?: string
+          created_at?: string
+          report_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "report_subscriptions_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "report_definitions"
+            referencedColumns: ["report_id"]
+          },
+        ]
+      }
+      report_task_links: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          insight_id: string | null
+          run_id: string
+          task_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          insight_id?: string | null
+          run_id: string
+          task_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          insight_id?: string | null
+          run_id?: string
+          task_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "report_task_links_insight_id_fkey"
+            columns: ["insight_id"]
+            isOneToOne: false
+            referencedRelation: "report_insights"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "report_task_links_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "report_runs"
             referencedColumns: ["id"]
           },
         ]
