@@ -175,9 +175,6 @@ function buildTree(rows: EstoqueUnificadoSkuRow[]): { tree: TreeNode[]; orphans:
   return { tree: roots, orphans };
 }
 
-  return { tree: roots, orphans };
-}
-
 function renderNode(
   node: TreeNode,
   depth: number,
