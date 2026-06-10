@@ -796,6 +796,14 @@ export default function ChinaProdutoChecklistStatus() {
           <Card className="p-8 text-center text-sm text-muted-foreground">
             Nenhuma categoria configurada para este produto.
           </Card>
+        ) : viewMode === "kanban" ? (
+          <KanbanView
+            cats={allCats}
+            visibleByCat={visibleByCat}
+            docsByTipo={docsByTipo}
+            getLabel={getLabel}
+            onOpenItem={setPainelTipo}
+          />
         ) : (
           allCats.map((cat) => {
             const visible = visibleByCat.get(cat.key) ?? [];
