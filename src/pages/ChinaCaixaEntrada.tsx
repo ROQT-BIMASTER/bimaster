@@ -20,6 +20,8 @@ import { ChinaDocPreviewDialog } from "@/components/china/ChinaDocPreviewDialog"
 import { MailboxSidebar } from "@/components/china/inbox/MailboxSidebar";
 import { MailboxList } from "@/components/china/inbox/MailboxList";
 import { MailboxReadingPane } from "@/components/china/inbox/MailboxReadingPane";
+import { Sheet, SheetContent } from "@/components/ui/sheet";
+import { FolderTree } from "lucide-react";
 import { ChinaInboxOCAba } from "@/components/china/inbox-oc/ChinaInboxOCAba";
 import { SnoozeMenu } from "@/components/china/inbox/SnoozeMenu";
 import {
