@@ -569,13 +569,41 @@ export default function ChinaCaixaEntrada() {
                 <ChinaInboxOCAba />
               </ResizablePanel>
             ) : (<>
-            <ResizablePanel defaultSize={36} minSize={24}>
+            <ResizablePanel defaultSize={viewMode === "kanban" ? 64 : 36} minSize={24}>
               {isLoading ? (
                 <div className="space-y-2 p-3">
                   {[...Array(6)].map((_, i) => (
                     <div key={i} className="h-12 animate-pulse rounded bg-muted/30" />
                   ))}
                 </div>
+              ) : viewMode === "kanban" ? (
+                <MailboxKanban
+                  items={items}
+                  progressItems={progressItems}
+                  selectedId={selectedId}
+                  perspective={isBrasilUser ? "brasil" : "china"}
+                  onJumpFolder={(f) => { setViewMode("list"); setFolder(f); }}
+                  onSelectGroup={(g: MailboxGroup) => {
+                    // Garante que a pasta-alvo seja a "natural" do estado da submissão,
+                    // para que a lista carregue os docs e o ReadingPane funcione.
+                    const targetFolder: MailboxFolder =
+                      g.submissao_status === "aprovado" ? "approved"
+                      : g.submissao_status === "rejeitado" ? (isBrasilUser ? "rejected" : "returned")
+                      : g.submissao_status === "enviado_brasil" ? "sent_brazil"
+                      : (g.submissao_status === "em_revisao" || g.submissao_status === "enviado") ? "in_analysis"
+                      : "awaiting_send";
+                    if (folder !== targetFolder) setFolder(targetFolder);
+                    const firstDoc = g.docs[0];
+                    if (firstDoc) {
+                      const id = firstDoc.is_virtual
+                        ? `${firstDoc.submissao_id}:virtual:${firstDoc.tipo_documento ?? "_"}`
+                        : firstDoc.documento_id ?? firstDoc.submissao_id;
+                      setSelectedId(id);
+                    } else {
+                      setSelectedId(g.submissao_id);
+                    }
+                  }}
+                />
               ) : (
                 <MailboxList
                   items={items}
