@@ -1355,6 +1355,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
                   {isAdmin && (
                     <MenuItemLink to="/dashboard/controladoria" icon={PackageSearch} title="Controladoria" />
                   )}
+                  <MenuItemLink to="/dashboard/rr-tasks" icon={KanbanSquare} title="RR-Tasks" />
                   <MenuItemLink to="/dashboard/chat" icon={MessageCircle} title="Chat" />
                   <MenuItemLink to="/dashboard/chat/aprovacoes" icon={Inbox} title="Aprovações do Chat" />
                 </>
