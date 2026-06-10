@@ -78,6 +78,13 @@ export function ProjetoHeader({
   const [membrosOpen, setMembrosOpen] = useState(false);
   const [quickAddOpen, setQuickAddOpen] = useState(false);
   const [lixeiraOpenLocal, setLixeiraOpenLocal] = useState(false);
+
+  // Para o projeto-âncora RR-Tasks (tipo='rr_tasks') anexamos uma aba extra
+  // "Espelho RR". Para qualquer outro tipo, `workTabs === WORK_TABS` (mesma
+  // referência) — zero impacto no caminho de produção.
+  const workTabs = projeto.tipo === "rr_tasks"
+    ? [...WORK_TABS, { value: "rr_board", icon: KanbanSquare, label: "Espelho RR" }]
+    : WORK_TABS;
   // Lixeira: controlado externamente (Fase 2 — lazy load) ou estado local legacy.
   const lixeiraOpen = lixeiraOpenProp ?? lixeiraOpenLocal;
   const setLixeiraOpen = (v: boolean) => {
