@@ -1,6 +1,6 @@
 import { useCallback, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useCopilotV2Flag } from "@/hooks/useCopilotV2Flag";
+
 import { toast } from "sonner";
 
 export interface CopilotSource {
@@ -38,7 +38,7 @@ export interface CopilotMessage {
 }
 
 export function useProjetoCopilot(projetoId: string | null) {
-  const v2 = useCopilotV2Flag("projeto");
+  
   const [threadId, setThreadId] = useState<string | null>(null);
   const [messages, setMessages] = useState<CopilotMessage[]>([]);
   const [sending, setSending] = useState(false);
@@ -76,7 +76,7 @@ export function useProjetoCopilot(projetoId: string | null) {
     setMessages((m) => [...m, optimistic]);
     try {
       const { data, error } = await supabase.functions.invoke(
-        v2 ? "projeto-copilot-v2" : "projeto-copilot",
+        "projeto-copilot-v2",
         {
           body: {
             projeto_id: projetoId,

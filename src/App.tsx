@@ -323,7 +323,7 @@ const ProdutosBrasilListagem = lazyWithRetry(() => import("./pages/ProdutosBrasi
 const ProjetosRelatorios = lazyWithRetry(() => import("./pages/ProjetosRelatorios"));
 const ReportsV2Home = lazyWithRetry(() => import("./pages/admin/ReportsV2Home"));
 const ReportWizard = lazyWithRetry(() => import("./pages/admin/ReportWizard"));
-const CopilotV2Rollout = lazyWithRetry(() => import("./pages/admin/CopilotV2Rollout"));
+
 const CalendarioCorporativo = lazyWithRetry(() => import("./pages/admin/CalendarioCorporativo"));
 const ProjetosSaude = lazyWithRetry(() => import("./pages/admin/ProjetosSaude"));
 const CustosTecnologia = lazyWithRetry(() => import("./pages/admin/CustosTecnologia"));
@@ -572,7 +572,7 @@ function AppContent() {
             <Route path="/dashboard/admin/relatorios-v2" element={<ProtectedRoute><ReportsV2Home /></ProtectedRoute>} />
             <Route path="/dashboard/admin/relatorios-v2/novo" element={<ProtectedRoute><ReportWizard /></ProtectedRoute>} />
             <Route path="/dashboard/admin/relatorios-v2/:reportId" element={<ProtectedRoute><ReportWizard /></ProtectedRoute>} />
-            <Route path="/dashboard/admin/copilot-v2-rollout" element={<ProtectedRoute><CopilotV2Rollout /></ProtectedRoute>} />
+            
 
             <Route path="/dashboard/briefings" element={<ProtectedRoute><BriefingsHome /></ProtectedRoute>} />
             <Route path="/dashboard/briefings/:id" element={<ProtectedRoute><BriefingWorkspace /></ProtectedRoute>} />

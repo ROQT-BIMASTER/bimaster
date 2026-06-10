@@ -1,31 +1,22 @@
 ---
-name: Copilot v2 Rollout Pattern
-description: Wrappers `<copilot>-v2` aplicam contrato C1/C2, gravam `copilot_runs` com `copilot_id='<id>@v2'` e painel admin `/dashboard/admin/copilot-v2-rollout` controla flags `ff_copilot_v2_*` (default ON em 2026-06-10 para central/projeto/estoque/china; sofia segue OFF até migrar chat textual)
+name: Copilot v2 Canonical Path
+description: Fase 6 concluída 2026-06-10 — front-end sempre invoca `<copilot>-v2` (central/projeto/estoque/china-submission); flags `ff_copilot_v2_*`, hook `useCopilotV2Flag` e painel `/dashboard/admin/copilot-v2-rollout` foram removidos; legados continuam internos como backend dos wrappers via `proxy-legacy.ts`
 type: feature
 ---
 
-Observabilidade (Fase 6-prep): contract-wrap grava em `copilot_runs` usando colunas reais (`copilot_id` sufixado `@v2`, `citations_count`, `unverifiable_numbers`, `rag_breach_blocked`, `latency_ms`, `error_code='exec_summary_stripped'` quando aplica). RPCs `admin_copilot_v2_stats(p_days)` e `admin_set_copilot_v2_flag(p_codigo,p_ativo)` (SECURITY DEFINER, gated por `has_role(...,'admin')`) alimentam o painel `src/pages/admin/CopilotV2Rollout.tsx`. Critério de promoção para Fase 6: ≥80% v2 + ≤0,20 números não verificáveis por resposta durante 14 dias.
+Arquitetura final dos copilotos (pós-Fase 6):
 
-Estratégia de migração incremental (Fases 1–4) sem reescrever os copilotos legados:
+- **Único ponto de entrada do cliente**: `central-copilot-v2`, `projeto-copilot-v2`, `estoque-copilot-v2`, `china-submission-copilot-v2`. Os hooks `useCentralCopilot`, `useProjetoCopilot`, `useEstoqueCopilot` e o componente `SubmissionCopilotPanel` invocam diretamente o nome `-v2`, sem flag.
+- **Contratos C1/C2 sempre aplicados**: `wrapLegacyCopilotReply` (em `_shared/copilot-tools/contract-wrap.ts`) roda em 100% das respostas, gravando `copilot_runs` com `copilot_id='<id>@v2'`, `citations_count`, `unverifiable_numbers`, `latency_ms`, `meta.contract_version='v2.0'`.
+- **Indexação RAG hot**: `enqueueCopilotDoc` continua ativo em todos os wrappers (`sourceType='copilot_thread'`, `priority='hot'`).
+- **Legados como implementação interna**: `central-copilot`, `projeto-copilot`, `estoque-copilot`, `china-submission-copilot` permanecem como edge functions chamadas via `callLegacyCopilot` (`_shared/copilot-tools/proxy-legacy.ts`) com o JWT do usuário propagado (RLS preservada). Eles **não devem ser invocados diretamente pelo front-end** — sempre passar pelo wrapper `-v2`.
+- **Removido nesta fase**: `feature_flags` linhas `ff_copilot_v2_*` (DELETE), hook `src/hooks/useCopilotV2Flag.ts`, página `src/pages/admin/CopilotV2Rollout.tsx`, rota `/dashboard/admin/copilot-v2-rollout`, RPC `admin_set_copilot_v2_flag(text,boolean)`. RPC `admin_copilot_v2_stats(p_days)` mantida (telemetria histórica).
 
-- Edge functions wrapper: `central-copilot-v2`, `projeto-copilot-v2`, `estoque-copilot-v2`, `china-submission-copilot-v2`. Sofia ainda não tem chat invoke direto (usa `sofia-voice-token`), portanto a flag `ff_copilot_v2_sofia` está reservada para quando o chat textual for migrado.
-- Cada wrapper: Zod `passthrough()` (legacy detém schema completo) → `callLegacyCopilot` reencaminhando o `Authorization` do usuário (RLS preservada) → `wrapLegacyCopilotReply` aplica os contratos C1 (citações por fonte) e C2 (números — números sem fonte viram aviso visível e disparam `executive_summary_stripped=true`) e grava 1 linha em `copilot_runs` com `meta.unverifiable_count`, `meta.rag_breach_blocked=0`, `meta.contract_version='v2.0'`.
-- Front-end: hook `useCopilotV2Flag(copilotId)` lê `feature_flags.ativo` por `codigo='ff_copilot_v2_<id>'` (cache em memória). Hooks `useCentralCopilot`, `useProjetoCopilot` e `useEstoqueCopilot` trocam o nome da função invocada quando a flag está on. **Default = off** — rollback é desligar a flag.
-- Forma de resposta preservada: nenhum componente de UI legado precisou mudar; o wrapper devolve os mesmos campos (`reply`, `sources`, `proposals`, `reports`, `model`) e adiciona `meta.copilot_v2.*`.
-- Observability: queries em `copilot_runs WHERE meta->>'contract_version'='v2.0'` por `copilot_id` mostram volume v2 e ratio de números não verificáveis.
-- Crons (pg_cron + pg_net): `copilot-rag-indexer-hot-every-minute` (drena `copilot_index_queue` priority=hot) e `reports-alerts-evaluator-every-5min`.
+Observabilidade contínua:
+- `SELECT * FROM copilot_runs WHERE copilot_id LIKE '%@v2' AND created_at > now()-interval '7 days'` para volume/latência por copiloto.
+- Cron `copilot-rag-indexer-hot-every-minute` drena `copilot_index_queue priority=hot`.
+- Cron `reports-alerts-evaluator-every-5min`.
 
-Fase 5 (implementada — junho/2026):
-- RPC `enqueue_copilot_document(p_copilot_id,p_source_type,p_source_ref,p_title,p_content,p_acl_scope,p_metadata,p_priority,p_created_by)` SECURITY DEFINER, EXECUTE só para `service_role` (revogado de PUBLIC/anon/authenticated). Faz upsert idempotente em `copilot_documents` por `(copilot_id, source_type, source_ref) WHERE archived_at IS NULL`, limpa `copilot_chunks` antigos e enfileira em `copilot_index_queue`.
-- Helper `_shared/copilot-tools/enqueue-doc.ts` (`enqueueCopilotDoc`) — best-effort, nunca lança. Cada wrapper v2 chama após `wrapLegacyCopilotReply` com `sourceType='copilot_thread'`, `sourceRef = thread_id ?? run_id`, `aclScope={owner:userId, ...escopo}`, `priority='hot'` (texto curto Q+A entra inline ≤2KB, caso contrário fila).
-- Não foram adicionadas triggers em tabelas de negócio (alto volume + risco): pipeline RAG v2 só consome o que os wrappers v2 produzem mais o que for inserido sob demanda por scripts/admin.
+Quando adicionar um novo copiloto, criar **somente** o wrapper `-v2` chamando o backend interno via `proxy-legacy.ts` (ou inline). Não recriar o padrão de flag/legacy switch.
 
-Fase 7 (ativação controlada — iniciada 2026-06-10):
-- Flags `ff_copilot_v2_central|projeto|estoque|china` setadas para `ativo=true` via UPDATE em `feature_flags`. Sofia (`ff_copilot_v2_sofia`) permanece OFF (sem chat invoke direto).
-- Rollback: usar painel `/dashboard/admin/copilot-v2-rollout` (RPC `admin_set_copilot_v2_flag`) para desligar a flag específica. Cache do hook `useCopilotV2Flag` é resetado em reload completo.
-- Janela de observação: 14 dias monitorando `admin_copilot_v2_stats(14)` — promover a Fase 6 (inline + remoção do legado) só se ratio de números não verificáveis ≤ 0,20 e p95 latency v2 ≤ 1,2× legacy.
-
-Próxima fase:
-- Fase 6: após janela de 14 dias estável, inlinear `wrapLegacyCopilotReply` dentro dos copilotos legados (central/projeto/estoque/china), remover wrappers `*-v2` e o helper `proxy-legacy.ts`, e arquivar este pattern.
-
-Tabelas/Edge envolvidas: `feature_flags`, `copilot_runs`, `copilot_documents`, `copilot_chunks`, `copilot_index_queue`, `enqueue_copilot_document`, `_shared/copilot-tools/contract-wrap.ts`, `_shared/copilot-tools/proxy-legacy.ts`, `_shared/copilot-tools/enqueue-doc.ts`.
+Tabelas/Edge envolvidas: `copilot_runs`, `copilot_documents`, `copilot_chunks`, `copilot_index_queue`, `enqueue_copilot_document`, `_shared/copilot-tools/contract-wrap.ts`, `_shared/copilot-tools/proxy-legacy.ts`, `_shared/copilot-tools/enqueue-doc.ts`, `admin_copilot_v2_stats`.

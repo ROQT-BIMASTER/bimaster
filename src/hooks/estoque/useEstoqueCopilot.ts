@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { invokeChat } from "@/lib/ai/invokeChat";
-import { useCopilotV2Flag } from "@/hooks/useCopilotV2Flag";
+
 import { toast } from "sonner";
 
 export interface EstoqueCopilotFiltros {
@@ -47,7 +47,7 @@ interface UseEstoqueCopilotArgs {
 }
 
 export function useEstoqueCopilot({ filtros, kpisSnapshot, enabled }: UseEstoqueCopilotArgs) {
-  const v2 = useCopilotV2Flag("estoque");
+  
   const [threads, setThreads] = useState<EstoqueCopilotThread[]>([]);
   const [activeThreadId, setActiveThreadId] = useState<string | null>(null);
   const [messages, setMessages] = useState<EstoqueCopilotMessage[]>([]);
@@ -129,7 +129,7 @@ export function useEstoqueCopilot({ filtros, kpisSnapshot, enabled }: UseEstoque
       setMessages((prev) => [...prev, optimistic]);
 
       const { data, error } = await invokeChat<{ thread_id: string; reply: string }>(
-        v2 ? "estoque-copilot-v2" : "estoque-copilot",
+        "estoque-copilot-v2",
         {
           thread_id: activeThreadId ?? undefined,
           user_message: trimmed,
