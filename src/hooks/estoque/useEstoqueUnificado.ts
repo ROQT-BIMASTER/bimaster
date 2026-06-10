@@ -519,13 +519,33 @@ export function useEstoqueUnificadoSkus(empresa: number | null, raiz: number | n
     refetchInterval: 5 * 60_000,
     refetchIntervalInBackground: false,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('vw_estoque_unificado_skus' as any)
-        .select('*')
-        .eq('empresa', empresa!)
-        .eq('produto_raiz', raiz!);
-      if (error) throw error;
-      const rows = (data ?? []) as unknown as EstoqueUnificadoSkuRow[];
+      const [viewRes, complRes] = await Promise.all([
+        supabase
+          .from('vw_estoque_unificado_skus' as any)
+          .select('*')
+          .eq('empresa', empresa!)
+          .eq('produto_raiz', raiz!),
+        supabase.rpc('estoque_unificado_bom_complemento' as any, {
+          p_empresa: empresa!,
+          p_raiz: raiz!,
+        } as any),
+      ]);
+
+      if (viewRes.error) throw viewRes.error;
+
+      const baseRows = (viewRes.data ?? []) as unknown as EstoqueUnificadoSkuRow[];
+
+      // Complemento: SKUs da BOM sem registro físico nessa empresa. Se falhar
+      // (ex.: RPC ainda não disponível em outro ambiente), seguimos com a view.
+      let complementoRows: EstoqueUnificadoSkuRow[] = [];
+      if (!complRes.error && Array.isArray(complRes.data)) {
+        const presentes = new Set(baseRows.map((r) => r.cod_produto));
+        complementoRows = (complRes.data as unknown as EstoqueUnificadoSkuRow[]).filter(
+          (r) => !presentes.has(r.cod_produto),
+        );
+      }
+
+      const rows = baseRows.concat(complementoRows);
       // Ordena: nível asc (CX→BX→UN), depois pelo código
       return rows.sort((a, b) => {
         const na = a.nivel ?? 99;
