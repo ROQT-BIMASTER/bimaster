@@ -150,25 +150,47 @@ export function MailboxReadingPane({
         {!item.is_deleted && (
           <SnoozeMenu submissaoId={item.submissao_id} />
         )}
-        <Button
-          variant="ghost"
-          size="sm"
-          className="h-7 gap-1.5 text-xs"
-          onClick={handleExportPdf}
-          title={t("inbox.actions.exportarPdfTitle")}
-        >
-          <Download className="h-3.5 w-3.5" />
-          {t("inbox.actions.exportarPdf")}
-        </Button>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="h-7 gap-1.5 text-xs"
-          onClick={() => goWithReturn(`/dashboard/fabrica-china/submissao/${item.submissao_id}`)}
-        >
-          <ExternalLink className="h-3.5 w-3.5" />
-          {t("inbox.actions.abrirSubmissao")}
-        </Button>
+        {compact ? (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-7 w-7" title="Mais ações">
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuItem onClick={handleExportPdf}>
+                <Download className="h-3.5 w-3.5 mr-2" />
+                {t("inbox.actions.exportarPdf")}
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => goWithReturn(`/dashboard/fabrica-china/submissao/${item.submissao_id}`)}>
+                <ExternalLink className="h-3.5 w-3.5 mr-2" />
+                {t("inbox.actions.abrirSubmissao")}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        ) : (
+          <>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 gap-1.5 text-xs"
+              onClick={handleExportPdf}
+              title={t("inbox.actions.exportarPdfTitle")}
+            >
+              <Download className="h-3.5 w-3.5" />
+              {t("inbox.actions.exportarPdf")}
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 gap-1.5 text-xs"
+              onClick={() => goWithReturn(`/dashboard/fabrica-china/submissao/${item.submissao_id}`)}
+            >
+              <ExternalLink className="h-3.5 w-3.5" />
+              {t("inbox.actions.abrirSubmissao")}
+            </Button>
+          </>
+        )}
       </div>
 
       {item.snooze_until && (
