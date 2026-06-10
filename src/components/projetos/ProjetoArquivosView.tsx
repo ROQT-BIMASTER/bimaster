@@ -43,10 +43,20 @@ interface Anexo {
 
 const VIEW_KEY = "projeto-arquivos-view";
 
-function getFileIcon(tipo: string | null, className = "h-5 w-5") {
-  if (!tipo) return <File className={cn(className, "text-muted-foreground")} />;
-  if (tipo.startsWith("image/")) return <ImageIcon className={cn(className, "text-blue-400")} />;
-  if (tipo.includes("pdf")) return <FileText className={cn(className, "text-red-400")} />;
+const IMG_EXT = new Set(["png", "jpg", "jpeg", "gif", "webp", "avif", "svg", "bmp"]);
+const PDF_EXT = new Set(["pdf"]);
+export function detectKind(nome: string, tipo: string | null): "image" | "pdf" | "other" {
+  if (tipo?.startsWith("image/")) return "image";
+  if (tipo?.includes("pdf")) return "pdf";
+  const ext = nome.split(".").pop()?.toLowerCase() ?? "";
+  if (IMG_EXT.has(ext)) return "image";
+  if (PDF_EXT.has(ext)) return "pdf";
+  return "other";
+}
+
+function getFileIcon(kind: "image" | "pdf" | "other", className = "h-5 w-5") {
+  if (kind === "image") return <ImageIcon className={cn(className, "text-blue-400")} />;
+  if (kind === "pdf") return <FileText className={cn(className, "text-red-400")} />;
   return <File className={cn(className, "text-muted-foreground")} />;
 }
 
