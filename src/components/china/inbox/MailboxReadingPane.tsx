@@ -35,6 +35,10 @@ interface Props {
   loading?: boolean;
   error?: string | null;
   onRetryEnvio?: () => void;
+  /** Compacta toolbar (esconde PDF/Abrir submissão num menu overflow). */
+  compact?: boolean;
+  /** Estado inicial do collapsible de Conversa (default: lê localStorage). */
+  chatDefaultOpen?: boolean;
 }
 
 export function MailboxReadingPane({
@@ -50,6 +54,8 @@ export function MailboxReadingPane({
   loading,
   error,
   onRetryEnvio,
+  compact,
+  chatDefaultOpen,
 }: Props) {
   const navigate = useNavigate();
   const location = useLocation();
@@ -59,13 +65,17 @@ export function MailboxReadingPane({
     const { url, state } = buildReturnToTarget(target, fromPath, { fromLabel: t("inbox.title") });
     navigate(url, { state });
   };
-  
+
   const [chatOpen, setChatOpen] = useState<boolean>(() => {
+    if (typeof chatDefaultOpen === "boolean") return chatDefaultOpen;
     try { return localStorage.getItem("china-inbox-chat-open") !== "0"; } catch { return true; }
   });
   useEffect(() => {
+    // Só persiste se a página não está forçando estado inicial
+    if (typeof chatDefaultOpen === "boolean") return;
     try { localStorage.setItem("china-inbox-chat-open", chatOpen ? "1" : "0"); } catch { /* ignore */ }
-  }, [chatOpen]);
+  }, [chatOpen, chatDefaultOpen]);
+  const [chatFullscreen, setChatFullscreen] = useState(false);
   const unsnooze = useUnsnoozeSubmissao();
 
   const handleExportPdf = async () => {
