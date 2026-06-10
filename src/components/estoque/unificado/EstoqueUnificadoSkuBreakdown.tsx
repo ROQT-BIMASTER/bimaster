@@ -144,18 +144,33 @@ function buildTree(rows: EstoqueUnificadoSkuRow[]): { tree: TreeNode[]; orphans:
   return { tree: roots, orphans };
 }
 
-function renderNode(node: TreeNode, depth: number, totalUn: number): JSX.Element[] {
+function renderNode(
+  node: TreeNode,
+  depth: number,
+  totalUn: number,
+  statusByCodigo: Map<number, GapStatus>,
+  ramosComGap: Set<number>,
+  filtrarSoLacunas: boolean,
+): JSX.Element[] {
+  if (filtrarSoLacunas && !ramosComGap.has(node.sku.cod_produto)) return [];
   const out: JSX.Element[] = [
-    <SkuLine key={`sku-${node.sku.cod_produto}`} sku={node.sku} depth={depth} totalUn={totalUn} />,
+    <SkuLine
+      key={`sku-${node.sku.cod_produto}`}
+      sku={node.sku}
+      depth={depth}
+      totalUn={totalUn}
+      gapStatus={statusByCodigo.get(node.sku.cod_produto)}
+    />,
   ];
   for (const child of node.children) {
-    out.push(...renderNode(child, depth + 1, totalUn));
+    out.push(...renderNode(child, depth + 1, totalUn, statusByCodigo, ramosComGap, filtrarSoLacunas));
   }
   return out;
 }
 
 export function EstoqueUnificadoSkuBreakdown({ row }: Props) {
   const { data, isLoading } = useEstoqueUnificadoSkus(row.empresa, row.produto_raiz);
+  const [filtrarSoLacunas, setFiltrarSoLacunas] = useState(false);
 
   const { tree, orphans, totalUn, somaCX, somaBX, somaUN, somaBloq, somaDisp, somaPend } = useMemo(() => {
     const rows = data ?? [];
