@@ -73,11 +73,11 @@ describe("classificarGaps", () => {
     expect(r.statusByCodigo.get(7496)).toBe("ok");
     expect(r.statusByCodigo.get(7498)).toBe("faltante");
   });
-});
 
   it("usar=saldo respeita escolha", () => {
     const tree = [mk(1, 1, 10, 10, "CX", [mk(2, 2, 5, 0, "BX")])];
     expect(classificarGaps(tree, { usar: "disponivel" }).faltantesBX).toBe(1);
     expect(classificarGaps(tree, { usar: "saldo" }).faltantesBX).toBe(0);
   });
+});
 });
