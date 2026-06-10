@@ -1,6 +1,6 @@
 ---
 name: Copilot v2 Rollout Pattern
-description: Wrappers `<copilot>-v2` aplicam contrato C1/C2, gravam `copilot_runs` com `copilot_id='<id>@v2'` e painel admin `/dashboard/admin/copilot-v2-rollout` controla flags `ff_copilot_v2_*`
+description: Wrappers `<copilot>-v2` aplicam contrato C1/C2, gravam `copilot_runs` com `copilot_id='<id>@v2'` e painel admin `/dashboard/admin/copilot-v2-rollout` controla flags `ff_copilot_v2_*` (default ON em 2026-06-10 para central/projeto/estoque/china; sofia segue OFF até migrar chat textual)
 type: feature
 ---
 
