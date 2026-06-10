@@ -136,53 +136,57 @@ export function MailboxSidebar({ folder, counts, onSelect, onCompose, forceChina
               )
             )}
             {open && (
-            {group.folders.map((f) => {
-              const Icon = f.icon;
-              const active = folder === f.key;
-              const total = counts[f.countKey];
-              const unread = f.unreadKey ? counts[f.unreadKey] : 0;
-              const subCount = f.subCountKey ? counts[f.subCountKey] : 0;
-              const showSub = !!f.subCountKey && total > 0 && subCount !== total;
-              return (
-                <button
-                  key={f.key}
-                  type="button"
-                  onClick={() => onSelect(f.key)}
-                  className={cn(
-                    "group flex w-full items-start gap-2.5 rounded-md px-2.5 py-1.5 text-sm transition-colors",
-                    active
-                      ? "bg-primary/15 text-foreground font-medium"
-                      : "text-muted-foreground hover:bg-muted/40 hover:text-foreground",
-                  )}
-                  title={
-                    f.subCountKey
-                      ? `${total} item${total === 1 ? "" : "s"} em ${subCount} submissã${subCount === 1 ? "o" : "es"}`
-                      : undefined
-                  }
-                >
-                  <Icon className={cn("mt-0.5 h-4 w-4 shrink-0", f.tone, active && "text-primary")} />
-                  <span className="flex min-w-0 flex-1 flex-col text-left">
-                    <span className="truncate">
-                      {t(`inbox.sidebar.folders.${f.i18nKey}`)}
-                    </span>
-                    {showSub && (
-                      <span className="truncate text-[9.5px] leading-tight text-muted-foreground/70">
-                        em {subCount} submissã{subCount === 1 ? "o" : "es"}
+              <div>
+                {group.folders.map((f) => {
+                  const Icon = f.icon;
+                  const active = folder === f.key;
+                  const total = counts[f.countKey];
+                  const unread = f.unreadKey ? counts[f.unreadKey] : 0;
+                  const subCount = f.subCountKey ? counts[f.subCountKey] : 0;
+                  const showSub = !!f.subCountKey && total > 0 && subCount !== total;
+                  return (
+                    <button
+                      key={f.key}
+                      type="button"
+                      onClick={() => onSelect(f.key)}
+                      className={cn(
+                        "group flex w-full items-start gap-2.5 rounded-md px-2.5 py-1.5 text-sm transition-colors",
+                        active
+                          ? "bg-primary/15 text-foreground font-medium"
+                          : "text-muted-foreground hover:bg-muted/40 hover:text-foreground",
+                      )}
+                      title={
+                        f.subCountKey
+                          ? `${total} item${total === 1 ? "" : "s"} em ${subCount} submissã${subCount === 1 ? "o" : "es"}`
+                          : undefined
+                      }
+                    >
+                      <Icon className={cn("mt-0.5 h-4 w-4 shrink-0", f.tone, active && "text-primary")} />
+                      <span className="flex min-w-0 flex-1 flex-col text-left">
+                        <span className="truncate">
+                          {t(`inbox.sidebar.folders.${f.i18nKey}`)}
+                        </span>
+                        {showSub && (
+                          <span className="truncate text-[9.5px] leading-tight text-muted-foreground/70">
+                            em {subCount} submissã{subCount === 1 ? "o" : "es"}
+                          </span>
+                        )}
                       </span>
-                    )}
-                  </span>
-                  {unread > 0 ? (
-                    <Badge className="mt-0.5 h-4 px-1.5 text-[10px] bg-primary text-primary-foreground">
-                      {unread}
-                    </Badge>
-                  ) : total > 0 ? (
-                    <span className="mt-0.5 text-[11px] text-muted-foreground tabular-nums">{total}</span>
-                  ) : null}
-                </button>
-              );
-            })}
+                      {unread > 0 ? (
+                        <Badge className="mt-0.5 h-4 px-1.5 text-[10px] bg-primary text-primary-foreground">
+                          {unread}
+                        </Badge>
+                      ) : total > 0 ? (
+                        <span className="mt-0.5 text-[11px] text-muted-foreground tabular-nums">{total}</span>
+                      ) : null}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </div>
-        ))}
+          );
+        })}
       </nav>
       <div className="border-t border-border/60 p-3 text-[10px] leading-relaxed text-muted-foreground">
         <p className="font-medium text-foreground/80">{t("inbox.sidebar.atalhos")}</p>
