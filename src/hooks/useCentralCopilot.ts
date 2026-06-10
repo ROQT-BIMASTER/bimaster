@@ -82,7 +82,7 @@ export function useCentralCopilot() {
     } finally {
       setSending(false);
     }
-  }, [threadId, v2]);
+  }, [threadId]);
 
   const applyProposal = useCallback(async (acaoId: string, password: string) => {
     try {
