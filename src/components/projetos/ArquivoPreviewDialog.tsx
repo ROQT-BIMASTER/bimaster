@@ -75,17 +75,35 @@ export function ArquivoPreviewDialog({ open, onOpenChange, arquivo, projetoId }:
               className="w-full h-[75vh] border-0 bg-background"
             />
           )}
-          {!isLoading && !isImage && !isPdf && (
+          {!isLoading && isVideo && url && (
+            <video
+              src={url}
+              controls
+              className="max-w-full max-h-[75vh] bg-black"
+            />
+          )}
+          {!isLoading && isAudio && url && (
+            <div className="flex flex-col items-center gap-3 py-16 w-full px-8">
+              <FileIcon className="h-12 w-12 opacity-40 text-muted-foreground" />
+              <audio src={url} controls className="w-full max-w-md" />
+            </div>
+          )}
+          {!isLoading && !hasInlinePreview && (
             <div className="flex flex-col items-center gap-3 py-16 text-muted-foreground">
-              <FileIcon className="h-14 w-14 opacity-40" />
-              <p className="text-sm">Pré-visualização não disponível para este tipo.</p>
+              <div className="relative">
+                <FileIcon className="h-14 w-14 opacity-40" />
+                <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 text-[10px] font-semibold bg-muted px-1.5 py-0.5 rounded border border-border/60 text-foreground/70">
+                  {extLabel}
+                </span>
+              </div>
+              <p className="text-sm">Pré-visualização não disponível para arquivos {extLabel}.</p>
               <Button size="sm" onClick={handleDownload}>
                 <Download className="h-4 w-4 mr-1.5" />
                 Baixar arquivo
               </Button>
             </div>
           )}
-          {!isLoading && (isImage || isPdf) && !url && (
+          {!isLoading && hasInlinePreview && !url && (
             <div className="flex flex-col items-center gap-2 text-muted-foreground py-16">
               <FileText className="h-10 w-10 opacity-40" />
               <p className="text-sm">Não foi possível carregar a pré-visualização.</p>
