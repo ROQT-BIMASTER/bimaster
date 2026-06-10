@@ -134,19 +134,15 @@ export async function wrapLegacyCopilotReply<T extends Record<string, unknown>>(
   try {
     await input.supabase.from("copilot_runs").insert({
       id: runId,
-      copilot_id: input.copilotId,
+      copilot_id: `${input.copilotId}@v2`,
       user_id: input.userId,
       request_id: input.requestId,
       model: input.model ?? null,
-      elapsed_ms: Date.now() - input.startedAtMs,
-      status: "ok",
-      meta: {
-        unverifiable_count: unverifiable,
-        executive_summary_stripped: strippedExec,
-        sources_count: sources.length,
-        rag_breach_blocked: 0,
-        contract_version: "v2.0",
-      },
+      citations_count: sources.length,
+      unverifiable_numbers: unverifiable,
+      rag_breach_blocked: 0,
+      latency_ms: Date.now() - input.startedAtMs,
+      error_code: strippedExec ? "exec_summary_stripped" : null,
     });
   } catch (_e) {
     // swallow

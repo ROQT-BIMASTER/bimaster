@@ -1,8 +1,10 @@
 ---
 name: Copilot v2 Rollout Pattern
-description: Wrappers `<copilot>-v2` aplicam contrato C1/C2 e logam `copilot_runs` por trás de feature flags `ff_copilot_v2_*`; legado intacto
+description: Wrappers `<copilot>-v2` aplicam contrato C1/C2, gravam `copilot_runs` com `copilot_id='<id>@v2'` e painel admin `/dashboard/admin/copilot-v2-rollout` controla flags `ff_copilot_v2_*`
 type: feature
 ---
+
+Observabilidade (Fase 6-prep): contract-wrap grava em `copilot_runs` usando colunas reais (`copilot_id` sufixado `@v2`, `citations_count`, `unverifiable_numbers`, `rag_breach_blocked`, `latency_ms`, `error_code='exec_summary_stripped'` quando aplica). RPCs `admin_copilot_v2_stats(p_days)` e `admin_set_copilot_v2_flag(p_codigo,p_ativo)` (SECURITY DEFINER, gated por `has_role(...,'admin')`) alimentam o painel `src/pages/admin/CopilotV2Rollout.tsx`. Critério de promoção para Fase 6: ≥80% v2 + ≤0,20 números não verificáveis por resposta durante 14 dias.
 
 Estratégia de migração incremental (Fases 1–4) sem reescrever os copilotos legados:
 
