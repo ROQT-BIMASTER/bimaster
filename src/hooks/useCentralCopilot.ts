@@ -60,7 +60,7 @@ export function useCentralCopilot() {
     setMessages((m) => [...m, optimistic]);
     try {
       const { data, error } = await supabase.functions.invoke(
-        v2 ? "central-copilot-v2" : "central-copilot",
+        "central-copilot-v2",
         { body: { thread_id: threadId ?? undefined, user_message: trimmed } },
       );
       if (error) throw error;
