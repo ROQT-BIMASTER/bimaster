@@ -25,6 +25,9 @@ export interface RrTaskMirror {
   rrtask_page_id: string;
   rr_produto_notion_id: string | null;
   created_at: string;
+  // tarefa-side (deep-link no Projetos)
+  projeto_id: string | null;
+  secao_id: string | null;
   // briefing-side
   briefing_id: string | null;
   rrtask_round: number | null;
