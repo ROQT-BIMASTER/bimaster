@@ -78,7 +78,41 @@ const toneClass: Record<string, string> = {
 
 export function RrTaskDrilldownSheet({ task, open, onOpenChange }: Props) {
   const navigate = useNavigate();
+  const { data: projetoLabels } = useProjetoSecaoLabels(
+    task?.projeto_id ?? null,
+    task?.secao_id ?? null,
+  );
   if (!task) return null;
+
+  const goToTarefa = () => {
+    if (!task.projeto_id) return;
+    const { url, state } = buildReturnToTarget(
+      `/dashboard/projetos/${task.projeto_id}?tarefa=${task.id}`,
+      "/dashboard/rr-tasks",
+      { fromLabel: "RR-Tasks (espelho)" },
+    );
+    navigate(url, { state });
+  };
+
+  const goToProjeto = () => {
+    if (!task.projeto_id) return;
+    const { url, state } = buildReturnToTarget(
+      `/dashboard/projetos/${task.projeto_id}`,
+      "/dashboard/rr-tasks",
+      { fromLabel: "RR-Tasks (espelho)" },
+    );
+    navigate(url, { state });
+  };
+
+  const goToBriefingCofre = () => {
+    if (!task.briefing_id) return;
+    const { url, state } = buildReturnToTarget(
+      `/dashboard/briefings/${task.briefing_id}?tab=cofre`,
+      "/dashboard/rr-tasks",
+      { fromLabel: "RR-Tasks (espelho)" },
+    );
+    navigate(url, { state });
+  };
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
