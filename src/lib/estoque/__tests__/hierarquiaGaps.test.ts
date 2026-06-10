@@ -53,7 +53,24 @@ describe("classificarGaps", () => {
     ];
     const r = classificarGaps(tree);
     expect(temAlgumGap(r)).toBe(false);
+
+  it("cenário real (7494→7496→7498): UN incluído pelo complemento vira faltante", () => {
+    // Reproduz o caso do print: BX com saldo, UN filho com saldo 0
+    // (oriundo do complemento BOM). Deve ser classificado como faltante,
+    // não como "sem_filhos_mapeados" no pai.
+    const tree = [
+      mk(7494, 1, 39, 39, "CX RUBYROSE", [
+        mk(7496, 2, 56, 56, "BX JOY", [mk(7498, 3, 0, 0, "UN JOY")]),
+        mk(7501, 2, 56, 56, "BX JEALOUSY", [mk(7503, 3, 0, 0, "UN JEALOUSY")]),
+      ]),
+    ];
+    const r = classificarGaps(tree);
+    expect(r.semFilhosMapeados).toBe(0);
+    expect(r.faltantesUN).toBe(2);
+    expect(r.statusByCodigo.get(7496)).toBe("ok");
+    expect(r.statusByCodigo.get(7498)).toBe("faltante");
   });
+});
 
   it("usar=saldo respeita escolha", () => {
     const tree = [mk(1, 1, 10, 10, "CX", [mk(2, 2, 5, 0, "BX")])];
