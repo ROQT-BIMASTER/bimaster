@@ -26,6 +26,8 @@ Central de Trabalho — padronização do fuso horário Brasil em calendários:
 
 ---
 
+## v3.5.39
+
 Central de Trabalho — Kanban e atualização em tempo real:
 
 - Corrigido drag-and-drop do Kanban de "Minhas Tarefas": arrastar um cartão para **Atrasadas**, **Hoje** ou **A fazer** agora altera o prazo da tarefa (antes só **Concluídas** funcionava). Novo handler `handleChangePrazo` em `MinhasTarefasContent` atualiza `projeto_tarefas.data_prazo` e invalida a query; regras do board preservadas (não recua prazos futuros, reabre quando sai de "Concluídas").
