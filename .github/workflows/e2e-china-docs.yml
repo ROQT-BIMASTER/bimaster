@@ -32,15 +32,32 @@ jobs:
           npm i -g bun
           bun install --frozen-lockfile
           bunx playwright install --with-deps chromium
-      - name: Run E2E
+      - name: Run E2E (matriz de papéis)
         env:
+          E2E_ENV_NAME: ${{ matrix.env }}
+          STRICT_E2E: ${{ matrix.env == 'staging' && '1' || '0' }}
           E2E_BASE_URL: ${{ secrets.E2E_BASE_URL }}
-          E2E_TEST_EMAIL: ${{ secrets.E2E_TEST_EMAIL }}
-          E2E_TEST_PASSWORD: ${{ secrets.E2E_TEST_PASSWORD }}
           E2E_SUPABASE_URL: ${{ secrets.E2E_SUPABASE_URL }}
           E2E_SUPABASE_ANON_KEY: ${{ secrets.E2E_SUPABASE_ANON_KEY }}
           E2E_CHINA_SUBMISSAO_ID: ${{ secrets.E2E_CHINA_SUBMISSAO_ID }}
+          E2E_CHINA_OWNER_SUBMISSAO_ID: ${{ secrets.E2E_CHINA_OWNER_SUBMISSAO_ID }}
           E2E_CHINA_CHECKLIST_TIPO: ${{ vars.E2E_CHINA_CHECKLIST_TIPO || 'outros' }}
+          # Credenciais por papel (definidas no Environment do GH para cada env)
+          E2E_ADMIN_EMAIL: ${{ secrets.E2E_ADMIN_EMAIL }}
+          E2E_ADMIN_PASSWORD: ${{ secrets.E2E_ADMIN_PASSWORD }}
+          E2E_GERENTE_EMAIL: ${{ secrets.E2E_GERENTE_EMAIL }}
+          E2E_GERENTE_PASSWORD: ${{ secrets.E2E_GERENTE_PASSWORD }}
+          E2E_SUPERVISOR_EMAIL: ${{ secrets.E2E_SUPERVISOR_EMAIL }}
+          E2E_SUPERVISOR_PASSWORD: ${{ secrets.E2E_SUPERVISOR_PASSWORD }}
+          E2E_CHINA_OWNER_EMAIL: ${{ secrets.E2E_CHINA_OWNER_EMAIL }}
+          E2E_CHINA_OWNER_PASSWORD: ${{ secrets.E2E_CHINA_OWNER_PASSWORD }}
+          E2E_CHINA_OTHER_EMAIL: ${{ secrets.E2E_CHINA_OTHER_EMAIL }}
+          E2E_CHINA_OTHER_PASSWORD: ${{ secrets.E2E_CHINA_OTHER_PASSWORD }}
+          E2E_VENDEDOR_EMAIL: ${{ secrets.E2E_VENDEDOR_EMAIL }}
+          E2E_VENDEDOR_PASSWORD: ${{ secrets.E2E_VENDEDOR_PASSWORD }}
+          # Compat: spec antigo single-user
+          E2E_TEST_EMAIL: ${{ secrets.E2E_TEST_EMAIL }}
+          E2E_TEST_PASSWORD: ${{ secrets.E2E_TEST_PASSWORD }}
         run: bunx playwright test e2e/china-docs --reporter=list,html
       - name: Upload report
         if: always()
