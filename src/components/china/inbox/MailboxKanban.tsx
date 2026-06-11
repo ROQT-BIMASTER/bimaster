@@ -522,6 +522,9 @@ export function MailboxKanban({
         {columns.map((col) => {
           const Icon = col.icon;
           const list = byColumn.get(col.key) ?? [];
+          const itemList = byColumnItems.get(col.key) ?? [];
+          const count = viewMode === "item" ? itemList.length : list.length;
+          const emptyLabel = viewMode === "item" ? "Nenhum item" : "Nenhuma submissão";
           return (
             <div
               key={col.key}
@@ -537,7 +540,7 @@ export function MailboxKanban({
                   <Icon className="h-3.5 w-3.5 shrink-0 opacity-70" />
                   <span className="truncate text-[12px] font-semibold">{col.label}</span>
                   <Badge variant="secondary" className={cn("h-4 px-1.5 text-[10px] tabular-nums", col.tone)}>
-                    {list.length}
+                    {count}
                   </Badge>
                 </div>
                 <button
@@ -551,10 +554,20 @@ export function MailboxKanban({
               </div>
               <ScrollArea className="flex-1">
                 <div className="space-y-1.5 p-2">
-                  {list.length === 0 ? (
+                  {count === 0 ? (
                     <div className="rounded-sm border border-dashed border-border/60 px-2 py-6 text-center text-[10px] text-muted-foreground">
-                      Nenhuma submissão
+                      {emptyLabel}
                     </div>
+                  ) : viewMode === "item" ? (
+                    itemList.map(({ item, group }, idx) => (
+                      <ItemCard
+                        key={item.documento_id ?? `${group.submissao_id}-${col.key}-${idx}`}
+                        item={item}
+                        group={group}
+                        selected={selectedSubId === group.submissao_id}
+                        onClick={() => onSelectGroup(group)}
+                      />
+                    ))
                   ) : (
                     list.map((g) => (
                       <KanbanCard
