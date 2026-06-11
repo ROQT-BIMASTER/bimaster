@@ -12,7 +12,7 @@ import {
   ExternalLink, Loader2, Link2, Gavel, MessageSquare, X, Activity, ShieldCheck
 } from "lucide-react";
 import { VincularReadingTimeline } from "@/components/china/vincular/VincularReadingTimeline";
-import { VincularAprovacaoTab } from "@/components/china/vincular/VincularAprovacaoTab";
+
 import type { VincularInternalTab } from "@/hooks/useVincularTimelineNav";
 import { useDocumentosDaSubmissao, useCoresDaSubmissao } from "@/hooks/useChinaDocumentoVinculos";
 import { useDespachosPorSubmissao } from "@/hooks/useDespachoDocumentos";
