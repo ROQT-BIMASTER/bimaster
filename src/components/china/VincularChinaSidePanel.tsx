@@ -20,12 +20,9 @@ import { useSubmissaoChatUnread } from "@/hooks/useSubmissaoChatUnread";
 import { useChinaUserContext } from "@/hooks/useChinaUserContext";
 import { useCriarRevisao } from "@/hooks/useChinaRevisoes";
 import { CHINA_DOCUMENT_TYPES, DOCUMENT_CATEGORIES } from "@/lib/china-document-types";
-import { ProcessOrchestrationPanel } from "@/components/processo/ProcessOrchestrationPanel";
-import { DespachosPanel } from "@/components/processo/DespachosPanel";
 import { DispatchHistoryPanel } from "@/components/china/vincular/DispatchHistoryPanel";
-import { MesaDespachoTab } from "@/components/china/vincular/MesaDespachoTab";
-import { CaixaAlertasChinaPanel } from "@/components/china/vincular/CaixaAlertasChinaPanel";
 import { ChinaChatPanel } from "@/components/china/ChinaChatPanel";
+import { ChecklistC2BSheet } from "@/components/china/submissao-board/ChecklistC2BSheet";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
