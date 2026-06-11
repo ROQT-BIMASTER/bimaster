@@ -459,6 +459,34 @@ else
 fi
 
 
+echo "=== Invariante storage china-documentos — módulo 'china' deve liberar INSERT/SELECT/DELETE ==="
+# Simetria com policies de china_produto_documentos. Sem este token, usuários
+# china-puros voltam a receber STORAGE_DENIED ao re-assinar URL ou substituir
+# anexos de submissões de terceiros.
+STORAGE_BAD=0
+for pol in china_storage_insert_owned china_storage_select china_storage_delete; do
+  latest=$(grep -l "CREATE POLICY $pol" supabase/migrations 2>/dev/null | sort | tail -n1)
+  if [ -z "$latest" ]; then
+    echo "FAIL  policy $pol não foi (re)criada em nenhuma migration"
+    STORAGE_BAD=1
+    continue
+  fi
+  block=$(awk "/CREATE POLICY $pol/,/;/" "$latest")
+  if ! echo "$block" | grep -q "check_user_access(.*'china'"; then
+    echo "FAIL  policy $pol em $latest não inclui check_user_access(...,'china')"
+    STORAGE_BAD=1
+  fi
+done
+if [ "$STORAGE_BAD" -eq 0 ]; then
+  echo "OK   china_storage_{insert_owned,select,delete} liberam módulo 'china'."
+else
+  fail=1
+fi
+
+
+
+
+
 
 
 echo
