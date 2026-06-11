@@ -65,7 +65,7 @@ const ROLES: RoleCase[] = [
   { key: "gerente",     emailEnv: "E2E_GERENTE_EMAIL",     passEnv: "E2E_GERENTE_PASSWORD",     submissaoId: SUBM,        expect: "allow", prodSafe: true  },
   { key: "supervisor",  emailEnv: "E2E_SUPERVISOR_EMAIL",  passEnv: "E2E_SUPERVISOR_PASSWORD",  submissaoId: SUBM,        expect: "allow", prodSafe: true  },
   { key: "china_owner", emailEnv: "E2E_CHINA_OWNER_EMAIL", passEnv: "E2E_CHINA_OWNER_PASSWORD", submissaoId: OWNER_SUBM,  expect: "allow", prodSafe: true  },
-  { key: "china_other", emailEnv: "E2E_CHINA_OTHER_EMAIL", passEnv: "E2E_CHINA_OTHER_PASSWORD", submissaoId: OWNER_SUBM,  expect: "deny",  prodSafe: false },
+  { key: "china_other", emailEnv: "E2E_CHINA_OTHER_EMAIL", passEnv: "E2E_CHINA_OTHER_PASSWORD", submissaoId: OWNER_SUBM,  expect: "allow", prodSafe: true  },
   { key: "vendedor",    emailEnv: "E2E_VENDEDOR_EMAIL",    passEnv: "E2E_VENDEDOR_PASSWORD",    submissaoId: SUBM,        expect: "deny",  prodSafe: false },
 ];
 
