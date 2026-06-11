@@ -49,9 +49,17 @@ export function ProjetosLixeiraDialog({ open, onOpenChange }: Props) {
       const { error } = await (supabase as any).rpc("rpc_restaurar_projeto", { _projeto_id: id });
       if (error) throw error;
     },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["projetos-lixeira"] });
-      qc.invalidateQueries({ queryKey: ["projetos"] });
+    onSuccess: async () => {
+      await Promise.all([
+        qc.invalidateQueries({ queryKey: ["projetos-lixeira"] }),
+        qc.invalidateQueries({ queryKey: ["projetos"] }),
+        qc.invalidateQueries({ queryKey: ["projetos-metrics"] }),
+        qc.invalidateQueries({ queryKey: ["projetos-membros"] }),
+        qc.invalidateQueries({ queryKey: ["projetos-team-data"] }),
+        qc.invalidateQueries({ queryKey: ["projetos-list-filter"] }),
+        qc.invalidateQueries({ queryKey: ["projetos-list-simple"] }),
+        qc.invalidateQueries({ queryKey: ["projetos-colaboradores"] }),
+      ]);
       toast.success("Projeto restaurado");
       setPendente(null);
       setSenha("");
