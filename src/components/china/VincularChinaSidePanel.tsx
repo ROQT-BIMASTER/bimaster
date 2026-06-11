@@ -22,7 +22,7 @@ import { useCriarRevisao } from "@/hooks/useChinaRevisoes";
 import { CHINA_DOCUMENT_TYPES, DOCUMENT_CATEGORIES } from "@/lib/china-document-types";
 import { DispatchHistoryPanel } from "@/components/china/vincular/DispatchHistoryPanel";
 import { ChinaChatPanel } from "@/components/china/ChinaChatPanel";
-import { ChecklistC2BSheet } from "@/components/china/submissao-board/ChecklistC2BSheet";
+import { ChecklistSubmissaoSheet } from "@/components/china/submissao-board/ChecklistSubmissaoSheet";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -562,10 +562,10 @@ export function VincularChinaSidePanel({
       </AlertDialogContent>
     </AlertDialog>
 
-    <ChecklistC2BSheet
+    <ChecklistSubmissaoSheet
       open={checklistOpen}
       onOpenChange={setChecklistOpen}
-      submissaoId={submissao.id}
+      submissao={submissao}
     />
     </>
   );

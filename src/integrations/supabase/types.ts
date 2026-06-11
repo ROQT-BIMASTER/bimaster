@@ -22945,6 +22945,7 @@ export type Database = {
           etapa_atual_ordem: number
           id: string
           lote_nome: string | null
+          metadata: Json
           politica_movimentacao: string
           prazo_lote: string | null
           produto_brasil_id: string | null
@@ -22966,6 +22967,7 @@ export type Database = {
           etapa_atual_ordem?: number
           id?: string
           lote_nome?: string | null
+          metadata?: Json
           politica_movimentacao?: string
           prazo_lote?: string | null
           produto_brasil_id?: string | null
@@ -22987,6 +22989,7 @@ export type Database = {
           etapa_atual_ordem?: number
           id?: string
           lote_nome?: string | null
+          metadata?: Json
           politica_movimentacao?: string
           prazo_lote?: string | null
           produto_brasil_id?: string | null
@@ -53527,6 +53530,17 @@ export type Database = {
           p_politica?: string
           p_prazo_lote?: string
           p_tarefa_id: string
+        }
+        Returns: string
+      }
+      rpc_criar_lote_aprovacao_b2c: {
+        Args: {
+          p_b2c_item_ids: string[]
+          p_config_id: string
+          p_lote_nome: string
+          p_politica?: string
+          p_prazo_lote?: string
+          p_submissao_id: string
         }
         Returns: string
       }
