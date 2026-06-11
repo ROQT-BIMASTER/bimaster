@@ -979,6 +979,16 @@ export default function ProjetoVincularChina() {
         produtoNome={selectedSubmissao?.produto_nome}
       />
 
+      {/* Continuar no projeto — cria ou vincula projeto-espelho */}
+      <ContinuarNoProjetoDialog
+        open={continuarProjetoOpen}
+        onOpenChange={setContinuarProjetoOpen}
+        submissaoId={selectedSubmissaoId}
+        produtoCodigo={selectedSubmissao?.produto_codigo}
+        produtoNome={selectedSubmissao?.produto_nome}
+      />
+
+
       {/* Desvincular confirmation */}
       <AlertDialog open={!!desvincularTarget} onOpenChange={open => { if (!open) setDesvincularTarget(null); }}>
         <AlertDialogContent>
