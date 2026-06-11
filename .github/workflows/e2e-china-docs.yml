@@ -1,0 +1,51 @@
+name: e2e-china-docs
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Ambiente alvo (dev | staging | production)"
+        required: true
+        default: "staging"
+  schedule:
+    # Roda diariamente em staging para detectar regressão antes de promoção.
+    - cron: "0 8 * * *"
+
+jobs:
+  upload-flow:
+    name: Upload → DB → Preview → Download (${{ matrix.env }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        env:
+          - dev
+          - staging
+          - production
+    environment: ${{ matrix.env }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Install deps
+        run: |
+          npm i -g bun
+          bun install --frozen-lockfile
+          bunx playwright install --with-deps chromium
+      - name: Run E2E
+        env:
+          E2E_BASE_URL: ${{ secrets.E2E_BASE_URL }}
+          E2E_TEST_EMAIL: ${{ secrets.E2E_TEST_EMAIL }}
+          E2E_TEST_PASSWORD: ${{ secrets.E2E_TEST_PASSWORD }}
+          E2E_SUPABASE_URL: ${{ secrets.E2E_SUPABASE_URL }}
+          E2E_SUPABASE_ANON_KEY: ${{ secrets.E2E_SUPABASE_ANON_KEY }}
+          E2E_CHINA_SUBMISSAO_ID: ${{ secrets.E2E_CHINA_SUBMISSAO_ID }}
+          E2E_CHINA_CHECKLIST_TIPO: ${{ vars.E2E_CHINA_CHECKLIST_TIPO || 'outros' }}
+        run: bunx playwright test e2e/china-docs --reporter=list,html
+      - name: Upload report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-${{ matrix.env }}
+          path: playwright-report/
+          retention-days: 14
