@@ -53535,7 +53535,7 @@ export type Database = {
       }
       rpc_criar_lote_aprovacao_b2c: {
         Args: {
-          p_b2c_item_ids: string[]
+          p_brasil_envia_tipos: string[]
           p_config_id: string
           p_lote_nome: string
           p_politica?: string
