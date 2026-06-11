@@ -465,7 +465,7 @@ echo "=== Invariante storage china-documentos — módulo 'china' deve liberar I
 # anexos de submissões de terceiros.
 STORAGE_BAD=0
 for pol in china_storage_insert_owned china_storage_select china_storage_delete; do
-  latest=$(grep -l "CREATE POLICY $pol" supabase/migrations 2>/dev/null | sort | tail -n1)
+  latest=$(grep -rl "CREATE POLICY $pol" supabase/migrations 2>/dev/null | sort | tail -n1)
   if [ -z "$latest" ]; then
     echo "FAIL  policy $pol não foi (re)criada em nenhuma migration"
     STORAGE_BAD=1
