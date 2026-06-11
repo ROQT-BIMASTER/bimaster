@@ -325,18 +325,9 @@ export function VincularChinaSidePanel({
               <Link2 className="h-3 w-3" />Projeto
             </TabsTrigger>
           )}
-          <TabsTrigger value="despacho" className="text-xs h-7 gap-1">
-            <Gavel className="h-3 w-3" />Despacho
-          </TabsTrigger>
-          <TabsTrigger value="mesa" className="text-xs h-7 gap-1">
-            <Gavel className="h-3 w-3" />Mesa
-          </TabsTrigger>
           <TabsTrigger value="documentos" className="text-xs h-7 gap-1">
             <FileText className="h-3 w-3" />Docs
             {totalPendentes > 0 && <Badge variant="destructive" className="text-[8px] h-3.5 px-1 ml-0.5">{totalPendentes}</Badge>}
-          </TabsTrigger>
-          <TabsTrigger value="aprovacao" className="text-xs h-7 gap-1">
-            <ShieldCheck className="h-3 w-3" />Aprovação
           </TabsTrigger>
           <TabsTrigger value="timeline" className="text-xs h-7 gap-1">
             <Activity className="h-3 w-3" />Timeline
@@ -345,11 +336,6 @@ export function VincularChinaSidePanel({
             <MessageSquare className="h-3 w-3" />Chat
             {chatUnread > 0 && <Badge className="text-[8px] h-3.5 px-1 ml-0.5 bg-primary text-primary-foreground">{chatUnread}</Badge>}
           </TabsTrigger>
-          {isLinkedToProject && (
-            <TabsTrigger value="processo" className="text-xs h-7 gap-1">
-              <Gavel className="h-3 w-3" />Processo
-            </TabsTrigger>
-          )}
         </TabsList>
 
         <ScrollArea className="flex-1">
