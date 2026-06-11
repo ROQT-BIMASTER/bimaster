@@ -76,7 +76,7 @@ function columnForChina(g: MailboxGroup): ColumnKey {
   if (p.em_analise > 0) return "in_analysis";
   if (p.enviados > 0) return "sent_brazil";
   // Fallback pelo status da submissão.
-  if (g.submissao_status === "enviado_brasil") return "sent_brazil";
+  if (g.submissao_status === "enviado_brasil" || g.submissao_status === "enviado_parcial") return "sent_brazil";
   if (g.submissao_status === "em_revisao" || g.submissao_status === "enviado") return "in_analysis";
   return "awaiting_send";
 }
