@@ -661,19 +661,25 @@ export function MailboxKanban({
                         item={item}
                         group={group}
                         selected={selectedSubId === group.submissao_id}
-                        onClick={() => onSelectGroup(group)}
+                        onClick={() => onSelectGroup(group, item)}
                       />
                     ))
                   ) : (
-                    list.map((g) => (
-                      <KanbanCard
-                        key={g.submissao_id}
-                        group={g}
-                        perspective={perspective}
-                        selected={selectedSubId === g.submissao_id}
-                        onClick={() => onSelectGroup(g)}
-                      />
-                    ))
+                    list.map((g) => {
+                      const hint =
+                        (g.docs || []).find((d: any) => !d.is_virtual && (d.arquivo_path || d.arquivo_url)) ??
+                        (g.docs || []).find((d: any) => !d.is_virtual) ??
+                        (g.docs || [])[0];
+                      return (
+                        <KanbanCard
+                          key={g.submissao_id}
+                          group={g}
+                          perspective={perspective}
+                          selected={selectedSubId === g.submissao_id}
+                          onClick={() => onSelectGroup(g, hint)}
+                        />
+                      );
+                    })
                   )}
                 </div>
               </ScrollArea>
