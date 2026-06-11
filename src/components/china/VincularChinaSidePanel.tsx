@@ -494,13 +494,7 @@ export function VincularChinaSidePanel({
             />
           </TabsContent>
 
-          {/* Aprovação Tab */}
-          <TabsContent value="aprovacao" className="m-0 p-0 h-[calc(100vh-220px)] min-h-[400px]">
-            <VincularAprovacaoTab
-              submissaoId={submissao.id}
-              produtoNome={submissao.produto_nome}
-            />
-          </TabsContent>
+          {/* Aprovação Tab — removida da Mesa: aprovações acontecem na Central */}
 
           {/* Timeline Tab */}
           <TabsContent value="timeline" className="m-0 p-0 h-[calc(100vh-220px)] min-h-[400px]">
@@ -514,26 +508,7 @@ export function VincularChinaSidePanel({
             />
           </TabsContent>
 
-          {/* Processo Tab */}
-          {isLinkedToProject && (
-            <TabsContent value="processo" className="m-0 p-4 space-y-4">
-              <ProcessOrchestrationPanel
-                submissaoId={submissao.id}
-                submissaoNome={submissao.produto_nome}
-                submissaoCodigo={submissao.produto_codigo}
-              />
-              <DespachosPanel submissaoId={submissao.id} documentos={documentos} />
-              <Button
-                variant="outline"
-                size="sm"
-                className="w-full gap-2"
-                onClick={() => onDecisionClick(submissao.id)}
-              >
-                <Gavel className="h-4 w-4" />
-                Decisão Formal do Brasil
-              </Button>
-            </TabsContent>
-          )}
+          {/* Processo Tab — removida da Mesa: continua disponível no projeto */}
           </>
           )}
         </ScrollArea>
