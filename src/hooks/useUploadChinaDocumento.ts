@@ -226,13 +226,14 @@ export function useUploadChinaDocumento() {
 
         // 5. Upload com retry/timeout/abort.
         const up = await uploadWithRetry(path, file);
-        if (!up.ok) {
-          setError(up.failure.message);
-          toast.error(up.failure.message);
+        if (up.ok === false) {
+          const failure = up.failure;
+          setError(failure.message);
+          toast.error(failure.message);
           logger.error("Upload China — storage", {
             action: "china_upload_storage_fail",
             metadata: {
-              code: up.failure.code,
+              code: failure.code,
               submissaoId,
               tipo: safeTipo,
               size: file.size,
