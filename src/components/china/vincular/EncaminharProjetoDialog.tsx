@@ -31,18 +31,21 @@ export function EncaminharProjetoDialog({
   const [tarefa, setTarefa] = useState<{ id: string; titulo: string; secao_id: string | null } | null>(null);
   const [obs, setObs] = useState("");
   const [configurarOpen, setConfigurarOpen] = useState(false);
+  const [autoApplied, setAutoApplied] = useState(false);
 
   const { data: projetos = [], isLoading: loadingProjetos } = useProjetosParaVinculo();
   const { data: secoesData, isLoading: loadingTarefas } = useSecoesETarefas(projeto?.id ?? null);
   const { data: smart } = useEncaminhamentoSmartDefaults(open ? submissaoId : null);
   const enviar = useEncaminharProjetoTarefa();
 
-  // Pre-seleciona projeto recomendado ao abrir o diálogo (sem sobrescrever escolha manual)
+  // Pre-seleciona projeto recomendado apenas uma vez por abertura (não re-aplica após "Trocar")
   useEffect(() => {
-    if (open && smart?.projeto && !projeto) {
+    if (open && smart?.projeto && !autoApplied && !projeto) {
       setProjeto({ id: smart.projeto.id, nome: smart.projeto.nome, cor: smart.projeto.cor ?? undefined });
+      setAutoApplied(true);
     }
-  }, [open, smart?.projeto, projeto]);
+    if (!open) setAutoApplied(false);
+  }, [open, smart?.projeto, autoApplied, projeto]);
 
   const tarefas = (secoesData?.tarefas ?? []) as Array<{ id: string; titulo: string; secao_id: string | null; codigo?: string | null }>;
   const recomendadasIds = useMemo(
