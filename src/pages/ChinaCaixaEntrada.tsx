@@ -20,7 +20,7 @@ import { ChinaDocPreviewDialog } from "@/components/china/ChinaDocPreviewDialog"
 import { MailboxSidebar } from "@/components/china/inbox/MailboxSidebar";
 import { MailboxList } from "@/components/china/inbox/MailboxList";
 import { MailboxReadingPane } from "@/components/china/inbox/MailboxReadingPane";
-import { Sheet, SheetContent, SheetClose } from "@/components/ui/sheet";
+import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { ChinaInboxOCAba } from "@/components/china/inbox-oc/ChinaInboxOCAba";
 import { SnoozeMenu } from "@/components/china/inbox/SnoozeMenu";
 import {
@@ -138,13 +138,15 @@ export default function ChinaCaixaEntrada() {
       ? `${i.submissao_id}:virtual:${i.tipo_documento ?? "_"}`
       : i.documento_id ?? i.submissao_id;
 
-  // Auto-seleção em desktop: primeira mensagem
+  // Auto-seleção em desktop: primeira mensagem apenas no modo lista.
+  // No Kanban, a seleção abre um Sheet; ao fechar, não deve reabrir automaticamente.
   useEffect(() => {
     if (!isDesktop) return;
+    if (viewMode === "kanban") return;
     if (selectedId) return;
     if (items.length === 0) return;
     setSelectedId(itemRowId(items[0]));
-  }, [items, isDesktop, selectedId]);
+  }, [items, isDesktop, selectedId, viewMode]);
 
   const selectedItem = useMemo(() => {
     if (!selectedId) return null;
