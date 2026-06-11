@@ -103,74 +103,184 @@ interface CardProps {
   onClick: () => void;
 }
 
+// Mapeia o status do documento para um dos buckets visuais da barra/chips.
+type Bucket = "aprovado" | "rejeitado" | "em_analise" | "enviado" | "pendente";
+function bucketForDoc(d: MailboxItem): Bucket {
+  const s = (d.doc_status || "").toLowerCase();
+  if (s === "aprovado") return "aprovado";
+  if (s === "rejeitado") return "rejeitado";
+  if (s === "contestado") return "em_analise";
+  if (s === "enviado" || s === "enviado_brasil") {
+    // Documento enviado ao Brasil mas ainda não aberto = "enviado" (azul).
+    // Quando o Brasil abre, o backend muda para "em_analise" (ou contestado).
+    return "enviado";
+  }
+  return "pendente";
+}
+
+const BUCKET_META: Record<Bucket, { label: string; icon: typeof Check; cls: string; barCls: string }> = {
+  aprovado:   { label: "aprov.",  icon: Check,          cls: "text-emerald-600",          barCls: "bg-emerald-500" },
+  em_analise: { label: "análise", icon: Eye,            cls: "text-amber-600",            barCls: "bg-amber-500" },
+  enviado:    { label: "enviados",icon: Upload,         cls: "text-primary",              barCls: "bg-primary" },
+  pendente:   { label: "pend.",   icon: Circle,         cls: "text-muted-foreground",     barCls: "bg-muted-foreground/40" },
+  rejeitado:  { label: "devolv.", icon: AlertTriangle,  cls: "text-rose-600",             barCls: "bg-rose-500" },
+};
+
+function ProgressBar({ progress }: { progress: MailboxGroup["progress"] }) {
+  const total = progress.total;
+  if (total === 0) {
+    return (
+      <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-sm bg-muted/60" title="Sem checklist" />
+    );
+  }
+  const segs: Array<{ key: Bucket; n: number }> = [
+    { key: "aprovado",   n: progress.aprovados },
+    { key: "em_analise", n: progress.em_analise },
+    { key: "enviado",    n: progress.enviados },
+    { key: "rejeitado",  n: progress.rejeitados },
+    { key: "pendente",   n: progress.pendentes },
+  ];
+  return (
+    <div
+      className="mt-1.5 flex h-1.5 w-full overflow-hidden rounded-sm bg-muted/40"
+      title={`Aprovados ${progress.aprovados} · Em análise ${progress.em_analise} · Enviados ${progress.enviados} · Devolvidos ${progress.rejeitados} · Pendentes ${progress.pendentes}`}
+    >
+      {segs.map((s) =>
+        s.n > 0 ? (
+          <div
+            key={s.key}
+            className={cn("h-full", BUCKET_META[s.key].barCls)}
+            style={{ width: `${(s.n / total) * 100}%` }}
+          />
+        ) : null,
+      )}
+    </div>
+  );
+}
+
+interface ChipProps { bucket: Bucket; count: number; subnote?: string }
+function StatusChip({ bucket, count, subnote }: ChipProps) {
+  const meta = BUCKET_META[bucket];
+  const Icon = meta.icon;
+  const muted = count === 0;
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center gap-0.5 tabular-nums",
+        meta.cls,
+        muted && "opacity-40",
+      )}
+    >
+      <Icon className="h-2.5 w-2.5" />
+      <span>{count}</span>
+      {subnote && !muted && <span className="text-[9.5px] opacity-70">({subnote})</span>}
+    </span>
+  );
+}
+
+function ChecklistHover({ group }: { group: MailboxGroup }) {
+  return (
+    <div className="w-72 text-[11.5px]">
+      <div className="mb-1.5 flex items-center gap-1.5 border-b border-border/60 pb-1.5">
+        <span className="font-mono text-[10px] text-muted-foreground">{group.produto_codigo}</span>
+        <span className="truncate font-medium">{group.produto_nome}</span>
+      </div>
+      {group.docs.length === 0 ? (
+        <div className="py-2 text-center text-muted-foreground">Sem itens no checklist</div>
+      ) : (
+        <ul className="max-h-64 space-y-1 overflow-y-auto pr-1">
+          {group.docs.map((d, i) => {
+            const b = bucketForDoc(d);
+            const meta = BUCKET_META[b];
+            const Icon = meta.icon;
+            const label = d.tipo_documento_label || d.tipo_documento || "Item";
+            return (
+              <li key={d.documento_id ?? `${group.submissao_id}-${i}`} className="flex items-center gap-1.5">
+                <Icon className={cn("h-3 w-3 shrink-0", meta.cls)} />
+                <span className="flex-1 truncate">{label}</span>
+                <span className="shrink-0 text-[10px] text-muted-foreground">
+                  {safeRelative(d.created_at)}
+                </span>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+      <div className="mt-1.5 border-t border-border/60 pt-1 text-[10px] text-muted-foreground">
+        Clique no card para abrir no painel
+      </div>
+    </div>
+  );
+}
+
 function KanbanCard({ group, selected, perspective, onClick }: CardProps) {
   const { progress } = group;
-  const pendentesTotal = progress.pendentes + progress.em_analise + progress.enviados;
-  const hasRejeitados = progress.rejeitados > 0;
   const hasConversa = (group as any).has_conversation ?? false;
 
   const flowIcon = perspective === "china"
     ? <ArrowUpRight className="h-3 w-3 text-primary" />
     : <ArrowDownLeft className="h-3 w-3 text-emerald-500" />;
 
+  const pendSubnote = progress.anexados_rascunho > 0 ? `${progress.anexados_rascunho} anex.` : undefined;
+
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        "group w-full rounded-md border bg-card px-2.5 py-2 text-left transition-colors",
-        "hover:bg-muted/40 hover:border-primary/40",
-        selected
-          ? "border-primary/60 ring-1 ring-primary/30 bg-primary/5"
-          : "border-border",
-      )}
-    >
-      {/* Linha 1: código + nome */}
-      <div className="flex items-center gap-1.5">
-        {group.has_unread && (
-          <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-primary" title="Não lido" />
-        )}
-        <div className="mt-0">{flowIcon}</div>
-        <span className="shrink-0 text-[10.5px] font-medium tabular-nums text-muted-foreground">
-          {group.produto_codigo}
-        </span>
-        <span className="truncate text-[12px] font-medium leading-tight flex-1">
-          {group.produto_nome}
-        </span>
-        {group.is_flagged && <Star className="h-3 w-3 shrink-0 fill-amber-400 text-amber-400" />}
-      </div>
+    <HoverCard openDelay={250} closeDelay={80}>
+      <HoverCardTrigger asChild>
+        <button
+          type="button"
+          onClick={onClick}
+          className={cn(
+            "group w-full rounded-md border bg-card px-2.5 py-2 text-left transition-colors",
+            "hover:bg-muted/40 hover:border-primary/40",
+            selected
+              ? "border-primary/60 ring-1 ring-primary/30 bg-primary/5"
+              : "border-border",
+          )}
+        >
+          {/* Linha 1: código + nome */}
+          <div className="flex items-center gap-1.5">
+            {group.has_unread && (
+              <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-primary" title="Não lido" />
+            )}
+            <div className="mt-0">{flowIcon}</div>
+            <span className="shrink-0 text-[10.5px] font-medium tabular-nums text-muted-foreground">
+              {group.produto_codigo}
+            </span>
+            <span className="truncate text-[12px] font-medium leading-tight flex-1">
+              {group.produto_nome}
+            </span>
+            {group.is_flagged && <Star className="h-3 w-3 shrink-0 fill-amber-400 text-amber-400" />}
+          </div>
 
-      {/* Linha 2: chips agregados */}
-      <div className="mt-1.5 flex flex-wrap items-center gap-1">
-        <span className="inline-flex items-center gap-0.5 rounded-sm bg-muted/50 px-1 py-px text-[10px] tabular-nums text-muted-foreground">
-          {progress.total} doc{progress.total === 1 ? "" : "s"}
-        </span>
-        {pendentesTotal > 0 && (
-          <span className="inline-flex items-center gap-0.5 rounded-sm bg-amber-500/10 px-1 py-px text-[10px] tabular-nums text-amber-600">
-            {pendentesTotal} pend.
-          </span>
-        )}
-        {progress.aprovados > 0 && (
-          <span className="inline-flex items-center gap-0.5 rounded-sm bg-emerald-500/10 px-1 py-px text-[10px] tabular-nums text-emerald-600">
-            {progress.aprovados} aprov.
-          </span>
-        )}
-        {hasRejeitados && (
-          <span className="inline-flex items-center gap-0.5 rounded-sm bg-rose-500/10 px-1 py-px text-[10px] tabular-nums text-rose-600">
-            <AlertCircle className="h-2.5 w-2.5" />
-            {progress.rejeitados}
-          </span>
-        )}
-      </div>
+          {/* Barra de progresso segmentada */}
+          <ProgressBar progress={progress} />
 
-      {/* Linha 3: rodapé */}
-      <div className="mt-1.5 flex items-center justify-between text-[10px] text-muted-foreground">
-        <span>{safeRelative(group.latest_at)}</span>
-        {hasConversa && <MessageSquare className="h-3 w-3 opacity-70" />}
-      </div>
-    </button>
+          {/* Chips numéricos por status (posições fixas) */}
+          <div className="mt-1 flex items-center gap-2 text-[10px]">
+            <StatusChip bucket="aprovado"   count={progress.aprovados} />
+            <StatusChip bucket="em_analise" count={progress.em_analise} />
+            <StatusChip bucket="enviado"    count={progress.enviados} />
+            <StatusChip bucket="pendente"   count={progress.pendentes} subnote={pendSubnote} />
+            <StatusChip bucket="rejeitado"  count={progress.rejeitados} />
+          </div>
+
+          {/* Rodapé */}
+          <div className="mt-1.5 flex items-center justify-between text-[10px] text-muted-foreground">
+            <span>{safeRelative(group.latest_at)}</span>
+            <div className="flex items-center gap-1">
+              <span className="tabular-nums opacity-70">{progress.total} doc{progress.total === 1 ? "" : "s"}</span>
+              {hasConversa && <MessageSquare className="h-3 w-3 opacity-70" />}
+            </div>
+          </div>
+        </button>
+      </HoverCardTrigger>
+      <HoverCardContent side="right" align="start" className="w-auto p-2.5">
+        <ChecklistHover group={group} />
+      </HoverCardContent>
+    </HoverCard>
   );
 }
+
 
 export function MailboxKanban({
   items,
