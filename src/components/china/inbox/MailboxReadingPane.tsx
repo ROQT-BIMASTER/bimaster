@@ -22,6 +22,7 @@ import { InboxDirectionBand } from "./InboxDirectionBadge";
 import { ChinaTimelineButton } from "@/components/china/timeline/ChinaTimelineButton";
 import { useChinaI18n } from "@/hooks/useChinaI18n";
 import { useChinaDocThumbnail } from "@/hooks/useChinaDocThumbnail";
+import { ChecklistFlow, FlowItemFocusDrawer } from "./ChecklistFlow";
 
 interface Props {
   item: MailboxItem | null;
