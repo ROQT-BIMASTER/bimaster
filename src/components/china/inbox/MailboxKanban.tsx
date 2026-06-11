@@ -382,8 +382,9 @@ function ItemCard({ item, group, selected, onClick }: ItemCardProps) {
     rejeitado: "devolvido",
   } as const)[bucket];
 
+  const [hoverOpen, setHoverOpen] = useState(false);
   return (
-    <HoverCard openDelay={250} closeDelay={80}>
+    <HoverCard openDelay={250} closeDelay={80} open={hoverOpen} onOpenChange={setHoverOpen}>
       <HoverCardTrigger asChild>
         <button
           type="button"
