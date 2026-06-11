@@ -1,17 +1,19 @@
 import { useMemo, useState } from "react";
 import {
   FileEdit, Send, Eye, RotateCcw, CheckCircle2,
-  Inbox, XCircle, Star, AlertCircle, ArrowUpRight, ArrowDownLeft,
-  MessageSquare,
+  Inbox, XCircle, Star, ArrowUpRight, ArrowDownLeft,
+  MessageSquare, Check, Clock, Upload, Circle, AlertTriangle,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { cn } from "@/lib/utils";
 import { groupBySubmissao, type MailboxGroup } from "@/lib/china/groupMailboxItems";
 import type { MailboxItem, MailboxFolder } from "@/hooks/useChinaMailbox";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
+
 
 interface Props {
   items: MailboxItem[];
