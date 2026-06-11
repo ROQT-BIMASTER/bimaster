@@ -304,6 +304,14 @@ function KanbanCard({ group, selected, perspective, onClick }: CardProps) {
 
   const pendSubnote = progress.anexados_rascunho > 0 ? `${progress.anexados_rascunho} anex.` : undefined;
 
+  const previewDocs = (group.docs || [])
+    .filter((d: any) => !d.is_virtual && (d.arquivo_path || d.arquivo_url))
+    .slice(0, 3);
+  const extraPreview = Math.max(
+    0,
+    (group.docs || []).filter((d: any) => !d.is_virtual && (d.arquivo_path || d.arquivo_url)).length - previewDocs.length,
+  );
+
   const [hoverOpen, setHoverOpen] = useState(false);
   return (
     <HoverCard openDelay={250} closeDelay={80} open={hoverOpen} onOpenChange={setHoverOpen}>
@@ -333,6 +341,20 @@ function KanbanCard({ group, selected, perspective, onClick }: CardProps) {
             </span>
             {group.is_flagged && <Star className="h-3 w-3 shrink-0 fill-amber-400 text-amber-400" />}
           </div>
+
+          {/* Strip de pré-visualização (até 3 thumbs) */}
+          {previewDocs.length > 0 && (
+            <div className="mt-1.5 flex items-center gap-1">
+              {previewDocs.map((d: any, i: number) => (
+                <ItemThumb key={d.documento_id ?? `${group.submissao_id}-thumb-${i}`} item={d} size="sm" />
+              ))}
+              {extraPreview > 0 && (
+                <span className="ml-0.5 text-[10px] tabular-nums text-muted-foreground">
+                  +{extraPreview}
+                </span>
+              )}
+            </div>
+          )}
 
           {/* Barra de progresso segmentada */}
           <ProgressBar progress={progress} />
