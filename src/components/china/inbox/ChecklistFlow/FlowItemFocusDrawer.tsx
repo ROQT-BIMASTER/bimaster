@@ -39,6 +39,7 @@ export function FlowItemFocusDrawer({
   open,
   context,
   perspective,
+  group,
   onOpenChange,
   onEnviarBrasil,
   onOpenSubmissao,
@@ -47,14 +48,32 @@ export function FlowItemFocusDrawer({
   const [observacao, setObservacao] = useState("");
   const { uploadAndAttach, updateObservacaoChina, isUploading } = useUploadChinaDocumento();
 
+  // Live doc: deriva do group atual (reativo a invalidações de query pós-upload),
+  // caindo para o snapshot do context se group não foi passado.
+  const liveDoc: MailboxItem | null = (() => {
+    if (!context) return null;
+    if (group?.docs?.length) {
+      const matches = group.docs.filter((d) => d.tipo_documento === context.tipo);
+      if (matches.length > 0) {
+        matches.sort(
+          (a, b) =>
+            new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime(),
+        );
+        return matches[0];
+      }
+    }
+    return context.doc ?? null;
+  })();
+
   useEffect(() => {
-    setObservacao(context?.doc?.observacoes_china ?? "");
-  }, [context?.doc?.documento_id, context?.tipo, context?.submissaoId]);
+    setObservacao(liveDoc?.observacoes_china ?? "");
+  }, [liveDoc?.documento_id, context?.tipo, context?.submissaoId]);
 
   if (!context) return null;
 
-  const { bucket, doc, docType, tipo, category, submissaoId, produtoCodigo, produtoNome } =
-    context;
+  const { docType, tipo, category, submissaoId, produtoCodigo, produtoNome } = context;
+  const doc = liveDoc;
+  const bucket = bucketForDoc(doc);
   const tone = bucketToTone(bucket);
   const cfg = FLOW_TONE[tone];
   const BucketIcon = iconForBucket(bucket);
@@ -70,13 +89,16 @@ export function FlowItemFocusDrawer({
   const canUpload =
     (isChina && isChinaCategory) || (!isChina && isBrasilCategory);
 
-  // Botão "Enviar ao Brasil": só China, só categoria china_envia, doc anexado em rascunho.
+  // Botão "Enviar ao Brasil": China + categoria china_envia + doc anexado e
+  // ainda não aprovado/enviado. Cobre rascunho recém-anexado e reenvio após
+  // devolução (rejeitado).
+  const status = (doc?.doc_status || "").toLowerCase();
   const canEnviarBrasil =
     isChina &&
     isChinaCategory &&
     !!doc &&
     !!doc.documento_id &&
-    (doc.doc_status === "rascunho" || doc.doc_status === null) &&
+    (status === "" || status === "rascunho" || status === "pendente" || status === "rejeitado") &&
     !!onEnviarBrasil;
 
   const isRejected = bucket === "rejeitado";
