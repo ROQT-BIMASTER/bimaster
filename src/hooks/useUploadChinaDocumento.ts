@@ -11,6 +11,7 @@ import { useState, useCallback } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { uploadAndGetSignedUrl } from "@/lib/utils/storage-helper";
+import { sanitizeStorageSegment } from "@/lib/china/sanitizeTipoKey";
 import { toast } from "sonner";
 
 export interface UploadVars {
@@ -55,7 +56,8 @@ export function useUploadChinaDocumento() {
         }
 
         const safeName = file.name.replace(/[^\w.\-]+/g, "_");
-        const path = `${session.user.id}/${submissaoId}/${tipo}/${Date.now()}_${safeName}`;
+        const safeTipo = sanitizeStorageSegment(tipo);
+        const path = `${session.user.id}/${submissaoId}/${safeTipo}/${Date.now()}_${safeName}`;
 
         const { signedUrl, error: uploadError } = await uploadAndGetSignedUrl(
           "china-documentos",

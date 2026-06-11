@@ -685,7 +685,8 @@ export function ChinaChecklistFocusMode({
   const createItem = useMutation({
     mutationFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      const tipoKey = `custom_${Date.now()}_${addItemLabelPt.trim().toLowerCase().replace(/\s+/g, "_")}`;
+      const { sanitizeStorageSegment } = await import("@/lib/china/sanitizeTipoKey");
+      const tipoKey = `custom_${Date.now()}_${sanitizeStorageSegment(addItemLabelPt.trim().toLowerCase())}`;
       const tr = await autoTranslateLabel(
         { pt: addItemLabelPt.trim(), cn: addItemLabelCn.trim(), en: addItemLabelEn.trim() },
         { context: "Nome de item de checklist (documento China-Brasil)" },

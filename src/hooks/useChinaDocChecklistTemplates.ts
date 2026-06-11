@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { CHINA_DOCUMENT_TYPES, DOCUMENT_CATEGORIES } from "@/lib/china-document-types";
 import { autoTranslateLabel } from "@/lib/china/autoTranslateLabels";
+import { sanitizeStorageSegment } from "@/lib/china/sanitizeTipoKey";
 
 export interface DocChecklistTemplate {
   id: string;
@@ -257,10 +258,9 @@ export async function aplicarTemplateNaSubmissao(
       }
     }
 
-    const novoTipoKey = `custom_${Date.now()}_${Math.random().toString(36).slice(2, 7)}_${item.label_pt
-      .toLowerCase()
-      .replace(/\s+/g, "_")
-      .substring(0, 24)}`;
+    const novoTipoKey = `custom_${Date.now()}_${Math.random().toString(36).slice(2, 7)}_${sanitizeStorageSegment(
+      item.label_pt.toLowerCase(),
+    ).slice(0, 24)}`;
 
     const { error } = await (supabase as any)
       .from("china_checklist_custom_itens")
