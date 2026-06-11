@@ -253,7 +253,9 @@ export function ChecklistSubmissaoSheet({ open, onOpenChange, submissao }: Props
 
     {flowCtx && (
       <FlowItemFocusDrawer
-        ctx={flowCtx}
+        context={flowCtx}
+        group={group}
+        perspective="brasil"
         open={!!flowCtx}
         onOpenChange={(o) => { if (!o) setFlowCtx(null); }}
       />
