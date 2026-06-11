@@ -115,7 +115,7 @@ export function ChecklistSubmissaoSheet({ open, onOpenChange, submissao }: Props
   return (
     <>
       <Sheet open={open} onOpenChange={onOpenChange}>
-        <SheetContent side="right" className="w-full sm:max-w-2xl flex flex-col gap-0 p-0">
+        <SheetContent side="right" className="w-full sm:max-w-4xl lg:max-w-5xl xl:max-w-6xl flex flex-col gap-0 p-0">
           <SheetHeader className="border-b border-border px-4 py-3 space-y-1">
             <div className="flex items-center gap-2">
               <div className="h-8 w-8 rounded-md bg-primary/10 flex items-center justify-center shrink-0">
