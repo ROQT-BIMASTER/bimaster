@@ -797,6 +797,7 @@ export default function ProjetoVincularChina() {
                       onPreviewDoc={setPreviewDoc}
                       onEncaminharResponsavel={() => setEncaminharOpen(true)}
                       onEncaminharProjeto={() => setEncaminharProjetoOpen(true)}
+                      onContinuarNoProjeto={() => setContinuarProjetoOpen(true)}
                       onDecisionClick={(id) => { setDecisionProcessId(id); setDecisionOpen(true); }}
                       secoes={secoes}
                       tarefas={tarefas}
