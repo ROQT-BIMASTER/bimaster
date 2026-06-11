@@ -250,7 +250,32 @@ export function FlowItemFocusDrawer({
             }}
           />
 
-          {/* Observações */}
+          {/* Ações de parecer + histórico de revisões */}
+          {doc?.documento_id && (
+            <>
+              <DrawerParecerActions
+                documentoId={doc.documento_id}
+                submissaoId={submissaoId}
+                tipoDocumento={tipo}
+                tipoDocumentoLabel={labelPt}
+                bucket={bucket}
+                isReceiver={
+                  (isChina && isBrasilCategory) ||
+                  (!isChina && isChinaCategory)
+                }
+                isSender={
+                  (isChina && isChinaCategory) ||
+                  (!isChina && isBrasilCategory)
+                }
+              />
+              <DrawerRevisoesList
+                submissaoId={submissaoId}
+                documentoId={doc.documento_id}
+              />
+            </>
+          )}
+
+
           {isChina && isChinaCategory && (
             <div className="space-y-1.5">
               <label className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
