@@ -15087,6 +15087,77 @@ export type Database = {
         }
         Relationships: []
       }
+      estoque_etiqueta_produtos: {
+        Row: {
+          cod_produto: number
+          created_at: string
+          created_by: string | null
+          etiqueta_id: string
+          id: string
+        }
+        Insert: {
+          cod_produto: number
+          created_at?: string
+          created_by?: string | null
+          etiqueta_id: string
+          id?: string
+        }
+        Update: {
+          cod_produto?: number
+          created_at?: string
+          created_by?: string | null
+          etiqueta_id?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "estoque_etiqueta_produtos_etiqueta_id_fkey"
+            columns: ["etiqueta_id"]
+            isOneToOne: false
+            referencedRelation: "estoque_etiquetas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      estoque_etiquetas: {
+        Row: {
+          ativo: boolean
+          cor_hex: string
+          created_at: string
+          created_by: string | null
+          descricao: string | null
+          id: string
+          nome: string
+          updated_at: string
+          vigencia_fim: string | null
+          vigencia_inicio: string | null
+        }
+        Insert: {
+          ativo?: boolean
+          cor_hex?: string
+          created_at?: string
+          created_by?: string | null
+          descricao?: string | null
+          id?: string
+          nome: string
+          updated_at?: string
+          vigencia_fim?: string | null
+          vigencia_inicio?: string | null
+        }
+        Update: {
+          ativo?: boolean
+          cor_hex?: string
+          created_at?: string
+          created_by?: string | null
+          descricao?: string | null
+          id?: string
+          nome?: string
+          updated_at?: string
+          vigencia_fim?: string | null
+          vigencia_inicio?: string | null
+        }
+        Relationships: []
+      }
       estoque_lote_interno: {
         Row: {
           cod_produto: number
@@ -53689,6 +53760,76 @@ export type Database = {
           p_responde_a_id?: string
         }
         Returns: string
+      }
+      rpc_estoque_cores: {
+        Args: {
+          p_apenas_com_saldo?: boolean
+          p_busca?: string
+          p_campanha_ids?: string[]
+          p_com_pedido_pendente?: boolean
+          p_curva_fisica?: string[]
+          p_curva_monetaria?: string[]
+          p_empresas?: number[]
+          p_incluir_potencial?: boolean
+          p_limit?: number
+          p_linhas?: string[]
+          p_offset?: number
+          p_order_by?: string
+          p_order_dir?: string
+        }
+        Returns: {
+          abrev_par: string
+          cod_fabricante: string
+          cod_produto: number
+          curva_fisica: string
+          curva_monetaria: string
+          custo_total: number
+          custo_unitario: number
+          data_ultima_compra: string
+          detalhe_desmontagem: Json
+          empresa_par: number
+          estoque_bloqueado_endereco: number
+          estoque_bloqueado_produto: number
+          estoque_endereco: number
+          id: string
+          localizacao: string
+          lote: string
+          nome_linha: string
+          nome_prod: string
+          pedido_pendente: number
+          saldo: number
+          saldo_potencial_desmontagem: number
+          saldo_proprio: number
+          saldo_total_disponivel: number
+          sincronizado_em: string
+          tem_composicao_pai: boolean
+          total_count: number
+          unidade_medida: string
+          validade: string
+          valor_venda: number
+        }[]
+      }
+      rpc_estoque_cores_kpis: {
+        Args: {
+          p_apenas_com_saldo?: boolean
+          p_busca?: string
+          p_campanha_ids?: string[]
+          p_com_pedido_pendente?: boolean
+          p_curva_fisica?: string[]
+          p_curva_monetaria?: string[]
+          p_empresas?: number[]
+          p_incluir_potencial?: boolean
+          p_linhas?: string[]
+        }
+        Returns: {
+          itens_sem_saldo: number
+          total_custo: number
+          total_pedido_pendente: number
+          total_skus: number
+          total_unidades: number
+          total_unidades_potencial: number
+          total_valor_venda: number
+        }[]
       }
       rpc_fechar_container: {
         Args: { p_embarque_id: string }
