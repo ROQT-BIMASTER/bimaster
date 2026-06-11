@@ -522,10 +522,13 @@ export function useChinaMailbox(folder: MailboxFolder): UseChinaMailboxResult {
     // Pendentes de envio: regra centralizada em `awaitingSendRule` (parametrizável + testada).
     const matchAwaitingSend = (i: MailboxItem) => evaluateAwaitingSend(i).matches;
     // Enviadas ao Brasil: despachadas, doc ainda pendente (Brasil não abriu)
-    // Inclui status legado "enviado" como sinônimo de "enviado_brasil".
+    // Inclui status legado "enviado" e o novo "enviado_parcial" (envio fracionado
+    // via drag-and-drop ou single-doc) como sinônimos de "enviado_brasil".
     const matchSentBrazil = (i: MailboxItem) =>
       !i.is_deleted &&
-      (i.submissao_status === "enviado_brasil" || i.submissao_status === "enviado") &&
+      (i.submissao_status === "enviado_brasil" ||
+        i.submissao_status === "enviado_parcial" ||
+        i.submissao_status === "enviado") &&
       i.doc_status === "pendente";
     // Em análise no Brasil: SOMENTE itens de checklist que o Brasil já abriu/contestou.
     // Não inclui mais a submissão inteira em `em_revisao`, porque isso fazia
