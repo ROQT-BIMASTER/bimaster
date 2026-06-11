@@ -45,7 +45,7 @@ export function useViewModePreference<T extends string>(
         loadedFromDb.current = true;
         return;
       }
-      const remote = (data as { pref_value: string }).pref_value as T;
+      const remote = (data as unknown as { pref_value: string }).pref_value as T;
       if (remote && remote !== value) {
         setValue(remote);
         try { window.localStorage.setItem(lsKey, remote); } catch { /* ignore */ }
