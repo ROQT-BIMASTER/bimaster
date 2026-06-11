@@ -501,10 +501,12 @@ export function MailboxReadingPane({
         open={!!flowCtx}
         context={flowCtx}
         perspective={isBrasilUser ? "brasil" : "china"}
+        group={group ?? null}
         onOpenChange={(o) => { if (!o) setFlowCtx(null); }}
         onEnviarBrasil={onEnviarBrasil}
         onOpenSubmissao={(id) => goWithReturn(`/dashboard/fabrica-china/submissao/${id}`)}
       />
+
     </div>
   );
 }
