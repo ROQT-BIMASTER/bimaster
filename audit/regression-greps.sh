@@ -16,6 +16,9 @@ done
 SDK="$(mktemp)"
 cat "$SDK_TS" "$SDK_JS" "$SDK_PY" > "$SDK"
 trap 'rm -f "$SDK"' EXIT
+# Wrapper React que define SDK_VERSION (constante) e referencia docs/SDK_COVERAGE_MATRIX.md.
+# As checagens de versão/cobertura olham aqui, não dentro dos templates.
+SDK_WRAPPER="src/components/erp/SdkDownloadButtons.tsx"
 SPEC="src/components/erp/ApiDocumentation.tsx"
 VER="src/lib/version.ts"
 
