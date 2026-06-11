@@ -476,15 +476,45 @@ export function MailboxKanban({
             </>
           )}
         </div>
-        <Button
-          type="button"
-          variant={onlyUnread ? "default" : "outline"}
-          size="sm"
-          className="h-6 px-2 text-[10.5px]"
-          onClick={() => setOnlyUnread((v) => !v)}
-        >
-          {onlyUnread ? "Mostrar todas" : "Apenas não lidas"}
-        </Button>
+        <div className="flex items-center gap-1.5" aria-label="Modo de visualização do Kanban">
+          <div className="flex h-6 overflow-hidden rounded-md border border-border">
+            <button
+              type="button"
+              onClick={() => setViewMode("submission")}
+              className={cn(
+                "px-2 text-[10.5px] transition-colors",
+                viewMode === "submission"
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-card text-muted-foreground hover:text-foreground",
+              )}
+              title="Um card por submissão (visão agregada)"
+            >
+              Por submissão
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode("item")}
+              className={cn(
+                "px-2 text-[10.5px] transition-colors border-l border-border",
+                viewMode === "item"
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-card text-muted-foreground hover:text-foreground",
+              )}
+              title="Um card por documento do checklist (visão detalhada)"
+            >
+              Por item
+            </button>
+          </div>
+          <Button
+            type="button"
+            variant={onlyUnread ? "default" : "outline"}
+            size="sm"
+            className="h-6 px-2 text-[10.5px]"
+            onClick={() => setOnlyUnread((v) => !v)}
+          >
+            {onlyUnread ? "Mostrar todas" : "Apenas não lidas"}
+          </Button>
+        </div>
       </div>
 
       {/* Colunas */}
