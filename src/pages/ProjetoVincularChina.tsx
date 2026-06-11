@@ -750,8 +750,79 @@ export default function ProjetoVincularChina() {
               </Button>
             </div>
 
-      {/* Mailbox 3-pane layout */}
-      {(() => {
+      {/* Kanban view (default) */}
+      {viewMode === "kanban" && (() => {
+        const { rows: mailboxRows } = classifyVincularRows(tableData, flags, snoozes);
+        const selectedMailRow = mailboxRows.find((r) => r.id === selectedSubmissaoId) || null;
+
+        // Filtra os itens do kanban pelo KPI selecionado (status da submissão)
+        const filterByKpi = (arr: MailboxItem[]) => {
+          if (!kpiStatusFilter || kpiStatusFilter === "todos") return arr;
+          if (kpiStatusFilter === "vinculados" || kpiStatusFilter === "com_pendencias" || kpiStatusFilter === "atrasados") {
+            return arr;
+          }
+          return arr.filter((i) => i.submissao_status === kpiStatusFilter);
+        };
+        const kItems = filterByKpi(kanbanItems ?? []);
+        const kProgress = filterByKpi(kanbanProgressItems ?? []);
+
+        return (
+          <div className="h-[calc(100vh-260px)] overflow-hidden rounded-md border border-border bg-card/20">
+            <ResizablePanelGroup direction="horizontal">
+              <ResizablePanel defaultSize={selectedMailRow ? 60 : 100} minSize={40}>
+                <div className="h-full overflow-hidden">
+                  <MailboxKanban
+                    items={kItems}
+                    progressItems={kProgress}
+                    selectedId={selectedSubmissaoId}
+                    perspective="brasil"
+                    onJumpFolder={() => { /* Kanban tem colunas próprias */ }}
+                    onSelectGroup={(g, pick) => {
+                      setSelectedSubmissaoId(g.submissao_id);
+                      if (pick && !(pick as any).is_virtual) {
+                        const doc = (g.docs || []).find((d: any) => d.documento_id === pick.documento_id);
+                        if (doc) setPreviewDoc(doc);
+                      }
+                    }}
+                  />
+                </div>
+              </ResizablePanel>
+              {selectedMailRow && (
+                <>
+                  <ResizableHandle withHandle />
+                  <ResizablePanel defaultSize={40} minSize={28} maxSize={60}>
+                    <VincularChinaSidePanel
+                      submissao={selectedMailRow}
+                      isLinkedToProject={submissaoVinculadas.has(selectedMailRow.id)}
+                      selectedProjetoId={selectedProjetoId}
+                      onClose={() => setSelectedSubmissaoId(null)}
+                      onPreviewDoc={setPreviewDoc}
+                      onEncaminharResponsavel={() => setEncaminharOpen(true)}
+                      onEncaminharProjeto={() => setEncaminharProjetoOpen(true)}
+                      onContinuarNoProjeto={() => setContinuarProjetoOpen(true)}
+                      onDecisionClick={(id) => { setDecisionProcessId(id); setDecisionOpen(true); }}
+                      secoes={secoes}
+                      tarefas={tarefas}
+                      vinculos={vinculos}
+                      docVinculos={docVinculos}
+                      checkedTarefas={checkedTarefas}
+                      onToggleTarefa={handleToggleTarefa}
+                      onVincular={handleVincular}
+                      onToggleDocVinculo={handleToggleDocVinculo}
+                      vinculosPending={createVinculo.isPending || vinculando}
+                      auditResult={auditResult}
+                      auditLoading={auditLoading}
+                    />
+                  </ResizablePanel>
+                </>
+              )}
+            </ResizablePanelGroup>
+          </div>
+        );
+      })()}
+
+      {/* Mailbox 3-pane layout (Lista) */}
+      {viewMode === "list" && (() => {
         const { rows: mailboxRows, counts: folderCounts } = classifyVincularRows(tableData, flags, snoozes);
         const baseFolderItems = filterByFolder(mailboxRows, folder);
         const folderItems = (() => {
