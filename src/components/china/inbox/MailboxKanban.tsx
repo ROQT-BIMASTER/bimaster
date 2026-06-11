@@ -13,7 +13,7 @@ import { groupBySubmissao, type MailboxGroup } from "@/lib/china/groupMailboxIte
 import type { MailboxItem, MailboxFolder } from "@/hooks/useChinaMailbox";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { useMergedChinaChecklist } from "@/hooks/useMergedChinaChecklist";
+
 import { ItemThumb } from "@/components/china/inbox/ItemThumb";
 
 
