@@ -11,20 +11,24 @@ import { useUploadChinaDocumento } from "@/hooks/useUploadChinaDocumento";
 import {
   BUCKET_LABEL,
   FLOW_TONE,
+  bucketForDoc,
   bucketToTone,
   iconForBucket,
 } from "@/lib/china/flowTones";
 import type { FlowItemContext } from "./types";
 import type { MailboxItem } from "@/hooks/useChinaMailbox";
+import type { MailboxGroup } from "@/lib/china/groupMailboxItems";
 
 interface Props {
   open: boolean;
   context: FlowItemContext | null;
   perspective: "china" | "brasil";
+  group?: MailboxGroup | null;
   onOpenChange: (open: boolean) => void;
   onEnviarBrasil?: (item: MailboxItem) => void;
   onOpenSubmissao?: (submissaoId: string) => void;
 }
+
 
 /**
  * FlowItemFocusDrawer — Sheet focado para concluir uma etapa do checklist
