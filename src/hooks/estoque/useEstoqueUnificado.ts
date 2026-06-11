@@ -69,7 +69,7 @@ export function useEstoqueUnificado(opts: UseEstoqueUnificadoOpts) {
     queryKey: ['estoque-unificado', normalizedKey],
     placeholderData: keepPreviousData,
     staleTime: 60_000,
-    refetchInterval: 5 * 60_000,
+    refetchInterval: 30_000,
     refetchIntervalInBackground: false,
     queryFn: async () => {
       const consolidar = !!opts.consolidar;
@@ -545,7 +545,7 @@ export function useCapacidadeMontagem(empresa: number | null, raizCod: number | 
     queryKey: ['capacidade-montagem', empresa, raizCod],
     enabled: empresa != null && raizCod != null,
     staleTime: 60_000,
-    refetchInterval: 5 * 60_000,
+    refetchInterval: 30_000,
     refetchIntervalInBackground: false,
     queryFn: async () => {
       const { data, error } = await supabase
@@ -592,7 +592,7 @@ export function useEstoqueUnificadoSkus(empresa: number | null, raiz: number | n
     queryKey: ['estoque-unificado-skus', empresa, raiz],
     enabled: empresa != null && raiz != null,
     staleTime: 60_000,
-    refetchInterval: 5 * 60_000,
+    refetchInterval: 30_000,
     refetchIntervalInBackground: false,
     queryFn: async () => {
       const [viewRes, complRes] = await Promise.all([

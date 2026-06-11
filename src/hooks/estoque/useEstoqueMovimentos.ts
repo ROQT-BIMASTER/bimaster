@@ -23,7 +23,7 @@ export function useEstoqueMovimentos(empresa: number | null, paiCod: number | nu
     queryKey: ['estoque-movimentos', empresa, paiCod, limit],
     enabled: empresa != null && paiCod != null,
     staleTime: 15_000,
-    refetchInterval: 5 * 60_000,
+    refetchInterval: 30_000,
     refetchIntervalInBackground: false,
     queryFn: async () => {
       const { data, error } = await supabase
