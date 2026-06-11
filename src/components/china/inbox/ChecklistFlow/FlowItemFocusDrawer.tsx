@@ -50,6 +50,7 @@ export function FlowItemFocusDrawer({
 }: Props) {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [observacao, setObservacao] = useState("");
+  const [focusOpen, setFocusOpen] = useState(false);
   const { uploadAndAttach, updateObservacaoChina, isUploading } = useUploadChinaDocumento();
 
   // Live doc: deriva do group atual (reativo a invalidações de query pós-upload),
