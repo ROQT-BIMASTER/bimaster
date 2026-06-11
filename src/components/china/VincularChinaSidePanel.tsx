@@ -561,6 +561,12 @@ export function VincularChinaSidePanel({
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
+
+    <ChecklistC2BSheet
+      open={checklistOpen}
+      onOpenChange={setChecklistOpen}
+      submissaoId={submissao.id}
+    />
     </>
   );
 }
