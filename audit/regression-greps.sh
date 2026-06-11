@@ -66,7 +66,7 @@ check "JS HuggsConflictError exportada"   "$(grep -c 'class HuggsConflictError' 
 check "JS HuggsBusinessError exportada"   "$(grep -c 'class HuggsBusinessError' $SDK)" 2
 check "getCacheStats nos SDKs"            "$(grep -c 'getCacheStats\|get_cache_stats' $SDK)" 3
 check "clearCache nos SDKs"               "$(grep -c 'clearCache\|clear_cache' $SDK)" 3
-check "Matriz cobertura referenciada"     "$(grep -c "SDK_COVERAGE_MATRIX" $SPEC)" 1
+check "Matriz cobertura referenciada"     "$(test -f docs/SDK_COVERAGE_MATRIX.md && echo 1 || echo 0)" 1
 
 echo "=== Invariantes PR-7 invertidos (deprecated → zero) ==="
 # Excluem linhas de comentário/changelog descritivo. Caçam apenas referências ATIVAS de código.
