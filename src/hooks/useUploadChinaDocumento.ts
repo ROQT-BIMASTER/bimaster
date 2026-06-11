@@ -11,6 +11,7 @@ import { useState, useCallback } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { uploadAndGetSignedUrl } from "@/lib/utils/storage-helper";
+import { sanitizeStorageSegment } from "@/lib/china/sanitizeTipoKey";
 import { toast } from "sonner";
 
 export interface UploadVars {
