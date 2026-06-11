@@ -219,6 +219,35 @@ export function ProjetoHeader({
           </div>
         </div>
 
+        {/* Checklists China↔Brasil — apenas para projeto-espelho (tipo='china_submissao') */}
+        {isSubmissao && submissaoId && (
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className={cn("h-7 gap-1.5 text-xs", btnHover)}
+              onClick={() => setChecklistC2BOpen(true)}
+              title="Documentos enviados pela China"
+            >
+              <ArrowDownToLine className="h-3.5 w-3.5" />
+              Checklist China → Brasil
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className={cn("h-7 gap-1.5 text-xs", btnHover)}
+              onClick={() => setChecklistB2COpen(true)}
+              title="Documentos a enviar à China"
+            >
+              <ArrowUpFromLine className="h-3.5 w-3.5" />
+              Checklist Brasil → China
+              {b2cPendentes > 0 && (
+                <Badge variant="secondary" className="h-4 px-1 text-[9px]">{b2cPendentes}</Badge>
+              )}
+            </Button>
+          </div>
+        )}
+
         {/* Health panel inside hero */}
         {tarefas.length > 0 && (
           <div className="mt-4">
@@ -226,6 +255,22 @@ export function ProjetoHeader({
           </div>
         )}
       </div>
+
+      {/* Sheets dos checklists da submissão */}
+      {isSubmissao && (
+        <>
+          <ChecklistC2BSheet
+            open={checklistC2BOpen}
+            onOpenChange={setChecklistC2BOpen}
+            submissaoId={submissaoId}
+          />
+          <ChecklistB2CSheet
+            open={checklistB2COpen}
+            onOpenChange={setChecklistB2COpen}
+            submissaoId={submissaoId}
+          />
+        </>
+      )}
 
       {/* Tabs row — full width para evitar corte das abas finais */}
       <div className="flex items-center gap-2">
