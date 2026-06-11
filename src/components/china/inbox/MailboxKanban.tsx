@@ -435,6 +435,30 @@ export function MailboxKanban({
     return null;
   }, [selectedId, groups]);
 
+  // Modo "Por item": distribui cada documento do checklist na coluna
+  // correspondente ao seu próprio status (independente do gargalo da submissão).
+  const byColumnItems = useMemo(() => {
+    const map = new Map<ColumnKey, Array<{ item: MailboxItem; group: MailboxGroup }>>();
+    for (const c of columns) map.set(c.key, []);
+    if (viewMode !== "item") return map;
+    const TERMINAL: ColumnKey[] = ["approved", "rejected"];
+    for (const g of visibleGroups) {
+      for (const d of g.docs) {
+        const k = itemColumnFor(d, perspective);
+        if (!map.has(k)) continue;
+        map.get(k)!.push({ item: d, group: g });
+      }
+    }
+    for (const [key, arr] of map.entries()) {
+      if (TERMINAL.includes(key)) {
+        arr.sort((a, b) => (b.item.created_at || "").localeCompare(a.item.created_at || ""));
+      } else {
+        arr.sort((a, b) => (a.item.created_at || "").localeCompare(b.item.created_at || ""));
+      }
+    }
+    return map;
+  }, [viewMode, visibleGroups, columns, perspective]);
+
   return (
     <div className="flex h-full flex-col">
       {/* Header do board */}
