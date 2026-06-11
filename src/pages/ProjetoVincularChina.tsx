@@ -728,6 +728,28 @@ export default function ProjetoVincularChina() {
               onToggleCollapsed={() => setKpisOpen((v) => !v)}
             />
 
+            {/* Toggle Kanban / Lista */}
+            <div className="flex items-center justify-end gap-1">
+              <Button
+                size="sm"
+                variant={viewMode === "kanban" ? "default" : "outline"}
+                className="h-8 gap-1.5"
+                onClick={() => setViewMode("kanban")}
+              >
+                <LayoutGrid className="h-3.5 w-3.5" />
+                Kanban
+              </Button>
+              <Button
+                size="sm"
+                variant={viewMode === "list" ? "default" : "outline"}
+                className="h-8 gap-1.5"
+                onClick={() => setViewMode("list")}
+              >
+                <ListIcon className="h-3.5 w-3.5" />
+                Lista
+              </Button>
+            </div>
+
       {/* Mailbox 3-pane layout */}
       {(() => {
         const { rows: mailboxRows, counts: folderCounts } = classifyVincularRows(tableData, flags, snoozes);
