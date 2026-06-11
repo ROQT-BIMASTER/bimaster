@@ -409,7 +409,12 @@ export function MailboxKanban({
   onSelectGroup,
   onJumpFolder,
   perspective,
+  onDragSendDoc,
 }: Props) {
+  const [activeDrag, setActiveDrag] = useState<{ item: MailboxItem; group: MailboxGroup } | null>(null);
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+  );
   const [onlyUnread, setOnlyUnread] = useState(false);
 
   const viewModeStorageKey = `china.kanban.viewMode.${perspective}`;
