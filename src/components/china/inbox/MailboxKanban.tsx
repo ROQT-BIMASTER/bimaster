@@ -118,6 +118,20 @@ function bucketForDoc(d: MailboxItem): Bucket {
   return "pendente";
 }
 
+function itemColumnFor(d: MailboxItem, perspective: "china" | "brasil"): ColumnKey {
+  const b = bucketForDoc(d);
+  if (perspective === "brasil") {
+    if (b === "aprovado") return "approved";
+    if (b === "rejeitado") return "rejected";
+    return "inbox";
+  }
+  if (b === "aprovado") return "approved";
+  if (b === "rejeitado") return "returned";
+  if (b === "em_analise") return "in_analysis";
+  if (b === "enviado") return "sent_brazil";
+  return "awaiting_send";
+}
+
 const BUCKET_META: Record<Bucket, { label: string; icon: typeof Check; cls: string; barCls: string }> = {
   aprovado:   { label: "aprov.",  icon: Check,          cls: "text-emerald-600",          barCls: "bg-emerald-500" },
   em_analise: { label: "análise", icon: Eye,            cls: "text-amber-600",            barCls: "bg-amber-500" },
