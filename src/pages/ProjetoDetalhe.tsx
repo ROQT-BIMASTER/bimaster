@@ -254,6 +254,7 @@ export default function ProjetoDetalhe({ shared = false }: ProjetoDetalheProps =
               {activeTab === "chat" && <ProjetoChatTab projetoId={projeto.id} highlightMsgId={deepMensagemId} />}
               {activeTab === "arquivos" && <ProjetoArquivosView projetoId={projeto.id} darkBg={darkBg} />}
               {activeTab === "rr_board" && <RrTasksBoardView embedded />}
+              {activeTab === "submissao_board" && <SubmissaoChinaBoardView projetoId={projeto.id} />}
             </div>
           </div>
         </div>
