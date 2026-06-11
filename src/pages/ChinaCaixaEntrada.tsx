@@ -829,6 +829,7 @@ export default function ChinaCaixaEntrada() {
                       onRetryEnvio={lastEnvioVars && enviarBrasil.isError ? handleRetryEnvio : undefined}
                       compact
                       chatDefaultOpen={false}
+                      group={findGroup(sheetItem?.submissao_id)}
                     />
                   </div>
                 </>
