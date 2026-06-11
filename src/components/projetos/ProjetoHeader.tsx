@@ -241,7 +241,7 @@ export function ProjetoHeader({
               variant="outline"
               size="sm"
               className={cn("h-7 gap-1.5 text-xs", btnHover)}
-              onClick={() => setChecklistC2BOpen(true)}
+              onClick={() => setChecklistOpen(true)}
               title="Documentos enviados pela China"
             >
               <ArrowDownToLine className="h-3.5 w-3.5" />
@@ -251,7 +251,7 @@ export function ProjetoHeader({
               variant="outline"
               size="sm"
               className={cn("h-7 gap-1.5 text-xs", btnHover)}
-              onClick={() => setChecklistB2COpen(true)}
+              onClick={() => setChecklistOpen(true)}
               title="Documentos a enviar à China"
             >
               <ArrowUpFromLine className="h-3.5 w-3.5" />
@@ -271,20 +271,13 @@ export function ProjetoHeader({
         )}
       </div>
 
-      {/* Sheets dos checklists da submissão */}
+      {/* Painel unificado do checklist (mesma visualização da Caixa de Entrada China) */}
       {isSubmissao && (
-        <>
-          <ChecklistC2BSheet
-            open={checklistC2BOpen}
-            onOpenChange={setChecklistC2BOpen}
-            submissaoId={submissaoId}
-          />
-          <ChecklistB2CSheet
-            open={checklistB2COpen}
-            onOpenChange={setChecklistB2COpen}
-            submissaoId={submissaoId}
-          />
-        </>
+        <ChecklistSubmissaoSheet
+          open={checklistOpen}
+          onOpenChange={setChecklistOpen}
+          submissao={submissaoRow ?? null}
+        />
       )}
 
       {/* Tabs row — full width para evitar corte das abas finais */}
