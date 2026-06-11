@@ -9,10 +9,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
 import {
   Package, FileText, Camera, AlertTriangle, CheckCircle2,
-  ExternalLink, Loader2, Link2, Gavel, MessageSquare, X, Activity, ShieldCheck
+  ExternalLink, Loader2, Link2, MessageSquare, X, Activity, ShieldCheck
 } from "lucide-react";
 import { VincularReadingTimeline } from "@/components/china/vincular/VincularReadingTimeline";
-import { VincularAprovacaoTab } from "@/components/china/vincular/VincularAprovacaoTab";
+
 import type { VincularInternalTab } from "@/hooks/useVincularTimelineNav";
 import { useDocumentosDaSubmissao, useCoresDaSubmissao } from "@/hooks/useChinaDocumentoVinculos";
 import { useDespachosPorSubmissao } from "@/hooks/useDespachoDocumentos";
@@ -20,12 +20,9 @@ import { useSubmissaoChatUnread } from "@/hooks/useSubmissaoChatUnread";
 import { useChinaUserContext } from "@/hooks/useChinaUserContext";
 import { useCriarRevisao } from "@/hooks/useChinaRevisoes";
 import { CHINA_DOCUMENT_TYPES, DOCUMENT_CATEGORIES } from "@/lib/china-document-types";
-import { ProcessOrchestrationPanel } from "@/components/processo/ProcessOrchestrationPanel";
-import { DespachosPanel } from "@/components/processo/DespachosPanel";
 import { DispatchHistoryPanel } from "@/components/china/vincular/DispatchHistoryPanel";
-import { MesaDespachoTab } from "@/components/china/vincular/MesaDespachoTab";
-import { CaixaAlertasChinaPanel } from "@/components/china/vincular/CaixaAlertasChinaPanel";
 import { ChinaChatPanel } from "@/components/china/ChinaChatPanel";
+import { ChecklistC2BSheet } from "@/components/china/submissao-board/ChecklistC2BSheet";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -102,6 +99,7 @@ export function VincularChinaSidePanel({
   const [confirmAprovarOpen, setConfirmAprovarOpen] = useState(false);
   const [aprovarObs, setAprovarObs] = useState("");
   const [aprovando, setAprovando] = useState(false);
+  const [checklistOpen, setChecklistOpen] = useState(false);
 
   // Show brief loading state when switching submissions
   useEffect(() => {
@@ -268,12 +266,12 @@ export function VincularChinaSidePanel({
             </button>
             <button
               type="button"
-              onClick={() => onChangeTab?.("despacho")}
+              onClick={() => setChecklistOpen(true)}
               className="group flex flex-col items-center gap-1 rounded-md border border-border bg-background hover:bg-accent/40 hover:border-primary/40 transition-colors px-2 py-2"
-              title="Abrir despacho para um módulo"
+              title="Abrir checklist da submissão"
             >
-              <Gavel className="h-4 w-4 text-primary" />
-              <span className="text-[10px] font-medium text-foreground">Despacho</span>
+              <ShieldCheck className="h-4 w-4 text-primary" />
+              <span className="text-[10px] font-medium text-foreground">Checklist</span>
             </button>
             <button
               type="button"
@@ -327,18 +325,9 @@ export function VincularChinaSidePanel({
               <Link2 className="h-3 w-3" />Projeto
             </TabsTrigger>
           )}
-          <TabsTrigger value="despacho" className="text-xs h-7 gap-1">
-            <Gavel className="h-3 w-3" />Despacho
-          </TabsTrigger>
-          <TabsTrigger value="mesa" className="text-xs h-7 gap-1">
-            <Gavel className="h-3 w-3" />Mesa
-          </TabsTrigger>
           <TabsTrigger value="documentos" className="text-xs h-7 gap-1">
             <FileText className="h-3 w-3" />Docs
             {totalPendentes > 0 && <Badge variant="destructive" className="text-[8px] h-3.5 px-1 ml-0.5">{totalPendentes}</Badge>}
-          </TabsTrigger>
-          <TabsTrigger value="aprovacao" className="text-xs h-7 gap-1">
-            <ShieldCheck className="h-3 w-3" />Aprovação
           </TabsTrigger>
           <TabsTrigger value="timeline" className="text-xs h-7 gap-1">
             <Activity className="h-3 w-3" />Timeline
@@ -347,11 +336,6 @@ export function VincularChinaSidePanel({
             <MessageSquare className="h-3 w-3" />Chat
             {chatUnread > 0 && <Badge className="text-[8px] h-3.5 px-1 ml-0.5 bg-primary text-primary-foreground">{chatUnread}</Badge>}
           </TabsTrigger>
-          {isLinkedToProject && (
-            <TabsTrigger value="processo" className="text-xs h-7 gap-1">
-              <Gavel className="h-3 w-3" />Processo
-            </TabsTrigger>
-          )}
         </TabsList>
 
         <ScrollArea className="flex-1">
@@ -433,10 +417,6 @@ export function VincularChinaSidePanel({
             </TabsContent>
           )}
 
-          {/* Despacho Tab */}
-          <TabsContent value="despacho" className="m-0 p-4 space-y-3">
-            <DespachosPanel submissaoId={submissao.id} documentos={documentos} />
-          </TabsContent>
 
           {/* Documentos Tab */}
           <TabsContent value="documentos" className="m-0 p-4 space-y-4">
@@ -514,13 +494,7 @@ export function VincularChinaSidePanel({
             />
           </TabsContent>
 
-          {/* Aprovação Tab */}
-          <TabsContent value="aprovacao" className="m-0 p-0 h-[calc(100vh-220px)] min-h-[400px]">
-            <VincularAprovacaoTab
-              submissaoId={submissao.id}
-              produtoNome={submissao.produto_nome}
-            />
-          </TabsContent>
+          {/* Aprovação Tab — removida da Mesa: aprovações acontecem na Central */}
 
           {/* Timeline Tab */}
           <TabsContent value="timeline" className="m-0 p-0 h-[calc(100vh-220px)] min-h-[400px]">
@@ -534,26 +508,7 @@ export function VincularChinaSidePanel({
             />
           </TabsContent>
 
-          {/* Processo Tab */}
-          {isLinkedToProject && (
-            <TabsContent value="processo" className="m-0 p-4 space-y-4">
-              <ProcessOrchestrationPanel
-                submissaoId={submissao.id}
-                submissaoNome={submissao.produto_nome}
-                submissaoCodigo={submissao.produto_codigo}
-              />
-              <DespachosPanel submissaoId={submissao.id} documentos={documentos} />
-              <Button
-                variant="outline"
-                size="sm"
-                className="w-full gap-2"
-                onClick={() => onDecisionClick(submissao.id)}
-              >
-                <Gavel className="h-4 w-4" />
-                Decisão Formal do Brasil
-              </Button>
-            </TabsContent>
-          )}
+          {/* Processo Tab — removida da Mesa: continua disponível no projeto */}
           </>
           )}
         </ScrollArea>
@@ -606,6 +561,12 @@ export function VincularChinaSidePanel({
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
+
+    <ChecklistC2BSheet
+      open={checklistOpen}
+      onOpenChange={setChecklistOpen}
+      submissaoId={submissao.id}
+    />
     </>
   );
 }
