@@ -150,9 +150,22 @@ export default function ProjetoVincularChina() {
   const [encaminharOpen, setEncaminharOpen] = useState(false);
   const [encaminharProjetoOpen, setEncaminharProjetoOpen] = useState(false);
   const [continuarProjetoOpen, setContinuarProjetoOpen] = useState(false);
+  const [viewMode, setViewMode] = useState<"kanban" | "list">(() => {
+    if (typeof window === "undefined") return "kanban";
+    const v = window.localStorage.getItem("vincular-china.viewMode");
+    return v === "list" ? "list" : "kanban";
+  });
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem("vincular-china.viewMode", viewMode);
+    }
+  }, [viewMode]);
   const queryClient = useQueryClient();
   const toggleFlag = useToggleSubmissaoFlag();
   const { flags, snoozes } = useVincularChinaUserState();
+
+  // Mailbox data (Kanban view) — perspectiva Brasil
+  const { items: kanbanItems, progressItems: kanbanProgressItems } = useChinaMailbox("inbox");
 
   // Sincroniza estado relevante de volta para a URL (preserva refresh / share link)
   useEffect(() => {
