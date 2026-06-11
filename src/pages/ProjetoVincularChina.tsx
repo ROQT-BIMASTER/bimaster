@@ -147,6 +147,7 @@ export default function ProjetoVincularChina() {
   const [searchTerm, setSearchTerm] = useState(initialSearch);
   const [encaminharOpen, setEncaminharOpen] = useState(false);
   const [encaminharProjetoOpen, setEncaminharProjetoOpen] = useState(false);
+  const [continuarProjetoOpen, setContinuarProjetoOpen] = useState(false);
   const queryClient = useQueryClient();
   const toggleFlag = useToggleSubmissaoFlag();
   const { flags, snoozes } = useVincularChinaUserState();
