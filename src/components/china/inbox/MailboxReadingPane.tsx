@@ -241,17 +241,26 @@ export function MailboxReadingPane({
 
         {item.tipo_documento ? (
           <section className="space-y-2 rounded-md border border-border bg-card/40 p-3">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium">{item.tipo_documento}</p>
+            <div className="flex items-center justify-between gap-2">
+              <div className="min-w-0">
+                <p className="text-sm font-medium truncate">{item.tipo_documento}</p>
                 {item.nome_arquivo && (
-                  <p className="text-xs text-muted-foreground">{item.nome_arquivo}</p>
+                  <p className="text-xs text-muted-foreground truncate">{item.nome_arquivo}</p>
                 )}
               </div>
-              <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => onView(item)}>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-7 text-xs shrink-0"
+                onClick={() => onView(item)}
+                title="Abrir em tela cheia"
+              >
                 {t("inbox.actions.preVisualizar")}
               </Button>
             </div>
+            {(item.arquivo_path || item.arquivo_url) && !(item as any).is_virtual && (
+              <InlineDocPreview item={item} onOpenFull={() => onView(item)} />
+            )}
             {item.doc_status && (
               <p className="text-xs text-muted-foreground">
                 {t("inbox.doc.statusPrefix")} <span className="text-foreground">{item.doc_status}</span> ·{" "}
