@@ -10,9 +10,15 @@ interface Args {
 }
 
 /**
- * Envia uma submissão da China para o Brasil:
- *  1) Documentos rascunho da submissão → status "pendente"
- *  2) Submissão pai → status "enviado_brasil" + data_envio = now()
+ * Envia uma submissão (ou um único documento) da China para o Brasil.
+ *
+ * Regras de status da submissão pai (`china_produto_submissoes.status`):
+ *  - Envio em lote (sem `documento_id`)          → `enviado_brasil`
+ *  - Envio individual e todos os docs já saíram  → `enviado_brasil`
+ *  - Envio individual com docs ainda em rascunho → `enviado_parcial`
+ *
+ * O status `enviado_parcial` reflete envios fracionados do checklist e impede
+ * que o painel agregado "anuncie" envio completo enquanto ainda há rascunhos.
  */
 export function useEnviarDocumentoAoBrasil() {
   const qc = useQueryClient();
@@ -34,17 +40,39 @@ export function useEnviarDocumentoAoBrasil() {
         if (docErr) throw docErr;
       }
 
+      // Recalcula o status da submissão pai a partir do estado atual dos docs.
+      // Single-doc → pode ficar `enviado_parcial` se ainda há rascunhos.
+      // Lote (sem documento_id) → sempre `enviado_brasil`.
+      let nextStatus: "enviado_brasil" | "enviado_parcial" = "enviado_brasil";
+      if (documento_id) {
+        const { data: docs, error: listErr } = await (supabase
+          .from("china_produto_documentos" as any)
+          .select("status")
+          .eq("submissao_id", submissao_id) as any);
+        if (listErr) throw listErr;
+        const aindaRascunho = (docs ?? []).some(
+          (d: any) => (d?.status ?? "rascunho") === "rascunho",
+        );
+        nextStatus = aindaRascunho ? "enviado_parcial" : "enviado_brasil";
+      }
+
       const { error: subErr } = await supabase
         .from("china_produto_submissoes" as any)
         .update({
-          status: "enviado_brasil",
+          status: nextStatus,
           data_envio: new Date().toISOString(),
         } as any)
         .eq("id", submissao_id);
       if (subErr) throw subErr;
+
+      return { status_pai: nextStatus };
     },
-    onSuccess: () => {
-      toast.success("Submissão enviada ao Brasil / 已发送至巴西");
+    onSuccess: (res) => {
+      const msg =
+        res?.status_pai === "enviado_parcial"
+          ? "Documento enviado ao Brasil (envio parcial) / 已发送至巴西（部分）"
+          : "Submissão enviada ao Brasil / 已发送至巴西";
+      toast.success(msg);
       qc.invalidateQueries({ queryKey: ["china-mailbox-dataset"] });
       qc.invalidateQueries({ queryKey: ["china-stats"] });
       qc.invalidateQueries({ queryKey: ["vincular-china"] });
