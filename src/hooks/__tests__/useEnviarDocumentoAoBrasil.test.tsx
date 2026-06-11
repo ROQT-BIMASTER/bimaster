@@ -22,38 +22,22 @@ vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 vi.mock("@/integrations/supabase/client", () => {
   function builder(table: string) {
     const eqList: [string, any][] = [];
+    const state: { mode: "select" | "update" | null; patch: any } = { mode: null, patch: null };
     const api: any = {
-      _table: table,
-      select: (_cols: string) => api,
-      update: (patch: any) => {
-        api._mode = "update";
-        api._patch = patch;
-        return api;
-      },
-      eq: (col: string, val: any) => {
-        eqList.push([col, val]);
-        if (api._mode === "update") {
-          // resolve "update" como Promise; record call
-          return Promise.resolve({ error: null }).then((r) => {
-            updateCalls.push({ table, patch: api._patch, eq: eqList.slice() });
-            return r;
-          });
+      select: (_cols: string) => { state.mode = "select"; return api; },
+      update: (patch: any) => { state.mode = "update"; state.patch = patch; return api; },
+      eq: (col: string, val: any) => { eqList.push([col, val]); return api; },
+      then: (resolve: any, reject?: any) => {
+        if (state.mode === "update") {
+          updateCalls.push({ table, patch: state.patch, eq: eqList.slice() });
+          return Promise.resolve({ error: null }).then(resolve, reject);
         }
-        // chained eq for select continues
-        return api;
-      },
-      then: (resolve: any) => {
-        // when SELECT is awaited (no further eq), resolve with scenario data
-        return Promise.resolve({ data: docsScenario, error: null }).then(resolve);
+        return Promise.resolve({ data: docsScenario, error: null }).then(resolve, reject);
       },
     };
     return api;
   }
-  return {
-    supabase: {
-      from: (t: string) => builder(t),
-    },
-  };
+  return { supabase: { from: (t: string) => builder(t) } };
 });
 
 import { useEnviarDocumentoAoBrasil } from "@/hooks/useEnviarDocumentoAoBrasil";
