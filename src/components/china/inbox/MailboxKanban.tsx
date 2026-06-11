@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   FileEdit, Send, Eye, RotateCcw, CheckCircle2,
   Inbox, XCircle, Star, ArrowUpRight, ArrowDownLeft,
@@ -116,6 +116,20 @@ function bucketForDoc(d: MailboxItem): Bucket {
     return "enviado";
   }
   return "pendente";
+}
+
+function itemColumnFor(d: MailboxItem, perspective: "china" | "brasil"): ColumnKey {
+  const b = bucketForDoc(d);
+  if (perspective === "brasil") {
+    if (b === "aprovado") return "approved";
+    if (b === "rejeitado") return "rejected";
+    return "inbox";
+  }
+  if (b === "aprovado") return "approved";
+  if (b === "rejeitado") return "returned";
+  if (b === "em_analise") return "in_analysis";
+  if (b === "enviado") return "sent_brazil";
+  return "awaiting_send";
 }
 
 const BUCKET_META: Record<Bucket, { label: string; icon: typeof Check; cls: string; barCls: string }> = {
@@ -281,6 +295,65 @@ function KanbanCard({ group, selected, perspective, onClick }: CardProps) {
   );
 }
 
+interface ItemCardProps {
+  item: MailboxItem;
+  group: MailboxGroup;
+  selected: boolean;
+  onClick: () => void;
+}
+
+function ItemCard({ item, group, selected, onClick }: ItemCardProps) {
+  const bucket = bucketForDoc(item);
+  const meta = BUCKET_META[bucket];
+  const Icon = meta.icon;
+  const docLabel = item.tipo_documento_label || item.tipo_documento || "Item do checklist";
+  const statusLabel = ({
+    aprovado: "aprovado",
+    em_analise: "em análise",
+    enviado: "enviado",
+    pendente: "pendente",
+    rejeitado: "devolvido",
+  } as const)[bucket];
+
+  return (
+    <HoverCard openDelay={250} closeDelay={80}>
+      <HoverCardTrigger asChild>
+        <button
+          type="button"
+          onClick={onClick}
+          className={cn(
+            "group w-full rounded-md border bg-card px-2.5 py-1.5 text-left transition-colors",
+            "hover:bg-muted/40 hover:border-primary/40",
+            selected
+              ? "border-primary/60 ring-1 ring-primary/30 bg-primary/5"
+              : "border-border",
+          )}
+        >
+          <div className="flex items-center gap-1.5">
+            <Icon className={cn("h-3.5 w-3.5 shrink-0", meta.cls)} />
+            <span className="truncate text-[12px] font-medium leading-tight flex-1">
+              {docLabel}
+            </span>
+            {group.is_flagged && <Star className="h-3 w-3 shrink-0 fill-amber-400 text-amber-400" />}
+          </div>
+          <div className="mt-0.5 flex items-center gap-1 text-[10.5px] text-muted-foreground">
+            <span className="font-mono tabular-nums">{group.produto_codigo}</span>
+            <span className="opacity-60">·</span>
+            <span className="truncate">{group.produto_nome}</span>
+          </div>
+          <div className="mt-1 flex items-center justify-between text-[10px] text-muted-foreground">
+            <span>{safeRelative(item.created_at)}</span>
+            <span className={cn("tabular-nums", meta.cls)}>{statusLabel}</span>
+          </div>
+        </button>
+      </HoverCardTrigger>
+      <HoverCardContent side="right" align="start" className="w-auto p-2.5">
+        <ChecklistHover group={group} />
+      </HoverCardContent>
+    </HoverCard>
+  );
+}
+
 
 export function MailboxKanban({
   items,
@@ -291,6 +364,17 @@ export function MailboxKanban({
   perspective,
 }: Props) {
   const [onlyUnread, setOnlyUnread] = useState(false);
+
+  const viewModeStorageKey = `china.kanban.viewMode.${perspective}`;
+  const [viewMode, setViewMode] = useState<"submission" | "item">(() => {
+    if (typeof window === "undefined") return "submission";
+    const v = window.localStorage.getItem(viewModeStorageKey);
+    return v === "item" ? "item" : "submission";
+  });
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem(viewModeStorageKey, viewMode);
+  }, [viewMode, viewModeStorageKey]);
 
   const groups = useMemo(() => {
     const safeItems = items ?? [];
@@ -351,6 +435,30 @@ export function MailboxKanban({
     return null;
   }, [selectedId, groups]);
 
+  // Modo "Por item": distribui cada documento do checklist na coluna
+  // correspondente ao seu próprio status (independente do gargalo da submissão).
+  const byColumnItems = useMemo(() => {
+    const map = new Map<ColumnKey, Array<{ item: MailboxItem; group: MailboxGroup }>>();
+    for (const c of columns) map.set(c.key, []);
+    if (viewMode !== "item") return map;
+    const TERMINAL: ColumnKey[] = ["approved", "rejected"];
+    for (const g of visibleGroups) {
+      for (const d of g.docs) {
+        const k = itemColumnFor(d, perspective);
+        if (!map.has(k)) continue;
+        map.get(k)!.push({ item: d, group: g });
+      }
+    }
+    for (const [key, arr] of map.entries()) {
+      if (TERMINAL.includes(key)) {
+        arr.sort((a, b) => (b.item.created_at || "").localeCompare(a.item.created_at || ""));
+      } else {
+        arr.sort((a, b) => (a.item.created_at || "").localeCompare(b.item.created_at || ""));
+      }
+    }
+    return map;
+  }, [viewMode, visibleGroups, columns, perspective]);
+
   return (
     <div className="flex h-full flex-col">
       {/* Header do board */}
@@ -368,15 +476,45 @@ export function MailboxKanban({
             </>
           )}
         </div>
-        <Button
-          type="button"
-          variant={onlyUnread ? "default" : "outline"}
-          size="sm"
-          className="h-6 px-2 text-[10.5px]"
-          onClick={() => setOnlyUnread((v) => !v)}
-        >
-          {onlyUnread ? "Mostrar todas" : "Apenas não lidas"}
-        </Button>
+        <div className="flex items-center gap-1.5" aria-label="Modo de visualização do Kanban">
+          <div className="flex h-6 overflow-hidden rounded-md border border-border">
+            <button
+              type="button"
+              onClick={() => setViewMode("submission")}
+              className={cn(
+                "px-2 text-[10.5px] transition-colors",
+                viewMode === "submission"
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-card text-muted-foreground hover:text-foreground",
+              )}
+              title="Um card por submissão (visão agregada)"
+            >
+              Por submissão
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode("item")}
+              className={cn(
+                "px-2 text-[10.5px] transition-colors border-l border-border",
+                viewMode === "item"
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-card text-muted-foreground hover:text-foreground",
+              )}
+              title="Um card por documento do checklist (visão detalhada)"
+            >
+              Por item
+            </button>
+          </div>
+          <Button
+            type="button"
+            variant={onlyUnread ? "default" : "outline"}
+            size="sm"
+            className="h-6 px-2 text-[10.5px]"
+            onClick={() => setOnlyUnread((v) => !v)}
+          >
+            {onlyUnread ? "Mostrar todas" : "Apenas não lidas"}
+          </Button>
+        </div>
       </div>
 
       {/* Colunas */}
@@ -384,6 +522,9 @@ export function MailboxKanban({
         {columns.map((col) => {
           const Icon = col.icon;
           const list = byColumn.get(col.key) ?? [];
+          const itemList = byColumnItems.get(col.key) ?? [];
+          const count = viewMode === "item" ? itemList.length : list.length;
+          const emptyLabel = viewMode === "item" ? "Nenhum item" : "Nenhuma submissão";
           return (
             <div
               key={col.key}
@@ -399,7 +540,7 @@ export function MailboxKanban({
                   <Icon className="h-3.5 w-3.5 shrink-0 opacity-70" />
                   <span className="truncate text-[12px] font-semibold">{col.label}</span>
                   <Badge variant="secondary" className={cn("h-4 px-1.5 text-[10px] tabular-nums", col.tone)}>
-                    {list.length}
+                    {count}
                   </Badge>
                 </div>
                 <button
@@ -413,10 +554,20 @@ export function MailboxKanban({
               </div>
               <ScrollArea className="flex-1">
                 <div className="space-y-1.5 p-2">
-                  {list.length === 0 ? (
+                  {count === 0 ? (
                     <div className="rounded-sm border border-dashed border-border/60 px-2 py-6 text-center text-[10px] text-muted-foreground">
-                      Nenhuma submissão
+                      {emptyLabel}
                     </div>
+                  ) : viewMode === "item" ? (
+                    itemList.map(({ item, group }, idx) => (
+                      <ItemCard
+                        key={item.documento_id ?? `${group.submissao_id}-${col.key}-${idx}`}
+                        item={item}
+                        group={group}
+                        selected={selectedSubId === group.submissao_id}
+                        onClick={() => onSelectGroup(group)}
+                      />
+                    ))
                   ) : (
                     list.map((g) => (
                       <KanbanCard
