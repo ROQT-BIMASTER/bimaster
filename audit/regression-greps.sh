@@ -414,6 +414,16 @@ check      "Timeline ordena china_produto_documentos por created_at desc" \
 check      "Timeline usa rows[0]?.created_at em ultimoEm" \
   "$(grep -cE 'ultimoEm:\s*rows\[0\]\?\.created_at' $TIMELINE_FILE)" 1
 
+echo "=== Invariante upload China — observacoes_china NÃO existe em china_produto_documentos ==="
+# Coluna correta no documento é "observacao"; "observacoes_china" só existe em
+# china_produto_submissoes. Regressão direta do incidente de schema cache.
+OBS_BAD=$(grep -rEn "china_produto_documentos" src/hooks src/components 2>/dev/null \
+  | xargs -I{} echo {} \
+  | grep -c "observacoes_china" || true)
+checkExact "observacoes_china ausente em código que toca china_produto_documentos" \
+  "$(grep -rEln 'china_produto_documentos' src/hooks src/components 2>/dev/null \
+       | xargs grep -l 'observacoes_china' 2>/dev/null | wc -l | tr -d ' ')" 0
+
 
 echo
 if [ "$fail" -eq 0 ]; then
