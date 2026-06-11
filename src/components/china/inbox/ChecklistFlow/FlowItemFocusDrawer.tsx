@@ -319,6 +319,162 @@ export function FlowItemFocusDrawer({
           )}
         </div>
       </SheetContent>
+
+      <DocFocusDialog
+        open={focusOpen}
+        onOpenChange={setFocusOpen}
+        doc={doc}
+      />
     </Sheet>
   );
 }
+
+/**
+ * useDocSignedUrl — resolve signed URL para qualquer tipo de arquivo do
+ * bucket `china-documentos` (imagem, PDF, outros). Usado nas previews
+ * grandes/focadas do drawer.
+ */
+function useDocSignedUrl(doc: MailboxItem | null) {
+  const path = doc?.arquivo_path ?? null;
+  const fallback = doc?.arquivo_url ?? null;
+  const q = useQuery({
+    queryKey: ["china-doc-signed-any", path],
+    enabled: !!path,
+    staleTime: 50 * 60 * 1000,
+    gcTime: 55 * 60 * 1000,
+    queryFn: async () => {
+      const { signedUrl } = await getSignedUrl("china-documentos", path as string);
+      return signedUrl;
+    },
+  });
+  return path ? q.data ?? null : fallback;
+}
+
+/**
+ * DocBigPreview — preview generosa (object-contain) com botão para abrir
+ * modo foco em Dialog.
+ */
+function DocBigPreview({
+  doc,
+  onExpand,
+}: {
+  doc: MailboxItem;
+  onExpand: () => void;
+}) {
+  const kind = detectThumbKind(doc.nome_arquivo || doc.arquivo_path || "");
+  const url = useDocSignedUrl(doc);
+
+  return (
+    <div className="relative w-full overflow-hidden rounded-md border border-border bg-muted/20">
+      <Button
+        type="button"
+        variant="secondary"
+        size="icon"
+        className="absolute right-2 top-2 z-10 h-7 w-7 shadow"
+        onClick={onExpand}
+        title="Abrir em tela cheia"
+      >
+        <Maximize2 className="h-3.5 w-3.5" />
+      </Button>
+
+      {kind === "image" ? (
+        url ? (
+          <img
+            src={url}
+            alt={doc.nome_arquivo ?? ""}
+            className="mx-auto block max-h-[440px] w-full object-contain"
+            loading="lazy"
+          />
+        ) : (
+          <div className="flex h-64 w-full animate-pulse items-center justify-center bg-muted/40">
+            <ImageIcon className="h-6 w-6 text-muted-foreground/40" />
+          </div>
+        )
+      ) : kind === "pdf" ? (
+        <button
+          type="button"
+          onClick={onExpand}
+          className="flex h-48 w-full flex-col items-center justify-center gap-1.5 bg-rose-500/5 transition hover:bg-rose-500/10"
+        >
+          <FileText className="h-10 w-10 text-rose-500" />
+          <span className="text-[11px] font-semibold uppercase tracking-wide text-rose-600">
+            PDF · clique para abrir
+          </span>
+          {doc.nome_arquivo && (
+            <span className="px-3 text-[11px] text-muted-foreground line-clamp-1">
+              {doc.nome_arquivo}
+            </span>
+          )}
+        </button>
+      ) : (
+        <button
+          type="button"
+          onClick={onExpand}
+          className="flex h-40 w-full flex-col items-center justify-center gap-1.5 transition hover:bg-muted/40"
+        >
+          <FileText className="h-10 w-10 text-muted-foreground/60" />
+          {doc.nome_arquivo && (
+            <span className="px-3 text-[11px] text-muted-foreground line-clamp-1">
+              {doc.nome_arquivo}
+            </span>
+          )}
+        </button>
+      )}
+    </div>
+  );
+}
+
+/**
+ * DocFocusDialog — Dialog em tela cheia com a imagem (object-contain)
+ * ou PDF embutido via iframe.
+ */
+function DocFocusDialog({
+  open,
+  onOpenChange,
+  doc,
+}: {
+  open: boolean;
+  onOpenChange: (o: boolean) => void;
+  doc: MailboxItem | null;
+}) {
+  const kind = detectThumbKind(doc?.nome_arquivo || doc?.arquivo_path || "");
+  const url = useDocSignedUrl(open ? doc : null);
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-6xl p-0 h-[90vh] flex flex-col gap-0">
+        <DialogHeader className="border-b border-border px-4 py-2.5">
+          <DialogTitle className="truncate text-sm font-semibold">
+            {doc?.nome_arquivo ?? "Documento"}
+          </DialogTitle>
+        </DialogHeader>
+        <div className="flex-1 min-h-0 overflow-auto bg-muted/30">
+          {!url ? (
+            <div className="flex h-full w-full items-center justify-center">
+              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+            </div>
+          ) : kind === "image" ? (
+            <div className="flex h-full w-full items-center justify-center p-4">
+              <img
+                src={url}
+                alt={doc?.nome_arquivo ?? ""}
+                className="max-h-full max-w-full object-contain"
+              />
+            </div>
+          ) : kind === "pdf" ? (
+            <iframe
+              src={url}
+              title={doc?.nome_arquivo ?? "PDF"}
+              className="h-full w-full"
+            />
+          ) : (
+            <div className="flex h-full w-full items-center justify-center text-sm text-muted-foreground">
+              Pré-visualização não disponível para este tipo de arquivo.
+            </div>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
