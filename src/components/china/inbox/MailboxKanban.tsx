@@ -511,7 +511,24 @@ export function MailboxKanban({
     return map;
   }, [viewMode, visibleGroups, columns, perspective]);
 
-  return (
+  // DnD ativo apenas na perspectiva China + modo "Por item" + handler conectado.
+  const dndEnabled = perspective === "china" && viewMode === "item" && !!onDragSendDoc;
+
+  const handleDragStart = (e: DragStartEvent) => {
+    const data = e.active.data.current as { item?: MailboxItem; group?: MailboxGroup } | undefined;
+    if (data?.item && data?.group) setActiveDrag({ item: data.item, group: data.group });
+  };
+  const handleDragEnd = (e: DragEndEvent) => {
+    setActiveDrag(null);
+    const overId = String(e.over?.id ?? "");
+    if (overId !== "col:sent_brazil") return;
+    const data = e.active.data.current as { item?: MailboxItem; group?: MailboxGroup } | undefined;
+    if (!data?.item || !data?.group) return;
+    if (!isDocDraggableToSent(data.item, data.group, perspective)) return;
+    onDragSendDoc?.(data.item, data.group);
+  };
+
+  const board = (
     <div className="flex h-full flex-col">
       {/* Header do board */}
       <div className="flex items-center justify-between gap-2 border-b border-border bg-card/40 px-3 py-1.5">
@@ -524,6 +541,14 @@ export function MailboxKanban({
               <span className="text-border">·</span>
               <span className="tabular-nums text-primary">
                 <strong>{totalUnread}</strong> não lid{totalUnread === 1 ? "a" : "as"}
+              </span>
+            </>
+          )}
+          {dndEnabled && (
+            <>
+              <span className="text-border">·</span>
+              <span className="text-[10px] text-muted-foreground/80">
+                Arraste itens prontos para "Enviados ao Brasil"
               </span>
             </>
           )}
@@ -571,78 +596,162 @@ export function MailboxKanban({
 
       {/* Colunas */}
       <div className="flex flex-1 min-h-0 gap-2 overflow-x-auto p-2">
-        {columns.map((col) => {
-          const Icon = col.icon;
-          const list = byColumn.get(col.key) ?? [];
-          const itemList = byColumnItems.get(col.key) ?? [];
-          const count = viewMode === "item" ? itemList.length : list.length;
-          const emptyLabel = viewMode === "item" ? "Nenhum item" : "Nenhuma submissão";
-          return (
-            <div
-              key={col.key}
-              className="flex h-full w-[300px] min-w-[280px] shrink-0 flex-col rounded-md border border-border bg-muted/20"
-            >
-              <div
-                className={cn(
-                  "flex items-center justify-between gap-1.5 border-l-4 bg-card/50 px-2.5 py-1.5",
-                  col.headerTone,
-                )}
-              >
-                <div className="flex min-w-0 items-center gap-1.5">
-                  <Icon className="h-3.5 w-3.5 shrink-0 opacity-70" />
-                  <span className="truncate text-[12px] font-semibold">{col.label}</span>
-                  <Badge variant="secondary" className={cn("h-4 px-1.5 text-[10px] tabular-nums", col.tone)}>
-                    {count}
-                  </Badge>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => onJumpFolder(col.folder)}
-                  className="text-[10px] text-muted-foreground hover:text-foreground"
-                  title="Abrir como lista"
-                >
-                  Lista
-                </button>
-              </div>
-              <ScrollArea className="flex-1">
-                <div className="space-y-1.5 p-2">
-                  {count === 0 ? (
-                    <div className="rounded-sm border border-dashed border-border/60 px-2 py-6 text-center text-[10px] text-muted-foreground">
-                      {emptyLabel}
-                    </div>
-                  ) : viewMode === "item" ? (
-                    itemList.map(({ item, group }, idx) => (
-                      <ItemCard
-                        key={item.documento_id ?? `${group.submissao_id}-${col.key}-${idx}`}
-                        item={item}
-                        group={group}
-                        selected={selectedSubId === group.submissao_id}
-                        onClick={() => onSelectGroup(group, item)}
-                      />
-                    ))
-                  ) : (
-                    list.map((g) => {
-                      const hint =
-                        (g.docs || []).find((d: any) => !d.is_virtual && (d.arquivo_path || d.arquivo_url)) ??
-                        (g.docs || []).find((d: any) => !d.is_virtual) ??
-                        (g.docs || [])[0];
-                      return (
-                        <KanbanCard
-                          key={g.submissao_id}
-                          group={g}
-                          perspective={perspective}
-                          selected={selectedSubId === g.submissao_id}
-                          onClick={() => onSelectGroup(g, hint)}
-                        />
-                      );
-                    })
-                  )}
-                </div>
-              </ScrollArea>
-            </div>
-          );
-        })}
+        {columns.map((col) => (
+          <KanbanColumn
+            key={col.key}
+            col={col}
+            viewMode={viewMode}
+            perspective={perspective}
+            dndEnabled={dndEnabled}
+            isDragging={!!activeDrag}
+            list={byColumn.get(col.key) ?? []}
+            itemList={byColumnItems.get(col.key) ?? []}
+            selectedSubId={selectedSubId}
+            onSelectGroup={onSelectGroup}
+            onJumpFolder={onJumpFolder}
+          />
+        ))}
       </div>
+    </div>
+  );
+
+  if (!dndEnabled) return board;
+  return (
+    <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd} onDragCancel={() => setActiveDrag(null)}>
+      {board}
+      <DragOverlay dropAnimation={null}>
+        {activeDrag ? (
+          <div className="pointer-events-none w-[280px] rotate-1">
+            <ItemCardInner
+              item={activeDrag.item}
+              group={activeDrag.group}
+              selected={false}
+              onClick={() => {}}
+              draggable
+            />
+          </div>
+        ) : null}
+      </DragOverlay>
+    </DndContext>
+  );
+}
+
+interface KanbanColumnProps {
+  col: ColumnDef;
+  viewMode: "submission" | "item";
+  perspective: "china" | "brasil";
+  dndEnabled: boolean;
+  isDragging: boolean;
+  list: MailboxGroup[];
+  itemList: Array<{ item: MailboxItem; group: MailboxGroup }>;
+  selectedSubId: string | null;
+  onSelectGroup: (group: MailboxGroup, item?: MailboxItem) => void;
+  onJumpFolder: (folder: MailboxFolder) => void;
+}
+
+function KanbanColumn({
+  col, viewMode, perspective, dndEnabled, isDragging,
+  list, itemList, selectedSubId, onSelectGroup, onJumpFolder,
+}: KanbanColumnProps) {
+  const Icon = col.icon;
+  const count = viewMode === "item" ? itemList.length : list.length;
+  const emptyLabel = viewMode === "item" ? "Nenhum item" : "Nenhuma submissão";
+  const isDropTarget = dndEnabled && col.key === "sent_brazil";
+  const { setNodeRef, isOver } = useDroppable({
+    id: `col:${col.key}`,
+    disabled: !isDropTarget,
+  });
+  const showDropHint = isDropTarget && isDragging;
+
+  return (
+    <div
+      ref={setNodeRef}
+      className={cn(
+        "flex h-full w-[300px] min-w-[280px] shrink-0 flex-col rounded-md border bg-muted/20 transition-colors",
+        isDropTarget && isOver ? "border-primary/70 bg-primary/10 ring-2 ring-primary/40" : "border-border",
+        showDropHint && !isOver && "border-primary/40",
+        dndEnabled && !isDropTarget && isDragging && "opacity-60",
+      )}
+    >
+      <div
+        className={cn(
+          "flex items-center justify-between gap-1.5 border-l-4 bg-card/50 px-2.5 py-1.5",
+          col.headerTone,
+        )}
+      >
+        <div className="flex min-w-0 items-center gap-1.5">
+          <Icon className="h-3.5 w-3.5 shrink-0 opacity-70" />
+          <span className="truncate text-[12px] font-semibold">{col.label}</span>
+          <Badge variant="secondary" className={cn("h-4 px-1.5 text-[10px] tabular-nums", col.tone)}>
+            {count}
+          </Badge>
+        </div>
+        <button
+          type="button"
+          onClick={() => onJumpFolder(col.folder)}
+          className="text-[10px] text-muted-foreground hover:text-foreground"
+          title="Abrir como lista"
+        >
+          Lista
+        </button>
+      </div>
+      <ScrollArea className="flex-1">
+        <div className="space-y-1.5 p-2">
+          {showDropHint && (
+            <div className="rounded-sm border-2 border-dashed border-primary/60 bg-primary/5 px-2 py-2 text-center text-[10.5px] font-medium text-primary">
+              Solte para enviar ao Brasil
+            </div>
+          )}
+          {count === 0 ? (
+            <div className="rounded-sm border border-dashed border-border/60 px-2 py-6 text-center text-[10px] text-muted-foreground">
+              {emptyLabel}
+            </div>
+          ) : viewMode === "item" ? (
+            itemList.map(({ item, group }, idx) => {
+              const eligible = dndEnabled && isDocDraggableToSent(item, group, perspective);
+              const key = item.documento_id ?? `${group.submissao_id}-${col.key}-${idx}`;
+              if (eligible) {
+                return (
+                  <DraggableItemCard
+                    key={key}
+                    dragId={`doc:${item.documento_id}`}
+                    item={item}
+                    group={group}
+                    selected={selectedSubId === group.submissao_id}
+                    onClick={() => onSelectGroup(group, item)}
+                    draggableHint="Arraste para 'Enviados ao Brasil'"
+                  />
+                );
+              }
+              return (
+                <ItemCard
+                  key={key}
+                  item={item}
+                  group={group}
+                  selected={selectedSubId === group.submissao_id}
+                  onClick={() => onSelectGroup(group, item)}
+                />
+              );
+            })
+          ) : (
+            list.map((g) => {
+              const hint =
+                (g.docs || []).find((d: any) => !d.is_virtual && (d.arquivo_path || d.arquivo_url)) ??
+                (g.docs || []).find((d: any) => !d.is_virtual) ??
+                (g.docs || [])[0];
+              return (
+                <KanbanCard
+                  key={g.submissao_id}
+                  group={g}
+                  perspective={perspective}
+                  selected={selectedSubId === g.submissao_id}
+                  onClick={() => onSelectGroup(g, hint)}
+                />
+              );
+            })
+          )}
+        </div>
+      </ScrollArea>
     </div>
   );
 }
