@@ -9,10 +9,11 @@ import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { Search, Folder, ListChecks, Send, ArrowLeft, Sparkles } from "lucide-react";
+import { Search, Folder, ListChecks, Send, ArrowLeft, Sparkles, FolderPlus } from "lucide-react";
 import { useProjetosParaVinculo, useSecoesETarefas } from "@/hooks/useChinaTarefaVinculos";
 import { useEncaminharProjetoTarefa } from "@/hooks/useEncaminharProjetoTarefa";
 import { useEncaminhamentoSmartDefaults } from "@/hooks/useEncaminhamentoSmartDefaults";
+import { ConfigurarProjetoEspelhoDialog } from "./ConfigurarProjetoEspelhoDialog";
 
 interface Props {
   open: boolean;
@@ -29,6 +30,7 @@ export function EncaminharProjetoDialog({
   const [projeto, setProjeto] = useState<{ id: string; nome: string; cor?: string } | null>(null);
   const [tarefa, setTarefa] = useState<{ id: string; titulo: string; secao_id: string | null } | null>(null);
   const [obs, setObs] = useState("");
+  const [configurarOpen, setConfigurarOpen] = useState(false);
 
   const { data: projetos = [], isLoading: loadingProjetos } = useProjetosParaVinculo();
   const { data: secoesData, isLoading: loadingTarefas } = useSecoesETarefas(projeto?.id ?? null);

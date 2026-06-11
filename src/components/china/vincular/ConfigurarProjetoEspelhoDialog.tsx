@@ -10,8 +10,6 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { CalendarDays, Sparkles, FolderPlus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useCriarProjetoEspelho } from "@/hooks/useProjetoEspelhoSubmissao";
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
