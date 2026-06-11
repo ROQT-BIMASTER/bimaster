@@ -21,6 +21,8 @@ import {
 import type { FlowItemContext } from "./types";
 import type { MailboxItem } from "@/hooks/useChinaMailbox";
 import type { MailboxGroup } from "@/lib/china/groupMailboxItems";
+import { DrawerParecerActions } from "./DrawerParecerActions";
+import { DrawerRevisoesList } from "./DrawerRevisoesList";
 
 
 interface Props {
