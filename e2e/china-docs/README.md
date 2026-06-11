@@ -22,8 +22,8 @@ Cada papel é validado num `describe.serial` independente:
 | `gerente`     | allow    | módulo `fabrica` habilitado no perfil                                    |
 | `supervisor`  | allow    | módulo `fabrica` habilitado                                              |
 | `china_owner` | allow    | é o `created_by` de `E2E_CHINA_OWNER_SUBMISSAO_ID`                       |
-| `china_other` | **deny** | não é dono nem tem `fabrica` → toast / route guard / 0 linhas no DB      |
-| `vendedor`    | **deny** | sem `fabrica` → bloqueio no `ModuleProtectedRoute` ou toast              |
+| `china_other` | allow    | módulo `china` habilitado → libera RLS + storage `china-documentos`     |
+| `vendedor`    | **deny** | sem módulo `china`/`fabrica` → bloqueio no `ModuleProtectedRoute`/toast |
 
 Casos `deny` são **pulados em produção** (poluiriam `security_audit_log`).
 Quando faltam credenciais de um papel, o teste daquele papel é `skip`-ado, a
