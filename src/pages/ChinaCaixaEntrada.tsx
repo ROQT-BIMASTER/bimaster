@@ -113,6 +113,7 @@ export default function ChinaCaixaEntrada() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [previewDoc, setPreviewDoc] = useState<MailboxItem | null>(null);
+  const [kanbanSelected, setKanbanSelected] = useState<MailboxItem | null>(null);
   const [copilotOpen, setCopilotOpen] = useState(false);
   const searchInputRef = useRef<HTMLInputElement | null>(null);
   const [groupMode, setGroupMode] = useChinaInboxGroupMode(folder);
