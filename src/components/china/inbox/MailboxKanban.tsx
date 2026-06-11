@@ -416,7 +416,7 @@ function ItemCard({ item, group, selected, onClick }: ItemCardProps) {
         </button>
       </HoverCardTrigger>
       <HoverCardContent side="right" align="start" className="w-auto p-2.5">
-        <ChecklistHover group={group} />
+        <ChecklistHover group={group} open={hoverOpen} />
       </HoverCardContent>
     </HoverCard>
   );
