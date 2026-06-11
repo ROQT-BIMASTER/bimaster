@@ -5,6 +5,7 @@ import { Link as RouterLink, useSearchParams } from "react-router-dom";
 import { Link2, Package, Loader2, Maximize2, Gavel, CheckCircle2, ShieldCheck, LayoutGrid, List as ListIcon } from "lucide-react";
 import { MailboxKanban } from "@/components/china/inbox/MailboxKanban";
 import { useChinaMailbox, type MailboxItem } from "@/hooks/useChinaMailbox";
+import { useViewModePreference } from "@/hooks/useViewModePreference";
 import { Button } from "@/components/ui/button";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/dashboard/AppSidebar";
