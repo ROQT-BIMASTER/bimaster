@@ -295,9 +295,31 @@ interface ItemCardProps {
   group: MailboxGroup;
   selected: boolean;
   onClick: () => void;
+  draggable?: boolean;
+  draggableHint?: string;
 }
 
-function ItemCard({ item, group, selected, onClick }: ItemCardProps) {
+/**
+ * Regra de elegibilidade para arrastar um item de "Pendentes de envio" → "Enviados ao Brasil".
+ * Mantida ao lado do card para que UI e handler compartilhem a mesma fonte de verdade.
+ */
+export function isDocDraggableToSent(
+  item: MailboxItem,
+  group: MailboxGroup,
+  perspective: "china" | "brasil",
+): boolean {
+  if (perspective !== "china") return false;
+  if ((item as any).is_virtual) return false;
+  if (!item.documento_id) return false;
+  if (!item.arquivo_path && !item.arquivo_url) return false;
+  const s = (item.doc_status || "").toLowerCase();
+  if (!(s === "" || s === "rascunho" || s === "rejeitado")) return false;
+  const ss = (group.submissao_status || "").toLowerCase();
+  if (ss === "aprovado" || ss === "rejeitado") return false;
+  return true;
+}
+
+function ItemCardInner({ item, group, selected, onClick, draggable, draggableHint }: ItemCardProps) {
   const bucket = bucketForDoc(item);
   const meta = BUCKET_META[bucket];
   const Icon = meta.icon;
@@ -332,6 +354,12 @@ function ItemCard({ item, group, selected, onClick }: ItemCardProps) {
         <span className="truncate text-[12px] font-medium leading-tight flex-1">
           {docLabel}
         </span>
+        {draggable && (
+          <GripVertical
+            className="h-3 w-3 shrink-0 text-muted-foreground/60"
+            aria-label={draggableHint ?? "Arraste para enviar ao Brasil"}
+          />
+        )}
         {group.is_flagged && <Star className="h-3 w-3 shrink-0 fill-amber-400 text-amber-400" />}
       </div>
       <div className="mt-0.5 flex items-center gap-1 text-[10.5px] text-muted-foreground">
@@ -345,6 +373,32 @@ function ItemCard({ item, group, selected, onClick }: ItemCardProps) {
       </div>
     </button>
   );
+}
+
+interface DraggableItemCardProps extends ItemCardProps {
+  dragId: string;
+}
+
+function DraggableItemCard(props: DraggableItemCardProps) {
+  const { dragId, item, group } = props;
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
+    id: dragId,
+    data: { kind: "doc", item, group },
+  });
+  return (
+    <div
+      ref={setNodeRef}
+      {...attributes}
+      {...listeners}
+      style={{ opacity: isDragging ? 0.4 : 1, touchAction: "none" }}
+    >
+      <ItemCardInner {...props} draggable />
+    </div>
+  );
+}
+
+function ItemCard(props: ItemCardProps) {
+  return <ItemCardInner {...props} />;
 }
 
 
