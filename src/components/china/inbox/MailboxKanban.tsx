@@ -397,48 +397,40 @@ function ItemCard({ item, group, selected, onClick }: ItemCardProps) {
     rejeitado: "devolvido",
   } as const)[bucket];
 
-  const [hoverOpen, setHoverOpen] = useState(false);
   return (
-    <HoverCard openDelay={250} closeDelay={80} open={hoverOpen} onOpenChange={setHoverOpen}>
-      <HoverCardTrigger asChild>
-        <button
-          type="button"
-          onClick={onClick}
-          className={cn(
-            "group w-full rounded-md border bg-card px-2.5 py-1.5 text-left transition-colors",
-            "hover:bg-muted/40 hover:border-primary/40",
-            selected
-              ? "border-primary/60 ring-1 ring-primary/30 bg-primary/5"
-              : "border-border",
-          )}
-        >
-          {(item.arquivo_path || item.arquivo_url) && !(item as any).is_virtual && (
-            <div className="mb-1.5 -mx-0.5">
-              <ItemThumb item={item as any} size="md" />
-            </div>
-          )}
-          <div className="flex items-center gap-1.5">
-            <Icon className={cn("h-3.5 w-3.5 shrink-0", meta.cls)} />
-            <span className="truncate text-[12px] font-medium leading-tight flex-1">
-              {docLabel}
-            </span>
-            {group.is_flagged && <Star className="h-3 w-3 shrink-0 fill-amber-400 text-amber-400" />}
-          </div>
-          <div className="mt-0.5 flex items-center gap-1 text-[10.5px] text-muted-foreground">
-            <span className="font-mono tabular-nums">{group.produto_codigo}</span>
-            <span className="opacity-60">·</span>
-            <span className="truncate">{group.produto_nome}</span>
-          </div>
-          <div className="mt-1 flex items-center justify-between text-[10px] text-muted-foreground">
-            <span>{safeRelative(item.created_at)}</span>
-            <span className={cn("tabular-nums", meta.cls)}>{statusLabel}</span>
-          </div>
-        </button>
-      </HoverCardTrigger>
-      <HoverCardContent side="right" align="start" className="w-auto p-2.5">
-        <ChecklistHover group={group} open={hoverOpen} />
-      </HoverCardContent>
-    </HoverCard>
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "group w-full rounded-md border bg-card px-2.5 py-1.5 text-left transition-colors",
+        "hover:bg-muted/40 hover:border-primary/40",
+        selected
+          ? "border-primary/60 ring-1 ring-primary/30 bg-primary/5"
+          : "border-border",
+      )}
+    >
+      {(item.arquivo_path || item.arquivo_url) && !(item as any).is_virtual && (
+        <div className="mb-1.5 -mx-0.5">
+          <ItemThumb item={item as any} size="md" />
+        </div>
+      )}
+      <div className="flex items-center gap-1.5">
+        <Icon className={cn("h-3.5 w-3.5 shrink-0", meta.cls)} />
+        <span className="truncate text-[12px] font-medium leading-tight flex-1">
+          {docLabel}
+        </span>
+        {group.is_flagged && <Star className="h-3 w-3 shrink-0 fill-amber-400 text-amber-400" />}
+      </div>
+      <div className="mt-0.5 flex items-center gap-1 text-[10.5px] text-muted-foreground">
+        <span className="font-mono tabular-nums">{group.produto_codigo}</span>
+        <span className="opacity-60">·</span>
+        <span className="truncate">{group.produto_nome}</span>
+      </div>
+      <div className="mt-1 flex items-center justify-between text-[10px] text-muted-foreground">
+        <span>{safeRelative(item.created_at)}</span>
+        <span className={cn("tabular-nums", meta.cls)}>{statusLabel}</span>
+      </div>
+    </button>
   );
 }
 
