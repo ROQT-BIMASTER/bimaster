@@ -321,9 +321,23 @@ export function MailboxKanban({
       if (!map.has(k)) continue;
       map.get(k)!.push(g);
     }
-    for (const arr of map.values()) {
-      arr.sort((a, b) => (b.latest_at || "").localeCompare(a.latest_at || ""));
+    // Colunas terminais: decisões recentes no topo (desc).
+    // Colunas de fluxo ativo: mais antigos parados no topo (asc por SLA).
+    const TERMINAL: ColumnKey[] = ["approved", "rejected"];
+    for (const [key, arr] of map.entries()) {
+      if (TERMINAL.includes(key)) {
+        arr.sort((a, b) => (b.latest_at || "").localeCompare(a.latest_at || ""));
+      } else {
+        arr.sort((a, b) => {
+          const dateCmp = (a.latest_at || "").localeCompare(b.latest_at || "");
+          if (dateCmp !== 0) return dateCmp;
+          const aBacklog = a.progress.pendentes + a.progress.rejeitados;
+          const bBacklog = b.progress.pendentes + b.progress.rejeitados;
+          return bBacklog - aBacklog;
+        });
+      }
     }
+
     return map;
   }, [visibleGroups, columns, perspective]);
 
