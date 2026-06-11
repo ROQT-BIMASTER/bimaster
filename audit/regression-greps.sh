@@ -385,9 +385,15 @@ echo "=== Invariante pós-incidente 2026-05-16 — DELETE/TRUNCATE em fabrica_* 
 # Excluímos a própria migration do incidente (já registrada como aplicada).
 INCIDENT_FILE="supabase/migrations/20260516012327_27afd69a-5146-41b7-93c7-94767d668835.sql"
 LEGACY_FISCAIS="supabase/migrations/20251119215330_ab00cd07-2baf-4807-b6cd-5ae9ada02d56.sql"
+# Migration que instala o próprio kill-switch — o DELETE só aparece em comentário de docstring.
+KILLSWITCH_FILE="supabase/migrations/20260518155002_27b3702e-50e4-4823-9519-fc22da30ce3f.sql"
+# Cleanup histórico de custos órfãos WE/TR (aplicado em produção 2026-05-19, pré-incidente guard).
+LEGACY_CUSTOS_WETR="supabase/migrations/20260519223848_5c92965a-c0c4-4fde-80a0-b42a4032b696.sql"
 DESTR_FILES=$(grep -rilE "(delete from|truncate)[[:space:]]+(public\.)?fabrica_" supabase/migrations 2>/dev/null \
   | grep -v "$INCIDENT_FILE" \
-  | grep -v "$LEGACY_FISCAIS" || true)
+  | grep -v "$LEGACY_FISCAIS" \
+  | grep -v "$KILLSWITCH_FILE" \
+  | grep -v "$LEGACY_CUSTOS_WETR" || true)
 BAD=0
 if [ -n "$DESTR_FILES" ]; then
   while IFS= read -r f; do
