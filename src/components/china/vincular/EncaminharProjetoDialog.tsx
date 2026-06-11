@@ -274,6 +274,15 @@ export function EncaminharProjetoDialog({
           </Button>
         </DialogFooter>
       </DialogContent>
+
+      <ConfigurarProjetoEspelhoDialog
+        open={configurarOpen}
+        onOpenChange={setConfigurarOpen}
+        submissaoId={submissaoId}
+        produtoCodigo={produtoCodigo}
+        produtoNome={produtoNome}
+      />
     </Dialog>
   );
 }
+
