@@ -1,9 +1,11 @@
 /**
  * E2E — China: upload → persistência → preview → download.
  *
- * Matriz de papéis (RLS de `china_produto_documentos`):
+ * Matriz de papéis (RLS de `china_produto_documentos` + storage `china-documentos`):
  *   EXISTS submissão s WHERE s.id = submissao_id
- *     AND (s.created_by = auth.uid() OR check_user_access(auth.uid(), 'fabrica'))
+ *     AND (s.created_by = auth.uid()
+ *          OR check_user_access(auth.uid(), 'fabrica')
+ *          OR check_user_access(auth.uid(), 'china'))
  *
  * | Papel        | Esperado | Como satisfaz a policy                              |
  * | ------------ | -------- | --------------------------------------------------- |
@@ -11,8 +13,8 @@
  * | gerente      | allow    | módulo 'fabrica' habilitado                         |
  * | supervisor   | allow    | módulo 'fabrica' habilitado                         |
  * | china_owner  | allow    | created_by = auth.uid() na submissão de teste       |
- * | china_other  | deny     | não é dono nem tem 'fabrica'                        |
- * | vendedor     | deny     | nenhum dos dois                                     |
+ * | china_other  | allow    | módulo 'china' habilitado (sem ser dono nem fabrica)|
+ * | vendedor     | deny     | sem módulo china/fabrica e não é dono               |
  *
  * Cada papel exige um par de envs E2E_<KEY>_EMAIL / _PASSWORD. Quando
  * faltam, o caso é `skip`-ado (a menos que STRICT_E2E=1 — então falha).
@@ -63,7 +65,7 @@ const ROLES: RoleCase[] = [
   { key: "gerente",     emailEnv: "E2E_GERENTE_EMAIL",     passEnv: "E2E_GERENTE_PASSWORD",     submissaoId: SUBM,        expect: "allow", prodSafe: true  },
   { key: "supervisor",  emailEnv: "E2E_SUPERVISOR_EMAIL",  passEnv: "E2E_SUPERVISOR_PASSWORD",  submissaoId: SUBM,        expect: "allow", prodSafe: true  },
   { key: "china_owner", emailEnv: "E2E_CHINA_OWNER_EMAIL", passEnv: "E2E_CHINA_OWNER_PASSWORD", submissaoId: OWNER_SUBM,  expect: "allow", prodSafe: true  },
-  { key: "china_other", emailEnv: "E2E_CHINA_OTHER_EMAIL", passEnv: "E2E_CHINA_OTHER_PASSWORD", submissaoId: OWNER_SUBM,  expect: "deny",  prodSafe: false },
+  { key: "china_other", emailEnv: "E2E_CHINA_OTHER_EMAIL", passEnv: "E2E_CHINA_OTHER_PASSWORD", submissaoId: OWNER_SUBM,  expect: "allow", prodSafe: true  },
   { key: "vendedor",    emailEnv: "E2E_VENDEDOR_EMAIL",    passEnv: "E2E_VENDEDOR_PASSWORD",    submissaoId: SUBM,        expect: "deny",  prodSafe: false },
 ];
 

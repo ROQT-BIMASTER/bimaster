@@ -22,8 +22,8 @@ Cada papel é validado num `describe.serial` independente:
 | `gerente`     | allow    | módulo `fabrica` habilitado no perfil                                    |
 | `supervisor`  | allow    | módulo `fabrica` habilitado                                              |
 | `china_owner` | allow    | é o `created_by` de `E2E_CHINA_OWNER_SUBMISSAO_ID`                       |
-| `china_other` | **deny** | não é dono nem tem `fabrica` → toast / route guard / 0 linhas no DB      |
-| `vendedor`    | **deny** | sem `fabrica` → bloqueio no `ModuleProtectedRoute` ou toast              |
+| `china_other` | allow    | módulo `china` habilitado → libera RLS + storage `china-documentos`     |
+| `vendedor`    | **deny** | sem módulo `china`/`fabrica` → bloqueio no `ModuleProtectedRoute`/toast |
 
 Casos `deny` são **pulados em produção** (poluiriam `security_audit_log`).
 Quando faltam credenciais de um papel, o teste daquele papel é `skip`-ado, a
@@ -38,9 +38,10 @@ Crie 6 usuários, todos no tenant alvo:
 3. **supervisor** — `role = 'supervisor'` + módulo `fabrica`.
 4. **china_owner** — usuário do depto China; criar uma submissão e gravar seu
    `id` em `E2E_CHINA_OWNER_SUBMISSAO_ID`.
-5. **china_other** — usuário do depto China, **sem** `fabrica`, e que **não**
-   criou a submissão acima.
-6. **vendedor** — `role = 'vendedor'`, sem `fabrica`.
+5. **china_other** — usuário do depto China com módulo `china` habilitado,
+   **sem** `fabrica`, e que **não** criou a submissão acima (valida que módulo
+   China sozinho já permite upload em qualquer submissão visível).
+6. **vendedor** — `role = 'vendedor'`, sem `fabrica` nem `china`.
 
 Use uma submissão de teste estável (`E2E_CHINA_SUBMISSAO_ID`) para admin/
 gerente/supervisor — pode ser a mesma para os três.
