@@ -261,6 +261,8 @@ const VendasSyncPage = lazyWithRetry(() => import("./pages/financeiro/VendasSync
 const EstoqueErpSyncPage = lazyWithRetry(() => import("./pages/estoque/EstoqueErpSyncPage"));
 const AnaliseEstoqueErp = lazyWithRetry(() => import("./pages/estoque/AnaliseEstoqueErp"));
 const EstoqueVisaoGeral = lazyWithRetry(() => import("./pages/estoque/EstoqueVisaoGeral"));
+const EstoqueCoresPage = lazyWithRetry(() => import("./pages/estoque/EstoqueCoresPage"));
+const EstoqueEtiquetasAdminPage = lazyWithRetry(() => import("./pages/estoque/EstoqueEtiquetasAdminPage"));
 const EstoqueUnificadoPage = lazyWithRetry(() => import("./pages/estoque/EstoqueUnificadoPage"));
 const EstoqueAuditoriaDriftPage = lazyWithRetry(() => import("./pages/estoque/EstoqueAuditoriaDriftPage"));
 const EstoqueValoresPorFilial = lazyWithRetry(() => import("./pages/estoque/EstoqueValoresPorFilial"));
@@ -811,6 +813,8 @@ function AppContent() {
             <Route path="/dashboard/estoque/sync-erp" element={<ScreenRoute screenCode="admin"><EstoqueErpSyncPage /></ScreenRoute>} />
             <Route path="/dashboard/estoque/analise-erp" element={<ScreenRoute screenCode="admin"><AnaliseEstoqueErp /></ScreenRoute>} />
             <Route path="/dashboard/estoque/visao-geral" element={<ModuleRoute moduleCode="estoque"><EstoqueVisaoGeral /></ModuleRoute>} />
+            <Route path="/dashboard/estoque/cores" element={<ModuleRoute moduleCode="estoque"><EstoqueCoresPage /></ModuleRoute>} />
+            <Route path="/dashboard/estoque/etiquetas" element={<ModuleRoute moduleCode="estoque"><EstoqueEtiquetasAdminPage /></ModuleRoute>} />
             <Route path="/dashboard/estoque/unificado" element={<ModuleRoute moduleCode="estoque"><EstoqueUnificadoPage /></ModuleRoute>} />
             <Route path="/dashboard/estoque/auditoria-drift" element={<ModuleRoute moduleCode="estoque"><EstoqueAuditoriaDriftPage /></ModuleRoute>} />
             <Route path="/dashboard/estoque/valores-por-filial" element={<ModuleRoute moduleCode="estoque"><EstoqueValoresPorFilial /></ModuleRoute>} />
