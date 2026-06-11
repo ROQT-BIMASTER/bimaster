@@ -56,8 +56,8 @@ export function ItemThumb({ item, size = "md", className }: Props) {
 
   const isSm = size === "sm";
   const dims = isSm
-    ? "h-9 w-9 rounded-sm"
-    : "h-20 w-full rounded-md";
+    ? "h-12 w-12 rounded-sm"
+    : "h-32 w-full rounded-md";
 
   const base = cn(
     "relative overflow-hidden border border-border bg-muted/30 flex items-center justify-center shrink-0",
