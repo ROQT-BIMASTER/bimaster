@@ -124,11 +124,17 @@ export default function ChinaCaixaEntrada() {
     try { localStorage.setItem("china_inbox_view", viewMode); } catch { /* ignore */ }
   }, [viewMode]);
 
-  // Reset seleção ao trocar pasta
+  // Reset seleção ao trocar pasta (apenas no modo lista — no Kanban a seleção
+  // pode sobreviver a uma troca de pasta porque clicar em um card de outra
+  // coluna implica em mover de pasta + abrir o Sheet daquele item).
   useEffect(() => {
+    if (viewMode === "kanban") {
+      setSelectedIds(new Set());
+      return;
+    }
     setSelectedId(null);
     setSelectedIds(new Set());
-  }, [folder]);
+  }, [folder, viewMode]);
 
   // Helper: id estável que considera itens "fantasma" (virtuais) — múltiplos
   // virtuais por submissão precisam de chave única (`<sub>:virtual:<tipo>`),
