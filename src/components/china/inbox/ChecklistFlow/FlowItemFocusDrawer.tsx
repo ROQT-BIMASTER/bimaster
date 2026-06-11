@@ -1,13 +1,16 @@
 import { useEffect, useRef, useState } from "react";
-import { ExternalLink, Loader2, Send, Upload, X } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { ExternalLink, FileText, ImageIcon, Loader2, Maximize2, Send, Upload, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
-import { ItemThumb } from "@/components/china/inbox/ItemThumb";
 import { useUploadChinaDocumento } from "@/hooks/useUploadChinaDocumento";
+import { detectThumbKind } from "@/hooks/useChinaDocThumbnail";
+import { getSignedUrl } from "@/lib/utils/storage-helper";
 import {
   BUCKET_LABEL,
   FLOW_TONE,
@@ -18,6 +21,7 @@ import {
 import type { FlowItemContext } from "./types";
 import type { MailboxItem } from "@/hooks/useChinaMailbox";
 import type { MailboxGroup } from "@/lib/china/groupMailboxItems";
+
 
 interface Props {
   open: boolean;
