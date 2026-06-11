@@ -88,7 +88,7 @@ export function useUploadChinaDocumento() {
           status,
         };
         if (typeof observacoesChina === "string") {
-          payload.observacoes_china = observacoesChina.trim() || null;
+          payload.observacao = observacoesChina.trim() || null;
         }
 
         let documentoId: string | null = null;
@@ -135,7 +135,7 @@ export function useUploadChinaDocumento() {
       try {
         const { error: e } = await (supabase as any)
           .from("china_produto_documentos")
-          .update({ observacoes_china: observacaoChina?.trim() || null })
+          .update({ observacao: observacaoChina?.trim() || null })
           .eq("id", documentoId);
         if (e) throw e;
         qc.invalidateQueries({ queryKey: ["china-mailbox-dataset"] });
