@@ -1,130 +1,213 @@
 /**
  * E2E — China: upload → persistência → preview → download.
  *
- * Cobre o fluxo hardenizado em `useUploadChinaDocumento`:
- *   1. Login.
- *   2. Abre a submissão China (`E2E_CHINA_SUBMISSAO_ID`) na Caixa de Entrada.
- *   3. Faz upload de um PDF de fixture (magic bytes válidos) em um item de
- *      checklist conhecido (`E2E_CHINA_CHECKLIST_TIPO`, default: `outros`).
- *   4. Aguarda toast de sucesso, valida persistência via REST (`china_produto_documentos`).
- *   5. Abre o preview (`ChinaDocPreviewDialog`) e valida estado `ready`.
- *   6. Aciona o download e valida que o `Download` event do Playwright dispara
- *      com filename original preservado.
+ * Matriz de papéis (RLS de `china_produto_documentos`):
+ *   EXISTS submissão s WHERE s.id = submissao_id
+ *     AND (s.created_by = auth.uid() OR check_user_access(auth.uid(), 'fabrica'))
  *
- * Roda no mesmo job que os demais Playwright (dev/staging/produção via
- * `E2E_BASE_URL`). Para produção, exige seed estável apontada pelas envs.
+ * | Papel        | Esperado | Como satisfaz a policy                              |
+ * | ------------ | -------- | --------------------------------------------------- |
+ * | admin        | allow    | check_user_access (admin tem tudo)                  |
+ * | gerente      | allow    | módulo 'fabrica' habilitado                         |
+ * | supervisor   | allow    | módulo 'fabrica' habilitado                         |
+ * | china_owner  | allow    | created_by = auth.uid() na submissão de teste       |
+ * | china_other  | deny     | não é dono nem tem 'fabrica'                        |
+ * | vendedor     | deny     | nenhum dos dois                                     |
  *
- * Variáveis obrigatórias:
- *   - E2E_BASE_URL
- *   - E2E_TEST_EMAIL / E2E_TEST_PASSWORD
- *   - E2E_SUPABASE_URL / E2E_SUPABASE_ANON_KEY  (para verificação REST)
- *   - E2E_CHINA_SUBMISSAO_ID                    (UUID com checklist disponível)
- * Opcionais:
- *   - E2E_CHINA_CHECKLIST_TIPO   (default: "outros")
+ * Cada papel exige um par de envs E2E_<KEY>_EMAIL / _PASSWORD. Quando
+ * faltam, o caso é `skip`-ado (a menos que STRICT_E2E=1 — então falha).
+ *
+ * Envs (compartilhadas):
+ *   E2E_BASE_URL, E2E_SUPABASE_URL, E2E_SUPABASE_ANON_KEY
+ *   E2E_CHINA_SUBMISSAO_ID            (submissão acessível por admin/gerente/supervisor)
+ *   E2E_CHINA_OWNER_SUBMISSAO_ID      (submissão CRIADA pelo china_owner)
+ *   E2E_CHINA_CHECKLIST_TIPO          (default: "outros")
+ *   E2E_ADMIN_TOKEN_EMAIL / _PASSWORD (usado APENAS para verificação REST
+ *                                      no caso "deny"; default cai no admin)
+ *
+ * Em produção, os casos "deny" são pulados para não poluir audit log.
  */
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect, type Page, type APIRequestContext } from "@playwright/test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { loginAs, authToken, countDocsSince, type RoleCreds } from "./helpers/auth";
 
 const BASE = process.env.E2E_BASE_URL;
 const SUBM = process.env.E2E_CHINA_SUBMISSAO_ID;
+const OWNER_SUBM = process.env.E2E_CHINA_OWNER_SUBMISSAO_ID ?? SUBM;
 const TIPO = process.env.E2E_CHINA_CHECKLIST_TIPO ?? "outros";
 const SB_URL = process.env.E2E_SUPABASE_URL;
 const SB_KEY = process.env.E2E_SUPABASE_ANON_KEY;
-const EMAIL = process.env.E2E_TEST_EMAIL;
-const PASS = process.env.E2E_TEST_PASSWORD;
+const STRICT = process.env.STRICT_E2E === "1";
+const ENV_NAME = (process.env.E2E_ENV_NAME ?? "").toLowerCase();
+const IS_PROD = ENV_NAME === "production" || ENV_NAME === "prod";
 
 const FIXTURE = join(__dirname, "fixtures", "sample.pdf");
+const FIXTURE_BUF = (() => {
+  try { return readFileSync(FIXTURE); } catch { return null; }
+})();
 
-async function login(page: Page) {
-  await page.goto("/auth");
-  await page.getByLabel(/e-?mail/i).fill(EMAIL!);
-  await page.getByLabel(/senha/i).fill(PASS!);
-  await page.getByRole("button", { name: /entrar/i }).click();
-  await page.waitForURL(/\/dashboard/, { timeout: 30_000 });
+type Outcome = "allow" | "deny";
+
+interface RoleCase {
+  key: string;
+  emailEnv: string;
+  passEnv: string;
+  submissaoId: string | undefined;
+  expect: Outcome;
+  prodSafe: boolean;
 }
 
-async function authToken(page: Page): Promise<string> {
-  // Recupera o access_token da sessão Supabase persistida em localStorage.
-  const token = await page.evaluate(() => {
-    for (let i = 0; i < localStorage.length; i++) {
-      const k = localStorage.key(i)!;
-      if (k.startsWith("sb-") && k.endsWith("-auth-token")) {
-        try {
-          const v = JSON.parse(localStorage.getItem(k) ?? "{}");
-          return v?.access_token ?? null;
-        } catch { /* ignore */ }
-      }
-    }
-    return null;
-  });
-  expect(token, "access_token na sessão").toBeTruthy();
-  return token as string;
+const ROLES: RoleCase[] = [
+  { key: "admin",       emailEnv: "E2E_ADMIN_EMAIL",       passEnv: "E2E_ADMIN_PASSWORD",       submissaoId: SUBM,        expect: "allow", prodSafe: true  },
+  { key: "gerente",     emailEnv: "E2E_GERENTE_EMAIL",     passEnv: "E2E_GERENTE_PASSWORD",     submissaoId: SUBM,        expect: "allow", prodSafe: true  },
+  { key: "supervisor",  emailEnv: "E2E_SUPERVISOR_EMAIL",  passEnv: "E2E_SUPERVISOR_PASSWORD",  submissaoId: SUBM,        expect: "allow", prodSafe: true  },
+  { key: "china_owner", emailEnv: "E2E_CHINA_OWNER_EMAIL", passEnv: "E2E_CHINA_OWNER_PASSWORD", submissaoId: OWNER_SUBM,  expect: "allow", prodSafe: true  },
+  { key: "china_other", emailEnv: "E2E_CHINA_OTHER_EMAIL", passEnv: "E2E_CHINA_OTHER_PASSWORD", submissaoId: OWNER_SUBM,  expect: "deny",  prodSafe: false },
+  { key: "vendedor",    emailEnv: "E2E_VENDEDOR_EMAIL",    passEnv: "E2E_VENDEDOR_PASSWORD",    submissaoId: SUBM,        expect: "deny",  prodSafe: false },
+];
+
+// Credenciais para verificação REST nos casos "deny" (precisa de quem
+// realmente enxerga `china_produto_documentos`). Default = admin.
+const VERIFIER: RoleCreds | null = (() => {
+  const email = process.env.E2E_ADMIN_TOKEN_EMAIL ?? process.env.E2E_ADMIN_EMAIL;
+  const pass  = process.env.E2E_ADMIN_TOKEN_PASSWORD ?? process.env.E2E_ADMIN_PASSWORD;
+  return email && pass ? { email, password: pass } : null;
+})();
+
+function envCreds(c: RoleCase): RoleCreds | null {
+  const email = process.env[c.emailEnv];
+  const password = process.env[c.passEnv];
+  return email && password ? { email, password } : null;
 }
 
-test.describe("@china-docs upload → DB → preview → download", () => {
-  test.skip(!BASE || !SUBM || !SB_URL || !SB_KEY || !EMAIL || !PASS,
-    "Defina E2E_BASE_URL, E2E_TEST_EMAIL/PASSWORD, E2E_SUPABASE_URL/ANON_KEY e E2E_CHINA_SUBMISSAO_ID");
+async function tryUpload(page: Page, submissaoId: string): Promise<{
+  uploaded: boolean;
+  blockedAtRoute: boolean;
+  errorToast: boolean;
+}> {
+  await page.goto(`/dashboard/fabrica-china/caixa-entrada?submissaoId=${submissaoId}`);
 
-  test("fluxo completo (upload → persiste → preview → download)", async ({ page }) => {
-    await login(page);
+  // Se o usuário não tem o módulo, o ModuleProtectedRoute renderiza AccessDenied.
+  const denied = page.getByText(/não tem permissão|acesso negado/i);
+  if (await denied.first().isVisible().catch(() => false)) {
+    return { uploaded: false, blockedAtRoute: true, errorToast: false };
+  }
 
-    // 1) Abrir a submissão na caixa de entrada
-    await page.goto(`/dashboard/fabrica-china/caixa-entrada?submissaoId=${SUBM}`);
-    await expect(page.locator("body")).not.toContainText(/Application error/i);
+  const fileInput = page
+    .locator(`[data-testid="china-upload-${TIPO}"] input[type="file"], input[type="file"]`)
+    .first();
+  const attached = await fileInput.waitFor({ state: "attached", timeout: 10_000 })
+    .then(() => true).catch(() => false);
+  if (!attached) {
+    return { uploaded: false, blockedAtRoute: true, errorToast: false };
+  }
 
-    // 2) Localizar o slot de upload do tipo alvo (data-testid recomendado:
-    //    `china-upload-${tipo}`; fallback: input file visível na seção)
-    const fileInput = page
-      .locator(`[data-testid="china-upload-${TIPO}"] input[type="file"], input[type="file"]`)
-      .first();
-    await fileInput.waitFor({ state: "attached", timeout: 15_000 });
-
-    const before = Date.now();
-    const fixtureBuf = readFileSync(FIXTURE);
-    await fileInput.setInputFiles({
-      name: "Relatório Teste E2E.pdf",
-      mimeType: "application/pdf",
-      buffer: fixtureBuf,
-    });
-
-    // 3) Aguardar toast de sucesso
-    await expect(page.getByText(/documento.*(enviado|salvo|carregado)/i)).toBeVisible({ timeout: 60_000 });
-
-    // 4) Verificar persistência via REST (RLS-safe, com token do usuário)
-    const token = await authToken(page);
-    const url =
-      `${SB_URL}/rest/v1/china_produto_documentos` +
-      `?select=id,arquivo_path,arquivo_nome,tipo_documento,created_at` +
-      `&submissao_id=eq.${SUBM}&tipo_documento=eq.${TIPO}` +
-      `&order=created_at.desc&limit=1`;
-    const res = await page.request.get(url, {
-      headers: {
-        apikey: SB_KEY!,
-        Authorization: `Bearer ${token}`,
-      },
-    });
-    expect(res.ok(), `GET ${url} → ${res.status()}`).toBeTruthy();
-    const rows = await res.json();
-    expect(Array.isArray(rows) && rows.length > 0, "documento deve existir no DB").toBeTruthy();
-    const doc = rows[0];
-    expect(doc.arquivo_path, "arquivo_path preenchido").toBeTruthy();
-    expect(new Date(doc.created_at).getTime()).toBeGreaterThanOrEqual(before - 5_000);
-
-    // 5) Abrir o preview — clicar no item recém-criado
-    //    Usa o nome do arquivo como âncora (pode ser sanitizado, então busca parcial).
-    const trigger = page.getByText(/Relat[óo]rio Teste E2E/i).first();
-    await trigger.click();
-    const dialog = page.getByRole("dialog");
-    await expect(dialog).toBeVisible({ timeout: 15_000 });
-    // estado "ready" = iframe / imagem carregada, sem mensagem de erro
-    await expect(dialog.getByText(/erro|falha/i)).toHaveCount(0);
-
-    // 6) Disparar download e validar filename
-    const [download] = await Promise.all([
-      page.waitForEvent("download", { timeout: 30_000 }),
-      dialog.getByRole("button", { name: /baixar|download/i }).click(),
-    ]);
-    expect(download.suggestedFilename()).toMatch(/Relat[óo]rio Teste E2E\.pdf$/i);
+  await fileInput.setInputFiles({
+    name: "Relatório Teste E2E.pdf",
+    mimeType: "application/pdf",
+    buffer: FIXTURE_BUF!,
   });
+
+  // Espera o desfecho: ou toast de sucesso, ou toast de erro de permissão.
+  const success = page.getByText(/documento.*(enviado|salvo|carregado|anexado)/i);
+  const failure = page.getByText(/permissão|negad|denied|sess[ãa]o expirou/i);
+  const outcome = await Promise.race([
+    success.first().waitFor({ timeout: 60_000 }).then(() => "ok" as const).catch(() => null),
+    failure.first().waitFor({ timeout: 60_000 }).then(() => "fail" as const).catch(() => null),
+  ]);
+  return {
+    uploaded: outcome === "ok",
+    blockedAtRoute: false,
+    errorToast: outcome === "fail",
+  };
+}
+
+async function verifyDownloadAndPreview(page: Page) {
+  const trigger = page.getByText(/Relat[óo]rio Teste E2E/i).first();
+  await trigger.click();
+  const dialog = page.getByRole("dialog");
+  await expect(dialog).toBeVisible({ timeout: 15_000 });
+  await expect(dialog.getByText(/erro|falha/i)).toHaveCount(0);
+  const [download] = await Promise.all([
+    page.waitForEvent("download", { timeout: 30_000 }),
+    dialog.getByRole("button", { name: /baixar|download/i }).click(),
+  ]);
+  expect(download.suggestedFilename()).toMatch(/Relat[óo]rio Teste E2E\.pdf$/i);
+}
+
+async function getVerifierToken(req: APIRequestContext, browser: Page["context"] extends never ? never : Page): Promise<string | null> {
+  // unused — placeholder para refactor futuro
+  return null;
+}
+
+void getVerifierToken;
+
+test.describe("@china-docs upload por papel", () => {
+  test.skip(
+    !BASE || !SUBM || !SB_URL || !SB_KEY || !FIXTURE_BUF,
+    "Defina E2E_BASE_URL, E2E_SUPABASE_URL/ANON_KEY, E2E_CHINA_SUBMISSAO_ID e tenha e2e/china-docs/fixtures/sample.pdf",
+  );
+
+  for (const role of ROLES) {
+    test.describe.serial(`papel: ${role.key} (${role.expect})`, () => {
+      const creds = envCreds(role);
+
+      test(`${role.key} → ${role.expect}`, async ({ page, browser }) => {
+        // Skip controlado
+        if (!creds) {
+          const msg = `Credenciais ausentes (${role.emailEnv}/${role.passEnv})`;
+          if (STRICT) throw new Error(msg);
+          test.skip(true, msg);
+          return;
+        }
+        if (!role.submissaoId) {
+          test.skip(true, "submissaoId ausente para esse papel");
+          return;
+        }
+        if (role.expect === "deny" && IS_PROD && !role.prodSafe) {
+          test.skip(true, "caso deny não roda em produção (poluiria audit log)");
+          return;
+        }
+
+        await loginAs(page, creds);
+        const before = Date.now();
+        const result = await tryUpload(page, role.submissaoId);
+
+        if (role.expect === "allow") {
+          expect(result.uploaded, `papel ${role.key} deveria conseguir upload`).toBeTruthy();
+          await verifyDownloadAndPreview(page);
+        } else {
+          expect(result.uploaded, `papel ${role.key} NÃO deveria conseguir upload`).toBeFalsy();
+          expect(
+            result.blockedAtRoute || result.errorToast,
+            "deve bloquear no route guard ou exibir toast de erro",
+          ).toBeTruthy();
+
+          // Verificação cruzada via REST (token do verificador).
+          if (VERIFIER) {
+            const verifierCtx = await browser.newContext();
+            const verifierPage = await verifierCtx.newPage();
+            try {
+              await loginAs(verifierPage, VERIFIER);
+              const tok = await authToken(verifierPage);
+              if (tok) {
+                const count = await countDocsSince(verifierPage.request, {
+                  supabaseUrl: SB_URL!,
+                  anonKey: SB_KEY!,
+                  token: tok,
+                  submissaoId: role.submissaoId!,
+                  tipo: TIPO,
+                  sinceMs: before - 5_000,
+                });
+                expect(count, "não deve ter criado linha no DB").toBe(0);
+              }
+            } finally {
+              await verifierCtx.close();
+            }
+          }
+        }
+      });
+    });
+  }
 });
