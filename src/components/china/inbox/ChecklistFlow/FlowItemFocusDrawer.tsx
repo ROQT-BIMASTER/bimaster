@@ -186,7 +186,7 @@ export function FlowItemFocusDrawer({
                   </span>
                 )}
               </div>
-              <ItemThumb item={doc as any} size="md" />
+              <DocBigPreview doc={doc} onExpand={() => setFocusOpen(true)} />
               {canUpload && !isApproved && (
                 <Button
                   variant="outline"
