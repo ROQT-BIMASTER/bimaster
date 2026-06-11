@@ -53301,6 +53301,49 @@ export type Database = {
           op_id: string
         }[]
       }
+      rpc_china_criar_projeto_espelho: {
+        Args: {
+          p_projeto_id?: string
+          p_projeto_nome?: string
+          p_secao_nome?: string
+          p_submissao_id: string
+          p_template_b2c_id?: string
+        }
+        Returns: Json
+      }
+      rpc_china_enviar_doc_b2c: {
+        Args: { p_item_id: string }
+        Returns: {
+          arquivo_nome: string | null
+          arquivo_path: string | null
+          arquivo_tamanho_bytes: number | null
+          categoria: string
+          created_at: string
+          created_by: string | null
+          descricao: string | null
+          enviado_em: string | null
+          id: string
+          motivo_devolucao: string | null
+          nome_documento: string
+          obrigatorio: boolean
+          projeto_tarefa_id: string | null
+          recebido_em: string | null
+          respondido_em: string | null
+          respondido_por: string | null
+          responsavel_brasil_id: string | null
+          sla_dias: number | null
+          status: string
+          submissao_id: string
+          template_id: string | null
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "china_checklist_brasil_china"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       rpc_china_liberar_para_oc: {
         Args: { p_submissao_id: string }
         Returns: Json
@@ -53399,6 +53442,39 @@ export type Database = {
         SetofOptions: {
           from: "*"
           to: "china_ordens_compra"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      rpc_china_responder_doc_b2c: {
+        Args: { p_decisao: string; p_item_id: string; p_motivo?: string }
+        Returns: {
+          arquivo_nome: string | null
+          arquivo_path: string | null
+          arquivo_tamanho_bytes: number | null
+          categoria: string
+          created_at: string
+          created_by: string | null
+          descricao: string | null
+          enviado_em: string | null
+          id: string
+          motivo_devolucao: string | null
+          nome_documento: string
+          obrigatorio: boolean
+          projeto_tarefa_id: string | null
+          recebido_em: string | null
+          respondido_em: string | null
+          respondido_por: string | null
+          responsavel_brasil_id: string | null
+          sla_dias: number | null
+          status: string
+          submissao_id: string
+          template_id: string | null
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "china_checklist_brasil_china"
           isOneToOne: true
           isSetofReturn: false
         }
