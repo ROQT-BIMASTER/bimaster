@@ -113,6 +113,7 @@ export default function ChinaCaixaEntrada() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [previewDoc, setPreviewDoc] = useState<MailboxItem | null>(null);
+  const [kanbanSelected, setKanbanSelected] = useState<MailboxItem | null>(null);
   const [copilotOpen, setCopilotOpen] = useState(false);
   const searchInputRef = useRef<HTMLInputElement | null>(null);
   const [groupMode, setGroupMode] = useChinaInboxGroupMode(folder);
@@ -569,7 +570,7 @@ export default function ChinaCaixaEntrada() {
               selectedId={selectedId}
               perspective={isBrasilUser ? "brasil" : "china"}
               onJumpFolder={(f) => { setViewMode("list"); setFolder(f); }}
-              onSelectGroup={(g: MailboxGroup) => {
+              onSelectGroup={(g: MailboxGroup, hint?: MailboxItem) => {
                 const targetFolder: MailboxFolder =
                   g.submissao_status === "aprovado" ? "approved"
                   : g.submissao_status === "rejeitado" ? (isBrasilUser ? "rejected" : "returned")
@@ -577,11 +578,44 @@ export default function ChinaCaixaEntrada() {
                   : (g.submissao_status === "em_revisao" || g.submissao_status === "enviado") ? "in_analysis"
                   : "awaiting_send";
                 if (folder !== targetFolder) setFolder(targetFolder);
-                const firstDoc = g.docs[0];
-                if (firstDoc) {
-                  const id = firstDoc.is_virtual
-                    ? `${firstDoc.submissao_id}:virtual:${firstDoc.tipo_documento ?? "_"}`
-                    : firstDoc.documento_id ?? firstDoc.submissao_id;
+
+                const pick =
+                  hint ??
+                  g.docs.find((d: any) => !d.is_virtual && (d.arquivo_path || d.arquivo_url)) ??
+                  g.docs.find((d: any) => !d.is_virtual) ??
+                  g.docs[0] ??
+                  null;
+
+                const chosen: MailboxItem = pick ?? ({
+                  submissao_id: g.submissao_id,
+                  produto_codigo: g.produto_codigo,
+                  produto_nome: g.produto_nome,
+                  submissao_status: g.submissao_status,
+                  is_virtual: true,
+                  tipo_documento: null,
+                  documento_id: null,
+                  nome_arquivo: null,
+                  arquivo_path: null,
+                  arquivo_url: null,
+                  doc_status: null,
+                  is_flagged: g.is_flagged,
+                  is_read: true,
+                  has_unread: g.has_unread,
+                  horas_pendentes: 0,
+                  created_at: g.latest_at,
+                  updated_at: g.latest_at,
+                  observacoes_china: null,
+                  observacoes_brasil: null,
+                  numero_ordem: null,
+                  is_deleted: false,
+                } as unknown as MailboxItem);
+
+                setKanbanSelected(chosen);
+
+                if (pick) {
+                  const id = pick.is_virtual
+                    ? `${pick.submissao_id}:virtual:${pick.tipo_documento ?? "_"}`
+                    : pick.documento_id ?? pick.submissao_id;
                   setSelectedId(id);
                 } else {
                   setSelectedId(g.submissao_id);
@@ -723,62 +757,67 @@ export default function ChinaCaixaEntrada() {
       <SubmissionCopilotPanel open={copilotOpen} onOpenChange={setCopilotOpen} initialQuery={search} />
 
       {/* Reading pane como Sheet lateral (modo Kanban) */}
-      <Sheet
-        open={viewMode === "kanban" && isDesktop && !!selectedItem}
-        onOpenChange={(o) => { if (!o) setSelectedId(null); }}
-      >
-        <SheetContent
-          side="right"
-          hideClose
-          className="w-full sm:max-w-[600px] p-0 flex flex-col"
-        >
-          {selectedItem && (
-            <>
-              <div className="flex items-center gap-2 border-b border-border bg-card/40 px-3 py-2">
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-1.5 text-[10.5px] tabular-nums text-muted-foreground">
-                    {selectedItem.produto_codigo}
-                    {selectedItem.submissao_status && (
-                      <span className="rounded-sm bg-muted/60 px-1 py-px text-[9.5px] uppercase tracking-wide">
-                        {selectedItem.submissao_status}
-                      </span>
-                    )}
+      {(() => {
+        const sheetItem = selectedItem ?? kanbanSelected;
+        return (
+          <Sheet
+            open={viewMode === "kanban" && isDesktop && !!sheetItem}
+            onOpenChange={(o) => { if (!o) { setSelectedId(null); setKanbanSelected(null); } }}
+          >
+            <SheetContent
+              side="right"
+              hideClose
+              className="w-full sm:max-w-[600px] p-0 flex flex-col"
+            >
+              {sheetItem && (
+                <>
+                  <div className="flex items-center gap-2 border-b border-border bg-card/40 px-3 py-2">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5 text-[10.5px] tabular-nums text-muted-foreground">
+                        {sheetItem.produto_codigo}
+                        {sheetItem.submissao_status && (
+                          <span className="rounded-sm bg-muted/60 px-1 py-px text-[9.5px] uppercase tracking-wide">
+                            {sheetItem.submissao_status}
+                          </span>
+                        )}
+                      </div>
+                      <div className="truncate text-sm font-semibold leading-tight">
+                        {sheetItem.produto_nome}
+                      </div>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 shrink-0"
+                      title="Fechar"
+                      onClick={() => { setSelectedId(null); setKanbanSelected(null); }}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
                   </div>
-                  <div className="truncate text-sm font-semibold leading-tight">
-                    {selectedItem.produto_nome}
+                  <div className="flex-1 min-h-0">
+                    <MailboxReadingPane
+                      item={sheetItem}
+                      isBrasilUser={isBrasilUser}
+                      isChinaUser={isChinaUser}
+                      onView={(it) => setPreviewDoc(it)}
+                      onCorrigir={handleCorrigir}
+                      onEnviarBrasil={handleEnviarBrasil}
+                      onToggleRead={handleToggleRead}
+                      onToggleStar={handleToggleStar}
+                      loading={loading}
+                      error={enviarBrasil.isError ? (enviarBrasil.error as any)?.message ?? t("inbox.blocks.falhaEnviarBrasil") : null}
+                      onRetryEnvio={lastEnvioVars && enviarBrasil.isError ? handleRetryEnvio : undefined}
+                      compact
+                      chatDefaultOpen={false}
+                    />
                   </div>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 shrink-0"
-                  title="Fechar"
-                  onClick={() => setSelectedId(null)}
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
-              <div className="flex-1 min-h-0">
-                <MailboxReadingPane
-                  item={selectedItem}
-                  isBrasilUser={isBrasilUser}
-                  isChinaUser={isChinaUser}
-                  onView={(it) => setPreviewDoc(it)}
-                  onCorrigir={handleCorrigir}
-                  onEnviarBrasil={handleEnviarBrasil}
-                  onToggleRead={handleToggleRead}
-                  onToggleStar={handleToggleStar}
-                  loading={loading}
-                  error={enviarBrasil.isError ? (enviarBrasil.error as any)?.message ?? t("inbox.blocks.falhaEnviarBrasil") : null}
-                  onRetryEnvio={lastEnvioVars && enviarBrasil.isError ? handleRetryEnvio : undefined}
-                  compact
-                  chatDefaultOpen={false}
-                />
-              </div>
-            </>
-          )}
-        </SheetContent>
-      </Sheet>
+                </>
+              )}
+            </SheetContent>
+          </Sheet>
+        );
+      })()}
     </ChinaPageShell>
   );
 }

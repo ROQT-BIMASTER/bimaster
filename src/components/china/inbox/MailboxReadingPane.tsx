@@ -21,6 +21,7 @@ import { resolveDirection } from "@/lib/china/inboxDirection";
 import { InboxDirectionBand } from "./InboxDirectionBadge";
 import { ChinaTimelineButton } from "@/components/china/timeline/ChinaTimelineButton";
 import { useChinaI18n } from "@/hooks/useChinaI18n";
+import { useChinaDocThumbnail } from "@/hooks/useChinaDocThumbnail";
 
 interface Props {
   item: MailboxItem | null;
@@ -240,17 +241,26 @@ export function MailboxReadingPane({
 
         {item.tipo_documento ? (
           <section className="space-y-2 rounded-md border border-border bg-card/40 p-3">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium">{item.tipo_documento}</p>
+            <div className="flex items-center justify-between gap-2">
+              <div className="min-w-0">
+                <p className="text-sm font-medium truncate">{item.tipo_documento}</p>
                 {item.nome_arquivo && (
-                  <p className="text-xs text-muted-foreground">{item.nome_arquivo}</p>
+                  <p className="text-xs text-muted-foreground truncate">{item.nome_arquivo}</p>
                 )}
               </div>
-              <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => onView(item)}>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-7 text-xs shrink-0"
+                onClick={() => onView(item)}
+                title="Abrir em tela cheia"
+              >
                 {t("inbox.actions.preVisualizar")}
               </Button>
             </div>
+            {(item.arquivo_path || item.arquivo_url) && !(item as any).is_virtual && (
+              <InlineDocPreview item={item} onOpenFull={() => onView(item)} />
+            )}
             {item.doc_status && (
               <p className="text-xs text-muted-foreground">
                 {t("inbox.doc.statusPrefix")} <span className="text-foreground">{item.doc_status}</span> ·{" "}
@@ -470,4 +480,55 @@ export function MailboxReadingPane({
       </Dialog>
     </div>
   );
+}
+
+function InlineDocPreview({ item, onOpenFull }: { item: MailboxItem; onOpenFull: () => void }) {
+  const { kind, url } = useChinaDocThumbnail({
+    arquivoPath: item.arquivo_path,
+    arquivoUrl: item.arquivo_url,
+    nomeArquivo: item.nome_arquivo,
+    enabled: true,
+  });
+
+  if (kind === "image") {
+    return (
+      <button
+        type="button"
+        onClick={onOpenFull}
+        className="block w-full overflow-hidden rounded-md border border-border bg-muted/20 hover:border-primary/40 transition-colors"
+        title="Abrir em tela cheia"
+      >
+        {url ? (
+          <img
+            src={url}
+            alt={item.nome_arquivo ?? ""}
+            loading="lazy"
+            className="max-h-[320px] w-full object-contain bg-muted/20"
+          />
+        ) : (
+          <div className="h-[200px] w-full animate-pulse bg-muted/40" />
+        )}
+      </button>
+    );
+  }
+
+  if (kind === "pdf") {
+    return (
+      <button
+        type="button"
+        onClick={onOpenFull}
+        className="flex w-full items-center gap-2 rounded-md border border-rose-500/30 bg-rose-500/5 p-3 text-left hover:bg-rose-500/10 transition-colors"
+      >
+        <FileText className="h-6 w-6 shrink-0 text-rose-500" />
+        <div className="min-w-0 flex-1">
+          <p className="text-xs font-medium text-foreground/90 truncate">
+            {item.nome_arquivo ?? "Documento PDF"}
+          </p>
+          <p className="text-[10px] text-muted-foreground">Clique para abrir em tela cheia</p>
+        </div>
+      </button>
+    );
+  }
+
+  return null;
 }
