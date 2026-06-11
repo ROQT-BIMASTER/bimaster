@@ -7,7 +7,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
-import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
+
 import { cn } from "@/lib/utils";
 import { groupBySubmissao, type MailboxGroup } from "@/lib/china/groupMailboxItems";
 import type { MailboxItem, MailboxFolder } from "@/hooks/useChinaMailbox";
