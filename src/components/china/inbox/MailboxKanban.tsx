@@ -303,8 +303,9 @@ function KanbanCard({ group, selected, perspective, onClick }: CardProps) {
 
   const pendSubnote = progress.anexados_rascunho > 0 ? `${progress.anexados_rascunho} anex.` : undefined;
 
+  const [hoverOpen, setHoverOpen] = useState(false);
   return (
-    <HoverCard openDelay={250} closeDelay={80}>
+    <HoverCard openDelay={250} closeDelay={80} open={hoverOpen} onOpenChange={setHoverOpen}>
       <HoverCardTrigger asChild>
         <button
           type="button"
