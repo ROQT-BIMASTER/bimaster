@@ -2,7 +2,9 @@ import { useState, useMemo, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Link as RouterLink, useSearchParams } from "react-router-dom";
-import { Link2, Package, Loader2, Maximize2, Gavel, CheckCircle2, ShieldCheck } from "lucide-react";
+import { Link2, Package, Loader2, Maximize2, Gavel, CheckCircle2, ShieldCheck, LayoutGrid, List as ListIcon } from "lucide-react";
+import { MailboxKanban } from "@/components/china/inbox/MailboxKanban";
+import { useChinaMailbox, type MailboxItem } from "@/hooks/useChinaMailbox";
 import { Button } from "@/components/ui/button";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/dashboard/AppSidebar";
@@ -148,9 +150,22 @@ export default function ProjetoVincularChina() {
   const [encaminharOpen, setEncaminharOpen] = useState(false);
   const [encaminharProjetoOpen, setEncaminharProjetoOpen] = useState(false);
   const [continuarProjetoOpen, setContinuarProjetoOpen] = useState(false);
+  const [viewMode, setViewMode] = useState<"kanban" | "list">(() => {
+    if (typeof window === "undefined") return "kanban";
+    const v = window.localStorage.getItem("vincular-china.viewMode");
+    return v === "list" ? "list" : "kanban";
+  });
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem("vincular-china.viewMode", viewMode);
+    }
+  }, [viewMode]);
   const queryClient = useQueryClient();
   const toggleFlag = useToggleSubmissaoFlag();
   const { flags, snoozes } = useVincularChinaUserState();
+
+  // Mailbox data (Kanban view) — perspectiva Brasil
+  const { items: kanbanItems, progressItems: kanbanProgressItems } = useChinaMailbox("inbox");
 
   // Sincroniza estado relevante de volta para a URL (preserva refresh / share link)
   useEffect(() => {
@@ -713,8 +728,101 @@ export default function ProjetoVincularChina() {
               onToggleCollapsed={() => setKpisOpen((v) => !v)}
             />
 
-      {/* Mailbox 3-pane layout */}
-      {(() => {
+            {/* Toggle Kanban / Lista */}
+            <div className="flex items-center justify-end gap-1">
+              <Button
+                size="sm"
+                variant={viewMode === "kanban" ? "default" : "outline"}
+                className="h-8 gap-1.5"
+                onClick={() => setViewMode("kanban")}
+              >
+                <LayoutGrid className="h-3.5 w-3.5" />
+                Kanban
+              </Button>
+              <Button
+                size="sm"
+                variant={viewMode === "list" ? "default" : "outline"}
+                className="h-8 gap-1.5"
+                onClick={() => setViewMode("list")}
+              >
+                <ListIcon className="h-3.5 w-3.5" />
+                Lista
+              </Button>
+            </div>
+
+      {/* Kanban view (default) */}
+      {viewMode === "kanban" && (() => {
+        const { rows: mailboxRows } = classifyVincularRows(tableData, flags, snoozes);
+        const selectedMailRow = mailboxRows.find((r) => r.id === selectedSubmissaoId) || null;
+
+        // Filtra os itens do kanban pelo KPI selecionado (status da submissão)
+        const filterByKpi = (arr: MailboxItem[]) => {
+          if (!kpiStatusFilter || kpiStatusFilter === "todos") return arr;
+          if (kpiStatusFilter === "vinculados" || kpiStatusFilter === "com_pendencias" || kpiStatusFilter === "atrasados") {
+            return arr;
+          }
+          return arr.filter((i) => i.submissao_status === kpiStatusFilter);
+        };
+        const kItems = filterByKpi(kanbanItems ?? []);
+        const kProgress = filterByKpi(kanbanProgressItems ?? []);
+
+        return (
+          <div className="h-[calc(100vh-260px)] overflow-hidden rounded-md border border-border bg-card/20">
+            <ResizablePanelGroup direction="horizontal">
+              <ResizablePanel defaultSize={selectedMailRow ? 60 : 100} minSize={40}>
+                <div className="h-full overflow-hidden">
+                  <MailboxKanban
+                    items={kItems}
+                    progressItems={kProgress}
+                    selectedId={selectedSubmissaoId}
+                    perspective="brasil"
+                    onJumpFolder={() => { /* Kanban tem colunas próprias */ }}
+                    onSelectGroup={(g, pick) => {
+                      setSelectedSubmissaoId(g.submissao_id);
+                      if (pick && !(pick as any).is_virtual) {
+                        const doc = (g.docs || []).find((d: any) => d.documento_id === pick.documento_id);
+                        if (doc) setPreviewDoc(doc);
+                      }
+                    }}
+                  />
+                </div>
+              </ResizablePanel>
+              {selectedMailRow && (
+                <>
+                  <ResizableHandle withHandle />
+                  <ResizablePanel defaultSize={40} minSize={28} maxSize={60}>
+                    <VincularChinaSidePanel
+                      submissao={selectedMailRow}
+                      isLinkedToProject={submissaoVinculadas.has(selectedMailRow.id)}
+                      selectedProjetoId={selectedProjetoId}
+                      onClose={() => setSelectedSubmissaoId(null)}
+                      onPreviewDoc={setPreviewDoc}
+                      onEncaminharResponsavel={() => setEncaminharOpen(true)}
+                      onEncaminharProjeto={() => setEncaminharProjetoOpen(true)}
+                      onContinuarNoProjeto={() => setContinuarProjetoOpen(true)}
+                      onDecisionClick={(id) => { setDecisionProcessId(id); setDecisionOpen(true); }}
+                      secoes={secoes}
+                      tarefas={tarefas}
+                      vinculos={vinculos}
+                      docVinculos={docVinculos}
+                      checkedTarefas={checkedTarefas}
+                      onToggleTarefa={handleToggleTarefa}
+                      onVincular={handleVincular}
+                      onToggleDocVinculo={handleToggleDocVinculo}
+                      vinculosPending={createVinculo.isPending || vinculando}
+                      auditResult={auditResult}
+                      auditLoading={auditLoading}
+                    />
+                  </ResizablePanel>
+                </>
+              )}
+            </ResizablePanelGroup>
+          </div>
+        );
+      })()}
+
+      {/* Mailbox 3-pane layout (Lista) */}
+      {viewMode === "list" && (() => {
         const { rows: mailboxRows, counts: folderCounts } = classifyVincularRows(tableData, flags, snoozes);
         const baseFolderItems = filterByFolder(mailboxRows, folder);
         const folderItems = (() => {
