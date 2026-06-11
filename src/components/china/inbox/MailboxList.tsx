@@ -520,6 +520,7 @@ function describeParentStatus(status: string, t: TFn): string {
     case "pendente":
     case "em_revisao":
     case "enviado":
+    case "enviado_parcial":
     case "enviado_brasil":
       return t("mailboxList.parentStatus.enviadaBrasil");
     case "aprovado":
