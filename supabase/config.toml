@@ -1,5 +1,9 @@
 project_id = "aokkyrgaqjarhlywhjju"
 
+[functions.health]
+verify_jwt = false
+
+
 [functions.backup-signed-urls]
 verify_jwt = false
 
