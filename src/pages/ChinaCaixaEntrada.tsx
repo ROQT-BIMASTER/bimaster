@@ -7,7 +7,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { MailboxKanban } from "@/components/china/inbox/MailboxKanban";
-import type { MailboxGroup } from "@/lib/china/groupMailboxItems";
+import { groupBySubmissao, type MailboxGroup } from "@/lib/china/groupMailboxItems";
 import { SubmissionCopilotPanel } from "@/components/china/SubmissionCopilotPanel";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -159,6 +159,23 @@ export default function ChinaCaixaEntrada() {
     if (!selectedId) return null;
     return items.find((i) => itemRowId(i) === selectedId) ?? null;
   }, [items, selectedId]);
+
+  // Grupos da submissão usados pelo fluxo do checklist no painel.
+  // Sempre derivamos a partir de progressItems (fonte completa do checklist),
+  // garantindo que o painel mostre TODOS os tipos da submissão, não só os
+  // itens visíveis na pasta atual.
+  const allGroups = useMemo(
+    () => groupBySubmissao(progressItems ?? [], progressItems ?? []),
+    [progressItems],
+  );
+  const findGroup = (submissaoId: string | null | undefined): MailboxGroup | null => {
+    if (!submissaoId) return null;
+    return allGroups.find((g) => g.submissao_id === submissaoId) ?? null;
+  };
+  const selectedGroup = useMemo<MailboxGroup | null>(
+    () => findGroup(selectedItem?.submissao_id),
+    [allGroups, selectedItem?.submissao_id],
+  );
 
   const setFolder = (f: MailboxFolder) => {
     const sp = new URLSearchParams(searchParams);
@@ -683,6 +700,7 @@ export default function ChinaCaixaEntrada() {
                 loading={loading}
                 error={enviarBrasil.isError ? (enviarBrasil.error as any)?.message ?? t("inbox.blocks.falhaEnviarBrasil") : null}
                 onRetryEnvio={lastEnvioVars && enviarBrasil.isError ? handleRetryEnvio : undefined}
+                group={selectedGroup}
               />
             </ResizablePanel>
             </>)}
@@ -718,6 +736,7 @@ export default function ChinaCaixaEntrada() {
               loading={loading}
               error={enviarBrasil.isError ? (enviarBrasil.error as any)?.message ?? t("inbox.blocks.falhaEnviarBrasil") : null}
               onRetryEnvio={lastEnvioVars && enviarBrasil.isError ? handleRetryEnvio : undefined}
+              group={selectedGroup}
             />
           ) : (
             <div className="rounded-md border border-border bg-card/30">
@@ -810,6 +829,7 @@ export default function ChinaCaixaEntrada() {
                       onRetryEnvio={lastEnvioVars && enviarBrasil.isError ? handleRetryEnvio : undefined}
                       compact
                       chatDefaultOpen={false}
+                      group={findGroup(sheetItem?.submissao_id)}
                     />
                   </div>
                 </>

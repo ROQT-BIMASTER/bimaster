@@ -22,6 +22,7 @@ import { InboxDirectionBand } from "./InboxDirectionBadge";
 import { ChinaTimelineButton } from "@/components/china/timeline/ChinaTimelineButton";
 import { useChinaI18n } from "@/hooks/useChinaI18n";
 import { useChinaDocThumbnail } from "@/hooks/useChinaDocThumbnail";
+import { ChecklistFlow, FlowItemFocusDrawer } from "./ChecklistFlow";
 
 interface Props {
   item: MailboxItem | null;
@@ -40,6 +41,8 @@ interface Props {
   compact?: boolean;
   /** Estado inicial do collapsible de Conversa (default: lê localStorage). */
   chatDefaultOpen?: boolean;
+  /** Grupo da submissão (usado para renderizar o fluxo do checklist). */
+  group?: import("@/lib/china/groupMailboxItems").MailboxGroup | null;
 }
 
 export function MailboxReadingPane({
@@ -57,7 +60,9 @@ export function MailboxReadingPane({
   onRetryEnvio,
   compact,
   chatDefaultOpen,
+  group,
 }: Props) {
+  const [flowCtx, setFlowCtx] = useState<import("./ChecklistFlow/types").FlowItemContext | null>(null);
   const navigate = useNavigate();
   const location = useLocation();
   const { t } = useChinaI18n();
@@ -238,6 +243,19 @@ export function MailboxReadingPane({
         </header>
 
         <Separator className="my-4" />
+
+        {group && (
+          <div className="mb-4">
+            <ChecklistFlow
+              group={group}
+              perspective={isBrasilUser ? "brasil" : "china"}
+              selectedTipo={item.tipo_documento}
+              onFocusItem={(ctx) => setFlowCtx(ctx)}
+            />
+          </div>
+        )}
+
+
 
         {item.tipo_documento ? (
           <section className="space-y-2 rounded-md border border-border bg-card/40 p-3">
@@ -478,6 +496,15 @@ export function MailboxReadingPane({
           </div>
         </DialogContent>
       </Dialog>
+
+      <FlowItemFocusDrawer
+        open={!!flowCtx}
+        context={flowCtx}
+        perspective={isBrasilUser ? "brasil" : "china"}
+        onOpenChange={(o) => { if (!o) setFlowCtx(null); }}
+        onEnviarBrasil={onEnviarBrasil}
+        onOpenSubmissao={(id) => goWithReturn(`/dashboard/fabrica-china/submissao/${id}`)}
+      />
     </div>
   );
 }

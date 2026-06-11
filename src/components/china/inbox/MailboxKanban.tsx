@@ -7,13 +7,13 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
-import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
+
 import { cn } from "@/lib/utils";
 import { groupBySubmissao, type MailboxGroup } from "@/lib/china/groupMailboxItems";
 import type { MailboxItem, MailboxFolder } from "@/hooks/useChinaMailbox";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { useMergedChinaChecklist } from "@/hooks/useMergedChinaChecklist";
+
 import { ItemThumb } from "@/components/china/inbox/ItemThumb";
 
 
@@ -194,105 +194,7 @@ function StatusChip({ bucket, count, subnote }: ChipProps) {
   );
 }
 
-function ChecklistHoverContent({ group }: { group: MailboxGroup }) {
-  const merged = useMergedChinaChecklist(group.submissao_id);
 
-  // Mapeia tipo_documento -> item mais recente vindo do inbox (já carregado).
-  const docsByTipo = useMemo(() => {
-    const m = new Map<string, MailboxItem>();
-    for (const d of group.docs) {
-      const tipo = (d as any).tipo_documento as string | undefined;
-      if (!tipo) continue;
-      const prev = m.get(tipo);
-      if (!prev) { m.set(tipo, d); continue; }
-      const a = new Date(prev.created_at || 0).getTime();
-      const b = new Date(d.created_at || 0).getTime();
-      if (b >= a) m.set(tipo, d);
-    }
-    return m;
-  }, [group.docs]);
-
-  const cats = merged.categories;
-  const totalTipos = cats.reduce((s, c) => s + c.tipos.length, 0);
-  const aprovados = cats.reduce((s, c) => s + c.tipos.filter((t) => {
-    const d = docsByTipo.get(t);
-    return d && bucketForDoc(d) === "aprovado";
-  }).length, 0);
-
-  return (
-    <div className="w-80 text-[11.5px]">
-      <div className="mb-1.5 flex items-center gap-1.5 border-b border-border/60 pb-1.5">
-        <span className="font-mono text-[10px] text-muted-foreground">{group.produto_codigo}</span>
-        <span className="truncate font-medium">{group.produto_nome}</span>
-        <span className="ml-auto shrink-0 text-[10px] text-muted-foreground tabular-nums">
-          {aprovados}/{totalTipos} aprov.
-        </span>
-      </div>
-
-      {merged.isLoading ? (
-        <div className="py-3 text-center text-muted-foreground">Carregando checklist…</div>
-      ) : totalTipos === 0 ? (
-        <div className="py-2 text-center text-muted-foreground">Sem itens no checklist</div>
-      ) : (
-        <div className="max-h-72 space-y-2 overflow-y-auto pr-1">
-          {cats.map((cat) => {
-            if (cat.tipos.length === 0) return null;
-            return (
-              <div key={cat.key}>
-                <div className="mb-0.5 flex items-center gap-1 text-[10px] uppercase tracking-wide text-muted-foreground/80">
-                  <span className="truncate">{cat.labelPt}</span>
-                  {cat.labelCn && <span className="truncate opacity-60">· {cat.labelCn}</span>}
-                </div>
-                <ul className="space-y-0.5">
-                  {cat.tipos.map((tipo) => {
-                    const doc = docsByTipo.get(tipo);
-                    const dt = merged.getDocType(tipo);
-                    const labelPt = dt?.labelPt ?? tipo;
-                    const labelCn = dt?.labelCn;
-                    const bucket = doc ? bucketForDoc(doc) : "pendente";
-                    const meta = BUCKET_META[bucket];
-                    const Icon = meta.icon;
-                    const statusTxt = !doc
-                      ? "não criado"
-                      : ({
-                          aprovado: "aprovado",
-                          em_analise: "em análise",
-                          enviado: "enviado",
-                          pendente: "pendente",
-                          rejeitado: "devolvido",
-                        } as const)[bucket];
-                    return (
-                      <li key={tipo} className="flex items-start gap-1.5">
-                        <Icon className={cn("mt-0.5 h-3 w-3 shrink-0", !doc ? "text-muted-foreground/50" : meta.cls)} />
-                        <div className="min-w-0 flex-1">
-                          <div className="truncate">{labelPt}</div>
-                          {labelCn && <div className="truncate text-[10px] text-muted-foreground/70">{labelCn}</div>}
-                        </div>
-                        <span className={cn("shrink-0 text-[10px] tabular-nums", !doc ? "text-muted-foreground/60" : meta.cls)}>
-                          {statusTxt}
-                        </span>
-                      </li>
-                    );
-                  })}
-                </ul>
-              </div>
-            );
-          })}
-        </div>
-      )}
-
-      <div className="mt-1.5 border-t border-border/60 pt-1 text-[10px] text-muted-foreground">
-        Clique no card para abrir no painel
-      </div>
-    </div>
-  );
-}
-
-function ChecklistHover({ group, open }: { group: MailboxGroup; open: boolean }) {
-  // Só monta o conteúdo (e dispara queries) quando o hover está aberto.
-  if (!open) return null;
-  return <ChecklistHoverContent group={group} />;
-}
 
 function KanbanCard({ group, selected, perspective, onClick }: CardProps) {
   const { progress } = group;
@@ -312,76 +214,68 @@ function KanbanCard({ group, selected, perspective, onClick }: CardProps) {
     (group.docs || []).filter((d: any) => !d.is_virtual && (d.arquivo_path || d.arquivo_url)).length - previewDocs.length,
   );
 
-  const [hoverOpen, setHoverOpen] = useState(false);
   return (
-    <HoverCard openDelay={250} closeDelay={80} open={hoverOpen} onOpenChange={setHoverOpen}>
-      <HoverCardTrigger asChild>
-        <button
-          type="button"
-          onClick={onClick}
-          className={cn(
-            "group w-full rounded-md border bg-card px-2.5 py-2 text-left transition-colors",
-            "hover:bg-muted/40 hover:border-primary/40",
-            selected
-              ? "border-primary/60 ring-1 ring-primary/30 bg-primary/5"
-              : "border-border",
-          )}
-        >
-          {/* Linha 1: código + nome */}
-          <div className="flex items-center gap-1.5">
-            {group.has_unread && (
-              <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-primary" title="Não lido" />
-            )}
-            <div className="mt-0">{flowIcon}</div>
-            <span className="shrink-0 text-[10.5px] font-medium tabular-nums text-muted-foreground">
-              {group.produto_codigo}
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "group w-full rounded-md border bg-card px-2.5 py-2 text-left transition-colors",
+        "hover:bg-muted/40 hover:border-primary/40",
+        selected
+          ? "border-primary/60 ring-1 ring-primary/30 bg-primary/5"
+          : "border-border",
+      )}
+    >
+      {/* Linha 1: código + nome */}
+      <div className="flex items-center gap-1.5">
+        {group.has_unread && (
+          <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-primary" title="Não lido" />
+        )}
+        <div className="mt-0">{flowIcon}</div>
+        <span className="shrink-0 text-[10.5px] font-medium tabular-nums text-muted-foreground">
+          {group.produto_codigo}
+        </span>
+        <span className="truncate text-[12px] font-medium leading-tight flex-1">
+          {group.produto_nome}
+        </span>
+        {group.is_flagged && <Star className="h-3 w-3 shrink-0 fill-amber-400 text-amber-400" />}
+      </div>
+
+      {/* Strip de pré-visualização (até 3 thumbs) */}
+      {previewDocs.length > 0 && (
+        <div className="mt-1.5 flex items-center gap-1">
+          {previewDocs.map((d: any, i: number) => (
+            <ItemThumb key={d.documento_id ?? `${group.submissao_id}-thumb-${i}`} item={d} size="sm" />
+          ))}
+          {extraPreview > 0 && (
+            <span className="ml-0.5 text-[10px] tabular-nums text-muted-foreground">
+              +{extraPreview}
             </span>
-            <span className="truncate text-[12px] font-medium leading-tight flex-1">
-              {group.produto_nome}
-            </span>
-            {group.is_flagged && <Star className="h-3 w-3 shrink-0 fill-amber-400 text-amber-400" />}
-          </div>
-
-          {/* Strip de pré-visualização (até 3 thumbs) */}
-          {previewDocs.length > 0 && (
-            <div className="mt-1.5 flex items-center gap-1">
-              {previewDocs.map((d: any, i: number) => (
-                <ItemThumb key={d.documento_id ?? `${group.submissao_id}-thumb-${i}`} item={d} size="sm" />
-              ))}
-              {extraPreview > 0 && (
-                <span className="ml-0.5 text-[10px] tabular-nums text-muted-foreground">
-                  +{extraPreview}
-                </span>
-              )}
-            </div>
           )}
+        </div>
+      )}
 
-          {/* Barra de progresso segmentada */}
-          <ProgressBar progress={progress} />
+      {/* Barra de progresso segmentada */}
+      <ProgressBar progress={progress} />
 
-          {/* Chips numéricos por status (posições fixas) */}
-          <div className="mt-1 flex items-center gap-2 text-[10px]">
-            <StatusChip bucket="aprovado"   count={progress.aprovados} />
-            <StatusChip bucket="em_analise" count={progress.em_analise} />
-            <StatusChip bucket="enviado"    count={progress.enviados} />
-            <StatusChip bucket="pendente"   count={progress.pendentes} subnote={pendSubnote} />
-            <StatusChip bucket="rejeitado"  count={progress.rejeitados} />
-          </div>
+      {/* Chips numéricos por status (posições fixas) */}
+      <div className="mt-1 flex items-center gap-2 text-[10px]">
+        <StatusChip bucket="aprovado"   count={progress.aprovados} />
+        <StatusChip bucket="em_analise" count={progress.em_analise} />
+        <StatusChip bucket="enviado"    count={progress.enviados} />
+        <StatusChip bucket="pendente"   count={progress.pendentes} subnote={pendSubnote} />
+        <StatusChip bucket="rejeitado"  count={progress.rejeitados} />
+      </div>
 
-          {/* Rodapé */}
-          <div className="mt-1.5 flex items-center justify-between text-[10px] text-muted-foreground">
-            <span>{safeRelative(group.latest_at)}</span>
-            <div className="flex items-center gap-1">
-              <span className="tabular-nums opacity-70">{progress.total} doc{progress.total === 1 ? "" : "s"}</span>
-              {hasConversa && <MessageSquare className="h-3 w-3 opacity-70" />}
-            </div>
-          </div>
-        </button>
-      </HoverCardTrigger>
-      <HoverCardContent side="right" align="start" className="w-auto p-2.5">
-        <ChecklistHover group={group} open={hoverOpen} />
-      </HoverCardContent>
-    </HoverCard>
+      {/* Rodapé */}
+      <div className="mt-1.5 flex items-center justify-between text-[10px] text-muted-foreground">
+        <span>{safeRelative(group.latest_at)}</span>
+        <div className="flex items-center gap-1">
+          <span className="tabular-nums opacity-70">{progress.total} doc{progress.total === 1 ? "" : "s"}</span>
+          {hasConversa && <MessageSquare className="h-3 w-3 opacity-70" />}
+        </div>
+      </div>
+    </button>
   );
 }
 
@@ -405,48 +299,40 @@ function ItemCard({ item, group, selected, onClick }: ItemCardProps) {
     rejeitado: "devolvido",
   } as const)[bucket];
 
-  const [hoverOpen, setHoverOpen] = useState(false);
   return (
-    <HoverCard openDelay={250} closeDelay={80} open={hoverOpen} onOpenChange={setHoverOpen}>
-      <HoverCardTrigger asChild>
-        <button
-          type="button"
-          onClick={onClick}
-          className={cn(
-            "group w-full rounded-md border bg-card px-2.5 py-1.5 text-left transition-colors",
-            "hover:bg-muted/40 hover:border-primary/40",
-            selected
-              ? "border-primary/60 ring-1 ring-primary/30 bg-primary/5"
-              : "border-border",
-          )}
-        >
-          {(item.arquivo_path || item.arquivo_url) && !(item as any).is_virtual && (
-            <div className="mb-1.5 -mx-0.5">
-              <ItemThumb item={item as any} size="md" />
-            </div>
-          )}
-          <div className="flex items-center gap-1.5">
-            <Icon className={cn("h-3.5 w-3.5 shrink-0", meta.cls)} />
-            <span className="truncate text-[12px] font-medium leading-tight flex-1">
-              {docLabel}
-            </span>
-            {group.is_flagged && <Star className="h-3 w-3 shrink-0 fill-amber-400 text-amber-400" />}
-          </div>
-          <div className="mt-0.5 flex items-center gap-1 text-[10.5px] text-muted-foreground">
-            <span className="font-mono tabular-nums">{group.produto_codigo}</span>
-            <span className="opacity-60">·</span>
-            <span className="truncate">{group.produto_nome}</span>
-          </div>
-          <div className="mt-1 flex items-center justify-between text-[10px] text-muted-foreground">
-            <span>{safeRelative(item.created_at)}</span>
-            <span className={cn("tabular-nums", meta.cls)}>{statusLabel}</span>
-          </div>
-        </button>
-      </HoverCardTrigger>
-      <HoverCardContent side="right" align="start" className="w-auto p-2.5">
-        <ChecklistHover group={group} open={hoverOpen} />
-      </HoverCardContent>
-    </HoverCard>
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "group w-full rounded-md border bg-card px-2.5 py-1.5 text-left transition-colors",
+        "hover:bg-muted/40 hover:border-primary/40",
+        selected
+          ? "border-primary/60 ring-1 ring-primary/30 bg-primary/5"
+          : "border-border",
+      )}
+    >
+      {(item.arquivo_path || item.arquivo_url) && !(item as any).is_virtual && (
+        <div className="mb-1.5 -mx-0.5">
+          <ItemThumb item={item as any} size="md" />
+        </div>
+      )}
+      <div className="flex items-center gap-1.5">
+        <Icon className={cn("h-3.5 w-3.5 shrink-0", meta.cls)} />
+        <span className="truncate text-[12px] font-medium leading-tight flex-1">
+          {docLabel}
+        </span>
+        {group.is_flagged && <Star className="h-3 w-3 shrink-0 fill-amber-400 text-amber-400" />}
+      </div>
+      <div className="mt-0.5 flex items-center gap-1 text-[10.5px] text-muted-foreground">
+        <span className="font-mono tabular-nums">{group.produto_codigo}</span>
+        <span className="opacity-60">·</span>
+        <span className="truncate">{group.produto_nome}</span>
+      </div>
+      <div className="mt-1 flex items-center justify-between text-[10px] text-muted-foreground">
+        <span>{safeRelative(item.created_at)}</span>
+        <span className={cn("tabular-nums", meta.cls)}>{statusLabel}</span>
+      </div>
+    </button>
   );
 }
 
