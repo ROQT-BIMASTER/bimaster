@@ -417,12 +417,28 @@ check      "Timeline usa rows[0]?.created_at em ultimoEm" \
 echo "=== Invariante upload China — observacoes_china NÃO existe em china_produto_documentos ==="
 # Coluna correta no documento é "observacao"; "observacoes_china" só existe em
 # china_produto_submissoes. Regressão direta do incidente de schema cache.
-OBS_BAD=$(grep -rEn "china_produto_documentos" src/hooks src/components 2>/dev/null \
-  | xargs -I{} echo {} \
-  | grep -c "observacoes_china" || true)
-checkExact "observacoes_china ausente em código que toca china_produto_documentos" \
-  "$(grep -rEln 'china_produto_documentos' src/hooks src/components 2>/dev/null \
-       | xargs grep -l 'observacoes_china' 2>/dev/null | wc -l | tr -d ' ')" 0
+# Estratégia: para cada arquivo, extrair só os blocos que começam com
+# .from("china_produto_documentos" e terminam no próximo ; e checar se
+# "observacoes_china" aparece dentro deles.
+OBS_BAD=0
+while IFS= read -r f; do
+  hits=$(awk '
+    /\.from\(\s*"china_produto_documentos"/ { inblock=1 }
+    inblock { print }
+    inblock && /;/ { inblock=0 }
+  ' "$f" | grep -c 'observacoes_china' || true)
+  if [ "$hits" -gt 0 ]; then
+    echo "FAIL  $f usa observacoes_china em bloco de china_produto_documentos ($hits ocorrência(s))"
+    OBS_BAD=1
+  fi
+done < <(grep -rl 'china_produto_documentos' src/hooks src/components 2>/dev/null)
+if [ "$OBS_BAD" -eq 0 ]; then
+  echo "OK   Nenhum bloco china_produto_documentos referencia observacoes_china."
+else
+  fail=1
+fi
+
+
 
 
 echo
