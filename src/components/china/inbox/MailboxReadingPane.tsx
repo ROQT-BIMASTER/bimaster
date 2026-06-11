@@ -496,6 +496,15 @@ export function MailboxReadingPane({
           </div>
         </DialogContent>
       </Dialog>
+
+      <FlowItemFocusDrawer
+        open={!!flowCtx}
+        context={flowCtx}
+        perspective={isBrasilUser ? "brasil" : "china"}
+        onOpenChange={(o) => { if (!o) setFlowCtx(null); }}
+        onEnviarBrasil={onEnviarBrasil}
+        onOpenSubmissao={(id) => goWithReturn(`/dashboard/fabrica-china/submissao/${id}`)}
+      />
     </div>
   );
 }
