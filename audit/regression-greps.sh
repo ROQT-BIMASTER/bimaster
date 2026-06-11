@@ -4,7 +4,18 @@
 # Rodar antes de qualquer bump de SDK_VERSION / OpenAPI info.version / APP_VERSION.
 set -euo pipefail
 
-SDK="src/components/erp/SdkDownloadButtons.tsx"
+# SDK foi refatorado de inline (SdkDownloadButtons.tsx) para 3 templates servidos
+# em /sdk/*.template. Concatenamos num arquivo temporário para preservar a
+# semântica histórica `grep -c PATTERN $SDK` (soma das 3 linguagens).
+SDK_TS="public/sdk/bimaster-sdk.ts.template"
+SDK_JS="public/sdk/bimaster-sdk.js.template"
+SDK_PY="public/sdk/bimaster-sdk.py.template"
+for f in "$SDK_TS" "$SDK_JS" "$SDK_PY"; do
+  [ -f "$f" ] || { echo "FAIL  template SDK ausente: $f"; exit 1; }
+done
+SDK="$(mktemp)"
+cat "$SDK_TS" "$SDK_JS" "$SDK_PY" > "$SDK"
+trap 'rm -f "$SDK"' EXIT
 SPEC="src/components/erp/ApiDocumentation.tsx"
 VER="src/lib/version.ts"
 
