@@ -740,16 +740,15 @@ export default function ChinaCaixaEntrada() {
                     {selectedItem.produto_nome}
                   </div>
                 </div>
-                <SheetClose asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 shrink-0"
-                    title="Fechar"
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                </SheetClose>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 shrink-0"
+                  title="Fechar"
+                  onClick={() => setSelectedId(null)}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
               </div>
               <div className="flex-1 min-h-0">
                 <MailboxReadingPane
