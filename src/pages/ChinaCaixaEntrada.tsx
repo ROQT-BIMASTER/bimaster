@@ -581,17 +581,12 @@ export default function ChinaCaixaEntrada() {
       {isDesktop ? (
         <div className="h-[calc(100vh-220px)] overflow-hidden rounded-md border border-border bg-card/20">
           {viewMode === "kanban" && folder !== "oc" ? (
-            <MailboxKanban
-              items={items}
-              progressItems={progressItems}
-              selectedId={selectedId}
-              perspective={isBrasilUser ? "brasil" : "china"}
-              onJumpFolder={(f) => { setViewMode("list"); setFolder(f); }}
-              onSelectGroup={(g: MailboxGroup, hint?: MailboxItem) => {
+            (() => {
+              const handleSelectGroup = (g: MailboxGroup, hint?: MailboxItem) => {
                 const targetFolder: MailboxFolder =
                   g.submissao_status === "aprovado" ? "approved"
                   : g.submissao_status === "rejeitado" ? (isBrasilUser ? "rejected" : "returned")
-                  : g.submissao_status === "enviado_brasil" ? "sent_brazil"
+                  : (g.submissao_status === "enviado_brasil" || g.submissao_status === "enviado_parcial") ? "sent_brazil"
                   : (g.submissao_status === "em_revisao" || g.submissao_status === "enviado") ? "in_analysis"
                   : "awaiting_send";
                 if (folder !== targetFolder) setFolder(targetFolder);
@@ -630,15 +625,44 @@ export default function ChinaCaixaEntrada() {
                 setKanbanSelected(chosen);
 
                 if (pick) {
-                  const id = pick.is_virtual
+                  const id = (pick as any).is_virtual
                     ? `${pick.submissao_id}:virtual:${pick.tipo_documento ?? "_"}`
                     : pick.documento_id ?? pick.submissao_id;
                   setSelectedId(id);
                 } else {
                   setSelectedId(g.submissao_id);
                 }
-              }}
-            />
+              };
+              return (
+                <MailboxKanban
+                  items={items}
+                  progressItems={progressItems}
+                  selectedId={selectedId}
+                  perspective={isBrasilUser ? "brasil" : "china"}
+                  onJumpFolder={(f) => { setViewMode("list"); setFolder(f); }}
+                  onSelectGroup={handleSelectGroup}
+                  onDragSendDoc={(item, group) => {
+                    const parecer = (
+                      item.observacoes_china ??
+                      group.docs.find((d) => d.observacoes_china)?.observacoes_china ??
+                      ""
+                    ).trim();
+                    if (parecer.length > 0) {
+                      const vars = {
+                        submissao_id: item.submissao_id,
+                        ...(item.documento_id ? { documento_id: item.documento_id } : {}),
+                      };
+                      setLastEnvioVars(vars);
+                      enviarBrasil.reset();
+                      enviarBrasil.mutate(vars);
+                      return;
+                    }
+                    toast.info("Registre o parecer técnico antes de despachar ao Brasil.");
+                    handleSelectGroup(group, item);
+                  }}
+                />
+              );
+            })()
           ) : (
           <ResizablePanelGroup direction="horizontal">
             <ResizablePanel defaultSize={18} minSize={14} maxSize={28}>
