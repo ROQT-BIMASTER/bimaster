@@ -66,7 +66,7 @@ check "JS HuggsConflictError exportada"   "$(grep -c 'class HuggsConflictError' 
 check "JS HuggsBusinessError exportada"   "$(grep -c 'class HuggsBusinessError' $SDK)" 2
 check "getCacheStats nos SDKs"            "$(grep -c 'getCacheStats\|get_cache_stats' $SDK)" 3
 check "clearCache nos SDKs"               "$(grep -c 'clearCache\|clear_cache' $SDK)" 3
-check "Matriz cobertura referenciada"     "$(grep -c 'SDK_COVERAGE_MATRIX' $SDK)" 1
+check "Matriz cobertura referenciada"     "$(grep -c "SDK_COVERAGE_MATRIX" $SDK_WRAPPER)" 1
 
 echo "=== Invariantes PR-7 invertidos (deprecated → zero) ==="
 # Excluem linhas de comentário/changelog descritivo. Caçam apenas referências ATIVAS de código.
@@ -102,7 +102,7 @@ checkExact "API_CONTAS_RECEBER.md sem /cancelar-recebimento ativo" "$(grep -E '/
 
 echo "=== Versões alinhadas (linha base v3.1.x) — superseded por checks PR-16 ==="
 check "OpenAPI v4.x no spec"                 "$(grep -cE '"4\.[0-9]+\.[0-9]+"' $SPEC)" 1
-check "SDK_VERSION 3.x"                      "$(grep -cE '3\.[0-9]+\.[0-9]+' $SDK)" 3
+check "SDK_VERSION 3.x"                      "$(grep -cE '3\.[0-9]+\.[0-9]+' $SDK_WRAPPER)" 3
 check "APP_VERSION 3.1.x"                    "$(grep -cE '3\.1\.[2-9]' $VER)" 1
 
 echo "=== Invariantes PR-9 (bugfix patch v3.1.1) ==="
@@ -201,7 +201,7 @@ echo "=== Invariantes PR-16 (SDK v3.2.0 / OpenAPI v4.2.0 / APP v3.1.8) — Padro
 check "cpExport* nos SDKs TS/JS (10 métodos × 2 = 20)" "$(grep -cE 'cpExportStatus|cpExportPending|cpExportPaid|cpExportCancelled|cpExportBatch|cpExportConfirm|cpExportHistory|cpExportSummary|cpExportReconciliation|cpExportRetryFailed' $SDK)" 20
 check "cp_export_* no SDK Python (10 métodos)"        "$(grep -cE 'cp_export_status|cp_export_pending|cp_export_paid|cp_export_cancelled|cp_export_batch|cp_export_confirm|cp_export_history|cp_export_summary|cp_export_reconciliation|cp_export_retry_failed' $SDK)" 10
 check "cpUpdate / cp_update nos 3 SDKs"               "$(grep -cE 'cpUpdate\b|cp_update\b' $SDK)" 3
-check "SDK_VERSION 3.2.x+"                             "$(grep -cE 'SDK_VERSION = "3\.([2-9]|[1-9][0-9]+)\.' $SDK)" 1
+check "SDK_VERSION 3.2.x+"                             "$(grep -cE 'SDK_VERSION = "3\.([2-9]|[1-9][0-9]+)\.' $SDK_WRAPPER)" 1
 check "OpenAPI v4.x no spec"                          "$(grep -cE '"4\.[2-9]\.[0-9]+"' $SPEC)" 1
 APP_318=$(grep -cE "APP_VERSION = '3\.(1\.([8-9]|[1-9][0-9]+)|([2-9]|[1-9][0-9]+)\.[0-9]+)'" $VER || true)
 check "APP_VERSION 3.1.8+"                            "$APP_318" 1
@@ -229,7 +229,7 @@ check "OpenAPI documenta CR /query/parcelas/recebimentos"  "$(grep -cE 'contas-r
 check "OpenAPI documenta fornecedores /check e /sync"      "$(grep -cE '/erp-fornecedores-sync/(check|sync)' $SPEC)" 2
 # Versões alinhadas.
 SPEC_43=$(grep -cE '"4\.([3-9]|[1-9][0-9]+)\.[0-9]+"' $SPEC || true)
-SDK_321=$(grep -cE 'SDK_VERSION = "3\.([2-9]|[1-9][0-9]+)\.' $SDK || true)
+SDK_321=$(grep -cE 'SDK_VERSION = "3\.([2-9]|[1-9][0-9]+)\.' $SDK_WRAPPER || true)
 APP_319=$(grep -cE "APP_VERSION = '3\.(1\.([9]|[1-9][0-9]+)|([2-9]|[1-9][0-9]+)\.[0-9]+)'" $VER || true)
 check "OpenAPI v4.3.x no spec"   "$SPEC_43" 1
 check "SDK_VERSION 3.2.1+"       "$SDK_321" 1
@@ -250,7 +250,7 @@ check "OpenAPI documenta fornecedores /sync\"" "$(grep -cE 'path: "/sync"' $SPEC
 check "Generator OpenAPI: trailing-slash fix"           "$(grep -cF 'ep.path === "/" ? api.basePath' $SPEC)" 1
 # Versões PR-18 (flex: aceita 4.3.1+ / 3.2.2+ / 3.1.10+).
 SPEC_43X=$(grep -cE '"4\.(3\.[1-9][0-9]*|[4-9]\.[0-9]+|[1-9][0-9]+\.[0-9]+)"' $SPEC || true)
-SDK_32X=$(grep -cE 'SDK_VERSION = "3\.(2\.([2-9]|[1-9][0-9]+)|[3-9]\.[0-9]+|[1-9][0-9]+\.[0-9]+)"' $SDK || true)
+SDK_32X=$(grep -cE 'SDK_VERSION = "3\.(2\.([2-9]|[1-9][0-9]+)|[3-9]\.[0-9]+|[1-9][0-9]+\.[0-9]+)"' $SDK_WRAPPER || true)
 APP_311X=$(grep -cE "APP_VERSION = '3\.(1\.(1[0-9]|[2-9][0-9]+)|([2-9]|[1-9][0-9]+)\.[0-9]+)'" $VER || true)
 check "OpenAPI v4.3.1+"   "$SPEC_43X" 1
 check "SDK_VERSION 3.2.2+" "$SDK_32X" 1
@@ -270,7 +270,7 @@ checkExact "PaisResponse/CidadeResponse/BancoResponse removidos" "$(grep -cE '(P
 checkExact "ExportPendingResponse/ExportConfirmInput removidos"  "$(grep -cE '(ExportPendingResponse|ExportConfirmInput): \{' $SPEC)" 0
 # Versões PR-19 (flex: aceita 4.3.2+ / 3.2.3+ / 3.1.11+).
 SPEC_432=$(grep -cE '"4\.(3\.([2-9]|[1-9][0-9]+)|[4-9]\.[0-9]+|[1-9][0-9]+\.[0-9]+)"' $SPEC || true)
-SDK_323=$(grep -cE 'SDK_VERSION = "3\.([2-9]|[1-9][0-9]+)\.' $SDK || true)
+SDK_323=$(grep -cE 'SDK_VERSION = "3\.([2-9]|[1-9][0-9]+)\.' $SDK_WRAPPER || true)
 APP_3111=$(grep -cE "APP_VERSION = '3\.(1\.(1[1-9]|[2-9][0-9]+)|([2-9]|[1-9][0-9]+)\.[0-9]+)'" $VER || true)
 check "OpenAPI v4.3.2+"   "$SPEC_432" 1
 check "SDK_VERSION 3.2.3+" "$SDK_323" 1
@@ -292,7 +292,7 @@ check "ErrorRateLimit referenciado via \$ref"     "$(grep -cE '\$ref.*ErrorRateL
 check "MetaEnvelope citado no info.description"   "$(grep -c 'MetaEnvelope' $SPEC)" 2
 # Versões PR-20 (use || true para evitar abort com set -e quando count=0).
 SPEC_433=$(grep -cE '"4\.(3\.([3-9]|[1-9][0-9]+)|[4-9]\.[0-9]+|[1-9][0-9]+\.[0-9]+)"' $SPEC || true)
-SDK_324=$(grep -cE 'SDK_VERSION = "3\.([2-9]|[1-9][0-9]+)\.' $SDK || true)
+SDK_324=$(grep -cE 'SDK_VERSION = "3\.([2-9]|[1-9][0-9]+)\.' $SDK_WRAPPER || true)
 APP_3112=$(grep -cE "APP_VERSION = '3\.(1\.(1[2-9]|[2-9][0-9]+)|([2-9]|[1-9][0-9]+)\.[0-9]+)'" $VER || true)
 check "OpenAPI v4.3.3+"   "$SPEC_433" 1
 check "SDK_VERSION 3.2.4+" "$SDK_324" 1
@@ -345,7 +345,7 @@ PAY_MIG=$(ls supabase/migrations/*.sql 2>/dev/null | xargs grep -lE 'process_pay
 check "Migration referenciando process_payment_atomic"        "$PAY_MIG" 1
 # Versões PR-23 (use || true para evitar abort com set -e quando count=0).
 SPEC_440=$(grep -cE '"4\.4\.([0-9]|[1-9][0-9]+)"' $SPEC || true)
-SDK_330=$(grep -cE 'SDK_VERSION = "3\.3\.([0-9]|[1-9][0-9]+)"' $SDK || true)
+SDK_330=$(grep -cE 'SDK_VERSION = "3\.3\.([0-9]|[1-9][0-9]+)"' $SDK_WRAPPER || true)
 APP_320=$(grep -cE "APP_VERSION = '3\.([2-9]|[1-9][0-9]+)\." $VER || true)
 check "OpenAPI v4.4.0+"   "$SPEC_440" 1
 check "SDK_VERSION 3.3.0+" "$SDK_330" 1
@@ -376,7 +376,7 @@ check      "meta_relacionados em anexo-handlers"                 "$(grep -c 'met
 check      ".upsert PostgREST em handleUpsertLote (crud-handlers)" "$(grep -cE '\.upsert\(' $CP_CRUD)" 1
 # 7. Versões bumpadas PR-24.
 SPEC_441=$(grep -cE '"4\.4\.([1-9]|[1-9][0-9]+)"' $SPEC || true)
-SDK_331=$(grep -cE 'SDK_VERSION = "3\.3\.([1-9]|[1-9][0-9]+)"' $SDK || true)
+SDK_331=$(grep -cE 'SDK_VERSION = "3\.3\.([1-9]|[1-9][0-9]+)"' $SDK_WRAPPER || true)
 APP_321=$(grep -cE "APP_VERSION = '3\.(2\.([1-9]|[1-9][0-9]+)|([3-9]|[1-9][0-9]+)\.[0-9]+)'" $VER || true)
 check "OpenAPI v4.4.1+"    "$SPEC_441" 1
 check "SDK_VERSION 3.3.1+" "$SDK_331" 1
