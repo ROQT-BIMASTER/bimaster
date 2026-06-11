@@ -168,11 +168,14 @@ export default function ChinaCaixaEntrada() {
     () => groupBySubmissao(progressItems ?? [], progressItems ?? []),
     [progressItems],
   );
-  const selectedGroup = useMemo<MailboxGroup | null>(() => {
-    const submissaoId = selectedItem?.submissao_id ?? kanbanSelected?.submissao_id ?? null;
+  const findGroup = (submissaoId: string | null | undefined): MailboxGroup | null => {
     if (!submissaoId) return null;
     return allGroups.find((g) => g.submissao_id === submissaoId) ?? null;
-  }, [allGroups, selectedItem?.submissao_id]);
+  };
+  const selectedGroup = useMemo<MailboxGroup | null>(
+    () => findGroup(selectedItem?.submissao_id),
+    [allGroups, selectedItem?.submissao_id],
+  );
 
   const setFolder = (f: MailboxFolder) => {
     const sp = new URLSearchParams(searchParams);
