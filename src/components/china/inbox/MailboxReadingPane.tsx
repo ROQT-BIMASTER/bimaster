@@ -481,3 +481,54 @@ export function MailboxReadingPane({
     </div>
   );
 }
+
+function InlineDocPreview({ item, onOpenFull }: { item: MailboxItem; onOpenFull: () => void }) {
+  const { kind, url } = useChinaDocThumbnail({
+    arquivoPath: item.arquivo_path,
+    arquivoUrl: item.arquivo_url,
+    nomeArquivo: item.nome_arquivo,
+    enabled: true,
+  });
+
+  if (kind === "image") {
+    return (
+      <button
+        type="button"
+        onClick={onOpenFull}
+        className="block w-full overflow-hidden rounded-md border border-border bg-muted/20 hover:border-primary/40 transition-colors"
+        title="Abrir em tela cheia"
+      >
+        {url ? (
+          <img
+            src={url}
+            alt={item.nome_arquivo ?? ""}
+            loading="lazy"
+            className="max-h-[320px] w-full object-contain bg-muted/20"
+          />
+        ) : (
+          <div className="h-[200px] w-full animate-pulse bg-muted/40" />
+        )}
+      </button>
+    );
+  }
+
+  if (kind === "pdf") {
+    return (
+      <button
+        type="button"
+        onClick={onOpenFull}
+        className="flex w-full items-center gap-2 rounded-md border border-rose-500/30 bg-rose-500/5 p-3 text-left hover:bg-rose-500/10 transition-colors"
+      >
+        <FileText className="h-6 w-6 shrink-0 text-rose-500" />
+        <div className="min-w-0 flex-1">
+          <p className="text-xs font-medium text-foreground/90 truncate">
+            {item.nome_arquivo ?? "Documento PDF"}
+          </p>
+          <p className="text-[10px] text-muted-foreground">Clique para abrir em tela cheia</p>
+        </div>
+      </button>
+    );
+  }
+
+  return null;
+}
