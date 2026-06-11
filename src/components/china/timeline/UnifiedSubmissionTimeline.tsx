@@ -109,7 +109,6 @@ interface DocRow {
   status: string;
   nome_arquivo: string | null;
   arquivo_url: string | null;
-  updated_at: string | null;
   created_at: string;
 }
 
