@@ -420,6 +420,11 @@ function ItemCard({ item, group, selected, onClick }: ItemCardProps) {
               : "border-border",
           )}
         >
+          {(item.arquivo_path || item.arquivo_url) && !(item as any).is_virtual && (
+            <div className="mb-1.5 -mx-0.5">
+              <ItemThumb item={item as any} size="md" />
+            </div>
+          )}
           <div className="flex items-center gap-1.5">
             <Icon className={cn("h-3.5 w-3.5 shrink-0", meta.cls)} />
             <span className="truncate text-[12px] font-medium leading-tight flex-1">
