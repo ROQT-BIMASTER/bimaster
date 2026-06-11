@@ -786,7 +786,7 @@ export default function ChinaCaixaEntrada() {
             <SheetContent
               side="right"
               hideClose
-              className="w-full sm:max-w-[600px] p-0 flex flex-col"
+              className="w-full sm:max-w-[920px] lg:max-w-[1080px] p-0 flex flex-col"
             >
               {sheetItem && (
                 <>
