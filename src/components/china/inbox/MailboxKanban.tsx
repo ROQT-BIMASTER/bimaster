@@ -171,8 +171,10 @@ export function MailboxKanban({
   const [onlyUnread, setOnlyUnread] = useState(false);
 
   const groups = useMemo(() => {
-    const source = progressItems.length > 0 ? progressItems : items;
-    return groupBySubmissao(source, progressItems);
+    const safeItems = items ?? [];
+    const safeProgress = progressItems ?? [];
+    const source = safeProgress.length > 0 ? safeProgress : safeItems;
+    return groupBySubmissao(source, safeProgress);
   }, [items, progressItems]);
 
   const columns = perspective === "china" ? CHINA_COLUMNS : BRASIL_COLUMNS;
