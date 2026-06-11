@@ -312,76 +312,68 @@ function KanbanCard({ group, selected, perspective, onClick }: CardProps) {
     (group.docs || []).filter((d: any) => !d.is_virtual && (d.arquivo_path || d.arquivo_url)).length - previewDocs.length,
   );
 
-  const [hoverOpen, setHoverOpen] = useState(false);
   return (
-    <HoverCard openDelay={250} closeDelay={80} open={hoverOpen} onOpenChange={setHoverOpen}>
-      <HoverCardTrigger asChild>
-        <button
-          type="button"
-          onClick={onClick}
-          className={cn(
-            "group w-full rounded-md border bg-card px-2.5 py-2 text-left transition-colors",
-            "hover:bg-muted/40 hover:border-primary/40",
-            selected
-              ? "border-primary/60 ring-1 ring-primary/30 bg-primary/5"
-              : "border-border",
-          )}
-        >
-          {/* Linha 1: código + nome */}
-          <div className="flex items-center gap-1.5">
-            {group.has_unread && (
-              <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-primary" title="Não lido" />
-            )}
-            <div className="mt-0">{flowIcon}</div>
-            <span className="shrink-0 text-[10.5px] font-medium tabular-nums text-muted-foreground">
-              {group.produto_codigo}
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "group w-full rounded-md border bg-card px-2.5 py-2 text-left transition-colors",
+        "hover:bg-muted/40 hover:border-primary/40",
+        selected
+          ? "border-primary/60 ring-1 ring-primary/30 bg-primary/5"
+          : "border-border",
+      )}
+    >
+      {/* Linha 1: código + nome */}
+      <div className="flex items-center gap-1.5">
+        {group.has_unread && (
+          <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-primary" title="Não lido" />
+        )}
+        <div className="mt-0">{flowIcon}</div>
+        <span className="shrink-0 text-[10.5px] font-medium tabular-nums text-muted-foreground">
+          {group.produto_codigo}
+        </span>
+        <span className="truncate text-[12px] font-medium leading-tight flex-1">
+          {group.produto_nome}
+        </span>
+        {group.is_flagged && <Star className="h-3 w-3 shrink-0 fill-amber-400 text-amber-400" />}
+      </div>
+
+      {/* Strip de pré-visualização (até 3 thumbs) */}
+      {previewDocs.length > 0 && (
+        <div className="mt-1.5 flex items-center gap-1">
+          {previewDocs.map((d: any, i: number) => (
+            <ItemThumb key={d.documento_id ?? `${group.submissao_id}-thumb-${i}`} item={d} size="sm" />
+          ))}
+          {extraPreview > 0 && (
+            <span className="ml-0.5 text-[10px] tabular-nums text-muted-foreground">
+              +{extraPreview}
             </span>
-            <span className="truncate text-[12px] font-medium leading-tight flex-1">
-              {group.produto_nome}
-            </span>
-            {group.is_flagged && <Star className="h-3 w-3 shrink-0 fill-amber-400 text-amber-400" />}
-          </div>
-
-          {/* Strip de pré-visualização (até 3 thumbs) */}
-          {previewDocs.length > 0 && (
-            <div className="mt-1.5 flex items-center gap-1">
-              {previewDocs.map((d: any, i: number) => (
-                <ItemThumb key={d.documento_id ?? `${group.submissao_id}-thumb-${i}`} item={d} size="sm" />
-              ))}
-              {extraPreview > 0 && (
-                <span className="ml-0.5 text-[10px] tabular-nums text-muted-foreground">
-                  +{extraPreview}
-                </span>
-              )}
-            </div>
           )}
+        </div>
+      )}
 
-          {/* Barra de progresso segmentada */}
-          <ProgressBar progress={progress} />
+      {/* Barra de progresso segmentada */}
+      <ProgressBar progress={progress} />
 
-          {/* Chips numéricos por status (posições fixas) */}
-          <div className="mt-1 flex items-center gap-2 text-[10px]">
-            <StatusChip bucket="aprovado"   count={progress.aprovados} />
-            <StatusChip bucket="em_analise" count={progress.em_analise} />
-            <StatusChip bucket="enviado"    count={progress.enviados} />
-            <StatusChip bucket="pendente"   count={progress.pendentes} subnote={pendSubnote} />
-            <StatusChip bucket="rejeitado"  count={progress.rejeitados} />
-          </div>
+      {/* Chips numéricos por status (posições fixas) */}
+      <div className="mt-1 flex items-center gap-2 text-[10px]">
+        <StatusChip bucket="aprovado"   count={progress.aprovados} />
+        <StatusChip bucket="em_analise" count={progress.em_analise} />
+        <StatusChip bucket="enviado"    count={progress.enviados} />
+        <StatusChip bucket="pendente"   count={progress.pendentes} subnote={pendSubnote} />
+        <StatusChip bucket="rejeitado"  count={progress.rejeitados} />
+      </div>
 
-          {/* Rodapé */}
-          <div className="mt-1.5 flex items-center justify-between text-[10px] text-muted-foreground">
-            <span>{safeRelative(group.latest_at)}</span>
-            <div className="flex items-center gap-1">
-              <span className="tabular-nums opacity-70">{progress.total} doc{progress.total === 1 ? "" : "s"}</span>
-              {hasConversa && <MessageSquare className="h-3 w-3 opacity-70" />}
-            </div>
-          </div>
-        </button>
-      </HoverCardTrigger>
-      <HoverCardContent side="right" align="start" className="w-auto p-2.5">
-        <ChecklistHover group={group} open={hoverOpen} />
-      </HoverCardContent>
-    </HoverCard>
+      {/* Rodapé */}
+      <div className="mt-1.5 flex items-center justify-between text-[10px] text-muted-foreground">
+        <span>{safeRelative(group.latest_at)}</span>
+        <div className="flex items-center gap-1">
+          <span className="tabular-nums opacity-70">{progress.total} doc{progress.total === 1 ? "" : "s"}</span>
+          {hasConversa && <MessageSquare className="h-3 w-3 opacity-70" />}
+        </div>
+      </div>
+    </button>
   );
 }
 
