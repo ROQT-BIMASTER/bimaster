@@ -403,6 +403,18 @@ else
   fail=1
 fi
 
+echo "=== Invariantes Linha do Tempo China (bug Compact Powder — contadores zerados) ==="
+TIMELINE_FILE="src/components/china/timeline/UnifiedSubmissionTimeline.tsx"
+# Bloco da query china_produto_documentos não pode mais referenciar updated_at
+# (coluna inexistente — causava 400 do PostgREST e zerava o resumo).
+checkExact "Timeline nao seleciona updated_at em china_produto_documentos" \
+  "$(awk '/\.from\("china_produto_documentos"\)/,/\.order\(/' $TIMELINE_FILE | grep -c 'updated_at')" 0
+check      "Timeline ordena china_produto_documentos por created_at desc" \
+  "$(grep -c '\.order("created_at", { ascending: false })' $TIMELINE_FILE)" 1
+check      "Timeline usa rows[0]?.created_at em ultimoEm" \
+  "$(grep -cE 'ultimoEm:\s*rows\[0\]\?\.created_at' $TIMELINE_FILE)" 1
+
+
 echo
 if [ "$fail" -eq 0 ]; then
   echo "ALL OK — invariantes preservados. Pode prosseguir com bump."
