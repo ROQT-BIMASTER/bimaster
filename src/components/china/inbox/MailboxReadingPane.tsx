@@ -59,7 +59,9 @@ export function MailboxReadingPane({
   onRetryEnvio,
   compact,
   chatDefaultOpen,
+  group,
 }: Props) {
+  const [flowCtx, setFlowCtx] = useState<import("./ChecklistFlow/types").FlowItemContext | null>(null);
   const navigate = useNavigate();
   const location = useLocation();
   const { t } = useChinaI18n();
