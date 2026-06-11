@@ -55,7 +55,8 @@ export function useUploadChinaDocumento() {
         }
 
         const safeName = file.name.replace(/[^\w.\-]+/g, "_");
-        const path = `${session.user.id}/${submissaoId}/${tipo}/${Date.now()}_${safeName}`;
+        const safeTipo = sanitizeStorageSegment(tipo);
+        const path = `${session.user.id}/${submissaoId}/${safeTipo}/${Date.now()}_${safeName}`;
 
         const { signedUrl, error: uploadError } = await uploadAndGetSignedUrl(
           "china-documentos",
