@@ -41,6 +41,7 @@ import { VincularMailboxSidebar } from "@/components/china/vincular/VincularMail
 import { VincularMailboxList } from "@/components/china/vincular/VincularMailboxList";
 import { EncaminharResponsavelDialog } from "@/components/china/vincular/EncaminharResponsavelDialog";
 import { EncaminharProjetoDialog } from "@/components/china/vincular/EncaminharProjetoDialog";
+import { ContinuarNoProjetoDialog } from "@/components/china/inbox/ContinuarNoProjetoDialog";
 import {
   useVincularChinaUserState,
   classifyVincularRows,
@@ -146,6 +147,7 @@ export default function ProjetoVincularChina() {
   const [searchTerm, setSearchTerm] = useState(initialSearch);
   const [encaminharOpen, setEncaminharOpen] = useState(false);
   const [encaminharProjetoOpen, setEncaminharProjetoOpen] = useState(false);
+  const [continuarProjetoOpen, setContinuarProjetoOpen] = useState(false);
   const queryClient = useQueryClient();
   const toggleFlag = useToggleSubmissaoFlag();
   const { flags, snoozes } = useVincularChinaUserState();
@@ -795,6 +797,7 @@ export default function ProjetoVincularChina() {
                       onPreviewDoc={setPreviewDoc}
                       onEncaminharResponsavel={() => setEncaminharOpen(true)}
                       onEncaminharProjeto={() => setEncaminharProjetoOpen(true)}
+                      onContinuarNoProjeto={() => setContinuarProjetoOpen(true)}
                       onDecisionClick={(id) => { setDecisionProcessId(id); setDecisionOpen(true); }}
                       secoes={secoes}
                       tarefas={tarefas}
@@ -975,6 +978,16 @@ export default function ProjetoVincularChina() {
         produtoCodigo={selectedSubmissao?.produto_codigo}
         produtoNome={selectedSubmissao?.produto_nome}
       />
+
+      {/* Continuar no projeto — cria ou vincula projeto-espelho */}
+      <ContinuarNoProjetoDialog
+        open={continuarProjetoOpen}
+        onOpenChange={setContinuarProjetoOpen}
+        submissaoId={selectedSubmissaoId}
+        produtoCodigo={selectedSubmissao?.produto_codigo}
+        produtoNome={selectedSubmissao?.produto_nome}
+      />
+
 
       {/* Desvincular confirmation */}
       <AlertDialog open={!!desvincularTarget} onOpenChange={open => { if (!open) setDesvincularTarget(null); }}>

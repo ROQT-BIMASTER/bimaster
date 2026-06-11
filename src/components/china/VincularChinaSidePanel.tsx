@@ -65,6 +65,7 @@ interface Props {
   onDecisionClick: (submissaoId: string) => void;
   onEncaminharResponsavel?: () => void;
   onEncaminharProjeto?: () => void;
+  onContinuarNoProjeto?: () => void;
   // vincular tab props
   secoes: any[];
   tarefas: any[];
@@ -83,6 +84,7 @@ export function VincularChinaSidePanel({
   submissao, isLinkedToProject, selectedProjetoId, onClose, onPreviewDoc, onDecisionClick,
   onEncaminharResponsavel,
   onEncaminharProjeto,
+  onContinuarNoProjeto,
   secoes, tarefas, vinculos, docVinculos, checkedTarefas,
   onToggleTarefa, onVincular, onToggleDocVinculo, vinculosPending, auditResult, auditLoading,
 }: Props) {
@@ -245,7 +247,16 @@ export function VincularChinaSidePanel({
           <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">
             Encaminhar para
           </p>
-          <div className={cn("grid gap-1.5", isBrasilUser ? "grid-cols-4" : "grid-cols-3")}>
+          <div className={cn("grid gap-1.5", isBrasilUser ? "grid-cols-5" : "grid-cols-4")}>
+            <button
+              type="button"
+              onClick={() => onContinuarNoProjeto?.()}
+              className="group flex flex-col items-center gap-1 rounded-md border border-primary/40 bg-primary/5 hover:bg-primary/10 transition-colors px-2 py-2"
+              title="Criar/vincular projeto-espelho da submissão"
+            >
+              <Package className="h-4 w-4 text-primary" />
+              <span className="text-[10px] font-medium text-foreground">Continuar no projeto</span>
+            </button>
             <button
               type="button"
               onClick={() => onEncaminharProjeto?.()}

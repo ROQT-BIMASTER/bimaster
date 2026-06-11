@@ -2,7 +2,12 @@ import { useState, useMemo, useEffect, useRef } from "react";
 import { Projeto } from "@/hooks/useProjetos";
 import { ProjetoTarefa } from "@/hooks/useProjetoTarefas";
 import { Button } from "@/components/ui/button";
-import { Plus, List, LayoutGrid, Calendar, CalendarDays, BarChart3, FileText, FileSpreadsheet, ShieldCheck, Sparkles, Users, UsersRound, Target, CalendarClock, Search, X, ChevronDown, MoreHorizontal, Link2, KanbanSquare } from "lucide-react";
+import { Plus, List, LayoutGrid, Calendar, CalendarDays, BarChart3, FileText, FileSpreadsheet, ShieldCheck, Sparkles, Users, UsersRound, Target, CalendarClock, Search, X, ChevronDown, MoreHorizontal, Link2, KanbanSquare, Package, ArrowDownToLine, ArrowUpFromLine } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { ChecklistB2CSheet } from "@/components/china/submissao-board/ChecklistB2CSheet";
+import { ChecklistC2BSheet } from "@/components/china/submissao-board/ChecklistC2BSheet";
+import { useSubmissaoDoProjetoEspelho } from "@/hooks/useProjetoEspelhoSubmissao";
+import { useChecklistB2C } from "@/hooks/useChecklistB2C";
 import { copyProjetoLink } from "@/lib/utils/copyDeepLink";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -84,7 +89,21 @@ export function ProjetoHeader({
   // referência) — zero impacto no caminho de produção.
   const workTabs = projeto.tipo === "rr_tasks"
     ? [...WORK_TABS, { value: "rr_board", icon: KanbanSquare, label: "Espelho RR" }]
-    : WORK_TABS;
+    : projeto.tipo === "china_submissao"
+      ? [...WORK_TABS, { value: "submissao_board", icon: Package, label: "Submissão China" }]
+      : WORK_TABS;
+
+  // Estado dos sheets de checklist China↔Brasil (apenas para projetos-espelho)
+  const isSubmissao = projeto.tipo === "china_submissao";
+  const { data: subVinculo } = useSubmissaoDoProjetoEspelho(isSubmissao ? projeto.id : null);
+  const submissaoId = subVinculo?.submissao_id ?? null;
+  const { data: b2cItens = [] } = useChecklistB2C(isSubmissao ? submissaoId : null);
+  const b2cPendentes = b2cItens.filter((i) =>
+    ["pendente", "em_preparacao", "devolvido_china"].includes(i.status),
+  ).length;
+  const [checklistC2BOpen, setChecklistC2BOpen] = useState(false);
+  const [checklistB2COpen, setChecklistB2COpen] = useState(false);
+
   // Lixeira: controlado externamente (Fase 2 — lazy load) ou estado local legacy.
   const lixeiraOpen = lixeiraOpenProp ?? lixeiraOpenLocal;
   const setLixeiraOpen = (v: boolean) => {
@@ -200,6 +219,35 @@ export function ProjetoHeader({
           </div>
         </div>
 
+        {/* Checklists China↔Brasil — apenas para projeto-espelho (tipo='china_submissao') */}
+        {isSubmissao && submissaoId && (
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className={cn("h-7 gap-1.5 text-xs", btnHover)}
+              onClick={() => setChecklistC2BOpen(true)}
+              title="Documentos enviados pela China"
+            >
+              <ArrowDownToLine className="h-3.5 w-3.5" />
+              Checklist China → Brasil
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className={cn("h-7 gap-1.5 text-xs", btnHover)}
+              onClick={() => setChecklistB2COpen(true)}
+              title="Documentos a enviar à China"
+            >
+              <ArrowUpFromLine className="h-3.5 w-3.5" />
+              Checklist Brasil → China
+              {b2cPendentes > 0 && (
+                <Badge variant="secondary" className="h-4 px-1 text-[9px]">{b2cPendentes}</Badge>
+              )}
+            </Button>
+          </div>
+        )}
+
         {/* Health panel inside hero */}
         {tarefas.length > 0 && (
           <div className="mt-4">
@@ -207,6 +255,22 @@ export function ProjetoHeader({
           </div>
         )}
       </div>
+
+      {/* Sheets dos checklists da submissão */}
+      {isSubmissao && (
+        <>
+          <ChecklistC2BSheet
+            open={checklistC2BOpen}
+            onOpenChange={setChecklistC2BOpen}
+            submissaoId={submissaoId}
+          />
+          <ChecklistB2CSheet
+            open={checklistB2COpen}
+            onOpenChange={setChecklistB2COpen}
+            submissaoId={submissaoId}
+          />
+        </>
+      )}
 
       {/* Tabs row — full width para evitar corte das abas finais */}
       <div className="flex items-center gap-2">
