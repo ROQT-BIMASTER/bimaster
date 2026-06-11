@@ -700,6 +700,7 @@ export default function ChinaCaixaEntrada() {
                 loading={loading}
                 error={enviarBrasil.isError ? (enviarBrasil.error as any)?.message ?? t("inbox.blocks.falhaEnviarBrasil") : null}
                 onRetryEnvio={lastEnvioVars && enviarBrasil.isError ? handleRetryEnvio : undefined}
+                group={selectedGroup}
               />
             </ResizablePanel>
             </>)}
