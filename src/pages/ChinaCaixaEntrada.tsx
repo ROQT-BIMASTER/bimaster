@@ -160,6 +160,20 @@ export default function ChinaCaixaEntrada() {
     return items.find((i) => itemRowId(i) === selectedId) ?? null;
   }, [items, selectedId]);
 
+  // Grupos da submissão usados pelo fluxo do checklist no painel.
+  // Sempre derivamos a partir de progressItems (fonte completa do checklist),
+  // garantindo que o painel mostre TODOS os tipos da submissão, não só os
+  // itens visíveis na pasta atual.
+  const allGroups = useMemo(
+    () => groupBySubmissao(progressItems ?? [], progressItems ?? []),
+    [progressItems],
+  );
+  const selectedGroup = useMemo<MailboxGroup | null>(() => {
+    const submissaoId = selectedItem?.submissao_id ?? kanbanSelected?.submissao_id ?? null;
+    if (!submissaoId) return null;
+    return allGroups.find((g) => g.submissao_id === submissaoId) ?? null;
+  }, [allGroups, selectedItem?.submissao_id]);
+
   const setFolder = (f: MailboxFolder) => {
     const sp = new URLSearchParams(searchParams);
     sp.set("folder", f);
