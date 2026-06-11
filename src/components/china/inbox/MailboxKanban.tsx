@@ -365,6 +365,17 @@ export function MailboxKanban({
 }: Props) {
   const [onlyUnread, setOnlyUnread] = useState(false);
 
+  const viewModeStorageKey = `china.kanban.viewMode.${perspective}`;
+  const [viewMode, setViewMode] = useState<"submission" | "item">(() => {
+    if (typeof window === "undefined") return "submission";
+    const v = window.localStorage.getItem(viewModeStorageKey);
+    return v === "item" ? "item" : "submission";
+  });
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem(viewModeStorageKey, viewMode);
+  }, [viewMode, viewModeStorageKey]);
+
   const groups = useMemo(() => {
     const safeItems = items ?? [];
     const safeProgress = progressItems ?? [];
