@@ -9,7 +9,8 @@ export function useCriarLoteAprovacaoB2C() {
       submissaoId: string;
       configId: string;
       loteNome: string;
-      itemIds: string[];
+      /** tipos (tipo_key) de itens Brasil→China visados pelo lote */
+      tipos: string[];
       prazoLote?: string | null;
       politica?: "continuar" | "reiniciar_etapa";
     }) => {
@@ -17,7 +18,7 @@ export function useCriarLoteAprovacaoB2C() {
         p_submissao_id: input.submissaoId,
         p_config_id: input.configId,
         p_lote_nome: input.loteNome,
-        p_b2c_item_ids: input.itemIds,
+        p_brasil_envia_tipos: input.tipos,
         p_prazo_lote: input.prazoLote ?? undefined,
         p_politica: input.politica ?? undefined,
       });
@@ -26,8 +27,9 @@ export function useCriarLoteAprovacaoB2C() {
     },
     onSuccess: (_id, vars) => {
       toast.success("Aprovação interna iniciada");
-      qc.invalidateQueries({ queryKey: ["china-checklist-b2c", vars.submissaoId] });
+      qc.invalidateQueries({ queryKey: ["china-checklist-sheet-docs", vars.submissaoId] });
       qc.invalidateQueries({ queryKey: ["lotes-aprovacao", "submissao", vars.submissaoId] });
+      qc.invalidateQueries({ queryKey: ["china-mailbox-dataset"] });
       qc.invalidateQueries({ queryKey: ["china-unified-timeline"] });
     },
     onError: (e: any) => toast.error(e?.message || "Falha ao iniciar aprovação"),

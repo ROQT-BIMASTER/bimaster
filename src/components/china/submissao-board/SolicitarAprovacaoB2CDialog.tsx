@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -9,7 +9,13 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Loader2, FileText, Workflow } from "lucide-react";
 import { useTemplatesAlcadas } from "@/hooks/useLoteAprovacao";
 import { useCriarLoteAprovacaoB2C } from "@/hooks/useLoteAprovacaoB2C";
-import type { ChecklistB2CItem } from "@/hooks/useChecklistB2C";
+
+export interface B2CElegivelItem {
+  /** tipo_key (chave do checklist Brasil → China) */
+  tipo: string;
+  label: string;
+  arquivoNome: string | null;
+}
 
 interface Props {
   open: boolean;
@@ -17,13 +23,13 @@ interface Props {
   submissaoId: string;
   submissaoCodigo?: string;
   submissaoNome?: string;
-  itensElegiveis: ChecklistB2CItem[];
-  preselectedIds?: string[];
+  itensElegiveis: B2CElegivelItem[];
+  preselectedTipos?: string[];
 }
 
 export function SolicitarAprovacaoB2CDialog({
   open, onOpenChange, submissaoId, submissaoCodigo, submissaoNome,
-  itensElegiveis, preselectedIds,
+  itensElegiveis, preselectedTipos,
 }: Props) {
   const { data: templates = [], isLoading: loadingTpl } = useTemplatesAlcadas();
   const criar = useCriarLoteAprovacaoB2C();
@@ -32,19 +38,23 @@ export function SolicitarAprovacaoB2CDialog({
     submissaoCodigo ? `Aprovação interna · ${submissaoCodigo}` : "Aprovação interna B→C",
   );
   const [prazo, setPrazo] = useState<string>("");
-  const [selected, setSelected] = useState<Set<string>>(
-    () => new Set(preselectedIds ?? itensElegiveis.filter((i) => !!i.arquivo_path).map((i) => i.id)),
-  );
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    if (open) {
+      setSelected(new Set(preselectedTipos ?? itensElegiveis.map((i) => i.tipo)));
+    }
+  }, [open, preselectedTipos, itensElegiveis]);
 
   const canSubmit = useMemo(
     () => !!configId && loteNome.trim().length > 0 && selected.size > 0 && !criar.isPending,
     [configId, loteNome, selected, criar.isPending],
   );
 
-  const toggle = (id: string) => {
+  const toggle = (tipo: string) => {
     const next = new Set(selected);
-    if (next.has(id)) next.delete(id);
-    else next.add(id);
+    if (next.has(tipo)) next.delete(tipo);
+    else next.add(tipo);
     setSelected(next);
   };
 
@@ -53,7 +63,7 @@ export function SolicitarAprovacaoB2CDialog({
       submissaoId,
       configId,
       loteNome: loteNome.trim(),
-      itemIds: Array.from(selected),
+      tipos: Array.from(selected),
       prazoLote: prazo || null,
     });
     onOpenChange(false);
@@ -67,8 +77,8 @@ export function SolicitarAprovacaoB2CDialog({
             <Workflow className="h-4 w-4 text-primary" /> Solicitar aprovação interna
           </DialogTitle>
           <DialogDescription className="text-xs">
-            {submissaoCodigo} {submissaoNome ? `— ${submissaoNome}` : ""}. Itens selecionados ficam
-            travados em "Em preparação" até o lote ser concluído.
+            {submissaoCodigo} {submissaoNome ? `— ${submissaoNome}` : ""}. Os itens selecionados ficam
+            travados em aprovação até o lote ser concluído.
           </DialogDescription>
         </DialogHeader>
 
@@ -122,21 +132,21 @@ export function SolicitarAprovacaoB2CDialog({
               <ul className="divide-y divide-border/40">
                 {itensElegiveis.length === 0 && (
                   <li className="px-2 py-2 text-xs text-muted-foreground">
-                    Nenhum item disponível para aprovação.
+                    Nenhum item disponível para aprovação. Anexe um arquivo a um item Brasil → China primeiro.
                   </li>
                 )}
                 {itensElegiveis.map((it) => (
-                  <li key={it.id} className="flex items-start gap-2 px-2 py-1.5">
+                  <li key={it.tipo} className="flex items-start gap-2 px-2 py-1.5">
                     <Checkbox
-                      checked={selected.has(it.id)}
-                      onCheckedChange={() => toggle(it.id)}
+                      checked={selected.has(it.tipo)}
+                      onCheckedChange={() => toggle(it.tipo)}
                       className="mt-0.5"
                     />
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs font-medium truncate">{it.nome_documento}</p>
+                      <p className="text-xs font-medium truncate">{it.label}</p>
                       <p className="text-[10px] text-muted-foreground truncate flex items-center gap-1">
                         <FileText className="h-3 w-3" />
-                        {it.arquivo_nome || "(sem arquivo anexado)"}
+                        {it.arquivoNome || "(sem arquivo anexado)"}
                       </p>
                     </div>
                   </li>
