@@ -193,39 +193,104 @@ function StatusChip({ bucket, count, subnote }: ChipProps) {
   );
 }
 
-function ChecklistHover({ group }: { group: MailboxGroup }) {
+function ChecklistHoverContent({ group }: { group: MailboxGroup }) {
+  const merged = useMergedChinaChecklist(group.submissao_id);
+
+  // Mapeia tipo_documento -> item mais recente vindo do inbox (já carregado).
+  const docsByTipo = useMemo(() => {
+    const m = new Map<string, MailboxItem>();
+    for (const d of group.docs) {
+      const tipo = (d as any).tipo_documento as string | undefined;
+      if (!tipo) continue;
+      const prev = m.get(tipo);
+      if (!prev) { m.set(tipo, d); continue; }
+      const a = new Date(prev.created_at || 0).getTime();
+      const b = new Date(d.created_at || 0).getTime();
+      if (b >= a) m.set(tipo, d);
+    }
+    return m;
+  }, [group.docs]);
+
+  const cats = merged.categories;
+  const totalTipos = cats.reduce((s, c) => s + c.tipos.length, 0);
+  const aprovados = cats.reduce((s, c) => s + c.tipos.filter((t) => {
+    const d = docsByTipo.get(t);
+    return d && bucketForDoc(d) === "aprovado";
+  }).length, 0);
+
   return (
-    <div className="w-72 text-[11.5px]">
+    <div className="w-80 text-[11.5px]">
       <div className="mb-1.5 flex items-center gap-1.5 border-b border-border/60 pb-1.5">
         <span className="font-mono text-[10px] text-muted-foreground">{group.produto_codigo}</span>
         <span className="truncate font-medium">{group.produto_nome}</span>
+        <span className="ml-auto shrink-0 text-[10px] text-muted-foreground tabular-nums">
+          {aprovados}/{totalTipos} aprov.
+        </span>
       </div>
-      {group.docs.length === 0 ? (
+
+      {merged.isLoading ? (
+        <div className="py-3 text-center text-muted-foreground">Carregando checklist…</div>
+      ) : totalTipos === 0 ? (
         <div className="py-2 text-center text-muted-foreground">Sem itens no checklist</div>
       ) : (
-        <ul className="max-h-64 space-y-1 overflow-y-auto pr-1">
-          {group.docs.map((d, i) => {
-            const b = bucketForDoc(d);
-            const meta = BUCKET_META[b];
-            const Icon = meta.icon;
-            const label = d.tipo_documento_label || d.tipo_documento || "Item";
+        <div className="max-h-72 space-y-2 overflow-y-auto pr-1">
+          {cats.map((cat) => {
+            if (cat.tipos.length === 0) return null;
             return (
-              <li key={d.documento_id ?? `${group.submissao_id}-${i}`} className="flex items-center gap-1.5">
-                <Icon className={cn("h-3 w-3 shrink-0", meta.cls)} />
-                <span className="flex-1 truncate">{label}</span>
-                <span className="shrink-0 text-[10px] text-muted-foreground">
-                  {safeRelative(d.created_at)}
-                </span>
-              </li>
+              <div key={cat.key}>
+                <div className="mb-0.5 flex items-center gap-1 text-[10px] uppercase tracking-wide text-muted-foreground/80">
+                  <span className="truncate">{cat.labelPt}</span>
+                  {cat.labelCn && <span className="truncate opacity-60">· {cat.labelCn}</span>}
+                </div>
+                <ul className="space-y-0.5">
+                  {cat.tipos.map((tipo) => {
+                    const doc = docsByTipo.get(tipo);
+                    const dt = merged.getDocType(tipo);
+                    const labelPt = dt?.labelPt ?? tipo;
+                    const labelCn = dt?.labelCn;
+                    const bucket = doc ? bucketForDoc(doc) : "pendente";
+                    const meta = BUCKET_META[bucket];
+                    const Icon = meta.icon;
+                    const statusTxt = !doc
+                      ? "não criado"
+                      : ({
+                          aprovado: "aprovado",
+                          em_analise: "em análise",
+                          enviado: "enviado",
+                          pendente: "pendente",
+                          rejeitado: "devolvido",
+                        } as const)[bucket];
+                    return (
+                      <li key={tipo} className="flex items-start gap-1.5">
+                        <Icon className={cn("mt-0.5 h-3 w-3 shrink-0", !doc ? "text-muted-foreground/50" : meta.cls)} />
+                        <div className="min-w-0 flex-1">
+                          <div className="truncate">{labelPt}</div>
+                          {labelCn && <div className="truncate text-[10px] text-muted-foreground/70">{labelCn}</div>}
+                        </div>
+                        <span className={cn("shrink-0 text-[10px] tabular-nums", !doc ? "text-muted-foreground/60" : meta.cls)}>
+                          {statusTxt}
+                        </span>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
             );
           })}
-        </ul>
+        </div>
       )}
+
       <div className="mt-1.5 border-t border-border/60 pt-1 text-[10px] text-muted-foreground">
         Clique no card para abrir no painel
       </div>
     </div>
   );
+}
+
+function ChecklistHover({ group, open }: { group: MailboxGroup; open: boolean }) {
+  // Só monta o conteúdo (e dispara queries) quando o hover está aberto.
+  if (!open) return null;
+  return <ChecklistHoverContent group={group} />;
 }
 
 function KanbanCard({ group, selected, perspective, onClick }: CardProps) {
