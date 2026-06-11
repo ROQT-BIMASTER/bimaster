@@ -587,6 +587,25 @@ export default function ChinaCaixaEntrada() {
               selectedId={selectedId}
               perspective={isBrasilUser ? "brasil" : "china"}
               onJumpFolder={(f) => { setViewMode("list"); setFolder(f); }}
+              onDragSendDoc={(item, group) => {
+                // Hybrid: se já há parecer técnico registrado, dispara o envio
+                // imediatamente; senão abre o drawer focado no item para que o
+                // usuário registre o parecer antes de despachar.
+                const parecer = (item.observacoes_china ?? group.docs.find((d) => d.observacoes_china)?.observacoes_china ?? "").trim();
+                if (parecer.length > 0) {
+                  const vars = {
+                    submissao_id: item.submissao_id,
+                    ...(item.documento_id ? { documento_id: item.documento_id } : {}),
+                  };
+                  setLastEnvioVars(vars);
+                  enviarBrasil.reset();
+                  enviarBrasil.mutate(vars);
+                  return;
+                }
+                toast.info("Registre o parecer técnico antes de despachar ao Brasil.");
+                // Abre o drawer no item arrastado (handler já existente).
+                (handleSelectGroup ?? (() => {}))(group, item);
+              }}
               onSelectGroup={(g: MailboxGroup, hint?: MailboxItem) => {
                 const targetFolder: MailboxFolder =
                   g.submissao_status === "aprovado" ? "approved"
