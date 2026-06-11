@@ -40,6 +40,8 @@ interface Props {
   compact?: boolean;
   /** Estado inicial do collapsible de Conversa (default: lê localStorage). */
   chatDefaultOpen?: boolean;
+  /** Grupo da submissão (usado para renderizar o fluxo do checklist). */
+  group?: import("@/lib/china/groupMailboxItems").MailboxGroup | null;
 }
 
 export function MailboxReadingPane({
