@@ -96,3 +96,17 @@ export function iconForBucket(bucket: FlowBucket): typeof Check {
   if (bucket === "enviado") return Upload;
   return FLOW_TONE[bucketToTone(bucket)].icon;
 }
+
+/** Deriva o bucket visual a partir do doc_status persistido. */
+export function bucketForDoc(d: { doc_status?: string | null } | null | undefined): FlowBucket {
+  if (!d) return "nao_criado";
+  const s = (d.doc_status || "").toLowerCase();
+  if (s === "aprovado") return "aprovado";
+  if (s === "rejeitado") return "rejeitado";
+  if (s === "contestado") return "em_analise";
+  if (s === "enviado" || s === "enviado_brasil") return "enviado";
+  if (s === "pendente") return "em_analise";
+  if (s === "rascunho") return "pendente";
+  return "pendente";
+}
+
