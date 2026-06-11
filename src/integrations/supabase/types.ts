@@ -48012,6 +48012,27 @@ export type Database = {
         }
         Relationships: []
       }
+      user_view_preferences: {
+        Row: {
+          pref_key: string
+          pref_value: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          pref_key: string
+          pref_value: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          pref_key?: string
+          pref_value?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_whatsapp: {
         Row: {
           created_at: string

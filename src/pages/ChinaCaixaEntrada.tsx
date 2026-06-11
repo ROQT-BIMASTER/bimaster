@@ -7,6 +7,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { MailboxKanban } from "@/components/china/inbox/MailboxKanban";
+import { useViewModePreference } from "@/hooks/useViewModePreference";
 import { groupBySubmissao, type MailboxGroup } from "@/lib/china/groupMailboxItems";
 import { SubmissionCopilotPanel } from "@/components/china/SubmissionCopilotPanel";
 import { toast } from "sonner";
@@ -117,13 +118,10 @@ export default function ChinaCaixaEntrada() {
   const [copilotOpen, setCopilotOpen] = useState(false);
   const searchInputRef = useRef<HTMLInputElement | null>(null);
   const [groupMode, setGroupMode] = useChinaInboxGroupMode(folder);
-  const [viewMode, setViewMode] = useState<"list" | "kanban">(() => {
-    if (typeof window === "undefined") return "list";
-    return (localStorage.getItem("china_inbox_view") as "list" | "kanban") || "list";
-  });
-  useEffect(() => {
-    try { localStorage.setItem("china_inbox_view", viewMode); } catch { /* ignore */ }
-  }, [viewMode]);
+  const [viewMode, setViewMode] = useViewModePreference<"list" | "kanban">(
+    "china-inbox",
+    "kanban",
+  );
 
   // Reset seleção ao trocar pasta (apenas no modo lista — no Kanban a seleção
   // pode sobreviver a uma troca de pasta porque clicar em um card de outra

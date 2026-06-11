@@ -5,6 +5,7 @@ import { Link as RouterLink, useSearchParams } from "react-router-dom";
 import { Link2, Package, Loader2, Maximize2, Gavel, CheckCircle2, ShieldCheck, LayoutGrid, List as ListIcon } from "lucide-react";
 import { MailboxKanban } from "@/components/china/inbox/MailboxKanban";
 import { useChinaMailbox, type MailboxItem } from "@/hooks/useChinaMailbox";
+import { useViewModePreference } from "@/hooks/useViewModePreference";
 import { Button } from "@/components/ui/button";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/dashboard/AppSidebar";
@@ -150,16 +151,10 @@ export default function ProjetoVincularChina() {
   const [encaminharOpen, setEncaminharOpen] = useState(false);
   const [encaminharProjetoOpen, setEncaminharProjetoOpen] = useState(false);
   const [continuarProjetoOpen, setContinuarProjetoOpen] = useState(false);
-  const [viewMode, setViewMode] = useState<"kanban" | "list">(() => {
-    if (typeof window === "undefined") return "kanban";
-    const v = window.localStorage.getItem("vincular-china.viewMode");
-    return v === "list" ? "list" : "kanban";
-  });
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      window.localStorage.setItem("vincular-china.viewMode", viewMode);
-    }
-  }, [viewMode]);
+  const [viewMode, setViewMode] = useViewModePreference<"kanban" | "list">(
+    "vincular-china",
+    "kanban",
+  );
   const queryClient = useQueryClient();
   const toggleFlag = useToggleSubmissaoFlag();
   const { flags, snoozes } = useVincularChinaUserState();
