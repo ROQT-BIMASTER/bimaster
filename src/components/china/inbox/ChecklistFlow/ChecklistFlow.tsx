@@ -213,24 +213,112 @@ function Legend() {
 }
 
 /**
- * ChecklistFlow — fluxo visual (n8n-like) do checklist de uma submissão,
- * organizado em linhas horizontais por categoria. Substitui o tooltip que
- * vivia no Kanban e transforma o painel em um ambiente facilitador: cada
- * nó pendente abre um drawer focado para anexar/enviar o documento.
+ * Cabeçalho de uma seção "Responsabilidade X" no layout split.
+ * Mostra ícone direcional, título, subtítulo e contadores agregados.
  */
-export function ChecklistFlow({ group, perspective, selectedTipo, onFocusItem }: Props) {
+function SectionHeader({
+  side,
+  categories,
+  group,
+  action,
+}: {
+  side: "brasil" | "china";
+  categories: MergedChecklistCategory[];
+  group: MailboxGroup;
+  action?: React.ReactNode;
+}) {
+  const docsByTipo = useMemo(() => {
+    const m = new Map<string, MailboxItem>();
+    for (const d of group.docs) {
+      const tipo = d.tipo_documento;
+      if (!tipo) continue;
+      const prev = m.get(tipo);
+      if (!prev) { m.set(tipo, d); continue; }
+      const a = new Date(prev.created_at || 0).getTime();
+      const b = new Date(d.created_at || 0).getTime();
+      if (b >= a) m.set(tipo, d);
+    }
+    return m;
+  }, [group.docs]);
+
+  const totals = useMemo(() => {
+    let done = 0, pending = 0, blocked = 0, total = 0;
+    for (const cat of categories) {
+      for (const tipo of cat.tipos) {
+        total++;
+        const bucket = bucketForDoc(docsByTipo.get(tipo));
+        if (bucket === "aprovado") done++;
+        else if (bucket === "rejeitado") blocked++;
+        else if (bucket === "nao_criado" || bucket === "pendente") pending++;
+      }
+    }
+    return { done, pending, blocked, total };
+  }, [categories, docsByTipo]);
+
+  const isBrasil = side === "brasil";
+  const Icon = isBrasil ? ArrowUpFromLine : ArrowDownToLine;
+  const title = isBrasil ? "Responsabilidade Brasil" : "Responsabilidade China";
+  const direction = isBrasil ? "Brasil → China" : "China → Brasil";
+  const subtitle = isBrasil
+    ? "Anexe documentos e solicite aprovação interna antes de enviar."
+    : "Acompanhe os documentos enviados pela China e aprove quando chegarem.";
+  const accent = isBrasil
+    ? "border-emerald-500/40 bg-emerald-500/5"
+    : "border-amber-500/40 bg-amber-500/5";
+  const iconTone = isBrasil ? "text-emerald-600" : "text-amber-600";
+
+  return (
+    <div className={cn("flex items-start justify-between gap-2 rounded-md border px-2.5 py-1.5", accent)}>
+      <div className="flex min-w-0 items-start gap-2">
+        <Icon className={cn("mt-0.5 h-3.5 w-3.5 shrink-0", iconTone)} />
+        <div className="min-w-0">
+          <div className="flex items-center gap-1.5">
+            <span className="text-[11.5px] font-semibold text-foreground">{title}</span>
+            <span className="rounded-sm bg-background/60 px-1 text-[9.5px] font-medium text-muted-foreground">
+              {direction}
+            </span>
+          </div>
+          <p className="mt-0.5 line-clamp-1 text-[10px] text-muted-foreground">{subtitle}</p>
+        </div>
+      </div>
+      <div className="flex shrink-0 items-center gap-1.5">
+        <div className="flex items-center gap-1 text-[10px] tabular-nums">
+          <span className="text-emerald-600 font-medium">{totals.done}</span>
+          <span className="text-muted-foreground/60">/</span>
+          <span className="text-foreground/80">{totals.total}</span>
+          {totals.blocked > 0 && (
+            <span className="ml-1 rounded-sm bg-rose-500/15 px-1 text-rose-600">{totals.blocked} dev.</span>
+          )}
+          {totals.pending > 0 && (
+            <span className="ml-1 rounded-sm bg-muted/60 px-1 text-muted-foreground">{totals.pending} pend.</span>
+          )}
+        </div>
+        {action}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * ChecklistFlow — fluxo visual (n8n-like) do checklist de uma submissão,
+ * organizado em linhas horizontais por categoria. Suporta dois layouts:
+ *  - "primary-first" (default): seção principal + colapsável "Outros documentos".
+ *  - "split": duas seções irmãs rotuladas por responsabilidade (Brasil / China),
+ *    usado na Mesa de Vínculo China.
+ */
+export function ChecklistFlow({
+  group,
+  perspective,
+  selectedTipo,
+  onFocusItem,
+  layout = "primary-first",
+  onAddBrasilItem,
+}: Props) {
   const merged = useMergedChinaChecklist(group.submissao_id);
   const [showOthers, setShowOthers] = useState(false);
 
-  const primary = perspective === "china"
-    ? merged.categoriesChinaEnvia
-    : merged.categoriesBrasilEnvia;
-  const secondary = perspective === "china"
-    ? merged.categoriesBrasilEnvia
-    : merged.categoriesChinaEnvia;
-
-  const primaryFiltered = primary.filter((c) => c.tipos.length > 0);
-  const secondaryFiltered = secondary.filter((c) => c.tipos.length > 0);
+  const brasilCats = merged.categoriesBrasilEnvia.filter((c) => c.tipos.length > 0);
+  const chinaCats = merged.categoriesChinaEnvia.filter((c) => c.tipos.length > 0);
 
   const totalTipos = merged.categories.reduce((s, c) => s + c.tipos.length, 0);
 
@@ -249,6 +337,79 @@ export function ChecklistFlow({ group, perspective, selectedTipo, onFocusItem }:
     );
   }
 
+  const renderCategory = (cat: MergedChecklistCategory) => (
+    <CategoryRow
+      key={cat.key}
+      category={cat}
+      group={group}
+      perspective={perspective}
+      selectedTipo={selectedTipo}
+      getDocType={merged.getDocType}
+      onFocusItem={onFocusItem}
+    />
+  );
+
+  if (layout === "split") {
+    return (
+      <section className="space-y-3">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+            <Workflow className="h-3.5 w-3.5" />
+            Fluxo do checklist
+          </div>
+          <Legend />
+        </div>
+
+        {/* Responsabilidade Brasil — Brasil → China */}
+        <div className="space-y-2">
+          <SectionHeader
+            side="brasil"
+            categories={brasilCats}
+            group={group}
+            action={
+              onAddBrasilItem ? (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-6 gap-1 px-1.5 text-[10px]"
+                  onClick={onAddBrasilItem}
+                >
+                  <Plus className="h-3 w-3" />
+                  Novo item
+                </Button>
+              ) : null
+            }
+          />
+          {brasilCats.length > 0 ? (
+            <div className="space-y-2">{brasilCats.map(renderCategory)}</div>
+          ) : (
+            <div className="rounded-md border border-dashed border-border/60 px-3 py-3 text-center text-[10.5px] text-muted-foreground">
+              Nenhum item Brasil → China configurado ainda. Use "Novo item" para começar.
+            </div>
+          )}
+        </div>
+
+        {/* Responsabilidade China — China → Brasil */}
+        <div className="space-y-2">
+          <SectionHeader side="china" categories={chinaCats} group={group} />
+          {chinaCats.length > 0 ? (
+            <div className="space-y-2">{chinaCats.map(renderCategory)}</div>
+          ) : (
+            <div className="rounded-md border border-dashed border-border/60 px-3 py-3 text-center text-[10.5px] text-muted-foreground">
+              A China ainda não definiu itens China → Brasil para esta submissão.
+            </div>
+          )}
+        </div>
+      </section>
+    );
+  }
+
+  // Layout legado: primário + colapsável
+  const primary = perspective === "china" ? merged.categoriesChinaEnvia : merged.categoriesBrasilEnvia;
+  const secondary = perspective === "china" ? merged.categoriesBrasilEnvia : merged.categoriesChinaEnvia;
+  const primaryFiltered = primary.filter((c) => c.tipos.length > 0);
+  const secondaryFiltered = secondary.filter((c) => c.tipos.length > 0);
+
   return (
     <section className="space-y-2">
       <div className="flex items-center justify-between gap-2">
@@ -259,19 +420,7 @@ export function ChecklistFlow({ group, perspective, selectedTipo, onFocusItem }:
         <Legend />
       </div>
 
-      <div className="space-y-2">
-        {primaryFiltered.map((cat) => (
-          <CategoryRow
-            key={cat.key}
-            category={cat}
-            group={group}
-            perspective={perspective}
-            selectedTipo={selectedTipo}
-            getDocType={merged.getDocType}
-            onFocusItem={onFocusItem}
-          />
-        ))}
-      </div>
+      <div className="space-y-2">{primaryFiltered.map(renderCategory)}</div>
 
       {secondaryFiltered.length > 0 && (
         <Collapsible open={showOthers} onOpenChange={setShowOthers}>
@@ -296,17 +445,7 @@ export function ChecklistFlow({ group, perspective, selectedTipo, onFocusItem }:
             </Button>
           </CollapsibleTrigger>
           <CollapsibleContent className="space-y-2 pt-1">
-            {secondaryFiltered.map((cat) => (
-              <CategoryRow
-                key={cat.key}
-                category={cat}
-                group={group}
-                perspective={perspective}
-                selectedTipo={selectedTipo}
-                getDocType={merged.getDocType}
-                onFocusItem={onFocusItem}
-              />
-            ))}
+            {secondaryFiltered.map(renderCategory)}
           </CollapsibleContent>
         </Collapsible>
       )}
