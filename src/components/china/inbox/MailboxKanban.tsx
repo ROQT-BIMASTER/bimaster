@@ -21,7 +21,7 @@ interface Props {
   items: MailboxItem[];
   progressItems: MailboxItem[];
   selectedId: string | null;
-  onSelectGroup: (group: MailboxGroup) => void;
+  onSelectGroup: (group: MailboxGroup, item?: MailboxItem) => void;
   onJumpFolder: (folder: MailboxFolder) => void;
   perspective: "china" | "brasil";
 }
