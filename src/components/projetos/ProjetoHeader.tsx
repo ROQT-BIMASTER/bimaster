@@ -103,8 +103,21 @@ export function ProjetoHeader({
   const b2cPendentes = b2cItens.filter((i) =>
     ["pendente", "em_preparacao", "devolvido_china"].includes(i.status),
   ).length;
-  const [checklistC2BOpen, setChecklistC2BOpen] = useState(false);
-  const [checklistB2COpen, setChecklistB2COpen] = useState(false);
+  const [checklistOpen, setChecklistOpen] = useState(false);
+
+  const { data: submissaoRow } = useQuery({
+    queryKey: ["projeto-header-submissao-row", submissaoId],
+    enabled: !!submissaoId && isSubmissao && checklistOpen,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("china_produto_submissoes" as any)
+        .select("id, produto_codigo, produto_nome, status, numero_ordem, numero_item, created_at, updated_at")
+        .eq("id", submissaoId!)
+        .maybeSingle();
+      if (error) throw error;
+      return data as unknown as SubmissaoRow | null;
+    },
+  });
 
   // Lixeira: controlado externamente (Fase 2 — lazy load) ou estado local legacy.
   const lixeiraOpen = lixeiraOpenProp ?? lixeiraOpenLocal;
