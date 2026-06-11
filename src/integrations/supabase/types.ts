@@ -53325,16 +53325,35 @@ export type Database = {
           op_id: string
         }[]
       }
-      rpc_china_criar_projeto_espelho: {
-        Args: {
-          p_projeto_id?: string
-          p_projeto_nome?: string
-          p_secao_nome?: string
-          p_submissao_id: string
-          p_template_b2c_id?: string
-        }
-        Returns: Json
-      }
+      rpc_china_criar_projeto_espelho:
+        | {
+            Args: {
+              p_projeto_id?: string
+              p_projeto_nome?: string
+              p_secao_nome?: string
+              p_submissao_id: string
+              p_template_b2c_id?: string
+            }
+            Returns: Json
+          }
+        | {
+            Args: {
+              p_alerta_antecipacao_dias?: number
+              p_data_fim_alvo?: string
+              p_data_inicio?: string
+              p_prazo_padrao_tarefa?: number
+              p_projeto_id?: string
+              p_projeto_nome?: string
+              p_regime_calendario?: string
+              p_secao_nome?: string
+              p_submissao_id: string
+              p_substituir?: boolean
+              p_template_b2c_id?: string
+              p_uf_feriados?: string
+              p_usa_feriados?: boolean
+            }
+            Returns: Json
+          }
       rpc_china_enviar_doc_b2c: {
         Args: { p_item_id: string }
         Returns: {
