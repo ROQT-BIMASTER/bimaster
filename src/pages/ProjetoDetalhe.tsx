@@ -35,6 +35,7 @@ import { Sparkles, ExternalLink } from "lucide-react";
 import { FloatingActionSlot } from "@/components/ui/floating-action-dock";
 import { RrTasksBoardView } from "@/components/rr-tasks/RrTasksBoardView";
 import { RrTasksBreadcrumb } from "@/components/rr-tasks/RrTasksBreadcrumb";
+import { SubmissaoChinaBoardView } from "@/components/china/submissao-board/SubmissaoChinaBoardView";
 
 
 function isDarkColor(hex: string | null): boolean {
