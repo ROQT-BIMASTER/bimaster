@@ -7,7 +7,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { MailboxKanban } from "@/components/china/inbox/MailboxKanban";
-import type { MailboxGroup } from "@/lib/china/groupMailboxItems";
+import { groupBySubmissao, type MailboxGroup } from "@/lib/china/groupMailboxItems";
 import { SubmissionCopilotPanel } from "@/components/china/SubmissionCopilotPanel";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
