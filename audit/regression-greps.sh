@@ -102,8 +102,8 @@ checkExact "API_CONTAS_RECEBER.md sem /cancelar-recebimento ativo" "$(grep -E '/
 
 echo "=== Versões alinhadas (linha base v3.1.x) — superseded por checks PR-16 ==="
 check "OpenAPI v4.x no spec"                 "$(grep -cE '"4\.[0-9]+\.[0-9]+"' $SPEC)" 1
-check "SDK_VERSION 3.x"                      "$(grep -cE '3\.[0-9]+\.[0-9]+' $SDK_WRAPPER)" 3
-check "APP_VERSION 3.1.x"                    "$(grep -cE '3\.1\.[2-9]' $VER)" 1
+# Checks "SDK_VERSION 3.x" e "APP_VERSION 3.1.x" removidos — superseded pelos
+# checks específicos por versão mais abaixo (SDK_VERSION 3.3.1+ / APP_VERSION 3.2.1+).
 
 echo "=== Invariantes PR-9 (bugfix patch v3.1.1) ==="
 # P0-2/P0-3: contas-correntes-api alinhado ao schema real (descricao/inativo).
