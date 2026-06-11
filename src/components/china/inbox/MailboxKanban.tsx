@@ -295,6 +295,65 @@ function KanbanCard({ group, selected, perspective, onClick }: CardProps) {
   );
 }
 
+interface ItemCardProps {
+  item: MailboxItem;
+  group: MailboxGroup;
+  selected: boolean;
+  onClick: () => void;
+}
+
+function ItemCard({ item, group, selected, onClick }: ItemCardProps) {
+  const bucket = bucketForDoc(item);
+  const meta = BUCKET_META[bucket];
+  const Icon = meta.icon;
+  const docLabel = item.tipo_documento_label || item.tipo_documento || "Item do checklist";
+  const statusLabel = ({
+    aprovado: "aprovado",
+    em_analise: "em análise",
+    enviado: "enviado",
+    pendente: "pendente",
+    rejeitado: "devolvido",
+  } as const)[bucket];
+
+  return (
+    <HoverCard openDelay={250} closeDelay={80}>
+      <HoverCardTrigger asChild>
+        <button
+          type="button"
+          onClick={onClick}
+          className={cn(
+            "group w-full rounded-md border bg-card px-2.5 py-1.5 text-left transition-colors",
+            "hover:bg-muted/40 hover:border-primary/40",
+            selected
+              ? "border-primary/60 ring-1 ring-primary/30 bg-primary/5"
+              : "border-border",
+          )}
+        >
+          <div className="flex items-center gap-1.5">
+            <Icon className={cn("h-3.5 w-3.5 shrink-0", meta.cls)} />
+            <span className="truncate text-[12px] font-medium leading-tight flex-1">
+              {docLabel}
+            </span>
+            {group.is_flagged && <Star className="h-3 w-3 shrink-0 fill-amber-400 text-amber-400" />}
+          </div>
+          <div className="mt-0.5 flex items-center gap-1 text-[10.5px] text-muted-foreground">
+            <span className="font-mono tabular-nums">{group.produto_codigo}</span>
+            <span className="opacity-60">·</span>
+            <span className="truncate">{group.produto_nome}</span>
+          </div>
+          <div className="mt-1 flex items-center justify-between text-[10px] text-muted-foreground">
+            <span>{safeRelative(item.created_at)}</span>
+            <span className={cn("tabular-nums", meta.cls)}>{statusLabel}</span>
+          </div>
+        </button>
+      </HoverCardTrigger>
+      <HoverCardContent side="right" align="start" className="w-auto p-2.5">
+        <ChecklistHover group={group} />
+      </HoverCardContent>
+    </HoverCard>
+  );
+}
+
 
 export function MailboxKanban({
   items,
