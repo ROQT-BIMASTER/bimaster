@@ -4,10 +4,12 @@ import { ProjetoTarefa } from "@/hooks/useProjetoTarefas";
 import { Button } from "@/components/ui/button";
 import { Plus, List, LayoutGrid, Calendar, CalendarDays, BarChart3, FileText, FileSpreadsheet, ShieldCheck, Sparkles, Users, UsersRound, Target, CalendarClock, Search, X, ChevronDown, MoreHorizontal, Link2, KanbanSquare, Package, ArrowDownToLine, ArrowUpFromLine } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { ChecklistB2CSheet } from "@/components/china/submissao-board/ChecklistB2CSheet";
-import { ChecklistC2BSheet } from "@/components/china/submissao-board/ChecklistC2BSheet";
+import { ChecklistSubmissaoSheet } from "@/components/china/submissao-board/ChecklistSubmissaoSheet";
 import { useSubmissaoDoProjetoEspelho } from "@/hooks/useProjetoEspelhoSubmissao";
 import { useChecklistB2C } from "@/hooks/useChecklistB2C";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import type { SubmissaoRow } from "@/components/china/VincularChinaTable";
 import { copyProjetoLink } from "@/lib/utils/copyDeepLink";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -101,8 +103,21 @@ export function ProjetoHeader({
   const b2cPendentes = b2cItens.filter((i) =>
     ["pendente", "em_preparacao", "devolvido_china"].includes(i.status),
   ).length;
-  const [checklistC2BOpen, setChecklistC2BOpen] = useState(false);
-  const [checklistB2COpen, setChecklistB2COpen] = useState(false);
+  const [checklistOpen, setChecklistOpen] = useState(false);
+
+  const { data: submissaoRow } = useQuery({
+    queryKey: ["projeto-header-submissao-row", submissaoId],
+    enabled: !!submissaoId && isSubmissao && checklistOpen,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("china_produto_submissoes" as any)
+        .select("id, produto_codigo, produto_nome, status, numero_ordem, numero_item, created_at, updated_at")
+        .eq("id", submissaoId!)
+        .maybeSingle();
+      if (error) throw error;
+      return data as unknown as SubmissaoRow | null;
+    },
+  });
 
   // Lixeira: controlado externamente (Fase 2 — lazy load) ou estado local legacy.
   const lixeiraOpen = lixeiraOpenProp ?? lixeiraOpenLocal;
@@ -226,7 +241,7 @@ export function ProjetoHeader({
               variant="outline"
               size="sm"
               className={cn("h-7 gap-1.5 text-xs", btnHover)}
-              onClick={() => setChecklistC2BOpen(true)}
+              onClick={() => setChecklistOpen(true)}
               title="Documentos enviados pela China"
             >
               <ArrowDownToLine className="h-3.5 w-3.5" />
@@ -236,7 +251,7 @@ export function ProjetoHeader({
               variant="outline"
               size="sm"
               className={cn("h-7 gap-1.5 text-xs", btnHover)}
-              onClick={() => setChecklistB2COpen(true)}
+              onClick={() => setChecklistOpen(true)}
               title="Documentos a enviar à China"
             >
               <ArrowUpFromLine className="h-3.5 w-3.5" />
@@ -256,20 +271,13 @@ export function ProjetoHeader({
         )}
       </div>
 
-      {/* Sheets dos checklists da submissão */}
+      {/* Painel unificado do checklist (mesma visualização da Caixa de Entrada China) */}
       {isSubmissao && (
-        <>
-          <ChecklistC2BSheet
-            open={checklistC2BOpen}
-            onOpenChange={setChecklistC2BOpen}
-            submissaoId={submissaoId}
-          />
-          <ChecklistB2CSheet
-            open={checklistB2COpen}
-            onOpenChange={setChecklistB2COpen}
-            submissaoId={submissaoId}
-          />
-        </>
+        <ChecklistSubmissaoSheet
+          open={checklistOpen}
+          onOpenChange={setChecklistOpen}
+          submissao={submissaoRow ?? null}
+        />
       )}
 
       {/* Tabs row — full width para evitar corte das abas finais */}
