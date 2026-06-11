@@ -570,7 +570,7 @@ export default function ChinaCaixaEntrada() {
               selectedId={selectedId}
               perspective={isBrasilUser ? "brasil" : "china"}
               onJumpFolder={(f) => { setViewMode("list"); setFolder(f); }}
-              onSelectGroup={(g: MailboxGroup) => {
+              onSelectGroup={(g: MailboxGroup, hint?: MailboxItem) => {
                 const targetFolder: MailboxFolder =
                   g.submissao_status === "aprovado" ? "approved"
                   : g.submissao_status === "rejeitado" ? (isBrasilUser ? "rejected" : "returned")
@@ -578,11 +578,44 @@ export default function ChinaCaixaEntrada() {
                   : (g.submissao_status === "em_revisao" || g.submissao_status === "enviado") ? "in_analysis"
                   : "awaiting_send";
                 if (folder !== targetFolder) setFolder(targetFolder);
-                const firstDoc = g.docs[0];
-                if (firstDoc) {
-                  const id = firstDoc.is_virtual
-                    ? `${firstDoc.submissao_id}:virtual:${firstDoc.tipo_documento ?? "_"}`
-                    : firstDoc.documento_id ?? firstDoc.submissao_id;
+
+                const pick =
+                  hint ??
+                  g.docs.find((d: any) => !d.is_virtual && (d.arquivo_path || d.arquivo_url)) ??
+                  g.docs.find((d: any) => !d.is_virtual) ??
+                  g.docs[0] ??
+                  null;
+
+                const chosen: MailboxItem = pick ?? ({
+                  submissao_id: g.submissao_id,
+                  produto_codigo: g.produto_codigo,
+                  produto_nome: g.produto_nome,
+                  submissao_status: g.submissao_status,
+                  is_virtual: true,
+                  tipo_documento: null,
+                  documento_id: null,
+                  nome_arquivo: null,
+                  arquivo_path: null,
+                  arquivo_url: null,
+                  doc_status: null,
+                  is_flagged: g.is_flagged,
+                  is_read: true,
+                  has_unread: g.has_unread,
+                  horas_pendentes: 0,
+                  created_at: g.latest_at,
+                  updated_at: g.latest_at,
+                  observacoes_china: null,
+                  observacoes_brasil: null,
+                  numero_ordem: null,
+                  is_deleted: false,
+                } as unknown as MailboxItem);
+
+                setKanbanSelected(chosen);
+
+                if (pick) {
+                  const id = pick.is_virtual
+                    ? `${pick.submissao_id}:virtual:${pick.tipo_documento ?? "_"}`
+                    : pick.documento_id ?? pick.submissao_id;
                   setSelectedId(id);
                 } else {
                   setSelectedId(g.submissao_id);
