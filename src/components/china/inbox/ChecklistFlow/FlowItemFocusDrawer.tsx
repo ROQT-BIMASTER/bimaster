@@ -73,7 +73,7 @@ export function FlowItemFocusDrawer({
   })();
 
   useEffect(() => {
-    setObservacao(liveDoc?.observacoes_china ?? "");
+    setObservacao((liveDoc as any)?.observacao ?? "");
   }, [liveDoc?.documento_id, context?.tipo, context?.submissaoId]);
 
   if (!context) return null;
