@@ -58,12 +58,22 @@ const BRASIL_COLUMNS: ColumnDef[] = [
 ];
 
 function columnForChina(g: MailboxGroup): ColumnKey {
+  // Status finais da submissão dominam sobre o progresso por item.
   if (g.submissao_status === "aprovado") return "approved";
   if (g.submissao_status === "rejeitado") return "returned";
+
+  const p = g.progress;
+  // Itens devolvidos pelo Brasil (rejeitados) sempre puxam para Devolvidos.
+  if (p.rejeitados > 0) return "returned";
+  // Ainda há checklist a despachar? Pertence a Pendentes de envio, mesmo que
+  // a submissão já esteja `em_revisao`/`enviado_brasil` (despachos parciais).
+  if (p.pendentes > 0) return "awaiting_send";
+  // Sem pendentes: classifica pelo estágio mais avançado do checklist.
+  if (p.em_analise > 0) return "in_analysis";
+  if (p.enviados > 0) return "sent_brazil";
+  // Fallback pelo status da submissão.
   if (g.submissao_status === "enviado_brasil") return "sent_brazil";
-  if (g.submissao_status === "em_revisao" || g.submissao_status === "enviado") {
-    return "in_analysis";
-  }
+  if (g.submissao_status === "em_revisao" || g.submissao_status === "enviado") return "in_analysis";
   return "awaiting_send";
 }
 
