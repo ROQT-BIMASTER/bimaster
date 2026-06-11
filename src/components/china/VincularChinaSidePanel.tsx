@@ -65,6 +65,7 @@ interface Props {
   onDecisionClick: (submissaoId: string) => void;
   onEncaminharResponsavel?: () => void;
   onEncaminharProjeto?: () => void;
+  onContinuarNoProjeto?: () => void;
   // vincular tab props
   secoes: any[];
   tarefas: any[];
