@@ -9,7 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
 import {
   Package, FileText, Camera, AlertTriangle, CheckCircle2,
-  ExternalLink, Loader2, Link2, Gavel, MessageSquare, X, Activity, ShieldCheck
+  ExternalLink, Loader2, Link2, MessageSquare, X, Activity, ShieldCheck
 } from "lucide-react";
 import { VincularReadingTimeline } from "@/components/china/vincular/VincularReadingTimeline";
 
