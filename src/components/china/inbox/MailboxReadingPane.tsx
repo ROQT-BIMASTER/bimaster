@@ -244,6 +244,19 @@ export function MailboxReadingPane({
 
         <Separator className="my-4" />
 
+        {group && (
+          <div className="mb-4">
+            <ChecklistFlow
+              group={group}
+              perspective={isBrasilUser ? "brasil" : "china"}
+              selectedTipo={item.tipo_documento}
+              onFocusItem={(ctx) => setFlowCtx(ctx)}
+            />
+          </div>
+        )}
+
+
+
         {item.tipo_documento ? (
           <section className="space-y-2 rounded-md border border-border bg-card/40 p-3">
             <div className="flex items-center justify-between gap-2">
