@@ -89,7 +89,21 @@ export function ProjetoHeader({
   // referência) — zero impacto no caminho de produção.
   const workTabs = projeto.tipo === "rr_tasks"
     ? [...WORK_TABS, { value: "rr_board", icon: KanbanSquare, label: "Espelho RR" }]
-    : WORK_TABS;
+    : projeto.tipo === "china_submissao"
+      ? [...WORK_TABS, { value: "submissao_board", icon: Package, label: "Submissão China" }]
+      : WORK_TABS;
+
+  // Estado dos sheets de checklist China↔Brasil (apenas para projetos-espelho)
+  const isSubmissao = projeto.tipo === "china_submissao";
+  const { data: subVinculo } = useSubmissaoDoProjetoEspelho(isSubmissao ? projeto.id : null);
+  const submissaoId = subVinculo?.submissao_id ?? null;
+  const { data: b2cItens = [] } = useChecklistB2C(isSubmissao ? submissaoId : null);
+  const b2cPendentes = b2cItens.filter((i) =>
+    ["pendente", "em_preparacao", "devolvido_china"].includes(i.status),
+  ).length;
+  const [checklistC2BOpen, setChecklistC2BOpen] = useState(false);
+  const [checklistB2COpen, setChecklistB2COpen] = useState(false);
+
   // Lixeira: controlado externamente (Fase 2 — lazy load) ou estado local legacy.
   const lixeiraOpen = lixeiraOpenProp ?? lixeiraOpenLocal;
   const setLixeiraOpen = (v: boolean) => {
