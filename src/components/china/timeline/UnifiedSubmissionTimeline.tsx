@@ -143,9 +143,9 @@ function useDocsResumo(submissaoId: string | null | undefined) {
       const [docsRes, ccRes, ciRes, hRes] = await Promise.all([
         (supabase as any)
           .from("china_produto_documentos")
-          .select("id, tipo_documento, status, nome_arquivo, arquivo_url, updated_at, created_at")
+          .select("id, tipo_documento, status, nome_arquivo, arquivo_url, created_at")
           .eq("submissao_id", submissaoId)
-          .order("updated_at", { ascending: false }),
+          .order("created_at", { ascending: false }),
         (supabase as any)
           .from("china_checklist_custom_categorias")
           .select("id, submissao_id, fluxo, label_pt, label_cn, ordem")
