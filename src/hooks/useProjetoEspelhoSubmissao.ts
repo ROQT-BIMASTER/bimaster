@@ -45,7 +45,17 @@ export function useSubmissaoDoProjetoEspelho(projetoId: string | null | undefine
   });
 }
 
-interface CriarArgs {
+export interface CriarProjetoEspelhoConfig {
+  dataInicio?: string | null;
+  dataFimAlvo?: string | null;
+  prazoPadraoTarefa?: number | null;
+  alertaAntecipacaoDias?: number | null;
+  regimeCalendario?: "corridos" | "dias_uteis" | "uteis_com_sabado" | null;
+  usaFeriados?: boolean | null;
+  ufFeriados?: string | null;
+}
+
+interface CriarArgs extends CriarProjetoEspelhoConfig {
   submissaoId: string;
   /** Se informado, vincula à um projeto existente em vez de criar um novo. */
   projetoId?: string | null;
@@ -53,6 +63,8 @@ interface CriarArgs {
   templateB2cId?: string | null;
   projetoNome?: string | null;
   secaoNome?: string;
+  /** Se true, desativa um is_espelho anterior antes de criar o novo. */
+  substituir?: boolean;
 }
 
 interface CriarResult {
@@ -73,6 +85,14 @@ export function useCriarProjetoEspelho() {
         p_template_b2c_id: args.templateB2cId ?? null,
         p_secao_nome: args.secaoNome ?? "Documentos da Submissão",
         p_projeto_nome: args.projetoNome ?? null,
+        p_data_inicio: args.dataInicio ?? null,
+        p_data_fim_alvo: args.dataFimAlvo ?? null,
+        p_prazo_padrao_tarefa: args.prazoPadraoTarefa ?? null,
+        p_alerta_antecipacao_dias: args.alertaAntecipacaoDias ?? null,
+        p_regime_calendario: args.regimeCalendario ?? null,
+        p_usa_feriados: args.usaFeriados ?? null,
+        p_uf_feriados: args.ufFeriados ?? null,
+        p_substituir: args.substituir ?? false,
       });
       if (error) throw error;
       return data as unknown as CriarResult;
