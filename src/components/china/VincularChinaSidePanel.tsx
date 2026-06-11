@@ -266,12 +266,12 @@ export function VincularChinaSidePanel({
             </button>
             <button
               type="button"
-              onClick={() => onChangeTab?.("despacho")}
+              onClick={() => setChecklistOpen(true)}
               className="group flex flex-col items-center gap-1 rounded-md border border-border bg-background hover:bg-accent/40 hover:border-primary/40 transition-colors px-2 py-2"
-              title="Abrir despacho para um módulo"
+              title="Abrir checklist da submissão"
             >
-              <Gavel className="h-4 w-4 text-primary" />
-              <span className="text-[10px] font-medium text-foreground">Despacho</span>
+              <ShieldCheck className="h-4 w-4 text-primary" />
+              <span className="text-[10px] font-medium text-foreground">Checklist</span>
             </button>
             <button
               type="button"
