@@ -2,8 +2,12 @@ import { useEffect, useMemo, useState } from "react";
 import {
   FileEdit, Send, Eye, RotateCcw, CheckCircle2,
   Inbox, XCircle, Star, ArrowUpRight, ArrowDownLeft,
-  MessageSquare, Check, Clock, Upload, Circle, AlertTriangle,
+  MessageSquare, Check, Clock, Upload, Circle, AlertTriangle, GripVertical,
 } from "lucide-react";
+import {
+  DndContext, DragOverlay, PointerSensor, useDraggable, useDroppable,
+  useSensor, useSensors, type DragEndEvent, type DragStartEvent,
+} from "@dnd-kit/core";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
@@ -24,6 +28,13 @@ interface Props {
   onSelectGroup: (group: MailboxGroup, item?: MailboxItem) => void;
   onJumpFolder: (folder: MailboxFolder) => void;
   perspective: "china" | "brasil";
+  /**
+   * Disparado quando o usuário arrasta um item elegível da coluna
+   * "Pendentes de envio" para "Enviados ao Brasil". O page owner decide
+   * se chama a mutation direta (parecer presente) ou abre o drawer para
+   * registro do parecer técnico (parecer ausente).
+   */
+  onDragSendDoc?: (item: MailboxItem, group: MailboxGroup) => void;
 }
 
 type ColumnKey =
