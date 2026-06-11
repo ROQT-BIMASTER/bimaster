@@ -5,7 +5,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Package, ShieldCheck, Plus } from "lucide-react";
+import { Package, ShieldCheck } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { ChecklistFlow, FlowItemFocusDrawer } from "@/components/china/inbox/ChecklistFlow";
