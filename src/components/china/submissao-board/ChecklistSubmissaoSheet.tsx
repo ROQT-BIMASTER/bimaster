@@ -5,7 +5,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Package, ShieldCheck, Plus } from "lucide-react";
+import { Package, ShieldCheck } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { ChecklistFlow, FlowItemFocusDrawer } from "@/components/china/inbox/ChecklistFlow";
@@ -150,27 +150,16 @@ export function ChecklistSubmissaoSheet({ open, onOpenChange, submissao }: Props
               <span className="text-foreground font-medium">{elegiveisAprovacao.length}</span>{" "}
               {elegiveisAprovacao.length === 1 ? "item anexado" : "itens anexados"} pelo Brasil pronto(s) para aprovação interna
             </p>
-            <div className="flex items-center gap-1.5">
-              <Button
-                size="sm"
-                variant="outline"
-                className="h-7 text-[11px] gap-1.5"
-                onClick={() => setNovoItemOpen(true)}
-              >
-                <Plus className="h-3.5 w-3.5" />
-                Novo item Brasil → China
-              </Button>
-              <Button
-                size="sm"
-                variant="default"
-                className="h-7 text-[11px] gap-1.5"
-                disabled={elegiveisAprovacao.length === 0}
-                onClick={() => setAprovacaoOpen(true)}
-              >
-                <ShieldCheck className="h-3.5 w-3.5" />
-                Solicitar aprovação interna
-              </Button>
-            </div>
+            <Button
+              size="sm"
+              variant="default"
+              className="h-7 text-[11px] gap-1.5"
+              disabled={elegiveisAprovacao.length === 0}
+              onClick={() => setAprovacaoOpen(true)}
+            >
+              <ShieldCheck className="h-3.5 w-3.5" />
+              Solicitar aprovação interna
+            </Button>
           </div>
 
           <ScrollArea className="flex-1">
@@ -179,6 +168,8 @@ export function ChecklistSubmissaoSheet({ open, onOpenChange, submissao }: Props
                 <ChecklistFlow
                   group={group}
                   perspective="brasil"
+                  layout="split"
+                  onAddBrasilItem={() => setNovoItemOpen(true)}
                   onFocusItem={(ctx) => setFlowCtx(ctx)}
                 />
               ) : (
