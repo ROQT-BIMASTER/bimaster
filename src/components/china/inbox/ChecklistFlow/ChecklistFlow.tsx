@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { ChevronDown, Info, Workflow } from "lucide-react";
+import { ArrowDownToLine, ArrowUpFromLine, ChevronDown, Info, Plus, Workflow } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -29,6 +29,15 @@ interface Props {
   perspective: "china" | "brasil";
   selectedTipo?: string | null;
   onFocusItem: (ctx: FlowItemContext) => void;
+  /**
+   * Layout do checklist:
+   *  - "primary-first" (default): seção principal aberta + "Outros documentos" colapsável.
+   *  - "split": duas seções irmãs rotuladas por responsabilidade (Brasil / China),
+   *    ambas abertas. Usado na Mesa de Vínculo China.
+   */
+  layout?: "primary-first" | "split";
+  /** Callback opcional — botão "+ Novo item" inline no header Brasil → China (layout split). */
+  onAddBrasilItem?: () => void;
 }
 
 function bucketForDoc(d: MailboxItem | undefined | null): FlowBucket {
