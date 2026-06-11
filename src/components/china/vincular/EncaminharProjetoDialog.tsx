@@ -104,7 +104,9 @@ export function EncaminharProjetoDialog({
   };
 
   return (
+    <>
     <Dialog open={open} onOpenChange={(o) => (o ? onOpenChange(true) : close())}>
+
       <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle className="text-base">
@@ -274,15 +276,17 @@ export function EncaminharProjetoDialog({
           </Button>
         </DialogFooter>
       </DialogContent>
-
-      <ConfigurarProjetoEspelhoDialog
-        open={configurarOpen}
-        onOpenChange={setConfigurarOpen}
-        submissaoId={submissaoId}
-        produtoCodigo={produtoCodigo}
-        produtoNome={produtoNome}
-      />
     </Dialog>
+
+    <ConfigurarProjetoEspelhoDialog
+      open={configurarOpen}
+      onOpenChange={setConfigurarOpen}
+      submissaoId={submissaoId}
+      produtoCodigo={produtoCodigo}
+      produtoNome={produtoNome}
+    />
+    </>
   );
 }
+
 
