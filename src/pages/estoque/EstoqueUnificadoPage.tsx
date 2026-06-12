@@ -26,6 +26,7 @@ import { EstoqueUnificadoColumnsMenu } from '@/components/estoque/unificado/Esto
 import { EstoqueUnificadoDrawer } from '@/components/estoque/unificado/EstoqueUnificadoDrawer';
 import { EstoqueCopilotPanel } from '@/components/estoque/unificado/EstoqueCopilotPanel';
 import { EstoqueCopilotFAB } from '@/components/estoque/unificado/EstoqueCopilotFAB';
+import { UpdatedAtBadge } from '@/components/estoque/UpdatedAtBadge';
 import { Badge } from '@/components/ui/badge';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -126,11 +127,22 @@ export default function EstoqueUnificadoPage() {
 
   const { data: opts } = useEstoqueOptions();
   const { data: marcasLinhasOpts } = useMarcasLinhasOptions();
-  const { data, isFetching, refetch, error } = useEstoqueUnificado({
+  const { data, isLoading, isFetching, dataUpdatedAt, refetch, error } = useEstoqueUnificado({
     empresaIds, busca: buscaDeb, somenteComSaldo, page, pageSize,
     sortBy: backendSortBy, sortDir, consolidar,
     marcas, linhas,
   });
+
+  // Fire-and-forget refresh do cache `estoque_unificado_cache` a cada refetch,
+  // se o último refresh foi há mais de 25s — mantém os números do Unificado
+  // sincronizados com o ERP sem bloquear a UI.
+  useEffect(() => {
+    if (!dataUpdatedAt) return;
+    const id = setTimeout(() => {
+      (supabase.rpc as any)('refresh_estoque_unificado_cache').then(() => {}, () => {});
+    }, 200);
+    return () => clearTimeout(id);
+  }, [dataUpdatedAt]);
 
   useEffect(() => {
     if (error) toast.error('Falha ao carregar estoque unificado: ' + ((error as any)?.message ?? 'erro desconhecido'));
@@ -278,7 +290,11 @@ export default function EstoqueUnificadoPage() {
           </div>
         </div>
 
-        <EstoqueUnificadoKpis rows={data?.aggregateRows ?? []} total={data?.total ?? 0} loading={isFetching} modo={modo} />
+        <div className="flex items-center justify-between">
+          <UpdatedAtBadge dataUpdatedAt={dataUpdatedAt} isFetching={isFetching} />
+        </div>
+
+        <EstoqueUnificadoKpis rows={data?.aggregateRows ?? []} total={data?.total ?? 0} loading={isLoading} modo={modo} />
 
         <div className="flex flex-col lg:flex-row lg:items-center gap-3">
           <div className="relative flex-1 max-w-md">
