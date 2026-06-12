@@ -75,6 +75,10 @@ export function useEstoqueUnificado(opts: UseEstoqueUnificadoOpts) {
     refetchInterval: 30_000,
     refetchIntervalInBackground: false,
     queryFn: async () => {
+      // Garante que o cache unificado está fresco antes de ler — singleton
+      // compartilhado com useEstoqueCoresKpis e ConciliacaoBadge.
+      await awaitCacheUnificadoFresh();
+
       const consolidar = !!opts.consolidar;
 
       let q = supabase
