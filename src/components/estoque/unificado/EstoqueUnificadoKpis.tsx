@@ -5,11 +5,33 @@ import { Boxes, Package, PackageOpen, Layers, Info, ShieldCheck, Lock, Clock } f
 import type { EstoqueUnificadoRow } from '@/hooks/estoque/useEstoqueUnificado';
 import { converterParaModo, disponivelEmCaixas, formatCx, type ModoExibicao } from '@/lib/estoque/modoExibicao';
 
+interface ServerTotals {
+  total_un: number;
+  bloqueado_un: number;
+  disponivel_un: number;
+  pendente_un: number;
+  caixas: number;
+  displays: number;
+  unidades: number;
+  custo_total: number;
+  disponivel_cx: number;
+  sem_fator_cx: number;
+  equivalente_cx: number;
+  equivalente_bx: number;
+  sem_fator_bx: number;
+}
+
 interface Props {
   rows: EstoqueUnificadoRow[];
   total: number;
   loading?: boolean;
   modo?: ModoExibicao;
+  /**
+   * Totais agregados no servidor (RPC `rpc_estoque_unificado_kpis`).
+   * Quando presente, têm prioridade sobre o `rows.reduce(...)` local —
+   * garante paridade exata com a Conciliação e o card Cores.
+   */
+  serverTotals?: ServerTotals | null;
 }
 
 const fmt = (n: number) => Math.round(n).toLocaleString('pt-BR');
@@ -25,8 +47,8 @@ interface KpiItem {
   variant?: Variant;
 }
 
-export function EstoqueUnificadoKpis({ rows, total, loading, modo = 'fisico' }: Props) {
-  const totals = rows.reduce(
+export function EstoqueUnificadoKpis({ rows, total, loading, modo = 'fisico', serverTotals }: Props) {
+  const localTotals = rows.reduce(
     (acc, r) => {
       acc.cx += Number(r.saldo_em_caixas || 0);
       acc.bx += Number(r.saldo_em_displays || 0);
@@ -41,14 +63,32 @@ export function EstoqueUnificadoKpis({ rows, total, loading, modo = 'fisico' }: 
     { cx: 0, bx: 0, un: 0, un_eq: 0, bloq: 0, disp: 0, pend: 0, custo: 0 },
   );
 
-  // Disponível em CX (apoio a vendas/compras)
+  const totals = serverTotals
+    ? {
+        cx: serverTotals.caixas,
+        bx: serverTotals.displays,
+        un: serverTotals.unidades,
+        un_eq: serverTotals.total_un,
+        bloq: serverTotals.bloqueado_un,
+        disp: serverTotals.disponivel_un,
+        pend: serverTotals.pendente_un,
+        custo: serverTotals.custo_total,
+      }
+    : localTotals;
+
+  // Disponível em CX (apoio a vendas/compras) — prefere valor server-side.
   let cxDisp = 0;
   let semFatorCx = 0;
-  rows.forEach((r) => {
-    const v = disponivelEmCaixas(r);
-    if (v == null) semFatorCx += 1;
-    else cxDisp += v;
-  });
+  if (serverTotals) {
+    cxDisp = serverTotals.disponivel_cx;
+    semFatorCx = serverTotals.sem_fator_cx;
+  } else {
+    rows.forEach((r) => {
+      const v = disponivelEmCaixas(r);
+      if (v == null) semFatorCx += 1;
+      else cxDisp += v;
+    });
+  }
 
   const cxDispHint = semFatorCx
     ? `${semFatorCx} produto(s) sem fator de CX`
@@ -75,11 +115,21 @@ export function EstoqueUnificadoKpis({ rows, total, loading, modo = 'fisico' }: 
   } else {
     let somaConv = 0;
     let semFator = 0;
-    rows.forEach((r) => {
-      const v = converterParaModo(r, modo);
-      if (v == null) semFator += 1;
-      else somaConv += v;
-    });
+    if (serverTotals && modo === 'un') {
+      somaConv = serverTotals.total_un;
+    } else if (serverTotals && modo === 'cx') {
+      somaConv = serverTotals.equivalente_cx;
+      semFator = serverTotals.sem_fator_cx;
+    } else if (serverTotals && modo === 'bx') {
+      somaConv = serverTotals.equivalente_bx;
+      semFator = serverTotals.sem_fator_bx;
+    } else {
+      rows.forEach((r) => {
+        const v = converterParaModo(r, modo);
+        if (v == null) semFator += 1;
+        else somaConv += v;
+      });
+    }
     const labelMap = { cx: 'Total em Caixas (CX)', bx: 'Total em Displays (BX)', un: 'Total em Unidades (UN)' } as const;
     const iconMap = { cx: Boxes, bx: Package, un: PackageOpen } as const;
     items = [

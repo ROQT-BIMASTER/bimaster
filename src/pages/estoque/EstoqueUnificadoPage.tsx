@@ -21,6 +21,7 @@ import {
   useEstoqueUnificadoTablePrefs,
 } from '@/hooks/estoque/useEstoqueUnificadoTablePrefs';
 import { EstoqueUnificadoKpis } from '@/components/estoque/unificado/EstoqueUnificadoKpis';
+import { useEstoqueUnificadoKpis } from '@/hooks/estoque/useEstoqueUnificadoKpis';
 import { EstoqueUnificadoTable } from '@/components/estoque/unificado/EstoqueUnificadoTable';
 import { EstoqueUnificadoColumnsMenu } from '@/components/estoque/unificado/EstoqueUnificadoColumnsMenu';
 import { EstoqueUnificadoDrawer } from '@/components/estoque/unificado/EstoqueUnificadoDrawer';
@@ -131,6 +132,9 @@ export default function EstoqueUnificadoPage() {
     empresaIds, busca: buscaDeb, somenteComSaldo, page, pageSize,
     sortBy: backendSortBy, sortDir, consolidar,
     marcas, linhas,
+  });
+  const { data: serverTotals } = useEstoqueUnificadoKpis({
+    empresaIds, somenteComSaldo, marcas, linhas, busca: buscaDeb,
   });
 
   // O refresh do `estoque_unificado_cache` agora é orquestrado pelo helper
@@ -287,7 +291,7 @@ export default function EstoqueUnificadoPage() {
           <UpdatedAtBadge dataUpdatedAt={dataUpdatedAt} isFetching={isFetching} />
         </div>
 
-        <EstoqueUnificadoKpis rows={data?.aggregateRows ?? []} total={data?.total ?? 0} loading={isLoading} modo={modo} />
+        <EstoqueUnificadoKpis rows={data?.aggregateRows ?? []} total={data?.total ?? 0} loading={isLoading} modo={modo} serverTotals={serverTotals ?? null} />
 
         <div className="flex flex-col lg:flex-row lg:items-center gap-3">
           <div className="relative flex-1 max-w-md">
