@@ -387,6 +387,10 @@ export function useEstoqueUnificado(opts: UseEstoqueUnificadoOpts) {
         const set = new Set(opts.linhas.map((m) => m.toLowerCase()));
         enriched = enriched.filter((r) => r.linha && set.has(String(r.linha).toLowerCase()));
       }
+      if (opts.campanhaProdutos != null) {
+        const set = new Set(opts.campanhaProdutos.map((n) => Number(n)));
+        enriched = enriched.filter((r) => set.has(Number(r.produto_raiz)));
+      }
 
       // Filtro defensivo client-side de "Apenas com saldo": espelha o filtro
       // server-side e impede que linhas com saldo 0 vazem por cache stale.
