@@ -69,6 +69,7 @@ export function useEstoqueUnificado(opts: UseEstoqueUnificadoOpts) {
     consolidar: !!opts.consolidar,
     marcas: [...(opts.marcas ?? [])].sort(),
     linhas: [...(opts.linhas ?? [])].sort(),
+    campanhaProdutos: opts.campanhaProdutos == null ? null : [...opts.campanhaProdutos].sort((a, b) => a - b),
   };
   return useQuery({
     queryKey: ['estoque-unificado', normalizedKey],
