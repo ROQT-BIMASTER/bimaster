@@ -131,7 +131,7 @@ export async function validateErpAuth(
 
   const keyPreview = getKeyPreview(apiKey);
 
-  // 1. Check legacy env keys (N8N_API_KEY, EXPORT_API_KEY, etc.) with timing-safe
+  // 1. Check legacy env keys (EXPORT_API_KEY, etc.) with timing-safe
   if (legacyEnvKeys) {
     for (const envName of legacyEnvKeys) {
       const envValue = Deno.env.get(envName);

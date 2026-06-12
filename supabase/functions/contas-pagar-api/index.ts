@@ -72,12 +72,8 @@ async function runRouter(req: Request): Promise<Response> {
       const auditMeta = getAuditMeta();
       const keyPreview = getKeyPreview(apiKey);
 
-      const expectedKey = Deno.env.get('N8N_API_KEY');
-      if (apiKey && expectedKey && timingSafeEqual(apiKey, expectedKey)) {
-        logApiAccess({ ...auditMeta, apiKeyUsed: true, success: true, keyPreview });
-        authSource = 'api_key';
-        return true;
-      }
+
+
 
       const { data: configRow } = await supabase.from("erp_config").select("empresa_id").eq("config_key", "api_key").eq("config_value", apiKey).maybeSingle();
       if (configRow?.empresa_id) {
