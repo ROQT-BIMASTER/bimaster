@@ -19,6 +19,7 @@ export function useEstoqueCoresKpis(filtros: EstoqueCoresFiltros) {
     staleTime: 25_000,
     refetchInterval: 30_000,
     queryFn: async () => {
+      await awaitCacheUnificadoFresh();
       const { data, error } = await (supabase as any).rpc('rpc_estoque_cores_kpis', {
         p_empresas: filtros.empresas.length ? filtros.empresas : null,
         p_linhas: filtros.linhas.length ? filtros.linhas : null,
