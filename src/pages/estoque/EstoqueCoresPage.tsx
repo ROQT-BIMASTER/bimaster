@@ -23,6 +23,7 @@ import {
   type EstoqueCoresConsolidadoSortKey,
 } from '@/hooks/estoque/useEstoqueCoresConsolidadoQuery';
 import { EstoqueCoresKpiBar } from '@/components/estoque/cores/EstoqueCoresKpiBar';
+import { UpdatedAtBadge } from '@/components/estoque/UpdatedAtBadge';
 import { EstoqueCoresTable } from '@/components/estoque/cores/EstoqueCoresTable';
 import { EstoqueCoresDrawer } from '@/components/estoque/cores/EstoqueCoresDrawer';
 import { EstoqueLinhaTabs } from '@/components/estoque/cores/EstoqueLinhaTabs';
@@ -122,6 +123,13 @@ export default function EstoqueCoresPage() {
               </Link>
             </Button>
           </div>
+        </div>
+
+        <div className="flex items-center justify-between">
+          <UpdatedAtBadge
+            dataUpdatedAt={consolidado ? (kpisCons.dataUpdatedAt || consQuery.dataUpdatedAt) : (kpisEmp.dataUpdatedAt || empQuery.dataUpdatedAt)}
+            isFetching={consolidado ? (kpisCons.isFetching || consQuery.isFetching) : (kpisEmp.isFetching || empQuery.isFetching)}
+          />
         </div>
 
         <EstoqueCoresKpiBar kpis={kpis} loading={kpisLoading} consolidado={consolidado} />
