@@ -136,6 +136,9 @@ function WidgetCard({
         return <WidgetCargaCapacidade tarefas={tarefas} />;
       case "aging_tarefas":
         return <WidgetAgingTarefas tarefas={tarefas} />;
+      case "gauge_taxa_prazo":
+        return <WidgetTaxaCumprimentoPrazo tarefas={tarefas} />;
+
       default:
         return null;
     }
