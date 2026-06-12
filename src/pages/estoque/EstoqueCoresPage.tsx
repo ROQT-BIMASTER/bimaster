@@ -124,6 +124,12 @@ export default function EstoqueCoresPage() {
 
         <EstoqueCoresKpiBar kpis={kpis} loading={kpisLoading} consolidado={consolidado} />
 
+        <DivergenciaLinhaBanner
+          ativo={base.apenas_divergencia_linha}
+          onToggle={(v) => setF({ ...base, apenas_divergencia_linha: v })}
+          rows={consolidado ? (consQuery.data?.rows ?? []) : (empQuery.data?.rows ?? [])}
+        />
+
         {base.incluir_potencial && (
           <Alert className="py-2">
             <Info className="h-4 w-4" />
