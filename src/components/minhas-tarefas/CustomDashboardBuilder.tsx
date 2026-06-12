@@ -15,7 +15,7 @@ import {
   type WidgetConfig,
 } from "./widgets/WidgetRegistry";
 import { KpiCard } from "@/components/ui/kpi-card";
-import { Clock, AlertTriangle, CheckCircle2, TrendingUp } from "lucide-react";
+import { Clock, AlertTriangle, CheckCircle2, TrendingUp, Target } from "lucide-react";
 import { isToday, startOfDay, startOfWeek, endOfWeek, isWithinInterval } from "date-fns";
 import { parseLocalDate, getToday } from "@/lib/utils/parseLocalDate";
 import type { MinaTarefa } from "@/hooks/useMinhasTarefas";
