@@ -26,6 +26,7 @@ import { EstoqueUnificadoColumnsMenu } from '@/components/estoque/unificado/Esto
 import { EstoqueUnificadoDrawer } from '@/components/estoque/unificado/EstoqueUnificadoDrawer';
 import { EstoqueCopilotPanel } from '@/components/estoque/unificado/EstoqueCopilotPanel';
 import { EstoqueCopilotFAB } from '@/components/estoque/unificado/EstoqueCopilotFAB';
+import { UpdatedAtBadge } from '@/components/estoque/UpdatedAtBadge';
 import { Badge } from '@/components/ui/badge';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
