@@ -203,21 +203,27 @@ export function EstoqueCoresTable(p: Props) {
             const tags = (codProduto != null ? etiquetasMap?.get(codProduto) : undefined) ?? [];
 
             return (
-              <ListItem
-                key={key}
-                row={r}
-                isOpen={isOpen}
-                memo={memo}
-                onToggle={() => memo && toggle(key)}
-                onSelect={
-                  p.variant === 'por-empresa'
-                    ? () => (p as PorEmpresaProps).onRowClick(r as EstoqueCorRow)
-                    : undefined
-                }
-                variant={p.variant}
-                tags={tags as string[]}
-                etiquetaById={etiquetaById}
-              />
+              <div key={key}>
+                <ListItem
+                  row={r}
+                  isOpen={isOpen}
+                  memo={memo}
+                  onToggle={() => memo && toggle(key)}
+                  onSelect={
+                    p.variant === 'por-empresa'
+                      ? () => (p as PorEmpresaProps).onRowClick(r as EstoqueCorRow)
+                      : undefined
+                  }
+                  variant={p.variant}
+                  tags={tags as string[]}
+                  etiquetaById={etiquetaById}
+                />
+                {isOpen && memo && (
+                  <div className="bg-muted/20 border-t px-4 py-3">
+                    <ExpandedMemory row={r} variant={p.variant} />
+                  </div>
+                )}
+              </div>
             );
           })
         )}
