@@ -133,16 +133,9 @@ export default function EstoqueUnificadoPage() {
     marcas, linhas,
   });
 
-  // Fire-and-forget refresh do cache `estoque_unificado_cache` a cada refetch,
-  // se o último refresh foi há mais de 25s — mantém os números do Unificado
-  // sincronizados com o ERP sem bloquear a UI.
-  useEffect(() => {
-    if (!dataUpdatedAt) return;
-    const id = setTimeout(() => {
-      (supabase.rpc as any)('refresh_estoque_unificado_cache').then(() => {}, () => {});
-    }, 200);
-    return () => clearTimeout(id);
-  }, [dataUpdatedAt]);
+  // O refresh do `estoque_unificado_cache` agora é orquestrado pelo helper
+  // `awaitCacheUnificadoFresh` dentro do queryFn — singleton compartilhado
+  // com a tela Cores e a Conciliação, garantindo o mesmo snapshot.
 
   useEffect(() => {
     if (error) toast.error('Falha ao carregar estoque unificado: ' + ((error as any)?.message ?? 'erro desconhecido'));
