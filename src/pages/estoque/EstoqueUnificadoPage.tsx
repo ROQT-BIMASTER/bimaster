@@ -34,6 +34,10 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { cn } from '@/lib/utils';
 import type { ModoExibicao } from '@/lib/estoque/modoExibicao';
+import { EstoqueCampanhaFilter } from '@/components/estoque/cores/EstoqueCampanhaFilter';
+import { useProdutosPorEtiquetas } from '@/hooks/estoque/useProdutosPorEtiquetas';
+
+
 
 
 function MultiSelectChip({
@@ -113,6 +117,12 @@ export default function EstoqueUnificadoPage() {
   const { sortBy, sortDir, isHidden, toggle, reset, setSort } = tablePrefs;
   const [marcas, setMarcas] = useState<string[]>([]);
   const [linhas, setLinhas] = useState<string[]>([]);
+  const [campanhaIds, setCampanhaIds] = useState<string[]>([]);
+  const { data: campanhaProdutos } = useProdutosPorEtiquetas(campanhaIds);
+  // Quando há campanha selecionada mas o fetch ainda não voltou, evitamos
+  // mostrar resultados "vazando" — passamos lista vazia em vez de null.
+  const campanhaFilter = campanhaIds.length > 0 ? (campanhaProdutos ?? []) : null;
+
 
   const [selected, setSelected] = useState<EstoqueUnificadoRow | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -132,6 +142,7 @@ export default function EstoqueUnificadoPage() {
     empresaIds, busca: buscaDeb, somenteComSaldo, page, pageSize,
     sortBy: backendSortBy, sortDir, consolidar,
     marcas, linhas,
+    campanhaProdutos: campanhaFilter,
   });
   const { data: serverTotals } = useEstoqueUnificadoKpis({
     empresaIds, somenteComSaldo, marcas, linhas, busca: buscaDeb,
@@ -291,7 +302,7 @@ export default function EstoqueUnificadoPage() {
           <UpdatedAtBadge dataUpdatedAt={dataUpdatedAt} isFetching={isFetching} />
         </div>
 
-        <EstoqueUnificadoKpis rows={data?.aggregateRows ?? []} total={data?.total ?? 0} loading={isLoading} modo={modo} serverTotals={serverTotals ?? null} />
+        <EstoqueUnificadoKpis rows={data?.aggregateRows ?? []} total={data?.total ?? 0} loading={isLoading} modo={modo} serverTotals={campanhaFilter ? null : (serverTotals ?? null)} />
 
         <div className="flex flex-col lg:flex-row lg:items-center gap-3">
           <div className="relative flex-1 max-w-md">
@@ -406,6 +417,15 @@ export default function EstoqueUnificadoPage() {
             )}
 
             <span className="mx-1 h-5 w-px bg-border" aria-hidden />
+
+            <EstoqueCampanhaFilter
+              selected={campanhaIds}
+              onChange={(ids) => { setCampanhaIds(ids); setPage(0); }}
+            />
+
+            <span className="mx-1 h-5 w-px bg-border" aria-hidden />
+
+
 
             <EstoqueUnificadoColumnsMenu isHidden={isHidden} toggle={toggle} reset={reset} />
           </div>

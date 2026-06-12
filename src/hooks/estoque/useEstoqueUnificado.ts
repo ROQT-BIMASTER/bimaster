@@ -45,6 +45,8 @@ export interface UseEstoqueUnificadoOpts {
   consolidar?: boolean;
   marcas?: string[];
   linhas?: string[];
+  /** produto_raiz permitidos quando há filtro de campanha ativo; null/undefined = sem filtro. */
+  campanhaProdutos?: number[] | null;
 }
 
 /**
@@ -67,6 +69,7 @@ export function useEstoqueUnificado(opts: UseEstoqueUnificadoOpts) {
     consolidar: !!opts.consolidar,
     marcas: [...(opts.marcas ?? [])].sort(),
     linhas: [...(opts.linhas ?? [])].sort(),
+    campanhaProdutos: opts.campanhaProdutos == null ? null : [...opts.campanhaProdutos].sort((a, b) => a - b),
   };
   return useQuery({
     queryKey: ['estoque-unificado', normalizedKey],
@@ -383,6 +386,10 @@ export function useEstoqueUnificado(opts: UseEstoqueUnificadoOpts) {
       if (opts.linhas && opts.linhas.length) {
         const set = new Set(opts.linhas.map((m) => m.toLowerCase()));
         enriched = enriched.filter((r) => r.linha && set.has(String(r.linha).toLowerCase()));
+      }
+      if (opts.campanhaProdutos != null) {
+        const set = new Set(opts.campanhaProdutos.map((n) => Number(n)));
+        enriched = enriched.filter((r) => set.has(Number(r.produto_raiz)));
       }
 
       // Filtro defensivo client-side de "Apenas com saldo": espelha o filtro
