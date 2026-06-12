@@ -1,12 +1,14 @@
 import { useState, useMemo, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { DashboardLayout } from '@/components/dashboard/DashboardLayout';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
-import { Search, Settings2, ShieldCheck, Info, AlertTriangle } from 'lucide-react';
+import { Search, Settings2, ShieldCheck, Info, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Link } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
 import {
   useEstoqueCoresQuery,
   FILTROS_CORES_INICIAIS,
