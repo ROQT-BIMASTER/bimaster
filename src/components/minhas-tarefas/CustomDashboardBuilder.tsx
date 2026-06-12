@@ -2,18 +2,14 @@ import { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { Checkbox } from "@/components/ui/checkbox";
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from "@/components/ui/select";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
 import {
-  Plus, Pencil, Trash2, X, Check, GripVertical, LayoutDashboard,
+  Plus, Pencil, Trash2, X, Check, LayoutDashboard, BarChart3, ListChecks, Gauge,
 } from "lucide-react";
-import { useCustomDashboards, type CustomDashboard } from "@/hooks/useCustomDashboards";
+import { cn } from "@/lib/utils";
+import { useCustomDashboards } from "@/hooks/useCustomDashboards";
 import {
   WIDGET_REGISTRY, getWidgetMeta,
   type WidgetConfig,
@@ -68,7 +64,7 @@ function KpiWidget({ type, tarefas }: { type: string; tarefas: MinaTarefa[] }) {
     case "kpi_atrasadas":
       return <KpiCard title="Atrasadas" value={atrasadas.length} icon={AlertTriangle} variant={atrasadas.length > 0 ? "destructive" : "default"} subtitle="precisam de atenção" />;
     case "kpi_concluidas_hoje":
-      return <KpiCard title="Concluídas hoje" value={concluidasHoje.length} icon={CheckCircle2} variant="success" subtitle="bom trabalho!" />;
+      return <KpiCard title="Concluídas hoje" value={concluidasHoje.length} icon={CheckCircle2} variant="success" subtitle="bom trabalho" />;
     case "kpi_produtividade":
       return <KpiCard title="Produtividade" value={`${produtividade}%`} icon={TrendingUp} variant={produtividade >= 70 ? "success" : produtividade >= 40 ? "warning" : "destructive"} subtitle={`${concluidasSemana.length}/${tarefasSemana.length} esta semana`} />;
     default:
@@ -95,8 +91,8 @@ function WidgetCard({
   const sizeClass = isKpi
     ? ""
     : widget.size === "lg"
-    ? "col-span-2"
-    : "";
+    ? "md:col-span-12 lg:col-span-8"
+    : "md:col-span-6 lg:col-span-4";
 
   const content = (() => {
     switch (widget.type) {
@@ -124,13 +120,14 @@ function WidgetCard({
 
   if (isKpi) {
     return (
-      <div className="relative">
+      <div className={cn("relative", editing && "ring-2 ring-dashed ring-primary/40 rounded-[10px]")}>
         {editing && (
           <button
             onClick={onRemove}
-            className="absolute -top-1.5 -right-1.5 z-10 h-5 w-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center hover:bg-destructive/80"
+            className="absolute -top-2 -right-2 z-10 h-6 w-6 rounded-full bg-background border border-border shadow-sm flex items-center justify-center text-muted-foreground hover:text-destructive hover:border-destructive/40 transition-colors"
+            aria-label="Remover widget"
           >
-            <X className="h-3 w-3" />
+            <X className="h-3.5 w-3.5" />
           </button>
         )}
         {content}
@@ -139,22 +136,33 @@ function WidgetCard({
   }
 
   return (
-    <Card className={`${sizeClass} relative`}>
+    <Card
+      className={cn(
+        sizeClass,
+        "relative border-border/60",
+        editing && "ring-2 ring-dashed ring-primary/40",
+      )}
+    >
       {editing && (
         <button
           onClick={onRemove}
-          className="absolute -top-1.5 -right-1.5 z-10 h-5 w-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center hover:bg-destructive/80"
+          className="absolute -top-2 -right-2 z-10 h-6 w-6 rounded-full bg-background border border-border shadow-sm flex items-center justify-center text-muted-foreground hover:text-destructive hover:border-destructive/40 transition-colors"
+          aria-label="Remover widget"
         >
-          <X className="h-3 w-3" />
+          <X className="h-3.5 w-3.5" />
         </button>
       )}
-      <CardHeader className="pb-2 pt-4 px-4">
-        <CardTitle className="text-sm font-medium flex items-center gap-1.5">
-          <meta.icon className="h-3.5 w-3.5 text-muted-foreground" />
-          {meta.label}
-        </CardTitle>
+      <CardHeader className="pb-3 pt-4 px-5 border-b border-border/40">
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0">
+            <CardTitle className="text-[13px] font-semibold flex items-center gap-2 leading-tight">
+              <meta.icon className="h-3.5 w-3.5 text-muted-foreground" />
+              {meta.label}
+            </CardTitle>
+          </div>
+        </div>
       </CardHeader>
-      <CardContent className="px-4 pb-4">{content}</CardContent>
+      <CardContent className="px-5 py-4">{content}</CardContent>
     </Card>
   );
 }
@@ -178,7 +186,9 @@ export function CustomDashboardBuilder({ tarefas }: Props) {
 
   const widgets = activeDash?.widgets || [];
   const kpiWidgets = widgets.filter((w) => getWidgetMeta(w.type)?.category === "kpi").sort((a, b) => a.order - b.order);
-  const otherWidgets = widgets.filter((w) => getWidgetMeta(w.type)?.category !== "kpi").sort((a, b) => a.order - b.order);
+  const chartWidgets = widgets.filter((w) => getWidgetMeta(w.type)?.category === "chart").sort((a, b) => a.order - b.order);
+  const listWidgets = widgets.filter((w) => getWidgetMeta(w.type)?.category === "list").sort((a, b) => a.order - b.order);
+  const otherWidgets = [...chartWidgets, ...listWidgets];
 
   const handleCreateDashboard = () => {
     createDashboard.mutate(newName, {
@@ -210,12 +220,12 @@ export function CustomDashboardBuilder({ tarefas }: Props) {
   if (!isLoading && dashboards.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-20">
-        <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+        <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center mb-4 ring-1 ring-primary/20">
           <LayoutDashboard className="h-8 w-8 text-primary" />
         </div>
-        <h3 className="font-semibold text-lg mb-1">Crie seu Dashboard</h3>
+        <h3 className="font-semibold text-lg mb-1 font-display">Crie seu Dashboard</h3>
         <p className="text-sm text-muted-foreground mb-4 text-center max-w-md">
-          Monte dashboards personalizados com KPIs, gráficos e listas para acompanhar suas tarefas.
+          Monte dashboards personalizados com indicadores, gráficos e listas para acompanhar suas tarefas.
         </p>
         <Button onClick={() => setShowNew(true)} className="gap-1.5">
           <Plus className="h-4 w-4" /> Criar Dashboard
@@ -237,86 +247,164 @@ export function CustomDashboardBuilder({ tarefas }: Props) {
   }
 
   return (
-    <div className="space-y-4">
-      {/* Dashboard Selector */}
-      <div className="flex items-center gap-3 flex-wrap">
-        <Select value={activeDash?.id || ""} onValueChange={setActiveDashId}>
-          <SelectTrigger className="w-[200px] h-8 text-sm">
-            <SelectValue placeholder="Selecionar dashboard" />
-          </SelectTrigger>
-          <SelectContent>
-            {dashboards.map((d) => (
-              <SelectItem key={d.id} value={d.id}>{d.nome}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+    <div className="space-y-5">
+      {/* Executive Header */}
+      <div className="flex items-end justify-between gap-3 flex-wrap pb-3 border-b border-border/40">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="h-10 w-10 rounded-lg bg-primary/10 ring-1 ring-primary/20 flex items-center justify-center shrink-0">
+            <LayoutDashboard className="h-5 w-5 text-primary" />
+          </div>
+          <div className="min-w-0">
+            <h2 className="text-lg font-semibold font-display tracking-tight leading-tight truncate">
+              {activeDash?.nome || "Dashboard"}
+            </h2>
+            <p className="text-[11px] text-muted-foreground mt-0.5">
+              {tarefas.length.toLocaleString("pt-BR")} tarefa{tarefas.length !== 1 ? "s" : ""} • {widgets.length} widget{widgets.length !== 1 ? "s" : ""}
+            </p>
+          </div>
+        </div>
 
-        <Button variant="outline" size="sm" className="h-8 gap-1 text-xs" onClick={() => setShowNew(true)}>
-          <Plus className="h-3.5 w-3.5" /> Novo
-        </Button>
-
-        {activeDash && (
-          <>
-            <Button
-              variant={editing ? "default" : "outline"}
-              size="sm"
-              className="h-8 gap-1 text-xs"
-              onClick={() => setEditing(!editing)}
-            >
-              {editing ? <><Check className="h-3.5 w-3.5" /> Salvar</> : <><Pencil className="h-3.5 w-3.5" /> Editar</>}
-            </Button>
-
-            {editing && (
-              <>
-                <Button variant="outline" size="sm" className="h-8 gap-1 text-xs" onClick={() => setShowAddWidget(true)}>
-                  <Plus className="h-3.5 w-3.5" /> Widget
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 gap-1 text-xs text-destructive hover:text-destructive"
-                  onClick={async () => {
-                    if ((await confirm({ title: "Excluir este dashboard?", destructive: true }))) {
-                      deleteDashboard.mutate(activeDash.id);
-                      setEditing(false);
-                    }
-                  }}
+        <div className="flex items-center gap-1.5">
+          {/* Dashboard pills */}
+          {dashboards.length > 1 && (
+            <div className="flex items-center gap-1 mr-1 p-0.5 rounded-md bg-muted/60 border border-border/60">
+              {dashboards.map((d) => (
+                <button
+                  key={d.id}
+                  onClick={() => setActiveDashId(d.id)}
+                  className={cn(
+                    "px-2.5 h-7 text-xs font-medium rounded-sm transition-colors max-w-[140px] truncate",
+                    activeDash?.id === d.id
+                      ? "bg-background text-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
                 >
-                  <Trash2 className="h-3.5 w-3.5" /> Excluir
-                </Button>
-              </>
-            )}
-          </>
-        )}
+                  {d.nome}
+                </button>
+              ))}
+            </div>
+          )}
+
+          <Button variant="ghost" size="sm" className="h-8 gap-1 text-xs" onClick={() => setShowNew(true)}>
+            <Plus className="h-3.5 w-3.5" /> Novo
+          </Button>
+
+          {activeDash && (
+            <>
+              {editing && (
+                <>
+                  <Button variant="ghost" size="sm" className="h-8 gap-1 text-xs" onClick={() => setShowAddWidget(true)}>
+                    <Plus className="h-3.5 w-3.5" /> Widget
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 gap-1 text-xs text-destructive hover:text-destructive"
+                    onClick={async () => {
+                      if ((await confirm({ title: "Excluir este dashboard?", destructive: true }))) {
+                        deleteDashboard.mutate(activeDash.id);
+                        setEditing(false);
+                      }
+                    }}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" /> Excluir
+                  </Button>
+                </>
+              )}
+              <Button
+                variant={editing ? "default" : "outline"}
+                size="sm"
+                className="h-8 gap-1 text-xs"
+                onClick={() => setEditing(!editing)}
+              >
+                {editing ? <><Check className="h-3.5 w-3.5" /> Concluir</> : <><Pencil className="h-3.5 w-3.5" /> Editar</>}
+              </Button>
+            </>
+          )}
+        </div>
       </div>
 
-      {/* KPI Row */}
+      {/* KPI Section */}
       {kpiWidgets.length > 0 && (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          {kpiWidgets.map((w) => (
-            <WidgetCard
-              key={w.type}
-              widget={w}
-              tarefas={tarefas}
-              editing={editing}
-              onRemove={() => handleRemoveWidget(w.type)}
-            />
-          ))}
-        </div>
+        <section className="space-y-2.5">
+          <div className="flex items-center gap-2">
+            <Gauge className="h-3.5 w-3.5 text-muted-foreground" />
+            <h3 className="text-[10.5px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
+              Indicadores
+            </h3>
+            <div className="flex-1 h-px bg-border/40" />
+          </div>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            {kpiWidgets.map((w) => (
+              <WidgetCard
+                key={w.type}
+                widget={w}
+                tarefas={tarefas}
+                editing={editing}
+                onRemove={() => handleRemoveWidget(w.type)}
+              />
+            ))}
+          </div>
+        </section>
       )}
 
-      {/* Charts & Lists Grid */}
-      {otherWidgets.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {otherWidgets.map((w) => (
-            <WidgetCard
-              key={w.type}
-              widget={w}
-              tarefas={tarefas}
-              editing={editing}
-              onRemove={() => handleRemoveWidget(w.type)}
-            />
-          ))}
+      {/* Charts Section */}
+      {chartWidgets.length > 0 && (
+        <section className="space-y-2.5">
+          <div className="flex items-center gap-2">
+            <BarChart3 className="h-3.5 w-3.5 text-muted-foreground" />
+            <h3 className="text-[10.5px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
+              Análises
+            </h3>
+            <div className="flex-1 h-px bg-border/40" />
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
+            {chartWidgets.map((w) => (
+              <WidgetCard
+                key={w.type}
+                widget={w}
+                tarefas={tarefas}
+                editing={editing}
+                onRemove={() => handleRemoveWidget(w.type)}
+              />
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Lists Section */}
+      {listWidgets.length > 0 && (
+        <section className="space-y-2.5">
+          <div className="flex items-center gap-2">
+            <ListChecks className="h-3.5 w-3.5 text-muted-foreground" />
+            <h3 className="text-[10.5px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
+              Listas
+            </h3>
+            <div className="flex-1 h-px bg-border/40" />
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
+            {listWidgets.map((w) => (
+              <WidgetCard
+                key={w.type}
+                widget={w}
+                tarefas={tarefas}
+                editing={editing}
+                onRemove={() => handleRemoveWidget(w.type)}
+              />
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Empty state when editing with no widgets */}
+      {widgets.length === 0 && (
+        <div className="flex flex-col items-center justify-center py-16 rounded-lg border border-dashed border-border/60 bg-muted/20">
+          <LayoutDashboard className="h-8 w-8 text-muted-foreground/40 mb-3" />
+          <p className="text-sm font-medium text-foreground">Dashboard vazio</p>
+          <p className="text-xs text-muted-foreground mt-1 mb-3">Adicione widgets para visualizar seus dados</p>
+          <Button size="sm" variant="outline" className="gap-1.5" onClick={() => { setEditing(true); setShowAddWidget(true); }}>
+            <Plus className="h-3.5 w-3.5" /> Adicionar widget
+          </Button>
         </div>
       )}
 
@@ -347,20 +435,22 @@ export function CustomDashboardBuilder({ tarefas }: Props) {
               availableToAdd.map((w) => (
                 <button
                   key={w.type}
-                  className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg border border-border hover:bg-muted/50 transition-colors text-left"
+                  className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg border border-border hover:bg-muted/50 hover:border-primary/40 transition-colors text-left"
                   onClick={() => {
                     handleAddWidget(w.type);
                     setShowAddWidget(false);
                   }}
                 >
-                  <w.icon className="h-4 w-4 text-muted-foreground shrink-0" />
-                  <div>
-                    <p className="text-sm font-medium">{w.label}</p>
+                  <div className="h-8 w-8 rounded-md bg-muted flex items-center justify-center shrink-0">
+                    <w.icon className="h-4 w-4 text-muted-foreground" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium truncate">{w.label}</p>
                     <p className="text-xs text-muted-foreground">
                       {w.category === "kpi" ? "Indicador" : w.category === "chart" ? "Gráfico" : "Lista"}
                     </p>
                   </div>
-                  <Plus className="h-4 w-4 ml-auto text-primary" />
+                  <Plus className="h-4 w-4 ml-auto text-primary shrink-0" />
                 </button>
               ))
             )}
