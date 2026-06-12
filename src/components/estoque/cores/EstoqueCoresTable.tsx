@@ -1,16 +1,8 @@
-import { Button } from '@/components/ui/button';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import {
-  ArrowDown,
-  ArrowUp,
-  ArrowUpDown,
-  ChevronLeft,
-  ChevronRight,
-  ChevronDown,
-  ChevronRight as ChevronRightSmall,
-  Layers,
-} from 'lucide-react';
+import { ArrowDown, ArrowUp, ArrowUpDown, ChevronLeft, ChevronRight, ChevronDown, ChevronRight as ChevronRightSmall, Layers } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { EstoqueCorRow, EstoqueCoresSortKey } from '@/hooks/estoque/useEstoqueCoresQuery';
 import type {
@@ -53,11 +45,53 @@ interface ConsolidadoProps extends BaseProps {
 
 type Props = PorEmpresaProps | ConsolidadoProps;
 
+interface ColDef {
+  key: string;
+  label: string;
+  sortable?: boolean;
+  align?: 'left' | 'right' | 'center';
+}
+
+const COLUMNS_POR_EMPRESA: ColDef[] = [
+  { key: '__exp', label: '' },
+  { key: 'empresa_par', label: 'Empresa', sortable: true },
+  { key: 'cod_produto', label: 'Cód.' },
+  { key: 'nome_prod', label: 'Produto (cor)', sortable: true },
+  { key: 'nome_linha', label: 'Linha' },
+  { key: 'campanhas', label: 'Campanhas' },
+  { key: 'saldo_total_disponivel', label: 'Total (próprio+pot.)', sortable: true, align: 'right' },
+  { key: 'saldo_proprio', label: 'Próprio', align: 'right' },
+  { key: 'saldo_potencial_desmontagem', label: 'Potencial desm.', sortable: true, align: 'right' },
+  { key: 'pedido_pendente', label: 'Pendente', sortable: true, align: 'right' },
+  { key: 'estoque_bloqueado_produto', label: 'Bloq. prod.', align: 'right' },
+  { key: 'estoque_bloqueado_endereco', label: 'Bloq. ender.', align: 'right' },
+  { key: 'estoque_endereco', label: 'Endereço', align: 'right' },
+  { key: 'curva_fisica', label: 'Curva F', align: 'center' },
+  { key: 'curva_monetaria', label: 'Curva M', align: 'center' },
+];
+
+const COLUMNS_CONSOLIDADO: ColDef[] = [
+  { key: '__exp', label: '' },
+  { key: 'filiais', label: 'Filiais' },
+  { key: 'cod_produto', label: 'Cód.' },
+  { key: 'nome_prod', label: 'Produto (cor)', sortable: true },
+  { key: 'nome_linha', label: 'Linha' },
+  { key: 'campanhas', label: 'Campanhas' },
+  { key: 'saldo_total_disponivel', label: 'Total (próprio+pot.)', sortable: true, align: 'right' },
+  { key: 'saldo_proprio', label: 'Próprio', align: 'right' },
+  { key: 'saldo_potencial_desmontagem', label: 'Potencial desm.', sortable: true, align: 'right' },
+  { key: 'pedido_pendente', label: 'Pendente', sortable: true, align: 'right' },
+  { key: 'estoque_bloqueado_produto', label: 'Bloq. prod.', align: 'right' },
+  { key: 'estoque_bloqueado_endereco', label: 'Bloq. ender.', align: 'right' },
+  { key: 'estoque_endereco', label: 'Endereço', align: 'right' },
+  { key: 'curva_fisica', label: 'Curva F', align: 'center' },
+  { key: 'curva_monetaria', label: 'Curva M', align: 'center' },
+];
+
 function fmtN(n: number | null | undefined) {
   if (n == null) return '—';
   const v = Number(n);
-  if (!isFinite(v)) return '—';
-  if (v === 0) return '0';
+  if (!isFinite(v) || v === 0) return v === 0 ? '0' : '—';
   return Math.round(v).toLocaleString('pt-BR');
 }
 
@@ -69,17 +103,10 @@ const CURVA_CLASS: Record<string, string> = {
   E: 'bg-destructive/15 text-destructive',
 };
 
-function Curva({ c, label }: { c: string | null; label: string }) {
-  if (!c) return null;
+function Curva({ c }: { c: string | null }) {
+  if (!c) return <span className="text-muted-foreground">—</span>;
   return (
-    <span
-      className={cn(
-        'inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-mono font-semibold',
-        CURVA_CLASS[c] ?? 'bg-muted',
-      )}
-      title={`${label}: ${c}`}
-    >
-      <span className="opacity-70">{label}</span>
+    <span className={cn('inline-block rounded px-1.5 py-0.5 text-[10px] font-mono font-semibold', CURVA_CLASS[c] ?? 'bg-muted')}>
       {c}
     </span>
   );
@@ -87,37 +114,17 @@ function Curva({ c, label }: { c: string | null; label: string }) {
 
 function hasMemory(row: AnyRow): boolean {
   if ('por_empresa' in row) {
-    return (
-      Number(row.saldo_potencial_desmontagem ?? 0) > 0 ||
-      (row.por_empresa ?? []).some((e) => (e.detalhe_desmontagem ?? []).length > 0)
-    );
+    return Number(row.saldo_potencial_desmontagem ?? 0) > 0 || (row.por_empresa ?? []).some(e => (e.detalhe_desmontagem ?? []).length > 0);
   }
   return Boolean(row.tem_composicao_pai) && Number(row.saldo_potencial_desmontagem ?? 0) > 0;
 }
-
-interface SortOpt {
-  key: AnySortKey;
-  label: string;
-}
-const SORT_OPTS_POR_EMPRESA: SortOpt[] = [
-  { key: 'empresa_par', label: 'Empresa' },
-  { key: 'nome_prod', label: 'Produto' },
-  { key: 'saldo_total_disponivel', label: 'Total disponível' },
-  { key: 'saldo_potencial_desmontagem', label: 'Potencial desm.' },
-  { key: 'pedido_pendente', label: 'Pendente' },
-];
-const SORT_OPTS_CONSOLIDADO: SortOpt[] = [
-  { key: 'nome_prod', label: 'Produto' },
-  { key: 'saldo_total_disponivel', label: 'Total disponível' },
-  { key: 'saldo_potencial_desmontagem', label: 'Potencial desm.' },
-  { key: 'pedido_pendente', label: 'Pendente' },
-];
 
 export function EstoqueCoresTable(p: Props) {
   const totalPages = Math.max(1, Math.ceil(p.total / p.pageSize));
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
 
-  const sortOpts = p.variant === 'consolidado' ? SORT_OPTS_CONSOLIDADO : SORT_OPTS_POR_EMPRESA;
+  const cols = p.variant === 'consolidado' ? COLUMNS_CONSOLIDADO : COLUMNS_POR_EMPRESA;
+  const colSpan = cols.length;
 
   const codProdutos = useMemo(
     () => p.rows.map((r: any) => r.cod_produto).filter((x): x is number => x != null),
@@ -131,10 +138,13 @@ export function EstoqueCoresTable(p: Props) {
     return m;
   }, [etiquetas]);
 
-  const rowKey = (r: AnyRow): string => ('id' in r ? r.id : `c-${r.cod_produto}`);
+  const rowKey = (r: AnyRow): string => {
+    if ('id' in r) return r.id;
+    return `c-${r.cod_produto}`;
+  };
 
   const toggle = (key: string) => {
-    setExpanded((prev) => {
+    setExpanded(prev => {
       const next = new Set(prev);
       if (next.has(key)) next.delete(key);
       else next.add(key);
@@ -142,127 +152,105 @@ export function EstoqueCoresTable(p: Props) {
     });
   };
 
-  const onSortChange = (val: string) => {
-    (p as any).setSort(val as AnySortKey);
+  const renderHeader = (c: ColDef) => {
+    const sortableKey = c.sortable ? (c.key as AnySortKey) : null;
+    const isActive = sortableKey && p.sortBy === sortableKey;
+    return (
+      <TableHead
+        key={c.key}
+        className={cn(
+          'whitespace-nowrap text-xs font-semibold',
+          c.align === 'right' && 'text-right',
+          c.align === 'center' && 'text-center',
+          c.sortable && 'cursor-pointer select-none hover:text-foreground',
+          c.key === '__exp' && 'w-8',
+        )}
+        onClick={() => sortableKey && (p as any).setSort(sortableKey)}
+      >
+        <span className="inline-flex items-center gap-1">
+          {c.label}
+          {c.sortable && (
+            isActive
+              ? (p.sortDir === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />)
+              : <ArrowUpDown className="h-3 w-3 opacity-30" />
+          )}
+        </span>
+      </TableHead>
+    );
   };
 
   return (
     <div className="space-y-3">
-      {/* Toolbar de ordenação compacta */}
-      <div className="flex flex-wrap items-center justify-between gap-2 px-1">
-        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          <span>Ordenar por</span>
-          <select
-            className="h-7 rounded-md border border-input bg-background px-2 text-xs"
-            value={p.sortBy}
-            onChange={(e) => onSortChange(e.target.value)}
-          >
-            {sortOpts.map((o) => (
-              <option key={o.key} value={o.key}>
-                {o.label}
-              </option>
-            ))}
-          </select>
-          <button
-            type="button"
-            className="inline-flex items-center gap-1 rounded border border-input bg-background h-7 px-2 hover:bg-accent"
-            onClick={() => onSortChange(p.sortBy)}
-            title="Inverter direção"
-          >
-            {p.sortDir === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />}
-            <span className="text-[11px]">{p.sortDir === 'asc' ? 'Crescente' : 'Decrescente'}</span>
-          </button>
-        </div>
-        <div className="text-[11px] text-muted-foreground">
-          {p.total.toLocaleString('pt-BR')} {p.variant === 'consolidado' ? 'produtos' : 'unidades'}
-        </div>
+      <div className="rounded-lg border bg-card overflow-x-auto">
+        <Table className="min-w-[1400px]">
+          <TableHeader className="bg-muted/40">
+            <TableRow>{cols.map(renderHeader)}</TableRow>
+          </TableHeader>
+          <TableBody>
+            {p.loading && p.rows.length === 0 ? (
+              Array.from({ length: 10 }).map((_, i) => (
+                <TableRow key={i}>
+                  {cols.map((c) => (
+                    <TableCell key={c.key}><Skeleton className="h-4 w-full" /></TableCell>
+                  ))}
+                </TableRow>
+              ))
+            ) : p.rows.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={colSpan} className="h-32 text-center text-muted-foreground">
+                  Nenhuma unidade encontrada.
+                </TableCell>
+              </TableRow>
+            ) : (
+              p.rows.map((r) => {
+                const key = rowKey(r);
+                const isOpen = expanded.has(key);
+                const memo = hasMemory(r);
+                const codProduto = (r as any).cod_produto as number | null;
+                const tags = (codProduto != null ? etiquetasMap?.get(codProduto) : undefined) ?? [];
+
+                return (
+                  <RowGroup
+                    key={key}
+                    rowKey={key}
+                    row={r}
+                    cols={cols}
+                    isOpen={isOpen}
+                    memo={memo}
+                    onToggle={() => memo && toggle(key)}
+                    onMainClick={
+                      p.variant === 'por-empresa'
+                        ? () => (p as PorEmpresaProps).onRowClick(r as EstoqueCorRow)
+                        : undefined
+                    }
+                    variant={p.variant}
+                    tags={tags as string[]}
+                    etiquetaById={etiquetaById}
+                  />
+                );
+              })
+            )}
+          </TableBody>
+        </Table>
       </div>
 
-      {/* Listbox */}
-      <div
-        role="listbox"
-        aria-label="Estoque por cor"
-        className="rounded-lg border bg-card divide-y overflow-hidden"
-      >
-        {p.loading && p.rows.length === 0 ? (
-          Array.from({ length: 8 }).map((_, i) => (
-            <div key={i} className="p-3">
-              <Skeleton className="h-10 w-full" />
-            </div>
-          ))
-        ) : p.rows.length === 0 ? (
-          <div className="h-32 flex items-center justify-center text-sm text-muted-foreground">
-            Nenhuma unidade encontrada.
-          </div>
-        ) : (
-          p.rows.map((r) => {
-            const key = rowKey(r);
-            const isOpen = expanded.has(key);
-            const memo = hasMemory(r);
-            const codProduto = (r as any).cod_produto as number | null;
-            const tags = (codProduto != null ? etiquetasMap?.get(codProduto) : undefined) ?? [];
-
-            return (
-              <div key={key}>
-                <ListItem
-                  row={r}
-                  isOpen={isOpen}
-                  memo={memo}
-                  onToggle={() => memo && toggle(key)}
-                  onSelect={
-                    p.variant === 'por-empresa'
-                      ? () => (p as PorEmpresaProps).onRowClick(r as EstoqueCorRow)
-                      : undefined
-                  }
-                  variant={p.variant}
-                  tags={tags as string[]}
-                  etiquetaById={etiquetaById}
-                />
-                {isOpen && memo && (
-                  <div className="bg-muted/20 border-t px-4 py-3">
-                    <ExpandedMemory row={r} variant={p.variant} />
-                  </div>
-                )}
-              </div>
-            );
-          })
-        )}
-      </div>
-
-      {/* Paginação */}
       <div className="flex flex-wrap items-center justify-between gap-3 px-1">
         <div className="text-xs text-muted-foreground">
-          Página {p.page + 1} de {totalPages}
+          Página {p.page + 1} de {totalPages} · {p.total.toLocaleString('pt-BR')}{' '}
+          {p.variant === 'consolidado' ? 'produtos' : 'unidades'}
         </div>
         <div className="flex items-center gap-2">
           <select
             className="h-8 rounded-md border border-input bg-background px-2 text-xs"
             value={p.pageSize}
-            onChange={(e) => {
-              p.setPageSize(Number(e.target.value));
-              p.setPage(0);
-            }}
+            onChange={(e) => { p.setPageSize(Number(e.target.value)); p.setPage(0); }}
           >
-            {[50, 100, 200].map((n) => (
-              <option key={n} value={n}>
-                {n}/pág
-              </option>
-            ))}
+            {[50, 100, 200].map((n) => <option key={n} value={n}>{n}/pág</option>)}
           </select>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => p.setPage(Math.max(0, p.page - 1))}
-            disabled={p.page === 0}
-          >
+          <Button variant="outline" size="sm" onClick={() => p.setPage(Math.max(0, p.page - 1))} disabled={p.page === 0}>
             <ChevronLeft className="h-4 w-4" />
           </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => p.setPage(Math.min(totalPages - 1, p.page + 1))}
-            disabled={p.page >= totalPages - 1}
-          >
+          <Button variant="outline" size="sm" onClick={() => p.setPage(Math.min(totalPages - 1, p.page + 1))} disabled={p.page >= totalPages - 1}>
             <ChevronRight className="h-4 w-4" />
           </Button>
         </div>
@@ -271,88 +259,66 @@ export function EstoqueCoresTable(p: Props) {
   );
 }
 
-interface ListItemProps {
+interface RowGroupProps {
+  rowKey: string;
   row: AnyRow;
+  cols: ColDef[];
   isOpen: boolean;
   memo: boolean;
   onToggle: () => void;
-  onSelect?: () => void;
+  onMainClick?: () => void;
   variant: 'por-empresa' | 'consolidado';
   tags: string[];
   etiquetaById: Map<string, { nome: string; cor_hex: string }>;
 }
 
-function ListItem({ row, isOpen, memo, onToggle, onSelect, variant, tags, etiquetaById }: ListItemProps) {
-  const r = row as any;
+function RowGroup({ rowKey, row, cols, isOpen, memo, onToggle, onMainClick, variant, tags, etiquetaById }: RowGroupProps) {
+  const codProduto = (row as any).cod_produto as number | null;
   const isCons = variant === 'consolidado';
-  const codProduto = r.cod_produto as number | null;
-  const total = Number(r.saldo_total_disponivel ?? r.saldo ?? 0);
-  const proprio = Number(r.saldo_proprio ?? 0);
-  const potencial = Number(r.saldo_potencial_desmontagem ?? 0);
-  const pendente = Number(r.pedido_pendente ?? 0);
+  const r = row as any;
 
   return (
-    <div
-      role="option"
-      aria-selected={false}
-      className={cn(
-        'group flex items-stretch gap-2 px-3 py-2 hover:bg-accent/40 transition-colors',
-        onSelect && 'cursor-pointer',
-      )}
-      onClick={onSelect}
-    >
-      {/* Expand */}
-      <div className="flex items-start pt-1.5">
-        {memo ? (
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-6 w-6"
-            onClick={(e) => {
-              e.stopPropagation();
-              onToggle();
-            }}
-            title={isOpen ? 'Ocultar memória de cálculo' : 'Ver memória de cálculo'}
-          >
-            {isOpen ? (
-              <ChevronDown className="h-3.5 w-3.5" />
-            ) : (
-              <ChevronRightSmall className="h-3.5 w-3.5" />
-            )}
-          </Button>
-        ) : (
-          <div className="w-6" />
-        )}
-      </div>
+    <>
+      <TableRow
+        className={cn('hover:bg-accent/30', onMainClick && 'cursor-pointer')}
+        onClick={() => { if (onMainClick) onMainClick(); }}
+      >
+        <TableCell className="w-8 p-1">
+          {memo ? (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-6 w-6"
+              onClick={(e) => { e.stopPropagation(); onToggle(); }}
+              title={isOpen ? 'Ocultar memória de cálculo' : 'Ver memória de cálculo'}
+            >
+              {isOpen ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRightSmall className="h-3.5 w-3.5" />}
+            </Button>
+          ) : null}
+        </TableCell>
 
-      {/* Identificação */}
-      <div className="flex-1 min-w-0">
-        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-          {isCons ? (
-            <Badge variant="outline" className="font-normal text-[10px] h-5">
-              {r.qtd_empresas ?? 0} {Number(r.qtd_empresas ?? 0) === 1 ? 'filial' : 'filiais'}
+        {isCons ? (
+          <TableCell className="text-xs">
+            <Badge variant="outline" className="font-normal">
+              {(r.qtd_empresas ?? 0)} {Number(r.qtd_empresas ?? 0) === 1 ? 'filial' : 'filiais'}
             </Badge>
-          ) : (
-            <Badge variant="outline" className="font-normal text-[10px] h-5">
-              {r.abrev_par ?? r.empresa_par}
-            </Badge>
-          )}
-          <span className="font-mono text-[11px] text-muted-foreground">{r.cod_produto}</span>
-          <span className="text-sm font-medium truncate">{r.nome_prod ?? '(sem nome)'}</span>
+          </TableCell>
+        ) : (
+          <TableCell className="text-xs">
+            <Badge variant="outline" className="font-normal">{r.abrev_par ?? r.empresa_par}</Badge>
+          </TableCell>
+        )}
+
+        <TableCell className="text-xs font-mono">{r.cod_produto}</TableCell>
+        <TableCell className="max-w-[300px]">
+          <div className="text-sm font-medium leading-tight truncate">{r.nome_prod ?? '(sem nome)'}</div>
           {r.cod_fabricante && (
-            <span className="text-[10px] text-muted-foreground font-mono">· {r.cod_fabricante}</span>
+            <div className="text-[10px] text-muted-foreground font-mono">{r.cod_fabricante}</div>
           )}
-        </div>
-        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-1">
-          {r.nome_linha && (
-            <span className="text-[11px] text-muted-foreground truncate max-w-[200px]">{r.nome_linha}</span>
-          )}
-          <Curva c={r.curva_fisica} label="F" />
-          <Curva c={r.curva_monetaria} label="M" />
-          <div
-            className="flex items-center gap-1 flex-wrap"
-            onClick={(e) => e.stopPropagation()}
-          >
+        </TableCell>
+        <TableCell className="text-xs text-muted-foreground truncate max-w-[140px]">{r.nome_linha}</TableCell>
+        <TableCell>
+          <div className="flex items-center gap-1 flex-wrap" onClick={(e) => e.stopPropagation()}>
             {tags.slice(0, 3).map((id) => {
               const e = etiquetaById.get(id);
               if (!e) return null;
@@ -366,87 +332,44 @@ function ListItem({ row, isOpen, memo, onToggle, onSelect, variant, tags, etique
                 </span>
               );
             })}
-            {codProduto != null && <EstoqueEtiquetaPopover codProduto={codProduto} asIcon />}
+            {codProduto != null && (
+              <EstoqueEtiquetaPopover codProduto={codProduto} asIcon />
+            )}
           </div>
-        </div>
-      </div>
+        </TableCell>
+        <TableCell className="text-right tabular-nums font-semibold">{fmtN(r.saldo_total_disponivel ?? r.saldo)}</TableCell>
+        <TableCell className="text-right text-xs tabular-nums">{fmtN(r.saldo_proprio)}</TableCell>
+        <TableCell className="text-right text-xs tabular-nums">
+          {Number(r.saldo_potencial_desmontagem ?? 0) > 0 ? (
+            <button
+              type="button"
+              className="inline-flex items-center gap-1 text-primary hover:underline"
+              onClick={(e) => { e.stopPropagation(); onToggle(); }}
+              title="Ver memória de cálculo"
+            >
+              <Layers className="h-3 w-3" />
+              {fmtN(r.saldo_potencial_desmontagem)}
+            </button>
+          ) : (
+            <span className="text-muted-foreground">—</span>
+          )}
+        </TableCell>
+        <TableCell className="text-right text-xs tabular-nums">{fmtN(r.pedido_pendente)}</TableCell>
+        <TableCell className="text-right text-xs tabular-nums">{fmtN(r.estoque_bloqueado_produto)}</TableCell>
+        <TableCell className="text-right text-xs tabular-nums">{fmtN(r.estoque_bloqueado_endereco)}</TableCell>
+        <TableCell className="text-right text-xs tabular-nums">{fmtN(r.estoque_endereco)}</TableCell>
+        <TableCell className="text-center"><Curva c={r.curva_fisica} /></TableCell>
+        <TableCell className="text-center"><Curva c={r.curva_monetaria} /></TableCell>
+      </TableRow>
 
-      {/* Quantidades */}
-      <div className="flex items-center gap-4 shrink-0 pl-2 text-right">
-        <Metric label="Próprio" value={fmtN(proprio)} />
-        <Metric
-          label="Potencial"
-          value={fmtN(potencial)}
-          icon={potencial > 0 ? <Layers className="h-3 w-3" /> : null}
-          accent={potencial > 0}
-          onClick={
-            potencial > 0
-              ? (e) => {
-                  e.stopPropagation();
-                  onToggle();
-                }
-              : undefined
-          }
-        />
-        <Metric label="Pendente" value={fmtN(pendente)} muted />
-        <div className="text-right min-w-[80px]">
-          <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Total</div>
-          <div className="text-base font-semibold tabular-nums leading-tight">{fmtN(total)}</div>
-        </div>
-      </div>
-
-      {/* Memória expandida (rendered abaixo via overlay vertical) */}
       {isOpen && memo && (
-        <div className="hidden" aria-hidden />
+        <TableRow className="bg-muted/20 hover:bg-muted/20">
+          <TableCell colSpan={cols.length} className="p-4">
+            <ExpandedMemory row={row} variant={variant} />
+          </TableCell>
+        </TableRow>
       )}
-      {/* nota: a memória abre logo abaixo do item; ver wrapper */}
-    </div>
-  );
-}
-
-function Metric({
-  label,
-  value,
-  muted,
-  accent,
-  icon,
-  onClick,
-}: {
-  label: string;
-  value: string;
-  muted?: boolean;
-  accent?: boolean;
-  icon?: React.ReactNode;
-  onClick?: (e: React.MouseEvent) => void;
-}) {
-  return (
-    <div className="text-right min-w-[72px]">
-      <div className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</div>
-      {onClick ? (
-        <button
-          type="button"
-          onClick={onClick}
-          className={cn(
-            'inline-flex items-center gap-1 text-sm tabular-nums leading-tight',
-            accent ? 'text-primary hover:underline font-medium' : 'text-foreground',
-            muted && 'text-muted-foreground',
-          )}
-        >
-          {icon}
-          {value}
-        </button>
-      ) : (
-        <div
-          className={cn(
-            'text-sm tabular-nums leading-tight',
-            muted && 'text-muted-foreground',
-            accent && 'text-primary font-medium',
-          )}
-        >
-          {value}
-        </div>
-      )}
-    </div>
+    </>
   );
 }
 
