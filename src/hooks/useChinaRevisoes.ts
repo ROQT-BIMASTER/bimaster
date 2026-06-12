@@ -480,6 +480,7 @@ export function useContestarComParecer() {
       tipo_documento: string;
       parecer: string;
       novo_arquivo: File;
+      mentions?: string[];
       anexos?: File[];
     }) => {
       const user = await getUserName();
