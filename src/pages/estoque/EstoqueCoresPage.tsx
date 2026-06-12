@@ -192,6 +192,17 @@ export default function EstoqueCoresPage() {
               />
               <Label htmlFor="com-pend" className="text-xs cursor-pointer">Com pedido pendente</Label>
             </div>
+            <div className="flex items-center gap-2 h-9 px-3 rounded-md border bg-card">
+              <Switch
+                id="div-linha"
+                checked={base.apenas_divergencia_linha}
+                onCheckedChange={(v) => setF({ ...base, apenas_divergencia_linha: v })}
+              />
+              <Label htmlFor="div-linha" className="text-xs cursor-pointer flex items-center gap-1">
+                <AlertTriangle className="h-3 w-3 text-warning" />
+                Somente divergências de linha
+              </Label>
+            </div>
           </div>
 
           <EstoqueLinhaTabs
