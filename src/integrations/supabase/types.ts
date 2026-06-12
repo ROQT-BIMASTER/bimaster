@@ -54017,6 +54017,31 @@ export type Database = {
           raizes_so_em_unificado: number
         }[]
       }
+      rpc_estoque_unificado_kpis: {
+        Args: {
+          p_busca?: string
+          p_empresa_ids?: number[]
+          p_linhas?: string[]
+          p_marcas?: string[]
+          p_somente_com_saldo?: boolean
+        }
+        Returns: {
+          bloqueado_un: number
+          caixas: number
+          custo_total: number
+          displays: number
+          disponivel_cx: number
+          disponivel_un: number
+          equivalente_bx: number
+          equivalente_cx: number
+          pendente_un: number
+          produtos_count: number
+          sem_fator_bx: number
+          sem_fator_cx: number
+          total_un: number
+          unidades: number
+        }[]
+      }
       rpc_fechar_container: {
         Args: { p_embarque_id: string }
         Returns: undefined
