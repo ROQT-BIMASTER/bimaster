@@ -79,7 +79,7 @@ const COLUMNS_CONSOLIDADO: ColDef[] = [
   { key: 'nome_prod', label: 'Produto (cor)', sortable: true },
   { key: 'nome_linha', label: 'Linha' },
   { key: 'campanhas', label: 'Campanhas' },
-  { key: 'saldo_total_disponivel', label: 'Total (próprio+pot.)', sortable: true, align: 'right' },
+  { key: 'saldo_total_disponivel', label: 'Total (próprio+pot.)', sortable: true, align: 'right', title: 'Total = (Próprio + Potencial desmontagem) − Bloq. produto. Não abate Pendente (o saldo ainda existe fisicamente).' },
   { key: 'saldo_proprio', label: 'Próprio', align: 'right' },
   { key: 'saldo_potencial_desmontagem', label: 'Potencial desm.', sortable: true, align: 'right' },
   { key: 'pedido_pendente', label: 'Pendente', sortable: true, align: 'right' },
