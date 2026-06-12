@@ -1,12 +1,14 @@
 import { useState, useMemo, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { DashboardLayout } from '@/components/dashboard/DashboardLayout';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
-import { Search, Settings2, ShieldCheck, Info, AlertTriangle } from 'lucide-react';
+import { Search, Settings2, ShieldCheck, Info, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Link } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
 import {
   useEstoqueCoresQuery,
   FILTROS_CORES_INICIAIS,
@@ -134,10 +136,13 @@ export default function EstoqueCoresPage() {
           <Alert className="py-2">
             <Info className="h-4 w-4" />
             <AlertDescription className="text-xs">
-              O potencial de desmontagem é atribuído integralmente a cada cor-folha. Quando uma mesma caixa atende a mais de uma cor, seu saldo aparece em todas — o somatório por cor fica acima do saldo físico (consultado em Estoque Unificado). Composição lida em tempo real do ERP.
+              O potencial de desmontagem é <strong>rateado entre as cores-folha</strong>: se uma caixa-pai com saldo X pode virar N variantes de cor, cada variante recebe X/N (não X). Dessa forma o somatório de "Unidades totais" desta tela <strong>bate exatamente</strong> com o "Total em UN" do Estoque Unificado — sem duplicação. Composição lida em tempo real do ERP.
             </AlertDescription>
           </Alert>
         )}
+
+        <ConciliacaoBadge />
+        
 
 
 
@@ -300,3 +305,40 @@ function DivergenciaLinhaBanner({
     </Alert>
   );
 }
+
+function ConciliacaoBadge() {
+  const { data } = useQuery({
+    queryKey: ['vw_conciliacao_cores_unificado'],
+    staleTime: 60_000,
+    refetchInterval: 60_000,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from('vw_conciliacao_cores_unificado')
+        .select('total_cores_un,total_unificado_un,diferenca')
+        .maybeSingle();
+      if (error) throw error;
+      return data as { total_cores_un: number; total_unificado_un: number; diferenca: number } | null;
+    },
+  });
+  if (!data) return null;
+  const fmt = (n: number) => Math.round(Number(n) || 0).toLocaleString('pt-BR');
+  const diff = Math.abs(Number(data.diferenca) || 0);
+  const ok = diff < 1;
+  return (
+    <Alert className={`py-2 ${ok ? 'border-emerald-500/40 bg-emerald-500/5' : 'border-warning/50 bg-warning/5'}`}>
+      {ok ? <CheckCircle2 className="h-4 w-4 text-emerald-600" /> : <AlertTriangle className="h-4 w-4 text-warning" />}
+      <AlertDescription className="text-xs">
+        {ok ? (
+          <>
+            Conciliação Cores ↔ Estoque Unificado: <strong>{fmt(data.total_cores_un)} UN</strong> em ambas as telas. Diferença: 0.
+          </>
+        ) : (
+          <>
+            Conciliação Cores ↔ Estoque Unificado: Cores = <strong>{fmt(data.total_cores_un)} UN</strong> · Unificado = <strong>{fmt(data.total_unificado_un)} UN</strong> · Diferença: <strong>{fmt(diff)} UN</strong>. Acione "Reconciliar com Unificado" para investigar.
+          </>
+        )}
+      </AlertDescription>
+    </Alert>
+  );
+}
+
