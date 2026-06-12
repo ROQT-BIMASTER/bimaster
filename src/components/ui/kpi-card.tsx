@@ -22,36 +22,42 @@ interface KpiCardProps {
   className?: string;
 }
 
-const variantStyles: Record<KpiVariant, { text: string; bg: string; border: string }> = {
+const variantStyles: Record<KpiVariant, { text: string; bg: string; ring: string; accent: string }> = {
   default: {
     text: "text-foreground",
-    bg: "bg-muted/50",
-    border: "border-border",
+    bg: "bg-muted/60",
+    ring: "ring-border/60",
+    accent: "bg-muted-foreground/30",
   },
   success: {
     text: "text-success",
     bg: "bg-success/10",
-    border: "border-success/30",
+    ring: "ring-success/20",
+    accent: "bg-success/60",
   },
   warning: {
     text: "text-warning",
     bg: "bg-warning/10",
-    border: "border-warning/30",
+    ring: "ring-warning/20",
+    accent: "bg-warning/60",
   },
   destructive: {
     text: "text-destructive",
     bg: "bg-destructive/10",
-    border: "border-destructive/30",
+    ring: "ring-destructive/20",
+    accent: "bg-destructive/60",
   },
   info: {
     text: "text-primary",
     bg: "bg-primary/10",
-    border: "border-primary/30",
+    ring: "ring-primary/20",
+    accent: "bg-primary/60",
   },
   accent: {
     text: "text-accent",
     bg: "bg-accent/10",
-    border: "border-accent/30",
+    ring: "ring-accent/20",
+    accent: "bg-accent/60",
   },
 };
 
@@ -70,15 +76,15 @@ export function KpiCard({
 
   if (loading) {
     return (
-      <Card className={cn("border min-h-[112px]", styles.border, className)}>
+      <Card className={cn("border min-h-[116px] overflow-hidden", className)}>
         <CardContent className="p-4">
           <div className="flex items-start justify-between gap-3">
-            <div className="space-y-2 flex-1">
-              <Skeleton className="h-3.5 w-24" />
-              <Skeleton className="h-7 w-20" />
+            <div className="space-y-2.5 flex-1">
+              <Skeleton className="h-3 w-20" />
+              <Skeleton className="h-8 w-24" />
               <Skeleton className="h-3 w-16" />
             </div>
-            <Skeleton className="h-9 w-9 rounded-lg" />
+            <Skeleton className="h-9 w-9 rounded-full" />
           </div>
         </CardContent>
       </Card>
@@ -91,46 +97,60 @@ export function KpiCard({
   return (
     <Card
       className={cn(
-        "border min-h-[112px] transition-all duration-200",
-        styles.border,
-        onClick && "cursor-pointer hover:shadow-soft-lg hover:-translate-y-0.5",
+        "relative border border-border/60 min-h-[116px] overflow-hidden",
+        "transition-all duration-200",
+        onClick && "cursor-pointer hover:-translate-y-0.5",
         className,
       )}
       onClick={onClick}
     >
+      {/* Accent bar */}
+      <span
+        aria-hidden
+        className={cn("absolute left-0 top-0 h-full w-[3px]", styles.accent)}
+      />
       <CardContent className="p-4 h-full flex">
         <div className="flex items-start justify-between gap-3 w-full">
-          <div className="min-w-0 space-y-1">
-            <p className="text-sm text-muted-foreground truncate">{title}</p>
-            <p className={cn("text-2xl font-bold", styles.text)}>{value}</p>
-            <div className="flex items-center gap-2">
+          <div className="min-w-0 space-y-1.5 flex-1">
+            <p className="text-[10.5px] font-medium uppercase tracking-[0.08em] text-muted-foreground truncate">
+              {title}
+            </p>
+            <p className={cn(
+              "text-[28px] leading-none font-semibold tracking-tight font-display tabular-nums",
+              styles.text,
+            )}>
+              {value}
+            </p>
+            <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
               {trend && (
                 <span
                   className={cn(
-                    "inline-flex items-center gap-0.5 text-xs font-medium",
-                    isPositive ? "text-success" : "text-destructive",
+                    "inline-flex items-center gap-0.5 text-[11px] font-medium px-1.5 py-0.5 rounded-full",
+                    isPositive
+                      ? "bg-success/10 text-success"
+                      : "bg-destructive/10 text-destructive",
                   )}
                 >
                   <TrendIcon className="h-3 w-3" />
                   {Math.abs(trend.value).toFixed(1)}%
-                  {trend.label && (
-                    <span className="text-muted-foreground font-normal ml-0.5">
-                      {trend.label}
-                    </span>
-                  )}
                 </span>
               )}
-              {subtitle && !trend && (
-                <p className="text-xs text-muted-foreground truncate">{subtitle}</p>
+              {subtitle && (
+                <p className="text-[11px] text-muted-foreground truncate">
+                  {trend?.label || subtitle}
+                </p>
               )}
             </div>
-            {subtitle && trend && (
-              <p className="text-xs text-muted-foreground truncate">{subtitle}</p>
-            )}
           </div>
           {Icon && (
-            <div className={cn("p-2 rounded-lg flex-shrink-0", styles.bg)}>
-              <Icon className={cn("h-5 w-5", styles.text)} />
+            <div
+              className={cn(
+                "h-9 w-9 rounded-full flex items-center justify-center flex-shrink-0 ring-1",
+                styles.bg,
+                styles.ring,
+              )}
+            >
+              <Icon className={cn("h-[18px] w-[18px]", styles.text)} />
             </div>
           )}
         </div>
