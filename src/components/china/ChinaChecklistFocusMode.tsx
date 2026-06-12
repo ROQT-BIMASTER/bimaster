@@ -1517,6 +1517,16 @@ export function ChinaChecklistFocusMode({
                                         Parecer / Anexos
                                       </Button>
                                     )}
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      className="h-6 px-2 text-[10px] gap-1"
+                                      onClick={() => setAdminSheetDoc({ doc: d, fluxo: config.fluxo })}
+                                      title="Histórico de pareceres e comentários"
+                                    >
+                                      <MessageSquareText className="h-3 w-3" />
+                                      Histórico
+                                    </Button>
                                     {d.status !== "aprovado" && d.status !== "rejeitado" && (
                                       <button onClick={() => onRemoveFile(d.id)} className="p-1 rounded hover:bg-destructive/10" title={t("focusMode.tooltipRemover")}>
                                         <Trash2 className="h-3.5 w-3.5 text-destructive" />
