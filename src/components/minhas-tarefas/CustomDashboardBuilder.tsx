@@ -74,10 +74,17 @@ function KpiWidget({ type, tarefas }: { type: string; tarefas: MinaTarefa[] }) {
       return <KpiCard title="Concluídas hoje" value={concluidasHoje.length} icon={CheckCircle2} variant="success" subtitle="bom trabalho" />;
     case "kpi_produtividade":
       return <KpiCard title="Produtividade" value={`${produtividade}%`} icon={TrendingUp} variant={produtividade >= 70 ? "success" : produtividade >= 40 ? "warning" : "destructive"} subtitle={`${concluidasSemana.length}/${tarefasSemana.length} esta semana`} />;
+    case "kpi_taxa_prazo": {
+      const { rate, sample } = calcTaxaPrazo(tarefas);
+      const value = rate === null ? "—" : `${rate}%`;
+      const variant = rate === null ? "default" : rate >= 80 ? "success" : rate >= 60 ? "warning" : "destructive";
+      return <KpiCard title="Taxa no prazo" value={value} icon={Target} variant={variant} subtitle={sample > 0 ? `${sample} entregas / 30d` : "sem dados (30d)"} />;
+    }
     default:
       return null;
   }
 }
+
 
 function WidgetCard({
   widget,
