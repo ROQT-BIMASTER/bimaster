@@ -41,6 +41,8 @@ export interface EstoqueCorConsolidadoRow {
   estoque_bloqueado_endereco: number | null;
   por_empresa: EstoqueCorEmpresaBreakdown[] | null;
   total_count: number;
+  tem_divergencia_linha: boolean | null;
+  linhas_divergentes: string[] | null;
 }
 
 export type EstoqueCoresConsolidadoSortKey =
