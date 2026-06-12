@@ -36,6 +36,8 @@ export const WIDGET_REGISTRY: WidgetMeta[] = [
   { type: "heatmap_produtividade", label: "Heatmap de Produtividade", icon: Grid3x3, defaultSize: "lg", category: "chart", description: "28 dias × dia da semana" },
   { type: "carga_capacidade", label: "Carga vs Capacidade", icon: Layers, defaultSize: "md", category: "chart", description: "Hoje, semana e próxima" },
   { type: "aging_tarefas", label: "Aging de Tarefas", icon: Hourglass, defaultSize: "md", category: "chart", description: "Idade das pendências" },
+  { type: "gauge_taxa_prazo", label: "Gauge: Taxa no Prazo", icon: Target, defaultSize: "md", category: "chart", description: "Cumprimento de prazo em 30 dias" },
+
 
   // Lists
   { type: "lista_atrasadas", label: "Lista de Atrasadas", icon: ListChecks, defaultSize: "md", category: "list" },
