@@ -53822,6 +53822,42 @@ export type Database = {
           valor_venda: number
         }[]
       }
+      rpc_estoque_cores_consolidado: {
+        Args: {
+          p_apenas_com_saldo?: boolean
+          p_busca?: string
+          p_campanha_ids?: string[]
+          p_com_pedido_pendente?: boolean
+          p_curva_fisica?: string[]
+          p_curva_monetaria?: string[]
+          p_empresas?: number[]
+          p_incluir_potencial?: boolean
+          p_limit?: number
+          p_linhas?: string[]
+          p_offset?: number
+          p_order_by?: string
+          p_order_dir?: string
+        }
+        Returns: {
+          cod_fabricante: string
+          cod_produto: number
+          curva_fisica: string
+          curva_monetaria: string
+          estoque_bloqueado_endereco: number
+          estoque_bloqueado_produto: number
+          estoque_endereco: number
+          nome_linha: string
+          nome_prod: string
+          pedido_pendente: number
+          por_empresa: Json
+          qtd_empresas: number
+          saldo_potencial_desmontagem: number
+          saldo_proprio: number
+          saldo_total_disponivel: number
+          total_count: number
+          unidade_medida: string
+        }[]
+      }
       rpc_estoque_cores_kpis: {
         Args: {
           p_apenas_com_saldo?: boolean
@@ -53842,6 +53878,26 @@ export type Database = {
           total_unidades: number
           total_unidades_potencial: number
           total_valor_venda: number
+        }[]
+      }
+      rpc_estoque_cores_kpis_consolidado: {
+        Args: {
+          p_apenas_com_saldo?: boolean
+          p_busca?: string
+          p_campanha_ids?: string[]
+          p_com_pedido_pendente?: boolean
+          p_curva_fisica?: string[]
+          p_curva_monetaria?: string[]
+          p_empresas?: number[]
+          p_incluir_potencial?: boolean
+          p_linhas?: string[]
+        }
+        Returns: {
+          itens_sem_saldo: number
+          total_pedido_pendente: number
+          total_skus: number
+          total_unidades: number
+          total_unidades_potencial: number
         }[]
       }
       rpc_fechar_container: {

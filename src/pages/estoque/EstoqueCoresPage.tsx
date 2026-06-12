@@ -14,12 +14,19 @@ import {
   type EstoqueCoresSortKey,
 } from '@/hooks/estoque/useEstoqueCoresQuery';
 import { useEstoqueCoresKpis } from '@/hooks/estoque/useEstoqueCoresKpis';
+import {
+  useEstoqueCoresConsolidadoQuery,
+  useEstoqueCoresKpisConsolidado,
+  type EstoqueCoresConsolidadoSortKey,
+} from '@/hooks/estoque/useEstoqueCoresConsolidadoQuery';
 import { EstoqueCoresKpiBar } from '@/components/estoque/cores/EstoqueCoresKpiBar';
 import { EstoqueCoresTable } from '@/components/estoque/cores/EstoqueCoresTable';
 import { EstoqueCoresDrawer } from '@/components/estoque/cores/EstoqueCoresDrawer';
 import { EstoqueLinhaTabs } from '@/components/estoque/cores/EstoqueLinhaTabs';
 import { EstoqueCampanhaFilter } from '@/components/estoque/cores/EstoqueCampanhaFilter';
 import { EstoqueFilialSelect } from '@/components/estoque/visao-geral/EstoqueFilialSelect';
+
+const CONSOLIDADO_KEY = 'estoque-cores:consolidado';
 
 function useDebounce<T>(value: T, delay = 300): T {
   const [v, setV] = useState(value);
@@ -35,23 +42,58 @@ export default function EstoqueCoresPage() {
   const buscaD = useDebounce(busca, 300);
   const [base, setBase] = useState<EstoqueCoresFiltros>(FILTROS_CORES_INICIAIS);
 
+  const [consolidado, setConsolidado] = useState<boolean>(() => {
+    try { return localStorage.getItem(CONSOLIDADO_KEY) === '1'; } catch { return false; }
+  });
+  useEffect(() => {
+    try { localStorage.setItem(CONSOLIDADO_KEY, consolidado ? '1' : '0'); } catch {}
+  }, [consolidado]);
+
   const filtros = useMemo<EstoqueCoresFiltros>(() => ({ ...base, busca: buscaD }), [base, buscaD]);
 
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(50);
-  const [sortBy, setSortBy] = useState<EstoqueCoresSortKey>('saldo_total_disponivel');
+
+  // sort keys separados por modo (compatíveis nos labels comuns)
+  const [sortByEmp, setSortByEmp] = useState<EstoqueCoresSortKey>('saldo_total_disponivel');
+  const [sortByCons, setSortByCons] = useState<EstoqueCoresConsolidadoSortKey>('saldo_total_disponivel');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
 
-  const { data, isFetching } = useEstoqueCoresQuery({ filtros, page, pageSize, sortBy, sortDir });
-  const { data: kpis, isLoading: kpisLoading } = useEstoqueCoresKpis(filtros);
+  const empQuery = useEstoqueCoresQuery({
+    filtros, page, pageSize, sortBy: sortByEmp, sortDir,
+  });
+  const consQuery = useEstoqueCoresConsolidadoQuery({
+    filtros, page, pageSize, sortBy: sortByCons, sortDir, enabled: consolidado,
+  });
+  const kpisEmp = useEstoqueCoresKpis(filtros);
+  const kpisCons = useEstoqueCoresKpisConsolidado(filtros, consolidado);
+
+  // mantém a mesma query ativa para o card de KPIs
+  const kpis = consolidado
+    ? (kpisCons.data
+        ? {
+            ...kpisCons.data,
+            // EstoqueCoresKpis tem total_custo e total_valor_venda; alimenta com 0 (não exibidos)
+            total_custo: 0,
+            total_valor_venda: 0,
+          }
+        : undefined)
+    : kpisEmp.data;
+  const kpisLoading = consolidado ? kpisCons.isLoading : kpisEmp.isLoading;
 
   const [selected, setSelected] = useState<EstoqueCorRow | null>(null);
   const [open, setOpen] = useState(false);
 
   const setF = (f: EstoqueCoresFiltros) => { setBase(f); setPage(0); };
-  const onSort = (k: EstoqueCoresSortKey) => {
-    if (sortBy === k) setSortDir(sortDir === 'asc' ? 'desc' : 'asc');
-    else { setSortBy(k); setSortDir('desc'); }
+
+  const onSortEmp = (k: EstoqueCoresSortKey) => {
+    if (sortByEmp === k) setSortDir(sortDir === 'asc' ? 'desc' : 'asc');
+    else { setSortByEmp(k); setSortDir('desc'); }
+    setPage(0);
+  };
+  const onSortCons = (k: EstoqueCoresConsolidadoSortKey) => {
+    if (sortByCons === k) setSortDir(sortDir === 'asc' ? 'desc' : 'asc');
+    else { setSortByCons(k); setSortDir('desc'); }
     setPage(0);
   };
 
@@ -74,7 +116,7 @@ export default function EstoqueCoresPage() {
           </div>
         </div>
 
-        <EstoqueCoresKpiBar kpis={kpis} loading={kpisLoading} />
+        <EstoqueCoresKpiBar kpis={kpis} loading={kpisLoading} consolidado={consolidado} />
 
         <div className="space-y-3">
           <div className="flex flex-wrap items-center gap-3">
@@ -95,6 +137,14 @@ export default function EstoqueCoresPage() {
               selected={base.campanha_ids}
               onChange={(ids) => setF({ ...base, campanha_ids: ids })}
             />
+            <div className="flex items-center gap-2 h-9 px-3 rounded-md border bg-card">
+              <Switch
+                id="consolidado"
+                checked={consolidado}
+                onCheckedChange={(v) => { setConsolidado(v); setPage(0); }}
+              />
+              <Label htmlFor="consolidado" className="text-xs cursor-pointer">Consolidar empresas</Label>
+            </div>
             <div className="flex items-center gap-2 h-9 px-3 rounded-md border bg-card">
               <Switch
                 id="incluir-pot"
@@ -127,19 +177,36 @@ export default function EstoqueCoresPage() {
           />
         </div>
 
-        <EstoqueCoresTable
-          rows={data?.rows ?? []}
-          total={data?.total ?? 0}
-          loading={isFetching}
-          page={page}
-          pageSize={pageSize}
-          setPage={setPage}
-          setPageSize={setPageSize}
-          sortBy={sortBy}
-          sortDir={sortDir}
-          setSort={onSort}
-          onRowClick={(r) => { setSelected(r); setOpen(true); }}
-        />
+        {consolidado ? (
+          <EstoqueCoresTable
+            variant="consolidado"
+            rows={consQuery.data?.rows ?? []}
+            total={consQuery.data?.total ?? 0}
+            loading={consQuery.isFetching}
+            page={page}
+            pageSize={pageSize}
+            setPage={setPage}
+            setPageSize={setPageSize}
+            sortBy={sortByCons}
+            sortDir={sortDir}
+            setSort={onSortCons}
+          />
+        ) : (
+          <EstoqueCoresTable
+            variant="por-empresa"
+            rows={empQuery.data?.rows ?? []}
+            total={empQuery.data?.total ?? 0}
+            loading={empQuery.isFetching}
+            page={page}
+            pageSize={pageSize}
+            setPage={setPage}
+            setPageSize={setPageSize}
+            sortBy={sortByEmp}
+            sortDir={sortDir}
+            setSort={onSortEmp}
+            onRowClick={(r) => { setSelected(r); setOpen(true); }}
+          />
+        )}
 
         <EstoqueCoresDrawer row={selected} open={open} onOpenChange={setOpen} />
       </div>
