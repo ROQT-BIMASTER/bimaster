@@ -144,11 +144,16 @@ export function useUploadArquivoB2C() {
       return data as unknown as ChecklistB2CItem;
     },
     onSuccess: (row) => {
-      toast.success("Arquivo anexado");
+      toast.success(
+        row.projeto_tarefa_id ? "Arquivo anexado · tarefa atualizada no projeto" : "Arquivo anexado"
+      );
       qc.invalidateQueries({ queryKey: ["china-checklist-b2c", row.submissao_id] });
+      qc.invalidateQueries({ queryKey: ["projeto-tarefas"] });
+      qc.invalidateQueries({ queryKey: ["projeto-secoes"] });
     },
     onError: (e: any) => toast.error(e?.message || "Falha ao anexar"),
   });
+
 }
 
 /** Brasil → China: marca como enviado. */
