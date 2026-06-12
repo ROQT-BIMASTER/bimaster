@@ -185,6 +185,119 @@ export function useKanbanAprovacoes(escopo: EscopoKanban) {
                 : "outro") as TipoOrigemItem,
       }));
 
+      // ============================================================
+      // Lotes (fluxo_aprovacao_instancias) — B2C / C2B que não geram
+      // linhas em aprovacao_documento_itens. Projetamos cada instância
+      // ativa como um KanbanItem sintético (id = "inst:" + instancia.id),
+      // de modo que apareçam na Central de Aprovações mesmo sem doc.
+      // ============================================================
+      try {
+        let qi = (supabase as any)
+          .from("fluxo_aprovacao_instancias")
+          .select(`
+            id, config_id, submissao_id, projeto_id, briefing_id,
+            lote_nome, titulo, status, etapa_atual_ordem, prazo_lote,
+            created_by, created_at, metadata,
+            fluxo_aprovacao_config(nome),
+            projetos(nome),
+            china_produto_submissoes(produto_codigo, numero_ordem)
+          `)
+          .in("status", ["pendente", "em_andamento"]);
+
+        if (escopo.escopo === "projeto" && escopo.projetoId) {
+          qi = qi.eq("projeto_id", escopo.projetoId);
+        }
+
+        const { data: insts } = await qi;
+        const instRows = (insts || []) as any[];
+
+        // Filtrar por escopo pessoal
+        let filteredInsts = instRows;
+        if (escopo.escopo === "pessoal") {
+          const uid = escopo.userId;
+          const modo = escopo.modoVisao ?? "minhas";
+          if (modo === "minhas" || modo === "acompanho") {
+            filteredInsts = instRows.filter((i) => i.created_by === uid);
+          } else if (modo === "deleguei") {
+            filteredInsts = [];
+          } else if (modo === "coordenacao") {
+            const { data: pms } = await supabase
+              .from("projeto_membros")
+              .select("projeto_id, papel")
+              .eq("user_id", uid as string)
+              .in("papel", ["coordenador", "owner", "lider"]);
+            const pids = new Set((pms || []).map((p: any) => p.projeto_id));
+            filteredInsts = instRows.filter((i) => i.projeto_id && pids.has(i.projeto_id));
+          }
+          // "equipe" e "todas": mantém todas as ativas
+        }
+
+        // Resolver etapa atual via (config_id, etapa_atual_ordem)
+        const configIds = Array.from(new Set(filteredInsts.map((i) => i.config_id).filter(Boolean)));
+        const etapaMap = new Map<string, any>();
+        if (configIds.length > 0) {
+          const { data: etsAll } = await supabase
+            .from("fluxo_aprovacao_etapas")
+            .select("id, config_id, nome, ordem, tipo, pipeline_destino_id, responsavel_id")
+            .in("config_id", configIds);
+          (etsAll || []).forEach((e: any) => {
+            etapaMap.set(`${e.config_id}:${e.ordem}`, e);
+          });
+        }
+
+        for (const inst of filteredInsts) {
+          const etapa = etapaMap.get(`${inst.config_id}:${inst.etapa_atual_ordem}`);
+          const kind = (inst.metadata && inst.metadata.kind) || (inst.submissao_id ? "c2b" : null);
+          const submissaoCodigo = inst.china_produto_submissoes?.produto_codigo ?? null;
+          itens.push({
+            id: `inst:${inst.id}`,
+            documento_id: "",
+            pipeline_id: inst.config_id,
+            etapa_atual_id: etapa?.id ?? null,
+            responsavel_atual_id: etapa?.responsavel_id ?? null,
+            status: "em_andamento",
+            lote_id: inst.id,
+            parent_item_id: null,
+            projeto_id: inst.projeto_id,
+            secao_id: null,
+            tarefa_id: null,
+            prazo_em: inst.prazo_lote ?? null,
+            comentario_atual: null,
+            created_by: inst.created_by,
+            created_at: inst.created_at,
+            delegado_de: null,
+            delegado_em: null,
+            oficializado_em: null,
+            oficializado_destino: null,
+            documento_nome:
+              inst.lote_nome ||
+              inst.titulo ||
+              (kind === "b2c" ? "Aprovação interna B→C" : "Aprovação"),
+            documento_tipo: kind === "b2c" ? "B→C" : kind === "c2b" ? "C→B" : null,
+            documento_path: null,
+            documento_url: null,
+            pipeline_nome: inst.fluxo_aprovacao_config?.nome ?? null,
+            etapa_nome: etapa?.nome ?? null,
+            etapa_ordem: etapa?.ordem ?? inst.etapa_atual_ordem ?? null,
+            etapa_tipo: etapa?.tipo ?? null,
+            responsavel_nome: null,
+            projeto_nome: inst.projetos?.nome ?? null,
+            secao_nome: null,
+            tarefa_titulo: submissaoCodigo,
+            lote_nome: inst.lote_nome ?? inst.titulo ?? null,
+            briefing_id: inst.briefing_id ?? null,
+            submissao_id: inst.submissao_id ?? null,
+            tipo_origem: (inst.briefing_id
+              ? "briefing"
+              : inst.submissao_id
+                ? "china_submissao"
+                : "outro") as TipoOrigemItem,
+          });
+        }
+      } catch (e) {
+        console.warn("[useKanbanAprovacoes] falha ao buscar instâncias-lote:", e);
+      }
+
       // resolve nomes responsáveis
       const userIds = Array.from(new Set(itens.map((i) => i.responsavel_atual_id).filter(Boolean))) as string[];
       if (userIds.length > 0) {
