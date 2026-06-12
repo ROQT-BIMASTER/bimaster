@@ -79,6 +79,23 @@ export function FlowItemFocusDrawer({
     setObservacao((liveDoc as any)?.observacao ?? "");
   }, [liveDoc?.documento_id, context?.tipo, context?.submissaoId]);
 
+  // Projeto vinculado à submissão (se houver) — para mostrar badge e CTA.
+  const projetoVinculo = useQuery({
+    queryKey: ["china-submissao-projeto-link", context?.submissaoId],
+    enabled: !!context?.submissaoId,
+    staleTime: 60 * 1000,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("china_submissao_projetos" as any)
+        .select("projeto_id, projetos:projeto_id(id,nome)")
+        .eq("submissao_id", context!.submissaoId)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      return (data as any)?.projetos || null;
+    },
+  });
+
   if (!context) return null;
 
   const { docType, tipo, category, submissaoId, produtoCodigo, produtoNome } = context;
