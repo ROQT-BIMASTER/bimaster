@@ -1521,7 +1521,7 @@ export function ChinaChecklistFocusMode({
                                       size="sm"
                                       variant="ghost"
                                       className="h-6 px-2 text-[10px] gap-1"
-                                      onClick={() => setAdminSheetDoc({ doc: d, fluxo: config.fluxo })}
+                                      onClick={() => setAdminSheetDoc(d)}
                                       title="Histórico de pareceres e comentários"
                                     >
                                       <MessageSquareText className="h-3 w-3" />
