@@ -93,6 +93,19 @@ export function EstoqueUnificadoTable(p: Props) {
     return copy;
   }, [p.rows, p.sortBy, p.sortDir]);
 
+  // Etiquetas (Black etc.) aplicadas aos produtos-raiz visíveis.
+  const codProdutosVisiveis = useMemo(
+    () => displayRows.map((r) => r.produto_raiz).filter((v): v is number => v != null),
+    [displayRows],
+  );
+  const { data: etiquetasMap } = useEtiquetaProdutosBatch(codProdutosVisiveis);
+  const { data: etiquetasAtivas = [] } = useEstoqueEtiquetas(true);
+  const etiquetaById = useMemo(() => {
+    const m = new Map<string, { nome: string; cor_hex: string }>();
+    for (const e of etiquetasAtivas) m.set(e.id, { nome: e.nome, cor_hex: e.cor_hex });
+    return m;
+  }, [etiquetasAtivas]);
+
   const H = (id: EstoqueUnifColId) => p.sortBy === id;
 
   // Helper para cabeçalho ordenável
