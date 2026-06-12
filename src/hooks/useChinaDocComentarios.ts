@@ -1,6 +1,8 @@
+import { useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { uniqueChannelName } from "@/lib/realtime/channelName";
 
 export interface ComentarioAnexo {
   path: string;
@@ -60,6 +62,30 @@ async function uploadAnexos(
 }
 
 export function useComentariosPorDocumento(documentoId: string | undefined) {
+  const qc = useQueryClient();
+
+  useEffect(() => {
+    if (!documentoId) return;
+    const ch = supabase
+      .channel(uniqueChannelName(`china-doc-comentarios-${documentoId}`))
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "china_doc_comentarios",
+          filter: `documento_id=eq.${documentoId}`,
+        },
+        () => {
+          qc.invalidateQueries({ queryKey: ["china-doc-comentarios", documentoId] });
+        },
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(ch);
+    };
+  }, [documentoId, qc]);
+
   return useQuery({
     queryKey: ["china-doc-comentarios", documentoId],
     enabled: !!documentoId,
@@ -74,6 +100,7 @@ export function useComentariosPorDocumento(documentoId: string | undefined) {
     },
   });
 }
+
 
 export function useAdicionarComentario() {
   const qc = useQueryClient();

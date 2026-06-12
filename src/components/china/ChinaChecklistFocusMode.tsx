@@ -28,6 +28,9 @@ import { useNavigate } from "react-router-dom";
 import { useRevisoesPorSubmissao } from "@/hooks/useChinaRevisoes";
 import { DialogContestarDocumento } from "./DialogContestarDocumento";
 import { ChecklistGovernancePanel } from "./ChecklistGovernancePanel";
+import { ChecklistItemAdminSheet } from "@/components/china/checklist/ChecklistItemAdminSheet";
+import { bucketForDoc } from "@/lib/china/flowTones";
+import { MessageSquareText } from "lucide-react";
 import { useTraduzirTexto } from "@/hooks/useTraduzirTexto";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
@@ -149,6 +152,7 @@ export function ChinaChecklistFocusMode({
 
   // Substituir documento rejeitado com parecer técnico
   const [substituirDoc, setSubstituirDoc] = useState<DocRecord | null>(null);
+  const [adminSheetDoc, setAdminSheetDoc] = useState<DocRecord | null>(null);
   const { data: revisoes = [] } = useRevisoesPorSubmissao(submissaoId);
   const ultimaRevisaoPorDoc = useMemo(() => {
     const map = new Map<string, typeof revisoes[number]>();
@@ -1513,6 +1517,16 @@ export function ChinaChecklistFocusMode({
                                         Parecer / Anexos
                                       </Button>
                                     )}
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      className="h-6 px-2 text-[10px] gap-1"
+                                      onClick={() => setAdminSheetDoc(d)}
+                                      title="Histórico de pareceres e comentários"
+                                    >
+                                      <MessageSquareText className="h-3 w-3" />
+                                      Histórico
+                                    </Button>
                                     {d.status !== "aprovado" && d.status !== "rejeitado" && (
                                       <button onClick={() => onRemoveFile(d.id)} className="p-1 rounded hover:bg-destructive/10" title={t("focusMode.tooltipRemover")}>
                                         <Trash2 className="h-3.5 w-3.5 text-destructive" />
@@ -1866,6 +1880,28 @@ export function ChinaChecklistFocusMode({
           }}
         />
       )}
+
+      {adminSheetDoc && (() => {
+        const cat = DOCUMENT_CATEGORIES.find((c) => c.tipos.includes(adminSheetDoc.tipo_documento));
+        const fluxo = cat?.fluxo ?? "china_envia";
+        const label = allDocTypes.find((t) => t.tipo === adminSheetDoc.tipo_documento)?.labelPt;
+        return (
+          <ChecklistItemAdminSheet
+            open={!!adminSheetDoc}
+            onOpenChange={(o) => !o && setAdminSheetDoc(null)}
+            documentoId={adminSheetDoc.id}
+            submissaoId={submissaoId}
+            tipoDocumento={adminSheetDoc.tipo_documento}
+            tipoDocumentoLabel={label}
+            bucket={bucketForDoc({ doc_status: adminSheetDoc.status })}
+            lado="china"
+            isReceiver={fluxo === "brasil_envia"}
+            isSender={fluxo === "china_envia"}
+            defaultTab="parecer"
+          />
+        );
+      })()}
+
 
       {/* Confirmação: envio individual ao Brasil */}
       <AlertDialog open={!!confirmSingleId} onOpenChange={(o) => !o && setConfirmSingleId(null)}>

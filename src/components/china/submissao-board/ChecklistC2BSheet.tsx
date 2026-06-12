@@ -3,9 +3,12 @@ import {
 } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { ArrowDownToLine, Loader2 } from "lucide-react";
+import { ArrowDownToLine, Loader2, MessageSquareText } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { ChecklistItemAdminSheet } from "@/components/china/checklist/ChecklistItemAdminSheet";
+import { bucketForDoc } from "@/lib/china/flowTones";
 
 interface Props {
   open: boolean;
@@ -43,11 +46,14 @@ const STATUS_TONE: Record<string, string> = {
 };
 
 /**
- * Painel lateral somente-leitura: lista os documentos que a China enviou ao Brasil
- * dentro desta submissão (perspectiva Brasil). A ação real de aprovar/devolver
- * acontece na aba "Submissão China" (Kanban) ou no Sheet da tarefa-espelho.
+ * Painel lateral: lista os documentos que a China enviou ao Brasil dentro
+ * desta submissão. Cada linha abre o painel administrativo (Pareceres +
+ * Comentários) reusando `ChecklistItemAdminSheet` — paridade com a Caixa
+ * de Entrada e com o Modo Foco.
  */
 export function ChecklistC2BSheet({ open, onOpenChange, submissaoId }: Props) {
+  const [adminDoc, setAdminDoc] = useState<Doc | null>(null);
+
   const { data: docs = [], isLoading } = useQuery({
     queryKey: ["china-checklist-c2b", submissaoId],
     enabled: !!submissaoId && open,
@@ -63,52 +69,78 @@ export function ChecklistC2BSheet({ open, onOpenChange, submissaoId }: Props) {
   });
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="w-full sm:max-w-xl flex flex-col gap-0 p-0">
-        <SheetHeader className="border-b border-border px-4 py-3">
-          <SheetTitle className="text-base flex items-center gap-2">
-            <ArrowDownToLine className="h-4 w-4 text-primary" />
-            Checklist China → Brasil
-          </SheetTitle>
-          <SheetDescription className="text-xs">
-            Documentos vindos da China nesta submissão. Use a aba "Submissão China" do projeto
-            para aprovar, devolver ou criar lotes de aprovação.
-          </SheetDescription>
-        </SheetHeader>
+    <>
+      <Sheet open={open} onOpenChange={onOpenChange}>
+        <SheetContent side="right" className="w-full sm:max-w-xl flex flex-col gap-0 p-0">
+          <SheetHeader className="border-b border-border px-4 py-3">
+            <SheetTitle className="text-base flex items-center gap-2">
+              <ArrowDownToLine className="h-4 w-4 text-primary" />
+              Checklist China → Brasil
+            </SheetTitle>
+            <SheetDescription className="text-xs">
+              Documentos vindos da China nesta submissão. Clique em uma linha para
+              registrar parecer, comentar com menção e ver o histórico de rodadas.
+            </SheetDescription>
+          </SheetHeader>
 
-        <ScrollArea className="flex-1">
-          {isLoading ? (
-            <div className="flex items-center gap-2 p-4 text-xs text-muted-foreground">
-              <Loader2 className="h-3 w-3 animate-spin" /> Carregando...
-            </div>
-          ) : docs.length === 0 ? (
-            <div className="p-6 text-center text-xs text-muted-foreground">
-              Nenhum documento da China ainda nesta submissão.
-            </div>
-          ) : (
-            <ul className="divide-y divide-border/40">
-              {docs.map((d) => (
-                <li key={d.id} className="px-3 py-2">
-                  <div className="flex items-start gap-2">
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-medium text-foreground truncate">{d.tipo_documento}</p>
-                      {d.observacao && (
-                        <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-2">{d.observacao}</p>
-                      )}
-                      <p className="text-[10px] text-muted-foreground mt-0.5">
-                        {new Date(d.created_at).toLocaleDateString("pt-BR")}
-                      </p>
-                    </div>
-                    <Badge className={`h-4 px-1.5 text-[9px] font-normal ${STATUS_TONE[d.status] || ""}`}>
-                      {STATUS_LABEL[d.status] || d.status}
-                    </Badge>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-        </ScrollArea>
-      </SheetContent>
-    </Sheet>
+          <ScrollArea className="flex-1">
+            {isLoading ? (
+              <div className="flex items-center gap-2 p-4 text-xs text-muted-foreground">
+                <Loader2 className="h-3 w-3 animate-spin" /> Carregando...
+              </div>
+            ) : docs.length === 0 ? (
+              <div className="p-6 text-center text-xs text-muted-foreground">
+                Nenhum documento da China ainda nesta submissão.
+              </div>
+            ) : (
+              <ul className="divide-y divide-border/40">
+                {docs.map((d) => (
+                  <li key={d.id}>
+                    <button
+                      type="button"
+                      onClick={() => setAdminDoc(d)}
+                      className="w-full text-left px-3 py-2 hover:bg-muted/40 transition-colors"
+                    >
+                      <div className="flex items-start gap-2">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-medium text-foreground truncate flex items-center gap-1.5">
+                            {d.tipo_documento}
+                            <MessageSquareText className="h-3 w-3 text-muted-foreground/60" />
+                          </p>
+                          {d.observacao && (
+                            <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-2">{d.observacao}</p>
+                          )}
+                          <p className="text-[10px] text-muted-foreground mt-0.5">
+                            {new Date(d.created_at).toLocaleDateString("pt-BR")}
+                          </p>
+                        </div>
+                        <Badge className={`h-4 px-1.5 text-[9px] font-normal ${STATUS_TONE[d.status] || ""}`}>
+                          {STATUS_LABEL[d.status] || d.status}
+                        </Badge>
+                      </div>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </ScrollArea>
+        </SheetContent>
+      </Sheet>
+
+      {adminDoc && submissaoId && (
+        <ChecklistItemAdminSheet
+          open={!!adminDoc}
+          onOpenChange={(o) => !o && setAdminDoc(null)}
+          documentoId={adminDoc.id}
+          submissaoId={submissaoId}
+          tipoDocumento={adminDoc.tipo_documento}
+          tipoDocumentoLabel={adminDoc.tipo_documento}
+          bucket={bucketForDoc({ doc_status: adminDoc.status })}
+          lado="brasil"
+          isReceiver={true}
+          isSender={false}
+        />
+      )}
+    </>
   );
 }

@@ -41,6 +41,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { uploadAndGetSignedUrl, getSignedUrl } from "@/lib/utils/storage-helper";
 import { cn } from "@/lib/utils";
 import { logger } from "@/lib/logger";
+import { ChecklistItemAdminPanel } from "./ChecklistItemAdminPanel";
+import { bucketForDoc } from "@/lib/china/flowTones";
 
 interface DocRow {
   id: string;
@@ -481,7 +483,27 @@ export function ChecklistItemPainel({
             </ul>
           )}
         </section>
+
+        {/* Pareceres + Comentários administrativos */}
+        {ultimaVersao?.id && (
+          <section className="mt-5 space-y-2">
+            <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              Pareceres e comentários
+            </h3>
+            <ChecklistItemAdminPanel
+              documentoId={ultimaVersao.id}
+              submissaoId={submissaoId}
+              tipoDocumento={tipoDocumento!}
+              tipoDocumentoLabel={labelPt}
+              bucket={bucketForDoc({ doc_status: ultimaVersao.status })}
+              lado={fluxo === "china_envia" ? "china" : "brasil"}
+              isReceiver={fluxo === "brasil_envia"}
+              isSender={fluxo === "china_envia"}
+            />
+          </section>
+        )}
       </SheetContent>
     </Sheet>
   );
 }
+
