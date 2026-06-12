@@ -45,6 +45,8 @@ export interface UseEstoqueUnificadoOpts {
   consolidar?: boolean;
   marcas?: string[];
   linhas?: string[];
+  /** produto_raiz permitidos quando há filtro de campanha ativo; null/undefined = sem filtro. */
+  campanhaProdutos?: number[] | null;
 }
 
 /**
