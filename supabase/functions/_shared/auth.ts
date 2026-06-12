@@ -62,7 +62,7 @@ export async function validateApiKey(req: Request): Promise<ApiKeyResult> {
   // Fetch all active configs and compare timing-safely
   const { data: configs } = await supabase
     .from("erp_config")
-    .select("id, empresa_id, api_key_hash, api_key, api_key_anterior, api_key_anterior_expira_em")
+    .select("id, empresa_id, api_key_hash, api_key, api_key_anterior, api_key_anterior_hash, api_key_anterior_expira_em")
     .eq("ativo", true);
 
   if (!configs || configs.length === 0) {
@@ -70,17 +70,20 @@ export async function validateApiKey(req: Request): Promise<ApiKeyResult> {
   }
 
   for (const config of configs) {
-    // Primary: compare hash (timing-safe)
     if (config.api_key_hash && timingSafeEqual(apiKeyHash, config.api_key_hash)) {
       return { empresaId: config.empresa_id, configId: config.id };
     }
-
-    // Fallback: plaintext comparison during transition (timing-safe)
     if (config.api_key && timingSafeEqual(apiKey, config.api_key)) {
       return { empresaId: config.empresa_id, configId: config.id };
     }
-
-    // Grace period for rotated keys (timing-safe)
+    if (
+      config.api_key_anterior_hash &&
+      config.api_key_anterior_expira_em &&
+      new Date(config.api_key_anterior_expira_em) > new Date() &&
+      timingSafeEqual(apiKeyHash, config.api_key_anterior_hash)
+    ) {
+      return { empresaId: config.empresa_id, configId: config.id };
+    }
     if (
       config.api_key_anterior &&
       config.api_key_anterior_expira_em &&
