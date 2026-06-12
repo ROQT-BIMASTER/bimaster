@@ -203,7 +203,7 @@ const RelatorioAPIs = () => {
               <tbody className="text-muted-foreground">
                 <tr><td className="border p-2 font-mono text-xs">contas-pagar-api</td><td className="border p-2">POST</td><td className="border p-2">JWT</td><td className="border p-2">CRUD completo de contas a pagar</td></tr>
                 <tr><td className="border p-2 font-mono text-xs">contas-pagar-export-api</td><td className="border p-2">GET/POST</td><td className="border p-2">API Key</td><td className="border p-2">Exportação para ERP (provisão + baixa + cancelamento)</td></tr>
-                <tr><td className="border p-2 font-mono text-xs">erp-export-payment</td><td className="border p-2">POST</td><td className="border p-2">JWT</td><td className="border p-2">Envia pagamento individual ao ERP via n8n</td></tr>
+                <tr><td className="border p-2 font-mono text-xs">erp-export-payment</td><td className="border p-2">POST</td><td className="border p-2">JWT</td><td className="border p-2">Envia pagamento individual ao ERP</td></tr>
                 <tr><td className="border p-2 font-mono text-xs">erp-webhook-inbound</td><td className="border p-2">POST</td><td className="border p-2">API Key</td><td className="border p-2">Recebe notificações do ERP (provisão, baixa, estorno)</td></tr>
                 <tr><td className="border p-2 font-mono text-xs">erp-fornecedores-query</td><td className="border p-2">GET</td><td className="border p-2">API Key</td><td className="border p-2">Consulta fornecedores para sincronização</td></tr>
                 <tr><td className="border p-2 font-mono text-xs">erp-portadores-api</td><td className="border p-2">GET/POST</td><td className="border p-2">API Key</td><td className="border p-2">Sincronização de portadores/bancos</td></tr>
@@ -521,7 +521,7 @@ const RelatorioAPIs = () => {
               <tbody className="text-muted-foreground">
                 <tr><td className="border p-2 font-mono text-xs">produtos-api</td><td className="border p-2">CRUD de produtos acabados e matérias-primas</td></tr>
                 <tr><td className="border p-2 font-mono text-xs">estoque-api</td><td className="border p-2">Gestão de estoque (saldos, movimentações)</td></tr>
-                <tr><td className="border p-2 font-mono text-xs">estoque-n8n-sync</td><td className="border p-2">Sincronização de estoque via n8n</td></tr>
+                
                 <tr><td className="border p-2 font-mono text-xs">extrair-materia-prima-ia</td><td className="border p-2">Extração de insumos de documentos via IA</td></tr>
                 <tr><td className="border p-2 font-mono text-xs">extrair-produto-ia</td><td className="border p-2">Extração de dados de produto de imagens</td></tr>
                 <tr><td className="border p-2 font-mono text-xs">parse-china-excel</td><td className="border p-2">Parser de planilhas de importação China</td></tr>
