@@ -145,25 +145,38 @@ export async function validateErpAuth(
     }
   }
 
-  // 2. Check erp_config table
+  // 2. Check erp_config table (hash-first, plaintext fallback, grace period)
   const supabase = createClient(
     Deno.env.get("SUPABASE_URL")!,
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
   );
 
-  const { data: configRow } = await supabase
+  const apiKeyHash = await hashApiKey(apiKey);
+  const { data: configs } = await supabase
     .from("erp_config")
-    .select("empresa_id")
+    .select("empresa_id, api_key, api_key_hash, api_key_anterior, api_key_anterior_expira_em, api_key_expira_em, config_value")
     .eq("config_key", "api_key")
-    .eq("config_value", apiKey)
-    .maybeSingle();
+    .eq("ativo", true);
 
-  if (configRow?.empresa_id) {
-    logApiAccess({
-      endpoint, method, ipAddress, userAgent,
-      apiKeyUsed: true, success: true, keyPreview,
-    });
-    return { empresaId: String(configRow.empresa_id), source: "erp_config" };
+  for (const cfg of configs ?? []) {
+    const expired = cfg.api_key_expira_em && new Date(cfg.api_key_expira_em) < new Date();
+    const matchesHash = cfg.api_key_hash && timingSafeEqual(apiKeyHash, cfg.api_key_hash);
+    const matchesPlain = cfg.api_key && timingSafeEqual(apiKey, cfg.api_key);
+    const matchesLegacyCv = cfg.config_value && timingSafeEqual(apiKey, cfg.config_value);
+    const matchesPrev =
+      cfg.api_key_anterior &&
+      cfg.api_key_anterior_expira_em &&
+      new Date(cfg.api_key_anterior_expira_em) > new Date() &&
+      timingSafeEqual(apiKey, cfg.api_key_anterior);
+
+    if ((matchesHash || matchesPlain || matchesLegacyCv) && !expired) {
+      logApiAccess({ endpoint, method, ipAddress, userAgent, apiKeyUsed: true, success: true, keyPreview });
+      return { empresaId: String(cfg.empresa_id), source: "erp_config" };
+    }
+    if (matchesPrev) {
+      logApiAccess({ endpoint, method, ipAddress, userAgent, apiKeyUsed: true, success: true, keyPreview });
+      return { empresaId: String(cfg.empresa_id), source: "erp_config_grace" };
+    }
   }
 
   // 3. Check erp_api_keys table (Portal de Integração)
