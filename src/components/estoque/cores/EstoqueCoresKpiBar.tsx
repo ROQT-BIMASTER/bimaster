@@ -10,16 +10,16 @@ interface Props {
   consolidado?: boolean;
 }
 
-function Item({ label, value, icon: Icon, sub }: { label: string; value: string; icon: any; sub?: string }) {
+function Item({ label, value, icon: Icon, sub, tone }: { label: string; value: string; icon: any; sub?: string; tone?: 'success' }) {
   return (
-    <Card className="p-3">
+    <Card className={tone === 'success' ? 'p-3 border-success/40 bg-success/5' : 'p-3'}>
       <div className="flex items-start justify-between gap-2">
         <div>
           <p className="text-[11px] text-muted-foreground">{label}</p>
-          <p className="text-base font-semibold tabular-nums leading-tight mt-0.5">{value}</p>
+          <p className={`text-base font-semibold tabular-nums leading-tight mt-0.5 ${tone === 'success' ? 'text-success' : ''}`}>{value}</p>
           {sub && <p className="text-[10px] text-muted-foreground mt-0.5">{sub}</p>}
         </div>
-        <Icon className="h-4 w-4 text-muted-foreground" />
+        <Icon className={`h-4 w-4 ${tone === 'success' ? 'text-success' : 'text-muted-foreground'}`} />
       </div>
     </Card>
   );
