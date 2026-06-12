@@ -2,7 +2,7 @@
 // PR-24: envolto em secureHandler (WAF L7, IP blocklist, security headers) — antes só tinha CORS+auth+ratelimit manuais.
 // Mantém roteador interno + idempotência centralizada via withIdempotency (sem duplicação nos handlers).
 import { createClient } from 'npm:@supabase/supabase-js@2';
-import { timingSafeEqual } from "../_shared/timing-safe.ts";
+
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { getKeyPreview, logApiAccess } from "../_shared/auth.ts";
 import { withIdempotency } from "../_shared/idempotency.ts";

@@ -1,5 +1,5 @@
 // _shared/contas-pagar/infra-handlers.ts — Status, stats, last-sync, trigger-n8n, debug-payload (Profissionalizado)
-import { timingSafeEqual } from "../timing-safe.ts";
+
 import { getKeyPreview, logApiAccess } from "../auth.ts";
 import type { HandlerContext } from "./types.ts";
 import {

@@ -2,7 +2,7 @@ import { logger } from "../_shared/logger.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
 import { secureHandler } from "../_shared/secure-handler.ts";
-import { timingSafeEqual } from "../_shared/timing-safe.ts";
+
 
 
 
