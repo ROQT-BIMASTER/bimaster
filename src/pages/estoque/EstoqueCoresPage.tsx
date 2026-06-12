@@ -9,6 +9,7 @@ import { Search, Settings2, ShieldCheck, Info, AlertTriangle, CheckCircle2 } fro
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import { awaitCacheUnificadoFresh } from '@/lib/estoque/cacheFreshness';
 import {
   useEstoqueCoresQuery,
   FILTROS_CORES_INICIAIS,
