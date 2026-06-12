@@ -53900,6 +53900,55 @@ export type Database = {
           total_unidades_potencial: number
         }[]
       }
+      rpc_estoque_cores_vs_unificado: {
+        Args: {
+          p_apenas_divergentes?: boolean
+          p_busca?: string
+          p_empresas?: number[]
+          p_limit?: number
+          p_linhas?: string[]
+          p_offset?: number
+          p_order_by?: string
+          p_order_dir?: string
+          p_tolerancia?: number
+        }
+        Returns: {
+          abrev_empresa: string
+          bloqueado_un_unificado: number
+          cod_raiz: number
+          cx_cores: number
+          cx_unificado: number
+          delta_pct: number
+          delta_un: number
+          disponivel_un_unificado: number
+          empresa: number
+          fator_cx_para_un: number
+          nome_linha: string
+          nome_raiz: string
+          qtd_cores: number
+          skus_unificado: number
+          status: string
+          total_count: number
+          un_cores: number
+          un_unificado: number
+        }[]
+      }
+      rpc_estoque_cores_vs_unificado_kpis: {
+        Args: {
+          p_empresas?: number[]
+          p_linhas?: string[]
+          p_tolerancia?: number
+        }
+        Returns: {
+          delta_abs_total_cx: number
+          delta_abs_total_un: number
+          raizes_auditadas: number
+          raizes_divergentes: number
+          raizes_ok: number
+          raizes_so_em_cores: number
+          raizes_so_em_unificado: number
+        }[]
+      }
       rpc_fechar_container: {
         Args: { p_embarque_id: string }
         Returns: undefined
