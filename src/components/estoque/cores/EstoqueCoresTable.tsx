@@ -14,6 +14,7 @@ import { EstoqueEtiquetaPopover } from './EstoqueEtiquetaPopover';
 import { useEtiquetaProdutosBatch, useEstoqueEtiquetas } from '@/hooks/estoque/useEstoqueEtiquetas';
 import { useMemo, useState } from 'react';
 import { EstoqueCoresMemoryBlock } from './EstoqueCoresMemoryBlock';
+import { DivergenciaLinhaBadge } from './DivergenciaLinhaBadge';
 
 type AnyRow = EstoqueCorRow | EstoqueCorConsolidadoRow;
 type AnySortKey = EstoqueCoresSortKey | EstoqueCoresConsolidadoSortKey;
