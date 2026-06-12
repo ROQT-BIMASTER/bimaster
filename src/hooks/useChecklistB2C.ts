@@ -195,7 +195,7 @@ export function useUploadArquivoB2C() {
               responsavelNome: (prof as any)?.nome ?? null,
               documentoNome: row.nome_documento,
               categoria: row.categoria,
-              submissaoCodigo: (sub as any)?.codigo ?? null,
+              submissaoCodigo: (sub as any)?.numero_item ?? (sub as any)?.produto_codigo ?? null,
               produtoNome: (sub as any)?.produto_nome ?? null,
               prazo,
               tarefaUrl,
