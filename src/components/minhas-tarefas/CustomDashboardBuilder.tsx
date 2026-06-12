@@ -435,19 +435,14 @@ export function CustomDashboardBuilder({ tarefas }: Props) {
         </div>
       )}
 
-      {/* New Dashboard Dialog */}
-      <Dialog open={showNew} onOpenChange={setShowNew}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Novo Dashboard</DialogTitle>
-          </DialogHeader>
-          <Input value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="Nome do dashboard" />
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowNew(false)}>Cancelar</Button>
-            <Button onClick={handleCreateDashboard} disabled={!newName.trim()}>Criar</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Template Gallery (replaces simple new-dashboard dialog) */}
+      <DashboardTemplateGallery
+        open={showGallery}
+        onOpenChange={setShowGallery}
+        onCreate={handleCreateFromTemplate}
+        isPending={createDashboard.isPending}
+      />
+
 
       {/* Add Widget Dialog */}
       <Dialog open={showAddWidget} onOpenChange={setShowAddWidget}>
