@@ -418,6 +418,15 @@ export default function EstoqueUnificadoPage() {
 
             <span className="mx-1 h-5 w-px bg-border" aria-hidden />
 
+            <EstoqueCampanhaFilter
+              selected={campanhaIds}
+              onChange={(ids) => { setCampanhaIds(ids); setPage(0); }}
+            />
+
+            <span className="mx-1 h-5 w-px bg-border" aria-hidden />
+
+
+
             <EstoqueUnificadoColumnsMenu isHidden={isHidden} toggle={toggle} reset={reset} />
           </div>
         </div>
