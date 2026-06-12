@@ -344,7 +344,7 @@ function RowGroup({ rowKey, row, cols, isOpen, memo, onToggle, onMainClick, vari
             )}
           </div>
         </TableCell>
-        <TableCell className="text-right tabular-nums font-semibold">{fmtN(r.saldo_total_disponivel ?? r.saldo)}</TableCell>
+        <TableCell className="text-right tabular-nums font-semibold">{fmtN(Math.max(0, Number(r.saldo_total_disponivel ?? r.saldo ?? 0) - Number(r.estoque_bloqueado_produto ?? 0)))}</TableCell>
         <TableCell className="text-right text-xs tabular-nums">{fmtN(r.saldo_proprio)}</TableCell>
         <TableCell className="text-right text-xs tabular-nums">
           {Number(r.saldo_potencial_desmontagem ?? 0) > 0 ? (
