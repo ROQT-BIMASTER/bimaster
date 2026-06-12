@@ -210,68 +210,18 @@ export function FlowItemFocusDrawer({
 
 
 
-        <div className="flex-1 overflow-y-auto px-4 py-3 space-y-4">
-          {/* Documento atual */}
-          {doc && (doc.arquivo_path || doc.arquivo_url) ? (
-            <div className="space-y-2 rounded-md border border-border bg-card/40 p-3">
-              <div className="flex items-center justify-between gap-2">
-                <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                  Documento anexado
-                </p>
-                {doc.nome_arquivo && (
-                  <span className="truncate text-[11px] text-muted-foreground">
-                    {doc.nome_arquivo}
-                  </span>
-                )}
-              </div>
-              <DocBigPreview doc={doc} onExpand={() => setFocusOpen(true)} />
-              {canUpload && !isApproved && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-7 w-full gap-1.5 text-xs"
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={isUploading}
-                >
-                  {isUploading ? (
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  ) : (
-                    <Upload className="h-3.5 w-3.5" />
-                  )}
-                  Substituir arquivo
-                </Button>
-              )}
-            </div>
-          ) : canUpload ? (
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={isUploading}
-              className={cn(
-                "flex w-full flex-col items-center justify-center gap-2 rounded-md border-2 border-dashed px-4 py-8 text-center transition-colors",
-                "border-border bg-muted/20 hover:border-primary/40 hover:bg-primary/5",
-                isUploading && "opacity-60",
-              )}
-            >
-              {isUploading ? (
-                <Loader2 className="h-5 w-5 animate-spin text-primary" />
-              ) : (
-                <Upload className="h-5 w-5 text-primary" />
-              )}
-              <div className="space-y-0.5">
-                <p className="text-sm font-medium text-foreground">
-                  {isUploading ? "Subindo arquivo…" : "Anexar documento"}
-                </p>
-                <p className="text-[11px] text-muted-foreground">
-                  Clique para escolher um arquivo do seu computador
-                </p>
-              </div>
-            </button>
-          ) : (
-            <div className="rounded-md border border-dashed border-border px-3 py-4 text-center text-[11px] text-muted-foreground">
-              Este item é responsabilidade de outro lado do fluxo.
-            </div>
-          )}
+        <Tabs defaultValue="documento" className="flex flex-1 flex-col overflow-hidden">
+          <TabsList className="mx-4 mt-3 h-8 grid w-[calc(100%-2rem)] grid-cols-3">
+            <TabsTrigger value="documento" className="h-7 text-[11px]">
+              Documento
+            </TabsTrigger>
+            <TabsTrigger value="parecer" className="h-7 text-[11px]" disabled={!doc?.documento_id}>
+              Pareceres
+            </TabsTrigger>
+            <TabsTrigger value="comentarios" className="h-7 text-[11px]" disabled={!doc?.documento_id}>
+              Comentários
+            </TabsTrigger>
+          </TabsList>
 
           <input
             ref={fileInputRef}
@@ -286,76 +236,174 @@ export function FlowItemFocusDrawer({
             }}
           />
 
-          {/* Ações de parecer + histórico de revisões */}
-          {doc?.documento_id && (
-            <>
-              <DrawerParecerActions
+          {/* Aba Documento */}
+          <TabsContent
+            value="documento"
+            className="flex-1 overflow-y-auto px-4 py-3 space-y-4 mt-0"
+          >
+            {doc && (doc.arquivo_path || doc.arquivo_url) ? (
+              <div className="space-y-2 rounded-md border border-border bg-card/40 p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                    Documento anexado
+                  </p>
+                  {doc.nome_arquivo && (
+                    <span className="truncate text-[11px] text-muted-foreground">
+                      {doc.nome_arquivo}
+                    </span>
+                  )}
+                </div>
+                <DocBigPreview doc={doc} onExpand={() => setFocusOpen(true)} />
+                {canUpload && !isApproved && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-7 w-full gap-1.5 text-xs"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={isUploading}
+                  >
+                    {isUploading ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <Upload className="h-3.5 w-3.5" />
+                    )}
+                    Substituir arquivo
+                  </Button>
+                )}
+                <p className="text-[10px] text-muted-foreground/80">
+                  Ao substituir, a versão anterior é arquivada na trilha de
+                  rodadas (R1, R2…) na aba <strong>Pareceres</strong>.
+                </p>
+              </div>
+            ) : canUpload ? (
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isUploading}
+                className={cn(
+                  "flex w-full flex-col items-center justify-center gap-2 rounded-md border-2 border-dashed px-4 py-8 text-center transition-colors",
+                  "border-border bg-muted/20 hover:border-primary/40 hover:bg-primary/5",
+                  isUploading && "opacity-60",
+                )}
+              >
+                {isUploading ? (
+                  <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                ) : (
+                  <Upload className="h-5 w-5 text-primary" />
+                )}
+                <div className="space-y-0.5">
+                  <p className="text-sm font-medium text-foreground">
+                    {isUploading ? "Subindo arquivo…" : "Anexar documento"}
+                  </p>
+                  <p className="text-[11px] text-muted-foreground">
+                    Clique para escolher um arquivo do seu computador
+                  </p>
+                </div>
+              </button>
+            ) : (
+              <div className="rounded-md border border-dashed border-border px-3 py-4 text-center text-[11px] text-muted-foreground">
+                Este item é responsabilidade de outro lado do fluxo.
+              </div>
+            )}
+
+            {isChina && isChinaCategory && (
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                  Observação ao Brasil
+                </label>
+                <Textarea
+                  value={observacao}
+                  onChange={(e) => setObservacao(e.target.value)}
+                  placeholder="Informações relevantes para a análise do Brasil…"
+                  rows={3}
+                  className="text-xs"
+                />
+                {doc?.documento_id && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 px-2 text-[11px]"
+                    onClick={handleSalvarObservacao}
+                    disabled={isUploading}
+                  >
+                    Salvar observação
+                  </Button>
+                )}
+              </div>
+            )}
+
+            {isRejected && doc?.observacoes_brasil && (
+              <div className="rounded-md border border-rose-500/30 bg-rose-500/5 p-3">
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-rose-600">
+                  Brasil solicitou correção
+                </p>
+                <p className="mt-1 whitespace-pre-wrap text-xs text-foreground/90">
+                  {doc.observacoes_brasil}
+                </p>
+              </div>
+            )}
+
+            {isApproved && (
+              <div className="rounded-md border border-emerald-500/30 bg-emerald-500/5 px-3 py-2 text-[11px] text-emerald-700">
+                Etapa concluída — nada mais a fazer.
+              </div>
+            )}
+          </TabsContent>
+
+          {/* Aba Pareceres */}
+          <TabsContent
+            value="parecer"
+            className="flex-1 overflow-y-auto px-4 py-3 space-y-4 mt-0"
+          >
+            {doc?.documento_id ? (
+              <>
+                <DrawerParecerActions
+                  documentoId={doc.documento_id}
+                  submissaoId={submissaoId}
+                  tipoDocumento={tipo}
+                  tipoDocumentoLabel={labelPt}
+                  bucket={bucket}
+                  isReceiver={
+                    (isChina && isBrasilCategory) ||
+                    (!isChina && isChinaCategory)
+                  }
+                  isSender={
+                    (isChina && isChinaCategory) ||
+                    (!isChina && isBrasilCategory)
+                  }
+                />
+                <DrawerRevisoesList
+                  submissaoId={submissaoId}
+                  documentoId={doc.documento_id}
+                />
+              </>
+            ) : (
+              <div className="rounded-md border border-dashed border-border px-3 py-4 text-center text-[11px] text-muted-foreground">
+                Anexe um documento na aba anterior para registrar pareceres.
+              </div>
+            )}
+          </TabsContent>
+
+          {/* Aba Comentários */}
+          <TabsContent
+            value="comentarios"
+            className="flex-1 overflow-y-auto px-4 py-3 mt-0"
+          >
+            {doc?.documento_id ? (
+              <DrawerComentariosTab
                 documentoId={doc.documento_id}
                 submissaoId={submissaoId}
                 tipoDocumento={tipo}
-                tipoDocumentoLabel={labelPt}
-                bucket={bucket}
-                isReceiver={
-                  (isChina && isBrasilCategory) ||
-                  (!isChina && isChinaCategory)
-                }
-                isSender={
-                  (isChina && isChinaCategory) ||
-                  (!isChina && isBrasilCategory)
-                }
+                lado={isChina ? "china" : "brasil"}
               />
-              <DrawerRevisoesList
-                submissaoId={submissaoId}
-                documentoId={doc.documento_id}
-              />
-            </>
-          )}
+            ) : (
+              <div className="rounded-md border border-dashed border-border px-3 py-4 text-center text-[11px] text-muted-foreground">
+                Anexe um documento para iniciar a conversa administrativa.
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
 
-
-          {isChina && isChinaCategory && (
-            <div className="space-y-1.5">
-              <label className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                Observação ao Brasil
-              </label>
-              <Textarea
-                value={observacao}
-                onChange={(e) => setObservacao(e.target.value)}
-                placeholder="Informações relevantes para a análise do Brasil…"
-                rows={3}
-                className="text-xs"
-              />
-              {doc?.documento_id && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-6 px-2 text-[11px]"
-                  onClick={handleSalvarObservacao}
-                  disabled={isUploading}
-                >
-                  Salvar observação
-                </Button>
-              )}
-            </div>
-          )}
-
-          {/* Aviso quando Brasil pediu correção */}
-          {isRejected && doc?.observacoes_brasil && (
-            <div className="rounded-md border border-rose-500/30 bg-rose-500/5 p-3">
-              <p className="text-[11px] font-semibold uppercase tracking-wide text-rose-600">
-                Brasil solicitou correção
-              </p>
-              <p className="mt-1 whitespace-pre-wrap text-xs text-foreground/90">
-                {doc.observacoes_brasil}
-              </p>
-            </div>
-          )}
-
-          {isApproved && (
-            <div className="rounded-md border border-emerald-500/30 bg-emerald-500/5 px-3 py-2 text-[11px] text-emerald-700">
-              Etapa concluída — nada mais a fazer.
-            </div>
-          )}
-        </div>
 
         <Separator />
 
