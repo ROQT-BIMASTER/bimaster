@@ -41,6 +41,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { uploadAndGetSignedUrl, getSignedUrl } from "@/lib/utils/storage-helper";
 import { cn } from "@/lib/utils";
 import { logger } from "@/lib/logger";
+import { ChecklistItemAdminPanel } from "./ChecklistItemAdminPanel";
+import { bucketForDoc } from "@/lib/china/flowTones";
 
 interface DocRow {
   id: string;
