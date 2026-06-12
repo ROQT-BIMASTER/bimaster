@@ -27,7 +27,14 @@ import { WidgetTarefasPorStatus } from "./widgets/WidgetTarefasPorStatus";
 import { WidgetTimelineConclusoes } from "./widgets/WidgetTimelineConclusoes";
 import { WidgetListaAtrasadas } from "./widgets/WidgetListaAtrasadas";
 import { WidgetListaProximas } from "./widgets/WidgetListaProximas";
+import { WidgetHeatmapProdutividade } from "./widgets/WidgetHeatmapProdutividade";
+import { WidgetLeaderboardProjetos } from "./widgets/WidgetLeaderboardProjetos";
+import { WidgetTaxaCumprimentoPrazo, calcTaxaPrazo } from "./widgets/WidgetTaxaCumprimentoPrazo";
+import { WidgetCargaCapacidade } from "./widgets/WidgetCargaCapacidade";
+import { WidgetAgingTarefas } from "./widgets/WidgetAgingTarefas";
+import { DashboardTemplateGallery } from "./DashboardTemplateGallery";
 import { useConfirm } from "@/hooks/useConfirm";
+
 
 interface Props {
   tarefas: MinaTarefa[];
