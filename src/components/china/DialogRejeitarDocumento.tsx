@@ -31,8 +31,10 @@ export function DialogRejeitarDocumento({
   onSucesso,
 }: Props) {
   const [motivo, setMotivo] = useState("");
+  const [mentions, setMentions] = useState<string[]>([]);
   const [files, setFiles] = useState<File[]>([]);
   const rejeitar = useRejeitarComLaudo();
+  const { data: mentionables = [] } = useChinaItemMentionableUsers(submissaoId);
 
   function handleFiles(list: FileList | null) {
     if (!list) return;
