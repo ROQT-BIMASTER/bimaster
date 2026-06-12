@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { awaitCacheUnificadoFresh } from '@/lib/estoque/cacheFreshness';
 import type { EstoqueCoresFiltros } from './useEstoqueCoresQuery';
 
 export interface EstoqueCoresKpis {
