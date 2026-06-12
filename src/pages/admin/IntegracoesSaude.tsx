@@ -3,8 +3,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { ShieldCheck, ShieldAlert, KeyRound, Clock } from "lucide-react";
-import { differenceInDays, format } from "date-fns";
+import { ShieldCheck, ShieldAlert, KeyRound, Clock, Activity, AlertTriangle } from "lucide-react";
+import { differenceInDays, format, subHours } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 type ErpConfigRow = {
