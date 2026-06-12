@@ -50490,6 +50490,18 @@ export type Database = {
         }
         Relationships: []
       }
+      vw_divergencia_linha_erp: {
+        Row: {
+          cod_fabricante: string | null
+          cod_produto: number | null
+          linhas_distintas: string[] | null
+          nome_prod: string | null
+          por_filial: Json | null
+          qtd_linhas_distintas: number | null
+          saldo_total: number | null
+        }
+        Relationships: []
+      }
       vw_drift_erp_unificado: {
         Row: {
           cod_produto: number | null
@@ -53783,6 +53795,7 @@ export type Database = {
       rpc_estoque_cores: {
         Args: {
           p_apenas_com_saldo?: boolean
+          p_apenas_divergencia_linha?: boolean
           p_busca?: string
           p_campanha_ids?: string[]
           p_com_pedido_pendente?: boolean
@@ -53811,6 +53824,7 @@ export type Database = {
           estoque_bloqueado_produto: number
           estoque_endereco: number
           id: string
+          linhas_divergentes: string[]
           localizacao: string
           lote: string
           nome_linha: string
@@ -53822,6 +53836,7 @@ export type Database = {
           saldo_total_disponivel: number
           sincronizado_em: string
           tem_composicao_pai: boolean
+          tem_divergencia_linha: boolean
           total_count: number
           unidade_medida: string
           validade: string
@@ -53831,6 +53846,7 @@ export type Database = {
       rpc_estoque_cores_consolidado: {
         Args: {
           p_apenas_com_saldo?: boolean
+          p_apenas_divergencia_linha?: boolean
           p_busca?: string
           p_campanha_ids?: string[]
           p_com_pedido_pendente?: boolean
@@ -53852,6 +53868,7 @@ export type Database = {
           estoque_bloqueado_endereco: number
           estoque_bloqueado_produto: number
           estoque_endereco: number
+          linhas_divergentes: string[]
           nome_linha: string
           nome_prod: string
           pedido_pendente: number
@@ -53860,6 +53877,7 @@ export type Database = {
           saldo_potencial_desmontagem: number
           saldo_proprio: number
           saldo_total_disponivel: number
+          tem_divergencia_linha: boolean
           total_count: number
           unidade_medida: string
         }[]
