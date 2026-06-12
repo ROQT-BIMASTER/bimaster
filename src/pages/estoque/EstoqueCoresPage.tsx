@@ -124,6 +124,17 @@ export default function EstoqueCoresPage() {
 
         <EstoqueCoresKpiBar kpis={kpis} loading={kpisLoading} consolidado={consolidado} />
 
+        {base.incluir_potencial && (
+          <Alert className="py-2">
+            <Info className="h-4 w-4" />
+            <AlertDescription className="text-xs">
+              O potencial de desmontagem é atribuído integralmente a cada cor-folha. Quando uma mesma caixa atende a mais de uma cor, seu saldo aparece em todas — o somatório por cor fica acima do saldo físico (consultado em Estoque Unificado). Composição lida em tempo real do ERP.
+            </AlertDescription>
+          </Alert>
+        )}
+
+
+
         <div className="space-y-3">
           <div className="flex flex-wrap items-center gap-3">
             <div className="relative flex-1 min-w-[220px] max-w-md">
