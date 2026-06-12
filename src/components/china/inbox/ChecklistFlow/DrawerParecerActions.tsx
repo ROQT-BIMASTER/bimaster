@@ -1,9 +1,9 @@
 import { useState } from "react";
-import { Check, AlertCircle, Eye, Upload, Loader2 } from "lucide-react";
+import { Check, AlertCircle, Eye, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useCriarRevisao, useDarCiencia } from "@/hooks/useChinaRevisoes";
 import { DialogRejeitarDocumento } from "@/components/china/DialogRejeitarDocumento";
 import { DialogContestarDocumento } from "@/components/china/DialogContestarDocumento";
+import { DialogAprovarDocumento } from "@/components/china/DialogAprovarDocumento";
 import type { FlowBucket } from "@/lib/china/flowTones";
 
 interface Props {
@@ -29,8 +29,8 @@ export function DrawerParecerActions({
 }: Props) {
   const [rejeitarOpen, setRejeitarOpen] = useState(false);
   const [contestarOpen, setContestarOpen] = useState(false);
-  const aprovar = useCriarRevisao();
-  const ciencia = useDarCiencia();
+  const [aprovarOpen, setAprovarOpen] = useState(false);
+  const [cienciaOpen, setCienciaOpen] = useState(false);
 
   const podeReceiver = isReceiver && bucket !== "aprovado";
   const podeSubstituir = isSender && bucket === "rejeitado";
@@ -42,27 +42,20 @@ export function DrawerParecerActions({
       <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
         Parecer
       </p>
+      <p className="text-[10.5px] text-muted-foreground/80">
+        Toda decisão exige um parecer técnico — ele fica registrado na trilha
+        de auditoria e pode mencionar colegas com <code className="rounded bg-muted px-1">@</code>.
+      </p>
       <div className="flex flex-wrap gap-1.5">
         {podeReceiver && (
           <>
             <Button
               size="sm"
               className="h-7 gap-1.5 text-xs"
-              onClick={() =>
-                aprovar.mutate({
-                  documento_id: documentoId,
-                  submissao_id: submissaoId,
-                  resultado: "aprovado",
-                })
-              }
-              disabled={aprovar.isPending}
+              onClick={() => setAprovarOpen(true)}
             >
-              {aprovar.isPending ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              ) : (
-                <Check className="h-3.5 w-3.5" />
-              )}
-              Aprovar
+              <Check className="h-3.5 w-3.5" />
+              Aprovar com parecer
             </Button>
             <Button
               size="sm"
@@ -77,19 +70,9 @@ export function DrawerParecerActions({
               size="sm"
               variant="ghost"
               className="h-7 gap-1.5 text-xs"
-              onClick={() =>
-                ciencia.mutate({
-                  documento_id: documentoId,
-                  submissao_id: submissaoId,
-                })
-              }
-              disabled={ciencia.isPending}
+              onClick={() => setCienciaOpen(true)}
             >
-              {ciencia.isPending ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              ) : (
-                <Eye className="h-3.5 w-3.5" />
-              )}
+              <Eye className="h-3.5 w-3.5" />
               Dar ciência
             </Button>
           </>
@@ -107,6 +90,22 @@ export function DrawerParecerActions({
         )}
       </div>
 
+      <DialogAprovarDocumento
+        open={aprovarOpen}
+        onOpenChange={setAprovarOpen}
+        documentoId={documentoId}
+        submissaoId={submissaoId}
+        tipoDocumentoLabel={tipoDocumentoLabel}
+        modo="aprovar"
+      />
+      <DialogAprovarDocumento
+        open={cienciaOpen}
+        onOpenChange={setCienciaOpen}
+        documentoId={documentoId}
+        submissaoId={submissaoId}
+        tipoDocumentoLabel={tipoDocumentoLabel}
+        modo="ciencia"
+      />
       <DialogRejeitarDocumento
         open={rejeitarOpen}
         onOpenChange={setRejeitarOpen}
