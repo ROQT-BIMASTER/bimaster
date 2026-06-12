@@ -152,7 +152,7 @@ export function ChinaChecklistFocusMode({
 
   // Substituir documento rejeitado com parecer técnico
   const [substituirDoc, setSubstituirDoc] = useState<DocRecord | null>(null);
-  const [adminSheetDoc, setAdminSheetDoc] = useState<{ doc: DocRecord; fluxo: "china_envia" | "brasil_envia" } | null>(null);
+  const [adminSheetDoc, setAdminSheetDoc] = useState<DocRecord | null>(null);
   const { data: revisoes = [] } = useRevisoesPorSubmissao(submissaoId);
   const ultimaRevisaoPorDoc = useMemo(() => {
     const map = new Map<string, typeof revisoes[number]>();
