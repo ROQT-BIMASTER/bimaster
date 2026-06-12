@@ -54189,6 +54189,15 @@ export type Database = {
               valor_pago: number
             }[]
           }
+      rpc_listar_projetos_para_vinculo: {
+        Args: { p_limit?: number; p_termo?: string }
+        Returns: {
+          id: string
+          nome: string
+          status: string
+          tipo: string
+        }[]
+      }
       rpc_lookup_catalogo: {
         Args: { p_empresa_id: number; p_marca: string; p_tipo: string }
         Returns: Json

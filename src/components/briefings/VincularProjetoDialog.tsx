@@ -69,61 +69,18 @@ export function VincularProjetoDialog({
     let canceled = false;
     setLoading(true);
     const t = setTimeout(async () => {
-      const { data: userData } = await supabase.auth.getUser();
-      const uid = userData.user?.id;
-      if (!uid) {
-        if (!canceled) {
-          setProjetos([]);
-          setLoading(false);
-        }
-        return;
-      }
-
       const termo = busca.trim();
-      const baseSelect = "id, nome, status";
-
-      let q1 = supabase
-        .from("projetos")
-        .select(baseSelect)
-        .eq("criador_id", uid)
-        .order("nome")
-        .limit(30);
-      if (termo) q1 = q1.ilike("nome", `%${termo}%`);
-
-      const { data: membros } = await supabase
-        .from("projeto_membros")
-        .select("projeto_id")
-        .eq("user_id", uid);
-      const ids = (membros ?? []).map((m: any) => m.projeto_id).filter(Boolean);
-
-      let q2Promise: any = Promise.resolve({ data: [] as Projeto[], error: null });
-      if (ids.length > 0) {
-        let q2 = supabase
-          .from("projetos")
-          .select(baseSelect)
-          .in("id", ids)
-          .order("nome")
-          .limit(30);
-        if (termo) q2 = q2.ilike("nome", `%${termo}%`);
-        q2Promise = q2;
-      }
-
-      const [r1, r2] = await Promise.all([q1, q2Promise]);
-      if (canceled) return;
-
-      if (r1.error || r2.error) {
-        toast.error("Erro ao buscar projetos");
-      }
-
-      const map = new Map<string, Projeto>();
-      [...(r1.data ?? []), ...(r2.data ?? [])].forEach((p: any) => {
-        if (p?.id) map.set(p.id, p as Projeto);
+      const { data, error } = await supabase.rpc("rpc_listar_projetos_para_vinculo" as any, {
+        p_termo: termo || null,
+        p_limit: 30,
       });
-      const merged = Array.from(map.values())
-        .sort((a, b) => a.nome.localeCompare(b.nome))
-        .slice(0, 30);
-
-      setProjetos(merged);
+      if (canceled) return;
+      if (error) {
+        toast.error("Erro ao buscar projetos");
+        setProjetos([]);
+      } else {
+        setProjetos((data ?? []) as Projeto[]);
+      }
       setLoading(false);
     }, 250);
     return () => {
