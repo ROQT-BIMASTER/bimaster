@@ -266,6 +266,7 @@ const EstoqueEtiquetasAdminPage = lazyWithRetry(() => import("./pages/estoque/Es
 const EstoqueUnificadoPage = lazyWithRetry(() => import("./pages/estoque/EstoqueUnificadoPage"));
 const EstoqueAuditoriaDriftPage = lazyWithRetry(() => import("./pages/estoque/EstoqueAuditoriaDriftPage"));
 const EstoqueReconciliacaoCoresPage = lazyWithRetry(() => import("./pages/estoque/EstoqueReconciliacaoCoresPage"));
+const EstoqueAuditoriaLinhasErpPage = lazyWithRetry(() => import("./pages/estoque/EstoqueAuditoriaLinhasErpPage"));
 const EstoqueValoresPorFilial = lazyWithRetry(() => import("./pages/estoque/EstoqueValoresPorFilial"));
 const ComposicaoErpSyncPage = lazyWithRetry(() => import("./pages/composicao/ComposicaoErpSyncPage"));
 const FinancialPaymentCentral = lazyWithRetry(() => import("./pages/FinancialPaymentCentral"));
