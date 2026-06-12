@@ -57,9 +57,11 @@ export function DialogRejeitarDocumento({
       documento_id: documentoId,
       submissao_id: submissaoId,
       motivo: motivo.trim(),
+      mentions,
       anexos: files,
     });
     setMotivo("");
+    setMentions([]);
     setFiles([]);
     onOpenChange(false);
     onSucesso?.();
