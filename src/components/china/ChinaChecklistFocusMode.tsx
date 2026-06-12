@@ -28,6 +28,9 @@ import { useNavigate } from "react-router-dom";
 import { useRevisoesPorSubmissao } from "@/hooks/useChinaRevisoes";
 import { DialogContestarDocumento } from "./DialogContestarDocumento";
 import { ChecklistGovernancePanel } from "./ChecklistGovernancePanel";
+import { ChecklistItemAdminSheet } from "@/components/china/checklist/ChecklistItemAdminSheet";
+import { bucketForDoc } from "@/lib/china/flowTones";
+import { MessageSquareText } from "lucide-react";
 import { useTraduzirTexto } from "@/hooks/useTraduzirTexto";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
