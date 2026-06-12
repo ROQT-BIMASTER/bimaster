@@ -56,6 +56,7 @@ export interface EstoqueCoresFiltros {
   apenas_com_saldo: boolean;
   com_pedido_pendente: boolean;
   incluir_potencial: boolean;
+  apenas_divergencia_linha: boolean;
 }
 
 export const FILTROS_CORES_INICIAIS: EstoqueCoresFiltros = {
@@ -68,6 +69,7 @@ export const FILTROS_CORES_INICIAIS: EstoqueCoresFiltros = {
   apenas_com_saldo: false,
   com_pedido_pendente: false,
   incluir_potencial: true,
+  apenas_divergencia_linha: false,
 };
 
 interface UseOpts {
