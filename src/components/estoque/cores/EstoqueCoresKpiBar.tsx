@@ -28,15 +28,16 @@ function Item({ label, value, icon: Icon, sub, tone }: { label: string; value: s
 export function EstoqueCoresKpiBar({ kpis, loading, consolidado }: Props) {
   if (loading || !kpis) {
     return (
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        {Array.from({ length: 4 }).map((_, i) => (
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+        {Array.from({ length: 5 }).map((_, i) => (
           <Card key={i} className="p-3"><Skeleton className="h-12 w-full" /></Card>
         ))}
       </div>
     );
   }
+  const disponivel = Math.max(0, Math.round(kpis.total_unidades - kpis.total_bloqueado_produto));
   return (
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+    <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
       <Item
         label={consolidado ? 'Produtos (consolidado)' : 'SKUs (cores)'}
         value={kpis.total_skus.toLocaleString('pt-BR')}
@@ -47,6 +48,13 @@ export function EstoqueCoresKpiBar({ kpis, loading, consolidado }: Props) {
         value={Math.round(kpis.total_unidades).toLocaleString('pt-BR')}
         icon={Layers}
         sub={`Potencial: ${Math.round(kpis.total_unidades_potencial).toLocaleString('pt-BR')}`}
+      />
+      <Item
+        label="Disponível"
+        value={disponivel.toLocaleString('pt-BR')}
+        icon={ShieldCheck}
+        sub={`Bloqueado: ${Math.round(kpis.total_bloqueado_produto).toLocaleString('pt-BR')}`}
+        tone="success"
       />
       <Item label="Pedido pendente" value={Math.round(kpis.total_pedido_pendente).toLocaleString('pt-BR')} icon={ShoppingCart} />
       <Item label="Itens sem saldo" value={kpis.itens_sem_saldo.toLocaleString('pt-BR')} icon={AlertCircle} />
