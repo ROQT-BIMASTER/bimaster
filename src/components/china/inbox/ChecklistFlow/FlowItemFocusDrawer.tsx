@@ -23,9 +23,7 @@ import {
 import type { FlowItemContext } from "./types";
 import type { MailboxItem } from "@/hooks/useChinaMailbox";
 import type { MailboxGroup } from "@/lib/china/groupMailboxItems";
-import { DrawerParecerActions } from "./DrawerParecerActions";
-import { DrawerRevisoesList } from "./DrawerRevisoesList";
-import { DrawerComentariosTab } from "./DrawerComentariosTab";
+import { ChecklistItemAdminPanel } from "@/components/china/checklist/ChecklistItemAdminPanel";
 
 
 interface Props {
