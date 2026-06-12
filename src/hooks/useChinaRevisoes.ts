@@ -559,6 +559,7 @@ export function useContestarComParecer() {
           acao_por_nome: user.nome,
           anotacoes: [],
           anexos: [],
+          mentions: params.mentions || [],
         } as any)
         .select("id")
         .single();
