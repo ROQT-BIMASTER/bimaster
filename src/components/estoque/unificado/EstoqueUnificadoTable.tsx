@@ -341,7 +341,27 @@ export function EstoqueUnificadoTable(p: Props) {
                     <div className="flex items-center gap-2">
                       <div className="flex flex-col min-w-0">
                         <span className="text-sm font-medium leading-tight truncate">{r.raiz_nome ?? `Produto ${r.produto_raiz}`}</span>
-                        <span className="text-[11px] text-muted-foreground">Cód. {r.produto_raiz}</span>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="text-[11px] text-muted-foreground">Cód. {r.produto_raiz}</span>
+                          {(() => {
+                            const tagIds = etiquetasMap?.get(r.produto_raiz) ?? [];
+                            if (tagIds.length === 0) return null;
+                            return tagIds.map((id) => {
+                              const e = etiquetaById.get(id);
+                              if (!e) return null;
+                              return (
+                                <span
+                                  key={id}
+                                  className="inline-flex items-center px-1.5 h-4 rounded text-[9px] font-semibold tracking-wide uppercase"
+                                  style={{ background: e.cor_hex, color: '#fff' }}
+                                  title={e.nome}
+                                >
+                                  {e.nome}
+                                </span>
+                              );
+                            });
+                          })()}
+                        </div>
                       </div>
                       {consolidado && validacaoMap && (
                         <ValidacaoBadge validacao={validacaoMap.get(r.produto_raiz)} />
