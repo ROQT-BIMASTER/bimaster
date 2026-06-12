@@ -85,18 +85,27 @@ export function DialogRejeitarDocumento({
         <div className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="motivo">Laudo técnico (motivo detalhado da rejeição) *</Label>
-            <Textarea
-              id="motivo"
+            <MentionInput
               value={motivo}
-              onChange={(e) => setMotivo(e.target.value)}
-              rows={6}
-              placeholder="Descreva tecnicamente o que está incorreto, qual norma/exigência não foi atendida e o que precisa ser ajustado…"
-              maxLength={8000}
+              onChange={(v) => {
+                setMotivo(v);
+                const ids = mentionables
+                  .filter((m) => v.includes(`@${m.nome}`))
+                  .map((m) => m.id);
+                setMentions(ids);
+              }}
+              onSubmit={() => {}}
+              users={mentionables}
+              placeholder="Descreva tecnicamente o que está incorreto, qual norma/exigência não foi atendida e o que precisa ser ajustado. Use @ para mencionar colegas."
+              showSendButton={false}
+              minRows={6}
             />
             <p className="text-xs text-muted-foreground">
               {motivo.length}/8000 caracteres
             </p>
           </div>
+
+
 
           <div className="space-y-2">
             <Label htmlFor="anexos">Anexos justificativos (opcional)</Label>
