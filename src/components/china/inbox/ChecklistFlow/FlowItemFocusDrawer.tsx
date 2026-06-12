@@ -354,27 +354,23 @@ export function FlowItemFocusDrawer({
             className="flex-1 overflow-y-auto px-4 py-3 space-y-4 mt-0"
           >
             {doc?.documento_id ? (
-              <>
-                <DrawerParecerActions
-                  documentoId={doc.documento_id}
-                  submissaoId={submissaoId}
-                  tipoDocumento={tipo}
-                  tipoDocumentoLabel={labelPt}
-                  bucket={bucket}
-                  isReceiver={
-                    (isChina && isBrasilCategory) ||
-                    (!isChina && isChinaCategory)
-                  }
-                  isSender={
-                    (isChina && isChinaCategory) ||
-                    (!isChina && isBrasilCategory)
-                  }
-                />
-                <DrawerRevisoesList
-                  submissaoId={submissaoId}
-                  documentoId={doc.documento_id}
-                />
-              </>
+              <ChecklistItemAdminPanel
+                documentoId={doc.documento_id}
+                submissaoId={submissaoId}
+                tipoDocumento={tipo}
+                tipoDocumentoLabel={labelPt}
+                bucket={bucket}
+                lado={isChina ? "china" : "brasil"}
+                isReceiver={
+                  (isChina && isBrasilCategory) ||
+                  (!isChina && isChinaCategory)
+                }
+                isSender={
+                  (isChina && isChinaCategory) ||
+                  (!isChina && isBrasilCategory)
+                }
+                defaultTab="parecer"
+              />
             ) : (
               <div className="rounded-md border border-dashed border-border px-3 py-4 text-center text-[11px] text-muted-foreground">
                 Anexe um documento na aba anterior para registrar pareceres.
@@ -388,11 +384,22 @@ export function FlowItemFocusDrawer({
             className="flex-1 overflow-y-auto px-4 py-3 mt-0"
           >
             {doc?.documento_id ? (
-              <DrawerComentariosTab
+              <ChecklistItemAdminPanel
                 documentoId={doc.documento_id}
                 submissaoId={submissaoId}
                 tipoDocumento={tipo}
+                tipoDocumentoLabel={labelPt}
+                bucket={bucket}
                 lado={isChina ? "china" : "brasil"}
+                isReceiver={
+                  (isChina && isBrasilCategory) ||
+                  (!isChina && isChinaCategory)
+                }
+                isSender={
+                  (isChina && isChinaCategory) ||
+                  (!isChina && isBrasilCategory)
+                }
+                defaultTab="comentarios"
               />
             ) : (
               <div className="rounded-md border border-dashed border-border px-3 py-4 text-center text-[11px] text-muted-foreground">
@@ -400,6 +407,7 @@ export function FlowItemFocusDrawer({
               </div>
             )}
           </TabsContent>
+
         </Tabs>
 
 
