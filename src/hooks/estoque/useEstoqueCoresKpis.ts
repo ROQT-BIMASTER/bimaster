@@ -17,8 +17,8 @@ export interface EstoqueCoresKpis {
 export function useEstoqueCoresKpis(filtros: EstoqueCoresFiltros) {
   return useQuery({
     queryKey: ['estoque-cores-kpis', filtros],
-    staleTime: 25_000,
-    refetchInterval: 30_000,
+    staleTime: 600_000,
+    refetchInterval: 600_000,
     queryFn: async () => {
       await awaitCacheUnificadoFresh();
       const { data, error } = await (supabase as any).rpc('rpc_estoque_cores_kpis', {

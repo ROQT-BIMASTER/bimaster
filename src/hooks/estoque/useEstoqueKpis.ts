@@ -19,8 +19,8 @@ export interface EstoqueKpis {
 export function useEstoqueKpis(filtros: EstoqueFiltros) {
   return useQuery({
     queryKey: ['estoque-kpis-recorte', filtros],
-    staleTime: 30_000,
-    refetchInterval: 30_000,
+    staleTime: 600_000,
+    refetchInterval: 600_000,
     refetchIntervalInBackground: false,
     queryFn: async () => {
       const { data, error } = await supabase.rpc('estoque_kpis_recorte', {

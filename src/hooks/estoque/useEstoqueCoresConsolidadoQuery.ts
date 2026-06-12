@@ -73,8 +73,8 @@ export function useEstoqueCoresConsolidadoQuery({
     queryKey: ['estoque-cores-consolidado', filtros, page, pageSize, sortBy, sortDir],
     enabled,
     placeholderData: keepPreviousData,
-    staleTime: 25_000,
-    refetchInterval: 30_000,
+    staleTime: 600_000,
+    refetchInterval: 600_000,
     queryFn: async () => {
       const { data, error } = await (supabase as any).rpc('rpc_estoque_cores_consolidado', {
         p_empresas: filtros.empresas.length ? filtros.empresas : null,
@@ -113,8 +113,8 @@ export function useEstoqueCoresKpisConsolidado(filtros: EstoqueCoresFiltros, ena
   return useQuery({
     queryKey: ['estoque-cores-kpis-consolidado', filtros],
     enabled,
-    staleTime: 25_000,
-    refetchInterval: 30_000,
+    staleTime: 600_000,
+    refetchInterval: 600_000,
     queryFn: async () => {
       const { data, error } = await (supabase as any).rpc('rpc_estoque_cores_kpis_consolidado', {
         p_empresas: filtros.empresas.length ? filtros.empresas : null,
