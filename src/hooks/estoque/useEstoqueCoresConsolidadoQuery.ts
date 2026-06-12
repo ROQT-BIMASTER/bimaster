@@ -106,6 +106,7 @@ export interface EstoqueCoresKpisConsolidado {
   total_unidades_potencial: number;
   total_pedido_pendente: number;
   itens_sem_saldo: number;
+  total_bloqueado_produto: number;
 }
 
 export function useEstoqueCoresKpisConsolidado(filtros: EstoqueCoresFiltros, enabled = true) {
@@ -134,6 +135,7 @@ export function useEstoqueCoresKpisConsolidado(filtros: EstoqueCoresFiltros, ena
         total_unidades_potencial: Number(row.total_unidades_potencial ?? 0),
         total_pedido_pendente: Number(row.total_pedido_pendente ?? 0),
         itens_sem_saldo: Number(row.itens_sem_saldo ?? 0),
+        total_bloqueado_produto: Number(row.total_bloqueado_produto ?? 0),
       };
     },
   });
