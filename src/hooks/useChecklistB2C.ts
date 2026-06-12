@@ -206,6 +206,10 @@ export function useUploadArquivoB2C() {
         console.warn("[b2c] falha ao enviar notificação por email:", err);
       }
     },
+    onError: (e: any) => toast.error(e?.message || "Falha ao anexar"),
+  });
+}
+
 
 /** Brasil → China: marca como enviado. */
 export function useEnviarDocB2C() {
