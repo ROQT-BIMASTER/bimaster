@@ -50409,6 +50409,14 @@ export type Database = {
         }
         Relationships: []
       }
+      vw_conciliacao_cores_unificado: {
+        Row: {
+          diferenca: number | null
+          total_cores_un: number | null
+          total_unificado_un: number | null
+        }
+        Relationships: []
+      }
       vw_container_consolidado: {
         Row: {
           booking_number: string | null
