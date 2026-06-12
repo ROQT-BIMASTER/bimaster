@@ -133,6 +133,9 @@ export default function EstoqueUnificadoPage() {
     sortBy: backendSortBy, sortDir, consolidar,
     marcas, linhas,
   });
+  const { data: serverTotals } = useEstoqueUnificadoKpis({
+    empresaIds, somenteComSaldo, marcas, linhas, busca: buscaDeb,
+  });
 
   // O refresh do `estoque_unificado_cache` agora é orquestrado pelo helper
   // `awaitCacheUnificadoFresh` dentro do queryFn — singleton compartilhado
