@@ -13,6 +13,7 @@ import {
   BACKEND_SORT_KEYS,
   type EstoqueUnifColId,
 } from '@/hooks/estoque/useEstoqueUnificadoTablePrefs';
+import { useEtiquetaProdutosBatch, useEstoqueEtiquetas } from '@/hooks/estoque/useEstoqueEtiquetas';
 
 interface Props {
   rows: EstoqueUnificadoRow[];
