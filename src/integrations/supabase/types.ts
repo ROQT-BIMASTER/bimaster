@@ -15563,6 +15563,7 @@ export type Database = {
           empresa: number
           fator_bx_para_un: number | null
           fator_cx_para_un: number | null
+          nome_raiz: string | null
           pendente_total_em_unidades: number
           produto_raiz: number
           saldo_em_caixas: number
@@ -15580,6 +15581,7 @@ export type Database = {
           empresa: number
           fator_bx_para_un?: number | null
           fator_cx_para_un?: number | null
+          nome_raiz?: string | null
           pendente_total_em_unidades?: number
           produto_raiz: number
           saldo_em_caixas?: number
@@ -15597,6 +15599,7 @@ export type Database = {
           empresa?: number
           fator_bx_para_un?: number | null
           fator_cx_para_un?: number | null
+          nome_raiz?: string | null
           pendente_total_em_unidades?: number
           produto_raiz?: number
           saldo_em_caixas?: number
@@ -50522,6 +50525,30 @@ export type Database = {
         }
         Relationships: []
       }
+      vw_estoque_raiz_sem_nome: {
+        Row: {
+          atualizado_em: string | null
+          custo_total: number | null
+          empresa: number | null
+          produto_raiz: number | null
+          unidades_totais: number | null
+        }
+        Insert: {
+          atualizado_em?: string | null
+          custo_total?: number | null
+          empresa?: number | null
+          produto_raiz?: number | null
+          unidades_totais?: number | null
+        }
+        Update: {
+          atualizado_em?: string | null
+          custo_total?: number | null
+          empresa?: number | null
+          produto_raiz?: number | null
+          unidades_totais?: number | null
+        }
+        Relationships: []
+      }
       vw_estoque_unificado: {
         Row: {
           bloqueado_total_em_unidades: number | null
@@ -50531,6 +50558,7 @@ export type Database = {
           empresa: number | null
           fator_bx_para_un: number | null
           fator_cx_para_un: number | null
+          nome_raiz: string | null
           pendente_total_em_unidades: number | null
           produto_raiz: number | null
           saldo_em_caixas: number | null
@@ -50547,6 +50575,7 @@ export type Database = {
           empresa?: number | null
           fator_bx_para_un?: number | null
           fator_cx_para_un?: number | null
+          nome_raiz?: string | null
           pendente_total_em_unidades?: number | null
           produto_raiz?: number | null
           saldo_em_caixas?: number | null
@@ -50563,6 +50592,7 @@ export type Database = {
           empresa?: number | null
           fator_bx_para_un?: number | null
           fator_cx_para_un?: number | null
+          nome_raiz?: string | null
           pendente_total_em_unidades?: number | null
           produto_raiz?: number | null
           saldo_em_caixas?: number | null

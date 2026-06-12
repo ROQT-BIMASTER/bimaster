@@ -71,7 +71,7 @@ function rowToRecord(r: EstoqueUnificadoRow) {
   return {
     empresa: r.filial_nome ?? r.raiz_abrev ?? String(r.empresa ?? ''),
     codigo: String(r.produto_raiz ?? ''),
-    produto: r.raiz_nome ?? `Produto ${r.produto_raiz}`,
+    produto: (r.raiz_nome && r.raiz_nome.trim()) || '(sem descrição)',
     ean: r.ean_raiz ?? '',
     marca: r.marca ?? '',
     linha: r.linha ?? '',
