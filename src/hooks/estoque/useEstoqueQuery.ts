@@ -46,7 +46,9 @@ export function useEstoqueQuery({ filtros, page, pageSize, sortBy, sortDir }: Us
   return useQuery({
     queryKey: ['estoque-erp-list', filtros, page, pageSize, sortBy, sortDir],
     placeholderData: keepPreviousData,
-    staleTime: 60_000,
+    staleTime: 30_000,
+    refetchInterval: 30_000,
+    refetchIntervalInBackground: false,
     queryFn: async () => {
       let q = supabase.from('erp_estoque_distribuidora').select(COLS, { count: 'exact' });
 
