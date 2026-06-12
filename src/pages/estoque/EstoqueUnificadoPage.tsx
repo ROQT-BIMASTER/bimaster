@@ -315,29 +315,57 @@ export default function EstoqueUnificadoPage() {
           </ToggleGroup>
 
           <div className="flex items-center gap-1 flex-wrap">
-            <Badge variant="secondary" className="text-xs">{empresasSelecionadasLabel}</Badge>
-            {(opts?.empresas ?? []).slice(0, 8).map((e) => {
-              const active = empresaIds.includes(e.id);
-              return (
+            <Popover>
+              <PopoverTrigger asChild>
                 <Button
-                  key={e.id}
-                  variant={active ? 'default' : 'outline'}
+                  variant={empresaIds.length ? 'default' : 'outline'}
                   size="sm"
-                  className="h-7 text-xs"
-                  onClick={() => {
-                    setPage(0);
-                    setEmpresaIds((prev) => (prev.includes(e.id) ? prev.filter((x) => x !== e.id) : [...prev, e.id]));
-                  }}
+                  className="h-7 text-xs gap-1"
                 >
-                  {e.nome}
+                  {empresaIds.length === 0
+                    ? 'Empresas'
+                    : empresaIds.length === 1
+                      ? `Empresas: ${(opts?.empresas ?? []).find((x) => x.id === empresaIds[0])?.nome ?? '1'}`
+                      : `Empresas: ${empresaIds.length}`}
+                  <ChevronDown className="h-3 w-3 opacity-60" />
                 </Button>
-              );
-            })}
-            {empresaIds.length > 0 && (
-              <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => { setEmpresaIds([]); setPage(0); }}>
-                Limpar
-              </Button>
-            )}
+              </PopoverTrigger>
+              <PopoverContent className="w-[280px] p-0 z-[60]" align="start">
+                <Command>
+                  <CommandInput placeholder="Buscar empresa..." className="h-9" />
+                  <CommandList>
+                    <CommandEmpty>Nenhuma empresa encontrada.</CommandEmpty>
+                    <CommandGroup>
+                      {empresaIds.length > 0 && (
+                        <CommandItem
+                          onSelect={() => { setEmpresaIds([]); setPage(0); }}
+                          className="text-muted-foreground"
+                        >
+                          Limpar seleção
+                        </CommandItem>
+                      )}
+                      {(opts?.empresas ?? []).map((e) => {
+                        const active = empresaIds.includes(e.id);
+                        return (
+                          <CommandItem
+                            key={e.id}
+                            onSelect={() => {
+                              setPage(0);
+                              setEmpresaIds((prev) =>
+                                prev.includes(e.id) ? prev.filter((x) => x !== e.id) : [...prev, e.id],
+                              );
+                            }}
+                          >
+                            <Check className={cn('h-4 w-4 mr-2', active ? 'opacity-100' : 'opacity-0')} />
+                            {e.nome}
+                          </CommandItem>
+                        );
+                      })}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
 
             <span className="mx-1 h-5 w-px bg-border" aria-hidden />
 
