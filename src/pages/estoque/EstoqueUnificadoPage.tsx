@@ -291,7 +291,7 @@ export default function EstoqueUnificadoPage() {
           <UpdatedAtBadge dataUpdatedAt={dataUpdatedAt} isFetching={isFetching} />
         </div>
 
-        <EstoqueUnificadoKpis rows={data?.aggregateRows ?? []} total={data?.total ?? 0} loading={isLoading} modo={modo} />
+        <EstoqueUnificadoKpis rows={data?.aggregateRows ?? []} total={data?.total ?? 0} loading={isLoading} modo={modo} serverTotals={serverTotals ?? null} />
 
         <div className="flex flex-col lg:flex-row lg:items-center gap-3">
           <div className="relative flex-1 max-w-md">
