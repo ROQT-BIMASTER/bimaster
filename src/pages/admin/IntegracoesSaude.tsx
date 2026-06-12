@@ -71,7 +71,8 @@ export default function IntegracoesSaude() {
 
   const allKeys = [
     ...(erpConfig ?? []).map((r) => ({
-      origem: "ERP Huggs",
+      origem: "ERP Huggs" as const,
+      empresa_id: r.empresa_id,
       nome: `Empresa ${r.empresa_id ?? "?"}`,
       ativo: !!r.ativo,
       hash_ok: !!r.api_key_hash,
@@ -79,9 +80,11 @@ export default function IntegracoesSaude() {
       expira_em: r.api_key_expira_em,
       anterior_expira_em: r.api_key_anterior_expira_em,
       ultima_atualizacao: r.updated_at,
+      rotatable: true,
     })),
     ...(portalKeys ?? []).map((r) => ({
-      origem: "Portal Integração",
+      origem: "Portal Integração" as const,
+      empresa_id: null as number | null,
       nome: r.nome_responsavel ?? `Empresa ${r.empresa_id}`,
       ativo: !!r.active,
       hash_ok: true,
@@ -89,6 +92,7 @@ export default function IntegracoesSaude() {
       expira_em: r.expires_at,
       anterior_expira_em: null,
       ultima_atualizacao: r.created_at,
+      rotatable: false,
     })),
   ];
 
