@@ -1,7 +1,7 @@
 import { Card } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { EstoqueCoresKpis } from '@/hooks/estoque/useEstoqueCoresKpis';
-import { Package, Layers, AlertCircle, ShoppingCart } from 'lucide-react';
+import { Package, Layers, AlertCircle, ShoppingCart, ShieldCheck } from 'lucide-react';
 
 interface Props {
   kpis: EstoqueCoresKpis | undefined;
