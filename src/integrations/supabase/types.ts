@@ -4999,6 +4999,82 @@ export type Database = {
         }
         Relationships: []
       }
+      china_doc_comentarios: {
+        Row: {
+          anexos: Json
+          autor_id: string
+          autor_nome: string
+          conteudo: string
+          conteudo_idioma_origem: string | null
+          conteudo_traducoes: Json
+          created_at: string
+          documento_id: string
+          id: string
+          lado: string
+          mentions: string[]
+          ref_rodada: number | null
+          submissao_id: string
+          tipo_documento: string
+          updated_at: string
+        }
+        Insert: {
+          anexos?: Json
+          autor_id: string
+          autor_nome: string
+          conteudo?: string
+          conteudo_idioma_origem?: string | null
+          conteudo_traducoes?: Json
+          created_at?: string
+          documento_id: string
+          id?: string
+          lado: string
+          mentions?: string[]
+          ref_rodada?: number | null
+          submissao_id: string
+          tipo_documento: string
+          updated_at?: string
+        }
+        Update: {
+          anexos?: Json
+          autor_id?: string
+          autor_nome?: string
+          conteudo?: string
+          conteudo_idioma_origem?: string | null
+          conteudo_traducoes?: Json
+          created_at?: string
+          documento_id?: string
+          id?: string
+          lado?: string
+          mentions?: string[]
+          ref_rodada?: number | null
+          submissao_id?: string
+          tipo_documento?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "china_doc_comentarios_documento_id_fkey"
+            columns: ["documento_id"]
+            isOneToOne: false
+            referencedRelation: "china_produto_documentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "china_doc_comentarios_submissao_id_fkey"
+            columns: ["submissao_id"]
+            isOneToOne: false
+            referencedRelation: "china_produto_submissoes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "china_doc_comentarios_submissao_id_fkey"
+            columns: ["submissao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_china_produto_recebimento_kpis"
+            referencedColumns: ["submissao_id"]
+          },
+        ]
+      }
       china_doc_revisoes: {
         Row: {
           acao_por_nome: string | null
@@ -5012,6 +5088,7 @@ export type Database = {
           created_at: string | null
           documento_id: string
           id: string
+          mentions: string[]
           motivo_idioma_origem: string | null
           motivo_rejeicao: string | null
           motivo_traducoes: Json
@@ -5032,6 +5109,7 @@ export type Database = {
           created_at?: string | null
           documento_id: string
           id?: string
+          mentions?: string[]
           motivo_idioma_origem?: string | null
           motivo_rejeicao?: string | null
           motivo_traducoes?: Json
@@ -5052,6 +5130,7 @@ export type Database = {
           created_at?: string | null
           documento_id?: string
           id?: string
+          mentions?: string[]
           motivo_idioma_origem?: string | null
           motivo_rejeicao?: string | null
           motivo_traducoes?: Json

@@ -1,13 +1,14 @@
 import { useState } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { AlertCircle, Paperclip, X } from "lucide-react";
 import { useRejeitarComLaudo } from "@/hooks/useChinaRevisoes";
 import { confirmConclusaoTarefa } from "@/lib/projetos/confirmConclusao";
+import { MentionInput } from "@/components/projetos/MentionInput";
+import { useChinaItemMentionableUsers } from "@/hooks/useChinaItemMentionableUsers";
 
 interface Props {
   open: boolean;
@@ -30,8 +31,10 @@ export function DialogRejeitarDocumento({
   onSucesso,
 }: Props) {
   const [motivo, setMotivo] = useState("");
+  const [mentions, setMentions] = useState<string[]>([]);
   const [files, setFiles] = useState<File[]>([]);
   const rejeitar = useRejeitarComLaudo();
+  const { data: mentionables = [] } = useChinaItemMentionableUsers(submissaoId);
 
   function handleFiles(list: FileList | null) {
     if (!list) return;
@@ -54,9 +57,11 @@ export function DialogRejeitarDocumento({
       documento_id: documentoId,
       submissao_id: submissaoId,
       motivo: motivo.trim(),
+      mentions,
       anexos: files,
     });
     setMotivo("");
+    setMentions([]);
     setFiles([]);
     onOpenChange(false);
     onSucesso?.();
@@ -80,18 +85,27 @@ export function DialogRejeitarDocumento({
         <div className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="motivo">Laudo técnico (motivo detalhado da rejeição) *</Label>
-            <Textarea
-              id="motivo"
+            <MentionInput
               value={motivo}
-              onChange={(e) => setMotivo(e.target.value)}
-              rows={6}
-              placeholder="Descreva tecnicamente o que está incorreto, qual norma/exigência não foi atendida e o que precisa ser ajustado…"
-              maxLength={8000}
+              onChange={(v) => {
+                setMotivo(v);
+                const ids = mentionables
+                  .filter((m) => v.includes(`@${m.nome}`))
+                  .map((m) => m.id);
+                setMentions(ids);
+              }}
+              onSubmit={() => {}}
+              users={mentionables}
+              placeholder="Descreva tecnicamente o que está incorreto, qual norma/exigência não foi atendida e o que precisa ser ajustado. Use @ para mencionar colegas."
+              showSendButton={false}
+              minRows={6}
             />
             <p className="text-xs text-muted-foreground">
               {motivo.length}/8000 caracteres
             </p>
           </div>
+
+
 
           <div className="space-y-2">
             <Label htmlFor="anexos">Anexos justificativos (opcional)</Label>
