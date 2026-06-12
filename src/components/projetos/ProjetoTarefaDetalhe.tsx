@@ -56,6 +56,7 @@ import { useProjetoChinaVinculo } from "@/hooks/useChinaProjeto";
 import { ChinaProdutoWidget } from "@/components/china/ChinaProdutoWidget";
 import { ModulosVinculadosWidget } from "@/components/shared/ModulosVinculadosWidget";
 import { TarefaAnexosSection } from "./tarefa-detalhe/TarefaAnexosSection";
+import { TarefaBriefingsSection } from "./tarefa-detalhe/TarefaBriefingsSection";
 import { TarefaComentariosSection } from "./tarefa-detalhe/TarefaComentariosSection";
 import { TarefaNotasPessoaisSection } from "./tarefa-detalhe/TarefaNotasPessoaisSection";
 import { TarefaChatPanel } from "./tarefa-detalhe/TarefaChatPanel";
