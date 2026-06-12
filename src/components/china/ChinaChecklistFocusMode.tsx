@@ -1881,6 +1881,28 @@ export function ChinaChecklistFocusMode({
         />
       )}
 
+      {adminSheetDoc && (() => {
+        const cat = DOCUMENT_CATEGORIES.find((c) => c.tipos.includes(adminSheetDoc.tipo_documento));
+        const fluxo = cat?.fluxo ?? "china_envia";
+        const label = allDocTypes.find((t) => t.tipo === adminSheetDoc.tipo_documento)?.labelPt;
+        return (
+          <ChecklistItemAdminSheet
+            open={!!adminSheetDoc}
+            onOpenChange={(o) => !o && setAdminSheetDoc(null)}
+            documentoId={adminSheetDoc.id}
+            submissaoId={submissaoId}
+            tipoDocumento={adminSheetDoc.tipo_documento}
+            tipoDocumentoLabel={label}
+            bucket={bucketForDoc({ doc_status: adminSheetDoc.status })}
+            lado="china"
+            isReceiver={fluxo === "brasil_envia"}
+            isSender={fluxo === "china_envia"}
+            defaultTab="parecer"
+          />
+        );
+      })()}
+
+
       {/* Confirmação: envio individual ao Brasil */}
       <AlertDialog open={!!confirmSingleId} onOpenChange={(o) => !o && setConfirmSingleId(null)}>
         <AlertDialogContent>
