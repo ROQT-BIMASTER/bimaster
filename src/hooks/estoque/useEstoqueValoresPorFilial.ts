@@ -20,7 +20,7 @@ export function useEstoqueValoresPorFilial(filtros: EstoqueFiltros) {
   return useQuery({
     queryKey: ['estoque-valores-por-filial', filtros],
     staleTime: 60_000,
-    refetchInterval: 30_000,
+    refetchInterval: 600_000,
     refetchIntervalInBackground: false,
     queryFn: async () => {
       // RPC ainda não está nos tipos gerados do Supabase -> cast controlado.

@@ -38,7 +38,7 @@ export function useEtiquetasDoProduto(codProduto: number | null | undefined) {
   return useQuery({
     queryKey: ['estoque-etiqueta-produto', codProduto],
     enabled: codProduto != null,
-    staleTime: 30_000,
+    staleTime: 600_000,
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from('estoque_etiqueta_produtos')
@@ -54,7 +54,7 @@ export function useEtiquetaProdutosBatch(codProdutos: number[]) {
   return useQuery({
     queryKey: ['estoque-etiqueta-produto-batch', codProdutos.sort()],
     enabled: codProdutos.length > 0,
-    staleTime: 30_000,
+    staleTime: 600_000,
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from('estoque_etiqueta_produtos')

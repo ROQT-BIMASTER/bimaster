@@ -10,7 +10,7 @@ export function useProdutosPorEtiquetas(etiquetaIds: string[]) {
   return useQuery({
     queryKey: ['produtos-por-etiquetas', ids],
     enabled: ids.length > 0,
-    staleTime: 30_000,
+    staleTime: 600_000,
     queryFn: async (): Promise<number[]> => {
       const { data, error } = await (supabase as any)
         .from('estoque_etiqueta_produtos')

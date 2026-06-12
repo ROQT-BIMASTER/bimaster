@@ -84,8 +84,8 @@ export function useEstoqueCoresQuery({ filtros, page, pageSize, sortBy, sortDir 
   return useQuery({
     queryKey: ['estoque-cores', filtros, page, pageSize, sortBy, sortDir],
     placeholderData: keepPreviousData,
-    staleTime: 25_000,
-    refetchInterval: 30_000,
+    staleTime: 600_000,
+    refetchInterval: 600_000,
     queryFn: async () => {
       const { data, error } = await (supabase as any).rpc('rpc_estoque_cores', {
         p_empresas: filtros.empresas.length ? filtros.empresas : null,

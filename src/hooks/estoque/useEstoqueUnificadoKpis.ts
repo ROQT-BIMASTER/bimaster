@@ -45,7 +45,7 @@ export function useEstoqueUnificadoKpis(opts: UseEstoqueUnificadoKpisOpts) {
     queryKey: ['estoque-unificado-kpis', normalized],
     placeholderData: keepPreviousData,
     staleTime: 60_000,
-    refetchInterval: 30_000,
+    refetchInterval: 600_000,
     refetchIntervalInBackground: false,
     queryFn: async (): Promise<EstoqueUnificadoServerTotals | null> => {
       await awaitCacheUnificadoFresh();

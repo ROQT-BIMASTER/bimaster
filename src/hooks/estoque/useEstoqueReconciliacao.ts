@@ -58,7 +58,7 @@ export function useEstoqueReconciliacaoQuery({ filtros, page, pageSize, sortBy, 
   return useQuery({
     queryKey: ['estoque-recon', filtros, page, pageSize, sortBy, sortDir],
     placeholderData: keepPreviousData,
-    staleTime: 30_000,
+    staleTime: 600_000,
     queryFn: async () => {
       const { data, error } = await (supabase as any).rpc('rpc_estoque_cores_vs_unificado', {
         p_empresas: filtros.empresas.length ? filtros.empresas : null,
@@ -92,7 +92,7 @@ export interface ReconciliacaoKpis {
 export function useEstoqueReconciliacaoKpis(filtros: ReconciliacaoFiltros) {
   return useQuery({
     queryKey: ['estoque-recon-kpis', filtros.empresas, filtros.linhas, filtros.tolerancia],
-    staleTime: 30_000,
+    staleTime: 600_000,
     queryFn: async () => {
       const { data, error } = await (supabase as any).rpc('rpc_estoque_cores_vs_unificado_kpis', {
         p_empresas: filtros.empresas.length ? filtros.empresas : null,
