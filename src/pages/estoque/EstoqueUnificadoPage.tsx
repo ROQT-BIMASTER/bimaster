@@ -117,6 +117,12 @@ export default function EstoqueUnificadoPage() {
   const { sortBy, sortDir, isHidden, toggle, reset, setSort } = tablePrefs;
   const [marcas, setMarcas] = useState<string[]>([]);
   const [linhas, setLinhas] = useState<string[]>([]);
+  const [campanhaIds, setCampanhaIds] = useState<string[]>([]);
+  const { data: campanhaProdutos } = useProdutosPorEtiquetas(campanhaIds);
+  // Quando há campanha selecionada mas o fetch ainda não voltou, evitamos
+  // mostrar resultados "vazando" — passamos lista vazia em vez de null.
+  const campanhaFilter = campanhaIds.length > 0 ? (campanhaProdutos ?? []) : null;
+
 
   const [selected, setSelected] = useState<EstoqueUnificadoRow | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
