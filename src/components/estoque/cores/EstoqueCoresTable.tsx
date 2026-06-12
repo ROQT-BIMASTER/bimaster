@@ -329,8 +329,9 @@ function RowGroup({ rowKey, row, cols, isOpen, memo, onToggle, onMainClick, vari
               return (
                 <span
                   key={id}
-                  className="text-[10px] px-1.5 py-0.5 rounded border"
-                  style={{ borderColor: e.cor_hex, color: e.cor_hex }}
+                  className="inline-flex items-center px-1.5 h-4 rounded text-[9px] font-semibold tracking-wide uppercase"
+                  style={{ background: e.cor_hex, color: '#fff' }}
+                  title={e.nome}
                 >
                   {e.nome}
                 </span>
