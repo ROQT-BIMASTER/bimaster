@@ -1628,6 +1628,13 @@ export function ProjetoTarefaDetalhe({
                   removeFromCofre={removeFromCofre}
                 />
 
+                <Separator />
+
+                {/* Briefings inteligentes vinculados a esta tarefa */}
+                <TarefaBriefingsSection tarefaId={tarefa.id} />
+
+
+
 
                 {isProjetoProduto && (
                   <>
