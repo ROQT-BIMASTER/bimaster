@@ -134,10 +134,13 @@ export default function EstoqueCoresPage() {
           <Alert className="py-2">
             <Info className="h-4 w-4" />
             <AlertDescription className="text-xs">
-              O potencial de desmontagem é atribuído integralmente a cada cor-folha. Quando uma mesma caixa atende a mais de uma cor, seu saldo aparece em todas — o somatório por cor fica acima do saldo físico (consultado em Estoque Unificado). Composição lida em tempo real do ERP.
+              O potencial de desmontagem é <strong>rateado entre as cores-folha</strong>: se uma caixa-pai com saldo X pode virar N variantes de cor, cada variante recebe X/N (não X). Dessa forma o somatório de "Unidades totais" desta tela <strong>bate exatamente</strong> com o "Total em UN" do Estoque Unificado — sem duplicação. Composição lida em tempo real do ERP.
             </AlertDescription>
           </Alert>
         )}
+
+        <ConciliacaoBadge />
+        
 
 
 
