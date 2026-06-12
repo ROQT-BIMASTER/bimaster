@@ -1,6 +1,6 @@
 import { logger } from "../_shared/logger.ts";
 import { secureHandler } from "../_shared/secure-handler.ts";
-import { timingSafeEqual } from "../_shared/timing-safe.ts";
+import { requireAdminJwt } from "../_shared/admin-jwt.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
 
@@ -15,13 +15,11 @@ Deno.serve(secureHandler({ auth: "any", rateLimit: 30, rateLimitPrefix: "export-
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Validate API key for n8n integration
-    const apiKey = req.headers.get('X-API-Key');
-    const expectedKey = Deno.env.get('N8N_API_KEY');
-    
-    if (!apiKey || !expectedKey || !timingSafeEqual(apiKey, expectedKey)) {
-      logger.error('❌ Invalid API key');
-      throw new Error('Invalid API key');
+    // Auth: require admin JWT (n8n key path retired)
+    const adminAuth = await requireAdminJwt(req);
+    if (!adminAuth.ok) {
+      logger.error(`Auth failed: ${adminAuth.error}`);
+      throw new Error(adminAuth.error ?? 'Unauthorized');
     }
 
     logger.log('📈 Calculando taxas de conversão...');
