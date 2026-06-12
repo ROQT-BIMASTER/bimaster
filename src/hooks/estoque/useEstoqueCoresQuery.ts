@@ -33,6 +33,8 @@ export interface EstoqueCorRow {
     | Array<{ cod_pai: number; nome_pai: string | null; saldo_pai: number; fator: number; contribuicao: number }>
     | null;
   total_count: number;
+  tem_divergencia_linha: boolean | null;
+  linhas_divergentes: string[] | null;
 }
 
 export type EstoqueCoresSortKey =
