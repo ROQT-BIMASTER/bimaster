@@ -15,7 +15,7 @@ import {
   type WidgetConfig,
 } from "./widgets/WidgetRegistry";
 import { KpiCard } from "@/components/ui/kpi-card";
-import { Clock, AlertTriangle, CheckCircle2, TrendingUp } from "lucide-react";
+import { Clock, AlertTriangle, CheckCircle2, TrendingUp, Target } from "lucide-react";
 import { isToday, startOfDay, startOfWeek, endOfWeek, isWithinInterval } from "date-fns";
 import { parseLocalDate, getToday } from "@/lib/utils/parseLocalDate";
 import type { MinaTarefa } from "@/hooks/useMinhasTarefas";
@@ -27,7 +27,14 @@ import { WidgetTarefasPorStatus } from "./widgets/WidgetTarefasPorStatus";
 import { WidgetTimelineConclusoes } from "./widgets/WidgetTimelineConclusoes";
 import { WidgetListaAtrasadas } from "./widgets/WidgetListaAtrasadas";
 import { WidgetListaProximas } from "./widgets/WidgetListaProximas";
+import { WidgetHeatmapProdutividade } from "./widgets/WidgetHeatmapProdutividade";
+import { WidgetLeaderboardProjetos } from "./widgets/WidgetLeaderboardProjetos";
+import { WidgetTaxaCumprimentoPrazo, calcTaxaPrazo } from "./widgets/WidgetTaxaCumprimentoPrazo";
+import { WidgetCargaCapacidade } from "./widgets/WidgetCargaCapacidade";
+import { WidgetAgingTarefas } from "./widgets/WidgetAgingTarefas";
+import { DashboardTemplateGallery } from "./DashboardTemplateGallery";
 import { useConfirm } from "@/hooks/useConfirm";
+
 
 interface Props {
   tarefas: MinaTarefa[];
@@ -67,10 +74,17 @@ function KpiWidget({ type, tarefas }: { type: string; tarefas: MinaTarefa[] }) {
       return <KpiCard title="Concluídas hoje" value={concluidasHoje.length} icon={CheckCircle2} variant="success" subtitle="bom trabalho" />;
     case "kpi_produtividade":
       return <KpiCard title="Produtividade" value={`${produtividade}%`} icon={TrendingUp} variant={produtividade >= 70 ? "success" : produtividade >= 40 ? "warning" : "destructive"} subtitle={`${concluidasSemana.length}/${tarefasSemana.length} esta semana`} />;
+    case "kpi_taxa_prazo": {
+      const { rate, sample } = calcTaxaPrazo(tarefas);
+      const value = rate === null ? "—" : `${rate}%`;
+      const variant = rate === null ? "default" : rate >= 80 ? "success" : rate >= 60 ? "warning" : "destructive";
+      return <KpiCard title="Taxa no prazo" value={value} icon={Target} variant={variant} subtitle={sample > 0 ? `${sample} entregas / 30d` : "sem dados (30d)"} />;
+    }
     default:
       return null;
   }
 }
+
 
 function WidgetCard({
   widget,
@@ -100,6 +114,7 @@ function WidgetCard({
       case "kpi_atrasadas":
       case "kpi_concluidas_hoje":
       case "kpi_produtividade":
+      case "kpi_taxa_prazo":
         return <KpiWidget type={widget.type} tarefas={tarefas} />;
       case "tarefas_por_projeto":
         return <WidgetTarefasPorProjeto tarefas={tarefas} />;
@@ -113,10 +128,22 @@ function WidgetCard({
         return <WidgetListaAtrasadas tarefas={tarefas} />;
       case "lista_proximas":
         return <WidgetListaProximas tarefas={tarefas} />;
+      case "heatmap_produtividade":
+        return <WidgetHeatmapProdutividade tarefas={tarefas} />;
+      case "leaderboard_projetos":
+        return <WidgetLeaderboardProjetos tarefas={tarefas} />;
+      case "carga_capacidade":
+        return <WidgetCargaCapacidade tarefas={tarefas} />;
+      case "aging_tarefas":
+        return <WidgetAgingTarefas tarefas={tarefas} />;
+      case "gauge_taxa_prazo":
+        return <WidgetTaxaCumprimentoPrazo tarefas={tarefas} />;
+
       default:
         return null;
     }
   })();
+
 
   if (isKpi) {
     return (
@@ -174,8 +201,7 @@ export function CustomDashboardBuilder({ tarefas }: Props) {
 
   const [activeDashId, setActiveDashId] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
-  const [showNew, setShowNew] = useState(false);
-  const [newName, setNewName] = useState("Meu Dashboard");
+  const [showGallery, setShowGallery] = useState(false);
   const [showAddWidget, setShowAddWidget] = useState(false);
 
   // Auto-select first dashboard
@@ -190,15 +216,18 @@ export function CustomDashboardBuilder({ tarefas }: Props) {
   const listWidgets = widgets.filter((w) => getWidgetMeta(w.type)?.category === "list").sort((a, b) => a.order - b.order);
   const otherWidgets = [...chartWidgets, ...listWidgets];
 
-  const handleCreateDashboard = () => {
-    createDashboard.mutate(newName, {
-      onSuccess: (data: any) => {
-        setActiveDashId(data.id);
-        setShowNew(false);
-        setNewName("Meu Dashboard");
+  const handleCreateFromTemplate = ({ nome, widgets }: { nome: string; widgets: WidgetConfig[] }) => {
+    createDashboard.mutate(
+      { nome, widgets },
+      {
+        onSuccess: (data: any) => {
+          setActiveDashId(data.id);
+          setShowGallery(false);
+        },
       },
-    });
+    );
   };
+
 
   const handleRemoveWidget = (type: string) => {
     if (!activeDash) return;
@@ -216,35 +245,32 @@ export function CustomDashboardBuilder({ tarefas }: Props) {
 
   const availableToAdd = WIDGET_REGISTRY.filter((w) => !widgets.find((wc) => wc.type === w.type));
 
-  // No dashboards yet
+  // No dashboards yet — open gallery directly
   if (!isLoading && dashboards.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-20">
-        <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center mb-4 ring-1 ring-primary/20">
-          <LayoutDashboard className="h-8 w-8 text-primary" />
+      <>
+        <div className="flex flex-col items-center justify-center py-20">
+          <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center mb-4 ring-1 ring-primary/20">
+            <LayoutDashboard className="h-8 w-8 text-primary" />
+          </div>
+          <h3 className="font-semibold text-lg mb-1 font-display">Crie seu Dashboard</h3>
+          <p className="text-sm text-muted-foreground mb-4 text-center max-w-md">
+            Comece com um modelo pronto: Visão Executiva, Operação Diária, Foco da Semana ou Performance de Projetos.
+          </p>
+          <Button onClick={() => setShowGallery(true)} className="gap-1.5">
+            <Plus className="h-4 w-4" /> Escolher modelo
+          </Button>
         </div>
-        <h3 className="font-semibold text-lg mb-1 font-display">Crie seu Dashboard</h3>
-        <p className="text-sm text-muted-foreground mb-4 text-center max-w-md">
-          Monte dashboards personalizados com indicadores, gráficos e listas para acompanhar suas tarefas.
-        </p>
-        <Button onClick={() => setShowNew(true)} className="gap-1.5">
-          <Plus className="h-4 w-4" /> Criar Dashboard
-        </Button>
-        <Dialog open={showNew} onOpenChange={setShowNew}>
-          <DialogContent className="max-w-sm">
-            <DialogHeader>
-              <DialogTitle>Novo Dashboard</DialogTitle>
-            </DialogHeader>
-            <Input value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="Nome do dashboard" />
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setShowNew(false)}>Cancelar</Button>
-              <Button onClick={handleCreateDashboard} disabled={!newName.trim()}>Criar</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      </div>
+        <DashboardTemplateGallery
+          open={showGallery}
+          onOpenChange={setShowGallery}
+          onCreate={handleCreateFromTemplate}
+          isPending={createDashboard.isPending}
+        />
+      </>
     );
   }
+
 
   return (
     <div className="space-y-5">
@@ -285,9 +311,10 @@ export function CustomDashboardBuilder({ tarefas }: Props) {
             </div>
           )}
 
-          <Button variant="ghost" size="sm" className="h-8 gap-1 text-xs" onClick={() => setShowNew(true)}>
+          <Button variant="ghost" size="sm" className="h-8 gap-1 text-xs" onClick={() => setShowGallery(true)}>
             <Plus className="h-3.5 w-3.5" /> Novo
           </Button>
+
 
           {activeDash && (
             <>
@@ -408,19 +435,14 @@ export function CustomDashboardBuilder({ tarefas }: Props) {
         </div>
       )}
 
-      {/* New Dashboard Dialog */}
-      <Dialog open={showNew} onOpenChange={setShowNew}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Novo Dashboard</DialogTitle>
-          </DialogHeader>
-          <Input value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="Nome do dashboard" />
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowNew(false)}>Cancelar</Button>
-            <Button onClick={handleCreateDashboard} disabled={!newName.trim()}>Criar</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Template Gallery (replaces simple new-dashboard dialog) */}
+      <DashboardTemplateGallery
+        open={showGallery}
+        onOpenChange={setShowGallery}
+        onCreate={handleCreateFromTemplate}
+        isPending={createDashboard.isPending}
+      />
+
 
       {/* Add Widget Dialog */}
       <Dialog open={showAddWidget} onOpenChange={setShowAddWidget}>

@@ -38,14 +38,20 @@ export function useCustomDashboards() {
   });
 
   const createDashboard = useMutation({
-    mutationFn: async (nome: string) => {
+    mutationFn: async (
+      input: string | { nome: string; widgets?: WidgetConfig[] },
+    ) => {
       if (!user?.id) throw new Error("Not authenticated");
+      const nome = typeof input === "string" ? input : input.nome;
+      const widgets = typeof input === "string"
+        ? DEFAULT_WIDGETS
+        : (input.widgets ?? DEFAULT_WIDGETS);
       const { data, error } = await supabase
         .from("user_custom_dashboards")
         .insert({
           user_id: user.id,
           nome,
-          widgets: DEFAULT_WIDGETS as any,
+          widgets: widgets as any,
           is_default: dashboards.length === 0,
         })
         .select()
@@ -55,10 +61,11 @@ export function useCustomDashboards() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey });
-      toast.success("Dashboard criado!");
+      toast.success("Dashboard criado");
     },
     onError: () => toast.error("Erro ao criar dashboard"),
   });
+
 
   const updateWidgets = useMutation({
     mutationFn: async ({ id, widgets }: { id: string; widgets: WidgetConfig[] }) => {
