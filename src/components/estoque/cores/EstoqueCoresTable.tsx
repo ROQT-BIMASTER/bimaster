@@ -14,6 +14,7 @@ import { EstoqueEtiquetaPopover } from './EstoqueEtiquetaPopover';
 import { useEtiquetaProdutosBatch, useEstoqueEtiquetas } from '@/hooks/estoque/useEstoqueEtiquetas';
 import { useMemo, useState } from 'react';
 import { EstoqueCoresMemoryBlock } from './EstoqueCoresMemoryBlock';
+import { DivergenciaLinhaBadge } from './DivergenciaLinhaBadge';
 
 type AnyRow = EstoqueCorRow | EstoqueCorConsolidadoRow;
 type AnySortKey = EstoqueCoresSortKey | EstoqueCoresConsolidadoSortKey;
@@ -310,8 +311,11 @@ function RowGroup({ rowKey, row, cols, isOpen, memo, onToggle, onMainClick, vari
         )}
 
         <TableCell className="text-xs font-mono">{r.cod_produto}</TableCell>
-        <TableCell className="max-w-[300px]">
-          <div className="text-sm font-medium leading-tight truncate">{r.nome_prod ?? '(sem nome)'}</div>
+        <TableCell className="max-w-[320px]">
+          <div className="flex items-center gap-1.5">
+            <div className="text-sm font-medium leading-tight truncate">{r.nome_prod ?? '(sem nome)'}</div>
+            <DivergenciaLinhaBadge linhas={r.linhas_divergentes} compact />
+          </div>
           {r.cod_fabricante && (
             <div className="text-[10px] text-muted-foreground font-mono">{r.cod_fabricante}</div>
           )}

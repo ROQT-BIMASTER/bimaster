@@ -41,6 +41,8 @@ export interface EstoqueCorConsolidadoRow {
   estoque_bloqueado_endereco: number | null;
   por_empresa: EstoqueCorEmpresaBreakdown[] | null;
   total_count: number;
+  tem_divergencia_linha: boolean | null;
+  linhas_divergentes: string[] | null;
 }
 
 export type EstoqueCoresConsolidadoSortKey =
@@ -88,6 +90,7 @@ export function useEstoqueCoresConsolidadoQuery({
         p_offset: page * pageSize,
         p_order_by: sortBy,
         p_order_dir: sortDir,
+        p_apenas_divergencia_linha: filtros.apenas_divergencia_linha,
       });
       if (error) throw error;
       const rows = (data ?? []) as EstoqueCorConsolidadoRow[];

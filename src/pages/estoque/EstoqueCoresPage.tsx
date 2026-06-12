@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
-import { Search, Settings2, ShieldCheck, Info } from 'lucide-react';
+import { Search, Settings2, ShieldCheck, Info, AlertTriangle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Link } from 'react-router-dom';
 import {
@@ -124,6 +124,12 @@ export default function EstoqueCoresPage() {
 
         <EstoqueCoresKpiBar kpis={kpis} loading={kpisLoading} consolidado={consolidado} />
 
+        <DivergenciaLinhaBanner
+          ativo={base.apenas_divergencia_linha}
+          onToggle={(v) => setF({ ...base, apenas_divergencia_linha: v })}
+          rows={consolidado ? (consQuery.data?.rows ?? []) : (empQuery.data?.rows ?? [])}
+        />
+
         {base.incluir_potencial && (
           <Alert className="py-2">
             <Info className="h-4 w-4" />
@@ -186,6 +192,17 @@ export default function EstoqueCoresPage() {
               />
               <Label htmlFor="com-pend" className="text-xs cursor-pointer">Com pedido pendente</Label>
             </div>
+            <div className="flex items-center gap-2 h-9 px-3 rounded-md border bg-card">
+              <Switch
+                id="div-linha"
+                checked={base.apenas_divergencia_linha}
+                onCheckedChange={(v) => setF({ ...base, apenas_divergencia_linha: v })}
+              />
+              <Label htmlFor="div-linha" className="text-xs cursor-pointer flex items-center gap-1">
+                <AlertTriangle className="h-3 w-3 text-warning" />
+                Somente divergências de linha
+              </Label>
+            </div>
           </div>
 
           <EstoqueLinhaTabs
@@ -228,5 +245,58 @@ export default function EstoqueCoresPage() {
         <EstoqueCoresDrawer row={selected} open={open} onOpenChange={setOpen} />
       </div>
     </DashboardLayout>
+  );
+}
+
+interface RowWithDiv {
+  cod_produto: number | null;
+  tem_divergencia_linha?: boolean | null;
+  linhas_divergentes?: string[] | null;
+}
+
+function DivergenciaLinhaBanner({
+  ativo,
+  onToggle,
+  rows,
+}: {
+  ativo: boolean;
+  onToggle: (v: boolean) => void;
+  rows: RowWithDiv[];
+}) {
+  const divergentes = new Set<number>();
+  for (const r of rows) {
+    if (r.tem_divergencia_linha && r.cod_produto != null) divergentes.add(r.cod_produto);
+  }
+  const count = divergentes.size;
+  if (count === 0 && !ativo) return null;
+  return (
+    <Alert className="py-2 border-warning/50 bg-warning/5">
+      <AlertTriangle className="h-4 w-4 text-warning" />
+      <AlertDescription className="text-xs flex flex-wrap items-center justify-between gap-2 w-full">
+        <span>
+          {count > 0 ? (
+            <>
+              <strong>{count}</strong> SKU{count === 1 ? '' : 's'} no recorte atual com <strong>linha divergente no ERP</strong> (mesmo produto cadastrado em linhas diferentes entre filiais).{' '}
+            </>
+          ) : (
+            <>Nenhuma divergência no recorte atual. </>
+          )}
+          O saldo unificado <strong>já soma corretamente</strong> todas as filiais — a divergência é apenas no rótulo da linha. Corrija o cadastro no ERP.
+        </span>
+        <div className="flex items-center gap-2 shrink-0">
+          <Button
+            size="sm"
+            variant={ativo ? 'default' : 'outline'}
+            className="h-7 text-xs"
+            onClick={() => onToggle(!ativo)}
+          >
+            {ativo ? 'Mostrar todos' : 'Filtrar somente divergências'}
+          </Button>
+          <Button asChild size="sm" variant="outline" className="h-7 text-xs">
+            <Link to="/dashboard/estoque/auditoria-linhas-erp">Auditoria completa</Link>
+          </Button>
+        </div>
+      </AlertDescription>
+    </Alert>
   );
 }
