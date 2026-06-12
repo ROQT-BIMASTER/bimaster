@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
-import { Search, Settings2 } from 'lucide-react';
+import { Search, Settings2, ShieldCheck } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import {
   useEstoqueCoresQuery,
