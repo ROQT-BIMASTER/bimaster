@@ -1,11 +1,17 @@
-import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { ShieldCheck, ShieldAlert, KeyRound, Clock, Activity, AlertTriangle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { ShieldCheck, ShieldAlert, KeyRound, Clock, Activity, AlertTriangle, RefreshCw, Copy, Check } from "lucide-react";
 import { differenceInDays, format, subHours } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { toast } from "sonner";
 
 type ErpConfigRow = {
   id: string;
