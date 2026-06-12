@@ -50568,16 +50568,22 @@ export type Database = {
       vw_estoque_unificado_skus: {
         Row: {
           abrev_par: string | null
+          bloqueado_em_un: number | null
+          bloqueado_total: number | null
           cod_produto: number | null
           codigo_barras_ean: string | null
           contribuicao_un: number | null
           custo_total: number | null
+          disponivel_em_un: number | null
+          disponivel_total: number | null
           empresa: number | null
           fator_pai_para_filho: number | null
           fator_un_acumulado: number | null
           nivel: number | null
           nome_prod: string | null
           pai_cod: number | null
+          pendente_em_un: number | null
+          pendente_total: number | null
           produto_raiz: number | null
           saldo: number | null
         }
