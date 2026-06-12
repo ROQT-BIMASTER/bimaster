@@ -163,7 +163,7 @@ export function useUploadArquivoB2C() {
             .maybeSingle(),
           supabase
             .from("china_produto_submissoes" as any)
-            .select("codigo, produto_nome")
+            .select("numero_item, produto_codigo, produto_nome")
             .eq("id", row.submissao_id)
             .maybeSingle(),
           supabase
