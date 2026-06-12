@@ -62,7 +62,7 @@ export async function validateApiKey(req: Request): Promise<ApiKeyResult> {
   // Fetch all active configs and compare timing-safely
   const { data: configs } = await supabase
     .from("erp_config")
-    .select("id, empresa_id, api_key_hash, api_key, api_key_anterior, api_key_anterior_expira_em")
+    .select("id, empresa_id, api_key_hash, api_key, api_key_anterior, api_key_anterior_hash, api_key_anterior_expira_em")
     .eq("ativo", true);
 
   if (!configs || configs.length === 0) {
@@ -70,17 +70,20 @@ export async function validateApiKey(req: Request): Promise<ApiKeyResult> {
   }
 
   for (const config of configs) {
-    // Primary: compare hash (timing-safe)
     if (config.api_key_hash && timingSafeEqual(apiKeyHash, config.api_key_hash)) {
       return { empresaId: config.empresa_id, configId: config.id };
     }
-
-    // Fallback: plaintext comparison during transition (timing-safe)
     if (config.api_key && timingSafeEqual(apiKey, config.api_key)) {
       return { empresaId: config.empresa_id, configId: config.id };
     }
-
-    // Grace period for rotated keys (timing-safe)
+    if (
+      config.api_key_anterior_hash &&
+      config.api_key_anterior_expira_em &&
+      new Date(config.api_key_anterior_expira_em) > new Date() &&
+      timingSafeEqual(apiKeyHash, config.api_key_anterior_hash)
+    ) {
+      return { empresaId: config.empresa_id, configId: config.id };
+    }
     if (
       config.api_key_anterior &&
       config.api_key_anterior_expira_em &&
@@ -154,7 +157,7 @@ export async function validateErpAuth(
   const apiKeyHash = await hashApiKey(apiKey);
   const { data: configs } = await supabase
     .from("erp_config")
-    .select("empresa_id, api_key, api_key_hash, api_key_anterior, api_key_anterior_expira_em, api_key_expira_em, config_value")
+    .select("empresa_id, api_key, api_key_hash, api_key_anterior, api_key_anterior_hash, api_key_anterior_expira_em, api_key_expira_em, config_value")
     .eq("config_key", "api_key")
     .eq("ativo", true);
 
@@ -163,17 +166,15 @@ export async function validateErpAuth(
     const matchesHash = cfg.api_key_hash && timingSafeEqual(apiKeyHash, cfg.api_key_hash);
     const matchesPlain = cfg.api_key && timingSafeEqual(apiKey, cfg.api_key);
     const matchesLegacyCv = cfg.config_value && timingSafeEqual(apiKey, cfg.config_value);
-    const matchesPrev =
-      cfg.api_key_anterior &&
-      cfg.api_key_anterior_expira_em &&
-      new Date(cfg.api_key_anterior_expira_em) > new Date() &&
-      timingSafeEqual(apiKey, cfg.api_key_anterior);
+    const graceActive = cfg.api_key_anterior_expira_em && new Date(cfg.api_key_anterior_expira_em) > new Date();
+    const matchesPrevHash = graceActive && cfg.api_key_anterior_hash && timingSafeEqual(apiKeyHash, cfg.api_key_anterior_hash);
+    const matchesPrev = graceActive && cfg.api_key_anterior && timingSafeEqual(apiKey, cfg.api_key_anterior);
 
     if ((matchesHash || matchesPlain || matchesLegacyCv) && !expired) {
       logApiAccess({ endpoint, method, ipAddress, userAgent, apiKeyUsed: true, success: true, keyPreview });
       return { empresaId: String(cfg.empresa_id), source: "erp_config" };
     }
-    if (matchesPrev) {
+    if (matchesPrevHash || matchesPrev) {
       logApiAccess({ endpoint, method, ipAddress, userAgent, apiKeyUsed: true, success: true, keyPreview });
       return { empresaId: String(cfg.empresa_id), source: "erp_config_grace" };
     }

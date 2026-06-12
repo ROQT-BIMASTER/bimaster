@@ -14521,6 +14521,7 @@ export type Database = {
           api_key: string | null
           api_key_anterior: string | null
           api_key_anterior_expira_em: string | null
+          api_key_anterior_hash: string | null
           api_key_expira_em: string | null
           api_key_hash: string | null
           ativo: boolean | null
@@ -14537,6 +14538,7 @@ export type Database = {
           api_key?: string | null
           api_key_anterior?: string | null
           api_key_anterior_expira_em?: string | null
+          api_key_anterior_hash?: string | null
           api_key_expira_em?: string | null
           api_key_hash?: string | null
           ativo?: boolean | null
@@ -14553,6 +14555,7 @@ export type Database = {
           api_key?: string | null
           api_key_anterior?: string | null
           api_key_anterior_expira_em?: string | null
+          api_key_anterior_hash?: string | null
           api_key_expira_em?: string | null
           api_key_hash?: string | null
           ativo?: boolean | null
@@ -53761,6 +53764,16 @@ export type Database = {
         }
         Returns: string
       }
+      rpc_erp_keys_status: {
+        Args: never
+        Returns: {
+          ativo: boolean
+          config_id: string
+          dias_restantes: number
+          empresa_id: number
+          expira_em: string
+        }[]
+      }
       rpc_estoque_cores: {
         Args: {
           p_apenas_com_saldo?: boolean
@@ -53996,6 +54009,18 @@ export type Database = {
       rpc_revogar_oficializacao_cofre: {
         Args: { p_item_id: string; p_motivo?: string }
         Returns: undefined
+      }
+      rpc_rotate_erp_api_key: {
+        Args: {
+          p_empresa_id: number
+          p_grace_days?: number
+          p_validity_days?: number
+        }
+        Returns: {
+          expires_at: string
+          grace_until: string
+          new_api_key: string
+        }[]
       }
       rpc_rrtask_materializar_tarefa: {
         Args: {
