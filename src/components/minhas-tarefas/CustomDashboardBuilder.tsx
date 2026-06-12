@@ -201,8 +201,7 @@ export function CustomDashboardBuilder({ tarefas }: Props) {
 
   const [activeDashId, setActiveDashId] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
-  const [showNew, setShowNew] = useState(false);
-  const [newName, setNewName] = useState("Meu Dashboard");
+  const [showGallery, setShowGallery] = useState(false);
   const [showAddWidget, setShowAddWidget] = useState(false);
 
   // Auto-select first dashboard
@@ -217,15 +216,18 @@ export function CustomDashboardBuilder({ tarefas }: Props) {
   const listWidgets = widgets.filter((w) => getWidgetMeta(w.type)?.category === "list").sort((a, b) => a.order - b.order);
   const otherWidgets = [...chartWidgets, ...listWidgets];
 
-  const handleCreateDashboard = () => {
-    createDashboard.mutate(newName, {
-      onSuccess: (data: any) => {
-        setActiveDashId(data.id);
-        setShowNew(false);
-        setNewName("Meu Dashboard");
+  const handleCreateFromTemplate = ({ nome, widgets }: { nome: string; widgets: WidgetConfig[] }) => {
+    createDashboard.mutate(
+      { nome, widgets },
+      {
+        onSuccess: (data: any) => {
+          setActiveDashId(data.id);
+          setShowGallery(false);
+        },
       },
-    });
+    );
   };
+
 
   const handleRemoveWidget = (type: string) => {
     if (!activeDash) return;
