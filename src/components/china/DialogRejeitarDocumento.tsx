@@ -1,13 +1,14 @@
 import { useState } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { AlertCircle, Paperclip, X } from "lucide-react";
 import { useRejeitarComLaudo } from "@/hooks/useChinaRevisoes";
 import { confirmConclusaoTarefa } from "@/lib/projetos/confirmConclusao";
+import { MentionInput } from "@/components/projetos/MentionInput";
+import { useChinaItemMentionableUsers } from "@/hooks/useChinaItemMentionableUsers";
 
 interface Props {
   open: boolean;
