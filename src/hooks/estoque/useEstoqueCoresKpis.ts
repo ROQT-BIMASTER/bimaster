@@ -11,6 +11,7 @@ export interface EstoqueCoresKpis {
   total_valor_venda: number;
   total_pedido_pendente: number;
   itens_sem_saldo: number;
+  total_bloqueado_produto: number;
 }
 
 export function useEstoqueCoresKpis(filtros: EstoqueCoresFiltros) {
