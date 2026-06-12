@@ -22,10 +22,9 @@ type ErpConfigRow = {
 type ErpApiKeyRow = {
   id: string;
   empresa_id: string;
-  nome: string | null;
-  ativo: boolean | null;
+  nome_responsavel: string | null;
+  active: boolean | null;
   expires_at: string | null;
-  last_used_at: string | null;
   request_count: number | null;
   created_at: string;
 };
