@@ -305,3 +305,40 @@ function DivergenciaLinhaBanner({
     </Alert>
   );
 }
+
+function ConciliacaoBadge() {
+  const { data } = useQuery({
+    queryKey: ['vw_conciliacao_cores_unificado'],
+    staleTime: 60_000,
+    refetchInterval: 60_000,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from('vw_conciliacao_cores_unificado')
+        .select('total_cores_un,total_unificado_un,diferenca')
+        .maybeSingle();
+      if (error) throw error;
+      return data as { total_cores_un: number; total_unificado_un: number; diferenca: number } | null;
+    },
+  });
+  if (!data) return null;
+  const fmt = (n: number) => Math.round(Number(n) || 0).toLocaleString('pt-BR');
+  const diff = Math.abs(Number(data.diferenca) || 0);
+  const ok = diff < 1;
+  return (
+    <Alert className={`py-2 ${ok ? 'border-emerald-500/40 bg-emerald-500/5' : 'border-warning/50 bg-warning/5'}`}>
+      {ok ? <CheckCircle2 className="h-4 w-4 text-emerald-600" /> : <AlertTriangle className="h-4 w-4 text-warning" />}
+      <AlertDescription className="text-xs">
+        {ok ? (
+          <>
+            Conciliação Cores ↔ Estoque Unificado: <strong>{fmt(data.total_cores_un)} UN</strong> em ambas as telas. Diferença: 0.
+          </>
+        ) : (
+          <>
+            Conciliação Cores ↔ Estoque Unificado: Cores = <strong>{fmt(data.total_cores_un)} UN</strong> · Unificado = <strong>{fmt(data.total_unificado_un)} UN</strong> · Diferença: <strong>{fmt(diff)} UN</strong>. Acione "Reconciliar com Unificado" para investigar.
+          </>
+        )}
+      </AlertDescription>
+    </Alert>
+  );
+}
+
