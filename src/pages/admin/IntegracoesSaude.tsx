@@ -167,6 +167,9 @@ export default function IntegracoesSaude() {
                     )}
                   </div>
                   <Badge variant={s.tone}>{s.label}</Badge>
+                  {k.rotatable && k.empresa_id != null && (
+                    <RotateButton empresaId={k.empresa_id} />
+                  )}
                 </div>
               </div>
             );
