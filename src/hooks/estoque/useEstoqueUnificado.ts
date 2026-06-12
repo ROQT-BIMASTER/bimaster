@@ -396,10 +396,17 @@ export function useEstoqueUnificado(opts: UseEstoqueUnificadoOpts) {
       // pois derivam SEMPRE do mesmo conjunto consolidado por produto_raiz.
       const groups = new Map<number, EstoqueUnificadoRow>();
       for (const r of enriched) {
-        const k = Number(r.produto_raiz);
+        // Fallback: se produto_raiz vier nulo/não numérico, consolida pelo próprio
+        // cod_produto para NÃO perder saldo no total. Loga para investigação, mas
+        // a linha continua somando — garante paridade com SUM(vw_estoque_unificado).
+        const rawK = Number(r.produto_raiz);
+        const k = Number.isFinite(rawK) ? rawK : Number((r as any).cod_produto);
         if (!Number.isFinite(k)) {
-          logger.warn('[useEstoqueUnificado] produto_raiz inválido — linha ignorada na consolidação', { row: r });
+          logger.warn('[useEstoqueUnificado] produto_raiz e cod_produto inválidos — linha ignorada', { row: r });
           continue;
+        }
+        if (!Number.isFinite(rawK)) {
+          logger.warn('[useEstoqueUnificado] produto_raiz inválido — consolidando por cod_produto', { row: r });
         }
         const acc = groups.get(k);
         if (!acc) {
