@@ -21,6 +21,7 @@ import {
   useEstoqueUnificadoTablePrefs,
 } from '@/hooks/estoque/useEstoqueUnificadoTablePrefs';
 import { EstoqueUnificadoKpis } from '@/components/estoque/unificado/EstoqueUnificadoKpis';
+import { useEstoqueUnificadoKpis } from '@/hooks/estoque/useEstoqueUnificadoKpis';
 import { EstoqueUnificadoTable } from '@/components/estoque/unificado/EstoqueUnificadoTable';
 import { EstoqueUnificadoColumnsMenu } from '@/components/estoque/unificado/EstoqueUnificadoColumnsMenu';
 import { EstoqueUnificadoDrawer } from '@/components/estoque/unificado/EstoqueUnificadoDrawer';
