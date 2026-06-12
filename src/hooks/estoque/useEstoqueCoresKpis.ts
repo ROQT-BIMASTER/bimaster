@@ -42,6 +42,7 @@ export function useEstoqueCoresKpis(filtros: EstoqueCoresFiltros) {
         total_valor_venda: Number(row.total_valor_venda ?? 0),
         total_pedido_pendente: Number(row.total_pedido_pendente ?? 0),
         itens_sem_saldo: Number(row.itens_sem_saldo ?? 0),
+        total_bloqueado_produto: Number(row.total_bloqueado_produto ?? 0),
       };
     },
   });
