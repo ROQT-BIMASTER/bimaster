@@ -180,6 +180,20 @@ export function FlowItemFocusDrawer({
                 <Badge variant="secondary" className="h-5 px-1.5 text-[10px]">
                   {category.labelPt}
                 </Badge>
+                {projetoVinculo.data && (
+                  <a
+                    href={`/dashboard/projetos/${projetoVinculo.data.id}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex h-5 items-center gap-1 rounded border border-primary/30 bg-primary/5 px-1.5 text-[10px] font-medium text-primary transition hover:bg-primary/10"
+                    title={`Abrir projeto ${projetoVinculo.data.nome}`}
+                  >
+                    <Link2 className="h-3 w-3" />
+                    <span className="max-w-[120px] truncate">
+                      {projetoVinculo.data.nome}
+                    </span>
+                  </a>
+                )}
               </div>
             </div>
             <Button
@@ -193,6 +207,8 @@ export function FlowItemFocusDrawer({
             </Button>
           </div>
         </SheetHeader>
+
+
 
         <div className="flex-1 overflow-y-auto px-4 py-3 space-y-4">
           {/* Documento atual */}
