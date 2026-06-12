@@ -50397,6 +50397,18 @@ export type Database = {
         }
         Relationships: []
       }
+      vw_composicao_qtd_zero_alerta: {
+        Row: {
+          empresa: number | null
+          filho_cod: number | null
+          filho_nome: string | null
+          pai_cod: number | null
+          pai_nome: string | null
+          quantidade_atual: number | null
+          sincronizado_em: string | null
+        }
+        Relationships: []
+      }
       vw_container_consolidado: {
         Row: {
           booking_number: string | null
@@ -50544,22 +50556,16 @@ export type Database = {
       vw_estoque_unificado_skus: {
         Row: {
           abrev_par: string | null
-          bloqueado: number | null
           cod_produto: number | null
           codigo_barras_ean: string | null
-          contribuicao_bloqueado_un: number | null
-          contribuicao_disponivel_un: number | null
-          contribuicao_pendente_un: number | null
           contribuicao_un: number | null
           custo_total: number | null
-          disponivel: number | null
           empresa: number | null
           fator_pai_para_filho: number | null
           fator_un_acumulado: number | null
           nivel: number | null
           nome_prod: string | null
           pai_cod: number | null
-          pendente: number | null
           produto_raiz: number | null
           saldo: number | null
         }
