@@ -3,8 +3,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { ShieldCheck, ShieldAlert, KeyRound, Clock } from "lucide-react";
-import { differenceInDays, format } from "date-fns";
+import { ShieldCheck, ShieldAlert, KeyRound, Clock, Activity, AlertTriangle } from "lucide-react";
+import { differenceInDays, format, subHours } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 type ErpConfigRow = {
@@ -164,6 +164,8 @@ export default function IntegracoesSaude() {
         </CardContent>
       </Card>
 
+      <AnomaliasCard />
+
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Como funciona a rotação</CardTitle>
@@ -183,4 +185,107 @@ export default function IntegracoesSaude() {
       </Card>
     </div>
   );
+}
+
+type LogRow = {
+  endpoint: string;
+  method: string;
+  ip_address: string | null;
+  success: boolean | null;
+  error_message: string | null;
+  key_preview: string | null;
+  created_at: string;
+};
+
+function AnomaliasCard() {
+  const since24h = subHours(new Date(), 24).toISOString();
+  const { data: logs } = useQuery({
+    queryKey: ["api_security_log_24h"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("api_security_log")
+        .select("endpoint, method, ip_address, success, error_message, key_preview, created_at")
+        .gte("created_at", since24h)
+        .order("created_at", { ascending: false })
+        .limit(5000);
+      if (error) throw error;
+      return (data ?? []) as LogRow[];
+    },
+    refetchInterval: 60_000,
+  });
+
+  const total = logs?.length ?? 0;
+  const fails = (logs ?? []).filter((l) => l.success === false);
+  const failRate = total > 0 ? Math.round((fails.length / total) * 100) : 0;
+
+  const topIps = countTop(fails.map((l) => l.ip_address ?? "desconhecido"), 5);
+  const topEndpoints = countTop(fails.map((l) => `${l.method} ${l.endpoint}`), 5);
+  const topErrors = countTop(fails.map((l) => l.error_message ?? "sem mensagem"), 5);
+
+  const critico = failRate >= 50 && fails.length >= 100;
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base flex items-center gap-2">
+          <Activity className="h-4 w-4" /> Anomalias de uso (últimas 24h)
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <Stat label="Requisições" value={total.toLocaleString("pt-BR")} />
+          <Stat label="Falhas de auth" value={fails.length.toLocaleString("pt-BR")} tone={fails.length > 0 ? "warn" : "default"} />
+          <Stat label="Taxa de falha" value={`${failRate}%`} tone={failRate >= 50 ? "danger" : failRate >= 20 ? "warn" : "default"} />
+        </div>
+
+        {critico && (
+          <Alert variant="destructive">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle>Taxa de falha elevada</AlertTitle>
+            <AlertDescription>
+              Mais de 50% das requisições falharam nas últimas 24h. Possível ataque, configuração incorreta no parceiro ou chave expirada.
+            </AlertDescription>
+          </Alert>
+        )}
+
+        <RankingList title="IPs com mais falhas" rows={topIps} />
+        <RankingList title="Endpoints com mais falhas" rows={topEndpoints} />
+        <RankingList title="Mensagens de erro mais frequentes" rows={topErrors} />
+      </CardContent>
+    </Card>
+  );
+}
+
+function Stat({ label, value, tone = "default" }: { label: string; value: string; tone?: "default" | "warn" | "danger" }) {
+  const cls =
+    tone === "danger" ? "text-destructive" : tone === "warn" ? "text-amber-600 dark:text-amber-400" : "text-foreground";
+  return (
+    <div className="rounded-lg border border-border bg-card/60 p-4">
+      <div className="text-xs text-muted-foreground">{label}</div>
+      <div className={`text-2xl font-semibold ${cls}`}>{value}</div>
+    </div>
+  );
+}
+
+function RankingList({ title, rows }: { title: string; rows: Array<[string, number]> }) {
+  if (rows.length === 0) return null;
+  return (
+    <div>
+      <div className="text-xs font-medium text-muted-foreground mb-2">{title}</div>
+      <div className="space-y-1">
+        {rows.map(([k, v]) => (
+          <div key={k} className="flex items-center justify-between text-sm border-b border-border/40 pb-1">
+            <span className="truncate text-foreground/90 mr-3" title={k}>{k}</span>
+            <Badge variant="secondary">{v}</Badge>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function countTop(values: string[], n: number): Array<[string, number]> {
+  const map = new Map<string, number>();
+  for (const v of values) map.set(v, (map.get(v) ?? 0) + 1);
+  return Array.from(map.entries()).sort((a, b) => b[1] - a[1]).slice(0, n);
 }
