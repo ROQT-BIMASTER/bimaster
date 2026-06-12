@@ -54012,6 +54012,7 @@ export type Database = {
         }
         Returns: {
           itens_sem_saldo: number
+          total_bloqueado_produto: number
           total_custo: number
           total_pedido_pendente: number
           total_skus: number
@@ -54034,6 +54035,7 @@ export type Database = {
         }
         Returns: {
           itens_sem_saldo: number
+          total_bloqueado_produto: number
           total_pedido_pendente: number
           total_skus: number
           total_unidades: number
