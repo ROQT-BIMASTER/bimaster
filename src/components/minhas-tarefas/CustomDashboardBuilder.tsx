@@ -245,35 +245,32 @@ export function CustomDashboardBuilder({ tarefas }: Props) {
 
   const availableToAdd = WIDGET_REGISTRY.filter((w) => !widgets.find((wc) => wc.type === w.type));
 
-  // No dashboards yet
+  // No dashboards yet — open gallery directly
   if (!isLoading && dashboards.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-20">
-        <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center mb-4 ring-1 ring-primary/20">
-          <LayoutDashboard className="h-8 w-8 text-primary" />
+      <>
+        <div className="flex flex-col items-center justify-center py-20">
+          <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center mb-4 ring-1 ring-primary/20">
+            <LayoutDashboard className="h-8 w-8 text-primary" />
+          </div>
+          <h3 className="font-semibold text-lg mb-1 font-display">Crie seu Dashboard</h3>
+          <p className="text-sm text-muted-foreground mb-4 text-center max-w-md">
+            Comece com um modelo pronto: Visão Executiva, Operação Diária, Foco da Semana ou Performance de Projetos.
+          </p>
+          <Button onClick={() => setShowGallery(true)} className="gap-1.5">
+            <Plus className="h-4 w-4" /> Escolher modelo
+          </Button>
         </div>
-        <h3 className="font-semibold text-lg mb-1 font-display">Crie seu Dashboard</h3>
-        <p className="text-sm text-muted-foreground mb-4 text-center max-w-md">
-          Monte dashboards personalizados com indicadores, gráficos e listas para acompanhar suas tarefas.
-        </p>
-        <Button onClick={() => setShowNew(true)} className="gap-1.5">
-          <Plus className="h-4 w-4" /> Criar Dashboard
-        </Button>
-        <Dialog open={showNew} onOpenChange={setShowNew}>
-          <DialogContent className="max-w-sm">
-            <DialogHeader>
-              <DialogTitle>Novo Dashboard</DialogTitle>
-            </DialogHeader>
-            <Input value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="Nome do dashboard" />
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setShowNew(false)}>Cancelar</Button>
-              <Button onClick={handleCreateDashboard} disabled={!newName.trim()}>Criar</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      </div>
+        <DashboardTemplateGallery
+          open={showGallery}
+          onOpenChange={setShowGallery}
+          onCreate={handleCreateFromTemplate}
+          isPending={createDashboard.isPending}
+        />
+      </>
     );
   }
+
 
   return (
     <div className="space-y-5">
