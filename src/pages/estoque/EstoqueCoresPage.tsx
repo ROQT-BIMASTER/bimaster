@@ -247,3 +247,56 @@ export default function EstoqueCoresPage() {
     </DashboardLayout>
   );
 }
+
+interface RowWithDiv {
+  cod_produto: number | null;
+  tem_divergencia_linha?: boolean | null;
+  linhas_divergentes?: string[] | null;
+}
+
+function DivergenciaLinhaBanner({
+  ativo,
+  onToggle,
+  rows,
+}: {
+  ativo: boolean;
+  onToggle: (v: boolean) => void;
+  rows: RowWithDiv[];
+}) {
+  const divergentes = new Set<number>();
+  for (const r of rows) {
+    if (r.tem_divergencia_linha && r.cod_produto != null) divergentes.add(r.cod_produto);
+  }
+  const count = divergentes.size;
+  if (count === 0 && !ativo) return null;
+  return (
+    <Alert className="py-2 border-warning/50 bg-warning/5">
+      <AlertTriangle className="h-4 w-4 text-warning" />
+      <AlertDescription className="text-xs flex flex-wrap items-center justify-between gap-2 w-full">
+        <span>
+          {count > 0 ? (
+            <>
+              <strong>{count}</strong> SKU{count === 1 ? '' : 's'} no recorte atual com <strong>linha divergente no ERP</strong> (mesmo produto cadastrado em linhas diferentes entre filiais).{' '}
+            </>
+          ) : (
+            <>Nenhuma divergência no recorte atual. </>
+          )}
+          O saldo unificado <strong>já soma corretamente</strong> todas as filiais — a divergência é apenas no rótulo da linha. Corrija o cadastro no ERP.
+        </span>
+        <div className="flex items-center gap-2 shrink-0">
+          <Button
+            size="sm"
+            variant={ativo ? 'default' : 'outline'}
+            className="h-7 text-xs"
+            onClick={() => onToggle(!ativo)}
+          >
+            {ativo ? 'Mostrar todos' : 'Filtrar somente divergências'}
+          </Button>
+          <Button asChild size="sm" variant="outline" className="h-7 text-xs">
+            <Link to="/dashboard/estoque/auditoria-linhas-erp">Auditoria completa</Link>
+          </Button>
+        </div>
+      </AlertDescription>
+    </Alert>
+  );
+}
