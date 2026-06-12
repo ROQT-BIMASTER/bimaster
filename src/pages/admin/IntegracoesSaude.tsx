@@ -200,6 +200,132 @@ export default function IntegracoesSaude() {
   );
 }
 
+function RotateButton({ empresaId }: { empresaId: number }) {
+  const qc = useQueryClient();
+  const [open, setOpen] = useState(false);
+  const [graceDays, setGraceDays] = useState(7);
+  const [validityDays, setValidityDays] = useState(90);
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<{ key: string; expiresAt: string; graceUntil: string } | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  async function handleRotate() {
+    setLoading(true);
+    try {
+      const { data, error } = await (supabase.rpc as any)("rpc_rotate_erp_api_key", {
+        p_empresa_id: empresaId,
+        p_grace_days: graceDays,
+        p_validity_days: validityDays,
+      });
+      if (error) throw error;
+      const row = Array.isArray(data) ? data[0] : data;
+      if (!row?.new_api_key) throw new Error("Resposta vazia");
+      setResult({ key: row.new_api_key, expiresAt: row.expires_at, graceUntil: row.grace_until });
+      qc.invalidateQueries({ queryKey: ["erp_config_health"] });
+      toast.success("Chave rotacionada com sucesso");
+    } catch (e: any) {
+      toast.error(e?.message ?? "Falha ao rotacionar chave");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function reset() {
+    setOpen(false);
+    setTimeout(() => setResult(null), 200);
+  }
+
+  async function copy() {
+    if (!result) return;
+    await navigator.clipboard.writeText(result.key);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
+
+  return (
+    <>
+      <Button size="sm" variant="outline" onClick={() => setOpen(true)}>
+        <RefreshCw className="h-3.5 w-3.5 mr-1" /> Rotacionar
+      </Button>
+      <Dialog open={open} onOpenChange={(v) => (v ? setOpen(true) : reset())}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{result ? "Nova chave gerada" : `Rotacionar chave (Empresa ${empresaId})`}</DialogTitle>
+            <DialogDescription>
+              {result
+                ? "Esta chave será exibida apenas uma vez. Copie agora e armazene em local seguro."
+                : "Uma nova chave será gerada. A anterior continuará válida durante o período de graça."}
+            </DialogDescription>
+          </DialogHeader>
+
+          {!result && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label htmlFor="grace">Período de graça (dias)</Label>
+                  <Input
+                    id="grace"
+                    type="number"
+                    min={0}
+                    max={30}
+                    value={graceDays}
+                    onChange={(e) => setGraceDays(Math.max(0, Math.min(30, Number(e.target.value))))}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="validity">Validade (dias)</Label>
+                  <Input
+                    id="validity"
+                    type="number"
+                    min={7}
+                    max={365}
+                    value={validityDays}
+                    onChange={(e) => setValidityDays(Math.max(7, Math.min(365, Number(e.target.value))))}
+                  />
+                </div>
+              </div>
+              <Alert>
+                <AlertDescription className="text-xs">
+                  Durante a graça, ambas as chaves autenticam. Após o vencimento, apenas a nova.
+                </AlertDescription>
+              </Alert>
+            </div>
+          )}
+
+          {result && (
+            <div className="space-y-3">
+              <div className="rounded-md bg-muted p-3 text-xs font-mono break-all border border-border">
+                {result.key}
+              </div>
+              <Button size="sm" onClick={copy} variant="secondary">
+                {copied ? <Check className="h-3.5 w-3.5 mr-1" /> : <Copy className="h-3.5 w-3.5 mr-1" />}
+                {copied ? "Copiado" : "Copiar chave"}
+              </Button>
+              <div className="text-xs text-muted-foreground space-y-1">
+                <div>Expira em: {format(new Date(result.expiresAt), "dd/MM/yyyy HH:mm", { locale: ptBR })}</div>
+                <div>Graça até: {format(new Date(result.graceUntil), "dd/MM/yyyy HH:mm", { locale: ptBR })}</div>
+              </div>
+            </div>
+          )}
+
+          <DialogFooter>
+            {!result ? (
+              <>
+                <Button variant="ghost" onClick={reset} disabled={loading}>Cancelar</Button>
+                <Button onClick={handleRotate} disabled={loading}>
+                  {loading ? "Gerando..." : "Gerar nova chave"}
+                </Button>
+              </>
+            ) : (
+              <Button onClick={reset}>Fechar</Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
+
 type LogRow = {
   endpoint: string;
   method: string;
