@@ -1,6 +1,7 @@
 import { useQuery, keepPreviousData } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/lib/logger';
+import { awaitCacheUnificadoFresh } from '@/lib/estoque/cacheFreshness';
 
 export interface EstoqueUnificadoRow {
   empresa: number;
