@@ -109,6 +109,11 @@ export default function EstoqueCoresPage() {
           </div>
           <div className="flex items-center gap-2">
             <Button asChild variant="outline" size="sm" className="h-9">
+              <Link to="/dashboard/estoque/reconciliacao-cores">
+                <ShieldCheck className="h-4 w-4 mr-2" /> Reconciliar com Unificado
+              </Link>
+            </Button>
+            <Button asChild variant="outline" size="sm" className="h-9">
               <Link to="/dashboard/estoque/etiquetas">
                 <Settings2 className="h-4 w-4 mr-2" /> Etiquetas
               </Link>
