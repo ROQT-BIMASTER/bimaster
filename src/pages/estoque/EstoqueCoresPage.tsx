@@ -9,6 +9,7 @@ import { Search, Settings2, ShieldCheck, Info, AlertTriangle, CheckCircle2 } fro
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import { awaitCacheUnificadoFresh } from '@/lib/estoque/cacheFreshness';
 import {
   useEstoqueCoresQuery,
   FILTROS_CORES_INICIAIS,
@@ -317,9 +318,10 @@ function DivergenciaLinhaBanner({
 function ConciliacaoBadge() {
   const { data } = useQuery({
     queryKey: ['vw_conciliacao_cores_unificado'],
-    staleTime: 60_000,
-    refetchInterval: 60_000,
+    staleTime: 25_000,
+    refetchInterval: 30_000,
     queryFn: async () => {
+      await awaitCacheUnificadoFresh();
       const { data, error } = await (supabase as any)
         .from('vw_conciliacao_cores_unificado')
         .select('total_cores_un,total_unificado_un,diferenca')
