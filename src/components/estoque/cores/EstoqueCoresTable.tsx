@@ -160,6 +160,7 @@ export function EstoqueCoresTable(p: Props) {
     return (
       <TableHead
         key={c.key}
+        title={c.title}
         className={cn(
           'whitespace-nowrap text-xs font-semibold',
           c.align === 'right' && 'text-right',
