@@ -142,6 +142,7 @@ export default function EstoqueUnificadoPage() {
     empresaIds, busca: buscaDeb, somenteComSaldo, page, pageSize,
     sortBy: backendSortBy, sortDir, consolidar,
     marcas, linhas,
+    campanhaProdutos: campanhaFilter,
   });
   const { data: serverTotals } = useEstoqueUnificadoKpis({
     empresaIds, somenteComSaldo, marcas, linhas, busca: buscaDeb,
