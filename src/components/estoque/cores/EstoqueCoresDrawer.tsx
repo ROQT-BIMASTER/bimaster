@@ -48,7 +48,7 @@ export function EstoqueCoresDrawer({ row, open, onOpenChange }: Props) {
                   <Field label="Potencial desmontagem" value={fmtN(row.saldo_potencial_desmontagem)} />
                   <Field
                     label="Total disponível"
-                    value={<span className="text-primary">{fmtN(row.saldo_total_disponivel)}</span>}
+                    value={<span className="text-primary">{fmtN(Math.max(0, Number(row.saldo_total_disponivel ?? 0) - Number(row.estoque_bloqueado_produto ?? 0)))}</span>}
                   />
                   <Field label="Pedido pendente" value={fmtN(row.pedido_pendente)} />
                   <Field label="Bloqueado produto" value={fmtN(row.estoque_bloqueado_produto)} />
