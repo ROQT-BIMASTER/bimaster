@@ -449,3 +449,44 @@ function Metric({
     </div>
   );
 }
+
+function ExpandedMemory({ row, variant }: { row: AnyRow; variant: 'por-empresa' | 'consolidado' }) {
+  if (variant === 'consolidado') {
+    const r = row as EstoqueCorConsolidadoRow;
+    const empresas = r.por_empresa ?? [];
+    return (
+      <div className="space-y-4 max-w-5xl">
+        <div className="text-[11px] text-muted-foreground">
+          Detalhamento por filial e memória de cálculo da explosão. Confira contra o ERP por filial.
+        </div>
+        {empresas.length === 0 ? (
+          <p className="text-xs text-muted-foreground italic">Sem detalhamento por filial.</p>
+        ) : (
+          empresas.map((e) => (
+            <div key={e.empresa_par} className="rounded border bg-background p-3">
+              <EstoqueCoresMemoryBlock
+                empresa={{ empresa_par: e.empresa_par, abrev_par: e.abrev_par }}
+                saldoProprio={Number(e.saldo_proprio ?? 0)}
+                saldoPotencial={Number(e.saldo_potencial_desmontagem ?? 0)}
+                detalhe={e.detalhe_desmontagem as DetalheDesmontagemItem[] | null}
+                unidade={r.unidade_medida}
+                compact
+              />
+            </div>
+          ))
+        )}
+      </div>
+    );
+  }
+  const r = row as EstoqueCorRow;
+  return (
+    <div className="max-w-3xl">
+      <EstoqueCoresMemoryBlock
+        saldoProprio={Number(r.saldo_proprio ?? 0)}
+        saldoPotencial={Number(r.saldo_potencial_desmontagem ?? 0)}
+        detalhe={r.detalhe_desmontagem as DetalheDesmontagemItem[] | null}
+        unidade={r.unidade_medida}
+      />
+    </div>
+  );
+}
