@@ -143,18 +143,69 @@ export function useUploadArquivoB2C() {
       if (error) throw error;
       return data as unknown as ChecklistB2CItem;
     },
-    onSuccess: (row) => {
+    onSuccess: async (row) => {
       toast.success(
         row.projeto_tarefa_id ? "Arquivo anexado · tarefa atualizada no projeto" : "Arquivo anexado"
       );
       qc.invalidateQueries({ queryKey: ["china-checklist-b2c", row.submissao_id] });
       qc.invalidateQueries({ queryKey: ["projeto-tarefas"] });
       qc.invalidateQueries({ queryKey: ["projeto-secoes"] });
-    },
-    onError: (e: any) => toast.error(e?.message || "Falha ao anexar"),
-  });
 
-}
+      // Notificação por email ao responsável Brasil (best-effort, não bloqueia UI)
+      try {
+        if (!row.projeto_tarefa_id || !row.responsavel_brasil_id) return;
+
+        const [{ data: prof }, { data: sub }, { data: tarefa }] = await Promise.all([
+          supabase
+            .from("profiles")
+            .select("email, nome")
+            .eq("id", row.responsavel_brasil_id)
+            .maybeSingle(),
+          supabase
+            .from("china_produto_submissoes" as any)
+            .select("codigo, produto_nome")
+            .eq("id", row.submissao_id)
+            .maybeSingle(),
+          supabase
+            .from("projeto_tarefas" as any)
+            .select("projeto_id, data_prazo")
+            .eq("id", row.projeto_tarefa_id)
+            .maybeSingle(),
+        ]);
+
+        const email = (prof as any)?.email as string | undefined;
+        if (!email) return;
+
+        const projetoId = (tarefa as any)?.projeto_id as string | undefined;
+        const tarefaUrl = projetoId
+          ? `${window.location.origin}/projetos/${projetoId}?tarefa=${row.projeto_tarefa_id}`
+          : undefined;
+
+        const prazoIso = (tarefa as any)?.data_prazo as string | undefined;
+        const prazo = prazoIso
+          ? new Date(prazoIso + "T00:00:00").toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" })
+          : undefined;
+
+        await supabase.functions.invoke("send-transactional-email", {
+          body: {
+            templateName: "b2c-tarefa-criada",
+            recipientEmail: email,
+            idempotencyKey: `b2c-tarefa-${row.projeto_tarefa_id}-${row.id}`,
+            templateData: {
+              responsavelNome: (prof as any)?.nome ?? null,
+              documentoNome: row.nome_documento,
+              categoria: row.categoria,
+              submissaoCodigo: (sub as any)?.codigo ?? null,
+              produtoNome: (sub as any)?.produto_nome ?? null,
+              prazo,
+              tarefaUrl,
+            },
+          },
+        });
+      } catch (err) {
+        console.warn("[b2c] falha ao enviar notificação por email:", err);
+      }
+    },
 
 /** Brasil → China: marca como enviado. */
 export function useEnviarDocB2C() {
