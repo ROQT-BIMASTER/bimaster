@@ -17,6 +17,8 @@ export interface EstoqueUnificadoRow {
   fator_cx_para_un: number | null;
   fator_bx_para_un: number | null;
   ean_raiz: string | null;
+  /** Nome canônico do produto-raiz já resolvido no backend (cache do unificado). */
+  nome_raiz?: string | null;
   // hidratado pelo enrich:
   raiz_nome?: string | null;
   raiz_abrev?: string | null;
@@ -342,7 +344,11 @@ export function useEstoqueUnificado(opts: UseEstoqueUnificadoOpts) {
         const pedSet = pedidosPorEmpresaCod.get(`${r.empresa}|${r.produto_raiz}`);
         return {
           ...r,
-          raiz_nome: nomesPorCod.get(r.produto_raiz) ?? null,
+          // Prioridade: nome canônico do cache (vw_estoque_unificado.nome_raiz),
+          // depois nomes derivados via enrich (erp_estoque_distribuidora,
+          // vw_estoque_unificado_skus, fabrica_produtos, rr_produtos). Após o
+          // backfill de nome_raiz no cache, o cliente raramente cai nos fallbacks.
+          raiz_nome: (r.nome_raiz && r.nome_raiz.trim()) || nomesPorCod.get(r.produto_raiz) || null,
           raiz_abrev: abrev,
           filial_nome: resolveFilialNome(r.empresa, abrev),
           marca: marcaPorCod.get(r.produto_raiz) ?? null,
