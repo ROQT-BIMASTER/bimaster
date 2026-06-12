@@ -51,6 +51,7 @@ interface ColDef {
   label: string;
   sortable?: boolean;
   align?: 'left' | 'right' | 'center';
+  title?: string;
 }
 
 const COLUMNS_POR_EMPRESA: ColDef[] = [
@@ -60,7 +61,7 @@ const COLUMNS_POR_EMPRESA: ColDef[] = [
   { key: 'nome_prod', label: 'Produto (cor)', sortable: true },
   { key: 'nome_linha', label: 'Linha' },
   { key: 'campanhas', label: 'Campanhas' },
-  { key: 'saldo_total_disponivel', label: 'Total (próprio+pot.)', sortable: true, align: 'right' },
+  { key: 'saldo_total_disponivel', label: 'Total (próprio+pot.)', sortable: true, align: 'right', title: 'Total = (Próprio + Potencial desmontagem) − Bloq. produto. Não abate Pendente (o saldo ainda existe fisicamente).' },
   { key: 'saldo_proprio', label: 'Próprio', align: 'right' },
   { key: 'saldo_potencial_desmontagem', label: 'Potencial desm.', sortable: true, align: 'right' },
   { key: 'pedido_pendente', label: 'Pendente', sortable: true, align: 'right' },
@@ -78,7 +79,7 @@ const COLUMNS_CONSOLIDADO: ColDef[] = [
   { key: 'nome_prod', label: 'Produto (cor)', sortable: true },
   { key: 'nome_linha', label: 'Linha' },
   { key: 'campanhas', label: 'Campanhas' },
-  { key: 'saldo_total_disponivel', label: 'Total (próprio+pot.)', sortable: true, align: 'right' },
+  { key: 'saldo_total_disponivel', label: 'Total (próprio+pot.)', sortable: true, align: 'right', title: 'Total = (Próprio + Potencial desmontagem) − Bloq. produto. Não abate Pendente (o saldo ainda existe fisicamente).' },
   { key: 'saldo_proprio', label: 'Próprio', align: 'right' },
   { key: 'saldo_potencial_desmontagem', label: 'Potencial desm.', sortable: true, align: 'right' },
   { key: 'pedido_pendente', label: 'Pendente', sortable: true, align: 'right' },
@@ -159,6 +160,7 @@ export function EstoqueCoresTable(p: Props) {
     return (
       <TableHead
         key={c.key}
+        title={c.title}
         className={cn(
           'whitespace-nowrap text-xs font-semibold',
           c.align === 'right' && 'text-right',
@@ -342,7 +344,7 @@ function RowGroup({ rowKey, row, cols, isOpen, memo, onToggle, onMainClick, vari
             )}
           </div>
         </TableCell>
-        <TableCell className="text-right tabular-nums font-semibold">{fmtN(r.saldo_total_disponivel ?? r.saldo)}</TableCell>
+        <TableCell className="text-right tabular-nums font-semibold">{fmtN(Math.max(0, Number(r.saldo_total_disponivel ?? r.saldo ?? 0) - Number(r.estoque_bloqueado_produto ?? 0)))}</TableCell>
         <TableCell className="text-right text-xs tabular-nums">{fmtN(r.saldo_proprio)}</TableCell>
         <TableCell className="text-right text-xs tabular-nums">
           {Number(r.saldo_potencial_desmontagem ?? 0) > 0 ? (
