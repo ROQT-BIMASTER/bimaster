@@ -56,7 +56,7 @@ export default function IntegracoesSaude() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("erp_api_keys")
-        .select("id, empresa_id, nome, ativo, expires_at, last_used_at, request_count, created_at")
+        .select("id, empresa_id, nome_responsavel, active, expires_at, request_count, created_at")
         .order("created_at", { ascending: false });
       if (error) throw error;
       return (data ?? []) as ErpApiKeyRow[];
@@ -76,13 +76,13 @@ export default function IntegracoesSaude() {
     })),
     ...(portalKeys ?? []).map((r) => ({
       origem: "Portal Integração",
-      nome: r.nome ?? `Empresa ${r.empresa_id}`,
-      ativo: !!r.ativo,
+      nome: r.nome_responsavel ?? `Empresa ${r.empresa_id}`,
+      ativo: !!r.active,
       hash_ok: true,
       plaintext: false,
       expira_em: r.expires_at,
       anterior_expira_em: null,
-      ultima_atualizacao: r.last_used_at ?? r.created_at,
+      ultima_atualizacao: r.created_at,
     })),
   ];
 
