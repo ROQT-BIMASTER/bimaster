@@ -242,6 +242,7 @@ export function useRejeitarComLaudo() {
       documento_id: string;
       submissao_id: string;
       motivo: string;
+      mentions?: string[];
       anexos?: File[];
     }) => {
       const user = await getUserName();
@@ -272,6 +273,7 @@ export function useRejeitarComLaudo() {
           acao_por_nome: user.nome,
           anotacoes: [],
           anexos: [],
+          mentions: params.mentions || [],
         } as any)
         .select("id")
         .single();
@@ -305,6 +307,162 @@ export function useRejeitarComLaudo() {
       toast.success("Documento rejeitado com laudo técnico. 已附技术报告拒绝。");
     },
     onError: (e: any) => toast.error(e?.message || "Falha ao rejeitar documento."),
+  });
+}
+
+/**
+ * Aprovação com parecer técnico obrigatório (+ menções e anexos opcionais).
+ * Substitui o uso "rápido" de useCriarRevisao no Brasil.
+ */
+export function useCriarRevisaoComParecer() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (params: {
+      documento_id: string;
+      submissao_id: string;
+      parecer: string;
+      mentions?: string[];
+      anexos?: File[];
+    }) => {
+      const user = await getUserName();
+      const parecer = params.parecer.trim();
+      if (!parecer) throw new Error("Parecer de aprovação é obrigatório.");
+
+      const { data: existing } = await supabase
+        .from("china_doc_revisoes" as any)
+        .select("rodada")
+        .eq("documento_id", params.documento_id)
+        .order("rodada", { ascending: false })
+        .limit(1);
+      const rodada = ((existing as any)?.[0]?.rodada || 0) + 1;
+      const idioma = detectLang(parecer);
+
+      const { data: revInsert, error: revErr } = await supabase
+        .from("china_doc_revisoes" as any)
+        .insert({
+          documento_id: params.documento_id,
+          submissao_id: params.submissao_id,
+          rodada,
+          resultado: "aprovado",
+          motivo_rejeicao: parecer,
+          motivo_idioma_origem: idioma,
+          motivo_traducoes: { [idioma]: parecer },
+          revisado_por: user.id,
+          acao_tipo: "aprovar",
+          acao_por_nome: user.nome,
+          anotacoes: [],
+          anexos: [],
+          mentions: params.mentions || [],
+        } as any)
+        .select("id")
+        .single();
+      if (revErr) throw revErr;
+      const revisaoId = (revInsert as any).id as string;
+
+      const anexos = params.anexos?.length
+        ? await uploadAnexos(
+            params.anexos,
+            `revisoes/${params.submissao_id}/${revisaoId}`,
+            "brasil",
+          )
+        : [];
+      if (anexos.length) {
+        await supabase
+          .from("china_doc_revisoes" as any)
+          .update({ anexos } as any)
+          .eq("id", revisaoId);
+      }
+
+      await supabase
+        .from("china_produto_documentos" as any)
+        .update({ status: "aprovado" } as any)
+        .eq("id", params.documento_id);
+    },
+    onSuccess: (_, vars) => {
+      queryClient.invalidateQueries({ queryKey: ["china-revisoes", vars.submissao_id] });
+      queryClient.invalidateQueries({ queryKey: ["china-ficha-docs", vars.submissao_id] });
+      toast.success("Documento aprovado com parecer. 已批准并附意见。");
+    },
+    onError: (e: any) => toast.error(e?.message || "Falha ao aprovar."),
+  });
+}
+
+/**
+ * Ciência com parecer (texto opcional, mas com menções/anexos suportados).
+ */
+export function useDarCienciaComParecer() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (params: {
+      documento_id: string;
+      submissao_id: string;
+      parecer?: string;
+      mentions?: string[];
+      anexos?: File[];
+    }) => {
+      const user = await getUserName();
+      const parecer = (params.parecer || "").trim();
+
+      const { data: existing } = await supabase
+        .from("china_doc_revisoes" as any)
+        .select("rodada")
+        .eq("documento_id", params.documento_id)
+        .order("rodada", { ascending: false })
+        .limit(1);
+      const rodada = ((existing as any)?.[0]?.rodada || 0) + 1;
+      const idioma = parecer ? detectLang(parecer) : null;
+
+      const payload: Record<string, unknown> = {
+        documento_id: params.documento_id,
+        submissao_id: params.submissao_id,
+        rodada,
+        resultado: "ciencia",
+        revisado_por: user.id,
+        acao_tipo: "ciencia",
+        acao_por_nome: user.nome,
+        anotacoes: [],
+        anexos: [],
+        mentions: params.mentions || [],
+      };
+      if (parecer) {
+        payload.motivo_rejeicao = parecer;
+        payload.motivo_idioma_origem = idioma;
+        payload.motivo_traducoes = idioma ? { [idioma]: parecer } : {};
+      }
+
+      const { data: revInsert, error: revErr } = await supabase
+        .from("china_doc_revisoes" as any)
+        .insert(payload as any)
+        .select("id")
+        .single();
+      if (revErr) throw revErr;
+      const revisaoId = (revInsert as any).id as string;
+
+      const anexos = params.anexos?.length
+        ? await uploadAnexos(
+            params.anexos,
+            `revisoes/${params.submissao_id}/${revisaoId}`,
+            "brasil",
+          )
+        : [];
+      if (anexos.length) {
+        await supabase
+          .from("china_doc_revisoes" as any)
+          .update({ anexos } as any)
+          .eq("id", revisaoId);
+      }
+
+      await supabase
+        .from("china_produto_documentos" as any)
+        .update({ status: "ciencia" } as any)
+        .eq("id", params.documento_id);
+    },
+    onSuccess: (_, vars) => {
+      queryClient.invalidateQueries({ queryKey: ["china-revisoes", vars.submissao_id] });
+      queryClient.invalidateQueries({ queryKey: ["china-ficha-docs", vars.submissao_id] });
+      toast.success("Ciência registrada. 已确认。");
+    },
+    onError: (e: any) => toast.error(e?.message || "Falha ao registrar ciência."),
   });
 }
 
