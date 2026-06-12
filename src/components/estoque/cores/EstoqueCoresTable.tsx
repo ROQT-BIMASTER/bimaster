@@ -51,6 +51,7 @@ interface ColDef {
   label: string;
   sortable?: boolean;
   align?: 'left' | 'right' | 'center';
+  title?: string;
 }
 
 const COLUMNS_POR_EMPRESA: ColDef[] = [
