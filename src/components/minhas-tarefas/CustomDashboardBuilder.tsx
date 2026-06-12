@@ -311,9 +311,10 @@ export function CustomDashboardBuilder({ tarefas }: Props) {
             </div>
           )}
 
-          <Button variant="ghost" size="sm" className="h-8 gap-1 text-xs" onClick={() => setShowNew(true)}>
+          <Button variant="ghost" size="sm" className="h-8 gap-1 text-xs" onClick={() => setShowGallery(true)}>
             <Plus className="h-3.5 w-3.5" /> Novo
           </Button>
+
 
           {activeDash && (
             <>
