@@ -53265,6 +53265,10 @@ export type Database = {
         Args: { p_comentario?: string; p_decisao: string; p_item_id: string }
         Returns: Json
       }
+      rpc_b2c_sync_tarefa_espelho: {
+        Args: { p_item_id: string }
+        Returns: Json
+      }
       rpc_briefing_marcar_lido: {
         Args: { p_briefing_id: string }
         Returns: undefined
