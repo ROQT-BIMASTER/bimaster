@@ -2,7 +2,7 @@
 // PR-24: envolto em secureHandler (WAF L7, IP blocklist, security headers) — antes só tinha CORS+auth+ratelimit manuais.
 // Mantém roteador interno + idempotência centralizada via withIdempotency (sem duplicação nos handlers).
 import { createClient } from 'npm:@supabase/supabase-js@2';
-import { timingSafeEqual } from "../_shared/timing-safe.ts";
+
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { getKeyPreview, logApiAccess } from "../_shared/auth.ts";
 import { withIdempotency } from "../_shared/idempotency.ts";
@@ -72,12 +72,8 @@ async function runRouter(req: Request): Promise<Response> {
       const auditMeta = getAuditMeta();
       const keyPreview = getKeyPreview(apiKey);
 
-      const expectedKey = Deno.env.get('N8N_API_KEY');
-      if (apiKey && expectedKey && timingSafeEqual(apiKey, expectedKey)) {
-        logApiAccess({ ...auditMeta, apiKeyUsed: true, success: true, keyPreview });
-        authSource = 'api_key';
-        return true;
-      }
+
+
 
       const { data: configRow } = await supabase.from("erp_config").select("empresa_id").eq("config_key", "api_key").eq("config_value", apiKey).maybeSingle();
       if (configRow?.empresa_id) {

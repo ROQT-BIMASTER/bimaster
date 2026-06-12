@@ -1,5 +1,5 @@
 // _shared/contas-pagar/infra-handlers.ts — Status, stats, last-sync, trigger-n8n, debug-payload (Profissionalizado)
-import { timingSafeEqual } from "../timing-safe.ts";
+
 import { getKeyPreview, logApiAccess } from "../auth.ts";
 import type { HandlerContext } from "./types.ts";
 import {
@@ -43,10 +43,7 @@ export async function handleStats(ctx: HandlerContext): Promise<Response> {
 }
 
 export async function handleLastSync(ctx: HandlerContext): Promise<Response> {
-  const apiKey = ctx.req.headers.get('x-api-key');
-  const expectedKey = Deno.env.get('N8N_API_KEY');
-  const apiKeyValid = apiKey && expectedKey && timingSafeEqual(apiKey, expectedKey);
-  if (!apiKeyValid && !await ctx.validateAuth()) return apiResponse({ error: 'Unauthorized' }, 401, ctx.corsHeaders, ctx.startTime);
+  if (!await ctx.validateAuth()) return apiResponse({ error: 'Unauthorized' }, 401, ctx.corsHeaders, ctx.startTime);
 
   const { data: lastSync, error } = await ctx.supabase
     .from('sync_control').select('ultima_sync, total_registros, registros_inseridos, registros_atualizados')

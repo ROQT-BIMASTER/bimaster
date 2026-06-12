@@ -2,7 +2,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { logger } from "../_shared/logger.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { secureHandler } from "../_shared/secure-handler.ts";
-import { timingSafeEqual } from "../_shared/timing-safe.ts";
+import { requireAdminJwt } from "../_shared/admin-jwt.ts";
 import { logSensitiveOperation } from "../_shared/audit-log.ts";
 
 Deno.serve(secureHandler({
@@ -25,27 +25,22 @@ Deno.serve(secureHandler({
                 req.headers.get('x-real-ip') || 
                 'unknown';
 
-    // Validate API key for n8n integration
-    const apiKey = req.headers.get('X-API-Key');
-    const expectedKey = Deno.env.get('N8N_API_KEY');
-    
-    if (!apiKey || !expectedKey || !timingSafeEqual(apiKey, expectedKey)) {
-      logger.error(`❌ Invalid API key attempt from ${ipAddress}`);
-      
-      // Log failed authentication attempt
+    // Auth: require admin JWT (n8n key path retired)
+    const adminAuth = await requireAdminJwt(req);
+    if (!adminAuth.ok) {
+      logger.error(`Auth failed from ${ipAddress}: ${adminAuth.error}`);
       try {
         await supabase.from('api_access_log').insert({
           endpoint: 'export-all-data',
           ip_address: ipAddress,
           success: false,
-          error_message: 'Invalid API key',
-          requested_at: new Date().toISOString()
+          error_message: adminAuth.error,
+          requested_at: new Date().toISOString(),
         });
       } catch (logError) {
-        logger.warn('Failed to log invalid auth:', logError);
+        logger.warn('Failed to log auth failure:', logError);
       }
-      
-      throw new Error('Invalid API key');
+      throw new Error(adminAuth.error ?? 'Unauthorized');
     }
 
     // Rate limiting is handled by the secureHandler wrapper
