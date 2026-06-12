@@ -114,6 +114,7 @@ function WidgetCard({
       case "kpi_atrasadas":
       case "kpi_concluidas_hoje":
       case "kpi_produtividade":
+      case "kpi_taxa_prazo":
         return <KpiWidget type={widget.type} tarefas={tarefas} />;
       case "tarefas_por_projeto":
         return <WidgetTarefasPorProjeto tarefas={tarefas} />;
@@ -127,10 +128,19 @@ function WidgetCard({
         return <WidgetListaAtrasadas tarefas={tarefas} />;
       case "lista_proximas":
         return <WidgetListaProximas tarefas={tarefas} />;
+      case "heatmap_produtividade":
+        return <WidgetHeatmapProdutividade tarefas={tarefas} />;
+      case "leaderboard_projetos":
+        return <WidgetLeaderboardProjetos tarefas={tarefas} />;
+      case "carga_capacidade":
+        return <WidgetCargaCapacidade tarefas={tarefas} />;
+      case "aging_tarefas":
+        return <WidgetAgingTarefas tarefas={tarefas} />;
       default:
         return null;
     }
   })();
+
 
   if (isKpi) {
     return (
