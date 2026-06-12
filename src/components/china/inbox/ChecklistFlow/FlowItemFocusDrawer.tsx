@@ -1,13 +1,15 @@
 import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { ExternalLink, FileText, ImageIcon, Loader2, Maximize2, Send, Upload, X } from "lucide-react";
+import { ExternalLink, FileText, ImageIcon, Link2, Loader2, Maximize2, Send, Upload, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
 import { useUploadChinaDocumento } from "@/hooks/useUploadChinaDocumento";
 import { detectThumbKind } from "@/hooks/useChinaDocThumbnail";
 import { getSignedUrl } from "@/lib/utils/storage-helper";
@@ -23,6 +25,7 @@ import type { MailboxItem } from "@/hooks/useChinaMailbox";
 import type { MailboxGroup } from "@/lib/china/groupMailboxItems";
 import { DrawerParecerActions } from "./DrawerParecerActions";
 import { DrawerRevisoesList } from "./DrawerRevisoesList";
+import { DrawerComentariosTab } from "./DrawerComentariosTab";
 
 
 interface Props {
