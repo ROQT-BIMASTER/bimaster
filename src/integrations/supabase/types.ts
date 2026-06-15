@@ -53697,6 +53697,10 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      rpc_china_resincronizar_espelho: {
+        Args: { p_submissao_id: string }
+        Returns: Json
+      }
       rpc_china_responder_doc_b2c: {
         Args: { p_decisao: string; p_item_id: string; p_motivo?: string }
         Returns: {
