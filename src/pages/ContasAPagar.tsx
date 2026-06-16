@@ -618,7 +618,7 @@ export default function ContasAPagar() {
       { header: 'Valor Original', key: 'valor_original', width: 15 },
       { header: 'Valor Aberto', key: 'valor_aberto', width: 15 },
       { header: 'Valor Pago', key: 'valor_pago', width: 15 },
-      { header: 'Status', key: 'status', width: 12 },
+      { header: 'Status (calculado)', key: 'status', width: 18 },
       { header: 'Departamento', key: 'departamento', width: 20 },
       { header: 'Plano de Contas', key: 'plano_contas', width: 25 },
     ];
