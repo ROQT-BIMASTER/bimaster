@@ -18,6 +18,7 @@ import ScoreGauge from "./ScoreGauge";
 import ClienteHistoricoPagamentos from "./ClienteHistoricoPagamentos";
 import ClienteAlertasCredito from "./ClienteAlertasCredito";
 import ClienteScoreHistorico from "./ClienteScoreHistorico";
+import { calculateFinancialStatus } from "@/hooks/useFinancialStatus";
 
 interface ClientePerfilCreditoProps {
   clienteCodigo: string;
