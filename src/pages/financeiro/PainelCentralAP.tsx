@@ -32,6 +32,7 @@ import { callApi, callExportApi, formatBRL, fmtDate, fmtDateTime, dateToApi, enq
 import { debounce } from "@/lib/utils/debounce";
 import { useEmpresaContext } from "@/contexts/EmpresaContext";
 import { exportToExcel } from "@/utils/excelExport";
+import { calculateFinancialStatus } from "@/hooks/useFinancialStatus";
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
