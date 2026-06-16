@@ -36,7 +36,27 @@ export default defineConfig({
   projects: [
     {
       name: "chromium",
+      testIgnore: /datepicker-tz\//,
       use: { ...devices["Desktop Chrome"] },
+    },
+    // ── Matriz de fusos para a suíte de datepicker (e2e/datepicker-tz/*) ──
+    // Mesma spec roda 3x; o Chromium adota o timezoneId via emulação CDP, de
+    // modo que `new Date()`, `Intl.DateTimeFormat` e o calendário shadcn se
+    // comportam exatamente como no fuso simulado.
+    {
+      name: "tz-sao-paulo",
+      testMatch: /datepicker-tz\/.*\.spec\.ts$/,
+      use: { ...devices["Desktop Chrome"], timezoneId: "America/Sao_Paulo", locale: "pt-BR" },
+    },
+    {
+      name: "tz-utc",
+      testMatch: /datepicker-tz\/.*\.spec\.ts$/,
+      use: { ...devices["Desktop Chrome"], timezoneId: "UTC", locale: "pt-BR" },
+    },
+    {
+      name: "tz-tokyo",
+      testMatch: /datepicker-tz\/.*\.spec\.ts$/,
+      use: { ...devices["Desktop Chrome"], timezoneId: "Asia/Tokyo", locale: "pt-BR" },
     },
   ],
 });
