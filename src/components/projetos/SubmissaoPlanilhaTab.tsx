@@ -456,7 +456,7 @@ export function SubmissaoPlanilhaTab({ projetoId, darkBg = false }: Props) {
                       })}
                     </tr>
                   ))}
-                </>
+                </Fragment>
               ))}
             </tbody>
           </table>
