@@ -63,6 +63,7 @@ const MANAGE_TABS = [
   { value: "painel", icon: BarChart3, label: "Painel" },
   { value: "metas", icon: Target, label: "Metas" },
   { value: "briefings", icon: FileSpreadsheet, label: "Briefings" },
+  { value: "submissao_planilha", icon: FileSpreadsheet, label: "Dados de Submissão" },
   { value: "equipe", icon: UsersRound, label: "Equipe" },
   { value: "chat", icon: Sparkles, label: "Chat IA" },
   { value: "arquivos", icon: FileText, label: "Arquivos" },

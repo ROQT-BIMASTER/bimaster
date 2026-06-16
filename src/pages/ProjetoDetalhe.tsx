@@ -36,6 +36,7 @@ import { FloatingActionSlot } from "@/components/ui/floating-action-dock";
 import { RrTasksBoardView } from "@/components/rr-tasks/RrTasksBoardView";
 import { RrTasksBreadcrumb } from "@/components/rr-tasks/RrTasksBreadcrumb";
 import { SubmissaoChinaBoardView } from "@/components/china/submissao-board/SubmissaoChinaBoardView";
+import { SubmissaoPlanilhaTab } from "@/components/projetos/SubmissaoPlanilhaTab";
 
 
 function isDarkColor(hex: string | null): boolean {
@@ -255,6 +256,7 @@ export default function ProjetoDetalhe({ shared = false }: ProjetoDetalheProps =
               {activeTab === "arquivos" && <ProjetoArquivosView projetoId={projeto.id} darkBg={darkBg} />}
               {activeTab === "rr_board" && <RrTasksBoardView embedded />}
               {activeTab === "submissao_board" && <SubmissaoChinaBoardView projetoId={projeto.id} />}
+              {activeTab === "submissao_planilha" && <SubmissaoPlanilhaTab projetoId={projeto.id} darkBg={darkBg} />}
             </div>
           </div>
         </div>

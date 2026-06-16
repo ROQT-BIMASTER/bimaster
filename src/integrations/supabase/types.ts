@@ -37320,6 +37320,187 @@ export type Database = {
           },
         ]
       }
+      projeto_submissao_planilha_config: {
+        Row: {
+          agrupar_por: string | null
+          colunas: Json
+          created_at: string
+          filtros: Json
+          id: string
+          is_default: boolean
+          nome: string
+          projeto_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          agrupar_por?: string | null
+          colunas?: Json
+          created_at?: string
+          filtros?: Json
+          id?: string
+          is_default?: boolean
+          nome?: string
+          projeto_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          agrupar_por?: string | null
+          colunas?: Json
+          created_at?: string
+          filtros?: Json
+          id?: string
+          is_default?: boolean
+          nome?: string
+          projeto_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "projeto_submissao_planilha_config_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "projetos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projeto_submissao_planilha_config_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "vw_projeto_produtividade"
+            referencedColumns: ["projeto_id"]
+          },
+        ]
+      }
+      projeto_submissao_planilha_overrides: {
+        Row: {
+          campo: string
+          created_at: string
+          id: string
+          projeto_id: string
+          submissao_id: string
+          updated_at: string
+          updated_by: string | null
+          valor: Json | null
+        }
+        Insert: {
+          campo: string
+          created_at?: string
+          id?: string
+          projeto_id: string
+          submissao_id: string
+          updated_at?: string
+          updated_by?: string | null
+          valor?: Json | null
+        }
+        Update: {
+          campo?: string
+          created_at?: string
+          id?: string
+          projeto_id?: string
+          submissao_id?: string
+          updated_at?: string
+          updated_by?: string | null
+          valor?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "projeto_submissao_planilha_overrides_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "projetos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projeto_submissao_planilha_overrides_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "vw_projeto_produtividade"
+            referencedColumns: ["projeto_id"]
+          },
+          {
+            foreignKeyName: "projeto_submissao_planilha_overrides_submissao_id_fkey"
+            columns: ["submissao_id"]
+            isOneToOne: false
+            referencedRelation: "china_produto_submissoes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projeto_submissao_planilha_overrides_submissao_id_fkey"
+            columns: ["submissao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_china_produto_recebimento_kpis"
+            referencedColumns: ["submissao_id"]
+          },
+        ]
+      }
+      projeto_submissao_planilha_status: {
+        Row: {
+          cor: string | null
+          created_at: string
+          id: string
+          observacao: string | null
+          projeto_id: string
+          status: string
+          submissao_id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          cor?: string | null
+          created_at?: string
+          id?: string
+          observacao?: string | null
+          projeto_id: string
+          status?: string
+          submissao_id: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          cor?: string | null
+          created_at?: string
+          id?: string
+          observacao?: string | null
+          projeto_id?: string
+          status?: string
+          submissao_id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "projeto_submissao_planilha_status_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "projetos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projeto_submissao_planilha_status_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "vw_projeto_produtividade"
+            referencedColumns: ["projeto_id"]
+          },
+          {
+            foreignKeyName: "projeto_submissao_planilha_status_submissao_id_fkey"
+            columns: ["submissao_id"]
+            isOneToOne: false
+            referencedRelation: "china_produto_submissoes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projeto_submissao_planilha_status_submissao_id_fkey"
+            columns: ["submissao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_china_produto_recebimento_kpis"
+            referencedColumns: ["submissao_id"]
+          },
+        ]
+      }
       projeto_tags: {
         Row: {
           asana_gid: string | null
