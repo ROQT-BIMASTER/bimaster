@@ -50919,6 +50919,7 @@ export type Database = {
         }
         Returns: number
       }
+      _get_cron_secret: { Args: never; Returns: string }
       _get_rrtask_cron_secret: { Args: never; Returns: string }
       _get_rrtask_webhook_secret: { Args: never; Returns: string }
       _get_vault_secret: { Args: { p_name: string }; Returns: string }
