@@ -448,7 +448,13 @@ export function CalendarioRecebimentosAggregated({
                         {formatCurrency(conta.valor_aberto || 0)}
                       </TableCell>
                       <TableCell>
-                        {getStatusBadge(conta.status)}
+                        {getStatusBadge(calculateFinancialStatus(
+                          (conta as any).data_vencimento,
+                          (conta as any).data_recebimento ?? (conta as any).data_pagamento,
+                          conta.status,
+                          (conta as any).valor_aberto,
+                          (conta as any).valor_recebido ?? (conta as any).valor_pago,
+                        ))}
                       </TableCell>
                     </TableRow>
                   ))}
