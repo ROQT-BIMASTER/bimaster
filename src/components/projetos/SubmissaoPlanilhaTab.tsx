@@ -396,8 +396,9 @@ export function SubmissaoPlanilhaTab({ projetoId, darkBg = false }: Props) {
               </tr>
             </thead>
             <tbody>
-              {grouped.map((g) => (
-                <>
+              {grouped.map((g, gi) => (
+                <Fragment key={`g-frag-${gi}`}>
+
                   {groupBy !== "none" && (
                     <tr key={`g-${g.key}`} className="bg-muted/30">
                       <td colSpan={cols.length} className="px-2 py-1 text-[11px] font-semibold text-muted-foreground">
