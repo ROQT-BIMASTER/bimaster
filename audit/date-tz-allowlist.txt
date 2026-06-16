@@ -1,3 +1,8 @@
+# audit/date-tz-allowlist.txt
+# Arquivos legados que ainda usam new Date('YYYY-MM-DD') ou .toISOString().split('T')[0].
+# Novos arquivos NÃO podem entrar aqui — use parseLocalDate/formatLocalDate de @/lib/utils/parseLocalDate.
+# Removidos quando refatorados. Verificado por audit/date-tz-guard.sh.
+#
 src/components/ai/AICanvas.tsx
 src/components/ai/FinancialFieldsSuggestion.tsx
 src/components/atividades/EditarAtividadeDialog.tsx
