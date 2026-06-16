@@ -1201,7 +1201,7 @@ export function ProjetoTarefaDetalhe({
                             if (result.dias_prazo_sugerido && !tarefa.data_prazo) {
                               const prazo = new Date();
                               prazo.setDate(prazo.getDate() + result.dias_prazo_sugerido);
-                              dataPrazo = prazo.toISOString().split("T")[0];
+                              dataPrazo = formatLocalDate(prazo);
                             }
                             setPendingAIDescricao({
                               descricao: result.descricao,
