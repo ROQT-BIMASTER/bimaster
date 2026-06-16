@@ -21,6 +21,7 @@ import {
 } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { getDateKey, getToday } from "@/utils/dateUtils";
+import { calculateFinancialStatus } from "@/hooks/useFinancialStatus";
 
 interface CalendarioRecebimentosAggregatedProps {
   filterEmpresas: number[];
@@ -133,7 +134,8 @@ export function CalendarioRecebimentosAggregated({
 
   const getStatusBadge = (status: string) => {
     const statusLower = (status || '').toLowerCase();
-    if (statusLower === 'recebido') return <Badge className="bg-green-100 text-green-700 hover:bg-green-100">Recebido</Badge>;
+    // 'pago' (retornado por calculateFinancialStatus) e 'recebido' (status cru do ERP) → Recebido
+    if (statusLower === 'recebido' || statusLower === 'pago') return <Badge className="bg-green-100 text-green-700 hover:bg-green-100">Recebido</Badge>;
     if (statusLower === 'vencido') return <Badge className="bg-red-100 text-red-700 hover:bg-red-100">Vencido</Badge>;
     if (statusLower === 'parcial') return <Badge className="bg-blue-100 text-blue-700 hover:bg-blue-100">Parcial</Badge>;
     return <Badge className="bg-yellow-100 text-yellow-700 hover:bg-yellow-100">Pendente</Badge>;
@@ -447,7 +449,13 @@ export function CalendarioRecebimentosAggregated({
                         {formatCurrency(conta.valor_aberto || 0)}
                       </TableCell>
                       <TableCell>
-                        {getStatusBadge(conta.status)}
+                        {getStatusBadge(calculateFinancialStatus(
+                          (conta as any).data_vencimento,
+                          (conta as any).data_recebimento ?? (conta as any).data_pagamento,
+                          conta.status,
+                          (conta as any).valor_aberto,
+                          (conta as any).valor_recebido ?? (conta as any).valor_pago,
+                        ))}
                       </TableCell>
                     </TableRow>
                   ))}

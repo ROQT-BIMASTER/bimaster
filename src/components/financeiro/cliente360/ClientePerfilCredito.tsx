@@ -18,6 +18,7 @@ import ScoreGauge from "./ScoreGauge";
 import ClienteHistoricoPagamentos from "./ClienteHistoricoPagamentos";
 import ClienteAlertasCredito from "./ClienteAlertasCredito";
 import ClienteScoreHistorico from "./ClienteScoreHistorico";
+import { calculateFinancialStatus } from "@/hooks/useFinancialStatus";
 
 interface ClientePerfilCreditoProps {
   clienteCodigo: string;
@@ -53,10 +54,21 @@ export default function ClientePerfilCredito({ clienteCodigo, onClose }: Cliente
       
       if (error) throw error;
       
-      // Calcular métricas
-      const total = data?.length || 0;
-      const recebidos = data?.filter(t => t.status === 'recebido') || [];
-      const vencidos = data?.filter(t => t.status === 'vencido') || [];
+      // Calcular métricas usando status CALCULADO (valor_aberto/valor_pago + datas)
+      // — o status cru do ERP é mentiroso, ver useFinancialStatus.ts.
+      const enriched = (data || []).map(t => ({
+        ...t,
+        _statusCalc: calculateFinancialStatus(
+          t.data_vencimento,
+          (t as any).data_recebimento ?? null,
+          t.status ?? undefined,
+          t.valor_aberto,
+          (t as any).valor_recebido ?? null,
+        ),
+      }));
+      const total = enriched.length;
+      const recebidos = enriched.filter(t => t._statusCalc === 'pago');
+      const vencidos = enriched.filter(t => t._statusCalc === 'vencido');
       const emDia = recebidos.filter(t => (t.dias_atraso || 0) <= 0);
       const emAtraso = recebidos.filter(t => (t.dias_atraso || 0) > 0);
       const valorTotal = data?.reduce((acc, t) => acc + (t.valor_original || 0), 0) || 0;

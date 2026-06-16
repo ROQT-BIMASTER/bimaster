@@ -14,6 +14,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { logger } from "@/lib/logger";
+import { calculateFinancialStatus } from "@/hooks/useFinancialStatus";
 import { 
   Bot, User, Lock, Save, History, FileText, Sparkles, 
   Building2, Calendar, DollarSign, Tag, Clock, AlertCircle,
@@ -473,9 +474,19 @@ export function DetalheLancamentoDialog({
                   <Clock className="h-4 w-4 mt-0.5 text-muted-foreground" />
                   <div>
                     <p className="text-xs text-muted-foreground">Status</p>
-                    <Badge variant={lancamento.status === 'pago' ? 'default' : lancamento.status === 'vencido' ? 'destructive' : 'secondary'}>
-                      {lancamento.status || 'pendente'}
-                    </Badge>
+                    {(() => {
+                      // Status calculado: valores monetários como fonte da verdade
+                      // (status cru do ERP é mentiroso — ver useFinancialStatus.ts).
+                      const statusCalc = calculateFinancialStatus(
+                        lancamento.data_vencimento,
+                        lancamento.data_pagamento,
+                        lancamento.status || undefined,
+                        lancamento.valor_aberto,
+                        lancamento.valor_pago,
+                      );
+                      const variant = statusCalc === 'pago' ? 'default' : statusCalc === 'vencido' ? 'destructive' : 'secondary';
+                      return <Badge variant={variant}>{statusCalc}</Badge>;
+                    })()}
                   </div>
                 </div>
 

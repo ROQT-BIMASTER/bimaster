@@ -32,6 +32,7 @@ import { callApi, callExportApi, formatBRL, fmtDate, fmtDateTime, dateToApi, enq
 import { debounce } from "@/lib/utils/debounce";
 import { useEmpresaContext } from "@/contexts/EmpresaContext";
 import { exportToExcel } from "@/utils/excelExport";
+import { calculateFinancialStatus } from "@/hooks/useFinancialStatus";
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
@@ -371,9 +372,11 @@ export default function PainelCentralAP() {
 
   // KPI "Vencidos" — use resumo data (total, not page-scoped)
   const vencidosCount = resumo?.contaPagar?.qtdVencidos ?? resumo?.contaPagar?.qVencido ?? (() => {
-    // Fallback: count from current page (not ideal but functional)
-    const today = new Date().toISOString().split("T")[0];
-    return list.filter((t: any) => t.status === "pendente" && t.data_vencimento && t.data_vencimento < today).length;
+    // Fallback: count from current page usando o status CALCULADO
+    // (status cru do ERP é mentiroso — ver useFinancialStatus.ts).
+    return list.filter((t: any) =>
+      calculateFinancialStatus(t.data_vencimento, t.data_pagamento, t.status, t.valor_aberto, t.valor_pago) === "vencido"
+    ).length;
   })();
 
   // Payment value validation helper
@@ -620,7 +623,9 @@ export default function PainelCentralAP() {
                     </TableRow>
                   ) : (
                     list.map((item: any, idx: number) => {
-                      const st = STATUS_BADGES[item.status] || STATUS_BADGES.pendente;
+                      // Usa status CALCULADO (valor_aberto/valor_pago + datas) em vez do status cru do ERP.
+                      const statusCalc = calculateFinancialStatus(item.data_vencimento, item.data_pagamento, item.status, item.valor_aberto, item.valor_pago);
+                      const st = STATUS_BADGES[statusCalc] || STATUS_BADGES.pendente;
                       const erpSt = erpSyncMap?.[item.id] || "sem_exportacao";
                       const erp = ERP_BADGES[erpSt] || ERP_BADGES.sem_exportacao;
                       return (
