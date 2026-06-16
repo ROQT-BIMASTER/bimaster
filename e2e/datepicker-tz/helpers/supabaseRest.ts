@@ -52,3 +52,39 @@ export async function getTarefaDatas(
   }
   return rows[0];
 }
+
+/**
+ * PATCH direto via PostgREST autenticado. Usado pela suíte para "semear"
+ * estados específicos (ex.: null) antes de validar o que a UI exibe.
+ *
+ * O usuário do token precisa ter permissão de UPDATE na tarefa (mesmas
+ * regras de RLS que a UI). A função joga erro com corpo da resposta para
+ * falhar o teste de forma legível.
+ */
+export async function patchTarefaDatas(
+  tarefaId: string,
+  accessToken: string,
+  patch: TarefaDatas,
+): Promise<TarefaDatas> {
+  assertEnv();
+  const url =
+    `${SUPABASE_URL}/rest/v1/projeto_tarefas` +
+    `?id=eq.${encodeURIComponent(tarefaId)}`;
+  const res = await fetch(url, {
+    method: "PATCH",
+    headers: {
+      apikey: SUPABASE_ANON_KEY,
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/json",
+      Prefer: "return=representation",
+      Accept: "application/json",
+    },
+    body: JSON.stringify(patch),
+  });
+  if (!res.ok) {
+    throw new Error(`PostgREST PATCH projeto_tarefas falhou: ${res.status} ${await res.text()}`);
+  }
+  const rows = (await res.json()) as TarefaDatas[];
+  return rows[0] ?? {};
+}
+

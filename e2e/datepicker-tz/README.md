@@ -9,6 +9,8 @@ horários. Os campos cobertos são:
 | `inicio-planejado.spec.ts`    | Início planejado    | `data_inicio_planejada`    |
 | `data-prazo.spec.ts`          | Data prazo          | `data_prazo`               |
 | `proxima-acao.spec.ts`        | Próxima ação        | `data_proxima_acao`        |
+| `null-state.spec.ts`          | Data prazo + Próxima ação (estado vazio) | `data_prazo` / `data_proxima_acao` |
+
 
 Toda a mecânica (navegação do calendário, clique no dia, validação tripla)
 vive em `helpers/scenarios.ts` e é compartilhada pelos 3 specs.
