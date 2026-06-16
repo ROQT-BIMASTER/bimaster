@@ -15,3 +15,22 @@ jobs:
         run: |
           chmod +x audit/regression-greps.sh
           bash audit/regression-greps.sh
+      - name: Date timezone guard (datepickers)
+        run: |
+          chmod +x audit/date-tz-guard.sh
+          bash audit/date-tz-guard.sh
+
+  test-tz:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - run: bun install --frozen-lockfile
+      - name: Unit tests in TZ=America/Sao_Paulo
+        run: TZ=America/Sao_Paulo bunx vitest run src/lib/utils/__tests__/parseLocalDate.test.ts
+      - name: Unit tests in TZ=UTC
+        run: TZ=UTC bunx vitest run src/lib/utils/__tests__/parseLocalDate.test.ts
+      - name: Unit tests in TZ=Asia/Tokyo
+        run: TZ=Asia/Tokyo bunx vitest run src/lib/utils/__tests__/parseLocalDate.test.ts
