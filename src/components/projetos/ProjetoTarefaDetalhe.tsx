@@ -165,6 +165,7 @@ export function ProjetoTarefaDetalhe({
   const [descValue, setDescValue] = useState("");
   const [subtarefaValue, setSubtarefaValue] = useState("");
   const [datePicker, setDatePicker] = useState(false);
+  const [inicioPicker, setInicioPicker] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
   const [validacaoDialogOpen, setValidacaoDialogOpen] = useState(false);
   const [produtoSearch, setProdutoSearch] = useState("");
@@ -851,22 +852,23 @@ export function ProjetoTarefaDetalhe({
                   {/* Data Início Planejada */}
                   {canViewUI("campo_inicio_planejado") && (<>
                   <span className="text-muted-foreground">Início planejado <span className="text-destructive">*</span></span>
-                  <Popover>
+                  <Popover open={inicioPicker} onOpenChange={setInicioPicker}>
                     <PopoverTrigger asChild>
                       <Button variant="outline" size="sm" className={cn("h-8 justify-start text-xs gap-1.5", !(tarefa as any).data_inicio_planejada && "border-destructive/50 text-destructive")}>
                         <CalendarIcon className="h-3.5 w-3.5" />
                         {(tarefa as any).data_inicio_planejada
-                          ? format(new Date((tarefa as any).data_inicio_planejada), "dd MMM yyyy", { locale: ptBR })
+                          ? format(parseLocalDateOrNow((tarefa as any).data_inicio_planejada), "dd MMM yyyy", { locale: ptBR })
                           : "Definir início (obrigatório)"}
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0" align="start">
                       <Calendar
                         mode="single"
-                        selected={(tarefa as any).data_inicio_planejada ? new Date((tarefa as any).data_inicio_planejada) : undefined}
+                        selected={parseLocalDate((tarefa as any).data_inicio_planejada) ?? undefined}
                         onSelect={d => {
                           if (d) {
-                            onUpdate(tarefa.id, { data_inicio_planejada: d.toISOString().split("T")[0] } as any);
+                            onUpdate(tarefa.id, { data_inicio_planejada: formatLocalDate(d) } as any);
+                            setInicioPicker(false);
                           }
                         }}
                         className="p-3 pointer-events-auto"
@@ -1199,7 +1201,7 @@ export function ProjetoTarefaDetalhe({
                             if (result.dias_prazo_sugerido && !tarefa.data_prazo) {
                               const prazo = new Date();
                               prazo.setDate(prazo.getDate() + result.dias_prazo_sugerido);
-                              dataPrazo = prazo.toISOString().split("T")[0];
+                              dataPrazo = formatLocalDate(prazo);
                             }
                             setPendingAIDescricao({
                               descricao: result.descricao,
