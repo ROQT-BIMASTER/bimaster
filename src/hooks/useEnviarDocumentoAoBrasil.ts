@@ -7,6 +7,9 @@ interface Args {
   /** Quando informado, atualiza apenas esse documento. Caso contrário, promove
    * todos os documentos `rascunho` da submissão para `pendente`. */
   documento_id?: string;
+  /** Suprime toast/invalidation por item — usado em envios em lote em que o
+   * chamador exibe um único toast resumo e invalida queries uma vez só. */
+  silent?: boolean;
 }
 
 /**
