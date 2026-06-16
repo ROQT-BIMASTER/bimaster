@@ -54581,6 +54581,10 @@ export type Database = {
         Args: { p_type: string; p_user_id: string }
         Returns: boolean
       }
+      user_can_access_anexo_path: {
+        Args: { _path: string; _user_id: string }
+        Returns: boolean
+      }
       user_can_access_plano: {
         Args: { p_plano_id: string; p_user_id: string }
         Returns: boolean
