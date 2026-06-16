@@ -14,6 +14,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { logger } from "@/lib/logger";
+import { calculateFinancialStatus } from "@/hooks/useFinancialStatus";
 import { 
   Bot, User, Lock, Save, History, FileText, Sparkles, 
   Building2, Calendar, DollarSign, Tag, Clock, AlertCircle,
