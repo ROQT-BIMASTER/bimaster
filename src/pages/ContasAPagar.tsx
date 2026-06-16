@@ -789,7 +789,7 @@ export default function ContasAPagar() {
       valor_original: c.valor_original,
       valor_aberto: c.valor_aberto,
       valor_pago: c.valor_pago,
-      status: c.status,
+      status: calculateFinancialStatus(c.data_vencimento, c.data_pagamento, c.status, c.valor_aberto, c.valor_pago),
       portador: c.portador,
       conta: c.conta
     }));
