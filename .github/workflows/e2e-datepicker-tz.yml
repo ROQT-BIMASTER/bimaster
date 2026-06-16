@@ -1,0 +1,59 @@
+name: e2e-datepicker-tz
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Ambiente alvo (dev | staging)"
+        required: true
+        default: "staging"
+  pull_request:
+    paths:
+      - "src/components/projetos/ProjetoTarefaDetalhe.tsx"
+      - "src/lib/utils/parseLocalDate.ts"
+      - "src/utils/dateUtils.ts"
+      - "e2e/datepicker-tz/**"
+      - "playwright.config.ts"
+      - ".github/workflows/e2e-datepicker-tz.yml"
+
+jobs:
+  tz-matrix:
+    name: ${{ matrix.tz }}
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment || 'staging' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        tz:
+          - tz-sao-paulo
+          - tz-utc
+          - tz-tokyo
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Install deps
+        run: |
+          npm i -g bun
+          bun install --frozen-lockfile
+          bunx playwright install --with-deps chromium
+      - name: Run Playwright (${{ matrix.tz }})
+        env:
+          E2E_BASE_URL: ${{ secrets.E2E_BASE_URL }}
+          E2E_TEST_EMAIL: ${{ secrets.E2E_TEST_EMAIL }}
+          E2E_TEST_PASSWORD: ${{ secrets.E2E_TEST_PASSWORD }}
+          E2E_SUPABASE_URL: ${{ secrets.E2E_SUPABASE_URL }}
+          E2E_SUPABASE_ANON_KEY: ${{ secrets.E2E_SUPABASE_ANON_KEY }}
+          E2E_PROJETO_ID: ${{ secrets.E2E_PROJETO_ID }}
+          E2E_TAREFA_ID: ${{ secrets.E2E_TAREFA_ID }}
+        run: |
+          bunx playwright test --project=${{ matrix.tz }} e2e/datepicker-tz
+      - name: Upload report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-${{ matrix.tz }}
+          path: |
+            playwright-report
+            test-results
+          retention-days: 14
