@@ -38206,6 +38206,7 @@ export type Database = {
           data_inicio: string | null
           data_inicio_planejada: string | null
           data_prazo: string | null
+          data_proxima_acao: string | null
           descricao: string | null
           dias_alerta_antes: number
           estagio: string | null
@@ -38248,6 +38249,7 @@ export type Database = {
           data_inicio?: string | null
           data_inicio_planejada?: string | null
           data_prazo?: string | null
+          data_proxima_acao?: string | null
           descricao?: string | null
           dias_alerta_antes?: number
           estagio?: string | null
@@ -38290,6 +38292,7 @@ export type Database = {
           data_inicio?: string | null
           data_inicio_planejada?: string | null
           data_prazo?: string | null
+          data_proxima_acao?: string | null
           descricao?: string | null
           dias_alerta_antes?: number
           estagio?: string | null

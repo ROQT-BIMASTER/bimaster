@@ -12,20 +12,30 @@ function assertEnv() {
   if (!SUPABASE_ANON_KEY) throw new Error("E2E_SUPABASE_ANON_KEY ausente");
 }
 
-export interface TarefaDatas {
-  data_inicio_planejada: string | null;
-  data_prazo: string | null;
-}
+export type TarefaDateColumn =
+  | "data_inicio_planejada"
+  | "data_prazo"
+  | "data_proxima_acao";
+
+export type TarefaDatas = Partial<Record<TarefaDateColumn, string | null>>;
+
+const ALL_COLS: TarefaDateColumn[] = [
+  "data_inicio_planejada",
+  "data_prazo",
+  "data_proxima_acao",
+];
 
 export async function getTarefaDatas(
   tarefaId: string,
   accessToken: string,
+  cols: TarefaDateColumn[] = ALL_COLS,
 ): Promise<TarefaDatas> {
   assertEnv();
+  const select = cols.join(",");
   const url =
     `${SUPABASE_URL}/rest/v1/projeto_tarefas` +
     `?id=eq.${encodeURIComponent(tarefaId)}` +
-    `&select=data_inicio_planejada,data_prazo`;
+    `&select=${encodeURIComponent(select)}`;
   const res = await fetch(url, {
     headers: {
       apikey: SUPABASE_ANON_KEY,

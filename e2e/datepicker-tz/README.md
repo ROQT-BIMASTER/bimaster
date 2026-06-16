@@ -1,7 +1,17 @@
 # E2E — Datepicker timezone matrix
 
-Suíte Playwright que valida que o datepicker **"Início planejado"** das tarefas
-de Projetos preserva o dia escolhido pelo usuário em três fusos horários:
+Suíte Playwright que valida que **todos os datepickers de data** do detalhe
+da tarefa de Projetos preservam o dia escolhido pelo usuário em três fusos
+horários. Os campos cobertos são:
+
+| Spec                          | Campo na UI         | Coluna Postgres            |
+| ----------------------------- | ------------------- | -------------------------- |
+| `inicio-planejado.spec.ts`    | Início planejado    | `data_inicio_planejada`    |
+| `data-prazo.spec.ts`          | Data prazo          | `data_prazo`               |
+| `proxima-acao.spec.ts`        | Próxima ação        | `data_proxima_acao`        |
+
+Toda a mecânica (navegação do calendário, clique no dia, validação tripla)
+vive em `helpers/scenarios.ts` e é compartilhada pelos 3 specs.
 
 | Project Playwright | Timezone           | Offset (sem DST) | Cenário coberto                      |
 | ------------------ | ------------------ | ---------------- | ------------------------------------ |
@@ -9,12 +19,15 @@ de Projetos preserva o dia escolhido pelo usuário em três fusos horários:
 | `tz-utc`           | UTC                | UTC±0            | Baseline (CI default)                |
 | `tz-tokyo`         | Asia/Tokyo         | UTC+9            | Positivo — pega o lado oposto        |
 
-Cada project roda 3 cenários (16-jun-2026, 31-dez-2026, 01-jan-2027) e valida:
+Cada project roda 3 cenários por campo (16-jun-2026, 31-dez-2026,
+01-jan-2027) — total **27 testes por execução** (3 campos × 3 datas × 3 fusos).
+Cada teste valida:
 
 1. **UI imediata** — botão exibe a data clicada logo após `onSelect`.
-2. **Backend** — `GET /rest/v1/projeto_tarefas?...&select=data_inicio_planejada`
-   devolve exatamente o `YYYY-MM-DD` clicado.
+2. **Backend** — `GET /rest/v1/projeto_tarefas?...&select=<coluna>` devolve
+   exatamente o `YYYY-MM-DD` clicado.
 3. **Reload** — após `page.reload()`, o botão continua exibindo a mesma data.
+
 
 ## Pré-requisitos
 

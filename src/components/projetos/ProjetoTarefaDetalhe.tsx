@@ -166,6 +166,7 @@ export function ProjetoTarefaDetalhe({
   const [subtarefaValue, setSubtarefaValue] = useState("");
   const [datePicker, setDatePicker] = useState(false);
   const [inicioPicker, setInicioPicker] = useState(false);
+  const [proximaAcaoPicker, setProximaAcaoPicker] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
   const [validacaoDialogOpen, setValidacaoDialogOpen] = useState(false);
   const [produtoSearch, setProdutoSearch] = useState("");
@@ -876,6 +877,34 @@ export function ProjetoTarefaDetalhe({
                     </PopoverContent>
                   </Popover>
                   </>)}
+
+                  {/* Próxima ação */}
+                  <span className="text-muted-foreground">Próxima ação</span>
+                  <Popover open={proximaAcaoPicker} onOpenChange={setProximaAcaoPicker}>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" size="sm" className="h-8 justify-start text-xs gap-1.5">
+                        <CalendarIcon className="h-3.5 w-3.5" />
+                        {(tarefa as any).data_proxima_acao
+                          ? format(parseLocalDateOrNow((tarefa as any).data_proxima_acao), "dd MMM yyyy", { locale: ptBR })
+                          : "Definir próxima ação"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={parseLocalDate((tarefa as any).data_proxima_acao) ?? undefined}
+                        onSelect={d => {
+                          if (d) {
+                            onUpdate(tarefa.id, { data_proxima_acao: formatLocalDate(d) } as any);
+                            setProximaAcaoPicker(false);
+                          }
+                        }}
+                        className="p-3 pointer-events-auto"
+                      />
+                    </PopoverContent>
+                  </Popover>
+
+
 
                   {/* Alertar antes */}
                   {canViewUI("campo_alertar_antes") && (<>
