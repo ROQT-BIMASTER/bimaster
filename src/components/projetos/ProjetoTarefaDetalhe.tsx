@@ -166,6 +166,7 @@ export function ProjetoTarefaDetalhe({
   const [subtarefaValue, setSubtarefaValue] = useState("");
   const [datePicker, setDatePicker] = useState(false);
   const [inicioPicker, setInicioPicker] = useState(false);
+  const [proximaAcaoPicker, setProximaAcaoPicker] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
   const [validacaoDialogOpen, setValidacaoDialogOpen] = useState(false);
   const [produtoSearch, setProdutoSearch] = useState("");
