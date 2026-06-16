@@ -21,6 +21,7 @@ import {
 } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { getDateKey, getToday } from "@/utils/dateUtils";
+import { calculateFinancialStatus } from "@/hooks/useFinancialStatus";
 
 interface CalendarioRecebimentosAggregatedProps {
   filterEmpresas: number[];
