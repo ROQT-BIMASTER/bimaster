@@ -10,6 +10,7 @@ horários. Os campos cobertos são:
 | `data-prazo.spec.ts`          | Data prazo          | `data_prazo`               |
 | `proxima-acao.spec.ts`        | Próxima ação        | `data_proxima_acao`        |
 | `null-state.spec.ts`          | Data prazo + Próxima ação (estado vazio) | `data_prazo` / `data_proxima_acao` |
+| `clear-ui.spec.ts`            | Data prazo + Próxima ação (botão "Limpar data" no popover) | `data_prazo` / `data_proxima_acao` |
 
 
 Toda a mecânica (navegação do calendário, clique no dia, validação tripla)

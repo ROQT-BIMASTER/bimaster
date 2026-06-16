@@ -846,7 +846,24 @@ export function ProjetoTarefaDetalhe({
                         }}
                         className="p-3 pointer-events-auto"
                       />
+                      {tarefa.data_prazo && (
+                        <div className="border-t p-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="w-full h-7 text-xs"
+                            data-testid="clear-data-prazo"
+                            onClick={() => {
+                              onUpdate(tarefa.id, { data_prazo: null as any });
+                              setDatePicker(false);
+                            }}
+                          >
+                            Limpar data
+                          </Button>
+                        </div>
+                      )}
                     </PopoverContent>
+
                   </Popover>
                   </>)}
 
@@ -901,7 +918,24 @@ export function ProjetoTarefaDetalhe({
                         }}
                         className="p-3 pointer-events-auto"
                       />
+                      {(tarefa as any).data_proxima_acao && (
+                        <div className="border-t p-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="w-full h-7 text-xs"
+                            data-testid="clear-data-proxima-acao"
+                            onClick={() => {
+                              onUpdate(tarefa.id, { data_proxima_acao: null } as any);
+                              setProximaAcaoPicker(false);
+                            }}
+                          >
+                            Limpar data
+                          </Button>
+                        </div>
+                      )}
                     </PopoverContent>
+
                   </Popover>
 
 
