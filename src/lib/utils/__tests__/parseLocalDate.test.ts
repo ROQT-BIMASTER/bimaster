@@ -76,18 +76,20 @@ describe("Contrato com o shadcn <Calendar> (Date local midnight)", () => {
 describe("Anti-padrão documentado (motivação dos helpers)", () => {
   // Esses asserts servem de regressão viva: provam o motivo dos helpers existirem.
   // O comportamento varia por fuso; cada bloco roda só quando faz sentido.
-  it("em SP, `new Date('2026-06-16').toISOString().slice(0,10)` produz o dia anterior", () => {
+  it("em SP, `new Date('YYYY-MM-DD')` exibe o dia anterior (bug do botão do datepicker)", () => {
     if (process.env.TZ !== "America/Sao_Paulo") return;
-    // new Date("YYYY-MM-DD") → UTC midnight → em SP (UTC-3) é 15-jun 21:00
-    const bug = new Date("2026-06-16").toISOString().slice(0, 10);
-    expect(bug).toBe("2026-06-16"); // ISO retorna UTC, então a string ISO é a mesma
-    // O bug aparece quando convertemos uma Date *local* para ISO:
-    const localMidnight = new Date(2026, 5, 16); // 16-jun 00:00 SP
-    const buggyWrite = localMidnight.toISOString().slice(0, 10);
-    expect(buggyWrite).toBe("2026-06-15"); // ← aqui está o shift
-    // Helper correto:
-    expect(formatLocalDate(localMidnight)).toBe("2026-06-16");
+    // new Date("2026-06-16") é parseado como UTC midnight → em SP (UTC-3) vira 15-jun 21:00.
+    // Esse é o bug que o usuário enxerga: seleciona 16, botão mostra 15.
+    const buggyRead = new Date("2026-06-16");
+    expect(buggyRead.getDate()).toBe(15); // ← dia errado
+    expect(buggyRead.getMonth()).toBe(5);
+    // Helper correto preserva o dia gravado:
+    const fixed = parseLocalDate("2026-06-16")!;
+    expect(fixed.getDate()).toBe(16);
+    expect(fixed.getMonth()).toBe(5);
+    expect(fixed.getFullYear()).toBe(2026);
   });
+
 
   it("em Tóquio, `Date local midnight.toISOString()` adianta um dia", () => {
     if (process.env.TZ !== "Asia/Tokyo") return;
