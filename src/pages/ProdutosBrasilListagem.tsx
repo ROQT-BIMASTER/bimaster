@@ -74,10 +74,14 @@ interface ProdutoRow {
 function computeCxBxUn(p: ProdutoRow): { un: number | null; bx: number | null; cx: number | null } {
   const sub = p.submissao ?? null;
   const dx = sub?.dados_excel ?? {};
-  const un = (sub?.qty_total ?? null) ?? (dx?.qty_total != null ? Number(dx.qty_total) : null);
-  const bx = (sub?.qty_per_display ?? null)
-    ?? (p.qty_per_display ?? null)
-    ?? (dx?.qty_per_display != null ? Number(dx.qty_per_display) : null);
+  const un = sub?.qty_total != null
+    ? Number(sub.qty_total)
+    : (dx?.qty_total != null ? Number(dx.qty_total) : null);
+  const bx = sub?.qty_per_display != null
+    ? Number(sub.qty_per_display)
+    : (p.qty_per_display != null
+      ? Number(p.qty_per_display)
+      : (dx?.qty_per_display != null ? Number(dx.qty_per_display) : null));
   const ctnTotal = dx?.ctn_total != null ? Number(dx.ctn_total) : null;
   const cartonsPerGroup = dx?.cartons_per_group != null ? Number(dx.cartons_per_group) : null;
   let cx: number | null = null;
