@@ -623,7 +623,9 @@ export default function PainelCentralAP() {
                     </TableRow>
                   ) : (
                     list.map((item: any, idx: number) => {
-                      const st = STATUS_BADGES[item.status] || STATUS_BADGES.pendente;
+                      // Usa status CALCULADO (valor_aberto/valor_pago + datas) em vez do status cru do ERP.
+                      const statusCalc = calculateFinancialStatus(item.data_vencimento, item.data_pagamento, item.status, item.valor_aberto, item.valor_pago);
+                      const st = STATUS_BADGES[statusCalc] || STATUS_BADGES.pendente;
                       const erpSt = erpSyncMap?.[item.id] || "sem_exportacao";
                       const erp = ERP_BADGES[erpSt] || ERP_BADGES.sem_exportacao;
                       return (
