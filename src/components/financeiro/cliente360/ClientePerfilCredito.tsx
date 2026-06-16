@@ -60,10 +60,10 @@ export default function ClientePerfilCredito({ clienteCodigo, onClose }: Cliente
         ...t,
         _statusCalc: calculateFinancialStatus(
           t.data_vencimento,
-          t.data_recebimento ?? t.data_pagamento,
+          (t as any).data_recebimento ?? null,
           t.status ?? undefined,
           t.valor_aberto,
-          t.valor_recebido ?? t.valor_pago,
+          (t as any).valor_recebido ?? null,
         ),
       }));
       const total = enriched.length;
