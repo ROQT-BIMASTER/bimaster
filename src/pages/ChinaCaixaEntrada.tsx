@@ -281,6 +281,11 @@ export default function ChinaCaixaEntrada() {
       acaoLabel: `Sim, enviar ${eligible.length} ao Brasil`,
     });
     if (!ok) return;
+    // Aguarda 1 frame para o AlertDialog do Radix concluir o teardown antes
+    // de iniciarmos um loop síncrono de mutations + toasts — evita o bug em
+    // que `pointer-events: none` fica residual no <body> e "trava" a tela.
+    await new Promise<void>((r) => requestAnimationFrame(() => r()));
+    const toastId = toast.loading(`Enviando ${eligible.length} item${eligible.length === 1 ? "" : "s"} ao Brasil…`);
     let okCount = 0;
     let failCount = 0;
     for (const d of eligible) {
@@ -288,15 +293,22 @@ export default function ChinaCaixaEntrada() {
         await enviarBrasil.mutateAsync({
           submissao_id: d.submissao_id,
           documento_id: d.documento_id!,
+          silent: true,
         });
         okCount++;
       } catch {
         failCount++;
       }
     }
-    if (okCount > 0) toast.success(`${okCount} item${okCount === 1 ? "" : "s"} enviado${okCount === 1 ? "" : "s"} ao Brasil.`);
-    if (failCount > 0) toast.error(`${failCount} item${failCount === 1 ? "" : "s"} falharam no envio.`);
+    if (failCount === 0) {
+      toast.success(`${okCount} item${okCount === 1 ? "" : "s"} enviado${okCount === 1 ? "" : "s"} ao Brasil.`, { id: toastId });
+    } else if (okCount === 0) {
+      toast.error(`Falha ao enviar ${failCount} item${failCount === 1 ? "" : "s"}.`, { id: toastId });
+    } else {
+      toast.warning(`${okCount} enviado${okCount === 1 ? "" : "s"}, ${failCount} com falha.`, { id: toastId });
+    }
     queryClient.invalidateQueries({ queryKey: ["china-mailbox-dataset"] });
+    queryClient.invalidateQueries({ queryKey: ["china-stats"] });
   };
   const handleRetryEnvio = () => {
     if (!lastEnvioVars) return;

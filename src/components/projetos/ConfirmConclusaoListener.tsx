@@ -34,9 +34,39 @@ export function ConfirmConclusaoListener() {
     return () => window.removeEventListener(CONFIRM_TAREFA_EVENT, handler);
   }, []);
 
+  // Defesa em profundidade contra o bug conhecido do Radix Dialog que deixa
+  // `pointer-events: none` no <body> após o close — especialmente quando o
+  // consumidor inicia trabalho assíncrono pesado (loop de mutations + toasts)
+  // logo após resolver a Promise. Sintoma: tela "travada" até F5.
+  useEffect(() => {
+    if (pending !== null) return;
+    if (typeof document === "undefined") return;
+    const cleanup = () => {
+      if (document.body.style.pointerEvents === "none") {
+        document.body.style.pointerEvents = "";
+      }
+      document.body.removeAttribute("data-scroll-locked");
+    };
+    const t1 = window.setTimeout(cleanup, 0);
+    const t2 = window.setTimeout(cleanup, 250);
+    return () => {
+      window.clearTimeout(t1);
+      window.clearTimeout(t2);
+    };
+  }, [pending]);
+
   const finish = (ok: boolean) => {
-    pending?.resolve(ok);
+    const req = pending;
     setPending(null);
+    // Resolve no próximo frame para deixar o Radix concluir o teardown do
+    // overlay antes do chamador iniciar trabalho síncrono pesado.
+    if (req) {
+      if (typeof window !== "undefined" && typeof window.requestAnimationFrame === "function") {
+        window.requestAnimationFrame(() => req.resolve(ok));
+      } else {
+        req.resolve(ok);
+      }
+    }
   };
 
   const isExclusao = pending?.kind === "exclusao";
