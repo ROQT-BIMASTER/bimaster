@@ -372,9 +372,11 @@ export default function PainelCentralAP() {
 
   // KPI "Vencidos" — use resumo data (total, not page-scoped)
   const vencidosCount = resumo?.contaPagar?.qtdVencidos ?? resumo?.contaPagar?.qVencido ?? (() => {
-    // Fallback: count from current page (not ideal but functional)
-    const today = new Date().toISOString().split("T")[0];
-    return list.filter((t: any) => t.status === "pendente" && t.data_vencimento && t.data_vencimento < today).length;
+    // Fallback: count from current page usando o status CALCULADO
+    // (status cru do ERP é mentiroso — ver useFinancialStatus.ts).
+    return list.filter((t: any) =>
+      calculateFinancialStatus(t.data_vencimento, t.data_pagamento, t.status, t.valor_aberto, t.valor_pago) === "vencido"
+    ).length;
   })();
 
   // Payment value validation helper
