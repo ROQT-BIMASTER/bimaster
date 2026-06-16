@@ -27,7 +27,7 @@ export function useEnviarDocumentoAoBrasil() {
   const qc = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ submissao_id, documento_id }: Args) => {
+    mutationFn: async ({ submissao_id, documento_id, silent }: Args) => {
       if (documento_id) {
         const { error: docErr } = await supabase
           .from("china_produto_documentos" as any)
@@ -43,9 +43,6 @@ export function useEnviarDocumentoAoBrasil() {
         if (docErr) throw docErr;
       }
 
-      // Recalcula o status da submissão pai a partir do estado atual dos docs.
-      // Single-doc → pode ficar `enviado_parcial` se ainda há rascunhos.
-      // Lote (sem documento_id) → sempre `enviado_brasil`.
       let nextStatus: "enviado_brasil" | "enviado_parcial" = "enviado_brasil";
       if (documento_id) {
         const { data: docs, error: listErr } = await (supabase
@@ -68,9 +65,10 @@ export function useEnviarDocumentoAoBrasil() {
         .eq("id", submissao_id);
       if (subErr) throw subErr;
 
-      return { status_pai: nextStatus };
+      return { status_pai: nextStatus, silent: !!silent };
     },
     onSuccess: (res) => {
+      if (res?.silent) return;
       const msg =
         res?.status_pai === "enviado_parcial"
           ? "Documento enviado ao Brasil (envio parcial) / 已发送至巴西（部分）"
