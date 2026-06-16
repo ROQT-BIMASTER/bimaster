@@ -53,10 +53,21 @@ export default function ClientePerfilCredito({ clienteCodigo, onClose }: Cliente
       
       if (error) throw error;
       
-      // Calcular métricas
-      const total = data?.length || 0;
-      const recebidos = data?.filter(t => t.status === 'recebido') || [];
-      const vencidos = data?.filter(t => t.status === 'vencido') || [];
+      // Calcular métricas usando status CALCULADO (valor_aberto/valor_pago + datas)
+      // — o status cru do ERP é mentiroso, ver useFinancialStatus.ts.
+      const enriched = (data || []).map(t => ({
+        ...t,
+        _statusCalc: calculateFinancialStatus(
+          t.data_vencimento,
+          t.data_recebimento ?? t.data_pagamento,
+          t.status ?? undefined,
+          t.valor_aberto,
+          t.valor_recebido ?? t.valor_pago,
+        ),
+      }));
+      const total = enriched.length;
+      const recebidos = enriched.filter(t => t._statusCalc === 'pago');
+      const vencidos = enriched.filter(t => t._statusCalc === 'vencido');
       const emDia = recebidos.filter(t => (t.dias_atraso || 0) <= 0);
       const emAtraso = recebidos.filter(t => (t.dias_atraso || 0) > 0);
       const valorTotal = data?.reduce((acc, t) => acc + (t.valor_original || 0), 0) || 0;
