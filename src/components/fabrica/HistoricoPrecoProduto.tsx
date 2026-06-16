@@ -210,6 +210,30 @@ export function HistoricoPrecoProduto({ open, onOpenChange, produtoId, produtoNo
       }
     }
 
+    // Recalcular markup efetivo por etapa a partir dos preços reais
+    // (cobre casos em que o produto tem preço manual e o markup efetivo
+    // difere do markup default da tabela)
+    for (let i = 1; i < cadeia.length; i++) {
+      const base = cadeia[i - 1].precoFinal;
+      const atual = cadeia[i].precoFinal;
+      if (!base || base <= 0) continue;
+      const tipo = cadeia[i].tabela.tipo_markup;
+      if (tipo === "percentual") {
+        const pct = ((atual - base) / base) * 100;
+        cadeia[i].valorMarkup = pct;
+        const sinal = pct >= 0 ? "+" : "";
+        cadeia[i].markupAplicado = `${sinal}${pct.toFixed(2).replace(/\.?0+$/, "")}%`;
+      } else if (tipo === "multiplicador") {
+        const mult = atual / base;
+        cadeia[i].valorMarkup = mult;
+        cadeia[i].markupAplicado = `×${mult.toFixed(4).replace(/\.?0+$/, "")}`;
+      } else if (tipo === "valor_fixo") {
+        const delta = atual - base;
+        cadeia[i].valorMarkup = delta;
+        cadeia[i].markupAplicado = delta > 0 ? `+${formatarMoeda(delta)}` : "-";
+      }
+    }
+
     return cadeia;
   };
 
