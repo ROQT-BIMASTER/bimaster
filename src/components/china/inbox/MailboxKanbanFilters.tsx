@@ -223,7 +223,6 @@ function abreviarSubmissao(g?: MailboxGroup) {
 }
 
 // Pequeno helper interno: dispara o callback quando `signal` muda.
-import { useEffect } from "react";
 function useMemoOpenSignal(signal: number | undefined, cb: () => void) {
   useEffect(() => {
     if (signal === undefined) return;
