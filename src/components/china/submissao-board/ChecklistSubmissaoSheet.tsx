@@ -21,6 +21,13 @@ interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   submissao: SubmissaoRow | null;
+  /**
+   * Filtra a visualização do checklist por lado. Quando informado, apenas
+   * a seção correspondente aparece — usado pelos botões "Checklist China →
+   * Brasil" e "Checklist Brasil → China" do header do projeto, para que
+   * cada botão mostre só a responsabilidade do seu lado.
+   */
+  side?: "c2b" | "b2c" | "both";
 }
 
 /**
