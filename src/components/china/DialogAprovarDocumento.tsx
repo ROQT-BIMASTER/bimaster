@@ -47,7 +47,7 @@ export function DialogAprovarDocumento({
 
   const isAprovar = modo === "aprovar";
   const pending = isAprovar ? aprovar.isPending : ciencia.isPending;
-  const disabled = isAprovar ? !parecer.trim() || pending : pending;
+  const disabled = !parecer.trim() || pending;
 
   function handleFiles(list: FileList | null) {
     if (!list) return;
@@ -56,7 +56,7 @@ export function DialogAprovarDocumento({
   }
 
   async function submit() {
-    if (isAprovar && !parecer.trim()) return;
+    if (!parecer.trim()) return;
     const fn = isAprovar ? aprovar : ciencia;
     await fn.mutateAsync({
       documento_id: documentoId,
@@ -87,16 +87,14 @@ export function DialogAprovarDocumento({
             {tipoDocumentoLabel ? `Documento: ${tipoDocumentoLabel}. ` : ""}
             {isAprovar
               ? "Registre o parecer técnico de aprovação. Ficará na trilha de auditoria."
-              : "Descreva (opcional) o que foi verificado nesta análise. Útil para deixar o histórico claro."}
+              : "Descreva o que foi verificado nesta análise. O parecer fica registrado na trilha de auditoria e é obrigatório."}
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
           <div className="space-y-2">
             <Label className="text-sm font-semibold">
-              {isAprovar
-                ? "Parecer de aprovação *"
-                : "Notas da análise (opcional)"}
+              {isAprovar ? "Parecer de aprovação *" : "Notas da análise *"}
             </Label>
             <MentionInput
               value={parecer}
