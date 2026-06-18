@@ -385,6 +385,8 @@ export function useEstoqueUnificado(opts: UseEstoqueUnificadoOpts) {
           filial_nome: resolveFilialNome(r.empresa, abrev),
           marca: marcaPorCod.get(r.produto_raiz) ?? null,
           linha: linhaPorCod.get(r.produto_raiz) ?? null,
+          // EAN raiz: cache da view costuma vir vazio; preenchemos via catálogo RP.
+          ean_raiz: r.ean_raiz ?? eanPorCod.get(r.produto_raiz) ?? null,
           pedidos_count: pedSet ? pedSet.size : 0,
         };
       });
