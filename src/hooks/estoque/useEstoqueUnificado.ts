@@ -143,6 +143,30 @@ export function useEstoqueUnificado(opts: UseEstoqueUnificadoOpts) {
       }
 
 
+      // EAN canônico vindo do catálogo RP (estoque_produtos_master.codigo_rp).
+      // Preferimos ean_caixa_master (nível raiz = caixa); cai para ean_unitario_master.
+      const eanPorCod = new Map<number, string | null>();
+      if (codigos.length) {
+        const codStr = codigos.map((c) => String(c));
+        const eanChunks = toChunks(codStr, CHUNK);
+        const eanResults = await Promise.all(
+          eanChunks.map((cs) =>
+            supabase
+              .from('estoque_produtos_master')
+              .select('codigo_rp,ean_caixa_master,ean_unitario_master')
+              .in('codigo_rp', cs),
+          ),
+        );
+        eanResults.forEach(({ data }) => {
+          (data ?? []).forEach((m: any) => {
+            const cod = Number(m?.codigo_rp);
+            if (!Number.isFinite(cod)) return;
+            const ean = (m.ean_caixa_master ?? m.ean_unitario_master ?? null) as string | null;
+            if (ean && !eanPorCod.has(cod)) eanPorCod.set(cod, ean);
+          });
+        });
+      }
+
       if (codigos.length) {
         const codChunks = toChunks(codigos, CHUNK);
 
@@ -361,6 +385,8 @@ export function useEstoqueUnificado(opts: UseEstoqueUnificadoOpts) {
           filial_nome: resolveFilialNome(r.empresa, abrev),
           marca: marcaPorCod.get(r.produto_raiz) ?? null,
           linha: linhaPorCod.get(r.produto_raiz) ?? null,
+          // EAN raiz: cache da view costuma vir vazio; preenchemos via catálogo RP.
+          ean_raiz: r.ean_raiz ?? eanPorCod.get(r.produto_raiz) ?? null,
           pedidos_count: pedSet ? pedSet.size : 0,
         };
       });
