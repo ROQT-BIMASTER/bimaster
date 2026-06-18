@@ -176,6 +176,7 @@ export function ChecklistSubmissaoSheet({ open, onOpenChange, submissao, side = 
                   group={group}
                   perspective="brasil"
                   layout="split"
+                  side={side}
                   onAddBrasilItem={() => setNovoItemOpen(true)}
                   onFocusItem={(ctx) => setFlowCtx(ctx)}
                 />
