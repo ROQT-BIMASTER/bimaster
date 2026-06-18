@@ -55,22 +55,28 @@ function getBool(row: Record<string, unknown>, ...keys: string[]): boolean | nul
 }
 
 function normalizeRow(row: Record<string, unknown>) {
-  const codigo = getStr(row, "codigo", "Codigo", "CODIGO", "cod_produto", "Cod_Produto", "produto", "Produto");
+  // Mapeamento real (confirmado via /describe em Cust_EstruturaProdutosSP):
+  //   Cod.Atrio | Descricao Produto | Ean | UNIDADE | NCM | Peso | Altura | Largura | Comprimento | Marca | Forncedor | Registro Anvisa | Cest | CSTPIS | PREÇO VENDA | Origem
+  // Não há EAN unitário e EAN caixa separados — discrimina por UNIDADE (UN x CX).
+  const codigo = getStr(row, "Cod.Atrio", "codigo", "Codigo", "cod_produto");
   if (!codigo) return null;
+  const unidade = getStr(row, "UNIDADE", "unidade", "Unidade");
+  const ean = getStr(row, "Ean", "EAN", "ean");
+  const isCaixa = (unidade ?? "").toUpperCase().startsWith("CX");
   return {
     codigo_rp: codigo,
-    descricao: getStr(row, "descricao", "Descricao", "DESCRICAO", "nome_prod", "Nome_Prod"),
-    ean_unitario: getStr(row, "ean_unitario", "EAN_Unitario", "ean", "EAN"),
-    ean_caixa: getStr(row, "ean_caixa", "EAN_Caixa", "ean_master", "EAN_Master"),
-    unidade: getStr(row, "unidade", "Unidade", "unidade_medida", "Unidade_Medida"),
-    peso_liquido_kg: getNum(row, "peso_liquido", "Peso_Liquido", "peso_liq", "Peso_Liq"),
-    peso_bruto_kg: getNum(row, "peso_bruto", "Peso_Bruto", "peso_brut", "Peso_Brut"),
-    altura_cm: getNum(row, "altura", "Altura", "altura_cm", "Altura_cm"),
-    largura_cm: getNum(row, "largura", "Largura", "largura_cm", "Largura_cm"),
-    profundidade_cm: getNum(row, "profundidade", "Profundidade", "comprimento", "Comprimento"),
-    ncm: getStr(row, "ncm", "NCM"),
-    categoria: getStr(row, "categoria", "Categoria", "grupo", "Grupo"),
-    ativo: getBool(row, "ativo", "Ativo", "status", "Status"),
+    descricao: getStr(row, "Descricao Produto", "descricao", "Descricao"),
+    ean_unitario: !isCaixa ? ean : null,
+    ean_caixa: isCaixa ? ean : null,
+    unidade,
+    peso_liquido_kg: getNum(row, "Peso", "peso_liquido", "Peso_Liquido"),
+    peso_bruto_kg: getNum(row, "Peso_Bruto", "peso_bruto"), // RP não devolve hoje
+    altura_cm: getNum(row, "Altura", "altura"),
+    largura_cm: getNum(row, "Largura", "largura"),
+    profundidade_cm: getNum(row, "Comprimento", "profundidade"),
+    ncm: getStr(row, "NCM", "ncm"),
+    categoria: getStr(row, "Marca", "categoria", "Categoria"),
+    ativo: getBool(row, "ativo", "Ativo"),
     raw: row,
   };
 }
