@@ -16,6 +16,18 @@ interface Props {
   isReceiver: boolean;
   /** Lado que enviou o documento — pode substituir com parecer quando rejeitado. */
   isSender: boolean;
+  /**
+   * Ações permitidas neste contexto. Por padrão tudo é permitido. A Caixa
+   * de Entrada China passa `{ aprovar: false, ciencia: false, rejeitar: false }`
+   * para impedir que a China dê parecer final em documentos que ainda não
+   * passaram pelo Brasil — lá ela só envia ou substitui.
+   */
+  allowedActions?: {
+    aprovar?: boolean;
+    rejeitar?: boolean;
+    ciencia?: boolean;
+    substituir?: boolean;
+  };
 }
 
 export function DrawerParecerActions({
@@ -26,14 +38,23 @@ export function DrawerParecerActions({
   bucket,
   isReceiver,
   isSender,
+  allowedActions,
 }: Props) {
   const [rejeitarOpen, setRejeitarOpen] = useState(false);
   const [contestarOpen, setContestarOpen] = useState(false);
   const [aprovarOpen, setAprovarOpen] = useState(false);
   const [cienciaOpen, setCienciaOpen] = useState(false);
 
-  const podeReceiver = isReceiver && bucket !== "aprovado";
-  const podeSubstituir = isSender && bucket === "rejeitado";
+  const allow = {
+    aprovar: allowedActions?.aprovar ?? true,
+    rejeitar: allowedActions?.rejeitar ?? true,
+    ciencia: allowedActions?.ciencia ?? true,
+    substituir: allowedActions?.substituir ?? true,
+  };
+
+  const podeReceiver =
+    isReceiver && bucket !== "aprovado" && (allow.aprovar || allow.rejeitar || allow.ciencia);
+  const podeSubstituir = isSender && bucket === "rejeitado" && allow.substituir;
 
   if (!podeReceiver && !podeSubstituir) return null;
 
