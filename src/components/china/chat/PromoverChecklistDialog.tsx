@@ -69,23 +69,35 @@ export function PromoverChecklistDialog({
       if (userErr || !userData?.user?.id) throw new Error("Sessão expirada");
       const uid = userData.user.id;
 
-      // 1. Download blob do anexo do chat
+      // 1. Download blob do anexo do chat (direto via SDK, sem fetch intermediário)
       const r = await downloadStorageBlob(anexo.path, "china-chat-anexos");
-      if (!r) throw new Error("Falha ao baixar anexo origem");
+      if (!r || !r.blob) throw new Error(r?.error || "Falha ao baixar anexo origem");
 
-      // 2. Upload em china-documentos com path estruturado <uid>/<submissaoId>/<tipo>/...
-      const respBlob = await fetch(r.blobUrl);
-      const blob = await respBlob.blob();
+      // Resolve um contentType confiável (nunca text/html — o bucket rejeita).
+      const ext = (anexo.nome.split(".").pop() || "").toLowerCase();
+      const extMime: Record<string, string> = {
+        pdf: "application/pdf",
+        png: "image/png", jpg: "image/jpeg", jpeg: "image/jpeg", gif: "image/gif", webp: "image/webp",
+        doc: "application/msword",
+        docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        xls: "application/vnd.ms-excel",
+        xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        ppt: "application/vnd.ms-powerpoint",
+        pptx: "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+        csv: "text/csv", txt: "text/plain", zip: "application/zip",
+      };
+      const candidates = [anexo.mime, r.contentType, r.blob.type, extMime[ext], "application/octet-stream"];
+      const contentType = candidates.find((m) => !!m && !m.includes("text/html")) || "application/octet-stream";
+
+      // Re-empacota o blob garantindo o type correto (evita herdar text/html)
+      const blob = new Blob([r.blob], { type: contentType });
       const timestamp = Date.now();
       const safeName = anexo.nome.replace(/[^\w.\-]+/g, "_").slice(0, 80);
       const novoPath = `${uid}/${submissaoId}/${tipoDoc}/${timestamp}_${safeName}`;
 
       const { error: upErr } = await supabase.storage
         .from("china-documentos")
-        .upload(novoPath, blob, {
-          contentType: anexo.mime || "application/octet-stream",
-          upsert: false,
-        });
+        .upload(novoPath, blob, { contentType, upsert: false });
       if (upErr) throw new Error(`Falha ao gravar no Cofre: ${upErr.message}`);
 
       // 3. Chama RPC que cria linha + marca anexo + msg de sistema
