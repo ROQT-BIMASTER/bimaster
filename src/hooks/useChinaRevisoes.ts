@@ -309,6 +309,21 @@ export function useRejeitarComLaudo() {
         .from("china_produto_documentos" as any)
         .update({ status: "rejeitado" } as any)
         .eq("id", params.documento_id);
+
+      // Comunica a China: cria alerta visível na Caixa de Entrada + notificação
+      // para os responsáveis da categoria e o criador da submissão.
+      try {
+        await supabase.rpc("notificar_devolucao_brasil" as any, {
+          p_documento_id: params.documento_id,
+          p_submissao_id: params.submissao_id,
+          p_motivo: motivo,
+          p_severidade: "alta",
+        } as any);
+      } catch (notifyErr) {
+        // Falha em notificar NÃO deve abortar a rejeição (já gravada).
+        // Apenas logamos para depuração — toast será amigável.
+        console.warn("[useRejeitarComLaudo] falha ao notificar China:", notifyErr);
+      }
     },
     onSuccess: (_, vars) => {
       queryClient.invalidateQueries({ queryKey: ["china-revisoes", vars.submissao_id] });

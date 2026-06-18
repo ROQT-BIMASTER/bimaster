@@ -155,6 +155,18 @@ export function ChinaDocumentoBlock({ doc }: Props) {
         } as any)
         .eq("id", doc.documento_id);
       if (error) throw error;
+
+      // Notifica a China (alerta + notificações). Best-effort.
+      try {
+        await supabase.rpc("notificar_devolucao_brasil" as any, {
+          p_documento_id: doc.documento_id,
+          p_submissao_id: doc.submissao_id,
+          p_motivo: motivoTexto,
+          p_severidade: "alta",
+        } as any);
+      } catch (notifyErr) {
+        console.warn("[ChinaDocumentoBlock.devolver] falha ao notificar China:", notifyErr);
+      }
     },
     onSuccess: () => {
       toast.success("Documento devolvido à China.");
