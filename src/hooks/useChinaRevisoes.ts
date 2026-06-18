@@ -215,13 +215,22 @@ function detectLang(s: string): IdiomaRevisao {
 
 async function uploadAnexos(
   files: File[],
-  basePath: string,
+  submissaoId: string,
+  revisaoId: string,
   lado: "brasil" | "china",
 ): Promise<RevisaoAnexo[]> {
+  // O bucket `china-documentos` exige que o primeiro segmento do path seja o
+  // UID do usuário autenticado (política `china_documentos_insert`). Sem isso
+  // o upload falha com "new row violates row-level security policy" e o
+  // parecer inteiro era abortado.
+  const { data: { user } } = await supabase.auth.getUser();
+  const uid = user?.id;
+  if (!uid) throw new Error("Sessão expirada. Faça login novamente.");
+
   const out: RevisaoAnexo[] = [];
   for (const f of files) {
     const safe = f.name.replace(/[^\w.\-]+/g, "_");
-    const path = `${basePath}/${Date.now()}-${safe}`;
+    const path = `${uid}/${submissaoId}/revisoes/${revisaoId}/${Date.now()}-${safe}`;
     const { error } = await supabase.storage.from(BUCKET).upload(path, f, {
       contentType: f.type || "application/octet-stream",
       upsert: false,
