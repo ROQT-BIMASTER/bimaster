@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   FileEdit, Send, Eye, RotateCcw, CheckCircle2,
   Inbox, XCircle, Star, ArrowUpRight, ArrowDownLeft,
   MessageSquare, Check, Clock, Upload, Circle, AlertTriangle, GripVertical,
+  ChevronRight, Filter as FilterIcon, Paperclip,
 } from "lucide-react";
 import {
   DndContext, DragOverlay, PointerSensor, useDraggable, useDroppable,
@@ -11,14 +12,17 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 import { cn } from "@/lib/utils";
-import { groupBySubmissao, type MailboxGroup } from "@/lib/china/groupMailboxItems";
+import { groupBySubmissao, hasAttachment, type MailboxGroup } from "@/lib/china/groupMailboxItems";
 import type { MailboxItem, MailboxFolder } from "@/hooks/useChinaMailbox";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 import { ItemThumb } from "@/components/china/inbox/ItemThumb";
+import { useChinaKanbanFilters, type BucketFilter } from "@/hooks/useChinaKanbanFilters";
+import { MailboxKanbanFilters } from "@/components/china/inbox/MailboxKanbanFilters";
 
 
 interface Props {
