@@ -3,6 +3,7 @@ import {
   FileEdit, Send, Eye, RotateCcw, CheckCircle2,
   Inbox, XCircle, Star, ArrowUpRight, ArrowDownLeft,
   MessageSquare, Check, Clock, Upload, Circle, AlertTriangle, GripVertical,
+  ChevronRight, Filter as FilterIcon, Paperclip,
 } from "lucide-react";
 import {
   DndContext, DragOverlay, PointerSensor, useDraggable, useDroppable,
@@ -11,14 +12,17 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 import { cn } from "@/lib/utils";
-import { groupBySubmissao, type MailboxGroup } from "@/lib/china/groupMailboxItems";
+import { groupBySubmissao, hasAttachment, type MailboxGroup } from "@/lib/china/groupMailboxItems";
 import type { MailboxItem, MailboxFolder } from "@/hooks/useChinaMailbox";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 import { ItemThumb } from "@/components/china/inbox/ItemThumb";
+import { useChinaKanbanFilters, type BucketFilter } from "@/hooks/useChinaKanbanFilters";
+import { MailboxKanbanFilters } from "@/components/china/inbox/MailboxKanbanFilters";
 
 
 interface Props {
@@ -332,6 +336,15 @@ function ItemCardInner({ item, group, selected, onClick, draggable, draggableHin
     rejeitado: "devolvido",
   } as const)[bucket];
 
+  // Faixa lateral por estado do anexo. Devolvido pelo Brasil tem prioridade.
+  const anexado = hasAttachment(item);
+  const leftBorderCls =
+    bucket === "rejeitado"
+      ? "border-l-4 border-l-rose-500"
+      : anexado
+        ? "border-l-4 border-l-primary/60"
+        : "border-l-4 border-l-dashed border-l-muted-foreground/30";
+
   return (
     <button
       type="button"
@@ -339,6 +352,7 @@ function ItemCardInner({ item, group, selected, onClick, draggable, draggableHin
       className={cn(
         "group w-full rounded-md border bg-card px-2.5 py-1.5 text-left transition-colors",
         "hover:bg-muted/40 hover:border-primary/40",
+        leftBorderCls,
         selected
           ? "border-primary/60 ring-1 ring-primary/30 bg-primary/5"
           : "border-border",
@@ -354,6 +368,12 @@ function ItemCardInner({ item, group, selected, onClick, draggable, draggableHin
         <span className="truncate text-[12px] font-medium leading-tight flex-1">
           {docLabel}
         </span>
+        {anexado && !draggable && (
+          <Paperclip
+            className="h-3 w-3 shrink-0 text-primary/70"
+            aria-label="Documento anexado"
+          />
+        )}
         {draggable && (
           <GripVertical
             className="h-3 w-3 shrink-0 text-muted-foreground/60"
@@ -417,6 +437,26 @@ export function MailboxKanban({
   );
   const [onlyUnread, setOnlyUnread] = useState(false);
 
+  // Filtros persistidos + atalho de teclado
+  const {
+    filters, isActive: filtersActive,
+    setAnexo, toggleBucket, toggleSubmissao, setSubmissoes, clearSubmissoes, clearAll,
+  } = useChinaKanbanFilters(perspective);
+  const [openSubmissaoSignal, setOpenSubmissaoSignal] = useState<number | undefined>(undefined);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const tgt = e.target as HTMLElement | null;
+      if (tgt && (tgt.tagName === "INPUT" || tgt.tagName === "TEXTAREA" || tgt.isContentEditable)) return;
+      if (e.key === "f") {
+        e.preventDefault();
+        setOpenSubmissaoSignal(Date.now());
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
   const viewModeStorageKey = `china.kanban.viewMode.${perspective}`;
   const [viewMode, setViewMode] = useState<"submission" | "item">(() => {
     if (typeof window === "undefined") return "submission";
@@ -437,9 +477,16 @@ export function MailboxKanban({
 
   const columns = perspective === "china" ? CHINA_COLUMNS : BRASIL_COLUMNS;
 
+  // Aplica filtro de submissão + "apenas não lidas" no nível de grupos.
   const visibleGroups = useMemo(
-    () => groups.filter((g) => !g.is_deleted && (!onlyUnread || g.has_unread)),
-    [groups, onlyUnread],
+    () =>
+      groups.filter((g) => {
+        if (g.is_deleted) return false;
+        if (onlyUnread && !g.has_unread) return false;
+        if (filters.submissaoIds.length > 0 && !filters.submissaoIds.includes(g.submissao_id)) return false;
+        return true;
+      }),
+    [groups, onlyUnread, filters.submissaoIds],
   );
 
   const totalSubs = visibleGroups.length;
@@ -448,17 +495,30 @@ export function MailboxKanban({
     [groups],
   );
 
+  // Predicate de filtro a nível de item (anexo + bucket).
+  const itemPasses = useMemo(() => {
+    return (d: MailboxItem) => {
+      if (filters.anexo === "with" && !hasAttachment(d)) return false;
+      if (filters.anexo === "without" && hasAttachment(d)) return false;
+      const b = bucketForDoc(d) as BucketFilter;
+      if (!filters.buckets.includes(b)) return false;
+      return true;
+    };
+  }, [filters.anexo, filters.buckets]);
+
   const byColumn = useMemo(() => {
     const map = new Map<ColumnKey, MailboxGroup[]>();
     for (const c of columns) map.set(c.key, []);
     const resolver = perspective === "china" ? columnForChina : columnForBrasil;
     for (const g of visibleGroups) {
+      // No modo "Por submissão", aplicamos os filtros de anexo/bucket como
+      // "tem ao menos um item que passa" — caso contrário a submissão é omitida.
+      const anyPass = g.docs.some(itemPasses);
+      if (!anyPass) continue;
       const k = resolver(g);
       if (!map.has(k)) continue;
       map.get(k)!.push(g);
     }
-    // Colunas terminais: decisões recentes no topo (desc).
-    // Colunas de fluxo ativo: mais antigos parados no topo (asc por SLA).
     const TERMINAL: ColumnKey[] = ["approved", "rejected"];
     for (const [key, arr] of map.entries()) {
       if (TERMINAL.includes(key)) {
@@ -473,9 +533,8 @@ export function MailboxKanban({
         });
       }
     }
-
     return map;
-  }, [visibleGroups, columns, perspective]);
+  }, [visibleGroups, columns, perspective, itemPasses]);
 
   const selectedSubId = useMemo(() => {
     if (!selectedId) return null;
@@ -496,6 +555,7 @@ export function MailboxKanban({
     const TERMINAL: ColumnKey[] = ["approved", "rejected"];
     for (const g of visibleGroups) {
       for (const d of g.docs) {
+        if (!itemPasses(d)) continue;
         const k = itemColumnFor(d, perspective);
         if (!map.has(k)) continue;
         map.get(k)!.push({ item: d, group: g });
@@ -509,7 +569,7 @@ export function MailboxKanban({
       }
     }
     return map;
-  }, [viewMode, visibleGroups, columns, perspective]);
+  }, [viewMode, visibleGroups, columns, perspective, itemPasses]);
 
   // DnD ativo apenas na perspectiva China + modo "Por item" + handler conectado.
   const dndEnabled = perspective === "china" && viewMode === "item" && !!onDragSendDoc;
@@ -528,29 +588,17 @@ export function MailboxKanban({
     onDragSendDoc?.(data.item, data.group);
   };
 
+  const handleIsolateSubmissao = (id: string) => setSubmissoes([id]);
+
   const board = (
     <div className="flex h-full flex-col">
-      {/* Header do board */}
+      {/* Header: modo de visualização + dica de DnD */}
       <div className="flex items-center justify-between gap-2 border-b border-border bg-card/40 px-3 py-1.5">
         <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
-          <span className="tabular-nums">
-            <strong className="text-foreground">{totalSubs}</strong> submiss{totalSubs === 1 ? "ão" : "ões"}
-          </span>
-          {totalUnread > 0 && (
-            <>
-              <span className="text-border">·</span>
-              <span className="tabular-nums text-primary">
-                <strong>{totalUnread}</strong> não lid{totalUnread === 1 ? "a" : "as"}
-              </span>
-            </>
-          )}
           {dndEnabled && (
-            <>
-              <span className="text-border">·</span>
-              <span className="text-[10px] text-muted-foreground/80">
-                Arraste itens prontos para "Enviados ao Brasil"
-              </span>
-            </>
+            <span className="text-[10px] text-muted-foreground/80">
+              Arraste itens prontos para "Enviados ao Brasil"
+            </span>
           )}
         </div>
         <div className="flex items-center gap-1.5" aria-label="Modo de visualização do Kanban">
@@ -582,17 +630,25 @@ export function MailboxKanban({
               Por item
             </button>
           </div>
-          <Button
-            type="button"
-            variant={onlyUnread ? "default" : "outline"}
-            size="sm"
-            className="h-6 px-2 text-[10.5px]"
-            onClick={() => setOnlyUnread((v) => !v)}
-          >
-            {onlyUnread ? "Mostrar todas" : "Apenas não lidas"}
-          </Button>
         </div>
       </div>
+
+      {/* Barra de filtros */}
+      <MailboxKanbanFilters
+        filters={filters}
+        isActive={filtersActive || onlyUnread}
+        groups={groups.filter((g) => !g.is_deleted)}
+        totalSubs={totalSubs}
+        totalUnread={totalUnread}
+        onlyUnread={onlyUnread}
+        onToggleUnread={() => setOnlyUnread((v) => !v)}
+        onSetAnexo={setAnexo}
+        onToggleBucket={toggleBucket}
+        onToggleSubmissao={toggleSubmissao}
+        onClearSubmissoes={clearSubmissoes}
+        onClearAll={() => { clearAll(); setOnlyUnread(false); }}
+        openSubmissaoSignal={openSubmissaoSignal}
+      />
 
       {/* Colunas */}
       <div className="flex flex-1 min-h-0 gap-2 overflow-x-auto p-2">
@@ -609,6 +665,7 @@ export function MailboxKanban({
             selectedSubId={selectedSubId}
             onSelectGroup={onSelectGroup}
             onJumpFolder={onJumpFolder}
+            onIsolateSubmissao={handleIsolateSubmissao}
           />
         ))}
       </div>
@@ -647,11 +704,12 @@ interface KanbanColumnProps {
   selectedSubId: string | null;
   onSelectGroup: (group: MailboxGroup, item?: MailboxItem) => void;
   onJumpFolder: (folder: MailboxFolder) => void;
+  onIsolateSubmissao: (submissaoId: string) => void;
 }
 
 function KanbanColumn({
   col, viewMode, perspective, dndEnabled, isDragging,
-  list, itemList, selectedSubId, onSelectGroup, onJumpFolder,
+  list, itemList, selectedSubId, onSelectGroup, onJumpFolder, onIsolateSubmissao,
 }: KanbanColumnProps) {
   const Icon = col.icon;
   const count = viewMode === "item" ? itemList.length : list.length;
@@ -662,6 +720,19 @@ function KanbanColumn({
     disabled: !isDropTarget,
   });
   const showDropHint = isDropTarget && isDragging;
+
+  // No modo "Por item", agrupa os cards por submissão dentro da coluna.
+  const itemGroups = useMemo(() => {
+    if (viewMode !== "item") return [] as Array<{ group: MailboxGroup; items: Array<{ item: MailboxItem; group: MailboxGroup }> }>;
+    const map = new Map<string, { group: MailboxGroup; items: Array<{ item: MailboxItem; group: MailboxGroup }> }>();
+    for (const entry of itemList) {
+      const sub = entry.group.submissao_id;
+      const ex = map.get(sub);
+      if (ex) ex.items.push(entry);
+      else map.set(sub, { group: entry.group, items: [entry] });
+    }
+    return Array.from(map.values());
+  }, [viewMode, itemList]);
 
   return (
     <div
@@ -707,32 +778,19 @@ function KanbanColumn({
               {emptyLabel}
             </div>
           ) : viewMode === "item" ? (
-            itemList.map(({ item, group }, idx) => {
-              const eligible = dndEnabled && isDocDraggableToSent(item, group, perspective);
-              const key = item.documento_id ?? `${group.submissao_id}-${col.key}-${idx}`;
-              if (eligible) {
-                return (
-                  <DraggableItemCard
-                    key={key}
-                    dragId={`doc:${item.documento_id}`}
-                    item={item}
-                    group={group}
-                    selected={selectedSubId === group.submissao_id}
-                    onClick={() => onSelectGroup(group, item)}
-                    draggableHint="Arraste para 'Enviados ao Brasil'"
-                  />
-                );
-              }
-              return (
-                <ItemCard
-                  key={key}
-                  item={item}
-                  group={group}
-                  selected={selectedSubId === group.submissao_id}
-                  onClick={() => onSelectGroup(group, item)}
-                />
-              );
-            })
+            itemGroups.map(({ group, items }) => (
+              <SubmissaoGroupBlock
+                key={`${col.key}:${group.submissao_id}`}
+                colKey={col.key}
+                group={group}
+                items={items}
+                perspective={perspective}
+                dndEnabled={dndEnabled}
+                selectedSubId={selectedSubId}
+                onSelectGroup={onSelectGroup}
+                onIsolateSubmissao={onIsolateSubmissao}
+              />
+            ))
           ) : (
             list.map((g) => {
               const hint =
@@ -740,18 +798,118 @@ function KanbanColumn({
                 (g.docs || []).find((d: any) => !d.is_virtual) ??
                 (g.docs || [])[0];
               return (
-                <KanbanCard
-                  key={g.submissao_id}
-                  group={g}
-                  perspective={perspective}
-                  selected={selectedSubId === g.submissao_id}
-                  onClick={() => onSelectGroup(g, hint)}
-                />
+                <div key={g.submissao_id} className="relative">
+                  <KanbanCard
+                    group={g}
+                    perspective={perspective}
+                    selected={selectedSubId === g.submissao_id}
+                    onClick={() => onSelectGroup(g, hint)}
+                  />
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); onIsolateSubmissao(g.submissao_id); }}
+                    className="absolute right-1.5 top-1.5 rounded p-1 text-muted-foreground/70 hover:bg-muted hover:text-foreground"
+                    title="Filtrar apenas esta submissão no board"
+                    aria-label="Filtrar apenas esta submissão"
+                  >
+                    <FilterIcon className="h-3 w-3" />
+                  </button>
+                </div>
               );
             })
           )}
         </div>
       </ScrollArea>
     </div>
+  );
+}
+
+interface SubmissaoGroupBlockProps {
+  colKey: ColumnKey;
+  group: MailboxGroup;
+  items: Array<{ item: MailboxItem; group: MailboxGroup }>;
+  perspective: "china" | "brasil";
+  dndEnabled: boolean;
+  selectedSubId: string | null;
+  onSelectGroup: (group: MailboxGroup, item?: MailboxItem) => void;
+  onIsolateSubmissao: (submissaoId: string) => void;
+}
+
+function SubmissaoGroupBlock({
+  colKey, group, items, perspective, dndEnabled, selectedSubId, onSelectGroup, onIsolateSubmissao,
+}: SubmissaoGroupBlockProps) {
+  const storageKey = `china.kanban.groupOpen.${colKey}.${group.submissao_id}`;
+  const initialOpen = items.length <= 5;
+  const [open, setOpen] = useState<boolean>(() => {
+    if (typeof window === "undefined") return initialOpen;
+    const v = window.localStorage.getItem(storageKey);
+    if (v === "0") return false;
+    if (v === "1") return true;
+    return initialOpen;
+  });
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem(storageKey, open ? "1" : "0");
+  }, [open, storageKey]);
+
+  return (
+    <Collapsible open={open} onOpenChange={setOpen} className="rounded-md border border-border/60 bg-card/30">
+      <div className="flex items-center gap-1 px-1.5 py-1">
+        <CollapsibleTrigger asChild>
+          <button
+            type="button"
+            className="flex min-w-0 flex-1 items-center gap-1 rounded px-1 py-0.5 text-left text-[10.5px] hover:bg-muted/50"
+          >
+            <ChevronRight
+              className={cn("h-3 w-3 shrink-0 transition-transform", open && "rotate-90")}
+            />
+            <span className="font-mono tabular-nums text-muted-foreground">{group.produto_codigo}</span>
+            <span className="truncate font-medium">{group.produto_nome}</span>
+            <Badge variant="secondary" className="ml-1 h-4 shrink-0 px-1.5 text-[9.5px] tabular-nums">
+              {items.length}/{group.progress.total || items.length}
+            </Badge>
+          </button>
+        </CollapsibleTrigger>
+        <button
+          type="button"
+          onClick={() => onIsolateSubmissao(group.submissao_id)}
+          className="rounded p-1 text-muted-foreground/70 hover:bg-muted hover:text-foreground"
+          title="Filtrar apenas esta submissão no board"
+          aria-label="Filtrar apenas esta submissão"
+        >
+          <FilterIcon className="h-3 w-3" />
+        </button>
+      </div>
+      <CollapsibleContent>
+        <div className="space-y-1.5 px-1.5 pb-1.5">
+          {items.map(({ item, group: g }, idx) => {
+            const eligible = dndEnabled && isDocDraggableToSent(item, g, perspective);
+            const key = item.documento_id ?? `${g.submissao_id}-${colKey}-${idx}`;
+            if (eligible) {
+              return (
+                <DraggableItemCard
+                  key={key}
+                  dragId={`doc:${item.documento_id}`}
+                  item={item}
+                  group={g}
+                  selected={selectedSubId === g.submissao_id}
+                  onClick={() => onSelectGroup(g, item)}
+                  draggableHint="Arraste para 'Enviados ao Brasil'"
+                />
+              );
+            }
+            return (
+              <ItemCard
+                key={key}
+                item={item}
+                group={g}
+                selected={selectedSubId === g.submissao_id}
+                onClick={() => onSelectGroup(g, item)}
+              />
+            );
+          })}
+        </div>
+      </CollapsibleContent>
+    </Collapsible>
   );
 }

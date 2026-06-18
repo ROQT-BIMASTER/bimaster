@@ -1,6 +1,16 @@
 import type { MailboxItem } from "@/hooks/useChinaMailbox";
 import { evaluateAwaitingSend } from "@/lib/china/awaitingSendRule";
 
+/**
+ * Item considerado "com documento anexado" — tem id do documento + caminho/URL
+ * de arquivo real. Virtuais (placeholders do checklist) NUNCA são anexados.
+ */
+export function hasAttachment(item: MailboxItem): boolean {
+  if ((item as any).is_virtual) return false;
+  if (!item.documento_id) return false;
+  return !!(item.arquivo_path || item.arquivo_url);
+}
+
 export interface MailboxGroupProgress {
   /** Total de itens do checklist visíveis no grupo. */
   total: number;
