@@ -377,6 +377,11 @@ export function FlowItemFocusDrawer({
                   (isChina && isChinaCategory) ||
                   (!isChina && isBrasilCategory)
                 }
+                allowedActions={
+                  isChina && lockChinaApproval
+                    ? { aprovar: false, rejeitar: false, ciencia: false, substituir: true }
+                    : undefined
+                }
                 defaultTab="parecer"
               />
             ) : (
