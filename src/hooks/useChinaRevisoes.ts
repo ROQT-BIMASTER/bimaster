@@ -292,7 +292,8 @@ export function useRejeitarComLaudo() {
       const anexos = params.anexos?.length
         ? await uploadAnexos(
             params.anexos,
-            `revisoes/${params.submissao_id}/${revisaoId}`,
+            params.submissao_id,
+            revisaoId,
             "brasil",
           )
         : [];
@@ -371,7 +372,8 @@ export function useCriarRevisaoComParecer() {
       const anexos = params.anexos?.length
         ? await uploadAnexos(
             params.anexos,
-            `revisoes/${params.submissao_id}/${revisaoId}`,
+            params.submissao_id,
+            revisaoId,
             "brasil",
           )
         : [];
@@ -450,7 +452,8 @@ export function useDarCienciaComParecer() {
       const anexos = params.anexos?.length
         ? await uploadAnexos(
             params.anexos,
-            `revisoes/${params.submissao_id}/${revisaoId}`,
+            params.submissao_id,
+            revisaoId,
             "brasil",
           )
         : [];
@@ -579,7 +582,8 @@ export function useContestarComParecer() {
       const anexos = params.anexos?.length
         ? await uploadAnexos(
             params.anexos,
-            `revisoes/${params.submissao_id}/${revisaoId}`,
+            params.submissao_id,
+            revisaoId,
             "china",
           )
         : [];
