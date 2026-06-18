@@ -336,6 +336,15 @@ function ItemCardInner({ item, group, selected, onClick, draggable, draggableHin
     rejeitado: "devolvido",
   } as const)[bucket];
 
+  // Faixa lateral por estado do anexo. Devolvido pelo Brasil tem prioridade.
+  const anexado = hasAttachment(item);
+  const leftBorderCls =
+    bucket === "rejeitado"
+      ? "border-l-4 border-l-rose-500"
+      : anexado
+        ? "border-l-4 border-l-primary/60"
+        : "border-l-4 border-l-dashed border-l-muted-foreground/30";
+
   return (
     <button
       type="button"
@@ -343,6 +352,7 @@ function ItemCardInner({ item, group, selected, onClick, draggable, draggableHin
       className={cn(
         "group w-full rounded-md border bg-card px-2.5 py-1.5 text-left transition-colors",
         "hover:bg-muted/40 hover:border-primary/40",
+        leftBorderCls,
         selected
           ? "border-primary/60 ring-1 ring-primary/30 bg-primary/5"
           : "border-border",
@@ -358,6 +368,12 @@ function ItemCardInner({ item, group, selected, onClick, draggable, draggableHin
         <span className="truncate text-[12px] font-medium leading-tight flex-1">
           {docLabel}
         </span>
+        {anexado && !draggable && (
+          <Paperclip
+            className="h-3 w-3 shrink-0 text-primary/70"
+            aria-label="Documento anexado"
+          />
+        )}
         {draggable && (
           <GripVertical
             className="h-3 w-3 shrink-0 text-muted-foreground/60"
