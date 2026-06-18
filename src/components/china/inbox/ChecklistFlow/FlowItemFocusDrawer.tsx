@@ -34,6 +34,13 @@ interface Props {
   onOpenChange: (open: boolean) => void;
   onEnviarBrasil?: (item: MailboxItem) => void;
   onOpenSubmissao?: (submissaoId: string) => void;
+  /**
+   * Quando true, oculta as ações de "Aprovar", "Rejeitar" e "Dar ciência"
+   * do lado China — usado na Caixa de Entrada China, onde a regra é que
+   * o operador apenas envie o documento ao Brasil ou substitua-o quando
+   * houver devolução. Aprovação final é responsabilidade do Brasil.
+   */
+  lockChinaApproval?: boolean;
 }
 
 
@@ -50,6 +57,7 @@ export function FlowItemFocusDrawer({
   onOpenChange,
   onEnviarBrasil,
   onOpenSubmissao,
+  lockChinaApproval,
 }: Props) {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [observacao, setObservacao] = useState("");
@@ -368,6 +376,11 @@ export function FlowItemFocusDrawer({
                 isSender={
                   (isChina && isChinaCategory) ||
                   (!isChina && isBrasilCategory)
+                }
+                allowedActions={
+                  isChina && lockChinaApproval
+                    ? { aprovar: false, rejeitar: false, ciencia: false, substituir: true }
+                    : undefined
                 }
                 defaultTab="parecer"
               />

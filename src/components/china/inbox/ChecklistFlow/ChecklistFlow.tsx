@@ -38,6 +38,13 @@ interface Props {
   layout?: "primary-first" | "split";
   /** Callback opcional — botão "+ Novo item" inline no header Brasil → China (layout split). */
   onAddBrasilItem?: () => void;
+  /**
+   * Filtra qual seção mostrar no layout "split":
+   *  - "c2b" → apenas Responsabilidade China (China → Brasil)
+   *  - "b2c" → apenas Responsabilidade Brasil (Brasil → China)
+   *  - "both" (default) → as duas seções
+   */
+  side?: "c2b" | "b2c" | "both";
 }
 
 function bucketForDoc(d: MailboxItem | undefined | null): FlowBucket {
@@ -313,6 +320,7 @@ export function ChecklistFlow({
   onFocusItem,
   layout = "primary-first",
   onAddBrasilItem,
+  side = "both",
 }: Props) {
   const merged = useMergedChinaChecklist(group.submissao_id);
   const [showOthers, setShowOthers] = useState(false);
@@ -350,6 +358,8 @@ export function ChecklistFlow({
   );
 
   if (layout === "split") {
+    const showB2C = side === "both" || side === "b2c";
+    const showC2B = side === "both" || side === "c2b";
     return (
       <section className="space-y-3">
         <div className="flex items-center justify-between gap-2">
@@ -361,45 +371,49 @@ export function ChecklistFlow({
         </div>
 
         {/* Responsabilidade Brasil — Brasil → China */}
-        <div className="space-y-2">
-          <SectionHeader
-            side="brasil"
-            categories={brasilCats}
-            group={group}
-            action={
-              onAddBrasilItem ? (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="h-6 gap-1 px-1.5 text-[10px]"
-                  onClick={onAddBrasilItem}
-                >
-                  <Plus className="h-3 w-3" />
-                  Novo item
-                </Button>
-              ) : null
-            }
-          />
-          {brasilCats.length > 0 ? (
-            <div className="space-y-2">{brasilCats.map(renderCategory)}</div>
-          ) : (
-            <div className="rounded-md border border-dashed border-border/60 px-3 py-3 text-center text-[10.5px] text-muted-foreground">
-              Nenhum item Brasil → China configurado ainda. Use "Novo item" para começar.
-            </div>
-          )}
-        </div>
+        {showB2C && (
+          <div className="space-y-2">
+            <SectionHeader
+              side="brasil"
+              categories={brasilCats}
+              group={group}
+              action={
+                onAddBrasilItem ? (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-6 gap-1 px-1.5 text-[10px]"
+                    onClick={onAddBrasilItem}
+                  >
+                    <Plus className="h-3 w-3" />
+                    Novo item
+                  </Button>
+                ) : null
+              }
+            />
+            {brasilCats.length > 0 ? (
+              <div className="space-y-2">{brasilCats.map(renderCategory)}</div>
+            ) : (
+              <div className="rounded-md border border-dashed border-border/60 px-3 py-3 text-center text-[10.5px] text-muted-foreground">
+                Nenhum item Brasil → China configurado ainda. Use "Novo item" para começar.
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Responsabilidade China — China → Brasil */}
-        <div className="space-y-2">
-          <SectionHeader side="china" categories={chinaCats} group={group} />
-          {chinaCats.length > 0 ? (
-            <div className="space-y-2">{chinaCats.map(renderCategory)}</div>
-          ) : (
-            <div className="rounded-md border border-dashed border-border/60 px-3 py-3 text-center text-[10.5px] text-muted-foreground">
-              A China ainda não definiu itens China → Brasil para esta submissão.
-            </div>
-          )}
-        </div>
+        {showC2B && (
+          <div className="space-y-2">
+            <SectionHeader side="china" categories={chinaCats} group={group} />
+            {chinaCats.length > 0 ? (
+              <div className="space-y-2">{chinaCats.map(renderCategory)}</div>
+            ) : (
+              <div className="rounded-md border border-dashed border-border/60 px-3 py-3 text-center text-[10.5px] text-muted-foreground">
+                A China ainda não definiu itens China → Brasil para esta submissão.
+              </div>
+            )}
+          </div>
+        )}
       </section>
     );
   }

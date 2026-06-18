@@ -33,6 +33,13 @@ interface Props {
   isReceiver: boolean;
   /** Pode substituir o arquivo com parecer — geralmente o lado que enviou. */
   isSender: boolean;
+  /** Restringe quais ações de parecer aparecem (default: todas). */
+  allowedActions?: {
+    aprovar?: boolean;
+    rejeitar?: boolean;
+    ciencia?: boolean;
+    substituir?: boolean;
+  };
   /** Aba inicial. */
   defaultTab?: "parecer" | "comentarios";
   className?: string;
@@ -47,6 +54,7 @@ export function ChecklistItemAdminPanel({
   lado,
   isReceiver,
   isSender,
+  allowedActions,
   defaultTab = "parecer",
   className,
 }: Props) {
@@ -70,6 +78,7 @@ export function ChecklistItemAdminPanel({
           bucket={bucket}
           isReceiver={isReceiver}
           isSender={isSender}
+          allowedActions={allowedActions}
         />
         <DrawerRevisoesList
           submissaoId={submissaoId}

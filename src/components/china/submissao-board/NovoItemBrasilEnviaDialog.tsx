@@ -99,10 +99,10 @@ export function NovoItemBrasilEnviaDialog({ open, onOpenChange, submissaoId }: P
         }) as any);
       if (itErr) throw itErr;
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       toast.success("Item adicionado ao checklist Brasil → China");
-      qc.invalidateQueries({ queryKey: ["checklist-custom-cats", submissaoId] });
-      qc.invalidateQueries({ queryKey: ["checklist-custom-items", submissaoId] });
+      const { invalidateChinaChecklist } = await import("@/lib/china/invalidateChecklist");
+      invalidateChinaChecklist(qc, submissaoId);
       onOpenChange(false);
     },
     onError: (e: any) => toast.error(e?.message || "Falha ao adicionar item"),

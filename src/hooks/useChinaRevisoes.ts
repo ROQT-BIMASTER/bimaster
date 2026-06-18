@@ -215,13 +215,22 @@ function detectLang(s: string): IdiomaRevisao {
 
 async function uploadAnexos(
   files: File[],
-  basePath: string,
+  submissaoId: string,
+  revisaoId: string,
   lado: "brasil" | "china",
 ): Promise<RevisaoAnexo[]> {
+  // O bucket `china-documentos` exige que o primeiro segmento do path seja o
+  // UID do usuário autenticado (política `china_documentos_insert`). Sem isso
+  // o upload falha com "new row violates row-level security policy" e o
+  // parecer inteiro era abortado.
+  const { data: { user } } = await supabase.auth.getUser();
+  const uid = user?.id;
+  if (!uid) throw new Error("Sessão expirada. Faça login novamente.");
+
   const out: RevisaoAnexo[] = [];
   for (const f of files) {
     const safe = f.name.replace(/[^\w.\-]+/g, "_");
-    const path = `${basePath}/${Date.now()}-${safe}`;
+    const path = `${uid}/${submissaoId}/revisoes/${revisaoId}/${Date.now()}-${safe}`;
     const { error } = await supabase.storage.from(BUCKET).upload(path, f, {
       contentType: f.type || "application/octet-stream",
       upsert: false,
@@ -283,7 +292,8 @@ export function useRejeitarComLaudo() {
       const anexos = params.anexos?.length
         ? await uploadAnexos(
             params.anexos,
-            `revisoes/${params.submissao_id}/${revisaoId}`,
+            params.submissao_id,
+            revisaoId,
             "brasil",
           )
         : [];
@@ -299,6 +309,21 @@ export function useRejeitarComLaudo() {
         .from("china_produto_documentos" as any)
         .update({ status: "rejeitado" } as any)
         .eq("id", params.documento_id);
+
+      // Comunica a China: cria alerta visível na Caixa de Entrada + notificação
+      // para os responsáveis da categoria e o criador da submissão.
+      try {
+        await supabase.rpc("notificar_devolucao_brasil" as any, {
+          p_documento_id: params.documento_id,
+          p_submissao_id: params.submissao_id,
+          p_motivo: motivo,
+          p_severidade: "alta",
+        } as any);
+      } catch (notifyErr) {
+        // Falha em notificar NÃO deve abortar a rejeição (já gravada).
+        // Apenas logamos para depuração — toast será amigável.
+        console.warn("[useRejeitarComLaudo] falha ao notificar China:", notifyErr);
+      }
     },
     onSuccess: (_, vars) => {
       queryClient.invalidateQueries({ queryKey: ["china-revisoes", vars.submissao_id] });
@@ -362,7 +387,8 @@ export function useCriarRevisaoComParecer() {
       const anexos = params.anexos?.length
         ? await uploadAnexos(
             params.anexos,
-            `revisoes/${params.submissao_id}/${revisaoId}`,
+            params.submissao_id,
+            revisaoId,
             "brasil",
           )
         : [];
@@ -441,7 +467,8 @@ export function useDarCienciaComParecer() {
       const anexos = params.anexos?.length
         ? await uploadAnexos(
             params.anexos,
-            `revisoes/${params.submissao_id}/${revisaoId}`,
+            params.submissao_id,
+            revisaoId,
             "brasil",
           )
         : [];
@@ -570,7 +597,8 @@ export function useContestarComParecer() {
       const anexos = params.anexos?.length
         ? await uploadAnexos(
             params.anexos,
-            `revisoes/${params.submissao_id}/${revisaoId}`,
+            params.submissao_id,
+            revisaoId,
             "china",
           )
         : [];

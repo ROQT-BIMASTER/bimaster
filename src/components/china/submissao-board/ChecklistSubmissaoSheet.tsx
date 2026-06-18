@@ -21,6 +21,13 @@ interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   submissao: SubmissaoRow | null;
+  /**
+   * Filtra a visualização do checklist por lado. Quando informado, apenas
+   * a seção correspondente aparece — usado pelos botões "Checklist China →
+   * Brasil" e "Checklist Brasil → China" do header do projeto, para que
+   * cada botão mostre só a responsabilidade do seu lado.
+   */
+  side?: "c2b" | "b2c" | "both";
 }
 
 /**
@@ -35,7 +42,7 @@ interface Props {
  *    (china_checklist_custom_*), mantendo um canal único entre os dois lados.
  *  - Disparar aprovação interna em lote dos itens Brasil → China anexados.
  */
-export function ChecklistSubmissaoSheet({ open, onOpenChange, submissao }: Props) {
+export function ChecklistSubmissaoSheet({ open, onOpenChange, submissao, side = "both" }: Props) {
   const submissaoId = submissao?.id ?? null;
 
   const [aprovacaoOpen, setAprovacaoOpen] = useState(false);
@@ -169,6 +176,7 @@ export function ChecklistSubmissaoSheet({ open, onOpenChange, submissao }: Props
                   group={group}
                   perspective="brasil"
                   layout="split"
+                  side={side}
                   onAddBrasilItem={() => setNovoItemOpen(true)}
                   onFocusItem={(ctx) => setFlowCtx(ctx)}
                 />

@@ -5,8 +5,9 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
 import {
-  FileText, Download, Upload, RotateCcw, Loader2, Ship, AlertTriangle,
+  FileText, Download, Upload, RotateCcw, Loader2, Ship, AlertTriangle, Eye,
 } from "lucide-react";
+import { ChinaDocPreviewDialog } from "@/components/china/ChinaDocPreviewDialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -65,6 +66,7 @@ export function ChinaDocumentoBlock({ doc }: Props) {
   const qc = useQueryClient();
   const fileRef = useRef<HTMLInputElement | null>(null);
   const [downloading, setDownloading] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
   const [devolverOpen, setDevolverOpen] = useState(false);
   const [motivo, setMotivo] = useState("");
   const [motivoError, setMotivoError] = useState<string | null>(null);
@@ -153,6 +155,18 @@ export function ChinaDocumentoBlock({ doc }: Props) {
         } as any)
         .eq("id", doc.documento_id);
       if (error) throw error;
+
+      // Notifica a China (alerta + notificações). Best-effort.
+      try {
+        await supabase.rpc("notificar_devolucao_brasil" as any, {
+          p_documento_id: doc.documento_id,
+          p_submissao_id: doc.submissao_id,
+          p_motivo: motivoTexto,
+          p_severidade: "alta",
+        } as any);
+      } catch (notifyErr) {
+        console.warn("[ChinaDocumentoBlock.devolver] falha ao notificar China:", notifyErr);
+      }
     },
     onSuccess: () => {
       toast.success("Documento devolvido à China.");
@@ -214,6 +228,16 @@ export function ChinaDocumentoBlock({ doc }: Props) {
         </div>
 
         <div className="flex flex-wrap gap-1.5 pt-1">
+          <Button
+            size="sm"
+            variant="default"
+            className="h-7 text-xs gap-1.5"
+            onClick={() => setPreviewOpen(true)}
+            disabled={!doc.arquivo_path && !doc.arquivo_url}
+          >
+            <Eye className="h-3 w-3" />
+            Visualizar
+          </Button>
           <Button
             size="sm"
             variant="outline"
@@ -312,6 +336,15 @@ export function ChinaDocumentoBlock({ doc }: Props) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <ChinaDocPreviewDialog
+        open={previewOpen}
+        onOpenChange={setPreviewOpen}
+        arquivoPath={doc.arquivo_path}
+        arquivoUrl={doc.arquivo_url}
+        nomeArquivo={doc.nome_arquivo}
+        tipoDocumento={doc.tipo_documento}
+      />
     </div>
   );
 }
