@@ -155,7 +155,7 @@ async function handler(req: Request, ctx: { userId?: string }): Promise<Response
         const rows = await executeSqlQuery(
           connection,
           `SELECT * FROM [${VIEW_NAME}]
-             ORDER BY 1
+             ORDER BY [Cod.Atrio]
              OFFSET ${offset} ROWS FETCH NEXT ${cap} ROWS ONLY`,
         );
         if (rows.length === 0) break;
