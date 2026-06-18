@@ -38,6 +38,13 @@ interface Props {
   layout?: "primary-first" | "split";
   /** Callback opcional — botão "+ Novo item" inline no header Brasil → China (layout split). */
   onAddBrasilItem?: () => void;
+  /**
+   * Filtra qual seção mostrar no layout "split":
+   *  - "c2b" → apenas Responsabilidade China (China → Brasil)
+   *  - "b2c" → apenas Responsabilidade Brasil (Brasil → China)
+   *  - "both" (default) → as duas seções
+   */
+  side?: "c2b" | "b2c" | "both";
 }
 
 function bucketForDoc(d: MailboxItem | undefined | null): FlowBucket {
@@ -313,6 +320,7 @@ export function ChecklistFlow({
   onFocusItem,
   layout = "primary-first",
   onAddBrasilItem,
+  side = "both",
 }: Props) {
   const merged = useMergedChinaChecklist(group.submissao_id);
   const [showOthers, setShowOthers] = useState(false);
