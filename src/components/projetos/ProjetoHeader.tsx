@@ -105,6 +105,7 @@ export function ProjetoHeader({
     ["pendente", "em_preparacao", "devolvido_china"].includes(i.status),
   ).length;
   const [checklistOpen, setChecklistOpen] = useState(false);
+  const [checklistSide, setChecklistSide] = useState<"c2b" | "b2c" | "both">("both");
 
   const { data: submissaoRow } = useQuery({
     queryKey: ["projeto-header-submissao-row", submissaoId],
@@ -242,7 +243,7 @@ export function ProjetoHeader({
               variant="outline"
               size="sm"
               className={cn("h-7 gap-1.5 text-xs", btnHover)}
-              onClick={() => setChecklistOpen(true)}
+              onClick={() => { setChecklistSide("c2b"); setChecklistOpen(true); }}
               title="Documentos enviados pela China"
             >
               <ArrowDownToLine className="h-3.5 w-3.5" />
@@ -252,7 +253,7 @@ export function ProjetoHeader({
               variant="outline"
               size="sm"
               className={cn("h-7 gap-1.5 text-xs", btnHover)}
-              onClick={() => setChecklistOpen(true)}
+              onClick={() => { setChecklistSide("b2c"); setChecklistOpen(true); }}
               title="Documentos a enviar à China"
             >
               <ArrowUpFromLine className="h-3.5 w-3.5" />
@@ -278,6 +279,7 @@ export function ProjetoHeader({
           open={checklistOpen}
           onOpenChange={setChecklistOpen}
           submissao={submissaoRow ?? null}
+          side={checklistSide}
         />
       )}
 
