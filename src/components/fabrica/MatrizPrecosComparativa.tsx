@@ -58,7 +58,9 @@ import {
   Printer,
   Shield
 } from "lucide-react";
-import { formatarMoeda } from "@/lib/fabrica/pricing-calculator";
+import { formatarMoeda as _formatarMoeda2 } from "@/lib/fabrica/pricing-calculator";
+const formatarMoeda = (v: number) =>
+  new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 4, maximumFractionDigits: 4 }).format(Number(v) || 0);
 import ExcelJS from "exceljs";
 import { saveAs } from "file-saver";
 import { toast } from "sonner";
