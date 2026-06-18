@@ -68,35 +68,37 @@ export function DrawerParecerActions({
         de auditoria e pode mencionar colegas com <code className="rounded bg-muted px-1">@</code>.
       </p>
       <div className="flex flex-wrap gap-1.5">
-        {podeReceiver && (
-          <>
-            <Button
-              size="sm"
-              className="h-7 gap-1.5 text-xs"
-              onClick={() => setAprovarOpen(true)}
-            >
-              <Check className="h-3.5 w-3.5" />
-              Aprovar com parecer
-            </Button>
-            <Button
-              size="sm"
-              variant="destructive"
-              className="h-7 gap-1.5 text-xs"
-              onClick={() => setRejeitarOpen(true)}
-            >
-              <AlertCircle className="h-3.5 w-3.5" />
-              Rejeitar com laudo
-            </Button>
-            <Button
-              size="sm"
-              variant="ghost"
-              className="h-7 gap-1.5 text-xs"
-              onClick={() => setCienciaOpen(true)}
-            >
-              <Eye className="h-3.5 w-3.5" />
-              Dar ciência
-            </Button>
-          </>
+        {podeReceiver && allow.aprovar && (
+          <Button
+            size="sm"
+            className="h-7 gap-1.5 text-xs"
+            onClick={() => setAprovarOpen(true)}
+          >
+            <Check className="h-3.5 w-3.5" />
+            Aprovar com parecer
+          </Button>
+        )}
+        {podeReceiver && allow.rejeitar && (
+          <Button
+            size="sm"
+            variant="destructive"
+            className="h-7 gap-1.5 text-xs"
+            onClick={() => setRejeitarOpen(true)}
+          >
+            <AlertCircle className="h-3.5 w-3.5" />
+            Rejeitar com laudo
+          </Button>
+        )}
+        {podeReceiver && allow.ciencia && (
+          <Button
+            size="sm"
+            variant="ghost"
+            className="h-7 gap-1.5 text-xs"
+            onClick={() => setCienciaOpen(true)}
+          >
+            <Eye className="h-3.5 w-3.5" />
+            Dar ciência
+          </Button>
         )}
         {podeSubstituir && (
           <Button
