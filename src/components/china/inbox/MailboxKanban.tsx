@@ -704,11 +704,12 @@ interface KanbanColumnProps {
   selectedSubId: string | null;
   onSelectGroup: (group: MailboxGroup, item?: MailboxItem) => void;
   onJumpFolder: (folder: MailboxFolder) => void;
+  onIsolateSubmissao: (submissaoId: string) => void;
 }
 
 function KanbanColumn({
   col, viewMode, perspective, dndEnabled, isDragging,
-  list, itemList, selectedSubId, onSelectGroup, onJumpFolder,
+  list, itemList, selectedSubId, onSelectGroup, onJumpFolder, onIsolateSubmissao,
 }: KanbanColumnProps) {
   const Icon = col.icon;
   const count = viewMode === "item" ? itemList.length : list.length;
@@ -719,6 +720,19 @@ function KanbanColumn({
     disabled: !isDropTarget,
   });
   const showDropHint = isDropTarget && isDragging;
+
+  // No modo "Por item", agrupa os cards por submissão dentro da coluna.
+  const itemGroups = useMemo(() => {
+    if (viewMode !== "item") return [] as Array<{ group: MailboxGroup; items: Array<{ item: MailboxItem; group: MailboxGroup }> }>;
+    const map = new Map<string, { group: MailboxGroup; items: Array<{ item: MailboxItem; group: MailboxGroup }> }>();
+    for (const entry of itemList) {
+      const sub = entry.group.submissao_id;
+      const ex = map.get(sub);
+      if (ex) ex.items.push(entry);
+      else map.set(sub, { group: entry.group, items: [entry] });
+    }
+    return Array.from(map.values());
+  }, [viewMode, itemList]);
 
   return (
     <div
@@ -764,32 +778,19 @@ function KanbanColumn({
               {emptyLabel}
             </div>
           ) : viewMode === "item" ? (
-            itemList.map(({ item, group }, idx) => {
-              const eligible = dndEnabled && isDocDraggableToSent(item, group, perspective);
-              const key = item.documento_id ?? `${group.submissao_id}-${col.key}-${idx}`;
-              if (eligible) {
-                return (
-                  <DraggableItemCard
-                    key={key}
-                    dragId={`doc:${item.documento_id}`}
-                    item={item}
-                    group={group}
-                    selected={selectedSubId === group.submissao_id}
-                    onClick={() => onSelectGroup(group, item)}
-                    draggableHint="Arraste para 'Enviados ao Brasil'"
-                  />
-                );
-              }
-              return (
-                <ItemCard
-                  key={key}
-                  item={item}
-                  group={group}
-                  selected={selectedSubId === group.submissao_id}
-                  onClick={() => onSelectGroup(group, item)}
-                />
-              );
-            })
+            itemGroups.map(({ group, items }) => (
+              <SubmissaoGroupBlock
+                key={`${col.key}:${group.submissao_id}`}
+                colKey={col.key}
+                group={group}
+                items={items}
+                perspective={perspective}
+                dndEnabled={dndEnabled}
+                selectedSubId={selectedSubId}
+                onSelectGroup={onSelectGroup}
+                onIsolateSubmissao={onIsolateSubmissao}
+              />
+            ))
           ) : (
             list.map((g) => {
               const hint =
@@ -797,18 +798,118 @@ function KanbanColumn({
                 (g.docs || []).find((d: any) => !d.is_virtual) ??
                 (g.docs || [])[0];
               return (
-                <KanbanCard
-                  key={g.submissao_id}
-                  group={g}
-                  perspective={perspective}
-                  selected={selectedSubId === g.submissao_id}
-                  onClick={() => onSelectGroup(g, hint)}
-                />
+                <div key={g.submissao_id} className="relative">
+                  <KanbanCard
+                    group={g}
+                    perspective={perspective}
+                    selected={selectedSubId === g.submissao_id}
+                    onClick={() => onSelectGroup(g, hint)}
+                  />
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); onIsolateSubmissao(g.submissao_id); }}
+                    className="absolute right-1.5 top-1.5 rounded p-1 text-muted-foreground/70 hover:bg-muted hover:text-foreground"
+                    title="Filtrar apenas esta submissão no board"
+                    aria-label="Filtrar apenas esta submissão"
+                  >
+                    <FilterIcon className="h-3 w-3" />
+                  </button>
+                </div>
               );
             })
           )}
         </div>
       </ScrollArea>
     </div>
+  );
+}
+
+interface SubmissaoGroupBlockProps {
+  colKey: ColumnKey;
+  group: MailboxGroup;
+  items: Array<{ item: MailboxItem; group: MailboxGroup }>;
+  perspective: "china" | "brasil";
+  dndEnabled: boolean;
+  selectedSubId: string | null;
+  onSelectGroup: (group: MailboxGroup, item?: MailboxItem) => void;
+  onIsolateSubmissao: (submissaoId: string) => void;
+}
+
+function SubmissaoGroupBlock({
+  colKey, group, items, perspective, dndEnabled, selectedSubId, onSelectGroup, onIsolateSubmissao,
+}: SubmissaoGroupBlockProps) {
+  const storageKey = `china.kanban.groupOpen.${colKey}.${group.submissao_id}`;
+  const initialOpen = items.length <= 5;
+  const [open, setOpen] = useState<boolean>(() => {
+    if (typeof window === "undefined") return initialOpen;
+    const v = window.localStorage.getItem(storageKey);
+    if (v === "0") return false;
+    if (v === "1") return true;
+    return initialOpen;
+  });
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem(storageKey, open ? "1" : "0");
+  }, [open, storageKey]);
+
+  return (
+    <Collapsible open={open} onOpenChange={setOpen} className="rounded-md border border-border/60 bg-card/30">
+      <div className="flex items-center gap-1 px-1.5 py-1">
+        <CollapsibleTrigger asChild>
+          <button
+            type="button"
+            className="flex min-w-0 flex-1 items-center gap-1 rounded px-1 py-0.5 text-left text-[10.5px] hover:bg-muted/50"
+          >
+            <ChevronRight
+              className={cn("h-3 w-3 shrink-0 transition-transform", open && "rotate-90")}
+            />
+            <span className="font-mono tabular-nums text-muted-foreground">{group.produto_codigo}</span>
+            <span className="truncate font-medium">{group.produto_nome}</span>
+            <Badge variant="secondary" className="ml-1 h-4 shrink-0 px-1.5 text-[9.5px] tabular-nums">
+              {items.length}/{group.progress.total || items.length}
+            </Badge>
+          </button>
+        </CollapsibleTrigger>
+        <button
+          type="button"
+          onClick={() => onIsolateSubmissao(group.submissao_id)}
+          className="rounded p-1 text-muted-foreground/70 hover:bg-muted hover:text-foreground"
+          title="Filtrar apenas esta submissão no board"
+          aria-label="Filtrar apenas esta submissão"
+        >
+          <FilterIcon className="h-3 w-3" />
+        </button>
+      </div>
+      <CollapsibleContent>
+        <div className="space-y-1.5 px-1.5 pb-1.5">
+          {items.map(({ item, group: g }, idx) => {
+            const eligible = dndEnabled && isDocDraggableToSent(item, g, perspective);
+            const key = item.documento_id ?? `${g.submissao_id}-${colKey}-${idx}`;
+            if (eligible) {
+              return (
+                <DraggableItemCard
+                  key={key}
+                  dragId={`doc:${item.documento_id}`}
+                  item={item}
+                  group={g}
+                  selected={selectedSubId === g.submissao_id}
+                  onClick={() => onSelectGroup(g, item)}
+                  draggableHint="Arraste para 'Enviados ao Brasil'"
+                />
+              );
+            }
+            return (
+              <ItemCard
+                key={key}
+                item={item}
+                group={g}
+                selected={selectedSubId === g.submissao_id}
+                onClick={() => onSelectGroup(g, item)}
+              />
+            );
+          })}
+        </div>
+      </CollapsibleContent>
+    </Collapsible>
   );
 }
