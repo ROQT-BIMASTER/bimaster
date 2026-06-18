@@ -64,17 +64,21 @@ export function PromoverChecklistDialog({
 
     setLoading(true);
     try {
+      // 0. UID do usuário — RLS exige que path comece por <uid>/<submissaoId>/...
+      const { data: userData, error: userErr } = await supabase.auth.getUser();
+      if (userErr || !userData?.user?.id) throw new Error("Sessão expirada");
+      const uid = userData.user.id;
+
       // 1. Download blob do anexo do chat
       const r = await downloadStorageBlob(anexo.path, "china-chat-anexos");
       if (!r) throw new Error("Falha ao baixar anexo origem");
 
-      // 2. Upload em china-documentos com path estruturado
-      // Convert blobUrl back to Blob para upload
+      // 2. Upload em china-documentos com path estruturado <uid>/<submissaoId>/<tipo>/...
       const respBlob = await fetch(r.blobUrl);
       const blob = await respBlob.blob();
       const timestamp = Date.now();
       const safeName = anexo.nome.replace(/[^\w.\-]+/g, "_").slice(0, 80);
-      const novoPath = `${submissaoId}/${tipoDoc}/${timestamp}_${safeName}`;
+      const novoPath = `${uid}/${submissaoId}/${tipoDoc}/${timestamp}_${safeName}`;
 
       const { error: upErr } = await supabase.storage
         .from("china-documentos")
