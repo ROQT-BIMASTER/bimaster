@@ -218,21 +218,28 @@ export function HistoricoPrecoProduto({ open, onOpenChange, produtoId, produtoNo
       const atual = cadeia[i].precoFinal;
       if (!base || base <= 0) continue;
       const tipo = cadeia[i].tabela.tipo_markup;
+      const nominal = cadeia[i].tabela.valor_markup;
       if (tipo === "percentual") {
         const pct = ((atual - base) / base) * 100;
+        // Se o efetivo está dentro da tolerância do nominal (ruído de
+        // arredondamento de centavos), preserva o markup configurado.
+        if (Math.abs(pct - nominal) <= 0.05) continue;
         cadeia[i].valorMarkup = pct;
         const sinal = pct >= 0 ? "+" : "";
         cadeia[i].markupAplicado = `${sinal}${pct.toFixed(2).replace(/\.?0+$/, "")}%`;
       } else if (tipo === "multiplicador") {
         const mult = atual / base;
+        if (Math.abs(mult - nominal) <= 0.005) continue;
         cadeia[i].valorMarkup = mult;
         cadeia[i].markupAplicado = `×${mult.toFixed(4).replace(/\.?0+$/, "")}`;
       } else if (tipo === "valor_fixo") {
         const delta = atual - base;
+        if (Math.abs(delta - nominal) <= 0.01) continue;
         cadeia[i].valorMarkup = delta;
         cadeia[i].markupAplicado = delta > 0 ? `+${formatarMoeda(delta)}` : "-";
       }
     }
+
 
     return cadeia;
   };
