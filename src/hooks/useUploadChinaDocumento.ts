@@ -156,12 +156,11 @@ export function useUploadChinaDocumento() {
 
   const invalidateAll = useCallback(
     (submissaoId: string) => {
-      qc.invalidateQueries({ queryKey: ["china-mailbox-dataset"] });
-      qc.invalidateQueries({ queryKey: ["china-ficha-docs", submissaoId] });
-      qc.invalidateQueries({ queryKey: ["china-checklist", submissaoId] });
-      qc.invalidateQueries({ queryKey: ["checklist-custom-items", submissaoId] });
-      qc.invalidateQueries({ queryKey: ["china-inbox"] });
-      qc.invalidateQueries({ queryKey: ["china-docs-da-tarefa"] });
+      // Delegamos para o invalidador compartilhado para garantir que TODAS as
+      // telas que mostram o checklist atualizem sem precisar de F5.
+      import("@/lib/china/invalidateChecklist").then(({ invalidateChinaChecklist }) => {
+        invalidateChinaChecklist(qc, submissaoId);
+      });
     },
     [qc],
   );
