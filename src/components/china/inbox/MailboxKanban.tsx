@@ -437,6 +437,26 @@ export function MailboxKanban({
   );
   const [onlyUnread, setOnlyUnread] = useState(false);
 
+  // Filtros persistidos + atalho de teclado
+  const {
+    filters, isActive: filtersActive,
+    setAnexo, toggleBucket, toggleSubmissao, setSubmissoes, clearSubmissoes, clearAll,
+  } = useChinaKanbanFilters(perspective);
+  const [openSubmissaoSignal, setOpenSubmissaoSignal] = useState<number | undefined>(undefined);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const tgt = e.target as HTMLElement | null;
+      if (tgt && (tgt.tagName === "INPUT" || tgt.tagName === "TEXTAREA" || tgt.isContentEditable)) return;
+      if (e.key === "f") {
+        e.preventDefault();
+        setOpenSubmissaoSignal(Date.now());
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
   const viewModeStorageKey = `china.kanban.viewMode.${perspective}`;
   const [viewMode, setViewMode] = useState<"submission" | "item">(() => {
     if (typeof window === "undefined") return "submission";
@@ -457,9 +477,16 @@ export function MailboxKanban({
 
   const columns = perspective === "china" ? CHINA_COLUMNS : BRASIL_COLUMNS;
 
+  // Aplica filtro de submissão + "apenas não lidas" no nível de grupos.
   const visibleGroups = useMemo(
-    () => groups.filter((g) => !g.is_deleted && (!onlyUnread || g.has_unread)),
-    [groups, onlyUnread],
+    () =>
+      groups.filter((g) => {
+        if (g.is_deleted) return false;
+        if (onlyUnread && !g.has_unread) return false;
+        if (filters.submissaoIds.length > 0 && !filters.submissaoIds.includes(g.submissao_id)) return false;
+        return true;
+      }),
+    [groups, onlyUnread, filters.submissaoIds],
   );
 
   const totalSubs = visibleGroups.length;
@@ -468,17 +495,30 @@ export function MailboxKanban({
     [groups],
   );
 
+  // Predicate de filtro a nível de item (anexo + bucket).
+  const itemPasses = useMemo(() => {
+    return (d: MailboxItem) => {
+      if (filters.anexo === "with" && !hasAttachment(d)) return false;
+      if (filters.anexo === "without" && hasAttachment(d)) return false;
+      const b = bucketForDoc(d) as BucketFilter;
+      if (!filters.buckets.includes(b)) return false;
+      return true;
+    };
+  }, [filters.anexo, filters.buckets]);
+
   const byColumn = useMemo(() => {
     const map = new Map<ColumnKey, MailboxGroup[]>();
     for (const c of columns) map.set(c.key, []);
     const resolver = perspective === "china" ? columnForChina : columnForBrasil;
     for (const g of visibleGroups) {
+      // No modo "Por submissão", aplicamos os filtros de anexo/bucket como
+      // "tem ao menos um item que passa" — caso contrário a submissão é omitida.
+      const anyPass = g.docs.some(itemPasses);
+      if (!anyPass) continue;
       const k = resolver(g);
       if (!map.has(k)) continue;
       map.get(k)!.push(g);
     }
-    // Colunas terminais: decisões recentes no topo (desc).
-    // Colunas de fluxo ativo: mais antigos parados no topo (asc por SLA).
     const TERMINAL: ColumnKey[] = ["approved", "rejected"];
     for (const [key, arr] of map.entries()) {
       if (TERMINAL.includes(key)) {
@@ -493,9 +533,8 @@ export function MailboxKanban({
         });
       }
     }
-
     return map;
-  }, [visibleGroups, columns, perspective]);
+  }, [visibleGroups, columns, perspective, itemPasses]);
 
   const selectedSubId = useMemo(() => {
     if (!selectedId) return null;
@@ -516,6 +555,7 @@ export function MailboxKanban({
     const TERMINAL: ColumnKey[] = ["approved", "rejected"];
     for (const g of visibleGroups) {
       for (const d of g.docs) {
+        if (!itemPasses(d)) continue;
         const k = itemColumnFor(d, perspective);
         if (!map.has(k)) continue;
         map.get(k)!.push({ item: d, group: g });
@@ -529,7 +569,7 @@ export function MailboxKanban({
       }
     }
     return map;
-  }, [viewMode, visibleGroups, columns, perspective]);
+  }, [viewMode, visibleGroups, columns, perspective, itemPasses]);
 
   // DnD ativo apenas na perspectiva China + modo "Por item" + handler conectado.
   const dndEnabled = perspective === "china" && viewMode === "item" && !!onDragSendDoc;
