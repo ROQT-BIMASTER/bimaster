@@ -148,41 +148,30 @@ async function handler(req: Request, ctx: { userId?: string }): Promise<Response
     try {
       connection = await connectToSqlServer();
 
-      let offset = 0;
-      while (true) {
-        const cap = limit ? Math.min(PAGE_SIZE, limit - totalLidos) : PAGE_SIZE;
-        if (cap <= 0) break;
-        const rows = await executeSqlQuery(
-          connection,
-          `SELECT * FROM [${VIEW_NAME}]
-             ORDER BY [Cod.Atrio]
-             OFFSET ${offset} ROWS FETCH NEXT ${cap} ROWS ONLY`,
-        );
-        if (rows.length === 0) break;
-        totalLidos += rows.length;
+      // Carga em página única — view RP tem volumetria baixa o suficiente.
+      // OFFSET/FETCH com [Cod.Atrio] estava falhando silenciosamente neste view.
+      const topClause = limit ? `TOP ${limit} ` : "";
+      const rows = await executeSqlQuery(
+        connection,
+        `SELECT ${topClause}* FROM [${VIEW_NAME}]`,
+      );
+      totalLidos = rows.length;
 
-        const normalized = rows
-          .map((r) => normalizeRow(r as Record<string, unknown>))
-          .filter((x): x is NonNullable<typeof x> => x !== null);
+      const normalized = rows
+        .map((r) => normalizeRow(r as Record<string, unknown>))
+        .filter((x): x is NonNullable<typeof x> => x !== null);
 
-        for (let i = 0; i < normalized.length; i += UPSERT_BATCH) {
-          const chunk = normalized.slice(i, i + UPSERT_BATCH).map((n) => ({
-            ...n,
-            sincronizado_em: new Date().toISOString(),
-          }));
-          const { error: upErr } = await supabase
-            .from("erp_produto_catalogo_raw")
-            .upsert(chunk, { onConflict: "codigo_rp" });
-          if (upErr) {
-            errors.push(`upsert lote offset=${offset} i=${i}: ${upErr.message}`);
-          } else {
-            totalUpserts += chunk.length;
-          }
-        }
-
-        offset += rows.length;
-        if (rows.length < cap) break;
-        if (limit && totalLidos >= limit) break;
+      // upsert em lotes (evita payloads gigantes pro PostgREST)
+      for (let i = 0; i < normalized.length; i += UPSERT_BATCH) {
+        const chunk = normalized.slice(i, i + UPSERT_BATCH).map((n) => ({
+          ...n,
+          sincronizado_em: new Date().toISOString(),
+        }));
+        const { error: upErr } = await supabase
+          .from("erp_produto_catalogo_raw")
+          .upsert(chunk, { onConflict: "codigo_rp" });
+        if (upErr) errors.push(`upsert i=${i}: ${upErr.message}`);
+        else totalUpserts += chunk.length;
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
