@@ -53432,6 +53432,15 @@ export type Database = {
         Returns: Json
       }
       next_mp_codigo: { Args: never; Returns: string }
+      notificar_devolucao_brasil: {
+        Args: {
+          p_documento_id: string
+          p_motivo: string
+          p_severidade?: string
+          p_submissao_id: string
+        }
+        Returns: string
+      }
       notificar_espelhos_pendentes_sem_doc: { Args: never; Returns: number }
       notify_china_oc_sla: {
         Args: never
