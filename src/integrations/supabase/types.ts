@@ -9011,6 +9011,97 @@ export type Database = {
         }
         Relationships: []
       }
+      compras_automaticas_regras: {
+        Row: {
+          ativo: boolean
+          cobertura_minima_dias: number
+          created_at: string
+          created_by: string | null
+          id: string
+          lote_minimo_compra: number | null
+          observacoes: string | null
+          ponto_pedido_caixas: number | null
+          produto_master_id: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          cobertura_minima_dias?: number
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          lote_minimo_compra?: number | null
+          observacoes?: string | null
+          ponto_pedido_caixas?: number | null
+          produto_master_id: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          cobertura_minima_dias?: number
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          lote_minimo_compra?: number | null
+          observacoes?: string | null
+          ponto_pedido_caixas?: number | null
+          produto_master_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "compras_automaticas_regras_produto_master_id_fkey"
+            columns: ["produto_master_id"]
+            isOneToOne: true
+            referencedRelation: "estoque_produtos_master"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      compras_automaticas_sugestoes: {
+        Row: {
+          created_at: string
+          gerado_em: string
+          id: string
+          motivo: string | null
+          pedido_id: string | null
+          produto_master_id: string
+          quantidade_sugerida_caixas: number
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          gerado_em?: string
+          id?: string
+          motivo?: string | null
+          pedido_id?: string | null
+          produto_master_id: string
+          quantidade_sugerida_caixas: number
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          gerado_em?: string
+          id?: string
+          motivo?: string | null
+          pedido_id?: string | null
+          produto_master_id?: string
+          quantidade_sugerida_caixas?: number
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "compras_automaticas_sugestoes_produto_master_id_fkey"
+            columns: ["produto_master_id"]
+            isOneToOne: false
+            referencedRelation: "estoque_produtos_master"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       compras_internacional_vinculos: {
         Row: {
           china_ordem_compra_id: string
@@ -14915,6 +15006,69 @@ export type Database = {
           },
         ]
       }
+      erp_produto_catalogo_raw: {
+        Row: {
+          altura_cm: number | null
+          ativo: boolean | null
+          categoria: string | null
+          codigo_rp: string
+          created_at: string
+          descricao: string | null
+          ean_caixa: string | null
+          ean_unitario: string | null
+          hash_conteudo: string | null
+          largura_cm: number | null
+          ncm: string | null
+          peso_bruto_kg: number | null
+          peso_liquido_kg: number | null
+          profundidade_cm: number | null
+          raw: Json | null
+          sincronizado_em: string
+          unidade: string | null
+          updated_at: string
+        }
+        Insert: {
+          altura_cm?: number | null
+          ativo?: boolean | null
+          categoria?: string | null
+          codigo_rp: string
+          created_at?: string
+          descricao?: string | null
+          ean_caixa?: string | null
+          ean_unitario?: string | null
+          hash_conteudo?: string | null
+          largura_cm?: number | null
+          ncm?: string | null
+          peso_bruto_kg?: number | null
+          peso_liquido_kg?: number | null
+          profundidade_cm?: number | null
+          raw?: Json | null
+          sincronizado_em?: string
+          unidade?: string | null
+          updated_at?: string
+        }
+        Update: {
+          altura_cm?: number | null
+          ativo?: boolean | null
+          categoria?: string | null
+          codigo_rp?: string
+          created_at?: string
+          descricao?: string | null
+          ean_caixa?: string | null
+          ean_unitario?: string | null
+          hash_conteudo?: string | null
+          largura_cm?: number | null
+          ncm?: string | null
+          peso_bruto_kg?: number | null
+          peso_liquido_kg?: number | null
+          profundidade_cm?: number | null
+          raw?: Json | null
+          sincronizado_em?: string
+          unidade?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       erp_sync_log: {
         Row: {
           action: string
@@ -15484,51 +15638,122 @@ export type Database = {
       }
       estoque_produtos_master: {
         Row: {
+          altura_cm: number | null
           ativo: boolean | null
           categoria: string | null
+          codigo_rp: string | null
           created_at: string | null
           created_by: string | null
           descricao: string | null
+          ean_caixa_master: string | null
+          ean_unitario_master: string | null
           id: string
+          largura_cm: number | null
+          ncm: string | null
           nome: string
+          origem_cadastro: string
           peso_bruto: number | null
           peso_liquido: number | null
+          profundidade_cm: number | null
+          sincronizado_rp_em: string | null
           sku_master: string
           subcategoria: string | null
           unidade_medida: string
+          unidade_rp: string | null
           updated_at: string | null
         }
         Insert: {
+          altura_cm?: number | null
           ativo?: boolean | null
           categoria?: string | null
+          codigo_rp?: string | null
           created_at?: string | null
           created_by?: string | null
           descricao?: string | null
+          ean_caixa_master?: string | null
+          ean_unitario_master?: string | null
           id?: string
+          largura_cm?: number | null
+          ncm?: string | null
           nome: string
+          origem_cadastro?: string
           peso_bruto?: number | null
           peso_liquido?: number | null
+          profundidade_cm?: number | null
+          sincronizado_rp_em?: string | null
           sku_master: string
           subcategoria?: string | null
           unidade_medida?: string
+          unidade_rp?: string | null
           updated_at?: string | null
         }
         Update: {
+          altura_cm?: number | null
           ativo?: boolean | null
           categoria?: string | null
+          codigo_rp?: string | null
           created_at?: string | null
           created_by?: string | null
           descricao?: string | null
+          ean_caixa_master?: string | null
+          ean_unitario_master?: string | null
           id?: string
+          largura_cm?: number | null
+          ncm?: string | null
           nome?: string
+          origem_cadastro?: string
           peso_bruto?: number | null
           peso_liquido?: number | null
+          profundidade_cm?: number | null
+          sincronizado_rp_em?: string | null
           sku_master?: string
           subcategoria?: string | null
           unidade_medida?: string
+          unidade_rp?: string | null
           updated_at?: string | null
         }
         Relationships: []
+      }
+      estoque_produtos_master_audit: {
+        Row: {
+          campo: string
+          changed_at: string
+          changed_by: string | null
+          id: string
+          master_id: string
+          origem: string
+          valor_antes: string | null
+          valor_depois: string | null
+        }
+        Insert: {
+          campo: string
+          changed_at?: string
+          changed_by?: string | null
+          id?: string
+          master_id: string
+          origem?: string
+          valor_antes?: string | null
+          valor_depois?: string | null
+        }
+        Update: {
+          campo?: string
+          changed_at?: string
+          changed_by?: string | null
+          id?: string
+          master_id?: string
+          origem?: string
+          valor_antes?: string | null
+          valor_depois?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "estoque_produtos_master_audit_master_id_fkey"
+            columns: ["master_id"]
+            isOneToOne: false
+            referencedRelation: "estoque_produtos_master"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       estoque_saldos: {
         Row: {
@@ -51088,6 +51313,37 @@ export type Database = {
         }
         Relationships: []
       }
+      vw_estoque_consolidado_marca_vs_distribuidoras: {
+        Row: {
+          chave_raiz: string | null
+          gap_unidades: number | null
+          marca_sincronizado_em: string | null
+          produto_raiz_distribuidoras: string | null
+          saldo_dist_caixas: number | null
+          saldo_dist_unidades: number | null
+          saldo_marca_caixas: number | null
+          saldo_marca_un_folhas: number | null
+          sku_master: string | null
+        }
+        Relationships: []
+      }
+      vw_estoque_marca_niveis: {
+        Row: {
+          cod_produto: number | null
+          ean: string | null
+          empresa_id: number | null
+          empresa_nome: string | null
+          master_id: string | null
+          nivel: number | null
+          nome: string | null
+          origem_explosao: string | null
+          saldo_marca_caixas: number | null
+          saldo_marca_unidades: number | null
+          sincronizado_em: string | null
+          sku_master: string | null
+        }
+        Relationships: []
+      }
       vw_estoque_raiz_sem_nome: {
         Row: {
           atualizado_em: string | null
@@ -51475,6 +51731,7 @@ export type Database = {
       }
       aplicar_acesso_padrao: { Args: { _user_id: string }; Returns: undefined }
       aplicar_acesso_padrao_em_massa: { Args: never; Returns: Json }
+      aplicar_catalogo_rp_no_master: { Args: never; Returns: Json }
       aplicar_mapeamento_plano_contas: { Args: never; Returns: Json }
       aplicar_perfil_processo: {
         Args: {
@@ -52546,6 +52803,7 @@ export type Database = {
         Args: { p_item_nf_id: string }
         Returns: Json
       }
+      gerar_sugestoes_compra: { Args: never; Returns: number }
       gerar_tarefas_etapa: {
         Args: { p_etapa_id: string; p_instancia_id: string }
         Returns: Json
