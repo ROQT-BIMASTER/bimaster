@@ -2,6 +2,22 @@
 
 Esta documentação descreve as Edge Functions disponíveis no projeto BiMaster/Union CRM.
 
+## sync-erp-produto-catalogo
+
+Sincroniza a view `Cust_EstruturaProdutosSP` do SQL Server RP para `erp_produto_catalogo_raw` e aplica no `estoque_produtos_master` via RPC `aplicar_catalogo_rp_no_master`.
+
+- **Auth:** JWT obrigatório, exige role `admin` ou `supervisor`.
+- **Rate limit:** 6 req/min.
+- **Endpoints:**
+  - `POST /describe` — retorna colunas (`INFORMATION_SCHEMA.COLUMNS`) e amostra de 3 linhas. Usar antes do primeiro sync para confirmar mapeamento.
+  - `POST /sync` — body `{ mode: "full"|"incremental", limit?: number }`. Retorna `{ total_lidos, total_upserts, aplicado: { atualizados, inseridos, sem_match }, errors[] }`.
+- **Cron:** `rp-catalogo-diario` (`0 5 * * *` UTC), body `{ mode: "full" }`.
+- **Helper compartilhado:** `supabase/functions/_shared/erp-mssql.ts` (mesma config do `erp-sync-engine`).
+- **Mapeamento da view RP:** `Cod.Atrio` → `codigo_rp`; `Ean` roteado por `UNIDADE` (CX → `ean_caixa`, demais → `ean_unitario`); `Peso/Altura/Largura/Comprimento` → dimensões; `Marca` → `categoria`.
+- **Explosão Futura 3 níveis:** view `vw_estoque_marca_niveis` aplica composição interna para gerar saldos da marca por nível (1=caixa pai, 2=intermediário, 3=unidade folha).
+
+
+
 ## 📋 Índice
 
 - [Social Media Metrics](#social-media-metrics)
