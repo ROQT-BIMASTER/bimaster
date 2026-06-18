@@ -42,7 +42,7 @@ interface Props {
  *    (china_checklist_custom_*), mantendo um canal único entre os dois lados.
  *  - Disparar aprovação interna em lote dos itens Brasil → China anexados.
  */
-export function ChecklistSubmissaoSheet({ open, onOpenChange, submissao }: Props) {
+export function ChecklistSubmissaoSheet({ open, onOpenChange, submissao, side = "both" }: Props) {
   const submissaoId = submissao?.id ?? null;
 
   const [aprovacaoOpen, setAprovacaoOpen] = useState(false);
