@@ -505,6 +505,7 @@ export function MailboxReadingPane({
         onOpenChange={(o) => { if (!o) setFlowCtx(null); }}
         onEnviarBrasil={onEnviarBrasil}
         onOpenSubmissao={(id) => goWithReturn(`/dashboard/fabrica-china/submissao/${id}`)}
+        lockChinaApproval={isChinaUser}
       />
 
     </div>
