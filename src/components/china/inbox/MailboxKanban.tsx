@@ -588,29 +588,17 @@ export function MailboxKanban({
     onDragSendDoc?.(data.item, data.group);
   };
 
+  const handleIsolateSubmissao = (id: string) => setSubmissoes([id]);
+
   const board = (
     <div className="flex h-full flex-col">
-      {/* Header do board */}
+      {/* Header: modo de visualização + dica de DnD */}
       <div className="flex items-center justify-between gap-2 border-b border-border bg-card/40 px-3 py-1.5">
         <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
-          <span className="tabular-nums">
-            <strong className="text-foreground">{totalSubs}</strong> submiss{totalSubs === 1 ? "ão" : "ões"}
-          </span>
-          {totalUnread > 0 && (
-            <>
-              <span className="text-border">·</span>
-              <span className="tabular-nums text-primary">
-                <strong>{totalUnread}</strong> não lid{totalUnread === 1 ? "a" : "as"}
-              </span>
-            </>
-          )}
           {dndEnabled && (
-            <>
-              <span className="text-border">·</span>
-              <span className="text-[10px] text-muted-foreground/80">
-                Arraste itens prontos para "Enviados ao Brasil"
-              </span>
-            </>
+            <span className="text-[10px] text-muted-foreground/80">
+              Arraste itens prontos para "Enviados ao Brasil"
+            </span>
           )}
         </div>
         <div className="flex items-center gap-1.5" aria-label="Modo de visualização do Kanban">
@@ -642,17 +630,25 @@ export function MailboxKanban({
               Por item
             </button>
           </div>
-          <Button
-            type="button"
-            variant={onlyUnread ? "default" : "outline"}
-            size="sm"
-            className="h-6 px-2 text-[10.5px]"
-            onClick={() => setOnlyUnread((v) => !v)}
-          >
-            {onlyUnread ? "Mostrar todas" : "Apenas não lidas"}
-          </Button>
         </div>
       </div>
+
+      {/* Barra de filtros */}
+      <MailboxKanbanFilters
+        filters={filters}
+        isActive={filtersActive || onlyUnread}
+        groups={groups.filter((g) => !g.is_deleted)}
+        totalSubs={totalSubs}
+        totalUnread={totalUnread}
+        onlyUnread={onlyUnread}
+        onToggleUnread={() => setOnlyUnread((v) => !v)}
+        onSetAnexo={setAnexo}
+        onToggleBucket={toggleBucket}
+        onToggleSubmissao={toggleSubmissao}
+        onClearSubmissoes={clearSubmissoes}
+        onClearAll={() => { clearAll(); setOnlyUnread(false); }}
+        openSubmissaoSignal={openSubmissaoSignal}
+      />
 
       {/* Colunas */}
       <div className="flex flex-1 min-h-0 gap-2 overflow-x-auto p-2">
@@ -669,6 +665,7 @@ export function MailboxKanban({
             selectedSubId={selectedSubId}
             onSelectGroup={onSelectGroup}
             onJumpFolder={onJumpFolder}
+            onIsolateSubmissao={handleIsolateSubmissao}
           />
         ))}
       </div>
