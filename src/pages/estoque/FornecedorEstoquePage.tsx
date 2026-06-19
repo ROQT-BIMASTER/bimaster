@@ -243,14 +243,27 @@ export default function FornecedorEstoquePage() {
               {isLoading && Array.from({ length: 8 }).map((_, i) => (
                 <TableRow key={i}><TableCell colSpan={colSpan}><Skeleton className="h-5 w-full" /></TableCell></TableRow>
               ))}
-              {!isLoading && (data?.rows.length ?? 0) === 0 && (
+              {!isLoading && isError && (
                 <TableRow>
-                  <TableCell colSpan={colSpan} className="text-center text-sm text-muted-foreground">
-                    Nenhum item para os filtros atuais.
+                  <TableCell colSpan={colSpan} className="bg-destructive/10 text-center text-sm text-destructive">
+                    Erro ao carregar: {(error as Error)?.message ?? 'falha desconhecida'}
                   </TableCell>
                 </TableRow>
               )}
-              {!isLoading && data?.rows.map((r) => (
+              {!isLoading && !isError && (data?.rows.length ?? 0) === 0 && (
+                <TableRow>
+                  <TableCell colSpan={colSpan} className="text-center text-sm text-muted-foreground">
+                    <div>Nenhum item para os filtros atuais.</div>
+                    {filtrosAtivos && (
+                      <Button size="sm" variant="link" className="mt-1" onClick={limparFiltros}>
+                        Limpar filtros
+                      </Button>
+                    )}
+                  </TableCell>
+                </TableRow>
+              )}
+              {!isLoading && !isError && data?.rows.map((r) => (
+
                 <TableRow key={`${r.empresa_id}-${r.futura_codigo}-${r.ean_normalizado}`}>
                   <TableCell>
                     <div className="text-sm">{r.empresa_nome ?? '—'}</div>
