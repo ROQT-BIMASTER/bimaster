@@ -402,6 +402,21 @@ export default function FornecedorEstoquePage() {
                 </DropdownMenuContent>
               </DropdownMenu>
 
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild><Button variant="outline" size="sm">{linhaLabel}</Button></DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="max-h-72 w-64 overflow-y-auto">
+                  <DropdownMenuLabel>Linha</DropdownMenuLabel><DropdownMenuSeparator />
+                  {(filtroOpcoes?.linhas ?? []).map((l) => (
+                    <DropdownMenuCheckboxItem key={l} checked={linhasSel.includes(l)}
+                      onCheckedChange={(v) => setLinhasSel((p) => v ? [...p, l] : p.filter((x) => x !== l))}>
+                      {l}
+                    </DropdownMenuCheckboxItem>
+                  ))}
+                  {(filtroOpcoes?.linhas?.length ?? 0) === 0 && <div className="px-2 py-1.5 text-xs text-muted-foreground">Sem linhas</div>}
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+
               <Popover>
                 <PopoverTrigger asChild>
                   <Button variant="outline" size="sm" className={cn(!dataDe && !dataAte && 'text-muted-foreground')}>
