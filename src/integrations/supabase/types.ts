@@ -50695,6 +50695,7 @@ export type Database = {
       v_estoque_fornecedor_integrado: {
         Row: {
           casado: boolean | null
+          categoria: string | null
           data_atualizacao_origem: string | null
           ean_caixa: string | null
           ean_normalizado: string | null
