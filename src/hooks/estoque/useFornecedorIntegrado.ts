@@ -282,22 +282,26 @@ export function useFornecedorFiltroOpcoes() {
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from('v_estoque_fornecedor_integrado')
-        .select('futura_status, categoria')
+        .select('futura_status, categoria, nome_linha')
         .range(0, 9999);
       if (error) throw error;
       const status = new Set<string>();
       const categorias = new Set<string>();
-      for (const r of (data ?? []) as { futura_status: string | null; categoria: string | null }[]) {
+      const linhas = new Set<string>();
+      for (const r of (data ?? []) as { futura_status: string | null; categoria: string | null; nome_linha: string | null }[]) {
         if (r.futura_status) status.add(r.futura_status);
         if (r.categoria) categorias.add(r.categoria);
+        if (r.nome_linha) linhas.add(r.nome_linha);
       }
       return {
         status: Array.from(status).sort(),
         categorias: Array.from(categorias).sort(),
+        linhas: Array.from(linhas).sort(),
       };
     },
   });
 }
+
 
 /**
  * Empresas distintas existentes na view (lista pequena, ~3 valores).
