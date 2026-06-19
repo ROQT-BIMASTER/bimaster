@@ -97,9 +97,11 @@ export default function FornecedorEstoquePage() {
   const { data: kpis, isLoading: kpisLoading } = useFornecedorIntegradoKpis();
   const { data: totalCx, isLoading: totalCxLoading } = useFornecedorTotalCaixas();
   const { data: empresasOpt = [] } = useEmpresasFornecedor();
+  const { data: distribuidoras = [] } = useDistribuidorasEmpresas();
   const { data, isLoading } = useFornecedorIntegradoList({
     busca, empresas, casadoFiltro, apenasComSaldo, sortBy, sortDir, page, pageSize: PAGE_SIZE,
   });
+  const colSpan = 8 + distribuidoras.length;
 
   const totalPages = useMemo(() => Math.max(1, Math.ceil((data?.total ?? 0) / PAGE_SIZE)), [data?.total]);
 
