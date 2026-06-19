@@ -514,53 +514,63 @@ export default function FornecedorEstoquePage() {
                       </TableCell>
                     </TableRow>
                   )}
-                  {!isLoading && !isError && data?.rows.map((r: any) => {
-                    let totalCxV: number | null = r.nosso_disponivel_cx ?? null;
-                    let totalUnV: number | null = r.nosso_disponivel_un ?? null;
-                    if (filtroDistAtivo && r.casado) {
-                      let cxSum = 0, unSum = 0, hasAny = false;
-                      for (const d of distribuidorasVisiveis) {
-                        const s = r.saldos_por_empresa?.[String(d.id)] as any;
-                        if (!s) continue;
-                        hasAny = true;
-                        if (s.disp_cx != null) cxSum += Number(s.disp_cx);
-                        if (s.disp_un != null) unSum += Number(s.disp_un);
-                      }
-                      totalCxV = hasAny ? cxSum : null;
-                      totalUnV = hasAny ? unSum : null;
-                    }
-                    return (
-                      <TableRow key={`${r.empresa_id}-${r.futura_codigo}-${r.ean_normalizado}`} className="even:bg-muted/20">
-                        {visibleCols.map((k) => renderBodyCell(k, r))}
-                        {distribuidorasVisiveis.map((d) => {
-                          const s = r.saldos_por_empresa?.[String(d.id)] as any;
-                          const dispUn = s ? Number(s.disp_un ?? 0) : 0;
-                          const dispCx = s && s.disp_cx != null ? Number(s.disp_cx) : null;
-                          if (!r.casado || !s || (!dispUn && !dispCx)) {
-                            return <TableCell key={d.id} className="text-right text-xs text-muted-foreground">—</TableCell>;
-                          }
-                          return (
-                            <TableCell key={d.id} className="text-right tabular-nums">
-                              <div className="text-sm">
-                                {dispCx != null ? cxFmt.format(dispCx) : '—'}<span className="text-[10px] text-muted-foreground"> CX</span>
-                              </div>
-                              <div className="text-[10px] font-medium text-success">{numberFmt.format(Math.round(dispUn))} UN</div>
-                            </TableCell>
-                          );
-                        })}
-                        <TableCell className="border-l-2 border-primary/30 bg-muted/40 text-right font-semibold tabular-nums">
-                          {r.casado ? (
-                            <div>
-                              <div className="text-sm">
-                                {totalCxV != null ? cxFmt.format(totalCxV) : '—'}<span className="text-[10px] text-muted-foreground"> CX</span>
-                              </div>
-                              <div className="text-[10px] font-medium text-success">{numberFmt.format(Math.round(Number(totalUnV ?? 0)))} UN</div>
-                            </div>
-                          ) : <span className="text-xs text-muted-foreground">—</span>}
+                  {!isLoading && !isError && groupedRows.map((g) => (
+                    <Fragment key={g.key}>
+                      <TableRow className="bg-muted/50 hover:bg-muted/50">
+                        <TableCell colSpan={colSpan} className="py-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                          {g.label} <span className="ml-2 font-normal normal-case text-muted-foreground/70">· {g.rows.length} item(ns)</span>
                         </TableCell>
                       </TableRow>
-                    );
-                  })}
+                      {g.rows.map((r: any) => {
+                        let totalCxV: number | null = r.nosso_disponivel_cx ?? null;
+                        let totalUnV: number | null = r.nosso_disponivel_un ?? null;
+                        if (filtroDistAtivo && r.casado) {
+                          let cxSum = 0, unSum = 0, hasAny = false;
+                          for (const d of distribuidorasVisiveis) {
+                            const s = r.saldos_por_empresa?.[String(d.id)] as any;
+                            if (!s) continue;
+                            hasAny = true;
+                            if (s.disp_cx != null) cxSum += Number(s.disp_cx);
+                            if (s.disp_un != null) unSum += Number(s.disp_un);
+                          }
+                          totalCxV = hasAny ? cxSum : null;
+                          totalUnV = hasAny ? unSum : null;
+                        }
+                        return (
+                          <TableRow key={`${r.empresa_id}-${r.futura_codigo}-${r.ean_normalizado}`} className="border-b border-border/60">
+                            {visibleCols.map((k) => renderBodyCell(k, r))}
+                            {distribuidorasVisiveis.map((d) => {
+                              const s = r.saldos_por_empresa?.[String(d.id)] as any;
+                              const dispUn = s ? Number(s.disp_un ?? 0) : 0;
+                              const dispCx = s && s.disp_cx != null ? Number(s.disp_cx) : null;
+                              if (!r.casado || !s || (!dispUn && !dispCx)) {
+                                return <TableCell key={d.id} className="text-right text-xs text-muted-foreground">—</TableCell>;
+                              }
+                              return (
+                                <TableCell key={d.id} className="text-right tabular-nums">
+                                  <div className="text-sm">
+                                    {dispCx != null ? cxFmt.format(dispCx) : '—'}<span className="text-[10px] text-muted-foreground"> CX</span>
+                                  </div>
+                                  <div className="text-[10px] font-medium text-success">{numberFmt.format(Math.round(dispUn))} UN</div>
+                                </TableCell>
+                              );
+                            })}
+                            <TableCell className="border-l-2 border-primary/30 bg-muted/40 text-right font-semibold tabular-nums">
+                              {r.casado ? (
+                                <div>
+                                  <div className="text-sm">
+                                    {totalCxV != null ? cxFmt.format(totalCxV) : '—'}<span className="text-[10px] text-muted-foreground"> CX</span>
+                                  </div>
+                                  <div className="text-[10px] font-medium text-success">{numberFmt.format(Math.round(Number(totalUnV ?? 0)))} UN</div>
+                                </div>
+                              ) : <span className="text-xs text-muted-foreground">—</span>}
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </Fragment>
+                  ))}
+
                 </TableBody>
               </Table>
             </div>
