@@ -157,7 +157,7 @@ export default function FornecedorEstoquePage() {
       return { ...p, order };
     });
 
-  useEffect(() => { setPage(0); }, [busca, empresas, distribuidorasSel, casadoFiltro, apenasComSaldo, statusSel, categoriasSel, dataDe, dataAte, sortBy, sortDir]);
+  useEffect(() => { setPage(0); }, [busca, empresas, distribuidorasSel, casadoFiltro, apenasComSaldo, statusSel, categoriasSel, linhasSel, dataDe, dataAte, sortBy, sortDir]);
   useEffect(() => {
     const prev = document.title;
     document.title = 'Estoque do fornecedor · Estoque';
