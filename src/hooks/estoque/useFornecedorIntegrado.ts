@@ -227,6 +227,7 @@ export interface UseFornecedorListOpts {
   apenasComSaldo: boolean;
   status: string[];
   categorias: string[];
+  linhas: string[];
   dataDe: string | null;
   dataAte: string | null;
   sortBy: FornecedorSortBy;
@@ -234,6 +235,7 @@ export interface UseFornecedorListOpts {
   page: number;
   pageSize: number;
 }
+
 
 export function useFornecedorIntegradoList(opts: UseFornecedorListOpts) {
   return useQuery({
