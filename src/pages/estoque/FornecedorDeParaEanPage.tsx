@@ -166,6 +166,7 @@ function VincularDialog({
 }
 
 export default function FornecedorDeParaEanPage() {
+  const navigate = useNavigate();
   const [busca, setBusca] = useState('');
   const [apenasComSaldo, setApenasComSaldo] = useState(true);
   const [page, setPage] = useState(0);
