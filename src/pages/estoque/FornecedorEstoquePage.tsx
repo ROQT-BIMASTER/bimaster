@@ -109,8 +109,10 @@ export default function FornecedorEstoquePage() {
   const [apenasComSaldo, setApenasComSaldo] = useState(false);
   const [statusSel, setStatusSel] = useState<string[]>([]);
   const [categoriasSel, setCategoriasSel] = useState<string[]>([]);
+  const [linhasSel, setLinhasSel] = useState<string[]>([]);
   const [dataDe, setDataDe] = useState<Date | undefined>(undefined);
   const [dataAte, setDataAte] = useState<Date | undefined>(undefined);
+
   const [sortBy, setSortBy] = useState<FornecedorSortBy>('fornecedor_caixas');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
   const [page, setPage] = useState(0);
