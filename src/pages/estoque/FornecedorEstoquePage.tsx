@@ -97,6 +97,46 @@ function OrigemBadge({ origem, casado }: { origem: string | null; casado: boolea
   );
 }
 
+function renderValidadeCell(k: ColKey, r: any) {
+  const raw = r.validade_ultimo_lote as string | null;
+  const dias = r.validade_dias as number | null;
+  if (!raw && dias == null) {
+    return <TableCell key={k} className="text-xs text-muted-foreground">—</TableCell>;
+  }
+  let label = '—';
+  let tone = '';
+  if (raw) {
+    const d = parseLocalDate(raw);
+    if (d && !Number.isNaN(d.getTime())) {
+      label = format(d, 'dd/MM/yyyy');
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const diffDays = Math.floor((d.getTime() - today.getTime()) / 86_400_000);
+      if (diffDays < 0) tone = 'text-destructive font-medium';
+      else if (diffDays < 90) tone = 'text-amber-600 dark:text-amber-400 font-medium';
+    }
+  }
+  return (
+    <TableCell key={k}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <div className="cursor-help">
+            <div className={cn('text-xs', tone)}>{label}</div>
+            {dias != null && (
+              <div className="text-[10px] text-muted-foreground">Prazo: {dias}d</div>
+            )}
+          </div>
+        </TooltipTrigger>
+        <TooltipContent>
+          <div className="max-w-[240px] text-xs">
+            Validade do último lote cadastrado (aproximada — não é FEFO).
+          </div>
+        </TooltipContent>
+      </Tooltip>
+    </TableCell>
+  );
+}
+
 export default function FornecedorEstoquePage() {
   const navigate = useNavigate();
   const { user } = useAuth();
