@@ -23701,6 +23701,8 @@ export type Database = {
           status: string | null
           unidade: string | null
           updated_at: string
+          validade_dias: number | null
+          validade_ultimo_lote: string | null
         }
         Insert: {
           codigo_produto: string
@@ -23718,6 +23720,8 @@ export type Database = {
           status?: string | null
           unidade?: string | null
           updated_at?: string
+          validade_dias?: number | null
+          validade_ultimo_lote?: string | null
         }
         Update: {
           codigo_produto?: string
@@ -23735,6 +23739,8 @@ export type Database = {
           status?: string | null
           unidade?: string | null
           updated_at?: string
+          validade_dias?: number | null
+          validade_ultimo_lote?: string | null
         }
         Relationships: []
       }
@@ -50716,6 +50722,8 @@ export type Database = {
           saldos_por_empresa: Json | null
           sincronizado_em: string | null
           sku: string | null
+          validade_dias: number | null
+          validade_ultimo_lote: string | null
         }
         Relationships: []
       }
