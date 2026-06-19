@@ -77,6 +77,7 @@ function OrigemBadge({ origem, casado }: { origem: string | null; casado: boolea
 }
 
 export default function FornecedorEstoquePage() {
+  const navigate = useNavigate();
   const [buscaInput, setBuscaInput] = useState('');
   const busca = useDebounced(buscaInput, 300);
   const [empresas, setEmpresas] = useState<number[]>([]);
