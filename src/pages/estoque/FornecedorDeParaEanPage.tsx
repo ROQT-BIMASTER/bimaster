@@ -176,15 +176,15 @@ export default function FornecedorDeParaEanPage() {
 
   const totalPages = useMemo(() => Math.max(1, Math.ceil((data?.total ?? 0) / PAGE_SIZE)), [data?.total]);
 
+  useEffect(() => {
+    const prev = document.title;
+    document.title = 'De-para EAN do fornecedor · Estoque';
+    return () => { document.title = prev; };
+  }, []);
+
   return (
     <>
-      <Helmet>
-        <title>De-para EAN do fornecedor · Estoque</title>
-        <meta
-          name="description"
-          content="Vincule manualmente EANs do fornecedor a SKUs do catálogo quando o casamento automático não acontece."
-        />
-      </Helmet>
+
 
       <div className="container mx-auto space-y-4 p-4">
         <header className="flex items-center justify-between">
