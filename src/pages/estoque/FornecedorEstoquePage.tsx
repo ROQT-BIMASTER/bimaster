@@ -243,6 +243,7 @@ export default function FornecedorEstoquePage() {
       case 'descricao': return <TableHead key={k}><SortBtn label="Descrição" col="futura_descricao" sortBy={sortBy} sortDir={sortDir} onClick={toggleSort} /></TableHead>;
       case 'categoria': return <TableHead key={k}>Categoria</TableHead>;
       case 'estoqueForn': return <TableHead key={k} className="text-right"><SortBtn label="Estoque forn. (CX)" col="fornecedor_caixas" sortBy={sortBy} sortDir={sortDir} onClick={toggleSort} /></TableHead>;
+      case 'validade': return <TableHead key={k}>Validade</TableHead>;
       case 'casado': return <TableHead key={k}>Casado</TableHead>;
       case 'nossoProduto': return <TableHead key={k}>Nosso produto</TableHead>;
       case 'atualizado': return <TableHead key={k}>Atualizado</TableHead>;
