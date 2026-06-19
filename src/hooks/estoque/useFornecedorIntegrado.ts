@@ -306,3 +306,39 @@ export function useFornecedorTotalCaixas() {
   });
 }
 
+export interface FornecedorKpisAvancados {
+  disp_cx_total: number;
+  disp_un_total: number;
+  fornecedor_cx_total: number;
+  cobertura_pct: number;
+}
+
+/** Somatórios globais usados nos KPIs avançados (somente itens casados). */
+export function useFornecedorEstoqueKpisAvancados() {
+  return useQuery({
+    queryKey: ['fornecedor-integrado-kpis-avancados'],
+    staleTime: 60_000,
+    queryFn: async (): Promise<FornecedorKpisAvancados> => {
+      const { data, error } = await (supabase as any)
+        .from('v_estoque_fornecedor_integrado')
+        .select('nosso_disponivel_cx, nosso_disponivel_un, fornecedor_caixas, casado')
+        .eq('casado', true)
+        .range(0, 9999);
+      if (error) throw error;
+      let dispCx = 0, dispUn = 0, fornCx = 0;
+      for (const r of (data ?? []) as { nosso_disponivel_cx: number | null; nosso_disponivel_un: number | null; fornecedor_caixas: number | null }[]) {
+        dispCx += Number(r.nosso_disponivel_cx ?? 0);
+        dispUn += Number(r.nosso_disponivel_un ?? 0);
+        fornCx += Number(r.fornecedor_caixas ?? 0);
+      }
+      return {
+        disp_cx_total: dispCx,
+        disp_un_total: dispUn,
+        fornecedor_cx_total: fornCx,
+        cobertura_pct: fornCx > 0 ? Math.round((dispCx / fornCx) * 1000) / 10 : 0,
+      };
+    },
+  });
+}
+
+
