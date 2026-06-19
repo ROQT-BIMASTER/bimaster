@@ -272,6 +272,7 @@ export default function FornecedorEstoquePage() {
           {r.fornecedor_caixas != null ? decimalFmt.format(Number(r.fornecedor_caixas)) : '—'}
         </TableCell>
       );
+      case 'validade': return renderValidadeCell(k, r);
       case 'casado': return <TableCell key={k}><OrigemBadge origem={r.origem_match} casado={r.casado} /></TableCell>;
       case 'nossoProduto': return (
         <TableCell key={k}>
