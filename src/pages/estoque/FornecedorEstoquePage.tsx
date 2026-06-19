@@ -208,6 +208,8 @@ export default function FornecedorEstoquePage() {
     ? (distribuidoras.find((d) => d.id === distribuidorasSel[0])?.abrev ?? `Filial ${distribuidorasSel[0]}`) : `${distribuidorasSel.length} filiais`;
   const statusLabel = statusSel.length === 0 ? 'Todos status' : statusSel.length === 1 ? statusSel[0] : `${statusSel.length} status`;
   const categoriaLabel = categoriasSel.length === 0 ? 'Todas categorias' : categoriasSel.length === 1 ? categoriasSel[0] : `${categoriasSel.length} categorias`;
+  const linhaLabel = linhasSel.length === 0 ? 'Todas linhas' : linhasSel.length === 1 ? linhasSel[0] : `${linhasSel.length} linhas`;
+
   const dataLabel = (dataDe || dataAte)
     ? `${dataDe ? format(dataDe, 'dd/MM/yy') : '…'} – ${dataAte ? format(dataAte, 'dd/MM/yy') : '…'}`
     : 'Período';
