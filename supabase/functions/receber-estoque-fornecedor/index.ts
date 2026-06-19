@@ -15,6 +15,8 @@ const ItemSchema = z.object({
   unidade: z.string().optional().nullable(),
   status: z.string().optional().nullable(),
   data_atualizacao: z.string().optional().nullable(),
+  validade_dias: z.number().int().optional().nullable(),
+  validade_ultimo_lote: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().nullable(),
 }).strict();
 
 const BodySchema = z.object({
