@@ -162,3 +162,101 @@ export function useVincularDepara() {
     },
   });
 }
+
+// ============================================================================
+// Tela de visualização do estoque do fornecedor (read-only)
+// ============================================================================
+
+export type CasadoFiltro = 'todos' | 'casados' | 'nao_casados';
+export type FornecedorSortBy = 'fornecedor_caixas' | 'futura_descricao' | 'nosso_saldo_cx';
+
+export interface UseFornecedorListOpts {
+  busca: string;
+  empresas: number[];
+  casadoFiltro: CasadoFiltro;
+  apenasComSaldo: boolean;
+  sortBy: FornecedorSortBy;
+  sortDir: 'asc' | 'desc';
+  page: number;
+  pageSize: number;
+}
+
+export function useFornecedorIntegradoList(opts: UseFornecedorListOpts) {
+  return useQuery({
+    queryKey: ['fornecedor-integrado-list', opts],
+    placeholderData: keepPreviousData,
+    staleTime: 60_000,
+    queryFn: async () => {
+      const from = opts.page * opts.pageSize;
+      const to = from + opts.pageSize - 1;
+      let q = (supabase as any)
+        .from('v_estoque_fornecedor_integrado')
+        .select('*', { count: 'exact' });
+
+      if (opts.empresas.length) q = q.in('empresa_id', opts.empresas);
+      if (opts.casadoFiltro === 'casados') q = q.eq('casado', true);
+      if (opts.casadoFiltro === 'nao_casados') q = q.eq('casado', false);
+      if (opts.apenasComSaldo) q = q.gt('fornecedor_caixas', 0);
+      if (opts.busca.trim()) {
+        const term = `%${opts.busca.trim()}%`;
+        q = q.or(
+          `futura_descricao.ilike.${term},ean_caixa.ilike.${term},futura_codigo.ilike.${term},sku.ilike.${term},nome_comercial.ilike.${term}`,
+        );
+      }
+      q = q.order(opts.sortBy, { ascending: opts.sortDir === 'asc', nullsFirst: false }).range(from, to);
+
+      const { data, error, count } = await q;
+      if (error) throw error;
+      return { rows: (data ?? []) as FornecedorIntegradoRow[], total: count ?? 0 };
+    },
+  });
+}
+
+/**
+ * Empresas distintas existentes na view (lista pequena, ~3 valores).
+ * Faz uma leitura limitada e deduplica no cliente — não há `distinct` no
+ * client do Supabase.
+ */
+export function useEmpresasFornecedor() {
+  return useQuery({
+    queryKey: ['fornecedor-integrado-empresas'],
+    staleTime: 10 * 60_000,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from('v_estoque_fornecedor_integrado')
+        .select('empresa_id, empresa_nome')
+        .not('empresa_id', 'is', null)
+        .range(0, 9999);
+      if (error) throw error;
+      const map = new Map<number, string>();
+      for (const r of (data ?? []) as { empresa_id: number; empresa_nome: string | null }[]) {
+        if (!map.has(r.empresa_id)) map.set(r.empresa_id, r.empresa_nome ?? `Empresa ${r.empresa_id}`);
+      }
+      return Array.from(map.entries())
+        .map(([id, nome]) => ({ id, nome }))
+        .sort((a, b) => a.id - b.id);
+    },
+  });
+}
+
+/** Soma de caixas no fornecedor (apenas itens com saldo > 0). */
+export function useFornecedorTotalCaixas() {
+  return useQuery({
+    queryKey: ['fornecedor-integrado-total-caixas'],
+    staleTime: 60_000,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from('v_estoque_fornecedor_integrado')
+        .select('fornecedor_caixas')
+        .gt('fornecedor_caixas', 0)
+        .range(0, 9999);
+      if (error) throw error;
+      let s = 0;
+      for (const r of (data ?? []) as { fornecedor_caixas: number | null }[]) {
+        s += Number(r.fornecedor_caixas ?? 0);
+      }
+      return s;
+    },
+  });
+}
+

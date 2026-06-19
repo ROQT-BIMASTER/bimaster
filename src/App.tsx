@@ -269,6 +269,7 @@ const EstoqueReconciliacaoCoresPage = lazyWithRetry(() => import("./pages/estoqu
 const EstoqueAuditoriaLinhasErpPage = lazyWithRetry(() => import("./pages/estoque/EstoqueAuditoriaLinhasErpPage"));
 const EstoqueValoresPorFilial = lazyWithRetry(() => import("./pages/estoque/EstoqueValoresPorFilial"));
 const FornecedorDeParaEanPage = lazyWithRetry(() => import("./pages/estoque/FornecedorDeParaEanPage"));
+const FornecedorEstoquePage = lazyWithRetry(() => import("./pages/estoque/FornecedorEstoquePage"));
 const ComposicaoErpSyncPage = lazyWithRetry(() => import("./pages/composicao/ComposicaoErpSyncPage"));
 const FinancialPaymentCentral = lazyWithRetry(() => import("./pages/FinancialPaymentCentral"));
 const ContaPagarDetalhe = lazyWithRetry(() => import("./pages/ContaPagarDetalhe"));
@@ -825,6 +826,7 @@ function AppContent() {
             <Route path="/dashboard/estoque/auditoria-linhas-erp" element={<ModuleRoute moduleCode="estoque"><EstoqueAuditoriaLinhasErpPage /></ModuleRoute>} />
             <Route path="/dashboard/estoque/valores-por-filial" element={<ModuleRoute moduleCode="estoque"><EstoqueValoresPorFilial /></ModuleRoute>} />
             <Route path="/dashboard/estoque/fornecedor-depara" element={<ScreenRoute screenCode="admin"><FornecedorDeParaEanPage /></ScreenRoute>} />
+            <Route path="/dashboard/estoque/fornecedor" element={<ScreenRoute screenCode="admin"><FornecedorEstoquePage /></ScreenRoute>} />
             <Route path="/dashboard/composicao/sync" element={<ScreenRoute screenCode="admin"><ComposicaoErpSyncPage /></ScreenRoute>} />
             <Route path="/dashboard/financeiro/cobranca" element={<ModuleRoute moduleCode="financeiro"><ScreenProtectedRoute screenCode="financeiro_cobrancas"><CobrancaInadimplentes /></ScreenProtectedRoute></ModuleRoute>} />
             <Route path="/dashboard/financeiro/fluxo-de-caixa" element={<ModuleRoute moduleCode="financeiro"><ScreenProtectedRoute screenCode="financeiro_fluxo_caixa"><FluxoDeCaixa /></ScreenProtectedRoute></ModuleRoute>} />
