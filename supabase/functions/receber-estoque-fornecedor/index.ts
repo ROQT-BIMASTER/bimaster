@@ -97,6 +97,8 @@ Deno.serve(secureHandler(
       unidade: it.unidade ?? null,
       status: it.status ?? null,
       data_atualizacao_origem: it.data_atualizacao ?? null,
+      validade_dias: it.validade_dias ?? null,
+      validade_ultimo_lote: it.validade_ultimo_lote ?? null,
       raw: it as unknown as Record<string, unknown>,
       sincronizado_em: now,
     }));
