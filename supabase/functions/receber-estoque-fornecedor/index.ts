@@ -15,6 +15,8 @@ const ItemSchema = z.object({
   unidade: z.string().optional().nullable(),
   status: z.string().optional().nullable(),
   data_atualizacao: z.string().optional().nullable(),
+  validade_dias: z.number().int().optional().nullable(),
+  validade_ultimo_lote: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().nullable(),
 }).strict();
 
 const BodySchema = z.object({
@@ -95,6 +97,8 @@ Deno.serve(secureHandler(
       unidade: it.unidade ?? null,
       status: it.status ?? null,
       data_atualizacao_origem: it.data_atualizacao ?? null,
+      validade_dias: it.validade_dias ?? null,
+      validade_ultimo_lote: it.validade_ultimo_lote ?? null,
       raw: it as unknown as Record<string, unknown>,
       sincronizado_em: now,
     }));

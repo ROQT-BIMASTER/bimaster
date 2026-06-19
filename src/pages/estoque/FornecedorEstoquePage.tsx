@@ -48,7 +48,7 @@ const numberFmt = new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 0 });
 const decimalFmt = new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 4 });
 const cxFmt = new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 
-type ColKey = 'empresa' | 'ean' | 'codFutura' | 'descricao' | 'categoria' | 'estoqueForn' | 'casado' | 'nossoProduto' | 'atualizado';
+type ColKey = 'empresa' | 'ean' | 'codFutura' | 'descricao' | 'categoria' | 'estoqueForn' | 'validade' | 'casado' | 'nossoProduto' | 'atualizado';
 const COL_LABEL: Record<ColKey, string> = {
   empresa: 'Empresa',
   ean: 'EAN caixa',
@@ -56,11 +56,12 @@ const COL_LABEL: Record<ColKey, string> = {
   descricao: 'Descrição',
   categoria: 'Categoria',
   estoqueForn: 'Estoque forn. (CX)',
+  validade: 'Validade',
   casado: 'Casado',
   nossoProduto: 'Nosso produto',
   atualizado: 'Atualizado',
 };
-const DEFAULT_ORDER: ColKey[] = ['empresa', 'ean', 'codFutura', 'descricao', 'categoria', 'estoqueForn', 'casado', 'nossoProduto', 'atualizado'];
+const DEFAULT_ORDER: ColKey[] = ['empresa', 'ean', 'codFutura', 'descricao', 'categoria', 'estoqueForn', 'validade', 'casado', 'nossoProduto', 'atualizado'];
 const DEFAULT_HIDDEN: ColKey[] = ['ean', 'codFutura', 'categoria'];
 
 interface ColsState { order: ColKey[]; hidden: ColKey[]; }
@@ -93,6 +94,46 @@ function OrigemBadge({ origem, casado }: { origem: string | null; casado: boolea
       <Badge className="w-fit bg-success/15 text-[10px] text-success hover:bg-success/15">Casado</Badge>
       <span className="text-[10px] uppercase tracking-wide text-muted-foreground">{map[origem ?? ''] ?? origem ?? '—'}</span>
     </div>
+  );
+}
+
+function renderValidadeCell(k: ColKey, r: any) {
+  const raw = r.validade_ultimo_lote as string | null;
+  const dias = r.validade_dias as number | null;
+  if (!raw && dias == null) {
+    return <TableCell key={k} className="text-xs text-muted-foreground">—</TableCell>;
+  }
+  let label = '—';
+  let tone = '';
+  if (raw) {
+    const d = parseLocalDate(raw);
+    if (d && !Number.isNaN(d.getTime())) {
+      label = format(d, 'dd/MM/yyyy');
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const diffDays = Math.floor((d.getTime() - today.getTime()) / 86_400_000);
+      if (diffDays < 0) tone = 'text-destructive font-medium';
+      else if (diffDays < 90) tone = 'text-amber-600 dark:text-amber-400 font-medium';
+    }
+  }
+  return (
+    <TableCell key={k}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <div className="cursor-help">
+            <div className={cn('text-xs', tone)}>{label}</div>
+            {dias != null && (
+              <div className="text-[10px] text-muted-foreground">Prazo: {dias}d</div>
+            )}
+          </div>
+        </TooltipTrigger>
+        <TooltipContent>
+          <div className="max-w-[240px] text-xs">
+            Validade do último lote cadastrado (aproximada — não é FEFO).
+          </div>
+        </TooltipContent>
+      </Tooltip>
+    </TableCell>
   );
 }
 
@@ -242,6 +283,7 @@ export default function FornecedorEstoquePage() {
       case 'descricao': return <TableHead key={k}><SortBtn label="Descrição" col="futura_descricao" sortBy={sortBy} sortDir={sortDir} onClick={toggleSort} /></TableHead>;
       case 'categoria': return <TableHead key={k}>Categoria</TableHead>;
       case 'estoqueForn': return <TableHead key={k} className="text-right"><SortBtn label="Estoque forn. (CX)" col="fornecedor_caixas" sortBy={sortBy} sortDir={sortDir} onClick={toggleSort} /></TableHead>;
+      case 'validade': return <TableHead key={k}>Validade</TableHead>;
       case 'casado': return <TableHead key={k}>Casado</TableHead>;
       case 'nossoProduto': return <TableHead key={k}>Nosso produto</TableHead>;
       case 'atualizado': return <TableHead key={k}>Atualizado</TableHead>;
@@ -270,6 +312,7 @@ export default function FornecedorEstoquePage() {
           {r.fornecedor_caixas != null ? decimalFmt.format(Number(r.fornecedor_caixas)) : '—'}
         </TableCell>
       );
+      case 'validade': return renderValidadeCell(k, r);
       case 'casado': return <TableCell key={k}><OrigemBadge origem={r.origem_match} casado={r.casado} /></TableCell>;
       case 'nossoProduto': return (
         <TableCell key={k}>

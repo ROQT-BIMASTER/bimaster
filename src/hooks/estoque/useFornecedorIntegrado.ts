@@ -27,6 +27,8 @@ export interface FornecedorIntegradoRow {
   nosso_saldo_cx: number | null;
   saldos_por_empresa: Record<string, SaldoEmpresa> | null;
   casado: boolean | null;
+  validade_dias: number | null;
+  validade_ultimo_lote: string | null;
 }
 
 
