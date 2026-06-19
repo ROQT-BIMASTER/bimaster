@@ -190,10 +190,11 @@ export default function FornecedorEstoquePage() {
   const limparFiltros = () => {
     setBuscaInput(''); setEmpresas([]); setDistribuidorasSel([]);
     setCasadoFiltro('todos'); setApenasComSaldo(false);
-    setStatusSel([]); setCategoriasSel([]);
+    setStatusSel([]); setCategoriasSel([]); setLinhasSel([]);
     setDataDe(undefined); setDataAte(undefined);
   };
-  const filtrosAtivos = buscaInput.length > 0 || empresas.length > 0 || distribuidorasSel.length > 0 || casadoFiltro !== 'todos' || apenasComSaldo || statusSel.length > 0 || categoriasSel.length > 0 || !!dataDe || !!dataAte;
+  const filtrosAtivos = buscaInput.length > 0 || empresas.length > 0 || distribuidorasSel.length > 0 || casadoFiltro !== 'todos' || apenasComSaldo || statusSel.length > 0 || categoriasSel.length > 0 || linhasSel.length > 0 || !!dataDe || !!dataAte;
+
 
   const totalPages = useMemo(() => Math.max(1, Math.ceil((data?.total ?? 0) / PAGE_SIZE)), [data?.total]);
   const toggleSort = (col: FornecedorSortBy) => {
