@@ -189,6 +189,9 @@ export default function FornecedorDeParaEanPage() {
 
 
       <div className="container mx-auto space-y-4 p-4">
+        <Button variant="ghost" size="sm" onClick={() => navigate(-1)} className="-ml-2 w-fit text-muted-foreground hover:text-foreground">
+          <ArrowLeft className="mr-2 h-4 w-4" /> Voltar
+        </Button>
         <header className="flex items-center justify-between">
           <div>
             <h1 className="text-xl font-semibold">De-para EAN do fornecedor</h1>
