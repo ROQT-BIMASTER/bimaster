@@ -50709,6 +50709,7 @@ export type Database = {
           nosso_saldo_cx: number | null
           nosso_saldo_un: number | null
           origem_match: string | null
+          saldos_por_empresa: Json | null
           sincronizado_em: string | null
           sku: string | null
         }
