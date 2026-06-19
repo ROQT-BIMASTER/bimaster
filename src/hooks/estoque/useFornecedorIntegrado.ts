@@ -223,6 +223,10 @@ export interface UseFornecedorListOpts {
   empresas: number[];
   casadoFiltro: CasadoFiltro;
   apenasComSaldo: boolean;
+  status: string[];
+  categorias: string[];
+  dataDe: string | null;
+  dataAte: string | null;
   sortBy: FornecedorSortBy;
   sortDir: 'asc' | 'desc';
   page: number;
@@ -242,6 +246,10 @@ export function useFornecedorIntegradoList(opts: UseFornecedorListOpts) {
         .select('*', { count: 'exact' });
 
       if (opts.empresas.length) q = q.in('empresa_id', opts.empresas);
+      if (opts.status.length) q = q.in('futura_status', opts.status);
+      if (opts.categorias.length) q = q.in('categoria', opts.categorias);
+      if (opts.dataDe) q = q.gte('data_atualizacao_origem', opts.dataDe);
+      if (opts.dataAte) q = q.lte('data_atualizacao_origem', opts.dataAte);
       if (opts.casadoFiltro === 'casados') q = q.eq('casado', true);
       if (opts.casadoFiltro === 'nao_casados') q = q.eq('casado', false);
       if (opts.apenasComSaldo) q = q.gt('fornecedor_caixas', 0);
@@ -256,6 +264,31 @@ export function useFornecedorIntegradoList(opts: UseFornecedorListOpts) {
       const { data, error, count } = await q;
       if (error) throw error;
       return { rows: (data ?? []) as FornecedorIntegradoRow[], total: count ?? 0 };
+    },
+  });
+}
+
+/** Listas distintas de status e categorias para popular filtros. */
+export function useFornecedorFiltroOpcoes() {
+  return useQuery({
+    queryKey: ['fornecedor-integrado-filtro-opcoes'],
+    staleTime: 10 * 60_000,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from('v_estoque_fornecedor_integrado')
+        .select('futura_status, categoria')
+        .range(0, 9999);
+      if (error) throw error;
+      const status = new Set<string>();
+      const categorias = new Set<string>();
+      for (const r of (data ?? []) as { futura_status: string | null; categoria: string | null }[]) {
+        if (r.futura_status) status.add(r.futura_status);
+        if (r.categoria) categorias.add(r.categoria);
+      }
+      return {
+        status: Array.from(status).sort(),
+        categorias: Array.from(categorias).sort(),
+      };
     },
   });
 }
