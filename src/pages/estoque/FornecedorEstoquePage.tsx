@@ -298,22 +298,32 @@ export default function FornecedorEstoquePage() {
                     ) : <span className="text-xs text-muted-foreground">—</span>}
                   </TableCell>
                   {distribuidoras.map((d) => {
-                    const s = r.saldos_por_empresa?.[String(d.id)];
-                    if (!r.casado || !s || (!s.cx && !s.un)) {
+                    const s = r.saldos_por_empresa?.[String(d.id)] as any;
+                    const dispUn = s ? Number(s.disp_un ?? 0) : 0;
+                    const dispCx = s && s.disp_cx != null ? Number(s.disp_cx) : null;
+                    if (!r.casado || !s || (!dispUn && !dispCx)) {
                       return <TableCell key={d.id} className="text-right text-xs text-muted-foreground">—</TableCell>;
                     }
                     return (
                       <TableCell key={d.id} className="text-right tabular-nums">
-                        <div className="text-sm">{numberFmt.format(Math.round(Number(s.cx ?? 0)))} <span className="text-[10px] text-muted-foreground">CX</span></div>
-                        <div className="text-[10px] text-muted-foreground">{numberFmt.format(Math.round(Number(s.un ?? 0)))} UN</div>
+                        <div className="text-sm">
+                          {dispCx != null ? dispCx.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) : '—'}
+                          <span className="text-[10px] text-muted-foreground"> CX</span>
+                        </div>
+                        <div className="text-[10px] text-success font-medium">{numberFmt.format(Math.round(dispUn))} UN</div>
                       </TableCell>
                     );
                   })}
                   <TableCell className="bg-muted/40 text-right tabular-nums font-semibold">
                     {r.casado ? (
                       <div>
-                        <div className="text-sm">{numberFmt.format(Math.round(Number(r.nosso_saldo_cx ?? 0)))} <span className="text-[10px] text-muted-foreground">CX</span></div>
-                        <div className="text-[10px] text-muted-foreground">{numberFmt.format(Math.round(Number(r.nosso_saldo_un ?? 0)))} UN</div>
+                        <div className="text-sm">
+                          {(r as any).nosso_disponivel_cx != null
+                            ? Number((r as any).nosso_disponivel_cx).toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })
+                            : '—'}
+                          <span className="text-[10px] text-muted-foreground"> CX</span>
+                        </div>
+                        <div className="text-[10px] text-success font-medium">{numberFmt.format(Math.round(Number((r as any).nosso_disponivel_un ?? 0)))} UN</div>
                       </div>
                     ) : <span className="text-xs text-muted-foreground">—</span>}
                   </TableCell>
