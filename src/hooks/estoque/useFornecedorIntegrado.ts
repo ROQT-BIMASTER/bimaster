@@ -21,12 +21,14 @@ export interface FornecedorIntegradoRow {
   sku: string | null;
   nome_comercial: string | null;
   categoria: string | null;
+  nome_linha: string | null;
   origem_match: string | null;
   nosso_saldo_un: number | null;
   nosso_saldo_cx: number | null;
   saldos_por_empresa: Record<string, SaldoEmpresa> | null;
   casado: boolean | null;
 }
+
 
 
 export interface DistribuidoraEmpresa {
