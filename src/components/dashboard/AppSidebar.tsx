@@ -45,7 +45,7 @@ import {
 import { useScreenPermissions } from "@/hooks/useScreenPermissions";
 import { useModulePermissions } from "@/hooks/useModulePermissions";
 import { useUserRole } from "@/hooks/useUserRole";
-import { Loader2 } from "lucide-react";
+import { Loader2, Link as LinkIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useInboxDrawer } from "@/contexts/InboxDrawerContext";
 import { APP_VERSION, forceCleanReload } from "@/lib/version";
@@ -1124,8 +1124,12 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
             <MenuItemLink to="/dashboard/estoque/saldos" icon={Layers} title="Saldos" />
             <MenuItemLink to="/dashboard/estoque/consolidado" icon={BarChart3} title="Consolidado" />
             <MenuItemLink to="/dashboard/estoque/vinculacoes" icon={Send} title="Vinculações" />
+            <MenuItemLink to="/dashboard/estoque/fornecedor" icon={Package} title="Estoque Fornecedor" />
             {isAdmin && (
-              <MenuItemLink to="/dashboard/estoque/sync-erp" icon={RefreshCw} title="Sync ERP" />
+              <>
+                <MenuItemLink to="/dashboard/estoque/fornecedor-depara" icon={LinkIcon} title="De-Para EAN Fornecedor" />
+                <MenuItemLink to="/dashboard/estoque/sync-erp" icon={RefreshCw} title="Sync ERP" />
+              </>
             )}
           </ModuleSubmenu>
         );
