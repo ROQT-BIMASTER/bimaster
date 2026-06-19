@@ -10679,6 +10679,30 @@ export type Database = {
           },
         ]
       }
+      coordenadores: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          id: string
+          nome: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          nome: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          nome?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       copilot_audit_log: {
         Row: {
           category: string
@@ -15203,6 +15227,183 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      erp_vendas: {
+        Row: {
+          cfop_id: number | null
+          cliente_cnpj_cpf: string | null
+          cliente_futura_id: number | null
+          cliente_nome: string | null
+          created_at: string
+          data_emissao: string
+          empresa_id: number
+          entrada_saida: string | null
+          futura_nota_id: number
+          id: number
+          modelo_doc: number | null
+          nro_nota: number | null
+          quantidade: number | null
+          raw: Json | null
+          serie: string | null
+          sincronizado_em: string
+          status: number
+          tipo_pedido_id: number | null
+          total_desconto: number | null
+          total_nota: number | null
+          total_produto: number | null
+          updated_at: string
+          vendedor_futura_id: number | null
+        }
+        Insert: {
+          cfop_id?: number | null
+          cliente_cnpj_cpf?: string | null
+          cliente_futura_id?: number | null
+          cliente_nome?: string | null
+          created_at?: string
+          data_emissao: string
+          empresa_id: number
+          entrada_saida?: string | null
+          futura_nota_id: number
+          id?: never
+          modelo_doc?: number | null
+          nro_nota?: number | null
+          quantidade?: number | null
+          raw?: Json | null
+          serie?: string | null
+          sincronizado_em?: string
+          status: number
+          tipo_pedido_id?: number | null
+          total_desconto?: number | null
+          total_nota?: number | null
+          total_produto?: number | null
+          updated_at?: string
+          vendedor_futura_id?: number | null
+        }
+        Update: {
+          cfop_id?: number | null
+          cliente_cnpj_cpf?: string | null
+          cliente_futura_id?: number | null
+          cliente_nome?: string | null
+          created_at?: string
+          data_emissao?: string
+          empresa_id?: number
+          entrada_saida?: string | null
+          futura_nota_id?: number
+          id?: never
+          modelo_doc?: number | null
+          nro_nota?: number | null
+          quantidade?: number | null
+          raw?: Json | null
+          serie?: string | null
+          sincronizado_em?: string
+          status?: number
+          tipo_pedido_id?: number | null
+          total_desconto?: number | null
+          total_nota?: number | null
+          total_produto?: number | null
+          updated_at?: string
+          vendedor_futura_id?: number | null
+        }
+        Relationships: []
+      }
+      erp_vendas_item: {
+        Row: {
+          cod_produto: string | null
+          created_at: string
+          desconto_valor: number | null
+          descricao: string | null
+          ean: string | null
+          futura_item_id: number
+          futura_nota_id: number
+          id: number
+          produto_futura_id: number | null
+          quantidade: number | null
+          raw: Json | null
+          sequencia: number | null
+          sincronizado_em: string
+          total_item: number | null
+          valor_unitario: number | null
+        }
+        Insert: {
+          cod_produto?: string | null
+          created_at?: string
+          desconto_valor?: number | null
+          descricao?: string | null
+          ean?: string | null
+          futura_item_id: number
+          futura_nota_id: number
+          id?: never
+          produto_futura_id?: number | null
+          quantidade?: number | null
+          raw?: Json | null
+          sequencia?: number | null
+          sincronizado_em?: string
+          total_item?: number | null
+          valor_unitario?: number | null
+        }
+        Update: {
+          cod_produto?: string | null
+          created_at?: string
+          desconto_valor?: number | null
+          descricao?: string | null
+          ean?: string | null
+          futura_item_id?: number
+          futura_nota_id?: number
+          id?: never
+          produto_futura_id?: number | null
+          quantidade?: number | null
+          raw?: Json | null
+          sequencia?: number | null
+          sincronizado_em?: string
+          total_item?: number | null
+          valor_unitario?: number | null
+        }
+        Relationships: []
+      }
+      erp_vendas_sync_log: {
+        Row: {
+          created_at: string
+          erro: string | null
+          finished_at: string | null
+          id: number
+          itens_upserted: number | null
+          notas_recebidas: number | null
+          notas_upserted: number | null
+          periodo_ate: string | null
+          periodo_de: string | null
+          started_at: string
+          status: string
+          tipo: string | null
+        }
+        Insert: {
+          created_at?: string
+          erro?: string | null
+          finished_at?: string | null
+          id?: never
+          itens_upserted?: number | null
+          notas_recebidas?: number | null
+          notas_upserted?: number | null
+          periodo_ate?: string | null
+          periodo_de?: string | null
+          started_at?: string
+          status?: string
+          tipo?: string | null
+        }
+        Update: {
+          created_at?: string
+          erro?: string | null
+          finished_at?: string | null
+          id?: never
+          itens_upserted?: number | null
+          notas_recebidas?: number | null
+          notas_upserted?: number | null
+          periodo_ate?: string | null
+          periodo_de?: string | null
+          started_at?: string
+          status?: string
+          tipo?: string | null
+        }
+        Relationships: []
       }
       estoque_copilot_mensagens: {
         Row: {
@@ -48972,6 +49173,59 @@ export type Database = {
           },
         ]
       }
+      vendedores: {
+        Row: {
+          ativo: boolean
+          cnpj_cpf: string | null
+          coord_futura_id: number | null
+          coord_futura_nome: string | null
+          coordenador_id: string | null
+          created_at: string
+          futura_id: number
+          id: string
+          nome: string
+          razao_social: string | null
+          tipo_vendedor: number | null
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          cnpj_cpf?: string | null
+          coord_futura_id?: number | null
+          coord_futura_nome?: string | null
+          coordenador_id?: string | null
+          created_at?: string
+          futura_id: number
+          id?: string
+          nome: string
+          razao_social?: string | null
+          tipo_vendedor?: number | null
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          cnpj_cpf?: string | null
+          coord_futura_id?: number | null
+          coord_futura_nome?: string | null
+          coordenador_id?: string | null
+          created_at?: string
+          futura_id?: number
+          id?: string
+          nome?: string
+          razao_social?: string | null
+          tipo_vendedor?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vendedores_coordenador_id_fkey"
+            columns: ["coordenador_id"]
+            isOneToOne: false
+            referencedRelation: "coordenadores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       vendor_availability: {
         Row: {
           created_at: string | null
@@ -50726,6 +50980,38 @@ export type Database = {
           validade_ultimo_lote: string | null
         }
         Relationships: []
+      }
+      v_vendas: {
+        Row: {
+          cliente_cnpj_cpf: string | null
+          cliente_futura_id: number | null
+          cliente_nome: string | null
+          coordenador_id: string | null
+          coordenador_nome: string | null
+          data_emissao: string | null
+          empresa_id: number | null
+          futura_nota_id: number | null
+          nro_nota: number | null
+          quantidade: number | null
+          serie: string | null
+          sincronizado_em: string | null
+          status: number | null
+          total_desconto: number | null
+          total_nota: number | null
+          total_produto: number | null
+          vendedor_futura_id: number | null
+          vendedor_id: string | null
+          vendedor_nome: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vendedores_coordenador_id_fkey"
+            columns: ["coordenador_id"]
+            isOneToOne: false
+            referencedRelation: "coordenadores"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       vendas_union: {
         Row: {
