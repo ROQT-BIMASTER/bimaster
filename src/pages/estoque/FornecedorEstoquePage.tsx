@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { Fragment, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowDown, ArrowLeft, ArrowUp, ArrowUpDown, CalendarIcon, Columns3, ExternalLink, Search, X } from 'lucide-react';
 import { format } from 'date-fns';
@@ -109,8 +109,10 @@ export default function FornecedorEstoquePage() {
   const [apenasComSaldo, setApenasComSaldo] = useState(false);
   const [statusSel, setStatusSel] = useState<string[]>([]);
   const [categoriasSel, setCategoriasSel] = useState<string[]>([]);
+  const [linhasSel, setLinhasSel] = useState<string[]>([]);
   const [dataDe, setDataDe] = useState<Date | undefined>(undefined);
   const [dataAte, setDataAte] = useState<Date | undefined>(undefined);
+
   const [sortBy, setSortBy] = useState<FornecedorSortBy>('fornecedor_caixas');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
   const [page, setPage] = useState(0);
@@ -155,7 +157,7 @@ export default function FornecedorEstoquePage() {
       return { ...p, order };
     });
 
-  useEffect(() => { setPage(0); }, [busca, empresas, distribuidorasSel, casadoFiltro, apenasComSaldo, statusSel, categoriasSel, dataDe, dataAte, sortBy, sortDir]);
+  useEffect(() => { setPage(0); }, [busca, empresas, distribuidorasSel, casadoFiltro, apenasComSaldo, statusSel, categoriasSel, linhasSel, dataDe, dataAte, sortBy, sortDir]);
   useEffect(() => {
     const prev = document.title;
     document.title = 'Estoque do fornecedor · Estoque';
@@ -170,11 +172,12 @@ export default function FornecedorEstoquePage() {
   const { data: filtroOpcoes } = useFornecedorFiltroOpcoes();
   const { data, isLoading, isError, error } = useFornecedorIntegradoList({
     busca, empresas, casadoFiltro, apenasComSaldo,
-    status: statusSel, categorias: categoriasSel,
+    status: statusSel, categorias: categoriasSel, linhas: linhasSel,
     dataDe: dataDe ? format(dataDe, 'yyyy-MM-dd') : null,
     dataAte: dataAte ? format(dataAte, 'yyyy-MM-dd') : null,
     sortBy, sortDir, page, pageSize: PAGE_SIZE,
   });
+
 
   const distribuidorasVisiveis = useMemo(
     () => distribuidorasSel.length === 0 ? distribuidoras : distribuidoras.filter((d) => distribuidorasSel.includes(d.id)),
@@ -187,12 +190,33 @@ export default function FornecedorEstoquePage() {
   const limparFiltros = () => {
     setBuscaInput(''); setEmpresas([]); setDistribuidorasSel([]);
     setCasadoFiltro('todos'); setApenasComSaldo(false);
-    setStatusSel([]); setCategoriasSel([]);
+    setStatusSel([]); setCategoriasSel([]); setLinhasSel([]);
     setDataDe(undefined); setDataAte(undefined);
   };
-  const filtrosAtivos = buscaInput.length > 0 || empresas.length > 0 || distribuidorasSel.length > 0 || casadoFiltro !== 'todos' || apenasComSaldo || statusSel.length > 0 || categoriasSel.length > 0 || !!dataDe || !!dataAte;
+  const filtrosAtivos = buscaInput.length > 0 || empresas.length > 0 || distribuidorasSel.length > 0 || casadoFiltro !== 'todos' || apenasComSaldo || statusSel.length > 0 || categoriasSel.length > 0 || linhasSel.length > 0 || !!dataDe || !!dataAte;
+
 
   const totalPages = useMemo(() => Math.max(1, Math.ceil((data?.total ?? 0) / PAGE_SIZE)), [data?.total]);
+
+  // Agrupa rows por nome_linha preservando a ordenação original como tie-breaker.
+  const groupedRows = useMemo(() => {
+    const groups = new Map<string, any[]>();
+    const order: string[] = [];
+    for (const r of (data?.rows ?? []) as any[]) {
+      const key = r.nome_linha ?? '__sem_linha__';
+      if (!groups.has(key)) { groups.set(key, []); order.push(key); }
+      groups.get(key)!.push(r);
+    }
+    // Sort group keys alphabetically, "Sem linha" por último.
+    order.sort((a, b) => {
+      if (a === '__sem_linha__') return 1;
+      if (b === '__sem_linha__') return -1;
+      return a.localeCompare(b, 'pt-BR');
+    });
+    return order.map((k) => ({ key: k, label: k === '__sem_linha__' ? 'Sem linha' : k, rows: groups.get(k)! }));
+  }, [data?.rows]);
+
+
   const toggleSort = (col: FornecedorSortBy) => {
     if (sortBy === col) setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
     else { setSortBy(col); setSortDir(col === 'futura_descricao' ? 'asc' : 'desc'); }
@@ -204,6 +228,8 @@ export default function FornecedorEstoquePage() {
     ? (distribuidoras.find((d) => d.id === distribuidorasSel[0])?.abrev ?? `Filial ${distribuidorasSel[0]}`) : `${distribuidorasSel.length} filiais`;
   const statusLabel = statusSel.length === 0 ? 'Todos status' : statusSel.length === 1 ? statusSel[0] : `${statusSel.length} status`;
   const categoriaLabel = categoriasSel.length === 0 ? 'Todas categorias' : categoriasSel.length === 1 ? categoriasSel[0] : `${categoriasSel.length} categorias`;
+  const linhaLabel = linhasSel.length === 0 ? 'Todas linhas' : linhasSel.length === 1 ? linhasSel[0] : `${linhasSel.length} linhas`;
+
   const dataLabel = (dataDe || dataAte)
     ? `${dataDe ? format(dataDe, 'dd/MM/yy') : '…'} – ${dataAte ? format(dataAte, 'dd/MM/yy') : '…'}`
     : 'Período';
@@ -396,6 +422,21 @@ export default function FornecedorEstoquePage() {
                 </DropdownMenuContent>
               </DropdownMenu>
 
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild><Button variant="outline" size="sm">{linhaLabel}</Button></DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="max-h-72 w-64 overflow-y-auto">
+                  <DropdownMenuLabel>Linha</DropdownMenuLabel><DropdownMenuSeparator />
+                  {(filtroOpcoes?.linhas ?? []).map((l) => (
+                    <DropdownMenuCheckboxItem key={l} checked={linhasSel.includes(l)}
+                      onCheckedChange={(v) => setLinhasSel((p) => v ? [...p, l] : p.filter((x) => x !== l))}>
+                      {l}
+                    </DropdownMenuCheckboxItem>
+                  ))}
+                  {(filtroOpcoes?.linhas?.length ?? 0) === 0 && <div className="px-2 py-1.5 text-xs text-muted-foreground">Sem linhas</div>}
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+
               <Popover>
                 <PopoverTrigger asChild>
                   <Button variant="outline" size="sm" className={cn(!dataDe && !dataAte && 'text-muted-foreground')}>
@@ -473,53 +514,63 @@ export default function FornecedorEstoquePage() {
                       </TableCell>
                     </TableRow>
                   )}
-                  {!isLoading && !isError && data?.rows.map((r: any) => {
-                    let totalCxV: number | null = r.nosso_disponivel_cx ?? null;
-                    let totalUnV: number | null = r.nosso_disponivel_un ?? null;
-                    if (filtroDistAtivo && r.casado) {
-                      let cxSum = 0, unSum = 0, hasAny = false;
-                      for (const d of distribuidorasVisiveis) {
-                        const s = r.saldos_por_empresa?.[String(d.id)] as any;
-                        if (!s) continue;
-                        hasAny = true;
-                        if (s.disp_cx != null) cxSum += Number(s.disp_cx);
-                        if (s.disp_un != null) unSum += Number(s.disp_un);
-                      }
-                      totalCxV = hasAny ? cxSum : null;
-                      totalUnV = hasAny ? unSum : null;
-                    }
-                    return (
-                      <TableRow key={`${r.empresa_id}-${r.futura_codigo}-${r.ean_normalizado}`} className="even:bg-muted/20">
-                        {visibleCols.map((k) => renderBodyCell(k, r))}
-                        {distribuidorasVisiveis.map((d) => {
-                          const s = r.saldos_por_empresa?.[String(d.id)] as any;
-                          const dispUn = s ? Number(s.disp_un ?? 0) : 0;
-                          const dispCx = s && s.disp_cx != null ? Number(s.disp_cx) : null;
-                          if (!r.casado || !s || (!dispUn && !dispCx)) {
-                            return <TableCell key={d.id} className="text-right text-xs text-muted-foreground">—</TableCell>;
-                          }
-                          return (
-                            <TableCell key={d.id} className="text-right tabular-nums">
-                              <div className="text-sm">
-                                {dispCx != null ? cxFmt.format(dispCx) : '—'}<span className="text-[10px] text-muted-foreground"> CX</span>
-                              </div>
-                              <div className="text-[10px] font-medium text-success">{numberFmt.format(Math.round(dispUn))} UN</div>
-                            </TableCell>
-                          );
-                        })}
-                        <TableCell className="border-l-2 border-primary/30 bg-muted/40 text-right font-semibold tabular-nums">
-                          {r.casado ? (
-                            <div>
-                              <div className="text-sm">
-                                {totalCxV != null ? cxFmt.format(totalCxV) : '—'}<span className="text-[10px] text-muted-foreground"> CX</span>
-                              </div>
-                              <div className="text-[10px] font-medium text-success">{numberFmt.format(Math.round(Number(totalUnV ?? 0)))} UN</div>
-                            </div>
-                          ) : <span className="text-xs text-muted-foreground">—</span>}
+                  {!isLoading && !isError && groupedRows.map((g) => (
+                    <Fragment key={g.key}>
+                      <TableRow className="bg-muted/50 hover:bg-muted/50">
+                        <TableCell colSpan={colSpan} className="py-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                          {g.label} <span className="ml-2 font-normal normal-case text-muted-foreground/70">· {g.rows.length} item(ns)</span>
                         </TableCell>
                       </TableRow>
-                    );
-                  })}
+                      {g.rows.map((r: any) => {
+                        let totalCxV: number | null = r.nosso_disponivel_cx ?? null;
+                        let totalUnV: number | null = r.nosso_disponivel_un ?? null;
+                        if (filtroDistAtivo && r.casado) {
+                          let cxSum = 0, unSum = 0, hasAny = false;
+                          for (const d of distribuidorasVisiveis) {
+                            const s = r.saldos_por_empresa?.[String(d.id)] as any;
+                            if (!s) continue;
+                            hasAny = true;
+                            if (s.disp_cx != null) cxSum += Number(s.disp_cx);
+                            if (s.disp_un != null) unSum += Number(s.disp_un);
+                          }
+                          totalCxV = hasAny ? cxSum : null;
+                          totalUnV = hasAny ? unSum : null;
+                        }
+                        return (
+                          <TableRow key={`${r.empresa_id}-${r.futura_codigo}-${r.ean_normalizado}`} className="border-b border-border/60">
+                            {visibleCols.map((k) => renderBodyCell(k, r))}
+                            {distribuidorasVisiveis.map((d) => {
+                              const s = r.saldos_por_empresa?.[String(d.id)] as any;
+                              const dispUn = s ? Number(s.disp_un ?? 0) : 0;
+                              const dispCx = s && s.disp_cx != null ? Number(s.disp_cx) : null;
+                              if (!r.casado || !s || (!dispUn && !dispCx)) {
+                                return <TableCell key={d.id} className="text-right text-xs text-muted-foreground">—</TableCell>;
+                              }
+                              return (
+                                <TableCell key={d.id} className="text-right tabular-nums">
+                                  <div className="text-sm">
+                                    {dispCx != null ? cxFmt.format(dispCx) : '—'}<span className="text-[10px] text-muted-foreground"> CX</span>
+                                  </div>
+                                  <div className="text-[10px] font-medium text-success">{numberFmt.format(Math.round(dispUn))} UN</div>
+                                </TableCell>
+                              );
+                            })}
+                            <TableCell className="border-l-2 border-primary/30 bg-muted/40 text-right font-semibold tabular-nums">
+                              {r.casado ? (
+                                <div>
+                                  <div className="text-sm">
+                                    {totalCxV != null ? cxFmt.format(totalCxV) : '—'}<span className="text-[10px] text-muted-foreground"> CX</span>
+                                  </div>
+                                  <div className="text-[10px] font-medium text-success">{numberFmt.format(Math.round(Number(totalUnV ?? 0)))} UN</div>
+                                </div>
+                              ) : <span className="text-xs text-muted-foreground">—</span>}
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </Fragment>
+                  ))}
+
                 </TableBody>
               </Table>
             </div>

@@ -21,12 +21,14 @@ export interface FornecedorIntegradoRow {
   sku: string | null;
   nome_comercial: string | null;
   categoria: string | null;
+  nome_linha: string | null;
   origem_match: string | null;
   nosso_saldo_un: number | null;
   nosso_saldo_cx: number | null;
   saldos_por_empresa: Record<string, SaldoEmpresa> | null;
   casado: boolean | null;
 }
+
 
 
 export interface DistribuidoraEmpresa {
@@ -225,6 +227,7 @@ export interface UseFornecedorListOpts {
   apenasComSaldo: boolean;
   status: string[];
   categorias: string[];
+  linhas: string[];
   dataDe: string | null;
   dataAte: string | null;
   sortBy: FornecedorSortBy;
@@ -232,6 +235,7 @@ export interface UseFornecedorListOpts {
   page: number;
   pageSize: number;
 }
+
 
 export function useFornecedorIntegradoList(opts: UseFornecedorListOpts) {
   return useQuery({
@@ -248,8 +252,10 @@ export function useFornecedorIntegradoList(opts: UseFornecedorListOpts) {
       if (opts.empresas.length) q = q.in('empresa_id', opts.empresas);
       if (opts.status.length) q = q.in('futura_status', opts.status);
       if (opts.categorias.length) q = q.in('categoria', opts.categorias);
+      if (opts.linhas.length) q = q.in('nome_linha', opts.linhas);
       if (opts.dataDe) q = q.gte('data_atualizacao_origem', opts.dataDe);
       if (opts.dataAte) q = q.lte('data_atualizacao_origem', opts.dataAte);
+
       if (opts.casadoFiltro === 'casados') q = q.eq('casado', true);
       if (opts.casadoFiltro === 'nao_casados') q = q.eq('casado', false);
       if (opts.apenasComSaldo) q = q.gt('fornecedor_caixas', 0);
@@ -276,22 +282,26 @@ export function useFornecedorFiltroOpcoes() {
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from('v_estoque_fornecedor_integrado')
-        .select('futura_status, categoria')
+        .select('futura_status, categoria, nome_linha')
         .range(0, 9999);
       if (error) throw error;
       const status = new Set<string>();
       const categorias = new Set<string>();
-      for (const r of (data ?? []) as { futura_status: string | null; categoria: string | null }[]) {
+      const linhas = new Set<string>();
+      for (const r of (data ?? []) as { futura_status: string | null; categoria: string | null; nome_linha: string | null }[]) {
         if (r.futura_status) status.add(r.futura_status);
         if (r.categoria) categorias.add(r.categoria);
+        if (r.nome_linha) linhas.add(r.nome_linha);
       }
       return {
         status: Array.from(status).sort(),
         categorias: Array.from(categorias).sort(),
+        linhas: Array.from(linhas).sort(),
       };
     },
   });
 }
+
 
 /**
  * Empresas distintas existentes na view (lista pequena, ~3 valores).
