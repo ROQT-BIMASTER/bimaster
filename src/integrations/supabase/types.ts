@@ -50706,6 +50706,8 @@ export type Database = {
           futura_status: string | null
           nome_comercial: string | null
           nosso_codigo: string | null
+          nosso_disponivel_cx: number | null
+          nosso_disponivel_un: number | null
           nosso_saldo_cx: number | null
           nosso_saldo_un: number | null
           origem_match: string | null
