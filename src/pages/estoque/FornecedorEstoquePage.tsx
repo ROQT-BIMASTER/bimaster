@@ -206,6 +206,7 @@ export default function FornecedorEstoquePage() {
           </div>
         </CardHeader>
         <CardContent>
+          <div className="overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
@@ -220,19 +221,21 @@ export default function FornecedorEstoquePage() {
                 </TableHead>
                 <TableHead>Casado</TableHead>
                 <TableHead>Nosso produto</TableHead>
-                <TableHead className="text-right">
-                  <SortBtn label="Nosso saldo" col="nosso_saldo_cx" sortBy={sortBy} sortDir={sortDir} onClick={toggleSort} />
-                </TableHead>
+                {distribuidoras.map((d) => (
+                  <TableHead key={d.id} className="text-right" title={`${d.nome} (id ${d.id})`}>
+                    {d.abrev}
+                  </TableHead>
+                ))}
                 <TableHead>Atualizado</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading && Array.from({ length: 8 }).map((_, i) => (
-                <TableRow key={i}><TableCell colSpan={9}><Skeleton className="h-5 w-full" /></TableCell></TableRow>
+                <TableRow key={i}><TableCell colSpan={colSpan}><Skeleton className="h-5 w-full" /></TableCell></TableRow>
               ))}
               {!isLoading && (data?.rows.length ?? 0) === 0 && (
                 <TableRow>
-                  <TableCell colSpan={9} className="text-center text-sm text-muted-foreground">
+                  <TableCell colSpan={colSpan} className="text-center text-sm text-muted-foreground">
                     Nenhum item para os filtros atuais.
                   </TableCell>
                 </TableRow>
@@ -266,14 +269,18 @@ export default function FornecedorEstoquePage() {
                       </div>
                     ) : <span className="text-xs text-muted-foreground">—</span>}
                   </TableCell>
-                  <TableCell className="text-right tabular-nums">
-                    {r.casado ? (
-                      <div>
-                        <div className="text-sm">{numberFmt.format(Math.round(Number(r.nosso_saldo_cx ?? 0)))} <span className="text-[10px] text-muted-foreground">CX</span></div>
-                        <div className="text-xs text-muted-foreground">{numberFmt.format(Math.round(Number(r.nosso_saldo_un ?? 0)))} UN</div>
-                      </div>
-                    ) : <span className="text-xs text-muted-foreground">—</span>}
-                  </TableCell>
+                  {distribuidoras.map((d) => {
+                    const s = r.saldos_por_empresa?.[String(d.id)];
+                    if (!r.casado || !s || (!s.cx && !s.un)) {
+                      return <TableCell key={d.id} className="text-right text-xs text-muted-foreground">—</TableCell>;
+                    }
+                    return (
+                      <TableCell key={d.id} className="text-right tabular-nums">
+                        <div className="text-sm">{numberFmt.format(Math.round(Number(s.cx ?? 0)))} <span className="text-[10px] text-muted-foreground">CX</span></div>
+                        <div className="text-[10px] text-muted-foreground">{numberFmt.format(Math.round(Number(s.un ?? 0)))} UN</div>
+                      </TableCell>
+                    );
+                  })}
                   <TableCell>
                     <div className="text-xs">F: {formatTs(r.data_atualizacao_origem)}</div>
                     <div className="text-xs text-muted-foreground">S: {formatTs(r.sincronizado_em)}</div>
@@ -282,6 +289,8 @@ export default function FornecedorEstoquePage() {
               ))}
             </TableBody>
           </Table>
+          </div>
+
 
           <div className="mt-3 flex items-center justify-between text-sm">
             <span className="text-muted-foreground">
