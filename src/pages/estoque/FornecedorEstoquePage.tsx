@@ -98,10 +98,18 @@ export default function FornecedorEstoquePage() {
   const { data: totalCx, isLoading: totalCxLoading } = useFornecedorTotalCaixas();
   const { data: empresasOpt = [] } = useEmpresasFornecedor();
   const { data: distribuidoras = [] } = useDistribuidorasEmpresas();
-  const { data, isLoading } = useFornecedorIntegradoList({
+  const { data, isLoading, isError, error } = useFornecedorIntegradoList({
     busca, empresas, casadoFiltro, apenasComSaldo, sortBy, sortDir, page, pageSize: PAGE_SIZE,
   });
-  const colSpan = 8 + distribuidoras.length;
+  const colSpan = 8 + distribuidoras.length + 1;
+
+  const limparFiltros = () => {
+    setBuscaInput('');
+    setEmpresas([]);
+    setCasadoFiltro('todos');
+    setApenasComSaldo(false);
+  };
+  const filtrosAtivos = buscaInput.length > 0 || empresas.length > 0 || casadoFiltro !== 'todos' || apenasComSaldo;
 
   const totalPages = useMemo(() => Math.max(1, Math.ceil((data?.total ?? 0) / PAGE_SIZE)), [data?.total]);
 
@@ -226,21 +234,36 @@ export default function FornecedorEstoquePage() {
                     {d.abrev}
                   </TableHead>
                 ))}
+                <TableHead className="bg-muted/40 text-right font-semibold">Total</TableHead>
                 <TableHead>Atualizado</TableHead>
+
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading && Array.from({ length: 8 }).map((_, i) => (
                 <TableRow key={i}><TableCell colSpan={colSpan}><Skeleton className="h-5 w-full" /></TableCell></TableRow>
               ))}
-              {!isLoading && (data?.rows.length ?? 0) === 0 && (
+              {!isLoading && isError && (
                 <TableRow>
-                  <TableCell colSpan={colSpan} className="text-center text-sm text-muted-foreground">
-                    Nenhum item para os filtros atuais.
+                  <TableCell colSpan={colSpan} className="bg-destructive/10 text-center text-sm text-destructive">
+                    Erro ao carregar: {(error as Error)?.message ?? 'falha desconhecida'}
                   </TableCell>
                 </TableRow>
               )}
-              {!isLoading && data?.rows.map((r) => (
+              {!isLoading && !isError && (data?.rows.length ?? 0) === 0 && (
+                <TableRow>
+                  <TableCell colSpan={colSpan} className="text-center text-sm text-muted-foreground">
+                    <div>Nenhum item para os filtros atuais.</div>
+                    {filtrosAtivos && (
+                      <Button size="sm" variant="link" className="mt-1" onClick={limparFiltros}>
+                        Limpar filtros
+                      </Button>
+                    )}
+                  </TableCell>
+                </TableRow>
+              )}
+              {!isLoading && !isError && data?.rows.map((r) => (
+
                 <TableRow key={`${r.empresa_id}-${r.futura_codigo}-${r.ean_normalizado}`}>
                   <TableCell>
                     <div className="text-sm">{r.empresa_nome ?? '—'}</div>
@@ -281,10 +304,19 @@ export default function FornecedorEstoquePage() {
                       </TableCell>
                     );
                   })}
+                  <TableCell className="bg-muted/40 text-right tabular-nums font-semibold">
+                    {r.casado ? (
+                      <div>
+                        <div className="text-sm">{numberFmt.format(Math.round(Number(r.nosso_saldo_cx ?? 0)))} <span className="text-[10px] text-muted-foreground">CX</span></div>
+                        <div className="text-[10px] text-muted-foreground">{numberFmt.format(Math.round(Number(r.nosso_saldo_un ?? 0)))} UN</div>
+                      </div>
+                    ) : <span className="text-xs text-muted-foreground">—</span>}
+                  </TableCell>
                   <TableCell>
                     <div className="text-xs">F: {formatTs(r.data_atualizacao_origem)}</div>
                     <div className="text-xs text-muted-foreground">S: {formatTs(r.sincronizado_em)}</div>
                   </TableCell>
+
                 </TableRow>
               ))}
             </TableBody>
