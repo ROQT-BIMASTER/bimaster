@@ -304,10 +304,19 @@ export default function FornecedorEstoquePage() {
                       </TableCell>
                     );
                   })}
+                  <TableCell className="bg-muted/40 text-right tabular-nums font-semibold">
+                    {r.casado ? (
+                      <div>
+                        <div className="text-sm">{numberFmt.format(Math.round(Number(r.nosso_saldo_cx ?? 0)))} <span className="text-[10px] text-muted-foreground">CX</span></div>
+                        <div className="text-[10px] text-muted-foreground">{numberFmt.format(Math.round(Number(r.nosso_saldo_un ?? 0)))} UN</div>
+                      </div>
+                    ) : <span className="text-xs text-muted-foreground">—</span>}
+                  </TableCell>
                   <TableCell>
                     <div className="text-xs">F: {formatTs(r.data_atualizacao_origem)}</div>
                     <div className="text-xs text-muted-foreground">S: {formatTs(r.sincronizado_em)}</div>
                   </TableCell>
+
                 </TableRow>
               ))}
             </TableBody>
