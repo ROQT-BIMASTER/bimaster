@@ -252,8 +252,10 @@ export function useFornecedorIntegradoList(opts: UseFornecedorListOpts) {
       if (opts.empresas.length) q = q.in('empresa_id', opts.empresas);
       if (opts.status.length) q = q.in('futura_status', opts.status);
       if (opts.categorias.length) q = q.in('categoria', opts.categorias);
+      if (opts.linhas.length) q = q.in('nome_linha', opts.linhas);
       if (opts.dataDe) q = q.gte('data_atualizacao_origem', opts.dataDe);
       if (opts.dataAte) q = q.lte('data_atualizacao_origem', opts.dataAte);
+
       if (opts.casadoFiltro === 'casados') q = q.eq('casado', true);
       if (opts.casadoFiltro === 'nao_casados') q = q.eq('casado', false);
       if (opts.apenasComSaldo) q = q.gt('fornecedor_caixas', 0);
