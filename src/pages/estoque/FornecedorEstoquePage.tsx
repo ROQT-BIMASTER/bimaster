@@ -197,6 +197,26 @@ export default function FornecedorEstoquePage() {
 
 
   const totalPages = useMemo(() => Math.max(1, Math.ceil((data?.total ?? 0) / PAGE_SIZE)), [data?.total]);
+
+  // Agrupa rows por nome_linha preservando a ordenação original como tie-breaker.
+  const groupedRows = useMemo(() => {
+    const groups = new Map<string, any[]>();
+    const order: string[] = [];
+    for (const r of (data?.rows ?? []) as any[]) {
+      const key = r.nome_linha ?? '__sem_linha__';
+      if (!groups.has(key)) { groups.set(key, []); order.push(key); }
+      groups.get(key)!.push(r);
+    }
+    // Sort group keys alphabetically, "Sem linha" por último.
+    order.sort((a, b) => {
+      if (a === '__sem_linha__') return 1;
+      if (b === '__sem_linha__') return -1;
+      return a.localeCompare(b, 'pt-BR');
+    });
+    return order.map((k) => ({ key: k, label: k === '__sem_linha__' ? 'Sem linha' : k, rows: groups.get(k)! }));
+  }, [data?.rows]);
+
+
   const toggleSort = (col: FornecedorSortBy) => {
     if (sortBy === col) setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
     else { setSortBy(col); setSortDir(col === 'futura_descricao' ? 'asc' : 'desc'); }
