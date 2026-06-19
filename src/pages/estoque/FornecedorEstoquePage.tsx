@@ -234,7 +234,9 @@ export default function FornecedorEstoquePage() {
                     {d.abrev}
                   </TableHead>
                 ))}
+                <TableHead className="bg-muted/40 text-right font-semibold">Total</TableHead>
                 <TableHead>Atualizado</TableHead>
+
               </TableRow>
             </TableHeader>
             <TableBody>
