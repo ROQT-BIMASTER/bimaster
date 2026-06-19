@@ -172,11 +172,12 @@ export default function FornecedorEstoquePage() {
   const { data: filtroOpcoes } = useFornecedorFiltroOpcoes();
   const { data, isLoading, isError, error } = useFornecedorIntegradoList({
     busca, empresas, casadoFiltro, apenasComSaldo,
-    status: statusSel, categorias: categoriasSel,
+    status: statusSel, categorias: categoriasSel, linhas: linhasSel,
     dataDe: dataDe ? format(dataDe, 'yyyy-MM-dd') : null,
     dataAte: dataAte ? format(dataAte, 'yyyy-MM-dd') : null,
     sortBy, sortDir, page, pageSize: PAGE_SIZE,
   });
+
 
   const distribuidorasVisiveis = useMemo(
     () => distribuidorasSel.length === 0 ? distribuidoras : distribuidoras.filter((d) => distribuidorasSel.includes(d.id)),
