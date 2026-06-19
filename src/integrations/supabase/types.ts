@@ -23645,6 +23645,45 @@ export type Database = {
         }
         Relationships: []
       }
+      fornecedor_ean_depara: {
+        Row: {
+          codigo_rp: string | null
+          created_at: string
+          criado_por: string | null
+          ean_fornecedor: string
+          id: string
+          motivo: string | null
+          nome_master: string | null
+          origem: string
+          sku_master: string | null
+          updated_at: string
+        }
+        Insert: {
+          codigo_rp?: string | null
+          created_at?: string
+          criado_por?: string | null
+          ean_fornecedor: string
+          id?: string
+          motivo?: string | null
+          nome_master?: string | null
+          origem?: string
+          sku_master?: string | null
+          updated_at?: string
+        }
+        Update: {
+          codigo_rp?: string | null
+          created_at?: string
+          criado_por?: string | null
+          ean_fornecedor?: string
+          id?: string
+          motivo?: string | null
+          nome_master?: string | null
+          origem?: string
+          sku_master?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       fornecedor_estoque_futura: {
         Row: {
           codigo_produto: string
