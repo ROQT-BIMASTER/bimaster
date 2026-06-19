@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
-import { Search, Link2, RefreshCw } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { ArrowLeft, Search, Link2, RefreshCw } from 'lucide-react';
 import { useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -165,6 +166,7 @@ function VincularDialog({
 }
 
 export default function FornecedorDeParaEanPage() {
+  const navigate = useNavigate();
   const [busca, setBusca] = useState('');
   const [apenasComSaldo, setApenasComSaldo] = useState(true);
   const [page, setPage] = useState(0);
@@ -187,6 +189,9 @@ export default function FornecedorDeParaEanPage() {
 
 
       <div className="container mx-auto space-y-4 p-4">
+        <Button variant="ghost" size="sm" onClick={() => navigate(-1)} className="-ml-2 w-fit text-muted-foreground hover:text-foreground">
+          <ArrowLeft className="mr-2 h-4 w-4" /> Voltar
+        </Button>
         <header className="flex items-center justify-between">
           <div>
             <h1 className="text-xl font-semibold">De-para EAN do fornecedor</h1>

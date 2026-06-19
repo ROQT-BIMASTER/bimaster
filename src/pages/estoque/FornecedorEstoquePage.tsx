@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { ArrowUpDown, ExternalLink, Search } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { ArrowLeft, ArrowUpDown, ExternalLink, Search } from 'lucide-react';
 import { format } from 'date-fns';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -77,6 +77,7 @@ function OrigemBadge({ origem, casado }: { origem: string | null; casado: boolea
 }
 
 export default function FornecedorEstoquePage() {
+  const navigate = useNavigate();
   const [buscaInput, setBuscaInput] = useState('');
   const busca = useDebounced(buscaInput, 300);
   const [empresas, setEmpresas] = useState<number[]>([]);
@@ -126,6 +127,9 @@ export default function FornecedorEstoquePage() {
 
   return (
     <div className="container mx-auto space-y-4 p-4">
+      <Button variant="ghost" size="sm" onClick={() => navigate(-1)} className="-ml-2 w-fit text-muted-foreground hover:text-foreground">
+        <ArrowLeft className="mr-2 h-4 w-4" /> Voltar
+      </Button>
       <header className="flex items-center justify-between gap-3">
         <div>
           <h1 className="text-xl font-semibold">Estoque do fornecedor</h1>
@@ -139,6 +143,7 @@ export default function FornecedorEstoquePage() {
           </Link>
         </Button>
       </header>
+
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         <KpiCard label="Total de itens" value={kpisLoading ? '—' : numberFmt.format(kpis?.total ?? 0)} />
