@@ -1,6 +1,11 @@
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
+export interface SaldoEmpresa {
+  cx: number;
+  un: number;
+}
+
 export interface FornecedorIntegradoRow {
   empresa_id: number | null;
   empresa_nome: string | null;
@@ -18,7 +23,48 @@ export interface FornecedorIntegradoRow {
   origem_match: string | null;
   nosso_saldo_un: number | null;
   nosso_saldo_cx: number | null;
+  saldos_por_empresa: Record<string, SaldoEmpresa> | null;
   casado: boolean | null;
+}
+
+export interface DistribuidoraEmpresa {
+  id: number;
+  nome: string;
+  abrev: string;
+}
+
+function deriveAbrev(nome: string): string {
+  const trimmed = nome.trim();
+  if (trimmed.includes('-')) {
+    const suf = trimmed.split('-').pop()?.trim() ?? '';
+    const cleaned = suf.replace(/\(.*\)/g, '').trim();
+    if (cleaned) return cleaned.toUpperCase().slice(0, 6);
+  }
+  return trimmed.replace(/[^A-Za-z]/g, '').toUpperCase().slice(0, 3) || String(trimmed);
+}
+
+/**
+ * Lista de empresas (distribuidoras) usadas como colunas de saldo na
+ * tela de Estoque do Fornecedor. Lê `dim_empresa` direto.
+ */
+export function useDistribuidorasEmpresas() {
+  return useQuery({
+    queryKey: ['distribuidoras-empresas-dim'],
+    staleTime: 10 * 60_000,
+    queryFn: async (): Promise<DistribuidoraEmpresa[]> => {
+      const { data, error } = await (supabase as any)
+        .from('dim_empresa')
+        .select('id_empresa, nome_empresa')
+        .order('id_empresa', { ascending: true });
+      if (error) throw error;
+      return ((data ?? []) as { id_empresa: number; nome_empresa: string | null }[])
+        .map((r) => ({
+          id: Number(r.id_empresa),
+          nome: r.nome_empresa ?? `Empresa ${r.id_empresa}`,
+          abrev: deriveAbrev(r.nome_empresa ?? `E${r.id_empresa}`),
+        }));
+    },
+  });
 }
 
 export interface FornecedorIntegradoKpis {
