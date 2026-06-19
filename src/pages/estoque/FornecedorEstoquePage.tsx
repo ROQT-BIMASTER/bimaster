@@ -48,7 +48,7 @@ const numberFmt = new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 0 });
 const decimalFmt = new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 4 });
 const cxFmt = new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 
-type ColKey = 'empresa' | 'ean' | 'codFutura' | 'descricao' | 'categoria' | 'estoqueForn' | 'casado' | 'nossoProduto' | 'atualizado';
+type ColKey = 'empresa' | 'ean' | 'codFutura' | 'descricao' | 'categoria' | 'estoqueForn' | 'validade' | 'casado' | 'nossoProduto' | 'atualizado';
 const COL_LABEL: Record<ColKey, string> = {
   empresa: 'Empresa',
   ean: 'EAN caixa',
@@ -56,11 +56,12 @@ const COL_LABEL: Record<ColKey, string> = {
   descricao: 'Descrição',
   categoria: 'Categoria',
   estoqueForn: 'Estoque forn. (CX)',
+  validade: 'Validade',
   casado: 'Casado',
   nossoProduto: 'Nosso produto',
   atualizado: 'Atualizado',
 };
-const DEFAULT_ORDER: ColKey[] = ['empresa', 'ean', 'codFutura', 'descricao', 'categoria', 'estoqueForn', 'casado', 'nossoProduto', 'atualizado'];
+const DEFAULT_ORDER: ColKey[] = ['empresa', 'ean', 'codFutura', 'descricao', 'categoria', 'estoqueForn', 'validade', 'casado', 'nossoProduto', 'atualizado'];
 const DEFAULT_HIDDEN: ColKey[] = ['ean', 'codFutura', 'categoria'];
 
 interface ColsState { order: ColKey[]; hidden: ColKey[]; }
