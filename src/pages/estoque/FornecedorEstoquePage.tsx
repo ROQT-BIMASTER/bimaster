@@ -98,10 +98,18 @@ export default function FornecedorEstoquePage() {
   const { data: totalCx, isLoading: totalCxLoading } = useFornecedorTotalCaixas();
   const { data: empresasOpt = [] } = useEmpresasFornecedor();
   const { data: distribuidoras = [] } = useDistribuidorasEmpresas();
-  const { data, isLoading } = useFornecedorIntegradoList({
+  const { data, isLoading, isError, error } = useFornecedorIntegradoList({
     busca, empresas, casadoFiltro, apenasComSaldo, sortBy, sortDir, page, pageSize: PAGE_SIZE,
   });
-  const colSpan = 8 + distribuidoras.length;
+  const colSpan = 8 + distribuidoras.length + 1;
+
+  const limparFiltros = () => {
+    setBuscaInput('');
+    setEmpresas([]);
+    setCasadoFiltro('todos');
+    setApenasComSaldo(false);
+  };
+  const filtrosAtivos = buscaInput.length > 0 || empresas.length > 0 || casadoFiltro !== 'todos' || apenasComSaldo;
 
   const totalPages = useMemo(() => Math.max(1, Math.ceil((data?.total ?? 0) / PAGE_SIZE)), [data?.total]);
 
