@@ -25,6 +25,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { parseLocalDate } from '@/lib/utils/parseLocalDate';
 import {
+  useDistribuidorasEmpresas,
   useEmpresasFornecedor,
   useFornecedorIntegradoKpis,
   useFornecedorIntegradoList,
