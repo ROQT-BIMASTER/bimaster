@@ -107,6 +107,13 @@ All colors MUST be HSL.
     --module-trade-dark: 25 80% 45%;
     --module-fabrica: 262 83% 58%;
     --module-precos: 45 93% 47%;
+
+    /* Vendas module (pink/magenta) */
+    --vendas-accent: 330 82% 52%;
+    --vendas-accent-strong: 330 82% 45%;
+    --vendas-accent-soft: 330 82% 92%;
+    --vendas-accent-softer: 330 82% 97%;
+    --vendas-bg: 220 18% 96%;
   }
 
   .dark {
