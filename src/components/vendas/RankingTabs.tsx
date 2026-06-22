@@ -13,13 +13,13 @@ const fmtInt = (n: number) => n.toLocaleString("pt-BR");
 
 type SortDir = "asc" | "desc";
 
-function useSort<T>(rows: T[], initialKey: keyof T) {
-  const [key, setKey] = useState<keyof T>(initialKey);
+function useSort<T extends Record<string, any>>(rows: T[], initialKey: string) {
+  const [key, setKey] = useState<string>(initialKey);
   const [dir, setDir] = useState<SortDir>("desc");
   const sorted = useMemo(() => {
     const copy = [...rows];
     copy.sort((a, b) => {
-      const av = a[key] as any, bv = b[key] as any;
+      const av = a[key], bv = b[key];
       if (av == null && bv == null) return 0;
       if (av == null) return 1; if (bv == null) return -1;
       if (typeof av === "number" && typeof bv === "number") return dir === "asc" ? av - bv : bv - av;
@@ -27,7 +27,7 @@ function useSort<T>(rows: T[], initialKey: keyof T) {
     });
     return copy;
   }, [rows, key, dir]);
-  const toggle = (k: keyof T) => {
+  const toggle = (k: string) => {
     if (k === key) setDir(dir === "asc" ? "desc" : "asc");
     else { setKey(k); setDir("desc"); }
   };
