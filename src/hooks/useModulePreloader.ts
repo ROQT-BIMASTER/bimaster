@@ -33,6 +33,7 @@ export const MODULE_LOADERS: Record<string, () => Promise<unknown>> = {
   comercial_mapa: () => import("@/pages/ComercialMapa"),
 
   projetos: () => import("@/pages/Projetos"),
+  fornecedor: () => import("@/pages/modules/FornecedorModule"),
   central_trabalho: () => import("@/pages/CentralTrabalho"),
   central_aprovacoes: () => import("@/pages/CentralAprovacoes"),
 };

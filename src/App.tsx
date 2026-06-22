@@ -375,6 +375,7 @@ const AsanaSyncMonitor = lazyWithRetry(() => import("./pages/admin/AsanaSyncMoni
 const AsanaImportacao = lazyWithRetry(() => import("./pages/admin/AsanaImportacao"));
 const DedupePerfis = lazyWithRetry(() => import("./pages/admin/DedupePerfis"));
 const EstoqueModule = lazyWithRetry(() => import("./pages/modules/EstoqueModule"));
+const FornecedorModule = lazyWithRetry(() => import("./pages/modules/FornecedorModule"));
 const EstoqueDistribuidoras = lazyWithRetry(() => import("./pages/EstoqueDistribuidoras"));
 const EstoqueProdutosMaster = lazyWithRetry(() => import("./pages/EstoqueProdutosMaster"));
 const EstoqueSaldos = lazyWithRetry(() => import("./pages/EstoqueSaldos"));
@@ -736,7 +737,14 @@ function AppContent() {
             {/* Painel Executivo — protegido por módulo + tela central_inteligencia */}
             <Route path="/dashboard/painel-executivo" element={<ModuleRoute moduleCode="central_inteligencia"><ScreenProtectedRoute screenCode="ci_executivo"><PainelExecutivo /></ScreenProtectedRoute></ModuleRoute>} />
             <Route path="/dashboard/performance-vendas" element={<ModuleRoute moduleCode="central_inteligencia"><ScreenProtectedRoute screenCode="ci_performance"><PerformanceVendas /></ScreenProtectedRoute></ModuleRoute>} />
-            <Route path="/dashboard/vendas/analise" element={<ModuleRoute moduleCode="central_inteligencia"><AnaliseVendas /></ModuleRoute>} />
+            <Route path="/dashboard/vendas/analise" element={<Navigate to="/dashboard/fornecedor/vendas" replace />} />
+            {/* Módulo Fornecedor */}
+            <Route path="/dashboard/fornecedor" element={<ModuleRoute moduleCode="fornecedor"><FornecedorModule /></ModuleRoute>} />
+            <Route path="/dashboard/fornecedor/vendas" element={<ModuleRoute moduleCode="fornecedor"><ScreenProtectedRoute screenCode="fornecedor_vendas"><AnaliseVendas /></ScreenProtectedRoute></ModuleRoute>} />
+            <Route path="/dashboard/fornecedor/estoque" element={<ModuleRoute moduleCode="fornecedor"><ScreenProtectedRoute screenCode="fornecedor_estoque"><FornecedorEstoquePage /></ScreenProtectedRoute></ModuleRoute>} />
+            <Route path="/dashboard/fornecedor/depara-ean" element={<ModuleRoute moduleCode="fornecedor"><ScreenProtectedRoute screenCode="fornecedor_depara_ean"><FornecedorDeParaEanPage /></ScreenProtectedRoute></ModuleRoute>} />
+            <Route path="/dashboard/estoque/fornecedor" element={<Navigate to="/dashboard/fornecedor/estoque" replace />} />
+            <Route path="/dashboard/estoque/fornecedor-depara" element={<Navigate to="/dashboard/fornecedor/depara-ean" replace />} />
             <Route path="/dashboard/clientes" element={<ModuleRoute moduleCode="central_inteligencia"><ScreenProtectedRoute screenCode="ci_clientes"><AnaliseClientes /></ScreenProtectedRoute></ModuleRoute>} />
             <Route path="/dashboard/detalhamento" element={<ModuleRoute moduleCode="central_inteligencia"><ScreenProtectedRoute screenCode="ci_clientes"><DetalhamentoVendas /></ScreenProtectedRoute></ModuleRoute>} />
             <Route path="/dashboard/geografico" element={<ModuleRoute moduleCode="central_inteligencia"><ScreenProtectedRoute screenCode="ci_geografico"><AnaliseGeografico /></ScreenProtectedRoute></ModuleRoute>} />
@@ -827,8 +835,7 @@ function AppContent() {
             <Route path="/dashboard/estoque/reconciliacao-cores" element={<ModuleRoute moduleCode="estoque"><EstoqueReconciliacaoCoresPage /></ModuleRoute>} />
             <Route path="/dashboard/estoque/auditoria-linhas-erp" element={<ModuleRoute moduleCode="estoque"><EstoqueAuditoriaLinhasErpPage /></ModuleRoute>} />
             <Route path="/dashboard/estoque/valores-por-filial" element={<ModuleRoute moduleCode="estoque"><EstoqueValoresPorFilial /></ModuleRoute>} />
-            <Route path="/dashboard/estoque/fornecedor-depara" element={<ScreenRoute screenCode="admin"><FornecedorDeParaEanPage /></ScreenRoute>} />
-            <Route path="/dashboard/estoque/fornecedor" element={<ScreenRoute screenCode="admin"><FornecedorEstoquePage /></ScreenRoute>} />
+            {/* /dashboard/estoque/fornecedor* movidas para o módulo Fornecedor (vide redirects acima) */}
             <Route path="/dashboard/composicao/sync" element={<ScreenRoute screenCode="admin"><ComposicaoErpSyncPage /></ScreenRoute>} />
             <Route path="/dashboard/financeiro/cobranca" element={<ModuleRoute moduleCode="financeiro"><ScreenProtectedRoute screenCode="financeiro_cobrancas"><CobrancaInadimplentes /></ScreenProtectedRoute></ModuleRoute>} />
             <Route path="/dashboard/financeiro/fluxo-de-caixa" element={<ModuleRoute moduleCode="financeiro"><ScreenProtectedRoute screenCode="financeiro_fluxo_caixa"><FluxoDeCaixa /></ScreenProtectedRoute></ModuleRoute>} />

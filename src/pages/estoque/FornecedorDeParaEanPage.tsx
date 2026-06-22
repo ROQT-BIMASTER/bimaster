@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Search, Link2, RefreshCw } from 'lucide-react';
 import { useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -189,8 +189,8 @@ export default function FornecedorDeParaEanPage() {
 
 
       <div className="container mx-auto space-y-4 p-4">
-        <Button variant="ghost" size="sm" onClick={() => navigate(-1)} className="-ml-2 w-fit text-muted-foreground hover:text-foreground">
-          <ArrowLeft className="mr-2 h-4 w-4" /> Voltar
+        <Button variant="ghost" size="sm" asChild className="-ml-2 w-fit text-muted-foreground hover:text-foreground">
+          <Link to="/dashboard/fornecedor"><ArrowLeft className="mr-2 h-4 w-4" /> Voltar ao módulo Fornecedor</Link>
         </Button>
         <header className="flex items-center justify-between">
           <div>
