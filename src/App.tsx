@@ -375,6 +375,7 @@ const AsanaSyncMonitor = lazyWithRetry(() => import("./pages/admin/AsanaSyncMoni
 const AsanaImportacao = lazyWithRetry(() => import("./pages/admin/AsanaImportacao"));
 const DedupePerfis = lazyWithRetry(() => import("./pages/admin/DedupePerfis"));
 const EstoqueModule = lazyWithRetry(() => import("./pages/modules/EstoqueModule"));
+const FornecedorModule = lazyWithRetry(() => import("./pages/modules/FornecedorModule"));
 const EstoqueDistribuidoras = lazyWithRetry(() => import("./pages/EstoqueDistribuidoras"));
 const EstoqueProdutosMaster = lazyWithRetry(() => import("./pages/EstoqueProdutosMaster"));
 const EstoqueSaldos = lazyWithRetry(() => import("./pages/EstoqueSaldos"));
