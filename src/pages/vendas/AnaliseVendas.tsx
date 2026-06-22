@@ -1,9 +1,6 @@
 import { useState } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { ArrowLeft } from "lucide-react";
-import { useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
 import { parseLocalDate } from "@/lib/utils/parseLocalDate";
 import { FiltrosBar } from "@/components/vendas/FiltrosBar";
 import { KPICards } from "@/components/vendas/KPICards";
@@ -26,7 +23,6 @@ function defaultFilters(): VendasFilters {
 }
 
 export default function AnaliseVendas() {
-  const navigate = useNavigate();
   const [filters, setFilters] = useState<VendasFilters>(defaultFilters);
 
   const kpis = useVendasKpis(filters);
@@ -42,16 +38,6 @@ export default function AnaliseVendas() {
   return (
     <div className="vendas-theme min-h-screen" style={{ background: "hsl(var(--vendas-bg))" }}>
       <div className="p-4 md:p-8 max-w-[1600px] mx-auto space-y-5">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => navigate(-1)}
-          className="h-8 -ml-2 text-muted-foreground hover:text-foreground"
-        >
-          <ArrowLeft className="h-4 w-4 mr-1.5" />
-          Voltar
-        </Button>
-
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div>
             <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-foreground">Análise de Vendas</h1>
