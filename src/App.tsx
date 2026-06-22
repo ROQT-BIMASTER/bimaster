@@ -107,6 +107,7 @@ const PainelExecutivo = lazyWithRetry(() => import("./pages/PainelExecutivo"));
 const PerformanceVendas = lazyWithRetry(() => import("./pages/PerformanceVendas"));
 const AnaliseClientes = lazyWithRetry(() => import("./pages/AnaliseClientes"));
 const DetalhamentoVendas = lazyWithRetry(() => import("./pages/DetalhamentoVendas"));
+const AnaliseVendas = lazyWithRetry(() => import("./pages/vendas/AnaliseVendas"));
 const AnaliseGeografico = lazyWithRetry(() => import("./pages/AnaliseGeografico"));
 const AnaliseProdutos = lazyWithRetry(() => import("./pages/AnaliseProdutos"));
 const MetasProjecoes = lazyWithRetry(() => import("./pages/MetasProjecoes"));
@@ -735,6 +736,7 @@ function AppContent() {
             {/* Painel Executivo — protegido por módulo + tela central_inteligencia */}
             <Route path="/dashboard/painel-executivo" element={<ModuleRoute moduleCode="central_inteligencia"><ScreenProtectedRoute screenCode="ci_executivo"><PainelExecutivo /></ScreenProtectedRoute></ModuleRoute>} />
             <Route path="/dashboard/performance-vendas" element={<ModuleRoute moduleCode="central_inteligencia"><ScreenProtectedRoute screenCode="ci_performance"><PerformanceVendas /></ScreenProtectedRoute></ModuleRoute>} />
+            <Route path="/dashboard/vendas/analise" element={<ModuleRoute moduleCode="central_inteligencia"><AnaliseVendas /></ModuleRoute>} />
             <Route path="/dashboard/clientes" element={<ModuleRoute moduleCode="central_inteligencia"><ScreenProtectedRoute screenCode="ci_clientes"><AnaliseClientes /></ScreenProtectedRoute></ModuleRoute>} />
             <Route path="/dashboard/detalhamento" element={<ModuleRoute moduleCode="central_inteligencia"><ScreenProtectedRoute screenCode="ci_clientes"><DetalhamentoVendas /></ScreenProtectedRoute></ModuleRoute>} />
             <Route path="/dashboard/geografico" element={<ModuleRoute moduleCode="central_inteligencia"><ScreenProtectedRoute screenCode="ci_geografico"><AnaliseGeografico /></ScreenProtectedRoute></ModuleRoute>} />
