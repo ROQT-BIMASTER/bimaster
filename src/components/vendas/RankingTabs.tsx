@@ -63,7 +63,7 @@ function ChartHoriz({ data }: { data: { name: string; faturamento: number }[] })
 function VendedorPanel({ filters }: { filters: VendasFilters }) {
   const { data, isLoading } = useVendasRankingVendedor(filters);
   const rows = data || [];
-  const { sorted, toggle, key, dir } = useSort(rows, "faturamento" as any);
+  const { sorted, toggle, key, dir } = useSort(rows, "faturamento");
   const top = [...rows].slice(0, 10).map((r) => ({
     name: r.vendedor_nome.length > 22 ? r.vendedor_nome.slice(0, 20) + "…" : r.vendedor_nome,
     faturamento: r.faturamento,
@@ -79,11 +79,11 @@ function VendedorPanel({ filters }: { filters: VendasFilters }) {
         <Table>
           <TableHeader>
             <TableRow>
-              <SortHead active={key === ("vendedor_nome" as any)} dir={dir} onClick={() => toggle("vendedor_nome" as any)}>Vendedor</SortHead>
-              <SortHead active={key === ("coordenador_nome" as any)} dir={dir} onClick={() => toggle("coordenador_nome" as any)}>Coordenador</SortHead>
-              <SortHead active={key === ("notas" as any)} dir={dir} onClick={() => toggle("notas" as any)} align="right">Notas</SortHead>
-              <SortHead active={key === ("faturamento" as any)} dir={dir} onClick={() => toggle("faturamento" as any)} align="right">Faturamento</SortHead>
-              <SortHead active={key === ("ticket_medio" as any)} dir={dir} onClick={() => toggle("ticket_medio" as any)} align="right">Ticket médio</SortHead>
+              <SortHead active={key === ("vendedor_nome")} dir={dir} onClick={() => toggle("vendedor_nome")}>Vendedor</SortHead>
+              <SortHead active={key === ("coordenador_nome")} dir={dir} onClick={() => toggle("coordenador_nome")}>Coordenador</SortHead>
+              <SortHead active={key === ("notas")} dir={dir} onClick={() => toggle("notas")} align="right">Notas</SortHead>
+              <SortHead active={key === ("faturamento")} dir={dir} onClick={() => toggle("faturamento")} align="right">Faturamento</SortHead>
+              <SortHead active={key === ("ticket_medio")} dir={dir} onClick={() => toggle("ticket_medio")} align="right">Ticket médio</SortHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -106,7 +106,7 @@ function VendedorPanel({ filters }: { filters: VendasFilters }) {
 function CoordenadorPanel({ filters }: { filters: VendasFilters }) {
   const { data, isLoading } = useVendasRankingCoordenador(filters);
   const rows = data || [];
-  const { sorted, toggle, key, dir } = useSort(rows, "faturamento" as any);
+  const { sorted, toggle, key, dir } = useSort(rows, "faturamento");
   const top = [...rows].slice(0, 10).map((r) => ({
     name: r.coordenador_nome.length > 22 ? r.coordenador_nome.slice(0, 20) + "…" : r.coordenador_nome,
     faturamento: r.faturamento,
@@ -122,9 +122,9 @@ function CoordenadorPanel({ filters }: { filters: VendasFilters }) {
         <Table>
           <TableHeader>
             <TableRow>
-              <SortHead active={key === ("coordenador_nome" as any)} dir={dir} onClick={() => toggle("coordenador_nome" as any)}>Coordenador</SortHead>
-              <SortHead active={key === ("notas" as any)} dir={dir} onClick={() => toggle("notas" as any)} align="right">Notas</SortHead>
-              <SortHead active={key === ("faturamento" as any)} dir={dir} onClick={() => toggle("faturamento" as any)} align="right">Faturamento</SortHead>
+              <SortHead active={key === ("coordenador_nome")} dir={dir} onClick={() => toggle("coordenador_nome")}>Coordenador</SortHead>
+              <SortHead active={key === ("notas")} dir={dir} onClick={() => toggle("notas")} align="right">Notas</SortHead>
+              <SortHead active={key === ("faturamento")} dir={dir} onClick={() => toggle("faturamento")} align="right">Faturamento</SortHead>
             </TableRow>
           </TableHeader>
           <TableBody>
