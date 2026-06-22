@@ -55610,6 +55610,78 @@ export type Database = {
         Args: { _scope: string; _token_hash: string; _uid: string }
         Returns: boolean
       }
+      vendas_kpis: {
+        Args: {
+          p_ate?: string
+          p_coordenador?: string
+          p_de?: string
+          p_empresa?: number
+          p_vendedor?: string
+        }
+        Returns: {
+          clientes: number
+          faturamento: number
+          notas: number
+          qtd_total: number
+          ticket_medio: number
+          vendedores: number
+        }[]
+      }
+      vendas_ranking_coordenador: {
+        Args: { p_ate?: string; p_de?: string; p_empresa?: number }
+        Returns: {
+          coordenador_id: string
+          coordenador_nome: string
+          faturamento: number
+          notas: number
+        }[]
+      }
+      vendas_ranking_vendedor: {
+        Args: {
+          p_ate?: string
+          p_coordenador?: string
+          p_de?: string
+          p_empresa?: number
+        }
+        Returns: {
+          coordenador_nome: string
+          faturamento: number
+          notas: number
+          ticket_medio: number
+          vendedor_id: string
+          vendedor_nome: string
+        }[]
+      }
+      vendas_serie_mensal: {
+        Args: {
+          p_ate?: string
+          p_coordenador?: string
+          p_de?: string
+          p_empresa?: number
+          p_vendedor?: string
+        }
+        Returns: {
+          faturamento: number
+          mes: string
+          notas: number
+        }[]
+      }
+      vendas_top_clientes: {
+        Args: {
+          p_ate?: string
+          p_coordenador?: string
+          p_de?: string
+          p_empresa?: number
+          p_limite?: number
+          p_vendedor?: string
+        }
+        Returns: {
+          cliente_futura_id: number
+          cliente_nome: string
+          faturamento: number
+          notas: number
+        }[]
+      }
       verify_user_password: { Args: { password: string }; Returns: boolean }
       vincular_modulo_a_etapa: {
         Args: {
