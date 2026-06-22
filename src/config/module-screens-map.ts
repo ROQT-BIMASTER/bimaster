@@ -33,6 +33,7 @@ export const MODULE_ICON_MAP: Record<string, string> = {
   estoque: "Warehouse",
   eventos: "CalendarDays",
   departamentos: "Building2",
+  fornecedor: "Truck",
 };
 
 /**
