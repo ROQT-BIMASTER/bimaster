@@ -347,8 +347,8 @@ export default function FornecedorEstoquePage() {
     <TooltipProvider delayDuration={200}>
       <div className="w-full space-y-4 px-6 py-4">
         <div className="flex items-center justify-between gap-3">
-          <Button variant="ghost" size="sm" onClick={() => navigate(-1)} className="-ml-2 w-fit text-muted-foreground hover:text-foreground">
-            <ArrowLeft className="mr-2 h-4 w-4" /> Voltar
+          <Button variant="ghost" size="sm" asChild className="-ml-2 w-fit text-muted-foreground hover:text-foreground">
+            <Link to="/dashboard/fornecedor"><ArrowLeft className="mr-2 h-4 w-4" /> Voltar ao módulo Fornecedor</Link>
           </Button>
           <div className="flex items-center gap-2">
             <DropdownMenu>
