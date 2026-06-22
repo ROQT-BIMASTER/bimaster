@@ -1,11 +1,10 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { Bar, BarChart, Cell, LabelList, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { parseLocalDate } from "@/lib/utils/parseLocalDate";
 import { formatCurrency } from "@/lib/formatters";
-import { TrendingUp } from "lucide-react";
 
 interface Props {
   data?: { mes: string; faturamento: number; notas: number }[];
@@ -13,36 +12,63 @@ interface Props {
 }
 
 export function EvolucaoMensalChart({ data, isLoading }: Props) {
-  const rows = (data || []).map((d) => ({
-    ...d,
-    label: format(parseLocalDate(d.mes), "MMM/yy", { locale: ptBR }),
-  }));
+  const today = new Date();
+  const currentYM = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}`;
+
+  const rows = (data || []).map((d) => {
+    const dt = parseLocalDate(d.mes);
+    const ym = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}`;
+    const isCurrent = ym === currentYM;
+    return {
+      ...d,
+      label: format(dt, "MMM", { locale: ptBR }).replace(/^./, (c) => c.toUpperCase()),
+      isCurrent,
+      valueLabel: d.faturamento >= 1_000_000 ? `R$ ${(d.faturamento / 1_000_000).toFixed(1).replace(".", ",")}` : d.faturamento >= 1000 ? `R$ ${(d.faturamento / 1000).toFixed(0)}K` : `R$ ${d.faturamento.toFixed(0)}`,
+    };
+  });
+
+  const hasCurrent = rows.some((r) => r.isCurrent);
 
   return (
-    <Card>
-      <CardHeader className="pb-2">
-        <CardTitle className="text-base font-semibold flex items-center gap-2">
-          <TrendingUp className="h-4 w-4 text-primary" />
-          Evolução mensal
-        </CardTitle>
+    <Card className="rounded-2xl">
+      <CardHeader className="pb-1">
+        <div className="text-base font-semibold text-foreground">Evolução mensal do faturamento</div>
+        <div className="text-xs text-muted-foreground">R$ milhões</div>
       </CardHeader>
       <CardContent>
-        {isLoading ? <Skeleton className="h-[280px] w-full" /> : rows.length === 0 ? (
-          <div className="h-[280px] flex items-center justify-center text-sm text-muted-foreground">Sem vendas no período</div>
+        {isLoading ? (
+          <Skeleton className="h-[300px] w-full" />
+        ) : rows.length === 0 ? (
+          <div className="h-[300px] flex items-center justify-center text-sm text-muted-foreground">Sem vendas no período</div>
         ) : (
-          <ResponsiveContainer width="100%" height={280}>
-            <BarChart data={rows} margin={{ top: 5, right: 10, left: 10, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-              <XAxis dataKey="label" tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" />
-              <YAxis tickFormatter={(v) => v >= 1_000_000 ? `${(v / 1_000_000).toFixed(1)}M` : v >= 1000 ? `${(v / 1000).toFixed(0)}K` : String(v)}
-                tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" />
-              <Tooltip
-                contentStyle={{ borderRadius: 8, border: "1px solid hsl(var(--border))", background: "hsl(var(--card))" }}
-                formatter={(value: number, name) => name === "faturamento" ? [formatCurrency(value), "Faturamento"] : [value.toLocaleString("pt-BR"), "Notas"]}
-              />
-              <Bar dataKey="faturamento" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
+          <>
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={rows} margin={{ top: 28, right: 16, left: 8, bottom: 8 }}>
+                <XAxis dataKey="label" tick={{ fontSize: 12, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} />
+                <YAxis hide />
+                <Tooltip
+                  cursor={{ fill: "hsl(var(--vendas-accent-softer))" }}
+                  contentStyle={{ borderRadius: 8, border: "1px solid hsl(var(--border))", background: "hsl(var(--card))", fontSize: 12 }}
+                  formatter={(value: number, name) => name === "faturamento" ? [formatCurrency(value), "Faturamento"] : [value.toLocaleString("pt-BR"), "Notas"]}
+                />
+                <Bar dataKey="faturamento" radius={[8, 8, 0, 0]} maxBarSize={64}>
+                  {rows.map((r, i) => (
+                    <Cell key={i} fill={r.isCurrent ? "hsl(var(--vendas-accent-soft))" : "hsl(var(--vendas-accent))"} />
+                  ))}
+                  <LabelList
+                    dataKey="valueLabel"
+                    position="top"
+                    style={{ fill: "hsl(var(--muted-foreground))", fontSize: 11, fontWeight: 600 }}
+                  />
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+            {hasCurrent && (
+              <div className="text-[11px] text-muted-foreground mt-2 text-right">
+                * {format(today, "MMM", { locale: ptBR })} parcial (até dia {today.getDate()})
+              </div>
+            )}
+          </>
         )}
       </CardContent>
     </Card>
