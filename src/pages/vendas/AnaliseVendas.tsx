@@ -26,6 +26,7 @@ function defaultFilters(): VendasFilters {
 }
 
 export default function AnaliseVendas() {
+  const navigate = useNavigate();
   const [filters, setFilters] = useState<VendasFilters>(defaultFilters);
 
   const kpis = useVendasKpis(filters);
