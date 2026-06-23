@@ -71,6 +71,7 @@ export function LauncherDialog({ open, onOpenChange }: Props) {
   const location = useLocation();
   const { categories } = useNavV2Data();
   const { entries } = useRecents();
+  const utilityShortcuts = useUtilityShortcuts();
   const { theme } = useLauncherTheme();
   const [query, setQuery] = useState("");
   const [drilledCode, setDrilledCode] = useState<string | null>(null);
