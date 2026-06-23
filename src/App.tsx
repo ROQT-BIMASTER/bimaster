@@ -839,6 +839,9 @@ function AppContent() {
             <Route path="/dashboard/estoque/reconciliacao-cores" element={<ModuleRoute moduleCode="estoque"><EstoqueReconciliacaoCoresPage /></ModuleRoute>} />
             <Route path="/dashboard/estoque/auditoria-linhas-erp" element={<ModuleRoute moduleCode="estoque"><EstoqueAuditoriaLinhasErpPage /></ModuleRoute>} />
             <Route path="/dashboard/estoque/valores-por-filial" element={<ModuleRoute moduleCode="estoque"><EstoqueValoresPorFilial /></ModuleRoute>} />
+            <Route path="/dashboard/estoque/marca-niveis" element={<ModuleRoute moduleCode="estoque"><ScreenProtectedRoute screenCode="estoque_marca_niveis"><EstoqueMarcaNiveisPage /></ScreenProtectedRoute></ModuleRoute>} />
+            <Route path="/dashboard/estoque/marca-vs-distribuidoras" element={<ModuleRoute moduleCode="estoque"><ScreenProtectedRoute screenCode="estoque_marca_vs_distribuidoras"><EstoqueMarcaVsDistribuidorasPage /></ScreenProtectedRoute></ModuleRoute>} />
+
             {/* /dashboard/estoque/fornecedor* movidas para o módulo Fornecedor (vide redirects acima) */}
             <Route path="/dashboard/composicao/sync" element={<ScreenRoute screenCode="admin"><ComposicaoErpSyncPage /></ScreenRoute>} />
             <Route path="/dashboard/financeiro/cobranca" element={<ModuleRoute moduleCode="financeiro"><ScreenProtectedRoute screenCode="financeiro_cobrancas"><CobrancaInadimplentes /></ScreenProtectedRoute></ModuleRoute>} />
