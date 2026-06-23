@@ -103,6 +103,7 @@ export function AppRail({ side = "left" }: AppRailProps) {
   const navigate = useNavigate();
   const [openCategoryKey, setOpenCategoryKey] = useState<string | null>(null);
   const [launcherOpen, setLauncherOpen] = useState(false);
+  const utilityShortcuts = useUtilityShortcuts();
 
   const active = findActiveModule(categories, location.pathname);
   const activeCategoryKey = active?.category.key ?? null;
