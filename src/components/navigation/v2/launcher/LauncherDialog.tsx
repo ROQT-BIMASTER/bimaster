@@ -69,6 +69,7 @@ export function LauncherDialog({ open, onOpenChange }: Props) {
   const location = useLocation();
   const { categories } = useNavV2Data();
   const { entries } = useRecents();
+  const { theme } = useLauncherTheme();
   const [query, setQuery] = useState("");
 
   const filtered = useMemo(() => filterTree(categories, query), [categories, query]);
