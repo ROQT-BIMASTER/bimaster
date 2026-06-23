@@ -1,0 +1,44 @@
+name: pr-size-label
+
+# Aplica label size/XS..size/XL com base no total de linhas alteradas (add+del).
+# Útil para forçar a cultura de PRs pequenos. Limites alinhados a labels.yml.
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, edited]
+
+permissions:
+  pull-requests: write
+  contents: read
+
+jobs:
+  size-label:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: codelytv/pr-size-labeler@v1
+        with:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          xs_label: 'size/XS'
+          xs_max_size: '9'
+          s_label: 'size/S'
+          s_max_size: '49'
+          m_label: 'size/M'
+          m_max_size: '249'
+          l_label: 'size/L'
+          l_max_size: '999'
+          xl_label: 'size/XL'
+          # Ignora gerados / lockfiles ao calcular tamanho.
+          files_to_ignore: |
+            bun.lockb
+            package-lock.json
+            yarn.lock
+            src/integrations/supabase/types.ts
+            docs/EDGE_FUNCTIONS.md
+            docs/ROUTES.md
+            docs/DATABASE.md
+            CHANGELOG.md
+          # Comenta apenas em PRs XL para evitar ruído.
+          message_if_xl: >
+            Este PR tem **1000+ linhas alteradas**. Considere dividir em PRs
+            menores para facilitar revisão. Veja diretrizes em
+            `CONTRIBUTING.md` (seção "Revisão").

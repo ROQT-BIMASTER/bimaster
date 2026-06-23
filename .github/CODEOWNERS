@@ -1,40 +1,112 @@
 # CODEOWNERS — ROQT-BIMASTER
 # Cada área tem um responsável padrão. Teams precisam existir em github.com/ROQT.
+# Sintaxe: https://docs.github.com/articles/about-code-owners/
+# Última regra que casa um path vence — específico embaixo do genérico.
 
-# Default
+# Default — fallback para qualquer arquivo não classificado abaixo
 *                                       @ROQT/eng
 
-# Infraestrutura / build
+# ---------------------------------------------------------------------------
+# Infraestrutura, build, CI/CD
+# ---------------------------------------------------------------------------
 /.github/                               @ROQT/eng
+/.github/workflows/                     @ROQT/eng @ROQT/security
+/.github/CODEOWNERS                     @ROQT/eng @ROQT/security
 /cloudflare/                            @ROQT/eng
 /scripts/                               @ROQT/eng
+/scripts/security/                      @ROQT/security @ROQT/eng
+/scripts/ci/                            @ROQT/eng @ROQT/security
+/scripts/ci/guard-destructive-migrations.sh @ROQT/security @ROQT/eng
 /vite.config.ts                         @ROQT/eng
+/tailwind.config.ts                     @ROQT/eng
+/eslint.config.js                       @ROQT/eng
+/eslint.config.edge.js                  @ROQT/eng
+/tsconfig*.json                         @ROQT/eng
 /package.json                           @ROQT/eng
+/bun.lockb                              @ROQT/eng
+/.env.example                           @ROQT/eng
 
-# Backend / banco
+# ---------------------------------------------------------------------------
+# Backend / banco / edge functions
+# ---------------------------------------------------------------------------
 /supabase/                              @ROQT/backend
 /supabase/migrations/                   @ROQT/backend @ROQT/security
-/docs/security/                         @ROQT/security
-/SECURITY.md                            @ROQT/security
-/scripts/ci/guard-destructive-migrations.sh @ROQT/security @ROQT/eng
+/supabase/functions/_shared/            @ROQT/backend @ROQT/security
+/supabase/functions/projeto-*/          @ROQT/projetos @ROQT/backend
+/supabase/functions/central-copilot-*/  @ROQT/projetos @ROQT/backend
+/supabase/functions/ai-*/               @ROQT/backend
+/supabase/functions/sofia-*/            @ROQT/backend
+/supabase/functions/shipsgo-*/          @ROQT/operacoes @ROQT/backend
+/supabase/functions/asana-*/            @ROQT/projetos @ROQT/backend
+/supabase/functions/contas-pagar*/      @ROQT/financeiro @ROQT/backend
+/supabase/functions/contas-receber*/    @ROQT/financeiro @ROQT/backend
+/supabase/functions/sync-erp-*/         @ROQT/backend
 
-# Módulos de negócio
+# ---------------------------------------------------------------------------
+# Segurança e governança
+# ---------------------------------------------------------------------------
+/SECURITY.md                            @ROQT/security
+/docs/security/                         @ROQT/security
+/docs/AUDITORIA_SEGURANCA.md            @ROQT/security
+/docs/audit/                            @ROQT/security @ROQT/eng
+
+# ---------------------------------------------------------------------------
+# Módulos de negócio — front-end
+# ---------------------------------------------------------------------------
 /src/pages/financeiro/                  @ROQT/financeiro
 /src/components/financeiro/             @ROQT/financeiro
+/src/pages/dre/                         @ROQT/financeiro
+/src/components/dre/                    @ROQT/financeiro
+/src/pages/fluxocaixa/                  @ROQT/financeiro
+/src/components/fluxocaixa/             @ROQT/financeiro
+/src/pages/cobranca/                    @ROQT/financeiro
+/src/components/cobranca/               @ROQT/financeiro
+/src/components/conciliacao/            @ROQT/financeiro
+
 /src/pages/trade/                       @ROQT/trade
 /src/components/trade/                  @ROQT/trade
+/src/components/comercial/              @ROQT/trade
+
 /src/pages/fabrica/                     @ROQT/fabrica
 /src/components/fabrica/                @ROQT/fabrica
+/src/components/composicao/             @ROQT/fabrica
+
 /src/pages/projetos/                    @ROQT/projetos
 /src/components/projetos/               @ROQT/projetos
+/src/components/kanban/                 @ROQT/projetos
+/src/components/atividades/             @ROQT/projetos
+
 /src/pages/marketing/                   @ROQT/marketing
 /src/components/marketing/              @ROQT/marketing
+/src/pages/briefings/                   @ROQT/marketing
+/src/components/briefings/              @ROQT/marketing
+/src/components/huggs/                  @ROQT/marketing
+
 /src/pages/china/                       @ROQT/operacoes
 /src/components/china/                  @ROQT/operacoes
+
+/src/pages/crm/                         @ROQT/trade
+/src/components/crm/                    @ROQT/trade
+
 /src/pages/admin/                       @ROQT/eng
 /src/components/admin/                  @ROQT/eng
+/src/components/configuracoes/          @ROQT/eng
+/src/components/configuracoes-acesso/   @ROQT/eng @ROQT/security
 
+# ---------------------------------------------------------------------------
+# Auto-gerados — bloqueio editorial (revisores precisam saber que NÃO se edita)
+# ---------------------------------------------------------------------------
+/src/integrations/supabase/client.ts    @ROQT/eng
+/src/integrations/supabase/types.ts     @ROQT/eng
+/supabase/config.toml                   @ROQT/eng @ROQT/backend
+
+# ---------------------------------------------------------------------------
 # Documentação
+# ---------------------------------------------------------------------------
 /docs/                                  @ROQT/eng
 /AGENTS.md                              @ROQT/eng
+/AI_CONTEXT.md                          @ROQT/eng
 /README.md                              @ROQT/eng
+/CONTRIBUTING.md                        @ROQT/eng
+/CHANGELOG.md                           @ROQT/eng
+/.memory/                               @ROQT/eng
