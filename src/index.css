@@ -114,6 +114,22 @@ All colors MUST be HSL.
     --vendas-accent-soft: 330 82% 92%;
     --vendas-accent-softer: 330 82% 97%;
     --vendas-bg: 220 18% 96%;
+
+    /* Launcher v2 (always dark surface, independent of app theme) */
+    --launcher-surface: 222 47% 7%;
+    --launcher-surface-elevated: 222 38% 11%;
+    --launcher-surface-hover: 222 35% 14%;
+    --launcher-border: 222 24% 18%;
+    --launcher-foreground: 210 20% 96%;
+    --launcher-muted: 218 12% 58%;
+    --launcher-accent-1: 28 95% 55%;
+    --launcher-accent-2: 0 75% 60%;
+    --launcher-accent-3: 190 70% 50%;
+    --launcher-accent-4: 215 90% 60%;
+    --launcher-accent-5: 270 60% 65%;
+    --launcher-accent-6: 200 90% 55%;
+    --launcher-accent-7: 145 60% 50%;
+    --launcher-accent-8: 45 95% 55%;
   }
 
   .dark {
