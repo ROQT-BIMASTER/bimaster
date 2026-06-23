@@ -38,6 +38,7 @@ function inferGuard(idx) {
   // 99% of Routes fit on a single line. Restrict the inspection to the
   // line itself to prevent cross-pollination between adjacent <Route> entries.
   const window = lines[idx] ?? "";
+  if (/element=\{<Navigate\b/.test(window)) return { kind: "redirect", moduleCode: null, screenCode: null };
   const ms = window.match(/ModuleScreenRoute[^>]*moduleCode="([^"]+)"[^>]*screenCode="([^"]+)"/);
   if (ms) return { kind: "module-screen", moduleCode: ms[1], screenCode: ms[2] };
   const sp = window.match(/(?:ScreenProtectedRoute|ScreenRoute)[^>]*screenCode="([^"]+)"/);
@@ -50,6 +51,7 @@ function inferGuard(idx) {
   if (/ProtectedRoute/.test(window)) return { kind: "protected", moduleCode: null, screenCode: null };
   return { kind: "public", moduleCode: null, screenCode: null };
 }
+
 
 
 
