@@ -10,10 +10,9 @@ on:
 
 jobs:
   lint:
-    # ESLint em src/ — modo informativo (continue-on-error) enquanto baseline
-    # de erros pré-existentes (~43) é tratado em PRs separados.
+    # ESLint em src/ — bloqueante (0 errors após exclusão de cypress/**).
+    # Warnings não bloqueiam; serão atacados em PRs temáticos.
     runs-on: ubuntu-latest
-    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2

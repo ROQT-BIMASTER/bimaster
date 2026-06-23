@@ -41,10 +41,6 @@ const TabelasPrecosModule = () => {
     hasPermission("precos_portal") || 
     hasPermission("precos_acesso");
 
-  if (!permissionsLoading && !hasAnyPrecosPermission) {
-    return <Navigate to="/dashboard" replace />;
-  }
-
   useEffect(() => {
     fetchDashboardData();
     
@@ -69,6 +65,10 @@ const TabelasPrecosModule = () => {
       supabase.removeChannel(channel);
     };
   }, [queryClient]);
+
+  if (!permissionsLoading && !hasAnyPrecosPermission) {
+    return <Navigate to="/dashboard" replace />;
+  }
 
   const fetchDashboardData = async () => {
     try {
