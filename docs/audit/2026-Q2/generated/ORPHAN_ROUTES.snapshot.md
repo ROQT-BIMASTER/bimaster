@@ -6,8 +6,8 @@
 ## Totais
 
 - Rotas únicas em `src/App.tsx`: **359**
-- Rotas ativas em `sidebar_menu_items`:  **170**
-- **Órfãs (no roteador, ausentes do menu): 191**
+- Rotas ativas em `sidebar_menu_items`:  **174**
+- **Órfãs (no roteador, ausentes do menu): 187**
 
 | Bucket | Quantidade |
 | --- | ---: |
@@ -15,7 +15,7 @@
 | **B** — Child / wizard / detail (intencional fora do menu) | 100 |
 | **C** — CRM nested (intencional fora do menu) | 6 |
 | **D** — Admin / diagnóstico (cadastrar com require_admin) | 28 |
-| **E** — Feature órfã real (cadastrar no módulo correto) | 33 |
+| **E** — Feature órfã real (cadastrar no módulo correto) | 29 |
 
 ## Bucket D — Admin / diagnóstico (cadastrar com require_admin)
 
@@ -57,11 +57,7 @@
 | `/dashboard/ajuda/projetos-visibilidade` | 901 | protected | — | — | feature órfã real |
 | `/dashboard/bancos` | 958 | module-screen | financeiro | financeiro_contas_bancarias | feature órfã real |
 | `/dashboard/briefings` | 590 | protected | — | — | feature órfã real |
-| `/dashboard/central/amostras` | 877 | screen | — | admin | feature órfã real |
 | `/dashboard/central/aprovacoes` | 872 | module-screen | projetos | projetos_aprovacoes_central | feature órfã real |
-| `/dashboard/central/composicao` | 875 | screen | — | admin | feature órfã real |
-| `/dashboard/central/embalagens` | 876 | screen | — | admin | feature órfã real |
-| `/dashboard/central/motor-artes` | 874 | screen | — | admin | feature órfã real |
 | `/dashboard/chat` | 618 | protected | — | — | feature órfã real |
 | `/dashboard/chat/aprovacoes` | 619 | protected | — | — | feature órfã real |
 | `/dashboard/compras-internacionais/inbox` | 739 | module-screen | china | compras_inbox_comprador | feature órfã real |

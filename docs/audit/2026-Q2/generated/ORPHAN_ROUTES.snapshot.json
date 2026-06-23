@@ -1,8 +1,8 @@
 {
   "totals": {
     "routes": 359,
-    "menu": 170,
-    "orphans": 191
+    "menu": 174,
+    "orphans": 187
   },
   "buckets": {
     "A": [
@@ -1786,56 +1786,12 @@
         "reason": "feature órfã real"
       },
       {
-        "path": "/dashboard/central/amostras",
-        "line": 877,
-        "guard": {
-          "kind": "screen",
-          "moduleCode": null,
-          "screenCode": "admin"
-        },
-        "bucket": "E",
-        "reason": "feature órfã real"
-      },
-      {
         "path": "/dashboard/central/aprovacoes",
         "line": 872,
         "guard": {
           "kind": "module-screen",
           "moduleCode": "projetos",
           "screenCode": "projetos_aprovacoes_central"
-        },
-        "bucket": "E",
-        "reason": "feature órfã real"
-      },
-      {
-        "path": "/dashboard/central/composicao",
-        "line": 875,
-        "guard": {
-          "kind": "screen",
-          "moduleCode": null,
-          "screenCode": "admin"
-        },
-        "bucket": "E",
-        "reason": "feature órfã real"
-      },
-      {
-        "path": "/dashboard/central/embalagens",
-        "line": 876,
-        "guard": {
-          "kind": "screen",
-          "moduleCode": null,
-          "screenCode": "admin"
-        },
-        "bucket": "E",
-        "reason": "feature órfã real"
-      },
-      {
-        "path": "/dashboard/central/motor-artes",
-        "line": 874,
-        "guard": {
-          "kind": "screen",
-          "moduleCode": null,
-          "screenCode": "admin"
         },
         "bucket": "E",
         "reason": "feature órfã real"
