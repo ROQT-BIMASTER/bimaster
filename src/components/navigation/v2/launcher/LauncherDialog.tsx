@@ -180,9 +180,11 @@ export function LauncherDialog({ open, onOpenChange }: Props) {
         <div className="flex" style={{ height: "min(640px, 75vh)" }}>
           <LauncherSidebar
             recentsCount={entries.length}
+            shortcutsCount={utilityShortcuts.length}
             active="recents"
             onSelect={() => undefined}
           />
+
 
           <div className="flex-1 overflow-y-auto p-5 space-y-7">
             {drilledModule ? (
