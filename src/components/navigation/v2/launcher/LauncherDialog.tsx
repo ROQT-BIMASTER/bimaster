@@ -166,7 +166,13 @@ export function LauncherDialog({ open, onOpenChange }: Props) {
         <LauncherHeader
           value={query}
           onChange={setQuery}
-          onEscape={() => onOpenChange(false)}
+          onEscape={handleEscape}
+          onEnter={handleEnter}
+          placeholder={
+            drilledModule
+              ? `Buscar em ${drilledModule.label}…`
+              : "Para onde você quer ir?"
+          }
         />
 
         <div className="flex" style={{ height: "min(640px, 75vh)" }}>
@@ -177,7 +183,15 @@ export function LauncherDialog({ open, onOpenChange }: Props) {
           />
 
           <div className="flex-1 overflow-y-auto p-5 space-y-7">
-            {hasQuery ? (
+            {drilledModule ? (
+              <ModulePagesView
+                module={drilledModule}
+                query={query}
+                currentPath={location.pathname}
+                onBack={backToGrid}
+                onSelectPage={go}
+              />
+            ) : hasQuery ? (
               allFlatModules.length === 0 ? (
                 <EmptyState query={query} />
               ) : (
