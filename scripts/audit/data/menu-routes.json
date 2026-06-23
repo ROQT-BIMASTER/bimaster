@@ -1,5 +1,6 @@
 {
   "routes": [
+    "/admin/briefings-fluxos",
     "/configuracoes/admin/relatorio-ap-erp",
     "/configuracoes/integracoes/notion",
     "/dashboard",
@@ -11,6 +12,7 @@
     "/dashboard/aprovacao-artes",
     "/dashboard/aprovacao-artes/configuracao",
     "/dashboard/auditoria",
+    "/dashboard/briefings",
     "/dashboard/central/amostras",
     "/dashboard/central/composicao",
     "/dashboard/central/embalagens",

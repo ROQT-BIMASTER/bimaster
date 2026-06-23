@@ -1,8 +1,8 @@
 {
   "totals": {
     "routes": 359,
-    "menu": 174,
-    "orphans": 187
+    "menu": 176,
+    "orphans": 185
   },
   "buckets": {
     "A": [
@@ -298,9 +298,9 @@
         "path": "/dashboard/briefings/:id",
         "line": 591,
         "guard": {
-          "kind": "protected",
-          "moduleCode": null,
-          "screenCode": null
+          "kind": "module-screen",
+          "moduleCode": "projetos",
+          "screenCode": "projetos_briefings"
         },
         "bucket": "B",
         "reason": "wizard/detail"
@@ -1443,17 +1443,6 @@
     ],
     "D": [
       {
-        "path": "/admin/briefings-fluxos",
-        "line": 790,
-        "guard": {
-          "kind": "screen",
-          "moduleCode": null,
-          "screenCode": "admin"
-        },
-        "bucket": "D",
-        "reason": "admin/diagnostic"
-      },
-      {
         "path": "/admin/cofre-templates",
         "line": 792,
         "guard": {
@@ -1770,17 +1759,6 @@
           "kind": "module-screen",
           "moduleCode": "financeiro",
           "screenCode": "financeiro_contas_bancarias"
-        },
-        "bucket": "E",
-        "reason": "feature órfã real"
-      },
-      {
-        "path": "/dashboard/briefings",
-        "line": 590,
-        "guard": {
-          "kind": "protected",
-          "moduleCode": null,
-          "screenCode": null
         },
         "bucket": "E",
         "reason": "feature órfã real"

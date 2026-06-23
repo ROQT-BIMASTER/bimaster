@@ -6,22 +6,21 @@
 ## Totais
 
 - Rotas únicas em `src/App.tsx`: **359**
-- Rotas ativas em `sidebar_menu_items`:  **174**
-- **Órfãs (no roteador, ausentes do menu): 187**
+- Rotas ativas em `sidebar_menu_items`:  **176**
+- **Órfãs (no roteador, ausentes do menu): 185**
 
 | Bucket | Quantidade |
 | --- | ---: |
 | **A** — Public / auth (intencional fora do menu) | 24 |
 | **B** — Child / wizard / detail (intencional fora do menu) | 100 |
 | **C** — CRM nested (intencional fora do menu) | 6 |
-| **D** — Admin / diagnóstico (cadastrar com require_admin) | 28 |
-| **E** — Feature órfã real (cadastrar no módulo correto) | 29 |
+| **D** — Admin / diagnóstico (cadastrar com require_admin) | 27 |
+| **E** — Feature órfã real (cadastrar no módulo correto) | 28 |
 
 ## Bucket D — Admin / diagnóstico (cadastrar com require_admin)
 
 | Rota | Linha | Guard | module_code | screen_code | Motivo |
 | --- | ---: | --- | --- | --- | --- |
-| `/admin/briefings-fluxos` | 790 | screen | — | admin | admin/diagnostic |
 | `/admin/cofre-templates` | 792 | screen | — | admin | admin/diagnostic |
 | `/admin/documentacao-tecnica` | 942 | screen | — | admin | admin/diagnostic |
 | `/admin/integracoes-saude` | 943 | screen | — | admin | admin/diagnostic |
@@ -56,7 +55,6 @@
 | --- | ---: | --- | --- | --- | --- |
 | `/dashboard/ajuda/projetos-visibilidade` | 901 | protected | — | — | feature órfã real |
 | `/dashboard/bancos` | 958 | module-screen | financeiro | financeiro_contas_bancarias | feature órfã real |
-| `/dashboard/briefings` | 590 | protected | — | — | feature órfã real |
 | `/dashboard/central/aprovacoes` | 872 | module-screen | projetos | projetos_aprovacoes_central | feature órfã real |
 | `/dashboard/chat` | 618 | protected | — | — | feature órfã real |
 | `/dashboard/chat/aprovacoes` | 619 | protected | — | — | feature órfã real |
@@ -119,7 +117,7 @@
 | --- | ---: | --- | --- | --- | --- |
 | `/dashboard/admin/relatorios-v2/:reportId` | 587 | protected | — | — | wizard/detail |
 | `/dashboard/admin/relatorios-v2/novo` | 586 | protected | — | — | wizard/detail |
-| `/dashboard/briefings/:id` | 591 | protected | — | — | wizard/detail |
+| `/dashboard/briefings/:id` | 591 | module-screen | projetos | projetos_briefings | wizard/detail |
 | `/dashboard/composicao/sync` | 846 | screen | — | admin | wizard/detail |
 | `/dashboard/compras-internacionais` | 738 | redirect | — | — | redirect <Navigate> |
 | `/dashboard/configuracoes/api-health` | 927 | screen | — | admin | child of /dashboard/configuracoes |
