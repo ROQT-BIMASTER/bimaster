@@ -87,7 +87,7 @@
         "path": "/contato",
         "line": 565,
         "guard": {
-          "kind": "protected",
+          "kind": "public",
           "moduleCode": null,
           "screenCode": null
         },
@@ -98,9 +98,9 @@
         "path": "/formulario-dashboard",
         "line": 978,
         "guard": {
-          "kind": "module-screen",
-          "moduleCode": "trade",
-          "screenCode": "trade_admin"
+          "kind": "public",
+          "moduleCode": null,
+          "screenCode": null
         },
         "bucket": "A",
         "reason": "public/auth"
@@ -164,8 +164,8 @@
         "path": "/meu-perfil",
         "line": 569,
         "guard": {
-          "kind": "crm-admin",
-          "moduleCode": "crm",
+          "kind": "protected",
+          "moduleCode": null,
           "screenCode": null
         },
         "bucket": "A",
@@ -219,9 +219,9 @@
         "path": "/portal/perfil",
         "line": 963,
         "guard": {
-          "kind": "module-screen",
-          "moduleCode": "processos",
-          "screenCode": "processos_consulta"
+          "kind": "cliente",
+          "moduleCode": null,
+          "screenCode": null
         },
         "bucket": "A",
         "reason": "public prefix"
@@ -342,8 +342,8 @@
         "path": "/dashboard/composicao/sync",
         "line": 846,
         "guard": {
-          "kind": "module-screen",
-          "moduleCode": "financeiro",
+          "kind": "screen",
+          "moduleCode": null,
           "screenCode": "admin"
         },
         "bucket": "B",
@@ -397,9 +397,9 @@
         "path": "/dashboard/estoque/fornecedor",
         "line": 750,
         "guard": {
-          "kind": "module-screen",
-          "moduleCode": "central_inteligencia",
-          "screenCode": "ci_clientes"
+          "kind": "public",
+          "moduleCode": null,
+          "screenCode": null
         },
         "bucket": "B",
         "reason": "child of /dashboard/estoque"
@@ -408,9 +408,9 @@
         "path": "/dashboard/estoque/fornecedor-depara",
         "line": 751,
         "guard": {
-          "kind": "module-screen",
-          "moduleCode": "central_inteligencia",
-          "screenCode": "ci_clientes"
+          "kind": "public",
+          "moduleCode": null,
+          "screenCode": null
         },
         "bucket": "B",
         "reason": "child of /dashboard/estoque"
@@ -749,8 +749,8 @@
         "path": "/dashboard/financeiro/contas-a-pagar/sync",
         "line": 818,
         "guard": {
-          "kind": "module-screen",
-          "moduleCode": "financeiro",
+          "kind": "screen",
+          "moduleCode": null,
           "screenCode": "admin"
         },
         "bucket": "B",
@@ -793,9 +793,9 @@
         "path": "/dashboard/financeiro/plano-reducao/:planoId",
         "line": 855,
         "guard": {
-          "kind": "module-screen",
-          "moduleCode": "financeiro",
-          "screenCode": "financeiro_dre"
+          "kind": "public",
+          "moduleCode": null,
+          "screenCode": null
         },
         "bucket": "B",
         "reason": "wizard/detail"
@@ -826,8 +826,8 @@
         "path": "/dashboard/financeiro/vendas/sync",
         "line": 831,
         "guard": {
-          "kind": "module-screen",
-          "moduleCode": "estoque",
+          "kind": "screen",
+          "moduleCode": null,
           "screenCode": "admin"
         },
         "bucket": "B",
@@ -848,9 +848,9 @@
         "path": "/dashboard/marketing/mining-data",
         "line": 864,
         "guard": {
-          "kind": "module-screen",
+          "kind": "module",
           "moduleCode": "marketing",
-          "screenCode": "projetos_dashboard"
+          "screenCode": null
         },
         "bucket": "B",
         "reason": "child of /dashboard/marketing"
@@ -936,8 +936,8 @@
         "path": "/dashboard/projetos/admin/visibilidade",
         "line": 899,
         "guard": {
-          "kind": "module-screen",
-          "moduleCode": "projetos",
+          "kind": "screen",
+          "moduleCode": null,
           "screenCode": "admin"
         },
         "bucket": "B",
@@ -971,7 +971,7 @@
         "guard": {
           "kind": "module-screen",
           "moduleCode": "projetos",
-          "screenCode": "projetos_aprovacoes_central"
+          "screenCode": "projetos_home"
         },
         "bucket": "B",
         "reason": "child of /dashboard/projetos"
@@ -982,7 +982,7 @@
         "guard": {
           "kind": "module-screen",
           "moduleCode": "projetos",
-          "screenCode": "projetos_aprovacoes_central"
+          "screenCode": "projetos_home"
         },
         "bucket": "B",
         "reason": "wizard/detail"
@@ -991,9 +991,9 @@
         "path": "/dashboard/projetos/convites",
         "line": 888,
         "guard": {
-          "kind": "module-screen",
-          "moduleCode": "projetos",
-          "screenCode": "projetos_vincular_china"
+          "kind": "protected",
+          "moduleCode": null,
+          "screenCode": null
         },
         "bucket": "B",
         "reason": "child of /dashboard/projetos"
@@ -1024,9 +1024,9 @@
         "path": "/dashboard/projetos/modelos",
         "line": 880,
         "guard": {
-          "kind": "module-screen",
+          "kind": "module",
           "moduleCode": "projetos",
-          "screenCode": "projetos_inbox"
+          "screenCode": null
         },
         "bucket": "B",
         "reason": "child of /dashboard/projetos"
@@ -1046,9 +1046,9 @@
         "path": "/dashboard/projetos/visual-qa",
         "line": 878,
         "guard": {
-          "kind": "module-screen",
+          "kind": "module",
           "moduleCode": "projetos",
-          "screenCode": "projetos_minhas_tarefas"
+          "screenCode": null
         },
         "bucket": "B",
         "reason": "child of /dashboard/projetos"
@@ -1323,9 +1323,9 @@
         "path": "analytics",
         "line": 578,
         "guard": {
-          "kind": "screen",
+          "kind": "public",
           "moduleCode": null,
-          "screenCode": "ai_analytics"
+          "screenCode": null
         },
         "bucket": "C",
         "reason": "CRM nested tab"
@@ -1345,9 +1345,9 @@
         "path": "configuracoes",
         "line": 579,
         "guard": {
-          "kind": "screen",
+          "kind": "public",
           "moduleCode": null,
-          "screenCode": "ai_analytics"
+          "screenCode": null
         },
         "bucket": "C",
         "reason": "CRM nested tab"
@@ -1490,8 +1490,8 @@
         "path": "/dashboard/admin/alertas-backfill-tarefas",
         "line": 884,
         "guard": {
-          "kind": "module-screen",
-          "moduleCode": "projetos",
+          "kind": "screen",
+          "moduleCode": null,
           "screenCode": "admin"
         },
         "bucket": "D",
@@ -1501,8 +1501,8 @@
         "path": "/dashboard/admin/asana-importacao",
         "line": 949,
         "guard": {
-          "kind": "module-screen",
-          "moduleCode": "financeiro",
+          "kind": "screen",
+          "moduleCode": null,
           "screenCode": "admin"
         },
         "bucket": "D",
@@ -1512,8 +1512,8 @@
         "path": "/dashboard/admin/asana-sync",
         "line": 948,
         "guard": {
-          "kind": "module-screen",
-          "moduleCode": "financeiro",
+          "kind": "screen",
+          "moduleCode": null,
           "screenCode": "admin"
         },
         "bucket": "D",
@@ -1523,8 +1523,8 @@
         "path": "/dashboard/admin/checagem-semanal-tarefas",
         "line": 885,
         "guard": {
-          "kind": "module-screen",
-          "moduleCode": "projetos",
+          "kind": "screen",
+          "moduleCode": null,
           "screenCode": "admin"
         },
         "bucket": "D",
@@ -1534,8 +1534,8 @@
         "path": "/dashboard/admin/dedupe-perfis",
         "line": 950,
         "guard": {
-          "kind": "module-screen",
-          "moduleCode": "financeiro",
+          "kind": "screen",
+          "moduleCode": null,
           "screenCode": "admin"
         },
         "bucket": "D",
@@ -1556,8 +1556,8 @@
         "path": "/dashboard/admin/historico-backfill-tarefas",
         "line": 883,
         "guard": {
-          "kind": "module-screen",
-          "moduleCode": "projetos",
+          "kind": "screen",
+          "moduleCode": null,
           "screenCode": "admin"
         },
         "bucket": "D",
@@ -1567,8 +1567,8 @@
         "path": "/dashboard/admin/projetos-custos-tecnologia",
         "line": 905,
         "guard": {
-          "kind": "module-screen",
-          "moduleCode": "oms",
+          "kind": "screen",
+          "moduleCode": null,
           "screenCode": "admin"
         },
         "bucket": "D",
@@ -1633,8 +1633,8 @@
         "path": "/dashboard/admin/visibilidade-detalhe-tarefa",
         "line": 900,
         "guard": {
-          "kind": "module-screen",
-          "moduleCode": "projetos",
+          "kind": "screen",
+          "moduleCode": null,
           "screenCode": "admin"
         },
         "bucket": "D",
@@ -1655,8 +1655,8 @@
         "path": "/dashboard/configuracoes/fornecedores-visibilidade",
         "line": 953,
         "guard": {
-          "kind": "module-screen",
-          "moduleCode": "financeiro",
+          "kind": "screen",
+          "moduleCode": null,
           "screenCode": "admin"
         },
         "bucket": "D",
@@ -1677,8 +1677,8 @@
         "path": "/dashboard/preferencias-ui",
         "line": 570,
         "guard": {
-          "kind": "crm-admin",
-          "moduleCode": "crm",
+          "kind": "protected",
+          "moduleCode": null,
           "screenCode": null
         },
         "bucket": "D",
@@ -1699,9 +1699,9 @@
         "path": "/dashboard/security/mfa",
         "line": 898,
         "guard": {
-          "kind": "screen",
+          "kind": "protected",
           "moduleCode": null,
-          "screenCode": "admin"
+          "screenCode": null
         },
         "bucket": "D",
         "reason": "admin/diagnostic"
@@ -1734,9 +1734,9 @@
         "path": "/configuracoes/integracoes/notion",
         "line": 945,
         "guard": {
-          "kind": "screen",
+          "kind": "protected",
           "moduleCode": null,
-          "screenCode": "admin"
+          "screenCode": null
         },
         "bucket": "E",
         "reason": "feature órfã real"
@@ -1745,9 +1745,9 @@
         "path": "/dashboard/ajuda/projetos-visibilidade",
         "line": 901,
         "guard": {
-          "kind": "module-screen",
-          "moduleCode": "projetos",
-          "screenCode": "projetos_dashboard"
+          "kind": "protected",
+          "moduleCode": null,
+          "screenCode": null
         },
         "bucket": "E",
         "reason": "feature órfã real"
@@ -1778,9 +1778,9 @@
         "path": "/dashboard/central/amostras",
         "line": 877,
         "guard": {
-          "kind": "module-screen",
-          "moduleCode": "projetos",
-          "screenCode": "projetos_minhas_tarefas"
+          "kind": "public",
+          "moduleCode": null,
+          "screenCode": null
         },
         "bucket": "E",
         "reason": "feature órfã real"
@@ -1800,8 +1800,8 @@
         "path": "/dashboard/central/composicao",
         "line": 875,
         "guard": {
-          "kind": "module",
-          "moduleCode": "projetos",
+          "kind": "public",
+          "moduleCode": null,
           "screenCode": null
         },
         "bucket": "E",
@@ -1811,9 +1811,9 @@
         "path": "/dashboard/central/embalagens",
         "line": 876,
         "guard": {
-          "kind": "module-screen",
-          "moduleCode": "projetos",
-          "screenCode": "projetos_minhas_tarefas"
+          "kind": "public",
+          "moduleCode": null,
+          "screenCode": null
         },
         "bucket": "E",
         "reason": "feature órfã real"
@@ -1833,9 +1833,9 @@
         "path": "/dashboard/chat",
         "line": 618,
         "guard": {
-          "kind": "module-screen",
-          "moduleCode": "comercial",
-          "screenCode": "admin"
+          "kind": "protected",
+          "moduleCode": null,
+          "screenCode": null
         },
         "bucket": "E",
         "reason": "feature órfã real"
@@ -1844,9 +1844,9 @@
         "path": "/dashboard/chat/aprovacoes",
         "line": 619,
         "guard": {
-          "kind": "module-screen",
-          "moduleCode": "comercial",
-          "screenCode": "admin"
+          "kind": "protected",
+          "moduleCode": null,
+          "screenCode": null
         },
         "bucket": "E",
         "reason": "feature órfã real"
@@ -1855,9 +1855,9 @@
         "path": "/dashboard/compras-internacionais",
         "line": 738,
         "guard": {
-          "kind": "module-screen",
-          "moduleCode": "china",
-          "screenCode": "compras_inbox_comprador"
+          "kind": "public",
+          "moduleCode": null,
+          "screenCode": null
         },
         "bucket": "E",
         "reason": "feature órfã real"
@@ -1877,9 +1877,9 @@
         "path": "/dashboard/compras-nacionais",
         "line": 740,
         "guard": {
-          "kind": "module-screen",
+          "kind": "module",
           "moduleCode": "fabrica",
-          "screenCode": "ci_executivo"
+          "screenCode": null
         },
         "bucket": "E",
         "reason": "feature órfã real"
@@ -1888,8 +1888,8 @@
         "path": "/dashboard/configuracoes",
         "line": 620,
         "guard": {
-          "kind": "module-screen",
-          "moduleCode": "comercial",
+          "kind": "screen",
+          "moduleCode": null,
           "screenCode": "admin"
         },
         "bucket": "E",
@@ -1899,9 +1899,9 @@
         "path": "/dashboard/contas-a-pagar",
         "line": 917,
         "guard": {
-          "kind": "screen",
+          "kind": "public",
           "moduleCode": null,
-          "screenCode": "financeiro_contas_pagar"
+          "screenCode": null
         },
         "bucket": "E",
         "reason": "feature órfã real"
@@ -1976,9 +1976,9 @@
         "path": "/dashboard/fornecedor",
         "line": 746,
         "guard": {
-          "kind": "module-screen",
+          "kind": "module",
           "moduleCode": "fornecedor",
-          "screenCode": "fornecedor_vendas"
+          "screenCode": null
         },
         "bucket": "E",
         "reason": "feature órfã real"
@@ -2009,9 +2009,9 @@
         "path": "/dashboard/integracoes/notion",
         "line": 946,
         "guard": {
-          "kind": "screen",
+          "kind": "protected",
           "moduleCode": null,
-          "screenCode": "admin"
+          "screenCode": null
         },
         "bucket": "E",
         "reason": "feature órfã real"
@@ -2064,9 +2064,9 @@
         "path": "/dashboard/plano-contas",
         "line": 922,
         "guard": {
-          "kind": "screen",
+          "kind": "public",
           "moduleCode": null,
-          "screenCode": "financeiro_plano_contas"
+          "screenCode": null
         },
         "bucket": "E",
         "reason": "feature órfã real"
@@ -2119,8 +2119,8 @@
         "path": "/dashboard/rr-tasks",
         "line": 593,
         "guard": {
-          "kind": "module",
-          "moduleCode": "marketing",
+          "kind": "protected",
+          "moduleCode": null,
           "screenCode": null
         },
         "bucket": "E",
@@ -2130,8 +2130,8 @@
         "path": "/dashboard/simulacao",
         "line": 810,
         "guard": {
-          "kind": "module-screen",
-          "moduleCode": "financeiro",
+          "kind": "screen",
+          "moduleCode": null,
           "screenCode": "admin"
         },
         "bucket": "E",
@@ -2141,9 +2141,9 @@
         "path": "/dashboard/vendas/analise",
         "line": 744,
         "guard": {
-          "kind": "module-screen",
-          "moduleCode": "fornecedor",
-          "screenCode": "fornecedor_vendas"
+          "kind": "public",
+          "moduleCode": null,
+          "screenCode": null
         },
         "bucket": "E",
         "reason": "feature órfã real"
