@@ -43,7 +43,7 @@ export default function PreferenciasUI() {
         .eq("user_id", user!.id)
         .maybeSingle();
       if (error) throw error;
-      return (data as UiPrefsRow | null) ?? null;
+      return ((data as unknown) as UiPrefsRow | null) ?? null;
     },
   });
 
