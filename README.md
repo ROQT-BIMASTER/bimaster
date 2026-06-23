@@ -1,13 +1,11 @@
 # Bi Master — Sistema Integrado ERP/CRM/PLM
 
-[![lint-and-build](https://github.com/ROQT-BIMASTER/bimaster/actions/workflows/lint-and-build.yml/badge.svg?branch=main)](https://github.com/ROQT-BIMASTER/bimaster/actions/workflows/lint-and-build.yml)
-[![typecheck](https://github.com/ROQT-BIMASTER/bimaster/actions/workflows/typecheck.yml/badge.svg?branch=main)](https://github.com/ROQT-BIMASTER/bimaster/actions/workflows/typecheck.yml)
-[![tests](https://github.com/ROQT-BIMASTER/bimaster/actions/workflows/tests.yml/badge.svg?branch=main)](https://github.com/ROQT-BIMASTER/bimaster/actions/workflows/tests.yml)
-[![security-rls-e2e](https://github.com/ROQT-BIMASTER/bimaster/actions/workflows/security-rls-e2e.yml/badge.svg?branch=main)](https://github.com/ROQT-BIMASTER/bimaster/actions/workflows/security-rls-e2e.yml)
-[![CodeQL](https://github.com/ROQT-BIMASTER/bimaster/actions/workflows/codeql.yml/badge.svg?branch=main)](https://github.com/ROQT-BIMASTER/bimaster/actions/workflows/codeql.yml)
+[![lint-and-build](https://github.com/ROQT-BIMASTER/Roqt-Bimaster/actions/workflows/lint-and-build.yml/badge.svg?branch=main)](https://github.com/ROQT-BIMASTER/Roqt-Bimaster/actions/workflows/lint-and-build.yml)
+[![typecheck](https://github.com/ROQT-BIMASTER/Roqt-Bimaster/actions/workflows/typecheck.yml/badge.svg?branch=main)](https://github.com/ROQT-BIMASTER/Roqt-Bimaster/actions/workflows/typecheck.yml)
+[![tests](https://github.com/ROQT-BIMASTER/Roqt-Bimaster/actions/workflows/tests.yml/badge.svg?branch=main)](https://github.com/ROQT-BIMASTER/Roqt-Bimaster/actions/workflows/tests.yml)
+[![security-rls-e2e](https://github.com/ROQT-BIMASTER/Roqt-Bimaster/actions/workflows/security-rls-e2e.yml/badge.svg?branch=main)](https://github.com/ROQT-BIMASTER/Roqt-Bimaster/actions/workflows/security-rls-e2e.yml)
+[![CodeQL](https://github.com/ROQT-BIMASTER/Roqt-Bimaster/actions/workflows/codeql.yml/badge.svg?branch=main)](https://github.com/ROQT-BIMASTER/Roqt-Bimaster/actions/workflows/codeql.yml)
 
-> Os badges acima apontam para `ROQT-BIMASTER/bimaster`. Se o nome do repositório
-> no GitHub for diferente, basta editar o slug nas URLs acima.
 
 Sistema interno Bi Master de gestão integrada cobrindo Financeiro (DRE IFRS-18,
 AP/AR, fluxo de caixa), Trade Marketing, Marketing/Influenciadores, Fábrica/PLM
@@ -45,31 +43,36 @@ As chaves de service-role nunca ficam no front — apenas em Edge Functions
 | `bun run typecheck` | `tsc --noEmit` (espelha `typecheck.yml`) |
 | `bun run lint` | ESLint (espelha job `lint` de `lint-and-build.yml`) |
 | `bun run test` | Vitest em modo run (espelha `tests.yml`) |
-| `bun run verify` | typecheck + lint + test em sequência — rode antes de abrir PR |
+| `bun run verify` | typecheck + lint + test (pré-commit rápido) |
+| `bun run verify:ci` | typecheck + typecheck:strict + lint + test + build (cobertura completa do CI) |
 | `bash scripts/security/e2e-anonymous-sensitive-columns.sh` | Smoke E2E de RLS anônima |
 
 ## Verificação local
 
-Antes de abrir um PR, rode a mesma bateria que o CI executa em cada push e pull
-request:
+Duas variantes, conforme o momento:
 
 ```bash
 bun install
-bun run verify        # typecheck + lint + testes unitários
+bun run verify        # pré-commit rápido: typecheck + lint + test
+bun run verify:ci     # antes de push/PR final: acrescenta typecheck:strict + build
 ```
 
-`verify` falha rápido na primeira etapa quebrada. Mapeamento direto com o CI:
+Ambos falham rápido na primeira etapa quebrada. Mapeamento direto com o CI:
 
-| Comando local | Workflow no GitHub Actions |
-|---|---|
-| `bun run typecheck` | `.github/workflows/typecheck.yml` |
-| `bun run lint` | `.github/workflows/lint-and-build.yml` (job `lint`) |
-| `bun run test` | `.github/workflows/tests.yml` |
-| `bun run build` | `.github/workflows/lint-and-build.yml` (job `build`) |
+| Comando local | Workflow no GitHub Actions | Job |
+|---|---|---|
+| `bun run typecheck` | `typecheck.yml` | `typecheck` |
+| `bun run typecheck:strict` | `lint-and-build.yml` | `typecheck-strict` |
+| `bun run lint` | `lint-and-build.yml` | `lint` |
+| `bun run test` | `tests.yml` | `vitest` |
+| `bun run build` | `lint-and-build.yml` | `build` |
 
-Se `verify` passar local e o build manual também, o pipeline no GitHub Actions
-deve passar — qualquer divergência indica deriva de versão de Node/Bun ou cache
-local sujo (`rm -rf node_modules dist .vite && bun install`).
+Se `verify:ci` passar local, o pipeline no GitHub Actions também deve passar.
+Qualquer divergência indica deriva de versão de Node/Bun ou cache local sujo
+(`rm -rf node_modules dist .vite && bun install`).
+
+Para operações de manutenção do repositório (limpeza de PRs antigos, branch
+protection), ver [`docs/MAINTENANCE.md`](./docs/MAINTENANCE.md).
 
 ## Estrutura
 
