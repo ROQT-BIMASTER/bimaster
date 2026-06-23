@@ -256,7 +256,7 @@ export function AppRail({ side = "left" }: AppRailProps) {
                   </TooltipTrigger>
                   <TooltipContent
                     side={tooltipSide}
-                    className="p-0 border-0 bg-transparent shadow-none"
+                    className="p-0 border-0 bg-transparent shadow-none z-[120]"
                   >
                     <RailTooltipCard
                       category={cat}
@@ -269,8 +269,9 @@ export function AppRail({ side = "left" }: AppRailProps) {
                   side={tooltipSide}
                   align="start"
                   sideOffset={8}
-                  className="p-0 w-auto border-0"
+                  className="p-0 w-auto border-0 z-[120]"
                   style={{ background: "transparent", boxShadow: "none" }}
+
                 >
                   <ContextualSidebar
                     category={cat}
@@ -308,10 +309,11 @@ export function AppRail({ side = "left" }: AppRailProps) {
                 <LayoutGrid className="h-5 w-5" />
               </button>
             </TooltipTrigger>
-            <TooltipContent side={tooltipSide}>
+            <TooltipContent side={tooltipSide} className="z-[120]">
               <div className="text-xs">Launcher</div>
               <div className="text-[10px] text-muted-foreground">⌘K</div>
             </TooltipContent>
+
           </Tooltip>
 
           <Tooltip>
@@ -329,9 +331,10 @@ export function AppRail({ side = "left" }: AppRailProps) {
                 {userInitial(user?.email)}
               </button>
             </TooltipTrigger>
-            <TooltipContent side={tooltipSide}>
+            <TooltipContent side={tooltipSide} className="z-[120]">
               <div className="text-xs">{user?.email ?? "Perfil"}</div>
             </TooltipContent>
+
           </Tooltip>
         </div>
       </aside>
