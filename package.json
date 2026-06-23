@@ -10,6 +10,7 @@
     "typecheck": "tsc -p tsconfig.app.json --noEmit",
     "typecheck:strict": "node scripts/typecheck-strict.mjs",
     "verify": "bun run typecheck && bun run lint && bun run test",
+    "verify:ci": "bun run typecheck && bun run typecheck:strict && bun run lint && bun run test && bun run build",
     "lint": "NODE_OPTIONS=--max-old-space-size=8192 eslint .",
     "preview": "vite preview",
     "e2e:reset": "bun run scripts/seed/e2e-aprovacoes-reset.ts",
