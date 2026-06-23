@@ -7,7 +7,8 @@ on:
         required: true
         default: "staging"
   schedule:
-    # Roda diariamente em staging para detectar regressão antes de promoção.
+    # Roda diariamente APENAS em dev para detectar regressão sem side-effects em staging/prod.
+    # staging e production só rodam via workflow_dispatch manual.
     - cron: "0 8 * * *"
 
 jobs:
@@ -17,19 +18,15 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        env:
-          - dev
-          - staging
-          - production
+        env: ${{ github.event_name == 'schedule' && fromJSON('["dev"]') || fromJSON('["dev","staging","production"]') }}
     environment: ${{ matrix.env }}
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: oven-sh/setup-bun@v2
         with:
-          node-version: "20"
+          bun-version: latest
       - name: Install deps
         run: |
-          npm i -g bun
           bun install --frozen-lockfile
           bunx playwright install --with-deps chromium
       - name: Run E2E (matriz de papéis)

@@ -29,12 +29,11 @@ jobs:
           - tz-tokyo
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: oven-sh/setup-bun@v2
         with:
-          node-version: "20"
+          bun-version: latest
       - name: Install deps
         run: |
-          npm i -g bun
           bun install --frozen-lockfile
           bunx playwright install --with-deps chromium
       - name: Run Playwright (${{ matrix.tz }})
