@@ -1,7 +1,7 @@
 /**
  * Card colorido de módulo (grade da área direita).
  */
-import { ArrowUpRight } from "lucide-react";
+import { ArrowUpRight, ChevronRight } from "lucide-react";
 import { resolveIcon } from "../icon";
 import { getModuleAccent, accentStyle } from "./moduleColors";
 import type { NavV2Module } from "../useNavV2Data";
@@ -11,7 +11,7 @@ interface Props {
   description?: string;
   isCurrent: boolean;
   pendentes?: number;
-  onSelect: (mod: NavV2Module) => void;
+  onSelect: (mod: NavV2Module, opts?: { openFirst?: boolean }) => void;
 }
 
 export function ModuleCard({
@@ -24,11 +24,20 @@ export function ModuleCard({
   const Icon = resolveIcon(module.icon);
   const token = getModuleAccent(module.code);
   const pageCount = module.pages.length;
+  const hasMultiple = pageCount > 1;
 
   return (
     <button
       type="button"
-      onClick={() => onSelect(module)}
+      onClick={(e) => {
+        const openFirst = e.shiftKey || e.metaKey || e.ctrlKey;
+        onSelect(module, { openFirst });
+      }}
+      title={
+        hasMultiple
+          ? "Clique para ver as páginas · Shift+Click abre a primeira"
+          : undefined
+      }
       className="group relative flex flex-col gap-3 rounded-xl p-4 text-left transition-all hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2"
       style={{
         background: "hsl(var(--launcher-surface-elevated))",
@@ -66,6 +75,12 @@ export function ModuleCard({
             </p>
           )}
         </div>
+        {hasMultiple && (
+          <ChevronRight
+            className="h-4 w-4 shrink-0 opacity-40 group-hover:opacity-100 transition-opacity"
+            style={{ color: "hsl(var(--launcher-muted))" }}
+          />
+        )}
       </div>
       <div className="flex items-center gap-2 text-[11px]">
         <span style={{ color: "hsl(var(--launcher-muted))" }}>
