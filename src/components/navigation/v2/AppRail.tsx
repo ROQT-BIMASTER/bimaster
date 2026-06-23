@@ -25,6 +25,7 @@ import logoHuugs from "@/assets/logo-huugs.jpg";
 import { resolveIcon } from "./icon";
 import { ContextualSidebar } from "./ContextualSidebar";
 import { Launcher } from "./Launcher";
+import { RecordRecents } from "./launcher/RecordRecents";
 import { findActiveModule, useNavV2Data, type NavV2Module } from "./useNavV2Data";
 
 const RAIL_WIDTH = 68;
@@ -165,6 +166,8 @@ export function AppRail({ side = "left" }: AppRailProps) {
       </aside>
 
       <Launcher open={launcherOpen} onOpenChange={setLauncherOpen} />
+      <RecordRecents categories={categories} />
+
     </TooltipProvider>
   );
 }
