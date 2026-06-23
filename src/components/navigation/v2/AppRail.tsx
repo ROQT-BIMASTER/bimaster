@@ -309,10 +309,11 @@ export function AppRail({ side = "left" }: AppRailProps) {
                 <LayoutGrid className="h-5 w-5" />
               </button>
             </TooltipTrigger>
-            <TooltipContent side={tooltipSide}>
+            <TooltipContent side={tooltipSide} className="z-[120]">
               <div className="text-xs">Launcher</div>
               <div className="text-[10px] text-muted-foreground">⌘K</div>
             </TooltipContent>
+
           </Tooltip>
 
           <Tooltip>
