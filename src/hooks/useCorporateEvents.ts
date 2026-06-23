@@ -121,25 +121,10 @@ export function useCorporateEvents() {
     },
   });
 
-  const eventByIdQuery = (id: string) => useQuery({
-    queryKey: ["corporate-event", id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("corporate_events")
-        .select(`
-          *,
-          budget:trade_budgets(id, name, code, available_amount),
-          responsible:profiles!corporate_events_responsible_user_id_fkey(id, nome),
-          creator:profiles!corporate_events_created_by_fkey(id, nome)
-        `)
-        .eq("id", id)
-        .single();
+  // eventByIdQuery foi extraído para `useCorporateEventById` (hook próprio)
+  // para respeitar rules-of-hooks. Use diretamente no consumidor.
 
-      if (error) throw error;
-      return data as CorporateEvent;
-    },
-    enabled: !!id,
-  });
+
 
   const createEvent = useMutation({
     mutationFn: async (input: CreateEventInput) => {
