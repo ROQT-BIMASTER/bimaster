@@ -125,6 +125,16 @@ export function LauncherDialog({ open, onOpenChange }: Props) {
     [filtered],
   );
 
+  const matchedShortcuts = useMemo(() => {
+    const needle = query.trim().toLowerCase();
+    if (!needle) return [] as UtilityShortcut[];
+    return utilityShortcuts.filter(
+      (s) =>
+        s.label.toLowerCase().includes(needle) ||
+        s.keywords.some((k) => k.toLowerCase().includes(needle)),
+    );
+  }, [query, utilityShortcuts]);
+
   const drilledFilteredPages = useMemo(() => {
     if (!drilledModule) return [];
     const needle = query.trim().toLowerCase();
