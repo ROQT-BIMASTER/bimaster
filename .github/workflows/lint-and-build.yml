@@ -17,8 +17,35 @@ jobs:
         with:
           bun-version: latest
       - run: bun install --frozen-lockfile
-      - name: ESLint
+      - name: ESLint (src)
         run: bun run lint
+
+  lint-edge:
+    # Edge functions Deno — modo warning, não bloqueia merge.
+    # Após 2 semanas de tuning, promover para bloqueante e remover continue-on-error.
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - run: bun install --frozen-lockfile
+      - name: ESLint (supabase/functions)
+        run: bun run lint:edge
+
+  typecheck-strict:
+    # strictNullChecks em src/lib/** e src/utils/**.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - run: bun install --frozen-lockfile
+      - name: typecheck:strict
+        run: bun run typecheck:strict
+
 
   build:
     runs-on: ubuntu-latest
