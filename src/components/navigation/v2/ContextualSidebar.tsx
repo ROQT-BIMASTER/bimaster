@@ -1,36 +1,45 @@
 /**
- * Painel contextual da navegação v2 — popover lateral com as páginas do
- * módulo. NÃO expande o rail (que permanece 68px).
+ * Painel contextual da navegação v2.
  *
- * Refinos do mockup:
- * - Header com badge de status opcional ("ERP desconectado").
- * - Campo de busca local filtra páginas por label.
- * - Páginas agrupadas por seção (parent_group quando existir).
- * - Item ativo destacado com bloco accent forte.
- * - Rodapé com link "Voltar ao painel geral".
+ * Dois modos:
+ * - `category`: lista os módulos da categoria como seções colapsáveis
+ *   com suas páginas — modo padrão usado pelo rail compacto por categoria.
+ * - `module`: mantém o modo "1 módulo" (fallback usado por chamadas legadas).
+ *
+ * NÃO expande o rail (que permanece 68px). Renderizado como popover.
  */
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
-import { ArrowLeft, Search } from "lucide-react";
+import { ArrowLeft, ChevronDown, ChevronRight, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { resolveIcon } from "./icon";
 import { getModuleAccent, accentStyle } from "./launcher/moduleColors";
-import type { NavV2Module, NavV2Page } from "./useNavV2Data";
+import type { NavV2Category, NavV2Module, NavV2Page } from "./useNavV2Data";
 
 interface StatusBadge {
   label: string;
   tone?: "warning" | "success" | "danger" | "neutral";
 }
 
-interface ContextualSidebarProps {
-  module: NavV2Module | null;
+interface BaseProps {
   currentPath: string;
   onNavigate?: () => void;
-  /** Badge opcional ao lado do título (ex.: "ERP desconectado"). */
   statusBadge?: StatusBadge;
 }
+
+interface CategoryModeProps extends BaseProps {
+  category: NavV2Category;
+  module?: never;
+}
+
+interface ModuleModeProps extends BaseProps {
+  module: NavV2Module | null;
+  category?: never;
+}
+
+type ContextualSidebarProps = CategoryModeProps | ModuleModeProps;
 
 const TONE_VAR: Record<NonNullable<StatusBadge["tone"]>, string> = {
   warning: "--launcher-accent-1",
@@ -39,61 +48,76 @@ const TONE_VAR: Record<NonNullable<StatusBadge["tone"]>, string> = {
   neutral: "--launcher-muted",
 };
 
-export function ContextualSidebar({
-  module,
+export function ContextualSidebar(props: ContextualSidebarProps) {
+  if ("category" in props && props.category) {
+    return <CategoryPanel {...(props as CategoryModeProps)} />;
+  }
+  return <ModulePanel {...(props as ModuleModeProps)} />;
+}
+
+// ────────────────────────────────────────────────────────────
+// Modo CATEGORIA — rail compacto por categoria (padrão)
+// ────────────────────────────────────────────────────────────
+function CategoryPanel({
+  category,
   currentPath,
   onNavigate,
   statusBadge,
-}: ContextualSidebarProps) {
+}: CategoryModeProps) {
   const navigate = useNavigate();
   const [query, setQuery] = useState("");
+  const activeModuleCode = useMemo(
+    () =>
+      category.modules.find((m) =>
+        m.pages.some(
+          (p) => currentPath === p.route || currentPath.startsWith(p.route + "/"),
+        ),
+      )?.code ?? null,
+    [category.modules, currentPath],
+  );
+  const [openSet, setOpenSet] = useState<Set<string>>(
+    () => new Set(activeModuleCode ? [activeModuleCode] : []),
+  );
 
-  const grouped = useMemo(() => {
-    if (!module) return [] as Array<{ section: string; pages: NavV2Page[] }>;
-    const filterFn = (p: NavV2Page) =>
-      !query.trim() || p.label.toLowerCase().includes(query.trim().toLowerCase());
+  useEffect(() => {
+    if (activeModuleCode) {
+      setOpenSet((prev) => {
+        if (prev.has(activeModuleCode)) return prev;
+        const next = new Set(prev);
+        next.add(activeModuleCode);
+        return next;
+      });
+    }
+  }, [activeModuleCode]);
 
-    const buckets = new Map<string, NavV2Page[]>();
-    module.pages.filter(filterFn).forEach((p) => {
-      const sec = (p as any).section || (p as any).parent_group || module.label;
-      const key = String(sec).toUpperCase();
-      const arr = buckets.get(key) ?? [];
-      arr.push(p);
-      buckets.set(key, arr);
+  const filteredModules = useMemo(() => {
+    const needle = query.trim().toLowerCase();
+    if (!needle) return category.modules;
+    return category.modules
+      .map((m) => ({
+        ...m,
+        pages: m.pages.filter(
+          (p) =>
+            p.label.toLowerCase().includes(needle) ||
+            m.label.toLowerCase().includes(needle),
+        ),
+      }))
+      .filter((m) => m.pages.length > 0);
+  }, [category.modules, query]);
+
+  const totalPages = category.modules.reduce((a, m) => a + m.pages.length, 0);
+  const CatIcon = resolveIcon(category.icon ?? null);
+  const token = getModuleAccent(category.key);
+
+  const toggle = (code: string) =>
+    setOpenSet((prev) => {
+      const next = new Set(prev);
+      next.has(code) ? next.delete(code) : next.add(code);
+      return next;
     });
-    return Array.from(buckets.entries()).map(([section, pages]) => ({ section, pages }));
-  }, [module, query]);
-
-  if (!module) {
-    return (
-      <div
-        data-launcher-theme="dark"
-        className="p-4 text-sm rounded-lg w-[280px]"
-        style={{
-          background: "hsl(var(--launcher-surface))",
-          color: "hsl(var(--launcher-muted))",
-          boxShadow: "inset 0 0 0 1px hsl(var(--launcher-border))",
-        }}
-      >
-        Selecione um módulo no rail à esquerda.
-      </div>
-    );
-  }
-
-  const ModuleIcon = resolveIcon(module.icon);
-  const token = getModuleAccent(module.code);
 
   return (
-    <div
-      data-launcher-theme="dark"
-      className="flex flex-col w-[280px] max-w-[85vw] rounded-lg overflow-hidden"
-      style={{
-        background: "hsl(var(--launcher-surface))",
-        color: "hsl(var(--launcher-foreground))",
-        boxShadow:
-          "0 20px 60px -15px hsl(0 0% 0% / 0.55), inset 0 0 0 1px hsl(var(--launcher-border))",
-      }}
-    >
+    <Shell>
       {/* Header */}
       <div
         className="flex items-start gap-2.5 px-4 py-3.5"
@@ -103,7 +127,169 @@ export function ContextualSidebar({
           className="h-8 w-8 rounded-md flex items-center justify-center shrink-0"
           style={accentStyle(token)}
         >
-          <ModuleIcon className="h-4 w-4" />
+          <CatIcon className="h-4 w-4" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="text-sm font-semibold leading-tight truncate">
+            {category.label}
+          </div>
+          <div
+            className="text-[11px] mt-0.5"
+            style={{ color: "hsl(var(--launcher-muted))" }}
+          >
+            {category.modules.length} módulos · {totalPages} páginas
+          </div>
+          {statusBadge && (
+            <Badge
+              variant="secondary"
+              className="mt-2 text-[9px] h-4 px-1.5 border-0"
+              style={{
+                background: `hsl(var(${TONE_VAR[statusBadge.tone ?? "neutral"]}) / 0.18)`,
+                color: `hsl(var(${TONE_VAR[statusBadge.tone ?? "neutral"]}))`,
+              }}
+            >
+              {statusBadge.label}
+            </Badge>
+          )}
+        </div>
+      </div>
+
+      <SearchBox value={query} onChange={setQuery} placeholder={`Buscar em ${category.label}`} />
+
+      <ScrollArea className="max-h-[64vh]">
+        <nav className="p-2 flex flex-col gap-1">
+          {filteredModules.length === 0 ? (
+            <Empty query={query} />
+          ) : (
+            filteredModules.map((mod) => {
+              const isOpen = openSet.has(mod.code) || !!query.trim();
+              const ModIcon = resolveIcon(mod.icon);
+              const modToken = getModuleAccent(mod.code);
+              const isActiveMod = activeModuleCode === mod.code;
+
+              return (
+                <div key={mod.code} className="flex flex-col">
+                  <button
+                    type="button"
+                    onClick={() => toggle(mod.code)}
+                    className="flex items-center gap-2 px-2 py-1.5 rounded-md text-left transition-colors"
+                    style={{
+                      color: "hsl(var(--launcher-foreground))",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background =
+                        "hsl(var(--launcher-surface-hover))";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = "transparent";
+                    }}
+                  >
+                    {isOpen ? (
+                      <ChevronDown
+                        className="h-3 w-3 shrink-0"
+                        style={{ color: "hsl(var(--launcher-muted))" }}
+                      />
+                    ) : (
+                      <ChevronRight
+                        className="h-3 w-3 shrink-0"
+                        style={{ color: "hsl(var(--launcher-muted))" }}
+                      />
+                    )}
+                    <div
+                      className="h-5 w-5 rounded flex items-center justify-center shrink-0"
+                      style={accentStyle(modToken)}
+                    >
+                      <ModIcon className="h-3 w-3" />
+                    </div>
+                    <span
+                      className="flex-1 text-[12px] truncate"
+                      style={{ fontWeight: isActiveMod ? 600 : 500 }}
+                    >
+                      {mod.label}
+                    </span>
+                    <span
+                      className="text-[10px]"
+                      style={{ color: "hsl(var(--launcher-muted))" }}
+                    >
+                      {mod.pages.length}
+                    </span>
+                  </button>
+
+                  {isOpen && (
+                    <div className="pl-7 flex flex-col">
+                      {mod.pages.map((page) => (
+                        <PageLink
+                          key={page.id}
+                          page={page}
+                          currentPath={currentPath}
+                          token={modToken}
+                          onNavigate={onNavigate}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })
+          )}
+        </nav>
+      </ScrollArea>
+
+      <FooterBack
+        onClick={() => {
+          onNavigate?.();
+          navigate("/dashboard");
+        }}
+      />
+    </Shell>
+  );
+}
+
+// ────────────────────────────────────────────────────────────
+// Modo MÓDULO — fallback legado (1 módulo só)
+// ────────────────────────────────────────────────────────────
+function ModulePanel({
+  module,
+  currentPath,
+  onNavigate,
+  statusBadge,
+}: ModuleModeProps) {
+  const navigate = useNavigate();
+  const [query, setQuery] = useState("");
+
+  if (!module) {
+    return (
+      <Shell>
+        <div
+          className="p-4 text-sm"
+          style={{ color: "hsl(var(--launcher-muted))" }}
+        >
+          Selecione um item no rail.
+        </div>
+      </Shell>
+    );
+  }
+
+  const ModIcon = resolveIcon(module.icon);
+  const token = getModuleAccent(module.code);
+  const pages = useMemo(() => {
+    const needle = query.trim().toLowerCase();
+    return needle
+      ? module.pages.filter((p) => p.label.toLowerCase().includes(needle))
+      : module.pages;
+  }, [module.pages, query]);
+
+  return (
+    <Shell>
+      <div
+        className="flex items-start gap-2.5 px-4 py-3.5"
+        style={{ borderBottom: "1px solid hsl(var(--launcher-border))" }}
+      >
+        <div
+          className="h-8 w-8 rounded-md flex items-center justify-center shrink-0"
+          style={accentStyle(token)}
+        >
+          <ModIcon className="h-4 w-4" />
         </div>
         <div className="flex-1 min-w-0">
           <div className="text-sm font-semibold leading-tight truncate">
@@ -130,113 +316,159 @@ export function ContextualSidebar({
         </div>
       </div>
 
-      {/* Busca */}
-      <div
-        className="px-3 py-2.5"
-        style={{ borderBottom: "1px solid hsl(var(--launcher-border))" }}
-      >
-        <div
-          className="flex items-center gap-2 px-2.5 h-8 rounded-md"
-          style={{
-            background: "hsl(var(--launcher-surface-elevated))",
-            boxShadow: "inset 0 0 0 1px hsl(var(--launcher-border))",
-          }}
-        >
-          <Search
-            className="h-3.5 w-3.5 shrink-0"
-            style={{ color: "hsl(var(--launcher-muted))" }}
-          />
-          <input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder={`Buscar em ${module.label}`}
-            className="flex-1 bg-transparent outline-none text-[12px] placeholder:text-[hsl(var(--launcher-muted))]"
-            style={{ color: "hsl(var(--launcher-foreground))" }}
-          />
-        </div>
-      </div>
+      <SearchBox value={query} onChange={setQuery} placeholder={`Buscar em ${module.label}`} />
 
-      {/* Lista */}
       <ScrollArea className="max-h-[60vh]">
-        <nav className="p-2 flex flex-col gap-2">
-          {grouped.length === 0 ? (
-            <div
-              className="px-3 py-4 text-xs text-center"
-              style={{ color: "hsl(var(--launcher-muted))" }}
-            >
-              {query ? "Nada encontrado." : "Nenhuma página disponível."}
-            </div>
+        <nav className="p-2 flex flex-col gap-0.5">
+          {pages.length === 0 ? (
+            <Empty query={query} />
           ) : (
-            grouped.map(({ section, pages }) => (
-              <div key={section} className="flex flex-col">
-                <div
-                  className="px-2 pt-1.5 pb-1 text-[9px] font-semibold uppercase tracking-[0.14em]"
-                  style={{ color: "hsl(var(--launcher-muted))" }}
-                >
-                  {section}
-                </div>
-                {pages.map((page) => {
-                  const PageIcon = resolveIcon(page.icon);
-                  const isActive =
-                    currentPath === page.route ||
-                    currentPath.startsWith(page.route + "/");
-                  return (
-                    <NavLink
-                      key={page.id}
-                      to={page.route}
-                      onClick={onNavigate}
-                      className={cn(
-                        "relative flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-[12px] transition-colors",
-                      )}
-                      style={{
-                        background: isActive
-                          ? `hsl(var(${token}) / 0.22)`
-                          : "transparent",
-                        color: isActive
-                          ? `hsl(var(${token}))`
-                          : "hsl(var(--launcher-foreground))",
-                        fontWeight: isActive ? 600 : 400,
-                        boxShadow: isActive
-                          ? `inset 0 0 0 1px hsl(var(${token}) / 0.35)`
-                          : "none",
-                      }}
-                      onMouseEnter={(e) => {
-                        if (isActive) return;
-                        e.currentTarget.style.background =
-                          "hsl(var(--launcher-surface-hover))";
-                      }}
-                      onMouseLeave={(e) => {
-                        if (isActive) return;
-                        e.currentTarget.style.background = "transparent";
-                      }}
-                    >
-                      <PageIcon className="h-3.5 w-3.5 shrink-0 opacity-80" />
-                      <span className="flex-1 truncate">{page.label}</span>
-                    </NavLink>
-                  );
-                })}
-              </div>
+            pages.map((page) => (
+              <PageLink
+                key={page.id}
+                page={page}
+                currentPath={currentPath}
+                token={token}
+                onNavigate={onNavigate}
+              />
             ))
           )}
         </nav>
       </ScrollArea>
 
-      {/* Rodapé */}
-      <button
-        type="button"
+      <FooterBack
         onClick={() => {
           onNavigate?.();
           navigate("/dashboard");
         }}
-        className="flex items-center gap-2 px-4 py-2.5 text-[11px] transition-colors hover:opacity-80"
+      />
+    </Shell>
+  );
+}
+
+// ────────────────────────────────────────────────────────────
+// Subcomponentes
+// ────────────────────────────────────────────────────────────
+function Shell({ children }: { children: React.ReactNode }) {
+  return (
+    <div
+      data-launcher-theme="dark"
+      className="flex flex-col w-[320px] max-w-[88vw] rounded-lg overflow-hidden"
+      style={{
+        background: "hsl(var(--launcher-surface))",
+        color: "hsl(var(--launcher-foreground))",
+        boxShadow:
+          "0 20px 60px -15px hsl(0 0% 0% / 0.55), inset 0 0 0 1px hsl(var(--launcher-border))",
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+
+function SearchBox({
+  value,
+  onChange,
+  placeholder,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  placeholder: string;
+}) {
+  return (
+    <div
+      className="px-3 py-2.5"
+      style={{ borderBottom: "1px solid hsl(var(--launcher-border))" }}
+    >
+      <div
+        className="flex items-center gap-2 px-2.5 h-8 rounded-md"
         style={{
-          borderTop: "1px solid hsl(var(--launcher-border))",
-          color: "hsl(var(--launcher-muted))",
+          background: "hsl(var(--launcher-surface-elevated))",
+          boxShadow: "inset 0 0 0 1px hsl(var(--launcher-border))",
         }}
       >
-        <ArrowLeft className="h-3 w-3" />
-        Voltar ao painel geral
-      </button>
+        <Search
+          className="h-3.5 w-3.5 shrink-0"
+          style={{ color: "hsl(var(--launcher-muted))" }}
+        />
+        <input
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={placeholder}
+          className="flex-1 bg-transparent outline-none text-[12px] placeholder:text-[hsl(var(--launcher-muted))]"
+          style={{ color: "hsl(var(--launcher-foreground))" }}
+        />
+      </div>
     </div>
+  );
+}
+
+function PageLink({
+  page,
+  currentPath,
+  token,
+  onNavigate,
+}: {
+  page: NavV2Page;
+  currentPath: string;
+  token: string;
+  onNavigate?: () => void;
+}) {
+  const PageIcon = resolveIcon(page.icon);
+  const isActive =
+    currentPath === page.route || currentPath.startsWith(page.route + "/");
+  return (
+    <NavLink
+      to={page.route}
+      onClick={onNavigate}
+      className={cn(
+        "relative flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-[12px] transition-colors",
+      )}
+      style={{
+        background: isActive ? `hsl(var(${token}) / 0.22)` : "transparent",
+        color: isActive ? `hsl(var(${token}))` : "hsl(var(--launcher-foreground))",
+        fontWeight: isActive ? 600 : 400,
+        boxShadow: isActive ? `inset 0 0 0 1px hsl(var(${token}) / 0.35)` : "none",
+      }}
+      onMouseEnter={(e) => {
+        if (isActive) return;
+        e.currentTarget.style.background = "hsl(var(--launcher-surface-hover))";
+      }}
+      onMouseLeave={(e) => {
+        if (isActive) return;
+        e.currentTarget.style.background = "transparent";
+      }}
+    >
+      <PageIcon className="h-3.5 w-3.5 shrink-0 opacity-80" />
+      <span className="flex-1 truncate">{page.label}</span>
+    </NavLink>
+  );
+}
+
+function Empty({ query }: { query: string }) {
+  return (
+    <div
+      className="px-3 py-4 text-xs text-center"
+      style={{ color: "hsl(var(--launcher-muted))" }}
+    >
+      {query ? "Nada encontrado." : "Nenhuma página disponível."}
+    </div>
+  );
+}
+
+function FooterBack({ onClick }: { onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="flex items-center gap-2 px-4 py-2.5 text-[11px] transition-colors hover:opacity-80"
+      style={{
+        borderTop: "1px solid hsl(var(--launcher-border))",
+        color: "hsl(var(--launcher-muted))",
+      }}
+    >
+      <ArrowLeft className="h-3 w-3" />
+      Voltar ao painel geral
+    </button>
   );
 }
