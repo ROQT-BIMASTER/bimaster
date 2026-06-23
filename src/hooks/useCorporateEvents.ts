@@ -267,13 +267,34 @@ export function useCorporateEvents() {
     isLoading: eventsQuery.isLoading,
     error: eventsQuery.error,
     refetch: eventsQuery.refetch,
-    getEventById: eventByIdQuery,
     createEvent,
     updateEvent,
     deleteEvent,
     approveEvent,
     rejectEvent,
   };
+}
+
+export function useCorporateEventById(id: string) {
+  return useQuery({
+    queryKey: ["corporate-event", id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("corporate_events")
+        .select(`
+          *,
+          budget:trade_budgets(id, name, code, available_amount),
+          responsible:profiles!corporate_events_responsible_user_id_fkey(id, nome),
+          creator:profiles!corporate_events_created_by_fkey(id, nome)
+        `)
+        .eq("id", id)
+        .single();
+
+      if (error) throw error;
+      return data as CorporateEvent;
+    },
+    enabled: !!id,
+  });
 }
 
 export function useEventBudgets() {
