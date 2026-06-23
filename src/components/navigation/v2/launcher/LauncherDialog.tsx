@@ -15,7 +15,7 @@
  * - Sempre dark (tokens --launcher-*), independente do tema do app.
  * - Sem dependência de cmdk: layout custom com filtro próprio.
  */
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { LauncherHeader } from "./LauncherHeader";
@@ -23,6 +23,7 @@ import { LauncherSidebar } from "./LauncherSidebar";
 import { RecentTile } from "./RecentTile";
 import { CategoryBlock } from "./CategoryBlock";
 import { ModuleCard } from "./ModuleCard";
+import { ModulePagesView } from "./ModulePagesView";
 import { useRecents } from "./useRecents";
 import { useLauncherTheme } from "../useLauncherTheme";
 import {
