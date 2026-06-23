@@ -9,8 +9,8 @@ e nos diretórios linkados.
 | PR-1 | `chore/audit-governance-and-ci` | Governança (CODEOWNERS, CoC, templates, labels) e CI hardening (CodeQL, dependency-review, PR size) | ✅ Entregue |
 | PR-2 | `docs/audit-architecture-and-modules` | `CODE_HEALTH.md`, `ARCHITECTURE_REVIEW.md`, `MODULES_REVIEW.md` | ✅ Entregue |
 | PR-3 | `docs/audit-routes-edge-db` | `ROUTES.md`, `EDGE_FUNCTIONS_REVIEW.md`, `DATABASE_REVIEW.md`, `SECURITY_REVIEW.md`, `INFRA_DEPLOY_TESTING_REVIEW.md` | ✅ Entregue |
-| PR-4 | `chore/audit-doc-automation` | Scripts geradores em `scripts/audit/` + workflow `docs-drift.yml` | Próximo |
-| PR-5 | `docs/audit-executive-report` | Sumário executivo, roadmap priorizado, ficha por módulo | Pendente |
+| PR-4 | `chore/audit-doc-automation` | `scripts/audit/*` (5 geradores), `run-all.sh`, snapshots em `generated/`, workflow `docs-drift.yml` | ✅ Entregue |
+| PR-5 | `docs/audit-executive-report` | Sumário executivo, roadmap priorizado, ficha por módulo | Próximo |
 
 ## Artefatos deste diretório
 
@@ -23,6 +23,7 @@ e nos diretórios linkados.
 - [`DATABASE_REVIEW.md`](./DATABASE_REVIEW.md) — 858 tabelas, 2.341 policies, 673 funções `SECURITY DEFINER`, 50 buckets (PR-3).
 - [`SECURITY_REVIEW.md`](./SECURITY_REVIEW.md) — snapshot dos achados ativos dos scanners + patterns de remediação (PR-3).
 - [`INFRA_DEPLOY_TESTING_REVIEW.md`](./INFRA_DEPLOY_TESTING_REVIEW.md) — deltas em `INFRASTRUCTURE/DEPLOYMENT/PERFORMANCE/TESTING.md` (PR-3).
+- [`generated/`](./generated/) — snapshots determinísticos emitidos por `scripts/audit/*` e verificados por `.github/workflows/docs-drift.yml` (PR-4).
 - `00-SUMARIO_EXECUTIVO.md` em diante — relatório executivo (PR-5).
 
 ## Princípios

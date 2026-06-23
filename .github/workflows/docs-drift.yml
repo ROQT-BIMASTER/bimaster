@@ -1,0 +1,84 @@
+name: Docs Drift (Auditoria 2026-Q2)
+
+on:
+  pull_request:
+    paths:
+      - "src/**"
+      - "supabase/functions/**"
+      - "scripts/audit/**"
+      - "docs/audit/**"
+      - ".github/workflows/docs-drift.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  drift:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Regenerate audit snapshots
+        run: bash scripts/audit/run-all.sh
+
+      - name: Check for drift
+        id: drift
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- docs/audit/2026-Q2/generated/; then
+            echo "clean=true" >> "$GITHUB_OUTPUT"
+            echo "Sem drift nos snapshots gerados."
+          else
+            echo "clean=false" >> "$GITHUB_OUTPUT"
+            echo "::group::Drift detectado"
+            git diff --stat -- docs/audit/2026-Q2/generated/
+            echo "::endgroup::"
+            git diff -- docs/audit/2026-Q2/generated/ > /tmp/drift.patch
+            head -c 60000 /tmp/drift.patch || true
+          fi
+
+      - name: Upload drift patch
+        if: steps.drift.outputs.clean == 'false'
+        uses: actions/upload-artifact@v4
+        with:
+          name: docs-drift-patch
+          path: /tmp/drift.patch
+          if-no-files-found: ignore
+
+      - name: Comment on PR (drift detected)
+        if: steps.drift.outputs.clean == 'false' && github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const body = [
+              "### Docs Drift — Auditoria 2026-Q2",
+              "",
+              "Os snapshots em `docs/audit/2026-Q2/generated/` estão desatualizados em relação ao código.",
+              "",
+              "Para regenerar localmente:",
+              "",
+              "```bash",
+              "bash scripts/audit/run-all.sh",
+              "git add docs/audit/2026-Q2/generated/",
+              "```",
+              "",
+              "O patch completo está disponível como artifact `docs-drift-patch` desta execução.",
+            ].join("\n");
+            const { owner, repo } = context.repo;
+            const issue_number = context.payload.pull_request.number;
+            await github.rest.issues.createComment({ owner, repo, issue_number, body });
+
+      - name: Fail if drift
+        if: steps.drift.outputs.clean == 'false'
+        run: |
+          echo "::error::Snapshots de auditoria desatualizados. Rode: bash scripts/audit/run-all.sh"
+          exit 1
