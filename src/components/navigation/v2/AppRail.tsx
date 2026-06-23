@@ -166,6 +166,8 @@ export function AppRail({ side = "left" }: AppRailProps) {
       </aside>
 
       <Launcher open={launcherOpen} onOpenChange={setLauncherOpen} />
+      <RecordRecents categories={categories} />
+
     </TooltipProvider>
   );
 }
