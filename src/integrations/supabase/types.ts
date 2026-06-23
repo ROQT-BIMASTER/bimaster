@@ -48919,18 +48919,21 @@ export type Database = {
       user_ui_preferences: {
         Row: {
           created_at: string
+          launcher_theme: string
           nav_version: string
           updated_at: string
           user_id: string
         }
         Insert: {
           created_at?: string
+          launcher_theme?: string
           nav_version?: string
           updated_at?: string
           user_id: string
         }
         Update: {
           created_at?: string
+          launcher_theme?: string
           nav_version?: string
           updated_at?: string
           user_id?: string

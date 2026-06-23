@@ -132,6 +132,17 @@ All colors MUST be HSL.
     --launcher-accent-8: 45 95% 55%;
   }
 
+  /* Launcher v2 — variante clara (mesma estrutura, tokens sobrescritos).
+     Aplicada via [data-launcher-theme="light"] no DialogContent. */
+  [data-launcher-theme="light"] {
+    --launcher-surface: 0 0% 100%;
+    --launcher-surface-elevated: 220 18% 97%;
+    --launcher-surface-hover: 220 16% 93%;
+    --launcher-border: 220 14% 88%;
+    --launcher-foreground: 222 47% 11%;
+    --launcher-muted: 218 15% 46%;
+  }
+
   .dark {
     --background: 222 47% 6%;
     --foreground: 220 14% 96%;

@@ -24,6 +24,7 @@ import { RecentTile } from "./RecentTile";
 import { CategoryBlock } from "./CategoryBlock";
 import { ModuleCard } from "./ModuleCard";
 import { useRecents } from "./useRecents";
+import { useLauncherTheme } from "../useLauncherTheme";
 import {
   findActiveModule,
   useNavV2Data,
@@ -68,6 +69,7 @@ export function LauncherDialog({ open, onOpenChange }: Props) {
   const location = useLocation();
   const { categories } = useNavV2Data();
   const { entries } = useRecents();
+  const { theme } = useLauncherTheme();
   const [query, setQuery] = useState("");
 
   const filtered = useMemo(() => filterTree(categories, query), [categories, query]);
@@ -92,13 +94,16 @@ export function LauncherDialog({ open, onOpenChange }: Props) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
+        data-launcher-theme={theme}
         className="p-0 overflow-hidden border-0 max-w-[960px] w-[min(960px,95vw)] gap-0"
         style={{
           background: "hsl(var(--launcher-surface))",
           color: "hsl(var(--launcher-foreground))",
           borderRadius: "18px",
           boxShadow:
-            "0 30px 90px -20px hsl(0 0% 0% / 0.6), inset 0 0 0 1px hsl(var(--launcher-border))",
+            theme === "light"
+              ? "0 30px 90px -20px hsl(220 40% 20% / 0.25), inset 0 0 0 1px hsl(var(--launcher-border))"
+              : "0 30px 90px -20px hsl(0 0% 0% / 0.6), inset 0 0 0 1px hsl(var(--launcher-border))",
         }}
       >
         <LauncherHeader
