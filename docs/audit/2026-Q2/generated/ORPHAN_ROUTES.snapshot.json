@@ -128,39 +128,6 @@
         "reason": "public/auth"
       },
       {
-        "path": "/home",
-        "line": 993,
-        "guard": {
-          "kind": "public",
-          "moduleCode": null,
-          "screenCode": null
-        },
-        "bucket": "A",
-        "reason": "public/auth"
-      },
-      {
-        "path": "/index",
-        "line": 991,
-        "guard": {
-          "kind": "public",
-          "moduleCode": null,
-          "screenCode": null
-        },
-        "bucket": "A",
-        "reason": "public/auth"
-      },
-      {
-        "path": "/index.html",
-        "line": 992,
-        "guard": {
-          "kind": "public",
-          "moduleCode": null,
-          "screenCode": null
-        },
-        "bucket": "A",
-        "reason": "public/auth"
-      },
-      {
         "path": "/meu-perfil",
         "line": 569,
         "guard": {
@@ -350,6 +317,17 @@
         "reason": "wizard/detail"
       },
       {
+        "path": "/dashboard/compras-internacionais",
+        "line": 738,
+        "guard": {
+          "kind": "redirect",
+          "moduleCode": null,
+          "screenCode": null
+        },
+        "bucket": "B",
+        "reason": "redirect <Navigate>"
+      },
+      {
         "path": "/dashboard/configuracoes/permissoes-modulo/:moduleCode",
         "line": 930,
         "guard": {
@@ -397,23 +375,23 @@
         "path": "/dashboard/estoque/fornecedor",
         "line": 750,
         "guard": {
-          "kind": "public",
+          "kind": "redirect",
           "moduleCode": null,
           "screenCode": null
         },
         "bucket": "B",
-        "reason": "child of /dashboard/estoque"
+        "reason": "redirect <Navigate>"
       },
       {
         "path": "/dashboard/estoque/fornecedor-depara",
         "line": 751,
         "guard": {
-          "kind": "public",
+          "kind": "redirect",
           "moduleCode": null,
           "screenCode": null
         },
         "bucket": "B",
-        "reason": "child of /dashboard/estoque"
+        "reason": "redirect <Navigate>"
       },
       {
         "path": "/dashboard/eventos/:id",
@@ -1307,6 +1285,50 @@
         "reason": "child of /dashboard/trade"
       },
       {
+        "path": "/dashboard/vendas/analise",
+        "line": 744,
+        "guard": {
+          "kind": "redirect",
+          "moduleCode": null,
+          "screenCode": null
+        },
+        "bucket": "B",
+        "reason": "redirect <Navigate>"
+      },
+      {
+        "path": "/home",
+        "line": 993,
+        "guard": {
+          "kind": "redirect",
+          "moduleCode": null,
+          "screenCode": null
+        },
+        "bucket": "B",
+        "reason": "redirect <Navigate>"
+      },
+      {
+        "path": "/index",
+        "line": 991,
+        "guard": {
+          "kind": "redirect",
+          "moduleCode": null,
+          "screenCode": null
+        },
+        "bucket": "B",
+        "reason": "redirect <Navigate>"
+      },
+      {
+        "path": "/index.html",
+        "line": 992,
+        "guard": {
+          "kind": "redirect",
+          "moduleCode": null,
+          "screenCode": null
+        },
+        "bucket": "B",
+        "reason": "redirect <Navigate>"
+      },
+      {
         "path": "/projetos/convite/:token",
         "line": 562,
         "guard": {
@@ -1852,17 +1874,6 @@
         "reason": "feature órfã real"
       },
       {
-        "path": "/dashboard/compras-internacionais",
-        "line": 738,
-        "guard": {
-          "kind": "public",
-          "moduleCode": null,
-          "screenCode": null
-        },
-        "bucket": "E",
-        "reason": "feature órfã real"
-      },
-      {
         "path": "/dashboard/compras-internacionais/inbox",
         "line": 739,
         "guard": {
@@ -2133,17 +2144,6 @@
           "kind": "screen",
           "moduleCode": null,
           "screenCode": "admin"
-        },
-        "bucket": "E",
-        "reason": "feature órfã real"
-      },
-      {
-        "path": "/dashboard/vendas/analise",
-        "line": 744,
-        "guard": {
-          "kind": "public",
-          "moduleCode": null,
-          "screenCode": null
         },
         "bucket": "E",
         "reason": "feature órfã real"

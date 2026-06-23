@@ -11,11 +11,11 @@
 
 | Bucket | Quantidade |
 | --- | ---: |
-| **A** — Public / auth (intencional fora do menu) | 27 |
-| **B** — Child / wizard / detail (intencional fora do menu) | 92 |
+| **A** — Public / auth (intencional fora do menu) | 24 |
+| **B** — Child / wizard / detail (intencional fora do menu) | 97 |
 | **C** — CRM nested (intencional fora do menu) | 6 |
 | **D** — Admin / diagnóstico (cadastrar com require_admin) | 31 |
-| **E** — Feature órfã real (cadastrar no módulo correto) | 38 |
+| **E** — Feature órfã real (cadastrar no módulo correto) | 36 |
 
 ## Bucket D — Admin / diagnóstico (cadastrar com require_admin)
 
@@ -68,7 +68,6 @@
 | `/dashboard/central/motor-artes` | 874 | public | — | — | feature órfã real |
 | `/dashboard/chat` | 618 | protected | — | — | feature órfã real |
 | `/dashboard/chat/aprovacoes` | 619 | protected | — | — | feature órfã real |
-| `/dashboard/compras-internacionais` | 738 | public | — | — | feature órfã real |
 | `/dashboard/compras-internacionais/inbox` | 739 | module-screen | china | compras_inbox_comprador | feature órfã real |
 | `/dashboard/compras-nacionais` | 740 | module | fabrica | — | feature órfã real |
 | `/dashboard/configuracoes` | 620 | screen | — | admin | feature órfã real |
@@ -94,7 +93,6 @@
 | `/dashboard/relatorios` | 584 | screen | — | relatorios | feature órfã real |
 | `/dashboard/rr-tasks` | 593 | protected | — | — | feature órfã real |
 | `/dashboard/simulacao` | 810 | screen | — | admin | feature órfã real |
-| `/dashboard/vendas/analise` | 744 | public | — | — | feature órfã real |
 
 ## Bucket A — Public / auth (intencional fora do menu)
 
@@ -111,9 +109,6 @@
 | `/formulario-dashboard` | 978 | public | — | — | public/auth |
 | `/formulario-dinamico` | 977 | public | — | — | public/auth |
 | `/formulario-equipe` | 976 | public | — | — | public/auth |
-| `/home` | 993 | public | — | — | public/auth |
-| `/index` | 991 | public | — | — | public/auth |
-| `/index.html` | 992 | public | — | — | public/auth |
 | `/meu-perfil` | 569 | protected | — | — | public/auth |
 | `/not-found` | 989 | public | — | — | public/auth |
 | `/painel/marketing/redes-sociais` | 862 | module | marketing | — | public prefix |
@@ -136,12 +131,13 @@
 | `/dashboard/admin/relatorios-v2/novo` | 586 | protected | — | — | wizard/detail |
 | `/dashboard/briefings/:id` | 591 | protected | — | — | wizard/detail |
 | `/dashboard/composicao/sync` | 846 | screen | — | admin | wizard/detail |
+| `/dashboard/compras-internacionais` | 738 | redirect | — | — | redirect <Navigate> |
 | `/dashboard/configuracoes/permissoes-modulo/:moduleCode` | 930 | screen | — | admin | wizard/detail |
 | `/dashboard/departamentos/:id` | 684 | module-screen | departamentos | departamentos_detail | wizard/detail |
 | `/dashboard/departamentos/:id/aprovacoes` | 686 | module-screen | departamentos | departamentos_aprovacoes | wizard/detail |
 | `/dashboard/departamentos/:id/dashboard` | 685 | module-screen | departamentos | departamentos_dashboard | wizard/detail |
-| `/dashboard/estoque/fornecedor` | 750 | public | — | — | child of /dashboard/estoque |
-| `/dashboard/estoque/fornecedor-depara` | 751 | public | — | — | child of /dashboard/estoque |
+| `/dashboard/estoque/fornecedor` | 750 | redirect | — | — | redirect <Navigate> |
+| `/dashboard/estoque/fornecedor-depara` | 751 | redirect | — | — | redirect <Navigate> |
 | `/dashboard/eventos/:id` | 679 | module-screen | eventos | eventos_lista | wizard/detail |
 | `/dashboard/eventos/aprovacoes` | 678 | module-screen | eventos | eventos_aprovacoes | child of /dashboard/eventos |
 | `/dashboard/fabrica-china/auditoria-normalizacao` | 721 | module-screen | china | china_dashboard | child of /dashboard/fabrica-china |
@@ -223,6 +219,10 @@
 | `/dashboard/trade/materiais` | 637 | module-screen | trade | trade_materiais | child of /dashboard/trade |
 | `/dashboard/trade/measurement-guide` | 666 | module-screen | trade | trade_shelf | child of /dashboard/trade |
 | `/dashboard/trade/minhas-solicitacoes` | 674 | module-screen | trade | trade_solicitacoes | child of /dashboard/trade |
+| `/dashboard/vendas/analise` | 744 | redirect | — | — | redirect <Navigate> |
+| `/home` | 993 | redirect | — | — | redirect <Navigate> |
+| `/index` | 991 | redirect | — | — | redirect <Navigate> |
+| `/index.html` | 992 | redirect | — | — | redirect <Navigate> |
 | `/projetos/convite/:token` | 562 | public | — | — | wizard/detail |
 
 ## Bucket C — CRM nested (intencional fora do menu)
