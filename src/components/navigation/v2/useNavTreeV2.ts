@@ -68,7 +68,7 @@ export function useNavTreeV2(): NavTreeV2 {
   const { categories, isLoading: catLoading } = useSidebarConfig();
   const { items, isLoading: itemsLoading } = useSidebarMenuItems();
   const { hasModulePermission } = useModulePermissions();
-  const { canAccessScreen, isAdmin } = useScreenPermissions();
+  const { hasPermission: canAccessScreen, isAdmin } = useScreenPermissions();
 
   return useMemo(() => {
     const built: NavCategoryV2[] = categories
