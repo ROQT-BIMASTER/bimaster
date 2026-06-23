@@ -1,7 +1,7 @@
 import { ReactNode, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
-import { AppSidebar } from "./AppSidebar";
+import { SidebarSwitch } from "@/components/navigation/v2/SidebarSwitch";
 import logoHuugs from "@/assets/logo-huugs.jpg";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { MencoesBell } from "@/components/notifications/MencoesBell";
@@ -158,7 +158,7 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
       <MfaGate />
       
       <div className={cn("min-h-screen flex w-full", isImpersonating && "pt-12")} dir={dir}>
-        <AppSidebar side={isRTL ? "right" : "left"} />
+        <SidebarSwitch side={isRTL ? "right" : "left"} />
         <main
           className="flex-1 min-w-0"
           style={{ ["--app-header-height" as any]: "52px" }}
