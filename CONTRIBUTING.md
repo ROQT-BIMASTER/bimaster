@@ -1,7 +1,13 @@
-# Contribuindo — Bi Master
+# Contribuindo — ROQT-BIMASTER
 
 Guia interno para devs trabalhando neste repositório. Para regras destinadas a
 agentes de código (Cursor, Copilot, Claude Code, etc.), ver [`AGENTS.md`](./AGENTS.md).
+
+Antes do primeiro PR, leia também:
+
+- [`CODE_OF_CONDUCT.md`](./CODE_OF_CONDUCT.md) — código de conduta (Contributor Covenant 2.1).
+- [`SECURITY.md`](./SECURITY.md) — como reportar vulnerabilidades.
+- [`docs/audit/2026-Q2/GITHUB_BRANCH_PROTECTION.md`](./docs/audit/2026-Q2/GITHUB_BRANCH_PROTECTION.md) — regras de proteção da `main` e status checks obrigatórios.
 
 ## Setup
 
