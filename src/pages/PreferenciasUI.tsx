@@ -165,13 +165,19 @@ export default function PreferenciasUI() {
               <Button
                 onClick={() => save.mutate(selected)}
                 disabled={!dirty || save.isPending}
+                aria-busy={save.isPending}
               >
                 {save.isPending ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Salvando…
+                  </>
                 ) : (
-                  <Save className="h-4 w-4" />
+                  <>
+                    <Save className="h-4 w-4" />
+                    Salvar e recarregar
+                  </>
                 )}
-                Salvar e recarregar
               </Button>
             </div>
 
