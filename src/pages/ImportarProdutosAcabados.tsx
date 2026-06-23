@@ -22,6 +22,7 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.j
 
 export default function ImportarProdutosAcabados() {
   const { hasPermission, loading: permissionsLoading } = useScreenPermissions();
+  const { bgStyle, BgColorButton } = usePageBgColor("importar_produtos_acabados");
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [textoIA, setTextoIA] = useState("");
@@ -313,7 +314,8 @@ export default function ImportarProdutosAcabados() {
     toast.success("Modelo baixado com sucesso!");
   };
 
-  const { bgStyle, BgColorButton } = usePageBgColor("importar_produtos_acabados");
+
+
 
   return (
     <DashboardLayout>
