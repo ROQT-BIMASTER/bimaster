@@ -256,7 +256,7 @@ export function AppRail({ side = "left" }: AppRailProps) {
                   </TooltipTrigger>
                   <TooltipContent
                     side={tooltipSide}
-                    className="p-0 border-0 bg-transparent shadow-none"
+                    className="p-0 border-0 bg-transparent shadow-none z-[120]"
                   >
                     <RailTooltipCard
                       category={cat}
@@ -269,8 +269,9 @@ export function AppRail({ side = "left" }: AppRailProps) {
                   side={tooltipSide}
                   align="start"
                   sideOffset={8}
-                  className="p-0 w-auto border-0"
+                  className="p-0 w-auto border-0 z-[120]"
                   style={{ background: "transparent", boxShadow: "none" }}
+
                 >
                   <ContextualSidebar
                     category={cat}
