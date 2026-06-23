@@ -1,8 +1,8 @@
 {
   "totals": {
     "routes": 359,
-    "menu": 167,
-    "orphans": 194
+    "menu": 174,
+    "orphans": 187
   },
   "buckets": {
     "A": [
@@ -326,6 +326,28 @@
         },
         "bucket": "B",
         "reason": "redirect <Navigate>"
+      },
+      {
+        "path": "/dashboard/configuracoes/api-health",
+        "line": 927,
+        "guard": {
+          "kind": "screen",
+          "moduleCode": null,
+          "screenCode": "admin"
+        },
+        "bucket": "B",
+        "reason": "child of /dashboard/configuracoes"
+      },
+      {
+        "path": "/dashboard/configuracoes/fornecedores-visibilidade",
+        "line": 953,
+        "guard": {
+          "kind": "screen",
+          "moduleCode": null,
+          "screenCode": "admin"
+        },
+        "bucket": "B",
+        "reason": "child of /dashboard/configuracoes"
       },
       {
         "path": "/dashboard/configuracoes/permissoes-modulo/:moduleCode",
@@ -810,6 +832,17 @@
         },
         "bucket": "B",
         "reason": "wizard/detail"
+      },
+      {
+        "path": "/dashboard/integracoes/notion",
+        "line": 946,
+        "guard": {
+          "kind": "redirect",
+          "moduleCode": null,
+          "screenCode": null
+        },
+        "bucket": "B",
+        "reason": "redirect <Navigate>"
       },
       {
         "path": "/dashboard/marketing/influencers",
@@ -1663,39 +1696,6 @@
         "reason": "admin/diagnostic"
       },
       {
-        "path": "/dashboard/configuracoes/api-health",
-        "line": 927,
-        "guard": {
-          "kind": "screen",
-          "moduleCode": null,
-          "screenCode": "admin"
-        },
-        "bucket": "D",
-        "reason": "admin/diagnostic"
-      },
-      {
-        "path": "/dashboard/configuracoes/fornecedores-visibilidade",
-        "line": 953,
-        "guard": {
-          "kind": "screen",
-          "moduleCode": null,
-          "screenCode": "admin"
-        },
-        "bucket": "D",
-        "reason": "admin/diagnostic"
-      },
-      {
-        "path": "/dashboard/configuracoes/permissoes-modulo",
-        "line": 929,
-        "guard": {
-          "kind": "screen",
-          "moduleCode": null,
-          "screenCode": "admin"
-        },
-        "bucket": "D",
-        "reason": "admin/diagnostic"
-      },
-      {
         "path": "/dashboard/preferencias-ui",
         "line": 570,
         "guard": {
@@ -1753,17 +1753,6 @@
     ],
     "E": [
       {
-        "path": "/configuracoes/integracoes/notion",
-        "line": 945,
-        "guard": {
-          "kind": "protected",
-          "moduleCode": null,
-          "screenCode": null
-        },
-        "bucket": "E",
-        "reason": "feature órfã real"
-      },
-      {
         "path": "/dashboard/ajuda/projetos-visibilidade",
         "line": 901,
         "guard": {
@@ -1797,56 +1786,12 @@
         "reason": "feature órfã real"
       },
       {
-        "path": "/dashboard/central/amostras",
-        "line": 877,
-        "guard": {
-          "kind": "public",
-          "moduleCode": null,
-          "screenCode": null
-        },
-        "bucket": "E",
-        "reason": "feature órfã real"
-      },
-      {
         "path": "/dashboard/central/aprovacoes",
         "line": 872,
         "guard": {
           "kind": "module-screen",
           "moduleCode": "projetos",
           "screenCode": "projetos_aprovacoes_central"
-        },
-        "bucket": "E",
-        "reason": "feature órfã real"
-      },
-      {
-        "path": "/dashboard/central/composicao",
-        "line": 875,
-        "guard": {
-          "kind": "public",
-          "moduleCode": null,
-          "screenCode": null
-        },
-        "bucket": "E",
-        "reason": "feature órfã real"
-      },
-      {
-        "path": "/dashboard/central/embalagens",
-        "line": 876,
-        "guard": {
-          "kind": "public",
-          "moduleCode": null,
-          "screenCode": null
-        },
-        "bucket": "E",
-        "reason": "feature órfã real"
-      },
-      {
-        "path": "/dashboard/central/motor-artes",
-        "line": 874,
-        "guard": {
-          "kind": "public",
-          "moduleCode": null,
-          "screenCode": null
         },
         "bucket": "E",
         "reason": "feature órfã real"
@@ -1891,17 +1836,6 @@
           "kind": "module",
           "moduleCode": "fabrica",
           "screenCode": null
-        },
-        "bucket": "E",
-        "reason": "feature órfã real"
-      },
-      {
-        "path": "/dashboard/configuracoes",
-        "line": 620,
-        "guard": {
-          "kind": "screen",
-          "moduleCode": null,
-          "screenCode": "admin"
         },
         "bucket": "E",
         "reason": "feature órfã real"
@@ -2012,17 +1946,6 @@
           "kind": "screen",
           "moduleCode": null,
           "screenCode": "admin"
-        },
-        "bucket": "E",
-        "reason": "feature órfã real"
-      },
-      {
-        "path": "/dashboard/integracoes/notion",
-        "line": 946,
-        "guard": {
-          "kind": "protected",
-          "moduleCode": null,
-          "screenCode": null
         },
         "bucket": "E",
         "reason": "feature órfã real"

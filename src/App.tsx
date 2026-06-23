@@ -871,10 +871,10 @@ function AppContent() {
              {/* Centrais por módulo (estilo Central de Trabalho, mas para a equipe do módulo) */}
              <Route path="/dashboard/central/aprovacoes" element={<ModuleScreenRoute moduleCode="projetos" screenCode="projetos_aprovacoes_central"><CentralAprovacoes /></ModuleScreenRoute>} />
              <Route path="/dashboard/projetos/aprovacoes/auditoria" element={<ModuleScreenRoute moduleCode="projetos" screenCode="projetos_aprovacoes_auditoria"><AprovacoesAuditoria /></ModuleScreenRoute>} />
-             <Route path="/dashboard/central/motor-artes" element={<CentralMotorArtes />} />
-             <Route path="/dashboard/central/composicao" element={<CentralComposicao />} />
-             <Route path="/dashboard/central/embalagens" element={<CentralEmbalagens />} />
-             <Route path="/dashboard/central/amostras" element={<CentralAmostras />} />
+              <Route path="/dashboard/central/motor-artes" element={<ScreenRoute screenCode="admin"><CentralMotorArtes /></ScreenRoute>} />
+              <Route path="/dashboard/central/composicao" element={<ScreenRoute screenCode="admin"><CentralComposicao /></ScreenRoute>} />
+              <Route path="/dashboard/central/embalagens" element={<ScreenRoute screenCode="admin"><CentralEmbalagens /></ScreenRoute>} />
+              <Route path="/dashboard/central/amostras" element={<ScreenRoute screenCode="admin"><CentralAmostras /></ScreenRoute>} />
             <Route path="/dashboard/projetos/visual-qa" element={<ModuleRoute moduleCode="projetos"><ProjetosVisualQA /></ModuleRoute>} />
             <Route path="/dashboard/projetos/minhas-tarefas" element={<ModuleRoute moduleCode="projetos"><ScreenProtectedRoute screenCode="projetos_minhas_tarefas"><MinhasTarefas /></ScreenProtectedRoute></ModuleRoute>} />
             <Route path="/dashboard/projetos/modelos" element={<ModuleRoute moduleCode="projetos"><MeusModelosProjeto /></ModuleRoute>} />
@@ -943,7 +943,7 @@ function AppContent() {
             <Route path="/admin/integracoes-saude" element={<ScreenRoute screenCode="admin"><IntegracoesSaude /></ScreenRoute>} />
             <Route path="/dashboard/integracoes/asana" element={<ScreenRoute screenCode="admin"><AsanaIntegracao /></ScreenRoute>} />
             <Route path="/configuracoes/integracoes/notion" element={<ProtectedRoute><IntegracoesNotion /></ProtectedRoute>} />
-            <Route path="/dashboard/integracoes/notion" element={<ProtectedRoute><IntegracoesNotion /></ProtectedRoute>} />
+            <Route path="/dashboard/integracoes/notion" element={<Navigate to="/configuracoes/integracoes/notion" replace />} />
             <Route path="/dashboard/integracoes/shipsgo" element={<ScreenRoute screenCode="admin"><ShipsgoIntegracao /></ScreenRoute>} />
             <Route path="/dashboard/admin/asana-sync" element={<ScreenRoute screenCode="admin"><AsanaSyncMonitor /></ScreenRoute>} />
             <Route path="/dashboard/admin/asana-importacao" element={<ScreenRoute screenCode="admin"><AsanaImportacao /></ScreenRoute>} />

@@ -6,16 +6,16 @@
 ## Totais
 
 - Rotas únicas em `src/App.tsx`: **359**
-- Rotas ativas em `sidebar_menu_items`:  **167**
-- **Órfãs (no roteador, ausentes do menu): 194**
+- Rotas ativas em `sidebar_menu_items`:  **174**
+- **Órfãs (no roteador, ausentes do menu): 187**
 
 | Bucket | Quantidade |
 | --- | ---: |
 | **A** — Public / auth (intencional fora do menu) | 24 |
-| **B** — Child / wizard / detail (intencional fora do menu) | 97 |
+| **B** — Child / wizard / detail (intencional fora do menu) | 100 |
 | **C** — CRM nested (intencional fora do menu) | 6 |
-| **D** — Admin / diagnóstico (cadastrar com require_admin) | 31 |
-| **E** — Feature órfã real (cadastrar no módulo correto) | 36 |
+| **D** — Admin / diagnóstico (cadastrar com require_admin) | 28 |
+| **E** — Feature órfã real (cadastrar no módulo correto) | 29 |
 
 ## Bucket D — Admin / diagnóstico (cadastrar com require_admin)
 
@@ -44,9 +44,6 @@
 | `/dashboard/admin/security/hardening-v2` | 897 | screen | — | admin | admin/diagnostic |
 | `/dashboard/admin/security/security-definer` | 895 | screen | — | admin | admin/diagnostic |
 | `/dashboard/admin/visibilidade-detalhe-tarefa` | 900 | screen | — | admin | admin/diagnostic |
-| `/dashboard/configuracoes/api-health` | 927 | screen | — | admin | admin/diagnostic |
-| `/dashboard/configuracoes/fornecedores-visibilidade` | 953 | screen | — | admin | admin/diagnostic |
-| `/dashboard/configuracoes/permissoes-modulo` | 929 | screen | — | admin | admin/diagnostic |
 | `/dashboard/preferencias-ui` | 570 | protected | — | — | admin/diagnostic |
 | `/dashboard/security-explorer` | 935 | screen | — | admin | admin/diagnostic |
 | `/dashboard/security/mfa` | 898 | protected | — | — | admin/diagnostic |
@@ -57,20 +54,14 @@
 
 | Rota | Linha | Guard | module_code | screen_code | Motivo |
 | --- | ---: | --- | --- | --- | --- |
-| `/configuracoes/integracoes/notion` | 945 | protected | — | — | feature órfã real |
 | `/dashboard/ajuda/projetos-visibilidade` | 901 | protected | — | — | feature órfã real |
 | `/dashboard/bancos` | 958 | module-screen | financeiro | financeiro_contas_bancarias | feature órfã real |
 | `/dashboard/briefings` | 590 | protected | — | — | feature órfã real |
-| `/dashboard/central/amostras` | 877 | public | — | — | feature órfã real |
 | `/dashboard/central/aprovacoes` | 872 | module-screen | projetos | projetos_aprovacoes_central | feature órfã real |
-| `/dashboard/central/composicao` | 875 | public | — | — | feature órfã real |
-| `/dashboard/central/embalagens` | 876 | public | — | — | feature órfã real |
-| `/dashboard/central/motor-artes` | 874 | public | — | — | feature órfã real |
 | `/dashboard/chat` | 618 | protected | — | — | feature órfã real |
 | `/dashboard/chat/aprovacoes` | 619 | protected | — | — | feature órfã real |
 | `/dashboard/compras-internacionais/inbox` | 739 | module-screen | china | compras_inbox_comprador | feature órfã real |
 | `/dashboard/compras-nacionais` | 740 | module | fabrica | — | feature órfã real |
-| `/dashboard/configuracoes` | 620 | screen | — | admin | feature órfã real |
 | `/dashboard/contas-a-pagar` | 917 | public | — | — | feature órfã real |
 | `/dashboard/contas-pagar` | 957 | module-screen | financeiro | financeiro_contas_pagar_gestao | feature órfã real |
 | `/dashboard/controladoria` | 592 | protected | — | — | feature órfã real |
@@ -81,7 +72,6 @@
 | `/dashboard/fornecedor` | 746 | module | fornecedor | — | feature órfã real |
 | `/dashboard/importar-clientes` | 621 | module-screen | comercial | comercial_importar | feature órfã real |
 | `/dashboard/integracoes/asana` | 944 | screen | — | admin | feature órfã real |
-| `/dashboard/integracoes/notion` | 946 | protected | — | — | feature órfã real |
 | `/dashboard/integracoes/shipsgo` | 947 | screen | — | admin | feature órfã real |
 | `/dashboard/oms` | 908 | module-screen | oms | oms_painel | feature órfã real |
 | `/dashboard/oms/condicoes-pagamento` | 910 | module-screen | oms | oms_condicoes | feature órfã real |
@@ -132,6 +122,8 @@
 | `/dashboard/briefings/:id` | 591 | protected | — | — | wizard/detail |
 | `/dashboard/composicao/sync` | 846 | screen | — | admin | wizard/detail |
 | `/dashboard/compras-internacionais` | 738 | redirect | — | — | redirect <Navigate> |
+| `/dashboard/configuracoes/api-health` | 927 | screen | — | admin | child of /dashboard/configuracoes |
+| `/dashboard/configuracoes/fornecedores-visibilidade` | 953 | screen | — | admin | child of /dashboard/configuracoes |
 | `/dashboard/configuracoes/permissoes-modulo/:moduleCode` | 930 | screen | — | admin | wizard/detail |
 | `/dashboard/departamentos/:id` | 684 | module-screen | departamentos | departamentos_detail | wizard/detail |
 | `/dashboard/departamentos/:id/aprovacoes` | 686 | module-screen | departamentos | departamentos_aprovacoes | wizard/detail |
@@ -176,6 +168,7 @@
 | `/dashboard/financeiro/plano-reducao/:planoId/consolidado` | 856 | module-screen | financeiro | financeiro_dre | wizard/detail |
 | `/dashboard/financeiro/trade` | 816 | module-screen | financeiro | financeiro_trade | child of /dashboard/financeiro |
 | `/dashboard/financeiro/vendas/sync` | 831 | screen | — | admin | wizard/detail |
+| `/dashboard/integracoes/notion` | 946 | redirect | — | — | redirect <Navigate> |
 | `/dashboard/marketing/influencers` | 598 | module-screen | marketing | marketing_social | child of /dashboard/marketing |
 | `/dashboard/marketing/mining-data` | 864 | module | marketing | — | child of /dashboard/marketing |
 | `/dashboard/marketing/redes-sociais` | 861 | module | marketing | — | child of /dashboard/marketing |
