@@ -24,6 +24,7 @@ import { RecentTile } from "./RecentTile";
 import { CategoryBlock } from "./CategoryBlock";
 import { ModuleCard } from "./ModuleCard";
 import { useRecents } from "./useRecents";
+import { useLauncherTheme } from "../useLauncherTheme";
 import {
   findActiveModule,
   useNavV2Data,
