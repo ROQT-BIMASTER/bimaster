@@ -21,6 +21,7 @@ interface ModuleWithCount {
 }
 
 export function ModulePermissionsIndex() {
+  const navigate = useNavigate();
   const [modules, setModules] = useState<ModuleWithCount[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -87,7 +88,8 @@ export function ModulePermissionsIndex() {
     );
   }
 
-  const navigate = useNavigate();
+
+
 
   return (
     <div className="space-y-6">
