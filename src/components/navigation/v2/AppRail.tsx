@@ -319,6 +319,31 @@ export function AppRail({ side = "left" }: AppRailProps) {
 
           </Tooltip>
 
+          {/* Cluster utilitário: Chat, Aprovações do Chat, Instalar/Atualizar App */}
+          {utilityShortcuts.length > 0 && (
+            <>
+              <div
+                className="w-7 h-px my-0.5"
+                style={{ background: "hsl(var(--launcher-border))" }}
+              />
+              {utilityShortcuts.map((s) => (
+                <RailUtilityButton
+                  key={s.key}
+                  to={s.route}
+                  label={s.label}
+                  icon={s.icon}
+                  tooltipSide={tooltipSide}
+                  attention={s.attention}
+                  badgeCount={s.badgeCount}
+                />
+              ))}
+              <div
+                className="w-7 h-px my-0.5"
+                style={{ background: "hsl(var(--launcher-border))" }}
+              />
+            </>
+          )}
+
           <Tooltip>
             <TooltipTrigger asChild>
               <button
