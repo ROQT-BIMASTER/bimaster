@@ -94,18 +94,20 @@ const CHILD_SUFFIX = ["/novo", "/sync", "/auditoria", "/conciliacao", "/builder"
   "/exportacao-erp", "/sync-cadastros", "/preferencias", "/configuracao"];
 
 function isChildOf(path) {
-  // Param routes
+  // Param routes are always treated as detail/wizard children.
   if (path.includes(":")) return true;
   for (const suf of CHILD_SUFFIX) if (path.endsWith(suf)) return true;
-  // Parent in menu?
+  // Parent in menu? — but require a meaningful parent (>= 3 segments),
+  // i.e. ignore matches against `/dashboard` itself, which is too generic.
   const parts = path.split("/");
-  while (parts.length > 2) {
+  while (parts.length > 3) {
     parts.pop();
     const parent = parts.join("/");
     if (menuRoutes.has(parent)) return parent;
   }
   return false;
 }
+
 
 function classify(r) {
   const p = r.path;
