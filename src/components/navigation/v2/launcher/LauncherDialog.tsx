@@ -25,6 +25,7 @@ import { CategoryBlock } from "./CategoryBlock";
 import { ModuleCard } from "./ModuleCard";
 import { ModulePagesView } from "./ModulePagesView";
 import { useRecents } from "./useRecents";
+import { useUtilityShortcuts, type UtilityShortcut } from "./UtilityShortcuts";
 import { useLauncherTheme } from "../useLauncherTheme";
 import {
   findActiveModule,
