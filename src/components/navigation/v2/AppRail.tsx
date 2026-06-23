@@ -56,6 +56,8 @@ import { ContextualSidebar } from "./ContextualSidebar";
 import { Launcher } from "./Launcher";
 import { RecordRecents } from "./launcher/RecordRecents";
 import { RailTooltipCard } from "./RailTooltipCard";
+import { RailUtilityButton } from "./RailUtilityButton";
+import { useUtilityShortcuts } from "./launcher/UtilityShortcuts";
 import { getModuleAccent } from "./launcher/moduleColors";
 import {
   findActiveModule,
