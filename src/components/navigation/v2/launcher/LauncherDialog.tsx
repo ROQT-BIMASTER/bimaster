@@ -301,3 +301,83 @@ function EmptyState({ query }: { query?: string } = {}) {
     </div>
   );
 }
+
+function ShortcutsSection({
+  shortcuts,
+  onSelect,
+}: {
+  shortcuts: UtilityShortcut[];
+  onSelect: (route: string) => void;
+}) {
+  return (
+    <section className="space-y-3">
+      <header className="flex items-end justify-between">
+        <h2
+          className="text-[12px] font-semibold uppercase tracking-[0.14em]"
+          style={{ color: "hsl(var(--launcher-muted))" }}
+        >
+          Atalhos
+        </h2>
+        <span
+          className="text-[11px]"
+          style={{ color: "hsl(var(--launcher-muted))" }}
+        >
+          sempre acessíveis
+        </span>
+      </header>
+      <div className="flex flex-wrap gap-2">
+        {shortcuts.map((s) => {
+          const Icon = s.icon;
+          return (
+            <button
+              key={s.key}
+              type="button"
+              onClick={() => onSelect(s.route)}
+              className="group inline-flex items-center gap-2 px-3 py-2 rounded-xl border transition-all"
+              style={{
+                background: s.attention
+                  ? "hsl(var(--launcher-accent-2) / 0.12)"
+                  : "hsl(var(--launcher-surface-elevated))",
+                borderColor: s.attention
+                  ? "hsl(var(--launcher-accent-2) / 0.4)"
+                  : "hsl(var(--launcher-border))",
+                color: "hsl(var(--launcher-foreground))",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = "translateY(-1px)";
+                e.currentTarget.style.boxShadow =
+                  "0 4px 14px -4px hsl(0 0% 0% / 0.35)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = "";
+                e.currentTarget.style.boxShadow = "";
+              }}
+            >
+              <Icon
+                className="h-4 w-4"
+                style={{
+                  color: s.attention
+                    ? "hsl(var(--launcher-accent-2))"
+                    : "hsl(var(--launcher-muted))",
+                }}
+              />
+              <span className="text-[13px] font-medium">{s.label}</span>
+              {s.badgeCount && s.badgeCount > 0 ? (
+                <span
+                  className="text-[10px] font-bold px-1.5 py-0.5 rounded-full"
+                  style={{
+                    background: "hsl(var(--launcher-accent-2))",
+                    color: "hsl(var(--launcher-surface))",
+                  }}
+                >
+                  {s.badgeCount > 99 ? "99+" : s.badgeCount}
+                </span>
+              ) : null}
+            </button>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
