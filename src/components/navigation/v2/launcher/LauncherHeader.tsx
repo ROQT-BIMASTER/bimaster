@@ -7,9 +7,17 @@ interface Props {
   value: string;
   onChange: (v: string) => void;
   onEscape: () => void;
+  onEnter?: () => void;
+  placeholder?: string;
 }
 
-export function LauncherHeader({ value, onChange, onEscape }: Props) {
+export function LauncherHeader({
+  value,
+  onChange,
+  onEscape,
+  onEnter,
+  placeholder = "Para onde você quer ir?",
+}: Props) {
   return (
     <div
       className="flex items-center gap-3 px-5 h-[64px] border-b"
@@ -27,9 +35,12 @@ export function LauncherHeader({ value, onChange, onEscape }: Props) {
           if (e.key === "Escape") {
             e.preventDefault();
             onEscape();
+          } else if (e.key === "Enter" && onEnter) {
+            e.preventDefault();
+            onEnter();
           }
         }}
-        placeholder="Para onde você quer ir?"
+        placeholder={placeholder}
         className="flex-1 bg-transparent outline-none text-[15px] placeholder:text-[hsl(var(--launcher-muted))]"
         style={{ color: "hsl(var(--launcher-foreground))" }}
       />
