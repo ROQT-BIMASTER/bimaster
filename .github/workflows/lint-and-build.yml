@@ -1,0 +1,41 @@
+name: lint-and-build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    paths-ignore:
+      - 'docs/**'
+      - '**/*.md'
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - run: bun install --frozen-lockfile
+      - name: ESLint
+        run: bun run lint
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - run: bun install --frozen-lockfile
+      - name: Vite production build
+        env:
+          NODE_OPTIONS: --max-old-space-size=4096
+        run: bun run build
+      - name: Upload dist (on failure for inspection)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: vite-build-dist
+          path: dist/
+          retention-days: 7
