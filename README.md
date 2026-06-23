@@ -1,13 +1,11 @@
 # Bi Master — Sistema Integrado ERP/CRM/PLM
 
-[![lint-and-build](https://github.com/ROQT-BIMASTER/bimaster/actions/workflows/lint-and-build.yml/badge.svg?branch=main)](https://github.com/ROQT-BIMASTER/bimaster/actions/workflows/lint-and-build.yml)
-[![typecheck](https://github.com/ROQT-BIMASTER/bimaster/actions/workflows/typecheck.yml/badge.svg?branch=main)](https://github.com/ROQT-BIMASTER/bimaster/actions/workflows/typecheck.yml)
-[![tests](https://github.com/ROQT-BIMASTER/bimaster/actions/workflows/tests.yml/badge.svg?branch=main)](https://github.com/ROQT-BIMASTER/bimaster/actions/workflows/tests.yml)
-[![security-rls-e2e](https://github.com/ROQT-BIMASTER/bimaster/actions/workflows/security-rls-e2e.yml/badge.svg?branch=main)](https://github.com/ROQT-BIMASTER/bimaster/actions/workflows/security-rls-e2e.yml)
-[![CodeQL](https://github.com/ROQT-BIMASTER/bimaster/actions/workflows/codeql.yml/badge.svg?branch=main)](https://github.com/ROQT-BIMASTER/bimaster/actions/workflows/codeql.yml)
+[![lint-and-build](https://github.com/ROQT-BIMASTER/Roqt-Bimaster/actions/workflows/lint-and-build.yml/badge.svg?branch=main)](https://github.com/ROQT-BIMASTER/Roqt-Bimaster/actions/workflows/lint-and-build.yml)
+[![typecheck](https://github.com/ROQT-BIMASTER/Roqt-Bimaster/actions/workflows/typecheck.yml/badge.svg?branch=main)](https://github.com/ROQT-BIMASTER/Roqt-Bimaster/actions/workflows/typecheck.yml)
+[![tests](https://github.com/ROQT-BIMASTER/Roqt-Bimaster/actions/workflows/tests.yml/badge.svg?branch=main)](https://github.com/ROQT-BIMASTER/Roqt-Bimaster/actions/workflows/tests.yml)
+[![security-rls-e2e](https://github.com/ROQT-BIMASTER/Roqt-Bimaster/actions/workflows/security-rls-e2e.yml/badge.svg?branch=main)](https://github.com/ROQT-BIMASTER/Roqt-Bimaster/actions/workflows/security-rls-e2e.yml)
+[![CodeQL](https://github.com/ROQT-BIMASTER/Roqt-Bimaster/actions/workflows/codeql.yml/badge.svg?branch=main)](https://github.com/ROQT-BIMASTER/Roqt-Bimaster/actions/workflows/codeql.yml)
 
-> Os badges acima apontam para `ROQT-BIMASTER/bimaster`. Se o nome do repositório
-> no GitHub for diferente, basta editar o slug nas URLs acima.
 
 Sistema interno Bi Master de gestão integrada cobrindo Financeiro (DRE IFRS-18,
 AP/AR, fluxo de caixa), Trade Marketing, Marketing/Influenciadores, Fábrica/PLM
