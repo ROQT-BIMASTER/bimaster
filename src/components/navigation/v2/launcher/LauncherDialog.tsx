@@ -15,7 +15,7 @@
  * - Sempre dark (tokens --launcher-*), independente do tema do app.
  * - Sem dependência de cmdk: layout custom com filtro próprio.
  */
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { LauncherHeader } from "./LauncherHeader";
@@ -23,6 +23,7 @@ import { LauncherSidebar } from "./LauncherSidebar";
 import { RecentTile } from "./RecentTile";
 import { CategoryBlock } from "./CategoryBlock";
 import { ModuleCard } from "./ModuleCard";
+import { ModulePagesView } from "./ModulePagesView";
 import { useRecents } from "./useRecents";
 import { useLauncherTheme } from "../useLauncherTheme";
 import {
@@ -71,18 +72,49 @@ export function LauncherDialog({ open, onOpenChange }: Props) {
   const { entries } = useRecents();
   const { theme } = useLauncherTheme();
   const [query, setQuery] = useState("");
+  const [drilledCode, setDrilledCode] = useState<string | null>(null);
+
+  // Reset drill-in / busca quando o dialog fecha
+  useEffect(() => {
+    if (!open) {
+      setDrilledCode(null);
+      setQuery("");
+    }
+  }, [open]);
 
   const filtered = useMemo(() => filterTree(categories, query), [categories, query]);
   const active = findActiveModule(categories, location.pathname);
 
+  // Mantém o módulo em drill-in referenciando a árvore viva (perms podem mudar)
+  const drilledModule = useMemo<NavV2Module | null>(() => {
+    if (!drilledCode) return null;
+    for (const cat of categories) {
+      const found = cat.modules.find((m) => m.code === drilledCode);
+      if (found) return found;
+    }
+    return null;
+  }, [categories, drilledCode]);
+
   const go = (route: string) => {
     onOpenChange(false);
     setQuery("");
+    setDrilledCode(null);
     navigate(route);
   };
 
-  const selectModule = (mod: NavV2Module) => {
-    if (mod.pages[0]) go(mod.pages[0].route);
+  const selectModule = (mod: NavV2Module, opts?: { openFirst?: boolean }) => {
+    if (mod.pages.length === 0) return;
+    if (opts?.openFirst || mod.pages.length === 1) {
+      go(mod.pages[0].route);
+      return;
+    }
+    setQuery("");
+    setDrilledCode(mod.code);
+  };
+
+  const backToGrid = () => {
+    setDrilledCode(null);
+    setQuery("");
   };
 
   const hasQuery = query.trim().length > 0;
@@ -90,6 +122,31 @@ export function LauncherDialog({ open, onOpenChange }: Props) {
     () => filtered.flatMap((c) => c.modules),
     [filtered],
   );
+
+  const drilledFilteredPages = useMemo(() => {
+    if (!drilledModule) return [];
+    const needle = query.trim().toLowerCase();
+    if (!needle) return drilledModule.pages;
+    return drilledModule.pages.filter(
+      (p) =>
+        p.label.toLowerCase().includes(needle) ||
+        p.route.toLowerCase().includes(needle),
+    );
+  }, [drilledModule, query]);
+
+  const handleEscape = () => {
+    if (drilledModule) {
+      backToGrid();
+    } else {
+      onOpenChange(false);
+    }
+  };
+
+  const handleEnter = () => {
+    if (drilledModule && drilledFilteredPages[0]) {
+      go(drilledFilteredPages[0].route);
+    }
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -109,7 +166,13 @@ export function LauncherDialog({ open, onOpenChange }: Props) {
         <LauncherHeader
           value={query}
           onChange={setQuery}
-          onEscape={() => onOpenChange(false)}
+          onEscape={handleEscape}
+          onEnter={handleEnter}
+          placeholder={
+            drilledModule
+              ? `Buscar em ${drilledModule.label}…`
+              : "Para onde você quer ir?"
+          }
         />
 
         <div className="flex" style={{ height: "min(640px, 75vh)" }}>
@@ -120,7 +183,15 @@ export function LauncherDialog({ open, onOpenChange }: Props) {
           />
 
           <div className="flex-1 overflow-y-auto p-5 space-y-7">
-            {hasQuery ? (
+            {drilledModule ? (
+              <ModulePagesView
+                module={drilledModule}
+                query={query}
+                currentPath={location.pathname}
+                onBack={backToGrid}
+                onSelectPage={go}
+              />
+            ) : hasQuery ? (
               allFlatModules.length === 0 ? (
                 <EmptyState query={query} />
               ) : (
