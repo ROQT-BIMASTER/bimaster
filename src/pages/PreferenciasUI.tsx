@@ -1,12 +1,20 @@
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Loader2, Save, Sparkles, LayoutGrid } from "lucide-react";
+import { Loader2, Save, Sparkles, LayoutGrid, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
+import { z } from "zod";
 
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { DEFAULT_NAV_VERSION, type NavVersion } from "@/lib/featureFlags/navigationVersion";
+
+// Validação client-side: espelha o CHECK constraint do banco
+// (nav_version IN ('v1','v2')). Mass-assignment bloqueado via .strict().
+const NavVersionSchema = z.enum(["v1", "v2"]);
+const SavePayloadSchema = z
+  .object({ nav_version: NavVersionSchema })
+  .strict();
 
 import {
   Card,
@@ -54,21 +62,35 @@ export default function PreferenciasUI() {
 
   const save = useMutation({
     mutationFn: async (next: NavVersion) => {
-      if (!user?.id) throw new Error("Sessão expirada.");
-      const { error } = await supabase
-        .from("user_ui_preferences" as any)
-        .upsert(
-          { user_id: user.id, nav_version: next },
-          { onConflict: "user_id" },
-        );
-      if (error) throw error;
-      return next;
+      if (!user?.id) throw new Error("Sessão expirada. Faça login novamente.");
+
+      // Valida antes de tocar no banco — bloqueia qualquer valor fora de v1/v2
+      // mesmo que o estado do componente seja manipulado externamente.
+      const parsed = SavePayloadSchema.safeParse({ nav_version: next });
+      if (!parsed.success) {
+        throw new Error("Versão de navegação inválida. Use apenas 'v1' ou 'v2'.");
+      }
+
+      const loadingId = toast.loading("Salvando preferência…");
+      try {
+        const { error } = await supabase
+          .from("user_ui_preferences" as any)
+          .upsert(
+            { user_id: user.id, nav_version: parsed.data.nav_version },
+            { onConflict: "user_id" },
+          );
+        if (error) throw error;
+        return parsed.data.nav_version;
+      } finally {
+        toast.dismiss(loadingId);
+      }
     },
     onSuccess: (next) => {
       toast.success(
         next === "v2"
           ? "Nova navegação ativada. Recarregando…"
           : "Navegação clássica ativada. Recarregando…",
+        { icon: <CheckCircle2 className="h-4 w-4" /> },
       );
       queryClient.invalidateQueries({ queryKey: NAV_QUERY_KEY });
       queryClient.invalidateQueries({ queryKey: ["feature-flag", "nav-version"] });
@@ -143,13 +165,19 @@ export default function PreferenciasUI() {
               <Button
                 onClick={() => save.mutate(selected)}
                 disabled={!dirty || save.isPending}
+                aria-busy={save.isPending}
               >
                 {save.isPending ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Salvando…
+                  </>
                 ) : (
-                  <Save className="h-4 w-4" />
+                  <>
+                    <Save className="h-4 w-4" />
+                    Salvar e recarregar
+                  </>
                 )}
-                Salvar e recarregar
               </Button>
             </div>
 
