@@ -35,11 +35,9 @@ const src = readFileSync(APP, "utf8");
 const lines = src.split("\n");
 
 function inferGuard(idx) {
-  // The whole <Route .../> element typically fits on a single line.
-  // Scan the current line plus up to 3 lines forward to capture wrappers
-  // inside element={...}. Recognize both raw wrappers (ScreenProtectedRoute,
-  // ModuleProtectedRoute) and the local aliases (ScreenRoute, ModuleRoute).
-  const window = lines.slice(idx, Math.min(lines.length, idx + 4)).join("\n");
+  // 99% of Routes fit on a single line. Restrict the inspection to the
+  // line itself to prevent cross-pollination between adjacent <Route> entries.
+  const window = lines[idx] ?? "";
   const ms = window.match(/ModuleScreenRoute[^>]*moduleCode="([^"]+)"[^>]*screenCode="([^"]+)"/);
   if (ms) return { kind: "module-screen", moduleCode: ms[1], screenCode: ms[2] };
   const sp = window.match(/(?:ScreenProtectedRoute|ScreenRoute)[^>]*screenCode="([^"]+)"/);
@@ -52,6 +50,7 @@ function inferGuard(idx) {
   if (/ProtectedRoute/.test(window)) return { kind: "protected", moduleCode: null, screenCode: null };
   return { kind: "public", moduleCode: null, screenCode: null };
 }
+
 
 
 const routes = [];
