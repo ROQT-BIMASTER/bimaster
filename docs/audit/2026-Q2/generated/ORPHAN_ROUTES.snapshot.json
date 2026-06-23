@@ -1,0 +1,2153 @@
+{
+  "totals": {
+    "routes": 359,
+    "menu": 167,
+    "orphans": 194
+  },
+  "buckets": {
+    "A": [
+      {
+        "path": "*",
+        "line": 995,
+        "guard": {
+          "kind": "public",
+          "moduleCode": null,
+          "screenCode": null
+        },
+        "bucket": "A",
+        "reason": "public/auth"
+      },
+      {
+        "path": "/",
+        "line": 554,
+        "guard": {
+          "kind": "public",
+          "moduleCode": null,
+          "screenCode": null
+        },
+        "bucket": "A",
+        "reason": "public/auth"
+      },
+      {
+        "path": "/aguardando-aprovacao",
+        "line": 559,
+        "guard": {
+          "kind": "public",
+          "moduleCode": null,
+          "screenCode": null
+        },
+        "bucket": "A",
+        "reason": "public/auth"
+      },
+      {
+        "path": "/auth/forgot-password",
+        "line": 557,
+        "guard": {
+          "kind": "public",
+          "moduleCode": null,
+          "screenCode": null
+        },
+        "bucket": "A",
+        "reason": "public prefix"
+      },
+      {
+        "path": "/auth/login",
+        "line": 555,
+        "guard": {
+          "kind": "public",
+          "moduleCode": null,
+          "screenCode": null
+        },
+        "bucket": "A",
+        "reason": "public prefix"
+      },
+      {
+        "path": "/auth/signup",
+        "line": 556,
+        "guard": {
+          "kind": "public",
+          "moduleCode": null,
+          "screenCode": null
+        },
+        "bucket": "A",
+        "reason": "public prefix"
+      },
+      {
+        "path": "/cofre-share",
+        "line": 984,
+        "guard": {
+          "kind": "public",
+          "moduleCode": null,
+          "screenCode": null
+        },
+        "bucket": "A",
+        "reason": "public/auth"
+      },
+      {
+        "path": "/contato",
+        "line": 565,
+        "guard": {
+          "kind": "public",
+          "moduleCode": null,
+          "screenCode": null
+        },
+        "bucket": "A",
+        "reason": "public/auth"
+      },
+      {
+        "path": "/formulario-dashboard",
+        "line": 978,
+        "guard": {
+          "kind": "public",
+          "moduleCode": null,
+          "screenCode": null
+        },
+        "bucket": "A",
+        "reason": "public/auth"
+      },
+      {
+        "path": "/formulario-dinamico",
+        "line": 977,
+        "guard": {
+          "kind": "public",
+          "moduleCode": null,
+          "screenCode": null
+        },
+        "bucket": "A",
+        "reason": "public/auth"
+      },
+      {
+        "path": "/formulario-equipe",
+        "line": 976,
+        "guard": {
+          "kind": "public",
+          "moduleCode": null,
+          "screenCode": null
+        },
+        "bucket": "A",
+        "reason": "public/auth"
+      },
+      {
+        "path": "/meu-perfil",
+        "line": 569,
+        "guard": {
+          "kind": "protected",
+          "moduleCode": null,
+          "screenCode": null
+        },
+        "bucket": "A",
+        "reason": "public/auth"
+      },
+      {
+        "path": "/not-found",
+        "line": 989,
+        "guard": {
+          "kind": "public",
+          "moduleCode": null,
+          "screenCode": null
+        },
+        "bucket": "A",
+        "reason": "public/auth"
+      },
+      {
+        "path": "/painel/marketing/redes-sociais",
+        "line": 862,
+        "guard": {
+          "kind": "module",
+          "moduleCode": "marketing",
+          "screenCode": null
+        },
+        "bucket": "A",
+        "reason": "public prefix"
+      },
+      {
+        "path": "/politica-privacidade",
+        "line": 985,
+        "guard": {
+          "kind": "public",
+          "moduleCode": null,
+          "screenCode": null
+        },
+        "bucket": "A",
+        "reason": "public/auth"
+      },
+      {
+        "path": "/portal",
+        "line": 961,
+        "guard": {
+          "kind": "cliente",
+          "moduleCode": null,
+          "screenCode": null
+        },
+        "bucket": "A",
+        "reason": "public/auth"
+      },
+      {
+        "path": "/portal/perfil",
+        "line": 963,
+        "guard": {
+          "kind": "cliente",
+          "moduleCode": null,
+          "screenCode": null
+        },
+        "bucket": "A",
+        "reason": "public prefix"
+      },
+      {
+        "path": "/portal/precos",
+        "line": 962,
+        "guard": {
+          "kind": "cliente",
+          "moduleCode": null,
+          "screenCode": null
+        },
+        "bucket": "A",
+        "reason": "public prefix"
+      },
+      {
+        "path": "/privacidade",
+        "line": 563,
+        "guard": {
+          "kind": "public",
+          "moduleCode": null,
+          "screenCode": null
+        },
+        "bucket": "A",
+        "reason": "public/auth"
+      },
+      {
+        "path": "/reset-password",
+        "line": 558,
+        "guard": {
+          "kind": "public",
+          "moduleCode": null,
+          "screenCode": null
+        },
+        "bucket": "A",
+        "reason": "public/auth"
+      },
+      {
+        "path": "/termos",
+        "line": 564,
+        "guard": {
+          "kind": "public",
+          "moduleCode": null,
+          "screenCode": null
+        },
+        "bucket": "A",
+        "reason": "public/auth"
+      },
+      {
+        "path": "/termos-de-uso",
+        "line": 986,
+        "guard": {
+          "kind": "public",
+          "moduleCode": null,
+          "screenCode": null
+        },
+        "bucket": "A",
+        "reason": "public/auth"
+      },
+      {
+        "path": "/unsubscribe",
+        "line": 561,
+        "guard": {
+          "kind": "public",
+          "moduleCode": null,
+          "screenCode": null
+        },
+        "bucket": "A",
+        "reason": "public/auth"
+      },
+      {
+        "path": "/usuario-bloqueado",
+        "line": 560,
+        "guard": {
+          "kind": "public",
+          "moduleCode": null,
+          "screenCode": null
+        },
+        "bucket": "A",
+        "reason": "public/auth"
+      }
+    ],
+    "B": [
+      {
+        "path": "/dashboard/admin/relatorios-v2/:reportId",
+        "line": 587,
+        "guard": {
+          "kind": "protected",
+          "moduleCode": null,
+          "screenCode": null
+        },
+        "bucket": "B",
+        "reason": "wizard/detail"
+      },
+      {
+        "path": "/dashboard/admin/relatorios-v2/novo",
+        "line": 586,
+        "guard": {
+          "kind": "protected",
+          "moduleCode": null,
+          "screenCode": null
+        },
+        "bucket": "B",
+        "reason": "wizard/detail"
+      },
+      {
+        "path": "/dashboard/briefings/:id",
+        "line": 591,
+        "guard": {
+          "kind": "protected",
+          "moduleCode": null,
+          "screenCode": null
+        },
+        "bucket": "B",
+        "reason": "wizard/detail"
+      },
+      {
+        "path": "/dashboard/composicao/sync",
+        "line": 846,
+        "guard": {
+          "kind": "screen",
+          "moduleCode": null,
+          "screenCode": "admin"
+        },
+        "bucket": "B",
+        "reason": "wizard/detail"
+      },
+      {
+        "path": "/dashboard/compras-internacionais",
+        "line": 738,
+        "guard": {
+          "kind": "redirect",
+          "moduleCode": null,
+          "screenCode": null
+        },
+        "bucket": "B",
+        "reason": "redirect <Navigate>"
+      },
+      {
+        "path": "/dashboard/configuracoes/permissoes-modulo/:moduleCode",
+        "line": 930,
+        "guard": {
+          "kind": "screen",
+          "moduleCode": null,
+          "screenCode": "admin"
+        },
+        "bucket": "B",
+        "reason": "wizard/detail"
+      },
+      {
+        "path": "/dashboard/departamentos/:id",
+        "line": 684,
+        "guard": {
+          "kind": "module-screen",
+          "moduleCode": "departamentos",
+          "screenCode": "departamentos_detail"
+        },
+        "bucket": "B",
+        "reason": "wizard/detail"
+      },
+      {
+        "path": "/dashboard/departamentos/:id/aprovacoes",
+        "line": 686,
+        "guard": {
+          "kind": "module-screen",
+          "moduleCode": "departamentos",
+          "screenCode": "departamentos_aprovacoes"
+        },
+        "bucket": "B",
+        "reason": "wizard/detail"
+      },
+      {
+        "path": "/dashboard/departamentos/:id/dashboard",
+        "line": 685,
+        "guard": {
+          "kind": "module-screen",
+          "moduleCode": "departamentos",
+          "screenCode": "departamentos_dashboard"
+        },
+        "bucket": "B",
+        "reason": "wizard/detail"
+      },
+      {
+        "path": "/dashboard/estoque/fornecedor",
+        "line": 750,
+        "guard": {
+          "kind": "redirect",
+          "moduleCode": null,
+          "screenCode": null
+        },
+        "bucket": "B",
+        "reason": "redirect <Navigate>"
+      },
+      {
+        "path": "/dashboard/estoque/fornecedor-depara",
+        "line": 751,
+        "guard": {
+          "kind": "redirect",
+          "moduleCode": null,
+          "screenCode": null
+        },
+        "bucket": "B",
+        "reason": "redirect <Navigate>"
+      },
+      {
+        "path": "/dashboard/eventos/:id",
+        "line": 679,
+        "guard": {
+          "kind": "module-screen",
+          "moduleCode": "eventos",
+          "screenCode": "eventos_lista"
+        },
+        "bucket": "B",
+        "reason": "wizard/detail"
+      },
+      {
+        "path": "/dashboard/eventos/aprovacoes",
+        "line": 678,
+        "guard": {
+          "kind": "module-screen",
+          "moduleCode": "eventos",
+          "screenCode": "eventos_aprovacoes"
+        },
+        "bucket": "B",
+        "reason": "child of /dashboard/eventos"
+      },
+      {
+        "path": "/dashboard/fabrica-china/auditoria-normalizacao",
+        "line": 721,
+        "guard": {
+          "kind": "module-screen",
+          "moduleCode": "china",
+          "screenCode": "china_dashboard"
+        },
+        "bucket": "B",
+        "reason": "child of /dashboard/fabrica-china"
+      },
+      {
+        "path": "/dashboard/fabrica-china/caixa-entrada",
+        "line": 720,
+        "guard": {
+          "kind": "module-screen",
+          "moduleCode": "china",
+          "screenCode": "china_dashboard"
+        },
+        "bucket": "B",
+        "reason": "child of /dashboard/fabrica-china"
+      },
+      {
+        "path": "/dashboard/fabrica-china/nova/:submissaoId",
+        "line": 723,
+        "guard": {
+          "kind": "module-screen",
+          "moduleCode": "china",
+          "screenCode": "china_submissoes"
+        },
+        "bucket": "B",
+        "reason": "wizard/detail"
+      },
+      {
+        "path": "/dashboard/fabrica-china/ordens-producao",
+        "line": 728,
+        "guard": {
+          "kind": "module-screen",
+          "moduleCode": "china",
+          "screenCode": "china_ordens"
+        },
+        "bucket": "B",
+        "reason": "child of /dashboard/fabrica-china"
+      },
+      {
+        "path": "/dashboard/fabrica-china/ordens/:id",
+        "line": 729,
+        "guard": {
+          "kind": "module-screen",
+          "moduleCode": "china",
+          "screenCode": "china_ordens"
+        },
+        "bucket": "B",
+        "reason": "wizard/detail"
+      },
+      {
+        "path": "/dashboard/fabrica-china/patio-embarque",
+        "line": 735,
+        "guard": {
+          "kind": "module",
+          "moduleCode": "china",
+          "screenCode": null
+        },
+        "bucket": "B",
+        "reason": "child of /dashboard/fabrica-china"
+      },
+      {
+        "path": "/dashboard/fabrica-china/produto/:id",
+        "line": 731,
+        "guard": {
+          "kind": "module-screen",
+          "moduleCode": "china",
+          "screenCode": "china_fichas"
+        },
+        "bucket": "B",
+        "reason": "wizard/detail"
+      },
+      {
+        "path": "/dashboard/fabrica-china/produto/:id/checklist",
+        "line": 732,
+        "guard": {
+          "kind": "module-screen",
+          "moduleCode": "china",
+          "screenCode": "china_fichas"
+        },
+        "bucket": "B",
+        "reason": "wizard/detail"
+      },
+      {
+        "path": "/dashboard/fabrica-china/produto/:id/checklist-status",
+        "line": 733,
+        "guard": {
+          "kind": "module-screen",
+          "moduleCode": "china",
+          "screenCode": "china_fichas"
+        },
+        "bucket": "B",
+        "reason": "wizard/detail"
+      },
+      {
+        "path": "/dashboard/fabrica-china/recebimentos-oc",
+        "line": 725,
+        "guard": {
+          "kind": "module-screen",
+          "moduleCode": "china",
+          "screenCode": "china_recebimentos"
+        },
+        "bucket": "B",
+        "reason": "child of /dashboard/fabrica-china"
+      },
+      {
+        "path": "/dashboard/fabrica-china/recebimentos/divergencias",
+        "line": 726,
+        "guard": {
+          "kind": "module-screen",
+          "moduleCode": "china",
+          "screenCode": "china_recebimentos"
+        },
+        "bucket": "B",
+        "reason": "child of /dashboard/fabrica-china/recebimentos"
+      },
+      {
+        "path": "/dashboard/fabrica-china/submissao/:id",
+        "line": 730,
+        "guard": {
+          "kind": "module-screen",
+          "moduleCode": "china",
+          "screenCode": "china_submissoes"
+        },
+        "bucket": "B",
+        "reason": "wizard/detail"
+      },
+      {
+        "path": "/dashboard/fabrica-china/torre-containers",
+        "line": 734,
+        "guard": {
+          "kind": "module",
+          "moduleCode": "china",
+          "screenCode": null
+        },
+        "bucket": "B",
+        "reason": "child of /dashboard/fabrica-china"
+      },
+      {
+        "path": "/dashboard/fabrica/analises-custos",
+        "line": 708,
+        "guard": {
+          "kind": "module-screen",
+          "moduleCode": "fabrica",
+          "screenCode": "fabrica_produtos"
+        },
+        "bucket": "B",
+        "reason": "child of /dashboard/fabrica"
+      },
+      {
+        "path": "/dashboard/fabrica/analises-custos/:grupoId",
+        "line": 707,
+        "guard": {
+          "kind": "module-screen",
+          "moduleCode": "fabrica",
+          "screenCode": "fabrica_produtos"
+        },
+        "bucket": "B",
+        "reason": "wizard/detail"
+      },
+      {
+        "path": "/dashboard/fabrica/auditoria-fotos",
+        "line": 709,
+        "guard": {
+          "kind": "module-screen",
+          "moduleCode": "fabrica",
+          "screenCode": "fabrica_produtos"
+        },
+        "bucket": "B",
+        "reason": "child of /dashboard/fabrica"
+      },
+      {
+        "path": "/dashboard/fabrica/cenarios/:grupoId",
+        "line": 706,
+        "guard": {
+          "kind": "module-screen",
+          "moduleCode": "fabrica",
+          "screenCode": "fabrica_produtos"
+        },
+        "bucket": "B",
+        "reason": "wizard/detail"
+      },
+      {
+        "path": "/dashboard/fabrica/executivo",
+        "line": 714,
+        "guard": {
+          "kind": "module-screen",
+          "moduleCode": "fabrica",
+          "screenCode": "fabrica_dashboard"
+        },
+        "bucket": "B",
+        "reason": "child of /dashboard/fabrica"
+      },
+      {
+        "path": "/dashboard/fabrica/formulas/:id",
+        "line": 695,
+        "guard": {
+          "kind": "module-screen",
+          "moduleCode": "fabrica",
+          "screenCode": "fabrica_formulas"
+        },
+        "bucket": "B",
+        "reason": "wizard/detail"
+      },
+      {
+        "path": "/dashboard/fabrica/formulas/nova",
+        "line": 694,
+        "guard": {
+          "kind": "module-screen",
+          "moduleCode": "fabrica",
+          "screenCode": "fabrica_formulas"
+        },
+        "bucket": "B",
+        "reason": "child of /dashboard/fabrica/formulas"
+      },
+      {
+        "path": "/dashboard/fabrica/fornecedores",
+        "line": 715,
+        "guard": {
+          "kind": "module-screen",
+          "moduleCode": "fabrica",
+          "screenCode": "fabrica_fornecedores"
+        },
+        "bucket": "B",
+        "reason": "child of /dashboard/fabrica"
+      },
+      {
+        "path": "/dashboard/fabrica/manual",
+        "line": 716,
+        "guard": {
+          "kind": "module-screen",
+          "moduleCode": "fabrica",
+          "screenCode": "fabrica_manual"
+        },
+        "bucket": "B",
+        "reason": "child of /dashboard/fabrica"
+      },
+      {
+        "path": "/dashboard/fabrica/produtos/:id/custos",
+        "line": 710,
+        "guard": {
+          "kind": "module-screen",
+          "moduleCode": "fabrica",
+          "screenCode": "fabrica_produtos"
+        },
+        "bucket": "B",
+        "reason": "wizard/detail"
+      },
+      {
+        "path": "/dashboard/fabrica/produtos/importar",
+        "line": 711,
+        "guard": {
+          "kind": "module-screen",
+          "moduleCode": "fabrica",
+          "screenCode": "fabrica_produtos"
+        },
+        "bucket": "B",
+        "reason": "wizard/detail"
+      },
+      {
+        "path": "/dashboard/financeiro/contas-a-pagar/:id",
+        "line": 819,
+        "guard": {
+          "kind": "module-screen",
+          "moduleCode": "financeiro",
+          "screenCode": "financeiro_contas_pagar"
+        },
+        "bucket": "B",
+        "reason": "wizard/detail"
+      },
+      {
+        "path": "/dashboard/financeiro/contas-a-pagar/:id/editar",
+        "line": 823,
+        "guard": {
+          "kind": "module-screen",
+          "moduleCode": "financeiro",
+          "screenCode": "financeiro_contas_pagar"
+        },
+        "bucket": "B",
+        "reason": "wizard/detail"
+      },
+      {
+        "path": "/dashboard/financeiro/contas-a-pagar/auditoria",
+        "line": 820,
+        "guard": {
+          "kind": "module-screen",
+          "moduleCode": "financeiro",
+          "screenCode": "financeiro_contas_pagar"
+        },
+        "bucket": "B",
+        "reason": "wizard/detail"
+      },
+      {
+        "path": "/dashboard/financeiro/contas-a-pagar/novo",
+        "line": 822,
+        "guard": {
+          "kind": "module-screen",
+          "moduleCode": "financeiro",
+          "screenCode": "financeiro_contas_pagar"
+        },
+        "bucket": "B",
+        "reason": "wizard/detail"
+      },
+      {
+        "path": "/dashboard/financeiro/contas-a-pagar/sync",
+        "line": 818,
+        "guard": {
+          "kind": "screen",
+          "moduleCode": null,
+          "screenCode": "admin"
+        },
+        "bucket": "B",
+        "reason": "wizard/detail"
+      },
+      {
+        "path": "/dashboard/financeiro/contas-a-receber/auditoria",
+        "line": 829,
+        "guard": {
+          "kind": "module-screen",
+          "moduleCode": "financeiro",
+          "screenCode": "financeiro_contas_receber"
+        },
+        "bucket": "B",
+        "reason": "wizard/detail"
+      },
+      {
+        "path": "/dashboard/financeiro/contas-a-receber/sync",
+        "line": 830,
+        "guard": {
+          "kind": "screen",
+          "moduleCode": null,
+          "screenCode": "admin"
+        },
+        "bucket": "B",
+        "reason": "wizard/detail"
+      },
+      {
+        "path": "/dashboard/financeiro/fornecedores",
+        "line": 951,
+        "guard": {
+          "kind": "module-screen",
+          "moduleCode": "financeiro",
+          "screenCode": "financeiro_fornecedores"
+        },
+        "bucket": "B",
+        "reason": "child of /dashboard/financeiro"
+      },
+      {
+        "path": "/dashboard/financeiro/plano-reducao/:planoId",
+        "line": 855,
+        "guard": {
+          "kind": "public",
+          "moduleCode": null,
+          "screenCode": null
+        },
+        "bucket": "B",
+        "reason": "wizard/detail"
+      },
+      {
+        "path": "/dashboard/financeiro/plano-reducao/:planoId/consolidado",
+        "line": 856,
+        "guard": {
+          "kind": "module-screen",
+          "moduleCode": "financeiro",
+          "screenCode": "financeiro_dre"
+        },
+        "bucket": "B",
+        "reason": "wizard/detail"
+      },
+      {
+        "path": "/dashboard/financeiro/trade",
+        "line": 816,
+        "guard": {
+          "kind": "module-screen",
+          "moduleCode": "financeiro",
+          "screenCode": "financeiro_trade"
+        },
+        "bucket": "B",
+        "reason": "child of /dashboard/financeiro"
+      },
+      {
+        "path": "/dashboard/financeiro/vendas/sync",
+        "line": 831,
+        "guard": {
+          "kind": "screen",
+          "moduleCode": null,
+          "screenCode": "admin"
+        },
+        "bucket": "B",
+        "reason": "wizard/detail"
+      },
+      {
+        "path": "/dashboard/marketing/influencers",
+        "line": 598,
+        "guard": {
+          "kind": "module-screen",
+          "moduleCode": "marketing",
+          "screenCode": "marketing_social"
+        },
+        "bucket": "B",
+        "reason": "child of /dashboard/marketing"
+      },
+      {
+        "path": "/dashboard/marketing/mining-data",
+        "line": 864,
+        "guard": {
+          "kind": "module",
+          "moduleCode": "marketing",
+          "screenCode": null
+        },
+        "bucket": "B",
+        "reason": "child of /dashboard/marketing"
+      },
+      {
+        "path": "/dashboard/marketing/redes-sociais",
+        "line": 861,
+        "guard": {
+          "kind": "module",
+          "moduleCode": "marketing",
+          "screenCode": null
+        },
+        "bucket": "B",
+        "reason": "child of /dashboard/marketing"
+      },
+      {
+        "path": "/dashboard/marketing/strategy",
+        "line": 863,
+        "guard": {
+          "kind": "module",
+          "moduleCode": "marketing",
+          "screenCode": null
+        },
+        "bucket": "B",
+        "reason": "child of /dashboard/marketing"
+      },
+      {
+        "path": "/dashboard/oms/pedidos/:id",
+        "line": 909,
+        "guard": {
+          "kind": "module-screen",
+          "moduleCode": "oms",
+          "screenCode": "oms_detalhe"
+        },
+        "bucket": "B",
+        "reason": "wizard/detail"
+      },
+      {
+        "path": "/dashboard/processos/perfis/novo",
+        "line": 970,
+        "guard": {
+          "kind": "module",
+          "moduleCode": "processos",
+          "screenCode": null
+        },
+        "bucket": "B",
+        "reason": "wizard/detail"
+      },
+      {
+        "path": "/dashboard/projetos/:id",
+        "line": 902,
+        "guard": {
+          "kind": "module-screen",
+          "moduleCode": "projetos",
+          "screenCode": "projetos_dashboard"
+        },
+        "bucket": "B",
+        "reason": "wizard/detail"
+      },
+      {
+        "path": "/dashboard/projetos/:id/aprovacoes",
+        "line": 904,
+        "guard": {
+          "kind": "module-screen",
+          "moduleCode": "projetos",
+          "screenCode": "projetos_dashboard"
+        },
+        "bucket": "B",
+        "reason": "wizard/detail"
+      },
+      {
+        "path": "/dashboard/projetos/:id/produtividade",
+        "line": 903,
+        "guard": {
+          "kind": "module-screen",
+          "moduleCode": "projetos",
+          "screenCode": "projetos_dashboard"
+        },
+        "bucket": "B",
+        "reason": "wizard/detail"
+      },
+      {
+        "path": "/dashboard/projetos/admin/visibilidade",
+        "line": 899,
+        "guard": {
+          "kind": "screen",
+          "moduleCode": null,
+          "screenCode": "admin"
+        },
+        "bucket": "B",
+        "reason": "child of /dashboard/projetos"
+      },
+      {
+        "path": "/dashboard/projetos/aprovacoes",
+        "line": 886,
+        "guard": {
+          "kind": "module-screen",
+          "moduleCode": "projetos",
+          "screenCode": "projetos_aprovacoes"
+        },
+        "bucket": "B",
+        "reason": "child of /dashboard/projetos"
+      },
+      {
+        "path": "/dashboard/projetos/aprovacoes/auditoria",
+        "line": 873,
+        "guard": {
+          "kind": "module-screen",
+          "moduleCode": "projetos",
+          "screenCode": "projetos_aprovacoes_auditoria"
+        },
+        "bucket": "B",
+        "reason": "wizard/detail"
+      },
+      {
+        "path": "/dashboard/projetos/central",
+        "line": 869,
+        "guard": {
+          "kind": "module-screen",
+          "moduleCode": "projetos",
+          "screenCode": "projetos_home"
+        },
+        "bucket": "B",
+        "reason": "child of /dashboard/projetos"
+      },
+      {
+        "path": "/dashboard/projetos/central/preferencias",
+        "line": 870,
+        "guard": {
+          "kind": "module-screen",
+          "moduleCode": "projetos",
+          "screenCode": "projetos_home"
+        },
+        "bucket": "B",
+        "reason": "wizard/detail"
+      },
+      {
+        "path": "/dashboard/projetos/convites",
+        "line": 888,
+        "guard": {
+          "kind": "protected",
+          "moduleCode": null,
+          "screenCode": null
+        },
+        "bucket": "B",
+        "reason": "child of /dashboard/projetos"
+      },
+      {
+        "path": "/dashboard/projetos/home",
+        "line": 868,
+        "guard": {
+          "kind": "module-screen",
+          "moduleCode": "projetos",
+          "screenCode": "projetos_home"
+        },
+        "bucket": "B",
+        "reason": "child of /dashboard/projetos"
+      },
+      {
+        "path": "/dashboard/projetos/minhas-tarefas",
+        "line": 879,
+        "guard": {
+          "kind": "module-screen",
+          "moduleCode": "projetos",
+          "screenCode": "projetos_minhas_tarefas"
+        },
+        "bucket": "B",
+        "reason": "child of /dashboard/projetos"
+      },
+      {
+        "path": "/dashboard/projetos/modelos",
+        "line": 880,
+        "guard": {
+          "kind": "module",
+          "moduleCode": "projetos",
+          "screenCode": null
+        },
+        "bucket": "B",
+        "reason": "child of /dashboard/projetos"
+      },
+      {
+        "path": "/dashboard/projetos/produto-brasil/:id",
+        "line": 891,
+        "guard": {
+          "kind": "module-screen",
+          "moduleCode": "projetos",
+          "screenCode": "projetos_produto_brasil"
+        },
+        "bucket": "B",
+        "reason": "wizard/detail"
+      },
+      {
+        "path": "/dashboard/projetos/visual-qa",
+        "line": 878,
+        "guard": {
+          "kind": "module",
+          "moduleCode": "projetos",
+          "screenCode": null
+        },
+        "bucket": "B",
+        "reason": "child of /dashboard/projetos"
+      },
+      {
+        "path": "/dashboard/prospects/lista",
+        "line": 607,
+        "guard": {
+          "kind": "module-screen",
+          "moduleCode": "prospects",
+          "screenCode": "prospects_lista"
+        },
+        "bucket": "B",
+        "reason": "child of /dashboard/prospects"
+      },
+      {
+        "path": "/dashboard/prospects/mapa",
+        "line": 611,
+        "guard": {
+          "kind": "module-screen",
+          "moduleCode": "prospects",
+          "screenCode": "prospects_mapa"
+        },
+        "bucket": "B",
+        "reason": "child of /dashboard/prospects"
+      },
+      {
+        "path": "/dashboard/prospects/municipios",
+        "line": 612,
+        "guard": {
+          "kind": "module-screen",
+          "moduleCode": "prospects",
+          "screenCode": "prospects_municipios"
+        },
+        "bucket": "B",
+        "reason": "child of /dashboard/prospects"
+      },
+      {
+        "path": "/dashboard/reunioes/:id",
+        "line": 914,
+        "guard": {
+          "kind": "module-screen",
+          "moduleCode": "reunioes",
+          "screenCode": "reunioes_detalhe"
+        },
+        "bucket": "B",
+        "reason": "wizard/detail"
+      },
+      {
+        "path": "/dashboard/trade/admin/approval-levels",
+        "line": 628,
+        "guard": {
+          "kind": "module-screen",
+          "moduleCode": "trade",
+          "screenCode": "trade_admin"
+        },
+        "bucket": "B",
+        "reason": "child of /dashboard/trade/admin"
+      },
+      {
+        "path": "/dashboard/trade/admin/executivo",
+        "line": 632,
+        "guard": {
+          "kind": "module-screen",
+          "moduleCode": "trade",
+          "screenCode": "trade_admin"
+        },
+        "bucket": "B",
+        "reason": "child of /dashboard/trade/admin"
+      },
+      {
+        "path": "/dashboard/trade/admin/reports/campaigns",
+        "line": 629,
+        "guard": {
+          "kind": "module-screen",
+          "moduleCode": "trade",
+          "screenCode": "trade_admin"
+        },
+        "bucket": "B",
+        "reason": "child of /dashboard/trade/admin"
+      },
+      {
+        "path": "/dashboard/trade/admin/reports/clients",
+        "line": 630,
+        "guard": {
+          "kind": "module-screen",
+          "moduleCode": "trade",
+          "screenCode": "trade_admin"
+        },
+        "bucket": "B",
+        "reason": "child of /dashboard/trade/admin"
+      },
+      {
+        "path": "/dashboard/trade/admin/reports/sellers",
+        "line": 631,
+        "guard": {
+          "kind": "module-screen",
+          "moduleCode": "trade",
+          "screenCode": "trade_admin"
+        },
+        "bucket": "B",
+        "reason": "child of /dashboard/trade/admin"
+      },
+      {
+        "path": "/dashboard/trade/admin/users",
+        "line": 627,
+        "guard": {
+          "kind": "module-screen",
+          "moduleCode": "trade",
+          "screenCode": "trade_admin"
+        },
+        "bucket": "B",
+        "reason": "child of /dashboard/trade/admin"
+      },
+      {
+        "path": "/dashboard/trade/brand-share",
+        "line": 668,
+        "guard": {
+          "kind": "module-screen",
+          "moduleCode": "trade",
+          "screenCode": "trade_brands"
+        },
+        "bucket": "B",
+        "reason": "child of /dashboard/trade"
+      },
+      {
+        "path": "/dashboard/trade/campanhas/aprovacoes",
+        "line": 661,
+        "guard": {
+          "kind": "module-screen",
+          "moduleCode": "trade",
+          "screenCode": "trade_admin"
+        },
+        "bucket": "B",
+        "reason": "child of /dashboard/trade"
+      },
+      {
+        "path": "/dashboard/trade/competitors",
+        "line": 643,
+        "guard": {
+          "kind": "module-screen",
+          "moduleCode": "trade",
+          "screenCode": "trade_competitors"
+        },
+        "bucket": "B",
+        "reason": "child of /dashboard/trade"
+      },
+      {
+        "path": "/dashboard/trade/financeiro/campanhas/:id",
+        "line": 653,
+        "guard": {
+          "kind": "module-screen",
+          "moduleCode": "trade",
+          "screenCode": "trade_admin"
+        },
+        "bucket": "B",
+        "reason": "wizard/detail"
+      },
+      {
+        "path": "/dashboard/trade/financeiro/dashboard",
+        "line": 651,
+        "guard": {
+          "kind": "module-screen",
+          "moduleCode": "trade",
+          "screenCode": "trade_admin"
+        },
+        "bucket": "B",
+        "reason": "child of /dashboard/trade/financeiro"
+      },
+      {
+        "path": "/dashboard/trade/financeiro/extrato/:accountId",
+        "line": 656,
+        "guard": {
+          "kind": "module-screen",
+          "moduleCode": "trade",
+          "screenCode": "trade_admin"
+        },
+        "bucket": "B",
+        "reason": "wizard/detail"
+      },
+      {
+        "path": "/dashboard/trade/formularios/admin",
+        "line": 982,
+        "guard": {
+          "kind": "module-screen",
+          "moduleCode": "trade",
+          "screenCode": "trade_admin"
+        },
+        "bucket": "B",
+        "reason": "child of /dashboard/trade"
+      },
+      {
+        "path": "/dashboard/trade/formularios/builder",
+        "line": 981,
+        "guard": {
+          "kind": "module-screen",
+          "moduleCode": "trade",
+          "screenCode": "trade_admin"
+        },
+        "bucket": "B",
+        "reason": "wizard/detail"
+      },
+      {
+        "path": "/dashboard/trade/formularios/dashboard",
+        "line": 983,
+        "guard": {
+          "kind": "module-screen",
+          "moduleCode": "trade",
+          "screenCode": "trade_admin"
+        },
+        "bucket": "B",
+        "reason": "child of /dashboard/trade"
+      },
+      {
+        "path": "/dashboard/trade/import-stores",
+        "line": 647,
+        "guard": {
+          "kind": "module-screen",
+          "moduleCode": "trade",
+          "screenCode": "trade_import"
+        },
+        "bucket": "B",
+        "reason": "child of /dashboard/trade"
+      },
+      {
+        "path": "/dashboard/trade/materiais",
+        "line": 637,
+        "guard": {
+          "kind": "module-screen",
+          "moduleCode": "trade",
+          "screenCode": "trade_materiais"
+        },
+        "bucket": "B",
+        "reason": "child of /dashboard/trade"
+      },
+      {
+        "path": "/dashboard/trade/measurement-guide",
+        "line": 666,
+        "guard": {
+          "kind": "module-screen",
+          "moduleCode": "trade",
+          "screenCode": "trade_shelf"
+        },
+        "bucket": "B",
+        "reason": "child of /dashboard/trade"
+      },
+      {
+        "path": "/dashboard/trade/minhas-solicitacoes",
+        "line": 674,
+        "guard": {
+          "kind": "module-screen",
+          "moduleCode": "trade",
+          "screenCode": "trade_solicitacoes"
+        },
+        "bucket": "B",
+        "reason": "child of /dashboard/trade"
+      },
+      {
+        "path": "/dashboard/vendas/analise",
+        "line": 744,
+        "guard": {
+          "kind": "redirect",
+          "moduleCode": null,
+          "screenCode": null
+        },
+        "bucket": "B",
+        "reason": "redirect <Navigate>"
+      },
+      {
+        "path": "/home",
+        "line": 993,
+        "guard": {
+          "kind": "redirect",
+          "moduleCode": null,
+          "screenCode": null
+        },
+        "bucket": "B",
+        "reason": "redirect <Navigate>"
+      },
+      {
+        "path": "/index",
+        "line": 991,
+        "guard": {
+          "kind": "redirect",
+          "moduleCode": null,
+          "screenCode": null
+        },
+        "bucket": "B",
+        "reason": "redirect <Navigate>"
+      },
+      {
+        "path": "/index.html",
+        "line": 992,
+        "guard": {
+          "kind": "redirect",
+          "moduleCode": null,
+          "screenCode": null
+        },
+        "bucket": "B",
+        "reason": "redirect <Navigate>"
+      },
+      {
+        "path": "/projetos/convite/:token",
+        "line": 562,
+        "guard": {
+          "kind": "public",
+          "moduleCode": null,
+          "screenCode": null
+        },
+        "bucket": "B",
+        "reason": "wizard/detail"
+      }
+    ],
+    "C": [
+      {
+        "path": "analytics",
+        "line": 578,
+        "guard": {
+          "kind": "public",
+          "moduleCode": null,
+          "screenCode": null
+        },
+        "bucket": "C",
+        "reason": "CRM nested tab"
+      },
+      {
+        "path": "bots",
+        "line": 574,
+        "guard": {
+          "kind": "public",
+          "moduleCode": null,
+          "screenCode": null
+        },
+        "bucket": "C",
+        "reason": "CRM nested tab"
+      },
+      {
+        "path": "configuracoes",
+        "line": 579,
+        "guard": {
+          "kind": "public",
+          "moduleCode": null,
+          "screenCode": null
+        },
+        "bucket": "C",
+        "reason": "CRM nested tab"
+      },
+      {
+        "path": "contatos",
+        "line": 576,
+        "guard": {
+          "kind": "public",
+          "moduleCode": null,
+          "screenCode": null
+        },
+        "bucket": "C",
+        "reason": "CRM nested tab"
+      },
+      {
+        "path": "inbox",
+        "line": 575,
+        "guard": {
+          "kind": "public",
+          "moduleCode": null,
+          "screenCode": null
+        },
+        "bucket": "C",
+        "reason": "CRM nested tab"
+      },
+      {
+        "path": "tickets",
+        "line": 577,
+        "guard": {
+          "kind": "public",
+          "moduleCode": null,
+          "screenCode": null
+        },
+        "bucket": "C",
+        "reason": "CRM nested tab"
+      }
+    ],
+    "D": [
+      {
+        "path": "/admin/briefings-fluxos",
+        "line": 790,
+        "guard": {
+          "kind": "screen",
+          "moduleCode": null,
+          "screenCode": "admin"
+        },
+        "bucket": "D",
+        "reason": "admin/diagnostic"
+      },
+      {
+        "path": "/admin/cofre-templates",
+        "line": 792,
+        "guard": {
+          "kind": "screen",
+          "moduleCode": null,
+          "screenCode": "admin"
+        },
+        "bucket": "D",
+        "reason": "admin/diagnostic"
+      },
+      {
+        "path": "/admin/documentacao-tecnica",
+        "line": 942,
+        "guard": {
+          "kind": "screen",
+          "moduleCode": null,
+          "screenCode": "admin"
+        },
+        "bucket": "D",
+        "reason": "admin/diagnostic"
+      },
+      {
+        "path": "/admin/integracoes-saude",
+        "line": 943,
+        "guard": {
+          "kind": "screen",
+          "moduleCode": null,
+          "screenCode": "admin"
+        },
+        "bucket": "D",
+        "reason": "admin/diagnostic"
+      },
+      {
+        "path": "/admin/integracoes/google-drive",
+        "line": 793,
+        "guard": {
+          "kind": "screen",
+          "moduleCode": null,
+          "screenCode": "admin"
+        },
+        "bucket": "D",
+        "reason": "admin/diagnostic"
+      },
+      {
+        "path": "/admin/suporte",
+        "line": 794,
+        "guard": {
+          "kind": "screen",
+          "moduleCode": null,
+          "screenCode": "admin"
+        },
+        "bucket": "D",
+        "reason": "admin/diagnostic"
+      },
+      {
+        "path": "/admin/templates-alcadas",
+        "line": 789,
+        "guard": {
+          "kind": "screen",
+          "moduleCode": null,
+          "screenCode": "admin"
+        },
+        "bucket": "D",
+        "reason": "admin/diagnostic"
+      },
+      {
+        "path": "/admin/versoes-clientes",
+        "line": 791,
+        "guard": {
+          "kind": "screen",
+          "moduleCode": null,
+          "screenCode": "admin"
+        },
+        "bucket": "D",
+        "reason": "admin/diagnostic"
+      },
+      {
+        "path": "/dashboard/admin-api-support",
+        "line": 941,
+        "guard": {
+          "kind": "screen",
+          "moduleCode": null,
+          "screenCode": "admin"
+        },
+        "bucket": "D",
+        "reason": "admin/diagnostic"
+      },
+      {
+        "path": "/dashboard/admin/alertas-backfill-tarefas",
+        "line": 884,
+        "guard": {
+          "kind": "screen",
+          "moduleCode": null,
+          "screenCode": "admin"
+        },
+        "bucket": "D",
+        "reason": "admin/diagnostic"
+      },
+      {
+        "path": "/dashboard/admin/asana-importacao",
+        "line": 949,
+        "guard": {
+          "kind": "screen",
+          "moduleCode": null,
+          "screenCode": "admin"
+        },
+        "bucket": "D",
+        "reason": "admin/diagnostic"
+      },
+      {
+        "path": "/dashboard/admin/asana-sync",
+        "line": 948,
+        "guard": {
+          "kind": "screen",
+          "moduleCode": null,
+          "screenCode": "admin"
+        },
+        "bucket": "D",
+        "reason": "admin/diagnostic"
+      },
+      {
+        "path": "/dashboard/admin/checagem-semanal-tarefas",
+        "line": 885,
+        "guard": {
+          "kind": "screen",
+          "moduleCode": null,
+          "screenCode": "admin"
+        },
+        "bucket": "D",
+        "reason": "admin/diagnostic"
+      },
+      {
+        "path": "/dashboard/admin/dedupe-perfis",
+        "line": 950,
+        "guard": {
+          "kind": "screen",
+          "moduleCode": null,
+          "screenCode": "admin"
+        },
+        "bucket": "D",
+        "reason": "admin/diagnostic"
+      },
+      {
+        "path": "/dashboard/admin/diagnostico-tarefas-data-conclusao",
+        "line": 882,
+        "guard": {
+          "kind": "screen",
+          "moduleCode": null,
+          "screenCode": "admin"
+        },
+        "bucket": "D",
+        "reason": "admin/diagnostic"
+      },
+      {
+        "path": "/dashboard/admin/historico-backfill-tarefas",
+        "line": 883,
+        "guard": {
+          "kind": "screen",
+          "moduleCode": null,
+          "screenCode": "admin"
+        },
+        "bucket": "D",
+        "reason": "admin/diagnostic"
+      },
+      {
+        "path": "/dashboard/admin/projetos-custos-tecnologia",
+        "line": 905,
+        "guard": {
+          "kind": "screen",
+          "moduleCode": null,
+          "screenCode": "admin"
+        },
+        "bucket": "D",
+        "reason": "admin/diagnostic"
+      },
+      {
+        "path": "/dashboard/admin/projetos-saude",
+        "line": 894,
+        "guard": {
+          "kind": "screen",
+          "moduleCode": null,
+          "screenCode": "admin"
+        },
+        "bucket": "D",
+        "reason": "admin/diagnostic"
+      },
+      {
+        "path": "/dashboard/admin/relatorios-v2",
+        "line": 585,
+        "guard": {
+          "kind": "protected",
+          "moduleCode": null,
+          "screenCode": null
+        },
+        "bucket": "D",
+        "reason": "admin/diagnostic"
+      },
+      {
+        "path": "/dashboard/admin/security/hardening",
+        "line": 896,
+        "guard": {
+          "kind": "screen",
+          "moduleCode": null,
+          "screenCode": "admin"
+        },
+        "bucket": "D",
+        "reason": "admin/diagnostic"
+      },
+      {
+        "path": "/dashboard/admin/security/hardening-v2",
+        "line": 897,
+        "guard": {
+          "kind": "screen",
+          "moduleCode": null,
+          "screenCode": "admin"
+        },
+        "bucket": "D",
+        "reason": "admin/diagnostic"
+      },
+      {
+        "path": "/dashboard/admin/security/security-definer",
+        "line": 895,
+        "guard": {
+          "kind": "screen",
+          "moduleCode": null,
+          "screenCode": "admin"
+        },
+        "bucket": "D",
+        "reason": "admin/diagnostic"
+      },
+      {
+        "path": "/dashboard/admin/visibilidade-detalhe-tarefa",
+        "line": 900,
+        "guard": {
+          "kind": "screen",
+          "moduleCode": null,
+          "screenCode": "admin"
+        },
+        "bucket": "D",
+        "reason": "admin/diagnostic"
+      },
+      {
+        "path": "/dashboard/configuracoes/api-health",
+        "line": 927,
+        "guard": {
+          "kind": "screen",
+          "moduleCode": null,
+          "screenCode": "admin"
+        },
+        "bucket": "D",
+        "reason": "admin/diagnostic"
+      },
+      {
+        "path": "/dashboard/configuracoes/fornecedores-visibilidade",
+        "line": 953,
+        "guard": {
+          "kind": "screen",
+          "moduleCode": null,
+          "screenCode": "admin"
+        },
+        "bucket": "D",
+        "reason": "admin/diagnostic"
+      },
+      {
+        "path": "/dashboard/configuracoes/permissoes-modulo",
+        "line": 929,
+        "guard": {
+          "kind": "screen",
+          "moduleCode": null,
+          "screenCode": "admin"
+        },
+        "bucket": "D",
+        "reason": "admin/diagnostic"
+      },
+      {
+        "path": "/dashboard/preferencias-ui",
+        "line": 570,
+        "guard": {
+          "kind": "protected",
+          "moduleCode": null,
+          "screenCode": null
+        },
+        "bucket": "D",
+        "reason": "admin/diagnostic"
+      },
+      {
+        "path": "/dashboard/security-explorer",
+        "line": 935,
+        "guard": {
+          "kind": "screen",
+          "moduleCode": null,
+          "screenCode": "admin"
+        },
+        "bucket": "D",
+        "reason": "admin/diagnostic"
+      },
+      {
+        "path": "/dashboard/security/mfa",
+        "line": 898,
+        "guard": {
+          "kind": "protected",
+          "moduleCode": null,
+          "screenCode": null
+        },
+        "bucket": "D",
+        "reason": "admin/diagnostic"
+      },
+      {
+        "path": "/dashboard/seguranca-dashboard",
+        "line": 934,
+        "guard": {
+          "kind": "screen",
+          "moduleCode": null,
+          "screenCode": "admin"
+        },
+        "bucket": "D",
+        "reason": "admin/diagnostic"
+      },
+      {
+        "path": "/dashboard/trilha-auditoria-acessos",
+        "line": 936,
+        "guard": {
+          "kind": "screen",
+          "moduleCode": null,
+          "screenCode": "admin"
+        },
+        "bucket": "D",
+        "reason": "admin/diagnostic"
+      }
+    ],
+    "E": [
+      {
+        "path": "/configuracoes/integracoes/notion",
+        "line": 945,
+        "guard": {
+          "kind": "protected",
+          "moduleCode": null,
+          "screenCode": null
+        },
+        "bucket": "E",
+        "reason": "feature órfã real"
+      },
+      {
+        "path": "/dashboard/ajuda/projetos-visibilidade",
+        "line": 901,
+        "guard": {
+          "kind": "protected",
+          "moduleCode": null,
+          "screenCode": null
+        },
+        "bucket": "E",
+        "reason": "feature órfã real"
+      },
+      {
+        "path": "/dashboard/bancos",
+        "line": 958,
+        "guard": {
+          "kind": "module-screen",
+          "moduleCode": "financeiro",
+          "screenCode": "financeiro_contas_bancarias"
+        },
+        "bucket": "E",
+        "reason": "feature órfã real"
+      },
+      {
+        "path": "/dashboard/briefings",
+        "line": 590,
+        "guard": {
+          "kind": "protected",
+          "moduleCode": null,
+          "screenCode": null
+        },
+        "bucket": "E",
+        "reason": "feature órfã real"
+      },
+      {
+        "path": "/dashboard/central/amostras",
+        "line": 877,
+        "guard": {
+          "kind": "public",
+          "moduleCode": null,
+          "screenCode": null
+        },
+        "bucket": "E",
+        "reason": "feature órfã real"
+      },
+      {
+        "path": "/dashboard/central/aprovacoes",
+        "line": 872,
+        "guard": {
+          "kind": "module-screen",
+          "moduleCode": "projetos",
+          "screenCode": "projetos_aprovacoes_central"
+        },
+        "bucket": "E",
+        "reason": "feature órfã real"
+      },
+      {
+        "path": "/dashboard/central/composicao",
+        "line": 875,
+        "guard": {
+          "kind": "public",
+          "moduleCode": null,
+          "screenCode": null
+        },
+        "bucket": "E",
+        "reason": "feature órfã real"
+      },
+      {
+        "path": "/dashboard/central/embalagens",
+        "line": 876,
+        "guard": {
+          "kind": "public",
+          "moduleCode": null,
+          "screenCode": null
+        },
+        "bucket": "E",
+        "reason": "feature órfã real"
+      },
+      {
+        "path": "/dashboard/central/motor-artes",
+        "line": 874,
+        "guard": {
+          "kind": "public",
+          "moduleCode": null,
+          "screenCode": null
+        },
+        "bucket": "E",
+        "reason": "feature órfã real"
+      },
+      {
+        "path": "/dashboard/chat",
+        "line": 618,
+        "guard": {
+          "kind": "protected",
+          "moduleCode": null,
+          "screenCode": null
+        },
+        "bucket": "E",
+        "reason": "feature órfã real"
+      },
+      {
+        "path": "/dashboard/chat/aprovacoes",
+        "line": 619,
+        "guard": {
+          "kind": "protected",
+          "moduleCode": null,
+          "screenCode": null
+        },
+        "bucket": "E",
+        "reason": "feature órfã real"
+      },
+      {
+        "path": "/dashboard/compras-internacionais/inbox",
+        "line": 739,
+        "guard": {
+          "kind": "module-screen",
+          "moduleCode": "china",
+          "screenCode": "compras_inbox_comprador"
+        },
+        "bucket": "E",
+        "reason": "feature órfã real"
+      },
+      {
+        "path": "/dashboard/compras-nacionais",
+        "line": 740,
+        "guard": {
+          "kind": "module",
+          "moduleCode": "fabrica",
+          "screenCode": null
+        },
+        "bucket": "E",
+        "reason": "feature órfã real"
+      },
+      {
+        "path": "/dashboard/configuracoes",
+        "line": 620,
+        "guard": {
+          "kind": "screen",
+          "moduleCode": null,
+          "screenCode": "admin"
+        },
+        "bucket": "E",
+        "reason": "feature órfã real"
+      },
+      {
+        "path": "/dashboard/contas-a-pagar",
+        "line": 917,
+        "guard": {
+          "kind": "public",
+          "moduleCode": null,
+          "screenCode": null
+        },
+        "bucket": "E",
+        "reason": "feature órfã real"
+      },
+      {
+        "path": "/dashboard/contas-pagar",
+        "line": 957,
+        "guard": {
+          "kind": "module-screen",
+          "moduleCode": "financeiro",
+          "screenCode": "financeiro_contas_pagar_gestao"
+        },
+        "bucket": "E",
+        "reason": "feature órfã real"
+      },
+      {
+        "path": "/dashboard/controladoria",
+        "line": 592,
+        "guard": {
+          "kind": "protected",
+          "moduleCode": null,
+          "screenCode": null
+        },
+        "bucket": "E",
+        "reason": "feature órfã real"
+      },
+      {
+        "path": "/dashboard/crm",
+        "line": 572,
+        "guard": {
+          "kind": "crm-admin",
+          "moduleCode": "crm",
+          "screenCode": null
+        },
+        "bucket": "E",
+        "reason": "feature órfã real"
+      },
+      {
+        "path": "/dashboard/departamentos",
+        "line": 683,
+        "guard": {
+          "kind": "module-screen",
+          "moduleCode": "departamentos",
+          "screenCode": "departamentos_hub"
+        },
+        "bucket": "E",
+        "reason": "feature órfã real"
+      },
+      {
+        "path": "/dashboard/departamentos/aprovacoes",
+        "line": 687,
+        "guard": {
+          "kind": "module-screen",
+          "moduleCode": "departamentos",
+          "screenCode": "departamentos_aprovacoes"
+        },
+        "bucket": "E",
+        "reason": "feature órfã real"
+      },
+      {
+        "path": "/dashboard/design-studio",
+        "line": 601,
+        "guard": {
+          "kind": "module",
+          "moduleCode": "marketing",
+          "screenCode": null
+        },
+        "bucket": "E",
+        "reason": "feature órfã real"
+      },
+      {
+        "path": "/dashboard/fornecedor",
+        "line": 746,
+        "guard": {
+          "kind": "module",
+          "moduleCode": "fornecedor",
+          "screenCode": null
+        },
+        "bucket": "E",
+        "reason": "feature órfã real"
+      },
+      {
+        "path": "/dashboard/importar-clientes",
+        "line": 621,
+        "guard": {
+          "kind": "module-screen",
+          "moduleCode": "comercial",
+          "screenCode": "comercial_importar"
+        },
+        "bucket": "E",
+        "reason": "feature órfã real"
+      },
+      {
+        "path": "/dashboard/integracoes/asana",
+        "line": 944,
+        "guard": {
+          "kind": "screen",
+          "moduleCode": null,
+          "screenCode": "admin"
+        },
+        "bucket": "E",
+        "reason": "feature órfã real"
+      },
+      {
+        "path": "/dashboard/integracoes/notion",
+        "line": 946,
+        "guard": {
+          "kind": "protected",
+          "moduleCode": null,
+          "screenCode": null
+        },
+        "bucket": "E",
+        "reason": "feature órfã real"
+      },
+      {
+        "path": "/dashboard/integracoes/shipsgo",
+        "line": 947,
+        "guard": {
+          "kind": "screen",
+          "moduleCode": null,
+          "screenCode": "admin"
+        },
+        "bucket": "E",
+        "reason": "feature órfã real"
+      },
+      {
+        "path": "/dashboard/oms",
+        "line": 908,
+        "guard": {
+          "kind": "module-screen",
+          "moduleCode": "oms",
+          "screenCode": "oms_painel"
+        },
+        "bucket": "E",
+        "reason": "feature órfã real"
+      },
+      {
+        "path": "/dashboard/oms/condicoes-pagamento",
+        "line": 910,
+        "guard": {
+          "kind": "module-screen",
+          "moduleCode": "oms",
+          "screenCode": "oms_condicoes"
+        },
+        "bucket": "E",
+        "reason": "feature órfã real"
+      },
+      {
+        "path": "/dashboard/pagamentos",
+        "line": 954,
+        "guard": {
+          "kind": "module-screen",
+          "moduleCode": "financeiro",
+          "screenCode": "financeiro_pagamentos"
+        },
+        "bucket": "E",
+        "reason": "feature órfã real"
+      },
+      {
+        "path": "/dashboard/plano-contas",
+        "line": 922,
+        "guard": {
+          "kind": "public",
+          "moduleCode": null,
+          "screenCode": null
+        },
+        "bucket": "E",
+        "reason": "feature órfã real"
+      },
+      {
+        "path": "/dashboard/processos/etapas-gerenciamento",
+        "line": 971,
+        "guard": {
+          "kind": "module",
+          "moduleCode": "processos",
+          "screenCode": null
+        },
+        "bucket": "E",
+        "reason": "feature órfã real"
+      },
+      {
+        "path": "/dashboard/processos/modulos-catalogo",
+        "line": 972,
+        "guard": {
+          "kind": "module",
+          "moduleCode": "processos",
+          "screenCode": null
+        },
+        "bucket": "E",
+        "reason": "feature órfã real"
+      },
+      {
+        "path": "/dashboard/processos/perfis",
+        "line": 969,
+        "guard": {
+          "kind": "module",
+          "moduleCode": "processos",
+          "screenCode": null
+        },
+        "bucket": "E",
+        "reason": "feature órfã real"
+      },
+      {
+        "path": "/dashboard/relatorios",
+        "line": 584,
+        "guard": {
+          "kind": "screen",
+          "moduleCode": null,
+          "screenCode": "relatorios"
+        },
+        "bucket": "E",
+        "reason": "feature órfã real"
+      },
+      {
+        "path": "/dashboard/rr-tasks",
+        "line": 593,
+        "guard": {
+          "kind": "protected",
+          "moduleCode": null,
+          "screenCode": null
+        },
+        "bucket": "E",
+        "reason": "feature órfã real"
+      },
+      {
+        "path": "/dashboard/simulacao",
+        "line": 810,
+        "guard": {
+          "kind": "screen",
+          "moduleCode": null,
+          "screenCode": "admin"
+        },
+        "bucket": "E",
+        "reason": "feature órfã real"
+      }
+    ]
+  }
+}
