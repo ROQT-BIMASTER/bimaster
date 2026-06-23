@@ -8,6 +8,7 @@ import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { DEFAULT_NAV_VERSION, type NavVersion } from "@/lib/featureFlags/navigationVersion";
+import { useLauncherTheme, type LauncherTheme } from "@/components/navigation/v2/useLauncherTheme";
 
 // Validação client-side: espelha o CHECK constraint do banco
 // (nav_version IN ('v1','v2')). Mass-assignment bloqueado via .strict().
@@ -15,6 +16,9 @@ const NavVersionSchema = z.enum(["v1", "v2"]);
 const SavePayloadSchema = z
   .object({ nav_version: NavVersionSchema })
   .strict();
+
+// Espelha o CHECK constraint launcher_theme IN ('dark','light').
+const LauncherThemeSchema = z.enum(["dark", "light"]);
 
 import {
   Card,
