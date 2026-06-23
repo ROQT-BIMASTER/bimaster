@@ -229,6 +229,9 @@ export function LauncherDialog({ open, onOpenChange }: Props) {
               )
             ) : (
               <>
+                {utilityShortcuts.length > 0 && (
+                  <ShortcutsSection shortcuts={utilityShortcuts} onSelect={go} />
+                )}
                 {entries.length > 0 && (
                   <section className="space-y-3">
                     <header className="flex items-end justify-between">
