@@ -42,9 +42,34 @@ As chaves de service-role nunca ficam no front — apenas em Edge Functions
 | `bun run dev` | Vite dev server |
 | `bun run build` | Build de produção |
 | `bun run build:dev` | Build com sourcemaps |
-| `bun run lint` | ESLint |
-| `bunx vitest run` | Suíte de testes |
+| `bun run typecheck` | `tsc --noEmit` (espelha `typecheck.yml`) |
+| `bun run lint` | ESLint (espelha job `lint` de `lint-and-build.yml`) |
+| `bun run test` | Vitest em modo run (espelha `tests.yml`) |
+| `bun run verify` | typecheck + lint + test em sequência — rode antes de abrir PR |
 | `bash scripts/security/e2e-anonymous-sensitive-columns.sh` | Smoke E2E de RLS anônima |
+
+## Verificação local
+
+Antes de abrir um PR, rode a mesma bateria que o CI executa em cada push e pull
+request:
+
+```bash
+bun install
+bun run verify        # typecheck + lint + testes unitários
+```
+
+`verify` falha rápido na primeira etapa quebrada. Mapeamento direto com o CI:
+
+| Comando local | Workflow no GitHub Actions |
+|---|---|
+| `bun run typecheck` | `.github/workflows/typecheck.yml` |
+| `bun run lint` | `.github/workflows/lint-and-build.yml` (job `lint`) |
+| `bun run test` | `.github/workflows/tests.yml` |
+| `bun run build` | `.github/workflows/lint-and-build.yml` (job `build`) |
+
+Se `verify` passar local e o build manual também, o pipeline no GitHub Actions
+deve passar — qualquer divergência indica deriva de versão de Node/Bun ou cache
+local sujo (`rm -rf node_modules dist .vite && bun install`).
 
 ## Estrutura
 
