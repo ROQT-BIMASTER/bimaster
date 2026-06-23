@@ -1171,6 +1171,13 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
             {(canSeeProjetosRelatorios({ isAdmin, isAdminOrSupervisor }) || hasPermission("projetos_equipe")) && (
               <MenuItemLink to="/dashboard/projetos/relatorios" icon={BarChart3} title="Relatórios" />
             )}
+            {(isAdmin || hasPermission("briefings_agente")) && (
+              <MenuItemLink to="/dashboard/briefings" icon={Sparkles} title="Briefings" />
+            )}
+            {isAdmin && (
+              <MenuItemLink to="/dashboard/controladoria" icon={PackageSearch} title="Controladoria" />
+            )}
+            <MenuItemLink to="/dashboard/rr-tasks" icon={KanbanSquare} title="RR-Tasks" />
           </ModuleSubmenu>
         );
 
