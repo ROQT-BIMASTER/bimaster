@@ -1171,6 +1171,13 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
             {(canSeeProjetosRelatorios({ isAdmin, isAdminOrSupervisor }) || hasPermission("projetos_equipe")) && (
               <MenuItemLink to="/dashboard/projetos/relatorios" icon={BarChart3} title="Relatórios" />
             )}
+            {(isAdmin || hasPermission("briefings_agente")) && (
+              <MenuItemLink to="/dashboard/briefings" icon={Sparkles} title="Briefings" />
+            )}
+            {isAdmin && (
+              <MenuItemLink to="/dashboard/controladoria" icon={PackageSearch} title="Controladoria" />
+            )}
+            <MenuItemLink to="/dashboard/rr-tasks" icon={KanbanSquare} title="RR-Tasks" />
           </ModuleSubmenu>
         );
 
@@ -1355,13 +1362,6 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
                   {(isAdmin || hasPermission("relatorios")) && (
                     <MenuItemLink to="/dashboard/relatorios" icon={BarChart3} title="Relatórios" />
                   )}
-                  {(isAdmin || hasPermission("briefings_agente")) && (
-                    <MenuItemLink to="/dashboard/briefings" icon={Sparkles} title="Briefings" />
-                  )}
-                  {isAdmin && (
-                    <MenuItemLink to="/dashboard/controladoria" icon={PackageSearch} title="Controladoria" />
-                  )}
-                  <MenuItemLink to="/dashboard/rr-tasks" icon={KanbanSquare} title="RR-Tasks" />
                   <MenuItemLink to="/dashboard/chat" icon={MessageCircle} title="Chat" />
                   <MenuItemLink to="/dashboard/chat/aprovacoes" icon={Inbox} title="Aprovações do Chat" />
                 </>
