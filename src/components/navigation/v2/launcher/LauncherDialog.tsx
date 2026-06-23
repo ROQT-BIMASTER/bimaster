@@ -206,36 +206,43 @@ export function LauncherDialog({ open, onOpenChange }: Props) {
                 onSelectPage={go}
               />
             ) : hasQuery ? (
-              allFlatModules.length === 0 ? (
+              allFlatModules.length === 0 && matchedShortcuts.length === 0 ? (
                 <EmptyState query={query} />
               ) : (
-                <section className="space-y-3">
-                  <header className="flex items-end justify-between">
-                    <h2
-                      className="text-[14px] font-semibold uppercase tracking-wider"
-                      style={{ color: "hsl(var(--launcher-muted))" }}
-                    >
-                      Resultados
-                    </h2>
-                    <span
-                      className="text-[11px]"
-                      style={{ color: "hsl(var(--launcher-muted))" }}
-                    >
-                      {allFlatModules.length}{" "}
-                      {allFlatModules.length === 1 ? "módulo" : "módulos"}
-                    </span>
-                  </header>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                    {allFlatModules.map((mod) => (
-                      <ModuleCard
-                        key={mod.code}
-                        module={mod}
-                        isCurrent={active?.module.code === mod.code}
-                        onSelect={selectModule}
-                      />
-                    ))}
-                  </div>
-                </section>
+                <>
+                  {matchedShortcuts.length > 0 && (
+                    <ShortcutsSection shortcuts={matchedShortcuts} onSelect={go} />
+                  )}
+                  {allFlatModules.length > 0 && (
+                    <section className="space-y-3">
+                      <header className="flex items-end justify-between">
+                        <h2
+                          className="text-[14px] font-semibold uppercase tracking-wider"
+                          style={{ color: "hsl(var(--launcher-muted))" }}
+                        >
+                          Resultados
+                        </h2>
+                        <span
+                          className="text-[11px]"
+                          style={{ color: "hsl(var(--launcher-muted))" }}
+                        >
+                          {allFlatModules.length}{" "}
+                          {allFlatModules.length === 1 ? "módulo" : "módulos"}
+                        </span>
+                      </header>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                        {allFlatModules.map((mod) => (
+                          <ModuleCard
+                            key={mod.code}
+                            module={mod}
+                            isCurrent={active?.module.code === mod.code}
+                            onSelect={selectModule}
+                          />
+                        ))}
+                      </div>
+                    </section>
+                  )}
+                </>
               )
             ) : (
               <>
