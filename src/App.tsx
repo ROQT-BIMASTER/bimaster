@@ -587,8 +587,8 @@ function AppContent() {
             <Route path="/dashboard/admin/relatorios-v2/:reportId" element={<ProtectedRoute><ReportWizard /></ProtectedRoute>} />
             
 
-            <Route path="/dashboard/briefings" element={<ProtectedRoute><BriefingsHome /></ProtectedRoute>} />
-            <Route path="/dashboard/briefings/:id" element={<ProtectedRoute><BriefingWorkspace /></ProtectedRoute>} />
+            <Route path="/dashboard/briefings" element={<ModuleScreenRoute moduleCode="projetos" screenCode="projetos_briefings"><BriefingsHome /></ModuleScreenRoute>} />
+            <Route path="/dashboard/briefings/:id" element={<ModuleScreenRoute moduleCode="projetos" screenCode="projetos_briefings"><BriefingWorkspace /></ModuleScreenRoute>} />
             <Route path="/dashboard/controladoria" element={<ProtectedRoute><ControladoriaProdutos /></ProtectedRoute>} />
             <Route path="/dashboard/rr-tasks" element={<ProtectedRoute><RrTasksBoard /></ProtectedRoute>} />
             
