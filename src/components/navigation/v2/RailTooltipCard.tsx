@@ -38,7 +38,7 @@ type Props = CategoryProps | ModuleProps;
 
 export function RailTooltipCard(props: Props) {
   if ("category" in props && props.category) {
-    return <CategoryCard {...props} />;
+    return <CategoryCard {...(props as CategoryProps)} />;
   }
   return <ModuleCardTip {...(props as ModuleProps)} />;
 }
