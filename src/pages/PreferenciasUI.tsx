@@ -62,21 +62,35 @@ export default function PreferenciasUI() {
 
   const save = useMutation({
     mutationFn: async (next: NavVersion) => {
-      if (!user?.id) throw new Error("Sessão expirada.");
-      const { error } = await supabase
-        .from("user_ui_preferences" as any)
-        .upsert(
-          { user_id: user.id, nav_version: next },
-          { onConflict: "user_id" },
-        );
-      if (error) throw error;
-      return next;
+      if (!user?.id) throw new Error("Sessão expirada. Faça login novamente.");
+
+      // Valida antes de tocar no banco — bloqueia qualquer valor fora de v1/v2
+      // mesmo que o estado do componente seja manipulado externamente.
+      const parsed = SavePayloadSchema.safeParse({ nav_version: next });
+      if (!parsed.success) {
+        throw new Error("Versão de navegação inválida. Use apenas 'v1' ou 'v2'.");
+      }
+
+      const loadingId = toast.loading("Salvando preferência…");
+      try {
+        const { error } = await supabase
+          .from("user_ui_preferences" as any)
+          .upsert(
+            { user_id: user.id, nav_version: parsed.data.nav_version },
+            { onConflict: "user_id" },
+          );
+        if (error) throw error;
+        return parsed.data.nav_version;
+      } finally {
+        toast.dismiss(loadingId);
+      }
     },
     onSuccess: (next) => {
       toast.success(
         next === "v2"
           ? "Nova navegação ativada. Recarregando…"
           : "Navegação clássica ativada. Recarregando…",
+        { icon: <CheckCircle2 className="h-4 w-4" /> },
       );
       queryClient.invalidateQueries({ queryKey: NAV_QUERY_KEY });
       queryClient.invalidateQueries({ queryKey: ["feature-flag", "nav-version"] });
