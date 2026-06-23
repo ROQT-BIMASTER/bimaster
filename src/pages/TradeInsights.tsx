@@ -89,10 +89,9 @@ const TradeInsights = () => {
     }
   };
 
-  // Bloquear acesso para não-admins/supervisores (após todos os hooks)
-  if (!permissionsLoading && !roleLoading && !isAdminOrSupervisor) {
-    return <Navigate to="/dashboard/acesso-restrito" replace />;
-  }
+  // (bloqueio de acesso movido para baixo, após todos os hooks)
+
+
 
   const getInsightIcon = (type: string) => {
     switch (type) {
@@ -172,6 +171,11 @@ const TradeInsights = () => {
   useEffect(() => {
     applyFilters();
   }, [selectedStore, aiCriteria, allInsights]);
+
+  // Bloquear acesso para não-admins/supervisores (após todos os hooks)
+  if (!permissionsLoading && !roleLoading && !isAdminOrSupervisor) {
+    return <Navigate to="/dashboard/acesso-restrito" replace />;
+  }
 
   const stats = {
     opportunities: insights.filter(i => i.insight_type === "opportunity" && i.status === "new").length,
