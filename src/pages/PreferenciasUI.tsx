@@ -1,12 +1,20 @@
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Loader2, Save, Sparkles, LayoutGrid } from "lucide-react";
+import { Loader2, Save, Sparkles, LayoutGrid, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
+import { z } from "zod";
 
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { DEFAULT_NAV_VERSION, type NavVersion } from "@/lib/featureFlags/navigationVersion";
+
+// Validação client-side: espelha o CHECK constraint do banco
+// (nav_version IN ('v1','v2')). Mass-assignment bloqueado via .strict().
+const NavVersionSchema = z.enum(["v1", "v2"]);
+const SavePayloadSchema = z
+  .object({ nav_version: NavVersionSchema })
+  .strict();
 
 import {
   Card,
