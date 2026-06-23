@@ -35,23 +35,24 @@ const src = readFileSync(APP, "utf8");
 const lines = src.split("\n");
 
 function inferGuard(idx) {
-  // Walk back ~25 lines collecting guard attributes
-  const start = Math.max(0, idx - 25);
-  const window = lines.slice(start, idx + 1).join("\n");
-  const ms = window.match(/ModuleScreenRoute[^>]*moduleCode="([^"]+)"[^>]*screenCode="([^"]+)"/s);
+  // The whole <Route .../> element typically fits on a single line.
+  // Scan the current line plus up to 3 lines forward to capture wrappers
+  // inside element={...}. Recognize both raw wrappers (ScreenProtectedRoute,
+  // ModuleProtectedRoute) and the local aliases (ScreenRoute, ModuleRoute).
+  const window = lines.slice(idx, Math.min(lines.length, idx + 4)).join("\n");
+  const ms = window.match(/ModuleScreenRoute[^>]*moduleCode="([^"]+)"[^>]*screenCode="([^"]+)"/);
   if (ms) return { kind: "module-screen", moduleCode: ms[1], screenCode: ms[2] };
-  const sp = window.match(/ScreenProtectedRoute[^>]*screenCode="([^"]+)"/s);
-  if (sp) {
-    const mp = window.match(/ModuleProtectedRoute[^>]*moduleCode="([^"]+)"/s);
-    return { kind: "screen", moduleCode: mp?.[1] ?? null, screenCode: sp[1] };
-  }
-  const mp = window.match(/ModuleProtectedRoute[^>]*moduleCode="([^"]+)"/s);
+  const sp = window.match(/(?:ScreenProtectedRoute|ScreenRoute)[^>]*screenCode="([^"]+)"/);
+  const mp = window.match(/(?:ModuleProtectedRoute|ModuleRoute)[^>]*moduleCode="([^"]+)"/);
+  if (sp && mp) return { kind: "module-screen", moduleCode: mp[1], screenCode: sp[1] };
+  if (sp) return { kind: "screen", moduleCode: null, screenCode: sp[1] };
   if (mp) return { kind: "module", moduleCode: mp[1], screenCode: null };
   if (/CrmAdminRoute/.test(window)) return { kind: "crm-admin", moduleCode: "crm", screenCode: null };
   if (/ClienteProtectedRoute/.test(window)) return { kind: "cliente", moduleCode: null, screenCode: null };
   if (/ProtectedRoute/.test(window)) return { kind: "protected", moduleCode: null, screenCode: null };
   return { kind: "public", moduleCode: null, screenCode: null };
 }
+
 
 const routes = [];
 const seen = new Set();
