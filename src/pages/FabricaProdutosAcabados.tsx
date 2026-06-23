@@ -584,6 +584,30 @@ export default function FabricaProdutosAcabados() {
     return new Map([...grouped.entries()].sort(([a], [b]) => a.localeCompare(b)));
   }, [produtosFiltrados, agrupamentoAtivo, agruparPor]);
 
+  const { bgStyle, BgColorButton } = usePageBgColor("fabrica_produtos_acabados");
+
+  // Auto-fit altura: mede o offsetTop real do container (banner de impersonação,
+  // alertas de menção, status offline, etc.) e calcula 100dvh - offset, evitando
+  // que a barra superior do sistema corte a tabela em tela cheia.
+  const pageRef = useRef<HTMLDivElement>(null);
+  const [pageHeight, setPageHeight] = useState<string>("calc(100dvh - 52px)");
+  useLayoutEffect(() => {
+    const el = pageRef.current;
+    if (!el) return;
+    const update = () => {
+      const top = el.getBoundingClientRect().top + window.scrollY;
+      setPageHeight(`calc(100dvh - ${Math.max(0, Math.round(top))}px)`);
+    };
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(document.body);
+    window.addEventListener("resize", update);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", update);
+    };
+  }, []);
+
   if (permLoading) {
     return (
       <DashboardLayout>
@@ -934,29 +958,7 @@ export default function FabricaProdutosAcabados() {
     );
   };
 
-  const { bgStyle, BgColorButton } = usePageBgColor("fabrica_produtos_acabados");
 
-  // Auto-fit altura: mede o offsetTop real do container (banner de impersonação,
-  // alertas de menção, status offline, etc.) e calcula 100dvh - offset, evitando
-  // que a barra superior do sistema corte a tabela em tela cheia.
-  const pageRef = useRef<HTMLDivElement>(null);
-  const [pageHeight, setPageHeight] = useState<string>("calc(100dvh - 52px)");
-  useLayoutEffect(() => {
-    const el = pageRef.current;
-    if (!el) return;
-    const update = () => {
-      const top = el.getBoundingClientRect().top + window.scrollY;
-      setPageHeight(`calc(100dvh - ${Math.max(0, Math.round(top))}px)`);
-    };
-    update();
-    const ro = new ResizeObserver(update);
-    ro.observe(document.body);
-    window.addEventListener("resize", update);
-    return () => {
-      ro.disconnect();
-      window.removeEventListener("resize", update);
-    };
-  }, []);
 
   return (
     <DashboardLayout>
