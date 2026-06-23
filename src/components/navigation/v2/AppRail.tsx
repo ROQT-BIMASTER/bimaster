@@ -56,6 +56,8 @@ import { ContextualSidebar } from "./ContextualSidebar";
 import { Launcher } from "./Launcher";
 import { RecordRecents } from "./launcher/RecordRecents";
 import { RailTooltipCard } from "./RailTooltipCard";
+import { RailUtilityButton } from "./RailUtilityButton";
+import { useUtilityShortcuts } from "./launcher/UtilityShortcuts";
 import { getModuleAccent } from "./launcher/moduleColors";
 import {
   findActiveModule,
@@ -101,6 +103,7 @@ export function AppRail({ side = "left" }: AppRailProps) {
   const navigate = useNavigate();
   const [openCategoryKey, setOpenCategoryKey] = useState<string | null>(null);
   const [launcherOpen, setLauncherOpen] = useState(false);
+  const utilityShortcuts = useUtilityShortcuts();
 
   const active = findActiveModule(categories, location.pathname);
   const activeCategoryKey = active?.category.key ?? null;
@@ -315,6 +318,31 @@ export function AppRail({ side = "left" }: AppRailProps) {
             </TooltipContent>
 
           </Tooltip>
+
+          {/* Cluster utilitário: Chat, Aprovações do Chat, Instalar/Atualizar App */}
+          {utilityShortcuts.length > 0 && (
+            <>
+              <div
+                className="w-7 h-px my-0.5"
+                style={{ background: "hsl(var(--launcher-border))" }}
+              />
+              {utilityShortcuts.map((s) => (
+                <RailUtilityButton
+                  key={s.key}
+                  to={s.route}
+                  label={s.label}
+                  icon={s.icon}
+                  tooltipSide={tooltipSide}
+                  attention={s.attention}
+                  badgeCount={s.badgeCount}
+                />
+              ))}
+              <div
+                className="w-7 h-px my-0.5"
+                style={{ background: "hsl(var(--launcher-border))" }}
+              />
+            </>
+          )}
 
           <Tooltip>
             <TooltipTrigger asChild>

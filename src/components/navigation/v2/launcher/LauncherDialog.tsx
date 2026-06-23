@@ -25,6 +25,7 @@ import { CategoryBlock } from "./CategoryBlock";
 import { ModuleCard } from "./ModuleCard";
 import { ModulePagesView } from "./ModulePagesView";
 import { useRecents } from "./useRecents";
+import { useUtilityShortcuts, type UtilityShortcut } from "./UtilityShortcuts";
 import { useLauncherTheme } from "../useLauncherTheme";
 import {
   findActiveModule,
@@ -70,6 +71,7 @@ export function LauncherDialog({ open, onOpenChange }: Props) {
   const location = useLocation();
   const { categories } = useNavV2Data();
   const { entries } = useRecents();
+  const utilityShortcuts = useUtilityShortcuts();
   const { theme } = useLauncherTheme();
   const [query, setQuery] = useState("");
   const [drilledCode, setDrilledCode] = useState<string | null>(null);
@@ -122,6 +124,16 @@ export function LauncherDialog({ open, onOpenChange }: Props) {
     () => filtered.flatMap((c) => c.modules),
     [filtered],
   );
+
+  const matchedShortcuts = useMemo(() => {
+    const needle = query.trim().toLowerCase();
+    if (!needle) return [] as UtilityShortcut[];
+    return utilityShortcuts.filter(
+      (s) =>
+        s.label.toLowerCase().includes(needle) ||
+        s.keywords.some((k) => k.toLowerCase().includes(needle)),
+    );
+  }, [query, utilityShortcuts]);
 
   const drilledFilteredPages = useMemo(() => {
     if (!drilledModule) return [];
@@ -178,9 +190,11 @@ export function LauncherDialog({ open, onOpenChange }: Props) {
         <div className="flex" style={{ height: "min(640px, 75vh)" }}>
           <LauncherSidebar
             recentsCount={entries.length}
+            shortcutsCount={utilityShortcuts.length}
             active="recents"
             onSelect={() => undefined}
           />
+
 
           <div className="flex-1 overflow-y-auto p-5 space-y-7">
             {drilledModule ? (
@@ -192,39 +206,49 @@ export function LauncherDialog({ open, onOpenChange }: Props) {
                 onSelectPage={go}
               />
             ) : hasQuery ? (
-              allFlatModules.length === 0 ? (
+              allFlatModules.length === 0 && matchedShortcuts.length === 0 ? (
                 <EmptyState query={query} />
               ) : (
-                <section className="space-y-3">
-                  <header className="flex items-end justify-between">
-                    <h2
-                      className="text-[14px] font-semibold uppercase tracking-wider"
-                      style={{ color: "hsl(var(--launcher-muted))" }}
-                    >
-                      Resultados
-                    </h2>
-                    <span
-                      className="text-[11px]"
-                      style={{ color: "hsl(var(--launcher-muted))" }}
-                    >
-                      {allFlatModules.length}{" "}
-                      {allFlatModules.length === 1 ? "módulo" : "módulos"}
-                    </span>
-                  </header>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                    {allFlatModules.map((mod) => (
-                      <ModuleCard
-                        key={mod.code}
-                        module={mod}
-                        isCurrent={active?.module.code === mod.code}
-                        onSelect={selectModule}
-                      />
-                    ))}
-                  </div>
-                </section>
+                <>
+                  {matchedShortcuts.length > 0 && (
+                    <ShortcutsSection shortcuts={matchedShortcuts} onSelect={go} />
+                  )}
+                  {allFlatModules.length > 0 && (
+                    <section className="space-y-3">
+                      <header className="flex items-end justify-between">
+                        <h2
+                          className="text-[14px] font-semibold uppercase tracking-wider"
+                          style={{ color: "hsl(var(--launcher-muted))" }}
+                        >
+                          Resultados
+                        </h2>
+                        <span
+                          className="text-[11px]"
+                          style={{ color: "hsl(var(--launcher-muted))" }}
+                        >
+                          {allFlatModules.length}{" "}
+                          {allFlatModules.length === 1 ? "módulo" : "módulos"}
+                        </span>
+                      </header>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                        {allFlatModules.map((mod) => (
+                          <ModuleCard
+                            key={mod.code}
+                            module={mod}
+                            isCurrent={active?.module.code === mod.code}
+                            onSelect={selectModule}
+                          />
+                        ))}
+                      </div>
+                    </section>
+                  )}
+                </>
               )
             ) : (
               <>
+                {utilityShortcuts.length > 0 && (
+                  <ShortcutsSection shortcuts={utilityShortcuts} onSelect={go} />
+                )}
                 {entries.length > 0 && (
                   <section className="space-y-3">
                     <header className="flex items-end justify-between">
@@ -294,3 +318,83 @@ function EmptyState({ query }: { query?: string } = {}) {
     </div>
   );
 }
+
+function ShortcutsSection({
+  shortcuts,
+  onSelect,
+}: {
+  shortcuts: UtilityShortcut[];
+  onSelect: (route: string) => void;
+}) {
+  return (
+    <section className="space-y-3">
+      <header className="flex items-end justify-between">
+        <h2
+          className="text-[12px] font-semibold uppercase tracking-[0.14em]"
+          style={{ color: "hsl(var(--launcher-muted))" }}
+        >
+          Atalhos
+        </h2>
+        <span
+          className="text-[11px]"
+          style={{ color: "hsl(var(--launcher-muted))" }}
+        >
+          sempre acessíveis
+        </span>
+      </header>
+      <div className="flex flex-wrap gap-2">
+        {shortcuts.map((s) => {
+          const Icon = s.icon;
+          return (
+            <button
+              key={s.key}
+              type="button"
+              onClick={() => onSelect(s.route)}
+              className="group inline-flex items-center gap-2 px-3 py-2 rounded-xl border transition-all"
+              style={{
+                background: s.attention
+                  ? "hsl(var(--launcher-accent-2) / 0.12)"
+                  : "hsl(var(--launcher-surface-elevated))",
+                borderColor: s.attention
+                  ? "hsl(var(--launcher-accent-2) / 0.4)"
+                  : "hsl(var(--launcher-border))",
+                color: "hsl(var(--launcher-foreground))",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = "translateY(-1px)";
+                e.currentTarget.style.boxShadow =
+                  "0 4px 14px -4px hsl(0 0% 0% / 0.35)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = "";
+                e.currentTarget.style.boxShadow = "";
+              }}
+            >
+              <Icon
+                className="h-4 w-4"
+                style={{
+                  color: s.attention
+                    ? "hsl(var(--launcher-accent-2))"
+                    : "hsl(var(--launcher-muted))",
+                }}
+              />
+              <span className="text-[13px] font-medium">{s.label}</span>
+              {s.badgeCount && s.badgeCount > 0 ? (
+                <span
+                  className="text-[10px] font-bold px-1.5 py-0.5 rounded-full"
+                  style={{
+                    background: "hsl(var(--launcher-accent-2))",
+                    color: "hsl(var(--launcher-surface))",
+                  }}
+                >
+                  {s.badgeCount > 99 ? "99+" : s.badgeCount}
+                </span>
+              ) : null}
+            </button>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
