@@ -331,9 +331,10 @@ export function AppRail({ side = "left" }: AppRailProps) {
                 {userInitial(user?.email)}
               </button>
             </TooltipTrigger>
-            <TooltipContent side={tooltipSide}>
+            <TooltipContent side={tooltipSide} className="z-[120]">
               <div className="text-xs">{user?.email ?? "Perfil"}</div>
             </TooltipContent>
+
           </Tooltip>
         </div>
       </aside>
