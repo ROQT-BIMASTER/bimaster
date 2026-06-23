@@ -1,28 +1,46 @@
 /**
- * AppRail — rail vertical de 68px da navegação v2.
+ * AppRail v2 — rail vertical de 68px por CATEGORIA.
  *
- * Estrutura (mockup aprovado):
+ * Estrutura:
  *  ┌──────┐
  *  │  H   │  logo
  *  │ ─── │
  *  │  🔍  │  busca (abre launcher)
  *  │      │
- *  │  📦• │  módulo (com indicador de pendências quando houver)
- *  │  📊  │
- *  │ ─── │  divisor de categoria
- *  │  💰 │
- *  │      │
- *  ├──────┤
+ *  │  ⚙️  │  categoria Operação
+ *  │  💼 │  categoria Comercial
+ *  │  📣 │  categoria Marketing
+ *  │  💰 │  categoria Financeiro
+ *  │  📁 │  categoria Projetos
+ *  │ ─── │
  *  │  ▦  │  launcher
- *  │ (R) │  avatar do usuário
+ *  │ (R) │  avatar
  *  └──────┘
  *
- * Default 'v1' — só é montado quando `nav_version='v2'` está ativo via
- * <SidebarSwitch/>.
+ * Click numa categoria → ContextualSidebar em modo `category` (lista módulos
+ * como seções colapsáveis com suas páginas).
+ *
+ * Atalhos:
+ *  - Categoria com 1 módulo + 1 página → navega direto.
+ *  - Categoria sem módulos visíveis → não renderiza.
+ *
+ * Só é montado quando `nav_version='v2'` está ativo (default 'v1').
  */
-import { useState } from "react";
+import { useState, type ComponentType } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { LayoutGrid, Loader2, Search } from "lucide-react";
+import {
+  Briefcase,
+  Factory,
+  FolderKanban,
+  LayoutGrid,
+  Loader2,
+  Megaphone,
+  Search,
+  Settings,
+  Sparkles,
+  Wallet,
+  type LucideProps,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   Tooltip,
@@ -39,9 +57,33 @@ import { Launcher } from "./Launcher";
 import { RecordRecents } from "./launcher/RecordRecents";
 import { RailTooltipCard } from "./RailTooltipCard";
 import { getModuleAccent } from "./launcher/moduleColors";
-import { findActiveModule, useNavV2Data, type NavV2Module } from "./useNavV2Data";
+import {
+  findActiveModule,
+  useNavV2Data,
+  type NavV2Category,
+} from "./useNavV2Data";
 
 const RAIL_WIDTH = 68;
+
+// Fallback de ícone por chave de categoria quando o banco não define um.
+const CATEGORY_FALLBACK_ICON: Record<string, ComponentType<LucideProps>> = {
+  operacao: Factory,
+  comercial: Briefcase,
+  vendas: Briefcase,
+  trade: Briefcase,
+  marketing: Megaphone,
+  financeiro: Wallet,
+  financas: Wallet,
+  projetos: FolderKanban,
+  admin: Settings,
+  outros: Sparkles,
+};
+
+function categoryIcon(cat: NavV2Category): ComponentType<LucideProps> {
+  if (cat.icon) return resolveIcon(cat.icon);
+  const key = cat.key.toLowerCase().replace(/[\s-]+/g, "_");
+  return CATEGORY_FALLBACK_ICON[key] ?? Factory;
+}
 
 interface AppRailProps {
   side?: "left" | "right";
@@ -57,20 +99,21 @@ export function AppRail({ side = "left" }: AppRailProps) {
   const { user } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
-  const [openModuleCode, setOpenModuleCode] = useState<string | null>(null);
+  const [openCategoryKey, setOpenCategoryKey] = useState<string | null>(null);
   const [launcherOpen, setLauncherOpen] = useState(false);
 
   const active = findActiveModule(categories, location.pathname);
+  const activeCategoryKey = active?.category.key ?? null;
   const tooltipSide = side === "left" ? "right" : "left";
 
-  const handleModuleClick = (module: NavV2Module) => {
-    // Click: abre popover. Se módulo tem apenas 1 página, navega direto.
-    if (module.pages.length === 1) {
-      navigate(module.pages[0].route);
-      setOpenModuleCode(null);
+  const handleCategoryClick = (cat: NavV2Category) => {
+    // Atalho: categoria com 1 módulo de 1 página → navega direto.
+    if (cat.modules.length === 1 && cat.modules[0].pages.length === 1) {
+      navigate(cat.modules[0].pages[0].route);
+      setOpenCategoryKey(null);
       return;
     }
-    setOpenModuleCode((cur) => (cur === module.code ? null : module.code));
+    setOpenCategoryKey((cur) => (cur === cat.key ? null : cat.key));
   };
 
   return (
@@ -126,8 +169,8 @@ export function AppRail({ side = "left" }: AppRailProps) {
           </Tooltip>
         </div>
 
-        {/* Lista de módulos */}
-        <div className="flex-1 overflow-y-auto overflow-x-hidden py-1 flex flex-col gap-1">
+        {/* Lista de CATEGORIAS (rail compacto) */}
+        <div className="flex-1 overflow-y-auto overflow-x-hidden py-1 flex flex-col items-center gap-1.5">
           {isLoading && (
             <div className="flex items-center justify-center py-4">
               <Loader2
@@ -137,117 +180,107 @@ export function AppRail({ side = "left" }: AppRailProps) {
             </div>
           )}
 
-          {categories.map((cat, idx) => (
-            <div key={cat.key} className="flex flex-col items-center gap-1">
-              {idx > 0 && (
-                <div
-                  className="h-px w-6 my-2"
-                  style={{ background: "hsl(var(--launcher-border))" }}
-                />
-              )}
-              {cat.modules.map((mod) => {
-                const Icon = resolveIcon(mod.icon);
-                const isActive = active?.module.code === mod.code;
-                const isOpen = openModuleCode === mod.code;
-                const accentToken = getModuleAccent(mod.code);
-                const pendentes = (mod as any).pendentesCount as number | undefined;
+          {categories.map((cat) => {
+            if (cat.modules.length === 0) return null;
+            const CatIcon = categoryIcon(cat);
+            const isActive = activeCategoryKey === cat.key;
+            const isOpen = openCategoryKey === cat.key;
+            const accentToken = getModuleAccent(cat.key);
+            const pendentes = cat.modules.reduce(
+              (acc, m) => acc + ((m as any).pendentesCount ?? 0),
+              0,
+            );
 
-                return (
-                  <Popover
-                    key={mod.code}
-                    open={isOpen}
-                    onOpenChange={(o) => setOpenModuleCode(o ? mod.code : null)}
-                  >
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <PopoverTrigger asChild>
-                          <button
-                            type="button"
-                            aria-label={mod.label}
-                            aria-current={isActive ? "page" : undefined}
-                            onClick={() => handleModuleClick(mod)}
-                            className={cn(
-                              "relative flex items-center justify-center rounded-lg transition-all duration-150",
-                              "h-11 w-11 shrink-0",
-                            )}
-                            style={{
-                              background: isActive
-                                ? `hsl(var(${accentToken}) / 0.18)`
-                                : isOpen
-                                  ? "hsl(var(--launcher-surface-hover))"
-                                  : "transparent",
-                              color: isActive
-                                ? `hsl(var(${accentToken}))`
-                                : "hsl(var(--launcher-muted))",
-                              boxShadow: isActive
-                                ? `inset 0 0 0 1px hsl(var(${accentToken}) / 0.35)`
-                                : "none",
-                            }}
-                            onMouseEnter={(e) => {
-                              if (isActive || isOpen) return;
-                              e.currentTarget.style.background =
-                                "hsl(var(--launcher-surface-hover))";
-                              e.currentTarget.style.color =
-                                "hsl(var(--launcher-foreground))";
-                            }}
-                            onMouseLeave={(e) => {
-                              if (isActive || isOpen) return;
-                              e.currentTarget.style.background = "transparent";
-                              e.currentTarget.style.color = "hsl(var(--launcher-muted))";
-                            }}
-                          >
-                            <Icon className="h-5 w-5" />
-                            {isActive && (
-                              <span
-                                className="absolute left-0 top-1/2 -translate-y-1/2 h-6 w-[3px] rounded-r"
-                                style={{ background: `hsl(var(${accentToken}))` }}
-                              />
-                            )}
-                            {typeof pendentes === "number" && pendentes > 0 && (
-                              <span
-                                className="absolute top-1 right-1 h-2 w-2 rounded-full"
-                                style={{
-                                  background: "hsl(var(--launcher-accent-2))",
-                                  boxShadow:
-                                    "0 0 0 2px hsl(var(--launcher-surface))",
-                                }}
-                              />
-                            )}
-                          </button>
-                        </PopoverTrigger>
-                      </TooltipTrigger>
-                      <TooltipContent
-                        side={tooltipSide}
-                        className="p-0 border-0 bg-transparent shadow-none"
+            return (
+              <Popover
+                key={cat.key}
+                open={isOpen}
+                onOpenChange={(o) => setOpenCategoryKey(o ? cat.key : null)}
+              >
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <PopoverTrigger asChild>
+                      <button
+                        type="button"
+                        aria-label={cat.label}
+                        aria-current={isActive ? "page" : undefined}
+                        onClick={() => handleCategoryClick(cat)}
+                        className={cn(
+                          "relative flex items-center justify-center rounded-lg transition-all duration-150",
+                          "h-11 w-11 shrink-0",
+                        )}
+                        style={{
+                          background: isActive
+                            ? `hsl(var(${accentToken}) / 0.18)`
+                            : isOpen
+                              ? "hsl(var(--launcher-surface-hover))"
+                              : "transparent",
+                          color: isActive
+                            ? `hsl(var(${accentToken}))`
+                            : "hsl(var(--launcher-muted))",
+                          boxShadow: isActive
+                            ? `inset 0 0 0 1px hsl(var(${accentToken}) / 0.35)`
+                            : "none",
+                        }}
+                        onMouseEnter={(e) => {
+                          if (isActive || isOpen) return;
+                          e.currentTarget.style.background =
+                            "hsl(var(--launcher-surface-hover))";
+                          e.currentTarget.style.color =
+                            "hsl(var(--launcher-foreground))";
+                        }}
+                        onMouseLeave={(e) => {
+                          if (isActive || isOpen) return;
+                          e.currentTarget.style.background = "transparent";
+                          e.currentTarget.style.color = "hsl(var(--launcher-muted))";
+                        }}
                       >
-                        <RailTooltipCard
-                          module={mod}
-                          isActive={isActive}
-                          pendentes={pendentes}
-                        />
-                      </TooltipContent>
-                    </Tooltip>
-                    <PopoverContent
-                      side={tooltipSide}
-                      align="start"
-                      sideOffset={8}
-                      className="p-0 w-auto border-0"
-                      style={{
-                        background: "transparent",
-                        boxShadow: "none",
-                      }}
-                    >
-                      <ContextualSidebar
-                        module={mod}
-                        currentPath={location.pathname}
-                        onNavigate={() => setOpenModuleCode(null)}
-                      />
-                    </PopoverContent>
-                  </Popover>
-                );
-              })}
-            </div>
-          ))}
+                        <CatIcon className="h-5 w-5" />
+                        {isActive && (
+                          <span
+                            className="absolute left-0 top-1/2 -translate-y-1/2 h-6 w-[3px] rounded-r"
+                            style={{ background: `hsl(var(${accentToken}))` }}
+                          />
+                        )}
+                        {pendentes > 0 && (
+                          <span
+                            className="absolute top-1 right-1 h-2 w-2 rounded-full"
+                            style={{
+                              background: "hsl(var(--launcher-accent-2))",
+                              boxShadow: "0 0 0 2px hsl(var(--launcher-surface))",
+                            }}
+                          />
+                        )}
+                      </button>
+                    </PopoverTrigger>
+                  </TooltipTrigger>
+                  <TooltipContent
+                    side={tooltipSide}
+                    className="p-0 border-0 bg-transparent shadow-none"
+                  >
+                    <RailTooltipCard
+                      category={cat}
+                      isActive={isActive}
+                      pendentes={pendentes || undefined}
+                    />
+                  </TooltipContent>
+                </Tooltip>
+                <PopoverContent
+                  side={tooltipSide}
+                  align="start"
+                  sideOffset={8}
+                  className="p-0 w-auto border-0"
+                  style={{ background: "transparent", boxShadow: "none" }}
+                >
+                  <ContextualSidebar
+                    category={cat}
+                    currentPath={location.pathname}
+                    onNavigate={() => setOpenCategoryKey(null)}
+                  />
+                </PopoverContent>
+              </Popover>
+            );
+          })}
         </div>
 
         {/* Rodapé: launcher + avatar */}
