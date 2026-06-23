@@ -113,6 +113,7 @@ function isChildOf(path) {
 function classify(r) {
   const p = r.path;
   if (exclusions[p]) return { bucket: exclusions[p].bucket, reason: exclusions[p].reason ?? "override" };
+  if (r.guard.kind === "redirect") return { bucket: "B", reason: "redirect <Navigate>" };
   if (PUBLIC_EXACT.has(p)) return { bucket: "A", reason: "public/auth" };
   for (const pre of PUBLIC_PREFIX) if (p.startsWith(pre)) return { bucket: "A", reason: "public prefix" };
   if (p.startsWith("/dashboard/crm/") || ["analytics","bots","contatos","inbox","tickets","configuracoes"].includes(p)) {
@@ -120,6 +121,7 @@ function classify(r) {
   }
   const childOf = isChildOf(p);
   if (childOf) return { bucket: "B", reason: typeof childOf === "string" ? `child of ${childOf}` : "wizard/detail" };
+
   const isAdmin = p.startsWith("/admin/") || p.startsWith("/dashboard/admin/")
     || p.startsWith("/dashboard/security") || p.startsWith("/dashboard/seguranca")
     || p === "/dashboard/trilha-auditoria-acessos"
