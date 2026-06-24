@@ -50,6 +50,7 @@ const TONE_BG: Record<NonNullable<ChinaPageHeaderProps["iconTone"]>, string> = {
 export function ChinaPageHeader({
   titlePt,
   titleCn,
+  titleEn,
   subtitle,
   icon: Icon = Factory,
   iconTone = "destructive",
