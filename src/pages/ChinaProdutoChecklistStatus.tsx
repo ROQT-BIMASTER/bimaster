@@ -792,6 +792,7 @@ export default function ChinaProdutoChecklistStatus() {
       <ChinaPageHeader
         titlePt="Status do Checklist"
         titleCn="清单状态"
+        titleEn="Checklist Status"
         subtitle={
           submissao
             ? `${submissao.produto_codigo} — ${submissao.produto_nome}`
