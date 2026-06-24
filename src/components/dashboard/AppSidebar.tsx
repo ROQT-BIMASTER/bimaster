@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import { ThemeSelectorPopover } from "@/components/theme/ThemeSelectorPopover";
 import { LanguagePreferencePopover } from "@/components/profile/LanguagePreferencePopover";
+import { NavVersionToggle } from "@/components/navigation/NavVersionToggle";
 import { NavLink, useLocation } from "react-router-dom";
 import { MODULE_LOADERS } from "@/hooks/useModulePreloader";
 import { supabase } from "@/integrations/supabase/client";
@@ -1461,6 +1462,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
             </NavLink>
             <div className="flex items-center gap-1">
               <ThemeSelectorPopover />
+              <NavVersionToggle variant="sidebar" />
               <LanguagePreferencePopover />
               <NavLink
                 to="/meu-perfil"
