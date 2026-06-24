@@ -420,7 +420,7 @@ export default function ChinaSubmissaoDetalhe() {
                         onClick={() => goCorrigir(config.tipo)}
                       >
                         <Pencil className="h-3.5 w-3.5" />
-                        Corrigir 修正
+                        {t("submissaoDetalhe.corrigir")}
                       </Button>
                     )}
                   </div>
