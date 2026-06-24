@@ -1,17 +1,21 @@
 import { useEffect, useRef, useState } from "react";
 import { format } from "date-fns";
 import { ptBR, zhCN, enUS } from "date-fns/locale";
-import { Paperclip, Send, MessageSquareWarning, Trash2, Pencil, Download, X, Loader2 } from "lucide-react";
+import { Paperclip, Send, MessageSquareWarning, Trash2, Pencil, Download, X, Loader2, MoreVertical, ClipboardList, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useChinaI18n } from "@/hooks/useChinaI18n";
-import { useSubmissaoPareceres, type Parecer } from "@/hooks/useSubmissaoPareceres";
+import { useSubmissaoPareceres, type Parecer, type ParecerAnexo } from "@/hooks/useSubmissaoPareceres";
 import { triggerBlobDownload } from "@/lib/utils/storage-download";
+import { PromoverParecerChecklistDialog } from "./PromoverParecerChecklistDialog";
 
 interface Props {
   submissaoId: string;
