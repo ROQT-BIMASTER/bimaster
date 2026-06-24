@@ -594,7 +594,7 @@ export default function ChinaFichaProduto() {
           {/* Mandatory warning */}
           {MANDATORY_DOCS.some(tipo => !documentos.find((d: any) => d.tipo_documento === tipo)) && (
             <div className="p-3 bg-warning/10 border border-warning/30 rounded-lg text-sm text-warning">
-              ⚠️ Foto e vídeo da amostra são obrigatórios para aprovação. 照片和视频样品是审批所必需的。
+              ⚠️ <LangText pt="Foto e vídeo da amostra são obrigatórios para aprovação." cn="照片和视频样品是审批所必需的。" en="Sample photo and video are required for approval." />
             </div>
           )}
         </Card>
