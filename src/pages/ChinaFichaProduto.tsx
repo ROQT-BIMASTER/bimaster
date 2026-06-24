@@ -403,7 +403,7 @@ export default function ChinaFichaProduto() {
             <div className="md:w-80 space-y-4">
               {cores.length > 0 && (
                 <div className="p-4 border rounded-xl bg-card">
-                  <BilingualLabel pt="Grade" cn="颜色网格" size="sm" className="mb-2" />
+                  <BilingualLabel pt="Grade" cn="颜色网格" en="Color Grid" size="sm" className="mb-2" />
                   <ChinaGradeView
                     compact
                     items={cores.map((c: any) => ({
