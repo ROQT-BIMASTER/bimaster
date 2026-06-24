@@ -207,9 +207,9 @@ function ParecerItem({
   const [draft, setDraft] = useState(parecer.texto);
 
   const [meId, setMeId] = useState<string | null>(null);
-  useEffectOnce(() => {
+  useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setMeId(data.user?.id || null));
-  });
+  }, []);
 
   const created = new Date(parecer.created_at);
   const isMine = meId === parecer.autor_id;
