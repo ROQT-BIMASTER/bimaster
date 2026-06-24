@@ -348,7 +348,7 @@ export default function ChinaFichaProduto() {
                   onClick={() => { setDeleteConfirmed(false); setDeleteDialogOpen(true); }}
                 >
                   <Trash2 className="h-4 w-4" />
-                  Excluir 删除
+                  <LangText pt="Excluir" cn="删除" en="Delete" />
                 </Button>
               </div>
             </div>
