@@ -120,5 +120,6 @@ Consolidar Fluxo 1 sobre `rpc_china_criar_projeto_espelho` muda comportamento (t
 - [`projectService.test.ts`](../../../src/lib/projetos/__tests__/projectService.test.ts) — 7 testes unitários.
 - [`projectFlows.integration.test.ts`](../../../src/lib/projetos/__tests__/projectFlows.integration.test.ts) — 5 testes de integração Fluxo 1 + Fluxo 2.
 - [`buildRpcParams.contract.test.ts`](../../../src/lib/projetos/__tests__/buildRpcParams.contract.test.ts) — contrato: `create` e `linkExisting` produzem parâmetros idênticos exceto `p_projeto_id`.
-- [`scripts/qa/smoke-submissao-projeto.spec.ts`](../../../scripts/qa/smoke-submissao-projeto.spec.ts) — smoke UI manual (Playwright) cobrindo os dois fluxos.
+- [`scripts/qa/smoke_submissao_projeto.py`](../../../scripts/qa/smoke_submissao_projeto.py) — smoke UI Playwright com seed/cleanup isolados por `runId` e asserts de não-duplicidade de hook. Workflow `.github/workflows/qa-smoke-submissao-projeto.yml` (manual, staging).
 - Canary diário: `scripts/security/canary-submissao-projeto.sh`.
+
