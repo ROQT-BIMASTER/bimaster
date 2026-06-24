@@ -501,7 +501,7 @@ export default function ChinaFichaProduto() {
                   if (!ok) return;
                   await supabase.from("china_produto_documentos" as any).delete().eq("id", fileId);
                   queryClient.invalidateQueries({ queryKey: ["china-ficha-docs", id] });
-                  toast.success("Documento removido 文件已删除");
+                  toast.success(t("toasts.docRemoved", { defaultValue: "Documento removido" }));
                 }}
                 onViewDoc={handleViewDoc}
               />
