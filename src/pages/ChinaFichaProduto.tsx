@@ -525,11 +525,11 @@ export default function ChinaFichaProduto() {
                     </th>
                   </tr>
                   <tr className="bg-muted/30 text-muted-foreground text-xs">
-                    <th className="text-left px-4 py-2.5 font-medium">Categoria 类别</th>
-                    <th className="text-center px-4 py-2.5 font-medium">Arquivos 文件</th>
-                    <th className="text-center px-4 py-2.5 font-medium">Status 状态</th>
-                    <th className="text-center px-4 py-2.5 font-medium">Rascunhos 草稿</th>
-                    <th className="text-center px-4 py-2.5 font-medium">Pendentes 待处理</th>
+                    <th className="text-left px-4 py-2.5 font-medium">{t("fichaProduto.colCategoria")}</th>
+                    <th className="text-center px-4 py-2.5 font-medium">{t("fichaProduto.colArquivos")}</th>
+                    <th className="text-center px-4 py-2.5 font-medium">{t("fichaProduto.colStatus")}</th>
+                    <th className="text-center px-4 py-2.5 font-medium">{t("fichaProduto.colRascunhos")}</th>
+                    <th className="text-center px-4 py-2.5 font-medium">{t("fichaProduto.colPendentes")}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
