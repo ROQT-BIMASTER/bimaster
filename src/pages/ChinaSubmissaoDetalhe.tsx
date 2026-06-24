@@ -164,12 +164,13 @@ export default function ChinaSubmissaoDetalhe() {
                 <BilingualLabel
                   pt="Ajustes solicitados pelo Brasil"
                   cn="巴西要求的调整"
+                  en="Adjustments requested by Brazil"
                   size="md"
                 />
                 <p className="text-xs text-muted-foreground mt-0.5">
                   {rejectedDocs.length > 0
-                    ? `${rejectedDocs.length} documento(s) precisam de correção. Clique em "Corrigir" para abrir o editor no ponto exato.`
-                    : "O Brasil retornou esta submissão. Reabra o editor para realizar os ajustes."}
+                    ? t("submissaoDetalhe.ajustesDescPlural", { count: rejectedDocs.length })
+                    : t("submissaoDetalhe.ajustesDescGenerico")}
                 </p>
               </div>
 
