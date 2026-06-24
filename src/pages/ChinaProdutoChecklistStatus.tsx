@@ -866,7 +866,7 @@ export default function ChinaProdutoChecklistStatus() {
                 else toast.info("Nenhum item pendente.");
               }}
             >
-              Abrir item pendente
+              {t("statusChecklist.abrirPendente")}
             </Button>
           </div>
         </Card>
