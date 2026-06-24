@@ -229,7 +229,7 @@ export default function ChinaSubmissaoDetalhe() {
                   className="gap-2"
                 >
                   <Pencil className="h-4 w-4" />
-                  Abrir editor para corrigir 打开编辑器进行修正
+                  {t("submissaoDetalhe.abrirEditorCorrigir")}
                 </Button>
               </div>
             </div>
