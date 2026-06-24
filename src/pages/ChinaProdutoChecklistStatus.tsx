@@ -894,7 +894,7 @@ export default function ChinaProdutoChecklistStatus() {
                 value={opt.key}
                 className="h-7 px-2.5 text-[11px]"
               >
-                {opt.label}
+                {filterLabel[opt.key]}
               </ToggleGroupItem>
             ))}
           </ToggleGroup>
