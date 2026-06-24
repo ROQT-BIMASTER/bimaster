@@ -273,6 +273,22 @@ export function useCriarProjetoChina() {
     mutationFn: async (submissao: { id: string; produto_codigo: string; produto_nome: string }) => {
       if (!user) throw new Error("Não autenticado");
 
+      // Idempotência (Fase 1 da unificação Submissão↔Projeto):
+      // se a submissão já tem qualquer projeto vinculado, retorna o
+      // existente em vez de criar um duplicado. Isso protege contra
+      // double-click, retry de rede e usuários que abrem o botão em
+      // duas abas. Quando não há vínculo, o fluxo legado segue intacto.
+      const { ProjectService } = await import("@/lib/projetos/projectService");
+      const existente = await ProjectService.findBySubmission(submissao.id);
+      if (existente) {
+        const { data: proj } = await supabase
+          .from("projetos")
+          .select("id, nome, cor, status, created_at")
+          .eq("id", existente.projeto_id)
+          .maybeSingle();
+        if (proj) return proj;
+      }
+
       const nome = `${submissao.produto_codigo} - ${submissao.produto_nome}`;
       const cor = "#6366f1";
 
@@ -336,10 +352,14 @@ export function useCriarProjetoChina() {
         }
       }
 
-      // 5. Create link
-      await supabase
-        .from("china_submissao_projetos" as any)
-        .insert({ submissao_id: submissao.id, projeto_id: projeto.id, created_by: user.id } as any);
+      // 5. Create link (defensivo: ON CONFLICT lógico — recheca antes de inserir
+      // para tolerar corrida de duas chamadas simultâneas)
+      const racingCheck = await ProjectService.findBySubmission(submissao.id);
+      if (!racingCheck) {
+        await supabase
+          .from("china_submissao_projetos" as any)
+          .insert({ submissao_id: submissao.id, projeto_id: projeto.id, created_by: user.id } as any);
+      }
 
       return projeto;
     },
