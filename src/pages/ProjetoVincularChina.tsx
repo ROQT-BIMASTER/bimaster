@@ -710,6 +710,8 @@ export default function ProjetoVincularChina() {
               </div>
             </div>
 
+            <UnificacaoBanner />
+
             {/* Painel de monitoramento — KPIs */}
             <VincularChinaKpis
               data={kpiData}
