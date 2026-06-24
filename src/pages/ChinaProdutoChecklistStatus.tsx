@@ -415,7 +415,7 @@ function KanbanView({ cats, visibleByCat, docsByTipo, getLabel, onOpenItem }: Ka
             <div className="flex flex-col gap-2 p-2">
               {items.length === 0 ? (
                 <p className="px-2 py-3 text-center text-[10.5px] text-muted-foreground/60">
-                  Nenhum item
+                  {t("statusChecklist.nenhumItem")}
                 </p>
               ) : (
                 items.map(({ tipo, doc, cat }) => {
@@ -423,9 +423,7 @@ function KanbanView({ cats, visibleByCat, docsByTipo, getLabel, onOpenItem }: Ka
                   const FluxoIcon = cat.fluxo === "china_envia" ? ArrowUpRight : ArrowDownLeft;
                   const status = doc?.status ?? "nao_criado";
                   const statusLabel =
-                    status === "nao_criado"
-                      ? "Não criado"
-                      : STATUS_LABEL[status] ?? status;
+                    statusLabelI18n[status] ?? STATUS_LABEL[status] ?? status;
                   const statusCls =
                     status === "nao_criado"
                       ? "bg-muted text-muted-foreground border-border"
