@@ -832,11 +832,10 @@ export default function ChinaProdutoChecklistStatus() {
         <Card className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
           <div className="space-y-0.5">
             <p className="text-xs uppercase tracking-wide text-muted-foreground">
-              Progresso geral
+              {t("statusChecklist.progressoGeral")}
             </p>
             <p className="text-sm font-medium text-foreground">
-              <span className="text-base font-semibold">{enviadosGlobal}</span>{" "}
-              de <span className="font-semibold">{totalGlobal}</span> itens enviados ao Brasil
+              {t("statusChecklist.xDeYEnviados", { sent: enviadosGlobal, total: totalGlobal })}
             </p>
           </div>
           <div className="flex items-center gap-3">
