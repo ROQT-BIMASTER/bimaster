@@ -449,9 +449,9 @@ export default function ChinaFichaProduto() {
         {isBrasilUser && (
           <Card className="p-4">
             <div className="flex items-center justify-between">
-              <BilingualLabel pt="Painel de Aprovação e Acompanhamento" cn="审批与跟踪面板" size="md" />
+              <BilingualLabel pt="Painel de Aprovação e Acompanhamento" cn="审批与跟踪面板" en="Approval & Tracking Panel" size="md" />
               <Button onClick={() => setPainelAprovacaoOpen(true)} className="gap-2">
-                <Eye className="h-4 w-4" /> Abrir Painel 打开面板
+                <Eye className="h-4 w-4" /> {t("fichaProduto.abrirPainel")}
               </Button>
             </div>
           </Card>
