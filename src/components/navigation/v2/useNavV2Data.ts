@@ -102,6 +102,12 @@ export function useNavV2Data(): NavV2Tree {
         };
       })
       .filter((c) => c.modules.length > 0);
+    const adminCat = buildAdminCategory({
+      isAdmin,
+      hasModulePermission,
+      hasScreen: hasPermission,
+    });
+    return adminCat ? [...base, adminCat] : base;
   }, [
     dbCategories,
     itemsByModule,
