@@ -4,7 +4,7 @@ Status em 2026-06-24 — pós Fase 7. Legenda: ✅ resolvido · 🟡 mitigado (g
 
 | # | Status | Item | Como foi resolvido |
 |---|:-:|---|---|
-| 1 | 🟡 | Dois hooks de criação de projeto | `useCriarProjetoChina` agora chama `ProjectService.findBySubmission` antes de criar (idempotência — Fase 1). Substituição completa fica para Fase 8 (atrás de flag). |
+| 1 | ✅ | Dois hooks de criação de projeto | `useCriarProjetoChina` (Fluxo 1) e `useCriarProjetoEspelho` (Fluxo 2) agora roteiam pelo `ProjectService` (Fases 1 + 11). RPC e parâmetros inalterados — zero mudança de comportamento. |
 | 2 | ⏳ | Dois RPCs independentes | Mantidos. `ProjectService` delega ao `rpc_china_criar_projeto_espelho`. Consolidação no RPC fica para Fase 8. |
 | 3 | 🟡 | Tarefas hardcoded em código frontend | Extraído para `src/lib/projetos/checklistTarefas.ts` (Fase 10) — fonte única para consumers existentes. `useChinaProjeto` re-exporta para compatibilidade. Substituição completa pelo template B2C ainda fica para Fase 11+. |
 | 4 | ⏳ | Duas tabelas de linkagem tarefa↔submissão | Documentado; consolidação fora do escopo atual. |
