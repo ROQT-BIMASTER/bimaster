@@ -60,13 +60,14 @@ export function NavVersionToggle({ variant = "sidebar" }: NavVersionToggleProps)
       toast.dismiss(loadingId);
       toast.success(
         next === "v2"
-          ? "Ambiente novo (v2) ativado. Recarregando…"
-          : "Ambiente clássico (v1) ativado. Recarregando…",
+          ? "Ambiente novo (v2) ativado."
+          : "Ambiente clássico (v1) ativado.",
       );
-      queryClient.invalidateQueries({ queryKey: ["feature-flag", "nav-version"] });
-      queryClient.invalidateQueries({ queryKey: ["user-ui-preferences", "self"] });
+      await queryClient.invalidateQueries({ queryKey: ["feature-flag", "nav-version"] });
+      await queryClient.invalidateQueries({ queryKey: ["user-ui-preferences", "self"] });
+      await queryClient.invalidateQueries({ queryKey: ["nav-v2-data"] });
       setOpen(false);
-      setTimeout(() => window.location.reload(), 500);
+      setSaving(null);
     } catch (err: any) {
       toast.dismiss(loadingId);
       toast.error(err?.message ?? "Não foi possível salvar.");
