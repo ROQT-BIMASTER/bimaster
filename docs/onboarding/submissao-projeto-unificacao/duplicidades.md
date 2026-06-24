@@ -10,7 +10,7 @@ Status em 2026-06-24 — pós Fase 7. Legenda: ✅ resolvido · 🟡 mitigado (g
 | 4 | ⏳ | Duas tabelas de linkagem tarefa↔submissão | Documentado; consolidação fora do escopo atual. |
 | 5 | ✅ | Ausência de UNIQUE em `china_submissao_projetos.submissao_id` | Backfill (Fase 5, Opção B) + `UNIQUE INDEX` (Fase 6). Canary diário em `scripts/security/canary-submissao-projeto.sh`. |
 | 6 | 🟡 | Tela "Vincular China" distinta da Ficha | Banner informativo em `ProjetoVincularChina` atrás de `ff_unificacao_vincular_china` (Fase 4). Ativação gradual. |
-| 7 | ⏳ | Projetos do Fluxo 1 invisíveis na Mesa China | Fica para Fase 8. |
+| 7 | ✅ | Projetos do Fluxo 1 invisíveis na Mesa China | Backfill (Fase 9) marcou todos os vínculos como `is_espelho=true` — agora válido por construção, já que o `UNIQUE` da Fase 6 garante 1 vínculo por submissão. Default da coluna passou a `true`. Filtros existentes (`.eq('is_espelho', true)`) param de esconder projetos legados. |
 | 8 | ⏳ | Documentos da submissão não chegam às tarefas | Fica para Fase 8 (depende da consolidação do RPC). |
 | 9 | ✅ | Ausência de "foto oficial" | Colunas `foto_oficial_*` + bucket dedicado `china-submissao-foto-oficial` (Fase 3, atrás de `ff_projeto_foto_oficial`). |
 | 10 | ⏳ | Configuração de prazos só no Fluxo 2 | Fica para Fase 8. |
