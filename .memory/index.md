@@ -23,6 +23,7 @@ type: feature | preference | design | constraint | reference
 
 ### `features/`
 - [`china/upload-documentos-hardening.md`](./features/china/upload-documentos-hardening.md) — Invariantes do upload de documentos China: coluna `observacao`, validação local + magic bytes, path sanitizado, retry com backoff, rollback transacional, preview com sandbox.
+- [`china/unificacao-submissao-projeto.md`](./features/china/unificacao-submissao-projeto.md) — Fonte única `ProjectService` + UNIQUE no banco + flags + canary. Fases 1–7 entregues; 8+ pendentes.
 - [`fabrica-price-limits-per-table.md`](./features/fabrica-price-limits-per-table.md) — Limites de preço por tabela no módulo Fábrica.
 
 ### `preferences/`
