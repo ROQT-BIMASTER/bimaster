@@ -6,7 +6,7 @@ Status em 2026-06-24 — pós Fase 7. Legenda: ✅ resolvido · 🟡 mitigado (g
 |---|:-:|---|---|
 | 1 | 🟡 | Dois hooks de criação de projeto | `useCriarProjetoChina` agora chama `ProjectService.findBySubmission` antes de criar (idempotência — Fase 1). Substituição completa fica para Fase 8 (atrás de flag). |
 | 2 | ⏳ | Dois RPCs independentes | Mantidos. `ProjectService` delega ao `rpc_china_criar_projeto_espelho`. Consolidação no RPC fica para Fase 8. |
-| 3 | ⏳ | Tarefas hardcoded em frontend | Mantido em paralelo; nenhum novo consumer adicionado. |
+| 3 | 🟡 | Tarefas hardcoded em código frontend | Extraído para `src/lib/projetos/checklistTarefas.ts` (Fase 10) — fonte única para consumers existentes. `useChinaProjeto` re-exporta para compatibilidade. Substituição completa pelo template B2C ainda fica para Fase 11+. |
 | 4 | ⏳ | Duas tabelas de linkagem tarefa↔submissão | Documentado; consolidação fora do escopo atual. |
 | 5 | ✅ | Ausência de UNIQUE em `china_submissao_projetos.submissao_id` | Backfill (Fase 5, Opção B) + `UNIQUE INDEX` (Fase 6). Canary diário em `scripts/security/canary-submissao-projeto.sh`. |
 | 6 | 🟡 | Tela "Vincular China" distinta da Ficha | Banner informativo em `ProjetoVincularChina` atrás de `ff_unificacao_vincular_china` (Fase 4). Ativação gradual. |
