@@ -543,14 +543,14 @@ export default function ChinaFichaProduto() {
                     const allApproved = catFilled === catTotalTypes && catDocs.length > 0 && catDocs.every((d: any) => d.status === "aprovado");
 
                     const statusBadge = allApproved
-                      ? <Badge variant="success" className="text-xs">✓ Completo 完成</Badge>
+                      ? <Badge variant="success" className="text-xs">✓ <LangText pt="Completo" cn="完成" en="Complete" /></Badge>
                       : hasRejected
-                      ? <Badge variant="destructive" className="text-xs">✗ Rejeitado 被拒</Badge>
+                      ? <Badge variant="destructive" className="text-xs">✗ <LangText pt="Rejeitado" cn="被拒" en="Rejected" /></Badge>
                       : hasDrafts > 0
-                      ? <Badge variant="warning" className="text-xs whitespace-nowrap">⚠ Não enviado ao Brasil 未发送</Badge>
+                      ? <Badge variant="warning" className="text-xs whitespace-nowrap">⚠ <LangText pt="Não enviado ao Brasil" cn="未发送" en="Not sent to Brazil" /></Badge>
                       : catFilled === 0
-                      ? <Badge variant="secondary" className="text-xs">— Vazio 空</Badge>
-                      : <Badge variant="warning" className="text-xs">⏳ Parcial 部分</Badge>;
+                      ? <Badge variant="secondary" className="text-xs">— <LangText pt="Vazio" cn="空" en="Empty" /></Badge>
+                      : <Badge variant="warning" className="text-xs">⏳ <LangText pt="Parcial" cn="部分" en="Partial" /></Badge>;
 
                     return (
                       <tr
