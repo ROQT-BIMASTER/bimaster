@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
-import { AppSidebar } from "@/components/dashboard/AppSidebar";
+import { SidebarSwitch } from "@/components/navigation/v2/SidebarSwitch";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -254,7 +254,7 @@ export default function ProjetosRelatorios() {
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-background">
-        <AppSidebar />
+        <SidebarSwitch />
         <main className="flex-1 overflow-auto">
           <div
             className="p-4 sm:p-6 space-y-5 max-w-[1600px] mx-auto"

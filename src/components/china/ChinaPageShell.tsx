@@ -1,6 +1,6 @@
 import { ReactNode } from "react";
 import { SidebarProvider } from "@/components/ui/sidebar";
-import { AppSidebar } from "@/components/dashboard/AppSidebar";
+import { SidebarSwitch } from "@/components/navigation/v2/SidebarSwitch";
 import { usePageBgColor } from "@/hooks/usePageBgColor";
 import { getBgPaletteVars } from "@/lib/colorUtils";
 import { ChinaCommunicationFab } from "@/components/china/ChinaCommunicationFab";
@@ -32,7 +32,7 @@ export function ChinaPageShell({ children, showCommunicationFab = true }: ChinaP
     <I18nextProvider i18n={chinaI18n} defaultNS="china">
       <SidebarProvider>
         <div className="min-h-screen flex w-full bg-background">
-          <AppSidebar />
+          <SidebarSwitch />
           <main
             className="flex-1 overflow-auto"
             style={

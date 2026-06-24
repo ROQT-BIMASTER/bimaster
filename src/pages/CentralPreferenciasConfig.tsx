@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { ArrowLeft, Home, RotateCcw, Save, Settings } from "lucide-react";
 
 import { SidebarProvider } from "@/components/ui/sidebar";
-import { AppSidebar } from "@/components/dashboard/AppSidebar";
+import { SidebarSwitch } from "@/components/navigation/v2/SidebarSwitch";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -185,7 +185,7 @@ export default function CentralPreferenciasConfig() {
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-background">
-        <AppSidebar />
+        <SidebarSwitch />
         <main className="flex-1 overflow-auto">
           <div className="p-6 max-w-4xl mx-auto space-y-5">
             <Breadcrumb>

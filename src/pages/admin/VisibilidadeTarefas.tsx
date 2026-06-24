@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { SidebarProvider } from "@/components/ui/sidebar";
-import { AppSidebar } from "@/components/dashboard/AppSidebar";
+import { SidebarSwitch } from "@/components/navigation/v2/SidebarSwitch";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -60,7 +60,7 @@ export default function VisibilidadeTarefas() {
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-background">
-        <AppSidebar />
+        <SidebarSwitch />
         <main className="flex-1 overflow-auto p-6 space-y-4">
           <div className="flex items-center gap-2">
             <ShieldQuestion className="h-5 w-5 text-primary" />

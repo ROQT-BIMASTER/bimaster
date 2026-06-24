@@ -8,7 +8,7 @@ import { useChinaMailbox, type MailboxItem } from "@/hooks/useChinaMailbox";
 import { useViewModePreference } from "@/hooks/useViewModePreference";
 import { Button } from "@/components/ui/button";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
-import { AppSidebar } from "@/components/dashboard/AppSidebar";
+import { SidebarSwitch } from "@/components/navigation/v2/SidebarSwitch";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -639,7 +639,7 @@ export default function ProjetoVincularChina() {
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-background">
-        <AppSidebar />
+        <SidebarSwitch />
         <main
           className="flex-1 overflow-auto"
           style={

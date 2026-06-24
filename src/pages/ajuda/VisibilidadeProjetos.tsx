@@ -1,5 +1,5 @@
 import { SidebarProvider } from "@/components/ui/sidebar";
-import { AppSidebar } from "@/components/dashboard/AppSidebar";
+import { SidebarSwitch } from "@/components/navigation/v2/SidebarSwitch";
 import {
   Accordion, AccordionContent, AccordionItem, AccordionTrigger,
 } from "@/components/ui/accordion";
@@ -27,7 +27,7 @@ export default function VisibilidadeProjetos() {
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-background">
-        <AppSidebar />
+        <SidebarSwitch />
         <main className="flex-1 overflow-auto p-6 space-y-6 max-w-5xl">
           <Button
             variant="ghost"

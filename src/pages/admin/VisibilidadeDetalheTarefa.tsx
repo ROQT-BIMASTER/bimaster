@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { SidebarProvider } from "@/components/ui/sidebar";
-import { AppSidebar } from "@/components/dashboard/AppSidebar";
+import { SidebarSwitch } from "@/components/navigation/v2/SidebarSwitch";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -144,7 +144,7 @@ export default function VisibilidadeDetalheTarefa() {
   return (
     <SidebarProvider>
       <div className="flex min-h-screen w-full">
-        <AppSidebar />
+        <SidebarSwitch />
         <main className="flex-1 p-6 space-y-6">
           <div>
             <h1 className="text-2xl font-semibold">Visibilidade — Detalhe de Tarefa</h1>

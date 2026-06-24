@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef } from "react";
 import { toast } from "sonner";
 import { useSearchParams } from "react-router-dom";
 import { SidebarProvider } from "@/components/ui/sidebar";
-import { AppSidebar } from "@/components/dashboard/AppSidebar";
+import { SidebarSwitch } from "@/components/navigation/v2/SidebarSwitch";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { CalendarDays, ListChecks, Bell, Home, Send } from "lucide-react";
@@ -227,7 +227,7 @@ export default function CentralTrabalho({ defaultTab }: Props) {
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-background">
-        <AppSidebar />
+        <SidebarSwitch />
         <main
           className="flex-1 overflow-auto"
           style={
