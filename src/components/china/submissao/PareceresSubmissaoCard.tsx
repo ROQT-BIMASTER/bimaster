@@ -323,20 +323,66 @@ function ParecerItem({
 
       {parecer.anexos.length > 0 && (
         <div className="mt-2 flex flex-wrap gap-1.5">
-          {parecer.anexos.map((a) => (
-            <Button
-              key={a.id}
-              variant="outline"
-              size="sm"
-              className="h-6 gap-1 text-[11px]"
-              onClick={() => baixar(a.storage_path, a.nome_arquivo)}
-              title={tFn("inbox.pareceres.baixar")}
-            >
-              <Download className="h-3 w-3" />
-              {a.nome_arquivo}
-            </Button>
-          ))}
+          {parecer.anexos.map((a) => {
+            const promovidoId = a.promovido_documento_id || promovidosLocal[a.id] || null;
+            return (
+              <div key={a.id} className="inline-flex items-center rounded-md border h-6 overflow-hidden">
+                <button
+                  type="button"
+                  onClick={() => baixar(a.storage_path, a.nome_arquivo)}
+                  title={tFn("inbox.pareceres.baixar")}
+                  className="inline-flex items-center gap-1 px-2 text-[11px] hover:bg-muted/60 transition-colors h-full"
+                >
+                  <Download className="h-3 w-3" />
+                  <span className="truncate max-w-[180px]">{a.nome_arquivo}</span>
+                </button>
+                {promovidoId && (
+                  <span
+                    className="inline-flex items-center gap-1 border-l h-full px-1.5 text-[10px] text-emerald-600 bg-emerald-500/10"
+                    title="Promovido ao checklist"
+                  >
+                    <CheckCircle2 className="h-2.5 w-2.5" /> No checklist
+                  </span>
+                )}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button
+                      type="button"
+                      className="border-l h-full px-1 text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
+                      title="Mais ações"
+                      aria-label="Mais ações do anexo"
+                    >
+                      <MoreVertical className="h-3 w-3" />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => baixar(a.storage_path, a.nome_arquivo)}>
+                      <Download className="h-3.5 w-3.5 mr-2" /> Baixar
+                    </DropdownMenuItem>
+                    {!promovidoId && (
+                      <DropdownMenuItem onSelect={() => setTimeout(() => setPromoverAnexo(a), 0)}>
+                        <ClipboardList className="h-3.5 w-3.5 mr-2" /> Promover ao Checklist
+                      </DropdownMenuItem>
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            );
+          })}
         </div>
+      )}
+
+      {promoverAnexo && (
+        <PromoverParecerChecklistDialog
+          open={!!promoverAnexo}
+          onOpenChange={(v) => { if (!v) setPromoverAnexo(null); }}
+          anexo={promoverAnexo}
+          parecerId={parecer.id}
+          submissaoId={submissaoId}
+          onPromoted={(docId) => {
+            setPromovidosLocal((prev) => ({ ...prev, [promoverAnexo.id]: docId }));
+          }}
+        />
       )}
 
       {(podeEditar || podeExcluir) && !editing && (
