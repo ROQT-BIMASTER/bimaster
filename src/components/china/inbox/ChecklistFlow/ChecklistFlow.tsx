@@ -191,10 +191,19 @@ function CategoryRow({
 }
 
 function Legend() {
+  const { t } = useChinaI18n();
+  const bucketI18n: Record<FlowBucket, string> = {
+    aprovado: t("inbox.right.legendaAprovado"),
+    em_analise: t("inbox.right.legendaEmAnalise"),
+    enviado: t("inbox.right.legendaEnviado"),
+    pendente: t("inbox.right.legendaPendente"),
+    rejeitado: t("inbox.right.legendaDevolvido"),
+    nao_criado: BUCKET_LABEL.nao_criado,
+  };
   return (
     <div className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-md border border-border/60 bg-muted/20 px-2 py-1 text-[10px]">
       <span className="flex items-center gap-1 text-muted-foreground">
-        <Info className="h-3 w-3" /> Legenda
+        <Info className="h-3 w-3" /> {t("inbox.right.legenda")}
       </span>
       {(["aprovado", "em_analise", "enviado", "pendente", "rejeitado"] as FlowBucket[]).map((b) => {
         const tone = bucketToTone(b);
@@ -212,7 +221,7 @@ function Legend() {
             >
               <Icon className={cn("h-2.5 w-2.5", cfg.text)} />
             </span>
-            <span className={cn("font-medium", cfg.text)}>{BUCKET_LABEL[b]}</span>
+            <span className={cn("font-medium", cfg.text)}>{bucketI18n[b]}</span>
           </span>
         );
       })}
