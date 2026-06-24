@@ -260,7 +260,7 @@ export default function ChinaSubmissaoDetalhe() {
                   <div className="flex items-center gap-3 p-4 bg-background rounded-xl border">
                     <Barcode className="h-6 w-6 text-accent" />
                     <div>
-                      <p className="text-xs text-muted-foreground">EAN Display 展示EAN</p>
+                      <p className="text-xs text-muted-foreground">{t("submissaoDetalhe.eanDisplay")}</p>
                       <p className="text-xl font-mono font-bold text-foreground">
                         {(submissao as any).ean_display}
                       </p>
