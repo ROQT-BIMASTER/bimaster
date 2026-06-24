@@ -207,7 +207,7 @@ function ParecerItem({
   const [draft, setDraft] = useState(parecer.texto);
 
   const [meId, setMeId] = useState<string | null>(null);
-  useState(() => {
+  useEffectOnce(() => {
     supabase.auth.getUser().then(({ data }) => setMeId(data.user?.id || null));
   });
 
