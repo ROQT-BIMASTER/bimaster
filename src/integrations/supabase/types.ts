@@ -52801,6 +52801,7 @@ export type Database = {
         }
         Returns: Json
       }
+      f_feature_flag_ativa: { Args: { p_codigo: string }; Returns: boolean }
       fn_atribuir_vendedor_territorio: {
         Args: { p_cidade: string; p_uf: string }
         Returns: string
