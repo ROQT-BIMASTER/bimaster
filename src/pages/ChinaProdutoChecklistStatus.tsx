@@ -911,7 +911,7 @@ export default function ChinaProdutoChecklistStatus() {
             </ToggleGroupItem>
           </ToggleGroup>
           <span className="ml-auto text-[11px] text-muted-foreground">
-            {totalVisible} de {totalGlobal} itens
+            {t("statusChecklist.xDeYItens", { shown: totalVisible, total: totalGlobal })}
           </span>
         </Card>
 
