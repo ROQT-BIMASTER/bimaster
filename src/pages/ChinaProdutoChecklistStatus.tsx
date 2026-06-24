@@ -809,17 +809,17 @@ export default function ChinaProdutoChecklistStatus() {
               <DropdownMenuTrigger asChild>
                 <Button type="button" size="sm" variant="outline" className="h-8 gap-1 text-xs">
                   <Download className="h-3.5 w-3.5" />
-                  Exportar
+                  {t("statusChecklist.exportar")}
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-44">
                 <DropdownMenuItem onClick={handleExportCSV} className="gap-2 text-xs">
                   <FileSpreadsheet className="h-3.5 w-3.5" />
-                  Exportar CSV
+                  {t("inbox.actions.exportarCsv")}
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={handleExportPDF} className="gap-2 text-xs">
                   <FileText className="h-3.5 w-3.5" />
-                  Exportar PDF
+                  <LangText pt="Exportar PDF" cn="导出 PDF" en="Export PDF" />
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
