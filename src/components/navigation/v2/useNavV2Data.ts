@@ -66,7 +66,7 @@ export function useNavV2Data(): NavV2Tree {
 
   const tree = useMemo<NavV2Category[]>(() => {
     const perms = { isAdmin, isAdminOrSupervisor, hasScreen: hasPermission };
-    return dbCategories
+    const base = dbCategories
       .filter((c) => c.ativo)
       .map<NavV2Category>((cat) => {
         const modules = (cat.modules ?? [])
