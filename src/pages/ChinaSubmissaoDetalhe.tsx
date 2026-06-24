@@ -208,7 +208,11 @@ export default function ChinaSubmissaoDetalhe() {
                           className="text-left underline-offset-2 hover:underline"
                         >
                           <span className="font-medium">
-                            {config?.labelPt || doc.tipo_documento}
+                            {config ? (
+                              <LangText pt={config.labelPt} cn={config.labelCn} en={config.labelEn} />
+                            ) : (
+                              doc.tipo_documento
+                            )}
                           </span>
                           {doc.observacao && (
                             <span className="text-muted-foreground">
