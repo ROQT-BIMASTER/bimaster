@@ -201,74 +201,60 @@ export function AppRail({ side = "left" }: AppRailProps) {
                 open={isOpen}
                 onOpenChange={(o) => setOpenCategoryKey(o ? cat.key : null)}
               >
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <PopoverTrigger asChild>
-                      <button
-                        type="button"
-                        aria-label={cat.label}
-                        aria-current={isActive ? "page" : undefined}
-                        onClick={() => handleCategoryClick(cat)}
-                        className={cn(
-                          "relative flex items-center justify-center rounded-lg transition-all duration-150",
-                          "h-11 w-11 shrink-0",
-                        )}
-                        style={{
-                          background: isActive
-                            ? `hsl(var(${accentToken}) / 0.18)`
-                            : isOpen
-                              ? "hsl(var(--launcher-surface-hover))"
-                              : "transparent",
-                          color: isActive
-                            ? `hsl(var(${accentToken}))`
-                            : "hsl(var(--launcher-muted))",
-                          boxShadow: isActive
-                            ? `inset 0 0 0 1px hsl(var(${accentToken}) / 0.35)`
-                            : "none",
-                        }}
-                        onMouseEnter={(e) => {
-                          if (isActive || isOpen) return;
-                          e.currentTarget.style.background =
-                            "hsl(var(--launcher-surface-hover))";
-                          e.currentTarget.style.color =
-                            "hsl(var(--launcher-foreground))";
-                        }}
-                        onMouseLeave={(e) => {
-                          if (isActive || isOpen) return;
-                          e.currentTarget.style.background = "transparent";
-                          e.currentTarget.style.color = "hsl(var(--launcher-muted))";
-                        }}
-                      >
-                        <CatIcon className="h-5 w-5" />
-                        {isActive && (
-                          <span
-                            className="absolute left-0 top-1/2 -translate-y-1/2 h-6 w-[3px] rounded-r"
-                            style={{ background: `hsl(var(${accentToken}))` }}
-                          />
-                        )}
-                        {pendentes > 0 && (
-                          <span
-                            className="absolute top-1 right-1 h-2 w-2 rounded-full"
-                            style={{
-                              background: "hsl(var(--launcher-accent-2))",
-                              boxShadow: "0 0 0 2px hsl(var(--launcher-surface))",
-                            }}
-                          />
-                        )}
-                      </button>
-                    </PopoverTrigger>
-                  </TooltipTrigger>
-                  <TooltipContent
-                    side={tooltipSide}
-                    className="p-0 border-0 bg-transparent shadow-none z-[120]"
+                <PopoverTrigger asChild>
+                  <button
+                    type="button"
+                    aria-label={cat.label}
+                    aria-current={isActive ? "page" : undefined}
+                    onClick={() => handleCategoryClick(cat)}
+                    className={cn(
+                      "relative flex items-center justify-center rounded-lg transition-all duration-150",
+                      "h-11 w-11 shrink-0",
+                    )}
+                    style={{
+                      background: isActive
+                        ? `hsl(var(${accentToken}) / 0.18)`
+                        : isOpen
+                          ? "hsl(var(--launcher-surface-hover))"
+                          : "transparent",
+                      color: isActive
+                        ? `hsl(var(${accentToken}))`
+                        : "hsl(var(--launcher-muted))",
+                      boxShadow: isActive
+                        ? `inset 0 0 0 1px hsl(var(${accentToken}) / 0.35)`
+                        : "none",
+                    }}
+                    onMouseEnter={(e) => {
+                      if (isActive || isOpen) return;
+                      e.currentTarget.style.background =
+                        "hsl(var(--launcher-surface-hover))";
+                      e.currentTarget.style.color =
+                        "hsl(var(--launcher-foreground))";
+                    }}
+                    onMouseLeave={(e) => {
+                      if (isActive || isOpen) return;
+                      e.currentTarget.style.background = "transparent";
+                      e.currentTarget.style.color = "hsl(var(--launcher-muted))";
+                    }}
                   >
-                    <RailTooltipCard
-                      category={cat}
-                      isActive={isActive}
-                      pendentes={pendentes || undefined}
-                    />
-                  </TooltipContent>
-                </Tooltip>
+                    <CatIcon className="h-5 w-5" />
+                    {isActive && (
+                      <span
+                        className="absolute left-0 top-1/2 -translate-y-1/2 h-6 w-[3px] rounded-r"
+                        style={{ background: `hsl(var(${accentToken}))` }}
+                      />
+                    )}
+                    {pendentes > 0 && (
+                      <span
+                        className="absolute top-1 right-1 h-2 w-2 rounded-full"
+                        style={{
+                          background: "hsl(var(--launcher-accent-2))",
+                          boxShadow: "0 0 0 2px hsl(var(--launcher-surface))",
+                        }}
+                      />
+                    )}
+                  </button>
+                </PopoverTrigger>
                 <PopoverContent
                   side={tooltipSide}
                   align="start"
