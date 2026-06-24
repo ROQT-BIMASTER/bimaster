@@ -474,9 +474,17 @@ function KanbanView({ cats, visibleByCat, docsByTipo, getLabel, onOpenItem }: Ka
 }
 
 export default function ChinaProdutoChecklistStatus() {
+  const { t } = useChinaI18n();
   const { id } = useParams<{ id: string }>();
-  
+
   const location = useLocation();
+  const filterLabel: Record<FilterKey, string> = {
+    todos: t("statusChecklist.todos"),
+    enviados: t("statusChecklist.enviados"),
+    pendentes: t("statusChecklist.pendentes"),
+    rejeitados: t("statusChecklist.rejeitados"),
+    nao_criados: t("statusChecklist.naoCriados"),
+  };
   const backTo =
     (location.state as { from?: string } | null)?.from ??
     `/dashboard/fabrica-china/produto/${id}`;
