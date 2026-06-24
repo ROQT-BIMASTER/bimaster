@@ -344,6 +344,7 @@ export default function ChinaSubmissaoDetalhe() {
             <BilingualLabel
               pt={cat.labelPt}
               cn={cat.labelCn}
+              en={cat.labelEn}
               size="md"
               className="mb-3"
             />
