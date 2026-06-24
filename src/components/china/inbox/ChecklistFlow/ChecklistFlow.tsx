@@ -332,6 +332,7 @@ export function ChecklistFlow({
   onAddBrasilItem,
   side = "both",
 }: Props) {
+  const { t } = useChinaI18n();
   const merged = useMergedChinaChecklist(group.submissao_id);
   const [showOthers, setShowOthers] = useState(false);
 
