@@ -39,3 +39,14 @@ export function BilingualLabel({ pt, cn: chinese, en, className, size = "md" }: 
     </div>
   );
 }
+
+/**
+ * Helper inline (sem wrapper de bloco) que renderiza apenas o idioma ativo.
+ * Útil dentro de Badges, botões e qualquer lugar onde um <div> empilhado
+ * quebraria o layout.
+ */
+export function LangText({ pt, cn: chinese, en }: { pt: string; cn: string; en?: string }) {
+  const { language } = useChinaI18n();
+  if (!en) return <>{language === "zh" ? chinese : pt}</>;
+  return <>{language === "en" ? en : language === "zh" ? chinese : pt}</>;
+}
