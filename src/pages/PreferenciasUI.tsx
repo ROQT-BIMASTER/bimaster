@@ -92,14 +92,14 @@ export default function PreferenciasUI() {
     onSuccess: (next) => {
       toast.success(
         next === "v2"
-          ? "Nova navegação ativada. Recarregando…"
-          : "Navegação clássica ativada. Recarregando…",
+          ? "Nova navegação ativada."
+          : "Navegação clássica ativada.",
         { icon: <CheckCircle2 className="h-4 w-4" /> },
       );
       queryClient.invalidateQueries({ queryKey: NAV_QUERY_KEY });
       queryClient.invalidateQueries({ queryKey: ["feature-flag", "nav-version"] });
-      // Reload garante remontagem limpa do AppRail/AppSidebar.
-      setTimeout(() => window.location.reload(), 600);
+      queryClient.invalidateQueries({ queryKey: ["user-ui-preferences", "self"] });
+      queryClient.invalidateQueries({ queryKey: ["nav-v2-data"] });
     },
     onError: (err: any) => {
       toast.error(err?.message ?? "Não foi possível salvar a preferência.");
