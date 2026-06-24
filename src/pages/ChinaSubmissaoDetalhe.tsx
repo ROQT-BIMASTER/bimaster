@@ -379,6 +379,7 @@ export default function ChinaSubmissaoDetalhe() {
                       <BilingualLabel
                         pt={config.labelPt}
                         cn={config.labelCn}
+                        en={config.labelEn}
                         size="sm"
                       />
                       {isRejected && doc?.observacao && (
