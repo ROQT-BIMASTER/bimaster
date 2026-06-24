@@ -12,6 +12,7 @@ import { useSidebarMenuItems, type SidebarMenuItem } from "@/hooks/useSidebarMen
 import { useModulePermissions } from "@/hooks/useModulePermissions";
 import { useScreenPermissions } from "@/hooks/useScreenPermissions";
 import { useUserRole } from "@/hooks/useUserRole";
+import { buildAdminCategory } from "./adminCategory";
 
 export interface NavV2Page {
   id: string;
