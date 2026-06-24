@@ -243,6 +243,7 @@ export default function ChinaSubmissaoDetalhe() {
           <BilingualLabel
             pt="Documentos Enviados ao Brasil"
             cn="已发送至巴西的文件"
+            en="Documents Sent to Brazil"
             size="lg"
             className="mb-4"
           />
@@ -250,7 +251,7 @@ export default function ChinaSubmissaoDetalhe() {
             {submissao.arte_final_path && (
               <Button onClick={handleDownloadArte} variant="default" className="gap-2">
                 <Download className="h-4 w-4" />
-                Baixar Arte Final 下载终稿
+                {t("submissaoDetalhe.baixarArteFinal")}
               </Button>
             )}
             {(submissao.ean_display || submissao.ean_caixa_master) && (
