@@ -22,6 +22,7 @@ import { ptBR } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
 import { ChinaPageShell } from "@/components/china/ChinaPageShell";
 import { ChinaPageHeader } from "@/components/china/ChinaPageHeader";
+import { LangText } from "@/components/china/BilingualLabel";
 import { ChinaTimelineButton } from "@/components/china/timeline/ChinaTimelineButton";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
