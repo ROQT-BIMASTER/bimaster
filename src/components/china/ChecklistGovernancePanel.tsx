@@ -30,7 +30,7 @@ export function ChecklistGovernancePanel({ submissaoId }: Props) {
   const { t } = useChinaI18n();
   const merged = useMergedChinaChecklist(submissaoId);
   const gov = useChecklistGovernance(submissaoId);
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(true);
   const [waiverFor, setWaiverFor] = useState<{ id: string; label: string } | null>(null);
   const [waiverMotivo, setWaiverMotivo] = useState("");
 
