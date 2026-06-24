@@ -283,7 +283,7 @@ export default function ChinaSubmissaoDetalhe() {
           </div>
           {submissao.arte_final_enviada_em && (
             <p className="text-xs text-muted-foreground mt-2">
-              Enviado em 发送于:{" "}
+              {t("submissaoDetalhe.enviadoEm")}:{" "}
               {new Date(submissao.arte_final_enviada_em).toLocaleDateString("pt-BR")}
             </p>
           )}
