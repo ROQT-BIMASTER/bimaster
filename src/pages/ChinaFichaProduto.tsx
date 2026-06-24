@@ -376,15 +376,15 @@ export default function ChinaFichaProduto() {
               {/* Weights row */}
               <div className="grid grid-cols-3 gap-3">
                 <div className="p-3 bg-secondary/50 rounded-lg text-center">
-                  <p className="text-xs text-muted-foreground">Bruto 毛重</p>
+                  <p className="text-xs text-muted-foreground">{t("submissaoDetalhe.bruto")}</p>
                   <p className="text-lg font-bold text-foreground">{submissao.peso_bruto_g ? `${submissao.peso_bruto_g}g` : "—"}</p>
                 </div>
                 <div className="p-3 bg-secondary/50 rounded-lg text-center">
-                  <p className="text-xs text-muted-foreground">Líquido 净重</p>
+                  <p className="text-xs text-muted-foreground">{t("submissaoDetalhe.liquido")}</p>
                   <p className="text-lg font-bold text-foreground">{submissao.peso_liquido_g ? `${submissao.peso_liquido_g}g` : "—"}</p>
                 </div>
                 <div className="p-3 bg-secondary/50 rounded-lg text-center">
-                  <p className="text-xs text-muted-foreground">Tester 试用</p>
+                  <p className="text-xs text-muted-foreground">{t("submissaoDetalhe.tester")}</p>
                   <p className="text-lg font-bold text-foreground">{submissao.peso_tester_g ? `${submissao.peso_tester_g}g` : "—"}</p>
                 </div>
               </div>
