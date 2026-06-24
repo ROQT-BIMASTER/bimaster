@@ -11,7 +11,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { BilingualLabel } from "@/components/china/BilingualLabel";
+import { BilingualLabel, LangText } from "@/components/china/BilingualLabel";
 import { ChinaGradeView } from "@/components/china/ChinaGradeView";
 import {
   CHINA_DOCUMENT_TYPES,
