@@ -39385,6 +39385,7 @@ export type Database = {
           icone: string | null
           id: string
           marca: string | null
+          metadata: Json
           nome: string
           origem_projeto: string | null
           prazo_padrao_tarefa: number
@@ -39418,6 +39419,7 @@ export type Database = {
           icone?: string | null
           id?: string
           marca?: string | null
+          metadata?: Json
           nome: string
           origem_projeto?: string | null
           prazo_padrao_tarefa?: number
@@ -39451,6 +39453,7 @@ export type Database = {
           icone?: string | null
           id?: string
           marca?: string | null
+          metadata?: Json
           nome?: string
           origem_projeto?: string | null
           prazo_padrao_tarefa?: number
@@ -53098,6 +53101,7 @@ export type Database = {
           icone: string | null
           id: string
           marca: string | null
+          metadata: Json
           nome: string
           origem_projeto: string | null
           prazo_padrao_tarefa: number
@@ -54848,6 +54852,7 @@ export type Database = {
           icone: string | null
           id: string
           marca: string | null
+          metadata: Json
           nome: string
           origem_projeto: string | null
           prazo_padrao_tarefa: number
