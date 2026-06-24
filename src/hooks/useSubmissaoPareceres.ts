@@ -11,6 +11,7 @@ export interface ParecerAnexo {
   tamanho: number | null;
   uploaded_by: string;
   created_at: string;
+  promovido_documento_id?: string | null;
 }
 
 export interface Parecer {
