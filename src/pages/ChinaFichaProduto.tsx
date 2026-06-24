@@ -307,7 +307,7 @@ export default function ChinaFichaProduto() {
               className="gap-2"
               onClick={() => navigate(`/dashboard/fabrica-china/produto/${id}/checklist`)}
             >
-              <ListChecks className="h-4 w-4" /> Checklist Embalagens 包装清单
+              <ListChecks className="h-4 w-4" /> {t("fichaProduto.checklistEmbalagens")}
             </Button>
             {/* Botão "Despachar" removido — aprovações agora vivem na aba "Aprovações" da tarefa do projeto. */}
             <ChinaTimelineButton scope={{ submissaoId: id }} />
