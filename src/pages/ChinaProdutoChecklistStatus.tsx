@@ -367,6 +367,19 @@ interface KanbanViewProps {
 }
 
 function KanbanView({ cats, visibleByCat, docsByTipo, getLabel, onOpenItem }: KanbanViewProps) {
+  const { t } = useChinaI18n();
+  const colLabel: Record<KanbanBucket, string> = {
+    nao_criados: t("statusChecklist.colNaoCriados"),
+    pendente: t("statusChecklist.colPendenteAnalise"),
+    ajuste: t("statusChecklist.colEmAjuste"),
+    enviado: t("statusChecklist.colEnviado"),
+    aprovado: t("statusChecklist.colAprovado"),
+  };
+  const statusLabelI18n: Record<string, string> = {
+    aprovado: t("statusChecklist.aprovadoBadge"),
+    pendente: t("statusChecklist.pendenteAnaliseBadge"),
+    nao_criado: t("statusChecklist.naoCriadoBadge"),
+  };
   type Card = {
     tipo: string;
     doc: DocRow | undefined;
