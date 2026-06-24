@@ -100,7 +100,7 @@ export default function ChinaSubmissaoDetalhe() {
     return (
       <ChinaPageShell>
         <div className="text-center py-12">
-          <p className="text-muted-foreground">Submissão não encontrada 未找到提交</p>
+          <p className="text-muted-foreground">{t("submissaoDetalhe.naoEncontrada")}</p>
         </div>
       </ChinaPageShell>
     );
