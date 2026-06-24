@@ -406,7 +406,7 @@ function KanbanView({ cats, visibleByCat, docsByTipo, getLabel, onOpenItem }: Ka
           >
             <header className="flex items-center justify-between gap-2 border-b border-border/60 px-3 py-2">
               <span className="text-[11px] font-semibold uppercase tracking-wide text-foreground">
-                {col.label}
+                {colLabel[col.key]}
               </span>
               <Badge variant="outline" className={cn("h-5 px-1.5 text-[10px]", col.accent)}>
                 {items.length}
