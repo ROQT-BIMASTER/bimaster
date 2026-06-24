@@ -6752,6 +6752,10 @@ export type Database = {
           ean_display: string | null
           ean_unidade: string | null
           formula_codigo: string | null
+          foto_oficial_path: string | null
+          foto_oficial_uploaded_at: string | null
+          foto_oficial_uploaded_by: string | null
+          foto_oficial_url: string | null
           id: string
           liberado_para_oc_em: string | null
           liberado_por: string | null
@@ -6790,6 +6794,10 @@ export type Database = {
           ean_display?: string | null
           ean_unidade?: string | null
           formula_codigo?: string | null
+          foto_oficial_path?: string | null
+          foto_oficial_uploaded_at?: string | null
+          foto_oficial_uploaded_by?: string | null
+          foto_oficial_url?: string | null
           id?: string
           liberado_para_oc_em?: string | null
           liberado_por?: string | null
@@ -6828,6 +6836,10 @@ export type Database = {
           ean_display?: string | null
           ean_unidade?: string | null
           formula_codigo?: string | null
+          foto_oficial_path?: string | null
+          foto_oficial_uploaded_at?: string | null
+          foto_oficial_uploaded_by?: string | null
+          foto_oficial_url?: string | null
           id?: string
           liberado_para_oc_em?: string | null
           liberado_por?: string | null
