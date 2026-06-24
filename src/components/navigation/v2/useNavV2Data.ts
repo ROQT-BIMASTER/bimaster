@@ -12,6 +12,7 @@ import { useSidebarMenuItems, type SidebarMenuItem } from "@/hooks/useSidebarMen
 import { useModulePermissions } from "@/hooks/useModulePermissions";
 import { useScreenPermissions } from "@/hooks/useScreenPermissions";
 import { useUserRole } from "@/hooks/useUserRole";
+import { buildAdminCategory } from "./adminCategory";
 
 export interface NavV2Page {
   id: string;
@@ -65,7 +66,7 @@ export function useNavV2Data(): NavV2Tree {
 
   const tree = useMemo<NavV2Category[]>(() => {
     const perms = { isAdmin, isAdminOrSupervisor, hasScreen: hasPermission };
-    return dbCategories
+    const base = dbCategories
       .filter((c) => c.ativo)
       .map<NavV2Category>((cat) => {
         const modules = (cat.modules ?? [])
@@ -101,6 +102,12 @@ export function useNavV2Data(): NavV2Tree {
         };
       })
       .filter((c) => c.modules.length > 0);
+    const adminCat = buildAdminCategory({
+      isAdmin,
+      hasModulePermission,
+      hasScreen: hasPermission,
+    });
+    return adminCat ? [...base, adminCat] : base;
   }, [
     dbCategories,
     itemsByModule,
