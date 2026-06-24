@@ -45,6 +45,7 @@ import { VincularMailboxList } from "@/components/china/vincular/VincularMailbox
 import { EncaminharResponsavelDialog } from "@/components/china/vincular/EncaminharResponsavelDialog";
 import { EncaminharProjetoDialog } from "@/components/china/vincular/EncaminharProjetoDialog";
 import { ContinuarNoProjetoDialog } from "@/components/china/inbox/ContinuarNoProjetoDialog";
+import { UnificacaoBanner } from "@/components/china/vincular/UnificacaoBanner";
 import {
   useVincularChinaUserState,
   classifyVincularRows,
