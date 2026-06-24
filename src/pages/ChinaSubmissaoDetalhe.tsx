@@ -152,6 +152,8 @@ export default function ChinaSubmissaoDetalhe() {
         }
       />
 
+      <PareceresSubmissaoCard submissaoId={submissao.id} />
+
       {/* Banner: ajustes solicitados pelo Brasil */}
       {needsCorrection && (
         <Card className="p-6 border-destructive/40 bg-destructive/5">
