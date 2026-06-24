@@ -84,7 +84,7 @@ export function ChinaPageHeader({
           <Icon className="h-6 w-6" />
         </div>
         <div className="min-w-0">
-          <BilingualLabel pt={titlePt} cn={titleCn} size="lg" />
+          <BilingualLabel pt={titlePt} cn={titleCn} en={titleEn} size="lg" />
           {subtitle && (
             <p className="text-xs text-muted-foreground mt-0.5 truncate">{subtitle}</p>
           )}
