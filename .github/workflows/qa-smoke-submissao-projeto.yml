@@ -1,0 +1,66 @@
+name: qa-smoke-submissao-projeto
+
+# Smoke E2E manual da unificação Submissão↔Projeto (Fluxos 1 e 2).
+# NÃO roda em PRs por padrão — apenas via workflow_dispatch — porque cria
+# e apaga dados reais em staging via edge functions `qa-smoke-seed` /
+# `qa-smoke-cleanup`. Essas funções respondem 403 se a secret
+# QA_SMOKE_ENABLED=true não estiver setada no ambiente alvo, então o
+# workflow é inerte se rodado contra produção sem preparação.
+#
+# Secrets necessárias no repo:
+#   SMOKE_USER_EMAIL          — usuário admin de QA em staging
+#   SMOKE_USER_PASSWORD       — senha do usuário acima
+#   SMOKE_SUPABASE_URL        — URL do Supabase de staging
+#   SMOKE_SUPABASE_ANON_KEY   — publishable key de staging
+#   SMOKE_BASE_URL            — URL pública do app em staging
+#
+# Pré-requisito no ambiente Supabase de staging:
+#   - edge functions qa-smoke-seed e qa-smoke-cleanup deployadas
+#   - secret QA_SMOKE_ENABLED=true configurada nas duas
+#   - usuário SMOKE_USER_EMAIL com role 'admin' em user_roles
+
+on:
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: "URL do app (sobrescreve SMOKE_BASE_URL). Ex: https://staging.bimaster.online"
+        required: false
+        type: string
+
+concurrency:
+  group: qa-smoke-submissao-projeto
+  cancel-in-progress: false  # nunca cancelar — pode deixar dados órfãos
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Playwright
+        run: |
+          pip install --upgrade pip
+          pip install playwright==1.48.0
+          python -m playwright install --with-deps chromium
+
+      - name: Run smoke
+        env:
+          SMOKE_USER_EMAIL: ${{ secrets.SMOKE_USER_EMAIL }}
+          SMOKE_USER_PASSWORD: ${{ secrets.SMOKE_USER_PASSWORD }}
+          SUPABASE_URL: ${{ secrets.SMOKE_SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SMOKE_SUPABASE_ANON_KEY }}
+          SMOKE_BASE_URL: ${{ inputs.base_url || secrets.SMOKE_BASE_URL }}
+        run: python3 scripts/qa/smoke_submissao_projeto.py
+
+      - name: Upload screenshots on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: smoke-screenshots
+          path: /tmp/browser/smoke-submissao-projeto/screenshots/
+          retention-days: 7
