@@ -1,20 +1,15 @@
 import { supabase } from "@/integrations/supabase/client";
+import {
+  buildRpcParams,
+  type ProjectCreateOpts,
+} from "@/lib/projetos/projectCreateOpts";
 
 /**
  * Serviço único para criar/sincronizar Projetos a partir de Submissões China.
  *
- * Status: Fase 1 (PR-2 do plano de unificação Submissão↔Projeto).
- *
- * Esta camada é a futura "fonte única de verdade" para a criação de projeto
- * a partir de uma submissão. Nesta fase ela apenas DELEGA aos caminhos
- * existentes (`rpc_china_criar_projeto_espelho` e o fluxo legado da Ficha do
- * Produto), preservando 100% de compatibilidade. As fases seguintes vão:
- *
- *  - Fase 2: trigger bidirecional checklist ↔ tarefas
- *  - Fase 3: foto oficial da submissão
- *  - Fase 4: modal unificado + feature flag
- *  - Fase 5: backfill de duplicatas
- *  - Fase 6: UNIQUE(submissao_id) + remoção do código legado
+ * Fonte única de verdade: ambos os fluxos (Fluxo 1 — Ficha do Produto,
+ * Fluxo 2 — Mesa China) devem rotear por aqui. Os parâmetros aceitos são
+ * o tipo compartilhado `ProjectCreateOpts` de `./projectCreateOpts.ts`.
  *
  * Regra de ouro: NUNCA escrever em `china_submissao_projetos` sem antes
  * chamar `findBySubmission` para garantir idempotência.
@@ -26,6 +21,14 @@ export interface SubmissionLink {
   is_espelho: boolean;
 }
 
+export type CreateFromSubmissionResult = {
+  projeto_id: string;
+  submissao_id: string;
+  secao_id?: string;
+  created: boolean;
+  already_existed: boolean;
+};
+
 export const ProjectService = {
   /**
    * Retorna o projeto-espelho da submissão se existir, senão o primeiro
@@ -35,7 +38,6 @@ export const ProjectService = {
   async findBySubmission(submissaoId: string): Promise<SubmissionLink | null> {
     if (!submissaoId) return null;
 
-    // Prefere o espelho oficial
     const espelho = await supabase
       .from("china_submissao_projetos")
       .select("projeto_id, submissao_id, is_espelho")
@@ -45,7 +47,6 @@ export const ProjectService = {
     if (espelho.error) throw espelho.error;
     if (espelho.data) return espelho.data as SubmissionLink;
 
-    // Fallback: qualquer vínculo (projetos criados pelo fluxo legado da Ficha)
     const any = await supabase
       .from("china_submissao_projetos")
       .select("projeto_id, submissao_id, is_espelho")
@@ -59,97 +60,37 @@ export const ProjectService = {
 
   /**
    * Cria ou recupera o projeto da submissão via RPC unificada
-   * (`rpc_china_criar_projeto_espelho`). Idempotente: chamadas concorrentes
-   * convergem para o mesmo projeto.
+   * (`rpc_china_criar_projeto_espelho`). Idempotente.
    */
   async createFromSubmission(
     submissaoId: string,
-    opts: {
-      projetoNome?: string | null;
-      templateB2cId?: string | null;
-      secaoNome?: string;
-      dataInicio?: string | null;
-      dataFimAlvo?: string | null;
-      prazoPadraoTarefa?: number | null;
-      alertaAntecipacaoDias?: number | null;
-      regimeCalendario?: "corridos" | "dias_uteis" | "uteis_com_sabado" | null;
-      usaFeriados?: boolean | null;
-      ufFeriados?: string | null;
-      substituir?: boolean;
-    } = {},
-  ): Promise<{
-    projeto_id: string;
-    submissao_id: string;
-    secao_id?: string;
-    created: boolean;
-    already_existed: boolean;
-  }> {
+    opts: ProjectCreateOpts = {},
+  ): Promise<CreateFromSubmissionResult> {
     if (!submissaoId) throw new Error("submissaoId é obrigatório");
-
     const { data, error } = await supabase.rpc(
       "rpc_china_criar_projeto_espelho" as any,
-      {
-        p_submissao_id: submissaoId,
-        p_projeto_id: null,
-        p_template_b2c_id: opts.templateB2cId ?? null,
-        p_secao_nome: opts.secaoNome ?? "Documentos da Submissão",
-        p_projeto_nome: opts.projetoNome ?? null,
-        p_data_inicio: opts.dataInicio ?? null,
-        p_data_fim_alvo: opts.dataFimAlvo ?? null,
-        p_prazo_padrao_tarefa: opts.prazoPadraoTarefa ?? null,
-        p_alerta_antecipacao_dias: opts.alertaAntecipacaoDias ?? null,
-        p_regime_calendario: opts.regimeCalendario ?? null,
-        p_usa_feriados: opts.usaFeriados ?? null,
-        p_uf_feriados: opts.ufFeriados ?? null,
-        p_substituir: opts.substituir ?? false,
-      },
+      buildRpcParams(submissaoId, null, opts),
     );
     if (error) throw error;
-    return data as any;
+    return data as CreateFromSubmissionResult;
   },
 
   /**
    * Vincula a submissão a um projeto JÁ existente. Idempotente.
-   * Aceita os mesmos opts de `createFromSubmission` para casos em que o
-   * caller quer também ajustar template/datas/calendário no vínculo.
+   * Aceita o mesmo `ProjectCreateOpts` de `createFromSubmission`.
    */
   async linkExisting(
     submissaoId: string,
     projetoId: string,
-    opts: {
-      templateB2cId?: string | null;
-      secaoNome?: string;
-      projetoNome?: string | null;
-      dataInicio?: string | null;
-      dataFimAlvo?: string | null;
-      prazoPadraoTarefa?: number | null;
-      alertaAntecipacaoDias?: number | null;
-      regimeCalendario?: "corridos" | "dias_uteis" | "uteis_com_sabado" | null;
-      usaFeriados?: boolean | null;
-      ufFeriados?: string | null;
-      substituir?: boolean;
-    } = {},
-  ) {
+    opts: ProjectCreateOpts = {},
+  ): Promise<CreateFromSubmissionResult> {
+    if (!submissaoId) throw new Error("submissaoId é obrigatório");
+    if (!projetoId) throw new Error("projetoId é obrigatório");
     const { data, error } = await supabase.rpc(
       "rpc_china_criar_projeto_espelho" as any,
-      {
-        p_submissao_id: submissaoId,
-        p_projeto_id: projetoId,
-        p_template_b2c_id: opts.templateB2cId ?? null,
-        p_secao_nome: opts.secaoNome ?? "Documentos da Submissão",
-        p_projeto_nome: opts.projetoNome ?? null,
-        p_data_inicio: opts.dataInicio ?? null,
-        p_data_fim_alvo: opts.dataFimAlvo ?? null,
-        p_prazo_padrao_tarefa: opts.prazoPadraoTarefa ?? null,
-        p_alerta_antecipacao_dias: opts.alertaAntecipacaoDias ?? null,
-        p_regime_calendario: opts.regimeCalendario ?? null,
-        p_usa_feriados: opts.usaFeriados ?? null,
-        p_uf_feriados: opts.ufFeriados ?? null,
-        p_substituir: opts.substituir ?? false,
-      },
+      buildRpcParams(submissaoId, projetoId, opts),
     );
     if (error) throw error;
-    return data as any;
+    return data as CreateFromSubmissionResult;
   },
 };
-
