@@ -326,10 +326,10 @@ export default function ChinaFichaProduto() {
                 </div>
                 <div>
                   <p className="font-semibold text-primary text-sm">
-                    Rascunho — ainda pode ser editado 草稿 — 仍可编辑
+                    <LangText pt="Rascunho — ainda pode ser editado" cn="草稿 — 仍可编辑" en="Draft — still editable" />
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    Ajuste os dados antes de enviar ao Brasil. 在发送到巴西之前调整数据。
+                    <LangText pt="Ajuste os dados antes de enviar ao Brasil." cn="在发送到巴西之前调整数据。" en="Adjust the data before sending to Brazil." />
                   </p>
                 </div>
               </div>
