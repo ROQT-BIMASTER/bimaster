@@ -193,6 +193,7 @@ export function PareceresSubmissaoCard({
 
 function ParecerItem({
   parecer,
+  submissaoId,
   locale,
   language,
   tFn,
@@ -201,6 +202,7 @@ function ParecerItem({
   onExcluir,
 }: {
   parecer: Parecer;
+  submissaoId: string;
   locale: any;
   language: string;
   tFn: (k: string) => string;
@@ -210,6 +212,8 @@ function ParecerItem({
 }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(parecer.texto);
+  const [promoverAnexo, setPromoverAnexo] = useState<ParecerAnexo | null>(null);
+  const [promovidosLocal, setPromovidosLocal] = useState<Record<string, string>>({});
 
   const [meId, setMeId] = useState<string | null>(null);
   useEffect(() => {
