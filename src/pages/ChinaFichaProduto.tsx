@@ -61,6 +61,7 @@ import { useFieldVisibility } from "@/hooks/useFieldVisibility";
 import { useUIPermissions } from "@/hooks/useUIPermissions";
 
 export default function ChinaFichaProduto() {
+  const { t } = useChinaI18n();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { backTo, backLabel } = useResolvedBackTo("/dashboard/fabrica-china/recebimentos");
