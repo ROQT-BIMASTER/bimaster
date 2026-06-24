@@ -109,8 +109,9 @@ export function ConfigurarProjetoEspelhoDialog({
               Criar projeto a partir desta submissão
             </DialogTitle>
             <DialogDescription className="text-xs">
-              O sistema vai criar um projeto novo, transformar cada item do checklist em uma tarefa
-              e anexar os documentos enviados. Configure as regras de prazo abaixo.
+              O sistema vai criar um projeto novo, gerar uma seção para cada categoria do
+              checklist e uma tarefa para cada item, anexando os documentos enviados.
+              Configure as regras de prazo abaixo.
             </DialogDescription>
           </DialogHeader>
 
