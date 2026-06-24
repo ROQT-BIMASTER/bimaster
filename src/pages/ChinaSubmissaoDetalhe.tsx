@@ -292,28 +292,28 @@ export default function ChinaSubmissaoDetalhe() {
 
       {/* Product Info */}
       <Card className="p-6">
-        <BilingualLabel pt="Dados do Produto" cn="产品数据" size="md" className="mb-4" />
+        <BilingualLabel pt="Dados do Produto" cn="产品数据" en="Product Data" size="md" className="mb-4" />
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div className="p-3 bg-secondary/50 rounded-lg">
-            <p className="text-xs text-muted-foreground">Qty Total 总量</p>
+            <p className="text-xs text-muted-foreground">{t("submissaoDetalhe.qtyTotal")}</p>
             <p className="text-lg font-bold">
               {submissao.qty_total?.toLocaleString() || "—"}
             </p>
           </div>
           <div className="p-3 bg-secondary/50 rounded-lg">
-            <p className="text-xs text-muted-foreground">Bruto 毛重</p>
+            <p className="text-xs text-muted-foreground">{t("submissaoDetalhe.bruto")}</p>
             <p className="text-lg font-bold">
               {submissao.peso_bruto_g ? `${submissao.peso_bruto_g}g` : "—"}
             </p>
           </div>
           <div className="p-3 bg-secondary/50 rounded-lg">
-            <p className="text-xs text-muted-foreground">Líquido 净重</p>
+            <p className="text-xs text-muted-foreground">{t("submissaoDetalhe.liquido")}</p>
             <p className="text-lg font-bold">
               {submissao.peso_liquido_g ? `${submissao.peso_liquido_g}g` : "—"}
             </p>
           </div>
           <div className="p-3 bg-secondary/50 rounded-lg">
-            <p className="text-xs text-muted-foreground">Tester 试用</p>
+            <p className="text-xs text-muted-foreground">{t("submissaoDetalhe.tester")}</p>
             <p className="text-lg font-bold">
               {submissao.peso_tester_g ? `${submissao.peso_tester_g}g` : "—"}
             </p>
