@@ -84,9 +84,22 @@ export function useCriarProjetoEspelho() {
       // Fase 11: roteia via ProjectService (fonte única). RPC e parâmetros
       // permanecem idênticos — zero mudança de comportamento em produção.
       if (args.projetoId) {
-        const data = await ProjectService.linkExisting(args.submissaoId, args.projetoId);
+        const data = await ProjectService.linkExisting(args.submissaoId, args.projetoId, {
+          projetoNome: args.projetoNome ?? null,
+          templateB2cId: args.templateB2cId ?? null,
+          secaoNome: args.secaoNome ?? "Documentos da Submissão",
+          dataInicio: args.dataInicio ?? null,
+          dataFimAlvo: args.dataFimAlvo ?? null,
+          prazoPadraoTarefa: args.prazoPadraoTarefa ?? null,
+          alertaAntecipacaoDias: args.alertaAntecipacaoDias ?? null,
+          regimeCalendario: args.regimeCalendario ?? null,
+          usaFeriados: args.usaFeriados ?? null,
+          ufFeriados: args.ufFeriados ?? null,
+          substituir: args.substituir ?? false,
+        });
         return data as CriarResult;
       }
+
       const data = await ProjectService.createFromSubmission(args.submissaoId, {
         projetoNome: args.projetoNome ?? null,
         templateB2cId: args.templateB2cId ?? null,
