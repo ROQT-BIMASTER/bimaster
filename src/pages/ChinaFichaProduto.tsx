@@ -293,6 +293,7 @@ export default function ChinaFichaProduto() {
       <ChinaPageHeader
         titlePt="Ficha do Produto"
         titleCn="产品档案"
+        titleEn="Product Sheet"
         icon={Package}
         iconTone="primary"
         showBack
