@@ -177,7 +177,7 @@ export default function ChinaSubmissaoDetalhe() {
               {submissao.observacoes_brasil && (
                 <div className="p-3 rounded-lg bg-background border border-destructive/20">
                   <p className="text-[11px] uppercase tracking-wide text-muted-foreground mb-1">
-                    Observação do Brasil 巴西备注
+                    {t("submissaoDetalhe.observacaoBrasil")}
                   </p>
                   <p className="text-sm whitespace-pre-wrap">
                     {submissao.observacoes_brasil}
