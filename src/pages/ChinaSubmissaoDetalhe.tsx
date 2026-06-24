@@ -437,6 +437,7 @@ export default function ChinaSubmissaoDetalhe() {
           <BilingualLabel
             pt="Observações do Brasil"
             cn="巴西备注"
+            en="Notes from Brazil"
             size="md"
             className="mb-2"
           />
