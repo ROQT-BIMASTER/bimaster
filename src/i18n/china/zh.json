@@ -91,7 +91,13 @@
       "marcando": "标记中...",
       "marcarTodasLidasTitle": "将所有可见消息标为已读",
       "tentarNovamente": "重试",
-      "enviandoBrasil": "正在发送至巴西…"
+      "enviandoBrasil": "正在发送至巴西…",
+      "viewList": "列表",
+      "viewSheet": "表格",
+      "selecionarPendentes": "选择此提交的待处理项",
+      "enviarSelecionadosBrasil": "向巴西发送 {{count}} 项",
+      "enviandoSelecionados": "正在发送 {{done}}/{{total}}…",
+      "exportarCsv": "导出 CSV"
     },
     "search": {
       "placeholder": "搜索产品、采购单、文件（快捷键: /)"
@@ -185,7 +191,9 @@
         "sent_brazil": "已发送至巴西",
         "in_analysis": "巴西审核中",
         "returned": "返回：需调整"
-      }
+      },
+      "subSubmissoes": "{{count}} 份提交",
+      "subSubmissoesUma": "1 份提交"
     },
     "checklistSheet": {
       "folder": {
@@ -321,6 +329,44 @@
     },
     "menu": {
       "caixaEntrada": "收件箱"
+    },
+    "group": {
+      "progress": "已发送 {{sent}}/{{total}}",
+      "chips": {
+        "enviados": "已发送",
+        "emAnalise": "审核中",
+        "aprovados": "已批准",
+        "rejeitados": "已拒绝",
+        "pendentes": "待处理"
+      }
+    },
+    "spreadsheet": {
+      "colunas": {
+        "submissao": "提交",
+        "produto": "产品",
+        "tipoDoc": "文件类型",
+        "status": "状态",
+        "pendencia": "待处理项",
+        "parecer": "中国评审",
+        "idade": "时长",
+        "acoes": "操作"
+      },
+      "vazio": "此视图中无项目。",
+      "filtroPendencia": "按待处理状态筛选",
+      "todas": "全部"
+    },
+    "right": {
+      "acompanhe": "请跟踪此提交的进展。",
+      "fluxoChecklist": "清单流程",
+      "legenda": "图例",
+      "legendaAprovado": "已批准",
+      "legendaEmAnalise": "审核中",
+      "legendaEnviado": "已发送至巴西",
+      "legendaPendente": "待处理",
+      "legendaDevolvido": "已退回",
+      "pendCurto": "{{count}} 待",
+      "aguardaBrasil": "等待巴西",
+      "brChinaEnviou": "BR 中国已发送"
     }
   },
   "timeline": {
@@ -1118,5 +1164,98 @@
     "opCriada": "生产单已创建 ({numero})",
     "inicioProducao": "生产开始",
     "conclusaoProducao": "生产完成"
+  },
+  "submissaoDetalhe": {
+    "naoEncontrada": "未找到提交",
+    "corrigirSubmissao": "修正提交",
+    "ajustesTitulo": "巴西要求的调整",
+    "ajustesDescPlural": "{{count}} 份文件需要修正。点击\"修正\"在确切位置打开编辑器。",
+    "ajustesDescGenerico": "巴西退回了此提交。请重新打开编辑器进行调整。",
+    "observacaoBrasil": "巴西备注",
+    "observacoesBrasil": "巴西备注",
+    "abrirEditorCorrigir": "打开编辑器进行修正",
+    "docsEnviadosBrasil": "已发送至巴西的文件",
+    "baixarArteFinal": "下载终稿",
+    "eanDisplay": "展示EAN",
+    "eanCaixaMaster": "主箱EAN",
+    "enviadoEm": "发送于",
+    "dadosProduto": "产品数据",
+    "qtyTotal": "总量",
+    "bruto": "毛重",
+    "liquido": "净重",
+    "tester": "试用",
+    "aprovadoBadge": "已批准",
+    "rejeitadoBadge": "已拒绝",
+    "pendenteBadge": "待处理",
+    "aguardando": "等待中",
+    "corrigir": "修正"
+  },
+  "fichaProduto": {
+    "titulo": "产品档案",
+    "cofreDocs": "文件保险箱",
+    "formula": "配方",
+    "checklistEmbalagens": "包装清单",
+    "painelTitulo": "审批与跟踪面板",
+    "abrirPainel": "打开面板",
+    "documentos": "文件",
+    "reprocessarTraducoes": "重新处理翻译",
+    "modoFoco": "聚焦模式",
+    "chinaEnviaBrasil": "中国发送至巴西",
+    "brasilEnviaChina": "巴西发送至中国",
+    "colCategoria": "类别",
+    "colArquivos": "文件",
+    "colStatus": "状态",
+    "colRascunhos": "草稿",
+    "colPendentes": "待处理",
+    "statusParcial": "部分",
+    "statusVazio": "空",
+    "statusCompleto": "完成",
+    "rascunho": "草稿",
+    "visualizarComoUsuario": "以用户身份查看",
+    "linhaDoTempo": "时间轴"
+  },
+  "checklistDocs": {
+    "titulo": "文件清单",
+    "modelos": "模板",
+    "kanban": "看板",
+    "aprovados": "已批准",
+    "enviados": "已发送",
+    "rascunhos": "草稿",
+    "rejeitados": "已拒绝",
+    "faltando": "缺失",
+    "conclusaoFicha": "档案完成度",
+    "pendentes": "{{count}} 项待处理",
+    "liberarOcOp": "释放至采购单",
+    "chinaEnvia": "中国发送",
+    "brasilEnvia": "巴西发送",
+    "upload": "上传",
+    "parecerAnexos": "评审 / 附件",
+    "historico": "历史",
+    "novoItemEm": "在\"{{categoria}}\"中新增项目"
+  },
+  "statusChecklist": {
+    "titulo": "清单状态",
+    "exportar": "导出",
+    "linhaDoTempo": "时间轴",
+    "visualizarComoUsuario": "以用户身份查看",
+    "progressoGeral": "总体进度",
+    "xDeYEnviados": "已向巴西发送 {{sent}}/{{total}} 项",
+    "abrirPendente": "打开待处理项",
+    "buscarPlaceholder": "按文件名称或类型搜索…",
+    "todos": "全部",
+    "enviados": "已发送",
+    "pendentes": "待处理",
+    "rejeitados": "已拒绝",
+    "naoCriados": "未创建",
+    "xDeYItens": "{{shown}}/{{total}} 项",
+    "colNaoCriados": "未创建",
+    "colPendenteAnalise": "待审核",
+    "colEmAjuste": "调整中",
+    "colEnviado": "已发送",
+    "colAprovado": "已批准",
+    "nenhumItem": "无项目",
+    "pendenteAnaliseBadge": "待审核",
+    "aprovadoBadge": "已批准",
+    "naoCriadoBadge": "未创建"
   }
 }

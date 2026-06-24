@@ -94,7 +94,7 @@
       "enviandoBrasil": "Sending to Brazil…",
       "viewList": "List",
       "viewSheet": "Spreadsheet",
-      "selecionarPendentes": "Select pending items in this submission",
+      "selecionarPendentes": "Select pending items of this submission",
       "enviarSelecionadosBrasil": "Send {{count}} to Brazil",
       "enviandoSelecionados": "Sending {{done}}/{{total}}…",
       "exportarCsv": "Export CSV"
@@ -191,7 +191,9 @@
         "sent_brazil": "Sent to Brazil",
         "in_analysis": "Under review in Brazil",
         "returned": "Returned: adjustments"
-      }
+      },
+      "subSubmissoes": "{{count}} submissions",
+      "subSubmissoesUma": "1 submission"
     },
     "checklistSheet": {
       "folder": {
@@ -327,6 +329,44 @@
     },
     "menu": {
       "caixaEntrada": "Inbox"
+    },
+    "group": {
+      "progress": "{{sent}}/{{total}} sent",
+      "chips": {
+        "enviados": "Sent",
+        "emAnalise": "Under review",
+        "aprovados": "Approved",
+        "rejeitados": "Rejected",
+        "pendentes": "Pending"
+      }
+    },
+    "spreadsheet": {
+      "colunas": {
+        "submissao": "Submission",
+        "produto": "Product",
+        "tipoDoc": "Doc type",
+        "status": "Status",
+        "pendencia": "Pending item",
+        "parecer": "China review",
+        "idade": "Age",
+        "acoes": "Actions"
+      },
+      "vazio": "No items in this view.",
+      "filtroPendencia": "Filter by pending status",
+      "todas": "All"
+    },
+    "right": {
+      "acompanhe": "Follow this submission's progress.",
+      "fluxoChecklist": "CHECKLIST FLOW",
+      "legenda": "Legend",
+      "legendaAprovado": "approved",
+      "legendaEmAnalise": "under review",
+      "legendaEnviado": "sent to Brazil",
+      "legendaPendente": "pending",
+      "legendaDevolvido": "returned",
+      "pendCurto": "{{count}} pend.",
+      "aguardaBrasil": "Awaiting Brazil",
+      "brChinaEnviou": "BR China sent"
     }
   },
   "timeline": {
@@ -1124,5 +1164,98 @@
     "opCriada": "PO created ({numero})",
     "inicioProducao": "Production start",
     "conclusaoProducao": "Production finish"
+  },
+  "submissaoDetalhe": {
+    "naoEncontrada": "Submission not found",
+    "corrigirSubmissao": "Fix submission",
+    "ajustesTitulo": "Adjustments requested by Brazil",
+    "ajustesDescPlural": "{{count}} document(s) need correction. Click \"Fix\" to open the editor at the exact spot.",
+    "ajustesDescGenerico": "Brazil returned this submission. Reopen the editor to apply the adjustments.",
+    "observacaoBrasil": "Brazil note",
+    "observacoesBrasil": "Notes from Brazil",
+    "abrirEditorCorrigir": "Open editor to fix",
+    "docsEnviadosBrasil": "Documents Sent to Brazil",
+    "baixarArteFinal": "Download Final Artwork",
+    "eanDisplay": "Display EAN",
+    "eanCaixaMaster": "Master Carton EAN",
+    "enviadoEm": "Sent on",
+    "dadosProduto": "Product Data",
+    "qtyTotal": "Total Qty",
+    "bruto": "Gross",
+    "liquido": "Net",
+    "tester": "Tester",
+    "aprovadoBadge": "Approved",
+    "rejeitadoBadge": "Rejected",
+    "pendenteBadge": "Pending",
+    "aguardando": "Waiting",
+    "corrigir": "Fix"
+  },
+  "fichaProduto": {
+    "titulo": "Product Sheet",
+    "cofreDocs": "Document Vault",
+    "formula": "Formula",
+    "checklistEmbalagens": "Packaging Checklist",
+    "painelTitulo": "Approval & Tracking Panel",
+    "abrirPainel": "Open Panel",
+    "documentos": "Documents",
+    "reprocessarTraducoes": "Reprocess translations",
+    "modoFoco": "Focus Mode",
+    "chinaEnviaBrasil": "China Sends to Brazil",
+    "brasilEnviaChina": "Brazil Sends to China",
+    "colCategoria": "Category",
+    "colArquivos": "Files",
+    "colStatus": "Status",
+    "colRascunhos": "Drafts",
+    "colPendentes": "Pending",
+    "statusParcial": "Partial",
+    "statusVazio": "Empty",
+    "statusCompleto": "Complete",
+    "rascunho": "Draft",
+    "visualizarComoUsuario": "Preview as User",
+    "linhaDoTempo": "Timeline"
+  },
+  "checklistDocs": {
+    "titulo": "Document Checklist",
+    "modelos": "Templates",
+    "kanban": "Kanban",
+    "aprovados": "Approved",
+    "enviados": "Sent",
+    "rascunhos": "Drafts",
+    "rejeitados": "Rejected",
+    "faltando": "Missing",
+    "conclusaoFicha": "Sheet completion",
+    "pendentes": "{{count}} pending",
+    "liberarOcOp": "Release to PO",
+    "chinaEnvia": "CHINA SENDS",
+    "brasilEnvia": "BRAZIL SENDS",
+    "upload": "Upload",
+    "parecerAnexos": "Review / Attachments",
+    "historico": "History",
+    "novoItemEm": "New item in \"{{categoria}}\""
+  },
+  "statusChecklist": {
+    "titulo": "Checklist Status",
+    "exportar": "Export",
+    "linhaDoTempo": "Timeline",
+    "visualizarComoUsuario": "Preview as User",
+    "progressoGeral": "OVERALL PROGRESS",
+    "xDeYEnviados": "{{sent}} of {{total}} items sent to Brazil",
+    "abrirPendente": "Open pending item",
+    "buscarPlaceholder": "Search by document name or type…",
+    "todos": "All",
+    "enviados": "Sent",
+    "pendentes": "Pending",
+    "rejeitados": "Rejected",
+    "naoCriados": "Not created",
+    "xDeYItens": "{{shown}} of {{total}} items",
+    "colNaoCriados": "NOT CREATED",
+    "colPendenteAnalise": "PENDING REVIEW",
+    "colEmAjuste": "BEING ADJUSTED",
+    "colEnviado": "SENT",
+    "colAprovado": "APPROVED",
+    "nenhumItem": "No items",
+    "pendenteAnaliseBadge": "Pending review",
+    "aprovadoBadge": "Approved",
+    "naoCriadoBadge": "Not created"
   }
 }
