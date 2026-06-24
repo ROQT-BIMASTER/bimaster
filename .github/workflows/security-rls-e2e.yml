@@ -50,3 +50,16 @@ jobs:
         run: |
           chmod +x scripts/security/e2e-clickjacking.sh
           bash scripts/security/e2e-clickjacking.sh
+
+  submissao-projeto-canary:
+    name: Submissão↔Projeto must remain unique
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run canary (duplicates + UNIQUE index)
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          chmod +x scripts/security/canary-submissao-projeto.sh
+          bash scripts/security/canary-submissao-projeto.sh

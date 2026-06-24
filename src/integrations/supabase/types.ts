@@ -54302,6 +54302,7 @@ export type Database = {
         Args: { p_briefing_id: string }
         Returns: undefined
       }
+      rpc_canary_submissao_projeto_unicidade: { Args: never; Returns: Json }
       rpc_cancelar_aprovacao_briefing: {
         Args: { p_briefing_id: string }
         Returns: undefined
