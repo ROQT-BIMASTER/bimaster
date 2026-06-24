@@ -1,0 +1,48 @@
+flowchart TB
+    subgraph UI1["UI Fluxo 1 - Ficha do Produto"]
+        F1B["Botao 'Criar projeto'<br/>ChinaFichaProduto.tsx:952"]
+        F1Audit["useAuditChinaVinculo<br/>(IA, nao bloqueia)"]
+    end
+
+    subgraph UI2["UI Fluxo 2 - Mesa China"]
+        F2A["VincularChinaSidePanel<br/>'Continuar no projeto'"]
+        F2B["EncaminharProjetoDialog<br/>'Encaminhar ao projeto'"]
+        F2Cfg["ConfigurarProjetoEspelhoDialog<br/>(prazos, regime, template B2C)"]
+    end
+
+    H1["useCriarProjetoChina<br/>useChinaProjeto.ts:223"]
+    H2["useCriarProjetoEspelho<br/>useProjetoEspelhoSubmissao.ts:78"]
+
+    RPC1[("rpc_criar_projeto<br/>generico")]
+    RPC2[("rpc_china_criar_projeto_espelho<br/>com prazos + template B2C")]
+
+    T_PROJ[("projetos")]
+    T_SEC[("projeto_secoes")]
+    T_TAR[("projeto_tarefas")]
+    T_LINK1[("projeto_tarefa_produtos<br/>FK produto = submissao")]
+    T_LINK2[("china_submissao_projetos<br/>SEM UNIQUE")]
+    T_CHK[("china_checklist_brasil_china<br/>projeto_tarefa_id")]
+    T_VINC[("china_submissao_tarefa_vinculos")]
+
+    F1B --> F1Audit --> H1
+    F2A --> H2
+    F2B --> F2Cfg --> H2
+
+    H1 --> RPC1
+    RPC1 --> T_PROJ
+    RPC1 --> T_SEC
+    H1 --> T_TAR
+    H1 --> T_LINK1
+    H1 -->|"is_espelho=false<br/>SEM checagem"| T_LINK2
+
+    H2 --> RPC2
+    RPC2 --> T_PROJ
+    RPC2 --> T_TAR
+    RPC2 --> T_CHK
+    RPC2 -->|"is_espelho=true<br/>p_substituir desativa anterior"| T_LINK2
+    F2A -.->|aba Vincular| T_VINC
+
+    classDef risk fill:#fee,stroke:#c33,color:#900
+    classDef dup fill:#ffe,stroke:#a80,color:#640
+    class T_LINK2 risk
+    class H1,H2,RPC1,RPC2 dup
