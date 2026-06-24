@@ -876,7 +876,7 @@ export default function ChinaProdutoChecklistStatus() {
             <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
             <Input
               type="search"
-              placeholder="Buscar por nome ou tipo do documento..."
+              placeholder={t("statusChecklist.buscarPlaceholder")}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="h-8 pl-8 text-xs"
