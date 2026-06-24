@@ -3,6 +3,26 @@ import {
   buildRpcParams,
   type ProjectCreateOpts,
 } from "@/lib/projetos/projectCreateOpts";
+import { loadConversaoEstrutura } from "@/lib/china/buildConversaoEstrutura";
+
+/**
+ * Garante que `opts.estrutura` esteja preenchida — quando o caller não
+ * informa, busca do checklist mergeado da submissão. Mantém a hierarquia
+ * categoria→tarefa em todos os fluxos de conversão.
+ */
+async function withEstrutura(
+  submissaoId: string,
+  opts: ProjectCreateOpts,
+): Promise<ProjectCreateOpts> {
+  if (opts.estrutura !== undefined) return opts;
+  try {
+    const estrutura = await loadConversaoEstrutura(submissaoId);
+    return { ...opts, estrutura: estrutura.length > 0 ? estrutura : null };
+  } catch {
+    // Em falha, deixa null → RPC cai no modo legado em vez de quebrar a conversão.
+    return { ...opts, estrutura: null };
+  }
+}
 
 /**
  * Serviço único para criar/sincronizar Projetos a partir de Submissões China.
