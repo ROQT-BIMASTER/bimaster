@@ -134,7 +134,7 @@ export default function ChinaSubmissaoDetalhe() {
         actions={
           <>
             <Badge variant={statusInfo.variant} className="text-sm px-3 py-1">
-              {statusInfo.pt} {statusInfo.cn}
+              <BilingualLabel pt={statusInfo.pt} cn={statusInfo.cn} en={statusInfo.en} size="sm" className="!flex-row gap-1" />
             </Badge>
             {needsCorrection && (
               <Button
