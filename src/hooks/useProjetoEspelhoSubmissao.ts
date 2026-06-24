@@ -1,6 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { ProjectService } from "@/lib/projetos/projectService";
+
 
 /**
  * Resolve o projeto-espelho (is_espelho=true) de uma submissão China,
