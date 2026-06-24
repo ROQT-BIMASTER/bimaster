@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { format } from "date-fns";
 import { ptBR, zhCN, enUS } from "date-fns/locale";
 import { Paperclip, Send, MessageSquareWarning, Trash2, Pencil, Download, X, Loader2 } from "lucide-react";
