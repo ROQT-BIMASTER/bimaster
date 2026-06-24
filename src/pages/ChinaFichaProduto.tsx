@@ -422,7 +422,7 @@ export default function ChinaFichaProduto() {
                 </div>
               )}
               <Button variant="outline" className="w-full gap-2 text-sm" onClick={() => setCofreOpen(true)}>
-                <FolderOpen className="h-4 w-4" /> Cofre de Documentos 文件保险箱
+                <FolderOpen className="h-4 w-4" /> {t("fichaProduto.cofreDocs")}
               </Button>
             </div>
           </div>
