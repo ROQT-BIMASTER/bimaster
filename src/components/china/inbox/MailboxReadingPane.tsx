@@ -245,6 +245,15 @@ export function MailboxReadingPane({
 
         <Separator className="my-4" />
 
+        {item.submissao_id && (
+          <PareceresSubmissaoCard
+            submissaoId={item.submissao_id}
+            isBrasilUser={isBrasilUser}
+            isChinaUser={isChinaUser}
+            className="mb-4"
+          />
+        )}
+
         {group && (
           <div className="mb-4">
             <ChecklistFlow
