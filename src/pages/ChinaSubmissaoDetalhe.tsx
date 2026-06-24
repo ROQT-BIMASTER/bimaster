@@ -23,6 +23,7 @@ import { useQuery } from "@tanstack/react-query";
 import { ManualFabricaDrawer } from "@/components/fabrica/ManualFabricaDrawer";
 import { ChinaPageShell } from "@/components/china/ChinaPageShell";
 import { ChinaPageHeader } from "@/components/china/ChinaPageHeader";
+import { PareceresSubmissaoCard } from "@/components/china/submissao/PareceresSubmissaoCard";
 import { ChinaTimelineButton } from "@/components/china/timeline/ChinaTimelineButton";
 import { getSignedUrl } from "@/lib/utils/storage-helper";
 import { Loader2 } from "lucide-react";
@@ -151,6 +152,8 @@ export default function ChinaSubmissaoDetalhe() {
           </>
         }
       />
+
+      <PareceresSubmissaoCard submissaoId={submissao.id} />
 
       {/* Banner: ajustes solicitados pelo Brasil */}
       {needsCorrection && (

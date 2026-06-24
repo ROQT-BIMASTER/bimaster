@@ -7138,6 +7138,92 @@ export type Database = {
         }
         Relationships: []
       }
+      china_submissao_parecer_anexos: {
+        Row: {
+          created_at: string
+          id: string
+          mime: string | null
+          nome_arquivo: string
+          parecer_id: string
+          storage_path: string
+          tamanho: number | null
+          uploaded_by: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          mime?: string | null
+          nome_arquivo: string
+          parecer_id: string
+          storage_path: string
+          tamanho?: number | null
+          uploaded_by: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          mime?: string | null
+          nome_arquivo?: string
+          parecer_id?: string
+          storage_path?: string
+          tamanho?: number | null
+          uploaded_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "china_submissao_parecer_anexos_parecer_id_fkey"
+            columns: ["parecer_id"]
+            isOneToOne: false
+            referencedRelation: "china_submissao_pareceres"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      china_submissao_pareceres: {
+        Row: {
+          autor_id: string
+          autor_lado: string
+          created_at: string
+          critico: boolean
+          deleted_at: string | null
+          id: string
+          submissao_id: string
+          texto: string
+          traducao_en: string | null
+          traducao_pt: string | null
+          traducao_zh: string | null
+          updated_at: string
+        }
+        Insert: {
+          autor_id: string
+          autor_lado: string
+          created_at?: string
+          critico?: boolean
+          deleted_at?: string | null
+          id?: string
+          submissao_id: string
+          texto: string
+          traducao_en?: string | null
+          traducao_pt?: string | null
+          traducao_zh?: string | null
+          updated_at?: string
+        }
+        Update: {
+          autor_id?: string
+          autor_lado?: string
+          created_at?: string
+          critico?: boolean
+          deleted_at?: string | null
+          id?: string
+          submissao_id?: string
+          texto?: string
+          traducao_en?: string | null
+          traducao_pt?: string | null
+          traducao_zh?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       china_submissao_projetos: {
         Row: {
           created_at: string

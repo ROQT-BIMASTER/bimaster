@@ -23,6 +23,7 @@ import { ChinaTimelineButton } from "@/components/china/timeline/ChinaTimelineBu
 import { useChinaI18n } from "@/hooks/useChinaI18n";
 import { useChinaDocThumbnail } from "@/hooks/useChinaDocThumbnail";
 import { ChecklistFlow, FlowItemFocusDrawer } from "./ChecklistFlow";
+import { PareceresSubmissaoCard } from "@/components/china/submissao/PareceresSubmissaoCard";
 
 interface Props {
   item: MailboxItem | null;
@@ -243,6 +244,15 @@ export function MailboxReadingPane({
         </header>
 
         <Separator className="my-4" />
+
+        {item.submissao_id && (
+          <PareceresSubmissaoCard
+            submissaoId={item.submissao_id}
+            isBrasilUser={isBrasilUser}
+            isChinaUser={isChinaUser}
+            className="mb-4"
+          />
+        )}
 
         {group && (
           <div className="mb-4">
