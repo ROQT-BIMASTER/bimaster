@@ -110,7 +110,7 @@ export function EncaminharProjetoDialog({
     <>
     <Dialog open={open} onOpenChange={(o) => (o ? onOpenChange(true) : close())}>
 
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-3xl w-[95vw]">
         <DialogHeader>
           <DialogTitle className="text-base">
             {projeto ? "Escolher tarefa (opcional)" : "Encaminhar a um projeto"}
