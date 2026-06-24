@@ -87,9 +87,10 @@ export const ProjectService = {
     opts: ProjectCreateOpts = {},
   ): Promise<CreateFromSubmissionResult> {
     if (!submissaoId) throw new Error("submissaoId é obrigatório");
+    const enriched = await withEstrutura(submissaoId, opts);
     const { data, error } = await supabase.rpc(
       "rpc_china_criar_projeto_espelho" as any,
-      buildRpcParams(submissaoId, null, opts),
+      buildRpcParams(submissaoId, null, enriched),
     );
     if (error) throw error;
     return data as CreateFromSubmissionResult;
@@ -106,9 +107,10 @@ export const ProjectService = {
   ): Promise<CreateFromSubmissionResult> {
     if (!submissaoId) throw new Error("submissaoId é obrigatório");
     if (!projetoId) throw new Error("projetoId é obrigatório");
+    const enriched = await withEstrutura(submissaoId, opts);
     const { data, error } = await supabase.rpc(
       "rpc_china_criar_projeto_espelho" as any,
-      buildRpcParams(submissaoId, projetoId, opts),
+      buildRpcParams(submissaoId, projetoId, enriched),
     );
     if (error) throw error;
     return data as CreateFromSubmissionResult;
