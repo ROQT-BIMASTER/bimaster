@@ -54589,6 +54589,7 @@ export type Database = {
           p_alerta_antecipacao_dias?: number
           p_data_fim_alvo?: string
           p_data_inicio?: string
+          p_estrutura?: Json
           p_prazo_padrao_tarefa?: number
           p_projeto_id?: string
           p_projeto_nome?: string

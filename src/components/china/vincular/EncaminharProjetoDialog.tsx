@@ -128,7 +128,7 @@ export function EncaminharProjetoDialog({
               <div className="min-w-0 flex-1">
                 <p className="text-xs font-semibold text-primary">Criar projeto novo desta submissão</p>
                 <p className="text-[11px] text-muted-foreground">
-                  Gera o projeto com 1 tarefa por item do checklist e anexa os documentos. Você define prazos e alertas no próximo passo.
+                  Gera o projeto com uma seção por categoria e uma tarefa por item do checklist, e anexa os documentos. Você define prazos e alertas no próximo passo.
                 </p>
               </div>
             </button>

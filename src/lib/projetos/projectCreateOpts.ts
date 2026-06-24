@@ -7,6 +7,8 @@
  * NÃO mude a forma sem garantir que todos os consumers sigam — qualquer
  * divergência reintroduz duplicidade de entrypoint.
  */
+import type { ProjetoConversaoEstruturaCategoria } from "@/lib/china/buildConversaoEstrutura";
+
 export interface ProjectCreateOpts {
   projetoNome?: string | null;
   templateB2cId?: string | null;
@@ -19,6 +21,12 @@ export interface ProjectCreateOpts {
   usaFeriados?: boolean | null;
   ufFeriados?: string | null;
   substituir?: boolean;
+  /**
+   * Estrutura hierárquica categorias→itens do checklist da submissão.
+   * Quando informada, a RPC cria 1 Seção por categoria e 1 Tarefa por item.
+   * Quando ausente/`null`, a RPC cai no comportamento legado (única seção).
+   */
+  estrutura?: ProjetoConversaoEstruturaCategoria[] | null;
 }
 
 /** Defaults aplicados antes de chamar o RPC — fonte única de verdade. */
@@ -48,5 +56,6 @@ export function buildRpcParams(
     p_usa_feriados: opts.usaFeriados ?? null,
     p_uf_feriados: opts.ufFeriados ?? null,
     p_substituir: opts.substituir ?? false,
+    p_estrutura: opts.estrutura ?? null,
   };
 }

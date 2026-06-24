@@ -85,6 +85,7 @@ const EXPECTED_KEYS = [
   "p_usa_feriados",
   "p_uf_feriados",
   "p_substituir",
+  "p_estrutura",
 ].sort();
 
 describe("buildRpcParams — contrato create vs linkExisting", () => {
@@ -122,6 +123,7 @@ describe("buildRpcParams — contrato create vs linkExisting", () => {
       "p_regime_calendario",
       "p_usa_feriados",
       "p_uf_feriados",
+      "p_estrutura",
     ] as const) {
       expect(p[k]).toBeNull();
     }
