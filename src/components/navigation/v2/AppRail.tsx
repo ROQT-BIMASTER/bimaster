@@ -174,7 +174,27 @@ export function AppRail({ side = "left" }: AppRailProps) {
         </div>
 
         {/* Lista de CATEGORIAS (rail compacto) */}
-        <div className="flex-1 overflow-y-auto overflow-x-hidden py-1 flex flex-col items-center gap-1.5">
+        <div
+          role="toolbar"
+          aria-orientation="vertical"
+          aria-label="Categorias"
+          onKeyDown={(e) => {
+            if (e.key !== "ArrowDown" && e.key !== "ArrowUp" && e.key !== "Home" && e.key !== "End") return;
+            const buttons = Array.from(
+              e.currentTarget.querySelectorAll<HTMLButtonElement>('button[data-rail-category="true"]'),
+            );
+            if (buttons.length === 0) return;
+            const idx = buttons.indexOf(document.activeElement as HTMLButtonElement);
+            let next = idx;
+            if (e.key === "ArrowDown") next = idx < 0 ? 0 : (idx + 1) % buttons.length;
+            else if (e.key === "ArrowUp") next = idx < 0 ? buttons.length - 1 : (idx - 1 + buttons.length) % buttons.length;
+            else if (e.key === "Home") next = 0;
+            else if (e.key === "End") next = buttons.length - 1;
+            e.preventDefault();
+            buttons[next]?.focus();
+          }}
+          className="flex-1 overflow-y-auto overflow-x-hidden py-1 flex flex-col items-center gap-1.5"
+        >
           {isLoading && (
             <div className="flex items-center justify-center py-4">
               <Loader2
