@@ -399,17 +399,17 @@ export default function ChinaSubmissaoDetalhe() {
                       >
                         {doc.status === "aprovado" ? (
                           <>
-                            <CheckCircle2 className="h-3 w-3 mr-1" /> Aprovado
+                            <CheckCircle2 className="h-3 w-3 mr-1" /> {t("submissaoDetalhe.aprovadoBadge")}
                           </>
                         ) : doc.status === "rejeitado" ? (
-                          "✗ Rejeitado"
+                          <>✗ {t("submissaoDetalhe.rejeitadoBadge")}</>
                         ) : (
-                          "● Pendente"
+                          <>● {t("submissaoDetalhe.pendenteBadge")}</>
                         )}
                       </Badge>
                     ) : (
                       <Badge variant="secondary" className="text-[10px]">
-                        <Clock className="h-3 w-3 mr-1" /> Aguardando
+                        <Clock className="h-3 w-3 mr-1" /> {t("submissaoDetalhe.aguardando")}
                       </Badge>
                     )}
                     {isRejected && (
