@@ -1029,6 +1029,9 @@ function FichaVisibilidadeSection({ submissaoId }: { submissaoId: string }) {
         <BilingualLabel pt="Acesso e Visibilidade" cn="访问与可见性" size="md" />
         <Badge variant="secondary" className="ml-auto">{visibilidade.length} usuário(s)</Badge>
       </div>
+      <p className="text-xs text-muted-foreground -mt-2">
+        Colaboradores marcados aqui ganham acesso automático aos projetos de desenvolvimento vinculados a esta submissão.
+      </p>
 
       <div className="flex items-center gap-2">
         <Select value={selectedUserId} onValueChange={setSelectedUserId}>
