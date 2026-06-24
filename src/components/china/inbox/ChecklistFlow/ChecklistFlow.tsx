@@ -23,6 +23,7 @@ import {
 import { FlowNode } from "./FlowNode";
 import { FlowConnector } from "./FlowConnector";
 import type { FlowItemContext } from "./types";
+import { useChinaI18n } from "@/hooks/useChinaI18n";
 
 interface Props {
   group: MailboxGroup;
