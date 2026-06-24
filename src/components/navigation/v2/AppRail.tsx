@@ -226,6 +226,8 @@ export function AppRail({ side = "left" }: AppRailProps) {
                     type="button"
                     aria-label={cat.label}
                     aria-current={isActive ? "page" : undefined}
+                    aria-haspopup="dialog"
+                    data-rail-category="true"
                     onClick={() => handleCategoryClick(cat)}
                     className={cn(
                       "relative flex items-center justify-center rounded-lg transition-all duration-150",
