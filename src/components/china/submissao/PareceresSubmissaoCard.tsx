@@ -196,7 +196,7 @@ function ParecerItem({
   onExcluir,
 }: {
   parecer: Parecer;
-  locale: Locale;
+  locale: any;
   language: string;
   tFn: (k: string) => string;
   canEdit: boolean;
