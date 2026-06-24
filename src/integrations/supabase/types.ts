@@ -7157,6 +7157,7 @@ export type Database = {
           mime: string | null
           nome_arquivo: string
           parecer_id: string
+          promovido_documento_id: string | null
           storage_path: string
           tamanho: number | null
           uploaded_by: string
@@ -7167,6 +7168,7 @@ export type Database = {
           mime?: string | null
           nome_arquivo: string
           parecer_id: string
+          promovido_documento_id?: string | null
           storage_path: string
           tamanho?: number | null
           uploaded_by: string
@@ -7177,6 +7179,7 @@ export type Database = {
           mime?: string | null
           nome_arquivo?: string
           parecer_id?: string
+          promovido_documento_id?: string | null
           storage_path?: string
           tamanho?: number | null
           uploaded_by?: string
@@ -7187,6 +7190,13 @@ export type Database = {
             columns: ["parecer_id"]
             isOneToOne: false
             referencedRelation: "china_submissao_pareceres"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "china_submissao_parecer_anexos_promovido_documento_id_fkey"
+            columns: ["promovido_documento_id"]
+            isOneToOne: false
+            referencedRelation: "china_produto_documentos"
             referencedColumns: ["id"]
           },
         ]
@@ -54688,6 +54698,16 @@ export type Database = {
           p_mensagem_id: string
           p_novo_arquivo_path: string
           p_novo_nome_arquivo: string
+          p_tipo_documento: string
+        }
+        Returns: string
+      }
+      rpc_china_promover_anexo_parecer_ao_checklist: {
+        Args: {
+          p_anexo_id: string
+          p_novo_arquivo_path: string
+          p_novo_nome_arquivo: string
+          p_parecer_id: string
           p_tipo_documento: string
         }
         Returns: string
