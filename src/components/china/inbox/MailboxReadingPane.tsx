@@ -23,6 +23,7 @@ import { ChinaTimelineButton } from "@/components/china/timeline/ChinaTimelineBu
 import { useChinaI18n } from "@/hooks/useChinaI18n";
 import { useChinaDocThumbnail } from "@/hooks/useChinaDocThumbnail";
 import { ChecklistFlow, FlowItemFocusDrawer } from "./ChecklistFlow";
+import { PareceresSubmissaoCard } from "@/components/china/submissao/PareceresSubmissaoCard";
 
 interface Props {
   item: MailboxItem | null;
