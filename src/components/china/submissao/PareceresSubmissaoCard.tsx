@@ -176,6 +176,7 @@ export function PareceresSubmissaoCard({
             <ParecerItem
               key={p.id}
               parecer={p}
+              submissaoId={submissaoId}
               locale={locale}
               language={language}
               tFn={t}
