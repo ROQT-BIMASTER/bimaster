@@ -110,27 +110,46 @@ export const ProjectService = {
 
   /**
    * Vincula a submissão a um projeto JÁ existente. Idempotente.
+   * Aceita os mesmos opts de `createFromSubmission` para casos em que o
+   * caller quer também ajustar template/datas/calendário no vínculo.
    */
-  async linkExisting(submissaoId: string, projetoId: string) {
+  async linkExisting(
+    submissaoId: string,
+    projetoId: string,
+    opts: {
+      templateB2cId?: string | null;
+      secaoNome?: string;
+      projetoNome?: string | null;
+      dataInicio?: string | null;
+      dataFimAlvo?: string | null;
+      prazoPadraoTarefa?: number | null;
+      alertaAntecipacaoDias?: number | null;
+      regimeCalendario?: "corridos" | "dias_uteis" | "uteis_com_sabado" | null;
+      usaFeriados?: boolean | null;
+      ufFeriados?: string | null;
+      substituir?: boolean;
+    } = {},
+  ) {
     const { data, error } = await supabase.rpc(
       "rpc_china_criar_projeto_espelho" as any,
       {
         p_submissao_id: submissaoId,
         p_projeto_id: projetoId,
-        p_template_b2c_id: null,
-        p_secao_nome: "Documentos da Submissão",
-        p_projeto_nome: null,
-        p_data_inicio: null,
-        p_data_fim_alvo: null,
-        p_prazo_padrao_tarefa: null,
-        p_alerta_antecipacao_dias: null,
-        p_regime_calendario: null,
-        p_usa_feriados: null,
-        p_uf_feriados: null,
-        p_substituir: false,
+        p_template_b2c_id: opts.templateB2cId ?? null,
+        p_secao_nome: opts.secaoNome ?? "Documentos da Submissão",
+        p_projeto_nome: opts.projetoNome ?? null,
+        p_data_inicio: opts.dataInicio ?? null,
+        p_data_fim_alvo: opts.dataFimAlvo ?? null,
+        p_prazo_padrao_tarefa: opts.prazoPadraoTarefa ?? null,
+        p_alerta_antecipacao_dias: opts.alertaAntecipacaoDias ?? null,
+        p_regime_calendario: opts.regimeCalendario ?? null,
+        p_usa_feriados: opts.usaFeriados ?? null,
+        p_uf_feriados: opts.ufFeriados ?? null,
+        p_substituir: opts.substituir ?? false,
       },
     );
     if (error) throw error;
     return data as any;
   },
 };
+
