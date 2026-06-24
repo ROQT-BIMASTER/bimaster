@@ -1,8 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { ProjectService } from "@/lib/projetos/projectService";
-
+import { ProjectService, type CreateFromSubmissionResult } from "@/lib/projetos/projectService";
+import type { ProjectCreateOpts } from "@/lib/projetos/projectCreateOpts";
 
 /**
  * Resolve o projeto-espelho (is_espelho=true) de uma submissão China,
@@ -47,75 +47,32 @@ export function useSubmissaoDoProjetoEspelho(projetoId: string | null | undefine
   });
 }
 
-export interface CriarProjetoEspelhoConfig {
-  dataInicio?: string | null;
-  dataFimAlvo?: string | null;
-  prazoPadraoTarefa?: number | null;
-  alertaAntecipacaoDias?: number | null;
-  regimeCalendario?: "corridos" | "dias_uteis" | "uteis_com_sabado" | null;
-  usaFeriados?: boolean | null;
-  ufFeriados?: string | null;
-}
+/**
+ * Compatibilidade retro: o tipo legado `CriarProjetoEspelhoConfig` agora é
+ * apenas um alias do `ProjectCreateOpts` compartilhado. Mantido para não
+ * quebrar imports existentes — prefira `ProjectCreateOpts` em código novo.
+ */
+export type CriarProjetoEspelhoConfig = ProjectCreateOpts;
 
-interface CriarArgs extends CriarProjetoEspelhoConfig {
+export interface CriarProjetoEspelhoArgs extends ProjectCreateOpts {
   submissaoId: string;
-  /** Se informado, vincula à um projeto existente em vez de criar um novo. */
+  /** Se informado, vincula a um projeto existente em vez de criar um novo. */
   projetoId?: string | null;
-  /** Template do checklist Brasil → China a popular automaticamente. */
-  templateB2cId?: string | null;
-  projetoNome?: string | null;
-  secaoNome?: string;
-  /** Se true, desativa um is_espelho anterior antes de criar o novo. */
-  substituir?: boolean;
 }
 
-interface CriarResult {
-  projeto_id: string;
-  submissao_id: string;
-  secao_id?: string;
-  created: boolean;
-  already_existed: boolean;
-}
+export type CriarProjetoEspelhoResult = CreateFromSubmissionResult;
 
 export function useCriarProjetoEspelho() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (args: CriarArgs): Promise<CriarResult> => {
-      // Fase 11: roteia via ProjectService (fonte única). RPC e parâmetros
-      // permanecem idênticos — zero mudança de comportamento em produção.
-      if (args.projetoId) {
-        const data = await ProjectService.linkExisting(args.submissaoId, args.projetoId, {
-          projetoNome: args.projetoNome ?? null,
-          templateB2cId: args.templateB2cId ?? null,
-          secaoNome: args.secaoNome ?? "Documentos da Submissão",
-          dataInicio: args.dataInicio ?? null,
-          dataFimAlvo: args.dataFimAlvo ?? null,
-          prazoPadraoTarefa: args.prazoPadraoTarefa ?? null,
-          alertaAntecipacaoDias: args.alertaAntecipacaoDias ?? null,
-          regimeCalendario: args.regimeCalendario ?? null,
-          usaFeriados: args.usaFeriados ?? null,
-          ufFeriados: args.ufFeriados ?? null,
-          substituir: args.substituir ?? false,
-        });
-        return data as CriarResult;
-      }
-
-      const data = await ProjectService.createFromSubmission(args.submissaoId, {
-        projetoNome: args.projetoNome ?? null,
-        templateB2cId: args.templateB2cId ?? null,
-        secaoNome: args.secaoNome ?? "Documentos da Submissão",
-        dataInicio: args.dataInicio ?? null,
-        dataFimAlvo: args.dataFimAlvo ?? null,
-        prazoPadraoTarefa: args.prazoPadraoTarefa ?? null,
-        alertaAntecipacaoDias: args.alertaAntecipacaoDias ?? null,
-        regimeCalendario: args.regimeCalendario ?? null,
-        usaFeriados: args.usaFeriados ?? null,
-        ufFeriados: args.ufFeriados ?? null,
-        substituir: args.substituir ?? false,
-      });
-      return data as CriarResult;
+    mutationFn: async (args: CriarProjetoEspelhoArgs): Promise<CriarProjetoEspelhoResult> => {
+      const { submissaoId, projetoId, ...opts } = args;
+      // Fonte única de opts: o mesmo `ProjectCreateOpts` flui sem
+      // remapeamento manual para `ProjectService` (Fase 12).
+      return projetoId
+        ? ProjectService.linkExisting(submissaoId, projetoId, opts)
+        : ProjectService.createFromSubmission(submissaoId, opts);
     },
-
     onSuccess: (res) => {
       toast.success(
         res.already_existed
@@ -133,3 +90,4 @@ export function useCriarProjetoEspelho() {
     },
   });
 }
+
