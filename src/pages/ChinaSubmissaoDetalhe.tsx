@@ -28,9 +28,11 @@ import { getSignedUrl } from "@/lib/utils/storage-helper";
 import { Loader2 } from "lucide-react";
 import { useFieldVisibility } from "@/hooks/useFieldVisibility";
 import { useResolvedBackTo } from "@/lib/navigation/withReturnTo";
+import { useChinaI18n } from "@/hooks/useChinaI18n";
 import { cn } from "@/lib/utils";
 
 export default function ChinaSubmissaoDetalhe() {
+  const { t } = useChinaI18n();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { backTo } = useResolvedBackTo("/dashboard/fabrica-china");
