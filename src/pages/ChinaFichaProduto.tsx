@@ -365,11 +365,11 @@ export default function ChinaFichaProduto() {
                   <h1 className="text-2xl font-bold text-foreground">{submissao.produto_codigo}</h1>
                   <p className="text-lg text-muted-foreground">{submissao.produto_nome}</p>
                   {submissao.formula_codigo && (
-                    <p className="text-sm text-muted-foreground mt-1">Fórmula 配方: {submissao.formula_codigo}</p>
+                    <p className="text-sm text-muted-foreground mt-1">{t("fichaProduto.formula")}: {submissao.formula_codigo}</p>
                   )}
                 </div>
                 <Badge variant={statusInfo.variant} className="text-sm px-3 py-1 shrink-0">
-                  {statusInfo.pt} {statusInfo.cn}
+                  <LangText pt={statusInfo.pt} cn={statusInfo.cn} en={statusInfo.en} />
                 </Badge>
               </div>
 
