@@ -143,7 +143,7 @@ export default function ChinaSubmissaoDetalhe() {
                 className="gap-2"
               >
                 <Pencil className="h-4 w-4" />
-                Corrigir submissão 修正提交
+                {t("submissaoDetalhe.corrigirSubmissao")}
               </Button>
             )}
             <ChinaTimelineButton scope={{ submissaoId: submissao.id }} />
