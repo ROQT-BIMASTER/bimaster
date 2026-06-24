@@ -1461,6 +1461,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
             </NavLink>
             <div className="flex items-center gap-1">
               <ThemeSelectorPopover />
+              <NavVersionToggle variant="sidebar" />
               <LanguagePreferencePopover />
               <NavLink
                 to="/meu-perfil"
