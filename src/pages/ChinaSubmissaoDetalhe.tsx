@@ -11,7 +11,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { BilingualLabel } from "@/components/china/BilingualLabel";
+import { BilingualLabel, LangText } from "@/components/china/BilingualLabel";
 import { ChinaGradeView } from "@/components/china/ChinaGradeView";
 import {
   CHINA_DOCUMENT_TYPES,
@@ -28,9 +28,11 @@ import { getSignedUrl } from "@/lib/utils/storage-helper";
 import { Loader2 } from "lucide-react";
 import { useFieldVisibility } from "@/hooks/useFieldVisibility";
 import { useResolvedBackTo } from "@/lib/navigation/withReturnTo";
+import { useChinaI18n } from "@/hooks/useChinaI18n";
 import { cn } from "@/lib/utils";
 
 export default function ChinaSubmissaoDetalhe() {
+  const { t } = useChinaI18n();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { backTo } = useResolvedBackTo("/dashboard/fabrica-china");
@@ -98,7 +100,7 @@ export default function ChinaSubmissaoDetalhe() {
     return (
       <ChinaPageShell>
         <div className="text-center py-12">
-          <p className="text-muted-foreground">Submissão não encontrada 未找到提交</p>
+          <p className="text-muted-foreground">{t("submissaoDetalhe.naoEncontrada")}</p>
         </div>
       </ChinaPageShell>
     );
@@ -132,7 +134,7 @@ export default function ChinaSubmissaoDetalhe() {
         actions={
           <>
             <Badge variant={statusInfo.variant} className="text-sm px-3 py-1">
-              {statusInfo.pt} {statusInfo.cn}
+              <LangText pt={statusInfo.pt} cn={statusInfo.cn} en={statusInfo.en} />
             </Badge>
             {needsCorrection && (
               <Button
@@ -141,7 +143,7 @@ export default function ChinaSubmissaoDetalhe() {
                 className="gap-2"
               >
                 <Pencil className="h-4 w-4" />
-                Corrigir submissão 修正提交
+                {t("submissaoDetalhe.corrigirSubmissao")}
               </Button>
             )}
             <ChinaTimelineButton scope={{ submissaoId: submissao.id }} />
@@ -162,19 +164,20 @@ export default function ChinaSubmissaoDetalhe() {
                 <BilingualLabel
                   pt="Ajustes solicitados pelo Brasil"
                   cn="巴西要求的调整"
+                  en="Adjustments requested by Brazil"
                   size="md"
                 />
                 <p className="text-xs text-muted-foreground mt-0.5">
                   {rejectedDocs.length > 0
-                    ? `${rejectedDocs.length} documento(s) precisam de correção. Clique em "Corrigir" para abrir o editor no ponto exato.`
-                    : "O Brasil retornou esta submissão. Reabra o editor para realizar os ajustes."}
+                    ? t("submissaoDetalhe.ajustesDescPlural", { count: rejectedDocs.length })
+                    : t("submissaoDetalhe.ajustesDescGenerico")}
                 </p>
               </div>
 
               {submissao.observacoes_brasil && (
                 <div className="p-3 rounded-lg bg-background border border-destructive/20">
                   <p className="text-[11px] uppercase tracking-wide text-muted-foreground mb-1">
-                    Observação do Brasil 巴西备注
+                    {t("submissaoDetalhe.observacaoBrasil")}
                   </p>
                   <p className="text-sm whitespace-pre-wrap">
                     {submissao.observacoes_brasil}
@@ -205,7 +208,11 @@ export default function ChinaSubmissaoDetalhe() {
                           className="text-left underline-offset-2 hover:underline"
                         >
                           <span className="font-medium">
-                            {config?.labelPt || doc.tipo_documento}
+                            {config ? (
+                              <LangText pt={config.labelPt} cn={config.labelCn} en={config.labelEn} />
+                            ) : (
+                              doc.tipo_documento
+                            )}
                           </span>
                           {doc.observacao && (
                             <span className="text-muted-foreground">
@@ -226,7 +233,7 @@ export default function ChinaSubmissaoDetalhe() {
                   className="gap-2"
                 >
                   <Pencil className="h-4 w-4" />
-                  Abrir editor para corrigir 打开编辑器进行修正
+                  {t("submissaoDetalhe.abrirEditorCorrigir")}
                 </Button>
               </div>
             </div>
@@ -240,6 +247,7 @@ export default function ChinaSubmissaoDetalhe() {
           <BilingualLabel
             pt="Documentos Enviados ao Brasil"
             cn="已发送至巴西的文件"
+            en="Documents Sent to Brazil"
             size="lg"
             className="mb-4"
           />
@@ -247,7 +255,7 @@ export default function ChinaSubmissaoDetalhe() {
             {submissao.arte_final_path && (
               <Button onClick={handleDownloadArte} variant="default" className="gap-2">
                 <Download className="h-4 w-4" />
-                Baixar Arte Final 下载终稿
+                {t("submissaoDetalhe.baixarArteFinal")}
               </Button>
             )}
             {(submissao.ean_display || submissao.ean_caixa_master) && (
@@ -256,7 +264,7 @@ export default function ChinaSubmissaoDetalhe() {
                   <div className="flex items-center gap-3 p-4 bg-background rounded-xl border">
                     <Barcode className="h-6 w-6 text-accent" />
                     <div>
-                      <p className="text-xs text-muted-foreground">EAN Display 展示EAN</p>
+                      <p className="text-xs text-muted-foreground">{t("submissaoDetalhe.eanDisplay")}</p>
                       <p className="text-xl font-mono font-bold text-foreground">
                         {(submissao as any).ean_display}
                       </p>
@@ -267,7 +275,7 @@ export default function ChinaSubmissaoDetalhe() {
                   <div className="flex items-center gap-3 p-4 bg-background rounded-xl border">
                     <Barcode className="h-6 w-6 text-warning" />
                     <div>
-                      <p className="text-xs text-muted-foreground">EAN Caixa Master 主箱EAN</p>
+                      <p className="text-xs text-muted-foreground">{t("submissaoDetalhe.eanCaixaMaster")}</p>
                       <p className="text-xl font-mono font-bold text-foreground">
                         {submissao.ean_caixa_master}
                       </p>
@@ -279,7 +287,7 @@ export default function ChinaSubmissaoDetalhe() {
           </div>
           {submissao.arte_final_enviada_em && (
             <p className="text-xs text-muted-foreground mt-2">
-              Enviado em 发送于:{" "}
+              {t("submissaoDetalhe.enviadoEm")}:{" "}
               {new Date(submissao.arte_final_enviada_em).toLocaleDateString("pt-BR")}
             </p>
           )}
@@ -288,28 +296,28 @@ export default function ChinaSubmissaoDetalhe() {
 
       {/* Product Info */}
       <Card className="p-6">
-        <BilingualLabel pt="Dados do Produto" cn="产品数据" size="md" className="mb-4" />
+        <BilingualLabel pt="Dados do Produto" cn="产品数据" en="Product Data" size="md" className="mb-4" />
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div className="p-3 bg-secondary/50 rounded-lg">
-            <p className="text-xs text-muted-foreground">Qty Total 总量</p>
+            <p className="text-xs text-muted-foreground">{t("submissaoDetalhe.qtyTotal")}</p>
             <p className="text-lg font-bold">
               {submissao.qty_total?.toLocaleString() || "—"}
             </p>
           </div>
           <div className="p-3 bg-secondary/50 rounded-lg">
-            <p className="text-xs text-muted-foreground">Bruto 毛重</p>
+            <p className="text-xs text-muted-foreground">{t("submissaoDetalhe.bruto")}</p>
             <p className="text-lg font-bold">
               {submissao.peso_bruto_g ? `${submissao.peso_bruto_g}g` : "—"}
             </p>
           </div>
           <div className="p-3 bg-secondary/50 rounded-lg">
-            <p className="text-xs text-muted-foreground">Líquido 净重</p>
+            <p className="text-xs text-muted-foreground">{t("submissaoDetalhe.liquido")}</p>
             <p className="text-lg font-bold">
               {submissao.peso_liquido_g ? `${submissao.peso_liquido_g}g` : "—"}
             </p>
           </div>
           <div className="p-3 bg-secondary/50 rounded-lg">
-            <p className="text-xs text-muted-foreground">Tester 试用</p>
+            <p className="text-xs text-muted-foreground">{t("submissaoDetalhe.tester")}</p>
             <p className="text-lg font-bold">
               {submissao.peso_tester_g ? `${submissao.peso_tester_g}g` : "—"}
             </p>
@@ -340,6 +348,7 @@ export default function ChinaSubmissaoDetalhe() {
             <BilingualLabel
               pt={cat.labelPt}
               cn={cat.labelCn}
+              en={cat.labelEn}
               size="md"
               className="mb-3"
             />
@@ -374,6 +383,7 @@ export default function ChinaSubmissaoDetalhe() {
                       <BilingualLabel
                         pt={config.labelPt}
                         cn={config.labelCn}
+                        en={config.labelEn}
                         size="sm"
                       />
                       {isRejected && doc?.observacao && (
@@ -395,17 +405,17 @@ export default function ChinaSubmissaoDetalhe() {
                       >
                         {doc.status === "aprovado" ? (
                           <>
-                            <CheckCircle2 className="h-3 w-3 mr-1" /> Aprovado
+                            <CheckCircle2 className="h-3 w-3 mr-1" /> {t("submissaoDetalhe.aprovadoBadge")}
                           </>
                         ) : doc.status === "rejeitado" ? (
-                          "✗ Rejeitado"
+                          <>✗ {t("submissaoDetalhe.rejeitadoBadge")}</>
                         ) : (
-                          "● Pendente"
+                          <>● {t("submissaoDetalhe.pendenteBadge")}</>
                         )}
                       </Badge>
                     ) : (
                       <Badge variant="secondary" className="text-[10px]">
-                        <Clock className="h-3 w-3 mr-1" /> Aguardando
+                        <Clock className="h-3 w-3 mr-1" /> {t("submissaoDetalhe.aguardando")}
                       </Badge>
                     )}
                     {isRejected && (
@@ -416,7 +426,7 @@ export default function ChinaSubmissaoDetalhe() {
                         onClick={() => goCorrigir(config.tipo)}
                       >
                         <Pencil className="h-3.5 w-3.5" />
-                        Corrigir 修正
+                        {t("submissaoDetalhe.corrigir")}
                       </Button>
                     )}
                   </div>
@@ -433,6 +443,7 @@ export default function ChinaSubmissaoDetalhe() {
           <BilingualLabel
             pt="Observações do Brasil"
             cn="巴西备注"
+            en="Notes from Brazil"
             size="md"
             className="mb-2"
           />

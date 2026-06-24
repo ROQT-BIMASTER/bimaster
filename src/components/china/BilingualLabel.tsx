@@ -1,23 +1,52 @@
 import { cn } from "@/lib/utils";
+import { useChinaI18n } from "@/hooks/useChinaI18n";
 
 interface BilingualLabelProps {
   pt: string;
   cn: string;
+  /** Inglês opcional. Quando informado, o componente renderiza apenas o idioma
+   *  ativo (pt / zh / en) em vez do tradicional layout PT + 中文. */
+  en?: string;
   className?: string;
   size?: "sm" | "md" | "lg";
 }
 
-export function BilingualLabel({ pt, cn: chinese, className, size = "md" }: BilingualLabelProps) {
-  const sizes = {
-    sm: { pt: "text-xs font-medium", cn: "text-[10px]" },
-    md: { pt: "text-sm font-semibold", cn: "text-xs" },
-    lg: { pt: "text-base font-bold", cn: "text-sm" },
-  };
+const SIZES = {
+  sm: { primary: "text-xs font-medium", secondary: "text-[10px]" },
+  md: { primary: "text-sm font-semibold", secondary: "text-xs" },
+  lg: { primary: "text-base font-bold", secondary: "text-sm" },
+} as const;
 
+export function BilingualLabel({ pt, cn: chinese, en, className, size = "md" }: BilingualLabelProps) {
+  const { language } = useChinaI18n();
+  const s = SIZES[size];
+
+  // Modo legado (compatível): sem `en` → renderiza PT + 中文 empilhados.
+  if (!en) {
+    return (
+      <div className={cn("flex flex-col", className)}>
+        <span className={cn(s.primary, "text-foreground")}>{pt}</span>
+        <span className={cn(s.secondary, "text-muted-foreground")}>{chinese}</span>
+      </div>
+    );
+  }
+
+  // Modo i18n: mostra somente o idioma ativo.
+  const primary = language === "en" ? en : language === "zh" ? chinese : pt;
   return (
     <div className={cn("flex flex-col", className)}>
-      <span className={cn(sizes[size].pt, "text-foreground")}>{pt}</span>
-      <span className={cn(sizes[size].cn, "text-muted-foreground")}>{chinese}</span>
+      <span className={cn(s.primary, "text-foreground")}>{primary}</span>
     </div>
   );
+}
+
+/**
+ * Helper inline (sem wrapper de bloco) que renderiza apenas o idioma ativo.
+ * Útil dentro de Badges, botões e qualquer lugar onde um <div> empilhado
+ * quebraria o layout.
+ */
+export function LangText({ pt, cn: chinese, en }: { pt: string; cn: string; en?: string }) {
+  const { language } = useChinaI18n();
+  if (!en) return <>{language === "zh" ? chinese : pt}</>;
+  return <>{language === "en" ? en : language === "zh" ? chinese : pt}</>;
 }

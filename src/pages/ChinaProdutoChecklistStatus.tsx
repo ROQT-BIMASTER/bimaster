@@ -22,6 +22,7 @@ import { ptBR } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
 import { ChinaPageShell } from "@/components/china/ChinaPageShell";
 import { ChinaPageHeader } from "@/components/china/ChinaPageHeader";
+import { LangText } from "@/components/china/BilingualLabel";
 import { ChinaTimelineButton } from "@/components/china/timeline/ChinaTimelineButton";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -49,6 +50,7 @@ import {
 } from "@/hooks/useMergedChinaChecklist";
 import { toast } from "sonner";
 import { ChecklistItemPainel } from "@/components/china/checklist/ChecklistItemPainel";
+import { useChinaI18n } from "@/hooks/useChinaI18n";
 
 interface DocRow {
   id: string;
@@ -366,6 +368,19 @@ interface KanbanViewProps {
 }
 
 function KanbanView({ cats, visibleByCat, docsByTipo, getLabel, onOpenItem }: KanbanViewProps) {
+  const { t } = useChinaI18n();
+  const colLabel: Record<KanbanBucket, string> = {
+    nao_criados: t("statusChecklist.colNaoCriados"),
+    pendente: t("statusChecklist.colPendenteAnalise"),
+    ajuste: t("statusChecklist.colEmAjuste"),
+    enviado: t("statusChecklist.colEnviado"),
+    aprovado: t("statusChecklist.colAprovado"),
+  };
+  const statusLabelI18n: Record<string, string> = {
+    aprovado: t("statusChecklist.aprovadoBadge"),
+    pendente: t("statusChecklist.pendenteAnaliseBadge"),
+    nao_criado: t("statusChecklist.naoCriadoBadge"),
+  };
   type Card = {
     tipo: string;
     doc: DocRow | undefined;
@@ -392,7 +407,7 @@ function KanbanView({ cats, visibleByCat, docsByTipo, getLabel, onOpenItem }: Ka
           >
             <header className="flex items-center justify-between gap-2 border-b border-border/60 px-3 py-2">
               <span className="text-[11px] font-semibold uppercase tracking-wide text-foreground">
-                {col.label}
+                {colLabel[col.key]}
               </span>
               <Badge variant="outline" className={cn("h-5 px-1.5 text-[10px]", col.accent)}>
                 {items.length}
@@ -401,7 +416,7 @@ function KanbanView({ cats, visibleByCat, docsByTipo, getLabel, onOpenItem }: Ka
             <div className="flex flex-col gap-2 p-2">
               {items.length === 0 ? (
                 <p className="px-2 py-3 text-center text-[10.5px] text-muted-foreground/60">
-                  Nenhum item
+                  {t("statusChecklist.nenhumItem")}
                 </p>
               ) : (
                 items.map(({ tipo, doc, cat }) => {
@@ -409,9 +424,7 @@ function KanbanView({ cats, visibleByCat, docsByTipo, getLabel, onOpenItem }: Ka
                   const FluxoIcon = cat.fluxo === "china_envia" ? ArrowUpRight : ArrowDownLeft;
                   const status = doc?.status ?? "nao_criado";
                   const statusLabel =
-                    status === "nao_criado"
-                      ? "Não criado"
-                      : STATUS_LABEL[status] ?? status;
+                    statusLabelI18n[status] ?? STATUS_LABEL[status] ?? status;
                   const statusCls =
                     status === "nao_criado"
                       ? "bg-muted text-muted-foreground border-border"
@@ -462,9 +475,17 @@ function KanbanView({ cats, visibleByCat, docsByTipo, getLabel, onOpenItem }: Ka
 }
 
 export default function ChinaProdutoChecklistStatus() {
+  const { t } = useChinaI18n();
   const { id } = useParams<{ id: string }>();
-  
+
   const location = useLocation();
+  const filterLabel: Record<FilterKey, string> = {
+    todos: t("statusChecklist.todos"),
+    enviados: t("statusChecklist.enviados"),
+    pendentes: t("statusChecklist.pendentes"),
+    rejeitados: t("statusChecklist.rejeitados"),
+    nao_criados: t("statusChecklist.naoCriados"),
+  };
   const backTo =
     (location.state as { from?: string } | null)?.from ??
     `/dashboard/fabrica-china/produto/${id}`;
@@ -772,6 +793,7 @@ export default function ChinaProdutoChecklistStatus() {
       <ChinaPageHeader
         titlePt="Status do Checklist"
         titleCn="清单状态"
+        titleEn="Checklist Status"
         subtitle={
           submissao
             ? `${submissao.produto_codigo} — ${submissao.produto_nome}`
@@ -788,17 +810,17 @@ export default function ChinaProdutoChecklistStatus() {
               <DropdownMenuTrigger asChild>
                 <Button type="button" size="sm" variant="outline" className="h-8 gap-1 text-xs">
                   <Download className="h-3.5 w-3.5" />
-                  Exportar
+                  {t("statusChecklist.exportar")}
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-44">
                 <DropdownMenuItem onClick={handleExportCSV} className="gap-2 text-xs">
                   <FileSpreadsheet className="h-3.5 w-3.5" />
-                  Exportar CSV
+                  {t("inbox.actions.exportarCsv")}
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={handleExportPDF} className="gap-2 text-xs">
                   <FileText className="h-3.5 w-3.5" />
-                  Exportar PDF
+                  <LangText pt="Exportar PDF" cn="导出 PDF" en="Export PDF" />
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -810,11 +832,10 @@ export default function ChinaProdutoChecklistStatus() {
         <Card className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
           <div className="space-y-0.5">
             <p className="text-xs uppercase tracking-wide text-muted-foreground">
-              Progresso geral
+              {t("statusChecklist.progressoGeral")}
             </p>
             <p className="text-sm font-medium text-foreground">
-              <span className="text-base font-semibold">{enviadosGlobal}</span>{" "}
-              de <span className="font-semibold">{totalGlobal}</span> itens enviados ao Brasil
+              {t("statusChecklist.xDeYEnviados", { sent: enviadosGlobal, total: totalGlobal })}
             </p>
           </div>
           <div className="flex items-center gap-3">
@@ -845,7 +866,7 @@ export default function ChinaProdutoChecklistStatus() {
                 else toast.info("Nenhum item pendente.");
               }}
             >
-              Abrir item pendente
+              {t("statusChecklist.abrirPendente")}
             </Button>
           </div>
         </Card>
@@ -855,7 +876,7 @@ export default function ChinaProdutoChecklistStatus() {
             <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
             <Input
               type="search"
-              placeholder="Buscar por nome ou tipo do documento..."
+              placeholder={t("statusChecklist.buscarPlaceholder")}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="h-8 pl-8 text-xs"
@@ -873,7 +894,7 @@ export default function ChinaProdutoChecklistStatus() {
                 value={opt.key}
                 className="h-7 px-2.5 text-[11px]"
               >
-                {opt.label}
+                {filterLabel[opt.key]}
               </ToggleGroupItem>
             ))}
           </ToggleGroup>
@@ -890,7 +911,7 @@ export default function ChinaProdutoChecklistStatus() {
             </ToggleGroupItem>
           </ToggleGroup>
           <span className="ml-auto text-[11px] text-muted-foreground">
-            {totalVisible} de {totalGlobal} itens
+            {t("statusChecklist.xDeYItens", { shown: totalVisible, total: totalGlobal })}
           </span>
         </Card>
 

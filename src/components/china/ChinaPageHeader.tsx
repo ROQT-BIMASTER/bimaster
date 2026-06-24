@@ -15,6 +15,8 @@ interface ChinaPageHeaderProps {
   titlePt: string;
   /** Título em chinês */
   titleCn: string;
+  /** Título em inglês (opcional). Quando informado, ativa o modo i18n do header. */
+  titleEn?: string;
   /** Subtítulo opcional bilíngue (ex.: "Portal de Submissão 提交门户") */
   subtitle?: string;
   /** Ícone do header. Padrão: Factory */
@@ -48,6 +50,7 @@ const TONE_BG: Record<NonNullable<ChinaPageHeaderProps["iconTone"]>, string> = {
 export function ChinaPageHeader({
   titlePt,
   titleCn,
+  titleEn,
   subtitle,
   icon: Icon = Factory,
   iconTone = "destructive",
@@ -81,7 +84,7 @@ export function ChinaPageHeader({
           <Icon className="h-6 w-6" />
         </div>
         <div className="min-w-0">
-          <BilingualLabel pt={titlePt} cn={titleCn} size="lg" />
+          <BilingualLabel pt={titlePt} cn={titleCn} en={titleEn} size="lg" />
           {subtitle && (
             <p className="text-xs text-muted-foreground mt-0.5 truncate">{subtitle}</p>
           )}

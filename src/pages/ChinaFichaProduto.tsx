@@ -17,8 +17,9 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Textarea } from "@/components/ui/textarea";
-import { BilingualLabel } from "@/components/china/BilingualLabel";
+import { BilingualLabel, LangText } from "@/components/china/BilingualLabel";
 import { TrilingualLabel } from "@/components/china/TrilingualLabel";
+import { useChinaI18n } from "@/hooks/useChinaI18n";
 import { BackfillTranslationsButton } from "@/components/china/BackfillTranslationsButton";
 import { ChinaGradeView } from "@/components/china/ChinaGradeView";
 import { ChinaDocumentSlot } from "@/components/china/ChinaDocumentSlot";
@@ -60,6 +61,7 @@ import { useFieldVisibility } from "@/hooks/useFieldVisibility";
 import { useUIPermissions } from "@/hooks/useUIPermissions";
 
 export default function ChinaFichaProduto() {
+  const { t } = useChinaI18n();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { backTo, backLabel } = useResolvedBackTo("/dashboard/fabrica-china/recebimentos");
@@ -291,6 +293,7 @@ export default function ChinaFichaProduto() {
       <ChinaPageHeader
         titlePt="Ficha do Produto"
         titleCn="产品档案"
+        titleEn="Product Sheet"
         icon={Package}
         iconTone="primary"
         showBack
@@ -304,7 +307,7 @@ export default function ChinaFichaProduto() {
               className="gap-2"
               onClick={() => navigate(`/dashboard/fabrica-china/produto/${id}/checklist`)}
             >
-              <ListChecks className="h-4 w-4" /> Checklist Embalagens 包装清单
+              <ListChecks className="h-4 w-4" /> {t("fichaProduto.checklistEmbalagens")}
             </Button>
             {/* Botão "Despachar" removido — aprovações agora vivem na aba "Aprovações" da tarefa do projeto. */}
             <ChinaTimelineButton scope={{ submissaoId: id }} />
@@ -323,10 +326,10 @@ export default function ChinaFichaProduto() {
                 </div>
                 <div>
                   <p className="font-semibold text-primary text-sm">
-                    Rascunho — ainda pode ser editado 草稿 — 仍可编辑
+                    <LangText pt="Rascunho — ainda pode ser editado" cn="草稿 — 仍可编辑" en="Draft — still editable" />
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    Ajuste os dados antes de enviar ao Brasil. 在发送到巴西之前调整数据。
+                    <LangText pt="Ajuste os dados antes de enviar ao Brasil." cn="在发送到巴西之前调整数据。" en="Adjust the data before sending to Brazil." />
                   </p>
                 </div>
               </div>
@@ -336,7 +339,7 @@ export default function ChinaFichaProduto() {
                   className="gap-2 shrink-0"
                 >
                   <PenLine className="h-4 w-4" />
-                  Editar / Ajustar 编辑/调整
+                  <LangText pt="Editar / Ajustar" cn="编辑/调整" en="Edit / Adjust" />
                 </Button>
                 <Button
                   variant="destructive"
@@ -345,7 +348,7 @@ export default function ChinaFichaProduto() {
                   onClick={() => { setDeleteConfirmed(false); setDeleteDialogOpen(true); }}
                 >
                   <Trash2 className="h-4 w-4" />
-                  Excluir 删除
+                  <LangText pt="Excluir" cn="删除" en="Delete" />
                 </Button>
               </div>
             </div>
@@ -362,26 +365,26 @@ export default function ChinaFichaProduto() {
                   <h1 className="text-2xl font-bold text-foreground">{submissao.produto_codigo}</h1>
                   <p className="text-lg text-muted-foreground">{submissao.produto_nome}</p>
                   {submissao.formula_codigo && (
-                    <p className="text-sm text-muted-foreground mt-1">Fórmula 配方: {submissao.formula_codigo}</p>
+                    <p className="text-sm text-muted-foreground mt-1">{t("fichaProduto.formula")}: {submissao.formula_codigo}</p>
                   )}
                 </div>
                 <Badge variant={statusInfo.variant} className="text-sm px-3 py-1 shrink-0">
-                  {statusInfo.pt} {statusInfo.cn}
+                  <LangText pt={statusInfo.pt} cn={statusInfo.cn} en={statusInfo.en} />
                 </Badge>
               </div>
 
               {/* Weights row */}
               <div className="grid grid-cols-3 gap-3">
                 <div className="p-3 bg-secondary/50 rounded-lg text-center">
-                  <p className="text-xs text-muted-foreground">Bruto 毛重</p>
+                  <p className="text-xs text-muted-foreground">{t("submissaoDetalhe.bruto")}</p>
                   <p className="text-lg font-bold text-foreground">{submissao.peso_bruto_g ? `${submissao.peso_bruto_g}g` : "—"}</p>
                 </div>
                 <div className="p-3 bg-secondary/50 rounded-lg text-center">
-                  <p className="text-xs text-muted-foreground">Líquido 净重</p>
+                  <p className="text-xs text-muted-foreground">{t("submissaoDetalhe.liquido")}</p>
                   <p className="text-lg font-bold text-foreground">{submissao.peso_liquido_g ? `${submissao.peso_liquido_g}g` : "—"}</p>
                 </div>
                 <div className="p-3 bg-secondary/50 rounded-lg text-center">
-                  <p className="text-xs text-muted-foreground">Tester 试用</p>
+                  <p className="text-xs text-muted-foreground">{t("submissaoDetalhe.tester")}</p>
                   <p className="text-lg font-bold text-foreground">{submissao.peso_tester_g ? `${submissao.peso_tester_g}g` : "—"}</p>
                 </div>
               </div>
@@ -390,7 +393,7 @@ export default function ChinaFichaProduto() {
               <div className="flex gap-2 flex-wrap">
                 {isBrasilUser && submissao.status === "arte_enviada" && (
                   <Button size="sm" onClick={() => setOcDialogOpen(true)}>
-                    <ShoppingCart className="h-4 w-4 mr-1" /> Emitir OC 下采购单
+                    <ShoppingCart className="h-4 w-4 mr-1" /> <LangText pt="Emitir OC" cn="下采购单" en="Issue PO" />
                   </Button>
                 )}
               </div>
@@ -400,7 +403,7 @@ export default function ChinaFichaProduto() {
             <div className="md:w-80 space-y-4">
               {cores.length > 0 && (
                 <div className="p-4 border rounded-xl bg-card">
-                  <BilingualLabel pt="Grade" cn="颜色网格" size="sm" className="mb-2" />
+                  <BilingualLabel pt="Grade" cn="颜色网格" en="Color Grid" size="sm" className="mb-2" />
                   <ChinaGradeView
                     compact
                     items={cores.map((c: any) => ({
@@ -414,12 +417,12 @@ export default function ChinaFichaProduto() {
                     }))}
                   />
                   <p className="text-xs text-muted-foreground mt-2 text-right">
-                    Total: {cores.reduce((s: number, c: any) => s + (c.quantidade || 0), 0).toLocaleString()} un
+                    Total: {cores.reduce((s: number, c: any) => s + (c.quantidade || 0), 0).toLocaleString()} <LangText pt="un" cn="件" en="un" />
                   </p>
                 </div>
               )}
               <Button variant="outline" className="w-full gap-2 text-sm" onClick={() => setCofreOpen(true)}>
-                <FolderOpen className="h-4 w-4" /> Cofre de Documentos 文件保险箱
+                <FolderOpen className="h-4 w-4" /> {t("fichaProduto.cofreDocs")}
               </Button>
             </div>
           </div>
@@ -446,9 +449,9 @@ export default function ChinaFichaProduto() {
         {isBrasilUser && (
           <Card className="p-4">
             <div className="flex items-center justify-between">
-              <BilingualLabel pt="Painel de Aprovação e Acompanhamento" cn="审批与跟踪面板" size="md" />
+              <BilingualLabel pt="Painel de Aprovação e Acompanhamento" cn="审批与跟踪面板" en="Approval & Tracking Panel" size="md" />
               <Button onClick={() => setPainelAprovacaoOpen(true)} className="gap-2">
-                <Eye className="h-4 w-4" /> Abrir Painel 打开面板
+                <Eye className="h-4 w-4" /> {t("fichaProduto.abrirPainel")}
               </Button>
             </div>
           </Card>
@@ -498,7 +501,7 @@ export default function ChinaFichaProduto() {
                   if (!ok) return;
                   await supabase.from("china_produto_documentos" as any).delete().eq("id", fileId);
                   queryClient.invalidateQueries({ queryKey: ["china-ficha-docs", id] });
-                  toast.success("Documento removido 文件已删除");
+                  toast.success(t("toasts.docRemoved", { defaultValue: "Documento removido" }));
                 }}
                 onViewDoc={handleViewDoc}
               />
@@ -522,11 +525,11 @@ export default function ChinaFichaProduto() {
                     </th>
                   </tr>
                   <tr className="bg-muted/30 text-muted-foreground text-xs">
-                    <th className="text-left px-4 py-2.5 font-medium">Categoria 类别</th>
-                    <th className="text-center px-4 py-2.5 font-medium">Arquivos 文件</th>
-                    <th className="text-center px-4 py-2.5 font-medium">Status 状态</th>
-                    <th className="text-center px-4 py-2.5 font-medium">Rascunhos 草稿</th>
-                    <th className="text-center px-4 py-2.5 font-medium">Pendentes 待处理</th>
+                    <th className="text-left px-4 py-2.5 font-medium">{t("fichaProduto.colCategoria")}</th>
+                    <th className="text-center px-4 py-2.5 font-medium">{t("fichaProduto.colArquivos")}</th>
+                    <th className="text-center px-4 py-2.5 font-medium">{t("fichaProduto.colStatus")}</th>
+                    <th className="text-center px-4 py-2.5 font-medium">{t("fichaProduto.colRascunhos")}</th>
+                    <th className="text-center px-4 py-2.5 font-medium">{t("fichaProduto.colPendentes")}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
@@ -540,14 +543,14 @@ export default function ChinaFichaProduto() {
                     const allApproved = catFilled === catTotalTypes && catDocs.length > 0 && catDocs.every((d: any) => d.status === "aprovado");
 
                     const statusBadge = allApproved
-                      ? <Badge variant="success" className="text-xs">✓ Completo 完成</Badge>
+                      ? <Badge variant="success" className="text-xs">✓ <LangText pt="Completo" cn="完成" en="Complete" /></Badge>
                       : hasRejected
-                      ? <Badge variant="destructive" className="text-xs">✗ Rejeitado 被拒</Badge>
+                      ? <Badge variant="destructive" className="text-xs">✗ <LangText pt="Rejeitado" cn="被拒" en="Rejected" /></Badge>
                       : hasDrafts > 0
-                      ? <Badge variant="warning" className="text-xs whitespace-nowrap">⚠ Não enviado ao Brasil 未发送</Badge>
+                      ? <Badge variant="warning" className="text-xs whitespace-nowrap">⚠ <LangText pt="Não enviado ao Brasil" cn="未发送" en="Not sent to Brazil" /></Badge>
                       : catFilled === 0
-                      ? <Badge variant="secondary" className="text-xs">— Vazio 空</Badge>
-                      : <Badge variant="warning" className="text-xs">⏳ Parcial 部分</Badge>;
+                      ? <Badge variant="secondary" className="text-xs">— <LangText pt="Vazio" cn="空" en="Empty" /></Badge>
+                      : <Badge variant="warning" className="text-xs">⏳ <LangText pt="Parcial" cn="部分" en="Partial" /></Badge>;
 
                     return (
                       <tr
@@ -591,7 +594,7 @@ export default function ChinaFichaProduto() {
           {/* Mandatory warning */}
           {MANDATORY_DOCS.some(tipo => !documentos.find((d: any) => d.tipo_documento === tipo)) && (
             <div className="p-3 bg-warning/10 border border-warning/30 rounded-lg text-sm text-warning">
-              ⚠️ Foto e vídeo da amostra são obrigatórios para aprovação. 照片和视频样品是审批所必需的。
+              ⚠️ <LangText pt="Foto e vídeo da amostra são obrigatórios para aprovação." cn="照片和视频样品是审批所必需的。" en="Sample photo and video are required for approval." />
             </div>
           )}
         </Card>
