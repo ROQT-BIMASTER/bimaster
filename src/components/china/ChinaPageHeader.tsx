@@ -15,6 +15,8 @@ interface ChinaPageHeaderProps {
   titlePt: string;
   /** Título em chinês */
   titleCn: string;
+  /** Título em inglês (opcional). Quando informado, ativa o modo i18n do header. */
+  titleEn?: string;
   /** Subtítulo opcional bilíngue (ex.: "Portal de Submissão 提交门户") */
   subtitle?: string;
   /** Ícone do header. Padrão: Factory */
