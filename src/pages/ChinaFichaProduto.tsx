@@ -339,7 +339,7 @@ export default function ChinaFichaProduto() {
                   className="gap-2 shrink-0"
                 >
                   <PenLine className="h-4 w-4" />
-                  Editar / Ajustar 编辑/调整
+                  <LangText pt="Editar / Ajustar" cn="编辑/调整" en="Edit / Adjust" />
                 </Button>
                 <Button
                   variant="destructive"
