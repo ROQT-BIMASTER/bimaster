@@ -417,7 +417,7 @@ export default function ChinaFichaProduto() {
                     }))}
                   />
                   <p className="text-xs text-muted-foreground mt-2 text-right">
-                    Total: {cores.reduce((s: number, c: any) => s + (c.quantidade || 0), 0).toLocaleString()} un
+                    Total: {cores.reduce((s: number, c: any) => s + (c.quantidade || 0), 0).toLocaleString()} <LangText pt="un" cn="件" en="un" />
                   </p>
                 </div>
               )}
