@@ -1,6 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { ProjectService } from "@/lib/projetos/projectService";
+
 
 /**
  * Resolve o projeto-espelho (is_espelho=true) de uma submissão China,
@@ -79,24 +81,41 @@ export function useCriarProjetoEspelho() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (args: CriarArgs): Promise<CriarResult> => {
-      const { data, error } = await supabase.rpc("rpc_china_criar_projeto_espelho" as any, {
-        p_submissao_id: args.submissaoId,
-        p_projeto_id: args.projetoId ?? null,
-        p_template_b2c_id: args.templateB2cId ?? null,
-        p_secao_nome: args.secaoNome ?? "Documentos da Submissão",
-        p_projeto_nome: args.projetoNome ?? null,
-        p_data_inicio: args.dataInicio ?? null,
-        p_data_fim_alvo: args.dataFimAlvo ?? null,
-        p_prazo_padrao_tarefa: args.prazoPadraoTarefa ?? null,
-        p_alerta_antecipacao_dias: args.alertaAntecipacaoDias ?? null,
-        p_regime_calendario: args.regimeCalendario ?? null,
-        p_usa_feriados: args.usaFeriados ?? null,
-        p_uf_feriados: args.ufFeriados ?? null,
-        p_substituir: args.substituir ?? false,
+      // Fase 11: roteia via ProjectService (fonte única). RPC e parâmetros
+      // permanecem idênticos — zero mudança de comportamento em produção.
+      if (args.projetoId) {
+        const data = await ProjectService.linkExisting(args.submissaoId, args.projetoId, {
+          projetoNome: args.projetoNome ?? null,
+          templateB2cId: args.templateB2cId ?? null,
+          secaoNome: args.secaoNome ?? "Documentos da Submissão",
+          dataInicio: args.dataInicio ?? null,
+          dataFimAlvo: args.dataFimAlvo ?? null,
+          prazoPadraoTarefa: args.prazoPadraoTarefa ?? null,
+          alertaAntecipacaoDias: args.alertaAntecipacaoDias ?? null,
+          regimeCalendario: args.regimeCalendario ?? null,
+          usaFeriados: args.usaFeriados ?? null,
+          ufFeriados: args.ufFeriados ?? null,
+          substituir: args.substituir ?? false,
+        });
+        return data as CriarResult;
+      }
+
+      const data = await ProjectService.createFromSubmission(args.submissaoId, {
+        projetoNome: args.projetoNome ?? null,
+        templateB2cId: args.templateB2cId ?? null,
+        secaoNome: args.secaoNome ?? "Documentos da Submissão",
+        dataInicio: args.dataInicio ?? null,
+        dataFimAlvo: args.dataFimAlvo ?? null,
+        prazoPadraoTarefa: args.prazoPadraoTarefa ?? null,
+        alertaAntecipacaoDias: args.alertaAntecipacaoDias ?? null,
+        regimeCalendario: args.regimeCalendario ?? null,
+        usaFeriados: args.usaFeriados ?? null,
+        ufFeriados: args.ufFeriados ?? null,
+        substituir: args.substituir ?? false,
       });
-      if (error) throw error;
-      return data as unknown as CriarResult;
+      return data as CriarResult;
     },
+
     onSuccess: (res) => {
       toast.success(
         res.already_existed
