@@ -26,7 +26,6 @@ import { EstoqueUnificadoTable } from '@/components/estoque/unificado/EstoqueUni
 import { EstoqueUnificadoColumnsMenu } from '@/components/estoque/unificado/EstoqueUnificadoColumnsMenu';
 import { EstoqueUnificadoDrawer } from '@/components/estoque/unificado/EstoqueUnificadoDrawer';
 import { EstoqueCopilotPanel } from '@/components/estoque/unificado/EstoqueCopilotPanel';
-import { EstoqueCopilotFAB } from '@/components/estoque/unificado/EstoqueCopilotFAB';
 import { UpdatedAtBadge } from '@/components/estoque/UpdatedAtBadge';
 import { Badge } from '@/components/ui/badge';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
