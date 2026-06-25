@@ -120,13 +120,16 @@ async function handler(req: Request, ctx: { userId?: string }): Promise<Response
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
   );
 
-  const authHeader = req.headers.get("Authorization") || "";
   const cronHeader = req.headers.get("X-Cron-Token") || "";
-  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
-  const cronToken = Deno.env.get("SYNC_CRON_TOKEN") || "";
-  const isInternalCron =
-    (cronToken.length > 0 && cronHeader === cronToken) ||
-    (serviceKey.length > 0 && authHeader === `Bearer ${serviceKey}`);
+  let isInternalCron = false;
+  if (cronHeader.length >= 16) {
+    try {
+      const { data: secret } = await supabase.rpc("get_clientes_cron_secret");
+      if (typeof secret === "string" && secret.length > 0 && secret === cronHeader) {
+        isInternalCron = true;
+      }
+    } catch (_e) { /* segue para checagem padrão */ }
+  }
 
   if (!isInternalCron) {
     if (!ctx.userId || !(await userHasRequiredRole(supabase, ctx.userId))) {
@@ -134,6 +137,7 @@ async function handler(req: Request, ctx: { userId?: string }): Promise<Response
         { status: 403, headers: { ...cors, "Content-Type": "application/json" } });
     }
   }
+
 
 
 
