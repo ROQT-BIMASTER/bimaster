@@ -90,7 +90,7 @@ export function useDistribuirVerba() {
     mutationFn: async (input: DistribuirVerbaInput) => {
       const { error } = await supabase.rpc("rpc_distribuir_verba", {
         p_period_id: input.period_id,
-        p_alocacoes: input.alocacoes as unknown as object,
+        p_alocacoes: input.alocacoes as unknown as never,
       });
       if (error) throw error;
     },
