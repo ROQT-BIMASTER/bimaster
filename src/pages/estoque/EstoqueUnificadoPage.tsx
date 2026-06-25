@@ -149,6 +149,13 @@ export default function EstoqueUnificadoPage() {
     empresaIds, somenteComSaldo, marcas, linhas, busca: buscaDeb,
   });
 
+  // Estoque do fornecedor (Futura) agregado por produto-raiz da página atual.
+  const produtoRaizesVisiveis = useMemo(
+    () => (data?.rows ?? []).map((r) => r.produto_raiz).filter((v): v is number => v != null),
+    [data?.rows],
+  );
+  const { data: fornecedorCxByRaiz } = useFornecedorEstoquePorProdutoRaiz(produtoRaizesVisiveis);
+
   // O refresh do `estoque_unificado_cache` agora é orquestrado pelo helper
   // `awaitCacheUnificadoFresh` dentro do queryFn — singleton compartilhado
   // com a tela Cores e a Conciliação, garantindo o mesmo snapshot.
