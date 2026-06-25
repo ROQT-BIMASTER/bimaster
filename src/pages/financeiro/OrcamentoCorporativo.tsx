@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { formatCurrency } from "@/lib/formatters";
-import { parseLocalDate, formatLocalDate } from "@/utils/dateUtils";
+import { formatLocalDate } from "@/utils/dateUtils";
 import { ScreenProtectedRoute } from "@/components/auth/ScreenProtectedRoute";
 import { CriarPeriodoDialog } from "@/components/orcamento/CriarPeriodoDialog";
 import { DistribuirVerbaPanel } from "@/components/orcamento/DistribuirVerbaPanel";
