@@ -45,7 +45,7 @@ BUCKETS=(
   fabrica-cotacoes
 )
 
-BACKUP_TOKEN="88773abe3ea871051e7ee6ce3717c9bfbac2881409a45849760e8d416e73d7e0"
+BACKUP_TOKEN="${BACKUP_TOKEN:?defina BACKUP_TOKEN no ambiente antes de rodar}"
 SIGN_URL="${SUPABASE_URL}/functions/v1/backup-signed-urls"
 APIKEY="${VITE_SUPABASE_ANON_KEY:-$SUPABASE_PUBLISHABLE_KEY}"
 
