@@ -69,10 +69,11 @@ export function DistribuirVerbaPanel({ periodo }: { periodo: Periodo }) {
     try {
       await distribuirMut.mutateAsync({ period_id: periodo.id, alocacoes });
       toast.success("Distribuição aplicada");
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Falha ao distribuir verba");
+    } catch {
+      // Erro tratado em onError do hook useDistribuirVerba (mensagem real do banco)
     }
   };
+
 
   const statusByDep = useMemo(() => {
     const map: Record<string, string> = {};

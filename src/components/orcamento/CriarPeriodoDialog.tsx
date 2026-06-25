@@ -30,10 +30,11 @@ export function CriarPeriodoDialog({ open, onOpenChange, onCreated }: Props) {
       onOpenChange(false);
       form.reset();
       onCreated?.(id);
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Falha ao criar período");
+    } catch {
+      // Erro tratado em onError do hook useCreateBudgetPeriod
     }
   });
+
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
