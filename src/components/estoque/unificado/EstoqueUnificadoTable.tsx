@@ -29,6 +29,8 @@ interface Props {
   onRowClick: (r: EstoqueUnificadoRow) => void;
   modo?: ModoExibicao;
   consolidado?: boolean;
+  /** Mapa opcional produto_raiz (string) → soma de fornecedor_caixas. */
+  fornecedorCxByRaiz?: Map<string, number>;
 }
 
 const fmt = (n: number | null | undefined) =>
@@ -84,14 +86,22 @@ export function EstoqueUnificadoTable(p: Props) {
     if (BACKEND_SORT_KEYS.has(p.sortBy)) return p.rows;
     const dir = p.sortDir === 'asc' ? 1 : -1;
     const copy = [...p.rows];
+    const fornMap = p.fornecedorCxByRaiz;
     copy.sort((a, b) => {
-      const va = clientSortValue(a, p.sortBy);
-      const vb = clientSortValue(b, p.sortBy);
+      const get = (r: EstoqueUnificadoRow): string | number => {
+        if (p.sortBy === 'fornecedor_cx') {
+          const v = fornMap?.get(String(r.produto_raiz));
+          return v == null ? -Infinity : Number(v);
+        }
+        return clientSortValue(r, p.sortBy);
+      };
+      const va = get(a);
+      const vb = get(b);
       if (typeof va === 'number' && typeof vb === 'number') return (va - vb) * dir;
       return String(va).localeCompare(String(vb), 'pt-BR') * dir;
     });
     return copy;
-  }, [p.rows, p.sortBy, p.sortDir]);
+  }, [p.rows, p.sortBy, p.sortDir, p.fornecedorCxByRaiz]);
 
   // Etiquetas (Black etc.) aplicadas aos produtos-raiz visíveis.
   const codProdutosVisiveis = useMemo(
@@ -151,6 +161,7 @@ export function EstoqueUnificadoTable(p: Props) {
     (p.isHidden('pendente_total_em_unidades') ? 0 : 1) +
     (p.isHidden('pedidos_count') ? 0 : 1) +
     (p.isHidden('em_cx') ? 0 : 1) +
+    (p.isHidden('fornecedor_cx') ? 0 : 1) +
     (p.isHidden('skus_envolvidos') ? 0 : 1);
 
   return (
@@ -257,6 +268,25 @@ export function EstoqueUnificadoTable(p: Props) {
                     </TooltipContent>
                   </Tooltip>
                   <SortIcon active={H('em_cx')} dir={p.sortDir} />
+                </button>
+              </TableHead>
+            )}
+            {!p.isHidden('fornecedor_cx') && (
+              <TableHead className="text-right">
+                <button
+                  onClick={() => p.setSort('fornecedor_cx')}
+                  className="inline-flex items-center gap-1 font-medium hover:text-foreground"
+                >
+                  Estoque forn. (CX)
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Info className="h-3 w-3 text-muted-foreground/60 cursor-help" onClick={(e) => e.stopPropagation()} />
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="max-w-xs text-xs">
+                      Soma das caixas em estoque no fornecedor (Futura), agregada por produto-raiz.
+                    </TooltipContent>
+                  </Tooltip>
+                  <SortIcon active={H('fornecedor_cx')} dir={p.sortDir} />
                 </button>
               </TableHead>
             )}
@@ -441,6 +471,22 @@ export function EstoqueUnificadoTable(p: Props) {
                           );
                         }
                         return <span>{formatCx(cx)} <span className="text-[10px] opacity-70">CX</span></span>;
+                      })()}
+                    </TableCell>
+                  )}
+                  {!p.isHidden('fornecedor_cx') && (
+                    <TableCell className="text-right tabular-nums">
+                      {(() => {
+                        const v = p.fornecedorCxByRaiz?.get(String(r.produto_raiz));
+                        if (v == null || v === 0) {
+                          return <span className="text-muted-foreground">—</span>;
+                        }
+                        return (
+                          <span>
+                            {Math.round(v).toLocaleString('pt-BR')}{' '}
+                            <span className="text-[10px] opacity-70">CX</span>
+                          </span>
+                        );
                       })()}
                     </TableCell>
                   )}

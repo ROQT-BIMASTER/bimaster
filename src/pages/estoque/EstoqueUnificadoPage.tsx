@@ -36,6 +36,7 @@ import { cn } from '@/lib/utils';
 import type { ModoExibicao } from '@/lib/estoque/modoExibicao';
 import { EstoqueCampanhaFilter } from '@/components/estoque/cores/EstoqueCampanhaFilter';
 import { useProdutosPorEtiquetas } from '@/hooks/estoque/useProdutosPorEtiquetas';
+import { useFornecedorEstoquePorProdutoRaiz } from '@/hooks/estoque/useFornecedorEstoquePorProdutoRaiz';
 
 
 
@@ -147,6 +148,13 @@ export default function EstoqueUnificadoPage() {
   const { data: serverTotals } = useEstoqueUnificadoKpis({
     empresaIds, somenteComSaldo, marcas, linhas, busca: buscaDeb,
   });
+
+  // Estoque do fornecedor (Futura) agregado por produto-raiz da página atual.
+  const produtoRaizesVisiveis = useMemo(
+    () => (data?.rows ?? []).map((r) => r.produto_raiz).filter((v): v is number => v != null),
+    [data?.rows],
+  );
+  const { data: fornecedorCxByRaiz } = useFornecedorEstoquePorProdutoRaiz(produtoRaizesVisiveis);
 
   // O refresh do `estoque_unificado_cache` agora é orquestrado pelo helper
   // `awaitCacheUnificadoFresh` dentro do queryFn — singleton compartilhado
@@ -445,6 +453,7 @@ export default function EstoqueUnificadoPage() {
           onRowClick={(r) => { setSelected(r); setDrawerOpen(true); }}
           modo={modo}
           consolidado={consolidar}
+          fornecedorCxByRaiz={fornecedorCxByRaiz}
         />
 
 
