@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { Search, RefreshCw, ChevronDown, Check, Download, FileSpreadsheet, FileText } from 'lucide-react';
+import { Search, RefreshCw, ChevronDown, Check, Download, FileSpreadsheet, FileText, Boxes } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { exportEstoqueToXlsx, exportEstoqueToPdf } from '@/lib/estoque/exportEstoqueUnificado';
 import { toast } from 'sonner';
@@ -26,7 +26,6 @@ import { EstoqueUnificadoTable } from '@/components/estoque/unificado/EstoqueUni
 import { EstoqueUnificadoColumnsMenu } from '@/components/estoque/unificado/EstoqueUnificadoColumnsMenu';
 import { EstoqueUnificadoDrawer } from '@/components/estoque/unificado/EstoqueUnificadoDrawer';
 import { EstoqueCopilotPanel } from '@/components/estoque/unificado/EstoqueCopilotPanel';
-import { EstoqueCopilotFAB } from '@/components/estoque/unificado/EstoqueCopilotFAB';
 import { UpdatedAtBadge } from '@/components/estoque/UpdatedAtBadge';
 import { Badge } from '@/components/ui/badge';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
@@ -130,6 +129,16 @@ export default function EstoqueUnificadoPage() {
   const [recalculando, setRecalculando] = useState(false);
   const [modo, setModo] = useState<ModoExibicao>('fisico');
   const [copilotOpen, setCopilotOpen] = useState(false);
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'i') {
+        e.preventDefault();
+        setCopilotOpen((v) => !v);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
 
   // Quando o sort selecionado não é nativo do backend, mantemos um sort estável
   // (default) para a query e o sort real é aplicado client-side na tabela.
@@ -303,6 +312,10 @@ export default function EstoqueUnificadoPage() {
               <RefreshCw className={`h-4 w-4 mr-2 ${recalculando ? 'animate-spin' : ''}`} />
               Recalcular níveis
             </Button>
+            <Button variant="outline" size="sm" onClick={() => setCopilotOpen(true)} title="Copiloto de Estoque (Ctrl/Cmd+I)">
+              <Boxes className="h-4 w-4 mr-2" />
+              Copiloto
+            </Button>
           </div>
         </div>
 
@@ -460,7 +473,7 @@ export default function EstoqueUnificadoPage() {
         <EstoqueUnificadoDrawer row={selected} open={drawerOpen} onOpenChange={setDrawerOpen} />
       </div>
 
-      <EstoqueCopilotFAB onClick={() => setCopilotOpen(true)} />
+      
       <EstoqueCopilotPanel
         open={copilotOpen}
         onOpenChange={setCopilotOpen}
