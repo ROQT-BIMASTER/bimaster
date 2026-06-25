@@ -18,8 +18,8 @@
 
 set -u
 
-SUPABASE_URL="${SUPABASE_URL:-https://aokkyrgaqjarhlywhjju.supabase.co}"
-ANON_KEY="${SUPABASE_ANON_KEY:-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFva2t5cmdhcWphcmhseXdoamp1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTkyMDA0MjYsImV4cCI6MjA3NDc3NjQyNn0.PlGQQyGUwOZKITqjdWyk-PXo0duk8s2TsKm8uJSZJ7s}"
+SUPABASE_URL="${SUPABASE_URL:?defina SUPABASE_URL antes de rodar}"
+ANON_KEY="${SUPABASE_ANON_KEY:?defina SUPABASE_ANON_KEY antes de rodar}"
 
 PASS=0
 FAIL=0
