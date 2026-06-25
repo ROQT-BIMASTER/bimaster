@@ -463,7 +463,7 @@ export default function EstoqueUnificadoPage() {
         <EstoqueUnificadoDrawer row={selected} open={drawerOpen} onOpenChange={setDrawerOpen} />
       </div>
 
-      <EstoqueCopilotFAB onClick={() => setCopilotOpen(true)} />
+      
       <EstoqueCopilotPanel
         open={copilotOpen}
         onOpenChange={setCopilotOpen}
