@@ -14,6 +14,7 @@ export type EstoqueUnifColId =
   | 'pendente_total_em_unidades'
   | 'pedidos_count'
   | 'em_cx'
+  | 'fornecedor_cx'
   | 'skus_envolvidos';
 
 export const ESTOQUE_UNIF_COLUMNS: { id: EstoqueUnifColId; label: string; hideable: boolean }[] = [
@@ -29,6 +30,7 @@ export const ESTOQUE_UNIF_COLUMNS: { id: EstoqueUnifColId; label: string; hideab
   { id: 'pendente_total_em_unidades', label: 'Pendente', hideable: true },
   { id: 'pedidos_count', label: 'Pedidos', hideable: true },
   { id: 'em_cx', label: '≡ em CX', hideable: true },
+  { id: 'fornecedor_cx', label: 'Estoque forn. (CX)', hideable: true },
   { id: 'skus_envolvidos', label: 'SKUs', hideable: true },
 ];
 
