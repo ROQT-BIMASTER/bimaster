@@ -271,6 +271,25 @@ export function EstoqueUnificadoTable(p: Props) {
                 </button>
               </TableHead>
             )}
+            {!p.isHidden('fornecedor_cx') && (
+              <TableHead className="text-right">
+                <button
+                  onClick={() => p.setSort('fornecedor_cx')}
+                  className="inline-flex items-center gap-1 font-medium hover:text-foreground"
+                >
+                  Estoque forn. (CX)
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Info className="h-3 w-3 text-muted-foreground/60 cursor-help" onClick={(e) => e.stopPropagation()} />
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="max-w-xs text-xs">
+                      Soma das caixas em estoque no fornecedor (Futura), agregada por produto-raiz.
+                    </TooltipContent>
+                  </Tooltip>
+                  <SortIcon active={H('fornecedor_cx')} dir={p.sortDir} />
+                </button>
+              </TableHead>
+            )}
             {!p.isHidden('skus_envolvidos') && <SortHead id="skus_envolvidos" label="SKUs" num />}
           </TableRow>
         </TableHeader>
