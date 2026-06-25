@@ -161,6 +161,7 @@ export function EstoqueUnificadoTable(p: Props) {
     (p.isHidden('pendente_total_em_unidades') ? 0 : 1) +
     (p.isHidden('pedidos_count') ? 0 : 1) +
     (p.isHidden('em_cx') ? 0 : 1) +
+    (p.isHidden('fornecedor_cx') ? 0 : 1) +
     (p.isHidden('skus_envolvidos') ? 0 : 1);
 
   return (
