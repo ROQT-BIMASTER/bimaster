@@ -7,7 +7,7 @@ mkdir -p "$OUT/tables" "$OUT/storage"
 
 SUPABASE_URL="${SUPABASE_URL:?}"
 APIKEY="${VITE_SUPABASE_ANON_KEY:-${SUPABASE_PUBLISHABLE_KEY:-}}"
-BACKUP_TOKEN="${BACKUP_TOKEN:?defina BACKUP_TOKEN no ambiente antes de rodar}"
+BACKUP_SHARED_TOKEN="${BACKUP_SHARED_TOKEN:?defina BACKUP_SHARED_TOKEN no ambiente antes de rodar}"
 SIGN_URL="${SUPABASE_URL}/functions/v1/backup-signed-urls"
 
 # ----- exclusões: módulo financeiro -----
@@ -70,7 +70,7 @@ for i in range(0,len(paths),200):
     print(json.dumps({'items':[{'bucket':B,'path':p} for p in paths[i:i+200]]}))
 " | while IFS= read -r PAYLOAD; do
     RESP=$(curl -sS -X POST -H "Content-Type: application/json" \
-      -H "apikey: $APIKEY" -H "x-backup-token: $BACKUP_TOKEN" \
+      -H "apikey: $APIKEY" -H "x-backup-token: $BACKUP_SHARED_TOKEN" \
       -d "$PAYLOAD" "$SIGN_URL")
     echo "$RESP" | python3 -c "
 import sys,json

@@ -45,7 +45,7 @@ BUCKETS=(
   fabrica-cotacoes
 )
 
-BACKUP_TOKEN="${BACKUP_TOKEN:?defina BACKUP_TOKEN no ambiente antes de rodar}"
+BACKUP_SHARED_TOKEN="${BACKUP_SHARED_TOKEN:?defina BACKUP_SHARED_TOKEN no ambiente antes de rodar}"
 SIGN_URL="${SUPABASE_URL}/functions/v1/backup-signed-urls"
 APIKEY="${VITE_SUPABASE_ANON_KEY:-$SUPABASE_PUBLISHABLE_KEY}"
 
@@ -73,7 +73,7 @@ for i in range(0, len(paths), batch):
     RESP=$(curl -sS -X POST \
       -H "Content-Type: application/json" \
       -H "apikey: $APIKEY" \
-      -H "x-backup-token: $BACKUP_TOKEN" \
+      -H "x-backup-token: $BACKUP_SHARED_TOKEN" \
       -d "$PAYLOAD" \
       "$SIGN_URL")
 
