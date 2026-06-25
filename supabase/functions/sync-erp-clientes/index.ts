@@ -257,6 +257,7 @@ async function handler(req: Request, ctx: { userId?: string }): Promise<Response
 }
 
 Deno.serve(secureHandler(
-  { auth: "jwt", rateLimit: 6, rateLimitPrefix: "sync-erp-clientes" },
+  { auth: "any", rateLimit: 12, rateLimitPrefix: "sync-erp-clientes" },
   handler,
 ));
+
