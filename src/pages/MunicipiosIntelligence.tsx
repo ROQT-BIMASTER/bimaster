@@ -86,18 +86,22 @@ const MunicipiosIntelligence = () => {
             <span className="text-foreground font-medium">Municípios</span>
           </nav>
 
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-primary/10 rounded-xl">
-              <Building2 className="h-6 w-6 text-primary" />
+          <div className="flex items-start justify-between gap-3 flex-wrap">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 bg-primary/10 rounded-xl">
+                <Building2 className="h-6 w-6 text-primary" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold tracking-tight">Inteligência Municipal</h1>
+                <p className="text-muted-foreground text-sm">
+                  Análise estratégica dos 5.571 municípios brasileiros — cruzamento IBGE × dados comerciais
+                </p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-2xl font-bold tracking-tight">Inteligência Municipal</h1>
-              <p className="text-muted-foreground text-sm">
-                Análise estratégica dos 5.571 municípios brasileiros — cruzamento IBGE × dados comerciais
-              </p>
-            </div>
+            <ClientesSyncBadge />
           </div>
         </div>
+
 
         {/* Filters */}
         <MunicipiosFiltersBar filters={filters} onFilterChange={updateFilter} />
