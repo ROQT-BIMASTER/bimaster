@@ -13591,6 +13591,48 @@ export type Database = {
           },
         ]
       }
+      department_member_roles: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          department_id: string
+          id: string
+          perfil: Database["public"]["Enums"]["dept_member_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          department_id: string
+          id?: string
+          perfil: Database["public"]["Enums"]["dept_member_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          department_id?: string
+          id?: string
+          perfil?: Database["public"]["Enums"]["dept_member_role"]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "department_member_roles_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departamentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "department_member_roles_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "mv_analise_departamentos"
+            referencedColumns: ["departamento_id"]
+          },
+        ]
+      }
       dependency_findings: {
         Row: {
           advisory_url: string | null
@@ -53708,6 +53750,14 @@ export type Database = {
         Args: { _identifier: string; _limit?: number }
         Returns: Json
       }
+      has_dept_role: {
+        Args: {
+          _dep: string
+          _perfil: Database["public"]["Enums"]["dept_member_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
       has_dev_papel: {
         Args: { _papel: string; _projeto_id: string; _user_id: string }
         Returns: boolean
@@ -53808,6 +53858,7 @@ export type Database = {
       is_account_quarantined: { Args: { _user_id: string }; Returns: boolean }
       is_admin: { Args: never; Returns: boolean }
       is_admin_or_supervisor: { Args: { _user_id: string }; Returns: boolean }
+      is_dept_financeiro: { Args: { _user_id: string }; Returns: boolean }
       is_ip_blacklisted: { Args: { p_ip: unknown }; Returns: boolean }
       is_ip_blocked: { Args: { p_ip: unknown }; Returns: boolean }
       is_participant_of_conversa: {
@@ -55860,6 +55911,8 @@ export type Database = {
         | "suporte"
         | "marketing"
       briefing_doc_status: "pendente" | "recebido" | "aprovado" | "rejeitado"
+      budget_distribution_status: "pendente" | "aprovada" | "bloqueada"
+      budget_period_status: "rascunho" | "ativo" | "encerrado"
       checklist_arte_tipo:
         | "etiqueta_bula"
         | "etiqueta_fundo"
@@ -55910,6 +55963,7 @@ export type Database = {
         | "resolved"
         | "closed"
         | "cancelled"
+      dept_member_role: "solicitante" | "executor" | "gestor" | "financeiro"
       fabrica_tipo_sku:
         | "produto"
         | "provador"
@@ -56117,6 +56171,8 @@ export const Constants = {
         "marketing",
       ],
       briefing_doc_status: ["pendente", "recebido", "aprovado", "rejeitado"],
+      budget_distribution_status: ["pendente", "aprovada", "bloqueada"],
+      budget_period_status: ["rascunho", "ativo", "encerrado"],
       checklist_arte_tipo: [
         "etiqueta_bula",
         "etiqueta_fundo",
@@ -56173,6 +56229,7 @@ export const Constants = {
         "closed",
         "cancelled",
       ],
+      dept_member_role: ["solicitante", "executor", "gestor", "financeiro"],
       fabrica_tipo_sku: [
         "produto",
         "provador",
