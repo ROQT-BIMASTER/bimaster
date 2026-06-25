@@ -474,6 +474,22 @@ export function EstoqueUnificadoTable(p: Props) {
                       })()}
                     </TableCell>
                   )}
+                  {!p.isHidden('fornecedor_cx') && (
+                    <TableCell className="text-right tabular-nums">
+                      {(() => {
+                        const v = p.fornecedorCxByRaiz?.get(String(r.produto_raiz));
+                        if (v == null || v === 0) {
+                          return <span className="text-muted-foreground">—</span>;
+                        }
+                        return (
+                          <span>
+                            {Math.round(v).toLocaleString('pt-BR')}{' '}
+                            <span className="text-[10px] opacity-70">CX</span>
+                          </span>
+                        );
+                      })()}
+                    </TableCell>
+                  )}
                   {!p.isHidden('skus_envolvidos') && (
                     <TableCell className="text-right tabular-nums">{r.skus_envolvidos}</TableCell>
                   )}
