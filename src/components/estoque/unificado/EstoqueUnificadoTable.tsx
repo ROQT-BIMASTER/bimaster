@@ -29,6 +29,8 @@ interface Props {
   onRowClick: (r: EstoqueUnificadoRow) => void;
   modo?: ModoExibicao;
   consolidado?: boolean;
+  /** Mapa opcional produto_raiz (string) → soma de fornecedor_caixas. */
+  fornecedorCxByRaiz?: Map<string, number>;
 }
 
 const fmt = (n: number | null | undefined) =>
