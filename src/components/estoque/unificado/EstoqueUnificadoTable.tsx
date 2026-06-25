@@ -86,14 +86,22 @@ export function EstoqueUnificadoTable(p: Props) {
     if (BACKEND_SORT_KEYS.has(p.sortBy)) return p.rows;
     const dir = p.sortDir === 'asc' ? 1 : -1;
     const copy = [...p.rows];
+    const fornMap = p.fornecedorCxByRaiz;
     copy.sort((a, b) => {
-      const va = clientSortValue(a, p.sortBy);
-      const vb = clientSortValue(b, p.sortBy);
+      const get = (r: EstoqueUnificadoRow): string | number => {
+        if (p.sortBy === 'fornecedor_cx') {
+          const v = fornMap?.get(String(r.produto_raiz));
+          return v == null ? -Infinity : Number(v);
+        }
+        return clientSortValue(r, p.sortBy);
+      };
+      const va = get(a);
+      const vb = get(b);
       if (typeof va === 'number' && typeof vb === 'number') return (va - vb) * dir;
       return String(va).localeCompare(String(vb), 'pt-BR') * dir;
     });
     return copy;
-  }, [p.rows, p.sortBy, p.sortDir]);
+  }, [p.rows, p.sortBy, p.sortDir, p.fornecedorCxByRaiz]);
 
   // Etiquetas (Black etc.) aplicadas aos produtos-raiz visíveis.
   const codProdutosVisiveis = useMemo(
