@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { Search, RefreshCw, ChevronDown, Check, Download, FileSpreadsheet, FileText } from 'lucide-react';
+import { Search, RefreshCw, ChevronDown, Check, Download, FileSpreadsheet, FileText, Boxes } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { exportEstoqueToXlsx, exportEstoqueToPdf } from '@/lib/estoque/exportEstoqueUnificado';
 import { toast } from 'sonner';
