@@ -1,8 +1,14 @@
 # Environment
+# Segredos reais ficam fora do repo (.env, .env.local, .env.*.local).
+# .env.production é versionado de propósito: contém só config PÚBLICA do
+# cliente (VITE_SUPABASE_*), necessária no build pra evitar tela branca.
 .env
 .env.*
 !.env.example
 !.env.production.example
+!.env.production
+.env.local
+.env.*.local
 
 # Dependencies
 node_modules/
