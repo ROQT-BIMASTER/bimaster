@@ -120,10 +120,17 @@ async function handler(req: Request, ctx: { userId?: string }): Promise<Response
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
   );
 
-  if (!ctx.userId || !(await userHasRequiredRole(supabase, ctx.userId))) {
-    return new Response(JSON.stringify({ error: "forbidden", reason: "requires admin or supervisor" }),
-      { status: 403, headers: { ...cors, "Content-Type": "application/json" } });
+  const authHeader = req.headers.get("Authorization") || "";
+  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+  const isInternalCron = serviceKey.length > 0 && authHeader === `Bearer ${serviceKey}`;
+
+  if (!isInternalCron) {
+    if (!ctx.userId || !(await userHasRequiredRole(supabase, ctx.userId))) {
+      return new Response(JSON.stringify({ error: "forbidden", reason: "requires admin or supervisor" }),
+        { status: 403, headers: { ...cors, "Content-Type": "application/json" } });
+    }
   }
+
 
   // ───── /describe ─────
   if (action === "describe") {
