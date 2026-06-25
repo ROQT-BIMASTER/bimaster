@@ -856,6 +856,8 @@ function AppContent() {
             <Route path="/dashboard/financeiro/plano-reducao/:planoId" element={<RedirectToConsolidado />} />
             <Route path="/dashboard/financeiro/plano-reducao/:planoId/consolidado" element={<ModuleRoute moduleCode="financeiro"><ScreenProtectedRoute screenCode="financeiro_dre"><RelatorioConsolidadoPlanoReducao /></ScreenProtectedRoute></ModuleRoute>} />
             <Route path="/dashboard/financeiro/investimentos" element={<ModuleRoute moduleCode="financeiro"><ScreenProtectedRoute screenCode="financeiro_investimentos"><InvestimentosCorporativos /></ScreenProtectedRoute></ModuleRoute>} />
+            <Route path="/dashboard/orcamento" element={<ProtectedRoute><ScreenProtectedRoute screenCode="orcamento_periodos"><OrcamentoCorporativo /></ScreenProtectedRoute></ProtectedRoute>} />
+            
             
             {/* Marketing Mission Control */}
             <Route path="/dashboard/marketing/mission-control" element={<ModuleRoute moduleCode="marketing"><ScreenProtectedRoute screenCode="marketing_mission_control"><MarketingMissionControlPage /></ScreenProtectedRoute></ModuleRoute>} />
