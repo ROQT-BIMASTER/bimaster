@@ -5,10 +5,12 @@ import { MunicipiosKPICards } from "@/components/comercial/municipios/Municipios
 import { MunicipiosScatterChart } from "@/components/comercial/municipios/MunicipiosScatterChart";
 import { MunicipiosOpportunityCard } from "@/components/comercial/municipios/MunicipiosOpportunityCard";
 import { MunicipiosTable } from "@/components/comercial/municipios/MunicipiosTable";
+import { ClientesSyncBadge } from "@/components/comercial/municipios/ClientesSyncBadge";
 import { Progress } from "@/components/ui/progress";
 import { Building2, ChevronRight } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useEffect, useState } from "react";
+
 
 const MunicipiosIntelligence = () => {
   const {
