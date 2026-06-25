@@ -5,10 +5,12 @@ import { MunicipiosKPICards } from "@/components/comercial/municipios/Municipios
 import { MunicipiosScatterChart } from "@/components/comercial/municipios/MunicipiosScatterChart";
 import { MunicipiosOpportunityCard } from "@/components/comercial/municipios/MunicipiosOpportunityCard";
 import { MunicipiosTable } from "@/components/comercial/municipios/MunicipiosTable";
+import { ClientesSyncBadge } from "@/components/comercial/municipios/ClientesSyncBadge";
 import { Progress } from "@/components/ui/progress";
 import { Building2, ChevronRight } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useEffect, useState } from "react";
+
 
 const MunicipiosIntelligence = () => {
   const {
@@ -84,18 +86,22 @@ const MunicipiosIntelligence = () => {
             <span className="text-foreground font-medium">Municípios</span>
           </nav>
 
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-primary/10 rounded-xl">
-              <Building2 className="h-6 w-6 text-primary" />
+          <div className="flex items-start justify-between gap-3 flex-wrap">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 bg-primary/10 rounded-xl">
+                <Building2 className="h-6 w-6 text-primary" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold tracking-tight">Inteligência Municipal</h1>
+                <p className="text-muted-foreground text-sm">
+                  Análise estratégica dos 5.571 municípios brasileiros — cruzamento IBGE × dados comerciais
+                </p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-2xl font-bold tracking-tight">Inteligência Municipal</h1>
-              <p className="text-muted-foreground text-sm">
-                Análise estratégica dos 5.571 municípios brasileiros — cruzamento IBGE × dados comerciais
-              </p>
-            </div>
+            <ClientesSyncBadge />
           </div>
         </div>
+
 
         {/* Filters */}
         <MunicipiosFiltersBar filters={filters} onFilterChange={updateFilter} />
