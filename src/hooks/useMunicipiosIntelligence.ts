@@ -92,7 +92,7 @@ export function useMunicipiosIntelligence() {
         municipios_virgem: Number(row?.municipios_virgem || 0),
       };
     },
-    staleTime: 5 * 60 * 1000,
+    staleTime: 60 * 1000,
   });
 
   // Top 10 opportunities query (Virgem municipalities sorted by PIB desc)
@@ -125,7 +125,7 @@ export function useMunicipiosIntelligence() {
         total_count: Number(r.total_count),
       }));
     },
-    staleTime: 5 * 60 * 1000,
+    staleTime: 60 * 1000,
   });
 
   // Data query (paginated)
@@ -161,7 +161,7 @@ export function useMunicipiosIntelligence() {
         totalCount: rows.length > 0 ? Number(rows[0].total_count) : 0,
       };
     },
-    staleTime: 5 * 60 * 1000,
+    staleTime: 60 * 1000,
   });
 
   // Export query (all filtered data, no pagination)
