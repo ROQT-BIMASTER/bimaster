@@ -46,9 +46,9 @@ export default function OrcamentoCorporativo() {
             <SelectContent>
               {periodos?.map((p) => (
                 <SelectItem key={p.id} value={p.id}>
-                  {p.nome} — {formatLocalDate(parseLocalDate(p.data_inicio), "dd/MM/yyyy")}
+                  {p.nome} — {formatLocalDate(p.data_inicio, "dd/MM/yyyy")}
                   {" → "}
-                  {formatLocalDate(parseLocalDate(p.data_fim), "dd/MM/yyyy")}
+                  {formatLocalDate(p.data_fim, "dd/MM/yyyy")}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -96,8 +96,8 @@ export default function OrcamentoCorporativo() {
                         <TableRow key={p.id}>
                           <TableCell className="font-medium">{p.nome}</TableCell>
                           <TableCell className="capitalize">{p.tipo}</TableCell>
-                          <TableCell>{formatLocalDate(parseLocalDate(p.data_inicio), "dd/MM/yyyy")}</TableCell>
-                          <TableCell>{formatLocalDate(parseLocalDate(p.data_fim), "dd/MM/yyyy")}</TableCell>
+                          <TableCell>{formatLocalDate(p.data_inicio, "dd/MM/yyyy")}</TableCell>
+                          <TableCell>{formatLocalDate(p.data_fim, "dd/MM/yyyy")}</TableCell>
                           <TableCell className="text-right tabular-nums">
                             {formatCurrency(Number(p.valor_total_empresa ?? 0))}
                           </TableCell>
