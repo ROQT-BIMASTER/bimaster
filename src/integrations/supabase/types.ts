@@ -15058,6 +15058,111 @@ export type Database = {
           },
         ]
       }
+      erp_clientes_raw: {
+        Row: {
+          bairro: string | null
+          celular: string | null
+          cep: string | null
+          cidade: string | null
+          classificacao: number | null
+          cnpj: string | null
+          codigo_erp: string
+          created_at: string
+          data_cadastro: string | null
+          data_maior_compra: string | null
+          data_ultima_compra: string | null
+          email: string | null
+          endereco: string | null
+          equipe_codigo: number | null
+          equipe_nome: string | null
+          ibge_codigo: number | null
+          id: string
+          inativo: boolean | null
+          limite_credito: number | null
+          nome_fantasia: string | null
+          raw: Json | null
+          razao_social: string | null
+          sincronizado_em: string
+          status_bloqueio: string | null
+          supervisor: string | null
+          telefone: string | null
+          uf: string | null
+          updated_at: string
+          valor_maior_compra: number | null
+          valor_ultima_compra: number | null
+          vendedor_codigo: number | null
+          vendedor_nome: string | null
+        }
+        Insert: {
+          bairro?: string | null
+          celular?: string | null
+          cep?: string | null
+          cidade?: string | null
+          classificacao?: number | null
+          cnpj?: string | null
+          codigo_erp: string
+          created_at?: string
+          data_cadastro?: string | null
+          data_maior_compra?: string | null
+          data_ultima_compra?: string | null
+          email?: string | null
+          endereco?: string | null
+          equipe_codigo?: number | null
+          equipe_nome?: string | null
+          ibge_codigo?: number | null
+          id?: string
+          inativo?: boolean | null
+          limite_credito?: number | null
+          nome_fantasia?: string | null
+          raw?: Json | null
+          razao_social?: string | null
+          sincronizado_em?: string
+          status_bloqueio?: string | null
+          supervisor?: string | null
+          telefone?: string | null
+          uf?: string | null
+          updated_at?: string
+          valor_maior_compra?: number | null
+          valor_ultima_compra?: number | null
+          vendedor_codigo?: number | null
+          vendedor_nome?: string | null
+        }
+        Update: {
+          bairro?: string | null
+          celular?: string | null
+          cep?: string | null
+          cidade?: string | null
+          classificacao?: number | null
+          cnpj?: string | null
+          codigo_erp?: string
+          created_at?: string
+          data_cadastro?: string | null
+          data_maior_compra?: string | null
+          data_ultima_compra?: string | null
+          email?: string | null
+          endereco?: string | null
+          equipe_codigo?: number | null
+          equipe_nome?: string | null
+          ibge_codigo?: number | null
+          id?: string
+          inativo?: boolean | null
+          limite_credito?: number | null
+          nome_fantasia?: string | null
+          raw?: Json | null
+          razao_social?: string | null
+          sincronizado_em?: string
+          status_bloqueio?: string | null
+          supervisor?: string | null
+          telefone?: string | null
+          uf?: string | null
+          updated_at?: string
+          valor_maior_compra?: number | null
+          valor_ultima_compra?: number | null
+          vendedor_codigo?: number | null
+          vendedor_nome?: string | null
+        }
+        Relationships: []
+      }
       erp_composicao_produto: {
         Row: {
           created_at: string
@@ -51782,6 +51887,15 @@ export type Database = {
         }
         Relationships: []
       }
+      vw_clientes_sync_status: {
+        Row: {
+          last_master_sync_at: string | null
+          last_sync_at: string | null
+          total_master: number | null
+          total_raw: number | null
+        }
+        Relationships: []
+      }
       vw_composicao_capacidade_producao: {
         Row: {
           curva_produto_acabado: string | null
@@ -52353,6 +52467,7 @@ export type Database = {
       aplicar_acesso_padrao: { Args: { _user_id: string }; Returns: undefined }
       aplicar_acesso_padrao_em_massa: { Args: never; Returns: Json }
       aplicar_catalogo_rp_no_master: { Args: never; Returns: Json }
+      aplicar_clientes_rp_no_master: { Args: never; Returns: Json }
       aplicar_mapeamento_plano_contas: { Args: never; Returns: Json }
       aplicar_perfil_processo: {
         Args: {
