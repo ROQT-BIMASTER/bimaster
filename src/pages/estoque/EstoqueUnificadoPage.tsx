@@ -453,6 +453,7 @@ export default function EstoqueUnificadoPage() {
           onRowClick={(r) => { setSelected(r); setDrawerOpen(true); }}
           modo={modo}
           consolidado={consolidar}
+          fornecedorCxByRaiz={fornecedorCxByRaiz}
         />
 
 
