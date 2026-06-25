@@ -1,5 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { extractOrcamentoError } from "@/lib/orcamento/errors";
 import type {
   AtribuirPerfilInput,
   CriarPeriodoInput,
@@ -61,6 +63,9 @@ export function useCreateBudgetPeriod() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["budget_periods"] });
     },
+    onError: (e) => {
+      toast.error(extractOrcamentoError(e, "Falha ao criar período"));
+    },
   });
 }
 
@@ -97,6 +102,9 @@ export function useDistribuirVerba() {
     onSuccess: (_d, input) => {
       qc.invalidateQueries({ queryKey: ["budget_distributions", input.period_id] });
       qc.invalidateQueries({ queryKey: ["budget_distribution_kpis"] });
+    },
+    onError: (e) => {
+      toast.error(extractOrcamentoError(e, "Falha ao distribuir verba"));
     },
   });
 }
@@ -161,6 +169,9 @@ export function useUpsertPlanCategoria() {
       qc.invalidateQueries({ queryKey: ["budget_plan_categories", input.distribution_id] });
       qc.invalidateQueries({ queryKey: ["budget_distribution_kpis", input.distribution_id] });
     },
+    onError: (e) => {
+      toast.error(extractOrcamentoError(e, "Falha ao salvar categoria"));
+    },
   });
 }
 
@@ -177,6 +188,9 @@ export function useDeletePlanCategoria() {
     onSuccess: (_d, vars) => {
       qc.invalidateQueries({ queryKey: ["budget_plan_categories", vars.distribution_id] });
       qc.invalidateQueries({ queryKey: ["budget_distribution_kpis", vars.distribution_id] });
+    },
+    onError: (e) => {
+      toast.error(extractOrcamentoError(e, "Falha ao excluir categoria"));
     },
   });
 }
@@ -246,6 +260,9 @@ export function useAtribuirPerfilDepartamento() {
     onSuccess: (_d, input) => {
       qc.invalidateQueries({ queryKey: ["department_member_roles", input.department_id] });
     },
+    onError: (e) => {
+      toast.error(extractOrcamentoError(e, "Falha ao atribuir perfil"));
+    },
   });
 }
 
@@ -261,6 +278,9 @@ export function useRemoverPerfilDepartamento() {
     },
     onSuccess: (_d, vars) => {
       qc.invalidateQueries({ queryKey: ["department_member_roles", vars.department_id] });
+    },
+    onError: (e) => {
+      toast.error(extractOrcamentoError(e, "Falha ao remover perfil"));
     },
   });
 }

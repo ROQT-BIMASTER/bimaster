@@ -112,8 +112,8 @@ export function PlanoDepartamentoPanel({ periodId }: { periodId: string }) {
     if (l.id && distribution) {
       try {
         await deleteMut.mutateAsync({ id: l.id, distribution_id: distribution.id });
-      } catch (e) {
-        toast.error(e instanceof Error ? e.message : "Falha ao excluir");
+      } catch {
+        // Erro tratado em onError do hook useDeletePlanCategoria
         return;
       }
     }
@@ -140,10 +140,11 @@ export function PlanoDepartamentoPanel({ periodId }: { periodId: string }) {
         });
       }
       toast.success("Plano salvo");
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Falha ao salvar plano");
+    } catch {
+      // Erro tratado em onError do hook useUpsertPlanCategoria
     }
   };
+
 
   return (
     <div className="space-y-4">
