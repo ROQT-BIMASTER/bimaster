@@ -280,6 +280,7 @@ const ContaPagarDetalhe = lazyWithRetry(() => import("./pages/ContaPagarDetalhe"
 const FinanceiroConsolidadoDashboard = lazyWithRetry(() => import("./pages/FinanceiroConsolidadoDashboard"));
 const ConciliacaoBancaria = lazyWithRetry(() => import("./pages/financeiro/ConciliacaoBancaria"));
 const InvestimentosCorporativos = lazyWithRetry(() => import("./pages/financeiro/InvestimentosCorporativos"));
+const OrcamentoCorporativo = lazyWithRetry(() => import("./pages/financeiro/OrcamentoCorporativo"));
 // Portal do Cliente (isolado)
 const PortalPrecos = lazyWithRetry(() => import("./pages/portal/PortalPrecos"));
 const PortalPerfil = lazyWithRetry(() => import("./pages/portal/PortalPerfil"));
