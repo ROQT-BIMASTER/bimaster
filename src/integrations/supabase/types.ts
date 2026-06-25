@@ -3462,6 +3462,176 @@ export type Database = {
         }
         Relationships: []
       }
+      budget_distributions: {
+        Row: {
+          aprovado_em: string | null
+          aprovado_por: string | null
+          created_at: string
+          department_id: string
+          id: string
+          observacao: string | null
+          period_id: string
+          status: Database["public"]["Enums"]["budget_distribution_status"]
+          updated_at: string
+          valor_alocado: number
+          valor_reservado: number
+        }
+        Insert: {
+          aprovado_em?: string | null
+          aprovado_por?: string | null
+          created_at?: string
+          department_id: string
+          id?: string
+          observacao?: string | null
+          period_id: string
+          status?: Database["public"]["Enums"]["budget_distribution_status"]
+          updated_at?: string
+          valor_alocado?: number
+          valor_reservado?: number
+        }
+        Update: {
+          aprovado_em?: string | null
+          aprovado_por?: string | null
+          created_at?: string
+          department_id?: string
+          id?: string
+          observacao?: string | null
+          period_id?: string
+          status?: Database["public"]["Enums"]["budget_distribution_status"]
+          updated_at?: string
+          valor_alocado?: number
+          valor_reservado?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "budget_distributions_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departamentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "budget_distributions_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "mv_analise_departamentos"
+            referencedColumns: ["departamento_id"]
+          },
+          {
+            foreignKeyName: "budget_distributions_period_id_fkey"
+            columns: ["period_id"]
+            isOneToOne: false
+            referencedRelation: "budget_periods"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      budget_periods: {
+        Row: {
+          created_at: string
+          criado_por: string | null
+          data_fim: string
+          data_inicio: string
+          id: string
+          nome: string
+          observacao: string | null
+          status: Database["public"]["Enums"]["budget_period_status"]
+          tipo: string
+          updated_at: string
+          valor_total_empresa: number
+        }
+        Insert: {
+          created_at?: string
+          criado_por?: string | null
+          data_fim: string
+          data_inicio: string
+          id?: string
+          nome: string
+          observacao?: string | null
+          status?: Database["public"]["Enums"]["budget_period_status"]
+          tipo: string
+          updated_at?: string
+          valor_total_empresa?: number
+        }
+        Update: {
+          created_at?: string
+          criado_por?: string | null
+          data_fim?: string
+          data_inicio?: string
+          id?: string
+          nome?: string
+          observacao?: string | null
+          status?: Database["public"]["Enums"]["budget_period_status"]
+          tipo?: string
+          updated_at?: string
+          valor_total_empresa?: number
+        }
+        Relationships: []
+      }
+      budget_plan_categories: {
+        Row: {
+          categoria_id: string
+          cor: string | null
+          created_at: string
+          created_by: string | null
+          distribution_id: string
+          id: string
+          is_reserva: boolean
+          nome: string | null
+          ordem: number
+          updated_at: string
+          valor_planejado: number
+        }
+        Insert: {
+          categoria_id: string
+          cor?: string | null
+          created_at?: string
+          created_by?: string | null
+          distribution_id: string
+          id?: string
+          is_reserva?: boolean
+          nome?: string | null
+          ordem?: number
+          updated_at?: string
+          valor_planejado?: number
+        }
+        Update: {
+          categoria_id?: string
+          cor?: string | null
+          created_at?: string
+          created_by?: string | null
+          distribution_id?: string
+          id?: string
+          is_reserva?: boolean
+          nome?: string | null
+          ordem?: number
+          updated_at?: string
+          valor_planejado?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "budget_plan_categories_categoria_id_fkey"
+            columns: ["categoria_id"]
+            isOneToOne: false
+            referencedRelation: "orcamento_categorias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "budget_plan_categories_distribution_id_fkey"
+            columns: ["distribution_id"]
+            isOneToOne: false
+            referencedRelation: "budget_distributions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "budget_plan_categories_distribution_id_fkey"
+            columns: ["distribution_id"]
+            isOneToOne: false
+            referencedRelation: "vw_budget_distribution_kpis"
+            referencedColumns: ["distribution_id"]
+          },
+        ]
+      }
       campaign_briefings: {
         Row: {
           agency_client_id: string
@@ -13368,12 +13538,14 @@ export type Database = {
           created_at: string
           created_by: string | null
           department_id: string
+          distribution_id: string | null
           empresa_id: number | null
           empresa_nome: string | null
           id: string
           name: string
           notes: string | null
           period_end: string
+          period_id: string | null
           period_start: string
           spent_amount: number
           status: string
@@ -13388,12 +13560,14 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           department_id: string
+          distribution_id?: string | null
           empresa_id?: number | null
           empresa_nome?: string | null
           id?: string
           name: string
           notes?: string | null
           period_end: string
+          period_id?: string | null
           period_start: string
           spent_amount?: number
           status?: string
@@ -13408,12 +13582,14 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           department_id?: string
+          distribution_id?: string | null
           empresa_id?: number | null
           empresa_nome?: string | null
           id?: string
           name?: string
           notes?: string | null
           period_end?: string
+          period_id?: string | null
           period_start?: string
           spent_amount?: number
           status?: string
@@ -13436,10 +13612,31 @@ export type Database = {
             referencedColumns: ["departamento_id"]
           },
           {
+            foreignKeyName: "department_budgets_distribution_id_fkey"
+            columns: ["distribution_id"]
+            isOneToOne: false
+            referencedRelation: "budget_distributions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "department_budgets_distribution_id_fkey"
+            columns: ["distribution_id"]
+            isOneToOne: false
+            referencedRelation: "vw_budget_distribution_kpis"
+            referencedColumns: ["distribution_id"]
+          },
+          {
             foreignKeyName: "department_budgets_empresa_id_fkey"
             columns: ["empresa_id"]
             isOneToOne: false
             referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "department_budgets_period_id_fkey"
+            columns: ["period_id"]
+            isOneToOne: false
+            referencedRelation: "budget_periods"
             referencedColumns: ["id"]
           },
         ]
@@ -13457,6 +13654,7 @@ export type Database = {
           created_by: string | null
           department_id: string
           description: string | null
+          distribution_id: string | null
           document_number: string | null
           document_type: string | null
           due_date: string | null
@@ -13472,6 +13670,8 @@ export type Database = {
           paid_at: string | null
           payment_notes: string | null
           payment_queue_id: string | null
+          period_id: string | null
+          plan_category_id: string | null
           portador: string | null
           send_to_financial: boolean
           status: string
@@ -13493,6 +13693,7 @@ export type Database = {
           created_by?: string | null
           department_id: string
           description?: string | null
+          distribution_id?: string | null
           document_number?: string | null
           document_type?: string | null
           due_date?: string | null
@@ -13508,6 +13709,8 @@ export type Database = {
           paid_at?: string | null
           payment_notes?: string | null
           payment_queue_id?: string | null
+          period_id?: string | null
+          plan_category_id?: string | null
           portador?: string | null
           send_to_financial?: boolean
           status?: string
@@ -13529,6 +13732,7 @@ export type Database = {
           created_by?: string | null
           department_id?: string
           description?: string | null
+          distribution_id?: string | null
           document_number?: string | null
           document_type?: string | null
           due_date?: string | null
@@ -13544,6 +13748,8 @@ export type Database = {
           paid_at?: string | null
           payment_notes?: string | null
           payment_queue_id?: string | null
+          period_id?: string | null
+          plan_category_id?: string | null
           portador?: string | null
           send_to_financial?: boolean
           status?: string
@@ -13576,6 +13782,20 @@ export type Database = {
             referencedColumns: ["departamento_id"]
           },
           {
+            foreignKeyName: "department_expenses_distribution_id_fkey"
+            columns: ["distribution_id"]
+            isOneToOne: false
+            referencedRelation: "budget_distributions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "department_expenses_distribution_id_fkey"
+            columns: ["distribution_id"]
+            isOneToOne: false
+            referencedRelation: "vw_budget_distribution_kpis"
+            referencedColumns: ["distribution_id"]
+          },
+          {
             foreignKeyName: "department_expenses_empresa_id_fkey"
             columns: ["empresa_id"]
             isOneToOne: false
@@ -13587,6 +13807,20 @@ export type Database = {
             columns: ["payment_queue_id"]
             isOneToOne: false
             referencedRelation: "financial_payment_queue"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "department_expenses_period_id_fkey"
+            columns: ["period_id"]
+            isOneToOne: false
+            referencedRelation: "budget_periods"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "department_expenses_plan_category_id_fkey"
+            columns: ["plan_category_id"]
+            isOneToOne: false
+            referencedRelation: "budget_plan_categories"
             referencedColumns: ["id"]
           },
         ]
@@ -30592,6 +30826,36 @@ export type Database = {
           created_at?: string | null
           data?: Json
           expires_at?: string | null
+        }
+        Relationships: []
+      }
+      orcamento_categorias: {
+        Row: {
+          ativo: boolean
+          cor: string | null
+          created_at: string
+          id: string
+          nome: string
+          ordem: number
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          cor?: string | null
+          created_at?: string
+          id?: string
+          nome: string
+          ordem?: number
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          cor?: string | null
+          created_at?: string
+          id?: string
+          nome?: string
+          ordem?: number
+          updated_at?: string
         }
         Relationships: []
       }
@@ -51383,6 +51647,43 @@ export type Database = {
         }
         Relationships: []
       }
+      vw_budget_distribution_kpis: {
+        Row: {
+          department_id: string | null
+          distribution_id: string | null
+          period_id: string | null
+          saldo_livre: number | null
+          saldo_reservado: number | null
+          valor_alocado: number | null
+          valor_comprometido: number | null
+          valor_pago: number | null
+          valor_planejado: number | null
+          valor_utilizado: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "budget_distributions_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departamentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "budget_distributions_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "mv_analise_departamentos"
+            referencedColumns: ["departamento_id"]
+          },
+          {
+            foreignKeyName: "budget_distributions_period_id_fkey"
+            columns: ["period_id"]
+            isOneToOne: false
+            referencedRelation: "budget_periods"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       vw_capacidade_montagem: {
         Row: {
           caixas_remontaveis: number | null
@@ -54331,6 +54632,14 @@ export type Database = {
         }
         Returns: string
       }
+      rpc_atribuir_perfil_departamento: {
+        Args: {
+          p_department_id: string
+          p_perfil: Database["public"]["Enums"]["dept_member_role"]
+          p_user_id: string
+        }
+        Returns: string
+      }
       rpc_audit_usuarios_resumo: {
         Args: { p_from?: string; p_to?: string }
         Returns: {
@@ -54901,6 +55210,16 @@ export type Database = {
         Args: { p_intake_demanda_id: string; p_itens: Json }
         Returns: Json
       }
+      rpc_criar_periodo_orcamentario: {
+        Args: {
+          p_data_fim: string
+          p_data_inicio: string
+          p_nome: string
+          p_tipo: string
+          p_valor_total_empresa: number
+        }
+        Returns: string
+      }
       rpc_criar_projeto: {
         Args: { _payload: Json }
         Returns: {
@@ -54979,6 +55298,10 @@ export type Database = {
       }
       rpc_desvincular_op_da_oc: {
         Args: { p_vinculo_id: string }
+        Returns: undefined
+      }
+      rpc_distribuir_verba: {
+        Args: { p_alocacoes: Json; p_period_id: string }
         Returns: undefined
       }
       rpc_duplicar_kanban_template: {
