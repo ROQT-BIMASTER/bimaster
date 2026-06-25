@@ -42,6 +42,15 @@ VITE_SUPABASE_URL=https://xxx.supabase.co
 VITE_SUPABASE_PUBLISHABLE_KEY=xxx
 ```
 
+> **Build externo a partir do GitHub (Vercel/Netlify/Cloudflare Pages/CI):**
+> `.env` é gitignored e NÃO vai junto no clone. Builds rodando fora do sandbox
+> Lovable precisam das três variáveis `VITE_SUPABASE_*` configuradas no painel
+> do provedor de hospedagem — caso contrário o `createClient` recebe `undefined`
+> em tempo de build e a aplicação publicada renderiza tela branca. O publish
+> pelo botão do editor Lovable já tem as variáveis injetadas automaticamente.
+
+
+
 ### Secrets (via Lovable Cloud)
 
 Secrets são gerenciados pela plataforma:
