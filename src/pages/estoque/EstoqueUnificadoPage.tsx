@@ -36,6 +36,7 @@ import { cn } from '@/lib/utils';
 import type { ModoExibicao } from '@/lib/estoque/modoExibicao';
 import { EstoqueCampanhaFilter } from '@/components/estoque/cores/EstoqueCampanhaFilter';
 import { useProdutosPorEtiquetas } from '@/hooks/estoque/useProdutosPorEtiquetas';
+import { useFornecedorEstoquePorProdutoRaiz } from '@/hooks/estoque/useFornecedorEstoquePorProdutoRaiz';
 
 
 
