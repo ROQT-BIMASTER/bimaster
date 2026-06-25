@@ -16,7 +16,7 @@ export function FloatingActionDock() {
   return (
     <div
       id={FAB_DOCK_ID}
-      className="fixed bottom-5 right-5 z-50 flex flex-col-reverse items-end gap-3 pointer-events-none"
+      className="fixed bottom-20 right-5 z-50 flex flex-col-reverse items-end gap-3 pointer-events-none"
     />
   );
 }
