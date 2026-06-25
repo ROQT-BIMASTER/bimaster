@@ -1,112 +1,119 @@
-# CODEOWNERS — ROQT-BIMASTER
-# Cada área tem um responsável padrão. Teams precisam existir em github.com/ROQT.
+# CODEOWNERS — ROQT-BIMASTER/bimaster
+#
+# Estado atual: um único time interno — @ROQT-BIMASTER/core.
+# A granularidade por domínio abaixo está PRESERVADA como mapa de
+# responsabilidade para a fase 2: quando a ROQT (agência) e mais devs
+# entrarem, cada seção volta a apontar para seu time dedicado
+# (eng, backend, security, financeiro, etc.) e o review obrigatório de
+# code owner é ligado no ruleset da main. Por ora, tudo é de @ROQT-BIMASTER/core.
+#
 # Sintaxe: https://docs.github.com/articles/about-code-owners/
 # Última regra que casa um path vence — específico embaixo do genérico.
 
 # Default — fallback para qualquer arquivo não classificado abaixo
-*                                       @ROQT/eng
+*                                       @ROQT-BIMASTER/core
 
 # ---------------------------------------------------------------------------
-# Infraestrutura, build, CI/CD
+# Infraestrutura, build, CI/CD            (fase 2: @ROQT-BIMASTER/eng + security)
 # ---------------------------------------------------------------------------
-/.github/                               @ROQT/eng
-/.github/workflows/                     @ROQT/eng @ROQT/security
-/.github/CODEOWNERS                     @ROQT/eng @ROQT/security
-/cloudflare/                            @ROQT/eng
-/scripts/                               @ROQT/eng
-/scripts/security/                      @ROQT/security @ROQT/eng
-/scripts/ci/                            @ROQT/eng @ROQT/security
-/scripts/ci/guard-destructive-migrations.sh @ROQT/security @ROQT/eng
-/vite.config.ts                         @ROQT/eng
-/tailwind.config.ts                     @ROQT/eng
-/eslint.config.js                       @ROQT/eng
-/eslint.config.edge.js                  @ROQT/eng
-/tsconfig*.json                         @ROQT/eng
-/package.json                           @ROQT/eng
-/bun.lockb                              @ROQT/eng
-/.env.example                           @ROQT/eng
-
-# ---------------------------------------------------------------------------
-# Backend / banco / edge functions
-# ---------------------------------------------------------------------------
-/supabase/                              @ROQT/backend
-/supabase/migrations/                   @ROQT/backend @ROQT/security
-/supabase/functions/_shared/            @ROQT/backend @ROQT/security
-/supabase/functions/projeto-*/          @ROQT/projetos @ROQT/backend
-/supabase/functions/central-copilot-*/  @ROQT/projetos @ROQT/backend
-/supabase/functions/ai-*/               @ROQT/backend
-/supabase/functions/sofia-*/            @ROQT/backend
-/supabase/functions/shipsgo-*/          @ROQT/operacoes @ROQT/backend
-/supabase/functions/asana-*/            @ROQT/projetos @ROQT/backend
-/supabase/functions/contas-pagar*/      @ROQT/financeiro @ROQT/backend
-/supabase/functions/contas-receber*/    @ROQT/financeiro @ROQT/backend
-/supabase/functions/sync-erp-*/         @ROQT/backend
+/.github/                               @ROQT-BIMASTER/core
+/.github/workflows/                     @ROQT-BIMASTER/core
+/.github/CODEOWNERS                     @ROQT-BIMASTER/core
+/cloudflare/                            @ROQT-BIMASTER/core
+/scripts/                               @ROQT-BIMASTER/core
+/scripts/security/                      @ROQT-BIMASTER/core
+/scripts/ci/                            @ROQT-BIMASTER/core
+/scripts/ci/guard-destructive-migrations.sh @ROQT-BIMASTER/core
+/vite.config.ts                         @ROQT-BIMASTER/core
+/tailwind.config.ts                     @ROQT-BIMASTER/core
+/eslint.config.js                       @ROQT-BIMASTER/core
+/eslint.config.edge.js                  @ROQT-BIMASTER/core
+/tsconfig*.json                         @ROQT-BIMASTER/core
+/package.json                           @ROQT-BIMASTER/core
+/bun.lockb                              @ROQT-BIMASTER/core
+/.env.example                           @ROQT-BIMASTER/core
 
 # ---------------------------------------------------------------------------
-# Segurança e governança
+# Backend / banco / edge functions        (fase 2: @ROQT-BIMASTER/backend + security)
 # ---------------------------------------------------------------------------
-/SECURITY.md                            @ROQT/security
-/docs/security/                         @ROQT/security
-/docs/AUDITORIA_SEGURANCA.md            @ROQT/security
-/docs/audit/                            @ROQT/security @ROQT/eng
+/supabase/                              @ROQT-BIMASTER/core
+/supabase/migrations/                   @ROQT-BIMASTER/core
+/supabase/functions/_shared/            @ROQT-BIMASTER/core
+/supabase/functions/projeto-*/          @ROQT-BIMASTER/core
+/supabase/functions/central-copilot-*/  @ROQT-BIMASTER/core
+/supabase/functions/ai-*/               @ROQT-BIMASTER/core
+/supabase/functions/sofia-*/            @ROQT-BIMASTER/core
+/supabase/functions/shipsgo-*/          @ROQT-BIMASTER/core
+/supabase/functions/asana-*/            @ROQT-BIMASTER/core
+/supabase/functions/contas-pagar*/      @ROQT-BIMASTER/core
+/supabase/functions/contas-receber*/    @ROQT-BIMASTER/core
+/supabase/functions/sync-erp-*/         @ROQT-BIMASTER/core
 
 # ---------------------------------------------------------------------------
-# Módulos de negócio — front-end
+# Segurança e governança                  (fase 2: @ROQT-BIMASTER/security)
 # ---------------------------------------------------------------------------
-/src/pages/financeiro/                  @ROQT/financeiro
-/src/components/financeiro/             @ROQT/financeiro
-/src/pages/dre/                         @ROQT/financeiro
-/src/components/dre/                    @ROQT/financeiro
-/src/pages/fluxocaixa/                  @ROQT/financeiro
-/src/components/fluxocaixa/             @ROQT/financeiro
-/src/pages/cobranca/                    @ROQT/financeiro
-/src/components/cobranca/               @ROQT/financeiro
-/src/components/conciliacao/            @ROQT/financeiro
+/SECURITY.md                            @ROQT-BIMASTER/core
+/docs/security/                         @ROQT-BIMASTER/core
+/docs/AUDITORIA_SEGURANCA.md            @ROQT-BIMASTER/core
+/docs/audit/                            @ROQT-BIMASTER/core
 
-/src/pages/trade/                       @ROQT/trade
-/src/components/trade/                  @ROQT/trade
-/src/components/comercial/              @ROQT/trade
+# ---------------------------------------------------------------------------
+# Módulos de negócio — front-end          (fase 2: times por domínio)
+# ---------------------------------------------------------------------------
+/src/pages/financeiro/                  @ROQT-BIMASTER/core
+/src/components/financeiro/             @ROQT-BIMASTER/core
+/src/pages/dre/                         @ROQT-BIMASTER/core
+/src/components/dre/                    @ROQT-BIMASTER/core
+/src/pages/fluxocaixa/                  @ROQT-BIMASTER/core
+/src/components/fluxocaixa/             @ROQT-BIMASTER/core
+/src/pages/cobranca/                    @ROQT-BIMASTER/core
+/src/components/cobranca/               @ROQT-BIMASTER/core
+/src/components/conciliacao/            @ROQT-BIMASTER/core
 
-/src/pages/fabrica/                     @ROQT/fabrica
-/src/components/fabrica/                @ROQT/fabrica
-/src/components/composicao/             @ROQT/fabrica
+/src/pages/trade/                       @ROQT-BIMASTER/core
+/src/components/trade/                  @ROQT-BIMASTER/core
+/src/components/comercial/              @ROQT-BIMASTER/core
 
-/src/pages/projetos/                    @ROQT/projetos
-/src/components/projetos/               @ROQT/projetos
-/src/components/kanban/                 @ROQT/projetos
-/src/components/atividades/             @ROQT/projetos
+/src/pages/fabrica/                     @ROQT-BIMASTER/core
+/src/components/fabrica/                @ROQT-BIMASTER/core
+/src/components/composicao/             @ROQT-BIMASTER/core
 
-/src/pages/marketing/                   @ROQT/marketing
-/src/components/marketing/              @ROQT/marketing
-/src/pages/briefings/                   @ROQT/marketing
-/src/components/briefings/              @ROQT/marketing
-/src/components/huggs/                  @ROQT/marketing
+/src/pages/projetos/                    @ROQT-BIMASTER/core
+/src/components/projetos/               @ROQT-BIMASTER/core
+/src/components/kanban/                 @ROQT-BIMASTER/core
+/src/components/atividades/             @ROQT-BIMASTER/core
 
-/src/pages/china/                       @ROQT/operacoes
-/src/components/china/                  @ROQT/operacoes
+/src/pages/marketing/                   @ROQT-BIMASTER/core
+/src/components/marketing/              @ROQT-BIMASTER/core
+/src/pages/briefings/                   @ROQT-BIMASTER/core
+/src/components/briefings/              @ROQT-BIMASTER/core
+/src/components/huggs/                  @ROQT-BIMASTER/core
 
-/src/pages/crm/                         @ROQT/trade
-/src/components/crm/                    @ROQT/trade
+/src/pages/china/                       @ROQT-BIMASTER/core
+/src/components/china/                  @ROQT-BIMASTER/core
 
-/src/pages/admin/                       @ROQT/eng
-/src/components/admin/                  @ROQT/eng
-/src/components/configuracoes/          @ROQT/eng
-/src/components/configuracoes-acesso/   @ROQT/eng @ROQT/security
+/src/pages/crm/                         @ROQT-BIMASTER/core
+/src/components/crm/                    @ROQT-BIMASTER/core
+
+/src/pages/admin/                       @ROQT-BIMASTER/core
+/src/components/admin/                  @ROQT-BIMASTER/core
+/src/components/configuracoes/          @ROQT-BIMASTER/core
+/src/components/configuracoes-acesso/   @ROQT-BIMASTER/core
 
 # ---------------------------------------------------------------------------
 # Auto-gerados — bloqueio editorial (revisores precisam saber que NÃO se edita)
 # ---------------------------------------------------------------------------
-/src/integrations/supabase/client.ts    @ROQT/eng
-/src/integrations/supabase/types.ts     @ROQT/eng
-/supabase/config.toml                   @ROQT/eng @ROQT/backend
+/src/integrations/supabase/client.ts    @ROQT-BIMASTER/core
+/src/integrations/supabase/types.ts     @ROQT-BIMASTER/core
+/supabase/config.toml                   @ROQT-BIMASTER/core
 
 # ---------------------------------------------------------------------------
-# Documentação
+# Documentação                            (fase 2: @ROQT-BIMASTER/eng)
 # ---------------------------------------------------------------------------
-/docs/                                  @ROQT/eng
-/AGENTS.md                              @ROQT/eng
-/AI_CONTEXT.md                          @ROQT/eng
-/README.md                              @ROQT/eng
-/CONTRIBUTING.md                        @ROQT/eng
-/CHANGELOG.md                           @ROQT/eng
-/.memory/                               @ROQT/eng
+/docs/                                  @ROQT-BIMASTER/core
+/AGENTS.md                              @ROQT-BIMASTER/core
+/AI_CONTEXT.md                          @ROQT-BIMASTER/core
+/README.md                              @ROQT-BIMASTER/core
+/CONTRIBUTING.md                        @ROQT-BIMASTER/core
+/CHANGELOG.md                           @ROQT-BIMASTER/core
+/.memory/                               @ROQT-BIMASTER/core
