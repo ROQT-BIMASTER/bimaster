@@ -129,6 +129,16 @@ export default function EstoqueUnificadoPage() {
   const [recalculando, setRecalculando] = useState(false);
   const [modo, setModo] = useState<ModoExibicao>('fisico');
   const [copilotOpen, setCopilotOpen] = useState(false);
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'i') {
+        e.preventDefault();
+        setCopilotOpen((v) => !v);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
 
   // Quando o sort selecionado não é nativo do backend, mantemos um sort estável
   // (default) para a query e o sort real é aplicado client-side na tabela.
