@@ -302,6 +302,10 @@ export default function EstoqueUnificadoPage() {
               <RefreshCw className={`h-4 w-4 mr-2 ${recalculando ? 'animate-spin' : ''}`} />
               Recalcular níveis
             </Button>
+            <Button variant="outline" size="sm" onClick={() => setCopilotOpen(true)} title="Copiloto de Estoque (Ctrl/Cmd+I)">
+              <Boxes className="h-4 w-4 mr-2" />
+              Copiloto
+            </Button>
           </div>
         </div>
 
