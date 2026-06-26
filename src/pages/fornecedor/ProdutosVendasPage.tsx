@@ -1,7 +1,8 @@
 import { useMemo, useState } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Package, Search, AlertTriangle, TrendingDown, Layers } from "lucide-react";
+import { Package, Search, AlertTriangle, TrendingDown, Layers, ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { PageHeader } from "@/components/ui/page-header";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
