@@ -1,0 +1,1 @@
+DELETE FROM public.sidebar_menu_items WHERE module_code='fornecedor_vendas' AND item_code='fornecedor_produtos';
