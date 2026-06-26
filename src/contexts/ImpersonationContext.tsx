@@ -197,11 +197,13 @@ export const ImpersonationProvider = ({ children }: { children: ReactNode }) => 
 
   // Check module permission - impersonation is valid only for admins
   const hasModulePermission = useCallback((moduleCode: string): boolean => {
+    // Alias: 'fornecedor_vendas' é um agrupamento de menu que herda a permissão de 'fornecedor'.
+    const effectiveCode = moduleCode === "fornecedor_vendas" ? "fornecedor" : moduleCode;
     if (realPermissions.isAdmin && impersonatedPermissions) {
       if (impersonatedPermissions.isAdmin) return true;
-      return impersonatedPermissions.modules.includes(moduleCode);
+      return impersonatedPermissions.modules.includes(effectiveCode);
     }
-    return realPermissions.hasModulePermission(moduleCode);
+    return realPermissions.hasModulePermission(effectiveCode);
   }, [impersonatedPermissions, realPermissions.isAdmin, realPermissions.hasModulePermission]);
 
   // Check screen permission - impersonation is valid only for admins
