@@ -58,25 +58,28 @@ export default function ProjetoDetalhe({ shared = false }: ProjetoDetalheProps =
   const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
   // Deep-link de notificações de menção: ?tarefa=ID&comentario=ID ou ?tab=chat&mensagem=ID
-  const deepTarefaId = searchParams.get("tarefa");
-  const deepComentarioId = searchParams.get("comentario");
-  const deepTab = searchParams.get("tab");
-  const deepMensagemId = searchParams.get("mensagem");
+  // Capturamos os params UMA ÚNICA VEZ no mount para que a limpeza da URL
+  // (abaixo) não dispare re-render dos filhos com valores nulos — o que fazia
+  // o drawer da tarefa abrir e fechar imediatamente (tela "piscando").
+  const [deepTarefaId] = useState<string | null>(() => searchParams.get("tarefa"));
+  const [deepComentarioId] = useState<string | null>(() => searchParams.get("comentario"));
+  const [deepTab] = useState<string | null>(() => searchParams.get("tab"));
+  const [deepMensagemId] = useState<string | null>(() => searchParams.get("mensagem"));
   const [activeTab, setActiveTab] = useState(deepTab === "chat" ? "chat" : "lista");
-  // Captura o tarefaId e o from uma única vez, antes da limpeza dos params,
-  // para alimentar o breadcrumb de origem (RR-Tasks › Briefing › Tarefa).
+  // Snapshot adicional para o breadcrumb de origem (RR-Tasks › Briefing › Tarefa).
   const [originTarefaId] = useState<string | null>(() => searchParams.get("tarefa"));
   const [originFrom] = useState<string | null>(() => searchParams.get("from"));
   const showRrBreadcrumb = originFrom === "/dashboard/rr-tasks";
 
-  // Limpa os params da URL depois de consumi-los para que reload/share não dispare de novo.
+  // Limpa apenas os params auxiliares (comentario/tab/mensagem). NÃO removemos
+  // `tarefa`: ele é a persistência legítima do drawer aberto, mantida pelo
+  // próprio ProjetoListView via setSearchParams. Removê-lo fechava o drawer
+  // logo após abrir (tela piscando ao clicar em menção).
   useEffect(() => {
-    if (!deepTarefaId && !deepComentarioId && !deepTab && !deepMensagemId) return;
+    if (!deepComentarioId && !deepTab && !deepMensagemId) return;
     const next = new URLSearchParams(searchParams);
-    next.delete("tarefa"); next.delete("comentario"); next.delete("tab"); next.delete("mensagem");
-    // pequeno delay garante que os filhos consigam ler antes da limpeza
-    const t = setTimeout(() => setSearchParams(next, { replace: true }), 50);
-    return () => clearTimeout(t);
+    next.delete("comentario"); next.delete("tab"); next.delete("mensagem");
+    setSearchParams(next, { replace: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   const [lixeiraOpen, setLixeiraOpen] = useState(false);
