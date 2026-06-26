@@ -312,25 +312,28 @@ export default function ProdutosVendasPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Cód</TableHead>
-                  <TableHead>Produto</TableHead>
-                  <TableHead>Marca / Linha</TableHead>
-                  <TableHead className="text-right">Qtd</TableHead>
-                  <TableHead className="text-right">R$ total</TableHead>
-                  <TableHead className="text-right">Média/mês</TableHead>
-                  <TableHead className="text-right">σ</TableHead>
-                  <TableHead className="text-right">CV</TableHead>
-                  <TableHead className="text-center">ABC</TableHead>
-                  <TableHead className="text-center">XYZ</TableHead>
-                  <TableHead className="text-right">Estoque</TableHead>
-                  <TableHead className="text-right">Cobertura</TableHead>
-                  <TableHead>Status</TableHead>
+                  <SortableHead sort={sort} onSort={toggleSort} k="cod_produto">Cód</SortableHead>
+                  <SortableHead sort={sort} onSort={toggleSort} k="descricao">Produto</SortableHead>
+                  <SortableHead sort={sort} onSort={toggleSort} k="marca_linha">Marca / Linha</SortableHead>
+                  <SortableHead sort={sort} onSort={toggleSort} k="qtd_total" align="right">Qtd</SortableHead>
+                  <SortableHead sort={sort} onSort={toggleSort} k="valor_total" align="right">R$ total</SortableHead>
+                  <SortableHead sort={sort} onSort={toggleSort} k="media_mensal" align="right">Média/mês</SortableHead>
+                  <SortableHead sort={sort} onSort={toggleSort} k="desvio_mensal" align="right">σ</SortableHead>
+                  <SortableHead sort={sort} onSort={toggleSort} k="cv" align="right">CV</SortableHead>
+                  <SortableHead sort={sort} onSort={toggleSort} k="classe_abc" align="center">ABC</SortableHead>
+                  <SortableHead sort={sort} onSort={toggleSort} k="classe_xyz" align="center">XYZ</SortableHead>
+                  <SortableHead sort={sort} onSort={toggleSort} k="estoque_cx" align="right">Estoque (CX)</SortableHead>
+                  <SortableHead sort={sort} onSort={toggleSort} k="cobertura" align="right">Cobertura</SortableHead>
+                  <SortableHead sort={sort} onSort={toggleSort} k="status">Status</SortableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {rows.length === 0 ? (
+                {sortedRows.length === 0 ? (
                   <TableRow><TableCell colSpan={13} className="h-24 text-center text-muted-foreground">Nenhum produto no filtro atual.</TableCell></TableRow>
-                ) : rows.map((r) => (
+                ) : sortedRows.map((r) => {
+                  const temCx = r.fator_un_por_cx !== null && r.fator_un_por_cx > 0;
+                  const estoqueCx = r.estoque_atual_cx;
+                  return (
                   <TableRow
                     key={r.cod_produto}
                     className="cursor-pointer hover:bg-muted/40"
@@ -338,7 +341,7 @@ export default function ProdutosVendasPage() {
                   >
                     <TableCell className="font-mono text-xs">{r.cod_produto}</TableCell>
                     <TableCell className="max-w-[320px] truncate">{r.descricao ?? "—"}</TableCell>
-                    <TableCell className="text-xs text-muted-foreground">{[r.marca, r.nome_linha].filter(Boolean).join(" · ") || "—"}</TableCell>
+                    <TableCell className="text-xs text-muted-foreground">{r.marca_linha || "—"}</TableCell>
                     <TableCell className="text-right">{fmtNum(r.qtd_total)}</TableCell>
                     <TableCell className="text-right">{formatCurrency(Number(r.valor_total) || 0)}</TableCell>
                     <TableCell className="text-right">{fmtNum(r.media_mensal, 0)}</TableCell>
@@ -346,11 +349,36 @@ export default function ProdutosVendasPage() {
                     <TableCell className="text-right">{r.cv === null ? "—" : r.cv.toLocaleString("pt-BR",{maximumFractionDigits:2})}</TableCell>
                     <TableCell className="text-center"><Badge variant="outline" className="font-mono">{r.classe_abc}</Badge></TableCell>
                     <TableCell className="text-center"><Badge variant="outline" className="font-mono">{r.classe_xyz}</Badge></TableCell>
-                    <TableCell className="text-right">{fmtNum(r.estoque_atual)}</TableCell>
+                    <TableCell className="text-right">
+                      <TooltipProvider>
+                        <Tooltip delayDuration={250}>
+                          <TooltipTrigger asChild>
+                            <span className="inline-flex items-center gap-1.5 cursor-help">
+                              <span>{temCx ? fmtNum(estoqueCx, 1) : fmtNum(r.estoque_atual)}</span>
+                              <Badge
+                                variant="outline"
+                                className={
+                                  temCx
+                                    ? "bg-primary/15 text-primary border-primary/30 font-mono text-[10px] px-1.5 py-0"
+                                    : "bg-muted text-muted-foreground border-border font-mono text-[10px] px-1.5 py-0"
+                                }
+                              >
+                                {temCx ? "CX" : "UN"}
+                              </Badge>
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent side="left" className="text-xs">
+                            {fmtNum(r.estoque_atual)} UN
+                            {temCx && r.fator_un_por_cx ? ` · 1 CX = ${fmtNum(r.fator_un_por_cx, 0)} UN` : " · sem fator CX cadastrado"}
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </TableCell>
                     <TableCell className="text-right">{fmtCov(r.cobertura)}</TableCell>
                     <TableCell><Badge variant="outline" className={STATUS_TONE[r.status]}>{STATUS_LABEL[r.status]}</Badge></TableCell>
                   </TableRow>
-                ))}
+                  );
+                })}
               </TableBody>
             </Table>
           </div>
