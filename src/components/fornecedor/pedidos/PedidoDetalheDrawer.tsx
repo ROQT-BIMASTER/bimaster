@@ -1,4 +1,6 @@
-import { AlertTriangle, Zap } from "lucide-react";
+import { useState, useEffect } from "react";
+import { AlertTriangle, Zap, Maximize2, Minimize2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 import {
   Sheet,
@@ -51,6 +53,11 @@ function InfoRow({ label, value, valueClassName }: { label: string; value: React
 
 export function PedidoDetalheDrawer({ pedido, open, onOpenChange, limiarParado = 2 }: PedidoDetalheDrawerProps) {
   const { data: itens, isLoading, error } = usePedidoItens(pedido?.futura_pedido_id, open);
+  const [fullscreen, setFullscreen] = useState(false);
+
+  useEffect(() => {
+    if (!open) setFullscreen(false);
+  }, [open]);
 
   const theme = pedido ? getEtapaTheme(pedido.etapa) : null;
   const dias = pedido?.dias_na_etapa ?? 0;
@@ -59,7 +66,15 @@ export function PedidoDetalheDrawer({ pedido, open, onOpenChange, limiarParado =
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="w-full sm:max-w-4xl lg:max-w-5xl p-0 flex flex-col">
+      <SheetContent
+        side="right"
+        className={cn(
+          "p-0 flex flex-col transition-[max-width,width] duration-200",
+          fullscreen
+            ? "w-screen max-w-none sm:max-w-none"
+            : "w-full sm:max-w-4xl lg:max-w-5xl",
+        )}
+      >
         {pedido && (
           <>
             <SheetHeader className="px-6 py-4 border-b border-border space-y-2">
@@ -84,6 +99,17 @@ export function PedidoDetalheDrawer({ pedido, open, onOpenChange, limiarParado =
                       {theme.label}
                     </Badge>
                   )}
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => setFullscreen((v) => !v)}
+                    aria-label={fullscreen ? "Sair de tela cheia" : "Expandir para tela cheia"}
+                    title={fullscreen ? "Sair de tela cheia" : "Expandir para tela cheia"}
+                  >
+                    {fullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+                  </Button>
                 </div>
               </div>
             </SheetHeader>
