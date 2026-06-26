@@ -75,7 +75,13 @@ jobs:
       # - força outsider a NÃO ser membro (necessário para o teste de RLS)
       # - limpa tarefas "[e2e]%" deixadas por runs anteriores
       # Idempotente: pode rodar quantas vezes for preciso sem efeitos colaterais.
-      - name: Seed/reset Supabase (subtarefas multi-nível)
+      #
+      # Retry com backoff exponencial (5s → 10s → 20s) cobre falhas transitórias
+      # do Auth Admin API e do PostgREST (rate-limit eventual, cold-start, blip
+      # de rede). A saída completa fica em /tmp/seed.log e é anexada como
+      # artefato quando o job falha — útil para diagnosticar sem precisar
+      # reproduzir local.
+      - name: Seed/reset Supabase (subtarefas multi-nível, com retry)
         env:
           SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.E2E_SUPABASE_SERVICE_ROLE_KEY }}
@@ -85,9 +91,48 @@ jobs:
           E2E_SECAO_ID: ${{ secrets.E2E_SECAO_ID }}
           E2E_OUTRO_PROJETO_ID: ${{ secrets.E2E_OUTRO_PROJETO_ID }}
           E2E_OUTRO_PROJETO_TAREFA: ${{ secrets.E2E_OUTRO_PROJETO_TAREFA }}
-        run: bun run scripts/seed/e2e-subtarefas-multinivel.ts
+        run: |
+          mkdir -p /tmp/e2e-logs
+          attempts=3
+          delay=5
+          rc=1
+          for i in $(seq 1 "$attempts"); do
+            echo "::group::Seed tentativa $i/$attempts"
+            if bun run scripts/seed/e2e-subtarefas-multinivel.ts 2>&1 \
+                 | tee -a /tmp/e2e-logs/seed.log; then
+              rc=0
+              echo "::endgroup::"
+              break
+            fi
+            echo "::endgroup::"
+            if [ "$i" -lt "$attempts" ]; then
+              echo "Seed falhou (tentativa $i). Backoff ${delay}s…"
+              sleep "$delay"
+              delay=$(( delay * 2 ))
+            fi
+          done
+          if [ "$rc" -ne 0 ]; then
+            echo "::error::Seed falhou após $attempts tentativas. Veja /tmp/e2e-logs/seed.log."
+            exit "$rc"
+          fi
 
-
+      # Confirma que o seed deixou o backend coerente (projetos/seção/tarefa
+      # existem, ownership e membresía corretos, sem lixo residual). Falha
+      # cedo aqui economiza ~5min vs descobrir no meio do Playwright.
+      - name: Verificar invariantes pós-seed
+        env:
+          SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.E2E_SUPABASE_SERVICE_ROLE_KEY }}
+          E2E_TEST_EMAIL: ${{ secrets.E2E_TEST_EMAIL }}
+          E2E_OUTSIDER_EMAIL: ${{ secrets.E2E_OUTSIDER_EMAIL }}
+          E2E_PROJETO_ID: ${{ secrets.E2E_PROJETO_ID }}
+          E2E_SECAO_ID: ${{ secrets.E2E_SECAO_ID }}
+          E2E_OUTRO_PROJETO_ID: ${{ secrets.E2E_OUTRO_PROJETO_ID }}
+          E2E_OUTRO_PROJETO_TAREFA: ${{ secrets.E2E_OUTRO_PROJETO_TAREFA }}
+        run: |
+          mkdir -p /tmp/e2e-logs
+          bun run scripts/seed/e2e-subtarefas-multinivel.verify.ts 2>&1 \
+            | tee /tmp/e2e-logs/seed-verify.log
 
       - name: Run Playwright (subtarefas multi-nível)
         env:
@@ -103,7 +148,11 @@ jobs:
           E2E_OUTRO_PROJETO_TAREFA: ${{ secrets.E2E_OUTRO_PROJETO_TAREFA }}
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
-        run: bunx playwright test e2e/projetos/subtarefas-multinivel --reporter=list,html
+        run: |
+          mkdir -p /tmp/e2e-logs
+          set -o pipefail
+          bunx playwright test e2e/projetos/subtarefas-multinivel \
+            --reporter=list,html 2>&1 | tee /tmp/e2e-logs/playwright.log
 
       - name: Upload HTML report
         if: always()
@@ -120,5 +169,17 @@ jobs:
         with:
           name: playwright-results-subtarefas-${{ github.run_id }}
           path: test-results
+          retention-days: 14
+          if-no-files-found: ignore
+
+      # Logs brutos do seed + verify + Playwright. Sobem só em falha
+      # (failure()) para não inflar storage em runs verdes — playwright-report
+      # já cobre o caminho feliz.
+      - name: Upload logs (seed + verify + playwright) em falha
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-logs-subtarefas-${{ github.run_id }}
+          path: /tmp/e2e-logs
           retention-days: 14
           if-no-files-found: ignore
