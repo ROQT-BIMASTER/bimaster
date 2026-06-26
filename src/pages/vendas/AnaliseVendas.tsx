@@ -1,10 +1,7 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
-import { ArrowLeft } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { parseLocalDate } from "@/lib/utils/parseLocalDate";
-import { Button } from "@/components/ui/button";
 import { FiltrosBar } from "@/components/vendas/FiltrosBar";
 import { KPICards } from "@/components/vendas/KPICards";
 import { EvolucaoMensalChart } from "@/components/vendas/EvolucaoMensalChart";
