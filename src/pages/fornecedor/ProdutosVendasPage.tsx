@@ -144,9 +144,31 @@ export default function ProdutosVendasPage() {
           rop,
           es,
           status: statusEstoque(estoque, rop, es, cob),
+          marca_linha: [p.marca, p.nome_linha].filter(Boolean).join(" · "),
         };
       });
   }, [data, search, abcFilter, xyzFilter, leadDias, z]);
+
+  const [sort, setSort] = useState<SortState>(null);
+  const sortedRows = useMemo<Row[]>(() => {
+    if (!sort) return rows;
+    const dir = sort.dir === "asc" ? 1 : -1;
+    return rows.slice().sort((a, b) => {
+      const va = sortValue(a, sort.key);
+      const vb = sortValue(b, sort.key);
+      if (typeof va === "number" && typeof vb === "number") return (va - vb) * dir;
+      return String(va).localeCompare(String(vb), "pt-BR") * dir;
+    });
+  }, [rows, sort]);
+
+  const toggleSort = (key: SortKey) =>
+    setSort((cur) =>
+      !cur || cur.key !== key
+        ? { key, dir: "asc" }
+        : cur.dir === "asc"
+        ? { key, dir: "desc" }
+        : null,
+    );
 
   const kpis = useMemo(() => {
     const total = rows.length;
