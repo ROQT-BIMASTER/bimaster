@@ -109,10 +109,26 @@ export function SubtarefasSection({
     return (
       <div
         key={st.id}
-        className="group border-b border-border/40 last:border-b-0 py-2 hover:bg-muted/20 transition-colors space-y-2 -mx-2 px-2 rounded-sm"
+        className={cn(
+          "group border-b border-border/40 last:border-b-0 py-2 hover:bg-muted/20 transition-colors space-y-2 -mx-2 px-2 rounded-sm",
+          depth > 0 && "border-l-2 border-border/30 ml-2",
+        )}
+        style={depth > 0 ? { marginLeft: depth * 12 } : undefined}
       >
-        {/* Linha 1: checkbox + título + abrir + excluir */}
+        {/* Linha 1: chevron + checkbox + título + abrir + excluir */}
         <div className="flex items-center gap-2">
+          {hasChildren ? (
+            <button
+              type="button"
+              onClick={() => toggleCollapsed(st.id)}
+              className="flex-shrink-0 text-muted-foreground hover:text-foreground"
+              title={isCollapsed ? "Expandir" : "Recolher"}
+            >
+              {isCollapsed ? <ChevronRight className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+            </button>
+          ) : (
+            <span className="w-3.5 flex-shrink-0" />
+          )}
           <button
             onClick={() => onToggle(st)}
             className={cn(
