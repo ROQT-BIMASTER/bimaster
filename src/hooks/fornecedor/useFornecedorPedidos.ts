@@ -18,6 +18,8 @@ export interface PedidoFornecedor {
   status: number | null;
   situacao_id: number | null;
   situacao_desc: string | null;
+  cond_pagto_id: number | null;
+  cond_pagto_desc: string | null;
   etapa: string;
   etapa_ordem: number | null;
   urgente: boolean;

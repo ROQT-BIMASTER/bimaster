@@ -13,11 +13,12 @@ import { formatTempoEtapa, getEtapaTheme } from "./etapaTheme";
 interface PedidosTableProps {
   pedidos: PedidoFornecedor[];
   limiarParado: number;
+  onPedidoClick?: (pedido: PedidoFornecedor) => void;
 }
 
 type SortKey = "nro_pedido" | "cliente_nome" | "vendedor_nome" | "etapa" | "dias_na_etapa" | "data_emissao" | "total_pedido";
 
-export function PedidosTable({ pedidos, limiarParado }: PedidosTableProps) {
+export function PedidosTable({ pedidos, limiarParado, onPedidoClick }: PedidosTableProps) {
   const [sortKey, setSortKey] = useState<SortKey>("data_emissao");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
 
@@ -71,7 +72,22 @@ export function PedidosTable({ pedidos, limiarParado }: PedidosTableProps) {
             const parado = p.em_andamento && dias > limiarParado;
             const dataEmissao = p.data_emissao ? parseLocalDate(p.data_emissao) : null;
             return (
-              <TableRow key={p.futura_pedido_id} className={cn(parado && "bg-destructive/5")}>
+              <TableRow
+                key={p.futura_pedido_id}
+                className={cn(parado && "bg-destructive/5", onPedidoClick && "cursor-pointer hover:bg-muted/50")}
+                onClick={onPedidoClick ? () => onPedidoClick(p) : undefined}
+                tabIndex={onPedidoClick ? 0 : undefined}
+                onKeyDown={
+                  onPedidoClick
+                    ? (e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          onPedidoClick(p);
+                        }
+                      }
+                    : undefined
+                }
+              >
                 <TableCell className="font-medium whitespace-nowrap">
                   <div className="flex items-center gap-1">
                     {p.nro_pedido ?? p.futura_pedido_id}
