@@ -34,6 +34,7 @@ export function useVendasKpis(f: VendasFilters) {
         notas: Number(row.notas ?? 0),
         ticket_medio: Number(row.ticket_medio ?? 0),
         qtd_total: Number(row.qtd_total ?? 0),
+        qtd_un: Number(row.qtd_un ?? 0),
         clientes: Number(row.clientes ?? 0),
         vendedores: Number(row.vendedores ?? 0),
       };
@@ -156,12 +157,18 @@ export function useCoordenadoresLista() {
   });
 }
 
+export interface NotaItemAgg {
+  qtd_un: number;
+  sigla_dominante: string | null; // "DZ" | "UN" | "CX" ... ou null se misto
+  itens_caixa: number | null;     // único quando todos os itens compartilham; senão null
+}
+
 export function useNotasPeriodo(f: VendasFilters, page: number, pageSize = 50) {
   return useQuery({
     queryKey: ["notas_periodo", f, page, pageSize],
     queryFn: async () => {
       let q = sb.from("v_vendas")
-        .select("data_emissao,nro_nota,serie,cliente_nome,vendedor_nome,coordenador_nome,total_nota", { count: "exact" })
+        .select("futura_nota_id,data_emissao,nro_nota,serie,cliente_nome,vendedor_nome,coordenador_nome,total_nota", { count: "exact" })
         .order("data_emissao", { ascending: false })
         .range(page * pageSize, page * pageSize + pageSize - 1);
       if (f.de) q = q.gte("data_emissao", f.de);
@@ -171,7 +178,38 @@ export function useNotasPeriodo(f: VendasFilters, page: number, pageSize = 50) {
       if (f.coordenador) q = q.eq("coordenador_id", f.coordenador);
       const { data, error, count } = await q;
       if (error) throw error;
-      return { rows: data || [], count: count || 0 };
+      const rows = (data || []) as any[];
+
+      // Sub-agregação por nota (sem fan-out no header)
+      const ids = rows.map((r) => r.futura_nota_id).filter((x) => x != null);
+      const itemMap: Record<string, NotaItemAgg> = {};
+      if (ids.length > 0) {
+        const { data: items, error: e2 } = await sb
+          .from("erp_vendas_item")
+          .select("futura_nota_id,quantidade_un,unidade_sigla,itens_caixa")
+          .in("futura_nota_id", ids);
+        if (e2) throw e2;
+        for (const it of (items || []) as any[]) {
+          const key = String(it.futura_nota_id);
+          const cur = itemMap[key] ?? { qtd_un: 0, sigla_dominante: undefined as any, itens_caixa: undefined as any };
+          cur.qtd_un += Number(it.quantidade_un ?? 0);
+          // sigla dominante: única em todos os itens, ou null
+          if (cur.sigla_dominante === undefined) cur.sigla_dominante = it.unidade_sigla ?? null;
+          else if (cur.sigla_dominante !== (it.unidade_sigla ?? null)) cur.sigla_dominante = null;
+          // itens_caixa: único em todos os itens, ou null
+          const ic = it.itens_caixa == null ? null : Number(it.itens_caixa);
+          if (cur.itens_caixa === undefined) cur.itens_caixa = ic;
+          else if (cur.itens_caixa !== ic) cur.itens_caixa = null;
+          itemMap[key] = cur;
+        }
+        // normaliza undefined -> null
+        for (const k of Object.keys(itemMap)) {
+          if (itemMap[k].sigla_dominante === undefined) itemMap[k].sigla_dominante = null;
+          if (itemMap[k].itens_caixa === undefined) itemMap[k].itens_caixa = null;
+        }
+      }
+
+      return { rows, count: count || 0, itemMap };
     },
     staleTime: 60 * 1000,
   });
