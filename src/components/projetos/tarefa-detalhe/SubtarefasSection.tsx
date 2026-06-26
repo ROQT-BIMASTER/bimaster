@@ -76,6 +76,18 @@ export function SubtarefasSection({
   const [editingSubtarefaTitulo, setEditingSubtarefaTitulo] = useState("");
   const [showConcluidas, setShowConcluidas] = useState(false);
   const [pendingAISubtarefas, setPendingAISubtarefas] = useState<{ titulo: string; selected: boolean }[]>([]);
+  // Multi-level support: collapsed nodes + per-node "add subitem" inline input.
+  const [collapsedIds, setCollapsedIds] = useState<Set<string>>(new Set());
+  const [addingForId, setAddingForId] = useState<string | null>(null);
+  const [addingValue, setAddingValue] = useState("");
+
+  const toggleCollapsed = (id: string) =>
+    setCollapsedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
 
   const handleAdd = () => {
     if (!subtarefaValue.trim() || !onAddSubtarefa) return;
@@ -89,8 +101,11 @@ export function SubtarefasSection({
   const total = allSubs.length;
   const done = concluidas.length;
 
-  const renderSub = (st: typeof allSubs[number]) => {
+  const renderSub = (st: typeof allSubs[number], depth = 0) => {
     const stEstagioInfo = ESTAGIO_OPTIONS.find((e) => e.value === st.estagio);
+    const children = (st as any).subtarefas ?? [];
+    const hasChildren = children.length > 0;
+    const isCollapsed = collapsedIds.has(st.id);
     return (
       <div
         key={st.id}
