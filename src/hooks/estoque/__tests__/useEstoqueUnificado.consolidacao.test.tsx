@@ -46,37 +46,40 @@ const ABREV_ROWS = [
 ];
 
 vi.mock('@/integrations/supabase/client', () => {
-  const fromHandler = (table: string) => {
-    if (table === 'vw_estoque_unificado') {
-      const builder: any = {
-        select: () => builder,
-        in: () => builder,
-        gt: () => builder,
-        order: () => builder,
-        range: () => Promise.resolve({ data: RAW_ROWS, error: null }),
-      };
-      return builder;
-    }
-    if (table === 'dim_empresa') {
-      const builder: any = {
-        select: () => builder,
-        in: () => Promise.resolve({ data: DIM_EMPRESA_ROWS, error: null }),
-      };
-      return builder;
-    }
-    // erp_estoque_distribuidora — devolve ABREV_ROWS para qualquer select.
-    // O loop de nomes lê só cod_produto/nome_prod (campos ausentes = ignorados),
-    // o loop de abreviações lê abrev_par.
-    const enrichBuilder: any = {
-      select: () => enrichBuilder,
-      in: () => enrichBuilder,
-      limit: () => Promise.resolve({ data: ABREV_ROWS, error: null }),
-      range: () => Promise.resolve({ data: ABREV_ROWS, error: null }),
+  const makeBuilder = (resolveData: any): any => {
+    const builder: any = {
+      then: undefined,
     };
-    return enrichBuilder;
+    const passthrough = [
+      'select', 'in', 'gt', 'gte', 'lt', 'lte', 'eq', 'neq', 'or', 'order',
+      'limit', 'not', 'is', 'ilike', 'like', 'contains', 'overlaps', 'match',
+    ];
+    for (const m of passthrough) builder[m] = () => builder;
+    const terminal = ['range', 'maybeSingle', 'single'];
+    for (const m of terminal) builder[m] = () => Promise.resolve({ data: resolveData, error: null });
+    // Permite `await builder` resolver direto se nenhum terminal for chamado
+    builder.then = (onF: any, onR: any) =>
+      Promise.resolve({ data: resolveData, error: null }).then(onF, onR);
+    return builder;
   };
-  return { supabase: { from: fromHandler } };
+
+  const fromHandler = (table: string) => {
+    if (table === 'vw_estoque_unificado') return makeBuilder(RAW_ROWS);
+    if (table === 'dim_empresa') return makeBuilder(DIM_EMPRESA_ROWS);
+    if (table === 'erp_estoque_distribuidora') return makeBuilder(ABREV_ROWS);
+    // Tabelas auxiliares (fabrica_produtos, rr_produtos, oms_pedidos, etc.)
+    // não precisam alimentar os asserts deste teste — devolvem vazio.
+    return makeBuilder([]);
+  };
+
+  return {
+    supabase: {
+      from: fromHandler,
+      rpc: () => Promise.resolve({ data: null, error: null }),
+    },
+  };
 });
+
 
 import { useEstoqueUnificado } from '../useEstoqueUnificado';
 
