@@ -1,6 +1,7 @@
 // Recebe lotes de pedidos de venda (cabeçalho + itens) do Sistema Futura via conector externo.
 // Auth: Bearer FUTURA_SYNC_TOKEN (mesmo secret usado por estoque/vendas).
 // Idempotência: upsert em erp_pedidos por futura_pedido_id e erp_pedidos_item por futura_item_id.
+// rev: 2026-06-26 NF + endereço + rastreio (4 campos opcionais).
 // Trigger erp_pedidos_track_etapa registra mudanças de etapa em erp_pedidos_etapa_log.
 import { z } from "https://esm.sh/zod@3.23.8";
 import { createClient } from "npm:@supabase/supabase-js@2";
