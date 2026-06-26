@@ -48,7 +48,7 @@ export function useClientesLista() {
           const id = Number(row.cliente_futura_id);
           if (!id) continue;
           const ex = acc.get(id);
-          const valor = Number(row.total_nota ?? 0);
+          const valor = Number(row.total_produto ?? 0);
           const qtd = Number(row.quantidade ?? 0);
           const dt = row.data_emissao ?? null;
           if (!ex) {
