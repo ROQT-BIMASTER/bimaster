@@ -20,6 +20,10 @@ export interface PedidoFornecedor {
   situacao_desc: string | null;
   cond_pagto_id: number | null;
   cond_pagto_desc: string | null;
+  nf_numero: number | null;
+  endereco_entrega: string | null;
+  endereco_cep: string | null;
+  rastreio_link: string | null;
   etapa: string;
   etapa_ordem: number | null;
   urgente: boolean;

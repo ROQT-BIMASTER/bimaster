@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { AlertTriangle, Zap, Maximize2, Minimize2, LineChart } from "lucide-react";
+import { AlertTriangle, Zap, Maximize2, Minimize2, LineChart, MapPin, Truck } from "lucide-react";
 import { ClienteHistoricoCompraDialog } from "./ClienteHistoricoCompraDialog";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
@@ -41,6 +41,13 @@ function fmtDate(d: string | null) {
   if (!d) return "—";
   const parsed = parseLocalDate(d);
   return parsed ? format(parsed, "dd/MM/yyyy") : "—";
+}
+
+function formatCep(cep: string | null | undefined) {
+  if (!cep) return "";
+  const digits = cep.replace(/\D/g, "");
+  if (digits.length === 8) return `${digits.slice(0, 5)}-${digits.slice(5)}`;
+  return cep;
 }
 
 function InfoRow({ label, value, valueClassName }: { label: string; value: React.ReactNode; valueClassName?: string }) {
@@ -90,6 +97,9 @@ export function PedidoDetalheDrawer({ pedido, open, onOpenChange, limiarParado =
                   </SheetTitle>
                   <SheetDescription className="text-xs text-left">
                     Pedido Nº {pedido.nro_pedido ?? pedido.futura_pedido_id}
+                    {pedido.nf_numero != null && (
+                      <> · <span className="text-foreground font-medium">NF {pedido.nf_numero}</span></>
+                    )}
                     {pedido.cliente_cnpj_cpf ? ` · ${pedido.cliente_cnpj_cpf}` : ""}
                   </SheetDescription>
                 </div>
@@ -166,6 +176,43 @@ export function PedidoDetalheDrawer({ pedido, open, onOpenChange, limiarParado =
                     valueClassName="text-base"
                   />
                 </section>
+
+                {/* Entrega */}
+                <section className="rounded-md border border-border p-3 space-y-2">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-start gap-2 min-w-0">
+                      <MapPin className="h-4 w-4 mt-0.5 shrink-0 text-muted-foreground" />
+                      <div className="min-w-0 text-sm">
+                        {pedido.endereco_entrega ? (
+                          <span className="text-foreground">
+                            {pedido.endereco_entrega}
+                            {pedido.endereco_cep && (
+                              <span className="text-muted-foreground">
+                                {" · CEP "}
+                                {formatCep(pedido.endereco_cep)}
+                              </span>
+                            )}
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground">Endereço não informado</span>
+                        )}
+                      </div>
+                    </div>
+                    {pedido.rastreio_link && (
+                      <Button asChild variant="outline" size="sm" className="shrink-0 gap-1.5">
+                        <a
+                          href={pedido.rastreio_link}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          <Truck className="h-3.5 w-3.5" />
+                          Rastrear pedido
+                        </a>
+                      </Button>
+                    )}
+                  </div>
+                </section>
+
 
                 {/* Itens */}
                 <section className="space-y-2">
