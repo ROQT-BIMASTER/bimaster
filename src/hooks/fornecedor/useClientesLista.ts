@@ -38,7 +38,11 @@ export function useClientesLista() {
           )
           .order("data_emissao", { ascending: false })
           .range(from, from + PAGE - 1);
-        if (error) throw error;
+        if (error) {
+          // eslint-disable-next-line no-console
+          console.warn("[useClientesLista] v_vendas error", error);
+          throw error;
+        }
         if (!data || data.length === 0) break;
         for (const row of data) {
           const id = Number(row.cliente_futura_id);
