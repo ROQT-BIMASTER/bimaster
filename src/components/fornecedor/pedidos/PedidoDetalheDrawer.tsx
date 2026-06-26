@@ -177,6 +177,43 @@ export function PedidoDetalheDrawer({ pedido, open, onOpenChange, limiarParado =
                   />
                 </section>
 
+                {/* Entrega */}
+                <section className="rounded-md border border-border p-3 space-y-2">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-start gap-2 min-w-0">
+                      <MapPin className="h-4 w-4 mt-0.5 shrink-0 text-muted-foreground" />
+                      <div className="min-w-0 text-sm">
+                        {pedido.endereco_entrega ? (
+                          <span className="text-foreground">
+                            {pedido.endereco_entrega}
+                            {pedido.endereco_cep && (
+                              <span className="text-muted-foreground">
+                                {" · CEP "}
+                                {formatCep(pedido.endereco_cep)}
+                              </span>
+                            )}
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground">Endereço não informado</span>
+                        )}
+                      </div>
+                    </div>
+                    {pedido.rastreio_link && (
+                      <Button asChild variant="outline" size="sm" className="shrink-0 gap-1.5">
+                        <a
+                          href={pedido.rastreio_link}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          <Truck className="h-3.5 w-3.5" />
+                          Rastrear pedido
+                        </a>
+                      </Button>
+                    )}
+                  </div>
+                </section>
+
+
                 {/* Itens */}
                 <section className="space-y-2">
                   <div className="flex items-center justify-between">
