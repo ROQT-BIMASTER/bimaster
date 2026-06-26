@@ -16,6 +16,9 @@ const ItemSchema = z.object({
   valor_unitario: z.number().optional().nullable(),
   desconto_valor: z.number().optional().nullable(),
   total_item: z.number().optional().nullable(),
+  unidade_sigla: z.string().optional().nullable(),
+  itens_caixa: z.number().optional().nullable(),
+  quantidade_un: z.number().optional().nullable(),
 }).strict();
 
 const VendaSchema = z.object({
