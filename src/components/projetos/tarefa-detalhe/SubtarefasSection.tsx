@@ -8,7 +8,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import {
-  CheckCircle2, Circle, ChevronDown, ChevronRight, Trash2, Sparkles, Loader2,
+  CheckCircle2, Circle, ChevronDown, ChevronRight, Trash2, Sparkles, Loader2, Plus,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
@@ -76,6 +76,18 @@ export function SubtarefasSection({
   const [editingSubtarefaTitulo, setEditingSubtarefaTitulo] = useState("");
   const [showConcluidas, setShowConcluidas] = useState(false);
   const [pendingAISubtarefas, setPendingAISubtarefas] = useState<{ titulo: string; selected: boolean }[]>([]);
+  // Multi-level support: collapsed nodes + per-node "add subitem" inline input.
+  const [collapsedIds, setCollapsedIds] = useState<Set<string>>(new Set());
+  const [addingForId, setAddingForId] = useState<string | null>(null);
+  const [addingValue, setAddingValue] = useState("");
+
+  const toggleCollapsed = (id: string) =>
+    setCollapsedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
 
   const handleAdd = () => {
     if (!subtarefaValue.trim() || !onAddSubtarefa) return;
@@ -89,15 +101,34 @@ export function SubtarefasSection({
   const total = allSubs.length;
   const done = concluidas.length;
 
-  const renderSub = (st: typeof allSubs[number]) => {
+  const renderSub = (st: typeof allSubs[number], depth = 0) => {
     const stEstagioInfo = ESTAGIO_OPTIONS.find((e) => e.value === st.estagio);
+    const children = (st as any).subtarefas ?? [];
+    const hasChildren = children.length > 0;
+    const isCollapsed = collapsedIds.has(st.id);
     return (
       <div
         key={st.id}
-        className="group border-b border-border/40 last:border-b-0 py-2 hover:bg-muted/20 transition-colors space-y-2 -mx-2 px-2 rounded-sm"
+        className={cn(
+          "group border-b border-border/40 last:border-b-0 py-2 hover:bg-muted/20 transition-colors space-y-2 -mx-2 px-2 rounded-sm",
+          depth > 0 && "border-l-2 border-border/30 ml-2",
+        )}
+        style={depth > 0 ? { marginLeft: depth * 12 } : undefined}
       >
-        {/* Linha 1: checkbox + título + abrir + excluir */}
+        {/* Linha 1: chevron + checkbox + título + abrir + excluir */}
         <div className="flex items-center gap-2">
+          {hasChildren ? (
+            <button
+              type="button"
+              onClick={() => toggleCollapsed(st.id)}
+              className="flex-shrink-0 text-muted-foreground hover:text-foreground"
+              title={isCollapsed ? "Expandir" : "Recolher"}
+            >
+              {isCollapsed ? <ChevronRight className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+            </button>
+          ) : (
+            <span className="w-3.5 flex-shrink-0" />
+          )}
           <button
             onClick={() => onToggle(st)}
             className={cn(
@@ -237,6 +268,68 @@ export function SubtarefasSection({
             </span>
           )}
         </div>
+
+        {/* Linha 3: botão "Adicionar subitem" + input inline (multi-nível) */}
+        {onAddSubtarefa && (
+          <div className="pl-6">
+            {addingForId === st.id ? (
+              <div className="flex items-center gap-1.5">
+                <Input
+                  autoFocus
+                  value={addingValue}
+                  onChange={(e) => setAddingValue(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      const v = addingValue.trim();
+                      if (v) {
+                        onAddSubtarefa(v, st.id, st.secao_id);
+                        setCollapsedIds((prev) => {
+                          const n = new Set(prev);
+                          n.delete(st.id);
+                          return n;
+                        });
+                      }
+                      setAddingValue("");
+                      setAddingForId(null);
+                    } else if (e.key === "Escape") {
+                      setAddingValue("");
+                      setAddingForId(null);
+                    }
+                  }}
+                  onBlur={() => {
+                    const v = addingValue.trim();
+                    if (v) onAddSubtarefa(v, st.id, st.secao_id);
+                    setAddingValue("");
+                    setAddingForId(null);
+                  }}
+                  placeholder="Título do subitem..."
+                  className="h-7 text-xs flex-1"
+                />
+              </div>
+            ) : (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-6 text-[10px] gap-1 text-muted-foreground hover:text-primary opacity-0 group-hover:opacity-100 transition-opacity"
+                onClick={() => {
+                  setAddingForId(st.id);
+                  setAddingValue("");
+                }}
+              >
+                <Plus className="h-3 w-3" />
+                Adicionar subitem
+              </Button>
+            )}
+          </div>
+        )}
+
+        {/* Filhos recursivos */}
+        {hasChildren && !isCollapsed && (
+          <div className="space-y-1.5 mt-1">
+            {children.map((child: any) => renderSub(child, depth + 1))}
+          </div>
+        )}
       </div>
     );
   };

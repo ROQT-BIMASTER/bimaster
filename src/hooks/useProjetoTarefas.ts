@@ -339,10 +339,15 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
   });
 
   const tarefasPorSecao = (secaoId: string) => {
+    // Recursive tree: each task gets its direct children populated, and so on (N levels).
+    const buildSubtree = (parentId: string): ProjetoTarefa[] =>
+      tarefas
+        .filter(t => t.parent_tarefa_id === parentId)
+        .map(t => ({ ...t, subtarefas: buildSubtree(t.id) }));
     const parentTasks = tarefas.filter(t => t.secao_id === secaoId && !t.parent_tarefa_id);
     return parentTasks.map(t => ({
       ...t,
-      subtarefas: tarefas.filter(st => st.parent_tarefa_id === t.id),
+      subtarefas: buildSubtree(t.id),
     }));
   };
 
