@@ -19,6 +19,8 @@ import {
 import { formatCurrency } from "@/lib/formatters";
 import { parseLocalDate } from "@/lib/utils/parseLocalDate";
 import { useClientesLista, useClientesFiltrados } from "@/hooks/fornecedor/useClientesLista";
+import { FuturaBackButton } from "@/components/fornecedor/FuturaBackButton";
+import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 
 function fmtDate(s: string | null): string {
   const d = parseLocalDate(s);

@@ -4,6 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/ui/page-header";
 import { ClienteHistoricoCompraChart } from "@/components/fornecedor/clientes/ClienteHistoricoCompraChart";
 import { Users } from "lucide-react";
+import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
+import { FuturaBackButton } from "@/components/fornecedor/FuturaBackButton";
 
 const sb = supabase as any;
 

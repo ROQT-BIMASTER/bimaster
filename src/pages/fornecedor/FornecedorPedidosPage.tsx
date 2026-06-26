@@ -14,6 +14,7 @@ import { useFornecedorPedidos } from "@/hooks/fornecedor/useFornecedorPedidos";
 import { PedidosKanban } from "@/components/fornecedor/pedidos/PedidosKanban";
 import { PedidosTable } from "@/components/fornecedor/pedidos/PedidosTable";
 import { PedidoDetalheDrawer } from "@/components/fornecedor/pedidos/PedidoDetalheDrawer";
+import { FuturaBackButton } from "@/components/fornecedor/FuturaBackButton";
 import type { PedidoFornecedor } from "@/hooks/fornecedor/useFornecedorPedidos";
 
 export default function FornecedorPedidosPage() {

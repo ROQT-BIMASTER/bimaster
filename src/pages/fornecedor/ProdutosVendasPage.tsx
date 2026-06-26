@@ -38,6 +38,8 @@ import {
   type ProdutoResumo,
 } from "@/hooks/fornecedor/useVendasProduto";
 import { ProdutoDemandaDrawer } from "@/components/fornecedor/ProdutoDemandaDrawer";
+import { FuturaBackButton } from "@/components/fornecedor/FuturaBackButton";
+import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 
 type Servico = 90 | 95 | 98;
 

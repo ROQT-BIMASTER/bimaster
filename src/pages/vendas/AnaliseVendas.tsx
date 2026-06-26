@@ -9,6 +9,8 @@ import { RankingTabs } from "@/components/vendas/RankingTabs";
 import { TopClientesTable } from "@/components/vendas/TopClientesTable";
 import { NotasPeriodoTable } from "@/components/vendas/NotasPeriodoTable";
 import { useVendasKpis, useVendasSerieMensal, type VendasFilters } from "@/hooks/useVendasAnalise";
+import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
+import { FuturaBackButton } from "@/components/fornecedor/FuturaBackButton";
 
 function defaultFilters(): VendasFilters {
   const now = new Date();
