@@ -35,8 +35,10 @@ export default function ClientesListPage() {
   const rows = useClientesFiltrados(data, search);
 
   return (
-    <div className="w-full px-4 md:px-6 py-6 space-y-4">
-      <PageHeader
+    <DashboardLayout>
+      <div className="w-full px-4 md:px-6 py-6 space-y-4">
+        <FuturaBackButton />
+        <PageHeader
         title="Clientes (histórico)"
         description="Lista de clientes com histórico de compras na Futura"
         icon={Users}
