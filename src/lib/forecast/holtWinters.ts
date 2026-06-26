@@ -12,7 +12,7 @@
  *   lo é clamped em 0 — vendas/quantidades não podem ser negativas.
  */
 
-export type ForecastMethod = "holt-winters" | "holt" | "linear" | "insufficient";
+export type ForecastMethod = "holt-winters" | "holt" | "linear" | "insufficient" | "croston-sba";
 
 export interface ForecastPoint {
   /** valor previsto */
