@@ -43,10 +43,11 @@ export function SplashScreen({ progress, status, onComplete }: SplashScreenProps
         {/* Logo */}
         <div className="mb-8 relative">
           <div className="absolute inset-0 bg-primary/20 rounded-full blur-3xl animate-pulse" />
-          <img 
-            src={logoHuugs} 
-            alt="Huugs MakeUp" 
-            className="h-24 w-auto relative z-10 drop-shadow-lg"
+          <img
+            src={logoHuugs}
+            alt="Huugs MakeUp"
+            data-testid="app-logo"
+            className="h-20 sm:h-24 w-auto max-w-[200px] relative z-10 drop-shadow-lg object-contain"
           />
         </div>
         
