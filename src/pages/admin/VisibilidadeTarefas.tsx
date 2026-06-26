@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { SidebarSwitch } from "@/components/navigation/v2/SidebarSwitch";
+import { AppHeaderBar } from "@/components/dashboard/AppHeaderBar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -61,7 +62,9 @@ export default function VisibilidadeTarefas() {
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-background">
         <SidebarSwitch />
-        <main className="flex-1 overflow-auto p-6 space-y-4">
+        <main className="flex-1 overflow-auto">
+          <AppHeaderBar />
+          <div className="p-6 space-y-4">
           <div className="flex items-center gap-2">
             <ShieldQuestion className="h-5 w-5 text-primary" />
             <h1 className="text-xl font-semibold">Depuração de visibilidade de tarefas</h1>

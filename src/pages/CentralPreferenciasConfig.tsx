@@ -6,6 +6,7 @@ import { ArrowLeft, Home, RotateCcw, Save, Settings } from "lucide-react";
 
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { SidebarSwitch } from "@/components/navigation/v2/SidebarSwitch";
+import { AppHeaderBar } from "@/components/dashboard/AppHeaderBar";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -187,6 +188,7 @@ export default function CentralPreferenciasConfig() {
       <div className="min-h-screen flex w-full bg-background">
         <SidebarSwitch />
         <main className="flex-1 overflow-auto">
+          <AppHeaderBar />
           <div className="p-6 max-w-4xl mx-auto space-y-5">
             <Breadcrumb>
               <BreadcrumbList>
