@@ -73,7 +73,37 @@ type Row = ProdutoResumo & {
   rop: number;
   es: number;
   status: StatusEstoque;
+  marca_linha: string;
 };
+
+type SortKey =
+  | "cod_produto" | "descricao" | "marca_linha"
+  | "qtd_total" | "valor_total" | "media_mensal" | "desvio_mensal" | "cv"
+  | "classe_abc" | "classe_xyz"
+  | "estoque_cx" | "cobertura" | "status";
+type SortState = { key: SortKey; dir: "asc" | "desc" } | null;
+
+const ABC_ORDER: Record<string, number> = { A: 0, B: 1, C: 2 };
+const XYZ_ORDER: Record<string, number> = { X: 0, Y: 1, Z: 2 };
+const STATUS_ORDER: Record<StatusEstoque, number> = { critico: 0, repor: 1, excesso: 2, ok: 3 };
+
+function sortValue(r: Row, key: SortKey): number | string {
+  switch (key) {
+    case "cod_produto": return r.cod_produto ?? "";
+    case "descricao":   return (r.descricao ?? "").toLowerCase();
+    case "marca_linha": return r.marca_linha.toLowerCase();
+    case "qtd_total":   return Number(r.qtd_total) || 0;
+    case "valor_total": return Number(r.valor_total) || 0;
+    case "media_mensal":return Number(r.media_mensal) || 0;
+    case "desvio_mensal":return Number(r.desvio_mensal) || 0;
+    case "cv":          return r.cv === null ? Number.POSITIVE_INFINITY : Number(r.cv);
+    case "classe_abc":  return ABC_ORDER[r.classe_abc] ?? 99;
+    case "classe_xyz":  return XYZ_ORDER[r.classe_xyz] ?? 99;
+    case "estoque_cx":  return r.estoque_atual_cx ?? (Number(r.estoque_atual) || 0);
+    case "cobertura":   return Number.isFinite(r.cobertura) ? r.cobertura : Number.MAX_SAFE_INTEGER;
+    case "status":      return STATUS_ORDER[r.status];
+  }
+}
 
 export default function ProdutosVendasPage() {
   const [janela, setJanela] = useState<Janela>("12m");
