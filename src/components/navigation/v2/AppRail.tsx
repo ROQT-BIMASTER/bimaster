@@ -49,7 +49,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import logoHuugs from "@/assets/logo-huugs.jpg";
+
 import { useAuth } from "@/contexts/AuthContext";
 import { resolveIcon } from "./icon";
 import { ContextualSidebar } from "./ContextualSidebar";

@@ -13,7 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useSidebarConfig } from "@/hooks/useSidebarConfig";
-import logoHuugs from "@/assets/logo-huugs.jpg";
+
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Popover,
