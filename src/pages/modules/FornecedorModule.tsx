@@ -1,7 +1,7 @@
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Link } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowRight, BarChart3, Warehouse, ArrowUpDown, Truck } from "lucide-react";
+import { ArrowRight, BarChart3, Warehouse, ArrowUpDown, Truck, ShoppingCart } from "lucide-react";
 
 const items = [
   {
@@ -21,6 +21,15 @@ const items = [
     accent: "border-l-indigo-500",
     iconBg: "bg-indigo-100 dark:bg-indigo-900/40",
     iconColor: "text-indigo-600 dark:text-indigo-400",
+  },
+  {
+    to: "/dashboard/fornecedor/pedidos",
+    title: "Pedidos em andamento",
+    desc: "Kanban e tabela dos pedidos de venda com tempo em cada etapa",
+    icon: ShoppingCart,
+    accent: "border-l-cyan-500",
+    iconBg: "bg-cyan-100 dark:bg-cyan-900/40",
+    iconColor: "text-cyan-600 dark:text-cyan-400",
   },
   {
     to: "/dashboard/fornecedor/depara-ean",
