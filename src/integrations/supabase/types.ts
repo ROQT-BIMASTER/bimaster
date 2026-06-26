@@ -15430,6 +15430,8 @@ export type Database = {
           cliente_cnpj_cpf: string | null
           cliente_futura_id: number | null
           cliente_nome: string | null
+          cond_pagto_desc: string | null
+          cond_pagto_id: number | null
           created_at: string
           data_cancelamento: string | null
           data_emissao: string | null
@@ -15461,6 +15463,8 @@ export type Database = {
           cliente_cnpj_cpf?: string | null
           cliente_futura_id?: number | null
           cliente_nome?: string | null
+          cond_pagto_desc?: string | null
+          cond_pagto_id?: number | null
           created_at?: string
           data_cancelamento?: string | null
           data_emissao?: string | null
@@ -15492,6 +15496,8 @@ export type Database = {
           cliente_cnpj_cpf?: string | null
           cliente_futura_id?: number | null
           cliente_nome?: string | null
+          cond_pagto_desc?: string | null
+          cond_pagto_id?: number | null
           created_at?: string
           data_cancelamento?: string | null
           data_emissao?: string | null
@@ -15542,6 +15548,60 @@ export type Database = {
           futura_pedido_id?: number
           id?: never
           mudou_em?: string
+        }
+        Relationships: []
+      }
+      erp_pedidos_item: {
+        Row: {
+          cod_produto: string | null
+          created_at: string
+          desconto_valor: number | null
+          descricao: string | null
+          ean: string | null
+          futura_item_id: number
+          futura_pedido_id: number
+          id: number
+          produto_futura_id: number | null
+          quantidade: number | null
+          raw: Json | null
+          sequencia: number | null
+          sincronizado_em: string
+          total_item: number | null
+          valor_unitario: number | null
+        }
+        Insert: {
+          cod_produto?: string | null
+          created_at?: string
+          desconto_valor?: number | null
+          descricao?: string | null
+          ean?: string | null
+          futura_item_id: number
+          futura_pedido_id: number
+          id?: never
+          produto_futura_id?: number | null
+          quantidade?: number | null
+          raw?: Json | null
+          sequencia?: number | null
+          sincronizado_em?: string
+          total_item?: number | null
+          valor_unitario?: number | null
+        }
+        Update: {
+          cod_produto?: string | null
+          created_at?: string
+          desconto_valor?: number | null
+          descricao?: string | null
+          ean?: string | null
+          futura_item_id?: number
+          futura_pedido_id?: number
+          id?: never
+          produto_futura_id?: number | null
+          quantidade?: number | null
+          raw?: Json | null
+          sequencia?: number | null
+          sincronizado_em?: string
+          total_item?: number | null
+          valor_unitario?: number | null
         }
         Relationships: []
       }
@@ -51694,6 +51754,8 @@ export type Database = {
           cliente_cnpj_cpf: string | null
           cliente_futura_id: number | null
           cliente_nome: string | null
+          cond_pagto_desc: string | null
+          cond_pagto_id: number | null
           data_cancelamento: string | null
           data_emissao: string | null
           data_movimentacao: string | null
