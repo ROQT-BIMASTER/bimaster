@@ -1,10 +1,7 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
-import { ArrowLeft } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { parseLocalDate } from "@/lib/utils/parseLocalDate";
-import { Button } from "@/components/ui/button";
 import { FiltrosBar } from "@/components/vendas/FiltrosBar";
 import { KPICards } from "@/components/vendas/KPICards";
 import { EvolucaoMensalChart } from "@/components/vendas/EvolucaoMensalChart";
@@ -40,12 +37,7 @@ export default function AnaliseVendas() {
 
   return (
     <div className="vendas-theme min-h-screen" style={{ background: "hsl(var(--vendas-bg))" }}>
-      <div className="p-4 md:p-8 max-w-[1600px] mx-auto space-y-5">
-        <Button asChild variant="ghost" size="sm" className="-ml-2 w-fit text-muted-foreground hover:text-foreground">
-          <Link to="/dashboard/fornecedor">
-            <ArrowLeft className="mr-2 h-4 w-4" /> Voltar ao módulo Fornecedor
-          </Link>
-        </Button>
+      <div className="w-full px-4 md:px-6 py-6 space-y-5">
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div>
             <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-foreground">Análise de Vendas</h1>
