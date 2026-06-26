@@ -16,6 +16,8 @@ export type ProdutoResumo = {
   classe_abc: "A" | "B" | "C";
   classe_xyz: "X" | "Y" | "Z";
   estoque_atual: number;
+  estoque_atual_cx: number | null;
+  fator_un_por_cx: number | null;
 };
 
 function toIsoDate(d: Date): string {
