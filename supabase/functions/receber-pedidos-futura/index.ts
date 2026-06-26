@@ -97,7 +97,7 @@ Deno.serve(secureHandler(
     }
     const parsed = BodySchema.safeParse(raw);
     if (!parsed.success) {
-      return json(400, { error: "validation_error", details: parsed.error.flatten() });
+      return json(400, { error: "validation_error", v: "extras-a2", details: parsed.error.flatten() });
     }
     const { tipo, periodo_de, periodo_ate, pedidos } = parsed.data;
 
