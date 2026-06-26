@@ -380,6 +380,7 @@ const AsanaImportacao = lazyWithRetry(() => import("./pages/admin/AsanaImportaca
 const DedupePerfis = lazyWithRetry(() => import("./pages/admin/DedupePerfis"));
 const EstoqueModule = lazyWithRetry(() => import("./pages/modules/EstoqueModule"));
 const FornecedorModule = lazyWithRetry(() => import("./pages/modules/FornecedorModule"));
+const FornecedorPedidosPage = lazyWithRetry(() => import("./pages/fornecedor/FornecedorPedidosPage"));
 const EstoqueDistribuidoras = lazyWithRetry(() => import("./pages/EstoqueDistribuidoras"));
 const EstoqueProdutosMaster = lazyWithRetry(() => import("./pages/EstoqueProdutosMaster"));
 const EstoqueSaldos = lazyWithRetry(() => import("./pages/EstoqueSaldos"));
@@ -748,6 +749,7 @@ function AppContent() {
             <Route path="/dashboard/fornecedor/vendas" element={<ModuleRoute moduleCode="fornecedor"><ScreenProtectedRoute screenCode="fornecedor_vendas"><AnaliseVendas /></ScreenProtectedRoute></ModuleRoute>} />
             <Route path="/dashboard/fornecedor/estoque" element={<ModuleRoute moduleCode="fornecedor"><ScreenProtectedRoute screenCode="fornecedor_estoque"><FornecedorEstoquePage /></ScreenProtectedRoute></ModuleRoute>} />
             <Route path="/dashboard/fornecedor/depara-ean" element={<ModuleRoute moduleCode="fornecedor"><ScreenProtectedRoute screenCode="fornecedor_depara_ean"><FornecedorDeParaEanPage /></ScreenProtectedRoute></ModuleRoute>} />
+            <Route path="/dashboard/fornecedor/pedidos" element={<ModuleRoute moduleCode="fornecedor"><FornecedorPedidosPage /></ModuleRoute>} />
             <Route path="/dashboard/estoque/fornecedor" element={<Navigate to="/dashboard/fornecedor/estoque" replace />} />
             <Route path="/dashboard/estoque/fornecedor-depara" element={<Navigate to="/dashboard/fornecedor/depara-ean" replace />} />
             <Route path="/dashboard/clientes" element={<ModuleRoute moduleCode="central_inteligencia"><ScreenProtectedRoute screenCode="ci_clientes"><AnaliseClientes /></ScreenProtectedRoute></ModuleRoute>} />
