@@ -39,7 +39,7 @@ const AguardandoAprovacao = () => {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-secondary/20 p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center space-y-4">
-          <img src={logoHuugs} alt="Huugs MakeUp" className="h-16 mx-auto" />
+          <img src={logoHuugs} alt="Huugs MakeUp" data-testid="app-logo" className="h-12 sm:h-16 w-auto max-w-[160px] mx-auto object-contain" />
           <div className="space-y-2">
             <CardTitle className="text-2xl">Aguardando Aprovação</CardTitle>
             <CardDescription>

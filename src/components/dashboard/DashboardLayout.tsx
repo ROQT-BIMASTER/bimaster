@@ -165,7 +165,12 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
         >
           <header className="sticky top-0 z-30 h-[var(--app-header-height)] border-b border-border flex items-center justify-between px-2 sm:px-4 bg-card">
             <div className="flex items-center gap-2 sm:gap-4">
-              <img src={logoHuugs} alt="Huugs MakeUp" className="h-7 sm:h-8 w-auto object-contain shrink-0" />
+              <img
+                src={logoHuugs}
+                alt="Huugs MakeUp"
+                data-testid="app-logo"
+                className="h-6 sm:h-7 md:h-8 w-auto max-w-[96px] sm:max-w-[120px] md:max-w-[140px] object-contain shrink-0"
+              />
               <SidebarTrigger aria-label="Alternar menu lateral" />
               <h1 className="hidden sm:block text-[20px] font-bold text-foreground">{t("system.title")}</h1>
             </div>

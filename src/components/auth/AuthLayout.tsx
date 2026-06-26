@@ -28,7 +28,8 @@ export const AuthLayout = ({ children }: AuthLayoutProps) => {
           <img
             src={logoHuugs}
             alt="Huugs MakeUp"
-            className="mx-auto h-16 w-auto mb-4 rounded-lg shadow-sm"
+            data-testid="app-logo"
+            className="mx-auto h-14 sm:h-16 w-auto max-w-[160px] mb-4 rounded-lg shadow-sm object-contain"
           />
           <h1 className="text-3xl font-bold text-foreground mb-1">{t("auth.system_title")}</h1>
           <p className="text-sm text-muted-foreground">{t("auth.system_subtitle")}</p>
