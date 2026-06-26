@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { AlertTriangle, Zap, Maximize2, Minimize2, LineChart } from "lucide-react";
+import { AlertTriangle, Zap, Maximize2, Minimize2, LineChart, MapPin, Truck } from "lucide-react";
 import { ClienteHistoricoCompraDialog } from "./ClienteHistoricoCompraDialog";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
