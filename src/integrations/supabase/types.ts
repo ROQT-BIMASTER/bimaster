@@ -15438,14 +15438,18 @@ export type Database = {
           data_movimentacao: string | null
           data_previsao: string | null
           empresa_id: number | null
+          endereco_cep: string | null
+          endereco_entrega: string | null
           etapa: string
           etapa_desde: string | null
           etapa_ordem: number | null
           futura_pedido_id: number
           id: number
           motivo_cancelamento: string | null
+          nf_numero: number | null
           nro_pedido: string | null
           observacao: string | null
+          rastreio_link: string | null
           raw: Json | null
           sincronizado_em: string
           situacao_desc: string | null
@@ -15471,14 +15475,18 @@ export type Database = {
           data_movimentacao?: string | null
           data_previsao?: string | null
           empresa_id?: number | null
+          endereco_cep?: string | null
+          endereco_entrega?: string | null
           etapa: string
           etapa_desde?: string | null
           etapa_ordem?: number | null
           futura_pedido_id: number
           id?: never
           motivo_cancelamento?: string | null
+          nf_numero?: number | null
           nro_pedido?: string | null
           observacao?: string | null
+          rastreio_link?: string | null
           raw?: Json | null
           sincronizado_em?: string
           situacao_desc?: string | null
@@ -15504,14 +15512,18 @@ export type Database = {
           data_movimentacao?: string | null
           data_previsao?: string | null
           empresa_id?: number | null
+          endereco_cep?: string | null
+          endereco_entrega?: string | null
           etapa?: string
           etapa_desde?: string | null
           etapa_ordem?: number | null
           futura_pedido_id?: number
           id?: never
           motivo_cancelamento?: string | null
+          nf_numero?: number | null
           nro_pedido?: string | null
           observacao?: string | null
+          rastreio_link?: string | null
           raw?: Json | null
           sincronizado_em?: string
           situacao_desc?: string | null
@@ -51766,13 +51778,17 @@ export type Database = {
           dias_na_etapa: number | null
           em_andamento: boolean | null
           empresa_id: number | null
+          endereco_cep: string | null
+          endereco_entrega: string | null
           etapa: string | null
           etapa_desde: string | null
           etapa_ordem: number | null
           futura_pedido_id: number | null
           motivo_cancelamento: string | null
+          nf_numero: number | null
           nro_pedido: string | null
           observacao: string | null
+          rastreio_link: string | null
           sincronizado_em: string | null
           situacao_desc: string | null
           situacao_id: number | null
