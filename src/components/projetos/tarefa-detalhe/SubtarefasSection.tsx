@@ -301,7 +301,7 @@ export function SubtarefasSection({
                       e.preventDefault();
                       const v = addingValue.trim();
                       if (v) {
-                        onAddSubtarefa(v, st.id, st.secao_id);
+                        addChildOf(st, v);
                         setCollapsedIds((prev) => {
                           const n = new Set(prev);
                           n.delete(st.id);
@@ -317,12 +317,13 @@ export function SubtarefasSection({
                   }}
                   onBlur={() => {
                     const v = addingValue.trim();
-                    if (v) onAddSubtarefa(v, st.id, st.secao_id);
+                    if (v) addChildOf(st, v);
                     setAddingValue("");
                     setAddingForId(null);
                   }}
                   placeholder="Título do subitem..."
                   className="h-7 text-xs flex-1"
+                  data-testid={`subitem-input-${st.id}`}
                 />
               </div>
             ) : (
@@ -334,6 +335,7 @@ export function SubtarefasSection({
                   setAddingForId(st.id);
                   setAddingValue("");
                 }}
+                data-testid={`subitem-add-${st.id}`}
               >
                 <Plus className="h-3 w-3" />
                 Adicionar subitem
