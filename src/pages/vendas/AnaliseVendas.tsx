@@ -28,6 +28,7 @@ function defaultFilters(): VendasFilters {
 
 export default function AnaliseVendas() {
   const [filters, setFilters] = useState<VendasFilters>(defaultFilters);
+  const [unidade, setUnidade] = useState<Unidade>(() => loadUnidade());
 
   const kpis = useVendasKpis(filters);
   const serie = useVendasSerieMensal(filters);
@@ -51,14 +52,17 @@ export default function AnaliseVendas() {
               Vendas faturadas (saída) · ano de {ano}
             </p>
           </div>
-          <div className="rounded-full bg-card border border-border px-4 py-2 text-xs text-muted-foreground shadow-sm">
-            Período: <span className="font-medium text-foreground">{periodoLabel}</span>
+          <div className="flex items-center gap-3 flex-wrap">
+            <UnidadeToggle value={unidade} onChange={setUnidade} disableCx />
+            <div className="rounded-full bg-card border border-border px-4 py-2 text-xs text-muted-foreground shadow-sm">
+              Período: <span className="font-medium text-foreground">{periodoLabel}</span>
+            </div>
           </div>
         </div>
 
         <FiltrosBar value={filters} onChange={setFilters} />
 
-        <KPICards data={kpis.data} isLoading={kpis.isLoading} ano={ano} />
+        <KPICards data={kpis.data} isLoading={kpis.isLoading} ano={ano} unidade={unidade} />
 
         <EvolucaoMensalChart data={serie.data} isLoading={serie.isLoading} />
 
@@ -67,7 +71,7 @@ export default function AnaliseVendas() {
           <TopClientesTable filters={filters} />
         </div>
 
-        <NotasPeriodoTable filters={filters} />
+        <NotasPeriodoTable filters={filters} unidade={unidade} />
       </div>
     </div>
     </DashboardLayout>
