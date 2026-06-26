@@ -7,7 +7,7 @@ import { MailboxKanban } from "@/components/china/inbox/MailboxKanban";
 import { useChinaMailbox, type MailboxItem } from "@/hooks/useChinaMailbox";
 import { useViewModePreference } from "@/hooks/useViewModePreference";
 import { Button } from "@/components/ui/button";
-import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { SidebarProvider } from "@/components/ui/sidebar";
 import { SidebarSwitch } from "@/components/navigation/v2/SidebarSwitch";
 import { AppHeaderBar } from "@/components/dashboard/AppHeaderBar";
 import {
