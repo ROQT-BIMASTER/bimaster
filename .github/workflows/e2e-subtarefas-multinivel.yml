@@ -1,0 +1,105 @@
+name: e2e-subtarefas-multinivel
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/components/projetos/tarefa-detalhe/SubtarefasSection.tsx'
+      - 'src/hooks/useProjetoTarefas.ts'
+      - 'e2e/projetos/subtarefas-multinivel*.spec.ts'
+      - 'supabase/migrations/**'
+      - '.github/workflows/e2e-subtarefas-multinivel.yml'
+  pull_request:
+    paths:
+      - 'src/components/projetos/tarefa-detalhe/SubtarefasSection.tsx'
+      - 'src/hooks/useProjetoTarefas.ts'
+      - 'e2e/projetos/subtarefas-multinivel*.spec.ts'
+      - 'supabase/migrations/**'
+      - '.github/workflows/e2e-subtarefas-multinivel.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: e2e-subtarefas-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build local
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with: { bun-version: latest }
+      - run: bun install --frozen-lockfile
+      - name: Vite build
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+          VITE_SUPABASE_PROJECT_ID: ${{ secrets.VITE_SUPABASE_PROJECT_ID }}
+        run: bun run build
+
+  e2e:
+    name: Playwright — Subtarefas multi-nível
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with: { bun-version: latest }
+      - run: bun install --frozen-lockfile
+      - name: Install Playwright browsers
+        run: bunx playwright install --with-deps chromium
+
+      # Estratégia anti-flakiness:
+      # - retries: 2 (definido em playwright.config.ts quando CI=true)
+      # - workers: 1 (suíte compartilha seed/projeto)
+      # - actionTimeout 15s + navigationTimeout 30s + expect timeout 10s
+      # - waits explícitos (expect.toBeVisible/toHaveURL) — sem sleeps fixos
+      # - aquece o preview com curl antes de logar para evitar cold-start
+      - name: Warm-up do preview (cold-start guard)
+        env:
+          E2E_BASE_URL: ${{ secrets.E2E_BASE_URL }}
+        run: |
+          for i in 1 2 3; do
+            code=$(curl -s -o /dev/null -w "%{http_code}" "$E2E_BASE_URL/" || echo "000")
+            echo "warm-up $i -> $code"
+            [ "$code" = "200" ] && break
+            sleep 3
+          done
+
+      - name: Run Playwright (subtarefas multi-nível)
+        env:
+          CI: "true"
+          E2E_BASE_URL: ${{ secrets.E2E_BASE_URL }}
+          E2E_TEST_EMAIL: ${{ secrets.E2E_TEST_EMAIL }}
+          E2E_TEST_PASSWORD: ${{ secrets.E2E_TEST_PASSWORD }}
+          E2E_OUTSIDER_EMAIL: ${{ secrets.E2E_OUTSIDER_EMAIL }}
+          E2E_OUTSIDER_PASSWORD: ${{ secrets.E2E_OUTSIDER_PASSWORD }}
+          E2E_PROJETO_ID: ${{ secrets.E2E_PROJETO_ID }}
+          E2E_SECAO_ID: ${{ secrets.E2E_SECAO_ID }}
+          E2E_OUTRO_PROJETO_ID: ${{ secrets.E2E_OUTRO_PROJETO_ID }}
+          E2E_OUTRO_PROJETO_TAREFA: ${{ secrets.E2E_OUTRO_PROJETO_TAREFA }}
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+        run: bunx playwright test e2e/projetos/subtarefas-multinivel --reporter=list,html
+
+      - name: Upload HTML report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-subtarefas-${{ github.run_id }}
+          path: playwright-report
+          retention-days: 14
+          if-no-files-found: ignore
+
+      - name: Upload test-results (screenshots/vídeo/traces)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-results-subtarefas-${{ github.run_id }}
+          path: test-results
+          retention-days: 14
+          if-no-files-found: ignore
