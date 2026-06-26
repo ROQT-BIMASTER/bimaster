@@ -13,6 +13,8 @@ import { DateRangeFilter } from "@/components/shared/DateRangeFilter";
 import { useFornecedorPedidos } from "@/hooks/fornecedor/useFornecedorPedidos";
 import { PedidosKanban } from "@/components/fornecedor/pedidos/PedidosKanban";
 import { PedidosTable } from "@/components/fornecedor/pedidos/PedidosTable";
+import { PedidoDetalheDrawer } from "@/components/fornecedor/pedidos/PedidoDetalheDrawer";
+import type { PedidoFornecedor } from "@/hooks/fornecedor/useFornecedorPedidos";
 
 export default function FornecedorPedidosPage() {
   const [dateFrom, setDateFrom] = useState<Date | undefined>(() => subDays(new Date(), 30));
@@ -20,6 +22,7 @@ export default function FornecedorPedidosPage() {
   const [busca, setBusca] = useState("");
   const [limiarParado, setLimiarParado] = useState(2);
   const [view, setView] = useState<"kanban" | "tabela">("kanban");
+  const [pedidoSelecionado, setPedidoSelecionado] = useState<PedidoFornecedor | null>(null);
 
   const { data, isLoading, isFetching, refetch, error } = useFornecedorPedidos({ dateFrom, dateTo });
 
@@ -115,7 +118,7 @@ export default function FornecedorPedidosPage() {
             ) : pedidos.length === 0 ? (
               <EmptyState title="Nenhum pedido no período" description="Ajuste o período ou aguarde a próxima sincronização." />
             ) : (
-              <PedidosKanban pedidos={pedidos} limiarParado={limiarParado} />
+              <PedidosKanban pedidos={pedidos} limiarParado={limiarParado} onPedidoClick={setPedidoSelecionado} />
             )}
           </TabsContent>
 
@@ -125,10 +128,17 @@ export default function FornecedorPedidosPage() {
             ) : error ? (
               <EmptyState title="Erro ao carregar pedidos" description={(error as Error).message} />
             ) : (
-              <PedidosTable pedidos={pedidos} limiarParado={limiarParado} />
+              <PedidosTable pedidos={pedidos} limiarParado={limiarParado} onPedidoClick={setPedidoSelecionado} />
             )}
           </TabsContent>
         </Tabs>
+
+        <PedidoDetalheDrawer
+          pedido={pedidoSelecionado}
+          open={pedidoSelecionado !== null}
+          onOpenChange={(o) => { if (!o) setPedidoSelecionado(null); }}
+          limiarParado={limiarParado}
+        />
       </div>
     </DashboardLayout>
   );

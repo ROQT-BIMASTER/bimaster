@@ -8,17 +8,32 @@ import { formatTempoEtapa, getEtapaTheme } from "./etapaTheme";
 interface PedidoCardProps {
   pedido: PedidoFornecedor;
   limiarParado: number;
+  onClick?: (pedido: PedidoFornecedor) => void;
 }
 
-export function PedidoCard({ pedido, limiarParado }: PedidoCardProps) {
+export function PedidoCard({ pedido, limiarParado, onClick }: PedidoCardProps) {
   const theme = getEtapaTheme(pedido.etapa);
   const dias = pedido.dias_na_etapa ?? 0;
   const parado = pedido.em_andamento && dias > limiarParado;
 
   return (
     <div
+      role={onClick ? "button" : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onClick={onClick ? () => onClick(pedido) : undefined}
+      onKeyDown={
+        onClick
+          ? (e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                onClick(pedido);
+              }
+            }
+          : undefined
+      }
       className={cn(
         "rounded-md bg-card border border-border shadow-sm hover:shadow-md transition-shadow p-3 space-y-2",
+        onClick && "cursor-pointer focus:outline-none focus:ring-2 focus:ring-ring",
         theme.border,
       )}
     >

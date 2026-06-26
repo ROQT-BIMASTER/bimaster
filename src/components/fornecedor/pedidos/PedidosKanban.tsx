@@ -8,9 +8,10 @@ import { PedidoCard } from "./PedidoCard";
 interface PedidosKanbanProps {
   pedidos: PedidoFornecedor[];
   limiarParado: number;
+  onPedidoClick?: (pedido: PedidoFornecedor) => void;
 }
 
-export function PedidosKanban({ pedidos, limiarParado }: PedidosKanbanProps) {
+export function PedidosKanban({ pedidos, limiarParado, onPedidoClick }: PedidosKanbanProps) {
   const colunas = useMemo(() => {
     return KANBAN_COLUNAS.map((c) => ({
       ...c,
@@ -34,7 +35,7 @@ export function PedidosKanban({ pedidos, limiarParado }: PedidosKanbanProps) {
                 <p className="text-xs text-muted-foreground text-center py-6">Sem pedidos</p>
               ) : (
                 col.pedidos.map((p) => (
-                  <PedidoCard key={p.futura_pedido_id} pedido={p} limiarParado={limiarParado} />
+                  <PedidoCard key={p.futura_pedido_id} pedido={p} limiarParado={limiarParado} onClick={onPedidoClick} />
                 ))
               )}
             </div>
