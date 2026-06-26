@@ -126,6 +126,7 @@ export default function ClientesListPage() {
           </p>
         )}
       </Card>
-    </div>
+      </div>
+    </DashboardLayout>
   );
 }

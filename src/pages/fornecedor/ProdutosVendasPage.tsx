@@ -126,8 +126,10 @@ export default function ProdutosVendasPage() {
   }, [rows]);
 
   return (
-    <div className="w-full px-4 md:px-6 py-6 space-y-4">
-      <PageHeader
+    <DashboardLayout>
+      <div className="w-full px-4 md:px-6 py-6 space-y-4">
+        <FuturaBackButton />
+        <PageHeader
         title="Vendas por produto"
         description="Demanda, ABC/XYZ, cobertura de estoque e ponto de reposição"
         icon={Package}
