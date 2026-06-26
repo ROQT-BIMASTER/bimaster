@@ -73,19 +73,42 @@ jobs:
           restore-keys: |
             pw-history-${{ matrix.role }}-
 
-      - name: Reset (apaga apenas dados do seed E2E)
+      # Retry com backoff exponencial (5s → 10s → 20s) cobre falhas
+      # transitórias do Auth Admin / PostgREST (rate-limit, cold-start,
+      # blip de rede). Reset e seed são idempotentes — repetir é seguro.
+      - name: Reset (apaga apenas dados do seed E2E, com retry)
         env:
           SUPABASE_URL: ${{ secrets.E2E_SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.E2E_SUPABASE_SERVICE_ROLE_KEY }}
-        run: bun run scripts/seed/e2e-aprovacoes-reset.ts
+        run: |
+          attempts=3; delay=5; rc=1
+          for i in $(seq 1 "$attempts"); do
+            echo "::group::Reset tentativa $i/$attempts"
+            if bun run scripts/seed/e2e-aprovacoes-reset.ts; then
+              rc=0; echo "::endgroup::"; break
+            fi
+            echo "::endgroup::"
+            [ "$i" -lt "$attempts" ] && { echo "Backoff ${delay}s…"; sleep "$delay"; delay=$(( delay * 2 )); }
+          done
+          [ "$rc" -eq 0 ] || { echo "::error::Reset falhou após $attempts tentativas."; exit "$rc"; }
 
-      - name: Seed determinístico (ownership do papel ${{ matrix.role }})
+      - name: Seed determinístico (ownership do papel ${{ matrix.role }}, com retry)
         env:
           SUPABASE_URL: ${{ secrets.E2E_SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.E2E_SUPABASE_SERVICE_ROLE_KEY }}
           E2E_TEST_EMAIL: ${{ secrets[matrix.email_secret] }}
           E2E_SUPERVISOR_EMAIL: ${{ secrets.E2E_SUPERVISOR_EMAIL }}
-        run: bun run scripts/seed/e2e-aprovacoes.ts
+        run: |
+          attempts=3; delay=5; rc=1
+          for i in $(seq 1 "$attempts"); do
+            echo "::group::Seed tentativa $i/$attempts"
+            if bun run scripts/seed/e2e-aprovacoes.ts; then
+              rc=0; echo "::endgroup::"; break
+            fi
+            echo "::endgroup::"
+            [ "$i" -lt "$attempts" ] && { echo "Backoff ${delay}s…"; sleep "$delay"; delay=$(( delay * 2 )); }
+          done
+          [ "$rc" -eq 0 ] || { echo "::error::Seed falhou após $attempts tentativas."; exit "$rc"; }
 
       - name: Smoke tests de permissão (com retries isolados)
         env:
