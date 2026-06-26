@@ -103,7 +103,7 @@ export function useVendasTopClientes(f: VendasFilters, limite = 10) {
     queryKey: ["vendas_top_clientes", f, limite],
     queryFn: async () => {
       const { data, error } = await sb.rpc("vendas_top_clientes", {
-        ...rpcParams(f), p_limite: limite,
+        ...rpcParams(f), p_limit: limite,
       });
       if (error) throw error;
       return (data || []).map((r: any) => ({
