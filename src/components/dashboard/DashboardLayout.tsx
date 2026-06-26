@@ -1,8 +1,8 @@
 import { ReactNode, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { SidebarProvider } from "@/components/ui/sidebar";
 import { SidebarSwitch } from "@/components/navigation/v2/SidebarSwitch";
-import logoHuugs from "@/assets/logo-huugs.jpg";
+import { AppHeaderBar } from "@/components/dashboard/AppHeaderBar";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { MencoesBell } from "@/components/notifications/MencoesBell";
 import { useMencoesNotifications } from "@/hooks/useMencoesNotifications";
@@ -163,43 +163,39 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
           className="flex-1 min-w-0"
           style={{ ["--app-header-height" as any]: "52px" }}
         >
-          <header className="sticky top-0 z-30 h-[var(--app-header-height)] border-b border-border flex items-center justify-between px-2 sm:px-4 bg-card">
-            <div className="flex items-center gap-2 sm:gap-4">
-              <img
-                src={logoHuugs}
-                alt="Huugs MakeUp"
-                data-testid="app-logo"
-                className="h-6 sm:h-7 md:h-8 w-auto max-w-[96px] sm:max-w-[120px] md:max-w-[140px] object-contain shrink-0"
-              />
-              <SidebarTrigger aria-label="Alternar menu lateral" />
-              <h1 className="hidden sm:block text-[20px] font-bold text-foreground">{t("system.title")}</h1>
-            </div>
-            <div className="flex items-center gap-1.5 sm:gap-3">
-              <button
-                onClick={() => setCmdOpen(true)}
-                className="inline-flex items-center justify-center rounded-md border border-border bg-muted/50 p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-                aria-label="Busca global (⌘K)"
-                title="Busca global (⌘K)"
-              >
-                <Search className="h-4 w-4" />
-              </button>
-              <button
-                onClick={handleRefreshMenu}
-                disabled={refreshingMenu}
-                className="inline-flex items-center justify-center rounded-md border border-border bg-muted/50 p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors disabled:opacity-60"
-                aria-label="Atualizar menu"
-                title="Atualizar menu"
-              >
-                <RefreshCw className={cn("h-4 w-4", refreshingMenu && "animate-spin")} />
-              </button>
-              <EmpresaSelector compact />
-              <span className="hidden sm:inline-flex"><LanguageSelector /></span>
-              <span className="hidden sm:inline-flex"><ImpersonationSelector /></span>
-              <MencoesBell />
-              <NotificationBell />
-              
-            </div>
-          </header>
+          <AppHeaderBar
+            centerSlot={
+              <h1 className="hidden sm:block text-[20px] font-bold text-foreground truncate">
+                {t("system.title")}
+              </h1>
+            }
+            rightSlot={
+              <>
+                <button
+                  onClick={() => setCmdOpen(true)}
+                  className="inline-flex items-center justify-center rounded-md border border-border bg-muted/50 p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                  aria-label="Busca global (⌘K)"
+                  title="Busca global (⌘K)"
+                >
+                  <Search className="h-4 w-4" />
+                </button>
+                <button
+                  onClick={handleRefreshMenu}
+                  disabled={refreshingMenu}
+                  className="inline-flex items-center justify-center rounded-md border border-border bg-muted/50 p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors disabled:opacity-60"
+                  aria-label="Atualizar menu"
+                  title="Atualizar menu"
+                >
+                  <RefreshCw className={cn("h-4 w-4", refreshingMenu && "animate-spin")} />
+                </button>
+                <EmpresaSelector compact />
+                <span className="hidden sm:inline-flex"><LanguageSelector /></span>
+                <span className="hidden sm:inline-flex"><ImpersonationSelector /></span>
+                <MencoesBell />
+                <NotificationBell />
+              </>
+            }
+          />
           <MencoesTitleAlert />
           <CommandPalette open={cmdOpen} onOpenChange={setCmdOpen} />
           {connectionQuality === 'offline' && (

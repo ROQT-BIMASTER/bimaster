@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { SidebarSwitch } from "@/components/navigation/v2/SidebarSwitch";
+import { AppHeaderBar } from "@/components/dashboard/AppHeaderBar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -145,7 +146,9 @@ export default function VisibilidadeDetalheTarefa() {
     <SidebarProvider>
       <div className="flex min-h-screen w-full">
         <SidebarSwitch />
-        <main className="flex-1 p-6 space-y-6">
+        <main className="flex-1">
+          <AppHeaderBar />
+          <div className="p-6 space-y-6">
           <div>
             <h1 className="text-2xl font-semibold">Visibilidade — Detalhe de Tarefa</h1>
             <p className="text-sm text-muted-foreground mt-1">
@@ -235,6 +238,7 @@ export default function VisibilidadeDetalheTarefa() {
               )}
             </CardContent>
           </Card>
+          </div>
         </main>
       </div>
     </SidebarProvider>

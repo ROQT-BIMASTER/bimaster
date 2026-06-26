@@ -1,5 +1,6 @@
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { SidebarSwitch } from "@/components/navigation/v2/SidebarSwitch";
+import { AppHeaderBar } from "@/components/dashboard/AppHeaderBar";
 import { Link } from "react-router-dom";
 import {
   Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList,
@@ -25,6 +26,7 @@ export default function MinhasTarefas() {
               : undefined
           }
         >
+          <AppHeaderBar />
           <div className="p-4 sm:p-6 w-full space-y-4">
             <Breadcrumb className="hidden lg:flex min-h-[24px] items-center">
               <BreadcrumbList className="flex-nowrap">

@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
-import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { SidebarProvider } from "@/components/ui/sidebar";
 import { SidebarSwitch } from "@/components/navigation/v2/SidebarSwitch";
+import { AppHeaderBar } from "@/components/dashboard/AppHeaderBar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -256,6 +257,7 @@ export default function ProjetosRelatorios() {
       <div className="min-h-screen flex w-full bg-background">
         <SidebarSwitch />
         <main className="flex-1 overflow-auto">
+          <AppHeaderBar />
           <div
             className="p-4 sm:p-6 space-y-5 max-w-[1600px] mx-auto"
             style={
@@ -272,7 +274,6 @@ export default function ProjetosRelatorios() {
             {/* Header */}
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2">
-                <SidebarTrigger />
                 <FileText className="h-5 w-5 text-primary" />
                 <h1 className="text-2xl font-bold">Relatórios de Projetos</h1>
               </div>

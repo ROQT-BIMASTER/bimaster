@@ -7,8 +7,9 @@ import { MailboxKanban } from "@/components/china/inbox/MailboxKanban";
 import { useChinaMailbox, type MailboxItem } from "@/hooks/useChinaMailbox";
 import { useViewModePreference } from "@/hooks/useViewModePreference";
 import { Button } from "@/components/ui/button";
-import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { SidebarProvider } from "@/components/ui/sidebar";
 import { SidebarSwitch } from "@/components/navigation/v2/SidebarSwitch";
+import { AppHeaderBar } from "@/components/dashboard/AppHeaderBar";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -648,6 +649,7 @@ export default function ProjetoVincularChina() {
               : undefined
           }
         >
+          <AppHeaderBar />
           <div className="p-4 sm:p-6 space-y-4 w-full">
             {/* Linha 1: Breadcrumb + actions (padrão Central de Trabalho) */}
             <div className="flex items-center justify-between gap-3">
@@ -671,10 +673,10 @@ export default function ProjetoVincularChina() {
                 </BreadcrumbList>
               </Breadcrumb>
               <div className="flex items-center gap-2 shrink-0">
-                <SidebarTrigger />
                 <ProjetoBgColorPicker value={bgColor} onChange={setBgColor} />
               </div>
             </div>
+
 
             {/* Linha 2: Hero (sem ArrowLeft redundante — sidebar já cobre navegação) */}
             <div className="flex items-center gap-3 flex-wrap">
