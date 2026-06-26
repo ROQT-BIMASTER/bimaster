@@ -120,6 +120,7 @@ export default function VisibilidadeTarefas() {
               </CardContent>
             </Card>
           )}
+          </div>
         </main>
       </div>
     </SidebarProvider>
