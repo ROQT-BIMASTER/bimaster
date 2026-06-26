@@ -1,0 +1,1 @@
+ALTER TABLE public.erp_pedidos_sync_log ADD COLUMN IF NOT EXISTS itens_upserted int;

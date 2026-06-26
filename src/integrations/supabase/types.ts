@@ -15611,6 +15611,7 @@ export type Database = {
           erro: string | null
           finished_at: string | null
           id: number
+          itens_upserted: number | null
           pedidos_recebidos: number | null
           pedidos_upserted: number | null
           periodo_ate: string | null
@@ -15624,6 +15625,7 @@ export type Database = {
           erro?: string | null
           finished_at?: string | null
           id?: never
+          itens_upserted?: number | null
           pedidos_recebidos?: number | null
           pedidos_upserted?: number | null
           periodo_ate?: string | null
@@ -15637,6 +15639,7 @@ export type Database = {
           erro?: string | null
           finished_at?: string | null
           id?: never
+          itens_upserted?: number | null
           pedidos_recebidos?: number | null
           pedidos_upserted?: number | null
           periodo_ate?: string | null

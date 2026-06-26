@@ -1,11 +1,24 @@
-// Recebe lotes de pedidos de venda (cabeçalho) do Sistema Futura via conector externo.
+// Recebe lotes de pedidos de venda (cabeçalho + itens) do Sistema Futura via conector externo.
 // Auth: Bearer FUTURA_SYNC_TOKEN (mesmo secret usado por estoque/vendas).
-// Idempotência: upsert em erp_pedidos por futura_pedido_id.
+// Idempotência: upsert em erp_pedidos por futura_pedido_id e erp_pedidos_item por futura_item_id.
 // Trigger erp_pedidos_track_etapa registra mudanças de etapa em erp_pedidos_etapa_log.
 import { z } from "https://esm.sh/zod@3.23.8";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { secureHandler } from "../_shared/secure-handler.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
+
+const ItemSchema = z.object({
+  futura_item_id: z.number().int(),
+  sequencia: z.number().int().optional().nullable(),
+  produto_futura_id: z.number().int().optional().nullable(),
+  cod_produto: z.string().optional().nullable(),
+  ean: z.string().optional().nullable(),
+  descricao: z.string().optional().nullable(),
+  quantidade: z.number().optional().nullable(),
+  valor_unitario: z.number().optional().nullable(),
+  desconto_valor: z.number().optional().nullable(),
+  total_item: z.number().optional().nullable(),
+}).strict();
 
 const PedidoSchema = z.object({
   futura_pedido_id: z.number().int(),
@@ -22,6 +35,8 @@ const PedidoSchema = z.object({
   status: z.number().int().optional().nullable(),
   situacao_id: z.number().int().optional().nullable(),
   situacao_desc: z.string().optional().nullable(),
+  cond_pagto_id: z.number().int().optional().nullable(),
+  cond_pagto_desc: z.string().optional().nullable(),
   etapa: z.string().min(1),
   etapa_ordem: z.number().int().optional().nullable(),
   urgente: z.boolean().optional().nullable(),
@@ -31,6 +46,7 @@ const PedidoSchema = z.object({
   observacao: z.string().optional().nullable(),
   data_cancelamento: z.string().optional().nullable(),
   motivo_cancelamento: z.string().optional().nullable(),
+  itens: z.array(ItemSchema).optional().nullable(),
 }).strict();
 
 const BodySchema = z.object({
@@ -113,33 +129,39 @@ Deno.serve(secureHandler(
     try {
       const now = new Date().toISOString();
 
-      const rows = pedidos.map((p) => ({
-        futura_pedido_id: p.futura_pedido_id,
-        empresa_id: p.empresa_id ?? null,
-        nro_pedido: p.nro_pedido ?? null,
-        tipo_pedido_id: p.tipo_pedido_id ?? null,
-        data_emissao: p.data_emissao ?? null,
-        data_movimentacao: p.data_movimentacao ?? null,
-        data_previsao: p.data_previsao ?? null,
-        cliente_futura_id: p.cliente_futura_id ?? null,
-        cliente_nome: p.cliente_nome ?? null,
-        cliente_cnpj_cpf: p.cliente_cnpj_cpf ?? null,
-        vendedor_futura_id: p.vendedor_futura_id ?? null,
-        status: p.status ?? null,
-        situacao_id: p.situacao_id ?? null,
-        situacao_desc: p.situacao_desc ?? null,
-        etapa: p.etapa,
-        etapa_ordem: p.etapa_ordem ?? null,
-        urgente: p.urgente ?? false,
-        total_produto: p.total_produto ?? null,
-        total_desconto: p.total_desconto ?? null,
-        total_pedido: p.total_pedido ?? null,
-        observacao: p.observacao ?? null,
-        data_cancelamento: p.data_cancelamento ?? null,
-        motivo_cancelamento: p.motivo_cancelamento ?? null,
-        raw: p as unknown as Record<string, unknown>,
-        sincronizado_em: now,
-      }));
+      const rows = pedidos.map((p) => {
+        // raw do cabeçalho não inclui 'itens' (mesmo padrão de erp_vendas)
+        const { itens: _itens, ...header } = p;
+        return {
+          futura_pedido_id: p.futura_pedido_id,
+          empresa_id: p.empresa_id ?? null,
+          nro_pedido: p.nro_pedido ?? null,
+          tipo_pedido_id: p.tipo_pedido_id ?? null,
+          data_emissao: p.data_emissao ?? null,
+          data_movimentacao: p.data_movimentacao ?? null,
+          data_previsao: p.data_previsao ?? null,
+          cliente_futura_id: p.cliente_futura_id ?? null,
+          cliente_nome: p.cliente_nome ?? null,
+          cliente_cnpj_cpf: p.cliente_cnpj_cpf ?? null,
+          vendedor_futura_id: p.vendedor_futura_id ?? null,
+          status: p.status ?? null,
+          situacao_id: p.situacao_id ?? null,
+          situacao_desc: p.situacao_desc ?? null,
+          cond_pagto_id: p.cond_pagto_id ?? null,
+          cond_pagto_desc: p.cond_pagto_desc ?? null,
+          etapa: p.etapa,
+          etapa_ordem: p.etapa_ordem ?? null,
+          urgente: p.urgente ?? false,
+          total_produto: p.total_produto ?? null,
+          total_desconto: p.total_desconto ?? null,
+          total_pedido: p.total_pedido ?? null,
+          observacao: p.observacao ?? null,
+          data_cancelamento: p.data_cancelamento ?? null,
+          motivo_cancelamento: p.motivo_cancelamento ?? null,
+          raw: header as unknown as Record<string, unknown>,
+          sincronizado_em: now,
+        };
+      });
 
       const { error: upErr, count } = await supabase
         .from("erp_pedidos")
@@ -151,18 +173,55 @@ Deno.serve(secureHandler(
 
       const pedidosUpserted = count ?? rows.length;
 
+      // Itens: agrega de todos os pedidos do lote; pedido sem 'itens' -> ignorado.
+      const itemRows: Array<Record<string, unknown>> = [];
+      for (const p of pedidos) {
+        if (!p.itens || p.itens.length === 0) continue;
+        for (const it of p.itens) {
+          itemRows.push({
+            futura_item_id: it.futura_item_id,
+            futura_pedido_id: p.futura_pedido_id,
+            sequencia: it.sequencia ?? null,
+            produto_futura_id: it.produto_futura_id ?? null,
+            cod_produto: it.cod_produto ?? null,
+            ean: it.ean ?? null,
+            descricao: it.descricao ?? null,
+            quantidade: it.quantidade ?? null,
+            valor_unitario: it.valor_unitario ?? null,
+            desconto_valor: it.desconto_valor ?? null,
+            total_item: it.total_item ?? null,
+            raw: it as unknown as Record<string, unknown>,
+            sincronizado_em: now,
+          });
+        }
+      }
+
+      let itensUpserted = 0;
+      if (itemRows.length > 0) {
+        const { error: itErr, count: itCount } = await supabase
+          .from("erp_pedidos_item")
+          .upsert(itemRows, { onConflict: "futura_item_id", count: "exact" });
+        if (itErr) {
+          await finalizeError(itErr.message);
+          return json(500, { error: "itens_upsert_failed", details: itErr.message });
+        }
+        itensUpserted = itCount ?? itemRows.length;
+      }
+
       await supabase
         .from("erp_pedidos_sync_log")
         .update({
           finished_at: new Date().toISOString(),
           status: "ok",
           pedidos_upserted: pedidosUpserted,
+          itens_upserted: itensUpserted,
         })
         .eq("id", logId);
 
       return json(200, {
         ok: true,
         pedidos_upserted: pedidosUpserted,
+        itens_upserted: itensUpserted,
       });
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
