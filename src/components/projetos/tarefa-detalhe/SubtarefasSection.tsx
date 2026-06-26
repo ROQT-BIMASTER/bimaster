@@ -95,6 +95,24 @@ export function SubtarefasSection({
     setSubtarefaValue("");
   };
 
+  /**
+   * Cria subitem de QUALQUER nó da árvore, herdando obrigatoriamente
+   * projeto/seção do nó pai (garantido também por trigger no banco
+   * `trg_validate_tarefa_parent_integrity`). Datas NÃO são herdadas:
+   * o usuário deve configurar `data_prazo` explicitamente após criação.
+   * Permissões/visibilidade derivam do mesmo `projeto_id`, então a RLS
+   * existente cobre subtarefas em qualquer profundidade.
+   */
+  const addChildOf = (parent: typeof allSubs[number], titulo: string) => {
+    if (!onAddSubtarefa || !titulo.trim()) return;
+    // Guard frontend: parent deve pertencer ao mesmo projeto.
+    if (projetoId && (parent as any).projeto_id && (parent as any).projeto_id !== projetoId) {
+      toast.error("Não é possível criar subitem em outro projeto.");
+      return;
+    }
+    onAddSubtarefa(titulo.trim(), parent.id, parent.secao_id);
+  };
+
   const allSubs = tarefa.subtarefas ?? [];
   const pendentes = allSubs.filter((s) => s.status !== "concluida");
   const concluidas = allSubs.filter((s) => s.status === "concluida");
@@ -283,7 +301,7 @@ export function SubtarefasSection({
                       e.preventDefault();
                       const v = addingValue.trim();
                       if (v) {
-                        onAddSubtarefa(v, st.id, st.secao_id);
+                        addChildOf(st, v);
                         setCollapsedIds((prev) => {
                           const n = new Set(prev);
                           n.delete(st.id);
@@ -299,12 +317,13 @@ export function SubtarefasSection({
                   }}
                   onBlur={() => {
                     const v = addingValue.trim();
-                    if (v) onAddSubtarefa(v, st.id, st.secao_id);
+                    if (v) addChildOf(st, v);
                     setAddingValue("");
                     setAddingForId(null);
                   }}
                   placeholder="Título do subitem..."
                   className="h-7 text-xs flex-1"
+                  data-testid={`subitem-input-${st.id}`}
                 />
               </div>
             ) : (
@@ -316,6 +335,7 @@ export function SubtarefasSection({
                   setAddingForId(st.id);
                   setAddingValue("");
                 }}
+                data-testid={`subitem-add-${st.id}`}
               >
                 <Plus className="h-3 w-3" />
                 Adicionar subitem
