@@ -34,7 +34,7 @@ export function useClientesLista() {
         const { data, error } = await sb
           .from("v_vendas")
           .select(
-            "cliente_futura_id, cliente_nome, cliente_cnpj_cpf, quantidade, total_nota, data_emissao",
+            "cliente_futura_id, cliente_nome, cliente_cnpj_cpf, quantidade, total_produto, data_emissao",
           )
           .order("data_emissao", { ascending: false })
           .range(from, from + PAGE - 1);
@@ -48,7 +48,7 @@ export function useClientesLista() {
           const id = Number(row.cliente_futura_id);
           if (!id) continue;
           const ex = acc.get(id);
-          const valor = Number(row.total_nota ?? 0);
+          const valor = Number(row.total_produto ?? 0);
           const qtd = Number(row.quantidade ?? 0);
           const dt = row.data_emissao ?? null;
           if (!ex) {
