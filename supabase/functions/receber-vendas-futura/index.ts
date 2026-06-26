@@ -170,6 +170,9 @@ Deno.serve(secureHandler(
           valor_unitario: it.valor_unitario ?? null,
           desconto_valor: it.desconto_valor ?? null,
           total_item: it.total_item ?? null,
+          unidade_sigla: it.unidade_sigla ?? null,
+          itens_caixa: it.itens_caixa ?? null,
+          quantidade_un: it.quantidade_un ?? null,
           raw: it as unknown as Record<string, unknown>,
           sincronizado_em: now,
         }))
