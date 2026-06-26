@@ -268,6 +268,68 @@ export function SubtarefasSection({
             </span>
           )}
         </div>
+
+        {/* Linha 3: botão "Adicionar subitem" + input inline (multi-nível) */}
+        {onAddSubtarefa && (
+          <div className="pl-6">
+            {addingForId === st.id ? (
+              <div className="flex items-center gap-1.5">
+                <Input
+                  autoFocus
+                  value={addingValue}
+                  onChange={(e) => setAddingValue(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      const v = addingValue.trim();
+                      if (v) {
+                        onAddSubtarefa(v, st.id, st.secao_id);
+                        setCollapsedIds((prev) => {
+                          const n = new Set(prev);
+                          n.delete(st.id);
+                          return n;
+                        });
+                      }
+                      setAddingValue("");
+                      setAddingForId(null);
+                    } else if (e.key === "Escape") {
+                      setAddingValue("");
+                      setAddingForId(null);
+                    }
+                  }}
+                  onBlur={() => {
+                    const v = addingValue.trim();
+                    if (v) onAddSubtarefa(v, st.id, st.secao_id);
+                    setAddingValue("");
+                    setAddingForId(null);
+                  }}
+                  placeholder="Título do subitem..."
+                  className="h-7 text-xs flex-1"
+                />
+              </div>
+            ) : (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-6 text-[10px] gap-1 text-muted-foreground hover:text-primary opacity-0 group-hover:opacity-100 transition-opacity"
+                onClick={() => {
+                  setAddingForId(st.id);
+                  setAddingValue("");
+                }}
+              >
+                <Plus className="h-3 w-3" />
+                Adicionar subitem
+              </Button>
+            )}
+          </div>
+        )}
+
+        {/* Filhos recursivos */}
+        {hasChildren && !isCollapsed && (
+          <div className="space-y-1.5 mt-1">
+            {children.map((child: any) => renderSub(child, depth + 1))}
+          </div>
+        )}
       </div>
     );
   };
