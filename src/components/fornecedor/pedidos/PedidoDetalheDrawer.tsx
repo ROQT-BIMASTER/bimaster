@@ -43,6 +43,13 @@ function fmtDate(d: string | null) {
   return parsed ? format(parsed, "dd/MM/yyyy") : "—";
 }
 
+function formatCep(cep: string | null | undefined) {
+  if (!cep) return "";
+  const digits = cep.replace(/\D/g, "");
+  if (digits.length === 8) return `${digits.slice(0, 5)}-${digits.slice(5)}`;
+  return cep;
+}
+
 function InfoRow({ label, value, valueClassName }: { label: string; value: React.ReactNode; valueClassName?: string }) {
   return (
     <div className="flex flex-col gap-0.5">
