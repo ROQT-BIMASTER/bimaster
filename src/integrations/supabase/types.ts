@@ -56554,6 +56554,8 @@ export type Database = {
           descricao: string
           desvio_mensal: number
           estoque_atual: number
+          estoque_atual_cx: number
+          fator_un_por_cx: number
           marca: string
           media_mensal: number
           meses_com_venda: number
