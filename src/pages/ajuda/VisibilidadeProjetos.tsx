@@ -325,6 +325,7 @@ export default function VisibilidadeProjetos() {
               </AccordionItem>
             </Accordion>
           </section>
+          </div>
         </main>
       </div>
     </SidebarProvider>
