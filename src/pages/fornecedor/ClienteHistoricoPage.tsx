@@ -34,7 +34,7 @@ export default function ClienteHistoricoPage() {
 
   if (!clienteId || Number.isNaN(clienteId)) {
     return (
-      <div className="container mx-auto py-6">
+      <div className="w-full px-4 md:px-6 py-6">
         <p className="text-sm text-muted-foreground">Cliente inválido.</p>
       </div>
     );
