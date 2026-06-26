@@ -238,6 +238,7 @@ export default function VisibilidadeDetalheTarefa() {
               )}
             </CardContent>
           </Card>
+          </div>
         </main>
       </div>
     </SidebarProvider>
