@@ -3,6 +3,7 @@ import { toast } from "sonner";
 import { useSearchParams } from "react-router-dom";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { SidebarSwitch } from "@/components/navigation/v2/SidebarSwitch";
+import { AppHeaderBar } from "@/components/dashboard/AppHeaderBar";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { CalendarDays, ListChecks, Bell, Home, Send } from "lucide-react";
@@ -236,6 +237,7 @@ export default function CentralTrabalho({ defaultTab }: Props) {
               : undefined
           }
         >
+          <AppHeaderBar />
           <div className="p-4 sm:p-6 w-full space-y-4">
             <Breadcrumb className="hidden lg:flex min-h-[24px] items-center overflow-x-auto [&::-webkit-scrollbar]:hidden">
               <BreadcrumbList className="flex-nowrap">

@@ -9,8 +9,9 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, FolderOpen, Loader2, MoreHorizontal, Trash2, CheckCircle2, Calendar, Search, Building2, Eye, EyeOff } from "lucide-react";
-import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { SidebarProvider } from "@/components/ui/sidebar";
 import { SidebarSwitch } from "@/components/navigation/v2/SidebarSwitch";
+import { AppHeaderBar } from "@/components/dashboard/AppHeaderBar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import {
   AlertDialog,
@@ -208,11 +209,11 @@ export default function Projetos() {
               : undefined
           }
         >
+          <AppHeaderBar />
           <div className="p-6 w-full space-y-6">
             {/* Header */}
             <div className="flex items-center justify-between gap-4">
               <div className="flex items-center gap-3">
-                <SidebarTrigger />
                 <ProjetoBgColorPicker value={bgColor} onChange={setBgColor} />
                 <div>
                   <h1 className="text-2xl font-semibold tracking-tight text-foreground">Projetos</h1>
