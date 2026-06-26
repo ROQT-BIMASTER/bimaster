@@ -53677,6 +53677,7 @@ export type Database = {
           nome: string
         }[]
       }
+      get_clientes_cron_secret: { Args: never; Returns: string }
       get_concentracao_uf:
         | { Args: { p_empresa_id?: number }; Returns: Json }
         | { Args: { p_empresa_id?: number; p_ufs?: string[] }; Returns: Json }
