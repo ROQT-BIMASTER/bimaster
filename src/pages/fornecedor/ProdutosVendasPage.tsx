@@ -1,7 +1,8 @@
 import { useMemo, useState } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Package, Search, AlertTriangle, TrendingDown, Layers } from "lucide-react";
+import { Package, Search, AlertTriangle, TrendingDown, Layers, ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { PageHeader } from "@/components/ui/page-header";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
@@ -72,7 +73,66 @@ type Row = ProdutoResumo & {
   rop: number;
   es: number;
   status: StatusEstoque;
+  marca_linha: string;
 };
+
+type SortKey =
+  | "cod_produto" | "descricao" | "marca_linha"
+  | "qtd_total" | "valor_total" | "media_mensal" | "desvio_mensal" | "cv"
+  | "classe_abc" | "classe_xyz"
+  | "estoque_cx" | "cobertura" | "status";
+type SortState = { key: SortKey; dir: "asc" | "desc" } | null;
+
+const ABC_ORDER: Record<string, number> = { A: 0, B: 1, C: 2 };
+const XYZ_ORDER: Record<string, number> = { X: 0, Y: 1, Z: 2 };
+const STATUS_ORDER: Record<StatusEstoque, number> = { critico: 0, repor: 1, excesso: 2, ok: 3 };
+
+function sortValue(r: Row, key: SortKey): number | string {
+  switch (key) {
+    case "cod_produto": return r.cod_produto ?? "";
+    case "descricao":   return (r.descricao ?? "").toLowerCase();
+    case "marca_linha": return r.marca_linha.toLowerCase();
+    case "qtd_total":   return Number(r.qtd_total) || 0;
+    case "valor_total": return Number(r.valor_total) || 0;
+    case "media_mensal":return Number(r.media_mensal) || 0;
+    case "desvio_mensal":return Number(r.desvio_mensal) || 0;
+    case "cv":          return r.cv === null ? Number.POSITIVE_INFINITY : Number(r.cv);
+    case "classe_abc":  return ABC_ORDER[r.classe_abc] ?? 99;
+    case "classe_xyz":  return XYZ_ORDER[r.classe_xyz] ?? 99;
+    case "estoque_cx":  return r.estoque_atual_cx ?? (Number(r.estoque_atual) || 0);
+    case "cobertura":   return Number.isFinite(r.cobertura) ? r.cobertura : Number.MAX_SAFE_INTEGER;
+    case "status":      return STATUS_ORDER[r.status];
+  }
+}
+
+function SortableHead({
+  k, sort, onSort, align = "left", children,
+}: {
+  k: SortKey;
+  sort: SortState;
+  onSort: (k: SortKey) => void;
+  align?: "left" | "right" | "center";
+  children: React.ReactNode;
+}) {
+  const active = sort?.key === k;
+  const Icon = active ? (sort!.dir === "asc" ? ArrowUp : ArrowDown) : ArrowUpDown;
+  const justify =
+    align === "right" ? "justify-end" : align === "center" ? "justify-center" : "justify-start";
+  const alignClass =
+    align === "right" ? "text-right" : align === "center" ? "text-center" : "";
+  return (
+    <TableHead className={alignClass}>
+      <button
+        type="button"
+        onClick={() => onSort(k)}
+        className={`inline-flex items-center gap-1 w-full ${justify} text-xs font-medium hover:text-foreground transition-colors ${active ? "text-foreground" : "text-muted-foreground"}`}
+      >
+        <span>{children}</span>
+        <Icon className={`h-3 w-3 ${active ? "opacity-100" : "opacity-50"}`} />
+      </button>
+    </TableHead>
+  );
+}
 
 export default function ProdutosVendasPage() {
   const [janela, setJanela] = useState<Janela>("12m");
@@ -113,9 +173,31 @@ export default function ProdutosVendasPage() {
           rop,
           es,
           status: statusEstoque(estoque, rop, es, cob),
+          marca_linha: [p.marca, p.nome_linha].filter(Boolean).join(" · "),
         };
       });
   }, [data, search, abcFilter, xyzFilter, leadDias, z]);
+
+  const [sort, setSort] = useState<SortState>(null);
+  const sortedRows = useMemo<Row[]>(() => {
+    if (!sort) return rows;
+    const dir = sort.dir === "asc" ? 1 : -1;
+    return rows.slice().sort((a, b) => {
+      const va = sortValue(a, sort.key);
+      const vb = sortValue(b, sort.key);
+      if (typeof va === "number" && typeof vb === "number") return (va - vb) * dir;
+      return String(va).localeCompare(String(vb), "pt-BR") * dir;
+    });
+  }, [rows, sort]);
+
+  const toggleSort = (key: SortKey) =>
+    setSort((cur) =>
+      !cur || cur.key !== key
+        ? { key, dir: "asc" }
+        : cur.dir === "asc"
+        ? { key, dir: "desc" }
+        : null,
+    );
 
   const kpis = useMemo(() => {
     const total = rows.length;
@@ -259,25 +341,28 @@ export default function ProdutosVendasPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Cód</TableHead>
-                  <TableHead>Produto</TableHead>
-                  <TableHead>Marca / Linha</TableHead>
-                  <TableHead className="text-right">Qtd</TableHead>
-                  <TableHead className="text-right">R$ total</TableHead>
-                  <TableHead className="text-right">Média/mês</TableHead>
-                  <TableHead className="text-right">σ</TableHead>
-                  <TableHead className="text-right">CV</TableHead>
-                  <TableHead className="text-center">ABC</TableHead>
-                  <TableHead className="text-center">XYZ</TableHead>
-                  <TableHead className="text-right">Estoque</TableHead>
-                  <TableHead className="text-right">Cobertura</TableHead>
-                  <TableHead>Status</TableHead>
+                  <SortableHead sort={sort} onSort={toggleSort} k="cod_produto">Cód</SortableHead>
+                  <SortableHead sort={sort} onSort={toggleSort} k="descricao">Produto</SortableHead>
+                  <SortableHead sort={sort} onSort={toggleSort} k="marca_linha">Marca / Linha</SortableHead>
+                  <SortableHead sort={sort} onSort={toggleSort} k="qtd_total" align="right">Qtd</SortableHead>
+                  <SortableHead sort={sort} onSort={toggleSort} k="valor_total" align="right">R$ total</SortableHead>
+                  <SortableHead sort={sort} onSort={toggleSort} k="media_mensal" align="right">Média/mês</SortableHead>
+                  <SortableHead sort={sort} onSort={toggleSort} k="desvio_mensal" align="right">σ</SortableHead>
+                  <SortableHead sort={sort} onSort={toggleSort} k="cv" align="right">CV</SortableHead>
+                  <SortableHead sort={sort} onSort={toggleSort} k="classe_abc" align="center">ABC</SortableHead>
+                  <SortableHead sort={sort} onSort={toggleSort} k="classe_xyz" align="center">XYZ</SortableHead>
+                  <SortableHead sort={sort} onSort={toggleSort} k="estoque_cx" align="right">Estoque (CX)</SortableHead>
+                  <SortableHead sort={sort} onSort={toggleSort} k="cobertura" align="right">Cobertura</SortableHead>
+                  <SortableHead sort={sort} onSort={toggleSort} k="status">Status</SortableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {rows.length === 0 ? (
+                {sortedRows.length === 0 ? (
                   <TableRow><TableCell colSpan={13} className="h-24 text-center text-muted-foreground">Nenhum produto no filtro atual.</TableCell></TableRow>
-                ) : rows.map((r) => (
+                ) : sortedRows.map((r) => {
+                  const temCx = r.fator_un_por_cx !== null && r.fator_un_por_cx > 0;
+                  const estoqueCx = r.estoque_atual_cx;
+                  return (
                   <TableRow
                     key={r.cod_produto}
                     className="cursor-pointer hover:bg-muted/40"
@@ -285,7 +370,7 @@ export default function ProdutosVendasPage() {
                   >
                     <TableCell className="font-mono text-xs">{r.cod_produto}</TableCell>
                     <TableCell className="max-w-[320px] truncate">{r.descricao ?? "—"}</TableCell>
-                    <TableCell className="text-xs text-muted-foreground">{[r.marca, r.nome_linha].filter(Boolean).join(" · ") || "—"}</TableCell>
+                    <TableCell className="text-xs text-muted-foreground">{r.marca_linha || "—"}</TableCell>
                     <TableCell className="text-right">{fmtNum(r.qtd_total)}</TableCell>
                     <TableCell className="text-right">{formatCurrency(Number(r.valor_total) || 0)}</TableCell>
                     <TableCell className="text-right">{fmtNum(r.media_mensal, 0)}</TableCell>
@@ -293,11 +378,36 @@ export default function ProdutosVendasPage() {
                     <TableCell className="text-right">{r.cv === null ? "—" : r.cv.toLocaleString("pt-BR",{maximumFractionDigits:2})}</TableCell>
                     <TableCell className="text-center"><Badge variant="outline" className="font-mono">{r.classe_abc}</Badge></TableCell>
                     <TableCell className="text-center"><Badge variant="outline" className="font-mono">{r.classe_xyz}</Badge></TableCell>
-                    <TableCell className="text-right">{fmtNum(r.estoque_atual)}</TableCell>
+                    <TableCell className="text-right">
+                      <TooltipProvider>
+                        <Tooltip delayDuration={250}>
+                          <TooltipTrigger asChild>
+                            <span className="inline-flex items-center gap-1.5 cursor-help">
+                              <span>{temCx ? fmtNum(estoqueCx, 1) : fmtNum(r.estoque_atual)}</span>
+                              <Badge
+                                variant="outline"
+                                className={
+                                  temCx
+                                    ? "bg-primary/15 text-primary border-primary/30 font-mono text-[10px] px-1.5 py-0"
+                                    : "bg-muted text-muted-foreground border-border font-mono text-[10px] px-1.5 py-0"
+                                }
+                              >
+                                {temCx ? "CX" : "UN"}
+                              </Badge>
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent side="left" className="text-xs">
+                            {fmtNum(r.estoque_atual)} UN
+                            {temCx && r.fator_un_por_cx ? ` · 1 CX = ${fmtNum(r.fator_un_por_cx, 0)} UN` : " · sem fator CX cadastrado"}
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </TableCell>
                     <TableCell className="text-right">{fmtCov(r.cobertura)}</TableCell>
                     <TableCell><Badge variant="outline" className={STATUS_TONE[r.status]}>{STATUS_LABEL[r.status]}</Badge></TableCell>
                   </TableRow>
-                ))}
+                  );
+                })}
               </TableBody>
             </Table>
           </div>
