@@ -90,19 +90,24 @@ export default function CrmLayout() {
       <div className="min-h-screen flex w-full bg-background">
         <CrmSidebar />
         <div className="flex-1 flex flex-col min-w-0">
-          <header className="h-12 flex items-center gap-2 border-b px-3 sticky top-0 bg-background/95 backdrop-blur z-10">
-            <SidebarTrigger />
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => (isRoot ? navigate("/dashboard") : navigate(-1))}
-              className="gap-1.5"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Voltar
-            </Button>
-            <div className="ml-auto text-xs text-muted-foreground">CRM & Atendimento · acesso restrito</div>
-          </header>
+          <AppHeaderBar
+            rightSlot={
+              <>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => (isRoot ? navigate("/dashboard") : navigate(-1))}
+                  className="gap-1.5"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                  Voltar
+                </Button>
+                <div className="text-xs text-muted-foreground hidden sm:block">
+                  CRM & Atendimento · acesso restrito
+                </div>
+              </>
+            }
+          />
           <main className="flex-1 min-w-0">
             <Outlet />
           </main>
