@@ -258,6 +258,12 @@ export function PedidoDetalheDrawer({ pedido, open, onOpenChange, limiarParado =
           </>
         )}
       </SheetContent>
+      <ClienteHistoricoCompraDialog
+        open={historicoOpen}
+        onOpenChange={setHistoricoOpen}
+        clienteId={pedido?.cliente_futura_id ?? null}
+        clienteNome={pedido?.cliente_nome ?? null}
+      />
     </Sheet>
   );
 }
