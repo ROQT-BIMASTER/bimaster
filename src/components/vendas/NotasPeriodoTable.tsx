@@ -3,19 +3,22 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { formatCurrency } from "@/lib/formatters";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { parseLocalDate } from "@/lib/utils/parseLocalDate";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useNotasPeriodo, type VendasFilters } from "@/hooks/useVendasAnalise";
+import { formatQtd, type Unidade } from "@/lib/vendas/unidade";
 
 const PAGE_SIZE = 50;
 
-export function NotasPeriodoTable({ filters }: { filters: VendasFilters }) {
+export function NotasPeriodoTable({ filters, unidade }: { filters: VendasFilters; unidade: Unidade }) {
   const [page, setPage] = useState(0);
   const { data, isLoading } = useNotasPeriodo(filters, page, PAGE_SIZE);
   const rows = data?.rows || [];
+  const itemMap = data?.itemMap || {};
   const total = data?.count || 0;
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
@@ -49,20 +52,47 @@ export function NotasPeriodoTable({ filters }: { filters: VendasFilters }) {
                   <TableHead className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Cliente</TableHead>
                   <TableHead className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Vendedor</TableHead>
                   <TableHead className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Coordenador</TableHead>
+                  <TableHead className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground text-right">Qtd. orig.</TableHead>
+                  <TableHead className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground text-right">Qtd. conv.</TableHead>
                   <TableHead className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground text-right">Total</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {rows.map((r: any, i: number) => (
-                  <TableRow key={`${r.nro_nota}-${r.serie}-${i}`} className="odd:bg-muted/30 hover:bg-muted/50 border-border">
-                    <TableCell className="tabular-nums text-sm">{r.data_emissao ? format(parseLocalDate(r.data_emissao), "dd/MM/yyyy", { locale: ptBR }) : "-"}</TableCell>
-                    <TableCell className="tabular-nums text-sm">{r.nro_nota}</TableCell>
-                    <TableCell className="max-w-[280px] truncate text-sm">{r.cliente_nome ?? "-"}</TableCell>
-                    <TableCell className="text-sm">{r.vendedor_nome ?? "-"}</TableCell>
-                    <TableCell className="text-sm text-muted-foreground">{r.coordenador_nome ?? "Sem coordenador"}</TableCell>
-                    <TableCell className="text-right tabular-nums font-semibold text-sm">{formatCurrency(Number(r.total_nota ?? 0))}</TableCell>
-                  </TableRow>
-                ))}
+                {rows.map((r: any, i: number) => {
+                  const agg = itemMap[String(r.futura_nota_id)];
+                  const sigla = agg?.sigla_dominante ?? null;
+                  const qtdUn = agg?.qtd_un ?? null;
+                  const itensCx = agg?.itens_caixa ?? null;
+                  // qtd original: se temos sigla dominante, converter qtd_un de volta para a unidade comercial
+                  let origLabel = "—";
+                  if (qtdUn != null && sigla) {
+                    if (sigla === "DZ") origLabel = `${(qtdUn / 12).toLocaleString("pt-BR", { maximumFractionDigits: 0 })} DZ`;
+                    else if (sigla === "UN" || sigla === "PC" || sigla === "PCT") origLabel = `${qtdUn.toLocaleString("pt-BR", { maximumFractionDigits: 0 })} ${sigla}`;
+                    else if ((sigla === "CX" || sigla === "BX") && itensCx) origLabel = `${(qtdUn / itensCx).toLocaleString("pt-BR", { maximumFractionDigits: 0 })} ${sigla}`;
+                    else origLabel = `${qtdUn.toLocaleString("pt-BR", { maximumFractionDigits: 0 })} ${sigla}`;
+                  } else if (qtdUn != null && !sigla) {
+                    origLabel = "misto";
+                  }
+                  const convLabel = qtdUn == null
+                    ? "—"
+                    : formatQtd(qtdUn, unidade, itensCx);
+                  return (
+                    <TableRow key={`${r.nro_nota}-${r.serie}-${i}`} className="odd:bg-muted/30 hover:bg-muted/50 border-border">
+                      <TableCell className="tabular-nums text-sm">{r.data_emissao ? format(parseLocalDate(r.data_emissao), "dd/MM/yyyy", { locale: ptBR }) : "-"}</TableCell>
+                      <TableCell className="tabular-nums text-sm">{r.nro_nota}</TableCell>
+                      <TableCell className="max-w-[280px] truncate text-sm">{r.cliente_nome ?? "-"}</TableCell>
+                      <TableCell className="text-sm">{r.vendedor_nome ?? "-"}</TableCell>
+                      <TableCell className="text-sm text-muted-foreground">{r.coordenador_nome ?? "Sem coordenador"}</TableCell>
+                      <TableCell className="text-right text-xs">
+                        {origLabel === "misto"
+                          ? <Badge variant="outline" className="text-[10px]">misto</Badge>
+                          : <span className="tabular-nums text-muted-foreground">{origLabel}</span>}
+                      </TableCell>
+                      <TableCell className="text-right tabular-nums text-sm">{convLabel}</TableCell>
+                      <TableCell className="text-right tabular-nums font-semibold text-sm">{formatCurrency(Number(r.total_nota ?? 0))}</TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           </div>
