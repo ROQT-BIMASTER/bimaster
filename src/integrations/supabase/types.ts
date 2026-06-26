@@ -16042,12 +16042,15 @@ export type Database = {
           futura_item_id: number
           futura_nota_id: number
           id: number
+          itens_caixa: number | null
           produto_futura_id: number | null
           quantidade: number | null
+          quantidade_un: number | null
           raw: Json | null
           sequencia: number | null
           sincronizado_em: string
           total_item: number | null
+          unidade_sigla: string | null
           valor_unitario: number | null
         }
         Insert: {
@@ -16059,12 +16062,15 @@ export type Database = {
           futura_item_id: number
           futura_nota_id: number
           id?: never
+          itens_caixa?: number | null
           produto_futura_id?: number | null
           quantidade?: number | null
+          quantidade_un?: number | null
           raw?: Json | null
           sequencia?: number | null
           sincronizado_em?: string
           total_item?: number | null
+          unidade_sigla?: string | null
           valor_unitario?: number | null
         }
         Update: {
@@ -16076,12 +16082,15 @@ export type Database = {
           futura_item_id?: number
           futura_nota_id?: number
           id?: never
+          itens_caixa?: number | null
           produto_futura_id?: number | null
           quantidade?: number | null
+          quantidade_un?: number | null
           raw?: Json | null
           sequencia?: number | null
           sincronizado_em?: string
           total_item?: number | null
+          unidade_sigla?: string | null
           valor_unitario?: number | null
         }
         Relationships: []
