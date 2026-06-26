@@ -382,6 +382,7 @@ const EstoqueModule = lazyWithRetry(() => import("./pages/modules/EstoqueModule"
 const FornecedorModule = lazyWithRetry(() => import("./pages/modules/FornecedorModule"));
 const FornecedorPedidosPage = lazyWithRetry(() => import("./pages/fornecedor/FornecedorPedidosPage"));
 const ClienteHistoricoPage = lazyWithRetry(() => import("./pages/fornecedor/ClienteHistoricoPage"));
+const ClientesListPage = lazyWithRetry(() => import("./pages/fornecedor/ClientesListPage"));
 const EstoqueDistribuidoras = lazyWithRetry(() => import("./pages/EstoqueDistribuidoras"));
 const EstoqueProdutosMaster = lazyWithRetry(() => import("./pages/EstoqueProdutosMaster"));
 const EstoqueSaldos = lazyWithRetry(() => import("./pages/EstoqueSaldos"));
