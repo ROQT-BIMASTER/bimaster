@@ -1,5 +1,6 @@
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { usePageTracking } from "@/hooks/usePageTracking";
+import { AppHeaderBar } from "@/components/dashboard/AppHeaderBar";
 
 import {
   Sidebar,
