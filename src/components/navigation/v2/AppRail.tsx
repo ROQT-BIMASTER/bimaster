@@ -137,13 +137,6 @@ export function AppRail({ side = "left" }: AppRailProps) {
           borderColor: "hsl(var(--launcher-border))",
         }}
       >
-        {/* Topo: logo */}
-        <div
-          className="flex items-center justify-center h-[56px] shrink-0"
-          style={{ borderBottom: "1px solid hsl(var(--launcher-border))" }}
-        >
-          <img src={logoHuugs} alt="Logo" className="h-8 w-8 rounded-md object-cover" />
-        </div>
 
         {/* Busca (abre launcher) */}
         <div className="flex items-center justify-center py-2 shrink-0">
