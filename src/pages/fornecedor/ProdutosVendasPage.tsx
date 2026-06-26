@@ -311,6 +311,7 @@ export default function ProdutosVendasPage() {
         leadDias={leadDias}
         servico={servico}
       />
-    </div>
+      </div>
+    </DashboardLayout>
   );
 }
