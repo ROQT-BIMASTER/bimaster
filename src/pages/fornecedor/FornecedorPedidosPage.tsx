@@ -14,6 +14,7 @@ import { useFornecedorPedidos } from "@/hooks/fornecedor/useFornecedorPedidos";
 import { PedidosKanban } from "@/components/fornecedor/pedidos/PedidosKanban";
 import { PedidosTable } from "@/components/fornecedor/pedidos/PedidosTable";
 import { PedidoDetalheDrawer } from "@/components/fornecedor/pedidos/PedidoDetalheDrawer";
+import { FuturaBackButton } from "@/components/fornecedor/FuturaBackButton";
 import type { PedidoFornecedor } from "@/hooks/fornecedor/useFornecedorPedidos";
 
 export default function FornecedorPedidosPage() {
@@ -41,6 +42,7 @@ export default function FornecedorPedidosPage() {
   return (
     <DashboardLayout>
       <div className="space-y-4">
+        <FuturaBackButton />
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <div className="flex items-center gap-3">
             <div className="p-2.5 rounded-xl bg-pink-100 dark:bg-pink-900/40">

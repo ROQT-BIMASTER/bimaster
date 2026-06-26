@@ -19,6 +19,8 @@ import {
 import { formatCurrency } from "@/lib/formatters";
 import { parseLocalDate } from "@/lib/utils/parseLocalDate";
 import { useClientesLista, useClientesFiltrados } from "@/hooks/fornecedor/useClientesLista";
+import { FuturaBackButton } from "@/components/fornecedor/FuturaBackButton";
+import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 
 function fmtDate(s: string | null): string {
   const d = parseLocalDate(s);
@@ -33,8 +35,10 @@ export default function ClientesListPage() {
   const rows = useClientesFiltrados(data, search);
 
   return (
-    <div className="w-full px-4 md:px-6 py-6 space-y-4">
-      <PageHeader
+    <DashboardLayout>
+      <div className="w-full px-4 md:px-6 py-6 space-y-4">
+        <FuturaBackButton />
+        <PageHeader
         title="Clientes (histórico)"
         description="Lista de clientes com histórico de compras na Futura"
         icon={Users}
@@ -122,6 +126,7 @@ export default function ClientesListPage() {
           </p>
         )}
       </Card>
-    </div>
+      </div>
+    </DashboardLayout>
   );
 }

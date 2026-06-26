@@ -9,6 +9,8 @@ import { RankingTabs } from "@/components/vendas/RankingTabs";
 import { TopClientesTable } from "@/components/vendas/TopClientesTable";
 import { NotasPeriodoTable } from "@/components/vendas/NotasPeriodoTable";
 import { useVendasKpis, useVendasSerieMensal, type VendasFilters } from "@/hooks/useVendasAnalise";
+import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
+import { FuturaBackButton } from "@/components/fornecedor/FuturaBackButton";
 
 function defaultFilters(): VendasFilters {
   const now = new Date();
@@ -36,9 +38,11 @@ export default function AnaliseVendas() {
   const ano = filters.de ? parseLocalDate(filters.de).getFullYear() : new Date().getFullYear();
 
   return (
-    <div className="vendas-theme min-h-screen" style={{ background: "hsl(var(--vendas-bg))" }}>
-      <div className="w-full px-4 md:px-6 py-6 space-y-5">
-        <div className="flex items-start justify-between gap-4 flex-wrap">
+    <DashboardLayout>
+      <div className="vendas-theme min-h-screen" style={{ background: "hsl(var(--vendas-bg))" }}>
+        <div className="w-full px-4 md:px-6 py-6 space-y-5">
+          <FuturaBackButton />
+          <div className="flex items-start justify-between gap-4 flex-wrap">
           <div>
             <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-foreground">Análise de Vendas</h1>
             <p className="text-sm text-muted-foreground mt-1">
@@ -64,5 +68,6 @@ export default function AnaliseVendas() {
         <NotasPeriodoTable filters={filters} />
       </div>
     </div>
+    </DashboardLayout>
   );
 }
