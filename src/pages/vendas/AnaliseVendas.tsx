@@ -68,5 +68,6 @@ export default function AnaliseVendas() {
         <NotasPeriodoTable filters={filters} />
       </div>
     </div>
+    </DashboardLayout>
   );
 }
