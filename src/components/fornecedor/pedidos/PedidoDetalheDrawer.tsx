@@ -59,7 +59,7 @@ export function PedidoDetalheDrawer({ pedido, open, onOpenChange, limiarParado =
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="w-full sm:max-w-2xl p-0 flex flex-col">
+      <SheetContent side="right" className="w-full sm:max-w-4xl lg:max-w-5xl p-0 flex flex-col">
         {pedido && (
           <>
             <SheetHeader className="px-6 py-4 border-b border-border space-y-2">
