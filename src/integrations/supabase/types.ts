@@ -56550,6 +56550,7 @@ export type Database = {
           faturamento_com_impostos: number
           notas: number
           qtd_total: number
+          qtd_un: number
           ticket_medio: number
           vendedores: number
         }[]
@@ -56583,6 +56584,7 @@ export type Database = {
           faturamento: number
           faturamento_com_impostos: number
           notas: number
+          qtd_un: number
         }[]
       }
       vendas_ranking_vendedor: {
@@ -56598,6 +56600,7 @@ export type Database = {
           faturamento: number
           faturamento_com_impostos: number
           notas: number
+          qtd_un: number
           ticket_medio: number
           vendedor_id: string
           vendedor_nome: string
@@ -56616,6 +56619,7 @@ export type Database = {
           faturamento_com_impostos: number
           mes: string
           notas: number
+          qtd_un: number
           ticket_medio: number
         }[]
       }
@@ -56626,6 +56630,7 @@ export type Database = {
           faturamento_com_impostos: number
           mes: string
           notas: number
+          qtd_un: number
           quantidade: number
         }[]
       }
@@ -56658,6 +56663,7 @@ export type Database = {
           faturamento: number
           faturamento_com_impostos: number
           notas: number
+          qtd_un: number
         }[]
       }
       verify_user_password: { Args: { password: string }; Returns: boolean }
