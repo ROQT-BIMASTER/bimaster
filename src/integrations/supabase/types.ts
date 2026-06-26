@@ -15425,6 +15425,168 @@ export type Database = {
           },
         ]
       }
+      erp_pedidos: {
+        Row: {
+          cliente_cnpj_cpf: string | null
+          cliente_futura_id: number | null
+          cliente_nome: string | null
+          created_at: string
+          data_cancelamento: string | null
+          data_emissao: string | null
+          data_movimentacao: string | null
+          data_previsao: string | null
+          empresa_id: number | null
+          etapa: string
+          etapa_desde: string | null
+          etapa_ordem: number | null
+          futura_pedido_id: number
+          id: number
+          motivo_cancelamento: string | null
+          nro_pedido: string | null
+          observacao: string | null
+          raw: Json | null
+          sincronizado_em: string
+          situacao_desc: string | null
+          situacao_id: number | null
+          status: number | null
+          tipo_pedido_id: number | null
+          total_desconto: number | null
+          total_pedido: number | null
+          total_produto: number | null
+          updated_at: string
+          urgente: boolean
+          vendedor_futura_id: number | null
+        }
+        Insert: {
+          cliente_cnpj_cpf?: string | null
+          cliente_futura_id?: number | null
+          cliente_nome?: string | null
+          created_at?: string
+          data_cancelamento?: string | null
+          data_emissao?: string | null
+          data_movimentacao?: string | null
+          data_previsao?: string | null
+          empresa_id?: number | null
+          etapa: string
+          etapa_desde?: string | null
+          etapa_ordem?: number | null
+          futura_pedido_id: number
+          id?: never
+          motivo_cancelamento?: string | null
+          nro_pedido?: string | null
+          observacao?: string | null
+          raw?: Json | null
+          sincronizado_em?: string
+          situacao_desc?: string | null
+          situacao_id?: number | null
+          status?: number | null
+          tipo_pedido_id?: number | null
+          total_desconto?: number | null
+          total_pedido?: number | null
+          total_produto?: number | null
+          updated_at?: string
+          urgente?: boolean
+          vendedor_futura_id?: number | null
+        }
+        Update: {
+          cliente_cnpj_cpf?: string | null
+          cliente_futura_id?: number | null
+          cliente_nome?: string | null
+          created_at?: string
+          data_cancelamento?: string | null
+          data_emissao?: string | null
+          data_movimentacao?: string | null
+          data_previsao?: string | null
+          empresa_id?: number | null
+          etapa?: string
+          etapa_desde?: string | null
+          etapa_ordem?: number | null
+          futura_pedido_id?: number
+          id?: never
+          motivo_cancelamento?: string | null
+          nro_pedido?: string | null
+          observacao?: string | null
+          raw?: Json | null
+          sincronizado_em?: string
+          situacao_desc?: string | null
+          situacao_id?: number | null
+          status?: number | null
+          tipo_pedido_id?: number | null
+          total_desconto?: number | null
+          total_pedido?: number | null
+          total_produto?: number | null
+          updated_at?: string
+          urgente?: boolean
+          vendedor_futura_id?: number | null
+        }
+        Relationships: []
+      }
+      erp_pedidos_etapa_log: {
+        Row: {
+          etapa_anterior: string | null
+          etapa_nova: string
+          futura_pedido_id: number
+          id: number
+          mudou_em: string
+        }
+        Insert: {
+          etapa_anterior?: string | null
+          etapa_nova: string
+          futura_pedido_id: number
+          id?: never
+          mudou_em?: string
+        }
+        Update: {
+          etapa_anterior?: string | null
+          etapa_nova?: string
+          futura_pedido_id?: number
+          id?: never
+          mudou_em?: string
+        }
+        Relationships: []
+      }
+      erp_pedidos_sync_log: {
+        Row: {
+          created_at: string
+          erro: string | null
+          finished_at: string | null
+          id: number
+          pedidos_recebidos: number | null
+          pedidos_upserted: number | null
+          periodo_ate: string | null
+          periodo_de: string | null
+          started_at: string
+          status: string
+          tipo: string | null
+        }
+        Insert: {
+          created_at?: string
+          erro?: string | null
+          finished_at?: string | null
+          id?: never
+          pedidos_recebidos?: number | null
+          pedidos_upserted?: number | null
+          periodo_ate?: string | null
+          periodo_de?: string | null
+          started_at?: string
+          status?: string
+          tipo?: string | null
+        }
+        Update: {
+          created_at?: string
+          erro?: string | null
+          finished_at?: string | null
+          id?: never
+          pedidos_recebidos?: number | null
+          pedidos_upserted?: number | null
+          periodo_ate?: string | null
+          periodo_de?: string | null
+          started_at?: string
+          status?: string
+          tipo?: string | null
+        }
+        Relationships: []
+      }
       erp_portal_access_modules: {
         Row: {
           api_id: string | null
@@ -51524,6 +51686,40 @@ export type Database = {
           sku: string | null
           validade_dias: number | null
           validade_ultimo_lote: string | null
+        }
+        Relationships: []
+      }
+      v_pedidos: {
+        Row: {
+          cliente_cnpj_cpf: string | null
+          cliente_futura_id: number | null
+          cliente_nome: string | null
+          data_cancelamento: string | null
+          data_emissao: string | null
+          data_movimentacao: string | null
+          data_previsao: string | null
+          dias_na_etapa: number | null
+          em_andamento: boolean | null
+          empresa_id: number | null
+          etapa: string | null
+          etapa_desde: string | null
+          etapa_ordem: number | null
+          futura_pedido_id: number | null
+          motivo_cancelamento: string | null
+          nro_pedido: string | null
+          observacao: string | null
+          sincronizado_em: string | null
+          situacao_desc: string | null
+          situacao_id: number | null
+          status: number | null
+          tipo_pedido_id: number | null
+          total_desconto: number | null
+          total_pedido: number | null
+          total_produto: number | null
+          urgente: boolean | null
+          vendedor_futura_id: number | null
+          vendedor_id: string | null
+          vendedor_nome: string | null
         }
         Relationships: []
       }
