@@ -42,6 +42,7 @@ const METHOD_LABEL: Record<ForecastMethod, string> = {
   holt: "Holt linear",
   linear: "Regressão linear",
   insufficient: "Histórico insuficiente",
+  "croston-sba": "Croston-SBA (intermitente)",
 };
 
 function fmtMonthLabel(d: Date) {
