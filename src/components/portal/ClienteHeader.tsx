@@ -55,10 +55,11 @@ export const ClienteHeader = () => {
       <div className="container flex h-16 items-center justify-between px-4">
         <div className="flex items-center gap-6">
           <Link to="/portal/precos" className="flex items-center gap-4">
-            <img 
-              src={logoHuugs} 
-              alt="Logo" 
-              className="h-10 w-auto"
+            <img
+              src={logoHuugs}
+              alt="Huugs MakeUp"
+              data-testid="app-logo"
+              className="h-8 sm:h-10 w-auto max-w-[120px] sm:max-w-[140px] object-contain"
             />
             <div className="hidden md:block">
               <h1 className="text-lg font-semibold text-foreground">{t("portal.title")}</h1>

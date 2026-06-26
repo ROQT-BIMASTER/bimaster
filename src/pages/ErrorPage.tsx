@@ -1,7 +1,8 @@
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { AlertTriangle, Home, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import logoHuugs from '@/assets/logo-huugs.jpg';
 
 export default function ErrorPage() {
   const navigate = useNavigate();
@@ -20,7 +21,19 @@ export default function ErrorPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-background">
+    <div className="relative min-h-screen flex items-center justify-center p-4 bg-background">
+      <Link
+        to="/"
+        aria-label="Início"
+        className="absolute left-3 top-3 sm:left-4 sm:top-4 z-10"
+      >
+        <img
+          src={logoHuugs}
+          alt="Huugs MakeUp"
+          data-testid="app-logo"
+          className="h-7 sm:h-8 md:h-9 w-auto max-w-[120px] sm:max-w-[140px] object-contain"
+        />
+      </Link>
       <Card className="max-w-2xl w-full">
         <CardHeader className="text-center">
           <div className="flex justify-center mb-4">
