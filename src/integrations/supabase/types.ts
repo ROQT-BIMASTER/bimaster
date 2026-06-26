@@ -56567,6 +56567,15 @@ export type Database = {
           notas: number
         }[]
       }
+      vendas_serie_mensal_cliente: {
+        Args: { p_cliente_futura_id: number; p_desde?: string }
+        Returns: {
+          faturamento: number
+          mes: string
+          notas: number
+          quantidade: number
+        }[]
+      }
       vendas_top_clientes: {
         Args: {
           p_ate?: string

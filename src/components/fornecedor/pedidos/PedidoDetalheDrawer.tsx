@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { AlertTriangle, Zap, Maximize2, Minimize2 } from "lucide-react";
+import { AlertTriangle, Zap, Maximize2, Minimize2, LineChart } from "lucide-react";
+import { ClienteHistoricoCompraDialog } from "./ClienteHistoricoCompraDialog";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 import {
@@ -54,9 +55,13 @@ function InfoRow({ label, value, valueClassName }: { label: string; value: React
 export function PedidoDetalheDrawer({ pedido, open, onOpenChange, limiarParado = 2 }: PedidoDetalheDrawerProps) {
   const { data: itens, isLoading, error } = usePedidoItens(pedido?.futura_pedido_id, open);
   const [fullscreen, setFullscreen] = useState(false);
+  const [historicoOpen, setHistoricoOpen] = useState(false);
 
   useEffect(() => {
-    if (!open) setFullscreen(false);
+    if (!open) {
+      setFullscreen(false);
+      setHistoricoOpen(false);
+    }
   }, [open]);
 
   const theme = pedido ? getEtapaTheme(pedido.etapa) : null;
@@ -98,6 +103,19 @@ export function PedidoDetalheDrawer({ pedido, open, onOpenChange, limiarParado =
                     <Badge variant="outline" className={cn("font-normal", theme.badge)}>
                       {theme.label}
                     </Badge>
+                  )}
+                  {pedido.cliente_futura_id != null && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="h-8 gap-1.5"
+                      onClick={() => setHistoricoOpen(true)}
+                      title="Ver histórico de compras do cliente com tendência e projeção"
+                    >
+                      <LineChart className="h-3.5 w-3.5" />
+                      <span className="hidden sm:inline">Histórico do cliente</span>
+                    </Button>
                   )}
                   <Button
                     type="button"
@@ -240,6 +258,12 @@ export function PedidoDetalheDrawer({ pedido, open, onOpenChange, limiarParado =
           </>
         )}
       </SheetContent>
+      <ClienteHistoricoCompraDialog
+        open={historicoOpen}
+        onOpenChange={setHistoricoOpen}
+        clienteId={pedido?.cliente_futura_id ?? null}
+        clienteNome={pedido?.cliente_nome ?? null}
+      />
     </Sheet>
   );
 }
