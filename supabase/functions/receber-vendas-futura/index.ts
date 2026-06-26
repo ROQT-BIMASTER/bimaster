@@ -16,6 +16,9 @@ const ItemSchema = z.object({
   valor_unitario: z.number().optional().nullable(),
   desconto_valor: z.number().optional().nullable(),
   total_item: z.number().optional().nullable(),
+  unidade_sigla: z.string().optional().nullable(),
+  itens_caixa: z.number().optional().nullable(),
+  quantidade_un: z.number().optional().nullable(),
 }).strict();
 
 const VendaSchema = z.object({
@@ -83,7 +86,7 @@ Deno.serve(secureHandler(
     }
     const parsed = BodySchema.safeParse(raw);
     if (!parsed.success) {
-      return json(400, { error: "validation_error", details: parsed.error.flatten() });
+      return json(400, { error: "validation_error", v: "unid-v1", details: parsed.error.flatten() });
     }
     const { tipo, periodo_de, periodo_ate, vendas } = parsed.data;
 
@@ -167,6 +170,9 @@ Deno.serve(secureHandler(
           valor_unitario: it.valor_unitario ?? null,
           desconto_valor: it.desconto_valor ?? null,
           total_item: it.total_item ?? null,
+          unidade_sigla: it.unidade_sigla ?? null,
+          itens_caixa: it.itens_caixa ?? null,
+          quantidade_un: it.quantidade_un ?? null,
           raw: it as unknown as Record<string, unknown>,
           sincronizado_em: now,
         }))
