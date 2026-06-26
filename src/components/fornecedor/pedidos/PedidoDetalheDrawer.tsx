@@ -1,4 +1,6 @@
-import { AlertTriangle, Zap } from "lucide-react";
+import { useState, useEffect } from "react";
+import { AlertTriangle, Zap, Maximize2, Minimize2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 import {
   Sheet,
