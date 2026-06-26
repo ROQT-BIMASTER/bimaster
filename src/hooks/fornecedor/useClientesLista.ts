@@ -34,7 +34,7 @@ export function useClientesLista() {
         const { data, error } = await sb
           .from("v_vendas")
           .select(
-            "cliente_futura_id, cliente_nome, cliente_cnpj_cpf, quantidade, total_nota, data_emissao",
+            "cliente_futura_id, cliente_nome, cliente_cnpj_cpf, quantidade, total_produto, data_emissao",
           )
           .order("data_emissao", { ascending: false })
           .range(from, from + PAGE - 1);
