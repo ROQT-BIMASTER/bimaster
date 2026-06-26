@@ -17,8 +17,9 @@ import { ProjetoArquivosView } from "@/components/projetos/ProjetoArquivosView";
 import { ProjetoMetasPanel } from "@/components/projetos/ProjetoMetasPanel";
 // ProjetoBgColorPicker agora vive dentro de ProjetoSettingsMenu (acionado pela engrenagem do header)
 import { ProjetoFilters, ProjetoSort, EMPTY_FILTERS, DEFAULT_SORT } from "@/components/projetos/ProjetoFilterSort";
-import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { SidebarProvider } from "@/components/ui/sidebar";
 import { SidebarSwitch } from "@/components/navigation/v2/SidebarSwitch";
+import { AppHeaderBar } from "@/components/dashboard/AppHeaderBar";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, ArrowLeft, Package, ShieldAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -126,7 +127,10 @@ export default function ProjetoDetalhe({ shared = false }: ProjetoDetalheProps =
       <SidebarProvider>
         <div className="min-h-screen flex w-full bg-background">
           <SidebarSwitch />
-          {children}
+          <div className="flex-1 min-w-0 flex flex-col">
+            <AppHeaderBar />
+            {children}
+          </div>
         </div>
       </SidebarProvider>
     );
@@ -191,7 +195,6 @@ export default function ProjetoDetalhe({ shared = false }: ProjetoDetalheProps =
               </Button>
             ) : (
               <>
-                <SidebarTrigger />
                 <ProjetoBackButton
                   label="Projetos"
                   className={darkBg ? "text-white hover:bg-white/10" : customBg ? "text-black hover:bg-black/10" : "text-muted-foreground"}
