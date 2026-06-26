@@ -105,6 +105,35 @@ function sortValue(r: Row, key: SortKey): number | string {
   }
 }
 
+function SortableHead({
+  k, sort, onSort, align = "left", children,
+}: {
+  k: SortKey;
+  sort: SortState;
+  onSort: (k: SortKey) => void;
+  align?: "left" | "right" | "center";
+  children: React.ReactNode;
+}) {
+  const active = sort?.key === k;
+  const Icon = active ? (sort!.dir === "asc" ? ArrowUp : ArrowDown) : ArrowUpDown;
+  const justify =
+    align === "right" ? "justify-end" : align === "center" ? "justify-center" : "justify-start";
+  const alignClass =
+    align === "right" ? "text-right" : align === "center" ? "text-center" : "";
+  return (
+    <TableHead className={alignClass}>
+      <button
+        type="button"
+        onClick={() => onSort(k)}
+        className={`inline-flex items-center gap-1 w-full ${justify} text-xs font-medium hover:text-foreground transition-colors ${active ? "text-foreground" : "text-muted-foreground"}`}
+      >
+        <span>{children}</span>
+        <Icon className={`h-3 w-3 ${active ? "opacity-100" : "opacity-50"}`} />
+      </button>
+    </TableHead>
+  );
+}
+
 export default function ProdutosVendasPage() {
   const [janela, setJanela] = useState<Janela>("12m");
   const [leadDias, setLeadDias] = useState<number>(45);
