@@ -257,6 +257,14 @@ function ModulePanel({
   const navigate = useNavigate();
   const [query, setQuery] = useState("");
 
+  const pages = useMemo(() => {
+    if (!module) return [];
+    const needle = query.trim().toLowerCase();
+    return needle
+      ? module.pages.filter((p) => p.label.toLowerCase().includes(needle))
+      : module.pages;
+  }, [module, query]);
+
   if (!module) {
     return (
       <Shell>
@@ -272,12 +280,7 @@ function ModulePanel({
 
   const ModIcon = resolveIcon(module.icon);
   const token = getModuleAccent(module.code);
-  const pages = useMemo(() => {
-    const needle = query.trim().toLowerCase();
-    return needle
-      ? module.pages.filter((p) => p.label.toLowerCase().includes(needle))
-      : module.pages;
-  }, [module.pages, query]);
+
 
   return (
     <Shell>
