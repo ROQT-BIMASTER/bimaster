@@ -97,6 +97,9 @@ export function PedidoDetalheDrawer({ pedido, open, onOpenChange, limiarParado =
                   </SheetTitle>
                   <SheetDescription className="text-xs text-left">
                     Pedido Nº {pedido.nro_pedido ?? pedido.futura_pedido_id}
+                    {pedido.nf_numero != null && (
+                      <> · <span className="text-foreground font-medium">NF {pedido.nf_numero}</span></>
+                    )}
                     {pedido.cliente_cnpj_cpf ? ` · ${pedido.cliente_cnpj_cpf}` : ""}
                   </SheetDescription>
                 </div>
