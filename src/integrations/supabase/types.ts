@@ -56538,6 +56538,7 @@ export type Database = {
         Returns: {
           clientes: number
           faturamento: number
+          faturamento_com_impostos: number
           notas: number
           qtd_total: number
           ticket_medio: number
@@ -56571,6 +56572,7 @@ export type Database = {
           coordenador_id: string
           coordenador_nome: string
           faturamento: number
+          faturamento_com_impostos: number
           notas: number
         }[]
       }
@@ -56582,8 +56584,10 @@ export type Database = {
           p_empresa?: number
         }
         Returns: {
+          coordenador_id: string
           coordenador_nome: string
           faturamento: number
+          faturamento_com_impostos: number
           notas: number
           ticket_medio: number
           vendedor_id: string
@@ -56600,14 +56604,17 @@ export type Database = {
         }
         Returns: {
           faturamento: number
+          faturamento_com_impostos: number
           mes: string
           notas: number
+          ticket_medio: number
         }[]
       }
       vendas_serie_mensal_cliente: {
         Args: { p_cliente_futura_id: number; p_desde?: string }
         Returns: {
           faturamento: number
+          faturamento_com_impostos: number
           mes: string
           notas: number
           quantidade: number
@@ -56632,13 +56639,15 @@ export type Database = {
           p_coordenador?: string
           p_de?: string
           p_empresa?: number
-          p_limite?: number
+          p_limit?: number
           p_vendedor?: string
         }
         Returns: {
+          cliente_cnpj_cpf: string
           cliente_futura_id: number
           cliente_nome: string
           faturamento: number
+          faturamento_com_impostos: number
           notas: number
         }[]
       }
