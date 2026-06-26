@@ -56544,6 +56544,25 @@ export type Database = {
           vendedores: number
         }[]
       }
+      vendas_produto_resumo: {
+        Args: { p_data_fim: string; p_data_ini: string; p_empresa_id?: number }
+        Returns: {
+          classe_abc: string
+          classe_xyz: string
+          cod_produto: string
+          cv: number
+          descricao: string
+          desvio_mensal: number
+          estoque_atual: number
+          marca: string
+          media_mensal: number
+          meses_com_venda: number
+          meses_no_periodo: number
+          nome_linha: string
+          qtd_total: number
+          valor_total: number
+        }[]
+      }
       vendas_ranking_coordenador: {
         Args: { p_ate?: string; p_de?: string; p_empresa?: number }
         Returns: {
@@ -56590,6 +56609,19 @@ export type Database = {
           mes: string
           notas: number
           quantidade: number
+        }[]
+      }
+      vendas_serie_mensal_produto: {
+        Args: {
+          p_cod_produto: string
+          p_data_fim: string
+          p_data_ini: string
+          p_empresa_id?: number
+        }
+        Returns: {
+          mes: string
+          quantidade: number
+          valor: number
         }[]
       }
       vendas_top_clientes: {
