@@ -8,9 +8,11 @@ import { EvolucaoMensalChart } from "@/components/vendas/EvolucaoMensalChart";
 import { RankingTabs } from "@/components/vendas/RankingTabs";
 import { TopClientesTable } from "@/components/vendas/TopClientesTable";
 import { NotasPeriodoTable } from "@/components/vendas/NotasPeriodoTable";
+import { UnidadeToggle, loadUnidade } from "@/components/vendas/UnidadeToggle";
 import { useVendasKpis, useVendasSerieMensal, type VendasFilters } from "@/hooks/useVendasAnalise";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { FuturaBackButton } from "@/components/fornecedor/FuturaBackButton";
+import type { Unidade } from "@/lib/vendas/unidade";
 
 function defaultFilters(): VendasFilters {
   const now = new Date();
