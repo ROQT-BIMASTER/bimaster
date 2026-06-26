@@ -8,7 +8,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import {
-  CheckCircle2, Circle, ChevronDown, ChevronRight, Trash2, Sparkles, Loader2,
+  CheckCircle2, Circle, ChevronDown, ChevronRight, Trash2, Sparkles, Loader2, Plus,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
