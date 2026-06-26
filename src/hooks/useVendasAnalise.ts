@@ -34,6 +34,7 @@ export function useVendasKpis(f: VendasFilters) {
         notas: Number(row.notas ?? 0),
         ticket_medio: Number(row.ticket_medio ?? 0),
         qtd_total: Number(row.qtd_total ?? 0),
+        qtd_un: Number(row.qtd_un ?? 0),
         clientes: Number(row.clientes ?? 0),
         vendedores: Number(row.vendedores ?? 0),
       };
