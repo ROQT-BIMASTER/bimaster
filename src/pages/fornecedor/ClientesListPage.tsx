@@ -33,7 +33,7 @@ export default function ClientesListPage() {
   const rows = useClientesFiltrados(data, search);
 
   return (
-    <div className="container mx-auto py-4 sm:py-6 space-y-4">
+    <div className="w-full px-4 md:px-6 py-6 space-y-4">
       <PageHeader
         title="Clientes (histórico)"
         description="Lista de clientes com histórico de compras na Futura"
