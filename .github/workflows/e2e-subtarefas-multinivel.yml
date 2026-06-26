@@ -70,6 +70,25 @@ jobs:
             sleep 3
           done
 
+      # Seed determinístico do backend ANTES dos e2e:
+      # - garante projetos/seção/tarefa fixas existentes e com ownership correto
+      # - força outsider a NÃO ser membro (necessário para o teste de RLS)
+      # - limpa tarefas "[e2e]%" deixadas por runs anteriores
+      # Idempotente: pode rodar quantas vezes for preciso sem efeitos colaterais.
+      - name: Seed/reset Supabase (subtarefas multi-nível)
+        env:
+          SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.E2E_SUPABASE_SERVICE_ROLE_KEY }}
+          E2E_TEST_EMAIL: ${{ secrets.E2E_TEST_EMAIL }}
+          E2E_OUTSIDER_EMAIL: ${{ secrets.E2E_OUTSIDER_EMAIL }}
+          E2E_PROJETO_ID: ${{ secrets.E2E_PROJETO_ID }}
+          E2E_SECAO_ID: ${{ secrets.E2E_SECAO_ID }}
+          E2E_OUTRO_PROJETO_ID: ${{ secrets.E2E_OUTRO_PROJETO_ID }}
+          E2E_OUTRO_PROJETO_TAREFA: ${{ secrets.E2E_OUTRO_PROJETO_TAREFA }}
+        run: bun run scripts/seed/e2e-subtarefas-multinivel.ts
+
+
+
       - name: Run Playwright (subtarefas multi-nível)
         env:
           CI: "true"
