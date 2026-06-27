@@ -56544,6 +56544,22 @@ export type Database = {
         Args: { _scope: string; _token_hash: string; _uid: string }
         Returns: boolean
       }
+      vendas_analise: {
+        Args: {
+          p_ate: string
+          p_de: string
+          p_dimensao: string
+          p_empresa_id?: number
+          p_limit?: number
+          p_metrica: string
+          p_tabela_id?: number
+          p_vendedor_futura_id?: number
+        }
+        Returns: {
+          label: string
+          valor: number
+        }[]
+      }
       vendas_kpis: {
         Args: {
           p_ate?: string
