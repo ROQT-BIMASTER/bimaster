@@ -163,6 +163,34 @@ export function AnaliseChart({
     a.click();
   };
 
+  if (tipo === "table") {
+    const total = data.reduce((s, r) => s + (r.valor || 0), 0);
+    return (
+      <div className="overflow-auto border border-border rounded-md" style={{ maxHeight: height }}>
+        <table className="w-full text-sm">
+          <thead className="bg-muted/40 sticky top-0">
+            <tr>
+              <th className="text-left px-3 py-2 font-medium text-muted-foreground">{dimensao ?? "Categoria"}</th>
+              <th className="text-right px-3 py-2 font-medium text-muted-foreground">Valor</th>
+              <th className="text-right px-3 py-2 font-medium text-muted-foreground w-20">%</th>
+            </tr>
+          </thead>
+          <tbody>
+            {data.map((r, i) => (
+              <tr key={i} className="border-t border-border/60 hover:bg-muted/20">
+                <td className="px-3 py-1.5">{r.label}</td>
+                <td className="px-3 py-1.5 text-right tabular-nums">{formatValue(r.valor, metrica, unidade)}</td>
+                <td className="px-3 py-1.5 text-right tabular-nums text-muted-foreground">
+                  {total > 0 ? `${((r.valor / total) * 100).toFixed(1)}%` : "—"}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    );
+  }
+
   return (
     <div className="relative">
       <div className="absolute right-2 top-2 z-10 flex gap-1">
