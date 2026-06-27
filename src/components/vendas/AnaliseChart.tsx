@@ -73,7 +73,6 @@ export function AnaliseChart({
   const ref = useRef<any>(null);
 
   const option = useMemo(() => {
-    const isTemporal = dimensao === "mes" || dimensao === "trimestre" || dimensao === "ano";
     const horizontal = tipo === "bar" && data.length > 8;
     const labels = data.map((d) => d.label);
     const values = data.map((d) => d.valor);
