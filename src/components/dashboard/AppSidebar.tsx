@@ -2,7 +2,8 @@ import {
   Home, Users, Building2, LogOut, Settings, Upload, Shield, 
   LayoutGrid, CheckSquare, MapPin, MessageSquare, Activity, Clock,
   Store, Calendar, Camera, Tag, TrendingUp, Brain, ChevronDown, ChevronRight, ChevronUp, Image, ClipboardCheck, DollarSign, FileText, Download, Phone, Trophy, BarChart3, Sparkles, Package, Factory, Receipt, Layers, Cog, UserCircle, AlertCircle, AlertTriangle, Pause, Wrench, List, Bot, Wallet, Grid3X3, Briefcase, Rocket, PartyPopper, CreditCard, Pickaxe, Compass, Ticket, FolderKanban, Inbox, Mic, Globe, ShoppingCart, Send, Landmark, Palette, FlaskConical, Scale, Network, Key, Megaphone, BarChart2, UserCheck, Target, RefreshCw, X, Headset,
-  ShieldCheck, HeartPulse, Eye, GitCompare, Database, Footprints, MessageCircle, Share2, Wand2, CalendarDays, Workflow, Ship, AlertOctagon, LifeBuoy, PackageSearch, KanbanSquare
+  ShieldCheck, HeartPulse, Eye, GitCompare, Database, Footprints, MessageCircle, Share2, Wand2, CalendarDays, Workflow, Ship, AlertOctagon, LifeBuoy, PackageSearch, KanbanSquare,
+  Truck, LayoutDashboard, ClipboardList
 } from "lucide-react";
 import { ThemeSelectorPopover } from "@/components/theme/ThemeSelectorPopover";
 import { LanguagePreferencePopover } from "@/components/profile/LanguagePreferencePopover";
@@ -763,6 +764,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
       case "processos": return 3;
       case "eventos": return (hasPermission("eventos_dashboard") ? 1 : 0) + (hasPermission("eventos_analytics") ? 1 : 0);
       case "aprovacao_artes": return 3;
+      case "fornecedor_vendas": return 5;
       default: return 0;
     }
   };
@@ -1111,6 +1113,17 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
       // case "departamentos" removido: itens duplicavam os módulos próprios da sidebar.
 
 
+
+      case "fornecedor_vendas":
+        return (
+          <ModuleSubmenu icon={Truck} title="Vendas Futura Fornecedor" colorKey="comercial">
+            <MenuItemLink to="/dashboard/fornecedor" icon={LayoutDashboard} title="Visão geral" end />
+            <MenuItemLink to="/dashboard/fornecedor/vendas" icon={BarChart3} title="Análise de vendas" />
+            <MenuItemLink to="/dashboard/fornecedor/produtos" icon={Package} title="Vendas por produto" />
+            <MenuItemLink to="/dashboard/fornecedor/pedidos" icon={ClipboardList} title="Pedidos em andamento" />
+            <MenuItemLink to="/dashboard/fornecedor/clientes" icon={Users} title="Clientes" />
+          </ModuleSubmenu>
+        );
 
       case "estoque":
         return (
