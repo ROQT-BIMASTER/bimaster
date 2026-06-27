@@ -9,7 +9,6 @@ import {
   formatBRL,
   formatQtd,
   formatInt,
-  isMonetaria,
   colorForCategory,
   BRAND_BASE,
   BRAND_ACCENT,
