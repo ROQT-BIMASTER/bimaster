@@ -764,6 +764,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
       case "processos": return 3;
       case "eventos": return (hasPermission("eventos_dashboard") ? 1 : 0) + (hasPermission("eventos_analytics") ? 1 : 0);
       case "aprovacao_artes": return 3;
+      case "fornecedor_vendas": return 5;
       default: return 0;
     }
   };
