@@ -757,6 +757,7 @@ function AppContent() {
             <Route path="/dashboard/fornecedor/clientes" element={<ModuleRoute moduleCode="fornecedor"><ScreenProtectedRoute screenCode="fornecedor_vendas"><ClientesListPage /></ScreenProtectedRoute></ModuleRoute>} />
             <Route path="/dashboard/fornecedor/clientes/:id" element={<ModuleRoute moduleCode="fornecedor"><ScreenProtectedRoute screenCode="fornecedor_vendas"><ClienteHistoricoPage /></ScreenProtectedRoute></ModuleRoute>} />
             <Route path="/dashboard/fornecedor/produtos" element={<ModuleRoute moduleCode="fornecedor"><ScreenProtectedRoute screenCode="fornecedor_vendas"><ProdutosVendasPage /></ScreenProtectedRoute></ModuleRoute>} />
+            <Route path="/dashboard/fornecedor/analises" element={<ModuleRoute moduleCode="fornecedor"><AnalisesBuilder /></ModuleRoute>} />
             <Route path="/dashboard/estoque/fornecedor" element={<Navigate to="/dashboard/fornecedor/estoque" replace />} />
             <Route path="/dashboard/estoque/fornecedor-depara" element={<Navigate to="/dashboard/fornecedor/depara-ean" replace />} />
             <Route path="/dashboard/clientes" element={<ModuleRoute moduleCode="central_inteligencia"><ScreenProtectedRoute screenCode="ci_clientes"><AnaliseClientes /></ScreenProtectedRoute></ModuleRoute>} />
