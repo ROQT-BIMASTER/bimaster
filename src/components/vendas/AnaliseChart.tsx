@@ -72,35 +72,6 @@ export function AnaliseChart({
   ensureRubyCorpTheme();
   const ref = useRef<any>(null);
 
-  // Tabela
-  if (tipo === "table") {
-    const total = data.reduce((s, r) => s + (r.valor || 0), 0);
-    return (
-      <div className="overflow-auto border border-border rounded-md">
-        <table className="w-full text-sm">
-          <thead className="bg-muted/40">
-            <tr>
-              <th className="text-left px-3 py-2 font-medium text-muted-foreground">{dimensao ?? "Categoria"}</th>
-              <th className="text-right px-3 py-2 font-medium text-muted-foreground">Valor</th>
-              <th className="text-right px-3 py-2 font-medium text-muted-foreground w-20">%</th>
-            </tr>
-          </thead>
-          <tbody>
-            {data.map((r, i) => (
-              <tr key={i} className="border-t border-border/60 hover:bg-muted/20">
-                <td className="px-3 py-1.5">{r.label}</td>
-                <td className="px-3 py-1.5 text-right tabular-nums">{formatValue(r.valor, metrica, unidade)}</td>
-                <td className="px-3 py-1.5 text-right tabular-nums text-muted-foreground">
-                  {total > 0 ? `${((r.valor / total) * 100).toFixed(1)}%` : "—"}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    );
-  }
-
   const option = useMemo(() => {
     const isTemporal = dimensao === "mes" || dimensao === "trimestre" || dimensao === "ano";
     const horizontal = tipo === "bar" && data.length > 8;
