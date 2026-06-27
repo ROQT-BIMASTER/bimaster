@@ -764,7 +764,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
       case "processos": return 3;
       case "eventos": return (hasPermission("eventos_dashboard") ? 1 : 0) + (hasPermission("eventos_analytics") ? 1 : 0);
       case "aprovacao_artes": return 3;
-      case "fornecedor_vendas": return 5;
+      case "fornecedor_vendas": return 6;
       default: return 0;
     }
   };
@@ -1120,6 +1120,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
             <MenuItemLink to="/dashboard/fornecedor" icon={LayoutDashboard} title="Visão geral" end />
             <MenuItemLink to="/dashboard/fornecedor/vendas" icon={BarChart3} title="Análise de vendas" />
             <MenuItemLink to="/dashboard/fornecedor/produtos" icon={Package} title="Vendas por produto" />
+            <MenuItemLink to="/dashboard/fornecedor/analises" icon={BarChart2} title="Análises" />
             <MenuItemLink to="/dashboard/fornecedor/pedidos" icon={ClipboardList} title="Pedidos em andamento" />
             <MenuItemLink to="/dashboard/fornecedor/clientes" icon={Users} title="Clientes" />
           </ModuleSubmenu>
