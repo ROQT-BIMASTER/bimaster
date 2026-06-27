@@ -34,6 +34,8 @@ const VendaSchema = z.object({
   cliente_nome: z.string().optional().nullable(),
   cliente_cnpj_cpf: z.string().optional().nullable(),
   vendedor_futura_id: z.number().int().optional().nullable(),
+  tabela_preco_id: z.number().int().optional().nullable(),
+  tabela_preco_nome: z.string().optional().nullable(),
   quantidade: z.number().optional().nullable(),
   total_produto: z.number().optional().nullable(),
   total_desconto: z.number().optional().nullable(),
@@ -86,7 +88,7 @@ Deno.serve(secureHandler(
     }
     const parsed = BodySchema.safeParse(raw);
     if (!parsed.success) {
-      return json(400, { error: "validation_error", v: "unid-v1", details: parsed.error.flatten() });
+      return json(400, { error: "validation_error", v: "tabela-v1", details: parsed.error.flatten() });
     }
     const { tipo, periodo_de, periodo_ate, vendas } = parsed.data;
 
@@ -138,6 +140,8 @@ Deno.serve(secureHandler(
           cliente_nome: v.cliente_nome ?? null,
           cliente_cnpj_cpf: v.cliente_cnpj_cpf ?? null,
           vendedor_futura_id: v.vendedor_futura_id ?? null,
+          tabela_preco_id: v.tabela_preco_id ?? null,
+          tabela_preco_nome: v.tabela_preco_nome ?? null,
           quantidade: v.quantidade ?? null,
           total_produto: v.total_produto ?? null,
           total_desconto: v.total_desconto ?? null,

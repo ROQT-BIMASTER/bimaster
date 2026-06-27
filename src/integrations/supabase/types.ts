@@ -15973,6 +15973,8 @@ export type Database = {
           serie: string | null
           sincronizado_em: string
           status: number
+          tabela_preco_id: number | null
+          tabela_preco_nome: string | null
           tipo_pedido_id: number | null
           total_desconto: number | null
           total_nota: number | null
@@ -15998,6 +16000,8 @@ export type Database = {
           serie?: string | null
           sincronizado_em?: string
           status: number
+          tabela_preco_id?: number | null
+          tabela_preco_nome?: string | null
           tipo_pedido_id?: number | null
           total_desconto?: number | null
           total_nota?: number | null
@@ -16023,6 +16027,8 @@ export type Database = {
           serie?: string | null
           sincronizado_em?: string
           status?: number
+          tabela_preco_id?: number | null
+          tabela_preco_nome?: string | null
           tipo_pedido_id?: number | null
           total_desconto?: number | null
           total_nota?: number | null
@@ -51828,6 +51834,8 @@ export type Database = {
           serie: string | null
           sincronizado_em: string | null
           status: number | null
+          tabela_preco_id: number | null
+          tabela_preco_nome: string | null
           total_desconto: number | null
           total_nota: number | null
           total_produto: number | null
@@ -56553,6 +56561,21 @@ export type Database = {
           qtd_un: number
           ticket_medio: number
           vendedores: number
+        }[]
+      }
+      vendas_por_tabela: {
+        Args: {
+          p_ate: string
+          p_de: string
+          p_empresa_id?: number
+          p_vendedor_futura_id?: number
+        }
+        Returns: {
+          faturamento: number
+          notas: number
+          qtd_un: number
+          tabela_preco_id: number
+          tabela_preco_nome: string
         }[]
       }
       vendas_produto_resumo: {
