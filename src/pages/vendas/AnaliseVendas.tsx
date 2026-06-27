@@ -8,6 +8,7 @@ import { EvolucaoMensalChart } from "@/components/vendas/EvolucaoMensalChart";
 import { RankingTabs } from "@/components/vendas/RankingTabs";
 import { TopClientesTable } from "@/components/vendas/TopClientesTable";
 import { NotasPeriodoTable } from "@/components/vendas/NotasPeriodoTable";
+import { VendasPorTabelaSection } from "@/components/vendas/VendasPorTabelaSection";
 import { UnidadeToggle, loadUnidade } from "@/components/vendas/UnidadeToggle";
 import { useVendasKpis, useVendasSerieMensal, type VendasFilters } from "@/hooks/useVendasAnalise";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
@@ -70,6 +71,8 @@ export default function AnaliseVendas() {
           <RankingTabs filters={filters} />
           <TopClientesTable filters={filters} />
         </div>
+
+        <VendasPorTabelaSection filters={filters} unidade={unidade} />
 
         <NotasPeriodoTable filters={filters} unidade={unidade} />
       </div>
