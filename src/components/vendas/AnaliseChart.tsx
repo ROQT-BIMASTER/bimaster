@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from "react";
+import { useMemo, useRef } from "react";
 import ReactECharts from "echarts-for-react";
 import { Button } from "@/components/ui/button";
 import { Download } from "lucide-react";
