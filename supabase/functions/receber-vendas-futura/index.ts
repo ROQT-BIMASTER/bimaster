@@ -88,7 +88,7 @@ Deno.serve(secureHandler(
     }
     const parsed = BodySchema.safeParse(raw);
     if (!parsed.success) {
-      return json(400, { error: "validation_error", v: "unid-v1", details: parsed.error.flatten() });
+      return json(400, { error: "validation_error", v: "tabela-v1", details: parsed.error.flatten() });
     }
     const { tipo, periodo_de, periodo_ate, vendas } = parsed.data;
 
