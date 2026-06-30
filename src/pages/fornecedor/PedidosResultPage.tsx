@@ -15,6 +15,7 @@ import { PedidoResultDetalheDrawer } from "@/components/fornecedor/pedidos/Pedid
 import { LeadTimeKpisCard } from "@/components/fornecedor/pedidos/LeadTimeKpisCard";
 import { KANBAN_COLUNAS_RESULT } from "@/components/fornecedor/pedidos/etapaTheme";
 import { FuturaBackButton } from "@/components/fornecedor/FuturaBackButton";
+import { SyncStatusBarResult } from "@/components/fornecedor/pedidos/SyncStatusBarResult";
 import type { PedidoRubyspExt } from "@/hooks/fornecedor/useRubyspPedidos";
 
 export default function PedidosResultPage() {
@@ -59,6 +60,8 @@ export default function PedidosResultPage() {
             Atualizar
           </Button>
         </div>
+
+        <SyncStatusBarResult />
 
         <Card>
           <CardContent className="p-4 flex flex-wrap items-end gap-3">
