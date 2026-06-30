@@ -32,6 +32,15 @@ const items = [
     iconColor: "text-cyan-600 dark:text-cyan-400",
   },
   {
+    to: "/dashboard/fornecedor/pedidos-result",
+    title: "Pedidos em andamento (Result)",
+    desc: "Kanban dos pedidos de venda do fornecedor Result (Ruby_SP)",
+    icon: ShoppingCart,
+    accent: "border-l-rose-500",
+    iconBg: "bg-rose-100 dark:bg-rose-900/40",
+    iconColor: "text-rose-600 dark:text-rose-400",
+  },
+  {
     to: "/dashboard/fornecedor/depara-ean",
     title: "De-Para EAN",
     desc: "Mapeamento de EAN do fornecedor ao catálogo master",
