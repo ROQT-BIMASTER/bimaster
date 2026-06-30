@@ -1,25 +1,29 @@
 // Recebe lotes de pedidos Ruby_SP do conector externo e faz upsert no staging.
-// Auth: Bearer RUBYSP_SYNC_TOKEN.
+// Auth: Bearer RUBYSP_SYNC_TOKEN ou FUTURA_SYNC_TOKEN.
+// version: itens-v2 (align with table columns)
 import { z } from "https://esm.sh/zod@3.23.8";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { secureHandler } from "../_shared/secure-handler.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
 
 const ItemSchema = z.object({
-  rubysp_item_id: z.number().int().optional().nullable(),
   sequencia: z.number().int(),
-  produto_rubysp_id: z.number().int().optional().nullable(),
-  cod_produto: z.string().optional().nullable(),
-  ean: z.string().optional().nullable(),
+  // canônico
+  produto_id: z.number().int().optional().nullable(),
   descricao: z.string().optional().nullable(),
+  ean: z.string().optional().nullable(),
+  unidade: z.string().optional().nullable(),
   quantidade: z.number().optional().nullable(),
+  preco: z.number().optional().nullable(),
+  desconto: z.number().optional().nullable(),
+  total_item: z.number().optional().nullable(),
+  // aliases (rede de segurança)
+  produto_rubysp_id: z.number().int().optional().nullable(),
+  unidade_sigla: z.string().optional().nullable(),
   valor_unitario: z.number().optional().nullable(),
   desconto_valor: z.number().optional().nullable(),
-  total_item: z.number().optional().nullable(),
-  unidade_sigla: z.string().optional().nullable(),
-  itens_caixa: z.number().optional().nullable(),
-  quantidade_un: z.number().optional().nullable(),
 }).passthrough();
+
 
 const PedidoSchema = z.object({
   rubysp_pedido_id: z.number().int(),
@@ -231,30 +235,27 @@ Deno.serve(secureHandler(
           const itemRows = itens.map((it) => ({
             rubysp_pedido_id: rest.rubysp_pedido_id,
             sequencia: it.sequencia,
-            produto_rubysp_id: it.produto_rubysp_id ?? null,
-            cod_produto: it.cod_produto ?? null,
-            ean: it.ean ?? null,
+            produto_id: it.produto_id ?? it.produto_rubysp_id ?? null,
             descricao: it.descricao ?? null,
+            ean: it.ean ?? null,
+            unidade: it.unidade ?? it.unidade_sigla ?? null,
             quantidade: it.quantidade ?? null,
-            valor_unitario: it.valor_unitario ?? null,
-            desconto_valor: it.desconto_valor ?? null,
+            preco: it.preco ?? it.valor_unitario ?? null,
+            desconto: it.desconto ?? it.desconto_valor ?? null,
             total_item: it.total_item ?? null,
-            unidade_sigla: it.unidade_sigla ?? null,
-            itens_caixa: it.itens_caixa ?? null,
-            quantidade_un: it.quantidade_un ?? null,
-            raw: it as unknown as Record<string, unknown>,
-            sincronizado_em: now,
           }));
-          const { error: insErr } = await supabase
+          const { data: insData, error: insErr } = await supabase
             .from("erp_pedido_itens_rubysp")
-            .insert(itemRows);
+            .insert(itemRows)
+            .select("id");
           if (insErr) {
             errors.push({ rubysp_pedido_id: rest.rubysp_pedido_id, error: `ins itens: ${insErr.message}` });
             continue;
           }
-          itensUpserted += itens.length;
+          itensUpserted += insData?.length ?? 0;
         }
       }
+
 
       const ok = errors.length === 0;
       await supabase.from("sync_log_rubysp").insert({
