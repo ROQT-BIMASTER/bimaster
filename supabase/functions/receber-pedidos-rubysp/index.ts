@@ -1,25 +1,29 @@
 // Recebe lotes de pedidos Ruby_SP do conector externo e faz upsert no staging.
-// Auth: Bearer RUBYSP_SYNC_TOKEN.
+// Auth: Bearer RUBYSP_SYNC_TOKEN ou FUTURA_SYNC_TOKEN.
+// version: itens-v2 (align with table columns)
 import { z } from "https://esm.sh/zod@3.23.8";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { secureHandler } from "../_shared/secure-handler.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
 
 const ItemSchema = z.object({
-  rubysp_item_id: z.number().int().optional().nullable(),
   sequencia: z.number().int(),
-  produto_rubysp_id: z.number().int().optional().nullable(),
-  cod_produto: z.string().optional().nullable(),
-  ean: z.string().optional().nullable(),
+  // canônico
+  produto_id: z.number().int().optional().nullable(),
   descricao: z.string().optional().nullable(),
+  ean: z.string().optional().nullable(),
+  unidade: z.string().optional().nullable(),
   quantidade: z.number().optional().nullable(),
+  preco: z.number().optional().nullable(),
+  desconto: z.number().optional().nullable(),
+  total_item: z.number().optional().nullable(),
+  // aliases (rede de segurança)
+  produto_rubysp_id: z.number().int().optional().nullable(),
+  unidade_sigla: z.string().optional().nullable(),
   valor_unitario: z.number().optional().nullable(),
   desconto_valor: z.number().optional().nullable(),
-  total_item: z.number().optional().nullable(),
-  unidade_sigla: z.string().optional().nullable(),
-  itens_caixa: z.number().optional().nullable(),
-  quantidade_un: z.number().optional().nullable(),
 }).passthrough();
+
 
 const PedidoSchema = z.object({
   rubysp_pedido_id: z.number().int(),
