@@ -63,12 +63,17 @@ Deno.serve(secureHandler(
 
     if (req.method !== "POST") return json(405, { error: "method_not_allowed" });
 
-    const expected = Deno.env.get("RUBYSP_SYNC_TOKEN");
-    if (!expected) return json(500, { error: "server_misconfigured" });
+    // Aceita o token Rubysp OU o token Futura, para um único bearer no conector.
+    const tokRubysp = Deno.env.get("RUBYSP_SYNC_TOKEN") ?? "";
+    const tokFutura = Deno.env.get("FUTURA_SYNC_TOKEN") ?? "";
+    if (!tokRubysp && !tokFutura) return json(500, { error: "server_misconfigured" });
 
     const authHeader = req.headers.get("Authorization") ?? "";
     const provided = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
-    if (!provided || !constantTimeEquals(provided, expected)) {
+    const ok =
+      (!!tokRubysp && constantTimeEquals(provided, tokRubysp)) ||
+      (!!tokFutura && constantTimeEquals(provided, tokFutura));
+    if (!provided || !ok) {
       return json(401, { error: "unauthorized" });
     }
 
