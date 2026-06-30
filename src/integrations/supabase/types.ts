@@ -15058,6 +15058,42 @@ export type Database = {
           },
         ]
       }
+      erp_cliente_compras_mensal_rubysp: {
+        Row: {
+          ano_mes: string
+          cliente_id: number
+          created_at: string
+          faturamento: number
+          id: number
+          n_pedidos: number
+          quantidade: number
+          sincronizado_em: string
+          updated_at: string
+        }
+        Insert: {
+          ano_mes: string
+          cliente_id: number
+          created_at?: string
+          faturamento?: number
+          id?: never
+          n_pedidos?: number
+          quantidade?: number
+          sincronizado_em?: string
+          updated_at?: string
+        }
+        Update: {
+          ano_mes?: string
+          cliente_id?: number
+          created_at?: string
+          faturamento?: number
+          id?: never
+          n_pedidos?: number
+          quantidade?: number
+          sincronizado_em?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       erp_clientes_raw: {
         Row: {
           bairro: string | null
@@ -56849,6 +56885,15 @@ export type Database = {
         }[]
       }
       security_v2_metrics: { Args: never; Returns: Json }
+      serie_mensal_cliente_rubysp: {
+        Args: { p_cliente_id: number }
+        Returns: {
+          ano_mes: string
+          faturamento: number
+          n_pedidos: number
+          quantidade: number
+        }[]
+      }
       similarity_score: {
         Args: { str1: string; str2: string }
         Returns: number
