@@ -28,11 +28,13 @@ import { formatCurrency } from "@/lib/formatters";
 import { parseLocalDate } from "@/lib/utils/parseLocalDate";
 import { supabase } from "@/integrations/supabase/client";
 import type { PedidoFornecedor } from "@/hooks/fornecedor/useFornecedorPedidos";
+import type { PedidoRubyspExt } from "@/hooks/fornecedor/useRubyspPedidos";
 import { useRubyspPedidoItens } from "@/hooks/fornecedor/useRubyspPedidoItens";
 import { formatTempoEtapa, getEtapaTheme } from "./etapaTheme";
+import { PedidoTimelineRubysp } from "./PedidoTimelineRubysp";
 
 interface Props {
-  pedido: (PedidoFornecedor & { tem_canhoto?: boolean }) | null;
+  pedido: PedidoRubyspExt | (PedidoFornecedor & { tem_canhoto?: boolean }) | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   limiarParado?: number;
@@ -177,6 +179,11 @@ export function PedidoResultDetalheDrawer({ pedido, open, onOpenChange, limiarPa
                     valueClassName="text-primary"
                   />
                 </section>
+
+                <PedidoTimelineRubysp
+                  marcos={(pedido as PedidoRubyspExt).marcos}
+                  tempos={(pedido as PedidoRubyspExt).tempos}
+                />
 
                 <section className="grid grid-cols-1 gap-3 rounded-md border border-border bg-muted/30 p-3">
                   <InfoRow

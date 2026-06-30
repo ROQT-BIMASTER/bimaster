@@ -12,15 +12,17 @@ import { DateRangeFilter } from "@/components/shared/DateRangeFilter";
 import { useRubyspPedidos } from "@/hooks/fornecedor/useRubyspPedidos";
 import { PedidosKanban } from "@/components/fornecedor/pedidos/PedidosKanban";
 import { PedidoResultDetalheDrawer } from "@/components/fornecedor/pedidos/PedidoResultDetalheDrawer";
+import { LeadTimeKpisCard } from "@/components/fornecedor/pedidos/LeadTimeKpisCard";
+import { KANBAN_COLUNAS_RESULT } from "@/components/fornecedor/pedidos/etapaTheme";
 import { FuturaBackButton } from "@/components/fornecedor/FuturaBackButton";
-import type { PedidoFornecedor } from "@/hooks/fornecedor/useFornecedorPedidos";
+import type { PedidoRubyspExt } from "@/hooks/fornecedor/useRubyspPedidos";
 
 export default function PedidosResultPage() {
   const [dateFrom, setDateFrom] = useState<Date | undefined>(() => subDays(new Date(), 30));
   const [dateTo, setDateTo] = useState<Date | undefined>(() => new Date());
   const [busca, setBusca] = useState("");
   const [limiarParado, setLimiarParado] = useState(2);
-  const [pedidoSelecionado, setPedidoSelecionado] = useState<PedidoFornecedor | null>(null);
+  const [pedidoSelecionado, setPedidoSelecionado] = useState<PedidoRubyspExt | null>(null);
 
   const { data, isLoading, isFetching, refetch, error } = useRubyspPedidos({ dateFrom, dateTo });
 
@@ -95,9 +97,11 @@ export default function PedidosResultPage() {
           </CardContent>
         </Card>
 
+        <LeadTimeKpisCard />
+
         {isLoading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
-            {Array.from({ length: 5 }).map((_, i) => (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3">
+            {Array.from({ length: 6 }).map((_, i) => (
               <Skeleton key={i} className="h-[400px] w-full" />
             ))}
           </div>
@@ -109,7 +113,12 @@ export default function PedidosResultPage() {
             description="Backfill em andamento ou nenhum pedido no intervalo selecionado — o painel popula automaticamente conforme a sincronização avança."
           />
         ) : (
-          <PedidosKanban pedidos={pedidos} limiarParado={limiarParado} onPedidoClick={setPedidoSelecionado} />
+          <PedidosKanban
+            pedidos={pedidos}
+            limiarParado={limiarParado}
+            onPedidoClick={(p) => setPedidoSelecionado(p as PedidoRubyspExt)}
+            colunas={KANBAN_COLUNAS_RESULT}
+          />
         )}
 
         <PedidoResultDetalheDrawer
