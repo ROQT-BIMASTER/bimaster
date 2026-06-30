@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
-import { AlertTriangle, FileText, Maximize2, Minimize2, MapPin } from "lucide-react";
+import { AlertTriangle, FileText, Maximize2, Minimize2, MapPin, TrendingUp } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { ClienteHistoricoResultChart } from "./ClienteHistoricoResultChart";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import {
@@ -67,6 +69,8 @@ export function PedidoResultDetalheDrawer({ pedido, open, onOpenChange, limiarPa
   const { data: itens, isLoading, error } = useRubyspPedidoItens(rubyspId, open);
   const [fullscreen, setFullscreen] = useState(false);
   const [solicitando, setSolicitando] = useState(false);
+  const [historicoOpen, setHistoricoOpen] = useState(false);
+  const clienteId = pedido?.cliente_futura_id ?? null;
 
   useEffect(() => {
     if (!open) setFullscreen(false);
@@ -129,6 +133,18 @@ export function PedidoResultDetalheDrawer({ pedido, open, onOpenChange, limiarPa
                       {theme.label}
                     </Badge>
                   )}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-8 gap-1.5"
+                    onClick={() => setHistoricoOpen(true)}
+                    disabled={!clienteId}
+                    title={clienteId ? "Histórico mensal de compras e previsão" : "Pedido sem cliente vinculado"}
+                  >
+                    <TrendingUp className="h-3.5 w-3.5" />
+                    <span className="hidden sm:inline">Histórico & previsão</span>
+                  </Button>
                   <Button
                     type="button"
                     variant="outline"
@@ -297,6 +313,27 @@ export function PedidoResultDetalheDrawer({ pedido, open, onOpenChange, limiarPa
           </>
         )}
       </SheetContent>
+      <Dialog open={historicoOpen} onOpenChange={setHistoricoOpen}>
+        <DialogContent className="max-w-5xl w-[95vw] max-h-[92vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Histórico de compras do cliente</DialogTitle>
+            <DialogDescription>
+              Evolução mensal, tendência e projeção dos próximos meses.
+            </DialogDescription>
+          </DialogHeader>
+          {clienteId ? (
+            <ClienteHistoricoResultChart
+              clienteId={clienteId}
+              clienteNome={pedido?.cliente_nome ?? null}
+              height={380}
+            />
+          ) : (
+            <p className="text-sm text-muted-foreground py-6 text-center">
+              Pedido sem cliente vinculado.
+            </p>
+          )}
+        </DialogContent>
+      </Dialog>
     </Sheet>
   );
 }
