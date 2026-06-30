@@ -45970,6 +45970,39 @@ export type Database = {
         }
         Relationships: []
       }
+      sync_control_rubysp: {
+        Row: {
+          id: number
+          solicitar_historico_em: string | null
+          solicitar_pedidos_em: string | null
+          status_historico: string | null
+          status_pedidos: string | null
+          ultima_exec_historico: string | null
+          ultima_exec_pedidos: string | null
+          updated_at: string
+        }
+        Insert: {
+          id?: number
+          solicitar_historico_em?: string | null
+          solicitar_pedidos_em?: string | null
+          status_historico?: string | null
+          status_pedidos?: string | null
+          ultima_exec_historico?: string | null
+          ultima_exec_pedidos?: string | null
+          updated_at?: string
+        }
+        Update: {
+          id?: number
+          solicitar_historico_em?: string | null
+          solicitar_pedidos_em?: string | null
+          status_historico?: string | null
+          status_pedidos?: string | null
+          ultima_exec_historico?: string | null
+          ultima_exec_pedidos?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       sync_log_rubysp: {
         Row: {
           created_at: string
@@ -56903,6 +56936,7 @@ export type Database = {
         Args: { p_force_sync?: boolean; p_user_id: string }
         Returns: undefined
       }
+      solicitar_sync_rubysp: { Args: { p_alvo: string }; Returns: string }
       soundex: { Args: { "": string }; Returns: string }
       start_sync: {
         Args: { p_entidade: string; p_metadata?: Json; p_tipo?: string }
