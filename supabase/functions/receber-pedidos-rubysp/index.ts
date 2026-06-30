@@ -235,30 +235,27 @@ Deno.serve(secureHandler(
           const itemRows = itens.map((it) => ({
             rubysp_pedido_id: rest.rubysp_pedido_id,
             sequencia: it.sequencia,
-            produto_rubysp_id: it.produto_rubysp_id ?? null,
-            cod_produto: it.cod_produto ?? null,
-            ean: it.ean ?? null,
+            produto_id: it.produto_id ?? it.produto_rubysp_id ?? null,
             descricao: it.descricao ?? null,
+            ean: it.ean ?? null,
+            unidade: it.unidade ?? it.unidade_sigla ?? null,
             quantidade: it.quantidade ?? null,
-            valor_unitario: it.valor_unitario ?? null,
-            desconto_valor: it.desconto_valor ?? null,
+            preco: it.preco ?? it.valor_unitario ?? null,
+            desconto: it.desconto ?? it.desconto_valor ?? null,
             total_item: it.total_item ?? null,
-            unidade_sigla: it.unidade_sigla ?? null,
-            itens_caixa: it.itens_caixa ?? null,
-            quantidade_un: it.quantidade_un ?? null,
-            raw: it as unknown as Record<string, unknown>,
-            sincronizado_em: now,
           }));
-          const { error: insErr } = await supabase
+          const { data: insData, error: insErr } = await supabase
             .from("erp_pedido_itens_rubysp")
-            .insert(itemRows);
+            .insert(itemRows)
+            .select("id");
           if (insErr) {
             errors.push({ rubysp_pedido_id: rest.rubysp_pedido_id, error: `ins itens: ${insErr.message}` });
             continue;
           }
-          itensUpserted += itens.length;
+          itensUpserted += insData?.length ?? 0;
         }
       }
+
 
       const ok = errors.length === 0;
       await supabase.from("sync_log_rubysp").insert({
