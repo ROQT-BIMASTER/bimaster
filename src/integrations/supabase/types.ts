@@ -15425,6 +15425,66 @@ export type Database = {
           },
         ]
       }
+      erp_pedido_itens_rubysp: {
+        Row: {
+          created_at: string
+          desconto: number | null
+          descricao: string | null
+          ean: string | null
+          id: number
+          preco: number | null
+          produto_id: number | null
+          quantidade: number | null
+          rubysp_pedido_id: number
+          sequencia: number | null
+          total_item: number | null
+          unidade: string | null
+        }
+        Insert: {
+          created_at?: string
+          desconto?: number | null
+          descricao?: string | null
+          ean?: string | null
+          id?: never
+          preco?: number | null
+          produto_id?: number | null
+          quantidade?: number | null
+          rubysp_pedido_id: number
+          sequencia?: number | null
+          total_item?: number | null
+          unidade?: string | null
+        }
+        Update: {
+          created_at?: string
+          desconto?: number | null
+          descricao?: string | null
+          ean?: string | null
+          id?: never
+          preco?: number | null
+          produto_id?: number | null
+          quantidade?: number | null
+          rubysp_pedido_id?: number
+          sequencia?: number | null
+          total_item?: number | null
+          unidade?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "erp_pedido_itens_rubysp_rubysp_pedido_id_fkey"
+            columns: ["rubysp_pedido_id"]
+            isOneToOne: false
+            referencedRelation: "erp_pedidos_rubysp"
+            referencedColumns: ["rubysp_pedido_id"]
+          },
+          {
+            foreignKeyName: "erp_pedido_itens_rubysp_rubysp_pedido_id_fkey"
+            columns: ["rubysp_pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pedidos_kanban_rubysp"
+            referencedColumns: ["rubysp_pedido_id"]
+          },
+        ]
+      }
       erp_pedidos: {
         Row: {
           cliente_cnpj_cpf: string | null
@@ -15614,6 +15674,201 @@ export type Database = {
           sincronizado_em?: string
           total_item?: number | null
           valor_unitario?: number | null
+        }
+        Relationships: []
+      }
+      erp_pedidos_rubysp: {
+        Row: {
+          bonificacao: boolean
+          cliente_cidade: string | null
+          cliente_cnpj: string | null
+          cliente_id: number | null
+          cliente_nome: string | null
+          cliente_uf: string | null
+          cond_pagamento_desc: string | null
+          cond_pagamento_id: number | null
+          created_at: string
+          data_entrega: string | null
+          data_pedido: string | null
+          digitacao_fim: string | null
+          digitacao_inicio: string | null
+          empresa_id: number | null
+          endereco_bairro: string | null
+          endereco_cep: string | null
+          endereco_entrega: string | null
+          endereco_logradouro: string | null
+          endereco_numero: string | null
+          entrega_local: string | null
+          entrega_obs: string | null
+          etapa: string
+          etapa_desde: string | null
+          etapa_ordem: number | null
+          finalizado: boolean
+          id: number
+          lead_time_entrega_min: number | null
+          lead_time_min: number | null
+          motivo_cancelamento: string | null
+          nf_numero: number | null
+          operacao_desc: string | null
+          operacao_id: number | null
+          pedido_venda_relacionado: number | null
+          raw: Json | null
+          romaneio_id: number | null
+          rubysp_pedido_id: number
+          sincronizado_em: string
+          status: string | null
+          tem_canhoto: boolean
+          tempo_aguard_expedicao_min: number | null
+          tempo_aguard_separacao_min: number | null
+          tempo_digitacao_lib_min: number | null
+          tempo_entrega_min: number | null
+          tempo_faturamento_min: number | null
+          tempo_separacao_min: number | null
+          total_pedido: number | null
+          ts_boleto: string | null
+          ts_conferencia: string | null
+          ts_entrega: string | null
+          ts_expedicao: string | null
+          ts_faturamento: string | null
+          ts_liberacao: string | null
+          ts_separacao: string | null
+          updated_at: string
+          usuario_boleto: string | null
+          usuario_conferencia: string | null
+          usuario_expedicao: string | null
+          usuario_faturamento: string | null
+          usuario_liberacao: string | null
+          usuario_separacao: string | null
+          vendedor_id: number | null
+          vendedor_nome: string | null
+        }
+        Insert: {
+          bonificacao?: boolean
+          cliente_cidade?: string | null
+          cliente_cnpj?: string | null
+          cliente_id?: number | null
+          cliente_nome?: string | null
+          cliente_uf?: string | null
+          cond_pagamento_desc?: string | null
+          cond_pagamento_id?: number | null
+          created_at?: string
+          data_entrega?: string | null
+          data_pedido?: string | null
+          digitacao_fim?: string | null
+          digitacao_inicio?: string | null
+          empresa_id?: number | null
+          endereco_bairro?: string | null
+          endereco_cep?: string | null
+          endereco_entrega?: string | null
+          endereco_logradouro?: string | null
+          endereco_numero?: string | null
+          entrega_local?: string | null
+          entrega_obs?: string | null
+          etapa: string
+          etapa_desde?: string | null
+          etapa_ordem?: number | null
+          finalizado?: boolean
+          id?: never
+          lead_time_entrega_min?: number | null
+          lead_time_min?: number | null
+          motivo_cancelamento?: string | null
+          nf_numero?: number | null
+          operacao_desc?: string | null
+          operacao_id?: number | null
+          pedido_venda_relacionado?: number | null
+          raw?: Json | null
+          romaneio_id?: number | null
+          rubysp_pedido_id: number
+          sincronizado_em?: string
+          status?: string | null
+          tem_canhoto?: boolean
+          tempo_aguard_expedicao_min?: number | null
+          tempo_aguard_separacao_min?: number | null
+          tempo_digitacao_lib_min?: number | null
+          tempo_entrega_min?: number | null
+          tempo_faturamento_min?: number | null
+          tempo_separacao_min?: number | null
+          total_pedido?: number | null
+          ts_boleto?: string | null
+          ts_conferencia?: string | null
+          ts_entrega?: string | null
+          ts_expedicao?: string | null
+          ts_faturamento?: string | null
+          ts_liberacao?: string | null
+          ts_separacao?: string | null
+          updated_at?: string
+          usuario_boleto?: string | null
+          usuario_conferencia?: string | null
+          usuario_expedicao?: string | null
+          usuario_faturamento?: string | null
+          usuario_liberacao?: string | null
+          usuario_separacao?: string | null
+          vendedor_id?: number | null
+          vendedor_nome?: string | null
+        }
+        Update: {
+          bonificacao?: boolean
+          cliente_cidade?: string | null
+          cliente_cnpj?: string | null
+          cliente_id?: number | null
+          cliente_nome?: string | null
+          cliente_uf?: string | null
+          cond_pagamento_desc?: string | null
+          cond_pagamento_id?: number | null
+          created_at?: string
+          data_entrega?: string | null
+          data_pedido?: string | null
+          digitacao_fim?: string | null
+          digitacao_inicio?: string | null
+          empresa_id?: number | null
+          endereco_bairro?: string | null
+          endereco_cep?: string | null
+          endereco_entrega?: string | null
+          endereco_logradouro?: string | null
+          endereco_numero?: string | null
+          entrega_local?: string | null
+          entrega_obs?: string | null
+          etapa?: string
+          etapa_desde?: string | null
+          etapa_ordem?: number | null
+          finalizado?: boolean
+          id?: never
+          lead_time_entrega_min?: number | null
+          lead_time_min?: number | null
+          motivo_cancelamento?: string | null
+          nf_numero?: number | null
+          operacao_desc?: string | null
+          operacao_id?: number | null
+          pedido_venda_relacionado?: number | null
+          raw?: Json | null
+          romaneio_id?: number | null
+          rubysp_pedido_id?: number
+          sincronizado_em?: string
+          status?: string | null
+          tem_canhoto?: boolean
+          tempo_aguard_expedicao_min?: number | null
+          tempo_aguard_separacao_min?: number | null
+          tempo_digitacao_lib_min?: number | null
+          tempo_entrega_min?: number | null
+          tempo_faturamento_min?: number | null
+          tempo_separacao_min?: number | null
+          total_pedido?: number | null
+          ts_boleto?: string | null
+          ts_conferencia?: string | null
+          ts_entrega?: string | null
+          ts_expedicao?: string | null
+          ts_faturamento?: string | null
+          ts_liberacao?: string | null
+          ts_separacao?: string | null
+          updated_at?: string
+          usuario_boleto?: string | null
+          usuario_conferencia?: string | null
+          usuario_expedicao?: string | null
+          usuario_faturamento?: string | null
+          usuario_liberacao?: string | null
+          usuario_separacao?: string | null
+          vendedor_id?: number | null
+          vendedor_nome?: string | null
         }
         Relationships: []
       }
@@ -45679,6 +45934,42 @@ export type Database = {
         }
         Relationships: []
       }
+      sync_log_rubysp: {
+        Row: {
+          created_at: string
+          detalhe: string | null
+          id: number
+          itens_qtd: number | null
+          ok: boolean
+          origem: string
+          pedidos_qtd: number | null
+          periodo_ate: string | null
+          periodo_de: string | null
+        }
+        Insert: {
+          created_at?: string
+          detalhe?: string | null
+          id?: never
+          itens_qtd?: number | null
+          ok?: boolean
+          origem?: string
+          pedidos_qtd?: number | null
+          periodo_ate?: string | null
+          periodo_de?: string | null
+        }
+        Update: {
+          created_at?: string
+          detalhe?: string | null
+          id?: never
+          itens_qtd?: number | null
+          ok?: boolean
+          origem?: string
+          pedidos_qtd?: number | null
+          periodo_ate?: string | null
+          periodo_de?: string | null
+        }
+        Relationships: []
+      }
       sync_logs: {
         Row: {
           created_at: string | null
@@ -52512,6 +52803,22 @@ export type Database = {
         }
         Relationships: []
       }
+      vw_lead_time_etapas_rubysp: {
+        Row: {
+          media_lead_time_entrega_min: number | null
+          media_lead_time_min: number | null
+          n_liberacao: number | null
+          p50_aguard_expedicao_min: number | null
+          p50_aguard_separacao_min: number | null
+          p50_ate_liberacao_min: number | null
+          p50_entrega_transito_min: number | null
+          p50_faturamento_min: number | null
+          p50_lead_time_entrega_min: number | null
+          p50_lead_time_min: number | null
+          p50_separacao_min: number | null
+        }
+        Relationships: []
+      }
       vw_op_pronto_embarque: {
         Row: {
           data_fim: string | null
@@ -52566,6 +52873,204 @@ export type Database = {
             referencedColumns: ["provador_id"]
           },
         ]
+      }
+      vw_pedidos_kanban_rubysp: {
+        Row: {
+          bonificacao: boolean | null
+          cliente_cidade: string | null
+          cliente_cnpj: string | null
+          cliente_id: number | null
+          cliente_nome: string | null
+          cliente_uf: string | null
+          cond_pagamento_desc: string | null
+          cond_pagamento_id: number | null
+          created_at: string | null
+          data_entrega: string | null
+          data_pedido: string | null
+          digitacao_fim: string | null
+          digitacao_inicio: string | null
+          empresa_id: number | null
+          endereco_bairro: string | null
+          endereco_cep: string | null
+          endereco_entrega: string | null
+          endereco_logradouro: string | null
+          endereco_numero: string | null
+          entrega_local: string | null
+          entrega_obs: string | null
+          etapa: string | null
+          etapa_desde: string | null
+          etapa_ordem: number | null
+          finalizado: boolean | null
+          id: number | null
+          idade_etapa_min: number | null
+          lead_time_entrega_min: number | null
+          lead_time_min: number | null
+          motivo_cancelamento: string | null
+          nf_numero: number | null
+          operacao_desc: string | null
+          operacao_id: number | null
+          pedido_venda_relacionado: number | null
+          raw: Json | null
+          romaneio_id: number | null
+          rubysp_pedido_id: number | null
+          sincronizado_em: string | null
+          status: string | null
+          tem_canhoto: boolean | null
+          tempo_aguard_expedicao_min: number | null
+          tempo_aguard_separacao_min: number | null
+          tempo_digitacao_lib_min: number | null
+          tempo_entrega_min: number | null
+          tempo_faturamento_min: number | null
+          tempo_separacao_min: number | null
+          total_pedido: number | null
+          ts_boleto: string | null
+          ts_conferencia: string | null
+          ts_entrega: string | null
+          ts_expedicao: string | null
+          ts_faturamento: string | null
+          ts_liberacao: string | null
+          ts_separacao: string | null
+          updated_at: string | null
+          usuario_boleto: string | null
+          usuario_conferencia: string | null
+          usuario_expedicao: string | null
+          usuario_faturamento: string | null
+          usuario_liberacao: string | null
+          usuario_separacao: string | null
+          vendedor_id: number | null
+          vendedor_nome: string | null
+        }
+        Insert: {
+          bonificacao?: boolean | null
+          cliente_cidade?: string | null
+          cliente_cnpj?: string | null
+          cliente_id?: number | null
+          cliente_nome?: string | null
+          cliente_uf?: string | null
+          cond_pagamento_desc?: string | null
+          cond_pagamento_id?: number | null
+          created_at?: string | null
+          data_entrega?: string | null
+          data_pedido?: string | null
+          digitacao_fim?: string | null
+          digitacao_inicio?: string | null
+          empresa_id?: number | null
+          endereco_bairro?: string | null
+          endereco_cep?: string | null
+          endereco_entrega?: string | null
+          endereco_logradouro?: string | null
+          endereco_numero?: string | null
+          entrega_local?: string | null
+          entrega_obs?: string | null
+          etapa?: string | null
+          etapa_desde?: string | null
+          etapa_ordem?: number | null
+          finalizado?: boolean | null
+          id?: number | null
+          idade_etapa_min?: never
+          lead_time_entrega_min?: number | null
+          lead_time_min?: number | null
+          motivo_cancelamento?: string | null
+          nf_numero?: number | null
+          operacao_desc?: string | null
+          operacao_id?: number | null
+          pedido_venda_relacionado?: number | null
+          raw?: Json | null
+          romaneio_id?: number | null
+          rubysp_pedido_id?: number | null
+          sincronizado_em?: string | null
+          status?: string | null
+          tem_canhoto?: boolean | null
+          tempo_aguard_expedicao_min?: number | null
+          tempo_aguard_separacao_min?: number | null
+          tempo_digitacao_lib_min?: number | null
+          tempo_entrega_min?: number | null
+          tempo_faturamento_min?: number | null
+          tempo_separacao_min?: number | null
+          total_pedido?: number | null
+          ts_boleto?: string | null
+          ts_conferencia?: string | null
+          ts_entrega?: string | null
+          ts_expedicao?: string | null
+          ts_faturamento?: string | null
+          ts_liberacao?: string | null
+          ts_separacao?: string | null
+          updated_at?: string | null
+          usuario_boleto?: string | null
+          usuario_conferencia?: string | null
+          usuario_expedicao?: string | null
+          usuario_faturamento?: string | null
+          usuario_liberacao?: string | null
+          usuario_separacao?: string | null
+          vendedor_id?: number | null
+          vendedor_nome?: string | null
+        }
+        Update: {
+          bonificacao?: boolean | null
+          cliente_cidade?: string | null
+          cliente_cnpj?: string | null
+          cliente_id?: number | null
+          cliente_nome?: string | null
+          cliente_uf?: string | null
+          cond_pagamento_desc?: string | null
+          cond_pagamento_id?: number | null
+          created_at?: string | null
+          data_entrega?: string | null
+          data_pedido?: string | null
+          digitacao_fim?: string | null
+          digitacao_inicio?: string | null
+          empresa_id?: number | null
+          endereco_bairro?: string | null
+          endereco_cep?: string | null
+          endereco_entrega?: string | null
+          endereco_logradouro?: string | null
+          endereco_numero?: string | null
+          entrega_local?: string | null
+          entrega_obs?: string | null
+          etapa?: string | null
+          etapa_desde?: string | null
+          etapa_ordem?: number | null
+          finalizado?: boolean | null
+          id?: number | null
+          idade_etapa_min?: never
+          lead_time_entrega_min?: number | null
+          lead_time_min?: number | null
+          motivo_cancelamento?: string | null
+          nf_numero?: number | null
+          operacao_desc?: string | null
+          operacao_id?: number | null
+          pedido_venda_relacionado?: number | null
+          raw?: Json | null
+          romaneio_id?: number | null
+          rubysp_pedido_id?: number | null
+          sincronizado_em?: string | null
+          status?: string | null
+          tem_canhoto?: boolean | null
+          tempo_aguard_expedicao_min?: number | null
+          tempo_aguard_separacao_min?: number | null
+          tempo_digitacao_lib_min?: number | null
+          tempo_entrega_min?: number | null
+          tempo_faturamento_min?: number | null
+          tempo_separacao_min?: number | null
+          total_pedido?: number | null
+          ts_boleto?: string | null
+          ts_conferencia?: string | null
+          ts_entrega?: string | null
+          ts_expedicao?: string | null
+          ts_faturamento?: string | null
+          ts_liberacao?: string | null
+          ts_separacao?: string | null
+          updated_at?: string | null
+          usuario_boleto?: string | null
+          usuario_conferencia?: string | null
+          usuario_expedicao?: string | null
+          usuario_faturamento?: string | null
+          usuario_liberacao?: string | null
+          usuario_separacao?: string | null
+          vendedor_id?: number | null
+          vendedor_nome?: string | null
+        }
+        Relationships: []
       }
       vw_process_timeline: {
         Row: {
