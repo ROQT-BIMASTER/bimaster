@@ -9,6 +9,7 @@ export type EtapaCanonica =
   | "conferido"
   | "faturado"
   | "em_rota"
+  | "entregue"
   | "finalizado"
   | "baixado"
   | "cancelado";
@@ -57,6 +58,11 @@ export const ETAPA_THEME: Record<EtapaCanonica, EtapaThemeEntry> = {
     border: "border-t-4 border-t-emerald-500",
     badge: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/30",
   },
+  entregue: {
+    label: "Entregue",
+    border: "border-t-4 border-t-emerald-600",
+    badge: "bg-emerald-600/10 text-emerald-700 dark:text-emerald-300 border-emerald-600/40",
+  },
   finalizado: {
     label: "Finalizado",
     border: "border-t-4 border-t-muted-foreground",
@@ -74,13 +80,25 @@ export const ETAPA_THEME: Record<EtapaCanonica, EtapaThemeEntry> = {
   },
 };
 
-/** Colunas visíveis no Kanban (ordem canônica). 'aberto' é agrupado em 'digitacao'. */
-export const KANBAN_COLUNAS: { id: EtapaCanonica; etapas: EtapaCanonica[]; label: string }[] = [
+export type KanbanColuna = { id: EtapaCanonica; etapas: EtapaCanonica[]; label: string };
+
+/** Colunas visíveis no Kanban Futura (ordem canônica). 'aberto' é agrupado em 'digitacao'. */
+export const KANBAN_COLUNAS: KanbanColuna[] = [
   { id: "digitacao", etapas: ["digitacao", "aberto"], label: "Em digitação" },
   { id: "separacao", etapas: ["separacao"], label: "Em separação" },
   { id: "separado", etapas: ["separado"], label: "Separado" },
   { id: "conferido", etapas: ["conferido"], label: "Conferido" },
   { id: "faturado", etapas: ["faturado"], label: "Faturado" },
+];
+
+/** Colunas do Kanban Result (Ruby_SP) — inclui "Entregue" ao final. */
+export const KANBAN_COLUNAS_RESULT: KanbanColuna[] = [
+  { id: "digitacao", etapas: ["digitacao", "aberto"], label: "Em digitação" },
+  { id: "separacao", etapas: ["separacao"], label: "Em separação" },
+  { id: "separado", etapas: ["separado"], label: "Separado" },
+  { id: "conferido", etapas: ["conferido"], label: "Conferido" },
+  { id: "faturado", etapas: ["faturado"], label: "Faturado" },
+  { id: "entregue", etapas: ["entregue"], label: "Entregue" },
 ];
 
 export function formatTempoEtapa(dias: number | null | undefined): string {
