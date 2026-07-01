@@ -402,8 +402,16 @@ export default function MeuPerfil() {
         .from("avatars")
         .upload(path, file, { contentType: file.type, upsert: false });
       if (upErr) throw upErr;
-      const { data: publicData } = supabase.storage.from("avatars").getPublicUrl(path);
-      const publicUrl = publicData.publicUrl;
+      // Bucket privado: usar URL assinada de longa duração (1 ano).
+      // getPublicUrl não autentica em bucket privado e a imagem "some"
+      // assim que o cache do navegador expira.
+      const { data: signedData, error: signedErr } = await supabase.storage
+        .from("avatars")
+        .createSignedUrl(path, 60 * 60 * 24 * 365);
+      if (signedErr || !signedData?.signedUrl) {
+        throw signedErr || new Error("Falha ao gerar URL da foto");
+      }
+      const publicUrl = signedData.signedUrl;
       const { error: dbErr } = await supabase
         .from("profiles")
         .update({ avatar_url: publicUrl })
