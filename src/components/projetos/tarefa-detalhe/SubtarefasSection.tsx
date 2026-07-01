@@ -52,6 +52,8 @@ interface SubtarefasSectionProps {
   onOpenSubtarefa?: (subtarefaId: string) => void;
   /** Esconde o título "Subtarefas" + contador (útil quando o consumidor já renderiza próprio header). */
   hideHeader?: boolean;
+  /** Fallback adicional de hidratação de responsáveis (super-set do `projeto_membros`). */
+  teamMembers?: { id: string; nome: string; avatar_url: string | null }[];
 }
 
 /**
