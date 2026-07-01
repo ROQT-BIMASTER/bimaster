@@ -52,6 +52,8 @@ interface SubtarefasSectionProps {
   onOpenSubtarefa?: (subtarefaId: string) => void;
   /** Esconde o título "Subtarefas" + contador (útil quando o consumidor já renderiza próprio header). */
   hideHeader?: boolean;
+  /** Fallback adicional de hidratação de responsáveis (super-set do `projeto_membros`). */
+  teamMembers?: { id: string; nome: string; avatar_url: string | null }[];
 }
 
 /**
@@ -71,6 +73,7 @@ export function SubtarefasSection({
   onDelete,
   onOpenSubtarefa,
   hideHeader = false,
+  teamMembers,
 }: SubtarefasSectionProps) {
   const { loading: iaLoading, generateChecklist } = useProjetoIA();
   const { membros } = useProjetoMembros(projetoId || undefined);
@@ -268,31 +271,46 @@ export function SubtarefasSection({
             </SelectContent>
           </Select>
           {projetoId && (() => {
-            // Fallback de hidratação: quando `responsavel` não vem no objeto
-            // (payload otimista ou cache antigo), tenta 1) primeiro item de
-            // `responsaveis[]`, 2) lookup em `projeto_membros` pelo
-            // `responsavel_id`. Sem isso o picker aparecia só como um
-            // pontinho sem nome/foto.
+            // Cadeia de fallback para garantir avatar/nome do responsável no
+            // front, mesmo quando a subtarefa não vem 100% hidratada
+            // (payload otimista, cache antigo, RLS restringindo o join em
+            // profiles, ou responsável fora de `projeto_membros` mas
+            // presente em `teamMembers` da RPC).
+            //
+            // Ordem: responsavel (join) → primeiro item de responsaveis[] →
+            // match pelo responsavel_id em responsaveis[] → lookup em
+            // projeto_membros → lookup em teamMembers (super-set) → "Membro".
+            const respId = st.responsavel_id || null;
             const respPrimario = st.responsaveis?.[0];
-            const respFromMembros = st.responsavel_id
-              ? membros.find((m) => m.user_id === st.responsavel_id)
+            const respByIdInJunction = respId
+              ? (st.responsaveis || []).find((r) => r.user_id === respId)
+              : null;
+            const respFromMembros = respId
+              ? membros.find((m) => m.user_id === respId)
+              : null;
+            const respFromTeam = respId
+              ? (teamMembers || []).find((tm) => tm.id === respId)
               : null;
             const nome =
               st.responsavel?.nome ||
+              respByIdInJunction?.nome ||
               respPrimario?.nome ||
               respFromMembros?.profile?.nome ||
-              null;
+              respFromTeam?.nome ||
+              (respId ? "Membro" : null);
             const avatar =
               st.responsavel?.avatar_url ||
+              respByIdInJunction?.avatar_url ||
               respPrimario?.avatar_url ||
               respFromMembros?.profile?.avatar_url ||
+              respFromTeam?.avatar_url ||
               null;
             return (
               <>
                 <SubtarefaResponsavelPicker
                   subtarefaId={st.id}
                   projetoId={projetoId}
-                  responsavelId={st.responsavel_id || null}
+                  responsavelId={respId}
                   responsavelNome={nome}
                   responsavelAvatar={avatar}
                 />

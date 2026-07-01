@@ -1370,6 +1370,7 @@ export function ProjetoTarefaDetalhe({
                   onAddSubtarefa={onAddSubtarefa}
                   onDelete={onDelete}
                   onOpenSubtarefa={onOpenSubtarefa}
+                  teamMembers={teamMembers}
                 />
 
                 <Separator />
