@@ -11,12 +11,36 @@ const Body = z.object({ runId: z.string().uuid().optional() }).strict();
 Deno.serve(
   secureHandler(
     { auth: "any", rateLimit: 60, rateLimitPrefix: "reports-alerts-evaluator" },
-    async (req) => {
+    async (req, ctx) => {
       const cors = getCorsHeaders(req);
       const sb = createClient(
         Deno.env.get("SUPABASE_URL")!,
         Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
       );
+
+      // Only service-role (api_key) callers or admins may trigger evaluation.
+      const isApiKey = (ctx as any)?.authSource === "api_key";
+      const callerId: string | null = (ctx as any)?.userId ?? null;
+      if (!isApiKey) {
+        if (!callerId) {
+          return new Response(JSON.stringify({ error: "Unauthorized" }), {
+            status: 401,
+            headers: { ...cors, "Content-Type": "application/json" },
+          });
+        }
+        const { data: adminRole } = await sb
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", callerId)
+          .eq("role", "admin")
+          .maybeSingle();
+        if (!adminRole) {
+          return new Response(JSON.stringify({ error: "Forbidden" }), {
+            status: 403,
+            headers: { ...cors, "Content-Type": "application/json" },
+          });
+        }
+      }
 
       const parsed = Body.safeParse(await req.json().catch(() => ({})));
       if (!parsed.success) {
@@ -25,6 +49,7 @@ Deno.serve(
           headers: { ...cors, "Content-Type": "application/json" },
         });
       }
+
 
       let runs: Array<{ id: string; report_id: string; metric_snapshot: any }> = [];
       if (parsed.data.runId) {

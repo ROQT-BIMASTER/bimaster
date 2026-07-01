@@ -14,6 +14,18 @@ interface ExportParams {
   uf?: string;
 }
 
+const ALLOWED_DIMENSION_TABLES = new Set([
+  'municipios', 'prospects', 'stores', 'profiles', 'competitors',
+  'trade_chart_of_accounts', 'trade_campaigns',
+]);
+
+const ALLOWED_FACT_TABLES = new Set([
+  'atividades', 'visits', 'gondola_audits', 'shelf_share',
+  'trade_investments', 'trade_financial_entries', 'trade_bank_transactions',
+  'sales', 'kpis_tracking',
+]);
+
+
 Deno.serve(secureHandler({ auth: "none", rateLimit: 60, rateLimitPrefix: "export-datawarehouse" }, async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: getCorsHeaders(req) });
@@ -47,6 +59,22 @@ Deno.serve(secureHandler({ auth: "none", rateLimit: 60, rateLimitPrefix: "export
     if (!profile?.aprovado) {
       throw new Error('User not approved');
     }
+
+    // Require admin or supervisor role — this function uses service_role and
+    // bypasses RLS, so it must not be reachable by low-privilege users.
+    const { data: roles } = await supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', user.id)
+      .in('role', ['admin', 'supervisor']);
+
+    if (!roles || roles.length === 0) {
+      return new Response(
+        JSON.stringify({ error: 'Forbidden: requires admin or supervisor role' }),
+        { status: 403, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } },
+      );
+    }
+
 
     const params: ExportParams = await req.json();
     const format = params.format || 'json';
@@ -105,15 +133,11 @@ Deno.serve(secureHandler({ auth: "none", rateLimit: 60, rateLimitPrefix: "export
 }));
 
 async function exportDimensions(supabase: any, params: ExportParams) {
-  const tables = params.table_name ? [params.table_name] : [
-    'municipios',
-    'prospects',
-    'stores',
-    'profiles',
-    'competitors',
-    'trade_chart_of_accounts',
-    'trade_campaigns',
-  ];
+  const requestedTables = params.table_name ? [params.table_name] : [...ALLOWED_DIMENSION_TABLES];
+  const tables = requestedTables.filter((t) => ALLOWED_DIMENSION_TABLES.has(t));
+  if (tables.length === 0) {
+    throw new Error(`Invalid table_name for dimensions. Allowed: ${[...ALLOWED_DIMENSION_TABLES].join(', ')}`);
+  }
 
   const result: any = {};
 
@@ -135,17 +159,14 @@ async function exportDimensions(supabase: any, params: ExportParams) {
 }
 
 async function exportFacts(supabase: any, params: ExportParams) {
-  const tables = params.table_name ? [params.table_name] : [
-    'atividades',
-    'visits',
-    'gondola_audits',
-    'shelf_share',
-    'trade_investments',
-    'trade_financial_entries',
-    'trade_bank_transactions',
-    'sales',
-    'kpis_tracking',
-  ];
+  const requestedTables = params.table_name ? [params.table_name] : [...ALLOWED_FACT_TABLES];
+  const tables = requestedTables.filter((t) => ALLOWED_FACT_TABLES.has(t));
+  if (tables.length === 0) {
+    throw new Error(`Invalid table_name for facts. Allowed: ${[...ALLOWED_FACT_TABLES].join(', ')}`);
+  }
+
+
+
 
   const result: any = {};
 

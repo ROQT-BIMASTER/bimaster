@@ -66,7 +66,9 @@ interface XMLData {
   produtos: XMLProduct[];
 }
 
-Deno.serve(secureHandler({ auth: "none", rateLimit: 0, rateLimitPrefix: "process-nfe-xml" }, async (req) => {
+const MAX_XML_BYTES = 2 * 1024 * 1024; // 2 MB — a typical NF-e is < 200 KB
+
+Deno.serve(secureHandler({ auth: "jwt", rateLimit: 30, rateLimitPrefix: "process-nfe-xml" }, async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: getCorsHeaders(req) });
   }
@@ -86,7 +88,17 @@ Deno.serve(secureHandler({ auth: "none", rateLimit: 0, rateLimitPrefix: "process
     }
 
     const { xml } = await req.json();
+    if (typeof xml !== 'string' || xml.length === 0) {
+      throw new Error('XML inválido');
+    }
+    if (xml.length > MAX_XML_BYTES) {
+      return new Response(
+        JSON.stringify({ error: `XML excede o limite de ${MAX_XML_BYTES} bytes` }),
+        { status: 413, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } },
+      );
+    }
     logger.log('[process-nfe-xml] Iniciando processamento do XML');
+
 
     const xmlData = parseXML(xml);
     logger.log('[process-nfe-xml] XML parseado:', xmlData.chave_acesso);
