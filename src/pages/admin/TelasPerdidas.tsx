@@ -264,12 +264,19 @@ export default function TelasPerdidas() {
               </div>
               <ScrollArea className="max-h-[420px]">
                 <ul className="divide-y">
-                  {rotas.map((r) => (
+                  {rotas.map((r) => {
+                    const pg = parentGroupByRoute.get(r);
+                    return (
                     <li
                       key={r}
                       className="flex items-center gap-2 px-3 py-2 hover:bg-muted/30"
                     >
                       <code className="text-xs font-mono flex-1 truncate">{r}</code>
+                      {pg && (
+                        <Badge variant="outline" className="text-[10px]">
+                          {pg}
+                        </Badge>
+                      )}
                       <Button
                         variant="ghost"
                         size="sm"
