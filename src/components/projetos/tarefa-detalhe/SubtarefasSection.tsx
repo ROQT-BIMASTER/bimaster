@@ -790,7 +790,7 @@ export function SubtarefasSection({
         </p>
       )}
 
-      <div className="space-y-1.5">
+      <div className="space-y-1.5" ref={treeContainerRef}>
         {renderRows(pendentesRows)}
 
         {concluidas.length > 0 && (
