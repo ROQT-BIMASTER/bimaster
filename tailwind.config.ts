@@ -14,10 +14,11 @@ export default {
     },
     extend: {
       fontFamily: {
-        sans: ["'Segoe UI'", 'system-ui', '-apple-system', 'sans-serif'],
-        display: ["'Segoe UI'", 'system-ui', '-apple-system', 'sans-serif'],
+        sans: ["'DM Sans'", 'system-ui', '-apple-system', "'Segoe UI'", 'sans-serif'],
+        display: ["'Space Grotesk Variable'", "'Space Grotesk'", 'system-ui', '-apple-system', "'Segoe UI'", 'sans-serif'],
         mono: ["'Consolas'", 'monospace'],
       },
+
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",

@@ -8,9 +8,12 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    /* Typography */
-    --font-sans: 'Segoe UI', system-ui, -apple-system, sans-serif;
-    --font-display: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    /* Typography — DM Sans (body) + Space Grotesk (display). Fallbacks garantem
+       render imediato antes das @fontsource carregarem e mantêm paridade com
+       o baseline Segoe UI histórico caso a fonte web falhe. */
+    --font-sans: 'DM Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    --font-display: 'Space Grotesk Variable', 'Space Grotesk', system-ui, -apple-system, 'Segoe UI', sans-serif;
+
     
     /* Core colors - Redesign #eef0f5 base */
     --background: 222 18% 95%;
