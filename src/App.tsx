@@ -347,6 +347,7 @@ const MfaSettingsPage = lazyWithRetry(() => import("./pages/security/MfaSettings
 const VisibilidadeTarefas = lazyWithRetry(() => import("./pages/admin/VisibilidadeTarefas"));
 const VisibilidadeDetalheTarefa = lazyWithRetry(() => import("./pages/admin/VisibilidadeDetalheTarefa"));
 const VersoesClientes = lazyWithRetry(() => import("./pages/admin/VersoesClientes"));
+const UploadRejeicoesAudit = lazyWithRetry(() => import("./pages/admin/UploadRejeicoesAudit"));
 const CofreTemplates = lazyWithRetry(() => import("./pages/admin/CofreTemplates"));
 const IntegracaoGoogleDrive = lazyWithRetry(() => import("./pages/admin/IntegracaoGoogleDrive"));
 const SuporteAdmin = lazyWithRetry(() => import("./pages/admin/SuporteAdmin"));
