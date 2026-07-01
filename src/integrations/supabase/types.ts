@@ -54133,6 +54133,10 @@ export type Database = {
         Args: { _user_id: string }
         Returns: boolean
       }
+      can_access_fluxo_instancia: {
+        Args: { _instancia_id: string; _user_id: string }
+        Returns: boolean
+      }
       can_access_huggs_studio: { Args: { _user_id: string }; Returns: boolean }
       can_access_meeting: {
         Args: { _meeting_id: string; _user_id: string }
