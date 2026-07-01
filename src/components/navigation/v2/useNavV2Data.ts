@@ -26,6 +26,13 @@ export interface NavV2Module {
   label: string;
   icon: string;
   pages: NavV2Page[];
+  /**
+   * Rótulo de agrupamento visual dentro do popover contextual. Preenchido
+   * apenas quando duas categorias foram fundidas no rail (ex.: engrenagem
+   * do banco + categoria sintética Administração). Vazio = renderização
+   * tradicional sem subheader.
+   */
+  sectionLabel?: string;
 }
 
 export interface NavV2Category {
@@ -34,6 +41,7 @@ export interface NavV2Category {
   icon?: string | null;
   modules: NavV2Module[];
 }
+
 
 export interface NavV2Tree {
   categories: NavV2Category[];
@@ -107,7 +115,39 @@ export function useNavV2Data(): NavV2Tree {
       hasModulePermission,
       hasScreen: hasPermission,
     });
-    return adminCat ? [...base, adminCat] : base;
+    if (!adminCat) return base;
+
+    // Fusão da engrenagem: se já existir uma categoria "hospedeira" no banco
+    // com ícone Settings ou chave de configuração/sistema/admin, absorvemos
+    // os módulos sintéticos de Administração dentro dela — evitando dois
+    // botões de engrenagem no rail. Marcamos `sectionLabel` para o
+    // ContextualSidebar renderizar subheaders discretos por origem.
+    const SETTINGS_KEYS = new Set([
+      "configuracoes",
+      "config",
+      "sistema",
+      "administracao",
+      "admin",
+    ]);
+    const hostIdx = base.findIndex((c) => {
+      const normalizedKey = c.key.toLowerCase().replace(/[\s-]+/g, "_");
+      return c.icon === "Settings" || SETTINGS_KEYS.has(normalizedKey);
+    });
+    if (hostIdx === -1) {
+      // Sem hospedeira → comportamento anterior (append da categoria admin).
+      return [...base, adminCat];
+    }
+    const host = base[hostIdx];
+    const mergedHost: NavV2Category = {
+      ...host,
+      modules: [
+        ...host.modules.map((m) => ({ ...m, sectionLabel: host.label })),
+        ...adminCat.modules.map((m) => ({ ...m, sectionLabel: adminCat.label })),
+      ],
+    };
+    const next = [...base];
+    next[hostIdx] = mergedHost;
+    return next;
   }, [
     dbCategories,
     itemsByModule,
@@ -116,6 +156,7 @@ export function useNavV2Data(): NavV2Tree {
     isAdmin,
     isAdminOrSupervisor,
   ]);
+
 
   return {
     categories: tree,
