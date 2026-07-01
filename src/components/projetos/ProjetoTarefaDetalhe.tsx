@@ -1528,6 +1528,7 @@ export function ProjetoTarefaDetalhe({
           secoes={secoes}
           projetoTipo={projetoTipo}
           externalSaving={externalSaving}
+          rootTarefaId={rootTarefaId ?? tarefa.id}
         />
       )}
 
