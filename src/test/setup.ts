@@ -3,9 +3,8 @@ import { cleanup } from '@testing-library/react';
 import { afterEach, vi } from 'vitest';
 
 // Polyfills exigidos por Radix UI em jsdom
-if (typeof globalThis.ResizeObserver === 'undefined') {
-  // @ts-expect-error test polyfill
-  globalThis.ResizeObserver = class {
+if (typeof (globalThis as any).ResizeObserver === 'undefined') {
+  (globalThis as any).ResizeObserver = class {
     observe() {}
     unobserve() {}
     disconnect() {}
