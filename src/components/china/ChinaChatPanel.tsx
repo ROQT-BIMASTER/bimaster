@@ -26,6 +26,7 @@ import { uniqueChannelName } from "@/lib/realtime/channelName";
 import { useUserLanguage, LANGUAGE_LABEL, LANGUAGE_FLAG, type UserLanguage } from "@/hooks/useUserLanguage";
 import { invokeChat } from "@/lib/ai/invokeChat";
 import { validateFileForUpload } from "@/lib/utils/file-security";
+import { reportGenericUploadSuccess, reportGenericUploadError, reportGenericUploadRejection } from "@/lib/telemetry/uploadTelemetry";
 import { MessageTranslation } from "./chat/MessageTranslation";
 import { ChatAttachmentChip, type ChatAnexo } from "./chat/ChatAttachmentChip";
 import { ChatIaActionCard, type IaToolProposal } from "./chat/ChatIaActionCard";
