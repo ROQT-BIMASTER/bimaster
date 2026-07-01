@@ -280,12 +280,25 @@ function SubtarefaSeguidoresPickerImpl({ subtarefaId, projetoId, colaboradores, 
 
 export const SubtarefaSeguidoresPicker = memo(
   SubtarefaSeguidoresPickerImpl,
-  (prev, next) =>
-    prev.subtarefaId === next.subtarefaId &&
-    prev.projetoId === next.projetoId &&
-    prev.isResolving === next.isResolving &&
-    prev.colaboradores.length === next.colaboradores.length &&
-    prev.colaboradores.map((c) => `${c.user_id}:${c.nome}:${c.avatar_url ?? ""}`).join(",") ===
-      next.colaboradores.map((c) => `${c.user_id}:${c.nome}:${c.avatar_url ?? ""}`).join(","),
+  (prev, next) => {
+    if (
+      prev.subtarefaId !== next.subtarefaId ||
+      prev.projetoId !== next.projetoId ||
+      prev.isResolving !== next.isResolving ||
+      prev.colaboradores.length !== next.colaboradores.length
+    ) {
+      return false;
+    }
+    // Chaves de comparação ordenadas por user_id → duas listas com o mesmo
+    // conteúdo mas ordens diferentes (join vs. bridge vs. hidratação parcial)
+    // são consideradas equivalentes, evitando re-render espúrio + "flash"
+    // na pilha antes que o `sort` interno rode.
+    const key = (arr: Colab[]) =>
+      arr
+        .map((c) => `${c.user_id}:${c.nome ?? ""}:${c.avatar_url ?? ""}`)
+        .sort()
+        .join(",");
+    return key(prev.colaboradores) === key(next.colaboradores);
+  },
 );
 
