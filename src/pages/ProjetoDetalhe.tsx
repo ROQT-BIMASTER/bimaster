@@ -18,6 +18,7 @@ import { ProjetoMetasPanel } from "@/components/projetos/ProjetoMetasPanel";
 // ProjetoBgColorPicker agora vive dentro de ProjetoSettingsMenu (acionado pela engrenagem do header)
 import { ProjetoFilters, ProjetoSort, EMPTY_FILTERS, DEFAULT_SORT } from "@/components/projetos/ProjetoFilterSort";
 import { SidebarProvider } from "@/components/ui/sidebar";
+import { TYPOGRAPHY_BODY_CLASS, typographyRootStyle } from "@/styles/typography";
 import { SidebarSwitch } from "@/components/navigation/v2/SidebarSwitch";
 import { AppHeaderBar } from "@/components/dashboard/AppHeaderBar";
 import { Badge } from "@/components/ui/badge";
