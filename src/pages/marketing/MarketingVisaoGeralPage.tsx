@@ -573,6 +573,7 @@ export default function MarketingVisaoGeralPage() {
   const totalPeriodo = periodoData?.total ?? 0;
   const totalPages = Math.max(1, Math.ceil(totalPeriodo / PAGE_SIZE));
 
+  return (
     <DashboardLayout>
     <div className="container mx-auto py-6 space-y-6">
       {/* Header + filtros */}
