@@ -687,6 +687,7 @@ export function TarefaFocusMode({
                 onDelete={onDelete}
                 onOpenSubtarefa={onOpenSubtarefa}
                 teamMembers={teamMembers}
+                rootTarefaId={siblingParentId}
               />
 
               <Separator />
