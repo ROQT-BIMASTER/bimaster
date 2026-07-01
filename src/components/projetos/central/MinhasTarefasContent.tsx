@@ -892,7 +892,12 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
       ));
     }
 
-    const { error } = await supabase.from("projeto_tarefas").update(update as never).eq("id", tarefaId);
+    const { data: fresh, error } = await supabase
+      .from("projeto_tarefas")
+      .update(update as never)
+      .eq("id", tarefaId)
+      .select("id, status, data_conclusao, data_prazo, updated_at")
+      .maybeSingle();
     if (error) {
       if (previous) queryClient.setQueryData(cacheKey, previous);
       toast.error("Erro ao atualizar tarefa", {
@@ -900,7 +905,17 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
       });
       return;
     }
-    queryClient.invalidateQueries({ queryKey: ["minhas-tarefas"] });
+    // Reconciliação: aplica o estado canônico devolvido pelo backend no cache
+    // antes de disparar o refetch, garantindo que o Kanban migre o cartão
+    // imediatamente mesmo se o refetch em background demorar.
+    if (fresh) {
+      queryClient.setQueryData<MinaTarefa[]>(cacheKey, (curr = []) =>
+        curr.map((t) => (t.id === tarefaId ? { ...t, ...(fresh as Partial<MinaTarefa>) } : t)),
+      );
+    }
+    await queryClient.invalidateQueries({ queryKey: ["minhas-tarefas"], refetchType: "active" });
+    queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2"] });
+    queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-subtarefas-bridge"] });
     toast.success(done ? "Tarefa concluída! ✓" : "Tarefa reaberta");
   }, [queryClient, tarefas, user?.id]);
 
@@ -912,16 +927,25 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
         t.id === tarefaId ? { ...t, data_prazo: novaData } : t,
       ));
     }
-    const { error } = await supabase
+    const { data: fresh, error } = await supabase
       .from("projeto_tarefas")
       .update({ data_prazo: novaData } as never)
-      .eq("id", tarefaId);
+      .eq("id", tarefaId)
+      .select("id, data_prazo, updated_at")
+      .maybeSingle();
     if (error) {
       if (previous) queryClient.setQueryData(cacheKey, previous);
       toast.error("Não foi possível atualizar o prazo");
       return;
     }
-    queryClient.invalidateQueries({ queryKey: ["minhas-tarefas"] });
+    if (fresh) {
+      queryClient.setQueryData<MinaTarefa[]>(cacheKey, (curr = []) =>
+        curr.map((t) => (t.id === tarefaId ? { ...t, ...(fresh as Partial<MinaTarefa>) } : t)),
+      );
+    }
+    await queryClient.invalidateQueries({ queryKey: ["minhas-tarefas"], refetchType: "active" });
+    queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2"] });
+    queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-subtarefas-bridge"] });
     toast.success("Prazo atualizado");
   }, [queryClient, user?.id]);
 
@@ -954,14 +978,23 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
       ));
     }
 
-    const { error } = await supabase
+    const { data: freshRows, error } = await supabase
       .from("projeto_tarefas")
       .update({ status: "concluida", data_conclusao: nowIso })
-      .in("id", ids);
+      .in("id", ids)
+      .select("id, status, data_conclusao, updated_at");
     if (error) {
       if (previous) queryClient.setQueryData(cacheKey, previous);
       toast.error("Erro ao concluir tarefas");
       return;
+    }
+
+    // Reconciliação em lote: aplica o estado retornado pelo backend antes do refetch.
+    if (freshRows?.length) {
+      const byId = new Map(freshRows.map((r: any) => [r.id, r]));
+      queryClient.setQueryData<MinaTarefa[]>(cacheKey, (curr = []) =>
+        curr.map((t) => (byId.has(t.id) ? { ...t, ...(byId.get(t.id) as Partial<MinaTarefa>) } : t)),
+      );
     }
 
     // Auditoria em lote (best-effort, não bloqueia UI).
@@ -980,7 +1013,9 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
       ),
     ).catch(() => {});
 
-    queryClient.invalidateQueries({ queryKey: ["minhas-tarefas"] });
+    await queryClient.invalidateQueries({ queryKey: ["minhas-tarefas"], refetchType: "active" });
+    queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2"] });
+    queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-subtarefas-bridge"] });
     toast.success(`${ids.length} tarefas concluídas!`);
     setSelectedIds(new Set());
   };
