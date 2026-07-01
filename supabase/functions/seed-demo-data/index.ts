@@ -3,7 +3,7 @@ import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
 import { secureHandler } from "../_shared/secure-handler.ts";
 
 
-Deno.serve(secureHandler({ auth: "none", rateLimit: 0, rateLimitPrefix: "seed-demo-data" }, async (req) => {
+Deno.serve(secureHandler({ auth: "jwt", rateLimit: 2, rateLimitPrefix: "seed-demo-data" }, async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: getCorsHeaders(req) });
 
   try {
@@ -18,7 +18,20 @@ Deno.serve(secureHandler({ auth: "none", rateLimit: 0, rateLimitPrefix: "seed-de
     if (userError || !user) throw new Error("Usuário não autenticado");
 
     const userId = user.id;
+
+    // Admin-only: prevent any authenticated user from spamming demo inserts
+    const { data: roleData } = await supabase
+      .from("user_roles").select("role")
+      .eq("user_id", userId).eq("role", "admin").maybeSingle();
+    if (!roleData) {
+      return new Response(JSON.stringify({ error: "Admin only" }), {
+        status: 403,
+        headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
+      });
+    }
+
     const now = new Date().toISOString();
+
 
     // ─── 1. Create Demo Project ───
     const { data: projeto, error: projErr } = await supabase.from("projetos").insert({
