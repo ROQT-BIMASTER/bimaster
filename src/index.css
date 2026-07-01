@@ -599,3 +599,40 @@ All colors MUST be HSL.
     transition-duration: 0.01ms !important;
   }
 }
+
+/* ==========================================================================
+   Árvore de subtarefas — responsividade + modo debug visual
+   ========================================================================== */
+
+/* Mobile: reduz o passo horizontal para preservar leitura em telas <=640px.
+   O offset derivado (--tree-row-content-offset) segue automaticamente. */
+@media (max-width: 640px) {
+  :root {
+    --tree-indent: 16px;
+  }
+}
+
+/* Debug visual: ative no console com
+     localStorage.setItem('debug_tree_indent','1'); location.reload();
+   Isso desenha uma borda tracejada e mostra o depth de cada linha da árvore,
+   permitindo validar rapidamente se o passo entre níveis está constante. */
+html[data-tree-debug="1"] [data-tree-row] {
+  outline: 1px dashed hsl(var(--primary) / 0.45);
+  outline-offset: -1px;
+  position: relative;
+}
+html[data-tree-debug="1"] [data-tree-row]::before {
+  content: "L" attr(data-depth);
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  font-size: 9px;
+  line-height: 1;
+  padding: 1px 3px;
+  border-radius: 3px;
+  background: hsl(var(--primary) / 0.15);
+  color: hsl(var(--primary));
+  font-family: var(--font-sans);
+  pointer-events: none;
+}
+
