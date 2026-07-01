@@ -8,6 +8,7 @@ import { useTarefaMentionableUsers } from "./useTarefaMentionableUsers";
 import { uniqueChannelName } from "@/lib/realtime/channelName";
 import { sanitizeStorageFilename } from "@/lib/utils/sanitizeStorageFilename";
 import { validateFileForUpload, describeUploadError } from "@/lib/utils/file-security";
+import { uploadTarefaAnexoToStorage } from "@/lib/utils/uploadTarefaAnexo";
 
 export interface TarefaComentario {
   id: string;
@@ -176,32 +177,20 @@ export function useProjetoTarefaDetalhe(tarefaId: string | undefined, produtoId?
   const uploadAnexo = useMutation({
     mutationFn: async (input: UploadAnexoInput) => {
       const { file, notificarIds } = normalizeUpload(input);
-      // Validação centralizada (extensão, MIME, tamanho, magic bytes)
-      const validation = await validateFileForUpload(file);
-      if (!validation.valid) {
-        throw new Error(validation.error);
-      }
 
-      const filePath = `${user!.id}/${tarefaId}/${Date.now()}_${sanitizeStorageFilename(file.name)}`;
-      const { error: uploadError } = await supabase.storage
-        .from("projeto-anexos")
-        .upload(filePath, file);
-      if (uploadError) throw uploadError;
+      // Fluxo compartilhado com subtarefas / minhas tarefas:
+      // validação + storage upload + insert em projeto_tarefa_anexos.
+      const { id } = await uploadTarefaAnexoToStorage({
+        file,
+        userId: user!.id,
+        tarefaId: tarefaId!,
+        notificarIds,
+      });
 
-      const cleanedNotificados = Array.from(new Set((notificarIds || []).filter(id => id && id !== user!.id)));
-
-      const { data: inserted, error } = await supabase.from("projeto_tarefa_anexos").insert({
-        tarefa_id: tarefaId!,
-        user_id: user!.id,
-        nome: file.name,
-        storage_path: filePath,
-        tipo_arquivo: file.type,
-        tamanho: file.size,
-        notificados: cleanedNotificados,
-      } as any).select("id").single();
-      if (error) throw error;
-
-      // Log audit with produtoId from hook param
+      // Audit log específico deste hook (mantém compat. com Cofre/produto).
+      const cleanedNotificados = Array.from(
+        new Set((notificarIds || []).filter((n) => n && n !== user!.id)),
+      );
       await logDocAudit({
         produtoId: produtoId || undefined,
         acao: "upload",
@@ -214,7 +203,7 @@ export function useProjetoTarefaDetalhe(tarefaId: string | undefined, produtoId?
         },
       });
 
-      return { id: (inserted as any)?.id as string, nome: file.name };
+      return { id, nome: file.name };
     },
     onMutate: async (input: UploadAnexoInput) => {
       const { file } = normalizeUpload(input);
