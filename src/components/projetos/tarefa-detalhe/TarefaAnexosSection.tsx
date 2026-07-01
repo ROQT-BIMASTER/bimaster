@@ -293,6 +293,12 @@ export function TarefaAnexosSection({
           </div>
           <input ref={fileInputRef} type="file" multiple className="hidden" onChange={handleFileUpload} />
         </div>
+        <UploadProgressList
+          items={uploadItems}
+          onRetry={handleRetryItem}
+          onDismiss={handleDismissItem}
+          onClearFinished={handleClearFinished}
+        />
         {anexos.length > 0 ? (
           <TooltipProvider delayDuration={200}>
             <div className="space-y-1.5">
