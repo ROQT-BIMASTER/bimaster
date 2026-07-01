@@ -36,6 +36,7 @@ interface MenuRow {
   route: string | null;
   label: string;
   ativo: boolean;
+  parent_group: string | null;
 }
 
 function normalize(route: string): string {
