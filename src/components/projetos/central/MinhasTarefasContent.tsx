@@ -1761,7 +1761,7 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
             </Card>
           </div>
         ) : view === "board" ? (
-          <MinhasTarefasBoard tarefas={filtered} onToggle={handleToggle} onChangePrazo={handleChangePrazo} onSelect={handleSelectTask} />
+          <MinhasTarefasBoard tarefas={filtered} onToggle={handleToggle} onChangePrazo={handleChangePrazo} onSelect={handleSelectTask} pendingIds={pendingIds} />
         ) : view === "calendar" ? (
           <MinhasTarefasCalendar tarefas={filtered} onSelect={handleSelectTask} />
         ) : (
