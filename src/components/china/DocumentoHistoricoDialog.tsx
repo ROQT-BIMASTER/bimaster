@@ -13,6 +13,8 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { History, Loader2, Download, FileText, ArrowDownToLine, AlertCircle } from "lucide-react";
 import { useChinaDocumentoHistorico, type DocumentoVersaoAnterior } from "@/hooks/useChinaDocumentoHistorico";
+import { AccessDeniedNotice } from "@/components/ui/access-denied-notice";
+import { isPermissionError } from "@/lib/utils/permissionErrors";
 import { downloadStorageBlob, triggerBlobDownload } from "@/lib/utils/storage-download";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
