@@ -194,6 +194,6 @@ export function useAvancarEtapa() {
       qc.invalidateQueries({ queryKey: ["lotes-aprovacao"] });
       qc.invalidateQueries({ queryKey: ["lote-eventos", vars.instanciaId] });
     },
-    onError: (e: any) => toast.error(e?.message || "Falha ao avançar etapa"),
+    onError: (e: any) => toast.error(toFriendlyPermissionMessage(e, "Falha ao avançar etapa")),
   });
 }
