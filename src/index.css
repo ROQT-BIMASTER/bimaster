@@ -36,12 +36,16 @@ All colors MUST be HSL.
 
     /* Árvore de subtarefas/subitens: fonte única de indentação por nível.
        Usada em SubtarefasSection (drawer, Focus Mode e Central). Nunca
-       hardcode valores paralelos — sempre referencie var(--tree-indent). */
+       hardcode valores paralelos — sempre referencie var(--tree-indent).
+       Também é consumida pelos subitens (badges/botão "Adicionar subitem")
+       via var(--tree-row-content-offset), garantindo alinhamento total
+       entre subtarefas e subitens no mesmo nível. */
     --tree-indent: 24px;
     /* Deslocamento do conteúdo do pai (badges, botão "Adicionar subitem")
        para alinhar exatamente com a coluna do chevron/checkbox do filho:
        marginLeft do filho (--tree-indent) + px-2 do filho (8px). */
     --tree-row-content-offset: calc(var(--tree-indent) + 8px);
+
 
     
     /* Core colors - Redesign #eef0f5 base */
