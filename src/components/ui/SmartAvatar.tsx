@@ -35,6 +35,22 @@ interface SmartAvatarProps {
  * privado `avatars`. Substitui o padrão `<Avatar><AvatarImage src=...>`
  * onde a URL pode ter sido persistida como `getPublicUrl` legada.
  */
+function computeInitials(nome?: string | null): string {
+  const clean = (nome || "").trim();
+  if (!clean) return "?";
+  const parts = clean.split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "?";
+  if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
+function isUsableUrl(src?: string | null): src is string {
+  if (!src) return false;
+  const s = src.trim();
+  if (!s || s === "null" || s === "undefined") return false;
+  return true;
+}
+
 export function SmartAvatar({
   src,
   nome,
@@ -42,34 +58,44 @@ export function SmartAvatar({
   fallbackClassName,
   title,
 }: SmartAvatarProps) {
+  const usable = isUsableUrl(src);
   const [displayUrl, setDisplayUrl] = useState<string | undefined>(() =>
-    src && resolvedCache.has(src) ? resolvedCache.get(src) : src || undefined,
+    usable && resolvedCache.has(src!) ? resolvedCache.get(src!) : usable ? src! : undefined,
   );
+  const [errored, setErrored] = useState(false);
 
   useEffect(() => {
     let alive = true;
-    if (!src) {
+    setErrored(false);
+    if (!usable) {
       setDisplayUrl(undefined);
       return;
     }
-    if (resolvedCache.has(src)) {
-      setDisplayUrl(resolvedCache.get(src));
+    if (resolvedCache.has(src!)) {
+      setDisplayUrl(resolvedCache.get(src!));
       return;
     }
-    setDisplayUrl(src);
-    void resolveOnce(src).then((fresh) => {
+    setDisplayUrl(src!);
+    void resolveOnce(src!).then((fresh) => {
       if (alive) setDisplayUrl(fresh);
     });
     return () => {
       alive = false;
     };
-  }, [src]);
+  }, [src, usable]);
 
-  const initials = (nome || "?").substring(0, 2).toUpperCase();
+  const initials = computeInitials(nome);
+  const showImage = usable && !errored && !!displayUrl;
 
   return (
     <Avatar className={className} title={title || nome || undefined}>
-      {displayUrl && <AvatarImage src={displayUrl} alt={nome || ""} />}
+      {showImage && (
+        <AvatarImage
+          src={displayUrl}
+          alt={nome || ""}
+          onError={() => setErrored(true)}
+        />
+      )}
       <AvatarFallback className={cn("bg-primary/15 text-primary font-medium", fallbackClassName)}>
         {initials}
       </AvatarFallback>
