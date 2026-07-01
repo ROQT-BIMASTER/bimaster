@@ -126,8 +126,9 @@ describe("SubtarefaSeguidoresPicker — acessibilidade", () => {
     expect(btn.getAttribute("aria-label")).toBe(
       "Seguidores (4): Ana Dona, Bruno Membro, Carla Convidada, Diego Extra",
     );
-    // Contador "+N" tem seu próprio rótulo para leitores de tela
-    const extra = screen.getByLabelText("mais 1 seguidores");
+    // Contador "+N" tem seu próprio rótulo para leitores de tela.
+    // Regra pt-BR simples: singular "seguidor" quando N === 1.
+    const extra = screen.getByLabelText("mais 1 seguidor");
     expect(extra).toHaveTextContent("+1");
   });
 
