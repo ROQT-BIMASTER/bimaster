@@ -483,10 +483,9 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
         }));
       }
     },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2", projetoId], refetchType: "none" });
-      scheduleReconcile();
-    },
+    // Sem onSettled: o swap tempId→id em onSuccess já deixa o cache
+    // no estado final. Invalidar/reconciliar aqui só produz notificações
+    // extras a subscribers → renders visíveis como "piscadas".
   });
 
   const updateTarefa = useMutation({
