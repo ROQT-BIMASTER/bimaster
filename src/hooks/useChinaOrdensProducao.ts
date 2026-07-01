@@ -1,3 +1,4 @@
+import { toFriendlyPermissionMessage } from "@/lib/utils/permissionErrors";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -164,6 +165,6 @@ export function useCriarOPChina() {
         `Ordem de Produção ${d.numero} criada${semOc ? " · comprador notificado" : ""}`
       );
     },
-    onError: (e: any) => toast.error(e?.message || "Falha ao criar OP"),
+    onError: (e: any) => toast.error(toFriendlyPermissionMessage(e, "Falha ao criar OP")),
   });
 }

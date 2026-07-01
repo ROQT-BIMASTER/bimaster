@@ -1,3 +1,4 @@
+import { toFriendlyPermissionMessage } from "@/lib/utils/permissionErrors";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -32,6 +33,6 @@ export function useCriarLoteAprovacaoB2C() {
       qc.invalidateQueries({ queryKey: ["china-mailbox-dataset"] });
       qc.invalidateQueries({ queryKey: ["china-unified-timeline"] });
     },
-    onError: (e: any) => toast.error(e?.message || "Falha ao iniciar aprovação"),
+    onError: (e: any) => toast.error(toFriendlyPermissionMessage(e, "Falha ao iniciar aprovação")),
   });
 }

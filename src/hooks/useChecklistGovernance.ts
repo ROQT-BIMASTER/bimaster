@@ -1,3 +1,4 @@
+import { toFriendlyPermissionMessage } from "@/lib/utils/permissionErrors";
 /**
  * useChecklistGovernance
  * ------------------------------------------------------------------
@@ -229,7 +230,7 @@ export function useChecklistGovernance(submissaoId: string | null | undefined) {
       qc.invalidateQueries({ queryKey: ["checklist-item-estado", submissaoId] });
       qc.invalidateQueries({ queryKey: ["checklist-progresso", submissaoId] });
     },
-    onError: (e: any) => toast.error(e.message || "Falha ao atualizar item"),
+    onError: (e: any) => toast.error(toFriendlyPermissionMessage(e, "Falha ao atualizar item")),
   });
 
   const concluirItem = useMutation({
@@ -244,7 +245,7 @@ export function useChecklistGovernance(submissaoId: string | null | undefined) {
       qc.invalidateQueries({ queryKey: ["checklist-progresso", submissaoId] });
       toast.success("Item concluído");
     },
-    onError: (e: any) => toast.error(e.message || "Falha ao concluir"),
+    onError: (e: any) => toast.error(toFriendlyPermissionMessage(e, "Falha ao concluir")),
   });
 
   const aplicarWaiver = useMutation({
@@ -260,7 +261,7 @@ export function useChecklistGovernance(submissaoId: string | null | undefined) {
       qc.invalidateQueries({ queryKey: ["checklist-progresso", submissaoId] });
       toast.success("Dispensa registrada");
     },
-    onError: (e: any) => toast.error(e.message || "Falha ao aplicar dispensa"),
+    onError: (e: any) => toast.error(toFriendlyPermissionMessage(e, "Falha ao aplicar dispensa")),
   });
 
   const liberarParaOC = useMutation({
@@ -280,7 +281,7 @@ export function useChecklistGovernance(submissaoId: string | null | undefined) {
         toast.error(res.erro || "Não foi possível liberar");
       }
     },
-    onError: (e: any) => toast.error(e.message || "Falha ao liberar"),
+    onError: (e: any) => toast.error(toFriendlyPermissionMessage(e, "Falha ao liberar")),
   });
 
   // Index para lookup rápido por (fluxo,categoria,item)

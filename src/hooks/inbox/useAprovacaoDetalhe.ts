@@ -1,3 +1,4 @@
+import { toFriendlyPermissionMessage } from "@/lib/utils/permissionErrors";
 /**
  * useAprovacaoDetalhe — carrega o contexto de uma aprovação a partir
  * do `referencia_id` do inbox_item (que aponta para
@@ -147,7 +148,7 @@ export function useAprovacaoDetalhe(aprovadorId: string | null) {
       qc.invalidateQueries({ queryKey: ["inbox-aprovacao"] });
       qc.invalidateQueries({ queryKey: ["inbox-items"] });
     },
-    onError: (e: any) => toast.error(e?.message || "Falha ao registrar decisão"),
+    onError: (e: any) => toast.error(toFriendlyPermissionMessage(e, "Falha ao registrar decisão")),
   });
 
   return { ...query, decidir };

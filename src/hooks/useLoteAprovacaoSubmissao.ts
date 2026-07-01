@@ -1,3 +1,4 @@
+import { toFriendlyPermissionMessage } from "@/lib/utils/permissionErrors";
 // Hooks específicos da Vincular China para reutilizar a infra de Lotes de Aprovação
 // (templates globais + RPCs do módulo Projetos), porém ancorados em `submissao_id`
 // em vez de `tarefa_id`.
@@ -50,6 +51,6 @@ export function useCriarLoteAprovacaoSubmissao() {
       qc.invalidateQueries({ queryKey: ["lotes-aprovacao", "submissao", vars.submissaoId] });
       qc.invalidateQueries({ queryKey: ["china-unified-timeline"] });
     },
-    onError: (e: any) => toast.error(e?.message || "Falha ao iniciar aprovação"),
+    onError: (e: any) => toast.error(toFriendlyPermissionMessage(e, "Falha ao iniciar aprovação")),
   });
 }

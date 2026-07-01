@@ -1,3 +1,4 @@
+import { toFriendlyPermissionMessage } from "@/lib/utils/permissionErrors";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -338,7 +339,7 @@ export function useRejeitarComLaudo() {
       queryClient.invalidateQueries({ queryKey: ["china-doc-versoes", vars.documento_id] });
       toast.success("Documento rejeitado com laudo técnico. 已附技术报告拒绝。");
     },
-    onError: (e: any) => toast.error(e?.message || "Falha ao rejeitar documento."),
+    onError: (e: any) => toast.error(toFriendlyPermissionMessage(e, "Falha ao rejeitar documento.")),
   });
 }
 
@@ -416,7 +417,7 @@ export function useCriarRevisaoComParecer() {
       queryClient.invalidateQueries({ queryKey: ["china-ficha-docs", vars.submissao_id] });
       toast.success("Documento aprovado com parecer. 已批准并附意见。");
     },
-    onError: (e: any) => toast.error(e?.message || "Falha ao aprovar."),
+    onError: (e: any) => toast.error(toFriendlyPermissionMessage(e, "Falha ao aprovar.")),
   });
 }
 
@@ -496,7 +497,7 @@ export function useDarCienciaComParecer() {
       queryClient.invalidateQueries({ queryKey: ["china-ficha-docs", vars.submissao_id] });
       toast.success("Ciência registrada. 已确认。");
     },
-    onError: (e: any) => toast.error(e?.message || "Falha ao registrar ciência."),
+    onError: (e: any) => toast.error(toFriendlyPermissionMessage(e, "Falha ao registrar ciência.")),
   });
 }
 
@@ -628,7 +629,7 @@ export function useContestarComParecer() {
       queryClient.invalidateQueries({ queryKey: ["china-doc-versoes", vars.documento_id] });
       toast.success("Novo documento e parecer enviados. 新文件和技术意见已发送。");
     },
-    onError: (e: any) => toast.error(e?.message || "Falha ao enviar correção."),
+    onError: (e: any) => toast.error(toFriendlyPermissionMessage(e, "Falha ao enviar correção.")),
   });
 }
 

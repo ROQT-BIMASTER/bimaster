@@ -1,3 +1,4 @@
+import { toFriendlyPermissionMessage } from "@/lib/utils/permissionErrors";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -77,6 +78,6 @@ export function useCancelarSaldoItem() {
       qc.invalidateQueries({ queryKey: ["china-ordens"] });
       toast.success("Saldo cancelado com sucesso");
     },
-    onError: (e: any) => toast.error(e.message || "Erro ao cancelar"),
+    onError: (e: any) => toast.error(toFriendlyPermissionMessage(e, "Erro ao cancelar")),
   });
 }

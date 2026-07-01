@@ -1,3 +1,4 @@
+import { toFriendlyPermissionMessage } from "@/lib/utils/permissionErrors";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -123,6 +124,6 @@ export function useRegistrarDecisaoSaldo() {
         data.nova_oc_id ? "Decisão registrada — nova OC criada com o saldo" : "Decisão registrada",
       );
     },
-    onError: (e: any) => toast.error(e.message || "Erro ao registrar decisão"),
+    onError: (e: any) => toast.error(toFriendlyPermissionMessage(e, "Erro ao registrar decisão")),
   });
 }

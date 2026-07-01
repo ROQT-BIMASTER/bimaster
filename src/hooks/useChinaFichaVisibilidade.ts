@@ -1,3 +1,4 @@
+import { toFriendlyPermissionMessage } from "@/lib/utils/permissionErrors";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -66,7 +67,7 @@ export function useAddFichaVisibilidade() {
       toast.success("Acesso concedido!");
       qc.invalidateQueries({ queryKey: ["ficha-visibilidade"] });
     },
-    onError: (e: any) => toast.error(e.message || "Erro ao conceder acesso"),
+    onError: (e: any) => toast.error(toFriendlyPermissionMessage(e, "Erro ao conceder acesso")),
   });
 }
 
@@ -84,7 +85,7 @@ export function useRemoveFichaVisibilidade() {
       toast.success("Acesso removido.");
       qc.invalidateQueries({ queryKey: ["ficha-visibilidade"] });
     },
-    onError: (e: any) => toast.error(e.message || "Erro ao remover acesso"),
+    onError: (e: any) => toast.error(toFriendlyPermissionMessage(e, "Erro ao remover acesso")),
   });
 }
 
@@ -162,6 +163,6 @@ export function useCreateFichaDespacho() {
       qc.invalidateQueries({ queryKey: ["ficha-despachos"] });
       qc.invalidateQueries({ queryKey: ["ficha-visibilidade"] });
     },
-    onError: (e: any) => toast.error(e.message || "Erro ao despachar ficha"),
+    onError: (e: any) => toast.error(toFriendlyPermissionMessage(e, "Erro ao despachar ficha")),
   });
 }

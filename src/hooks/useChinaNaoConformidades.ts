@@ -1,3 +1,4 @@
+import { toFriendlyPermissionMessage } from "@/lib/utils/permissionErrors";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -59,7 +60,7 @@ export function useResolverNC() {
       qc.invalidateQueries({ queryKey: ["china-nao-conformidades"] });
       toast.success("Não-conformidade atualizada");
     },
-    onError: (e: any) => toast.error(e.message || "Erro ao atualizar NC"),
+    onError: (e: any) => toast.error(toFriendlyPermissionMessage(e, "Erro ao atualizar NC")),
   });
 }
 
@@ -99,6 +100,6 @@ export function useAbrirNCManual() {
       qc.invalidateQueries({ queryKey: ["china-nao-conformidades"] });
       toast.success("Não-conformidade aberta");
     },
-    onError: (e: any) => toast.error(e.message || "Erro ao abrir NC"),
+    onError: (e: any) => toast.error(toFriendlyPermissionMessage(e, "Erro ao abrir NC")),
   });
 }

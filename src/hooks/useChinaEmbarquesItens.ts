@@ -1,3 +1,4 @@
+import { toFriendlyPermissionMessage } from "@/lib/utils/permissionErrors";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -96,6 +97,6 @@ export function useCriarEmbarqueParcial() {
       qc.invalidateQueries({ queryKey: ["china-ordem"] });
       toast.success("Embarque registrado com sucesso 装运已记录");
     },
-    onError: (e: any) => toast.error(e.message || "Erro ao registrar embarque"),
+    onError: (e: any) => toast.error(toFriendlyPermissionMessage(e, "Erro ao registrar embarque")),
   });
 }

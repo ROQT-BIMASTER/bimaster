@@ -1,3 +1,4 @@
+import { toFriendlyPermissionMessage } from "@/lib/utils/permissionErrors";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -102,6 +103,6 @@ export function useCriarRecebimento() {
       qc.invalidateQueries({ queryKey: ["china-nao-conformidades"] });
       toast.success("Recebimento registrado");
     },
-    onError: (e: any) => toast.error(e.message || "Erro ao registrar recebimento"),
+    onError: (e: any) => toast.error(toFriendlyPermissionMessage(e, "Erro ao registrar recebimento")),
   });
 }

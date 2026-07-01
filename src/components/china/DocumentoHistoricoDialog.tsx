@@ -111,8 +111,12 @@ export function DocumentoHistoricoDialog({ open, onOpenChange, documentoId, tipo
               <AccessDeniedNotice
                 title="Sem permissão para ver o histórico"
                 description="Você não tem acesso à submissão deste documento. Solicite acesso ao responsável pela ficha na China."
+                resourceKind="china_produto_documentos_historico"
+                resourceId={documentoId}
+                resourceLabel={tipoDocumentoLabel ?? "Documento China"}
               />
             </div>
+
           ) : versoes.length === 0 ? (
             <div className="p-6 text-center text-xs text-muted-foreground flex flex-col items-center gap-2">
               <AlertCircle className="h-6 w-6 text-muted-foreground/40" />

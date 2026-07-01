@@ -1,3 +1,4 @@
+import { toFriendlyPermissionMessage } from "@/lib/utils/permissionErrors";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -93,7 +94,7 @@ export function useSaveDocChecklistTemplate() {
       qc.invalidateQueries({ queryKey: ["china-doc-checklist-templates"] });
       toast.success("Modelo de checklist salvo");
     },
-    onError: (e: any) => toast.error(e?.message || "Erro ao salvar modelo"),
+    onError: (e: any) => toast.error(toFriendlyPermissionMessage(e, "Erro ao salvar modelo")),
   });
 }
 
@@ -111,7 +112,7 @@ export function useDeleteDocChecklistTemplate() {
       qc.invalidateQueries({ queryKey: ["china-doc-checklist-templates"] });
       toast.success("Modelo removido");
     },
-    onError: (e: any) => toast.error(e?.message || "Erro ao remover modelo"),
+    onError: (e: any) => toast.error(toFriendlyPermissionMessage(e, "Erro ao remover modelo")),
   });
 }
 
@@ -585,6 +586,6 @@ export function useUpsertCategoriaOverride() {
       qc.invalidateQueries({ queryKey: ["china-cat-overrides", vars.submissaoId] });
       toast.success("Categoria atualizada");
     },
-    onError: (e: any) => toast.error(e?.message || "Erro ao atualizar categoria"),
+    onError: (e: any) => toast.error(toFriendlyPermissionMessage(e, "Erro ao atualizar categoria")),
   });
 }

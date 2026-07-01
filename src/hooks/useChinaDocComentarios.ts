@@ -1,3 +1,4 @@
+import { toFriendlyPermissionMessage } from "@/lib/utils/permissionErrors";
 import { useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -158,7 +159,7 @@ export function useAdicionarComentario() {
       qc.invalidateQueries({ queryKey: ["china-doc-comentarios", vars.documento_id] });
       toast.success("Comentário registrado.");
     },
-    onError: (e: any) => toast.error(e?.message || "Falha ao registrar comentário."),
+    onError: (e: any) => toast.error(toFriendlyPermissionMessage(e, "Falha ao registrar comentário.")),
   });
 }
 
@@ -176,6 +177,6 @@ export function useExcluirComentario() {
       qc.invalidateQueries({ queryKey: ["china-doc-comentarios", vars.documento_id] });
       toast.success("Comentário removido.");
     },
-    onError: (e: any) => toast.error(e?.message || "Falha ao remover."),
+    onError: (e: any) => toast.error(toFriendlyPermissionMessage(e, "Falha ao remover.")),
   });
 }

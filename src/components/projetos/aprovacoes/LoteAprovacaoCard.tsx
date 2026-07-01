@@ -103,8 +103,12 @@ export function LoteAprovacaoCard({ lote }: Props) {
           title="Sem permissão para ver o histórico de aprovação"
           description="Você não é responsável nem membro do projeto/tarefa vinculada a este lote. Solicite acesso ao gestor do projeto."
           compact
+          resourceKind="fluxo_aprovacao_etapa_eventos"
+          resourceId={lote.id}
+          resourceLabel={lote.lote_nome || lote.titulo || "Lote de aprovação"}
         />
       )}
+
 
 
 

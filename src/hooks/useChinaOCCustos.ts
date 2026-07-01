@@ -1,3 +1,4 @@
+import { toFriendlyPermissionMessage } from "@/lib/utils/permissionErrors";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -83,6 +84,6 @@ export function useSalvarOCCustos() {
       qc.invalidateQueries({ queryKey: ["china-oc-custos"] });
       toast.success("Custo de aquisição salvo");
     },
-    onError: (e: any) => toast.error(e.message || "Erro ao salvar custos"),
+    onError: (e: any) => toast.error(toFriendlyPermissionMessage(e, "Erro ao salvar custos")),
   });
 }

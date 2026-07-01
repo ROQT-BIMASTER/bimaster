@@ -1,3 +1,4 @@
+import { toFriendlyPermissionMessage } from "@/lib/utils/permissionErrors";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -377,7 +378,7 @@ export function useAvancarItem() {
       toast.success(labels[vars.decisao]);
       qc.invalidateQueries({ queryKey: ["kanban-aprovacoes"] });
     },
-    onError: (e: any) => toast.error(e?.message || "Falha"),
+    onError: (e: any) => toast.error(toFriendlyPermissionMessage(e, "Falha")),
   });
 }
 
@@ -394,7 +395,7 @@ export function useMoverItemKanban() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["kanban-aprovacoes"] });
     },
-    onError: (e: any) => toast.error(e?.message || "Falha ao mover"),
+    onError: (e: any) => toast.error(toFriendlyPermissionMessage(e, "Falha ao mover")),
   });
 }
 
@@ -424,7 +425,7 @@ export function useMoverItemColuna() {
       toast.success(labels[vars.coluna] || "Movido");
       qc.invalidateQueries({ queryKey: ["kanban-aprovacoes"] });
     },
-    onError: (e: any) => toast.error(e?.message || "Falha ao mover"),
+    onError: (e: any) => toast.error(toFriendlyPermissionMessage(e, "Falha ao mover")),
   });
 }
 
@@ -442,7 +443,7 @@ export function useSolicitarRevisao() {
       toast.success("Devolvido para revisão");
       qc.invalidateQueries({ queryKey: ["kanban-aprovacoes"] });
     },
-    onError: (e: any) => toast.error(e?.message || "Falha"),
+    onError: (e: any) => toast.error(toFriendlyPermissionMessage(e, "Falha")),
   });
 }
 
@@ -477,7 +478,7 @@ export function useEnviarDocumentoAprovacao() {
       qc.invalidateQueries({ queryKey: ["kanban-aprovacoes"] });
       qc.invalidateQueries({ queryKey: ["lotes-aprovacao"] });
     },
-    onError: (e: any) => toast.error(e?.message || "Falha ao enviar"),
+    onError: (e: any) => toast.error(toFriendlyPermissionMessage(e, "Falha ao enviar")),
   });
 }
 
@@ -496,7 +497,7 @@ export function useDelegarItem() {
       toast.success("Aprovação delegada");
       qc.invalidateQueries({ queryKey: ["kanban-aprovacoes"] });
     },
-    onError: (e: any) => toast.error(e?.message || "Falha ao delegar"),
+    onError: (e: any) => toast.error(toFriendlyPermissionMessage(e, "Falha ao delegar")),
   });
 }
 
@@ -514,7 +515,7 @@ export function useDefinirPrazoItem() {
       toast.success("Prazo atualizado");
       qc.invalidateQueries({ queryKey: ["kanban-aprovacoes"] });
     },
-    onError: (e: any) => toast.error(e?.message || "Falha ao definir prazo"),
+    onError: (e: any) => toast.error(toFriendlyPermissionMessage(e, "Falha ao definir prazo")),
   });
 }
 
@@ -541,7 +542,7 @@ export function useOficializarCofre() {
       qc.invalidateQueries({ queryKey: ["kanban-aprovacoes"] });
       qc.invalidateQueries({ queryKey: ["cofre-generico-documentos"] });
     },
-    onError: (e: any) => toast.error(e?.message || "Falha ao oficializar"),
+    onError: (e: any) => toast.error(toFriendlyPermissionMessage(e, "Falha ao oficializar")),
   });
 }
 
@@ -562,7 +563,7 @@ export function useClonarFluxoParaProjeto() {
       qc.invalidateQueries({ queryKey: ["fluxos-projeto"] });
       qc.invalidateQueries({ queryKey: ["kanban-aprovacoes"] });
     },
-    onError: (e: any) => toast.error(e?.message || "Falha ao clonar fluxo"),
+    onError: (e: any) => toast.error(toFriendlyPermissionMessage(e, "Falha ao clonar fluxo")),
   });
 }
 
@@ -582,7 +583,7 @@ export function useRevogarOficializacao() {
       qc.invalidateQueries({ queryKey: ["cofre-generico-documentos"] });
       qc.invalidateQueries({ queryKey: ["item-historico", vars.itemId] });
     },
-    onError: (e: any) => toast.error(e?.message || "Falha ao revogar oficialização"),
+    onError: (e: any) => toast.error(toFriendlyPermissionMessage(e, "Falha ao revogar oficialização")),
   });
 }
 
