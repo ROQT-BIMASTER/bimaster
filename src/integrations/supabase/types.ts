@@ -54213,6 +54213,10 @@ export type Database = {
         Args: { target_profile_id: string; viewer_id: string }
         Returns: boolean
       }
+      can_write_fluxo_instancia: {
+        Args: { _instancia_id: string; _user_id: string }
+        Returns: boolean
+      }
       cancel_projeto_convite: { Args: { _id: string }; Returns: Json }
       change_bucket_visibility: {
         Args: { p_bucket_id: string; p_make_public: boolean; p_reason?: string }
@@ -57619,6 +57623,10 @@ export type Database = {
       }
       user_can_manage_project_members: {
         Args: { _projeto_id: string; _user_id: string }
+        Returns: boolean
+      }
+      user_can_write_china_submissao: {
+        Args: { _submissao_id: string; _user_id: string }
         Returns: boolean
       }
       user_device_register: {
