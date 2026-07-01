@@ -57,10 +57,18 @@ on:
 
 jobs:
   upload-validation:
-    name: Upload validation (file-security + telemetry)
-    runs-on: ubuntu-latest
+    name: Upload validation (${{ matrix.os }} / node ${{ matrix.node }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, ubuntu-22.04]
+        node: ['20', '22']
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
@@ -83,18 +91,19 @@ jobs:
         uses: mikepenz/action-junit-report@v4
         with:
           report_paths: reports/junit.xml
-          check_name: upload-validation (JUnit)
+          check_name: upload-validation (${{ matrix.os }} / node ${{ matrix.node }})
           fail_on_failure: false
           require_tests: true
       - name: Upload test artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: upload-validation-reports-${{ github.run_id }}-${{ github.run_attempt }}
+          name: upload-validation-reports-${{ matrix.os }}-node${{ matrix.node }}-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
             reports/junit.xml
             reports/results.json
             reports/vitest.log
           if-no-files-found: warn
           retention-days: 14
+
 
