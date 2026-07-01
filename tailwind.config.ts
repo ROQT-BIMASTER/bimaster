@@ -14,8 +14,8 @@ export default {
     },
     extend: {
       fontFamily: {
-        sans: ["'DM Sans'", 'system-ui', '-apple-system', "'Segoe UI'", 'sans-serif'],
-        display: ["'Space Grotesk Variable'", "'Space Grotesk'", 'system-ui', '-apple-system', "'Segoe UI'", 'sans-serif'],
+        sans: ["'DM Sans'", "'DM Sans Fallback'", 'system-ui', '-apple-system', 'BlinkMacSystemFont', "'Segoe UI'", 'Roboto', "'Helvetica Neue'", 'Arial', "'Noto Sans'", 'sans-serif', "'Apple Color Emoji'", "'Segoe UI Emoji'"],
+        display: ["'Space Grotesk Variable'", "'Space Grotesk'", "'Space Grotesk Fallback'", "'DM Sans'", 'system-ui', '-apple-system', 'BlinkMacSystemFont', "'Segoe UI'", 'Roboto', "'Helvetica Neue'", 'Arial', 'sans-serif'],
         mono: ["'Consolas'", 'monospace'],
       },
 
