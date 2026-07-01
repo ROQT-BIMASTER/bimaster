@@ -161,7 +161,7 @@ describe("validateFileForUpload — tipos não permitidos", () => {
 describe("validateFilesForUpload — múltiplos arquivos", () => {
   it("retorna apenas os arquivos inválidos", async () => {
     const ok = makeFile("ok.mp4", "video/mp4", 10 * MB, MP4_MAGIC, 4);
-    const tooBig = makeFile("big.mp4", "video/mp4", 150 * MB, MP4_MAGIC, 4);
+    const tooBig = makeFile("big.mp4", "video/mp4", 520 * MB, MP4_MAGIC, 4);
     const wrongType = makeFile("bad.avi", "video/x-msvideo", 5 * MB);
     const errors = await validateFilesForUpload([ok, tooBig, wrongType]);
     expect(errors).toHaveLength(2);
