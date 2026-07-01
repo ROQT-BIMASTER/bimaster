@@ -2,7 +2,7 @@ import { useMemo, useState, useCallback } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { AlertTriangle, Clock, Circle, CheckCircle2, GripVertical } from "lucide-react";
+import { AlertTriangle, Clock, Circle, CheckCircle2, GripVertical, Loader2 } from "lucide-react";
 import { format, isToday, startOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import type { MinaTarefa } from "@/hooks/useMinhasTarefas";
