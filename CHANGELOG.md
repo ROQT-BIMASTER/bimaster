@@ -12,6 +12,19 @@ versionamento conforme [SemVer](https://semver.org/) quando aplicável.
 
 ---
 
+## v3.5.49
+
+Navegação v2 — unificação dos dois botões "$" e módulo "Em Desenvolvimento":
+
+- **Duplicidade de `$` no rail v2**: as categorias `precos` (Tabelas de Preço) e `financeiro_admin` (Financeiro & Admin) usavam o mesmo ícone `DollarSign`, gerando dois botões idênticos. Migration `unify_precos_and_add_em_desenvolvimento` move o módulo `precos` para dentro de `financeiro_admin` (ordem 20) e desativa a categoria `precos` — o rail passa a ter apenas um `$`.
+- **Paridade V/V**: `useNavV2Data` já reaproveita os mesmos hooks de permissão da v1 (`useSidebarConfig`, `useSidebarMenuItems`, `useModulePermissions`, `useScreenPermissions`, `useUserRole`); a unificação de categorias reflete simultaneamente nos dois modos.
+- **Telas órfãs**: catalogadas 119 rotas presentes em `src/App.tsx` que não estavam vinculadas a `sidebar_menu_items`. Todas foram inseridas em um novo módulo `em_desenvolvimento` (categoria homônima, ícone `FlaskConical`, `require_admin=true`), agrupadas por origem via `parent_group` (Admin/Governança, Chat, Comercial/Operação, Configurações, Fábrica, Fábrica China, Financeiro, Integrações, Marketing, Outros, Processos, Projetos, Prospects, Relatórios, Segurança, Trade).
+- **Subheaders por `parent_group`**: `NavV2Page` ganhou `groupLabel` e o `ContextualSidebar` renderiza um cabeçalho discreto entre páginas quando o grupo muda — o módulo "Em Desenvolvimento" fica visualmente organizado sem exigir novos módulos no banco.
+- Migração idempotente (`ON CONFLICT` em `sidebar_categories.key`, `sidebar_category_modules(category_id, module_code)` e `sidebar_menu_items(module_code, item_code)`); sem mudança de RLS, GRANT, SDK ou OpenAPI.
+
+
+---
+
 ## v3.5.40
 
 Central de Trabalho — padronização do fuso horário Brasil em calendários:
