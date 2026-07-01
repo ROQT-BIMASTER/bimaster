@@ -17,6 +17,8 @@ import {
   useLoteEtapas, useLoteEventos, useLoteDocumentos, useAvancarEtapa,
   type LoteAprovacao,
 } from "@/hooks/useLoteAprovacao";
+import { AccessDeniedNotice } from "@/components/ui/access-denied-notice";
+import { isPermissionError } from "@/lib/utils/permissionErrors";
 
 interface Props {
   lote: LoteAprovacao;
