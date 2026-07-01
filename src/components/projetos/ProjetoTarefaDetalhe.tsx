@@ -505,7 +505,6 @@ export function ProjetoTarefaDetalhe({
   return (
     <>
       <Sheet open={open && !focusMode} onOpenChange={(next) => {
-        console.log("[ProjetoTarefaDetalhe] Sheet.onOpenChange", { next, focusMode });
         // Defesa: enquanto o Modo Foco estiver ativo, ignoramos qualquer
         // pedido de fechamento do Sheet pai — assim re-renders colaterais
         // não derrubam o estado e não fazem a tela "saltar" para o Sheet.
