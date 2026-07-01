@@ -48,6 +48,28 @@ export function DocumentoHistoricoDialog({ open, onOpenChange, documentoId, tipo
   const { data: versoes = [], isLoading, error } = useChinaDocumentoHistorico(open ? documentoId : null);
   const [downloadingPath, setDownloadingPath] = useState<string | null>(null);
 
+  // Auditoria: registra leitura permitida ou negada do histórico China
+  useEffect(() => {
+    if (!open || !documentoId || isLoading) return;
+    if (isPermissionError(error)) {
+      logRlsAccess({
+        resourceType: "china_produto_documentos_historico",
+        resourceId: documentoId,
+        outcome: "denied",
+        reason: "rls_denied_or_no_access",
+        contexto: { tipo_documento: tipoDocumentoLabel ?? null },
+      });
+    } else if (!error) {
+      logRlsAccess({
+        resourceType: "china_produto_documentos_historico",
+        resourceId: documentoId,
+        outcome: "granted",
+        contexto: { versoes: versoes.length, tipo_documento: tipoDocumentoLabel ?? null },
+      });
+    }
+  }, [open, documentoId, isLoading, error, versoes.length, tipoDocumentoLabel]);
+
+
   const baixarVersao = async (path: string | null, nome: string | null) => {
     if (!path) {
       toast.error("Arquivo desta versão não está mais disponível");
