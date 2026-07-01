@@ -49,6 +49,7 @@ function SubtarefaResponsavelPickerImpl({
   responsavelId,
   responsavelNome,
   responsavelAvatar,
+  responsavelEmail,
   variant = "inline",
 }: Props) {
   const { user } = useAuth();
