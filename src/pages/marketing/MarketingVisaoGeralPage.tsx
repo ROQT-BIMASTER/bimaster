@@ -58,25 +58,28 @@ function isoDate(d: Date) {
 
 const PLATAFORMA_META: Record<
   string,
-  { label: string; icon: typeof Instagram; tint: string; text: string }
+  { label: string; icon: typeof Instagram; tint: string; text: string; color: string }
 > = {
   instagram: {
     label: "Instagram",
     icon: Instagram,
     tint: "bg-primary/10 border-primary/30",
     text: "text-primary",
+    color: "hsl(330 70% 55%)",
   },
   tiktok: {
     label: "TikTok",
     icon: Music2,
     tint: "bg-foreground/5 border-foreground/20",
     text: "text-foreground",
+    color: "hsl(0 0% 15%)",
   },
   facebook: {
     label: "Facebook",
     icon: Facebook,
     tint: "bg-accent/40 border-accent",
     text: "text-accent-foreground",
+    color: "hsl(220 75% 50%)",
   },
 };
 
