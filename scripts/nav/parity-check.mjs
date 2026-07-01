@@ -100,6 +100,13 @@ async function fetchV2Routes() {
     throw new Error(`Falha ao consultar sidebar_menu_items: ${res.status} ${res.statusText}`);
   }
   const rows = await res.json();
+  if (!Array.isArray(rows) || rows.length === 0) {
+    // A tabela nunca está vazia em produção — 0 linhas quase sempre indica
+    // RLS bloqueando (publishable/anon key sem sessão). Sinalize para o caller.
+    throw new Error(
+      "sidebar_menu_items retornou 0 linhas — provavelmente RLS bloqueou (use SUPABASE_SERVICE_ROLE_KEY em CI)",
+    );
+  }
   const byRoute = new Map();
   for (const r of rows) {
     if (!r.route) continue;
