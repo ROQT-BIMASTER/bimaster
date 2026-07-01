@@ -172,7 +172,7 @@ export function useCriarLoteAprovacao() {
       toast.success("Lote de aprovação criado");
       qc.invalidateQueries({ queryKey: ["lotes-aprovacao", "tarefa", vars.tarefaId] });
     },
-    onError: (e: any) => toast.error(e?.message || "Falha ao criar lote"),
+    onError: (e: any) => toast.error(toFriendlyPermissionMessage(e, "Falha ao criar lote")),
   });
 }
 
