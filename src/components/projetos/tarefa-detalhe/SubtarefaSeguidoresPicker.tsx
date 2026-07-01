@@ -27,7 +27,15 @@ interface Props {
   subtarefaId: string;
   projetoId: string;
   colaboradores: Colab[];
+  /**
+   * Indica que a lista de membros do projeto (fonte de hidratação de
+   * nome/avatar) ainda está resolvendo. Quando `true` e houver colaboradores,
+   * renderiza uma pilha de placeholders pulsantes para evitar flash de
+   * iniciais "MB" e sinalizar que o dado real está a caminho.
+   */
+  isResolving?: boolean;
 }
+
 
 /**
  * Picker compacto de seguidores (colaboradores) para linhas de subtarefa no
@@ -35,7 +43,7 @@ interface Props {
  * ou um botão tracejado "+" quando vazio. Reutiliza as mutations otimistas
  * `addColaborador` / `removeColaborador` já expostas por `useProjetoTarefas`.
  */
-function SubtarefaSeguidoresPickerImpl({ subtarefaId, projetoId, colaboradores }: Props) {
+function SubtarefaSeguidoresPickerImpl({ subtarefaId, projetoId, colaboradores, isResolving = false }: Props) {
   const { membros } = useProjetoMembros(projetoId);
   const { addColaborador, removeColaborador } = useProjetoTarefas(projetoId);
   const queryClient = useQueryClient();
@@ -106,10 +114,44 @@ function SubtarefaSeguidoresPickerImpl({ subtarefaId, projetoId, colaboradores }
           )}
         >
           {colaboradores.length === 0 ? (
-            <>
-              <Plus className="h-3 w-3" />
-              <span className="text-[10px]">Equipe</span>
-            </>
+            isResolving ? (
+              // Placeholder pulsante quando ainda não sabemos se há seguidores
+              // (membros do projeto carregando). Evita "salto" visual entre
+              // o botão "+ Equipe" e a pilha real.
+              <div className="flex items-center" aria-hidden="true">
+                {[0, 1].map((i) => (
+                  <div
+                    key={i}
+                    className={cn(
+                      "h-4 w-4 rounded-full bg-muted/60 animate-pulse ring-1 ring-background",
+                      i > 0 && "-ml-1.5",
+                    )}
+                  />
+                ))}
+              </div>
+            ) : (
+              <>
+                <Plus className="h-3 w-3" />
+                <span className="text-[10px]">Equipe</span>
+              </>
+            )
+          ) : isResolving ? (
+            // Temos user_ids mas nome/avatar ainda não resolveram: pilha
+            // de skeletons no mesmo tamanho final para evitar layout shift.
+            <div className="flex items-center" aria-label="Carregando seguidores">
+              {visible.map((c, idx) => (
+                <div
+                  key={c.user_id}
+                  className={cn(
+                    "h-4 w-4 rounded-full bg-muted/60 animate-pulse ring-1 ring-background",
+                    idx > 0 && "-ml-1.5",
+                  )}
+                />
+              ))}
+              {extra > 0 && (
+                <span className="text-[9px] text-muted-foreground ml-0.5">+{extra}</span>
+              )}
+            </div>
           ) : (
             <>
               <div className="flex items-center">
@@ -129,6 +171,7 @@ function SubtarefaSeguidoresPickerImpl({ subtarefaId, projetoId, colaboradores }
               )}
             </>
           )}
+
         </button>
       </PopoverTrigger>
       <PopoverContent
@@ -183,7 +226,9 @@ export const SubtarefaSeguidoresPicker = memo(
   (prev, next) =>
     prev.subtarefaId === next.subtarefaId &&
     prev.projetoId === next.projetoId &&
+    prev.isResolving === next.isResolving &&
     prev.colaboradores.length === next.colaboradores.length &&
-    prev.colaboradores.map((c) => c.user_id).join(",") ===
-      next.colaboradores.map((c) => c.user_id).join(","),
+    prev.colaboradores.map((c) => `${c.user_id}:${c.nome}:${c.avatar_url ?? ""}`).join(",") ===
+      next.colaboradores.map((c) => `${c.user_id}:${c.nome}:${c.avatar_url ?? ""}`).join(","),
 );
+

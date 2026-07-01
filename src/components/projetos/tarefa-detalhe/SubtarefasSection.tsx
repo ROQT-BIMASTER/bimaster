@@ -76,7 +76,7 @@ export function SubtarefasSection({
   teamMembers,
 }: SubtarefasSectionProps) {
   const { loading: iaLoading, generateChecklist } = useProjetoIA();
-  const { membros } = useProjetoMembros(projetoId || undefined);
+  const { membros, isLoading: membrosLoading } = useProjetoMembros(projetoId || undefined);
   const [subtarefaValue, setSubtarefaValue] = useState("");
   const [editingSubtarefaId, setEditingSubtarefaId] = useState<string | null>(null);
   const [editingSubtarefaTitulo, setEditingSubtarefaTitulo] = useState("");
@@ -339,7 +339,18 @@ export function SubtarefasSection({
                         null,
                     };
                   })}
+                  isResolving={
+                    // Só considera "resolvendo" quando os membros ainda estão
+                    // carregando e ao menos um colaborador está sem hidratação
+                    // completa — evita placeholder desnecessário na maioria
+                    // dos casos, em que o objeto já vem hidratado.
+                    membrosLoading &&
+                    (st.colaboradores || []).some(
+                      (c) => !c.avatar_url || !c.nome || c.nome === "Membro",
+                    )
+                  }
                 />
+
 
               </>
             );
