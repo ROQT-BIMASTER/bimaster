@@ -30726,6 +30726,352 @@ export type Database = {
         }
         Relationships: []
       }
+      mkt_campanha_metricas: {
+        Row: {
+          campanha_id: string
+          cliques: number | null
+          conversoes: number | null
+          created_at: string
+          data: string
+          id: string
+          impressoes: number | null
+          investimento: number | null
+          marca_id: string
+          receita: number | null
+        }
+        Insert: {
+          campanha_id: string
+          cliques?: number | null
+          conversoes?: number | null
+          created_at?: string
+          data: string
+          id?: string
+          impressoes?: number | null
+          investimento?: number | null
+          marca_id: string
+          receita?: number | null
+        }
+        Update: {
+          campanha_id?: string
+          cliques?: number | null
+          conversoes?: number | null
+          created_at?: string
+          data?: string
+          id?: string
+          impressoes?: number | null
+          investimento?: number | null
+          marca_id?: string
+          receita?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mkt_campanha_metricas_campanha_id_fkey"
+            columns: ["campanha_id"]
+            isOneToOne: false
+            referencedRelation: "mkt_campanhas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mkt_campanha_metricas_marca_id_fkey"
+            columns: ["marca_id"]
+            isOneToOne: false
+            referencedRelation: "mkt_marcas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mkt_campanhas: {
+        Row: {
+          created_at: string
+          external_id: string
+          id: string
+          marca_id: string
+          nome: string | null
+          objetivo: string | null
+          plataforma: string
+          status: string | null
+        }
+        Insert: {
+          created_at?: string
+          external_id: string
+          id?: string
+          marca_id: string
+          nome?: string | null
+          objetivo?: string | null
+          plataforma: string
+          status?: string | null
+        }
+        Update: {
+          created_at?: string
+          external_id?: string
+          id?: string
+          marca_id?: string
+          nome?: string | null
+          objetivo?: string | null
+          plataforma?: string
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mkt_campanhas_marca_id_fkey"
+            columns: ["marca_id"]
+            isOneToOne: false
+            referencedRelation: "mkt_marcas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mkt_contas: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          external_id: string | null
+          handle: string
+          id: string
+          marca_id: string
+          plataforma: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          external_id?: string | null
+          handle: string
+          id?: string
+          marca_id: string
+          plataforma: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          external_id?: string | null
+          handle?: string
+          id?: string
+          marca_id?: string
+          plataforma?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mkt_contas_marca_id_fkey"
+            columns: ["marca_id"]
+            isOneToOne: false
+            referencedRelation: "mkt_marcas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mkt_insights_ia: {
+        Row: {
+          conteudo: Json
+          created_at: string
+          id: string
+          marca_id: string
+          periodo_fim: string | null
+          periodo_inicio: string | null
+          tipo: string
+        }
+        Insert: {
+          conteudo: Json
+          created_at?: string
+          id?: string
+          marca_id: string
+          periodo_fim?: string | null
+          periodo_inicio?: string | null
+          tipo: string
+        }
+        Update: {
+          conteudo?: Json
+          created_at?: string
+          id?: string
+          marca_id?: string
+          periodo_fim?: string | null
+          periodo_inicio?: string | null
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mkt_insights_ia_marca_id_fkey"
+            columns: ["marca_id"]
+            isOneToOne: false
+            referencedRelation: "mkt_marcas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mkt_marca_acesso: {
+        Row: {
+          created_at: string
+          id: string
+          marca_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          marca_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          marca_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mkt_marca_acesso_marca_id_fkey"
+            columns: ["marca_id"]
+            isOneToOne: false
+            referencedRelation: "mkt_marcas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mkt_marcas: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          id: string
+          nome: string
+          our_brand_id: string | null
+          slug: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          nome: string
+          our_brand_id?: string | null
+          slug: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          nome?: string
+          our_brand_id?: string | null
+          slug?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mkt_marcas_our_brand_id_fkey"
+            columns: ["our_brand_id"]
+            isOneToOne: false
+            referencedRelation: "our_brands"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mkt_metricas_conta: {
+        Row: {
+          alcance: number | null
+          conta_id: string
+          created_at: string
+          data: string
+          engajamento: number | null
+          id: string
+          impressoes: number | null
+          marca_id: string
+          seguidores: number | null
+        }
+        Insert: {
+          alcance?: number | null
+          conta_id: string
+          created_at?: string
+          data: string
+          engajamento?: number | null
+          id?: string
+          impressoes?: number | null
+          marca_id: string
+          seguidores?: number | null
+        }
+        Update: {
+          alcance?: number | null
+          conta_id?: string
+          created_at?: string
+          data?: string
+          engajamento?: number | null
+          id?: string
+          impressoes?: number | null
+          marca_id?: string
+          seguidores?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mkt_metricas_conta_conta_id_fkey"
+            columns: ["conta_id"]
+            isOneToOne: false
+            referencedRelation: "mkt_contas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mkt_metricas_conta_marca_id_fkey"
+            columns: ["marca_id"]
+            isOneToOne: false
+            referencedRelation: "mkt_marcas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mkt_posts: {
+        Row: {
+          alcance: number | null
+          comentarios: number | null
+          compartilhamentos: number | null
+          conta_id: string
+          created_at: string
+          curtidas: number | null
+          external_id: string | null
+          id: string
+          marca_id: string
+          permalink: string | null
+          publicado_em: string | null
+          tipo: string | null
+        }
+        Insert: {
+          alcance?: number | null
+          comentarios?: number | null
+          compartilhamentos?: number | null
+          conta_id: string
+          created_at?: string
+          curtidas?: number | null
+          external_id?: string | null
+          id?: string
+          marca_id: string
+          permalink?: string | null
+          publicado_em?: string | null
+          tipo?: string | null
+        }
+        Update: {
+          alcance?: number | null
+          comentarios?: number | null
+          compartilhamentos?: number | null
+          conta_id?: string
+          created_at?: string
+          curtidas?: number | null
+          external_id?: string | null
+          id?: string
+          marca_id?: string
+          permalink?: string | null
+          publicado_em?: string | null
+          tipo?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mkt_posts_conta_id_fkey"
+            columns: ["conta_id"]
+            isOneToOne: false
+            referencedRelation: "mkt_contas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mkt_posts_marca_id_fkey"
+            columns: ["marca_id"]
+            isOneToOne: false
+            referencedRelation: "mkt_marcas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       modulo_processo_link: {
         Row: {
           concluido_em: string | null
@@ -57052,6 +57398,7 @@ export type Database = {
           fonte: string
         }[]
       }
+      tem_acesso_marca: { Args: { p_marca_id: string }; Returns: boolean }
       test_get_minhas_tarefas_central: { Args: never; Returns: Json }
       test_rpc_comentar_item_aprovacao: {
         Args: { p_admin?: string }
