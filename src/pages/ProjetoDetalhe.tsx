@@ -121,11 +121,11 @@ export default function ProjetoDetalhe({ shared = false }: ProjetoDetalheProps =
 
   const Frame = ({ children }: { children: React.ReactNode }) => {
     if (shared) {
-      return <div className="min-h-screen w-full bg-background">{children}</div>;
+      return <div className={`min-h-screen w-full bg-background ${TYPOGRAPHY_BODY_CLASS}`} style={typographyRootStyle}>{children}</div>;
     }
     return (
       <SidebarProvider>
-        <div className="min-h-screen flex w-full bg-background">
+        <div className={`min-h-screen flex w-full bg-background ${TYPOGRAPHY_BODY_CLASS}`} style={typographyRootStyle}>
           <SidebarSwitch />
           <div className="flex-1 min-w-0 flex flex-col">
             <AppHeaderBar />
