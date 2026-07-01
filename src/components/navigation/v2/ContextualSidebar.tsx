@@ -161,14 +161,37 @@ function CategoryPanel({
           {filteredModules.length === 0 ? (
             <Empty query={query} />
           ) : (
-            filteredModules.map((mod) => {
+            filteredModules.map((mod, idx) => {
               const isOpen = openSet.has(mod.code) || !!query.trim();
               const ModIcon = resolveIcon(mod.icon);
               const modToken = getModuleAccent(mod.code);
               const isActiveMod = activeModuleCode === mod.code;
+              // Subheader de agrupamento aparece só quando o módulo tem
+              // `sectionLabel` e é o primeiro do seu grupo. Categorias que não
+              // foram fundidas continuam renderizando sem subheader nenhum.
+              const prevSection = idx > 0 ? filteredModules[idx - 1].sectionLabel : undefined;
+              const showSectionHeader =
+                !!mod.sectionLabel && mod.sectionLabel !== prevSection;
 
               return (
                 <div key={mod.code} className="flex flex-col">
+                  {showSectionHeader && (
+                    <div
+                      className={cn(
+                        "px-2 pb-1 text-[10px] font-semibold uppercase tracking-wider",
+                        idx > 0 && "pt-2 mt-1",
+                      )}
+                      style={{
+                        color: "hsl(var(--launcher-muted))",
+                        borderTop:
+                          idx > 0
+                            ? "1px solid hsl(var(--launcher-border))"
+                            : "none",
+                      }}
+                    >
+                      {mod.sectionLabel}
+                    </div>
+                  )}
                   <button
                     type="button"
                     onClick={() => toggle(mod.code)}
@@ -233,6 +256,7 @@ function CategoryPanel({
             })
           )}
         </nav>
+
       </ScrollArea>
 
       <FooterBack
