@@ -117,10 +117,24 @@ function SubtarefaSeguidoresPickerImpl({ subtarefaId, projetoId, colaboradores, 
   // Evita pilhas com o mesmo avatar repetido quando o backend retorna o
   // colaborador em múltiplas fontes (join + bridge, por exemplo).
   const seen = new Set<string>();
-  const dedupedColabs = safeColabs.filter((c) => {
+  const uniqueColabs = safeColabs.filter((c) => {
     if (seen.has(c.user_id)) return false;
     seen.add(c.user_id);
     return true;
+  });
+
+  // Ordenação estável: por `nome` (locale pt-BR, case/acento-insensível) e
+  // desempata por `user_id`. Sem isso, a ordem depende da fonte que hidratou
+  // primeiro (join direto vs. bridge vs. lookup em `profiles`) e a pilha de
+  // avatares "pula" entre renders — quebrando `React.memo` a jusante e
+  // fazendo o tooltip enumerar nomes em ordem diferente a cada refetch.
+  const dedupedColabs = [...uniqueColabs].sort((a, b) => {
+    const byNome = a.nome.localeCompare(b.nome, "pt-BR", {
+      sensitivity: "base",
+      numeric: true,
+    });
+    if (byNome !== 0) return byNome;
+    return a.user_id.localeCompare(b.user_id);
   });
 
   const visible = dedupedColabs.slice(0, 3);
@@ -266,12 +280,25 @@ function SubtarefaSeguidoresPickerImpl({ subtarefaId, projetoId, colaboradores, 
 
 export const SubtarefaSeguidoresPicker = memo(
   SubtarefaSeguidoresPickerImpl,
-  (prev, next) =>
-    prev.subtarefaId === next.subtarefaId &&
-    prev.projetoId === next.projetoId &&
-    prev.isResolving === next.isResolving &&
-    prev.colaboradores.length === next.colaboradores.length &&
-    prev.colaboradores.map((c) => `${c.user_id}:${c.nome}:${c.avatar_url ?? ""}`).join(",") ===
-      next.colaboradores.map((c) => `${c.user_id}:${c.nome}:${c.avatar_url ?? ""}`).join(","),
+  (prev, next) => {
+    if (
+      prev.subtarefaId !== next.subtarefaId ||
+      prev.projetoId !== next.projetoId ||
+      prev.isResolving !== next.isResolving ||
+      prev.colaboradores.length !== next.colaboradores.length
+    ) {
+      return false;
+    }
+    // Chaves de comparação ordenadas por user_id → duas listas com o mesmo
+    // conteúdo mas ordens diferentes (join vs. bridge vs. hidratação parcial)
+    // são consideradas equivalentes, evitando re-render espúrio + "flash"
+    // na pilha antes que o `sort` interno rode.
+    const key = (arr: Colab[]) =>
+      arr
+        .map((c) => `${c.user_id}:${c.nome ?? ""}:${c.avatar_url ?? ""}`)
+        .sort()
+        .join(",");
+    return key(prev.colaboradores) === key(next.colaboradores);
+  },
 );
 
