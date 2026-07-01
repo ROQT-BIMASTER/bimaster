@@ -36,6 +36,7 @@ interface MenuRow {
   route: string | null;
   label: string;
   ativo: boolean;
+  parent_group: string | null;
 }
 
 function normalize(route: string): string {
@@ -67,6 +68,8 @@ export default function TelasPerdidas() {
   const qc = useQueryClient();
   const [busca, setBusca] = useState("");
   const [somenteInativas, setSomenteInativas] = useState(false);
+  const [origemFiltro, setOrigemFiltro] = useState<string>("__all");
+  const [parentGroupFiltro, setParentGroupFiltro] = useState<string>("__all");
   const [selected, setSelected] = useState<string | null>(null);
 
   const { data: menuItems = [], isLoading } = useQuery({
@@ -74,7 +77,7 @@ export default function TelasPerdidas() {
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("sidebar_menu_items")
-        .select("id, module_code, route, label, ativo");
+        .select("id, module_code, route, label, ativo, parent_group");
       if (error) throw error;
       return (data || []) as MenuRow[];
     },
@@ -82,15 +85,17 @@ export default function TelasPerdidas() {
 
   const appRoutes = useMemo(() => extractAppRoutes(appSource as string), []);
 
-  const { routesInMenu, activeRoutes, modules } = useMemo(() => {
+  const { routesInMenu, activeRoutes, modules, parentGroupByRoute } = useMemo(() => {
     const inMenu = new Set<string>();
     const active = new Set<string>();
     const mods = new Set<string>();
+    const pg = new Map<string, string>();
     for (const it of menuItems) {
       if (it.route) {
         const n = normalize(it.route);
         inMenu.add(n);
         if (it.ativo) active.add(n);
+        if (it.parent_group) pg.set(n, it.parent_group);
       }
       mods.add(it.module_code);
     }
@@ -98,24 +103,50 @@ export default function TelasPerdidas() {
       routesInMenu: inMenu,
       activeRoutes: active,
       modules: Array.from(mods).sort(),
+      parentGroupByRoute: pg,
     };
   }, [menuItems]);
 
   const orphans = useMemo(() => {
     return appRoutes.filter((r) => {
       if (somenteInativas) {
-        // rota existe no menu porém está inativa em todos os itens
         return routesInMenu.has(r) && !activeRoutes.has(r);
       }
       return !routesInMenu.has(r);
     });
   }, [appRoutes, routesInMenu, activeRoutes, somenteInativas]);
 
+  const origensDisponiveis = useMemo(() => {
+    const s = new Set<string>();
+    for (const r of orphans) s.add(topSegment(r));
+    return Array.from(s).sort();
+  }, [orphans]);
+
+  const parentGroupsDisponiveis = useMemo(() => {
+    const s = new Set<string>();
+    for (const r of orphans) {
+      const g = parentGroupByRoute.get(r);
+      if (g) s.add(g);
+    }
+    return Array.from(s).sort();
+  }, [orphans, parentGroupByRoute]);
+
   const filtered = useMemo(() => {
     const q = busca.trim().toLowerCase();
-    if (!q) return orphans;
-    return orphans.filter((r) => r.toLowerCase().includes(q));
-  }, [orphans, busca]);
+    return orphans.filter((r) => {
+      if (q && !r.toLowerCase().includes(q)) return false;
+      if (origemFiltro !== "__all" && topSegment(r) !== origemFiltro) return false;
+      if (parentGroupFiltro !== "__all") {
+        const g = parentGroupByRoute.get(r) ?? "";
+        if (parentGroupFiltro === "__none") {
+          if (g) return false;
+        } else if (g !== parentGroupFiltro) {
+          return false;
+        }
+      }
+      return true;
+    });
+  }, [orphans, busca, origemFiltro, parentGroupFiltro, parentGroupByRoute]);
 
   const grouped = useMemo(() => {
     const g: Record<string, string[]> = {};
@@ -144,8 +175,41 @@ export default function TelasPerdidas() {
           value={busca}
           onChange={(e) => setBusca(e.target.value)}
           placeholder="Filtrar por rota (ex.: /admin, /financeiro...)"
-          className="max-w-sm"
+          className="max-w-xs"
         />
+        <div className="flex items-center gap-1">
+          <Label className="text-xs text-muted-foreground">Origem</Label>
+          <Select value={origemFiltro} onValueChange={setOrigemFiltro}>
+            <SelectTrigger className="h-9 w-[180px]">
+              <SelectValue placeholder="Todas as origens" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__all">Todas as origens</SelectItem>
+              {origensDisponiveis.map((o) => (
+                <SelectItem key={o} value={o}>
+                  /{o}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="flex items-center gap-1">
+          <Label className="text-xs text-muted-foreground">Grupo</Label>
+          <Select value={parentGroupFiltro} onValueChange={setParentGroupFiltro}>
+            <SelectTrigger className="h-9 w-[200px]">
+              <SelectValue placeholder="Todos os grupos" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__all">Todos os grupos</SelectItem>
+              <SelectItem value="__none">Sem parent_group</SelectItem>
+              {parentGroupsDisponiveis.map((g) => (
+                <SelectItem key={g} value={g}>
+                  {g}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
         <label className="flex items-center gap-2 text-xs text-muted-foreground">
           <Checkbox
             checked={somenteInativas}
@@ -153,10 +217,30 @@ export default function TelasPerdidas() {
           />
           Somente rotas com item de menu inativo
         </label>
+        {(busca ||
+          origemFiltro !== "__all" ||
+          parentGroupFiltro !== "__all" ||
+          somenteInativas) && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              setBusca("");
+              setOrigemFiltro("__all");
+              setParentGroupFiltro("__all");
+              setSomenteInativas(false);
+            }}
+          >
+            Limpar
+          </Button>
+        )}
         <div className="ml-auto flex items-center gap-2 text-xs text-muted-foreground">
           <Badge variant="secondary">{appRoutes.length} rotas no App</Badge>
           <Badge variant="secondary">{routesInMenu.size} vinculadas</Badge>
           <Badge variant="destructive">{orphans.length} perdidas</Badge>
+          {filtered.length !== orphans.length && (
+            <Badge variant="outline">{filtered.length} no filtro</Badge>
+          )}
         </div>
       </Card>
 
@@ -180,12 +264,19 @@ export default function TelasPerdidas() {
               </div>
               <ScrollArea className="max-h-[420px]">
                 <ul className="divide-y">
-                  {rotas.map((r) => (
+                  {rotas.map((r) => {
+                    const pg = parentGroupByRoute.get(r);
+                    return (
                     <li
                       key={r}
                       className="flex items-center gap-2 px-3 py-2 hover:bg-muted/30"
                     >
                       <code className="text-xs font-mono flex-1 truncate">{r}</code>
+                      {pg && (
+                        <Badge variant="outline" className="text-[10px]">
+                          {pg}
+                        </Badge>
+                      )}
                       <Button
                         variant="ghost"
                         size="sm"
@@ -203,7 +294,8 @@ export default function TelasPerdidas() {
                         Vincular
                       </Button>
                     </li>
-                  ))}
+                    );
+                  })}
                 </ul>
               </ScrollArea>
             </Card>
