@@ -113,10 +113,16 @@ export function CotacoesInsumoPanel({ produtoCustoId, produtoId, mpId, custoAtua
       let arquivoNome: string | null = null;
 
       if (arquivo) {
+        const guardOk = await guardFileUpload({ file: arquivo, module: "fabrica-cotacao", contextId: produtoCustoId });
+        if (!guardOk) { setSaving(false); return; }
         const ext = arquivo.name.split(".").pop();
         const path = `${produtoId}/${produtoCustoId}/${crypto.randomUUID()}.${ext}`;
         const { error: upErr } = await supabase.storage.from("fabrica-cotacoes").upload(path, arquivo);
-        if (upErr) throw upErr;
+        if (upErr) {
+          reportUploadFailureShared({ module: "fabrica-cotacao", file: arquivo, contextId: produtoCustoId, error: upErr });
+          throw upErr;
+        }
+        reportUploadSuccessShared({ module: "fabrica-cotacao", file: arquivo, contextId: produtoCustoId, storagePath: path });
         const { data: signedData, error: signError } = await supabase.storage
           .from("fabrica-cotacoes")
           .createSignedUrl(path, 300); // bucket fiscal — TTL curto
