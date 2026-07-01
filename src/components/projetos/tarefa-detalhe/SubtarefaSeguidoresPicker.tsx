@@ -112,6 +112,17 @@ function SubtarefaSeguidoresPickerImpl({ subtarefaId, projetoId, colaboradores, 
       };
     });
 
+  // Deduplica por user_id preservando a primeira ocorrência (que tende a ter
+  // dados mais hidratados, já que hidratação preenche o primeiro match).
+  // Evita pilhas com o mesmo avatar repetido quando o backend retorna o
+  // colaborador em múltiplas fontes (join + bridge, por exemplo).
+  const seen = new Set<string>();
+  const dedupedColabs = safeColabs.filter((c) => {
+    if (seen.has(c.user_id)) return false;
+    seen.add(c.user_id);
+    return true;
+  });
+
   const visible = safeColabs.slice(0, 3);
   const extra = safeColabs.length - visible.length;
 
