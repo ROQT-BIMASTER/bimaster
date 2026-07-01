@@ -226,7 +226,9 @@ export const SubtarefaSeguidoresPicker = memo(
   (prev, next) =>
     prev.subtarefaId === next.subtarefaId &&
     prev.projetoId === next.projetoId &&
+    prev.isResolving === next.isResolving &&
     prev.colaboradores.length === next.colaboradores.length &&
-    prev.colaboradores.map((c) => c.user_id).join(",") ===
-      next.colaboradores.map((c) => c.user_id).join(","),
+    prev.colaboradores.map((c) => `${c.user_id}:${c.nome}:${c.avatar_url ?? ""}`).join(",") ===
+      next.colaboradores.map((c) => `${c.user_id}:${c.nome}:${c.avatar_url ?? ""}`).join(","),
 );
+
