@@ -594,9 +594,10 @@ function AppContent() {
             <Route path="/dashboard/qa-agent" element={<ScreenRoute screenCode="ai_analytics"><QAAgent /></ScreenRoute>} />
             <Route path="/dashboard/agente-huggs" element={<ScreenRoute screenCode="ai_analytics"><AgenteHuggs /></ScreenRoute>} />
             <Route path="/dashboard/relatorios" element={<ScreenRoute screenCode="relatorios"><Relatorios /></ScreenRoute>} />
-            <Route path="/dashboard/admin/relatorios-v2" element={<ProtectedRoute><ReportsV2Home /></ProtectedRoute>} />
-            <Route path="/dashboard/admin/relatorios-v2/novo" element={<ProtectedRoute><ReportWizard /></ProtectedRoute>} />
-            <Route path="/dashboard/admin/relatorios-v2/:reportId" element={<ProtectedRoute><ReportWizard /></ProtectedRoute>} />
+            <Route path="/dashboard/admin/relatorios-v2" element={<ScreenRoute screenCode="admin"><ReportsV2Home /></ScreenRoute>} />
+            <Route path="/dashboard/admin/relatorios-v2/novo" element={<ScreenRoute screenCode="admin"><ReportWizard /></ScreenRoute>} />
+            <Route path="/dashboard/admin/relatorios-v2/:reportId" element={<ScreenRoute screenCode="admin"><ReportWizard /></ScreenRoute>} />
+
             
 
             <Route path="/dashboard/briefings" element={<ModuleScreenRoute moduleCode="projetos" screenCode="projetos_briefings"><BriefingsHome /></ModuleScreenRoute>} />
