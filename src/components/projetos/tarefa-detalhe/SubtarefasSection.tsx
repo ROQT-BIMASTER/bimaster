@@ -73,6 +73,7 @@ export function SubtarefasSection({
   hideHeader = false,
 }: SubtarefasSectionProps) {
   const { loading: iaLoading, generateChecklist } = useProjetoIA();
+  const { membros } = useProjetoMembros(projetoId || undefined);
   const [subtarefaValue, setSubtarefaValue] = useState("");
   const [editingSubtarefaId, setEditingSubtarefaId] = useState<string | null>(null);
   const [editingSubtarefaTitulo, setEditingSubtarefaTitulo] = useState("");
@@ -266,15 +267,43 @@ export function SubtarefasSection({
               ))}
             </SelectContent>
           </Select>
-          {projetoId && (
-            <SubtarefaResponsavelPicker
-              subtarefaId={st.id}
-              projetoId={projetoId}
-              responsavelId={st.responsavel_id || null}
-              responsavelNome={st.responsavel?.nome || null}
-              responsavelAvatar={st.responsavel?.avatar_url || null}
-            />
-          )}
+          {projetoId && (() => {
+            // Fallback de hidratação: quando `responsavel` não vem no objeto
+            // (payload otimista ou cache antigo), tenta 1) primeiro item de
+            // `responsaveis[]`, 2) lookup em `projeto_membros` pelo
+            // `responsavel_id`. Sem isso o picker aparecia só como um
+            // pontinho sem nome/foto.
+            const respPrimario = st.responsaveis?.[0];
+            const respFromMembros = st.responsavel_id
+              ? membros.find((m) => m.user_id === st.responsavel_id)
+              : null;
+            const nome =
+              st.responsavel?.nome ||
+              respPrimario?.nome ||
+              respFromMembros?.profile?.nome ||
+              null;
+            const avatar =
+              st.responsavel?.avatar_url ||
+              respPrimario?.avatar_url ||
+              respFromMembros?.profile?.avatar_url ||
+              null;
+            return (
+              <>
+                <SubtarefaResponsavelPicker
+                  subtarefaId={st.id}
+                  projetoId={projetoId}
+                  responsavelId={st.responsavel_id || null}
+                  responsavelNome={nome}
+                  responsavelAvatar={avatar}
+                />
+                <SubtarefaSeguidoresPicker
+                  subtarefaId={st.id}
+                  projetoId={projetoId}
+                  colaboradores={st.colaboradores || []}
+                />
+              </>
+            );
+          })()}
           {st.data_prazo && (
             <span
               className={cn(
