@@ -105,6 +105,12 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
   }>());
 
   const normalizeCreateTitle = (titulo: string) => titulo.trim().toLowerCase();
+  const createStableTaskId = () => {
+    if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+      return crypto.randomUUID();
+    }
+    return `client-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+  };
 
   const resolvePessoa = (userId: string, viewSnapshot?: Pick<ProjetoTarefasView, "teamMembers">): PessoaCache => {
     const fromTeam = (viewSnapshot?.teamMembers || []).find(m => m.id === userId);
@@ -420,11 +426,14 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
   });
 
   const createTarefa = useMutation({
-    mutationFn: async (tarefa: { titulo: string; secao_id: string; parent_tarefa_id?: string }) => {
+    mutationFn: async (tarefa: { id?: string; titulo: string; secao_id: string; parent_tarefa_id?: string }) => {
       const maxOrdem = tarefas.filter(t => t.secao_id === tarefa.secao_id).length;
+      const id = tarefa.id || createStableTaskId();
+      tarefa.id = id;
       const { data, error } = await supabase
         .from("projeto_tarefas")
         .insert({
+          id,
           ...tarefa,
           projeto_id: projetoId!,
           ordem: maxOrdem,
@@ -439,13 +448,14 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
       flickerLog("mutation-onMutate", { parent: tarefa.parent_tarefa_id, secao: tarefa.secao_id });
       await queryClient.cancelQueries({ queryKey: ["projeto-tarefas-v2", projetoId] });
       const previous = queryClient.getQueryData<ProjetoTarefasView>(["projeto-tarefas-v2", projetoId]);
-      const tempId = `temp-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+      const stableId = tarefa.id || createStableTaskId();
+      tarefa.id = stableId;
       const clientKey = tarefa.parent_tarefa_id
-        ? `sub:${tarefa.parent_tarefa_id}:${normalizeCreateTitle(tarefa.titulo)}:${tempId}`
-        : `task:${tarefa.secao_id}:${normalizeCreateTitle(tarefa.titulo)}:${tempId}`;
+        ? `sub:${tarefa.parent_tarefa_id}:${normalizeCreateTitle(tarefa.titulo)}:${stableId}`
+        : `task:${tarefa.secao_id}:${normalizeCreateTitle(tarefa.titulo)}:${stableId}`;
       const nowIso = new Date().toISOString();
       const optimistic: ProjetoTarefa = {
-        id: tempId,
+        id: stableId,
         projeto_id: projetoId!,
         secao_id: tarefa.secao_id,
         parent_tarefa_id: tarefa.parent_tarefa_id || null,
@@ -467,15 +477,15 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
         __clientKey: clientKey,
       } as ProjetoTarefa;
       pendingCreatesRef.current.set(clientKey, {
-        tempId,
+        tempId: stableId,
         clientKey,
         parent_tarefa_id: tarefa.parent_tarefa_id || null,
         secao_id: tarefa.secao_id,
         tituloNorm: normalizeCreateTitle(tarefa.titulo),
       });
       patchView((v) => ({ ...v, tarefas: [...v.tarefas, optimistic] }));
-      flickerLog("optimistic-insert", { tempId, clientKey });
-      return { previous, tempId, clientKey, isSubtarefa: !!tarefa.parent_tarefa_id };
+      flickerLog("optimistic-insert", { stableId, clientKey });
+      return { previous, tempId: stableId, clientKey, isSubtarefa: !!tarefa.parent_tarefa_id };
     },
     onError: (err: Error, _vars, context) => {
       flickerLog("mutation-onError", { message: err.message });
@@ -487,8 +497,9 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
     },
     onSuccess: ({ data }, _vars, context) => {
       flickerLog("mutation-onSuccess", { tempId: context?.tempId, realId: data?.id });
-      // Swap tempId → id real direto no cache, preservando o resto do
-      // snapshot otimista. Evita refetch e portanto evita re-mount da row.
+      // O id já nasce estável no cliente; no sucesso apenas mesclamos campos
+      // materializados pelo backend. Não há troca tempId→id, então a linha não
+      // remonta e o drawer não pisca.
       if (data?.id && context?.tempId) {
         const pending = context.clientKey ? pendingCreatesRef.current.get(context.clientKey) : undefined;
         if (pending) {
@@ -511,7 +522,7 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
               : t,
           ),
         }));
-        flickerLog("id-swap-applied", { tempId: context.tempId, realId: data.id });
+        flickerLog("server-confirm-merged", { stableId: context.tempId, realId: data.id });
       }
     },
 
