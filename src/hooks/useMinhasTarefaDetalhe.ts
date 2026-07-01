@@ -75,7 +75,10 @@ export function useMinhasTarefaDetalhe(tarefaId: string | undefined) {
       queryClient.invalidateQueries({ queryKey: ["minha-tarefa-anexos", tarefaId] });
       toast.success("Anexo enviado!");
     },
-    onError: (err: Error) => toast.error(err.message),
+    onError: (err: Error) => {
+      const { title, description } = describeUploadError(err.message);
+      toast.error(title, { description });
+    },
   });
 
   const deleteAnexo = useMutation({
