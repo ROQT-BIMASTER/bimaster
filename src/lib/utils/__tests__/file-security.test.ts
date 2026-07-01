@@ -214,3 +214,125 @@ describe("describeUploadError", () => {
     expect(out.description).toBe("Network error xyz");
   });
 });
+
+// ── Casos: documentos/imagens (não-vídeo) dentro e acima de 20 MB ─────────────
+
+const PNG_MAGIC = [0x89, 0x50, 0x4E, 0x47];
+const DOCX_MAGIC = [0x50, 0x4B, 0x03, 0x04];
+const JPG_MAGIC = [0xFF, 0xD8, 0xFF];
+
+describe("validateFileForUpload — não-vídeos dentro do limite de 20 MB", () => {
+  it("aceita PDF de 5 MB", async () => {
+    const file = makeFile("relatorio.pdf", "application/pdf", 5 * MB, PDF_MAGIC);
+    const result = await validateFileForUpload(file);
+    expect(result.valid).toBe(true);
+  });
+
+  it("aceita PNG de 19 MB (próximo do limite)", async () => {
+    const file = makeFile("banner.png", "image/png", 19 * MB, PNG_MAGIC);
+    const result = await validateFileForUpload(file);
+    expect(result.valid).toBe(true);
+  });
+
+  it("aceita DOCX exatamente no limite de 20 MB", async () => {
+    const file = makeFile(
+      "doc.docx",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      20 * MB,
+      DOCX_MAGIC,
+    );
+    const result = await validateFileForUpload(file);
+    expect(result.valid).toBe(true);
+  });
+
+  it("aceita JPG de 1 MB", async () => {
+    const file = makeFile("foto.jpg", "image/jpeg", 1 * MB, JPG_MAGIC);
+    const result = await validateFileForUpload(file);
+    expect(result.valid).toBe(true);
+  });
+
+  it("aceita ZIP de 15 MB", async () => {
+    const file = makeFile("pacote.zip", "application/zip", 15 * MB, DOCX_MAGIC);
+    const result = await validateFileForUpload(file);
+    expect(result.valid).toBe(true);
+  });
+});
+
+describe("validateFileForUpload — não-vídeos acima do limite de 20 MB", () => {
+  it("rejeita PDF de 21 MB com SIZE_EXCEEDED citando 20 MB e sugerindo vídeo até 100 MB", async () => {
+    const file = makeFile("doc.pdf", "application/pdf", 21 * MB, PDF_MAGIC);
+    const result = await validateFileForUpload(file);
+    expect(result.valid).toBe(false);
+    expect(result.code).toBe("SIZE_EXCEEDED");
+    expect(result.error).toContain("20 MB");
+    expect(result.error).toContain("100 MB");
+    expect(result.error).toContain(".pdf");
+  });
+
+  it("rejeita PNG de 30 MB", async () => {
+    const file = makeFile("hero.png", "image/png", 30 * MB, PNG_MAGIC);
+    const result = await validateFileForUpload(file);
+    expect(result.valid).toBe(false);
+    expect(result.code).toBe("SIZE_EXCEEDED");
+    expect(result.error).toContain("30");
+    expect(result.error).toContain("20 MB");
+  });
+
+  it("rejeita XLSX de 50 MB (não deve tratar como vídeo)", async () => {
+    const file = makeFile(
+      "planilha.xlsx",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      50 * MB,
+      DOCX_MAGIC,
+    );
+    const result = await validateFileForUpload(file);
+    expect(result.valid).toBe(false);
+    expect(result.code).toBe("SIZE_EXCEEDED");
+    expect(result.error).toContain("20 MB");
+    expect(result.error).not.toMatch(/handbrake/i);
+  });
+
+  it("rejeita ZIP de 25 MB", async () => {
+    const file = makeFile("pacote.zip", "application/zip", 25 * MB, DOCX_MAGIC);
+    const result = await validateFileForUpload(file);
+    expect(result.valid).toBe(false);
+    expect(result.code).toBe("SIZE_EXCEEDED");
+    expect(result.error).toContain("20 MB");
+  });
+});
+
+// ── describeUploadError — mensagens específicas de não-vídeo ─────────────────
+
+describe("describeUploadError — não-vídeos", () => {
+  it("mapeia mensagem client-side de PDF acima de 20 MB", () => {
+    const original = 'Arquivo ".pdf" tem 21.0 MB e excede o limite de 20 MB para este tipo. Vídeos MP4/MOV/WEBM podem chegar a 100 MB.';
+    const out = describeUploadError(original);
+    expect(out.title).toBe("Arquivo acima do limite permitido");
+    expect(out.description).toBe(original);
+    expect(out.description).toContain("20 MB");
+    expect(out.description).toContain("100 MB");
+  });
+
+  it("mapeia mensagem client-side de PNG acima de 20 MB", () => {
+    const original = 'Arquivo ".png" tem 30.0 MB e excede o limite de 20 MB para este tipo. Vídeos MP4/MOV/WEBM podem chegar a 100 MB.';
+    const out = describeUploadError(original);
+    expect(out.title).toBe("Arquivo acima do limite permitido");
+    expect(out.description).toBe(original);
+    expect(out.description).toContain(".png");
+  });
+
+  it("mapeia mensagem client-side de XLSX acima de 20 MB", () => {
+    const original = 'Arquivo ".xlsx" tem 50.0 MB e excede o limite de 20 MB para este tipo. Vídeos MP4/MOV/WEBM podem chegar a 100 MB.';
+    const out = describeUploadError(original);
+    expect(out.title).toBe("Arquivo acima do limite permitido");
+    expect(out.description).toBe(original);
+    expect(out.description).not.toMatch(/handbrake/i);
+  });
+
+  it("mapeia 'file_size_limit' do bucket Storage para mensagem genérica de tamanho", () => {
+    const out = describeUploadError("The object exceeded the maximum allowed size (file_size_limit)");
+    expect(out.title).toBe("Arquivo muito grande");
+    expect(out.description).toContain("20 MB");
+    expect(out.description).toContain("100 MB");
+  });
+});
