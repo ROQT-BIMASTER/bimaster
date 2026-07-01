@@ -42386,6 +42386,39 @@ export type Database = {
           },
         ]
       }
+      rls_access_audit: {
+        Row: {
+          contexto: Json
+          created_at: string
+          id: string
+          outcome: string
+          reason: string | null
+          resource_id: string | null
+          resource_type: string
+          user_id: string | null
+        }
+        Insert: {
+          contexto?: Json
+          created_at?: string
+          id?: string
+          outcome: string
+          reason?: string | null
+          resource_id?: string | null
+          resource_type: string
+          user_id?: string | null
+        }
+        Update: {
+          contexto?: Json
+          created_at?: string
+          id?: string
+          outcome?: string
+          reason?: string | null
+          resource_id?: string | null
+          resource_type?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       role_permissions_audit_log: {
         Row: {
           action: string
@@ -57137,6 +57170,16 @@ export type Database = {
           status: string
           tipo: string
         }[]
+      }
+      rpc_log_rls_access: {
+        Args: {
+          _contexto?: Json
+          _outcome: string
+          _reason?: string
+          _resource_id: string
+          _resource_type: string
+        }
+        Returns: string
       }
       rpc_lookup_catalogo: {
         Args: { p_empresa_id: number; p_marca: string; p_tipo: string }
