@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { logger } from "@/lib/logger";
 import { buildFabricaPhotoPath, FABRICA_FOTOS_BUCKET } from "@/lib/fabrica/photoPath";
+import { guardFileUpload, reportUploadSuccessShared, reportUploadFailureShared } from "@/lib/utils/sharedUploadGuard";
 import {
   AlertDialog,
   AlertDialogAction,
