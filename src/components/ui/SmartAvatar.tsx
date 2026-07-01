@@ -27,7 +27,16 @@ interface SmartAvatarProps {
   nome?: string | null;
   className?: string;
   fallbackClassName?: string;
+  /** Título customizado. Se omitido, monta `nome (identifier)` automaticamente. */
   title?: string;
+  /**
+   * Identificador secundário mostrado no tooltip (ex.: email, cargo, user_id
+   * curto). Aparece como `Nome (identifier)`. Útil para desambiguar homônimos
+   * ou expor o dono real do avatar quando a imagem falha.
+   */
+  identifier?: string | null;
+  /** Nome fallback quando `nome` estiver vazio. Default: "Membro". */
+  fallbackNome?: string;
 }
 
 /**
@@ -51,12 +60,28 @@ function isUsableUrl(src?: string | null): src is string {
   return true;
 }
 
+function buildTitle(
+  nome: string | null | undefined,
+  identifier: string | null | undefined,
+  fallbackNome: string,
+  errored: boolean,
+): string {
+  const displayNome = (nome && nome.trim()) || fallbackNome;
+  const idClean = identifier && String(identifier).trim() ? String(identifier).trim() : null;
+  const base = idClean ? `${displayNome} (${idClean})` : displayNome;
+  // Quando a imagem falhou explicitamente, sinaliza no tooltip para deixar
+  // claro que o fallback textual é o dado autoritativo.
+  return errored ? `${base} — foto indisponível` : base;
+}
+
 export function SmartAvatar({
   src,
   nome,
   className,
   fallbackClassName,
   title,
+  identifier,
+  fallbackNome = "Membro",
 }: SmartAvatarProps) {
   const usable = isUsableUrl(src);
   const [displayUrl, setDisplayUrl] = useState<string | undefined>(() =>
@@ -84,19 +109,24 @@ export function SmartAvatar({
     };
   }, [src, usable]);
 
-  const initials = computeInitials(nome);
+  const displayNome = (nome && nome.trim()) || fallbackNome;
+  const initials = computeInitials(displayNome);
   const showImage = usable && !errored && !!displayUrl;
+  const resolvedTitle = title || buildTitle(nome, identifier, fallbackNome, errored);
 
   return (
-    <Avatar className={className} title={title || nome || undefined}>
+    <Avatar className={className} title={resolvedTitle} aria-label={resolvedTitle}>
       {showImage && (
         <AvatarImage
           src={displayUrl}
-          alt={nome || ""}
+          alt={resolvedTitle}
           onError={() => setErrored(true)}
         />
       )}
-      <AvatarFallback className={cn("bg-primary/15 text-primary font-medium", fallbackClassName)}>
+      <AvatarFallback
+        className={cn("bg-primary/15 text-primary font-medium", fallbackClassName)}
+        aria-label={resolvedTitle}
+      >
         {initials}
       </AvatarFallback>
     </Avatar>
