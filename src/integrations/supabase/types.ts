@@ -57088,6 +57088,10 @@ export type Database = {
         Args: { _path: string; _user_id: string }
         Returns: boolean
       }
+      user_can_access_china_submissao: {
+        Args: { _submissao_id: string; _user_id: string }
+        Returns: boolean
+      }
       user_can_access_plano: {
         Args: { p_plano_id: string; p_user_id: string }
         Returns: boolean
