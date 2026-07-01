@@ -44,7 +44,7 @@ function acaoLabel(acao: DocumentoVersaoAnterior["acao"]): string {
 }
 
 export function DocumentoHistoricoDialog({ open, onOpenChange, documentoId, tipoDocumentoLabel }: Props) {
-  const { data: versoes = [], isLoading } = useChinaDocumentoHistorico(open ? documentoId : null);
+  const { data: versoes = [], isLoading, error } = useChinaDocumentoHistorico(open ? documentoId : null);
   const [downloadingPath, setDownloadingPath] = useState<string | null>(null);
 
   const baixarVersao = async (path: string | null, nome: string | null) => {
