@@ -1132,7 +1132,7 @@ export function TarefaFocusMode({
           defaultSecaoId={tarefa.secao_id}
           onCreateTasks={(tasks) => {
             tasks.forEach(t => {
-              onAddSubtarefa?.(t.titulo, tarefa.id, t.secao_id);
+              onAddSubtarefa?.(t.titulo, siblingParentId, t.secao_id);
             });
           }}
         />
