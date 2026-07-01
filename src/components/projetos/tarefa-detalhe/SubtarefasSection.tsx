@@ -20,6 +20,30 @@ import { SubtarefaResponsavelPicker } from "./SubtarefaResponsavelPicker";
 import { SubtarefaSeguidoresPicker } from "./SubtarefaSeguidoresPicker";
 import { useProjetoMembros } from "@/hooks/useProjetoMembros";
 import { reportSubtarefaArrowEvent } from "@/lib/telemetry/subtarefaArrowTelemetry";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+
+const MIN_TITLE_LEN = 2;
+const MAX_TITLE_LEN = 200;
+
+/**
+ * Valida título de novo subitem/subtarefa antes de disparar a criação.
+ * Retorna string de erro (pronta para toast) ou null se OK.
+ * Duplicidade é comparada apenas contra irmãos diretos (case-insensitive + trim).
+ */
+function validateNewTitle(
+  titulo: string,
+  siblings: { titulo: string }[],
+): string | null {
+  const t = titulo.trim();
+  if (!t) return "Informe um título para o subitem.";
+  if (t.length < MIN_TITLE_LEN) return `O título precisa ter ao menos ${MIN_TITLE_LEN} caracteres.`;
+  if (t.length > MAX_TITLE_LEN) return `O título deve ter no máximo ${MAX_TITLE_LEN} caracteres.`;
+  const norm = t.toLowerCase();
+  if (siblings.some((s) => (s.titulo || "").trim().toLowerCase() === norm)) {
+    return "Já existe um subitem com esse título neste nível.";
+  }
+  return null;
+}
 
 const ESTAGIO_OPTIONS = [
   { value: "briefing", label: "Briefing", color: "bg-purple-500/20 text-purple-400" },
@@ -113,8 +137,19 @@ export function SubtarefasSection({
     });
 
   const handleAdd = () => {
-    if (!subtarefaValue.trim() || !onAddSubtarefa) return;
-    onAddSubtarefa(subtarefaValue.trim(), siblingParentId, tarefa.secao_id);
+    if (!onAddSubtarefa) return;
+    const err = validateNewTitle(subtarefaValue, allSubs);
+    if (err) {
+      toast.error(err);
+      return;
+    }
+    try {
+      Promise.resolve(onAddSubtarefa(subtarefaValue.trim(), siblingParentId, tarefa.secao_id))
+        .then(() => toast.success("Subtarefa criada."))
+        .catch(() => toast.error("Não foi possível criar a subtarefa. Tente novamente."));
+    } catch {
+      toast.error("Não foi possível criar a subtarefa. Tente novamente.");
+    }
     setSubtarefaValue("");
   };
 
@@ -125,16 +160,34 @@ export function SubtarefasSection({
    * o usuário deve configurar `data_prazo` explicitamente após criação.
    * Permissões/visibilidade derivam do mesmo `projeto_id`, então a RLS
    * existente cobre subtarefas em qualquer profundidade.
+   *
+   * Retorna true quando o dispatch foi acionado (input pode limpar/fechar);
+   * false quando a validação falhou (input permanece aberto).
    */
-  const addChildOf = (parent: typeof allSubs[number], titulo: string) => {
-    if (!onAddSubtarefa || !titulo.trim()) return;
+  const addChildOf = (parent: typeof allSubs[number], titulo: string): boolean => {
+    if (!onAddSubtarefa) return false;
     // Guard frontend: parent deve pertencer ao mesmo projeto.
     if (projetoId && (parent as any).projeto_id && (parent as any).projeto_id !== projetoId) {
       toast.error("Não é possível criar subitem em outro projeto.");
-      return;
+      return false;
     }
-    onAddSubtarefa(titulo.trim(), parent.id, parent.secao_id);
+    const siblings = ((parent as any).subtarefas ?? []) as { titulo: string }[];
+    const err = validateNewTitle(titulo, siblings);
+    if (err) {
+      toast.error(err);
+      return false;
+    }
+    try {
+      Promise.resolve(onAddSubtarefa(titulo.trim(), parent.id, parent.secao_id))
+        .then(() => toast.success("Subitem criado."))
+        .catch(() => toast.error("Não foi possível criar o subitem. Tente novamente."));
+    } catch {
+      toast.error("Não foi possível criar o subitem. Tente novamente.");
+      return false;
+    }
+    return true;
   };
+
 
   const allSubs = tarefa.subtarefas ?? [];
   const pendentes = allSubs.filter((s) => s.status !== "concluida");
@@ -437,48 +490,64 @@ export function SubtarefasSection({
                   onKeyDown={(e) => {
                     if (e.key === "Enter") {
                       e.preventDefault();
-                      const v = addingValue.trim();
-                      if (v) {
-                        addChildOf(st, v);
+                      const ok = addChildOf(st, addingValue);
+                      if (ok) {
                         setCollapsedIds((prev) => {
                           const n = new Set(prev);
                           n.delete(st.id);
                           return n;
                         });
+                        setAddingValue("");
+                        setAddingForId(null);
                       }
-                      setAddingValue("");
-                      setAddingForId(null);
+                      // se inválido, mantém input aberto (toast já disparado)
                     } else if (e.key === "Escape") {
                       setAddingValue("");
                       setAddingForId(null);
                     }
                   }}
                   onBlur={() => {
+                    // Fechar sem criar se vazio; se preenchido, tentar criar
+                    // silenciosamente (sem toast de erro) para não poluir UX no blur.
                     const v = addingValue.trim();
-                    if (v) addChildOf(st, v);
+                    if (v) {
+                      const err = validateNewTitle(v, ((st as any).subtarefas ?? []));
+                      if (!err) addChildOf(st, v);
+                    }
                     setAddingValue("");
                     setAddingForId(null);
                   }}
                   placeholder="Título do subitem..."
-                  className="h-7 text-xs flex-1"
+                  className="h-9 md:h-7 text-sm md:text-xs flex-1"
+                  maxLength={MAX_TITLE_LEN}
                   data-testid={`subitem-input-${st.id}`}
                 />
               </div>
             ) : (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-6 text-[10px] gap-1 text-muted-foreground hover:text-primary"
-                onClick={() => {
-                  setAddingForId(st.id);
-                  setAddingValue("");
-                }}
-                data-testid={`subitem-add-${st.id}`}
-              >
-                <Plus className="h-3 w-3" />
-                Adicionar subitem
-              </Button>
+              <TooltipProvider delayDuration={300}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 md:h-6 min-h-[32px] md:min-h-0 px-2 text-[11px] md:text-[10px] gap-1 text-muted-foreground hover:text-primary"
+                      onClick={() => {
+                        setAddingForId(st.id);
+                        setAddingValue("");
+                      }}
+                      data-testid={`subitem-add-${st.id}`}
+                    >
+                      <Plus className="h-3.5 w-3.5 md:h-3 md:w-3" />
+                      Adicionar subitem
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="max-w-[260px] text-xs">
+                    Subitem fica aninhado dentro desta subtarefa. Para criar uma subtarefa no mesmo nível, use o campo "Adicionar subtarefa" no fim da lista.
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             )}
+
           </div>
         )}
 
@@ -558,13 +627,35 @@ export function SubtarefasSection({
               className="h-7 text-xs gap-1"
               onClick={() => {
                 const selected = pendingAISubtarefas.filter((it) => it.selected);
+                const existentes = allSubs.map((s) => ({ titulo: s.titulo }));
+                let criadas = 0;
+                let ignoradas = 0;
                 if (onAddSubtarefa) {
                   for (const item of selected) {
-                    onAddSubtarefa(item.titulo, siblingParentId, tarefa.secao_id);
+                    const err = validateNewTitle(item.titulo, existentes);
+                    if (err) {
+                      ignoradas++;
+                      continue;
+                    }
+                    existentes.push({ titulo: item.titulo });
+                    try {
+                      onAddSubtarefa(item.titulo.trim(), siblingParentId, tarefa.secao_id);
+                      criadas++;
+                    } catch {
+                      ignoradas++;
+                    }
                   }
                 }
                 setPendingAISubtarefas([]);
-                toast.success(`${selected.length} subtarefa(s) criada(s)!`);
+                if (criadas > 0) {
+                  toast.success(
+                    ignoradas > 0
+                      ? `${criadas} subtarefa(s) criada(s). ${ignoradas} ignorada(s) por duplicidade/validação.`
+                      : `${criadas} subtarefa(s) criada(s).`,
+                  );
+                } else if (ignoradas > 0) {
+                  toast.error("Nenhuma subtarefa foi criada — todas duplicadas ou inválidas.");
+                }
               }}
               disabled={pendingAISubtarefas.filter((it) => it.selected).length === 0}
             >
@@ -610,11 +701,21 @@ export function SubtarefasSection({
             onChange={(e) => setSubtarefaValue(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleAdd()}
             placeholder={rootTarefaId && rootTarefaId !== tarefa.id ? "Adicionar subtarefa (mesmo nível)..." : "Adicionar subtarefa..."}
-            className="h-8 text-sm"
+            className="h-9 md:h-8 text-sm"
+            maxLength={MAX_TITLE_LEN}
           />
-          <Button size="sm" variant="ghost" onClick={handleAdd} className="h-8">
-            Adicionar
-          </Button>
+          <TooltipProvider delayDuration={300}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button size="sm" variant="ghost" onClick={handleAdd} className="h-9 md:h-8 min-h-[36px] md:min-h-0 px-3">
+                  Adicionar
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="top" className="max-w-[260px] text-xs">
+                Cria uma subtarefa no mesmo nível hierárquico da tarefa atual. Para aninhar dentro de uma subtarefa existente, use "Adicionar subitem".
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </div>
       )}
     </div>
