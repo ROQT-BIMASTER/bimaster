@@ -383,6 +383,16 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
   const [detailOpen, setDetailOpen] = useState(false);
   const { isSaving: isBridgeSaving, attemptSave } = useBridgeSaveRetry();
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  // Tarefas com mutação em voo (concluir/reabrir/mudar prazo). Usado pelo Kanban
+  // e listas para exibir spinner e desabilitar interação sem "engolir" o clique.
+  const [pendingIds, setPendingIds] = useState<Set<string>>(new Set());
+  const markPending = useCallback((ids: string[], on: boolean) => {
+    setPendingIds((prev) => {
+      const next = new Set(prev);
+      for (const id of ids) { if (on) next.add(id); else next.delete(id); }
+      return next;
+    });
+  }, []);
   const [showWeeklySummary, setShowWeeklySummary] = useState<boolean>(
     preferences.show_weekly_summary ?? true,
   );
