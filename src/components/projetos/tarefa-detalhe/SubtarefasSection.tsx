@@ -152,9 +152,9 @@ export function SubtarefasSection({
         key={(st as any).__clientKey || st.id}
         className={cn(
           "group border-b border-border/40 last:border-b-0 py-2 hover:bg-muted/20 transition-colors space-y-2 -mx-2 px-2 rounded-sm",
-          depth > 0 && "border-l-2 border-border/30 ml-2",
+          depth > 0 && "border-l-2 border-border/30",
         )}
-        style={depth > 0 ? { marginLeft: depth * 12 } : undefined}
+        style={depth > 0 ? { marginLeft: depth * 24 } : undefined}
       >
         {/* Linha 1: chevron + checkbox + título + abrir + excluir */}
         <div className="flex items-center gap-2">
