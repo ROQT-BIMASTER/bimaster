@@ -195,13 +195,8 @@ export function ProjetoTarefaDetalhe({
   });
   const [editingSubtarefaId, setEditingSubtarefaId] = useState<string | null>(null);
   const [editingSubtarefaTitulo, setEditingSubtarefaTitulo] = useState("");
-  // Derivado da lista live de subtarefas para refletir optimistic updates /
-  // refetches automaticamente — evita stale snapshot ao trocar responsável,
-  // status, etc. via outro caminho (mention, IA, parent task).
-  const selectedSubtarefa = useMemo<ProjetoTarefa | null>(() => {
-    if (!selectedSubtarefaId || !tarefa?.subtarefas) return null;
-    return tarefa.subtarefas.find(st => st.id === selectedSubtarefaId) || null;
-  }, [selectedSubtarefaId, tarefa?.subtarefas]);
+
+
 
   // === Stable row key para subtarefas ===
   // Evita unmount/remount do nó DOM quando o cache troca o tempId pelo id
