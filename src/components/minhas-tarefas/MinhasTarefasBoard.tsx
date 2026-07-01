@@ -31,6 +31,8 @@ interface Props {
   onToggle: (id: string, done: boolean) => void;
   onSelect: (t: MinaTarefa) => void;
   onChangePrazo?: (id: string, novaData: string | null) => void;
+  /** IDs de tarefas com mutação em voo (concluir/reabrir/mudar prazo). */
+  pendingIds?: Set<string>;
 }
 
 type ColumnKey = "overdue" | "today" | "upcoming" | "done";
