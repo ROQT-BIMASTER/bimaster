@@ -52,25 +52,13 @@ export function useMinhasTarefaDetalhe(tarefaId: string | undefined) {
 
   const uploadAnexo = useMutation({
     mutationFn: async (file: File) => {
-      const validation = await validateFileForUpload(file);
-      if (!validation.valid) {
-        throw new Error(validation.error);
-      }
-      const filePath = `${user!.id}/${tarefaId}/${Date.now()}_${sanitizeStorageFilename(file.name)}`;
-      const { error: uploadError } = await supabase.storage
-        .from("projeto-anexos")
-        .upload(filePath, file);
-      if (uploadError) throw uploadError;
-
-      const { error } = await supabase.from("projeto_tarefa_anexos").insert({
-        tarefa_id: tarefaId!,
-        user_id: user!.id,
-        nome: file.name,
-        storage_path: filePath,
-        tipo_arquivo: file.type,
-        tamanho: file.size,
+      // Mesmo fluxo utilizado por tarefas e subtarefas em Projetos
+      // (validação + storage upload + insert em projeto_tarefa_anexos).
+      await uploadTarefaAnexoToStorage({
+        file,
+        userId: user!.id,
+        tarefaId: tarefaId!,
       });
-      if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["minha-tarefa-anexos", tarefaId] });
