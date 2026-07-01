@@ -322,7 +322,12 @@ export default function MeuPerfil() {
         setNome(p?.nome ?? "");
         setCargo(p?.cargo ?? "");
         setTelefone(maskTelefone(p?.telefone ?? ""));
-        setAvatarPreview(p?.avatar_url ?? null);
+        const resolvedAvatar = await resolveAvatarUrl(p?.avatar_url ?? null, {
+          profileId: user.id,
+          persist: true,
+        });
+        if (!active) return;
+        setAvatarPreview(resolvedAvatar);
       } catch (err) {
         logger.error("[MeuPerfil] load profile error");
         toast.error("Não foi possível carregar seu perfil");
