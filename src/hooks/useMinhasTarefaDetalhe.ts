@@ -51,11 +51,9 @@ export function useMinhasTarefaDetalhe(tarefaId: string | undefined) {
 
   const uploadAnexo = useMutation({
     mutationFn: async (file: File) => {
-      if (file.size > MAX_FILE_SIZE) {
-        throw new Error(`Arquivo excede 20MB (${(file.size / 1048576).toFixed(1)}MB).`);
-      }
-      if (ALLOWED_TYPES.length > 0 && !ALLOWED_TYPES.includes(file.type) && file.type !== "") {
-        throw new Error(`Tipo não permitido: ${file.type}`);
+      const validation = await validateFileForUpload(file);
+      if (!validation.valid) {
+        throw new Error(validation.error);
       }
       const filePath = `${user!.id}/${tarefaId}/${Date.now()}_${sanitizeStorageFilename(file.name)}`;
       const { error: uploadError } = await supabase.storage
