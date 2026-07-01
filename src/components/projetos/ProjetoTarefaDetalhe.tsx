@@ -1397,6 +1397,7 @@ export function ProjetoTarefaDetalhe({
                   onDelete={onDelete}
                   onOpenSubtarefa={onOpenSubtarefa}
                   teamMembers={teamMembers}
+                  rootTarefaId={rootTarefaId ?? tarefa.id}
                 />
 
                 <Separator />
