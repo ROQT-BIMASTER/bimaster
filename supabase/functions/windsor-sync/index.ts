@@ -14,6 +14,21 @@ const WINDSOR_FIELDS = [
   "permalink", "post_type", "published",
 ].join(",");
 
+const WINDSOR_FIELDS_DIAG = [
+  "source", "account_id", "account_name", "ad_account_id", "account",
+  "datasource", "data_source", "connector",
+  "campaign_id", "campaign", "date", "spend",
+].join(",");
+
+const DIAG_ID_FIELDS = [
+  "account_id", "account_name", "ad_account_id", "account", "datasource", "connector",
+] as const;
+
+function isNonEmpty(v: unknown): boolean {
+  return v != null && String(v).trim() !== "";
+}
+
+
 type WindsorRow = Record<string, unknown>;
 
 function j(cors: HeadersInit, status: number, body: unknown) {
