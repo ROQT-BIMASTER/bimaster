@@ -317,8 +317,30 @@ export function SubtarefasSection({
                 <SubtarefaSeguidoresPicker
                   subtarefaId={st.id}
                   projetoId={projetoId}
-                  colaboradores={st.colaboradores || []}
+                  colaboradores={(st.colaboradores || []).map((c) => {
+                    // Fallback de hidratação: quando o registro veio sem
+                    // nome/avatar (ex.: RPC leve, RLS restringindo o join
+                    // em `profiles`), tenta preencher pelo pool de membros
+                    // do projeto e pelo super-set `teamMembers`. Como último
+                    // recurso mantém "Membro" + iniciais no SmartAvatar.
+                    if (c.nome && c.nome !== "Membro" && c.avatar_url) return c;
+                    const fromMembros = membros.find((m) => m.user_id === c.user_id);
+                    const fromTeam = (teamMembers || []).find((t) => t.id === c.user_id);
+                    return {
+                      user_id: c.user_id,
+                      nome:
+                        c.nome && c.nome !== "Membro"
+                          ? c.nome
+                          : fromMembros?.profile?.nome || fromTeam?.nome || "Membro",
+                      avatar_url:
+                        c.avatar_url ||
+                        fromMembros?.profile?.avatar_url ||
+                        fromTeam?.avatar_url ||
+                        null,
+                    };
+                  })}
                 />
+
               </>
             );
           })()}
