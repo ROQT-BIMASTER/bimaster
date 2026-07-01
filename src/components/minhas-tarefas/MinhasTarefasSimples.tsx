@@ -435,8 +435,19 @@ export function MinhasTarefasSimples() {
       status: done ? "concluida" : "pendente",
       data_conclusao: done ? nowSaoPauloISO() : null,
     };
-    const { error } = await supabase.from("projeto_tarefas").update(update as never).eq("id", id);
+    const { data: fresh, error } = await supabase
+      .from("projeto_tarefas")
+      .update(update as never)
+      .eq("id", id)
+      .select("id")
+      .maybeSingle();
     if (error) { toast.error("Erro ao atualizar tarefa"); return; }
+    if (!fresh) {
+      toast.error("Você não tem permissão para alterar esta tarefa", {
+        description: "Peça ao responsável ou ao criador para conceder acesso.",
+      });
+      return;
+    }
     queryClient.invalidateQueries({ queryKey: ["minhas-tarefas"] });
     toast.success(done ? "Tarefa concluída" : "Tarefa reaberta");
   }, [queryClient]);
