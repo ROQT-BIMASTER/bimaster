@@ -10,7 +10,9 @@ import { StoragePreviewDialog } from "@/components/fabrica/StoragePreviewDialog"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { supabase } from "@/integrations/supabase/client";
 import { UploadAnexoDialog, type UploadConfirmPayload } from "./UploadAnexoDialog";
+import { UploadProgressList, type UploadItem } from "./UploadProgressList";
 import { detectFileKind } from "@/lib/utils/detectFileKind";
+import { describeUploadError } from "@/lib/utils/file-security";
 
 
 const COFRE_CATEGORIAS = [
@@ -78,6 +80,61 @@ export function TarefaAnexosSection({
   const [reimportingId, setReimportingId] = useState<string | null>(null);
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
+  const [uploadItems, setUploadItems] = useState<UploadItem[]>([]);
+  const [lastPayload, setLastPayload] = useState<UploadConfirmPayload | null>(null);
+
+  const updateUploadItem = (id: string, patch: Partial<UploadItem>) => {
+    setUploadItems((prev) => prev.map((i) => (i.id === id ? { ...i, ...patch } : i)));
+  };
+
+  const runUploadForItem = async (
+    item: UploadItem,
+    file: File,
+    payload: UploadConfirmPayload,
+  ): Promise<{ id: string } | null> => {
+    updateUploadItem(item.id, { status: "uploading", progress: 40, errorMessage: undefined, errorTitle: undefined });
+    // Simulação de progresso (supabase-js não expõe onProgress)
+    const tick = window.setInterval(() => {
+      setUploadItems((prev) =>
+        prev.map((i) =>
+          i.id === item.id && i.status === "uploading" && i.progress < 90
+            ? { ...i, progress: Math.min(90, i.progress + 8) }
+            : i,
+        ),
+      );
+    }, 300);
+    try {
+      const result: any = await uploadAnexo.mutateAsync({ file, notificarIds: payload.notificarIds });
+      updateUploadItem(item.id, { status: "success", progress: 100 });
+      return result && typeof result === "object" && "id" in result ? { id: result.id as string } : null;
+    } catch (err: any) {
+      const info = describeUploadError(err?.message ?? "");
+      updateUploadItem(item.id, {
+        status: "error",
+        progress: 100,
+        errorTitle: info.title,
+        errorMessage: info.description,
+      });
+      return null;
+    } finally {
+      window.clearInterval(tick);
+    }
+  };
+
+  const handleRetryItem = async (item: UploadItem) => {
+    if (!lastPayload) return;
+    const file = (item as any).__file as File | undefined;
+    if (!file) return;
+    await runUploadForItem(item, file, lastPayload);
+  };
+
+  const handleDismissItem = (item: UploadItem) => {
+    setUploadItems((prev) => prev.filter((i) => i.id !== item.id));
+  };
+
+  const handleClearFinished = () => {
+    setUploadItems((prev) => prev.filter((i) => i.status === "uploading" || i.status === "queued"));
+  };
 
   const toggleAnexoSelection = (id: string) => {
     setSelectedAnexoIds(prev =>
@@ -99,32 +156,47 @@ export function TarefaAnexosSection({
   const handleConfirmUpload = async (payload: UploadConfirmPayload) => {
     const files = pendingFiles;
     setPendingFiles([]);
+    setLastPayload(payload);
     if (files.length === 0) return;
 
-    try {
-      const results = await Promise.all(
-        files.map(f => uploadAnexo.mutateAsync({ file: f, notificarIds: payload.notificarIds })),
-      );
+    // Cria um item de progresso por arquivo (mantém referência ao File p/ retry)
+    const newItems: UploadItem[] = files.map((f, idx) => {
+      const item: UploadItem & { __file?: File } = {
+        id: `${Date.now()}_${idx}_${f.name}`,
+        name: f.name,
+        size: f.size,
+        status: "queued",
+        progress: 5,
+      };
+      (item as any).__file = f;
+      return item;
+    });
+    setUploadItems((prev) => [...newItems, ...prev]);
 
-      // Se usuário marcou "Promover ao Cofre" no upload, dispara sendToCofre
-      if (payload.cofre && produtoId && canPublishToCofre) {
-        const anexoIds = results
-          .map((r: any) => (r && typeof r === "object" ? r.id : null))
-          .filter((id): id is string => !!id);
-        if (anexoIds.length > 0) {
-          const categoriasPorAnexo = Object.fromEntries(
-            anexoIds.map((id) => [id, payload.cofre!.categoria]),
-          );
+    const results = await Promise.all(
+      newItems.map((item, idx) => runUploadForItem(item, files[idx], payload)),
+    );
+
+    // Se usuário marcou "Promover ao Cofre" no upload, dispara sendToCofre com os que subiram
+    if (payload.cofre && produtoId && canPublishToCofre) {
+      const anexoIds = results
+        .map((r) => (r ? r.id : null))
+        .filter((id): id is string => !!id);
+      if (anexoIds.length > 0) {
+        const categoriasPorAnexo = Object.fromEntries(
+          anexoIds.map((id) => [id, payload.cofre!.categoria]),
+        );
+        try {
           await sendToCofre.mutateAsync({
             anexoIds,
             produtoId,
             categoriasPorAnexo,
             projetoId: projetoId || undefined,
           });
+        } catch {
+          // toast tratado na mutation
         }
       }
-    } catch {
-      // toasts são exibidos nas mutations
     }
   };
 
@@ -221,6 +293,12 @@ export function TarefaAnexosSection({
           </div>
           <input ref={fileInputRef} type="file" multiple className="hidden" onChange={handleFileUpload} />
         </div>
+        <UploadProgressList
+          items={uploadItems}
+          onRetry={handleRetryItem}
+          onDismiss={handleDismissItem}
+          onClearFinished={handleClearFinished}
+        />
         {anexos.length > 0 ? (
           <TooltipProvider delayDuration={200}>
             <div className="space-y-1.5">
