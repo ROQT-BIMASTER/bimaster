@@ -206,3 +206,41 @@ export async function validateFilesForUpload(files: File[]): Promise<{ file: Fil
   }
   return errors;
 }
+
+// ── Toast helper ───────────────────────────────────────────────────────────────
+
+/**
+ * Traduz mensagens de erro de upload (validação client-side, trigger do banco
+ * ou Storage bucket) em título + descrição amigável para toast.
+ */
+export function describeUploadError(message: string): { title: string; description: string } {
+  const msg = (message || "").toLowerCase();
+
+  // Erros do trigger do banco / bucket Storage
+  if (msg.includes("payload too large") || msg.includes("exceeded the maximum") || msg.includes("file_size_limit")) {
+    return {
+      title: "Arquivo muito grande",
+      description: "O servidor recusou o upload. Limite: 20 MB para documentos/imagens e 100 MB para vídeos (MP4, MOV, WEBM).",
+    };
+  }
+  if (msg.includes("mime type") && msg.includes("not supported")) {
+    return {
+      title: "Tipo de arquivo não permitido",
+      description: "Formatos aceitos: PDF, imagens, Office, CSV, XML, TXT, ZIP e vídeos MP4/MOV/WEBM.",
+    };
+  }
+  if (msg.includes("excede o limite de 100 mb") || msg.includes("excede o limite de 20 mb")) {
+    return {
+      title: "Arquivo acima do limite permitido",
+      description: message,
+    };
+  }
+  if (msg.includes("extensão") || msg.includes("extension")) {
+    return {
+      title: "Tipo de arquivo não permitido",
+      description: message,
+    };
+  }
+  return { title: "Falha ao enviar arquivo", description: message };
+}
+
