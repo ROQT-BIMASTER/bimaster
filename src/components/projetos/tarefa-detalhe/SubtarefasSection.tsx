@@ -227,7 +227,6 @@ export function SubtarefasSection({
     const children = (st as any).subtarefas ?? [];
     const hasChildren = children.length > 0;
     const isCollapsed = collapsedIds.has(st.id);
-    const isCreatingChild = pendingChildAddsRef.current.has(st.id);
     return (
       <div
         key={(st as any).__clientKey || st.id}

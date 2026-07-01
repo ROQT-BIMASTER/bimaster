@@ -595,7 +595,6 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
       queryClient.setQueryData<ProjetoTarefa[]>(["projeto-tarefas-subtarefas-bridge", detailTarefaId], (old = []) =>
         old.map((st) => st.id === id ? ({ ...st, ...updates } as ProjetoTarefa) : st),
       );
-      queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-subtarefas-bridge", detailTarefaId] });
     }
   }, [queryClient, detailTarefa, detailTarefaId, attemptSave]);
 
