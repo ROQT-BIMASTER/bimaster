@@ -618,14 +618,27 @@ export function SubtarefasSection({
         )}
         </div>
 
-        {/* Filhos recursivos */}
-        {hasChildren && !isCollapsed && (
-          <div className="space-y-1.5 mt-1">
-            {children.map((child: any) => renderSub(child, depth + 1))}
-          </div>
-        )}
       </div>
     );
+  };
+
+  /**
+   * DFS flat: percorre a árvore e emite uma lista linear de linhas com
+   * o `depth` correto para cada nó. Filhos de nós colapsados são pulados.
+   * Como a indentação é aplicada por `depth * var(--tree-indent)` em cada
+   * linha, todos os níveis compartilham o mesmo passo — nenhum nível herda
+   * offset de wrapper.
+   */
+  const renderTree = (nodes: typeof allSubs, depth = 0): React.ReactNode[] => {
+    const rows: React.ReactNode[] = [];
+    for (const node of nodes) {
+      rows.push(renderSub(node, depth));
+      const children = ((node as any).subtarefas ?? []) as typeof allSubs;
+      if (children.length > 0 && !collapsedIds.has(node.id)) {
+        rows.push(...renderTree(children, depth + 1));
+      }
+    }
+    return rows;
   };
 
   return (
