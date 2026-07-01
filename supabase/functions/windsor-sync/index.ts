@@ -26,8 +26,8 @@ const CONECTORES: Conector[] = [
     fieldsConta:
       "account_id,account_name,date,reach,impressions,likes,comments,shares,saves,views,profile_views",
     fieldsPost:
-      "account_id,account_name,date,media_url,media_product_type,likes,comments,shares,saves,views,reach,timestamp",
-    postIdField: "media_url",
+      "account_id,account_name,date,media_id,media_permalink,media_url,media_product_type,likes,comments,shares,saves,views,reach,timestamp",
+    postIdField: "media_id",
   },
   {
     slug: "facebook_organic",
@@ -454,7 +454,7 @@ Deno.serve(secureHandler(
             external_id,
             publicado_em,
             tipo: tipoStr != null ? String(tipoStr) : null,
-            permalink: row.permalink != null ? String(row.permalink) : null,
+            permalink: (row.media_permalink ?? row.permalink) != null ? String(row.media_permalink ?? row.permalink) : null,
             curtidas: num(row.likes),
             comentarios: num(row.comments),
             compartilhamentos: num(row.shares),
