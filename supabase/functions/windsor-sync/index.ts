@@ -454,7 +454,7 @@ Deno.serve(secureHandler(
             external_id,
             publicado_em,
             tipo: tipoStr != null ? String(tipoStr) : null,
-            permalink: row.permalink != null ? String(row.permalink) : null,
+            permalink: (row.media_permalink ?? row.permalink) != null ? String(row.media_permalink ?? row.permalink) : null,
             curtidas: num(row.likes),
             comentarios: num(row.comments),
             compartilhamentos: num(row.shares),
