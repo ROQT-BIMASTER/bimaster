@@ -129,7 +129,7 @@ interface ProjetoTarefaDetalheProps {
   onOpenChange: (open: boolean) => void;
   onUpdate: (id: string, updates: Partial<ProjetoTarefa>) => void;
   onToggle: (tarefa: ProjetoTarefa) => void;
-  onAddSubtarefa?: (titulo: string, parentId: string, secaoId: string) => void;
+  onAddSubtarefa?: (titulo: string, parentId: string, secaoId: string) => void | Promise<void>;
   /** Soft-delete handler (tarefa ou subtarefa). Quando ausente, o botão de excluir não é renderizado. */
   onDelete?: (tarefaId: string) => void;
   secoes?: ProjetoSecaoType[];

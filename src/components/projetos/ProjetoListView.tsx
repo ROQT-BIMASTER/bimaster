@@ -225,8 +225,8 @@ export function ProjetoListView({ projetoId, darkBg = false, filters = EMPTY_FIL
     updateTarefa.mutate({ id, ...updates });
   };
 
-  const handleAddSubtarefa = (titulo: string, parentId: string, secaoId: string) => {
-    createTarefa.mutate({ titulo, secao_id: secaoId, parent_tarefa_id: parentId });
+  const handleAddSubtarefa = async (titulo: string, parentId: string, secaoId: string) => {
+    await createTarefa.mutateAsync({ titulo, secao_id: secaoId, parent_tarefa_id: parentId });
   };
 
   const handleMoveTarefa = (tarefaId: string, secaoOrigemId: string, secaoDestinoId: string) => {

@@ -92,6 +92,16 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
   const pendingResponsaveisRef = useRef(new Map<string, Map<string, PendingListOp>>());
   const pendingColaboradoresRef = useRef(new Map<string, Map<string, PendingListOp>>());
   const pendingPrimaryRef = useRef(new Map<string, { userId: string | null; pessoa: PessoaCache | null }>());
+  const pendingCreatesRef = useRef(new Map<string, {
+    tempId: string;
+    clientKey: string;
+    parent_tarefa_id: string | null;
+    secao_id: string;
+    tituloNorm: string;
+    realId?: string;
+  }>());
+
+  const normalizeCreateTitle = (titulo: string) => titulo.trim().toLowerCase();
 
   const resolvePessoa = (userId: string, viewSnapshot?: Pick<ProjetoTarefasView, "teamMembers">): PessoaCache => {
     const fromTeam = (viewSnapshot?.teamMembers || []).find(m => m.id === userId);
@@ -427,8 +437,8 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
       const previous = queryClient.getQueryData<ProjetoTarefasView>(["projeto-tarefas-v2", projetoId]);
       const tempId = `temp-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
       const clientKey = tarefa.parent_tarefa_id
-        ? `sub:${tarefa.parent_tarefa_id}:${tarefa.titulo.trim().toLowerCase()}:${tempId}`
-        : `task:${tarefa.secao_id}:${tarefa.titulo.trim().toLowerCase()}:${tempId}`;
+        ? `sub:${tarefa.parent_tarefa_id}:${normalizeCreateTitle(tarefa.titulo)}:${tempId}`
+        : `task:${tarefa.secao_id}:${normalizeCreateTitle(tarefa.titulo)}:${tempId}`;
       const nowIso = new Date().toISOString();
       const optimistic: ProjetoTarefa = {
         id: tempId,
@@ -452,10 +462,18 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
         produto_id: null,
         __clientKey: clientKey,
       } as ProjetoTarefa;
+      pendingCreatesRef.current.set(clientKey, {
+        tempId,
+        clientKey,
+        parent_tarefa_id: tarefa.parent_tarefa_id || null,
+        secao_id: tarefa.secao_id,
+        tituloNorm: normalizeCreateTitle(tarefa.titulo),
+      });
       patchView((v) => ({ ...v, tarefas: [...v.tarefas, optimistic] }));
       return { previous, tempId, clientKey, isSubtarefa: !!tarefa.parent_tarefa_id };
     },
     onError: (err: Error, _vars, context) => {
+      if (context?.clientKey) pendingCreatesRef.current.delete(context.clientKey);
       if (context?.previous) queryClient.setQueryData(["projeto-tarefas-v2", projetoId], context.previous);
       // Em erro, refetch agora para reconciliar com o servidor.
       queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2", projetoId] });
@@ -465,6 +483,11 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
       // Swap tempId → id real direto no cache, preservando o resto do
       // snapshot otimista. Evita refetch e portanto evita re-mount da row.
       if (data?.id && context?.tempId) {
+        const pending = context.clientKey ? pendingCreatesRef.current.get(context.clientKey) : undefined;
+        if (pending) {
+          pendingCreatesRef.current.set(context.clientKey, { ...pending, realId: data.id });
+          window.setTimeout(() => pendingCreatesRef.current.delete(context.clientKey), 12_000);
+        }
         patchView((v) => ({
           ...v,
           tarefas: v.tarefas.map(t =>
@@ -1199,8 +1222,28 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
       // já está no cache com o mesmo updated_at, não há nada a reconciliar
       // — invalidar ainda notifica subscribers e produz uma "piscada".
       try {
-        const newRow = payload?.new as { id?: string; updated_at?: string } | undefined;
+        const eventType = payload?.eventType as string | undefined;
+        const newRow = payload?.new as {
+          id?: string;
+          updated_at?: string;
+          parent_tarefa_id?: string | null;
+          secao_id?: string;
+          titulo?: string;
+          excluida_em?: string | null;
+        } | undefined;
         if (newRow?.id) {
+          if (eventType === "INSERT") {
+            const tituloNorm = normalizeCreateTitle(newRow.titulo || "");
+            const isLocalCreateEcho = Array.from(pendingCreatesRef.current.values()).some((p) =>
+              p.realId === newRow.id ||
+              (
+                p.parent_tarefa_id === (newRow.parent_tarefa_id || null) &&
+                p.secao_id === newRow.secao_id &&
+                p.tituloNorm === tituloNorm
+              ),
+            );
+            if (isLocalCreateEcho) return;
+          }
           const cached = queryClient.getQueryData<ProjetoTarefasView>(["projeto-tarefas-v2", projetoId]);
           const hit = cached?.tarefas?.find((t) => t.id === newRow.id);
           if (hit && (!newRow.updated_at || hit.updated_at === newRow.updated_at)) {
@@ -1208,11 +1251,20 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
           }
         }
       } catch { /* fall through — invalida se algo der errado */ }
+      if (isDetailGateActive(projetoId)) {
+        scheduleReconcile();
+        return;
+      }
       if (debounceRef.current) clearTimeout(debounceRef.current);
       debounceRef.current = setTimeout(() => {
         if (cancelled) return;
+        const eventType = payload?.eventType as string | undefined;
+        const newRow = payload?.new as { excluida_em?: string | null } | undefined;
+        const oldRow = payload?.old as { excluida_em?: string | null } | undefined;
         queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2", projetoId], refetchType: "none" });
-        queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-excluidas-count", projetoId] });
+        if (eventType === "DELETE" || (eventType === "UPDATE" && newRow?.excluida_em !== oldRow?.excluida_em)) {
+          queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-excluidas-count", projetoId] });
+        }
       }, 200);
     };
     // Topic único por instância — evita "cannot add postgres_changes callbacks

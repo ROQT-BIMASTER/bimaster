@@ -595,7 +595,6 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
       queryClient.setQueryData<ProjetoTarefa[]>(["projeto-tarefas-subtarefas-bridge", detailTarefaId], (old = []) =>
         old.map((st) => st.id === id ? ({ ...st, ...updates } as ProjetoTarefa) : st),
       );
-      queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-subtarefas-bridge", detailTarefaId] });
     }
   }, [queryClient, detailTarefa, detailTarefaId, attemptSave]);
 
@@ -623,7 +622,6 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
       queryClient.setQueryData<ProjetoTarefa[]>(["projeto-tarefas-subtarefas-bridge", detailTarefaId], (old = []) =>
         old.map((st) => st.id === t.id ? ({ ...st, ...update } as ProjetoTarefa) : st),
       );
-      queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-subtarefas-bridge", detailTarefaId] });
     }
     toast.success(done ? "Tarefa concluida" : "Tarefa reaberta");
   }, [queryClient, detailTarefa, detailTarefaId, attemptSave]);
@@ -706,7 +704,7 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
           removeFromBranch(old),
         );
       }
-      return;
+      throw new Error("Não foi possível criar a subtarefa.");
     }
 
     // Swap tempId → id real no ramo correspondente. Sem invalidações extras
