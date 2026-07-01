@@ -245,6 +245,104 @@ export function SubtarefasSection({
     }
   }, []);
 
+  /**
+   * Auditoria de layout da árvore.
+   *
+   * Depois de cada render, mede o `left` real (via getBoundingClientRect) de
+   * todas as linhas com `data-tree-row`, agrupa por `data-depth` e valida que
+   * o passo horizontal entre níveis consecutivos bate com `--tree-indent`
+   * (tolerância 1px para arredondamento). Se detectar desalinhamento, marca
+   * as linhas do nível divergente com `data-tree-misaligned="1"` (o browser
+   * mostra `title` como tooltip nativo com o diagnóstico) e loga um warn.
+   *
+   * Silencioso quando há <2 níveis distintos ou quando a árvore está vazia.
+   * Também expõe `window.__auditTreeAlignment()` para inspeção manual.
+   */
+  const treeContainerRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    const container = treeContainerRef.current;
+    if (!container || typeof window === "undefined") return;
+
+    const raf = window.requestAnimationFrame(() => {
+      const rows = Array.from(container.querySelectorAll<HTMLElement>("[data-tree-row]"));
+      if (rows.length === 0) return;
+
+      const indentPx = parseFloat(
+        getComputedStyle(document.documentElement).getPropertyValue("--tree-indent"),
+      ) || 24;
+
+      // Left absoluto por depth (média, para tolerar sub-pixels).
+      const byDepth = new Map<number, number[]>();
+      for (const row of rows) {
+        const depth = Number(row.getAttribute("data-depth") ?? "0");
+        const left = row.getBoundingClientRect().left;
+        if (!byDepth.has(depth)) byDepth.set(depth, []);
+        byDepth.get(depth)!.push(left);
+      }
+      const depths = [...byDepth.keys()].sort((a, b) => a - b);
+      if (depths.length < 2) {
+        rows.forEach((r) => {
+          r.removeAttribute("data-tree-misaligned");
+          r.removeAttribute("title");
+        });
+        return;
+      }
+      const avgLeft = new Map<number, number>();
+      for (const d of depths) {
+        const arr = byDepth.get(d)!;
+        avgLeft.set(d, arr.reduce((a, b) => a + b, 0) / arr.length);
+      }
+
+      const base = avgLeft.get(depths[0])!;
+      const issues: Array<{ depth: number; expected: number; got: number; delta: number }> = [];
+      for (const d of depths) {
+        const expected = base + (d - depths[0]) * indentPx;
+        const got = avgLeft.get(d)!;
+        const delta = got - expected;
+        if (Math.abs(delta) > 1) {
+          issues.push({ depth: d, expected, got, delta });
+        }
+      }
+
+      const badDepths = new Set(issues.map((i) => i.depth));
+      for (const row of rows) {
+        const depth = Number(row.getAttribute("data-depth") ?? "0");
+        if (badDepths.has(depth)) {
+          const issue = issues.find((i) => i.depth === depth)!;
+          row.setAttribute("data-tree-misaligned", "1");
+          row.setAttribute(
+            "title",
+            `Desalinhamento na árvore: nível ${depth} deveria começar em ${issue.expected.toFixed(1)}px, mas está em ${issue.got.toFixed(1)}px (Δ ${issue.delta.toFixed(1)}px). Passo esperado: ${indentPx}px.`,
+          );
+        } else {
+          row.removeAttribute("data-tree-misaligned");
+          row.removeAttribute("title");
+        }
+      }
+
+      if (issues.length > 0) {
+        // eslint-disable-next-line no-console
+        console.warn("[SubtarefasSection] Layout da árvore desalinhado:", {
+          tarefaId: tarefa.id,
+          indentPx,
+          issues,
+        });
+      }
+
+      // Utilitário manual para o console: window.__auditTreeAlignment()
+      (window as any).__auditTreeAlignment = () => ({
+        indentPx,
+        depths,
+        avgLeft: Object.fromEntries(avgLeft),
+        issues,
+      });
+    });
+
+    return () => window.cancelAnimationFrame(raf);
+  });
+
+
+
 
 
   /**
