@@ -136,7 +136,7 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
   const schedulePendingCleanup = (clear: () => void) => {
     window.setTimeout(() => {
       clear();
-      queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2", projetoId] });
+      queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2", projetoId], refetchType: "none" });
     }, 8_000);
   };
 
@@ -424,6 +424,9 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
       await queryClient.cancelQueries({ queryKey: ["projeto-tarefas-v2", projetoId] });
       const previous = queryClient.getQueryData<ProjetoTarefasView>(["projeto-tarefas-v2", projetoId]);
       const tempId = `temp-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+      const clientKey = tarefa.parent_tarefa_id
+        ? `sub:${tarefa.parent_tarefa_id}:${tarefa.titulo.trim().toLowerCase()}:${tempId}`
+        : `task:${tarefa.secao_id}:${tarefa.titulo.trim().toLowerCase()}:${tempId}`;
       const nowIso = new Date().toISOString();
       const optimistic: ProjetoTarefa = {
         id: tempId,
@@ -445,9 +448,10 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
         created_at: nowIso,
         updated_at: nowIso,
         produto_id: null,
+        __clientKey: clientKey,
       } as ProjetoTarefa;
       patchView((v) => ({ ...v, tarefas: [...v.tarefas, optimistic] }));
-      return { previous, tempId };
+      return { previous, tempId, clientKey, isSubtarefa: !!tarefa.parent_tarefa_id };
     },
     onError: (err: Error, _vars, context) => {
       if (context?.previous) queryClient.setQueryData(["projeto-tarefas-v2", projetoId], context.previous);
@@ -463,7 +467,15 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
           ...v,
           tarefas: v.tarefas.map(t =>
             t.id === context.tempId
-              ? { ...t, id: data.id, codigo: (data as any).codigo ?? t.codigo, created_at: data.created_at || t.created_at }
+              ? {
+                  ...t,
+                  ...(data as Partial<ProjetoTarefa>),
+                  id: data.id,
+                  codigo: (data as any).codigo ?? t.codigo,
+                  created_at: data.created_at || t.created_at,
+                  updated_at: (data as any).updated_at || t.updated_at,
+                  __clientKey: context.clientKey,
+                } as ProjetoTarefa
               : t,
           ),
         }));
@@ -471,6 +483,7 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2", projetoId], refetchType: "none" });
+      scheduleReconcile();
     },
   });
 
