@@ -199,7 +199,6 @@ export function TarefaAnexosSection({
       }
     }
   };
-  };
 
 
   // Classifies an attachment into one of: "storage" | "external" | "asana_legacy" | "expired" | "too_large"
