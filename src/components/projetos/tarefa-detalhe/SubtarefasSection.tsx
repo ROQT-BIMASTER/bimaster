@@ -701,11 +701,21 @@ export function SubtarefasSection({
             onChange={(e) => setSubtarefaValue(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleAdd()}
             placeholder={rootTarefaId && rootTarefaId !== tarefa.id ? "Adicionar subtarefa (mesmo nível)..." : "Adicionar subtarefa..."}
-            className="h-8 text-sm"
+            className="h-9 md:h-8 text-sm"
+            maxLength={MAX_TITLE_LEN}
           />
-          <Button size="sm" variant="ghost" onClick={handleAdd} className="h-8">
-            Adicionar
-          </Button>
+          <TooltipProvider delayDuration={300}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button size="sm" variant="ghost" onClick={handleAdd} className="h-9 md:h-8 min-h-[36px] md:min-h-0 px-3">
+                  Adicionar
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="top" className="max-w-[260px] text-xs">
+                Cria uma subtarefa no mesmo nível hierárquico da tarefa atual. Para aninhar dentro de uma subtarefa existente, use "Adicionar subitem".
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </div>
       )}
     </div>
