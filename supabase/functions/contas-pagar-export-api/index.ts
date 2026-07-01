@@ -96,11 +96,36 @@ function zodError(parsed: z.SafeParseError<any>, req: Request): Response {
 }
 
 // =====================================================
+// Authorization helper — restrict JWT callers to admin/supervisor/financeiro
+// =====================================================
+async function callerHasFinancialAccess(supabase: any, userId: string): Promise<boolean> {
+  try {
+    const [adminRes, supRes] = await Promise.all([
+      supabase.rpc("has_role", { _user_id: userId, _role: "admin" }),
+      supabase.rpc("has_role", { _user_id: userId, _role: "supervisor" }),
+    ]);
+    if (adminRes.data === true || supRes.data === true) return true;
+
+    const { data: mods } = await supabase.rpc("get_user_combined_module_permissions", { _user_id: userId });
+    if (Array.isArray(mods)) {
+      const list = mods as Array<Record<string, unknown>>;
+      return list.some((m) => {
+        const key = String(m.modulo_key ?? m.key ?? m.modulo ?? "").toLowerCase();
+        return key === "financeiro" || key.startsWith("financeiro");
+      });
+    }
+    return false;
+  } catch {
+    return false;
+  }
+}
+
+// =====================================================
 // MAIN HANDLER — PR-24: secureHandler (WAF + IP blocklist + auth "any" + ratelimit + security headers)
 // =====================================================
 Deno.serve(secureHandler(
   { auth: "any", rateLimit: 60, rateLimitPrefix: "contas-pagar-export" },
-  async (req) => {
+  async (req, ctx) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
@@ -113,6 +138,19 @@ Deno.serve(secureHandler(
         return jsonResponse({ status: "ok", service: "contas-pagar-export-api", version: "1.0.0" }, 200, req);
       }
     }
+
+    // Authorization gate: API-key callers are trusted (empresa-scoped upstream).
+    // JWT callers must be admin/supervisor/financeiro to touch AP export data.
+    if (ctx.authSource !== "api_key") {
+      if (!ctx.userId) {
+        return jsonResponse({ error: "forbidden" }, 403, req);
+      }
+      const allowed = await callerHasFinancialAccess(supabase, ctx.userId);
+      if (!allowed) {
+        return jsonResponse({ error: "forbidden", reason: "requires admin, supervisor, or financeiro module access" }, 403, req);
+      }
+    }
+
 
     try {
     const url = new URL(req.url);
