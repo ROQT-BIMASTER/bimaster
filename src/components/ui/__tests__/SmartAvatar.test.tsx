@@ -493,3 +493,78 @@ describe("SmartAvatar – consistência a11y (title === aria-label === alt)", ()
     expect(fallback.getAttribute("aria-label")).toBe(expected);
   });
 });
+
+/**
+ * Regras de precedência do `fallbackNome`: quando o `nome` real está
+ * ausente/inutilizável ou é o placeholder genérico "Membro" hidratado
+ * por RPC/RLS incompleto, o `fallbackNome` custom passado pelo caller
+ * é autoritativo — inclusive no tooltip, aria-label e alt.
+ */
+describe("SmartAvatar – precedência do fallbackNome sobre nome vazio/placeholder", () => {
+  const getRoot = (c: HTMLElement) => c.querySelector("[title]") as HTMLElement;
+
+  it.each([
+    ["null", null],
+    ["undefined", undefined],
+    ["string vazia", ""],
+    ["apenas espaços", "   "],
+    ["apenas tabs/quebras", "\t\n\r  "],
+    ['string literal "null"', "null"],
+    ['string literal "undefined"', "undefined"],
+  ])("nome=%s + fallbackNome custom: tooltip usa o fallback", (_label, nome) => {
+    const { container } = render(
+      <SmartAvatar src={null} nome={nome as any} identifier="u-1" fallbackNome="Convidado" />,
+    );
+    const root = getRoot(container);
+    expect(root.getAttribute("title")).toBe("Convidado (u-1)");
+    expect(root.getAttribute("aria-label")).toBe("Convidado (u-1)");
+  });
+
+  it('nome="Membro" (placeholder genérico) + fallbackNome custom: prefere o fallback', () => {
+    const { container } = render(
+      <SmartAvatar src={null} nome="Membro" identifier="u-2" fallbackNome="Aprovador" />,
+    );
+    const root = getRoot(container);
+    expect(root.getAttribute("title")).toBe("Aprovador (u-2)");
+    expect(root.getAttribute("aria-label")).toBe("Aprovador (u-2)");
+    expect(screen.getByText("AP")).toBeInTheDocument();
+  });
+
+  it('nome="  membro  " (case + whitespace) ainda é tratado como placeholder', () => {
+    const { container } = render(
+      <SmartAvatar src={null} nome="  membro  " fallbackNome="Aprovador" />,
+    );
+    expect(getRoot(container).getAttribute("title")).toBe("Aprovador");
+  });
+
+  it('nome="Membro" + fallbackNome padrão ("Membro"): mantém "Membro"', () => {
+    const { container } = render(<SmartAvatar src={null} nome="Membro" />);
+    expect(getRoot(container).getAttribute("title")).toBe("Membro");
+  });
+
+  it("nome real específico NÃO é sobrescrito pelo fallback", () => {
+    const { container } = render(
+      <SmartAvatar src={null} nome="Ana Dona" fallbackNome="Convidado" />,
+    );
+    expect(getRoot(container).getAttribute("title")).toBe("Ana Dona");
+  });
+
+  it("após onError com nome vazio + fallback custom: sufixo aplica-se ao fallback", () => {
+    const { container } = render(
+      <SmartAvatar src="https://x/y.png" nome="" identifier="u-3" fallbackNome="Aprovador" />,
+    );
+    const img = container.querySelector("img") as HTMLImageElement;
+    fireEvent.error(img);
+    expect(getRoot(container).getAttribute("title")).toBe(
+      "Aprovador (u-3) — foto indisponível",
+    );
+  });
+
+  it("<img alt> também usa o fallback quando nome é whitespace", () => {
+    const { container } = render(
+      <SmartAvatar src="https://x/y.png" nome="   " fallbackNome="Convidado" />,
+    );
+    const img = container.querySelector("img") as HTMLImageElement;
+    expect(img.getAttribute("alt")).toBe("Convidado");
+  });
+});
