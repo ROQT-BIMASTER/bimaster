@@ -87,7 +87,7 @@ export function TarefaResponsavelSeguidoresEditor({
     removeColaborador,
     addResponsavel,
     removeResponsavel,
-  } = useProjetoTarefas(projetoId);
+  } = useProjetoTarefas(projetoId, { mutationsOnly: true });
 
   // Popover por avatar (key = user_id). String vazia = popover "+" geral.
   const [respOpenKey, setRespOpenKey] = useState<string | null>(null);
