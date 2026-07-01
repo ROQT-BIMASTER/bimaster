@@ -553,7 +553,11 @@ export function ProjetoTarefaDetalhe({
                   variant="ghost"
                   size="sm"
                   className="gap-1.5 text-xs rounded-full h-8 px-2 -ml-1 text-muted-foreground hover:text-foreground"
-                  onClick={() => onOpenChange(false)}
+                  onClick={() => {
+                    const parentId = (tarefa as any).parent_tarefa_id as string | null | undefined;
+                    if (parentId && onOpenSubtarefa) onOpenSubtarefa(parentId);
+                    else onOpenChange(false);
+                  }}
                   title={parentTarefaTitulo ? `Voltar para "${parentTarefaTitulo}"` : "Voltar para a tarefa"}
                 >
                   <ChevronLeft className="h-4 w-4" />
