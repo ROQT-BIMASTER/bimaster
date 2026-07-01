@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { ProjetoTarefa } from "@/hooks/useProjetoTarefas";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -230,6 +230,22 @@ export function SubtarefasSection({
   const done = concluidas.length;
   flickerLog("tree-render", { tarefaId: tarefa.id, total, pendentes: pendentes.length });
 
+  // Modo debug visual da árvore. Ative com:
+  //   localStorage.setItem('debug_tree_indent', '1'); location.reload();
+  // Desative com:
+  //   localStorage.removeItem('debug_tree_indent'); location.reload();
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    try {
+      const on = localStorage.getItem("debug_tree_indent") === "1";
+      if (on) document.documentElement.setAttribute("data-tree-debug", "1");
+      else document.documentElement.removeAttribute("data-tree-debug");
+    } catch {
+      /* SSR/privacy modes: ignore */
+    }
+  }, []);
+
+
 
   /**
    * Renderiza UMA linha da árvore. O deslocamento horizontal é SEMPRE
@@ -247,12 +263,15 @@ export function SubtarefasSection({
     return (
       <div
         key={(st as any).__clientKey || st.id}
+        data-tree-row=""
+        data-depth={depth}
         className={cn(
           "group border-b border-border/40 last:border-b-0 py-2 hover:bg-muted/20 transition-colors rounded-sm",
           depth > 0 && "border-l-2 border-border/30",
         )}
         style={{ marginLeft: `calc(${TREE_INDENT_VAR} * ${depth})` }}
       >
+
         <div className="px-2 space-y-2">
           {/* Linha 1: chevron + checkbox + título + abrir + excluir */}
           <div className="grid grid-cols-[14px_16px_minmax(0,1fr)_auto_auto] items-center gap-x-2">
@@ -628,18 +647,34 @@ export function SubtarefasSection({
    * Como a indentação é aplicada por `depth * var(--tree-indent)` em cada
    * linha, todos os níveis compartilham o mesmo passo — nenhum nível herda
    * offset de wrapper.
+   *
+   * A lista flat é memoizada (`useMemo` nas variantes `pendentesRows` /
+   * `concluidasRows`), então mudanças de colapso/expansão não recalculam a
+   * árvore inteira — só a fatia afetada dispara re-render, evitando trabalho
+   * desnecessário em tarefas com muitos níveis.
    */
-  const renderTree = (nodes: typeof allSubs, depth = 0): React.ReactNode[] => {
-    const rows: React.ReactNode[] = [];
-    for (const node of nodes) {
-      rows.push(renderSub(node, depth));
-      const children = ((node as any).subtarefas ?? []) as typeof allSubs;
-      if (children.length > 0 && !collapsedIds.has(node.id)) {
-        rows.push(...renderTree(children, depth + 1));
+  const flattenTree = React.useCallback(
+    (nodes: typeof allSubs, depth = 0): Array<{ node: typeof allSubs[number]; depth: number }> => {
+      const out: Array<{ node: typeof allSubs[number]; depth: number }> = [];
+      for (const node of nodes) {
+        out.push({ node, depth });
+        const children = ((node as any).subtarefas ?? []) as typeof allSubs;
+        if (children.length > 0 && !collapsedIds.has(node.id)) {
+          out.push(...flattenTree(children, depth + 1));
+        }
       }
-    }
-    return rows;
-  };
+      return out;
+    },
+    [collapsedIds],
+  );
+
+  const pendentesRows = useMemo(() => flattenTree(pendentes), [flattenTree, pendentes]);
+  const concluidasRows = useMemo(() => flattenTree(concluidas), [flattenTree, concluidas]);
+
+  const renderRows = (rows: Array<{ node: typeof allSubs[number]; depth: number }>) =>
+    rows.map(({ node, depth }) => renderSub(node, depth));
+
+
 
   return (
     <div>
@@ -756,7 +791,7 @@ export function SubtarefasSection({
       )}
 
       <div className="space-y-1.5">
-        {renderTree(pendentes)}
+        {renderRows(pendentesRows)}
 
         {concluidas.length > 0 && (
           <div className="mt-2 pt-2 border-t border-border/30">
@@ -769,7 +804,7 @@ export function SubtarefasSection({
               {showConcluidas ? "Ocultar" : "Mostrar"} {concluidas.length} concluída
               {concluidas.length > 1 ? "s" : ""}
             </button>
-            {showConcluidas && <div className="space-y-1.5 mt-1">{renderTree(concluidas)}</div>}
+            {showConcluidas && <div className="space-y-1.5 mt-1">{renderRows(concluidasRows)}</div>}
           </div>
         )}
       </div>
