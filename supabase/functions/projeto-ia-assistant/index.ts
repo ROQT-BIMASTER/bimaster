@@ -666,7 +666,7 @@ Máximo 250 palavras.`;
 }
 
 // ─── MAIN ───
-Deno.serve(secureHandler({ auth: "none", rateLimit: 10, rateLimitPrefix: "projeto-ia-assistant" }, async (req) => {
+Deno.serve(secureHandler({ auth: "jwt", rateLimit: 10, rateLimitPrefix: "projeto-ia-assistant" }, async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: getCorsHeaders(req) });
   }
