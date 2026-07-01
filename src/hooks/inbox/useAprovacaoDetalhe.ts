@@ -1,3 +1,4 @@
+import { toFriendlyPermissionMessage } from "@/lib/utils/permissionErrors";
 /**
  * useAprovacaoDetalhe — carrega o contexto de uma aprovação a partir
  * do `referencia_id` do inbox_item (que aponta para

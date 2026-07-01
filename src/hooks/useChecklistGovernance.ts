@@ -1,3 +1,4 @@
+import { toFriendlyPermissionMessage } from "@/lib/utils/permissionErrors";
 /**
  * useChecklistGovernance
  * ------------------------------------------------------------------

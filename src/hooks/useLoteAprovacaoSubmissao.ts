@@ -1,3 +1,4 @@
+import { toFriendlyPermissionMessage } from "@/lib/utils/permissionErrors";
 // Hooks específicos da Vincular China para reutilizar a infra de Lotes de Aprovação
 // (templates globais + RPCs do módulo Projetos), porém ancorados em `submissao_id`
 // em vez de `tarefa_id`.
