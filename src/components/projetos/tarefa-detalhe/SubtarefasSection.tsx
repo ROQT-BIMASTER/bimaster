@@ -305,6 +305,15 @@ export function SubtarefasSection({
               respFromMembros?.profile?.avatar_url ||
               respFromTeam?.avatar_url ||
               null;
+            // Email prioriza `projeto_membros` (fonte autoritativa com RLS),
+            // caindo para `teamMembers` quando o responsável está fora do
+            // pool de membros do projeto (super-set da RPC). Serve como
+            // `identifier` do SmartAvatar para desambiguar homônimos e
+            // apontar o dono real quando o avatar falha.
+            const respEmail =
+              (respFromMembros?.profile as any)?.email ||
+              (respFromTeam as any)?.email ||
+              null;
             return (
               <>
                 <SubtarefaResponsavelPicker
@@ -313,6 +322,7 @@ export function SubtarefasSection({
                   responsavelId={respId}
                   responsavelNome={nome}
                   responsavelAvatar={avatar}
+                  responsavelEmail={respEmail}
                 />
                 <SubtarefaSeguidoresPicker
                   subtarefaId={st.id}
@@ -323,20 +333,30 @@ export function SubtarefasSection({
                     // em `profiles`), tenta preencher pelo pool de membros
                     // do projeto e pelo super-set `teamMembers`. Como último
                     // recurso mantém "Membro" + iniciais no SmartAvatar.
-                    if (c.nome && c.nome !== "Membro" && c.avatar_url) return c;
                     const fromMembros = membros.find((m) => m.user_id === c.user_id);
                     const fromTeam = (teamMembers || []).find((t) => t.id === c.user_id);
+                    const nomeHidratado =
+                      c.nome && c.nome !== "Membro"
+                        ? c.nome
+                        : fromMembros?.profile?.nome || fromTeam?.nome || "Membro";
+                    const avatarHidratado =
+                      c.avatar_url ||
+                      fromMembros?.profile?.avatar_url ||
+                      (fromTeam as any)?.avatar_url ||
+                      null;
+                    // `email` vem via projeto_membros (fonte autoritativa),
+                    // com fallback para teamMembers quando o colaborador
+                    // não está no pool de membros. Nunca do objeto `c`
+                    // (o payload atual de colaboradores não carrega email).
+                    const emailHidratado =
+                      (fromMembros?.profile as any)?.email ||
+                      (fromTeam as any)?.email ||
+                      null;
                     return {
                       user_id: c.user_id,
-                      nome:
-                        c.nome && c.nome !== "Membro"
-                          ? c.nome
-                          : fromMembros?.profile?.nome || fromTeam?.nome || "Membro",
-                      avatar_url:
-                        c.avatar_url ||
-                        fromMembros?.profile?.avatar_url ||
-                        fromTeam?.avatar_url ||
-                        null,
+                      nome: nomeHidratado,
+                      avatar_url: avatarHidratado,
+                      email: emailHidratado,
                     };
                   })}
                   isResolving={
