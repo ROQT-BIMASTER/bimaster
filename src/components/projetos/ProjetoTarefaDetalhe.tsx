@@ -1777,21 +1777,10 @@ export function ProjetoTarefaDetalhe({
         />
       )}
 
-      {/* Subtask Detail - recursive */}
-      {selectedSubtarefaId && (
-        <ProjetoTarefaDetalhe
-          tarefa={selectedSubtarefa}
-          open={!!selectedSubtarefaId}
-          onOpenChange={(open) => { if (!open) setSelectedSubtarefaId(null); }}
-          onUpdate={onUpdate}
-          onToggle={onToggle}
-          onAddSubtarefa={onAddSubtarefa}
-          onDelete={onDelete}
-          secoes={secoes}
-          onMoveTarefa={onMoveTarefa}
-          projetoIdOverride={projetoId || (selectedSubtarefa as any).projeto_id}
-        />
-      )}
+      {/* Subtask Detail: navegação em múltiplos níveis é feita elevando o id
+          selecionado ao dono do drawer (ProjetoListView) via `onOpenSubtarefa`.
+          Isso mantém UM único Sheet montado — sem pilha, sem flicker. */}
+
       {/* Focus Mode */}
       {focusMode && focusTarefa && (
         <TarefaFocusMode
