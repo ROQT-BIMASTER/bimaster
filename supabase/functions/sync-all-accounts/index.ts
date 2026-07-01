@@ -4,12 +4,12 @@ import { getCorsHeaders } from "../_shared/cors.ts";
 import { secureHandler } from "../_shared/secure-handler.ts";
 
 Deno.serve(secureHandler({
-  auth: "apikey",
+  auth: "any",
   rateLimit: 10,
   rateLimitPrefix: "sync-all-accounts",
 }, async (req, ctx) => {
   // Restrict to cron (service-role/api-key) or admin JWT callers
-  const isServiceRole = ctx?.authMode === "apikey";
+  const isServiceRole = ctx?.authSource === "api_key";
   if (!isServiceRole) {
     const userId = ctx?.userId;
     if (!userId) {
