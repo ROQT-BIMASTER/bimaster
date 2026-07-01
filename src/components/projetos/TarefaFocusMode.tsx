@@ -52,6 +52,7 @@ import { ProjetoCorSelector } from "./tarefa-detalhe/ProjetoCorSelector";
 import { useConfirm } from "@/hooks/useConfirm";
 import { ChatAnexoCard } from "./chat/ChatAnexoCard";
 import { SubtarefasSection } from "./tarefa-detalhe/SubtarefasSection";
+import { TarefaCurtirButton } from "./tarefa-detalhe/TarefaCurtirButton";
 
 const ESTAGIO_OPTIONS = [
   { value: "briefing", label: "Briefing", color: "bg-purple-500/20 text-purple-400" },
