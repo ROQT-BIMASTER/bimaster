@@ -82,12 +82,16 @@ function num(v: unknown): number {
   return Number.isFinite(n) ? n : 0;
 }
 
+function looksLikeLicenseError(text: string): boolean {
+  return /license expired|uh-oh/i.test(text);
+}
+
 async function fetchConnector(
   slug: string,
   fields: string,
   preset: string,
   apiKey: string,
-): Promise<{ ok: true; rows: WindsorRow[] } | { ok: false; status?: number }> {
+): Promise<{ ok: true; rows: WindsorRow[] } | { ok: false; status?: number; licenseBlocked?: boolean }> {
   const url = `https://connectors.windsor.ai/${encodeURIComponent(slug)}?api_key=${encodeURIComponent(apiKey)}&fields=${fields}&date_preset=${encodeURIComponent(preset)}&_renderer=json`;
   let r: Response;
   try {
@@ -96,14 +100,22 @@ async function fetchConnector(
     console.error("windsor_fetch_failed", slug, e);
     return { ok: false };
   }
+  const raw = await r.text().catch(() => "");
   if (!r.ok) {
-    const t = await r.text().catch(() => "");
-    console.error("windsor_non_2xx", slug, r.status, t.slice(0, 1500));
+    if (looksLikeLicenseError(raw)) {
+      console.warn("WINDSOR_LICENSE_WARNING", slug, raw.slice(0, 300));
+      return { ok: false, status: r.status, licenseBlocked: true };
+    }
+    console.error("windsor_non_2xx", slug, r.status, raw.slice(0, 1500));
     return { ok: false, status: r.status };
+  }
+  if (looksLikeLicenseError(raw)) {
+    console.warn("WINDSOR_LICENSE_WARNING", slug, raw.slice(0, 300));
+    return { ok: false, status: 402, licenseBlocked: true };
   }
   let p: unknown;
   try {
-    p = await r.json();
+    p = JSON.parse(raw);
   } catch (e) {
     console.error("windsor_json_parse_failed", slug, e);
     return { ok: false };
@@ -119,6 +131,7 @@ async function fetchConnector(
       : [];
   return { ok: true, rows };
 }
+
 
 Deno.serve(secureHandler(
   { auth: "none", rateLimit: 5, rateLimitPrefix: "windsor-sync" },
