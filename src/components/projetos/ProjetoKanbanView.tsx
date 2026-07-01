@@ -427,6 +427,7 @@ export function ProjetoKanbanView({ projetoId, darkBg = false, filters = EMPTY_F
         onDelete={(id) => softDeleteTarefa.mutate(id)}
         secoes={secoes}
         onMoveTarefa={(tarefaId, secaoOrigemId, secaoDestinoId) => moveTarefaToSecao.mutate({ tarefaId, secaoOrigemId, secaoDestinoId })}
+        onOpenSubtarefa={(id) => setSelectedTarefaId(id)}
       />
     </>
   );
