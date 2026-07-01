@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { ProjetoTarefa } from "@/hooks/useProjetoTarefas";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -125,8 +125,10 @@ export function SubtarefasSection({
   const [collapsedIds, setCollapsedIds] = useState<Set<string>>(new Set());
   const [addingForId, setAddingForId] = useState<string | null>(null);
   const [addingValue, setAddingValue] = useState("");
-  const [pendingMainAdd, setPendingMainAdd] = useState(false);
-  const [pendingChildAdds, setPendingChildAdds] = useState<Set<string>>(new Set());
+  // Guards sem estado visual: evita render extra (loader/disable) antes e depois
+  // do patch otimista, que era percebido como “piscada” ao criar subtarefa.
+  const pendingMainAddRef = useRef(false);
+  const pendingChildAddsRef = useRef<Set<string>>(new Set());
 
   /**
    * Parent efetivo do input principal e do fluxo IA "Sugerir com IA":
@@ -145,21 +147,29 @@ export function SubtarefasSection({
 
   const handleAdd = async () => {
     if (!onAddSubtarefa) return;
-    if (pendingMainAdd) return;
+    if (pendingMainAddRef.current) return;
     const err = validateNewTitle(subtarefaValue, allSubs);
     if (err) {
       toast.error(err);
       return;
     }
-    setPendingMainAdd(true);
+    const titulo = subtarefaValue.trim();
+    pendingMainAddRef.current = true;
+    setSubtarefaValue("");
     try {
-      await Promise.resolve(onAddSubtarefa(subtarefaValue.trim(), siblingParentId, tarefa.secao_id));
-      toast.success("Subtarefa criada.");
-      setSubtarefaValue("");
+      void Promise.resolve(onAddSubtarefa(titulo, siblingParentId, tarefa.secao_id))
+        .then(() => toast.success("Subtarefa criada."))
+        .catch(() => {
+          setSubtarefaValue(titulo);
+          toast.error("Não foi possível criar a subtarefa. Tente novamente.");
+        })
+        .finally(() => {
+          pendingMainAddRef.current = false;
+        });
     } catch (err) {
+      pendingMainAddRef.current = false;
+      setSubtarefaValue(titulo);
       toast.error("Não foi possível criar a subtarefa. Tente novamente.");
-    } finally {
-      setPendingMainAdd(false);
     }
   };
 
@@ -176,7 +186,7 @@ export function SubtarefasSection({
    */
   const addChildOf = async (parent: typeof allSubs[number], titulo: string): Promise<boolean> => {
     if (!onAddSubtarefa) return false;
-    if (pendingChildAdds.has(parent.id)) return false;
+    if (pendingChildAddsRef.current.has(parent.id)) return false;
     // Guard frontend: parent deve pertencer ao mesmo projeto.
     if (projetoId && (parent as any).projeto_id && (parent as any).projeto_id !== projetoId) {
       toast.error("Não é possível criar subitem em outro projeto.");
@@ -188,23 +198,19 @@ export function SubtarefasSection({
       toast.error(err);
       return false;
     }
-    setPendingChildAdds((prev) => {
-      const next = new Set(prev);
-      next.add(parent.id);
-      return next;
-    });
+    pendingChildAddsRef.current.add(parent.id);
+    const tituloFinal = titulo.trim();
     try {
-      await Promise.resolve(onAddSubtarefa(titulo.trim(), parent.id, parent.secao_id));
-      toast.success("Subitem criado.");
+      void Promise.resolve(onAddSubtarefa(tituloFinal, parent.id, parent.secao_id))
+        .then(() => toast.success("Subitem criado."))
+        .catch(() => toast.error("Não foi possível criar o subitem. Tente novamente."))
+        .finally(() => {
+          pendingChildAddsRef.current.delete(parent.id);
+        });
     } catch {
+      pendingChildAddsRef.current.delete(parent.id);
       toast.error("Não foi possível criar o subitem. Tente novamente.");
       return false;
-    } finally {
-      setPendingChildAdds((prev) => {
-        const next = new Set(prev);
-        next.delete(parent.id);
-        return next;
-      });
     }
     return true;
   };
@@ -221,7 +227,7 @@ export function SubtarefasSection({
     const children = (st as any).subtarefas ?? [];
     const hasChildren = children.length > 0;
     const isCollapsed = collapsedIds.has(st.id);
-    const isCreatingChild = pendingChildAdds.has(st.id);
+    const isCreatingChild = pendingChildAddsRef.current.has(st.id);
     return (
       <div
         key={(st as any).__clientKey || st.id}
@@ -536,7 +542,7 @@ export function SubtarefasSection({
                     setAddingValue("");
                     setAddingForId(null);
                   }}
-                  disabled={isCreatingChild}
+                  disabled={false}
                   placeholder="Título do subitem..."
                   className="h-9 md:h-7 text-sm md:text-xs flex-1"
                   maxLength={MAX_TITLE_LEN}
@@ -547,7 +553,7 @@ export function SubtarefasSection({
                   variant="ghost"
                   size="icon"
                   className="h-9 w-9 md:h-7 md:w-7 shrink-0"
-                  disabled={isCreatingChild}
+                  disabled={false}
                   onMouseDown={(e) => e.preventDefault()}
                   onClick={async () => {
                     const ok = await addChildOf(st, addingValue);
@@ -563,7 +569,7 @@ export function SubtarefasSection({
                   }}
                   aria-label="Salvar subitem"
                 >
-                  {isCreatingChild ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
+                  <CheckCircle2 className="h-4 w-4" />
                 </Button>
               </div>
             ) : (
@@ -574,14 +580,14 @@ export function SubtarefasSection({
                       variant="ghost"
                       size="sm"
                       className="h-8 md:h-6 min-h-[32px] md:min-h-0 px-2 text-[11px] md:text-[10px] gap-1 text-muted-foreground hover:text-primary"
-                      disabled={isCreatingChild}
+                       disabled={false}
                       onClick={() => {
                         setAddingForId(st.id);
                         setAddingValue("");
                       }}
                       data-testid={`subitem-add-${st.id}`}
                     >
-                      {isCreatingChild ? <Loader2 className="h-3.5 w-3.5 md:h-3 md:w-3 animate-spin" /> : <Plus className="h-3.5 w-3.5 md:h-3 md:w-3" />}
+                      <Plus className="h-3.5 w-3.5 md:h-3 md:w-3" />
                       Adicionar subitem
                     </Button>
                   </TooltipTrigger>
@@ -753,13 +759,12 @@ export function SubtarefasSection({
             placeholder={rootTarefaId && rootTarefaId !== tarefa.id ? "Adicionar subtarefa (mesmo nível)..." : "Adicionar subtarefa..."}
             className="h-9 md:h-8 text-sm"
             maxLength={MAX_TITLE_LEN}
-            disabled={pendingMainAdd}
+            disabled={false}
           />
           <TooltipProvider delayDuration={300}>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button size="sm" variant="ghost" onClick={() => void handleAdd()} disabled={pendingMainAdd} className="h-9 md:h-8 min-h-[36px] md:min-h-0 px-3 gap-1.5">
-                  {pendingMainAdd && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                <Button size="sm" variant="ghost" onClick={() => void handleAdd()} disabled={false} className="h-9 md:h-8 min-h-[36px] md:min-h-0 px-3 gap-1.5">
                   Adicionar
                 </Button>
               </TooltipTrigger>
