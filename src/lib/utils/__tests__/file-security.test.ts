@@ -309,25 +309,25 @@ describe("validateFileForUpload — não-vídeos acima do limite de 200 MB", () 
 // ── describeUploadError — mensagens específicas de não-vídeo ─────────────────
 
 describe("describeUploadError — não-vídeos", () => {
-  it("mapeia mensagem client-side de PDF acima de 20 MB", () => {
-    const original = 'Arquivo ".pdf" tem 21.0 MB e excede o limite de 20 MB para este tipo. Vídeos MP4/MOV/WEBM podem chegar a 100 MB.';
+  it("mapeia mensagem client-side de PDF acima de 200 MB", () => {
+    const original = 'Arquivo ".pdf" tem 201.0 MB e excede o limite de 200 MB para este tipo. Vídeos MP4/MOV/WEBM podem chegar a 500 MB.';
     const out = describeUploadError(original);
     expect(out.title).toBe("Arquivo acima do limite permitido");
     expect(out.description).toBe(original);
-    expect(out.description).toContain("20 MB");
-    expect(out.description).toContain("100 MB");
+    expect(out.description).toContain("200 MB");
+    expect(out.description).toContain("500 MB");
   });
 
-  it("mapeia mensagem client-side de PNG acima de 20 MB", () => {
-    const original = 'Arquivo ".png" tem 30.0 MB e excede o limite de 20 MB para este tipo. Vídeos MP4/MOV/WEBM podem chegar a 100 MB.';
+  it("mapeia mensagem client-side de PNG acima de 200 MB", () => {
+    const original = 'Arquivo ".png" tem 300.0 MB e excede o limite de 200 MB para este tipo. Vídeos MP4/MOV/WEBM podem chegar a 500 MB.';
     const out = describeUploadError(original);
     expect(out.title).toBe("Arquivo acima do limite permitido");
     expect(out.description).toBe(original);
     expect(out.description).toContain(".png");
   });
 
-  it("mapeia mensagem client-side de XLSX acima de 20 MB", () => {
-    const original = 'Arquivo ".xlsx" tem 50.0 MB e excede o limite de 20 MB para este tipo. Vídeos MP4/MOV/WEBM podem chegar a 100 MB.';
+  it("mapeia mensagem client-side de XLSX acima de 200 MB", () => {
+    const original = 'Arquivo ".xlsx" tem 250.0 MB e excede o limite de 200 MB para este tipo. Vídeos MP4/MOV/WEBM podem chegar a 500 MB.';
     const out = describeUploadError(original);
     expect(out.title).toBe("Arquivo acima do limite permitido");
     expect(out.description).toBe(original);
@@ -337,8 +337,8 @@ describe("describeUploadError — não-vídeos", () => {
   it("mapeia 'file_size_limit' do bucket Storage para mensagem genérica de tamanho", () => {
     const out = describeUploadError("The object exceeded the maximum allowed size (file_size_limit)");
     expect(out.title).toBe("Arquivo muito grande");
-    expect(out.description).toContain("20 MB");
-    expect(out.description).toContain("100 MB");
+    expect(out.description).toContain("200 MB");
+    expect(out.description).toContain("500 MB");
   });
 });
 
