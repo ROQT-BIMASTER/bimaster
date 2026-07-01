@@ -68,6 +68,57 @@ export type Database = {
         }
         Relationships: []
       }
+      access_requests: {
+        Row: {
+          created_at: string
+          handled_at: string | null
+          handled_by: string | null
+          handled_note: string | null
+          id: string
+          justification: string
+          requester_email: string | null
+          requester_id: string
+          resource_id: string | null
+          resource_kind: string
+          resource_label: string | null
+          route: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          handled_at?: string | null
+          handled_by?: string | null
+          handled_note?: string | null
+          id?: string
+          justification: string
+          requester_email?: string | null
+          requester_id?: string
+          resource_id?: string | null
+          resource_kind: string
+          resource_label?: string | null
+          route?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          handled_at?: string | null
+          handled_by?: string | null
+          handled_note?: string | null
+          id?: string
+          justification?: string
+          requester_email?: string | null
+          requester_id?: string
+          resource_id?: string | null
+          resource_kind?: string
+          resource_label?: string | null
+          route?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       access_review_cycles: {
         Row: {
           closed_at: string | null
@@ -56185,6 +56236,10 @@ export type Database = {
         }
         Returns: string
       }
+      rpc_atualizar_solicitacao_acesso: {
+        Args: { p_id: string; p_note?: string; p_status: string }
+        Returns: undefined
+      }
       rpc_audit_usuarios_resumo: {
         Args: { p_from?: string; p_to?: string }
         Returns: {
@@ -56807,6 +56862,16 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      rpc_criar_solicitacao_acesso: {
+        Args: {
+          p_justification: string
+          p_resource_id: string
+          p_resource_kind: string
+          p_resource_label: string
+          p_route: string
+        }
+        Returns: string
       }
       rpc_crm_search: {
         Args: { _empresa_id: number; _limit?: number; _q: string }
