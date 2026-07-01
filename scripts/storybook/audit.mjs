@@ -124,7 +124,35 @@ async function run() {
     }
     console.log(`[storybook:audit] ${ids.length} stories descobertas`);
 
+    // Console listener global — captura warnings/errors de a11y emitidos por
+    // React (`Warning: ...`), axe-core, Radix, ou por qualquer bundle carregado
+    // no iframe. É resetado antes de cada story.
+    let currentConsole = [];
+    const A11Y_PATTERNS = [
+      /\baccessib/i,
+      /\baria[- ]?/i,
+      /\brole\b/i,
+      /\balt\b.*(missing|required|empty)/i,
+      /\baxe[- ]?core\b/i,
+      /Warning:.*(label|role|aria|contrast|accessib)/i,
+    ];
+    page.on("console", (msg) => {
+      const type = msg.type();
+      if (type !== "warning" && type !== "error") return;
+      const text = msg.text();
+      if (A11Y_PATTERNS.some((rx) => rx.test(text))) {
+        currentConsole.push({ type, text });
+      }
+    });
+    page.on("pageerror", (err) => {
+      const text = String(err?.message ?? err);
+      if (A11Y_PATTERNS.some((rx) => rx.test(text))) {
+        currentConsole.push({ type: "pageerror", text });
+      }
+    });
+
     for (const id of ids) {
+      currentConsole = [];
       const url = `http://localhost:${PORT}/iframe.html?id=${id}&viewMode=story`;
       await page.goto(url, { waitUntil: "networkidle" });
 
@@ -151,11 +179,15 @@ async function run() {
       }
       const title = await root.getAttribute("title");
       const aria = await root.getAttribute("aria-label");
+      const role = await root.getAttribute("role");
       const fb = root.locator("[aria-label]").first();
       const fbAria = (await fb.count()) ? await fb.getAttribute("aria-label") : null;
       const fbText = (await fb.count()) ? normalizeInitials(await fb.innerText()) : "";
       const img = root.locator("img");
-      const alt = (await img.count()) ? await img.getAttribute("alt") : null;
+      const imgCount = await img.count();
+      const alt = imgCount ? await img.getAttribute("alt") : null;
+      const imgRole = imgCount ? await img.getAttribute("role") : null;
+      const imgAriaHidden = imgCount ? await img.getAttribute("aria-hidden") : null;
 
       // Contrato 1: coerência title/aria-label/fallback aria-label
       if (title !== aria || (fbAria && fbAria !== title)) {
@@ -179,7 +211,7 @@ async function run() {
       // no DOM (Radix `AvatarImage` faz preload interno e não expõe onError
       // em ambientes headless sem rede real), pulamos o suffix check mas
       // ainda exigimos que title/aria/alt permaneçam coerentes.
-      if (id.endsWith("--imagem-quebrada") && (await img.count()) === 0) {
+      if (id.endsWith("--imagem-quebrada") && imgCount === 0) {
         if (!/foto indisponível$/.test(title ?? "")) {
           fail(id, "img desmontou mas sufixo '— foto indisponível' ausente", { title });
           continue;
@@ -190,9 +222,43 @@ async function run() {
         fail(id, "alt divergente de title", { alt, title });
         continue;
       }
+      // Contrato 6: role do wrapper. Como o rótulo acessível já vive em
+      // `aria-label`, o wrapper pode ser genérico (sem role) OU `img`, mas
+      // NUNCA um role interativo (button/link) que confundiria leitores.
+      if (role && !/^(img|presentation|none)$/i.test(role)) {
+        fail(id, "role do wrapper não deve ser interativo", { role });
+        continue;
+      }
+      // Contrato 7: presença/ausência de alt no <img> subjacente.
+      //  - Se existe <img>, PRECISA ter atributo `alt` (mesmo que vazio, para
+      //    imagens decorativas). `alt === null` é violação WCAG 1.1.1.
+      //  - Se o alt é não-vazio, o <img> não pode estar `aria-hidden="true"`
+      //    (contradição semântica), e o role explícito não pode ser
+      //    "presentation"/"none".
+      if (imgCount > 0) {
+        if (alt === null) {
+          fail(id, "<img> sem atributo alt (WCAG 1.1.1)", { imgCount });
+          continue;
+        }
+        if (alt && imgAriaHidden === "true") {
+          fail(id, "<img> com alt não-vazio não pode ter aria-hidden=true", { alt });
+          continue;
+        }
+        if (alt && imgRole && /^(presentation|none)$/i.test(imgRole)) {
+          fail(id, "<img> com alt não-vazio não pode ter role=presentation/none", { alt, imgRole });
+          continue;
+        }
+      }
+      // Contrato 8: console limpo — nenhum warning/error de a11y durante o
+      // render da story.
+      if (currentConsole.length > 0) {
+        fail(id, "warnings de acessibilidade no console", currentConsole);
+        continue;
+      }
 
-      pass(id, `"${title}" / iniciais="${fbText}"`);
+      pass(id, `"${title}" / iniciais="${fbText}" / role=${role ?? "∅"} / alt=${alt === null ? "∅" : JSON.stringify(alt)}`);
     }
+
   } finally {
     await browser.close();
     server.close();
