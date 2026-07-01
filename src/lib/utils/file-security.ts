@@ -37,8 +37,8 @@ const DANGEROUS_EXTENSIONS = new Set([
   "pif", "reg", "hta", "wsf", "cpl", "msc",
 ]);
 
-const MAX_FILE_SIZE_BYTES = 20 * 1024 * 1024; // 20 MB (documentos/imagens)
-const MAX_VIDEO_SIZE_BYTES = 100 * 1024 * 1024; // 100 MB (vídeos)
+const MAX_FILE_SIZE_BYTES = 200 * 1024 * 1024; // 200 MB (documentos/imagens)
+const MAX_VIDEO_SIZE_BYTES = 500 * 1024 * 1024; // 500 MB (vídeos)
 const VIDEO_EXTENSIONS = new Set(["mp4", "mov", "webm"]);
 
 // ── Magic bytes (assinaturas de arquivo) ───────────────────────────────────────
@@ -136,7 +136,7 @@ export async function validateFileForUpload(file: File): Promise<FileValidationR
     return {
       valid: false,
       code: "EXTENSION_NOT_ALLOWED",
-      error: `Extensão ".${ext}" não é suportada. Formatos aceitos: PDF, imagens (PNG, JPG, WEBP, GIF, HEIC), Office (DOC, DOCX, XLS, XLSX, PPT, PPTX), CSV, XML, TXT, ZIP e vídeos (MP4, MOV, WEBM até 100 MB).`,
+      error: `Extensão ".${ext}" não é suportada. Formatos aceitos: PDF, imagens (PNG, JPG, WEBP, GIF, HEIC), Office (DOC, DOCX, XLS, XLSX, PPT, PPTX), CSV, XML, TXT, ZIP e vídeos (MP4, MOV, WEBM até 500 MB).`,
     };
   }
 
@@ -158,7 +158,7 @@ export async function validateFileForUpload(file: File): Promise<FileValidationR
     };
   }
 
-  // 5. Tamanho (vídeos podem ir até 100 MB; demais tipos, 20 MB)
+  // 5. Tamanho (vídeos podem ir até 500 MB; demais tipos, 200 MB)
   const isVideo = VIDEO_EXTENSIONS.has(ext);
   const maxSize = isVideo ? MAX_VIDEO_SIZE_BYTES : MAX_FILE_SIZE_BYTES;
   if (file.size > maxSize) {
@@ -169,7 +169,7 @@ export async function validateFileForUpload(file: File): Promise<FileValidationR
       code: "SIZE_EXCEEDED",
       error: isVideo
         ? `Vídeo ".${ext}" tem ${currentMb} MB e excede o limite de ${maxMb} MB. Comprima o vídeo (ex.: HandBrake, MP4 H.264 720p) e tente novamente.`
-        : `Arquivo ".${ext}" tem ${currentMb} MB e excede o limite de ${maxMb} MB para este tipo. Vídeos MP4/MOV/WEBM podem chegar a 100 MB.`,
+        : `Arquivo ".${ext}" tem ${currentMb} MB e excede o limite de ${maxMb} MB para este tipo. Vídeos MP4/MOV/WEBM podem chegar a 500 MB.`,
     };
   }
 
@@ -220,7 +220,7 @@ export function describeUploadError(message: string): { title: string; descripti
   if (msg.includes("payload too large") || msg.includes("exceeded the maximum") || msg.includes("file_size_limit")) {
     return {
       title: "Arquivo muito grande",
-      description: "O servidor recusou o upload. Limite: 20 MB para documentos/imagens e 100 MB para vídeos (MP4, MOV, WEBM).",
+      description: "O servidor recusou o upload. Limite: 200 MB para documentos/imagens e 500 MB para vídeos (MP4, MOV, WEBM).",
     };
   }
   if (msg.includes("mime type") && msg.includes("not supported")) {
@@ -229,7 +229,12 @@ export function describeUploadError(message: string): { title: string; descripti
       description: "Formatos aceitos: PDF, imagens, Office, CSV, XML, TXT, ZIP e vídeos MP4/MOV/WEBM.",
     };
   }
-  if (msg.includes("excede o limite de 100 mb") || msg.includes("excede o limite de 20 mb")) {
+  if (
+    msg.includes("excede o limite de 500 mb") ||
+    msg.includes("excede o limite de 200 mb") ||
+    msg.includes("excede o limite de 100 mb") ||
+    msg.includes("excede o limite de 20 mb")
+  ) {
     return {
       title: "Arquivo acima do limite permitido",
       description: message,

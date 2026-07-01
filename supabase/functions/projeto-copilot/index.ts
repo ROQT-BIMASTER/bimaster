@@ -378,8 +378,8 @@ async function execTool(name: string, args: any, c: ToolCtx): Promise<any> {
         if ((anexo as any).projeto_tarefas.projeto_id !== projetoId) {
           return { error: "Anexo não pertence a este projeto." };
         }
-        if (anexo.tamanho && anexo.tamanho > 20 * 1024 * 1024) {
-          return { error: "Arquivo maior que 20 MB; leitura recusada." };
+        if (anexo.tamanho && anexo.tamanho > 200 * 1024 * 1024) {
+          return { error: "Arquivo maior que 200 MB; leitura recusada." };
         }
         const { data: file, error: dlError } = await userClient.storage.from("projeto-anexos").download(anexo.storage_path);
         if (dlError || !file) return { error: dlError?.message ?? "Falha no download." };
