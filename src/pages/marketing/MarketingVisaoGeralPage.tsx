@@ -875,6 +875,7 @@ export default function MarketingVisaoGeralPage() {
                     );
                   })}
                 </LineChart>
+              </ResponsiveContainer>
             </div>
           )}
         </CardContent>
