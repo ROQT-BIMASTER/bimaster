@@ -6,7 +6,7 @@
  * Ficha Produto. Cada item mostra: status anterior, arquivo, quem mudou,
  * quando, e link pra baixar o arquivo daquela versão.
  */
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
