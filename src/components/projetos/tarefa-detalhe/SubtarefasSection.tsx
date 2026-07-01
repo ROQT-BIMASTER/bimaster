@@ -73,6 +73,7 @@ export function SubtarefasSection({
   onDelete,
   onOpenSubtarefa,
   hideHeader = false,
+  teamMembers,
 }: SubtarefasSectionProps) {
   const { loading: iaLoading, generateChecklist } = useProjetoIA();
   const { membros } = useProjetoMembros(projetoId || undefined);
