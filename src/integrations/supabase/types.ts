@@ -31040,7 +31040,9 @@ export type Database = {
           id: string
           impressoes: number | null
           marca_id: string
+          saves: number | null
           seguidores: number | null
+          views: number | null
         }
         Insert: {
           alcance?: number | null
@@ -31051,7 +31053,9 @@ export type Database = {
           id?: string
           impressoes?: number | null
           marca_id: string
+          saves?: number | null
           seguidores?: number | null
+          views?: number | null
         }
         Update: {
           alcance?: number | null
@@ -31062,7 +31066,9 @@ export type Database = {
           id?: string
           impressoes?: number | null
           marca_id?: string
+          saves?: number | null
           seguidores?: number | null
+          views?: number | null
         }
         Relationships: [
           {
@@ -31091,10 +31097,13 @@ export type Database = {
           curtidas: number | null
           external_id: string | null
           id: string
+          impressoes: number | null
           marca_id: string
           permalink: string | null
           publicado_em: string | null
+          saves: number | null
           tipo: string | null
+          views: number | null
         }
         Insert: {
           alcance?: number | null
@@ -31105,10 +31114,13 @@ export type Database = {
           curtidas?: number | null
           external_id?: string | null
           id?: string
+          impressoes?: number | null
           marca_id: string
           permalink?: string | null
           publicado_em?: string | null
+          saves?: number | null
           tipo?: string | null
+          views?: number | null
         }
         Update: {
           alcance?: number | null
@@ -31119,10 +31131,13 @@ export type Database = {
           curtidas?: number | null
           external_id?: string | null
           id?: string
+          impressoes?: number | null
           marca_id?: string
           permalink?: string | null
           publicado_em?: string | null
+          saves?: number | null
           tipo?: string | null
+          views?: number | null
         }
         Relationships: [
           {

@@ -1,4 +1,4 @@
-// Windsor Sync — Fase 1b (por conector: métricas de conta + posts) — build:2026-07-01T22:00Z
+// Windsor Sync — Fase 1b + views/saves/impressoes — build:2026-07-01T22:30Z
 // Autorização: admin JWT OU header x-cron-secret == CRON_SECRET.
 // Idempotente: upsert em mkt_windsor_map, mkt_contas, mkt_metricas_conta, mkt_posts.
 // Preserva branch admin-only { mode: "diagnostico" }.
@@ -347,6 +347,8 @@ Deno.serve(secureHandler(
             data,
             alcance: num(row.reach),
             impressoes: num(row.impressions),
+            views: num(row.views) || num(row.video_views),
+            saves: num(row.saves),
             engajamento: num(row.likes) + num(row.comments) + num(row.shares) + num(row.saves),
           });
         }
@@ -407,6 +409,9 @@ Deno.serve(secureHandler(
           comentarios: number;
           compartilhamentos: number;
           alcance: number;
+          views: number;
+          saves: number;
+          impressoes: number;
         }> = [];
 
         for (const row of res.rows) {
@@ -442,6 +447,9 @@ Deno.serve(secureHandler(
             comentarios: num(row.comments),
             compartilhamentos: num(row.shares),
             alcance: num(row.reach),
+            views: num(row.views) || num(row.video_views),
+            saves: num(row.saves),
+            impressoes: num(row.impressions),
           });
         }
 
