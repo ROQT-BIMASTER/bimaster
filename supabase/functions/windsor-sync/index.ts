@@ -409,6 +409,9 @@ Deno.serve(secureHandler(
           comentarios: number;
           compartilhamentos: number;
           alcance: number;
+          views: number;
+          saves: number;
+          impressoes: number;
         }> = [];
 
         for (const row of res.rows) {
@@ -444,6 +447,9 @@ Deno.serve(secureHandler(
             comentarios: num(row.comments),
             compartilhamentos: num(row.shares),
             alcance: num(row.reach),
+            views: num(row.views) || num(row.video_views),
+            saves: num(row.saves),
+            impressoes: num(row.impressions),
           });
         }
 
