@@ -22,7 +22,7 @@ describe("uploadTelemetry", () => {
   });
 
   it("infere size_exceeded a partir de mensagem client-side", () => {
-    const ev = reportUploadRejection({ ...base, error: new Error("Arquivo excede o máximo de 100MB") });
+    const ev = reportUploadRejection({ ...base, error: new Error("Arquivo excede o máximo de 500MB") });
     expect(ev.status).toBe("rejected");
     expect(ev.reason).toBe("size_exceeded");
   });
