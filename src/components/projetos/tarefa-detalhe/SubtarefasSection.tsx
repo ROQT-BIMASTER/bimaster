@@ -244,7 +244,7 @@ export function SubtarefasSection({
           "group border-b border-border/40 last:border-b-0 py-2 hover:bg-muted/20 transition-colors rounded-sm",
           depth > 0 && "border-l-2 border-border/30",
         )}
-        style={depth > 0 ? { marginLeft: TREE_INDENT_PX } : undefined}
+        style={depth > 0 ? { marginLeft: TREE_INDENT_VAR } : undefined}
       >
         <div className="px-2 space-y-2">
           {/* Linha 1: chevron + checkbox + título + abrir + excluir */}
