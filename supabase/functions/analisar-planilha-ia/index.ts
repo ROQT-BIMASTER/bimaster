@@ -14,7 +14,7 @@ const requestSchema = z.object({
   { message: 'É necessário fornecer planilhaTexto ou texto' }
 );
 
-Deno.serve(secureHandler({ auth: "none", rateLimit: 10, rateLimitPrefix: "analisar-planilha-ia" }, async (req) => {
+Deno.serve(secureHandler({ auth: "jwt", rateLimit: 10, rateLimitPrefix: "analisar-planilha-ia" }, async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: getCorsHeaders(req) });
   }

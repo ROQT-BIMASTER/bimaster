@@ -29,7 +29,7 @@ Regras:
 - Não invente dados, extraia apenas o que está presente
 - Retorne SOMENTE o JSON, sem markdown, sem explicações`;
 
-Deno.serve(secureHandler({ auth: "none", rateLimit: 10, rateLimitPrefix: "extrair-materia-prima-ia" }, async (req) => {
+Deno.serve(secureHandler({ auth: "jwt", rateLimit: 10, rateLimitPrefix: "extrair-materia-prima-ia" }, async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: getCorsHeaders(req) });
   }
