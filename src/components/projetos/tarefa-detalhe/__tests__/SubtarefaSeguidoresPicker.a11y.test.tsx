@@ -4,7 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { SubtarefaSeguidoresPicker } from "../SubtarefaSeguidoresPicker";
 
-// cmdk usa ResizeObserver, indisponível no jsdom por padrão.
+// cmdk (usado no Popover) depende de APIs indisponíveis no jsdom.
 beforeAll(() => {
   if (typeof globalThis.ResizeObserver === "undefined") {
     (globalThis as any).ResizeObserver = class {
@@ -12,6 +12,9 @@ beforeAll(() => {
       unobserve() {}
       disconnect() {}
     };
+  }
+  if (typeof Element !== "undefined" && !(Element.prototype as any).scrollIntoView) {
+    (Element.prototype as any).scrollIntoView = () => {};
   }
 });
 
