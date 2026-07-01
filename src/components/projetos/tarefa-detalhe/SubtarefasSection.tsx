@@ -191,6 +191,7 @@ export function SubtarefasSection({
   const addChildOf = async (parent: typeof allSubs[number], titulo: string): Promise<boolean> => {
     if (!onAddSubtarefa) return false;
     if (pendingChildAddsRef.current.has(parent.id)) return false;
+    flickerLog("ui-add-clicked", { level: "child", parent: parent.id });
     // Guard frontend: parent deve pertencer ao mesmo projeto.
     if (projetoId && (parent as any).projeto_id && (parent as any).projeto_id !== projetoId) {
       toast.error("Não é possível criar subitem em outro projeto.");
@@ -225,6 +226,8 @@ export function SubtarefasSection({
   const concluidas = allSubs.filter((s) => s.status === "concluida");
   const total = allSubs.length;
   const done = concluidas.length;
+  flickerLog("tree-render", { tarefaId: tarefa.id, total, pendentes: pendentes.length });
+
 
   const renderSub = (st: typeof allSubs[number], depth = 0) => {
     const stEstagioInfo = ESTAGIO_OPTIONS.find((e) => e.value === st.estagio);
