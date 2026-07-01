@@ -184,3 +184,109 @@ describe("SmartAvatar – nomes longos, sobrenomes faltando e caracteres especia
     expect(screen.getByText("AS")).toBeInTheDocument();
   });
 });
+
+describe("SmartAvatar – consistência de aria-label e title com avatar_url nulo", () => {
+  const cases: Array<{ label: string; src: unknown }> = [
+    { label: "null", src: null },
+    { label: "undefined", src: undefined },
+    { label: "string vazia", src: "" },
+    { label: "string 'null'", src: "null" },
+    { label: "string 'undefined'", src: "undefined" },
+    { label: "apenas espaços", src: "   " },
+  ];
+
+  for (const { label, src } of cases) {
+    it(`src=${label}: title e aria-label do Avatar batem com o nome`, () => {
+      const { container } = render(
+        <SmartAvatar src={src as string | null | undefined} nome="Ana Dona" />,
+      );
+      const root = container.querySelector("[title]") as HTMLElement | null;
+      expect(root).not.toBeNull();
+      expect(root!.getAttribute("title")).toBe("Ana Dona");
+      expect(root!.getAttribute("aria-label")).toBe("Ana Dona");
+      // Não deve haver "foto indisponível" — não houve erro de carregamento.
+      expect(root!.getAttribute("title")).not.toMatch(/foto indispon/i);
+    });
+
+    it(`src=${label}: fallback textual expõe aria-label idêntico ao title`, () => {
+      const { container } = render(
+        <SmartAvatar src={src as string | null | undefined} nome="Ana Dona" />,
+      );
+      const root = container.querySelector("[title]") as HTMLElement;
+      const fallback = screen.getByText("AD");
+      expect(fallback.getAttribute("aria-label")).toBe(root.getAttribute("title"));
+    });
+
+    it(`src=${label} + identifier: tooltip e aria-label incluem identifier`, () => {
+      const { container } = render(
+        <SmartAvatar
+          src={src as string | null | undefined}
+          nome="Ana Dona"
+          identifier="ana@x.com"
+        />,
+      );
+      const root = container.querySelector("[title]") as HTMLElement;
+      expect(root.getAttribute("title")).toBe("Ana Dona (ana@x.com)");
+      expect(root.getAttribute("aria-label")).toBe("Ana Dona (ana@x.com)");
+      const fallback = screen.getByText("AD");
+      expect(fallback.getAttribute("aria-label")).toBe("Ana Dona (ana@x.com)");
+    });
+
+    it(`src=${label} + nome vazio: usa fallback 'Membro' em title e aria-label`, () => {
+      const { container } = render(
+        <SmartAvatar src={src as string | null | undefined} nome={null} />,
+      );
+      const root = container.querySelector("[title]") as HTMLElement;
+      expect(root.getAttribute("title")).toBe("Membro");
+      expect(root.getAttribute("aria-label")).toBe("Membro");
+      const fallback = screen.getByText("ME");
+      expect(fallback.getAttribute("aria-label")).toBe("Membro");
+    });
+
+    it(`src=${label}: title customizado sobrescreve nome e aria-label espelha`, () => {
+      const { container } = render(
+        <SmartAvatar
+          src={src as string | null | undefined}
+          nome="Ana Dona"
+          identifier="ana@x.com"
+          title="Perfil oficial"
+        />,
+      );
+      const root = container.querySelector("[title]") as HTMLElement;
+      expect(root.getAttribute("title")).toBe("Perfil oficial");
+      expect(root.getAttribute("aria-label")).toBe("Perfil oficial");
+      const fallback = screen.getByText("AD");
+      expect(fallback.getAttribute("aria-label")).toBe("Perfil oficial");
+    });
+
+    it(`src=${label}: nunca acrescenta '— foto indisponível' quando não houve <img>`, () => {
+      const { container } = render(
+        <SmartAvatar src={src as string | null | undefined} nome="Ana Dona" />,
+      );
+      // Sem <img> renderizada, não há como disparar onError → título limpo.
+      expect(container.querySelector("img")).toBeNull();
+      const root = container.querySelector("[title]") as HTMLElement;
+      expect(root.getAttribute("title")).not.toContain("foto indispon");
+    });
+  }
+
+  it("re-render com src alternando entre null e undefined mantém aria-label estável", () => {
+    const { container, rerender } = render(
+      <SmartAvatar src={null} nome="Ana Dona" identifier="ana@x.com" />,
+    );
+    const first = (container.querySelector("[title]") as HTMLElement).getAttribute(
+      "aria-label",
+    );
+    rerender(<SmartAvatar src={undefined} nome="Ana Dona" identifier="ana@x.com" />);
+    const second = (container.querySelector("[title]") as HTMLElement).getAttribute(
+      "aria-label",
+    );
+    rerender(<SmartAvatar src="null" nome="Ana Dona" identifier="ana@x.com" />);
+    const third = (container.querySelector("[title]") as HTMLElement).getAttribute(
+      "aria-label",
+    );
+    expect(first).toBe("Ana Dona (ana@x.com)");
+    expect(first).toBe(second);
+    expect(second).toBe(third);
+  });
+});
