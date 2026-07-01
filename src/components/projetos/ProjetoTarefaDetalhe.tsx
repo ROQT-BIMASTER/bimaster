@@ -1800,7 +1800,7 @@ export function ProjetoTarefaDetalhe({
           onToggle={onToggle}
           onAddSubtarefa={onAddSubtarefa}
           onDelete={onDelete}
-          onOpenSubtarefa={(subId) => setSelectedSubtarefaId(subId)}
+          onOpenSubtarefa={(subId) => onOpenSubtarefa?.(subId)}
           secoes={secoes}
           projetoTipo={projetoTipo}
           externalSaving={externalSaving}
