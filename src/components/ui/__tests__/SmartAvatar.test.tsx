@@ -105,3 +105,82 @@ describe("SmartAvatar – fallback quando avatar_url é nulo/inválido", () => {
     expect(screen.getByText("ME")).toBeInTheDocument();
   });
 });
+
+describe("SmartAvatar – nomes longos, sobrenomes faltando e caracteres especiais", () => {
+  it("nome muito longo (várias palavras): usa 1ª letra da 1ª e da última palavra", () => {
+    const longo =
+      "Maria Aparecida das Dores de Souza Guimarães Rodrigues Albuquerque";
+    render(<SmartAvatar src={null} nome={longo} />);
+    expect(screen.getByText("MA")).toBeInTheDocument();
+    expect(screen.getAllByTitle(longo).length).toBeGreaterThan(0);
+  });
+
+  it("nome de uma única palavra extremamente longa: primeiras 2 letras uppercase", () => {
+    render(<SmartAvatar src={null} nome="Anastasiavladimirovnapetrovna" />);
+    expect(screen.getByText("AN")).toBeInTheDocument();
+  });
+
+  it("apenas primeiro nome (sem sobrenome): usa primeiras 2 letras uppercase", () => {
+    render(<SmartAvatar src={null} nome="Léo" />);
+    expect(screen.getByText("LÉ")).toBeInTheDocument();
+  });
+
+  it("nome com espaços múltiplos internos: normaliza e pega 1ª+última", () => {
+    render(<SmartAvatar src={null} nome="  Ana    Beatriz    Costa  " />);
+    expect(screen.getByText("AC")).toBeInTheDocument();
+  });
+
+  it("nome com acentos: preserva o caractere acentuado nas iniciais", () => {
+    render(<SmartAvatar src={null} nome="Álvaro Óscar" />);
+    expect(screen.getByText("ÁÓ")).toBeInTheDocument();
+  });
+
+  it("nome com cedilha e til: caracteres especiais aparecem em uppercase", () => {
+    render(<SmartAvatar src={null} nome="Conceição Não" />);
+    expect(screen.getByText("CN")).toBeInTheDocument();
+  });
+
+  it("nome com hífen composto: hífen faz parte da palavra", () => {
+    render(<SmartAvatar src={null} nome="Ana-Maria Silva" />);
+    expect(screen.getByText("AS")).toBeInTheDocument();
+  });
+
+  it("nome CJK sem espaço: primeiras 2 letras da palavra única", () => {
+    render(<SmartAvatar src={null} nome="李雷韩梅梅" />);
+    expect(screen.getByText("李雷")).toBeInTheDocument();
+  });
+
+  it("nome CJK com sobrenome separado por espaço: 1ª+última", () => {
+    render(<SmartAvatar src={null} nome="李 雷" />);
+    expect(screen.getByText("李雷")).toBeInTheDocument();
+  });
+
+  it("nome com emoji entre palavras: emoji conta como palavra do meio", () => {
+    render(<SmartAvatar src={null} nome="Ana 🌟 Costa" />);
+    expect(screen.getByText("AC")).toBeInTheDocument();
+  });
+
+  it("nome só com pontuação/símbolos: mantém os símbolos como iniciais", () => {
+    render(<SmartAvatar src={null} nome="@# $%" />);
+    expect(screen.getByText("@$")).toBeInTheDocument();
+  });
+
+  it("nome longo + identifier longo: tooltip concatena sem truncar", () => {
+    const longo = "Maria Aparecida das Dores Rodrigues";
+    const email = "maria.aparecida.das.dores.rodrigues@empresa.com.br";
+    render(<SmartAvatar src={null} nome={longo} identifier={email} />);
+    expect(
+      screen.getAllByTitle(`${longo} (${email})`).length,
+    ).toBeGreaterThan(0);
+  });
+
+  it("nome termina em espaço (sobrenome faltando): trata como palavra única", () => {
+    render(<SmartAvatar src={null} nome="Ana " />);
+    expect(screen.getByText("AN")).toBeInTheDocument();
+  });
+
+  it("nome com quebra de linha/tab: normaliza como whitespace", () => {
+    render(<SmartAvatar src={null} nome={"Ana\n\tSilva"} />);
+    expect(screen.getByText("AS")).toBeInTheDocument();
+  });
+});
