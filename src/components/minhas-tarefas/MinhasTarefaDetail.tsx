@@ -100,9 +100,20 @@ export function MinhasTarefaDetail({ tarefa, open, onOpenChange }: Props) {
       update.data_conclusao = null;
     }
 
-    const { error } = await supabase.from("projeto_tarefas").update(update as never).eq("id", tarefa.id);
+    const { data: fresh, error } = await supabase
+      .from("projeto_tarefas")
+      .update(update as never)
+      .eq("id", tarefa.id)
+      .select("id")
+      .maybeSingle();
     setSaving(false);
     if (error) { toast.error("Erro ao salvar"); return; }
+    if (!fresh) {
+      toast.error("Você não tem permissão para alterar esta tarefa", {
+        description: "Peça ao responsável ou ao criador para conceder acesso.",
+      });
+      return;
+    }
     queryClient.invalidateQueries({ queryKey: ["minhas-tarefas"] });
     toast.success("Tarefa atualizada!");
     onOpenChange(false);
