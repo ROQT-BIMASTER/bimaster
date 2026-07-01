@@ -339,7 +339,18 @@ export function SubtarefasSection({
                         null,
                     };
                   })}
+                  isResolving={
+                    // Só considera "resolvendo" quando os membros ainda estão
+                    // carregando e ao menos um colaborador está sem hidratação
+                    // completa — evita placeholder desnecessário na maioria
+                    // dos casos, em que o objeto já vem hidratado.
+                    membrosLoading &&
+                    (st.colaboradores || []).some(
+                      (c) => !c.avatar_url || !c.nome || c.nome === "Membro",
+                    )
+                  }
                 />
+
 
               </>
             );
