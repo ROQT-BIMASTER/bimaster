@@ -137,8 +137,19 @@ export function SubtarefasSection({
     });
 
   const handleAdd = () => {
-    if (!subtarefaValue.trim() || !onAddSubtarefa) return;
-    onAddSubtarefa(subtarefaValue.trim(), siblingParentId, tarefa.secao_id);
+    if (!onAddSubtarefa) return;
+    const err = validateNewTitle(subtarefaValue, allSubs);
+    if (err) {
+      toast.error(err);
+      return;
+    }
+    try {
+      Promise.resolve(onAddSubtarefa(subtarefaValue.trim(), siblingParentId, tarefa.secao_id))
+        .then(() => toast.success("Subtarefa criada."))
+        .catch(() => toast.error("Não foi possível criar a subtarefa. Tente novamente."));
+    } catch {
+      toast.error("Não foi possível criar a subtarefa. Tente novamente.");
+    }
     setSubtarefaValue("");
   };
 
@@ -149,16 +160,34 @@ export function SubtarefasSection({
    * o usuário deve configurar `data_prazo` explicitamente após criação.
    * Permissões/visibilidade derivam do mesmo `projeto_id`, então a RLS
    * existente cobre subtarefas em qualquer profundidade.
+   *
+   * Retorna true quando o dispatch foi acionado (input pode limpar/fechar);
+   * false quando a validação falhou (input permanece aberto).
    */
-  const addChildOf = (parent: typeof allSubs[number], titulo: string) => {
-    if (!onAddSubtarefa || !titulo.trim()) return;
+  const addChildOf = (parent: typeof allSubs[number], titulo: string): boolean => {
+    if (!onAddSubtarefa) return false;
     // Guard frontend: parent deve pertencer ao mesmo projeto.
     if (projetoId && (parent as any).projeto_id && (parent as any).projeto_id !== projetoId) {
       toast.error("Não é possível criar subitem em outro projeto.");
-      return;
+      return false;
     }
-    onAddSubtarefa(titulo.trim(), parent.id, parent.secao_id);
+    const siblings = ((parent as any).subtarefas ?? []) as { titulo: string }[];
+    const err = validateNewTitle(titulo, siblings);
+    if (err) {
+      toast.error(err);
+      return false;
+    }
+    try {
+      Promise.resolve(onAddSubtarefa(titulo.trim(), parent.id, parent.secao_id))
+        .then(() => toast.success("Subitem criado."))
+        .catch(() => toast.error("Não foi possível criar o subitem. Tente novamente."));
+    } catch {
+      toast.error("Não foi possível criar o subitem. Tente novamente.");
+      return false;
+    }
+    return true;
   };
+
 
   const allSubs = tarefa.subtarefas ?? [];
   const pendentes = allSubs.filter((s) => s.status !== "concluida");
