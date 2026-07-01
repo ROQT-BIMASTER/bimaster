@@ -24,6 +24,8 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 
 const MIN_TITLE_LEN = 2;
 const MAX_TITLE_LEN = 200;
+const TREE_INDENT_PX = 24;
+const TREE_ROW_CONTENT_OFFSET_PX = 46;
 
 /**
  * Valida título de novo subitem/subtarefa antes de disparar a criação.
@@ -204,119 +206,120 @@ export function SubtarefasSection({
       <div
         key={(st as any).__clientKey || st.id}
         className={cn(
-          "group border-b border-border/40 last:border-b-0 py-2 hover:bg-muted/20 transition-colors space-y-2 -mx-2 px-2 rounded-sm",
+          "group border-b border-border/40 last:border-b-0 py-2 hover:bg-muted/20 transition-colors rounded-sm",
           depth > 0 && "border-l-2 border-border/30",
         )}
-        style={depth > 0 ? { marginLeft: depth * 24 } : undefined}
+        style={depth > 0 ? { marginLeft: TREE_INDENT_PX } : undefined}
       >
-        {/* Linha 1: chevron + checkbox + título + abrir + excluir */}
-        <div className="flex items-center gap-2">
-          {hasChildren ? (
-            <button
-              type="button"
-              onClick={() => toggleCollapsed(st.id)}
-              className="flex-shrink-0 text-muted-foreground hover:text-foreground"
-              title={isCollapsed ? "Expandir" : "Recolher"}
-            >
-              {isCollapsed ? <ChevronRight className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
-            </button>
-          ) : (
-            <span className="w-3.5 flex-shrink-0" />
-          )}
-          <button
-            onClick={() => onToggle(st)}
-            className={cn(
-              "flex-shrink-0",
-              st.status === "concluida" ? "text-emerald-400" : "text-muted-foreground hover:text-foreground",
+        <div className="px-2 space-y-2">
+          {/* Linha 1: chevron + checkbox + título + abrir + excluir */}
+          <div className="grid grid-cols-[14px_16px_minmax(0,1fr)_auto_auto] items-center gap-x-2">
+            {hasChildren ? (
+              <button
+                type="button"
+                onClick={() => toggleCollapsed(st.id)}
+                className="h-4 w-3.5 flex-shrink-0 text-muted-foreground hover:text-foreground flex items-center justify-center"
+                title={isCollapsed ? "Expandir" : "Recolher"}
+              >
+                {isCollapsed ? <ChevronRight className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+              </button>
+            ) : (
+              <span className="h-4 w-3.5 flex-shrink-0" />
             )}
-          >
-            {st.status === "concluida" ? <CheckCircle2 className="h-4 w-4" /> : <Circle className="h-4 w-4" />}
-          </button>
-          {editingSubtarefaId === st.id ? (
-            <Input
-              autoFocus
-              value={editingSubtarefaTitulo}
-              onChange={(e) => setEditingSubtarefaTitulo(e.target.value)}
-              onFocus={(e) => e.currentTarget.select()}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault();
+            <button
+              onClick={() => onToggle(st)}
+              className={cn(
+                "h-4 w-4 flex-shrink-0 flex items-center justify-center",
+                st.status === "concluida" ? "text-emerald-400" : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              {st.status === "concluida" ? <CheckCircle2 className="h-4 w-4" /> : <Circle className="h-4 w-4" />}
+            </button>
+            {editingSubtarefaId === st.id ? (
+              <Input
+                autoFocus
+                value={editingSubtarefaTitulo}
+                onChange={(e) => setEditingSubtarefaTitulo(e.target.value)}
+                onFocus={(e) => e.currentTarget.select()}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    const novo = editingSubtarefaTitulo.trim();
+                    if (novo && novo !== st.titulo) onUpdate(st.id, { titulo: novo } as any);
+                    setEditingSubtarefaId(null);
+                  } else if (e.key === "Escape") {
+                    e.preventDefault();
+                    setEditingSubtarefaId(null);
+                  }
+                }}
+                onBlur={() => {
                   const novo = editingSubtarefaTitulo.trim();
                   if (novo && novo !== st.titulo) onUpdate(st.id, { titulo: novo } as any);
                   setEditingSubtarefaId(null);
-                } else if (e.key === "Escape") {
-                  e.preventDefault();
-                  setEditingSubtarefaId(null);
-                }
-              }}
-              onBlur={() => {
-                const novo = editingSubtarefaTitulo.trim();
-                if (novo && novo !== st.titulo) onUpdate(st.id, { titulo: novo } as any);
-                setEditingSubtarefaId(null);
-              }}
-              className="h-7 text-sm flex-1 min-w-0"
-            />
-          ) : (
-            <button
-              type="button"
-              onClick={() => {
-                setEditingSubtarefaId(st.id);
-                setEditingSubtarefaTitulo(st.titulo);
-              }}
-              className={cn(
-                "text-sm flex-1 min-w-0 text-left break-words whitespace-normal hover:text-foreground transition-colors",
-                st.status === "concluida" && "line-through text-muted-foreground",
-              )}
-              title="Clique para renomear"
-            >
-              {st.titulo}
-            </button>
-          )}
-          {onOpenSubtarefa && (
-            <Button
-              variant="ghost"
-              size="icon"
-              data-testid="subtarefa-open-arrow"
-              data-subtarefa-id={st.id}
-              aria-label={`Abrir subtarefa: ${st.titulo}`}
-              title="Abrir subtarefa"
-              className="h-6 w-6 min-h-6 min-w-6 md:h-6 md:w-6 shrink-0 text-muted-foreground hover:text-foreground hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:opacity-100"
-              onClick={() => {
-                if (!st.id) {
-                  reportSubtarefaArrowEvent({ type: "invalid_id", subtarefaId: st.id });
-                  return;
-                }
-                reportSubtarefaArrowEvent({ type: "click", subtarefaId: st.id });
-                try {
-                  onOpenSubtarefa(st.id);
-                } catch (err) {
-                  reportSubtarefaArrowEvent({
-                    type: "render_error",
-                    subtarefaId: st.id,
-                    extra: { message: (err as Error)?.message },
-                  });
-                  throw err;
-                }
-              }}
-            >
-              <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />
-            </Button>
-          )}
-          {onDelete && (
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
-              onClick={() => onDelete(st.id)}
-              title="Mover subtarefa para a lixeira"
-            >
-              <Trash2 className="h-3.5 w-3.5" />
-            </Button>
-          )}
-        </div>
+                }}
+                className="h-7 text-sm min-w-0"
+              />
+            ) : (
+              <button
+                type="button"
+                onClick={() => {
+                  setEditingSubtarefaId(st.id);
+                  setEditingSubtarefaTitulo(st.titulo);
+                }}
+                className={cn(
+                  "text-sm min-w-0 text-left break-words whitespace-normal hover:text-foreground transition-colors",
+                  st.status === "concluida" && "line-through text-muted-foreground",
+                )}
+                title="Clique para renomear"
+              >
+                {st.titulo}
+              </button>
+            )}
+            {onOpenSubtarefa && (
+              <Button
+                variant="ghost"
+                size="icon"
+                data-testid="subtarefa-open-arrow"
+                data-subtarefa-id={st.id}
+                aria-label={`Abrir subtarefa: ${st.titulo}`}
+                title="Abrir subtarefa"
+                className="h-6 w-6 min-h-6 min-w-6 md:h-6 md:w-6 shrink-0 text-muted-foreground hover:text-foreground hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:opacity-100"
+                onClick={() => {
+                  if (!st.id) {
+                    reportSubtarefaArrowEvent({ type: "invalid_id", subtarefaId: st.id });
+                    return;
+                  }
+                  reportSubtarefaArrowEvent({ type: "click", subtarefaId: st.id });
+                  try {
+                    onOpenSubtarefa(st.id);
+                  } catch (err) {
+                    reportSubtarefaArrowEvent({
+                      type: "render_error",
+                      subtarefaId: st.id,
+                      extra: { message: (err as Error)?.message },
+                    });
+                    throw err;
+                  }
+                }}
+              >
+                <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />
+              </Button>
+            )}
+            {onDelete && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
+                onClick={() => onDelete(st.id)}
+                title="Mover subtarefa para a lixeira"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </Button>
+            )}
+          </div>
 
         {/* Linha 2: controles inline */}
-        <div className="flex items-center gap-1.5 pl-6 flex-wrap">
+        <div className="flex items-center gap-1.5 flex-wrap" style={{ marginLeft: TREE_ROW_CONTENT_OFFSET_PX }}>
           <Select value={st.status} onValueChange={(v) => onUpdate(st.id, { status: v })}>
             <SelectTrigger className="h-6 text-[10px] w-auto min-w-[80px] gap-1 border-border/30">
               <SelectValue />
@@ -480,7 +483,7 @@ export function SubtarefasSection({
 
         {/* Linha 3: botão "Adicionar subitem" + input inline (multi-nível) */}
         {onAddSubtarefa && (
-          <div className="pl-6">
+          <div style={{ marginLeft: TREE_ROW_CONTENT_OFFSET_PX }}>
             {addingForId === st.id ? (
               <div className="flex items-center gap-1.5">
                 <Input
@@ -550,6 +553,7 @@ export function SubtarefasSection({
 
           </div>
         )}
+        </div>
 
         {/* Filhos recursivos */}
         {hasChildren && !isCollapsed && (
