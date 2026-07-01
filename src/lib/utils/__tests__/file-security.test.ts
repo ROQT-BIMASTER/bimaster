@@ -336,3 +336,117 @@ describe("describeUploadError — não-vídeos", () => {
     expect(out.description).toContain("100 MB");
   });
 });
+
+// ── Casos: boundary de MIME/extensão (maiúsculas, espaços, caracteres) ─────────
+
+describe("validateFileForUpload — boundary de extensão (maiúsculas e espaços)", () => {
+  it("aceita extensão em CAIXA ALTA (PDF)", async () => {
+    const file = makeFile("Relatorio.PDF", "application/pdf", 1 * MB, PDF_MAGIC);
+    const result = await validateFileForUpload(file);
+    expect(result.valid).toBe(true);
+  });
+
+  it("aceita extensão MixedCase (Mp4) com magic bytes corretos", async () => {
+    const file = makeFile("clip.Mp4", "video/mp4", 2 * MB, MP4_MAGIC, 4);
+    const result = await validateFileForUpload(file);
+    expect(result.valid).toBe(true);
+  });
+
+  it("bloqueia extensão perigosa em CAIXA ALTA (.EXE)", async () => {
+    const file = makeFile("malware.EXE", "application/octet-stream", 1024);
+    const result = await validateFileForUpload(file);
+    expect(result.valid).toBe(false);
+    expect(result.code).toBe("EXTENSION_BLOCKED");
+  });
+
+  it("bloqueia extensão perigosa MixedCase (.BaT)", async () => {
+    const file = makeFile("run.BaT", "application/octet-stream", 512);
+    const result = await validateFileForUpload(file);
+    expect(result.valid).toBe(false);
+    expect(result.code).toBe("EXTENSION_BLOCKED");
+  });
+
+  it("bloqueia dupla extensão com caixa alta suspeita (report.PDF.EXE)", async () => {
+    const file = makeFile("report.PDF.EXE", "application/octet-stream", 1024);
+    const result = await validateFileForUpload(file);
+    expect(result.valid).toBe(false);
+    // EXTENSION_BLOCKED tem precedência (roda antes de DOUBLE_EXTENSION)
+    expect(result.code).toBe("EXTENSION_BLOCKED");
+  });
+
+  it("bloqueia dupla extensão MixedCase (invoice.PdF.ExE) — cobre normalização case-insensitive", async () => {
+    const file = makeFile("invoice.PdF.ExE", "application/octet-stream", 1024);
+    const result = await validateFileForUpload(file);
+    expect(result.valid).toBe(false);
+    expect(["EXTENSION_BLOCKED", "DOUBLE_EXTENSION"]).toContain(result.code);
+  });
+
+  it("bloqueia extensão com espaço à direita ('pdf ')", async () => {
+    // getExtension não faz trim → "pdf " não pertence à whitelist
+    const file = makeFile("relatorio.pdf ", "application/pdf", 1 * MB, PDF_MAGIC);
+    const result = await validateFileForUpload(file);
+    expect(result.valid).toBe(false);
+    expect(result.code).toBe("EXTENSION_NOT_ALLOWED");
+  });
+
+  it("bloqueia extensão com espaço à esquerda (' pdf')", async () => {
+    const file = makeFile("relatorio. pdf", "application/pdf", 1 * MB, PDF_MAGIC);
+    const result = await validateFileForUpload(file);
+    expect(result.valid).toBe(false);
+    expect(result.code).toBe("EXTENSION_NOT_ALLOWED");
+  });
+
+  it("bloqueia extensão apenas com espaços ('   ')", async () => {
+    const file = makeFile("arquivo.   ", "application/pdf", 1024);
+    const result = await validateFileForUpload(file);
+    expect(result.valid).toBe(false);
+    expect(result.code).toBe("EXTENSION_NOT_ALLOWED");
+  });
+
+  it("bloqueia arquivo sem extensão (fica string vazia)", async () => {
+    const file = makeFile("arquivo_sem_ext", "application/pdf", 1024);
+    const result = await validateFileForUpload(file);
+    expect(result.valid).toBe(false);
+    expect(result.code).toBe("EXTENSION_NOT_ALLOWED");
+  });
+});
+
+describe("validateFileForUpload — boundary de MIME type (maiúsculas e espaços)", () => {
+  it("rejeita MIME em CAIXA ALTA ('APPLICATION/PDF') — comparação é case-sensitive por padrão do browser", async () => {
+    // Browsers emitem MIME sempre em lowercase; se chegar caixa alta é sinal
+    // de header adulterado → deve cair no MIME_REJECTED.
+    const file = makeFile("relatorio.pdf", "APPLICATION/PDF", 1 * MB, PDF_MAGIC);
+    const result = await validateFileForUpload(file);
+    expect(result.valid).toBe(false);
+    expect(result.code).toBe("MIME_REJECTED");
+  });
+
+  it("rejeita MIME com espaço à direita ('application/pdf ')", async () => {
+    const file = makeFile("relatorio.pdf", "application/pdf ", 1 * MB, PDF_MAGIC);
+    const result = await validateFileForUpload(file);
+    expect(result.valid).toBe(false);
+    expect(result.code).toBe("MIME_REJECTED");
+  });
+
+  it("rejeita MIME com espaço à esquerda (' application/pdf')", async () => {
+    const file = makeFile("relatorio.pdf", " application/pdf", 1 * MB, PDF_MAGIC);
+    const result = await validateFileForUpload(file);
+    expect(result.valid).toBe(false);
+    expect(result.code).toBe("MIME_REJECTED");
+  });
+
+  it("rejeita MIME inteiramente inválido ('foo/bar') para extensão válida (.pdf)", async () => {
+    const file = makeFile("relatorio.pdf", "foo/bar", 1 * MB, PDF_MAGIC);
+    const result = await validateFileForUpload(file);
+    expect(result.valid).toBe(false);
+    expect(result.code).toBe("MIME_REJECTED");
+  });
+
+  it("aceita MIME vazio (browsers antigos) desde que extensão e magic bytes sejam válidos", async () => {
+    // A validação só bloqueia se file.type estiver preenchido e não estiver na whitelist.
+    const file = makeFile("relatorio.pdf", "", 1 * MB, PDF_MAGIC);
+    const result = await validateFileForUpload(file);
+    expect(result.valid).toBe(true);
+  });
+});
+
