@@ -114,6 +114,9 @@ export default function ProductPhotoUpload({
       toast.error("Imagem deve ter no máximo 5MB");
       return;
     }
+    // Guard compartilhado (magic bytes / double-extension / MIME real).
+    const guardOk = await guardFileUpload({ file, module: "fabrica-produto-foto", contextId: produtoId });
+    if (!guardOk) return;
 
     setUploading(true);
     try {
@@ -123,7 +126,11 @@ export default function ProductPhotoUpload({
         .from(BUCKET)
         .upload(fileName, file, { upsert: true });
 
-      if (uploadError) throw uploadError;
+      if (uploadError) {
+        reportUploadFailureShared({ module: "fabrica-produto-foto", file, contextId: produtoId, error: uploadError });
+        throw uploadError;
+      }
+      reportUploadSuccessShared({ module: "fabrica-produto-foto", file, contextId: produtoId, storagePath: fileName });
 
       // Use signed URL instead of public URL
       const { data } = await supabase.storage.from(BUCKET).createSignedUrl(fileName, 31536000); // 1 year
