@@ -568,3 +568,112 @@ describe("SmartAvatar – precedência do fallbackNome sobre nome vazio/placehol
     expect(img.getAttribute("alt")).toBe("Convidado");
   });
 });
+
+/**
+ * Regressão automática: título, aria-label (root e fallback), alt do <img>
+ * e o texto visual do fallback (iniciais) devem sempre derivar da MESMA
+ * string resolvida, para qualquer combinação de dados de entrada. Se um
+ * dia alguém alterar `resolveDisplayNome` ou `buildTitle` sem propagar
+ * para todos os vetores acessíveis, este bloco quebra imediatamente.
+ */
+describe("SmartAvatar – regressão: title/aria-label/alt/iniciais coerentes", () => {
+  type Cenario = {
+    label: string;
+    props: React.ComponentProps<typeof SmartAvatar>;
+    /** Nome que deve aparecer resolvido em todos os vetores. */
+    displayNome: string;
+    /** Trecho extra esperado no title/aria-label (ex.: identifier). */
+    tooltipExtra?: string;
+  };
+
+  function computeInitialsRef(nome: string): string {
+    const parts = nome.trim().split(/\s+/).filter(Boolean);
+    if (parts.length === 0) return "?";
+    if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  }
+
+  const cenarios: Cenario[] = [
+    {
+      label: "nome válido + identifier",
+      props: { nome: "Ana Dona", identifier: "ana@x.com" },
+      displayNome: "Ana Dona",
+      tooltipExtra: "(ana@x.com)",
+    },
+    { label: "nome válido sem identifier", props: { nome: "Bruno Silva" }, displayNome: "Bruno Silva" },
+    { label: "nome nulo → fallback default", props: { nome: null }, displayNome: "Membro" },
+    { label: "nome undefined → fallback default", props: { nome: undefined }, displayNome: "Membro" },
+    { label: "nome whitespace → fallback custom", props: { nome: "   ", fallbackNome: "Convidado" }, displayNome: "Convidado" },
+    { label: 'nome literal "null" → fallback custom', props: { nome: "null", fallbackNome: "Anônimo" }, displayNome: "Anônimo" },
+    { label: 'nome literal "undefined" → fallback default', props: { nome: "undefined" }, displayNome: "Membro" },
+    {
+      label: 'placeholder "Membro" com fallback custom vence',
+      props: { nome: "Membro", fallbackNome: "Fornecedor" },
+      displayNome: "Fornecedor",
+    },
+    {
+      label: "identifier com espaços é trimado no tooltip",
+      props: { nome: "Carla Nunes", identifier: "  carla@x  " },
+      displayNome: "Carla Nunes",
+      tooltipExtra: "(carla@x)",
+    },
+    {
+      label: "identifier vazio não aparece",
+      props: { nome: "Diego Rocha", identifier: "   " },
+      displayNome: "Diego Rocha",
+    },
+    { label: "nome CJK", props: { nome: "李 明" }, displayNome: "李 明" },
+    { label: "nome único longo", props: { nome: "Maximiliano" }, displayNome: "Maximiliano" },
+  ];
+
+  it.each(cenarios)(
+    "sem imagem: $label — title=aria-label(root)=aria-label(fallback), iniciais do displayNome",
+    ({ props, displayNome, tooltipExtra }) => {
+      const expected = tooltipExtra ? `${displayNome} ${tooltipExtra}` : displayNome;
+      const { container } = render(<SmartAvatar {...props} />);
+      const root = container.querySelector("span[title]") as HTMLElement;
+      const spans = container.querySelectorAll("span[aria-label]");
+      expect(root.getAttribute("title")).toBe(expected);
+      spans.forEach((s) => expect(s.getAttribute("aria-label")).toBe(expected));
+      // Sem src → nenhum <img>, o fallback renderiza as iniciais.
+      expect(container.querySelector("img")).toBeNull();
+      expect(container.textContent).toContain(computeInitialsRef(displayNome));
+    },
+  );
+
+  it.each(cenarios)(
+    "com imagem OK: $label — title/aria-label/alt idênticos, iniciais latentes coerentes",
+    ({ props, displayNome, tooltipExtra }) => {
+      const expected = tooltipExtra ? `${displayNome} ${tooltipExtra}` : displayNome;
+      const { container } = render(<SmartAvatar {...props} src="https://x/ok.png" />);
+      const root = container.querySelector("span[title]") as HTMLElement;
+      const img = container.querySelector("img") as HTMLImageElement;
+      const fallback = container.querySelectorAll("span[aria-label]");
+      expect(root.getAttribute("title")).toBe(expected);
+      expect(img.getAttribute("alt")).toBe(expected);
+      fallback.forEach((s) => expect(s.getAttribute("aria-label")).toBe(expected));
+      // Iniciais permanecem coerentes com o displayNome mesmo enquanto a imagem carrega.
+      expect(fallback[fallback.length - 1].textContent).toBe(
+        computeInitialsRef(displayNome),
+      );
+    },
+  );
+
+  it.each(cenarios)(
+    "após onError: $label — sufixo '— foto indisponível' propaga p/ title, aria-labels e alt some",
+    ({ props, displayNome, tooltipExtra }) => {
+      const base = tooltipExtra ? `${displayNome} ${tooltipExtra}` : displayNome;
+      const expected = `${base} — foto indisponível`;
+      const { container } = render(<SmartAvatar {...props} src="https://x/broken.png" />);
+      const img = container.querySelector("img") as HTMLImageElement;
+      fireEvent.error(img);
+      const root = container.querySelector("span[title]") as HTMLElement;
+      const spans = container.querySelectorAll("span[aria-label]");
+      expect(root.getAttribute("title")).toBe(expected);
+      spans.forEach((s) => expect(s.getAttribute("aria-label")).toBe(expected));
+      // <img> deve ser desmontado após o erro; iniciais ficam visíveis.
+      expect(container.querySelector("img")).toBeNull();
+      expect(container.textContent).toContain(computeInitialsRef(displayNome));
+    },
+  );
+});
