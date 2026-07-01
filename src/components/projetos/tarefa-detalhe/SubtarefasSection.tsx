@@ -83,6 +83,7 @@ export function SubtarefasSection({
   onOpenSubtarefa,
   hideHeader = false,
   teamMembers,
+  rootTarefaId,
 }: SubtarefasSectionProps) {
   const { loading: iaLoading, generateChecklist } = useProjetoIA();
   const { membros, isLoading: membrosLoading } = useProjetoMembros(projetoId || undefined);
@@ -96,6 +97,13 @@ export function SubtarefasSection({
   const [addingForId, setAddingForId] = useState<string | null>(null);
   const [addingValue, setAddingValue] = useState("");
 
+  /**
+   * Parent efetivo do input principal e do fluxo IA "Sugerir com IA":
+   * sempre a tarefa raiz (nível 0) quando conhecida, garantindo que uma
+   * subtarefa nova nasça como irmã — nunca aninhada sob outra subtarefa.
+   */
+  const siblingParentId = rootTarefaId ?? tarefa.id;
+
   const toggleCollapsed = (id: string) =>
     setCollapsedIds((prev) => {
       const next = new Set(prev);
@@ -106,7 +114,7 @@ export function SubtarefasSection({
 
   const handleAdd = () => {
     if (!subtarefaValue.trim() || !onAddSubtarefa) return;
-    onAddSubtarefa(subtarefaValue.trim(), tarefa.id, tarefa.secao_id);
+    onAddSubtarefa(subtarefaValue.trim(), siblingParentId, tarefa.secao_id);
     setSubtarefaValue("");
   };
 
