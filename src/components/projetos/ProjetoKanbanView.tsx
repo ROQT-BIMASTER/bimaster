@@ -430,7 +430,9 @@ export function ProjetoKanbanView({ projetoId, darkBg = false, filters = EMPTY_F
         onOpenChange={(open) => { if (!open) setSelectedTarefaId(null); }}
         onUpdate={(id, updates) => updateTarefa.mutate({ id, ...updates })}
         onToggle={(t) => void confirmAndToggleTarefa(t)}
-        onAddSubtarefa={(titulo, parentId, secaoId) => createTarefa.mutate({ titulo, secao_id: secaoId, parent_tarefa_id: parentId })}
+        onAddSubtarefa={async (titulo, parentId, secaoId) => {
+          await createTarefa.mutateAsync({ titulo, secao_id: secaoId, parent_tarefa_id: parentId });
+        }}
         onDelete={(id) => softDeleteTarefa.mutate(id)}
         secoes={secoes}
         onMoveTarefa={(tarefaId, secaoOrigemId, secaoDestinoId) => moveTarefaToSecao.mutate({ tarefaId, secaoOrigemId, secaoDestinoId })}

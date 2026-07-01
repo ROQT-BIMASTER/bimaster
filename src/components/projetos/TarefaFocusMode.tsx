@@ -117,7 +117,7 @@ interface TarefaFocusModeProps {
   onOpenChange: (open: boolean) => void;
   onUpdate: (id: string, updates: Partial<ProjetoTarefa>) => void;
   onToggle: (tarefa: ProjetoTarefa) => void;
-  onAddSubtarefa?: (titulo: string, parentId: string, secaoId: string) => void;
+  onAddSubtarefa?: (titulo: string, parentId: string, secaoId: string) => void | Promise<void>;
   /** Soft-delete handler (tarefa/subtarefa). */
   onDelete?: (tarefaId: string) => void;
   /** Abre o detalhe de uma subtarefa por cima do Modo Foco, sem fechá-lo. */

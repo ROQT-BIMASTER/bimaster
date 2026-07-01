@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useBridgeSaveRetry } from "@/hooks/useBridgeSaveRetry";
@@ -40,6 +40,7 @@ import {
 } from "@/components/minhas-tarefas/MinhasTarefaInlinePickers";
 import { useProjetoPessoal } from "@/hooks/useProjetoPessoal";
 import type { ProjetoTarefa, ProjetoSecao } from "@/hooks/useProjetoTarefas";
+import { acquireDetailGate, releaseDetailGate } from "@/hooks/projetoTarefasOpenGate";
 
 function getGreeting() {
   const h = getCurrentHourBR();
@@ -497,6 +498,12 @@ export function MinhasTarefasSimples() {
   const selectedProjetoId = detailTarefa?.projeto_id;
   const detailTarefaId = detailTarefa?.id;
 
+  useEffect(() => {
+    if (!detailOpen || !selectedProjetoId) return;
+    acquireDetailGate(selectedProjetoId);
+    return () => releaseDetailGate(selectedProjetoId);
+  }, [detailOpen, selectedProjetoId]);
+
   // Subtarefas ao vivo da tarefa aberta — Focus Mode reflete novas
   // subtarefas sem precisar fechar/reabrir o modal.
   const { data: bridgedSubtarefas = [] } = useQuery({
@@ -568,7 +575,6 @@ export function MinhasTarefasSimples() {
       queryClient.setQueryData<ProjetoTarefa[]>(["projeto-tarefas-subtarefas-bridge-mt", detailTarefaId], (old = []) =>
         old.map((st) => st.id === id ? ({ ...st, ...updates } as ProjetoTarefa) : st),
       );
-      queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-subtarefas-bridge-mt", detailTarefaId] });
     }
   }, [queryClient, detailTarefa, detailTarefaId, attemptSave]);
 
@@ -596,12 +602,62 @@ export function MinhasTarefasSimples() {
       queryClient.setQueryData<ProjetoTarefa[]>(["projeto-tarefas-subtarefas-bridge-mt", detailTarefaId], (old = []) =>
         old.map((st) => st.id === t.id ? ({ ...st, ...update } as ProjetoTarefa) : st),
       );
-      queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-subtarefas-bridge-mt", detailTarefaId] });
     }
   }, [queryClient, detailTarefa, detailTarefaId, attemptSave]);
 
   const handleBridgeAddSubtarefa = useCallback(async (titulo: string, parentId: string, secaoId: string) => {
     if (!user?.id || !selectedProjetoId) return;
+    const tempId = `temp-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+    const clientKey = `sub:${parentId}:${titulo.trim().toLowerCase()}:${tempId}`;
+    const nowIso = nowSaoPauloISO();
+    const optimistic = {
+      id: tempId,
+      titulo,
+      parent_tarefa_id: parentId,
+      secao_id: secaoId,
+      projeto_id: selectedProjetoId,
+      responsavel_id: user.id,
+      criador_id: user.id,
+      status: "pendente",
+      prioridade: "media",
+      ordem: 999,
+      descricao: null,
+      data_prazo: null,
+      data_conclusao: null,
+      codigo: null,
+      estagio: null,
+      visibilidade: "equipe",
+      produto_id: null,
+      created_at: nowIso,
+      updated_at: nowIso,
+      __clientKey: clientKey,
+      subtarefas: [],
+    } as ProjetoTarefa;
+
+    const insertInBranch = (list: ProjetoTarefa[]): ProjetoTarefa[] => {
+      if (parentId === detailTarefaId) {
+        if (list.some((st) => st.id === tempId || (st as any).__clientKey === clientKey)) return list;
+        return [...list, optimistic];
+      }
+      return list.map((st) => {
+        if (st.id === parentId) {
+          const children = ((st as any).subtarefas ?? []) as ProjetoTarefa[];
+          if (children.some((c) => c.id === tempId || (c as any).__clientKey === clientKey)) return st;
+          return { ...st, subtarefas: [...children, optimistic] } as ProjetoTarefa;
+        }
+        const children = ((st as any).subtarefas ?? []) as ProjetoTarefa[];
+        if (children.length === 0) return st;
+        const nextChildren = insertInBranch(children);
+        return nextChildren === children ? st : ({ ...st, subtarefas: nextChildren } as ProjetoTarefa);
+      });
+    };
+
+    if (detailTarefaId) {
+      queryClient.setQueryData<ProjetoTarefa[]>(["projeto-tarefas-subtarefas-bridge-mt", detailTarefaId], (old = []) =>
+        insertInBranch(old),
+      );
+    }
+
     const result = await attemptSave("Criar subtarefa", () =>
       supabase.from("projeto_tarefas").insert({
         titulo, parent_tarefa_id: parentId, secao_id: secaoId,
@@ -609,17 +665,39 @@ export function MinhasTarefasSimples() {
         status: "pendente", prioridade: "media", ordem: 999,
       }).select("*").single(),
     );
-    if (!result.ok) return;
-    const data = (result.data as any)?.data;
-    queryClient.invalidateQueries({ queryKey: ["minhas-tarefas"] });
-    if (detailTarefaId) {
-      queryClient.setQueryData<ProjetoTarefa[]>(["projeto-tarefas-subtarefas-bridge-mt", detailTarefaId], (old = []) => {
-        if (!data || parentId !== detailTarefaId || old.some((st) => st.id === data.id)) return old;
-        return [...old, data as ProjetoTarefa];
-      });
-      queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-subtarefas-bridge-mt", detailTarefaId] });
+    if (!result.ok) {
+      const removeFromBranch = (list: ProjetoTarefa[]): ProjetoTarefa[] =>
+        list
+          .filter((st) => st.id !== tempId)
+          .map((st) => {
+            const children = ((st as any).subtarefas ?? []) as ProjetoTarefa[];
+            if (children.length === 0) return st;
+            const nextChildren = removeFromBranch(children);
+            return nextChildren === children ? st : ({ ...st, subtarefas: nextChildren } as ProjetoTarefa);
+          });
+      if (detailTarefaId) {
+        queryClient.setQueryData<ProjetoTarefa[]>(["projeto-tarefas-subtarefas-bridge-mt", detailTarefaId], (old = []) =>
+          removeFromBranch(old),
+        );
+      }
+      throw new Error("Não foi possível criar a subtarefa.");
     }
-    toast.success("Subtarefa criada");
+    const data = (result.data as any)?.data;
+    if (data && detailTarefaId) {
+      const swapInBranch = (list: ProjetoTarefa[]): ProjetoTarefa[] =>
+        list.map((st) => {
+          if (st.id === tempId) {
+            return { ...st, ...(data as ProjetoTarefa), __clientKey: clientKey, subtarefas: (st as any).subtarefas ?? [] } as ProjetoTarefa;
+          }
+          const children = ((st as any).subtarefas ?? []) as ProjetoTarefa[];
+          if (children.length === 0) return st;
+          const nextChildren = swapInBranch(children);
+          return nextChildren === children ? st : ({ ...st, subtarefas: nextChildren } as ProjetoTarefa);
+        });
+      queryClient.setQueryData<ProjetoTarefa[]>(["projeto-tarefas-subtarefas-bridge-mt", detailTarefaId], (old = []) =>
+        swapInBranch(old),
+      );
+    }
   }, [queryClient, user?.id, selectedProjetoId, detailTarefaId, attemptSave]);
 
   const handleBridgeMoveTarefa = useCallback(async (tarefaId: string, _o: string, secaoDestinoId: string) => {

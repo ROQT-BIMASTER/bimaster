@@ -77,7 +77,7 @@ interface SubtarefasSectionProps {
   projetoId: string | null;
   onUpdate: (id: string, updates: Partial<ProjetoTarefa>) => void;
   onToggle: (tarefa: ProjetoTarefa) => void;
-  onAddSubtarefa?: (titulo: string, parentId: string, secaoId: string) => void;
+  onAddSubtarefa?: (titulo: string, parentId: string, secaoId: string) => void | Promise<void>;
   onDelete?: (tarefaId: string) => void;
   onOpenSubtarefa?: (subtarefaId: string) => void;
   /** Esconde o título "Subtarefas" + contador (útil quando o consumidor já renderiza próprio header). */
@@ -125,6 +125,8 @@ export function SubtarefasSection({
   const [collapsedIds, setCollapsedIds] = useState<Set<string>>(new Set());
   const [addingForId, setAddingForId] = useState<string | null>(null);
   const [addingValue, setAddingValue] = useState("");
+  const [pendingMainAdd, setPendingMainAdd] = useState(false);
+  const [pendingChildAdds, setPendingChildAdds] = useState<Set<string>>(new Set());
 
   /**
    * Parent efetivo do input principal e do fluxo IA "Sugerir com IA":
@@ -141,21 +143,24 @@ export function SubtarefasSection({
       return next;
     });
 
-  const handleAdd = () => {
+  const handleAdd = async () => {
     if (!onAddSubtarefa) return;
+    if (pendingMainAdd) return;
     const err = validateNewTitle(subtarefaValue, allSubs);
     if (err) {
       toast.error(err);
       return;
     }
+    setPendingMainAdd(true);
     try {
-      Promise.resolve(onAddSubtarefa(subtarefaValue.trim(), siblingParentId, tarefa.secao_id))
-        .then(() => toast.success("Subtarefa criada."))
-        .catch(() => toast.error("Não foi possível criar a subtarefa. Tente novamente."));
-    } catch {
+      await Promise.resolve(onAddSubtarefa(subtarefaValue.trim(), siblingParentId, tarefa.secao_id));
+      toast.success("Subtarefa criada.");
+      setSubtarefaValue("");
+    } catch (err) {
       toast.error("Não foi possível criar a subtarefa. Tente novamente.");
+    } finally {
+      setPendingMainAdd(false);
     }
-    setSubtarefaValue("");
   };
 
   /**
@@ -169,8 +174,9 @@ export function SubtarefasSection({
    * Retorna true quando o dispatch foi acionado (input pode limpar/fechar);
    * false quando a validação falhou (input permanece aberto).
    */
-  const addChildOf = (parent: typeof allSubs[number], titulo: string): boolean => {
+  const addChildOf = async (parent: typeof allSubs[number], titulo: string): Promise<boolean> => {
     if (!onAddSubtarefa) return false;
+    if (pendingChildAdds.has(parent.id)) return false;
     // Guard frontend: parent deve pertencer ao mesmo projeto.
     if (projetoId && (parent as any).projeto_id && (parent as any).projeto_id !== projetoId) {
       toast.error("Não é possível criar subitem em outro projeto.");
@@ -182,13 +188,23 @@ export function SubtarefasSection({
       toast.error(err);
       return false;
     }
+    setPendingChildAdds((prev) => {
+      const next = new Set(prev);
+      next.add(parent.id);
+      return next;
+    });
     try {
-      Promise.resolve(onAddSubtarefa(titulo.trim(), parent.id, parent.secao_id))
-        .then(() => toast.success("Subitem criado."))
-        .catch(() => toast.error("Não foi possível criar o subitem. Tente novamente."));
+      await Promise.resolve(onAddSubtarefa(titulo.trim(), parent.id, parent.secao_id));
+      toast.success("Subitem criado.");
     } catch {
       toast.error("Não foi possível criar o subitem. Tente novamente.");
       return false;
+    } finally {
+      setPendingChildAdds((prev) => {
+        const next = new Set(prev);
+        next.delete(parent.id);
+        return next;
+      });
     }
     return true;
   };
@@ -205,6 +221,7 @@ export function SubtarefasSection({
     const children = (st as any).subtarefas ?? [];
     const hasChildren = children.length > 0;
     const isCollapsed = collapsedIds.has(st.id);
+    const isCreatingChild = pendingChildAdds.has(st.id);
     return (
       <div
         key={(st as any).__clientKey || st.id}
@@ -493,10 +510,10 @@ export function SubtarefasSection({
                   autoFocus
                   value={addingValue}
                   onChange={(e) => setAddingValue(e.target.value)}
-                  onKeyDown={(e) => {
+                  onKeyDown={async (e) => {
                     if (e.key === "Enter") {
                       e.preventDefault();
-                      const ok = addChildOf(st, addingValue);
+                      const ok = await addChildOf(st, addingValue);
                       if (ok) {
                         setCollapsedIds((prev) => {
                           const n = new Set(prev);
@@ -507,27 +524,47 @@ export function SubtarefasSection({
                         setAddingForId(null);
                       }
                       // se inválido, mantém input aberto (toast já disparado)
-                    } else if (e.key === "Escape") {
+                    } else if (e.key === "Escape" && !isCreatingChild) {
                       setAddingValue("");
                       setAddingForId(null);
                     }
                   }}
                   onBlur={() => {
-                    // Fechar sem criar se vazio; se preenchido, tentar criar
-                    // silenciosamente (sem toast de erro) para não poluir UX no blur.
-                    const v = addingValue.trim();
-                    if (v) {
-                      const err = validateNewTitle(v, ((st as any).subtarefas ?? []));
-                      if (!err) addChildOf(st, v);
-                    }
+                    if (isCreatingChild) return;
+                    // Blur apenas cancela o modo inline. A criação acontece
+                    // por Enter/botão para evitar dispatch duplicado e piscar.
                     setAddingValue("");
                     setAddingForId(null);
                   }}
+                  disabled={isCreatingChild}
                   placeholder="Título do subitem..."
                   className="h-9 md:h-7 text-sm md:text-xs flex-1"
                   maxLength={MAX_TITLE_LEN}
                   data-testid={`subitem-input-${st.id}`}
                 />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-9 w-9 md:h-7 md:w-7 shrink-0"
+                  disabled={isCreatingChild}
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={async () => {
+                    const ok = await addChildOf(st, addingValue);
+                    if (ok) {
+                      setCollapsedIds((prev) => {
+                        const n = new Set(prev);
+                        n.delete(st.id);
+                        return n;
+                      });
+                      setAddingValue("");
+                      setAddingForId(null);
+                    }
+                  }}
+                  aria-label="Salvar subitem"
+                >
+                  {isCreatingChild ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
+                </Button>
               </div>
             ) : (
               <TooltipProvider delayDuration={300}>
@@ -537,13 +574,14 @@ export function SubtarefasSection({
                       variant="ghost"
                       size="sm"
                       className="h-8 md:h-6 min-h-[32px] md:min-h-0 px-2 text-[11px] md:text-[10px] gap-1 text-muted-foreground hover:text-primary"
+                      disabled={isCreatingChild}
                       onClick={() => {
                         setAddingForId(st.id);
                         setAddingValue("");
                       }}
                       data-testid={`subitem-add-${st.id}`}
                     >
-                      <Plus className="h-3.5 w-3.5 md:h-3 md:w-3" />
+                      {isCreatingChild ? <Loader2 className="h-3.5 w-3.5 md:h-3 md:w-3 animate-spin" /> : <Plus className="h-3.5 w-3.5 md:h-3 md:w-3" />}
                       Adicionar subitem
                     </Button>
                   </TooltipTrigger>
@@ -632,7 +670,7 @@ export function SubtarefasSection({
             <Button
               size="sm"
               className="h-7 text-xs gap-1"
-              onClick={() => {
+              onClick={async () => {
                 const selected = pendingAISubtarefas.filter((it) => it.selected);
                 const existentes = allSubs.map((s) => ({ titulo: s.titulo }));
                 let criadas = 0;
@@ -646,7 +684,7 @@ export function SubtarefasSection({
                     }
                     existentes.push({ titulo: item.titulo });
                     try {
-                      onAddSubtarefa(item.titulo.trim(), siblingParentId, tarefa.secao_id);
+                      await Promise.resolve(onAddSubtarefa(item.titulo.trim(), siblingParentId, tarefa.secao_id));
                       criadas++;
                     } catch {
                       ignoradas++;
@@ -706,15 +744,22 @@ export function SubtarefasSection({
           <Input
             value={subtarefaValue}
             onChange={(e) => setSubtarefaValue(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleAdd()}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                void handleAdd();
+              }
+            }}
             placeholder={rootTarefaId && rootTarefaId !== tarefa.id ? "Adicionar subtarefa (mesmo nível)..." : "Adicionar subtarefa..."}
             className="h-9 md:h-8 text-sm"
             maxLength={MAX_TITLE_LEN}
+            disabled={pendingMainAdd}
           />
           <TooltipProvider delayDuration={300}>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button size="sm" variant="ghost" onClick={handleAdd} className="h-9 md:h-8 min-h-[36px] md:min-h-0 px-3">
+                <Button size="sm" variant="ghost" onClick={() => void handleAdd()} disabled={pendingMainAdd} className="h-9 md:h-8 min-h-[36px] md:min-h-0 px-3 gap-1.5">
+                  {pendingMainAdd && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
                   Adicionar
                 </Button>
               </TooltipTrigger>
