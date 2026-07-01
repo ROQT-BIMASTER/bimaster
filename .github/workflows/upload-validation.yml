@@ -1,37 +1,59 @@
 name: upload-validation
 
 # Gate dedicado para a validação de uploads (tipo/tamanho de anexos em
-# tarefas/subtarefas). Roda a suíte focada em `file-security` +
-# `uploadTarefaAnexo` + `uploadTelemetry` a cada PR que toca qualquer
-# arquivo do fluxo — sinal rápido e obrigatório antes de merge.
+# tarefas/subtarefas, cofre, fábrica, china, briefings, chat).
 #
-# A suíte completa segue rodando em `tests.yml`; este job existe para
-# dar feedback isolado e ser marcado como required check.
+# Dispara SOMENTE quando algo do fluxo de upload muda: núcleo compartilhado
+# (`file-security`, `sharedUploadGuard`, `uploadTarefaAnexo`, `storage-helper`,
+# `uploadTelemetry`), telas/hook que consomem o guard/telemetria, ou o próprio
+# workflow. A suíte completa continua rodando em `tests.yml`; este job existe
+# para dar sinal isolado e ser marcado como required check no branch protection.
 
 on:
   push:
     branches: [main]
-    paths:
+    paths: &upload-paths
+      # Núcleo do upload — validação, guard, telemetria, storage.
       - 'src/lib/utils/file-security.ts'
+      - 'src/lib/utils/sharedUploadGuard.ts'
       - 'src/lib/utils/uploadTarefaAnexo.ts'
+      - 'src/lib/utils/storage-helper.ts'
+      - 'src/lib/telemetry/uploadTelemetry.ts'
+      # Testes do fluxo de upload (qualquer arquivo dentro dessas pastas).
       - 'src/lib/utils/__tests__/file-security.test.ts'
       - 'src/lib/utils/__tests__/uploadTarefaAnexo.test.ts'
-      - 'src/lib/telemetry/uploadTelemetry.ts'
+      - 'src/lib/utils/__tests__/sharedUploadGuard.test.ts'
       - 'src/lib/telemetry/__tests__/uploadTelemetry.test.ts'
+      # Hooks que orquestram upload em tarefas / subtarefas / china.
       - 'src/hooks/useProjetoTarefaDetalhe.ts'
       - 'src/hooks/useMinhasTarefaDetalhe.ts'
+      - 'src/hooks/useUploadChinaDocumento.ts'
+      - 'src/hooks/useChinaRevisoes.ts'
+      # UI de anexos / progresso em Projetos e Central.
+      - 'src/components/projetos/tarefa-detalhe/TarefaAnexosSection.tsx'
+      - 'src/components/projetos/tarefa-detalhe/UploadProgressList.tsx'
+      - 'src/components/projetos/cofre/ProjetoCofreUploadDialog.tsx'
+      # Consumidores do guard/telemetria em Fábrica, China, Briefings, Chat.
+      - 'src/components/fabrica/ProductPhotoUpload.tsx'
+      - 'src/components/fabrica/VincularXmlInsumoDialog.tsx'
+      - 'src/components/fabrica/CotacoesInsumoPanel.tsx'
+      - 'src/components/fabrica/FichaCustoProdutoEditor.tsx'
+      - 'src/components/china/ChinaChatPanel.tsx'
+      - 'src/components/briefings/chat/AttachImageButton.tsx'
+      - 'src/components/briefings/cofre/AnexarEvidenciaDialog.tsx'
+      - 'src/components/briefings/cofre/UploadDocumentoDialog.tsx'
+      - 'src/components/chat/v2/aprovacaoDocs.ts'
+      - 'src/components/chat/v2/utils.ts'
+      - 'src/components/composicao/ExtrairIngredientesIADialog.tsx'
+      - 'src/components/processo/ProcessDecisionDialog.tsx'
+      # Configs que impactam execução do check.
       - '.github/workflows/upload-validation.yml'
+      - 'package.json'
+      - 'bun.lockb'
+      - 'vitest.config.ts'
+      - 'tsconfig*.json'
   pull_request:
-    paths:
-      - 'src/lib/utils/file-security.ts'
-      - 'src/lib/utils/uploadTarefaAnexo.ts'
-      - 'src/lib/utils/__tests__/file-security.test.ts'
-      - 'src/lib/utils/__tests__/uploadTarefaAnexo.test.ts'
-      - 'src/lib/telemetry/uploadTelemetry.ts'
-      - 'src/lib/telemetry/__tests__/uploadTelemetry.test.ts'
-      - 'src/hooks/useProjetoTarefaDetalhe.ts'
-      - 'src/hooks/useMinhasTarefaDetalhe.ts'
-      - '.github/workflows/upload-validation.yml'
+    paths: *upload-paths
 
 jobs:
   upload-validation:
