@@ -26,6 +26,12 @@ interface Props {
   responsavelId: string | null;
   responsavelNome?: string | null;
   responsavelAvatar?: string | null;
+  /**
+   * Identificador secundário (email, cargo, user_id curto) exibido no tooltip
+   * do avatar como `Nome (identifier)`. Ajuda a desambiguar homônimos e a
+   * apontar o responsável real quando a foto falha ao carregar.
+   */
+  responsavelEmail?: string | null;
   /** "inline" (default): chip pequeno com nome. "avatar": apenas avatar circular estilo Asana. */
   variant?: "inline" | "avatar";
 }
@@ -43,6 +49,7 @@ function SubtarefaResponsavelPickerImpl({
   responsavelId,
   responsavelNome,
   responsavelAvatar,
+  responsavelEmail,
   variant = "inline",
 }: Props) {
   const { user } = useAuth();
@@ -107,6 +114,8 @@ function SubtarefaResponsavelPickerImpl({
           <SmartAvatar
             src={responsavelAvatar}
             nome={responsavelNome}
+            identifier={responsavelEmail}
+            fallbackNome="Membro"
             className="h-7 w-7"
             fallbackClassName="text-[10px]"
           />
@@ -124,6 +133,8 @@ function SubtarefaResponsavelPickerImpl({
             <SmartAvatar
               src={responsavelAvatar}
               nome={responsavelNome}
+              identifier={responsavelEmail}
+              fallbackNome="Membro"
               className="h-4 w-4"
               fallbackClassName="text-[7px]"
             />
@@ -202,6 +213,8 @@ function SubtarefaResponsavelPickerImpl({
                       <SmartAvatar
                         src={m.profile?.avatar_url}
                         nome={m.profile?.nome}
+                        identifier={m.profile?.email}
+                        fallbackNome="Membro"
                         className="h-5 w-5 mr-2"
                         fallbackClassName="text-[9px]"
                       />
@@ -233,5 +246,6 @@ export const SubtarefaResponsavelPicker = memo(
     prev.responsavelId === next.responsavelId &&
     prev.responsavelNome === next.responsavelNome &&
     prev.responsavelAvatar === next.responsavelAvatar &&
+    prev.responsavelEmail === next.responsavelEmail &&
     prev.variant === next.variant,
 );

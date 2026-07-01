@@ -21,6 +21,11 @@ interface Colab {
   user_id: string;
   nome: string;
   avatar_url: string | null;
+  /**
+   * Identificador secundário (email, cargo) exibido no tooltip do avatar como
+   * `Nome (email)`. Opcional — quando ausente, tooltip mostra apenas o nome.
+   */
+  email?: string | null;
 }
 
 interface Props {
@@ -105,10 +110,16 @@ function SubtarefaSeguidoresPickerImpl({ subtarefaId, projetoId, colaboradores, 
         rawUrl && typeof rawUrl === "string" && rawUrl.trim() && rawUrl !== "null" && rawUrl !== "undefined"
           ? rawUrl
           : null;
+      const rawEmail = c.email;
+      const cleanEmail =
+        rawEmail && typeof rawEmail === "string" && rawEmail.trim() && rawEmail !== "null" && rawEmail !== "undefined"
+          ? rawEmail.trim()
+          : null;
       return {
         user_id: c.user_id,
         nome: (c.nome && c.nome.trim()) || "Membro",
         avatar_url: cleanUrl,
+        email: cleanEmail,
       };
     });
 
@@ -212,7 +223,8 @@ function SubtarefaSeguidoresPickerImpl({ subtarefaId, projetoId, colaboradores, 
                     key={c.user_id}
                     src={c.avatar_url}
                     nome={c.nome}
-                    title={c.nome}
+                    identifier={c.email}
+                    fallbackNome="Membro"
                     className={cn("h-4 w-4 ring-1 ring-background", idx > 0 && "-ml-1.5")}
                     fallbackClassName="text-[7px]"
                   />
@@ -261,6 +273,8 @@ function SubtarefaSeguidoresPickerImpl({ subtarefaId, projetoId, colaboradores, 
                       <SmartAvatar
                         src={m.profile?.avatar_url}
                         nome={nome}
+                        identifier={m.profile?.email}
+                        fallbackNome="Membro"
                         className="h-5 w-5 mr-2"
                         fallbackClassName="text-[9px]"
                       />
@@ -295,7 +309,7 @@ export const SubtarefaSeguidoresPicker = memo(
     // na pilha antes que o `sort` interno rode.
     const key = (arr: Colab[]) =>
       arr
-        .map((c) => `${c.user_id}:${c.nome ?? ""}:${c.avatar_url ?? ""}`)
+        .map((c) => `${c.user_id}:${c.nome ?? ""}:${c.avatar_url ?? ""}:${c.email ?? ""}`)
         .sort()
         .join(",");
     return key(prev.colaboradores) === key(next.colaboradores);
