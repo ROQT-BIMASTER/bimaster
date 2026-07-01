@@ -80,6 +80,61 @@ export function TarefaAnexosSection({
   const [reimportingId, setReimportingId] = useState<string | null>(null);
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
+  const [uploadItems, setUploadItems] = useState<UploadItem[]>([]);
+  const [lastPayload, setLastPayload] = useState<UploadConfirmPayload | null>(null);
+
+  const updateUploadItem = (id: string, patch: Partial<UploadItem>) => {
+    setUploadItems((prev) => prev.map((i) => (i.id === id ? { ...i, ...patch } : i)));
+  };
+
+  const runUploadForItem = async (
+    item: UploadItem,
+    file: File,
+    payload: UploadConfirmPayload,
+  ): Promise<{ id: string } | null> => {
+    updateUploadItem(item.id, { status: "uploading", progress: 40, errorMessage: undefined, errorTitle: undefined });
+    // Simulação de progresso (supabase-js não expõe onProgress)
+    const tick = window.setInterval(() => {
+      setUploadItems((prev) =>
+        prev.map((i) =>
+          i.id === item.id && i.status === "uploading" && i.progress < 90
+            ? { ...i, progress: Math.min(90, i.progress + 8) }
+            : i,
+        ),
+      );
+    }, 300);
+    try {
+      const result: any = await uploadAnexo.mutateAsync({ file, notificarIds: payload.notificarIds });
+      updateUploadItem(item.id, { status: "success", progress: 100 });
+      return result && typeof result === "object" && "id" in result ? { id: result.id as string } : null;
+    } catch (err: any) {
+      const info = describeUploadError(err?.message ?? "");
+      updateUploadItem(item.id, {
+        status: "error",
+        progress: 100,
+        errorTitle: info.title,
+        errorMessage: info.description,
+      });
+      return null;
+    } finally {
+      window.clearInterval(tick);
+    }
+  };
+
+  const handleRetryItem = async (item: UploadItem) => {
+    if (!lastPayload) return;
+    const file = (item as any).__file as File | undefined;
+    if (!file) return;
+    await runUploadForItem(item, file, lastPayload);
+  };
+
+  const handleDismissItem = (item: UploadItem) => {
+    setUploadItems((prev) => prev.filter((i) => i.id !== item.id));
+  };
+
+  const handleClearFinished = () => {
+    setUploadItems((prev) => prev.filter((i) => i.status === "uploading" || i.status === "queued"));
+  };
 
   const toggleAnexoSelection = (id: string) => {
     setSelectedAnexoIds(prev =>
