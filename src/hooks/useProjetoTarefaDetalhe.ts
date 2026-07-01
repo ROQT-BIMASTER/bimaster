@@ -8,6 +8,7 @@ import { useTarefaMentionableUsers } from "./useTarefaMentionableUsers";
 import { uniqueChannelName } from "@/lib/realtime/channelName";
 import { sanitizeStorageFilename } from "@/lib/utils/sanitizeStorageFilename";
 import { validateFileForUpload, describeUploadError } from "@/lib/utils/file-security";
+import { uploadTarefaAnexoToStorage } from "@/lib/utils/uploadTarefaAnexo";
 
 export interface TarefaComentario {
   id: string;
