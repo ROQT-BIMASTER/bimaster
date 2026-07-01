@@ -55,6 +55,14 @@ interface SubtarefasSectionProps {
   hideHeader?: boolean;
   /** Fallback adicional de hidratação de responsáveis (super-set do `projeto_membros`). */
   teamMembers?: { id: string; nome: string; avatar_url: string | null }[];
+  /**
+   * ID da tarefa raiz (nível 0) do drawer. Quando o drawer está aberto em uma
+   * subtarefa, o input principal "Adicionar subtarefa" e a IA "Sugerir com IA"
+   * usam este id como parent — assim novas subtarefas nascem sempre no mesmo
+   * nível hierárquico, nunca aninhadas sob outra subtarefa. O botão explícito
+   * "Adicionar subitem" (por linha) continua criando filho aninhado.
+   */
+  rootTarefaId?: string;
 }
 
 /**
@@ -75,6 +83,7 @@ export function SubtarefasSection({
   onOpenSubtarefa,
   hideHeader = false,
   teamMembers,
+  rootTarefaId,
 }: SubtarefasSectionProps) {
   const { loading: iaLoading, generateChecklist } = useProjetoIA();
   const { membros, isLoading: membrosLoading } = useProjetoMembros(projetoId || undefined);
@@ -88,6 +97,13 @@ export function SubtarefasSection({
   const [addingForId, setAddingForId] = useState<string | null>(null);
   const [addingValue, setAddingValue] = useState("");
 
+  /**
+   * Parent efetivo do input principal e do fluxo IA "Sugerir com IA":
+   * sempre a tarefa raiz (nível 0) quando conhecida, garantindo que uma
+   * subtarefa nova nasça como irmã — nunca aninhada sob outra subtarefa.
+   */
+  const siblingParentId = rootTarefaId ?? tarefa.id;
+
   const toggleCollapsed = (id: string) =>
     setCollapsedIds((prev) => {
       const next = new Set(prev);
@@ -98,7 +114,7 @@ export function SubtarefasSection({
 
   const handleAdd = () => {
     if (!subtarefaValue.trim() || !onAddSubtarefa) return;
-    onAddSubtarefa(subtarefaValue.trim(), tarefa.id, tarefa.secao_id);
+    onAddSubtarefa(subtarefaValue.trim(), siblingParentId, tarefa.secao_id);
     setSubtarefaValue("");
   };
 
@@ -544,7 +560,7 @@ export function SubtarefasSection({
                 const selected = pendingAISubtarefas.filter((it) => it.selected);
                 if (onAddSubtarefa) {
                   for (const item of selected) {
-                    onAddSubtarefa(item.titulo, tarefa.id, tarefa.secao_id);
+                    onAddSubtarefa(item.titulo, siblingParentId, tarefa.secao_id);
                   }
                 }
                 setPendingAISubtarefas([]);
@@ -593,7 +609,7 @@ export function SubtarefasSection({
             value={subtarefaValue}
             onChange={(e) => setSubtarefaValue(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleAdd()}
-            placeholder="Adicionar subtarefa..."
+            placeholder={rootTarefaId && rootTarefaId !== tarefa.id ? "Adicionar subtarefa (mesmo nível)..." : "Adicionar subtarefa..."}
             className="h-8 text-sm"
           />
           <Button size="sm" variant="ghost" onClick={handleAdd} className="h-8">

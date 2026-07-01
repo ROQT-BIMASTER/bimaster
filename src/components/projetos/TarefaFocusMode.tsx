@@ -127,12 +127,14 @@ interface TarefaFocusModeProps {
   externalSaving?: boolean;
   /** Arma a intenção explícita de sair do foco no pai (guard anti-fechamento colateral). */
   requestExitFocus?: () => void;
+  /** ID da tarefa raiz — repassado para `SubtarefasSection` para nunca aninhar. */
+  rootTarefaId?: string;
 }
 
 export function TarefaFocusMode({
   tarefa, open, onOpenChange, onUpdate, onToggle, onAddSubtarefa, onDelete, onOpenSubtarefa,
   secoes = [], projetoTipo, externalSaving = false,
-  requestExitFocus,
+  requestExitFocus, rootTarefaId,
 }: TarefaFocusModeProps) {
   const confirm = useConfirm();
   const {
@@ -270,9 +272,12 @@ export function TarefaFocusMode({
     await secureDownload(anexo.storage_path, anexo.nome, "projeto-anexos");
   };
 
+  // Parent efetivo para subtarefas novas (irmã da atual quando a tarefa é uma subtarefa).
+  const siblingParentId = rootTarefaId ?? tarefa.id;
+
   const handleAddSubtarefa = () => {
     if (!subtarefaValue.trim() || !onAddSubtarefa) return;
-    onAddSubtarefa(subtarefaValue.trim(), tarefa.id, tarefa.secao_id);
+    onAddSubtarefa(subtarefaValue.trim(), siblingParentId, tarefa.secao_id);
     setSubtarefaValue("");
   };
 
@@ -281,7 +286,7 @@ export function TarefaFocusMode({
       toast.error("Não é possível adicionar subtarefas neste contexto.");
       return;
     }
-    titulos.forEach(t => onAddSubtarefa(t, tarefa.id, tarefa.secao_id));
+    titulos.forEach(t => onAddSubtarefa(t, siblingParentId, tarefa.secao_id));
     toast.success(`${titulos.length} subtarefa${titulos.length > 1 ? "s" : ""} adicionada${titulos.length > 1 ? "s" : ""} com IA.`);
   };
 
@@ -682,6 +687,7 @@ export function TarefaFocusMode({
                 onDelete={onDelete}
                 onOpenSubtarefa={onOpenSubtarefa}
                 teamMembers={teamMembers}
+                rootTarefaId={siblingParentId}
               />
 
               <Separator />
@@ -1126,7 +1132,7 @@ export function TarefaFocusMode({
           defaultSecaoId={tarefa.secao_id}
           onCreateTasks={(tasks) => {
             tasks.forEach(t => {
-              onAddSubtarefa?.(t.titulo, tarefa.id, t.secao_id);
+              onAddSubtarefa?.(t.titulo, siblingParentId, t.secao_id);
             });
           }}
         />

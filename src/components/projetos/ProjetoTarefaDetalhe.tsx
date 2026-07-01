@@ -192,6 +192,32 @@ export function ProjetoTarefaDetalhe({
       return (data?.titulo as string | undefined) ?? null;
     },
   });
+  // Resolve o ID da tarefa raiz (nível 0) subindo a cadeia de parents.
+  // Usado por `SubtarefasSection` para garantir que o input "Adicionar subtarefa"
+  // e a IA sempre criem irmãs — nunca aninhem sob outra subtarefa.
+  const { data: rootTarefaId } = useQuery({
+    queryKey: ["root-tarefa-id", tarefa?.id, parentTarefaId],
+    enabled: !!tarefa?.id,
+    staleTime: 5 * 60 * 1000,
+    queryFn: async () => {
+      if (!parentTarefaId) return tarefa!.id;
+      let current: { id: string; parent_tarefa_id: string | null } = {
+        id: tarefa!.id,
+        parent_tarefa_id: parentTarefaId,
+      };
+      // Guard contra ciclos (trigger no banco já previne, mas defesa em profundidade).
+      for (let hop = 0; hop < 16 && current.parent_tarefa_id; hop += 1) {
+        const { data } = await supabase
+          .from("projeto_tarefas")
+          .select("id, parent_tarefa_id")
+          .eq("id", current.parent_tarefa_id)
+          .maybeSingle();
+        if (!data) break;
+        current = { id: data.id, parent_tarefa_id: data.parent_tarefa_id };
+      }
+      return current.id;
+    },
+  });
   const { suggestFields, loading: iaLoading } = useProjetoIA();
   const [pendingAIDescricao, setPendingAIDescricao] = useState<{
     descricao: string;
@@ -1371,6 +1397,7 @@ export function ProjetoTarefaDetalhe({
                   onDelete={onDelete}
                   onOpenSubtarefa={onOpenSubtarefa}
                   teamMembers={teamMembers}
+                  rootTarefaId={rootTarefaId ?? tarefa.id}
                 />
 
                 <Separator />
@@ -1501,6 +1528,7 @@ export function ProjetoTarefaDetalhe({
           secoes={secoes}
           projetoTipo={projetoTipo}
           externalSaving={externalSaving}
+          rootTarefaId={rootTarefaId ?? tarefa.id}
         />
       )}
 
@@ -1533,7 +1561,7 @@ export function ProjetoTarefaDetalhe({
           onCreateTasks={(tasks) => {
             if (onAddSubtarefa) {
               for (const t of tasks) {
-                onAddSubtarefa(t.titulo, tarefa.id, tarefa.secao_id);
+                onAddSubtarefa(t.titulo, rootTarefaId ?? tarefa.id, tarefa.secao_id);
               }
             }
           }}
