@@ -112,8 +112,19 @@ function SubtarefaSeguidoresPickerImpl({ subtarefaId, projetoId, colaboradores, 
       };
     });
 
-  const visible = safeColabs.slice(0, 3);
-  const extra = safeColabs.length - visible.length;
+  // Deduplica por user_id preservando a primeira ocorrência (que tende a ter
+  // dados mais hidratados, já que hidratação preenche o primeiro match).
+  // Evita pilhas com o mesmo avatar repetido quando o backend retorna o
+  // colaborador em múltiplas fontes (join + bridge, por exemplo).
+  const seen = new Set<string>();
+  const dedupedColabs = safeColabs.filter((c) => {
+    if (seen.has(c.user_id)) return false;
+    seen.add(c.user_id);
+    return true;
+  });
+
+  const visible = dedupedColabs.slice(0, 3);
+  const extra = dedupedColabs.length - visible.length;
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -121,17 +132,17 @@ function SubtarefaSeguidoresPickerImpl({ subtarefaId, projetoId, colaboradores, 
         <button
           type="button"
           title={
-            safeColabs.length > 0
-              ? `Seguidores: ${safeColabs.map((c) => c.nome).join(", ")}`
+            dedupedColabs.length > 0
+              ? `Seguidores: ${dedupedColabs.map((c) => c.nome).join(", ")}`
               : "Adicionar seguidores"
           }
           className={cn(
             "flex items-center gap-0.5 rounded px-1 py-0.5 hover:bg-muted/40 transition-colors",
-            safeColabs.length === 0 &&
+            dedupedColabs.length === 0 &&
               "text-muted-foreground hover:text-foreground border border-dashed border-border/60",
           )}
         >
-          {safeColabs.length === 0 ? (
+          {dedupedColabs.length === 0 ? (
             isResolving ? (
               // Placeholder pulsante quando ainda não sabemos se há seguidores
               // (membros do projeto carregando). Evita "salto" visual entre
