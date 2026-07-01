@@ -351,13 +351,19 @@ export function FichaCustoProdutoEditor({
     if (!produto?.id) return;
     setUploadingFor(insumoId);
     try {
+      const guardOk = await guardFileUpload({ file, module: "fabrica-ficha-custo", contextId: insumoId });
+      if (!guardOk) { setUploadingFor(null); return; }
       const ext = file.name.split('.').pop();
       const path = `${produto.id}/${insumoId}/${crypto.randomUUID()}.${ext}`;
       
       const { error: uploadError } = await supabase.storage
         .from("fabrica-custo-evidencias")
         .upload(path, file);
-      if (uploadError) throw uploadError;
+      if (uploadError) {
+        reportUploadFailureShared({ module: "fabrica-ficha-custo", file, contextId: insumoId, error: uploadError });
+        throw uploadError;
+      }
+      reportUploadSuccessShared({ module: "fabrica-ficha-custo", file, contextId: insumoId, storagePath: path });
 
       const user = (await supabase.auth.getUser()).data.user;
       await supabase.from("fabrica_custo_evidencias" as any).insert({
