@@ -31,7 +31,7 @@ const VAPID_PUBLIC_KEY =
 
 Deno.serve(secureHandler(
   { auth: "any", rateLimit: 120, rateLimitPrefix: "send-push" },
-  async (req) => {
+  async (req, ctx) => {
     const cors = getCorsHeaders(req);
 
     const privateKey = Deno.env.get("VAPID_PRIVATE_KEY");
@@ -60,6 +60,33 @@ Deno.serve(secureHandler(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
+
+    // Authorization: service-role/API-key callers may push to any user (used by
+    // pg_net triggers). JWT callers can only push to themselves unless admin.
+    const isApiKey = (ctx as any)?.authSource === "api_key";
+    const callerId: string | null = (ctx as any)?.userId ?? null;
+    if (!isApiKey) {
+      if (!callerId) {
+        return new Response(JSON.stringify({ error: "Unauthorized" }),
+          { status: 401, headers: { ...cors, "Content-Type": "application/json" } });
+      }
+      if (callerId !== payload.user_id) {
+        const { data: adminRole } = await sb
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", callerId)
+          .eq("role", "admin")
+          .maybeSingle();
+        if (!adminRole) {
+          return new Response(
+            JSON.stringify({ error: "Forbidden: cannot push to other users" }),
+            { status: 403, headers: { ...cors, "Content-Type": "application/json" } },
+          );
+        }
+      }
+    }
+
+
 
     const { data: subs, error } = await sb
       .from("push_subscriptions")
