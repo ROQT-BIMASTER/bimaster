@@ -246,5 +246,6 @@ export const SubtarefaResponsavelPicker = memo(
     prev.responsavelId === next.responsavelId &&
     prev.responsavelNome === next.responsavelNome &&
     prev.responsavelAvatar === next.responsavelAvatar &&
+    prev.responsavelEmail === next.responsavelEmail &&
     prev.variant === next.variant,
 );
