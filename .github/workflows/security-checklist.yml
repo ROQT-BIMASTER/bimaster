@@ -1,0 +1,35 @@
+name: security-checklist
+
+on:
+  pull_request:
+    paths:
+      - 'supabase/**'
+      - 'scripts/security/**'
+      - '.github/workflows/security-checklist.yml'
+  schedule:
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+
+jobs:
+  rls-linter:
+    name: RLS linter — no broad USING(true) on sensitive tables
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install psql
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+      - name: Run RLS linter
+        env:
+          DATABASE_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: bash scripts/security/rls-linter-check.sh
+
+  critical-endpoints-auth:
+    name: Critical edge functions return 401/403 without auth
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run endpoint auth gate check
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: bash scripts/security/e2e-critical-endpoints-auth.sh
