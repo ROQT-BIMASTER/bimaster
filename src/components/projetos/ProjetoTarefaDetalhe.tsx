@@ -174,7 +174,9 @@ export function ProjetoTarefaDetalhe({
   const [produtoSearch, setProdutoSearch] = useState("");
   const [produtoResults, setProdutoResults] = useState<ProdutoAcabado[]>([]);
   const [showProdutoSearch, setShowProdutoSearch] = useState(false);
-  const [selectedSubtarefaId, setSelectedSubtarefaId] = useState<string | null>(null);
+  // Navegação para subtarefas agora é elevada ao dono do drawer via `onOpenSubtarefa`,
+  // que troca `?tarefa=` na URL. Isso mantém UM único Sheet montado (sem pilha, sem flicker).
+
 
   // Quando esta tarefa é uma subtarefa, busca título da tarefa pai para o botão "Voltar".
   const parentTarefaId = (tarefa as any)?.parent_tarefa_id as string | null | undefined;
