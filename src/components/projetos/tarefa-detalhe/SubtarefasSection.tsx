@@ -354,7 +354,7 @@ export function SubtarefasSection({
           </div>
 
         {/* Linha 2: controles inline */}
-        <div className="flex items-center gap-1.5 flex-wrap" style={{ marginLeft: TREE_ROW_CONTENT_OFFSET_PX }}>
+        <div className="flex items-center gap-1.5 flex-wrap" style={{ marginLeft: TREE_ROW_CONTENT_OFFSET_VAR }}>
           <Select value={st.status} onValueChange={(v) => onUpdate(st.id, { status: v })}>
             <SelectTrigger className="h-6 text-[10px] w-auto min-w-[80px] gap-1 border-border/30">
               <SelectValue />
