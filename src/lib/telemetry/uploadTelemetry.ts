@@ -23,6 +23,23 @@ export type UploadRejectionReason =
   | "metadata_insert_failed"
   | "unknown";
 
+/** Identificador do módulo/tela que originou o upload. */
+export type UploadModule =
+  | "projeto-tarefa"
+  | "chat-v2"
+  | "chat-briefing"
+  | "chat-aprovacao"
+  | "china-chat"
+  | "china-doc"
+  | "china-pasta-digital"
+  | "china-revisao"
+  | "fabrica-produto-foto"
+  | "fabrica-cofre"
+  | "fabrica-cotacao"
+  | "fabrica-xml-insumo"
+  | "fabrica-ficha-custo"
+  | "generic";
+
 export interface UploadAuditEvent {
   status: UploadEventStatus;
   reason?: UploadRejectionReason;
@@ -30,7 +47,11 @@ export interface UploadAuditEvent {
   fileName: string;
   fileType: string;
   fileSize: number;
+  /** Mantido para compat: usado no fluxo de tarefas. Em outros módulos, mesmo valor de contextId. */
   tarefaId: string;
+  /** Id de contexto genérico (conversa, produto, projeto, cofre, etc.). */
+  contextId?: string | null;
+  module?: UploadModule;
   userId: string;
   storagePath?: string;
   at: string;
