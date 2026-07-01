@@ -138,6 +138,8 @@ interface ProjetoTarefaDetalheProps {
   highlightCommentId?: string | null;
   /** Indica que uma persistência externa (bridge) está em andamento. Mostra o indicador de "Salvando…" no header e mantém o painel aberto. */
   externalSaving?: boolean;
+  /** Navega para outra tarefa/subtarefa reutilizando o mesmo drawer (dono controla via URL). */
+  onOpenSubtarefa?: (id: string) => void;
 }
 
 export function ProjetoTarefaDetalhe({
