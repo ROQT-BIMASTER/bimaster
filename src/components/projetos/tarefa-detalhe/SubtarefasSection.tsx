@@ -231,6 +231,13 @@ export function SubtarefasSection({
   flickerLog("tree-render", { tarefaId: tarefa.id, total, pendentes: pendentes.length });
 
 
+  /**
+   * Renderiza UMA linha da árvore. O deslocamento horizontal é SEMPRE
+   * `depth * var(--tree-indent)` aplicado explicitamente aqui — o passo
+   * entre subtarefa (depth=0) e seu subitem (depth=1) é idêntico ao passo
+   * entre subitem (depth=1) e seu neto (depth=2). Nunca dependa de
+   * marginLeft/padding herdado de wrappers para calcular indentação.
+   */
   const renderSub = (st: typeof allSubs[number], depth = 0) => {
     const stEstagioInfo = ESTAGIO_OPTIONS.find((e) => e.value === st.estagio);
     const children = (st as any).subtarefas ?? [];
@@ -244,7 +251,7 @@ export function SubtarefasSection({
           "group border-b border-border/40 last:border-b-0 py-2 hover:bg-muted/20 transition-colors rounded-sm",
           depth > 0 && "border-l-2 border-border/30",
         )}
-        style={depth > 0 ? { marginLeft: TREE_INDENT_VAR } : undefined}
+        style={{ marginLeft: `calc(${TREE_INDENT_VAR} * ${depth})` }}
       >
         <div className="px-2 space-y-2">
           {/* Linha 1: chevron + checkbox + título + abrir + excluir */}
