@@ -126,18 +126,25 @@ function SubtarefaSeguidoresPickerImpl({ subtarefaId, projetoId, colaboradores, 
   const visible = dedupedColabs.slice(0, 3);
   const extra = dedupedColabs.length - visible.length;
 
+  const triggerLabel =
+    dedupedColabs.length > 0
+      ? `Seguidores (${dedupedColabs.length}): ${dedupedColabs.map((c) => c.nome).join(", ")}`
+      : isResolving
+        ? "Carregando seguidores"
+        : "Adicionar seguidores";
+
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <button
           type="button"
-          title={
-            dedupedColabs.length > 0
-              ? `Seguidores: ${dedupedColabs.map((c) => c.nome).join(", ")}`
-              : "Adicionar seguidores"
-          }
+          title={triggerLabel}
+          aria-label={triggerLabel}
+          aria-haspopup="dialog"
+          aria-expanded={open}
+          aria-busy={isResolving || undefined}
           className={cn(
-            "flex items-center gap-0.5 rounded px-1 py-0.5 hover:bg-muted/40 transition-colors",
+            "flex items-center gap-0.5 rounded px-1 py-0.5 hover:bg-muted/40 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1",
             dedupedColabs.length === 0 &&
               "text-muted-foreground hover:text-foreground border border-dashed border-border/60",
           )}
@@ -160,14 +167,16 @@ function SubtarefaSeguidoresPickerImpl({ subtarefaId, projetoId, colaboradores, 
               </div>
             ) : (
               <>
-                <Plus className="h-3 w-3" />
+                <Plus className="h-3 w-3" aria-hidden="true" />
                 <span className="text-[10px]">Equipe</span>
               </>
             )
           ) : isResolving ? (
             // Temos user_ids mas nome/avatar ainda não resolveram: pilha
             // de skeletons no mesmo tamanho final para evitar layout shift.
-            <div className="flex items-center" aria-label="Carregando seguidores">
+            // O nome acessível vem do `aria-label` do botão pai; o conteúdo
+            // interno é decorativo.
+            <div className="flex items-center" aria-hidden="true">
               {visible.map((c, idx) => (
                 <div
                   key={c.user_id}
@@ -183,7 +192,7 @@ function SubtarefaSeguidoresPickerImpl({ subtarefaId, projetoId, colaboradores, 
             </div>
           ) : (
             <>
-              <div className="flex items-center">
+              <div className="flex items-center" aria-hidden="true">
                 {visible.map((c, idx) => (
                   <SmartAvatar
                     key={c.user_id}
@@ -196,7 +205,12 @@ function SubtarefaSeguidoresPickerImpl({ subtarefaId, projetoId, colaboradores, 
                 ))}
               </div>
               {extra > 0 && (
-                <span className="text-[9px] text-muted-foreground ml-0.5">+{extra}</span>
+                <span
+                  className="text-[9px] text-muted-foreground ml-0.5"
+                  aria-label={`mais ${extra} seguidor${extra === 1 ? "" : "es"}`}
+                >
+                  +{extra}
+                </span>
               )}
             </>
           )}
