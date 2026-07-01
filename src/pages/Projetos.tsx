@@ -199,7 +199,7 @@ export default function Projetos() {
 
   return (
     <SidebarProvider>
-      <div className="min-h-screen flex w-full bg-background">
+      <div className={`min-h-screen flex w-full bg-background ${TYPOGRAPHY_BODY_CLASS}`} style={typographyRootStyle}>
         <SidebarSwitch />
         <main
           className="flex-1 overflow-auto"
