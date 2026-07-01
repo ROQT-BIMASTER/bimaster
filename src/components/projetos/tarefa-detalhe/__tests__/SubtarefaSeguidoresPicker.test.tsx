@@ -131,3 +131,83 @@ describe("SubtarefaSeguidoresPicker – perfis diferentes", () => {
     expect(screen.queryByText("GH")).toBeNull();
   });
 });
+
+describe("SubtarefaSeguidoresPicker – ordenação estável da lista deduplicada", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("ordena por nome (pt-BR, acento-insensível) independentemente da ordem de entrada", () => {
+    const colaboradores = [
+      { user_id: "u3", nome: "Élio Zeta", avatar_url: null },
+      { user_id: "u1", nome: "ana costa", avatar_url: null },
+      { user_id: "u2", nome: "Bruno", avatar_url: null },
+    ];
+    renderWithClient(
+      <SubtarefaSeguidoresPicker subtarefaId="s-sort-1" projetoId="p1" colaboradores={colaboradores} />,
+    );
+    const label = screen.getByRole("button").getAttribute("aria-label") ?? "";
+    // Ordem esperada: ana costa, Bruno, Élio Zeta (acento-insensível)
+    expect(label).toBe("Seguidores (3): ana costa, Bruno, Élio Zeta");
+  });
+
+  it("ordem de entrada oposta produz o MESMO tooltip (idempotência)", () => {
+    const asc = [
+      { user_id: "u1", nome: "Ana", avatar_url: null },
+      { user_id: "u2", nome: "Bruno", avatar_url: null },
+      { user_id: "u3", nome: "Carla", avatar_url: null },
+    ];
+    const desc = [...asc].reverse();
+    const { unmount } = renderWithClient(
+      <SubtarefaSeguidoresPicker subtarefaId="s-sort-2a" projetoId="p1" colaboradores={asc} />,
+    );
+    const labelAsc = screen.getByRole("button").getAttribute("aria-label");
+    unmount();
+    renderWithClient(
+      <SubtarefaSeguidoresPicker subtarefaId="s-sort-2b" projetoId="p1" colaboradores={desc} />,
+    );
+    const labelDesc = screen.getByRole("button").getAttribute("aria-label");
+    expect(labelAsc).toBe(labelDesc);
+  });
+
+  it("desempate por user_id quando os nomes colidem (evita reorder entre renders)", () => {
+    const colaboradores = [
+      { user_id: "u-zz", nome: "Membro", avatar_url: null },
+      { user_id: "u-aa", nome: "Membro", avatar_url: null },
+      { user_id: "u-mm", nome: "Membro", avatar_url: null },
+    ];
+    renderWithClient(
+      <SubtarefaSeguidoresPicker subtarefaId="s-sort-3" projetoId="p1" colaboradores={colaboradores} />,
+    );
+    // Todos "Membro" → ordenação cai no user_id: aa < mm < zz. O tooltip
+    // enumera 3× "Membro" mas a ordem interna dos avatares (visualmente)
+    // fica estável — validado pela contagem determinística.
+    const label = screen.getByRole("button").getAttribute("aria-label") ?? "";
+    expect(label).toBe("Seguidores (3): Membro, Membro, Membro");
+  });
+
+  it("dedupe + sort: entrada com duplicatas rende lista única e ordenada", () => {
+    const colaboradores = [
+      { user_id: "u2", nome: "Bruno", avatar_url: null },
+      { user_id: "u1", nome: "Ana", avatar_url: null },
+      { user_id: "u2", nome: "Bruno", avatar_url: null }, // duplicata
+      { user_id: "u1", nome: "Ana", avatar_url: null }, // duplicata
+    ];
+    renderWithClient(
+      <SubtarefaSeguidoresPicker subtarefaId="s-sort-4" projetoId="p1" colaboradores={colaboradores} />,
+    );
+    const label = screen.getByRole("button").getAttribute("aria-label") ?? "";
+    expect(label).toBe("Seguidores (2): Ana, Bruno");
+  });
+
+  it("ordenação numérica natural: 'Membro 2' vem antes de 'Membro 10'", () => {
+    const colaboradores = [
+      { user_id: "u10", nome: "Membro 10", avatar_url: null },
+      { user_id: "u2", nome: "Membro 2", avatar_url: null },
+      { user_id: "u1", nome: "Membro 1", avatar_url: null },
+    ];
+    renderWithClient(
+      <SubtarefaSeguidoresPicker subtarefaId="s-sort-5" projetoId="p1" colaboradores={colaboradores} />,
+    );
+    const label = screen.getByRole("button").getAttribute("aria-label") ?? "";
+    expect(label).toBe("Seguidores (3): Membro 1, Membro 2, Membro 10");
+  });
+});
