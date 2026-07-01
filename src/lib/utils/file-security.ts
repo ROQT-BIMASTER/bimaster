@@ -220,7 +220,7 @@ export function describeUploadError(message: string): { title: string; descripti
   if (msg.includes("payload too large") || msg.includes("exceeded the maximum") || msg.includes("file_size_limit")) {
     return {
       title: "Arquivo muito grande",
-      description: "O servidor recusou o upload. Limite: 20 MB para documentos/imagens e 100 MB para vídeos (MP4, MOV, WEBM).",
+      description: "O servidor recusou o upload. Limite: 200 MB para documentos/imagens e 500 MB para vídeos (MP4, MOV, WEBM).",
     };
   }
   if (msg.includes("mime type") && msg.includes("not supported")) {
@@ -229,7 +229,12 @@ export function describeUploadError(message: string): { title: string; descripti
       description: "Formatos aceitos: PDF, imagens, Office, CSV, XML, TXT, ZIP e vídeos MP4/MOV/WEBM.",
     };
   }
-  if (msg.includes("excede o limite de 100 mb") || msg.includes("excede o limite de 20 mb")) {
+  if (
+    msg.includes("excede o limite de 500 mb") ||
+    msg.includes("excede o limite de 200 mb") ||
+    msg.includes("excede o limite de 100 mb") ||
+    msg.includes("excede o limite de 20 mb")
+  ) {
     return {
       title: "Arquivo acima do limite permitido",
       description: message,
