@@ -110,10 +110,16 @@ function SubtarefaSeguidoresPickerImpl({ subtarefaId, projetoId, colaboradores, 
         rawUrl && typeof rawUrl === "string" && rawUrl.trim() && rawUrl !== "null" && rawUrl !== "undefined"
           ? rawUrl
           : null;
+      const rawEmail = c.email;
+      const cleanEmail =
+        rawEmail && typeof rawEmail === "string" && rawEmail.trim() && rawEmail !== "null" && rawEmail !== "undefined"
+          ? rawEmail.trim()
+          : null;
       return {
         user_id: c.user_id,
         nome: (c.nome && c.nome.trim()) || "Membro",
         avatar_url: cleanUrl,
+        email: cleanEmail,
       };
     });
 
