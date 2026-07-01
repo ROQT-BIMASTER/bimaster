@@ -972,8 +972,9 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
     await queryClient.invalidateQueries({ queryKey: ["minhas-tarefas"], refetchType: "active" });
     queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2"] });
     queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-subtarefas-bridge"] });
-    toast.success("Prazo atualizado");
-  }, [queryClient, user?.id]);
+    markPending([tarefaId], false);
+    toast.success("Prazo atualizado", { id: toastId });
+  }, [queryClient, user?.id, markPending]);
 
   const handleSelectTask = useCallback((t: MinaTarefa) => {
     setDetailTarefa(t);
