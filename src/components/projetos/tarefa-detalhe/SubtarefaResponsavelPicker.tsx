@@ -122,7 +122,7 @@ function SubtarefaResponsavelPickerImpl({
                 {responsavelNome?.substring(0, 2).toUpperCase()}
               </AvatarFallback>
             </Avatar>
-            <span className="truncate max-w-[60px]">{responsavelNome?.split(" ")[0]}</span>
+            <span className="truncate max-w-[110px] text-foreground/80">{responsavelNome?.split(" ")[0] || "Membro"}</span>
           </>
         ) : (
           <>
