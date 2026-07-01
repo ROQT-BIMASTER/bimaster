@@ -331,7 +331,7 @@ Deno.serve(secureHandler({ auth: "apikey", rateLimit: 12, rateLimitPrefix: "secu
       .eq("is_active", true);
 
     return new Response(
-      JSON.stringify({ success: true, actions: results, timestamp: now.toISOString() }),
+      JSON.stringify({ success: true, actions_count: results.length, timestamp: now.toISOString() }),
       { headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
     );
   } catch (err) {
