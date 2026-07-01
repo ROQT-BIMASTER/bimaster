@@ -66,9 +66,15 @@ export function StoragePreviewDialog({ open, onOpenChange, filePath, fileName, b
     }
   };
 
-  const isImage = result?.contentType?.startsWith("image/");
-  const isPdf = result?.contentType === "application/pdf";
-  const canPreview = isImage || isPdf;
+  const contentType = result?.contentType ?? "";
+  const filename = (result?.filename || fileName || "").toLowerCase();
+  const extMatches = (exts: string[]) => exts.some((e) => filename.endsWith(`.${e}`));
+
+  const isImage = contentType.startsWith("image/") || extMatches(["png", "jpg", "jpeg", "webp", "gif"]);
+  const isPdf = contentType === "application/pdf" || extMatches(["pdf"]);
+  const isVideo = contentType.startsWith("video/") || extMatches(["mp4", "mov", "webm", "m4v"]);
+  const isAudio = contentType.startsWith("audio/") || extMatches(["mp3", "wav", "ogg", "m4a"]);
+  const canPreview = isImage || isPdf || isVideo || isAudio;
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
@@ -115,6 +121,29 @@ export function StoragePreviewDialog({ open, onOpenChange, filePath, fileName, b
               title={result.filename}
               className="w-full h-[75vh] border-0"
             />
+          )}
+
+          {!loading && result?.blobUrl && isVideo && (
+            <div className="flex items-center justify-center p-4 bg-black">
+              <video
+                src={result.blobUrl}
+                controls
+                controlsList="nodownload"
+                preload="metadata"
+                className="max-w-full max-h-[75vh] rounded"
+              >
+                Seu navegador não suporta reprodução de vídeo.
+              </video>
+            </div>
+          )}
+
+          {!loading && result?.blobUrl && isAudio && !isVideo && (
+            <div className="flex flex-col items-center justify-center h-64 gap-4 p-6">
+              <audio src={result.blobUrl} controls className="w-full max-w-md">
+                Seu navegador não suporta reprodução de áudio.
+              </audio>
+              <p className="text-xs text-muted-foreground">{result.filename}</p>
+            </div>
           )}
 
           {!loading && result?.blobUrl && !canPreview && (
