@@ -19,6 +19,13 @@ export interface NavV2Page {
   label: string;
   route: string;
   icon?: string | null;
+  /**
+   * Rótulo opcional de subgrupo dentro de um módulo (vindo de
+   * `sidebar_menu_items.parent_group`). Usado por módulos "guarda-chuva"
+   * como "Em Desenvolvimento" para segmentar visualmente páginas por
+   * origem sem precisar de novos módulos no banco.
+   */
+  groupLabel?: string | null;
 }
 
 export interface NavV2Module {
