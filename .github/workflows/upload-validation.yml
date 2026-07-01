@@ -1,0 +1,52 @@
+name: upload-validation
+
+# Gate dedicado para a validação de uploads (tipo/tamanho de anexos em
+# tarefas/subtarefas). Roda a suíte focada em `file-security` +
+# `uploadTarefaAnexo` + `uploadTelemetry` a cada PR que toca qualquer
+# arquivo do fluxo — sinal rápido e obrigatório antes de merge.
+#
+# A suíte completa segue rodando em `tests.yml`; este job existe para
+# dar feedback isolado e ser marcado como required check.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/lib/utils/file-security.ts'
+      - 'src/lib/utils/uploadTarefaAnexo.ts'
+      - 'src/lib/utils/__tests__/file-security.test.ts'
+      - 'src/lib/utils/__tests__/uploadTarefaAnexo.test.ts'
+      - 'src/lib/telemetry/uploadTelemetry.ts'
+      - 'src/lib/telemetry/__tests__/uploadTelemetry.test.ts'
+      - 'src/hooks/useProjetoTarefaDetalhe.ts'
+      - 'src/hooks/useMinhasTarefaDetalhe.ts'
+      - '.github/workflows/upload-validation.yml'
+  pull_request:
+    paths:
+      - 'src/lib/utils/file-security.ts'
+      - 'src/lib/utils/uploadTarefaAnexo.ts'
+      - 'src/lib/utils/__tests__/file-security.test.ts'
+      - 'src/lib/utils/__tests__/uploadTarefaAnexo.test.ts'
+      - 'src/lib/telemetry/uploadTelemetry.ts'
+      - 'src/lib/telemetry/__tests__/uploadTelemetry.test.ts'
+      - 'src/hooks/useProjetoTarefaDetalhe.ts'
+      - 'src/hooks/useMinhasTarefaDetalhe.ts'
+      - '.github/workflows/upload-validation.yml'
+
+jobs:
+  upload-validation:
+    name: Upload validation (file-security + telemetry)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - run: bun install --frozen-lockfile
+      - name: Run upload validation suite
+        run: |
+          bunx vitest run \
+            src/lib/utils/__tests__/file-security.test.ts \
+            src/lib/utils/__tests__/uploadTarefaAnexo.test.ts \
+            src/lib/telemetry/__tests__/uploadTelemetry.test.ts \
+            --reporter=verbose
