@@ -132,17 +132,17 @@ function SubtarefaSeguidoresPickerImpl({ subtarefaId, projetoId, colaboradores, 
         <button
           type="button"
           title={
-            safeColabs.length > 0
-              ? `Seguidores: ${safeColabs.map((c) => c.nome).join(", ")}`
+            dedupedColabs.length > 0
+              ? `Seguidores: ${dedupedColabs.map((c) => c.nome).join(", ")}`
               : "Adicionar seguidores"
           }
           className={cn(
             "flex items-center gap-0.5 rounded px-1 py-0.5 hover:bg-muted/40 transition-colors",
-            safeColabs.length === 0 &&
+            dedupedColabs.length === 0 &&
               "text-muted-foreground hover:text-foreground border border-dashed border-border/60",
           )}
         >
-          {safeColabs.length === 0 ? (
+          {dedupedColabs.length === 0 ? (
             isResolving ? (
               // Placeholder pulsante quando ainda não sabemos se há seguidores
               // (membros do projeto carregando). Evita "salto" visual entre
