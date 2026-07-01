@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { guardFileUpload, reportUploadSuccessShared, reportUploadFailureShared } from "@/lib/utils/sharedUploadGuard";
 
 export function initials(name?: string | null, email?: string | null): string {
   const base = (name ?? email ?? "?").trim();
