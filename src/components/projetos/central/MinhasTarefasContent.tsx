@@ -1005,6 +1005,10 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
       ));
     }
 
+    const toastId = `tarefa-bulk-${ids.join(",").slice(0, 40)}`;
+    markPending(ids, true);
+    toast.loading(`Concluindo ${ids.length} tarefa${ids.length > 1 ? "s" : ""}...`, { id: toastId });
+
     const { data: freshRows, error } = await supabase
       .from("projeto_tarefas")
       .update({ status: "concluida", data_conclusao: nowIso })
@@ -1012,7 +1016,12 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
       .select("id, status, data_conclusao, updated_at");
     if (error) {
       if (previous) queryClient.setQueryData(cacheKey, previous);
-      toast.error("Erro ao concluir tarefas");
+      markPending(ids, false);
+      toast.error("Não foi possível concluir as tarefas", {
+        id: toastId,
+        description: error.message,
+        action: { label: "Tentar novamente", onClick: () => handleBulkComplete() },
+      });
       return;
     }
 
@@ -1043,7 +1052,8 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
     await queryClient.invalidateQueries({ queryKey: ["minhas-tarefas"], refetchType: "active" });
     queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2"] });
     queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-subtarefas-bridge"] });
-    toast.success(`${ids.length} tarefas concluídas!`);
+    markPending(ids, false);
+    toast.success(`${ids.length} tarefa${ids.length > 1 ? "s concluídas" : " concluída"}`, { id: toastId });
     setSelectedIds(new Set());
   };
 
