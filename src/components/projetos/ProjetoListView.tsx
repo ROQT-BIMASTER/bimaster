@@ -79,6 +79,11 @@ export function ProjetoListView({ projetoId, darkBg = false, filters = EMPTY_FIL
   // refetch subsequente re-sincroniza a URL de volta para o valor inicial.
   const autoOpenedRef = useRef(false);
   useEffect(() => {
+    console.log("[ProjetoListView] MOUNT — autoOpenedRef reset");
+    return () => console.log("[ProjetoListView] UNMOUNT");
+  }, []);
+  useEffect(() => {
+    console.log("[ProjetoListView] auto-open effect", { autoOpened: autoOpenedRef.current, initialTarefaId, selectedTarefaId, tarefasLoading });
     if (autoOpenedRef.current) return;
     if (!initialTarefaId) return;
     if (selectedTarefaId === initialTarefaId) {
