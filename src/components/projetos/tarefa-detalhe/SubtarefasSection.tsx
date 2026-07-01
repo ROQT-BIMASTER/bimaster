@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import React, { useRef, useState } from "react";
 import { ProjetoTarefa } from "@/hooks/useProjetoTarefas";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -231,6 +231,13 @@ export function SubtarefasSection({
   flickerLog("tree-render", { tarefaId: tarefa.id, total, pendentes: pendentes.length });
 
 
+  /**
+   * Renderiza UMA linha da árvore. O deslocamento horizontal é SEMPRE
+   * `depth * var(--tree-indent)` aplicado explicitamente aqui — o passo
+   * entre subtarefa (depth=0) e seu subitem (depth=1) é idêntico ao passo
+   * entre subitem (depth=1) e seu neto (depth=2). Nunca dependa de
+   * marginLeft/padding herdado de wrappers para calcular indentação.
+   */
   const renderSub = (st: typeof allSubs[number], depth = 0) => {
     const stEstagioInfo = ESTAGIO_OPTIONS.find((e) => e.value === st.estagio);
     const children = (st as any).subtarefas ?? [];
@@ -244,7 +251,7 @@ export function SubtarefasSection({
           "group border-b border-border/40 last:border-b-0 py-2 hover:bg-muted/20 transition-colors rounded-sm",
           depth > 0 && "border-l-2 border-border/30",
         )}
-        style={depth > 0 ? { marginLeft: TREE_INDENT_VAR } : undefined}
+        style={{ marginLeft: `calc(${TREE_INDENT_VAR} * ${depth})` }}
       >
         <div className="px-2 space-y-2">
           {/* Linha 1: chevron + checkbox + título + abrir + excluir */}
@@ -611,14 +618,27 @@ export function SubtarefasSection({
         )}
         </div>
 
-        {/* Filhos recursivos */}
-        {hasChildren && !isCollapsed && (
-          <div className="space-y-1.5 mt-1">
-            {children.map((child: any) => renderSub(child, depth + 1))}
-          </div>
-        )}
       </div>
     );
+  };
+
+  /**
+   * DFS flat: percorre a árvore e emite uma lista linear de linhas com
+   * o `depth` correto para cada nó. Filhos de nós colapsados são pulados.
+   * Como a indentação é aplicada por `depth * var(--tree-indent)` em cada
+   * linha, todos os níveis compartilham o mesmo passo — nenhum nível herda
+   * offset de wrapper.
+   */
+  const renderTree = (nodes: typeof allSubs, depth = 0): React.ReactNode[] => {
+    const rows: React.ReactNode[] = [];
+    for (const node of nodes) {
+      rows.push(renderSub(node, depth));
+      const children = ((node as any).subtarefas ?? []) as typeof allSubs;
+      if (children.length > 0 && !collapsedIds.has(node.id)) {
+        rows.push(...renderTree(children, depth + 1));
+      }
+    }
+    return rows;
   };
 
   return (
@@ -736,7 +756,7 @@ export function SubtarefasSection({
       )}
 
       <div className="space-y-1.5">
-        {pendentes.map(renderSub)}
+        {renderTree(pendentes)}
 
         {concluidas.length > 0 && (
           <div className="mt-2 pt-2 border-t border-border/30">
@@ -749,7 +769,7 @@ export function SubtarefasSection({
               {showConcluidas ? "Ocultar" : "Mostrar"} {concluidas.length} concluída
               {concluidas.length > 1 ? "s" : ""}
             </button>
-            {showConcluidas && <div className="space-y-1.5 mt-1">{concluidas.map(renderSub)}</div>}
+            {showConcluidas && <div className="space-y-1.5 mt-1">{renderTree(concluidas)}</div>}
           </div>
         )}
       </div>
