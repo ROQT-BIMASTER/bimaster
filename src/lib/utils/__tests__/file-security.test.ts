@@ -412,14 +412,16 @@ describe("validateFileForUpload — boundary de extensão (maiúsculas e espaço
 });
 
 describe("validateFileForUpload — boundary de MIME type (maiúsculas e espaços)", () => {
-  it("rejeita MIME em CAIXA ALTA ('APPLICATION/PDF') — comparação é case-sensitive por padrão do browser", async () => {
-    // Browsers emitem MIME sempre em lowercase; se chegar caixa alta é sinal
-    // de header adulterado → deve cair no MIME_REJECTED.
+  it("aceita MIME em CAIXA ALTA ('APPLICATION/PDF') — o construtor File normaliza para lowercase", async () => {
+    // Contrato do browser: File normaliza `type` para lowercase automaticamente.
+    // Este teste documenta esse comportamento e garante que a validação continua
+    // funcionando quando o header chega em caixa alta.
     const file = makeFile("relatorio.pdf", "APPLICATION/PDF", 1 * MB, PDF_MAGIC);
+    expect(file.type).toBe("application/pdf");
     const result = await validateFileForUpload(file);
-    expect(result.valid).toBe(false);
-    expect(result.code).toBe("MIME_REJECTED");
+    expect(result.valid).toBe(true);
   });
+
 
   it("rejeita MIME com espaço à direita ('application/pdf ')", async () => {
     const file = makeFile("relatorio.pdf", "application/pdf ", 1 * MB, PDF_MAGIC);
