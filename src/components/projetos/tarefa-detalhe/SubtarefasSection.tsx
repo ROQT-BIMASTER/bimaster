@@ -21,6 +21,8 @@ import { SubtarefaSeguidoresPicker } from "./SubtarefaSeguidoresPicker";
 import { useProjetoMembros } from "@/hooks/useProjetoMembros";
 import { reportSubtarefaArrowEvent } from "@/lib/telemetry/subtarefaArrowTelemetry";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { flickerLog } from "@/lib/debug/flickerLog";
+
 
 const MIN_TITLE_LEN = 2;
 const MAX_TITLE_LEN = 200;
@@ -148,12 +150,14 @@ export function SubtarefasSection({
   const handleAdd = async () => {
     if (!onAddSubtarefa) return;
     if (pendingMainAddRef.current) return;
+    flickerLog("ui-add-clicked", { level: "root", parent: siblingParentId });
     const err = validateNewTitle(subtarefaValue, allSubs);
     if (err) {
       toast.error(err);
       return;
     }
     const titulo = subtarefaValue.trim();
+
     pendingMainAddRef.current = true;
     setSubtarefaValue("");
     try {
