@@ -31072,6 +31072,53 @@ export type Database = {
           },
         ]
       }
+      mkt_windsor_map: {
+        Row: {
+          account_name: string | null
+          ativo: boolean
+          id: string
+          marca_id: string | null
+          plataforma: string | null
+          primeira_vez: string
+          source: string
+          tipo: string | null
+          ultima_vez: string
+          windsor_account_id: string
+        }
+        Insert: {
+          account_name?: string | null
+          ativo?: boolean
+          id?: string
+          marca_id?: string | null
+          plataforma?: string | null
+          primeira_vez?: string
+          source: string
+          tipo?: string | null
+          ultima_vez?: string
+          windsor_account_id: string
+        }
+        Update: {
+          account_name?: string | null
+          ativo?: boolean
+          id?: string
+          marca_id?: string | null
+          plataforma?: string | null
+          primeira_vez?: string
+          source?: string
+          tipo?: string | null
+          ultima_vez?: string
+          windsor_account_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mkt_windsor_map_marca_id_fkey"
+            columns: ["marca_id"]
+            isOneToOne: false
+            referencedRelation: "mkt_marcas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       modulo_processo_link: {
         Row: {
           concluido_em: string | null
