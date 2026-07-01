@@ -57112,6 +57112,10 @@ export type Database = {
         Args: { _tarefa_id: string; _user_id: string }
         Returns: boolean
       }
+      user_owns_parent_tarefa: {
+        Args: { _parent_id: string; _user_id: string }
+        Returns: boolean
+      }
       user_requires_mfa: { Args: { _uid: string }; Returns: boolean }
       user_tem_acesso_cnpj: {
         Args: { p_cnpj: string; p_user_id: string }
