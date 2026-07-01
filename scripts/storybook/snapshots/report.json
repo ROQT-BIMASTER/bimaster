@@ -1,0 +1,473 @@
+{
+  "startedAt": "2026-07-01T11:13:36.918Z",
+  "finishedAt": "2026-07-01T11:13:51.310Z",
+  "durationMs": 14391,
+  "threshold": 0.005,
+  "pixelTolerance": 0.1,
+  "updateMode": false,
+  "stories": [
+    {
+      "id": "ui-smartavatar--nome-valido",
+      "slots": {
+        "avatar": {
+          "slot": "avatar",
+          "status": "pass",
+          "ratio": 0,
+          "seeded": false,
+          "skipped": false,
+          "actual": "actual/ui-smartavatar--nome-valido/avatar.png",
+          "baseline": "baseline/ui-smartavatar--nome-valido/avatar.png",
+          "diff": null,
+          "message": null
+        },
+        "fallback": {
+          "slot": "fallback",
+          "status": "pass",
+          "ratio": 0,
+          "seeded": false,
+          "skipped": false,
+          "actual": "actual/ui-smartavatar--nome-valido/fallback.png",
+          "baseline": "baseline/ui-smartavatar--nome-valido/fallback.png",
+          "diff": null,
+          "message": null
+        },
+        "tooltip": {
+          "slot": "tooltip",
+          "status": "pass",
+          "ratio": 0,
+          "seeded": false,
+          "skipped": false,
+          "actual": "actual/ui-smartavatar--nome-valido/tooltip.png",
+          "baseline": "baseline/ui-smartavatar--nome-valido/tooltip.png",
+          "diff": null,
+          "message": null
+        }
+      },
+      "status": "pass",
+      "error": null,
+      "title": "Ana Dona (ana@example.com)"
+    },
+    {
+      "id": "ui-smartavatar--nome-nulo",
+      "slots": {
+        "avatar": {
+          "slot": "avatar",
+          "status": "pass",
+          "ratio": 0,
+          "seeded": false,
+          "skipped": false,
+          "actual": "actual/ui-smartavatar--nome-nulo/avatar.png",
+          "baseline": "baseline/ui-smartavatar--nome-nulo/avatar.png",
+          "diff": null,
+          "message": null
+        },
+        "fallback": {
+          "slot": "fallback",
+          "status": "pass",
+          "ratio": 0,
+          "seeded": false,
+          "skipped": false,
+          "actual": "actual/ui-smartavatar--nome-nulo/fallback.png",
+          "baseline": "baseline/ui-smartavatar--nome-nulo/fallback.png",
+          "diff": null,
+          "message": null
+        },
+        "tooltip": {
+          "slot": "tooltip",
+          "status": "pass",
+          "ratio": 0,
+          "seeded": false,
+          "skipped": false,
+          "actual": "actual/ui-smartavatar--nome-nulo/tooltip.png",
+          "baseline": "baseline/ui-smartavatar--nome-nulo/tooltip.png",
+          "diff": null,
+          "message": null
+        }
+      },
+      "status": "pass",
+      "error": null,
+      "title": "Membro (u-123)"
+    },
+    {
+      "id": "ui-smartavatar--nome-undefined",
+      "slots": {
+        "avatar": {
+          "slot": "avatar",
+          "status": "pass",
+          "ratio": 0,
+          "seeded": false,
+          "skipped": false,
+          "actual": "actual/ui-smartavatar--nome-undefined/avatar.png",
+          "baseline": "baseline/ui-smartavatar--nome-undefined/avatar.png",
+          "diff": null,
+          "message": null
+        },
+        "fallback": {
+          "slot": "fallback",
+          "status": "pass",
+          "ratio": 0,
+          "seeded": false,
+          "skipped": false,
+          "actual": "actual/ui-smartavatar--nome-undefined/fallback.png",
+          "baseline": "baseline/ui-smartavatar--nome-undefined/fallback.png",
+          "diff": null,
+          "message": null
+        },
+        "tooltip": {
+          "slot": "tooltip",
+          "status": "pass",
+          "ratio": 0,
+          "seeded": false,
+          "skipped": false,
+          "actual": "actual/ui-smartavatar--nome-undefined/tooltip.png",
+          "baseline": "baseline/ui-smartavatar--nome-undefined/tooltip.png",
+          "diff": null,
+          "message": null
+        }
+      },
+      "status": "pass",
+      "error": null,
+      "title": "Membro (u-456)"
+    },
+    {
+      "id": "ui-smartavatar--nome-apenas-espacos",
+      "slots": {
+        "avatar": {
+          "slot": "avatar",
+          "status": "pass",
+          "ratio": 0,
+          "seeded": false,
+          "skipped": false,
+          "actual": "actual/ui-smartavatar--nome-apenas-espacos/avatar.png",
+          "baseline": "baseline/ui-smartavatar--nome-apenas-espacos/avatar.png",
+          "diff": null,
+          "message": null
+        },
+        "fallback": {
+          "slot": "fallback",
+          "status": "pass",
+          "ratio": 0,
+          "seeded": false,
+          "skipped": false,
+          "actual": "actual/ui-smartavatar--nome-apenas-espacos/fallback.png",
+          "baseline": "baseline/ui-smartavatar--nome-apenas-espacos/fallback.png",
+          "diff": null,
+          "message": null
+        },
+        "tooltip": {
+          "slot": "tooltip",
+          "status": "pass",
+          "ratio": 0,
+          "seeded": false,
+          "skipped": false,
+          "actual": "actual/ui-smartavatar--nome-apenas-espacos/tooltip.png",
+          "baseline": "baseline/ui-smartavatar--nome-apenas-espacos/tooltip.png",
+          "diff": null,
+          "message": null
+        }
+      },
+      "status": "pass",
+      "error": null,
+      "title": "Membro (u-789)"
+    },
+    {
+      "id": "ui-smartavatar--nome-string-null-literal",
+      "slots": {
+        "avatar": {
+          "slot": "avatar",
+          "status": "pass",
+          "ratio": 0,
+          "seeded": false,
+          "skipped": false,
+          "actual": "actual/ui-smartavatar--nome-string-null-literal/avatar.png",
+          "baseline": "baseline/ui-smartavatar--nome-string-null-literal/avatar.png",
+          "diff": null,
+          "message": null
+        },
+        "fallback": {
+          "slot": "fallback",
+          "status": "pass",
+          "ratio": 0,
+          "seeded": false,
+          "skipped": false,
+          "actual": "actual/ui-smartavatar--nome-string-null-literal/fallback.png",
+          "baseline": "baseline/ui-smartavatar--nome-string-null-literal/fallback.png",
+          "diff": null,
+          "message": null
+        },
+        "tooltip": {
+          "slot": "tooltip",
+          "status": "pass",
+          "ratio": 0,
+          "seeded": false,
+          "skipped": false,
+          "actual": "actual/ui-smartavatar--nome-string-null-literal/tooltip.png",
+          "baseline": "baseline/ui-smartavatar--nome-string-null-literal/tooltip.png",
+          "diff": null,
+          "message": null
+        }
+      },
+      "status": "pass",
+      "error": null,
+      "title": "Membro (u-null)"
+    },
+    {
+      "id": "ui-smartavatar--nome-string-undefined-literal",
+      "slots": {
+        "avatar": {
+          "slot": "avatar",
+          "status": "pass",
+          "ratio": 0,
+          "seeded": false,
+          "skipped": false,
+          "actual": "actual/ui-smartavatar--nome-string-undefined-literal/avatar.png",
+          "baseline": "baseline/ui-smartavatar--nome-string-undefined-literal/avatar.png",
+          "diff": null,
+          "message": null
+        },
+        "fallback": {
+          "slot": "fallback",
+          "status": "pass",
+          "ratio": 0,
+          "seeded": false,
+          "skipped": false,
+          "actual": "actual/ui-smartavatar--nome-string-undefined-literal/fallback.png",
+          "baseline": "baseline/ui-smartavatar--nome-string-undefined-literal/fallback.png",
+          "diff": null,
+          "message": null
+        },
+        "tooltip": {
+          "slot": "tooltip",
+          "status": "pass",
+          "ratio": 0,
+          "seeded": false,
+          "skipped": false,
+          "actual": "actual/ui-smartavatar--nome-string-undefined-literal/tooltip.png",
+          "baseline": "baseline/ui-smartavatar--nome-string-undefined-literal/tooltip.png",
+          "diff": null,
+          "message": null
+        }
+      },
+      "status": "pass",
+      "error": null,
+      "title": "Membro (u-undef)"
+    },
+    {
+      "id": "ui-smartavatar--nome-placeholder-membro",
+      "slots": {
+        "avatar": {
+          "slot": "avatar",
+          "status": "pass",
+          "ratio": 0,
+          "seeded": false,
+          "skipped": false,
+          "actual": "actual/ui-smartavatar--nome-placeholder-membro/avatar.png",
+          "baseline": "baseline/ui-smartavatar--nome-placeholder-membro/avatar.png",
+          "diff": null,
+          "message": null
+        },
+        "fallback": {
+          "slot": "fallback",
+          "status": "pass",
+          "ratio": 0,
+          "seeded": false,
+          "skipped": false,
+          "actual": "actual/ui-smartavatar--nome-placeholder-membro/fallback.png",
+          "baseline": "baseline/ui-smartavatar--nome-placeholder-membro/fallback.png",
+          "diff": null,
+          "message": null
+        },
+        "tooltip": {
+          "slot": "tooltip",
+          "status": "pass",
+          "ratio": 0,
+          "seeded": false,
+          "skipped": false,
+          "actual": "actual/ui-smartavatar--nome-placeholder-membro/tooltip.png",
+          "baseline": "baseline/ui-smartavatar--nome-placeholder-membro/tooltip.png",
+          "diff": null,
+          "message": null
+        }
+      },
+      "status": "pass",
+      "error": null,
+      "title": "Convidado (u-guest)"
+    },
+    {
+      "id": "ui-smartavatar--fallback-nome-custom-com-nome-nulo",
+      "slots": {
+        "avatar": {
+          "slot": "avatar",
+          "status": "pass",
+          "ratio": 0,
+          "seeded": false,
+          "skipped": false,
+          "actual": "actual/ui-smartavatar--fallback-nome-custom-com-nome-nulo/avatar.png",
+          "baseline": "baseline/ui-smartavatar--fallback-nome-custom-com-nome-nulo/avatar.png",
+          "diff": null,
+          "message": null
+        },
+        "fallback": {
+          "slot": "fallback",
+          "status": "pass",
+          "ratio": 0,
+          "seeded": false,
+          "skipped": false,
+          "actual": "actual/ui-smartavatar--fallback-nome-custom-com-nome-nulo/fallback.png",
+          "baseline": "baseline/ui-smartavatar--fallback-nome-custom-com-nome-nulo/fallback.png",
+          "diff": null,
+          "message": null
+        },
+        "tooltip": {
+          "slot": "tooltip",
+          "status": "pass",
+          "ratio": 0,
+          "seeded": false,
+          "skipped": false,
+          "actual": "actual/ui-smartavatar--fallback-nome-custom-com-nome-nulo/tooltip.png",
+          "baseline": "baseline/ui-smartavatar--fallback-nome-custom-com-nome-nulo/tooltip.png",
+          "diff": null,
+          "message": null
+        }
+      },
+      "status": "pass",
+      "error": null,
+      "title": "Fornecedor (cnpj@example.com)"
+    },
+    {
+      "id": "ui-smartavatar--sem-identifier",
+      "slots": {
+        "avatar": {
+          "slot": "avatar",
+          "status": "pass",
+          "ratio": 0,
+          "seeded": false,
+          "skipped": false,
+          "actual": "actual/ui-smartavatar--sem-identifier/avatar.png",
+          "baseline": "baseline/ui-smartavatar--sem-identifier/avatar.png",
+          "diff": null,
+          "message": null
+        },
+        "fallback": {
+          "slot": "fallback",
+          "status": "pass",
+          "ratio": 0,
+          "seeded": false,
+          "skipped": false,
+          "actual": "actual/ui-smartavatar--sem-identifier/fallback.png",
+          "baseline": "baseline/ui-smartavatar--sem-identifier/fallback.png",
+          "diff": null,
+          "message": null
+        },
+        "tooltip": {
+          "slot": "tooltip",
+          "status": "pass",
+          "ratio": 0,
+          "seeded": false,
+          "skipped": false,
+          "actual": "actual/ui-smartavatar--sem-identifier/tooltip.png",
+          "baseline": "baseline/ui-smartavatar--sem-identifier/tooltip.png",
+          "diff": null,
+          "message": null
+        }
+      },
+      "status": "pass",
+      "error": null,
+      "title": "Beto"
+    },
+    {
+      "id": "ui-smartavatar--imagem-quebrada",
+      "slots": {
+        "avatar": {
+          "slot": "avatar",
+          "status": "pass",
+          "ratio": 0,
+          "seeded": false,
+          "skipped": false,
+          "actual": "actual/ui-smartavatar--imagem-quebrada/avatar.png",
+          "baseline": "baseline/ui-smartavatar--imagem-quebrada/avatar.png",
+          "diff": null,
+          "message": null
+        },
+        "fallback": {
+          "slot": "fallback",
+          "status": "pass",
+          "ratio": 0,
+          "seeded": false,
+          "skipped": false,
+          "actual": "actual/ui-smartavatar--imagem-quebrada/fallback.png",
+          "baseline": "baseline/ui-smartavatar--imagem-quebrada/fallback.png",
+          "diff": null,
+          "message": null
+        },
+        "tooltip": {
+          "slot": "tooltip",
+          "status": "pass",
+          "ratio": 0,
+          "seeded": false,
+          "skipped": false,
+          "actual": "actual/ui-smartavatar--imagem-quebrada/tooltip.png",
+          "baseline": "baseline/ui-smartavatar--imagem-quebrada/tooltip.png",
+          "diff": null,
+          "message": null
+        }
+      },
+      "status": "pass",
+      "error": null,
+      "title": "Carla (carla@example.com)"
+    },
+    {
+      "id": "ui-smartavatar--pilha-de-avatares",
+      "slots": {
+        "avatar": {
+          "slot": "avatar",
+          "status": "pass",
+          "ratio": 0,
+          "seeded": false,
+          "skipped": false,
+          "actual": "actual/ui-smartavatar--pilha-de-avatares/avatar.png",
+          "baseline": "baseline/ui-smartavatar--pilha-de-avatares/avatar.png",
+          "diff": null,
+          "message": null
+        },
+        "fallback": {
+          "slot": "fallback",
+          "status": "pass",
+          "ratio": 0,
+          "seeded": false,
+          "skipped": false,
+          "actual": "actual/ui-smartavatar--pilha-de-avatares/fallback.png",
+          "baseline": "baseline/ui-smartavatar--pilha-de-avatares/fallback.png",
+          "diff": null,
+          "message": null
+        },
+        "tooltip": {
+          "slot": "tooltip",
+          "status": "pass",
+          "ratio": 0,
+          "seeded": false,
+          "skipped": false,
+          "actual": "actual/ui-smartavatar--pilha-de-avatares/tooltip.png",
+          "baseline": "baseline/ui-smartavatar--pilha-de-avatares/tooltip.png",
+          "diff": null,
+          "message": null
+        }
+      },
+      "status": "pass",
+      "error": null,
+      "title": "Ana Dona (ana@x.com)"
+    }
+  ],
+  "summary": {
+    "stories": 11,
+    "pass": 11,
+    "fail": 0,
+    "seeded": 0,
+    "slots": {
+      "pass": 33,
+      "fail": 0,
+      "seed": 0,
+      "skip": 0
+    }
+  }
+}
