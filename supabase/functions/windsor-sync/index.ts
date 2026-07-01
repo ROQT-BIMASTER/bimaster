@@ -312,7 +312,9 @@ Deno.serve(secureHandler(
       if (fieldsConta) {
         const res = await fetchConnector(slug, fieldsConta, preset, API_KEY);
         if (!res.ok) {
-          por_conector.push({ slug, contas: 0, metricas: 0, posts: 0, erro: "upstream_error" });
+          if (res.licenseBlocked) licenseBlocked = true;
+          por_conector.push({ slug, contas: 0, metricas: 0, posts: 0, erro: res.licenseBlocked ? "license_blocked" : "upstream_error" });
+
           continue;
         }
         const contasParaMap = new Map<string, { handle: string | null }>();
