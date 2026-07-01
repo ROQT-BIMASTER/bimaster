@@ -14,6 +14,24 @@ export type Database = {
   }
   public: {
     Tables: {
+      _internal_cron_config: {
+        Row: {
+          name: string
+          updated_at: string
+          value: string
+        }
+        Insert: {
+          name: string
+          updated_at?: string
+          value: string
+        }
+        Update: {
+          name?: string
+          updated_at?: string
+          value?: string
+        }
+        Relationships: []
+      }
       access_audit_log: {
         Row: {
           action: string
