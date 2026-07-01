@@ -14,6 +14,18 @@ interface ExportParams {
   uf?: string;
 }
 
+const ALLOWED_DIMENSION_TABLES = new Set([
+  'municipios', 'prospects', 'stores', 'profiles', 'competitors',
+  'trade_chart_of_accounts', 'trade_campaigns',
+]);
+
+const ALLOWED_FACT_TABLES = new Set([
+  'atividades', 'visits', 'gondola_audits', 'shelf_share',
+  'trade_investments', 'trade_financial_entries', 'trade_bank_transactions',
+  'sales', 'kpis_tracking',
+]);
+
+
 Deno.serve(secureHandler({ auth: "none", rateLimit: 60, rateLimitPrefix: "export-datawarehouse" }, async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: getCorsHeaders(req) });
