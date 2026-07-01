@@ -117,10 +117,24 @@ function SubtarefaSeguidoresPickerImpl({ subtarefaId, projetoId, colaboradores, 
   // Evita pilhas com o mesmo avatar repetido quando o backend retorna o
   // colaborador em múltiplas fontes (join + bridge, por exemplo).
   const seen = new Set<string>();
-  const dedupedColabs = safeColabs.filter((c) => {
+  const uniqueColabs = safeColabs.filter((c) => {
     if (seen.has(c.user_id)) return false;
     seen.add(c.user_id);
     return true;
+  });
+
+  // Ordenação estável: por `nome` (locale pt-BR, case/acento-insensível) e
+  // desempata por `user_id`. Sem isso, a ordem depende da fonte que hidratou
+  // primeiro (join direto vs. bridge vs. lookup em `profiles`) e a pilha de
+  // avatares "pula" entre renders — quebrando `React.memo` a jusante e
+  // fazendo o tooltip enumerar nomes em ordem diferente a cada refetch.
+  const dedupedColabs = [...uniqueColabs].sort((a, b) => {
+    const byNome = a.nome.localeCompare(b.nome, "pt-BR", {
+      sensitivity: "base",
+      numeric: true,
+    });
+    if (byNome !== 0) return byNome;
+    return a.user_id.localeCompare(b.user_id);
   });
 
   const visible = dedupedColabs.slice(0, 3);
