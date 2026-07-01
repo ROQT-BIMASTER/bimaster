@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { resolveAvatarUrl } from "@/lib/utils/avatarUrl";
 import { cn } from "@/lib/utils";
+import { reportAvatarFailure } from "@/lib/telemetry/avatarTelemetry";
 
 // Cache de URLs já resolvidas nesta sessão — evita chamar createSignedUrl
 // múltiplas vezes para o mesmo path enquanto rolamos listas grandes de
@@ -120,7 +121,10 @@ export function SmartAvatar({
         <AvatarImage
           src={displayUrl}
           alt={resolvedTitle}
-          onError={() => setErrored(true)}
+          onError={() => {
+            setErrored(true);
+            reportAvatarFailure({ src: displayUrl ?? src, nome, identifier });
+          }}
         />
       )}
       <AvatarFallback
