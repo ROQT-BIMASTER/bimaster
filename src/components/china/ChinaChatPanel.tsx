@@ -326,7 +326,11 @@ export function ChinaChatPanel({ submissaoId, produtoNome, tipoRemetente, refere
         const { error } = await supabase.storage.from("china-chat-anexos").upload(path, file, {
           contentType: file.type, upsert: false,
         });
-        if (error) throw error;
+        if (error) {
+          reportGenericUploadError({ module: "china-chat", file, userId: user.id, contextId: submissaoId, error, reason: "storage_upload_failed" });
+          throw error;
+        }
+        reportGenericUploadSuccess({ module: "china-chat", file, userId: user.id, contextId: submissaoId, storagePath: path });
         out.push({ path, nome: file.name, mime: file.type, size: file.size });
       }
       return out;
