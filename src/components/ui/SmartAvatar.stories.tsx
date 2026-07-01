@@ -1,4 +1,22 @@
-import type { Meta, StoryObj } from "@storybook/react";
+// Storybook ainda não está instalado no projeto — usamos tipos locais
+// mínimos compatíveis com CSF3 para que o arquivo compile no `tsc` do
+// harness. Assim que `@storybook/react` for adicionado, basta trocar por
+// `import type { Meta, StoryObj } from "@storybook/react";` sem mais mudanças.
+type Meta<T> = {
+  title?: string;
+  component?: T;
+  parameters?: Record<string, unknown>;
+  argTypes?: Record<string, unknown>;
+  args?: Partial<React.ComponentProps<T extends React.ComponentType<infer P> ? React.ComponentType<P> : never>>;
+};
+type StoryObj<T> = {
+  name?: string;
+  args?: Partial<React.ComponentProps<T extends React.ComponentType<infer P> ? React.ComponentType<P> : never>>;
+  parameters?: Record<string, unknown>;
+  render?: () => React.ReactElement;
+};
+
+import * as React from "react";
 import { SmartAvatar } from "./SmartAvatar";
 
 /**
