@@ -1,0 +1,53 @@
+name: nav-parity
+
+# Checagem automatizada de paridade v1↔v2 de navegação:
+# - Extrai rotas de src/App.tsx e da sidebar clássica (v1).
+# - Consulta sidebar_menu_items (v2) usando service role.
+# - Falha o PR quando:
+#   * uma rota do v1 desaparece da v2 (paridade quebrada);
+#   * uma entrada da v2 aponta para rota inexistente em App.tsx (link morto);
+#   * telas órfãs (registradas em App.tsx sem sidebar) crescem acima do
+#     baseline definido em src/test/nav-parity.test.ts.
+
+on:
+  pull_request:
+    paths:
+      - "src/App.tsx"
+      - "src/components/dashboard/AppSidebar.tsx"
+      - "src/components/navigation/**"
+      - "supabase/migrations/**"
+      - "scripts/nav/**"
+      - ".github/workflows/nav-parity.yml"
+  push:
+    branches: [main]
+
+jobs:
+  static:
+    name: parity (offline / App.tsx ↔ v1)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
+      - run: bunx vitest run src/test/nav-parity.test.ts --reporter=default
+
+  db:
+    name: parity (v1 ↔ v2 via sidebar_menu_items)
+    runs-on: ubuntu-latest
+    if: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY != '' && secrets.VITE_SUPABASE_URL != '' }}
+    env:
+      VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+      VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Run parity check (with backend)
+        run: node scripts/nav/parity-check.mjs --max-orphans=9999 --out=parity-report.json
+      - name: Upload parity report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nav-parity-report
+          path: parity-report.json
