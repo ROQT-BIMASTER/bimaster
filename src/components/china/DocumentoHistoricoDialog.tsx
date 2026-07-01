@@ -6,7 +6,7 @@
  * Ficha Produto. Cada item mostra: status anterior, arquivo, quem mudou,
  * quando, e link pra baixar o arquivo daquela versão.
  */
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -16,6 +16,7 @@ import { useChinaDocumentoHistorico, type DocumentoVersaoAnterior } from "@/hook
 import { AccessDeniedNotice } from "@/components/ui/access-denied-notice";
 import { isPermissionError } from "@/lib/utils/permissionErrors";
 import { downloadStorageBlob, triggerBlobDownload } from "@/lib/utils/storage-download";
+import { logRlsAccess } from "@/lib/audit/logRlsAccess";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
@@ -46,6 +47,28 @@ function acaoLabel(acao: DocumentoVersaoAnterior["acao"]): string {
 export function DocumentoHistoricoDialog({ open, onOpenChange, documentoId, tipoDocumentoLabel }: Props) {
   const { data: versoes = [], isLoading, error } = useChinaDocumentoHistorico(open ? documentoId : null);
   const [downloadingPath, setDownloadingPath] = useState<string | null>(null);
+
+  // Auditoria: registra leitura permitida ou negada do histórico China
+  useEffect(() => {
+    if (!open || !documentoId || isLoading) return;
+    if (isPermissionError(error)) {
+      logRlsAccess({
+        resourceType: "china_produto_documentos_historico",
+        resourceId: documentoId,
+        outcome: "denied",
+        reason: "rls_denied_or_no_access",
+        contexto: { tipo_documento: tipoDocumentoLabel ?? null },
+      });
+    } else if (!error) {
+      logRlsAccess({
+        resourceType: "china_produto_documentos_historico",
+        resourceId: documentoId,
+        outcome: "granted",
+        contexto: { versoes: versoes.length, tipo_documento: tipoDocumentoLabel ?? null },
+      });
+    }
+  }, [open, documentoId, isLoading, error, versoes.length, tipoDocumentoLabel]);
+
 
   const baixarVersao = async (path: string | null, nome: string | null) => {
     if (!path) {
