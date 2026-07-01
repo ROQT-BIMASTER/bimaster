@@ -756,7 +756,7 @@ export function SubtarefasSection({
       )}
 
       <div className="space-y-1.5">
-        {pendentes.map(renderSub)}
+        {renderTree(pendentes)}
 
         {concluidas.length > 0 && (
           <div className="mt-2 pt-2 border-t border-border/30">
