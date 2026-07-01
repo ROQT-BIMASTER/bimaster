@@ -490,48 +490,64 @@ export function SubtarefasSection({
                   onKeyDown={(e) => {
                     if (e.key === "Enter") {
                       e.preventDefault();
-                      const v = addingValue.trim();
-                      if (v) {
-                        addChildOf(st, v);
+                      const ok = addChildOf(st, addingValue);
+                      if (ok) {
                         setCollapsedIds((prev) => {
                           const n = new Set(prev);
                           n.delete(st.id);
                           return n;
                         });
+                        setAddingValue("");
+                        setAddingForId(null);
                       }
-                      setAddingValue("");
-                      setAddingForId(null);
+                      // se inválido, mantém input aberto (toast já disparado)
                     } else if (e.key === "Escape") {
                       setAddingValue("");
                       setAddingForId(null);
                     }
                   }}
                   onBlur={() => {
+                    // Fechar sem criar se vazio; se preenchido, tentar criar
+                    // silenciosamente (sem toast de erro) para não poluir UX no blur.
                     const v = addingValue.trim();
-                    if (v) addChildOf(st, v);
+                    if (v) {
+                      const err = validateNewTitle(v, ((st as any).subtarefas ?? []));
+                      if (!err) addChildOf(st, v);
+                    }
                     setAddingValue("");
                     setAddingForId(null);
                   }}
                   placeholder="Título do subitem..."
-                  className="h-7 text-xs flex-1"
+                  className="h-9 md:h-7 text-sm md:text-xs flex-1"
+                  maxLength={MAX_TITLE_LEN}
                   data-testid={`subitem-input-${st.id}`}
                 />
               </div>
             ) : (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-6 text-[10px] gap-1 text-muted-foreground hover:text-primary"
-                onClick={() => {
-                  setAddingForId(st.id);
-                  setAddingValue("");
-                }}
-                data-testid={`subitem-add-${st.id}`}
-              >
-                <Plus className="h-3 w-3" />
-                Adicionar subitem
-              </Button>
+              <TooltipProvider delayDuration={300}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 md:h-6 min-h-[32px] md:min-h-0 px-2 text-[11px] md:text-[10px] gap-1 text-muted-foreground hover:text-primary"
+                      onClick={() => {
+                        setAddingForId(st.id);
+                        setAddingValue("");
+                      }}
+                      data-testid={`subitem-add-${st.id}`}
+                    >
+                      <Plus className="h-3.5 w-3.5 md:h-3 md:w-3" />
+                      Adicionar subitem
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="max-w-[260px] text-xs">
+                    Subitem fica aninhado dentro desta subtarefa. Para criar uma subtarefa no mesmo nível, use o campo "Adicionar subtarefa" no fim da lista.
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             )}
+
           </div>
         )}
 
