@@ -186,6 +186,9 @@ async function run() {
     console.log(`[snapshots] ${ids.length} stories`);
 
     for (const id of ids) {
+      const storyRec = { id, slots: {}, status: "pass", error: null };
+      report.stories.push(storyRec);
+
       const url = `http://localhost:${PORT}/iframe.html?id=${id}&viewMode=story`;
       await page.goto(url, { waitUntil: "networkidle" });
 
@@ -193,28 +196,22 @@ async function run() {
       try {
         await root.waitFor({ timeout: 5000 });
       } catch {
+        storyRec.status = "fail";
+        storyRec.error = "avatar não renderizou";
         failures.push({ id, reason: "avatar não renderizou" });
         continue;
       }
-      // Estabiliza fontes antes de capturar (evita flakiness FOUT).
       await page.evaluate(() => document.fonts.ready).catch(() => {});
 
       const title = (await root.getAttribute("title")) ?? "";
+      storyRec.title = title;
       const fb = root.locator("[aria-label]").first();
 
-      // Slot 1 — avatar (tipografia + iniciais + shape).
       const r1 = await captureSlot(page, root, id, "avatar");
-
-      // Slot 2 — fallback textual isolado (garante que o glyph do fallback
-      // seja renderizado com a mesma tipografia/tracking).
       const r2 = (await fb.count())
         ? await captureSlot(page, fb, id, "fallback")
         : { seeded: true, skipped: true };
 
-      // Slot 3 — tooltip renderizado. Como o title nativo do browser não
-      // é acessível a screenshot cross-platform, injetamos um <div> que
-      // reproduz o mesmo texto do tooltip com o typography stack real da
-      // app, garantindo cobertura visual do conteúdo textual do fallback.
       await page.evaluate((t) => {
         const prev = document.getElementById("__snapshot_tooltip__");
         if (prev) prev.remove();
@@ -239,24 +236,47 @@ async function run() {
       const tooltip = page.locator("#__snapshot_tooltip__");
       const r3 = await captureSlot(page, tooltip, id, "tooltip");
 
-      const results = [
+      for (const [slot, r] of [
         ["avatar", r1],
         ["fallback", r2],
         ["tooltip", r3],
-      ];
-      for (const [slot, r] of results) {
-        if (r.skipped) continue;
+      ]) {
+        const slotRec = {
+          slot,
+          status: "pass",
+          ratio: r.ratio ?? 0,
+          seeded: !!r.seeded,
+          skipped: !!r.skipped,
+          actual: r.skipped ? null : `actual/${id}/${slot}.png`,
+          baseline: r.skipped ? null : `baseline/${id}/${slot}.png`,
+          diff: null,
+          message: null,
+        };
+        storyRec.slots[slot] = slotRec;
+
+        if (r.skipped) {
+          slotRec.status = "skip";
+          continue;
+        }
         if (r.seeded) {
+          slotRec.status = "seed";
           console.log(`  · ${id}/${slot} — baseline criada`);
           continue;
         }
         if (r.sizeMismatch) {
+          slotRec.status = "fail";
+          slotRec.message = `size mismatch ${JSON.stringify(r.sizeMismatch)}`;
+          storyRec.status = "fail";
           failures.push({
             id,
             reason: `${slot}: dimensões diferentes ${JSON.stringify(r.sizeMismatch)}`,
           });
           console.error(`  ✗ ${id}/${slot} — size mismatch`, r.sizeMismatch);
         } else if (r.ratio > THRESHOLD) {
+          slotRec.status = "fail";
+          slotRec.diff = `diff/${id}/${slot}.png`;
+          slotRec.message = `diff ${(r.ratio * 100).toFixed(3)}% > ${(THRESHOLD * 100).toFixed(3)}%`;
+          storyRec.status = "fail";
           failures.push({
             id,
             reason: `${slot}: diff ${(r.ratio * 100).toFixed(3)}% (>${(THRESHOLD * 100).toFixed(3)}%)`,
@@ -277,10 +297,18 @@ async function run() {
     server.close();
   }
 
+  report.finishedAt = new Date().toISOString();
+  report.durationMs = Date.now() - startedAt;
+  report.summary = summarize(report);
+  writeReport(report);
+
   if (created.length > 0) {
     console.log(`\n[snapshots] baselines criadas: ${created.length}`);
     console.log("           reveja e commite scripts/storybook/snapshots/baseline/");
   }
+  console.log(
+    `\n[snapshots] relatório: ${join(SNAP_DIR, "report.html")}`,
+  );
   if (failures.length > 0) {
     console.error(`\n[snapshots] ${failures.length} regressão(ões)`);
     console.error("           inspecione scripts/storybook/snapshots/diff/");
@@ -292,7 +320,101 @@ async function run() {
   console.log("\n[snapshots] OK");
 }
 
+// ---------- Relatório ----------
+
+const report = {
+  startedAt: new Date().toISOString(),
+  finishedAt: null,
+  durationMs: 0,
+  threshold: THRESHOLD,
+  pixelTolerance: PIXEL_TOL,
+  updateMode: UPDATE,
+  stories: [],
+  summary: null,
+};
+const startedAt = Date.now();
+
+function summarize(rep) {
+  const s = { stories: rep.stories.length, pass: 0, fail: 0, seeded: 0, slots: { pass: 0, fail: 0, seed: 0, skip: 0 } };
+  for (const st of rep.stories) {
+    if (st.status === "fail") s.fail++;
+    else s.pass++;
+    for (const slot of Object.values(st.slots ?? {})) {
+      s.slots[slot.status] = (s.slots[slot.status] ?? 0) + 1;
+      if (slot.status === "seed") s.seeded++;
+    }
+  }
+  return s;
+}
+
+function esc(s) {
+  return String(s ?? "").replace(/[&<>"']/g, (c) => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
+  }[c]));
+}
+
+function statusBadge(s) {
+  const map = {
+    pass: ["#065f46", "#d1fae5", "OK"],
+    fail: ["#7f1d1d", "#fee2e2", "FAIL"],
+    seed: ["#1e3a8a", "#dbeafe", "SEED"],
+    skip: ["#374151", "#e5e7eb", "SKIP"],
+  };
+  const [fg, bg, label] = map[s] ?? map.skip;
+  return `<span style="display:inline-block;padding:2px 8px;border-radius:999px;background:${bg};color:${fg};font-size:11px;font-weight:600">${label}</span>`;
+}
+
+function renderStory(st) {
+  const slots = ["avatar", "fallback", "tooltip"].map((k) => {
+    const slot = st.slots?.[k];
+    if (!slot) return `<td style="padding:6px;color:#9ca3af">—</td>`;
+    const imgs = [];
+    if (slot.baseline) imgs.push(`<div><div style="font-size:10px;color:#6b7280">baseline</div><img src="${esc(slot.baseline)}" alt="baseline" style="max-width:120px;border:1px solid #e5e7eb;border-radius:4px"></div>`);
+    if (slot.actual) imgs.push(`<div><div style="font-size:10px;color:#6b7280">actual</div><img src="${esc(slot.actual)}" alt="actual" style="max-width:120px;border:1px solid #e5e7eb;border-radius:4px"></div>`);
+    if (slot.diff) imgs.push(`<div><div style="font-size:10px;color:#b91c1c">diff</div><img src="${esc(slot.diff)}" alt="diff" style="max-width:120px;border:1px solid #fecaca;border-radius:4px"></div>`);
+    return `<td style="padding:6px;vertical-align:top">
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">${statusBadge(slot.status)}<span style="font-size:11px;color:#6b7280">${(slot.ratio * 100).toFixed(3)}%</span></div>
+      ${slot.message ? `<div style="font-size:11px;color:#b91c1c;margin-bottom:4px">${esc(slot.message)}</div>` : ""}
+      <div style="display:flex;gap:6px;flex-wrap:wrap">${imgs.join("")}</div>
+    </td>`;
+  }).join("");
+  return `<tr style="border-top:1px solid #e5e7eb">
+    <td style="padding:8px;vertical-align:top">
+      <div style="font-family:ui-monospace,Menlo,monospace;font-size:12px">${esc(st.id)}</div>
+      <div style="font-size:11px;color:#6b7280;margin-top:2px">${esc(st.title ?? "")}</div>
+      <div style="margin-top:6px">${statusBadge(st.status)}</div>
+      ${st.error ? `<div style="font-size:11px;color:#b91c1c;margin-top:4px">${esc(st.error)}</div>` : ""}
+    </td>${slots}
+  </tr>`;
+}
+
+function writeReport(rep) {
+  writeFileSync(join(SNAP_DIR, "report.json"), JSON.stringify(rep, null, 2));
+  const s = rep.summary;
+  const html = `<!doctype html><meta charset="utf-8"><title>Storybook snapshot report</title>
+<body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;margin:0;padding:24px;background:#f9fafb;color:#111827">
+<h1 style="margin:0 0 4px;font-size:20px">Storybook visual snapshots</h1>
+<div style="font-size:12px;color:#6b7280;margin-bottom:16px">
+  ${esc(rep.startedAt)} → ${esc(rep.finishedAt)} · ${rep.durationMs} ms · threshold ${(rep.threshold * 100).toFixed(3)}% · pixel tol ${rep.pixelTolerance}${rep.updateMode ? " · UPDATE_SNAPSHOTS=1" : ""}
+</div>
+<div style="display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap">
+  <div style="padding:10px 14px;background:#fff;border:1px solid #e5e7eb;border-radius:8px"><div style="font-size:11px;color:#6b7280">Stories</div><div style="font-size:18px;font-weight:600">${s.stories}</div></div>
+  <div style="padding:10px 14px;background:#fff;border:1px solid #e5e7eb;border-radius:8px"><div style="font-size:11px;color:#6b7280">Pass</div><div style="font-size:18px;font-weight:600;color:#065f46">${s.pass}</div></div>
+  <div style="padding:10px 14px;background:#fff;border:1px solid #e5e7eb;border-radius:8px"><div style="font-size:11px;color:#6b7280">Fail</div><div style="font-size:18px;font-weight:600;color:#7f1d1d">${s.fail}</div></div>
+  <div style="padding:10px 14px;background:#fff;border:1px solid #e5e7eb;border-radius:8px"><div style="font-size:11px;color:#6b7280">Baselines novas</div><div style="font-size:18px;font-weight:600;color:#1e3a8a">${s.seeded}</div></div>
+</div>
+<table style="width:100%;background:#fff;border:1px solid #e5e7eb;border-radius:8px;border-collapse:separate;border-spacing:0;overflow:hidden">
+  <thead style="background:#f3f4f6;text-align:left;font-size:11px;color:#374151">
+    <tr><th style="padding:8px">Story</th><th style="padding:8px">avatar</th><th style="padding:8px">fallback</th><th style="padding:8px">tooltip</th></tr>
+  </thead>
+  <tbody>${rep.stories.map(renderStory).join("")}</tbody>
+</table>
+</body>`;
+  writeFileSync(join(SNAP_DIR, "report.html"), html);
+}
+
 run().catch((e) => {
   console.error("[snapshots] fatal", e);
   process.exit(1);
 });
+
