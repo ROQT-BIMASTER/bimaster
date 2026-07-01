@@ -158,7 +158,7 @@ export async function validateFileForUpload(file: File): Promise<FileValidationR
     };
   }
 
-  // 5. Tamanho (vídeos podem ir até 100 MB; demais tipos, 20 MB)
+  // 5. Tamanho (vídeos podem ir até 500 MB; demais tipos, 200 MB)
   const isVideo = VIDEO_EXTENSIONS.has(ext);
   const maxSize = isVideo ? MAX_VIDEO_SIZE_BYTES : MAX_FILE_SIZE_BYTES;
   if (file.size > maxSize) {
@@ -169,7 +169,7 @@ export async function validateFileForUpload(file: File): Promise<FileValidationR
       code: "SIZE_EXCEEDED",
       error: isVideo
         ? `Vídeo ".${ext}" tem ${currentMb} MB e excede o limite de ${maxMb} MB. Comprima o vídeo (ex.: HandBrake, MP4 H.264 720p) e tente novamente.`
-        : `Arquivo ".${ext}" tem ${currentMb} MB e excede o limite de ${maxMb} MB para este tipo. Vídeos MP4/MOV/WEBM podem chegar a 100 MB.`,
+        : `Arquivo ".${ext}" tem ${currentMb} MB e excede o limite de ${maxMb} MB para este tipo. Vídeos MP4/MOV/WEBM podem chegar a 500 MB.`,
     };
   }
 
