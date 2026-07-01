@@ -1560,7 +1560,7 @@ export function ProjetoTarefaDetalhe({
           onCreateTasks={(tasks) => {
             if (onAddSubtarefa) {
               for (const t of tasks) {
-                onAddSubtarefa(t.titulo, tarefa.id, tarefa.secao_id);
+                onAddSubtarefa(t.titulo, rootTarefaId ?? tarefa.id, tarefa.secao_id);
               }
             }
           }}
