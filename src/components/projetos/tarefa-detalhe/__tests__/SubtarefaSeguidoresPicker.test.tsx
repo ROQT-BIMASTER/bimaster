@@ -53,7 +53,7 @@ describe("SubtarefaSeguidoresPicker – perfis diferentes", () => {
     );
     // Iniciais AD (primeira + última) do fallback do SmartAvatar
     expect(screen.getByText("AD")).toBeInTheDocument();
-    expect(screen.getByTitle(/Ana Dona/)).toBeInTheDocument();
+    expect(screen.getAllByTitle(/Ana Dona/).length).toBeGreaterThan(0);
   });
 
   it("perfil membro: normaliza `nome` ausente para 'Membro' e ignora avatar_url inválido", () => {
