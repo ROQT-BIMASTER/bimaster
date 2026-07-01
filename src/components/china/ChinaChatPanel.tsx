@@ -294,9 +294,18 @@ export function ChinaChatPanel({ submissaoId, produtoNome, tipoRemetente, refere
     const ok: File[] = [];
     for (const f of arr) {
       const v = await validateFileForUpload(f);
-      if (!v.valid) erros.push(`${f.name}: ${v.error}`);
-      else if (f.size > 10 * 1024 * 1024) erros.push(`${f.name}: maior que 10 MB`);
-      else if (!/^(image\/(png|jpeg|webp|gif)|application\/pdf)$/.test(f.type)) erros.push(`${f.name}: formato não suportado`);
+      if (!v.valid) {
+        erros.push(`${f.name}: ${v.error}`);
+        reportGenericUploadRejection({ module: "china-chat", file: f, userId: "anon", contextId: submissaoId, error: v.error });
+      }
+      else if (f.size > 10 * 1024 * 1024) {
+        erros.push(`${f.name}: maior que 10 MB`);
+        reportGenericUploadRejection({ module: "china-chat", file: f, userId: "anon", contextId: submissaoId, error: "maior que 10 MB", reason: "size_exceeded" });
+      }
+      else if (!/^(image\/(png|jpeg|webp|gif)|application\/pdf)$/.test(f.type)) {
+        erros.push(`${f.name}: formato não suportado`);
+        reportGenericUploadRejection({ module: "china-chat", file: f, userId: "anon", contextId: submissaoId, error: "formato não suportado", reason: "invalid_type" });
+      }
       else ok.push(f);
     }
     if (erros.length) erros.forEach((e) => toast.error(e));
