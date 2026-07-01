@@ -14,6 +14,24 @@ export type Database = {
   }
   public: {
     Tables: {
+      _internal_cron_config: {
+        Row: {
+          name: string
+          updated_at: string
+          value: string
+        }
+        Insert: {
+          name: string
+          updated_at?: string
+          value: string
+        }
+        Update: {
+          name?: string
+          updated_at?: string
+          value?: string
+        }
+        Relationships: []
+      }
       access_audit_log: {
         Row: {
           action: string
@@ -53744,6 +53762,10 @@ export type Database = {
       _kanban_coluna_universal: {
         Args: { p_etapa_ordem: number; p_status: string }
         Returns: string
+      }
+      _set_internal_cron_secret: {
+        Args: { p_name: string; p_value: string }
+        Returns: undefined
       }
       _set_rrtask_webhook_secret: {
         Args: { _value: string }

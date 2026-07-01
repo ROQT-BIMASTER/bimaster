@@ -19,3 +19,6 @@ verify_jwt = false
 
 [functions.rr-sync]
 verify_jwt = false
+
+[functions.windsor-sync]
+verify_jwt = false
