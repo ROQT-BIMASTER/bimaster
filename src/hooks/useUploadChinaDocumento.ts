@@ -17,6 +17,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { validateFileForUpload } from "@/lib/utils/file-security";
+import { reportGenericUploadSuccess, reportGenericUploadRejection, reportGenericUploadError } from "@/lib/telemetry/uploadTelemetry";
 import { sanitizeStorageSegment } from "@/lib/china/sanitizeTipoKey";
 import { logger } from "@/lib/logger";
 import { toast } from "sonner";
