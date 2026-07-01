@@ -108,6 +108,18 @@ export function TarefaResponsavelSeguidoresEditor({
     [colaboradores],
   );
 
+  // Lookup email por user_id — usado como `identifier` do SmartAvatar para
+  // desambiguar homônimos e manter o tooltip coerente (`Nome (email)`) mesmo
+  // quando a lista `responsaveis`/`colaboradores` só carrega nome+avatar.
+  const emailByUserId = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const m of membros) {
+      const email = m.profile?.email;
+      if (email) map.set(m.user_id, email);
+    }
+    return map;
+  }, [membros]);
+
   // ─── Responsáveis ──────────────────────────────────────────────────────────
   const adicionarResponsavel = (userId: string) => {
     if (!user || responsaveisIds.has(userId)) return;
@@ -346,6 +358,8 @@ export function TarefaResponsavelSeguidoresEditor({
                       <SmartAvatar
                         src={m.profile?.avatar_url}
                         nome={m.profile?.nome}
+                        identifier={m.profile?.email}
+                        fallbackNome="Membro"
                         className="h-5 w-5 mr-2"
                         fallbackClassName="text-[9px]"
                       />
@@ -387,6 +401,8 @@ export function TarefaResponsavelSeguidoresEditor({
                     <SmartAvatar
                       src={r.avatar_url}
                       nome={r.nome}
+                      identifier={emailByUserId.get(r.user_id)}
+                      fallbackNome="Membro"
                       className="h-6 w-6 border-2 border-background"
                       fallbackClassName="text-[9px] bg-primary/20 text-primary font-semibold"
                     />
@@ -456,6 +472,8 @@ export function TarefaResponsavelSeguidoresEditor({
                     <SmartAvatar
                       src={c.avatar_url}
                       nome={c.nome}
+                      identifier={emailByUserId.get(c.user_id)}
+                      fallbackNome="Membro"
                       className="h-6 w-6 border-2 border-background"
                       fallbackClassName="text-[8px] bg-muted"
                     />
