@@ -433,6 +433,7 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
       return { data };
     },
     onMutate: async (tarefa) => {
+      flickerLog("mutation-onMutate", { parent: tarefa.parent_tarefa_id, secao: tarefa.secao_id });
       await queryClient.cancelQueries({ queryKey: ["projeto-tarefas-v2", projetoId] });
       const previous = queryClient.getQueryData<ProjetoTarefasView>(["projeto-tarefas-v2", projetoId]);
       const tempId = `temp-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
@@ -470,9 +471,11 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
         tituloNorm: normalizeCreateTitle(tarefa.titulo),
       });
       patchView((v) => ({ ...v, tarefas: [...v.tarefas, optimistic] }));
+      flickerLog("optimistic-insert", { tempId, clientKey });
       return { previous, tempId, clientKey, isSubtarefa: !!tarefa.parent_tarefa_id };
     },
     onError: (err: Error, _vars, context) => {
+      flickerLog("mutation-onError", { message: err.message });
       if (context?.clientKey) pendingCreatesRef.current.delete(context.clientKey);
       if (context?.previous) queryClient.setQueryData(["projeto-tarefas-v2", projetoId], context.previous);
       // Em erro, refetch agora para reconciliar com o servidor.
@@ -480,6 +483,7 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
       toast.error(err.message);
     },
     onSuccess: ({ data }, _vars, context) => {
+      flickerLog("mutation-onSuccess", { tempId: context?.tempId, realId: data?.id });
       // Swap tempId → id real direto no cache, preservando o resto do
       // snapshot otimista. Evita refetch e portanto evita re-mount da row.
       if (data?.id && context?.tempId) {
@@ -504,8 +508,10 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
               : t,
           ),
         }));
+        flickerLog("id-swap-applied", { tempId: context.tempId, realId: data.id });
       }
     },
+
     // Sem onSettled: o swap tempId→id em onSuccess já deixa o cache
     // no estado final. Invalidar/reconciliar aqui só produz notificações
     // extras a subscribers → renders visíveis como "piscadas".
