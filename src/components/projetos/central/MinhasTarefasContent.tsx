@@ -1782,6 +1782,17 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
         onMoveTarefa={handleBridgeMoveTarefa}
         projetoIdOverride={selectedProjetoId}
         externalSaving={isBridgeSaving}
+        onOpenSubtarefa={async (childId) => {
+          // Paridade V1↔V2: abrir subtarefa aninhada dentro do mesmo drawer
+          // (sem fechar/reabrir) buscando a linha e trocando o `detailTarefa`.
+          if (!childId) return;
+          const { data } = await supabase
+            .from("projeto_tarefas")
+            .select("*")
+            .eq("id", childId)
+            .maybeSingle();
+          if (data) setDetailTarefa(data as MinaTarefa);
+        }}
       />
     </div>
   );
