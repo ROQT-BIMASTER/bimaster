@@ -77,8 +77,81 @@ Deno.serve(secureHandler(
       return j(cors, 403, { error: "forbidden_admin_only" });
     }
 
+    // ============ Modo diagnóstico ============
+    const body = await req.json().catch(() => ({} as Record<string, unknown>));
+    if ((body as { mode?: string })?.mode === "diagnostico") {
+      async function fetchJanela(preset: string): Promise<{ ok: true; rows: WindsorRow[] } | { ok: false; status?: number }> {
+        const u = `https://connectors.windsor.ai/all?api_key=${encodeURIComponent(API_KEY!)}&date_preset=${encodeURIComponent(preset)}&fields=${WINDSOR_FIELDS_DIAG}&_renderer=json`;
+        let r: Response;
+        try {
+          r = await fetch(u, { method: "GET" });
+        } catch (e) {
+          console.error("windsor_diag_fetch_failed", preset, e);
+          return { ok: false };
+        }
+        if (!r.ok) {
+          const t = await r.text().catch(() => "");
+          console.error("windsor_diag_non_2xx", preset, r.status, t.slice(0, 2000));
+          return { ok: false, status: r.status };
+        }
+        let p: unknown;
+        try {
+          p = await r.json();
+        } catch (e) {
+          console.error("windsor_diag_json_parse_failed", preset, e);
+          return { ok: false };
+        }
+        const rs: WindsorRow[] = Array.isArray(p)
+          ? (p as WindsorRow[])
+          : Array.isArray((p as { data?: unknown })?.data)
+            ? ((p as { data: WindsorRow[] }).data)
+            : [];
+        return { ok: true, rows: rs };
+      }
+
+      function resumirJanela(rows: WindsorRow[]) {
+        const srcMap = new Map<string, number>();
+        const distinct: Record<string, Set<string>> = {};
+        for (const f of DIAG_ID_FIELDS) distinct[f] = new Set();
+        let semAccountId = 0;
+        for (const row of rows) {
+          const s = String(row.source ?? "").trim();
+          if (s) srcMap.set(s, (srcMap.get(s) ?? 0) + 1);
+          if (!isNonEmpty(row.account_id)) semAccountId++;
+          for (const f of DIAG_ID_FIELDS) {
+            const v = (row as Record<string, unknown>)[f];
+            if (isNonEmpty(v)) distinct[f].add(String(v));
+          }
+        }
+        const contagem: Record<string, number> = {};
+        for (const f of DIAG_ID_FIELDS) contagem[f] = distinct[f].size;
+        return {
+          linhas_recebidas: rows.length,
+          campos_presentes: rows.length > 0 ? Object.keys(rows[0] as object) : [],
+          amostra: rows.slice(0, 3),
+          distintos_por_source: Array.from(srcMap.entries())
+            .map(([source, count]) => ({ source, count }))
+            .sort((a, b) => b.count - a.count),
+          contagem_de_distintos_por_campo: contagem,
+          linhas_sem_account_id: semAccountId,
+        };
+      }
+
+      const janelas: Record<string, unknown> = {};
+      for (const preset of ["last_7d", "last_90d"]) {
+        const r = await fetchJanela(preset);
+        if (!r.ok) {
+          return j(cors, 502, { error: "windsor_upstream_error", janela: preset });
+        }
+        janelas[preset] = resumirJanela(r.rows);
+      }
+      return j(cors, 200, { modo: "diagnostico", janelas });
+    }
+    // ============ Fim modo diagnóstico ============
+
     // Fetch feed
     const url = `https://connectors.windsor.ai/all?api_key=${encodeURIComponent(API_KEY)}&date_preset=last_7d&fields=${WINDSOR_FIELDS}&_renderer=json`;
+
     let resp: Response;
     try {
       resp = await fetch(url, { method: "GET" });
