@@ -1786,6 +1786,7 @@ export function ProjetoTarefaDetalhe({
           onOpenChange={(open) => { if (!open) setSelectedSubtarefaId(null); }}
           onUpdate={onUpdate}
           onToggle={onToggle}
+          onAddSubtarefa={onAddSubtarefa}
           onDelete={onDelete}
           secoes={secoes}
           onMoveTarefa={onMoveTarefa}
