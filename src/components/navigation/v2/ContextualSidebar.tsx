@@ -240,15 +240,35 @@ function CategoryPanel({
 
                   {isOpen && (
                     <div className="pl-7 flex flex-col">
-                      {mod.pages.map((page) => (
-                        <PageLink
-                          key={page.id}
-                          page={page}
-                          currentPath={currentPath}
-                          token={modToken}
-                          onNavigate={onNavigate}
-                        />
-                      ))}
+                      {mod.pages.map((page, pIdx) => {
+                        const prevGroup =
+                          pIdx > 0 ? mod.pages[pIdx - 1].groupLabel : undefined;
+                        const showGroupHeader =
+                          !!page.groupLabel && page.groupLabel !== prevGroup;
+                        return (
+                          <div key={page.id} className="flex flex-col">
+                            {showGroupHeader && (
+                              <div
+                                className={cn(
+                                  "px-2 pb-0.5 text-[9px] font-semibold uppercase tracking-wider",
+                                  pIdx > 0 && "pt-2 mt-1",
+                                )}
+                                style={{
+                                  color: "hsl(var(--launcher-muted))",
+                                }}
+                              >
+                                {page.groupLabel}
+                              </div>
+                            )}
+                            <PageLink
+                              page={page}
+                              currentPath={currentPath}
+                              token={modToken}
+                              onNavigate={onNavigate}
+                            />
+                          </div>
+                        );
+                      })}
                     </div>
                   )}
                 </div>
@@ -350,15 +370,32 @@ function ModulePanel({
           {pages.length === 0 ? (
             <Empty query={query} />
           ) : (
-            pages.map((page) => (
-              <PageLink
-                key={page.id}
-                page={page}
-                currentPath={currentPath}
-                token={token}
-                onNavigate={onNavigate}
-              />
-            ))
+            pages.map((page, pIdx) => {
+              const prevGroup = pIdx > 0 ? pages[pIdx - 1].groupLabel : undefined;
+              const showGroupHeader =
+                !!page.groupLabel && page.groupLabel !== prevGroup;
+              return (
+                <div key={page.id} className="flex flex-col">
+                  {showGroupHeader && (
+                    <div
+                      className={cn(
+                        "px-2 pb-0.5 text-[9px] font-semibold uppercase tracking-wider",
+                        pIdx > 0 && "pt-2 mt-1",
+                      )}
+                      style={{ color: "hsl(var(--launcher-muted))" }}
+                    >
+                      {page.groupLabel}
+                    </div>
+                  )}
+                  <PageLink
+                    page={page}
+                    currentPath={currentPath}
+                    token={token}
+                    onNavigate={onNavigate}
+                  />
+                </div>
+              );
+            })
           )}
         </nav>
       </ScrollArea>
