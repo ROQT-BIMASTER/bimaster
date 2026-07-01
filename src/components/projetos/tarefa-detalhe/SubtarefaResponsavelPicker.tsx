@@ -100,12 +100,12 @@ function SubtarefaResponsavelPickerImpl({
         )}
       >
         {responsavelId ? (
-          <Avatar className="h-7 w-7">
-            <AvatarImage src={responsavelAvatar || undefined} />
-            <AvatarFallback className="text-[10px] bg-primary/15 text-primary font-medium">
-              {responsavelNome?.substring(0, 2).toUpperCase() || "?"}
-            </AvatarFallback>
-          </Avatar>
+          <SmartAvatar
+            src={responsavelAvatar}
+            nome={responsavelNome}
+            className="h-7 w-7"
+            fallbackClassName="text-[10px]"
+          />
         ) : (
           <User className="h-3.5 w-3.5" />
         )}
@@ -117,12 +117,12 @@ function SubtarefaResponsavelPickerImpl({
       >
         {responsavelId ? (
           <>
-            <Avatar className="h-4 w-4">
-              <AvatarImage src={responsavelAvatar || undefined} />
-              <AvatarFallback className="text-[7px] bg-primary/20 text-primary">
-                {responsavelNome?.substring(0, 2).toUpperCase()}
-              </AvatarFallback>
-            </Avatar>
+            <SmartAvatar
+              src={responsavelAvatar}
+              nome={responsavelNome}
+              className="h-4 w-4"
+              fallbackClassName="text-[7px]"
+            />
             <span className="truncate max-w-[110px] text-foreground/80">{responsavelNome?.split(" ")[0] || "Membro"}</span>
           </>
         ) : (
@@ -195,12 +195,12 @@ function SubtarefaResponsavelPickerImpl({
                         responsavelId === m.user_id && "bg-accent/60",
                       )}
                     >
-                      <Avatar className="h-5 w-5 mr-2">
-                        <AvatarImage src={m.profile?.avatar_url || undefined} />
-                        <AvatarFallback className="text-[9px]">
-                          {m.profile?.nome?.substring(0, 2).toUpperCase() || "?"}
-                        </AvatarFallback>
-                      </Avatar>
+                      <SmartAvatar
+                        src={m.profile?.avatar_url}
+                        nome={m.profile?.nome}
+                        className="h-5 w-5 mr-2"
+                        fallbackClassName="text-[9px]"
+                      />
                       <span className="flex-1 truncate">{m.profile?.nome || "Membro"}</span>
                       {responsavelId === m.user_id && (
                         <Check className="h-3.5 w-3.5 text-primary" />
