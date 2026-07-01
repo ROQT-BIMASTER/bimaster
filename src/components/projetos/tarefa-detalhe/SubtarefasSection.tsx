@@ -26,11 +26,13 @@ import { flickerLog } from "@/lib/debug/flickerLog";
 
 const MIN_TITLE_LEN = 2;
 const MAX_TITLE_LEN = 200;
-const TREE_INDENT_PX = 24;
-// Alinha "Adicionar subitem" e badges de metadados exatamente com a coluna
-// do chevron/checkbox dos filhos: marginLeft do filho (24) + px-2 do filho (8) = 32.
-// Assim subtarefas e subitens ficam na MESMA coluna vertical em drawer e Focus Mode.
-const TREE_ROW_CONTENT_OFFSET_PX = 32;
+// Indentação da árvore vem de uma ÚNICA fonte: a CSS var `--tree-indent`
+// (e o offset derivado `--tree-row-content-offset`), definidas em
+// `src/index.css`. Nunca redeclare esses valores em outros componentes —
+// referencie sempre as vars para manter subtarefas e subitens alinhados
+// no drawer, no Focus Mode e na Central de Trabalho.
+const TREE_INDENT_VAR = "var(--tree-indent)";
+const TREE_ROW_CONTENT_OFFSET_VAR = "var(--tree-row-content-offset)";
 
 /**
  * Valida título de novo subitem/subtarefa antes de disparar a criação.
@@ -242,7 +244,7 @@ export function SubtarefasSection({
           "group border-b border-border/40 last:border-b-0 py-2 hover:bg-muted/20 transition-colors rounded-sm",
           depth > 0 && "border-l-2 border-border/30",
         )}
-        style={depth > 0 ? { marginLeft: TREE_INDENT_PX } : undefined}
+        style={depth > 0 ? { marginLeft: TREE_INDENT_VAR } : undefined}
       >
         <div className="px-2 space-y-2">
           {/* Linha 1: chevron + checkbox + título + abrir + excluir */}
@@ -352,7 +354,7 @@ export function SubtarefasSection({
           </div>
 
         {/* Linha 2: controles inline */}
-        <div className="flex items-center gap-1.5 flex-wrap" style={{ marginLeft: TREE_ROW_CONTENT_OFFSET_PX }}>
+        <div className="flex items-center gap-1.5 flex-wrap" style={{ marginLeft: TREE_ROW_CONTENT_OFFSET_VAR }}>
           <Select value={st.status} onValueChange={(v) => onUpdate(st.id, { status: v })}>
             <SelectTrigger className="h-6 text-[10px] w-auto min-w-[80px] gap-1 border-border/30">
               <SelectValue />
@@ -516,7 +518,7 @@ export function SubtarefasSection({
 
         {/* Linha 3: botão "Adicionar subitem" + input inline (multi-nível) */}
         {onAddSubtarefa && (
-          <div style={{ marginLeft: TREE_ROW_CONTENT_OFFSET_PX }}>
+          <div style={{ marginLeft: TREE_ROW_CONTENT_OFFSET_VAR }}>
             {addingForId === st.id ? (
               <div className="flex items-center gap-1.5">
                 <Input
