@@ -55,11 +55,13 @@ export function ProjetoListView({ projetoId, darkBg = false, filters = EMPTY_FIL
   const [searchParams, setSearchParams] = useSearchParams();
   const selectedTarefaId = searchParams.get("tarefa");
   const setSelectedTarefaId = (id: string | null) => {
+    console.log("[ProjetoListView] setSelectedTarefaId", { id, current: searchParams.get("tarefa") });
     setSearchParams(
       (prev) => {
         const next = new URLSearchParams(prev);
         if (id) next.set("tarefa", id);
         else next.delete("tarefa");
+        console.log("[ProjetoListView] setSearchParams applying", next.toString());
         return next;
       },
       { replace: true },
