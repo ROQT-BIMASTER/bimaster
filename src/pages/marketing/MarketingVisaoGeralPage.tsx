@@ -40,6 +40,9 @@ import { ptBR } from "date-fns/locale";
 import type { DateRange } from "react-day-picker";
 import { parseLocalDate } from "@/lib/utils/parseLocalDate";
 import { RankingMarcasSection } from "@/components/marketing/RankingMarcasSection";
+import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
+import { Link } from "react-router-dom";
+import { ArrowLeft } from "lucide-react";
 
 // ---------- helpers ----------
 const nf = new Intl.NumberFormat("pt-BR", { notation: "compact", maximumFractionDigits: 1 });
