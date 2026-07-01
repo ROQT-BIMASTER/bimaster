@@ -309,7 +309,7 @@ export const SubtarefaSeguidoresPicker = memo(
     // na pilha antes que o `sort` interno rode.
     const key = (arr: Colab[]) =>
       arr
-        .map((c) => `${c.user_id}:${c.nome ?? ""}:${c.avatar_url ?? ""}`)
+        .map((c) => `${c.user_id}:${c.nome ?? ""}:${c.avatar_url ?? ""}:${c.email ?? ""}`)
         .sort()
         .join(",");
     return key(prev.colaboradores) === key(next.colaboradores);
