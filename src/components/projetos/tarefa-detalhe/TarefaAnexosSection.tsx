@@ -10,7 +10,9 @@ import { StoragePreviewDialog } from "@/components/fabrica/StoragePreviewDialog"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { supabase } from "@/integrations/supabase/client";
 import { UploadAnexoDialog, type UploadConfirmPayload } from "./UploadAnexoDialog";
+import { UploadProgressList, type UploadItem } from "./UploadProgressList";
 import { detectFileKind } from "@/lib/utils/detectFileKind";
+import { describeUploadError } from "@/lib/utils/file-security";
 
 
 const COFRE_CATEGORIAS = [
