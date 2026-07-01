@@ -230,13 +230,19 @@ async function uploadAnexos(
 
   const out: RevisaoAnexo[] = [];
   for (const f of files) {
+    const passed = await guardFileUpload({ file: f, module: "china-revisao", userId: uid, contextId: submissaoId });
+    if (!passed) continue;
     const safe = f.name.replace(/[^\w.\-]+/g, "_");
     const path = `${uid}/${submissaoId}/revisoes/${revisaoId}/${Date.now()}-${safe}`;
     const { error } = await supabase.storage.from(BUCKET).upload(path, f, {
       contentType: f.type || "application/octet-stream",
       upsert: false,
     });
-    if (error) throw error;
+    if (error) {
+      reportUploadFailureShared({ module: "china-revisao", file: f, userId: uid, contextId: submissaoId, error });
+      throw error;
+    }
+    reportUploadSuccessShared({ module: "china-revisao", file: f, userId: uid, contextId: submissaoId, storagePath: path });
     out.push({ path, nome: f.name, tamanho: f.size, mime: f.type, lado });
   }
   return out;
