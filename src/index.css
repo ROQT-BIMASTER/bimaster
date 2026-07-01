@@ -2,6 +2,26 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Metric-adjusted fallbacks: mantêm layout estável se DM Sans / Space Grotesk
+   não carregarem (offline, bloqueio de CDN, timeout). size-adjust calibrado
+   para minimizar CLS ao trocar Arial pela fonte web. */
+@font-face {
+  font-family: 'DM Sans Fallback';
+  src: local('Arial'), local('Helvetica Neue'), local('Helvetica');
+  size-adjust: 100.06%;
+  ascent-override: 92%;
+  descent-override: 24%;
+  line-gap-override: 0%;
+}
+@font-face {
+  font-family: 'Space Grotesk Fallback';
+  src: local('Arial'), local('Helvetica Neue'), local('Helvetica');
+  size-adjust: 101%;
+  ascent-override: 96%;
+  descent-override: 25%;
+  line-gap-override: 0%;
+}
+
 /* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
 All colors MUST be HSL.
 */
