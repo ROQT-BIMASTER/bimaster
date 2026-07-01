@@ -26,6 +26,7 @@ export default function PedidosResultPage() {
   const [busca, setBusca] = useState("");
   const [limiarParado, setLimiarParado] = useState(2);
   const [pedidoSelecionado, setPedidoSelecionado] = useState<PedidoRubyspExt | null>(null);
+  const [view, setView] = useState<"kanban" | "tabela">("kanban");
 
   const { data, isLoading, isFetching, refetch, error } = useRubyspPedidos({ dateFrom, dateTo });
 
