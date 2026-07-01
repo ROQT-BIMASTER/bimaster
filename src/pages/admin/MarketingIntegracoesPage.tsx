@@ -45,14 +45,15 @@ export default function MarketingIntegracoesPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Windsor · Descoberta de contas</CardTitle>
+          <CardTitle>Sincronização de métricas (Windsor)</CardTitle>
           <CardDescription>
-            Consulta o feed do Windsor no período recente e cataloga as contas
-            encontradas em mkt_windsor_map, para que você associe cada uma a
-            uma marca e plataforma antes de habilitar a sincronização completa
-            de métricas.
+            Roda o pipeline por conector (Instagram, Facebook orgânico, TikTok
+            orgânico) e grava métricas de conta e posts. A catalogação de
+            contas em mkt_windsor_map ocorre como efeito do resolvedor de
+            marca dentro do laço — não há mais chamada ao endpoint /all.
           </CardDescription>
         </CardHeader>
+
         <CardContent>
           <MarketingWindsorSyncButton />
         </CardContent>
