@@ -55,6 +55,14 @@ interface SubtarefasSectionProps {
   hideHeader?: boolean;
   /** Fallback adicional de hidratação de responsáveis (super-set do `projeto_membros`). */
   teamMembers?: { id: string; nome: string; avatar_url: string | null }[];
+  /**
+   * ID da tarefa raiz (nível 0) do drawer. Quando o drawer está aberto em uma
+   * subtarefa, o input principal "Adicionar subtarefa" e a IA "Sugerir com IA"
+   * usam este id como parent — assim novas subtarefas nascem sempre no mesmo
+   * nível hierárquico, nunca aninhadas sob outra subtarefa. O botão explícito
+   * "Adicionar subitem" (por linha) continua criando filho aninhado.
+   */
+  rootTarefaId?: string;
 }
 
 /**
