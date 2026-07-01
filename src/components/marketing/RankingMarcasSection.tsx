@@ -48,8 +48,11 @@ type MarcaAgg = {
   nome: string;
   posts: number;
   views: number;
+  alcance: number;
+  impressoes: number;
   eng: number;
-  taxa: number; // eng/views
+  denom: number; // views || alcance || impressoes (por post, somado)
+  taxa: number; // eng / denom
 };
 
 function useRankingMarcas(marcaId: string | null, from: Date, to: Date) {
@@ -61,7 +64,7 @@ function useRankingMarcas(marcaId: string | null, from: Date, to: Date) {
       let q = supabase
         .from("mkt_posts")
         .select(
-          "marca_id, curtidas, comentarios, compartilhamentos, saves, views, mkt_marcas(id, nome, slug)"
+          "marca_id, curtidas, comentarios, compartilhamentos, saves, views, alcance, impressoes, mkt_marcas(id, nome, slug)"
         )
         .gte("publicado_em", fromIso)
         .lte("publicado_em", toIso)
@@ -75,11 +78,30 @@ function useRankingMarcas(marcaId: string | null, from: Date, to: Date) {
         const id = row.marca_id as string;
         const nome = row.mkt_marcas?.nome ?? "Sem marca";
         if (!map.has(id)) {
-          map.set(id, { marca_id: id, nome, posts: 0, views: 0, eng: 0, taxa: 0 });
+          map.set(id, {
+            marca_id: id,
+            nome,
+            posts: 0,
+            views: 0,
+            alcance: 0,
+            impressoes: 0,
+            eng: 0,
+            denom: 0,
+            taxa: 0,
+          });
         }
         const b = map.get(id)!;
+        const views = Number(row.views ?? 0);
+        const alcance = Number(row.alcance ?? 0);
+        const impressoes = Number(row.impressoes ?? 0);
+        // Denominador por post: views quando disponível; fallback alcance; fallback impressões.
+        // Assim posts de formatos sem "views" (ex.: carrossel IG) ainda entram na taxa.
+        const denomPost = views > 0 ? views : alcance > 0 ? alcance : impressoes;
         b.posts += 1;
-        b.views += Number(row.views ?? 0);
+        b.views += views;
+        b.alcance += alcance;
+        b.impressoes += impressoes;
+        b.denom += denomPost;
         b.eng +=
           Number(row.curtidas ?? 0) +
           Number(row.comentarios ?? 0) +
@@ -87,7 +109,7 @@ function useRankingMarcas(marcaId: string | null, from: Date, to: Date) {
           Number(row.saves ?? 0);
       }
       for (const b of map.values()) {
-        b.taxa = b.views > 0 ? b.eng / b.views : 0;
+        b.taxa = b.denom > 0 ? b.eng / b.denom : 0;
       }
       return Array.from(map.values());
     },
@@ -101,44 +123,29 @@ function median(nums: number[]) {
   return s.length % 2 === 0 ? (s[mid - 1] + s[mid]) / 2 : s[mid];
 }
 
-function BarTooltip({ active, payload }: any) {
-  if (!active || !payload?.length) return null;
-  const d = payload[0].payload as MarcaAgg;
+function MetricRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-md border bg-popover px-3 py-2 text-xs text-popover-foreground shadow-md">
-      <div className="font-semibold">{d.nome}</div>
-      <div className="text-muted-foreground">
-        Engajamento: <span className="text-foreground font-medium">{nfFull.format(d.eng)}</span>
-      </div>
-      <div className="text-muted-foreground">
-        Views: <span className="text-foreground font-medium">{nfFull.format(d.views)}</span>
-      </div>
-      <div className="text-muted-foreground">
-        Posts: <span className="text-foreground font-medium">{d.posts}</span>
-      </div>
+    <div className="flex items-center justify-between gap-6 text-muted-foreground">
+      <span>{label}</span>
+      <span className="text-foreground font-medium tabular-nums">{value}</span>
     </div>
   );
 }
 
-function ScatterTooltip({ active, payload }: any) {
+function BrandTooltip({ active, payload }: any) {
   if (!active || !payload?.length) return null;
   const d = payload[0].payload as MarcaAgg;
   return (
-    <div className="rounded-md border bg-popover px-3 py-2 text-xs text-popover-foreground shadow-md">
-      <div className="font-semibold">{d.nome}</div>
-      <div className="text-muted-foreground">
-        Views: <span className="text-foreground font-medium">{nfFull.format(d.views)}</span>
-      </div>
-      <div className="text-muted-foreground">
-        Taxa de engajamento:{" "}
-        <span className="text-foreground font-medium">{pctFmt.format(d.taxa)}</span>
-      </div>
-      <div className="text-muted-foreground">
-        Posts: <span className="text-foreground font-medium">{d.posts}</span>
-      </div>
+    <div className="rounded-md border bg-popover px-3 py-2 text-xs text-popover-foreground shadow-md min-w-[200px] space-y-1">
+      <div className="font-semibold text-sm">{d.nome}</div>
+      <MetricRow label="Views" value={nfFull.format(d.views)} />
+      <MetricRow label="Engajamento" value={nfFull.format(d.eng)} />
+      <MetricRow label="Taxa de engajamento" value={pctFmt.format(d.taxa)} />
+      <MetricRow label="Posts" value={String(d.posts)} />
     </div>
   );
 }
+
 
 // Label customizado ao lado de cada ponto do scatter
 function ScatterNameLabel(props: any) {
