@@ -162,8 +162,15 @@ export function VincularXmlInsumoDialog({
         }
       }
 
+      const guardOk = await guardFileUpload({ file, module: "fabrica-xml-insumo", contextId: data.chave_acesso ?? null });
+      if (!guardOk) return;
       const storagePath = `${Date.now()}_${file.name}`;
-      await supabase.storage.from("fabrica-nfe-xmls").upload(storagePath, file);
+      const { error: xmlUpErr } = await supabase.storage.from("fabrica-nfe-xmls").upload(storagePath, file);
+      if (xmlUpErr) {
+        reportUploadFailureShared({ module: "fabrica-xml-insumo", file, contextId: data.chave_acesso ?? null, error: xmlUpErr, toast: true });
+        return;
+      }
+      reportUploadSuccessShared({ module: "fabrica-xml-insumo", file, contextId: data.chave_acesso ?? null, storagePath });
 
       const { data: { user } } = await supabase.auth.getUser();
 
