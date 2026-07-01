@@ -132,7 +132,7 @@ export function useUpdateChecklistColunas() {
       qc.invalidateQueries({ queryKey: ["china-checklist"] });
       qc.invalidateQueries({ queryKey: ["china-checklist-celulas", vars.checklistId] });
     },
-    onError: (e: any) => toast.error(e?.message || "Erro ao atualizar colunas"),
+    onError: (e: any) => toast.error(toFriendlyPermissionMessage(e, "Erro ao atualizar colunas")),
   });
 }
 
@@ -202,7 +202,7 @@ export function useSaveTemplate() {
       qc.invalidateQueries({ queryKey: ["china-checklist-templates"] });
       toast.success("Template salvo 模板已保存");
     },
-    onError: (e: any) => toast.error(e?.message || "Erro ao salvar template"),
+    onError: (e: any) => toast.error(toFriendlyPermissionMessage(e, "Erro ao salvar template")),
   });
 }
 

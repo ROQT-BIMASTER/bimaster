@@ -51,6 +51,6 @@ export function useCriarLoteAprovacaoSubmissao() {
       qc.invalidateQueries({ queryKey: ["lotes-aprovacao", "submissao", vars.submissaoId] });
       qc.invalidateQueries({ queryKey: ["china-unified-timeline"] });
     },
-    onError: (e: any) => toast.error(e?.message || "Falha ao iniciar aprovação"),
+    onError: (e: any) => toast.error(toFriendlyPermissionMessage(e, "Falha ao iniciar aprovação")),
   });
 }

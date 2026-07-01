@@ -108,7 +108,7 @@ export function useCriarItemB2C() {
       toast.success("Item adicionado");
       qc.invalidateQueries({ queryKey: ["china-checklist-b2c", row.submissao_id] });
     },
-    onError: (e: any) => toast.error(e?.message || "Falha ao adicionar item"),
+    onError: (e: any) => toast.error(toFriendlyPermissionMessage(e, "Falha ao adicionar item")),
   });
 }
 
@@ -207,7 +207,7 @@ export function useUploadArquivoB2C() {
         console.warn("[b2c] falha ao enviar notificação por email:", err);
       }
     },
-    onError: (e: any) => toast.error(e?.message || "Falha ao anexar"),
+    onError: (e: any) => toast.error(toFriendlyPermissionMessage(e, "Falha ao anexar")),
   });
 }
 
@@ -227,7 +227,7 @@ export function useEnviarDocB2C() {
       toast.success("Enviado à China");
       qc.invalidateQueries({ queryKey: ["china-checklist-b2c", row.submissao_id] });
     },
-    onError: (e: any) => toast.error(e?.message || "Falha ao enviar"),
+    onError: (e: any) => toast.error(toFriendlyPermissionMessage(e, "Falha ao enviar")),
   });
 }
 
@@ -248,6 +248,6 @@ export function useResponderDocB2C() {
       toast.success(args.decisao === "aprovado" ? "Documento aprovado" : "Documento devolvido");
       qc.invalidateQueries({ queryKey: ["china-checklist-b2c", row.submissao_id] });
     },
-    onError: (e: any) => toast.error(e?.message || "Falha ao responder"),
+    onError: (e: any) => toast.error(toFriendlyPermissionMessage(e, "Falha ao responder")),
   });
 }

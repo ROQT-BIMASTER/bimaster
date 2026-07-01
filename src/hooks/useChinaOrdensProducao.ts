@@ -165,6 +165,6 @@ export function useCriarOPChina() {
         `Ordem de Produção ${d.numero} criada${semOc ? " · comprador notificado" : ""}`
       );
     },
-    onError: (e: any) => toast.error(e?.message || "Falha ao criar OP"),
+    onError: (e: any) => toast.error(toFriendlyPermissionMessage(e, "Falha ao criar OP")),
   });
 }

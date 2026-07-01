@@ -84,6 +84,6 @@ export function useSalvarOCCustos() {
       qc.invalidateQueries({ queryKey: ["china-oc-custos"] });
       toast.success("Custo de aquisição salvo");
     },
-    onError: (e: any) => toast.error(e.message || "Erro ao salvar custos"),
+    onError: (e: any) => toast.error(toFriendlyPermissionMessage(e, "Erro ao salvar custos")),
   });
 }

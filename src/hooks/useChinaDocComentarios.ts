@@ -159,7 +159,7 @@ export function useAdicionarComentario() {
       qc.invalidateQueries({ queryKey: ["china-doc-comentarios", vars.documento_id] });
       toast.success("Comentário registrado.");
     },
-    onError: (e: any) => toast.error(e?.message || "Falha ao registrar comentário."),
+    onError: (e: any) => toast.error(toFriendlyPermissionMessage(e, "Falha ao registrar comentário.")),
   });
 }
 
@@ -177,6 +177,6 @@ export function useExcluirComentario() {
       qc.invalidateQueries({ queryKey: ["china-doc-comentarios", vars.documento_id] });
       toast.success("Comentário removido.");
     },
-    onError: (e: any) => toast.error(e?.message || "Falha ao remover."),
+    onError: (e: any) => toast.error(toFriendlyPermissionMessage(e, "Falha ao remover.")),
   });
 }

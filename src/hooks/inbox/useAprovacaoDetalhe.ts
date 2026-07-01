@@ -148,7 +148,7 @@ export function useAprovacaoDetalhe(aprovadorId: string | null) {
       qc.invalidateQueries({ queryKey: ["inbox-aprovacao"] });
       qc.invalidateQueries({ queryKey: ["inbox-items"] });
     },
-    onError: (e: any) => toast.error(e?.message || "Falha ao registrar decisão"),
+    onError: (e: any) => toast.error(toFriendlyPermissionMessage(e, "Falha ao registrar decisão")),
   });
 
   return { ...query, decidir };

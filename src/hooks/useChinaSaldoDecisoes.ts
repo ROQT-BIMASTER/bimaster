@@ -124,6 +124,6 @@ export function useRegistrarDecisaoSaldo() {
         data.nova_oc_id ? "Decisão registrada — nova OC criada com o saldo" : "Decisão registrada",
       );
     },
-    onError: (e: any) => toast.error(e.message || "Erro ao registrar decisão"),
+    onError: (e: any) => toast.error(toFriendlyPermissionMessage(e, "Erro ao registrar decisão")),
   });
 }

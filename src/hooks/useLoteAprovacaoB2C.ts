@@ -33,6 +33,6 @@ export function useCriarLoteAprovacaoB2C() {
       qc.invalidateQueries({ queryKey: ["china-mailbox-dataset"] });
       qc.invalidateQueries({ queryKey: ["china-unified-timeline"] });
     },
-    onError: (e: any) => toast.error(e?.message || "Falha ao iniciar aprovação"),
+    onError: (e: any) => toast.error(toFriendlyPermissionMessage(e, "Falha ao iniciar aprovação")),
   });
 }

@@ -64,7 +64,7 @@ export function useSaveResponseTemplate() {
       qc.invalidateQueries({ queryKey: ["china-response-templates"] });
       toast.success("Modelo salvo");
     },
-    onError: (e: any) => toast.error(e.message || "Erro ao salvar modelo"),
+    onError: (e: any) => toast.error(toFriendlyPermissionMessage(e, "Erro ao salvar modelo")),
   });
 }
 
@@ -81,6 +81,6 @@ export function useDeleteResponseTemplate() {
       qc.invalidateQueries({ queryKey: ["china-response-templates"] });
       toast.success("Modelo removido");
     },
-    onError: (e: any) => toast.error(e.message || "Erro ao remover modelo"),
+    onError: (e: any) => toast.error(toFriendlyPermissionMessage(e, "Erro ao remover modelo")),
   });
 }
