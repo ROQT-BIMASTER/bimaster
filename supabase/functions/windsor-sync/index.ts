@@ -26,8 +26,8 @@ const CONECTORES: Conector[] = [
     fieldsConta:
       "account_id,account_name,date,reach,impressions,likes,comments,shares,saves,views,profile_views",
     fieldsPost:
-      "account_id,account_name,date,media_url,media_product_type,likes,comments,shares,saves,views,reach,timestamp",
-    postIdField: "media_url",
+      "account_id,account_name,date,media_id,media_permalink,media_url,media_product_type,likes,comments,shares,saves,views,reach,timestamp",
+    postIdField: "media_id",
   },
   {
     slug: "facebook_organic",
