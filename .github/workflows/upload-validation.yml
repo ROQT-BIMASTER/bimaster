@@ -66,9 +66,35 @@ jobs:
           bun-version: latest
       - run: bun install --frozen-lockfile
       - name: Run upload validation suite
+        id: vitest
         run: |
+          mkdir -p reports
+          set -o pipefail
           bunx vitest run \
             src/lib/utils/__tests__/file-security.test.ts \
             src/lib/utils/__tests__/uploadTarefaAnexo.test.ts \
             src/lib/telemetry/__tests__/uploadTelemetry.test.ts \
-            --reporter=verbose
+            --reporter=verbose \
+            --reporter=junit --outputFile=reports/junit.xml \
+            --reporter=json  --outputFile=reports/results.json \
+            2>&1 | tee reports/vitest.log
+      - name: Publish JUnit summary on PR
+        if: always()
+        uses: mikepenz/action-junit-report@v4
+        with:
+          report_paths: reports/junit.xml
+          check_name: upload-validation (JUnit)
+          fail_on_failure: false
+          require_tests: true
+      - name: Upload test artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: upload-validation-reports-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            reports/junit.xml
+            reports/results.json
+            reports/vitest.log
+          if-no-files-found: warn
+          retention-days: 14
+
