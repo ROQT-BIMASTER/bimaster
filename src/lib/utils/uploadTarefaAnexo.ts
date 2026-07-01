@@ -7,18 +7,18 @@
  * as mesmas etapas de validação + storage upload + insert em
  * `projeto_tarefa_anexos`, sem chance de divergência.
  *
- * Regras aplicadas (todas centralizadas):
- *   1. Validação de segurança (`validateFileForUpload`) — extensão, MIME,
- *      tamanho (20 MB documentos / 100 MB vídeos MP4/MOV/WEBM), magic bytes.
- *   2. Sanitização do nome do arquivo antes de compor o path.
- *   3. Path canônico: `<uid>/<tarefaId>/<timestamp>_<nomeSanitizado>` — o
- *      trigger de `storage.objects` e as RLS policies dependem deste formato.
- *   4. Insert em `projeto_tarefa_anexos` com metadados básicos e lista
- *      opcional de usuários a notificar.
+ * Também emite eventos de auditoria (`uploadTelemetry`) em sucesso e em
+ * qualquer rejeição — separando validação (tipo/tamanho), erro de storage
+ * e erro de metadata para facilitar suporte.
  */
 import { supabase } from "@/integrations/supabase/client";
 import { sanitizeStorageFilename } from "@/lib/utils/sanitizeStorageFilename";
 import { validateFileForUpload } from "@/lib/utils/file-security";
+import {
+  reportUploadError,
+  reportUploadRejection,
+  reportUploadSuccess,
+} from "@/lib/telemetry/uploadTelemetry";
 
 export interface UploadTarefaAnexoParams {
   file: File;
@@ -33,19 +33,16 @@ export interface UploadTarefaAnexoResult {
   nome: string;
 }
 
-/**
- * Executa o fluxo completo de upload de anexo de tarefa/subtarefa.
- * Lança `Error` (mensagem amigável) em qualquer falha — o caller mapeia
- * via `describeUploadError` para o toast.
- */
 export async function uploadTarefaAnexoToStorage(
   params: UploadTarefaAnexoParams,
 ): Promise<UploadTarefaAnexoResult> {
   const { file, userId, tarefaId, notificarIds } = params;
+  const auditBase = { file, tarefaId, userId };
 
   // 1. Validação de segurança (mesmas regras para tarefa e subtarefa)
   const validation = await validateFileForUpload(file);
   if (!validation.valid) {
+    reportUploadRejection({ ...auditBase, error: validation.error ?? "invalid" });
     throw new Error(validation.error);
   }
 
@@ -56,7 +53,18 @@ export async function uploadTarefaAnexoToStorage(
   const { error: uploadError } = await supabase.storage
     .from("projeto-anexos")
     .upload(filePath, file);
-  if (uploadError) throw uploadError;
+  if (uploadError) {
+    // Erros do backend (ex.: trigger de tamanho, payload too large) chegam aqui.
+    const msg = uploadError.message ?? "";
+    const isSizeOrType =
+      /payload too large|exceed|excede|máximo|maximo|mime|tipo|extens/i.test(msg);
+    if (isSizeOrType) {
+      reportUploadRejection({ ...auditBase, error: uploadError });
+    } else {
+      reportUploadError({ ...auditBase, error: uploadError, reason: "storage_upload_failed" });
+    }
+    throw uploadError;
+  }
 
   // 4. Deduplicação de destinatários (nunca notifica o próprio uploader)
   const cleanedNotificados = Array.from(
@@ -77,7 +85,12 @@ export async function uploadTarefaAnexoToStorage(
     } as any)
     .select("id")
     .single();
-  if (error) throw error;
+  if (error) {
+    reportUploadError({ ...auditBase, error, reason: "metadata_insert_failed" });
+    throw error;
+  }
+
+  reportUploadSuccess({ ...auditBase, storagePath: filePath });
 
   return {
     id: (inserted as any)?.id as string,
