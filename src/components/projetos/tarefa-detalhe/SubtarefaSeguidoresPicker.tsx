@@ -123,8 +123,8 @@ function SubtarefaSeguidoresPickerImpl({ subtarefaId, projetoId, colaboradores, 
     return true;
   });
 
-  const visible = safeColabs.slice(0, 3);
-  const extra = safeColabs.length - visible.length;
+  const visible = dedupedColabs.slice(0, 3);
+  const extra = dedupedColabs.length - visible.length;
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
