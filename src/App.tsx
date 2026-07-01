@@ -353,6 +353,7 @@ const IntegracaoGoogleDrive = lazyWithRetry(() => import("./pages/admin/Integrac
 const MarketingIntegracoesPage = lazyWithRetry(() => import("./pages/admin/MarketingIntegracoesPage"));
 const SuporteAdmin = lazyWithRetry(() => import("./pages/admin/SuporteAdmin"));
 const SolicitacoesAcesso = lazyWithRetry(() => import("./pages/admin/SolicitacoesAcesso"));
+const TelasPerdidas = lazyWithRetry(() => import("./pages/admin/TelasPerdidas"));
 
 const VisibilidadeProjetosAjuda = lazyWithRetry(() => import("./pages/ajuda/VisibilidadeProjetos"));
 const PoliticaPrivacidade = lazyWithRetry(() => import("./pages/PoliticaPrivacidade"));
