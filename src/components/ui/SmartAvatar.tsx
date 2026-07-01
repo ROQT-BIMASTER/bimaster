@@ -135,7 +135,7 @@ export function SmartAvatar({
     };
   }, [src, usable]);
 
-  const displayNome = (nome && nome.trim()) || fallbackNome;
+  const displayNome = resolveDisplayNome(nome, fallbackNome);
   const initials = computeInitials(displayNome);
   const showImage = usable && !errored && !!displayUrl;
   const resolvedTitle = title || buildTitle(nome, identifier, fallbackNome, errored);
