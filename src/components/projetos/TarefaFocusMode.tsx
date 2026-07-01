@@ -127,12 +127,14 @@ interface TarefaFocusModeProps {
   externalSaving?: boolean;
   /** Arma a intenção explícita de sair do foco no pai (guard anti-fechamento colateral). */
   requestExitFocus?: () => void;
+  /** ID da tarefa raiz — repassado para `SubtarefasSection` para nunca aninhar. */
+  rootTarefaId?: string;
 }
 
 export function TarefaFocusMode({
   tarefa, open, onOpenChange, onUpdate, onToggle, onAddSubtarefa, onDelete, onOpenSubtarefa,
   secoes = [], projetoTipo, externalSaving = false,
-  requestExitFocus,
+  requestExitFocus, rootTarefaId,
 }: TarefaFocusModeProps) {
   const confirm = useConfirm();
   const {
