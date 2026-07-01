@@ -1,6 +1,7 @@
-// Temporary bootstrap variant of create-admin-users WITHOUT MFA step-up,
-// used while the MFA verification flow is being repaired.
-// Still requires the caller to be authenticated AND have the admin role.
+// Bootstrap variant of create-admin-users. Enforces the SAME MFA + step-up
+// guards as the production `create-admin-users` function; the only reason this
+// function still exists is to keep its distinct rate-limit bucket and audit
+// tag (`user.create.admin.bootstrap`).
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { logger } from "../_shared/logger.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
@@ -9,9 +10,13 @@ import { logSensitiveOperation } from "../_shared/audit-log.ts";
 
 Deno.serve(secureHandler({
   auth: "jwt",
+  requireMfa: true,
+  requireStepUp: "user.create.admin",
+  mfaFailMode: "closed",
   rateLimit: 10,
   rateLimitPrefix: "create-admin-users-bootstrap",
 }, async (req, ctx) => {
+
   const cors = getCorsHeaders(req);
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
