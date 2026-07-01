@@ -54,7 +54,7 @@ function SubtarefaResponsavelPickerImpl({
 }: Props) {
   const { user } = useAuth();
   const { membros } = useProjetoMembros(projetoId);
-  const { updateTarefa } = useProjetoTarefas(projetoId);
+  const { updateTarefa } = useProjetoTarefas(projetoId, { mutationsOnly: true });
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
 
