@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { memo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
 import { useProjetoMembros } from "@/hooks/useProjetoMembros";
@@ -36,7 +36,7 @@ interface Props {
  * responsável imediatamente, sem aguardar resposta do banco e sem o flicker
  * que existia ao usar apenas o onUpdate genérico.
  */
-export function SubtarefaResponsavelPicker({
+function SubtarefaResponsavelPickerImpl({
   subtarefaId,
   projetoId,
   responsavelId,
@@ -215,3 +215,18 @@ export function SubtarefaResponsavelPicker({
     </Popover>
   );
 }
+
+// Memoização evita re-render pesado quando a linha da subtarefa é
+// recomposta (ex.: swap tempId→realId após criar subtarefa). O comparador
+// só ignora mudanças cosméticas — qualquer mudança de responsável ou de
+// identidade da subtarefa força re-render normal.
+export const SubtarefaResponsavelPicker = memo(
+  SubtarefaResponsavelPickerImpl,
+  (prev, next) =>
+    prev.subtarefaId === next.subtarefaId &&
+    prev.projetoId === next.projetoId &&
+    prev.responsavelId === next.responsavelId &&
+    prev.responsavelNome === next.responsavelNome &&
+    prev.responsavelAvatar === next.responsavelAvatar &&
+    prev.variant === next.variant,
+);
