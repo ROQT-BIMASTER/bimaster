@@ -401,6 +401,8 @@ export function TarefaResponsavelSeguidoresEditor({
                     <SmartAvatar
                       src={r.avatar_url}
                       nome={r.nome}
+                      identifier={emailByUserId.get(r.user_id)}
+                      fallbackNome="Membro"
                       className="h-6 w-6 border-2 border-background"
                       fallbackClassName="text-[9px] bg-primary/20 text-primary font-semibold"
                     />
