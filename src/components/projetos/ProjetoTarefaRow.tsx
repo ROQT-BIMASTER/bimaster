@@ -74,6 +74,9 @@ function ProjetoTarefaRowImpl({
           isCompact ? "py-1 min-h-[32px] text-[12.5px]" : "py-1.5 min-h-[40px]",
           columns ? "" : `grid ${GRID_COLS}`,
           darkBg ? "border-b border-white/10 hover:bg-white/5" : "border-b border-border/60 hover:bg-muted/30",
+          // Fundo sutil para distinguir subtarefas de tarefas raiz
+          indented && !darkBg && "bg-subtask hover:bg-subtask-hover",
+          indented && darkBg && "bg-white/[0.03] hover:bg-white/[0.06]",
           indented && "pl-10",
           isCompleted && "opacity-70",
           selected && (darkBg ? "bg-white/10 border-l-2 border-l-primary" : "bg-primary/5 border-l-2 border-l-primary")
