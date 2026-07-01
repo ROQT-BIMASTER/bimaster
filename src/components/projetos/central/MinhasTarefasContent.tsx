@@ -943,11 +943,26 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
     const { confirmConclusaoTarefa } = await import("@/lib/projetos/confirmConclusao");
     const ok = await confirmConclusaoTarefa({ quantidade: ids.length });
     if (!ok) return;
+
+    const nowIso = nowSaoPauloISO();
+    const cacheKey = ["minhas-tarefas", user?.id] as const;
+    const previous = queryClient.getQueryData<MinaTarefa[]>(cacheKey);
+    if (previous) {
+      const idSet = new Set(ids);
+      queryClient.setQueryData<MinaTarefa[]>(cacheKey, previous.map((t) =>
+        idSet.has(t.id) ? { ...t, status: "concluida", data_conclusao: nowIso } : t,
+      ));
+    }
+
     const { error } = await supabase
       .from("projeto_tarefas")
-      .update({ status: "concluida", data_conclusao: nowSaoPauloISO() })
+      .update({ status: "concluida", data_conclusao: nowIso })
       .in("id", ids);
-    if (error) { toast.error("Erro ao concluir tarefas"); return; }
+    if (error) {
+      if (previous) queryClient.setQueryData(cacheKey, previous);
+      toast.error("Erro ao concluir tarefas");
+      return;
+    }
 
     // Auditoria em lote (best-effort, não bloqueia UI).
     const selecionadas = tarefas.filter((t: any) => ids.includes(t.id));
