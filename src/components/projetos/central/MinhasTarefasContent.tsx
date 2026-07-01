@@ -530,13 +530,8 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
     queryKey: ["projeto-tarefas-subtarefas-bridge", detailTarefaId],
     queryFn: async () => {
       if (!detailTarefaId) return [];
-      const { data } = await supabase
-        .from("projeto_tarefas")
-        .select("*")
-        .eq("parent_tarefa_id", detailTarefaId)
-        .is("excluida_em", null)
-        .order("ordem");
-      return (data || []) as ProjetoTarefa[];
+      const { fetchHydratedSubtarefas } = await import("@/lib/projetos/fetchHydratedSubtarefas");
+      return fetchHydratedSubtarefas(detailTarefaId);
     },
     enabled: !!detailTarefaId && detailOpen,
     staleTime: 30_000,

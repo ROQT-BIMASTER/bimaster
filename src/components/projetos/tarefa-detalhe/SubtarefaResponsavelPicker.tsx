@@ -62,11 +62,15 @@ function SubtarefaResponsavelPickerImpl({
       {
         onSuccess: () => {
           toast.success(novoUserId ? "Responsável atualizado" : "Responsável removido");
-          // Garante que a view da tarefa-pai (que carrega `subtarefas` derivadas)
-          // recarregue, já que o patch otimista de `updateTarefa` foca em
-          // tarefas top-level. Sem isso, a UI da subtarefa pode demorar a
-          // refletir o novo responsável quando o componente pai não recompõe.
+          // Invalida caches usados por: (a) view detalhada V2 do projeto,
+          // (b) bridge da Central de Trabalho V2 (`MinhasTarefasContent`),
+          // (c) bridge da tela V1 (`MinhasTarefasSimples`). Sem (b) e (c)
+          // a subtarefa continuava mostrando o responsável antigo até
+          // fechar/reabrir o drawer nesses contextos.
           queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2", projetoId] });
+          queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-subtarefas-bridge"] });
+          queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-subtarefas-bridge-mt"] });
+          queryClient.invalidateQueries({ queryKey: ["minhas-tarefas"] });
         },
         onError: (err: any) => {
           toast.error(err?.message || "Não foi possível atualizar o responsável");
