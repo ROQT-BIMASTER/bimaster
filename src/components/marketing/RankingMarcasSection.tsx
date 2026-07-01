@@ -181,7 +181,7 @@ export function RankingMarcasSection({
   );
 
   const scatterData = useMemo(
-    () => agg.filter((m) => m.views > 0),
+    () => agg.filter((m) => m.views > 0 && m.denom > 0),
     [agg]
   );
 
