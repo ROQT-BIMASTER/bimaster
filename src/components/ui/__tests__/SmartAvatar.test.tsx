@@ -290,3 +290,93 @@ describe("SmartAvatar – consistência de aria-label e title com avatar_url nul
     expect(second).toBe(third);
   });
 });
+
+describe("SmartAvatar – tooltip 'Nome (identifier) — foto indisponível' quando imagem falha", () => {
+  const nome = "Ana Dona";
+  const src = "https://example.com/avatar.png";
+
+  const identifiers: Array<{ label: string; value: string; expectedSuffix: string }> = [
+    { label: "email", value: "ana@x.com", expectedSuffix: "(ana@x.com)" },
+    {
+      label: "email longo",
+      value: "ana.paula.dona@sub.dominio.empresa.com.br",
+      expectedSuffix: "(ana.paula.dona@sub.dominio.empresa.com.br)",
+    },
+    { label: "uuid", value: "8f14e45f-ceea-467a-a01e-1d0f9c8b9f6a", expectedSuffix: "(8f14e45f-ceea-467a-a01e-1d0f9c8b9f6a)" },
+    { label: "cargo humano", value: "Head de Produto", expectedSuffix: "(Head de Produto)" },
+    { label: "handle com @", value: "@ana.dona", expectedSuffix: "(@ana.dona)" },
+    { label: "numérico", value: "12345", expectedSuffix: "(12345)" },
+    { label: "com acentos", value: "gestão-sênior", expectedSuffix: "(gestão-sênior)" },
+    { label: "CJK", value: "产品负责人", expectedSuffix: "(产品负责人)" },
+    { label: "com parênteses internos", value: "PM (interino)", expectedSuffix: "(PM (interino))" },
+    { label: "com espaços nas bordas", value: "  ana@x.com  ", expectedSuffix: "(ana@x.com)" },
+  ];
+
+  for (const { label, value, expectedSuffix } of identifiers) {
+    it(`identifier=${label}: após onError, tooltip vira '${nome} ${expectedSuffix} — foto indisponível'`, () => {
+      const { container } = render(
+        <SmartAvatar src={src} nome={nome} identifier={value} />,
+      );
+      const root = container.querySelector("[title]") as HTMLElement;
+      // Antes do erro, tooltip é limpo.
+      expect(root.getAttribute("title")).toBe(`${nome} ${expectedSuffix}`);
+      expect(root.getAttribute("aria-label")).toBe(`${nome} ${expectedSuffix}`);
+
+      const img = container.querySelector("img") as HTMLImageElement;
+      expect(img).not.toBeNull();
+      fireEvent.error(img);
+
+      const rootAfter = container.querySelector("[title]") as HTMLElement;
+      const expected = `${nome} ${expectedSuffix} — foto indisponível`;
+      expect(rootAfter.getAttribute("title")).toBe(expected);
+      expect(rootAfter.getAttribute("aria-label")).toBe(expected);
+      // Fallback textual passa a estar visível e compartilha o mesmo aria-label.
+      const fallback = screen.getByText("AD");
+      expect(fallback.getAttribute("aria-label")).toBe(expected);
+      // <img> some após o erro (showImage=false).
+      expect(container.querySelector("img")).toBeNull();
+    });
+  }
+
+  it("sem identifier: após onError, tooltip vira 'Nome — foto indisponível'", () => {
+    const { container } = render(<SmartAvatar src={src} nome={nome} />);
+    const img = container.querySelector("img") as HTMLImageElement;
+    fireEvent.error(img);
+    const root = container.querySelector("[title]") as HTMLElement;
+    expect(root.getAttribute("title")).toBe(`${nome} — foto indisponível`);
+    expect(root.getAttribute("aria-label")).toBe(`${nome} — foto indisponível`);
+  });
+
+  it("identifier vazio/whitespace: ignora identifier no tooltip mesmo após erro", () => {
+    const { container } = render(
+      <SmartAvatar src={src} nome={nome} identifier="   " />,
+    );
+    const img = container.querySelector("img") as HTMLImageElement;
+    fireEvent.error(img);
+    const root = container.querySelector("[title]") as HTMLElement;
+    expect(root.getAttribute("title")).toBe(`${nome} — foto indisponível`);
+    expect(root.getAttribute("aria-label")).toBe(`${nome} — foto indisponível`);
+  });
+
+  it("nome vazio + identifier: usa fallback 'Membro (id) — foto indisponível'", () => {
+    const { container } = render(
+      <SmartAvatar src={src} nome={null} identifier="user-42" />,
+    );
+    const img = container.querySelector("img") as HTMLImageElement;
+    fireEvent.error(img);
+    const root = container.querySelector("[title]") as HTMLElement;
+    expect(root.getAttribute("title")).toBe("Membro (user-42) — foto indisponível");
+    expect(root.getAttribute("aria-label")).toBe("Membro (user-42) — foto indisponível");
+  });
+
+  it("title custom NÃO ganha sufixo '— foto indisponível' após erro (mantém intenção do caller)", () => {
+    const { container } = render(
+      <SmartAvatar src={src} nome={nome} identifier="ana@x.com" title="Perfil oficial" />,
+    );
+    const img = container.querySelector("img") as HTMLImageElement;
+    fireEvent.error(img);
+    const root = container.querySelector("[title]") as HTMLElement;
+    expect(root.getAttribute("title")).toBe("Perfil oficial");
+    expect(root.getAttribute("aria-label")).toBe("Perfil oficial");
+  });
+});
