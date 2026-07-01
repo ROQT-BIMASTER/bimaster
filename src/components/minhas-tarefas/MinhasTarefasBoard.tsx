@@ -194,7 +194,7 @@ function OverlayCard({ tarefa }: { tarefa: MinaTarefa }) {
   );
 }
 
-export function MinhasTarefasBoard({ tarefas, onToggle, onSelect, onChangePrazo }: Props) {
+export function MinhasTarefasBoard({ tarefas, onToggle, onSelect, onChangePrazo, pendingIds }: Props) {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [overColumnId, setOverColumnId] = useState<ColumnKey | null>(null);
 
