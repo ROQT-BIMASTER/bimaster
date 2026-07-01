@@ -423,6 +423,7 @@ export function TarefaFocusMode({
               Salvando…
             </span>
           )}
+          <TarefaCurtirButton tarefaId={tarefa.id} />
           <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={handleExitFocusClick}>
             <Minimize2 className="h-3.5 w-3.5" />
             Sair do Foco
