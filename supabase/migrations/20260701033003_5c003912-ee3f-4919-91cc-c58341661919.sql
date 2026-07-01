@@ -1,0 +1,2 @@
+drop policy if exists "Members or task owners can insert projeto_tarefas" on public.projeto_tarefas;
+drop policy if exists "Members or task owners can delete projeto_tarefas" on public.projeto_tarefas;
