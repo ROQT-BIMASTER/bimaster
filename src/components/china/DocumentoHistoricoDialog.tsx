@@ -83,6 +83,13 @@ export function DocumentoHistoricoDialog({ open, onOpenChange, documentoId, tipo
             <div className="p-6 flex items-center justify-center gap-2 text-xs text-muted-foreground">
               <Loader2 className="h-4 w-4 animate-spin" /> Carregando histórico...
             </div>
+          ) : isPermissionError(error) ? (
+            <div className="p-4">
+              <AccessDeniedNotice
+                title="Sem permissão para ver o histórico"
+                description="Você não tem acesso à submissão deste documento. Solicite acesso ao responsável pela ficha na China."
+              />
+            </div>
           ) : versoes.length === 0 ? (
             <div className="p-6 text-center text-xs text-muted-foreground flex flex-col items-center gap-2">
               <AlertCircle className="h-6 w-6 text-muted-foreground/40" />
