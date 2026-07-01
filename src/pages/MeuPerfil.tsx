@@ -17,6 +17,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Separator } from "@/components/ui/separator";
+import { resolveAvatarUrl } from "@/lib/utils/avatarUrl";
 import {
   Dialog,
   DialogContent,
@@ -322,7 +323,12 @@ export default function MeuPerfil() {
         setNome(p?.nome ?? "");
         setCargo(p?.cargo ?? "");
         setTelefone(maskTelefone(p?.telefone ?? ""));
-        setAvatarPreview(p?.avatar_url ?? null);
+        const resolvedAvatar = await resolveAvatarUrl(p?.avatar_url ?? null, {
+          profileId: user.id,
+          persist: true,
+        });
+        if (!active) return;
+        setAvatarPreview(resolvedAvatar);
       } catch (err) {
         logger.error("[MeuPerfil] load profile error");
         toast.error("Não foi possível carregar seu perfil");
@@ -402,8 +408,16 @@ export default function MeuPerfil() {
         .from("avatars")
         .upload(path, file, { contentType: file.type, upsert: false });
       if (upErr) throw upErr;
-      const { data: publicData } = supabase.storage.from("avatars").getPublicUrl(path);
-      const publicUrl = publicData.publicUrl;
+      // Bucket privado: usar URL assinada de longa duração (1 ano).
+      // getPublicUrl não autentica em bucket privado e a imagem "some"
+      // assim que o cache do navegador expira.
+      const { data: signedData, error: signedErr } = await supabase.storage
+        .from("avatars")
+        .createSignedUrl(path, 60 * 60 * 24 * 365);
+      if (signedErr || !signedData?.signedUrl) {
+        throw signedErr || new Error("Falha ao gerar URL da foto");
+      }
+      const publicUrl = signedData.signedUrl;
       const { error: dbErr } = await supabase
         .from("profiles")
         .update({ avatar_url: publicUrl })
