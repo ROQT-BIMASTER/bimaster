@@ -39,6 +39,7 @@ import { addDays, differenceInDays, endOfDay, format, startOfDay, subDays } from
 import { ptBR } from "date-fns/locale";
 import type { DateRange } from "react-day-picker";
 import { parseLocalDate } from "@/lib/utils/parseLocalDate";
+import { RankingMarcasSection } from "@/components/marketing/RankingMarcasSection";
 
 // ---------- helpers ----------
 const nf = new Intl.NumberFormat("pt-BR", { notation: "compact", maximumFractionDigits: 1 });
@@ -800,6 +801,9 @@ export default function MarketingVisaoGeralPage() {
           </>
         )}
       </div>
+
+      {/* Ranking de marcas — inspirado em Design Arena */}
+      <RankingMarcasSection marcaId={marcaId} from={from} to={to} />
 
       {/* Leitura da Claude (placeholder) */}
       <Card>
