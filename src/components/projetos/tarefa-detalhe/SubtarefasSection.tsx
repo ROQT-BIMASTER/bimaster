@@ -20,6 +20,30 @@ import { SubtarefaResponsavelPicker } from "./SubtarefaResponsavelPicker";
 import { SubtarefaSeguidoresPicker } from "./SubtarefaSeguidoresPicker";
 import { useProjetoMembros } from "@/hooks/useProjetoMembros";
 import { reportSubtarefaArrowEvent } from "@/lib/telemetry/subtarefaArrowTelemetry";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+
+const MIN_TITLE_LEN = 2;
+const MAX_TITLE_LEN = 200;
+
+/**
+ * Valida título de novo subitem/subtarefa antes de disparar a criação.
+ * Retorna string de erro (pronta para toast) ou null se OK.
+ * Duplicidade é comparada apenas contra irmãos diretos (case-insensitive + trim).
+ */
+function validateNewTitle(
+  titulo: string,
+  siblings: { titulo: string }[],
+): string | null {
+  const t = titulo.trim();
+  if (!t) return "Informe um título para o subitem.";
+  if (t.length < MIN_TITLE_LEN) return `O título precisa ter ao menos ${MIN_TITLE_LEN} caracteres.`;
+  if (t.length > MAX_TITLE_LEN) return `O título deve ter no máximo ${MAX_TITLE_LEN} caracteres.`;
+  const norm = t.toLowerCase();
+  if (siblings.some((s) => (s.titulo || "").trim().toLowerCase() === norm)) {
+    return "Já existe um subitem com esse título neste nível.";
+  }
+  return null;
+}
 
 const ESTAGIO_OPTIONS = [
   { value: "briefing", label: "Briefing", color: "bg-purple-500/20 text-purple-400" },
