@@ -7,7 +7,9 @@ import {
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
-/** Cria um File com bytes iniciais opcionais e tamanho total controlado. */
+/** Cria um File com bytes iniciais opcionais e tamanho total controlado.
+ *  Para evitar alocar centenas de MB em memória em jsdom, cria um buffer
+ *  pequeno (só o necessário para magic bytes) e sobrescreve `size`. */
 function makeFile(
   name: string,
   type: string,
@@ -15,11 +17,14 @@ function makeFile(
   magicPrefix?: number[],
   magicOffset = 0,
 ): File {
-  const buffer = new Uint8Array(Math.max(sizeBytes, (magicPrefix?.length ?? 0) + magicOffset));
+  const realLen = (magicPrefix?.length ?? 0) + magicOffset;
+  const buffer = new Uint8Array(Math.max(realLen, 16));
   if (magicPrefix) {
     buffer.set(magicPrefix, magicOffset);
   }
-  return new File([buffer], name, { type });
+  const file = new File([buffer], name, { type });
+  Object.defineProperty(file, "size", { value: sizeBytes, configurable: true });
+  return file;
 }
 
 const MP4_MAGIC = [0x66, 0x74, 0x79, 0x70]; // "ftyp" at offset 4
