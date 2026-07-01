@@ -879,24 +879,51 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
     }
     const update: Record<string, any> = { status: done ? "concluida" : "pendente" };
     update.data_conclusao = done ? nowSaoPauloISO() : null;
+
+    // Optimistic update: reflete no cache antes do round-trip para o Kanban
+    // migrar o cartão de coluna imediatamente. Snapshot para rollback em erro.
+    const cacheKey = ["minhas-tarefas", user?.id] as const;
+    const previous = queryClient.getQueryData<MinaTarefa[]>(cacheKey);
+    if (previous) {
+      queryClient.setQueryData<MinaTarefa[]>(cacheKey, previous.map((t) =>
+        t.id === tarefaId
+          ? { ...t, status: update.status, data_conclusao: update.data_conclusao }
+          : t,
+      ));
+    }
+
     const { error } = await supabase.from("projeto_tarefas").update(update as never).eq("id", tarefaId);
-    if (error) { toast.error("Erro ao atualizar tarefa"); return; }
+    if (error) {
+      if (previous) queryClient.setQueryData(cacheKey, previous);
+      toast.error("Erro ao atualizar tarefa", {
+        action: { label: "Tentar novamente", onClick: () => handleToggle(tarefaId, done) },
+      });
+      return;
+    }
     queryClient.invalidateQueries({ queryKey: ["minhas-tarefas"] });
     toast.success(done ? "Tarefa concluída! ✓" : "Tarefa reaberta");
-  }, [queryClient, tarefas]);
+  }, [queryClient, tarefas, user?.id]);
 
   const handleChangePrazo = useCallback(async (tarefaId: string, novaData: string | null) => {
+    const cacheKey = ["minhas-tarefas", user?.id] as const;
+    const previous = queryClient.getQueryData<MinaTarefa[]>(cacheKey);
+    if (previous) {
+      queryClient.setQueryData<MinaTarefa[]>(cacheKey, previous.map((t) =>
+        t.id === tarefaId ? { ...t, data_prazo: novaData } : t,
+      ));
+    }
     const { error } = await supabase
       .from("projeto_tarefas")
       .update({ data_prazo: novaData } as never)
       .eq("id", tarefaId);
     if (error) {
+      if (previous) queryClient.setQueryData(cacheKey, previous);
       toast.error("Não foi possível atualizar o prazo");
       return;
     }
     queryClient.invalidateQueries({ queryKey: ["minhas-tarefas"] });
     toast.success("Prazo atualizado");
-  }, [queryClient]);
+  }, [queryClient, user?.id]);
 
   const handleSelectTask = useCallback((t: MinaTarefa) => {
     setDetailTarefa(t);
@@ -916,11 +943,26 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
     const { confirmConclusaoTarefa } = await import("@/lib/projetos/confirmConclusao");
     const ok = await confirmConclusaoTarefa({ quantidade: ids.length });
     if (!ok) return;
+
+    const nowIso = nowSaoPauloISO();
+    const cacheKey = ["minhas-tarefas", user?.id] as const;
+    const previous = queryClient.getQueryData<MinaTarefa[]>(cacheKey);
+    if (previous) {
+      const idSet = new Set(ids);
+      queryClient.setQueryData<MinaTarefa[]>(cacheKey, previous.map((t) =>
+        idSet.has(t.id) ? { ...t, status: "concluida", data_conclusao: nowIso } : t,
+      ));
+    }
+
     const { error } = await supabase
       .from("projeto_tarefas")
-      .update({ status: "concluida", data_conclusao: nowSaoPauloISO() })
+      .update({ status: "concluida", data_conclusao: nowIso })
       .in("id", ids);
-    if (error) { toast.error("Erro ao concluir tarefas"); return; }
+    if (error) {
+      if (previous) queryClient.setQueryData(cacheKey, previous);
+      toast.error("Erro ao concluir tarefas");
+      return;
+    }
 
     // Auditoria em lote (best-effort, não bloqueia UI).
     const selecionadas = tarefas.filter((t: any) => ids.includes(t.id));

@@ -330,7 +330,7 @@ export function SubtarefasSection({
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-6 text-[10px] gap-1 text-muted-foreground hover:text-primary opacity-0 group-hover:opacity-100 transition-opacity"
+                className="h-6 text-[10px] gap-1 text-muted-foreground hover:text-primary opacity-60 md:opacity-0 md:group-hover:opacity-100 focus-visible:opacity-100 transition-opacity"
                 onClick={() => {
                   setAddingForId(st.id);
                   setAddingValue("");
