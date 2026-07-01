@@ -126,7 +126,7 @@ export function SubtarefasSection({
     const isCollapsed = collapsedIds.has(st.id);
     return (
       <div
-        key={st.id}
+        key={(st as any).__clientKey || st.id}
         className={cn(
           "group border-b border-border/40 last:border-b-0 py-2 hover:bg-muted/20 transition-colors space-y-2 -mx-2 px-2 rounded-sm",
           depth > 0 && "border-l-2 border-border/30 ml-2",

@@ -343,7 +343,7 @@ function ProjetoTarefaRowImpl({
       {/* Subtarefas */}
       {expanded && tarefa.subtarefas?.map(st => (
         <ProjetoTarefaRow
-          key={st.id} tarefa={st} indented
+          key={(st as any).__clientKey || st.id} tarefa={st} indented
           onToggle={onToggle} onSelect={onSelect} onUpdate={onUpdate} onDelete={onDelete}
           teamMembers={teamMembers}
           onAddColaborador={onAddColaborador}
@@ -939,8 +939,13 @@ export const ProjetoTarefaRow = memo(ProjetoTarefaRowImpl, (prev, next) => {
   const nextSubs = next.tarefa.subtarefas || [];
   if (prevSubs.length !== nextSubs.length) return false;
   for (let i = 0; i < prevSubs.length; i++) {
-    if (prevSubs[i].id !== nextSubs[i].id) return false;
-    if (prevSubs[i].updated_at !== nextSubs[i].updated_at) return false;
+    if (((prevSubs[i] as any).__clientKey || prevSubs[i].id) !== ((nextSubs[i] as any).__clientKey || nextSubs[i].id)) return false;
+    if (prevSubs[i].titulo !== nextSubs[i].titulo) return false;
+    if (prevSubs[i].status !== nextSubs[i].status) return false;
+    if (prevSubs[i].responsavel_id !== nextSubs[i].responsavel_id) return false;
+    if (prevSubs[i].prioridade !== nextSubs[i].prioridade) return false;
+    if (prevSubs[i].estagio !== nextSubs[i].estagio) return false;
+    if (prevSubs[i].data_prazo !== nextSubs[i].data_prazo) return false;
   }
   return true;
 });

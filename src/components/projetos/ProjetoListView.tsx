@@ -124,16 +124,23 @@ export function ProjetoListView({ projetoId, darkBg = false, filters = EMPTY_FIL
     }
     const found = tarefas.find((t) => t.id === selectedTarefaId);
     if (!found) return lastTarefaRef.current;
-    const subs = tarefas.filter((st) => st.parent_tarefa_id === found.id);
+    const buildSubtree = (parentId: string): ProjetoTarefa[] =>
+      tarefas
+        .filter((st) => st.parent_tarefa_id === parentId)
+        .map((st) => ({ ...st, subtarefas: buildSubtree(st.id) }));
+    const subs = buildSubtree(found.id);
     const respIds = (found.responsaveis ?? []).map((r) => r.user_id).sort().join(",");
     const colabIds = (found.colaboradores ?? []).map((c) => c.user_id).sort().join(",");
-    const signature =
-      `${found.id}|${found.updated_at}|${found.titulo}|${found.status}|${found.responsavel_id ?? ""}|${respIds}|${colabIds}|${found.prioridade}|${found.data_prazo ?? ""}|${(found as any).data_inicio_planejada ?? ""}|${(found as any).data_inicio_real ?? ""}|${found.descricao ?? ""}|${found.estagio ?? ""}|${found.secao_id}|` +
-      subs.map((s) => {
+    const subSignature = (s: ProjetoTarefa): string => {
         const r = (s.responsaveis ?? []).map((x) => x.user_id).sort().join(",");
         const c = (s.colaboradores ?? []).map((x) => x.user_id).sort().join(",");
-        return `${s.id}:${s.updated_at}:${s.status}:${s.titulo}:${s.responsavel_id ?? ""}:${r}:${c}:${s.prioridade}:${s.estagio ?? ""}:${s.data_prazo ?? ""}:${(s as any).data_inicio_planejada ?? ""}`;
-      }).join(";");
+        const stableId = (s as any).__clientKey || s.id;
+        const childrenSig = (s.subtarefas || []).map(subSignature).join(",");
+        return `${stableId}:${s.status}:${s.titulo}:${s.responsavel_id ?? ""}:${r}:${c}:${s.prioridade}:${s.estagio ?? ""}:${s.data_prazo ?? ""}:${(s as any).data_inicio_planejada ?? ""}:[${childrenSig}]`;
+    };
+    const signature =
+      `${found.id}|${found.updated_at}|${found.titulo}|${found.status}|${found.responsavel_id ?? ""}|${respIds}|${colabIds}|${found.prioridade}|${found.data_prazo ?? ""}|${(found as any).data_inicio_planejada ?? ""}|${(found as any).data_inicio_real ?? ""}|${found.descricao ?? ""}|${found.estagio ?? ""}|${found.secao_id}|` +
+      subs.map(subSignature).join(";");
     if (signature === lastSignatureRef.current && lastTarefaRef.current) {
       return lastTarefaRef.current;
     }

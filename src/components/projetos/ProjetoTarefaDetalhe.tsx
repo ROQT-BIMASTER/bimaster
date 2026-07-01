@@ -61,7 +61,7 @@ import { TarefaComentariosSection } from "./tarefa-detalhe/TarefaComentariosSect
 import { TarefaNotasPessoaisSection } from "./tarefa-detalhe/TarefaNotasPessoaisSection";
 import { TarefaChatPanel } from "./tarefa-detalhe/TarefaChatPanel";
 import { TarefaResponsavelSeguidoresEditor } from "./tarefa-detalhe/TarefaResponsavelSeguidoresEditor";
-import { SubtarefaResponsavelPicker } from "./tarefa-detalhe/SubtarefaResponsavelPicker";
+import { SubtarefasSection } from "./tarefa-detalhe/SubtarefasSection";
 
 import { TarefaChinaDocsSection } from "./tarefa-detalhe/TarefaChinaDocsSection";
 import { TarefaProcessoSection } from "./tarefa-detalhe/TarefaProcessoSection";
@@ -165,7 +165,6 @@ export function ProjetoTarefaDetalhe({
   const [editingTitle, setEditingTitle] = useState(false);
   const [titleValue, setTitleValue] = useState("");
   const [descValue, setDescValue] = useState("");
-  const [subtarefaValue, setSubtarefaValue] = useState("");
   const [datePicker, setDatePicker] = useState(false);
   const [inicioPicker, setInicioPicker] = useState(false);
   const [proximaAcaoPicker, setProximaAcaoPicker] = useState(false);
@@ -193,53 +192,7 @@ export function ProjetoTarefaDetalhe({
       return (data?.titulo as string | undefined) ?? null;
     },
   });
-  const [editingSubtarefaId, setEditingSubtarefaId] = useState<string | null>(null);
-  const [editingSubtarefaTitulo, setEditingSubtarefaTitulo] = useState("");
-
-
-
-  // === Stable row key para subtarefas ===
-  // Evita unmount/remount do nó DOM quando o cache troca o tempId pelo id
-  // real (createTarefa.onSuccess). Sem isso, a subtarefa recém-criada pisca
-  // ao ganhar o id real porque o React vê uma key nova. Estratégia:
-  // - Cada subtarefa recebe um rowKey persistente armazenado em um Map ref.
-  // - Quando aparece um id real ainda não mapeado, procuramos uma entrada
-  //   temp órfã com mesmo (parent_tarefa_id + titulo) para reusar a rowKey,
-  //   garantindo continuidade visual durante o swap.
-  const rowKeyMapRef = useRef<Map<string, string>>(new Map());
-  const rowKeyCounterRef = useRef(0);
-  const getSubRowKey = useCallback(
-    (st: ProjetoTarefa): string => {
-      const map = rowKeyMapRef.current;
-      const existing = map.get(st.id);
-      if (existing) return existing;
-      // Tenta herdar de um tempId órfão com mesma assinatura (titulo + parent).
-      if (!st.id.startsWith("temp-")) {
-        for (const [k, v] of map) {
-          if (!k.startsWith("temp-")) continue;
-          // Pais batem? (mesmo nó host)
-          // Como a Map só guarda id→key, comparamos via lookup na lista atual.
-          const tempStill = tarefa?.subtarefas?.some(s => s.id === k);
-          if (tempStill) continue; // ainda existe, não é órfão
-          map.delete(k);
-          map.set(st.id, v);
-          return v;
-        }
-      }
-      const fresh = `sub-${++rowKeyCounterRef.current}`;
-      map.set(st.id, fresh);
-      return fresh;
-    },
-    [tarefa?.subtarefas],
-  );
-  // Limpa entradas órfãs do map quando a tarefa pai muda (evita memory leak).
-  useEffect(() => {
-    rowKeyMapRef.current = new Map();
-    rowKeyCounterRef.current = 0;
-  }, [tarefa?.id]);
-
-  const { suggestFields, generateChecklist, loading: iaLoading } = useProjetoIA();
-  const [pendingAISubtarefas, setPendingAISubtarefas] = useState<{ titulo: string; selected: boolean }[]>([]);
+  const { suggestFields, loading: iaLoading } = useProjetoIA();
   const [pendingAIDescricao, setPendingAIDescricao] = useState<{
     descricao: string;
     prioridade: string;
@@ -247,7 +200,6 @@ export function ProjetoTarefaDetalhe({
     dataPrazo: string | null;
     apply: { descricao: boolean; prioridade: boolean; estagio: boolean; dataPrazo: boolean };
   } | null>(null);
-  const [showConcluidas, setShowConcluidas] = useState(false);
   const [focusMode, setFocusMode] = useState(false);
   // Mantém um snapshot da última `tarefa` enquanto o Focus Mode está aberto
   // para evitar que o Dialog desmonte quando o prop `tarefa` ficar nulo
@@ -305,7 +257,6 @@ export function ProjetoTarefaDetalhe({
       skipAutoSaveRef.current = true;
       setTitleValue(tarefa.titulo);
       setDescValue(tarefa.descricao || "");
-      setPendingAISubtarefas([]);
       setAutoSaveStatus("idle");
       if (titleDebounceRef.current) clearTimeout(titleDebounceRef.current);
       if (descDebounceRef.current) clearTimeout(descDebounceRef.current);
@@ -472,13 +423,6 @@ export function ProjetoTarefaDetalhe({
   const handleDownload = async (anexo: any) => {
     await secureDownload(anexo.storage_path, anexo.nome, "projeto-anexos");
   };
-
-  const handleAddSubtarefa = () => {
-    if (!subtarefaValue.trim() || !onAddSubtarefa) return;
-    onAddSubtarefa(subtarefaValue.trim(), tarefa.id, tarefa.secao_id);
-    setSubtarefaValue("");
-  };
-
   const handleProdutoSearch = async (q: string) => {
     setProdutoSearch(q);
     const results = await searchProdutos(q || undefined);
@@ -1418,267 +1362,15 @@ export function ProjetoTarefaDetalhe({
                 <Separator />
 
                 {/* Subtarefas */}
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <h3 className="text-sm font-medium">
-                      Subtarefas
-                      {tarefa.subtarefas && tarefa.subtarefas.length > 0 && (
-                        <span className="text-muted-foreground ml-1">
-                          ({tarefa.subtarefas.filter(s => s.status === "concluida").length}/{tarefa.subtarefas.length})
-                        </span>
-                      )}
-                    </h3>
-                    {onAddSubtarefa && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-7 text-[11px] gap-1 text-primary hover:text-primary"
-                        disabled={iaLoading === "generate_checklist"}
-                        onClick={async () => {
-                          try {
-                            const result = await generateChecklist(tarefa.titulo, tarefa.descricao, tarefa.estagio);
-                            setPendingAISubtarefas(result.items.map(i => ({ titulo: i.titulo, selected: true })));
-                          } catch { /* handled in hook */ }
-                        }}
-                      >
-                        {iaLoading === "generate_checklist" ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
-                        Gerar checklist IA
-                      </Button>
-                    )}
-                  </div>
-
-                  {/* AI-generated subtasks pending validation */}
-                  {pendingAISubtarefas.length > 0 && (
-                    <div className="mb-3 p-3 rounded-lg border border-primary/30 bg-primary/5 space-y-2">
-                      <p className="text-xs font-medium text-primary flex items-center gap-1.5">
-                        <Sparkles className="h-3.5 w-3.5" />
-                        Subtarefas geradas pela IA — selecione as que deseja criar:
-                      </p>
-                      {pendingAISubtarefas.map((item, i) => (
-                        <label key={i} className="flex items-center gap-2 text-sm cursor-pointer hover:bg-muted/20 rounded px-1 py-0.5">
-                          <Checkbox
-                            checked={item.selected}
-                            onCheckedChange={(checked) => {
-                              setPendingAISubtarefas(prev => prev.map((it, idx) => idx === i ? { ...it, selected: !!checked } : it));
-                            }}
-                          />
-                          <span>{item.titulo}</span>
-                        </label>
-                      ))}
-                      <div className="flex items-center gap-2 pt-1">
-                        <Button
-                          size="sm"
-                          className="h-7 text-xs gap-1"
-                          onClick={() => {
-                            const selected = pendingAISubtarefas.filter(it => it.selected);
-                            if (onAddSubtarefa) {
-                              for (const item of selected) {
-                                onAddSubtarefa(item.titulo, tarefa.id, tarefa.secao_id);
-                              }
-                            }
-                            setPendingAISubtarefas([]);
-                            toast.success(`${selected.length} subtarefa(s) criada(s)!`);
-                          }}
-                          disabled={pendingAISubtarefas.filter(it => it.selected).length === 0}
-                        >
-                          <CheckCircle2 className="h-3 w-3" />
-                          Criar {pendingAISubtarefas.filter(it => it.selected).length} selecionada(s)
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-7 text-xs"
-                          onClick={() => setPendingAISubtarefas([])}
-                        >
-                          Cancelar
-                        </Button>
-                      </div>
-                    </div>
-                  )}
-                  {(!tarefa.subtarefas || tarefa.subtarefas.length === 0) && pendingAISubtarefas.length === 0 && (
-                    <p className="text-[11px] text-muted-foreground italic mb-2 pl-1">
-                      Nenhuma subtarefa ainda. Adicione abaixo ou gere um checklist com IA.
-                    </p>
-                  )}
-                  {(() => {
-                    const allSubs = tarefa.subtarefas ?? [];
-                    const pendentes = allSubs.filter(s => s.status !== "concluida");
-                    const concluidas = allSubs.filter(s => s.status === "concluida");
-
-                    const renderSub = (st: typeof allSubs[number]) => {
-                      const stEstagioInfo = ESTAGIO_OPTIONS.find(e => e.value === st.estagio);
-                      return (
-                        <div key={getSubRowKey(st)} className="group border-b border-border/40 last:border-b-0 py-2 hover:bg-muted/20 transition-colors space-y-2 -mx-2 px-2 rounded-sm">
-                          {/* Row 1: checkbox + title + open button */}
-                          <div className="flex items-center gap-2">
-                            <button onClick={() => onToggle(st)} className={cn(
-                              "flex-shrink-0",
-                              st.status === "concluida" ? "text-emerald-400" : "text-muted-foreground hover:text-foreground"
-                            )}>
-                              {st.status === "concluida" ? <CheckCircle2 className="h-4 w-4" /> : <Circle className="h-4 w-4" />}
-                            </button>
-                            {editingSubtarefaId === st.id ? (
-                              <Input
-                                autoFocus
-                                value={editingSubtarefaTitulo}
-                                onChange={e => setEditingSubtarefaTitulo(e.target.value)}
-                                onFocus={e => e.currentTarget.select()}
-                                onKeyDown={e => {
-                                  if (e.key === "Enter") {
-                                    e.preventDefault();
-                                    const novo = editingSubtarefaTitulo.trim();
-                                    if (novo && novo !== st.titulo) onUpdate(st.id, { titulo: novo } as any);
-                                    setEditingSubtarefaId(null);
-                                  } else if (e.key === "Escape") {
-                                    e.preventDefault();
-                                    setEditingSubtarefaId(null);
-                                  }
-                                }}
-                                onBlur={() => {
-                                  const novo = editingSubtarefaTitulo.trim();
-                                  if (novo && novo !== st.titulo) onUpdate(st.id, { titulo: novo } as any);
-                                  setEditingSubtarefaId(null);
-                                }}
-                                className="h-7 text-sm flex-1 min-w-0"
-                              />
-                            ) : (
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setEditingSubtarefaId(st.id);
-                                  setEditingSubtarefaTitulo(st.titulo);
-                                }}
-                                className={cn(
-                                  "text-sm flex-1 min-w-0 text-left break-words whitespace-normal hover:text-foreground transition-colors",
-                                  st.status === "concluida" && "line-through text-muted-foreground"
-                                )}
-                                title="Clique para renomear"
-                              >
-                                {st.titulo}
-                              </button>
-                            )}
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
-                              onClick={() => onOpenSubtarefa?.(st.id)}
-                            >
-                              <ChevronRight className="h-3.5 w-3.5" />
-                            </Button>
-                            {onDelete && (
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
-                                onClick={() => onDelete(st.id)}
-                                title="Mover subtarefa para a lixeira"
-                              >
-                                <Trash2 className="h-3.5 w-3.5" />
-                              </Button>
-                            )}
-                          </div>
-                          {/* Row 2: inline admin controls */}
-                          <div className="flex items-center gap-1.5 pl-6 flex-wrap">
-                            {/* Status */}
-                            <Select value={st.status} onValueChange={v => onUpdate(st.id, { status: v })}>
-                              <SelectTrigger className="h-6 text-[10px] w-auto min-w-[80px] gap-1 border-border/30">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {STATUS_OPTIONS.map(s => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
-                              </SelectContent>
-                            </Select>
-                            {/* Prioridade */}
-                            <Select value={st.prioridade} onValueChange={v => onUpdate(st.id, { prioridade: v })}>
-                              <SelectTrigger className="h-6 text-[10px] w-auto min-w-[60px] gap-1 border-border/30">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {PRIORIDADE_OPTIONS.map(p => <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>)}
-                              </SelectContent>
-                            </Select>
-                            {/* Estágio */}
-                            <Select value={st.estagio || ""} onValueChange={v => onUpdate(st.id, { estagio: v } as any)}>
-                              <SelectTrigger className="h-6 text-[10px] w-auto min-w-[70px] gap-1 border-border/30">
-                                {stEstagioInfo ? (
-                                  <Badge className={cn("text-[9px] border-0 px-1 py-0", stEstagioInfo.color)}>{stEstagioInfo.label}</Badge>
-                                ) : (
-                                  <span className="text-muted-foreground">Estágio</span>
-                                )}
-                              </SelectTrigger>
-                              <SelectContent>
-                                {ESTAGIO_OPTIONS.map(e => (
-                                  <SelectItem key={e.value} value={e.value}>
-                                    <Badge className={cn("text-[9px] border-0", e.color)}>{e.label}</Badge>
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            {/* Responsável (mesma técnica do editor de tarefas) */}
-                            {projetoId && (
-                              <SubtarefaResponsavelPicker
-                                subtarefaId={st.id}
-                                projetoId={projetoId}
-                                responsavelId={st.responsavel_id || null}
-                                responsavelNome={st.responsavel?.nome || null}
-                                responsavelAvatar={st.responsavel?.avatar_url || null}
-                              />
-                            )}
-
-                            {st.data_prazo && (
-                              <span className={cn("text-[10px] px-1.5 py-0.5 rounded",
-                                parseLocalDateOrNow(st.data_prazo) < new Date() && st.status !== "concluida"
-                                  ? "text-destructive bg-destructive/10"
-                                  : "text-muted-foreground bg-muted/50"
-                              )}>
-                                {format(parseLocalDateOrNow(st.data_prazo), "dd MMM", { locale: ptBR })}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    };
-
-                    return (
-                      <div className="space-y-1.5">
-                        {pendentes.map(renderSub)}
-
-                        {concluidas.length > 0 && (
-                          <div className="mt-2 pt-2 border-t border-border/30">
-                            <button
-                              type="button"
-                              onClick={() => setShowConcluidas(v => !v)}
-                              className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground transition-colors py-1"
-                            >
-                              {showConcluidas ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
-                              {showConcluidas ? "Ocultar" : "Mostrar"} {concluidas.length} concluída{concluidas.length > 1 ? "s" : ""}
-                            </button>
-                            {showConcluidas && (
-                              <div className="space-y-1.5 mt-1">
-                                {concluidas.map(renderSub)}
-                              </div>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })()}
-
-                  {onAddSubtarefa && (
-                    <div className="flex items-center gap-2 mt-2">
-                      <Input
-                        value={subtarefaValue}
-                        onChange={e => setSubtarefaValue(e.target.value)}
-                        onKeyDown={e => e.key === "Enter" && handleAddSubtarefa()}
-                        placeholder="Adicionar subtarefa..."
-                        className="h-8 text-sm"
-                      />
-                      <Button size="sm" variant="ghost" onClick={handleAddSubtarefa} className="h-8">
-                        Adicionar
-                      </Button>
-                    </div>
-                  )}
-                </div>
+                <SubtarefasSection
+                  tarefa={tarefa}
+                  projetoId={projetoId ?? null}
+                  onUpdate={onUpdate}
+                  onToggle={onToggle}
+                  onAddSubtarefa={onAddSubtarefa}
+                  onDelete={onDelete}
+                  onOpenSubtarefa={onOpenSubtarefa}
+                />
 
                 <Separator />
 
