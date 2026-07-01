@@ -26,6 +26,12 @@ interface Props {
   responsavelId: string | null;
   responsavelNome?: string | null;
   responsavelAvatar?: string | null;
+  /**
+   * Identificador secundário (email, cargo, user_id curto) exibido no tooltip
+   * do avatar como `Nome (identifier)`. Ajuda a desambiguar homônimos e a
+   * apontar o responsável real quando a foto falha ao carregar.
+   */
+  responsavelEmail?: string | null;
   /** "inline" (default): chip pequeno com nome. "avatar": apenas avatar circular estilo Asana. */
   variant?: "inline" | "avatar";
 }
