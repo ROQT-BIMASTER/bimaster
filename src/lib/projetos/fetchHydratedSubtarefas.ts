@@ -30,15 +30,33 @@ export async function fetchHydratedSubtarefas(parentId: string): Promise<Projeto
     .order("ordem");
 
   if (error) {
-    // Fallback silencioso: se o join falhar (ex.: RLS restringindo colunas),
-    // retornamos ao menos as linhas cruas para não deixar a UI vazia.
+    // Fallback: se o join falhar (ex.: RLS restringindo colunas), buscamos
+    // as linhas cruas e tentamos hidratar ao menos o `responsavel` via
+    // lookup direto em `profiles`, para não deixar avatar/nome vazios.
     const { data: raw } = await supabase
       .from("projeto_tarefas")
       .select("*")
       .eq("parent_tarefa_id", parentId)
       .is("excluida_em", null)
       .order("ordem");
-    return (raw || []) as ProjetoTarefa[];
+    const rows = (raw || []) as any[];
+    const respIds = Array.from(
+      new Set(rows.map((r) => r.responsavel_id).filter(Boolean)),
+    ) as string[];
+    let profileMap = new Map<string, { id: string; nome: string; avatar_url: string | null }>();
+    if (respIds.length > 0) {
+      const { data: profs } = await supabase
+        .from("profiles")
+        .select("id,nome,avatar_url")
+        .in("id", respIds);
+      profileMap = new Map((profs || []).map((p: any) => [p.id, p]));
+    }
+    return rows.map((r) => ({
+      ...r,
+      responsavel: r.responsavel_id ? profileMap.get(r.responsavel_id) || null : null,
+      responsaveis: [],
+      colaboradores: [],
+    })) as ProjetoTarefa[];
   }
 
   return (data || []).map((row: any) => ({
