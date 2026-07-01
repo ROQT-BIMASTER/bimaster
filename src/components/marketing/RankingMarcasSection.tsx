@@ -239,7 +239,7 @@ export function RankingMarcasSection({
                       fontSize={10}
                       tickFormatter={(v) => nf.format(Number(v))}
                     />
-                    <Tooltip content={<BarTooltip />} cursor={{ fill: "hsl(var(--muted)/0.4)" }} />
+                    <Tooltip content={<BrandTooltip />} cursor={{ fill: "hsl(var(--muted)/0.4)" }} />
                     <Bar dataKey="eng" radius={[6, 6, 0, 0]}>
                       {barData.map((_, i) => (
                         <Cell
@@ -318,7 +318,7 @@ export function RankingMarcasSection({
                       }}
                     />
                     <ZAxis type="number" dataKey="posts" range={[60, 400]} />
-                    <Tooltip content={<ScatterTooltip />} cursor={{ strokeDasharray: "3 3" }} />
+                    <Tooltip content={<BrandTooltip />} cursor={{ strokeDasharray: "3 3" }} />
                     {medX > 0 && medY > 0 && (
                       <>
                         <ReferenceArea
