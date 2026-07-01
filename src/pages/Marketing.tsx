@@ -21,6 +21,7 @@ export default function Marketing() {
 
   const menuItems = [
     { id: "mission-control" as const, title: t("mkt.mission_control"), description: t("mkt.mission_desc"), icon: Rocket, isNew: true, navigateTo: "/dashboard/marketing/mission-control" },
+    { id: "visao-geral" as const, title: "Visão geral orgânica", description: "Desempenho consolidado das redes sociais por marca no período.", icon: BarChart3, isNew: true, navigateTo: "/dashboard/marketing/visao-geral" },
     { id: "strategy" as const, title: "Estratégia", description: "Planejamento estratégico, personas, SWOT, briefings e calendário editorial com IA", icon: Lightbulb, isNew: true, navigateTo: "/dashboard/marketing/strategy" },
     { id: "looker" as MenuSection, title: "Instagram", description: t("mkt.instagram_desc"), icon: Instagram },
     { id: "dashcortex" as MenuSection, title: "DashCortex", description: t("mkt.dashcortex_desc"), icon: LineChart },
