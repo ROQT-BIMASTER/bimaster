@@ -77,22 +77,30 @@ export function ProjetoListView({ projetoId, darkBg = false, filters = EMPTY_FIL
   // vem congelada de ProjetoDetalhe (useState inicializado com o valor da
   // URL no primeiro render) e nunca muda. Sem o guard abaixo, qualquer
   // refetch subsequente re-sincroniza a URL de volta para o valor inicial.
-  const autoOpenedRef = useRef(false);
+  // FIX regressão "X não fecha": `initialTarefaId` vem congelado de
+  // ProjetoDetalhe (useState do valor inicial da URL) e nunca é resetado.
+  // Cada refetch/mutation causa remount desta view (comportamento upstream
+  // do wrapper), o que reseta refs locais → auto-open reabre o drawer logo
+  // após o usuário clicar em X. Solução: persistir "já consumido" em
+  // `sessionStorage` por (projeto, tarefa), garantindo idempotência mesmo
+  // atravessando remounts. Sem alteração de arquitetura.
+  const consumedKey = `projListView:autoOpened:${projetoId}:${initialTarefaId ?? ""}`;
+  const readConsumed = () => {
+    try { return sessionStorage.getItem(consumedKey) === "1"; } catch { return false; }
+  };
+  const markConsumed = () => {
+    try { sessionStorage.setItem(consumedKey, "1"); } catch { /* noop */ }
+  };
   useEffect(() => {
-    console.log("[ProjetoListView] MOUNT — autoOpenedRef reset");
-    return () => console.log("[ProjetoListView] UNMOUNT");
-  }, []);
-  useEffect(() => {
-    console.log("[ProjetoListView] auto-open effect", { autoOpened: autoOpenedRef.current, initialTarefaId, selectedTarefaId, tarefasLoading });
-    if (autoOpenedRef.current) return;
     if (!initialTarefaId) return;
+    if (readConsumed()) return;
     if (selectedTarefaId === initialTarefaId) {
-      autoOpenedRef.current = true;
+      markConsumed();
       return;
     }
     if (tarefasLoading) return;
     if (tarefas.some((t) => t.id === initialTarefaId)) {
-      autoOpenedRef.current = true;
+      markConsumed();
       setSelectedTarefaId(initialTarefaId);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
