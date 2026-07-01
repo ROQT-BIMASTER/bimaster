@@ -50,14 +50,20 @@ describe("SmartAvatar – fallback quando avatar_url é nulo/inválido", () => {
     expect(screen.queryByRole("img")).toBeNull();
   });
 
-  it("sem nome: mostra '?' como fallback", () => {
+  it("sem nome: usa fallback 'Membro' -> iniciais 'ME'", () => {
     render(<SmartAvatar src={null} nome={null} />);
-    expect(screen.getByText("?")).toBeInTheDocument();
+    expect(screen.getByText("ME")).toBeInTheDocument();
   });
 
-  it("nome com espaços em branco: cai em '?'", () => {
+  it("nome com espaços em branco: cai no fallback 'Membro'", () => {
     render(<SmartAvatar src={null} nome="   " />);
-    expect(screen.getByText("?")).toBeInTheDocument();
+    expect(screen.getByText("ME")).toBeInTheDocument();
+  });
+
+  it("fallbackNome customizado: usa esse valor quando nome é vazio", () => {
+    render(<SmartAvatar src={null} nome={null} fallbackNome="Convidado" />);
+    expect(screen.getByText("CO")).toBeInTheDocument();
+    expect(screen.getByTitle("Convidado")).toBeInTheDocument();
   });
 
   it("nome único: usa primeiras 2 letras uppercase", () => {
