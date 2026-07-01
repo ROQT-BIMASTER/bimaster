@@ -432,12 +432,13 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
       const maxOrdem = tarefas.filter(t => t.secao_id === tarefa.secao_id).length;
       const id = tarefa.id || createStableTaskId();
       tarefa.id = id;
-      const { id: _clientId, ...tarefaInsert } = tarefa;
       const { data, error } = await supabase
         .from("projeto_tarefas")
         .insert({
           id,
-          ...tarefaInsert,
+          titulo: tarefa.titulo,
+          secao_id: tarefa.secao_id,
+          parent_tarefa_id: tarefa.parent_tarefa_id,
           projeto_id: projetoId!,
           ordem: maxOrdem,
           criador_id: user?.id || null,
