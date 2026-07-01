@@ -196,6 +196,69 @@ export function reportUploadError(input: {
   });
 }
 
+// ── Reporters genéricos (multi-módulo) ────────────────────────────────────────
+
+interface GenericInput {
+  module: UploadModule;
+  file: { name: string; type: string; size: number };
+  userId: string;
+  contextId?: string | null;
+}
+
+function genericBase(input: GenericInput): Pick<
+  UploadAuditEvent,
+  "fileName" | "fileType" | "fileSize" | "tarefaId" | "contextId" | "module" | "userId" | "at" | "pageUrl"
+> {
+  return {
+    fileName: input.file.name,
+    fileType: input.file.type || "unknown",
+    fileSize: input.file.size,
+    tarefaId: input.contextId ?? "",
+    contextId: input.contextId ?? null,
+    module: input.module,
+    userId: input.userId,
+    at: new Date().toISOString(),
+    pageUrl: typeof window !== "undefined" ? window.location.href : undefined,
+  };
+}
+
+export function reportGenericUploadSuccess(
+  input: GenericInput & { storagePath: string },
+): UploadAuditEvent {
+  return push({
+    status: "success",
+    storagePath: input.storagePath,
+    ...genericBase(input),
+  });
+}
+
+export function reportGenericUploadRejection(
+  input: GenericInput & { error: unknown; reason?: UploadRejectionReason },
+): UploadAuditEvent {
+  const inferred = inferReasonFromError(input.error);
+  return push({
+    status: "rejected",
+    reason: input.reason ?? inferred.reason,
+    message: inferred.message,
+    ...genericBase(input),
+  });
+}
+
+export function reportGenericUploadError(
+  input: GenericInput & {
+    error: unknown;
+    reason: Extract<UploadRejectionReason, "storage_upload_failed" | "metadata_insert_failed" | "unknown">;
+  },
+): UploadAuditEvent {
+  const raw = typeof input.error === "string" ? input.error : (input.error as Error)?.message ?? "";
+  return push({
+    status: "error",
+    reason: input.reason,
+    message: raw,
+    ...genericBase(input),
+  });
+}
+
 export function getUploadAudit(): UploadAuditEvent[] {
   return [...buffer];
 }
