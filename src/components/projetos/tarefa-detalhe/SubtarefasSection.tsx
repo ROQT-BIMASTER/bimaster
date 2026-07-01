@@ -627,13 +627,35 @@ export function SubtarefasSection({
               className="h-7 text-xs gap-1"
               onClick={() => {
                 const selected = pendingAISubtarefas.filter((it) => it.selected);
+                const existentes = allSubs.map((s) => ({ titulo: s.titulo }));
+                let criadas = 0;
+                let ignoradas = 0;
                 if (onAddSubtarefa) {
                   for (const item of selected) {
-                    onAddSubtarefa(item.titulo, siblingParentId, tarefa.secao_id);
+                    const err = validateNewTitle(item.titulo, existentes);
+                    if (err) {
+                      ignoradas++;
+                      continue;
+                    }
+                    existentes.push({ titulo: item.titulo });
+                    try {
+                      onAddSubtarefa(item.titulo.trim(), siblingParentId, tarefa.secao_id);
+                      criadas++;
+                    } catch {
+                      ignoradas++;
+                    }
                   }
                 }
                 setPendingAISubtarefas([]);
-                toast.success(`${selected.length} subtarefa(s) criada(s)!`);
+                if (criadas > 0) {
+                  toast.success(
+                    ignoradas > 0
+                      ? `${criadas} subtarefa(s) criada(s). ${ignoradas} ignorada(s) por duplicidade/validação.`
+                      : `${criadas} subtarefa(s) criada(s).`,
+                  );
+                } else if (ignoradas > 0) {
+                  toast.error("Nenhuma subtarefa foi criada — todas duplicadas ou inválidas.");
+                }
               }}
               disabled={pendingAISubtarefas.filter((it) => it.selected).length === 0}
             >
