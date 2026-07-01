@@ -206,7 +206,7 @@ export function SubtarefasSection({
             <Button
               variant="ghost"
               size="icon"
-              className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+              className="h-6 w-6 shrink-0 text-muted-foreground hover:text-foreground hover:bg-accent"
               onClick={() => onOpenSubtarefa(st.id)}
               title="Abrir subtarefa"
             >
