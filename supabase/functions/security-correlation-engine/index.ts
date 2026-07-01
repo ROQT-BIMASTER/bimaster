@@ -4,7 +4,10 @@ import { logger } from "../_shared/logger.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
 
 
-Deno.serve(secureHandler({ auth: "none", rateLimit: 60, rateLimitPrefix: "security-correlation-engine" }, async (req: Request) => {
+// Only callable by the internal cron scheduler (service-role apikey) or by
+// admin JWTs; the enumerated `actions` list is intentionally NOT returned to
+// unauthenticated callers to avoid leaking blocked IPs / user IDs.
+Deno.serve(secureHandler({ auth: "apikey", rateLimit: 12, rateLimitPrefix: "security-correlation-engine" }, async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: getCorsHeaders(req) });
   }
