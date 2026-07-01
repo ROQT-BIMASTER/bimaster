@@ -26,6 +26,7 @@ import { Upload, FileText, Check, AlertCircle, Database, Loader2, Search } from 
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { parseNFeXml, type NFeXmlData, type NFeXmlProduto } from "@/lib/fabrica/nfe-xml-parser";
+import { guardFileUpload, reportUploadSuccessShared, reportUploadFailureShared } from "@/lib/utils/sharedUploadGuard";
 
 interface VincularXmlInsumoDialogProps {
   open: boolean;
