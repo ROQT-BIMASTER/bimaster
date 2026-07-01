@@ -609,7 +609,7 @@ export function SubtarefasSection({
             value={subtarefaValue}
             onChange={(e) => setSubtarefaValue(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleAdd()}
-            placeholder="Adicionar subtarefa..."
+            placeholder={rootTarefaId && rootTarefaId !== tarefa.id ? "Adicionar subtarefa (mesmo nível)..." : "Adicionar subtarefa..."}
             className="h-8 text-sm"
           />
           <Button size="sm" variant="ghost" onClick={handleAdd} className="h-8">
