@@ -769,7 +769,7 @@ export function SubtarefasSection({
               {showConcluidas ? "Ocultar" : "Mostrar"} {concluidas.length} concluída
               {concluidas.length > 1 ? "s" : ""}
             </button>
-            {showConcluidas && <div className="space-y-1.5 mt-1">{concluidas.map(renderSub)}</div>}
+            {showConcluidas && <div className="space-y-1.5 mt-1">{renderTree(concluidas)}</div>}
           </div>
         )}
       </div>
