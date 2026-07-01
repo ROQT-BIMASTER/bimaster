@@ -508,11 +508,24 @@ Deno.serve(secureHandler(
       totalPosts += postsCount;
     }
 
+    // Marcar posts sem cache como 'pendente' para o cache-post-media processar
+    try {
+      await admin
+        .from("mkt_posts")
+        .update({ midia_status: "pendente" })
+        .is("midia_cache_path", null)
+        .not("midia_origem_url", "is", null)
+        .or("midia_status.is.null,midia_status.eq.erro");
+    } catch (e) {
+      console.error("mkt_posts_mark_pendente_failed", (e as Error)?.message);
+    }
+
     return j(cors, 200, {
       por_conector,
       total: { contas: totalContas, metricas: totalMetricas, posts: totalPosts },
       license_blocked: licenseBlocked,
     });
+
 
   },
 ));
