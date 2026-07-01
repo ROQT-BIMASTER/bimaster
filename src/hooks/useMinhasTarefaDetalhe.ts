@@ -6,6 +6,7 @@ import { useEffect } from "react";
 import { useTarefaMentionableUsers } from "./useTarefaMentionableUsers";
 import { uniqueChannelName } from "@/lib/realtime/channelName";
 import { sanitizeStorageFilename } from "@/lib/utils/sanitizeStorageFilename";
+import { validateFileForUpload } from "@/lib/utils/file-security";
 
 export interface MinhaTarefaAnexo {
   id: string;
@@ -28,15 +29,6 @@ export interface MinhaTarefaMessage {
   autor?: { nome: string; avatar_url: string | null };
 }
 
-const MAX_FILE_SIZE = 20 * 1024 * 1024;
-const ALLOWED_TYPES = [
-  "image/jpeg", "image/png", "image/gif", "image/webp", "image/svg+xml",
-  "application/pdf",
-  "application/vnd.ms-excel", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-  "application/msword", "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-  "application/vnd.ms-powerpoint", "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-  "text/plain", "text/csv",
-];
 
 export function useMinhasTarefaDetalhe(tarefaId: string | undefined) {
   const { user } = useAuth();
@@ -59,11 +51,9 @@ export function useMinhasTarefaDetalhe(tarefaId: string | undefined) {
 
   const uploadAnexo = useMutation({
     mutationFn: async (file: File) => {
-      if (file.size > MAX_FILE_SIZE) {
-        throw new Error(`Arquivo excede 20MB (${(file.size / 1048576).toFixed(1)}MB).`);
-      }
-      if (ALLOWED_TYPES.length > 0 && !ALLOWED_TYPES.includes(file.type) && file.type !== "") {
-        throw new Error(`Tipo não permitido: ${file.type}`);
+      const validation = await validateFileForUpload(file);
+      if (!validation.valid) {
+        throw new Error(validation.error);
       }
       const filePath = `${user!.id}/${tarefaId}/${Date.now()}_${sanitizeStorageFilename(file.name)}`;
       const { error: uploadError } = await supabase.storage

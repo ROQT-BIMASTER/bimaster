@@ -7,6 +7,7 @@ import { logDocAudit } from "@/lib/productDocAudit";
 import { useTarefaMentionableUsers } from "./useTarefaMentionableUsers";
 import { uniqueChannelName } from "@/lib/realtime/channelName";
 import { sanitizeStorageFilename } from "@/lib/utils/sanitizeStorageFilename";
+import { validateFileForUpload } from "@/lib/utils/file-security";
 
 export interface TarefaComentario {
   id: string;
@@ -163,15 +164,8 @@ export function useProjetoTarefaDetalhe(tarefaId: string | undefined, produtoId?
   });
 
   // ===== File validation constants =====
-  const MAX_FILE_SIZE = 20 * 1024 * 1024; // 20MB
-  const ALLOWED_TYPES = [
-    "image/jpeg", "image/png", "image/gif", "image/webp", "image/svg+xml",
-    "application/pdf",
-    "application/vnd.ms-excel", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-    "application/msword", "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-    "application/vnd.ms-powerpoint", "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-    "text/plain", "text/csv",
-  ];
+
+
 
   type UploadAnexoInput = File | { file: File; notificarIds?: string[] };
   const normalizeUpload = (input: UploadAnexoInput): { file: File; notificarIds: string[] } => {
@@ -182,13 +176,10 @@ export function useProjetoTarefaDetalhe(tarefaId: string | undefined, produtoId?
   const uploadAnexo = useMutation({
     mutationFn: async (input: UploadAnexoInput) => {
       const { file, notificarIds } = normalizeUpload(input);
-      // Validate file size
-      if (file.size > MAX_FILE_SIZE) {
-        throw new Error(`Arquivo "${file.name}" excede o limite de 20MB (${(file.size / 1048576).toFixed(1)}MB).`);
-      }
-      // Validate file type
-      if (ALLOWED_TYPES.length > 0 && !ALLOWED_TYPES.includes(file.type) && file.type !== "") {
-        throw new Error(`Tipo de arquivo não permitido: ${file.type}. Use PDF, imagens, Excel, Word ou texto.`);
+      // Validação centralizada (extensão, MIME, tamanho, magic bytes)
+      const validation = await validateFileForUpload(file);
+      if (!validation.valid) {
+        throw new Error(validation.error);
       }
 
       const filePath = `${user!.id}/${tarefaId}/${Date.now()}_${sanitizeStorageFilename(file.name)}`;
