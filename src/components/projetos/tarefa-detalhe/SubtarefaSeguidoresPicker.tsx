@@ -223,7 +223,8 @@ function SubtarefaSeguidoresPickerImpl({ subtarefaId, projetoId, colaboradores, 
                     key={c.user_id}
                     src={c.avatar_url}
                     nome={c.nome}
-                    title={c.nome}
+                    identifier={c.email}
+                    fallbackNome="Membro"
                     className={cn("h-4 w-4 ring-1 ring-background", idx > 0 && "-ml-1.5")}
                     fallbackClassName="text-[7px]"
                   />
