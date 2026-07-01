@@ -33,6 +33,39 @@ Deno.serve(secureHandler({ auth: "none", rateLimit: 60, rateLimitPrefix: "whatsa
   const whatsappPhoneId = Deno.env.get("WHATSAPP_PHONE_NUMBER_ID");
   const whatsappVerifyToken = Deno.env.get("WHATSAPP_VERIFY_TOKEN");
 
+  // Authorization gate for send / send-template / templates paths.
+  // /webhook and GET verify remain open — Meta callback needs anon access.
+  const requiresAuth = (path === "send" || path === "send-template" || path === "templates");
+  if (requiresAuth) {
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
+      });
+    }
+    const token = authHeader.replace("Bearer ", "");
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    if (authError || !user) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
+      });
+    }
+    const { data: roles } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", user.id)
+      .in("role", ["admin", "supervisor", "financeiro"]);
+    if (!roles || roles.length === 0) {
+      return new Response(
+        JSON.stringify({ error: "Forbidden: requires admin, supervisor or financeiro role" }),
+        { status: 403, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } },
+      );
+    }
+  }
+
+
   // ============ VERIFICAÇÃO DO WEBHOOK (Meta) ============
   if (req.method === "GET") {
     const mode = url.searchParams.get("hub.mode");
