@@ -1,0 +1,71 @@
+name: e2e-upload-validation
+
+# E2E — Mensagens de rejeição de upload (mp4/mov/webm inválidos) em Projetos
+# e Central de Trabalho. Roda em PR sempre que o fluxo compartilhado de
+# upload, os hooks consumidores, os componentes de UI ou o próprio spec
+# forem tocados.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/lib/utils/file-security.ts'
+      - 'src/lib/utils/uploadTarefaAnexo.ts'
+      - 'src/lib/telemetry/uploadTelemetry.ts'
+      - 'src/hooks/useProjetoTarefaDetalhe.ts'
+      - 'src/hooks/useMinhasTarefaDetalhe.ts'
+      - 'src/components/projetos/tarefa-detalhe/TarefaAnexosSection.tsx'
+      - 'src/components/projetos/tarefa-detalhe/UploadAnexoDialog.tsx'
+      - 'src/components/minhas-tarefas/MinhasTarefaAnexos.tsx'
+      - 'src/components/minhas-tarefas/MinhasTarefaDetail.tsx'
+      - 'e2e/projetos/upload-validation-mensagens.spec.ts'
+      - '.github/workflows/e2e-upload-validation.yml'
+  pull_request:
+    paths:
+      - 'src/lib/utils/file-security.ts'
+      - 'src/lib/utils/uploadTarefaAnexo.ts'
+      - 'src/lib/telemetry/uploadTelemetry.ts'
+      - 'src/hooks/useProjetoTarefaDetalhe.ts'
+      - 'src/hooks/useMinhasTarefaDetalhe.ts'
+      - 'src/components/projetos/tarefa-detalhe/TarefaAnexosSection.tsx'
+      - 'src/components/projetos/tarefa-detalhe/UploadAnexoDialog.tsx'
+      - 'src/components/minhas-tarefas/MinhasTarefaAnexos.tsx'
+      - 'src/components/minhas-tarefas/MinhasTarefaDetail.tsx'
+      - 'e2e/projetos/upload-validation-mensagens.spec.ts'
+      - '.github/workflows/e2e-upload-validation.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: e2e-upload-validation-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  e2e:
+    name: Playwright — Upload validation
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with: { bun-version: latest }
+      - run: bun install --frozen-lockfile
+      - name: Install Playwright browsers
+        run: bunx playwright install --with-deps chromium
+      - name: Run Playwright — upload validation
+        env:
+          E2E_BASE_URL: ${{ secrets.E2E_BASE_URL }}
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+          E2E_PROJETO_ID: ${{ secrets.E2E_PROJETO_ID }}
+          E2E_SECAO_ID: ${{ secrets.E2E_SECAO_ID }}
+          E2E_OWNER_EMAIL: ${{ secrets.E2E_OWNER_EMAIL }}
+          E2E_OWNER_PASSWORD: ${{ secrets.E2E_OWNER_PASSWORD }}
+        run: bunx playwright test e2e/projetos/upload-validation-mensagens.spec.ts --reporter=list
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-upload-validation
+          path: playwright-report/
+          retention-days: 14
