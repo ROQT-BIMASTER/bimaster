@@ -636,3 +636,13 @@ html[data-tree-debug="1"] [data-tree-row]::before {
   pointer-events: none;
 }
 
+/* Auditoria de layout: linhas marcadas com data-tree-misaligned recebem uma
+   borda vermelha discreta + tooltip nativo (via atributo title) explicando o
+   diagnóstico. Aparece SEMPRE (não depende de debug_tree_indent), porque
+   representa uma regressão real que precisa ser vista de imediato. */
+[data-tree-row][data-tree-misaligned="1"] {
+  outline: 2px solid hsl(var(--destructive) / 0.6);
+  outline-offset: -2px;
+}
+
+
