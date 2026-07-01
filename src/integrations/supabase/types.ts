@@ -31099,6 +31099,11 @@ export type Database = {
           id: string
           impressoes: number | null
           marca_id: string
+          midia_cache_path: string | null
+          midia_cached_at: string | null
+          midia_content_type: string | null
+          midia_origem_url: string | null
+          midia_status: string | null
           permalink: string | null
           publicado_em: string | null
           saves: number | null
@@ -31116,6 +31121,11 @@ export type Database = {
           id?: string
           impressoes?: number | null
           marca_id: string
+          midia_cache_path?: string | null
+          midia_cached_at?: string | null
+          midia_content_type?: string | null
+          midia_origem_url?: string | null
+          midia_status?: string | null
           permalink?: string | null
           publicado_em?: string | null
           saves?: number | null
@@ -31133,6 +31143,11 @@ export type Database = {
           id?: string
           impressoes?: number | null
           marca_id?: string
+          midia_cache_path?: string | null
+          midia_cached_at?: string | null
+          midia_content_type?: string | null
+          midia_origem_url?: string | null
+          midia_status?: string | null
           permalink?: string | null
           publicado_em?: string | null
           saves?: number | null

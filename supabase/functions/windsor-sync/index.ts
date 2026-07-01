@@ -412,6 +412,7 @@ Deno.serve(secureHandler(
           views: number;
           saves: number;
           impressoes: number;
+          midia_origem_url: string | null;
         }> = [];
 
         for (const row of res.rows) {
@@ -436,6 +437,17 @@ Deno.serve(secureHandler(
             publicado_em = Number.isFinite(d.getTime()) ? d.toISOString() : null;
           }
           const tipoStr = (row.media_product_type ?? row.post_type) as unknown;
+
+          // Mídia crua (URL efêmera do CDN — precisa ser cacheada por cache-post-media)
+          let midia_origem_url: string | null = null;
+          if (slug === "instagram") {
+            const v = row.media_url;
+            if (v != null && String(v).trim() !== "") midia_origem_url = String(v);
+          } else if (slug === "facebook_organic") {
+            const v = row.source;
+            if (v != null && String(v).trim() !== "") midia_origem_url = String(v);
+          }
+
           postsUpsert.push({
             conta_id,
             marca_id,
@@ -450,8 +462,10 @@ Deno.serve(secureHandler(
             views: num(row.views) || num(row.video_views),
             saves: num(row.saves),
             impressoes: num(row.impressions),
+            midia_origem_url,
           });
         }
+
 
         if (postsUpsert.length > 0) {
           const dedup = new Map<string, typeof postsUpsert[number]>();
@@ -494,11 +508,24 @@ Deno.serve(secureHandler(
       totalPosts += postsCount;
     }
 
+    // Marcar posts sem cache como 'pendente' para o cache-post-media processar
+    try {
+      await admin
+        .from("mkt_posts")
+        .update({ midia_status: "pendente" })
+        .is("midia_cache_path", null)
+        .not("midia_origem_url", "is", null)
+        .or("midia_status.is.null,midia_status.eq.erro");
+    } catch (e) {
+      console.error("mkt_posts_mark_pendente_failed", (e as Error)?.message);
+    }
+
     return j(cors, 200, {
       por_conector,
       total: { contas: totalContas, metricas: totalMetricas, posts: totalPosts },
       license_blocked: licenseBlocked,
     });
+
 
   },
 ));
