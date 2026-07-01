@@ -956,19 +956,30 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
       });
       return;
     }
+    // RLS pode filtrar a linha silenciosamente (sem erro, sem retorno).
+    // Nesses casos o usuário não tem permissão de atualização e precisamos
+    // reverter a UI e avisar em vez de mostrar "sucesso" mentiroso.
+    if (!fresh) {
+      if (previous) queryClient.setQueryData(cacheKey, previous);
+      markPending([tarefaId], false);
+      toast.error("Você não tem permissão para alterar esta tarefa", {
+        id: toastId,
+        description: "Peça ao responsável ou ao criador para conceder acesso.",
+      });
+      return;
+    }
     // Reconciliação: aplica o estado canônico devolvido pelo backend no cache
     // antes de disparar o refetch, garantindo que o Kanban migre o cartão
     // imediatamente mesmo se o refetch em background demorar.
-    if (fresh) {
-      queryClient.setQueryData<MinaTarefa[]>(cacheKey, (curr = []) =>
-        curr.map((t) => (t.id === tarefaId ? { ...t, ...(fresh as Partial<MinaTarefa>) } : t)),
-      );
-    }
+    queryClient.setQueryData<MinaTarefa[]>(cacheKey, (curr = []) =>
+      curr.map((t) => (t.id === tarefaId ? { ...t, ...(fresh as Partial<MinaTarefa>) } : t)),
+    );
     await queryClient.invalidateQueries({ queryKey: ["minhas-tarefas"], refetchType: "active" });
     queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2"] });
     queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-subtarefas-bridge"] });
     markPending([tarefaId], false);
     toast.success(done ? "Tarefa concluída" : "Tarefa reaberta", { id: toastId });
+
   }, [queryClient, tarefas, user?.id, markPending]);
 
   const handleChangePrazo = useCallback(async (tarefaId: string, novaData: string | null) => {
