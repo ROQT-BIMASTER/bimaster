@@ -832,5 +832,6 @@ export default function MarketingVisaoGeralPage() {
         </CardContent>
       </Card>
     </div>
+    </DashboardLayout>
   );
 }
