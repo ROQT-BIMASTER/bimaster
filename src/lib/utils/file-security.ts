@@ -37,8 +37,8 @@ const DANGEROUS_EXTENSIONS = new Set([
   "pif", "reg", "hta", "wsf", "cpl", "msc",
 ]);
 
-const MAX_FILE_SIZE_BYTES = 20 * 1024 * 1024; // 20 MB (documentos/imagens)
-const MAX_VIDEO_SIZE_BYTES = 100 * 1024 * 1024; // 100 MB (vídeos)
+const MAX_FILE_SIZE_BYTES = 200 * 1024 * 1024; // 200 MB (documentos/imagens)
+const MAX_VIDEO_SIZE_BYTES = 500 * 1024 * 1024; // 500 MB (vídeos)
 const VIDEO_EXTENSIONS = new Set(["mp4", "mov", "webm"]);
 
 // ── Magic bytes (assinaturas de arquivo) ───────────────────────────────────────
