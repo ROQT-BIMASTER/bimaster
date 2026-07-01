@@ -136,7 +136,7 @@ export async function validateFileForUpload(file: File): Promise<FileValidationR
     return {
       valid: false,
       code: "EXTENSION_NOT_ALLOWED",
-      error: `Extensão ".${ext}" não é suportada. Use: PDF, imagens, documentos Office, CSV, XML, ZIP ou TXT.`,
+      error: `Extensão ".${ext}" não é suportada. Formatos aceitos: PDF, imagens (PNG, JPG, WEBP, GIF, HEIC), Office (DOC, DOCX, XLS, XLSX, PPT, PPTX), CSV, XML, TXT, ZIP e vídeos (MP4, MOV, WEBM até 100 MB).`,
     };
   }
 
@@ -154,18 +154,22 @@ export async function validateFileForUpload(file: File): Promise<FileValidationR
     return {
       valid: false,
       code: "MIME_REJECTED",
-      error: `Tipo MIME "${file.type}" não é permitido.`,
+      error: `Tipo MIME "${file.type}" não é permitido para ".${ext}". Verifique se o arquivo não foi renomeado a partir de outro formato.`,
     };
   }
 
   // 5. Tamanho (vídeos podem ir até 100 MB; demais tipos, 20 MB)
-  const maxSize = VIDEO_EXTENSIONS.has(ext) ? MAX_VIDEO_SIZE_BYTES : MAX_FILE_SIZE_BYTES;
+  const isVideo = VIDEO_EXTENSIONS.has(ext);
+  const maxSize = isVideo ? MAX_VIDEO_SIZE_BYTES : MAX_FILE_SIZE_BYTES;
   if (file.size > maxSize) {
     const maxMb = (maxSize / (1024 * 1024)).toFixed(0);
+    const currentMb = (file.size / (1024 * 1024)).toFixed(1);
     return {
       valid: false,
       code: "SIZE_EXCEEDED",
-      error: `Arquivo excede o limite de ${maxMb} MB (${(file.size / (1024 * 1024)).toFixed(1)} MB).`,
+      error: isVideo
+        ? `Vídeo ".${ext}" tem ${currentMb} MB e excede o limite de ${maxMb} MB. Comprima o vídeo (ex.: HandBrake, MP4 H.264 720p) e tente novamente.`
+        : `Arquivo ".${ext}" tem ${currentMb} MB e excede o limite de ${maxMb} MB para este tipo. Vídeos MP4/MOV/WEBM podem chegar a 100 MB.`,
     };
   }
 
