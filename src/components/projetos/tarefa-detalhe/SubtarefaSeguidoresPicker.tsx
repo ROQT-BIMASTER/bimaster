@@ -27,7 +27,15 @@ interface Props {
   subtarefaId: string;
   projetoId: string;
   colaboradores: Colab[];
+  /**
+   * Indica que a lista de membros do projeto (fonte de hidratação de
+   * nome/avatar) ainda está resolvendo. Quando `true` e houver colaboradores,
+   * renderiza uma pilha de placeholders pulsantes para evitar flash de
+   * iniciais "MB" e sinalizar que o dado real está a caminho.
+   */
+  isResolving?: boolean;
 }
+
 
 /**
  * Picker compacto de seguidores (colaboradores) para linhas de subtarefa no
