@@ -26,11 +26,13 @@ import { flickerLog } from "@/lib/debug/flickerLog";
 
 const MIN_TITLE_LEN = 2;
 const MAX_TITLE_LEN = 200;
-const TREE_INDENT_PX = 24;
-// Alinha "Adicionar subitem" e badges de metadados exatamente com a coluna
-// do chevron/checkbox dos filhos: marginLeft do filho (24) + px-2 do filho (8) = 32.
-// Assim subtarefas e subitens ficam na MESMA coluna vertical em drawer e Focus Mode.
-const TREE_ROW_CONTENT_OFFSET_PX = 32;
+// Indentação da árvore vem de uma ÚNICA fonte: a CSS var `--tree-indent`
+// (e o offset derivado `--tree-row-content-offset`), definidas em
+// `src/index.css`. Nunca redeclare esses valores em outros componentes —
+// referencie sempre as vars para manter subtarefas e subitens alinhados
+// no drawer, no Focus Mode e na Central de Trabalho.
+const TREE_INDENT_VAR = "var(--tree-indent)";
+const TREE_ROW_CONTENT_OFFSET_VAR = "var(--tree-row-content-offset)";
 
 /**
  * Valida título de novo subitem/subtarefa antes de disparar a criação.
