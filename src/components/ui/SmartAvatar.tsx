@@ -61,13 +61,38 @@ function isUsableUrl(src?: string | null): src is string {
   return true;
 }
 
+/**
+ * Resolve o nome de exibição priorizando `fallbackNome` quando `nome`
+ * for nulo, indefinido, apenas whitespace, uma das strings-lixo comuns
+ * ("null"/"undefined") ou o placeholder genérico "Membro" (case-insensitive)
+ * — nesse último caso, se o caller passou um `fallbackNome` custom, ele é
+ * considerado autoritativo e vence o placeholder hidratado por RPC/RLS
+ * incompleto. Assim o tooltip/aria refletem o nome mais específico
+ * disponível para o SR.
+ */
+function resolveDisplayNome(
+  nome: string | null | undefined,
+  fallbackNome: string,
+): string {
+  const clean = (nome ?? "").trim();
+  if (!clean) return fallbackNome;
+  if (clean === "null" || clean === "undefined") return fallbackNome;
+  if (
+    fallbackNome !== "Membro" &&
+    clean.toLowerCase() === "membro"
+  ) {
+    return fallbackNome;
+  }
+  return clean;
+}
+
 function buildTitle(
   nome: string | null | undefined,
   identifier: string | null | undefined,
   fallbackNome: string,
   errored: boolean,
 ): string {
-  const displayNome = (nome && nome.trim()) || fallbackNome;
+  const displayNome = resolveDisplayNome(nome, fallbackNome);
   const idClean = identifier && String(identifier).trim() ? String(identifier).trim() : null;
   const base = idClean ? `${displayNome} (${idClean})` : displayNome;
   // Quando a imagem falhou explicitamente, sinaliza no tooltip para deixar
