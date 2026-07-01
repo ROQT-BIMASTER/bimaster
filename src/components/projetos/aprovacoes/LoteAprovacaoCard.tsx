@@ -19,6 +19,7 @@ import {
 } from "@/hooks/useLoteAprovacao";
 import { AccessDeniedNotice } from "@/components/ui/access-denied-notice";
 import { isPermissionError } from "@/lib/utils/permissionErrors";
+import { logRlsAccess } from "@/lib/audit/logRlsAccess";
 
 interface Props {
   lote: LoteAprovacao;
