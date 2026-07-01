@@ -24,7 +24,9 @@ SENSITIVE_TABLES=(
   "contas_receber"
   "clientes"
   "fornecedores"
-  "our_products"
+  # our_products: broad SELECT is intentional (public catalog); sensitive columns
+  # are protected via column-level GRANTs and covered by
+  # e2e-anonymous-sensitive-columns.sh instead.
   "product_comparisons"
   "social_media_metrics_history"
   "user_roles"
