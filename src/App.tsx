@@ -353,6 +353,7 @@ const IntegracaoGoogleDrive = lazyWithRetry(() => import("./pages/admin/Integrac
 const MarketingIntegracoesPage = lazyWithRetry(() => import("./pages/admin/MarketingIntegracoesPage"));
 const SuporteAdmin = lazyWithRetry(() => import("./pages/admin/SuporteAdmin"));
 const SolicitacoesAcesso = lazyWithRetry(() => import("./pages/admin/SolicitacoesAcesso"));
+const TelasPerdidas = lazyWithRetry(() => import("./pages/admin/TelasPerdidas"));
 
 const VisibilidadeProjetosAjuda = lazyWithRetry(() => import("./pages/ajuda/VisibilidadeProjetos"));
 const PoliticaPrivacidade = lazyWithRetry(() => import("./pages/PoliticaPrivacidade"));
@@ -813,6 +814,8 @@ function AppContent() {
             <Route path="/admin/suporte" element={<ScreenRoute screenCode="admin"><SuporteAdmin /></ScreenRoute>} />
             <Route path="/admin/solicitacoes-acesso" element={<ScreenRoute screenCode="admin"><SolicitacoesAcesso /></ScreenRoute>} />
             <Route path="/dashboard/admin/solicitacoes-acesso" element={<ScreenRoute screenCode="admin"><SolicitacoesAcesso /></ScreenRoute>} />
+            <Route path="/admin/telas-perdidas" element={<ScreenRoute screenCode="admin"><TelasPerdidas /></ScreenRoute>} />
+            <Route path="/dashboard/admin/telas-perdidas" element={<ScreenRoute screenCode="admin"><TelasPerdidas /></ScreenRoute>} />
 
 
 
