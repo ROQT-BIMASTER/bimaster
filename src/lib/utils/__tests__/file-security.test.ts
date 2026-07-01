@@ -38,20 +38,20 @@ describe("validateFileForUpload — vídeos dentro do limite", () => {
     expect(result.error).toBeUndefined();
   });
 
-  it("aceita MOV de 50 MB (abaixo do limite de 100 MB)", async () => {
-    const file = makeFile("video.mov", "video/quicktime", 50 * MB, MP4_MAGIC, 4);
+  it("aceita MOV de 250 MB (abaixo do limite de 500 MB)", async () => {
+    const file = makeFile("video.mov", "video/quicktime", 250 * MB, MP4_MAGIC, 4);
     const result = await validateFileForUpload(file);
     expect(result.valid).toBe(true);
   });
 
-  it("aceita WEBM de 99 MB (bem próximo do limite)", async () => {
-    const file = makeFile("stream.webm", "video/webm", 99 * MB, WEBM_MAGIC);
+  it("aceita WEBM de 499 MB (bem próximo do limite)", async () => {
+    const file = makeFile("stream.webm", "video/webm", 499 * MB, WEBM_MAGIC);
     const result = await validateFileForUpload(file);
     expect(result.valid).toBe(true);
   });
 
-  it("aceita MP4 exatamente no limite de 100 MB", async () => {
-    const file = makeFile("edge.mp4", "video/mp4", 100 * MB, MP4_MAGIC, 4);
+  it("aceita MP4 exatamente no limite de 500 MB", async () => {
+    const file = makeFile("edge.mp4", "video/mp4", 500 * MB, MP4_MAGIC, 4);
     const result = await validateFileForUpload(file);
     expect(result.valid).toBe(true);
   });
@@ -60,44 +60,44 @@ describe("validateFileForUpload — vídeos dentro do limite", () => {
 // ── Casos: tamanho acima do limite ─────────────────────────────────────────────
 
 describe("validateFileForUpload — vídeos acima do limite", () => {
-  it("rejeita MP4 de 101 MB com código SIZE_EXCEEDED", async () => {
-    const file = makeFile("big.mp4", "video/mp4", 101 * MB, MP4_MAGIC, 4);
+  it("rejeita MP4 de 501 MB com código SIZE_EXCEEDED", async () => {
+    const file = makeFile("big.mp4", "video/mp4", 501 * MB, MP4_MAGIC, 4);
     const result = await validateFileForUpload(file);
     expect(result.valid).toBe(false);
     expect(result.code).toBe("SIZE_EXCEEDED");
   });
 
-  it("mensagem de vídeo acima do limite cita 100 MB e sugere compressão (HandBrake/H.264)", async () => {
-    const file = makeFile("big.mp4", "video/mp4", 150 * MB, MP4_MAGIC, 4);
+  it("mensagem de vídeo acima do limite cita 500 MB e sugere compressão (HandBrake/H.264)", async () => {
+    const file = makeFile("big.mp4", "video/mp4", 520 * MB, MP4_MAGIC, 4);
     const result = await validateFileForUpload(file);
     expect(result.error).toBeDefined();
-    expect(result.error).toContain("100 MB");
+    expect(result.error).toContain("500 MB");
     expect(result.error?.toLowerCase()).toContain("handbrake");
     expect(result.error).toContain(".mp4");
   });
 
-  it("rejeita MOV de 200 MB", async () => {
-    const file = makeFile("huge.mov", "video/quicktime", 200 * MB, MP4_MAGIC, 4);
+  it("rejeita MOV de 600 MB", async () => {
+    const file = makeFile("huge.mov", "video/quicktime", 600 * MB, MP4_MAGIC, 4);
     const result = await validateFileForUpload(file);
     expect(result.valid).toBe(false);
     expect(result.code).toBe("SIZE_EXCEEDED");
-    expect(result.error).toContain("200");
+    expect(result.error).toContain("600");
   });
 
-  it("rejeita WEBM acima de 100 MB", async () => {
-    const file = makeFile("live.webm", "video/webm", 120 * MB, WEBM_MAGIC);
+  it("rejeita WEBM acima de 500 MB", async () => {
+    const file = makeFile("live.webm", "video/webm", 520 * MB, WEBM_MAGIC);
     const result = await validateFileForUpload(file);
     expect(result.valid).toBe(false);
     expect(result.code).toBe("SIZE_EXCEEDED");
   });
 
-  it("rejeita PDF acima de 20 MB com mensagem citando 20 MB e sugerindo vídeo até 100 MB", async () => {
-    const file = makeFile("doc.pdf", "application/pdf", 21 * MB, PDF_MAGIC);
+  it("rejeita PDF acima de 200 MB com mensagem citando 200 MB e sugerindo vídeo até 500 MB", async () => {
+    const file = makeFile("doc.pdf", "application/pdf", 201 * MB, PDF_MAGIC);
     const result = await validateFileForUpload(file);
     expect(result.valid).toBe(false);
     expect(result.code).toBe("SIZE_EXCEEDED");
-    expect(result.error).toContain("20 MB");
-    expect(result.error).toContain("100 MB");
+    expect(result.error).toContain("200 MB");
+    expect(result.error).toContain("500 MB");
   });
 });
 
