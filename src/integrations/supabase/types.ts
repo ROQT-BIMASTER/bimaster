@@ -54043,6 +54043,7 @@ export type Database = {
         Args: { _field_id: string; _response_id: string }
         Returns: boolean
       }
+      email_queue_dispatch: { Args: never; Returns: undefined }
       encrypt_token: { Args: { p_token: string }; Returns: string }
       enfileirar_cobrancas_automaticas: { Args: never; Returns: number }
       enqueue_copilot_document: {
