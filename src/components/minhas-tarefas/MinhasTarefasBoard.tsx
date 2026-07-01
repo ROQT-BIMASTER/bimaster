@@ -317,7 +317,7 @@ export function MinhasTarefasBoard({ tarefas, onToggle, onSelect, onChangePrazo,
 
             <DroppableColumn id={col.key} isOver={overColumnId === col.key}>
               {groups[col.key].map((t) => (
-                <DraggableCard key={t.id} tarefa={t} onToggle={onToggle} onSelect={onSelect} />
+                <DraggableCard key={t.id} tarefa={t} onToggle={onToggle} onSelect={onSelect} isPending={pendingIds?.has(t.id)} />
               ))}
               {groups[col.key].length === 0 && (
                 <div className={`text-center py-12 text-muted-foreground text-xs border-2 border-dashed rounded-lg transition-all ${
