@@ -272,6 +272,8 @@ Deno.serve(secureHandler(
 
     // ---------------- Laço por conector ----------------
     const por_conector: Array<{ slug: string; contas: number; metricas: number; posts: number; erro?: string }> = [];
+    let licenseBlocked = false;
+
     let totalContas = 0, totalMetricas = 0, totalPosts = 0;
 
     // Cache de conta_id resolvidas nesta execução
