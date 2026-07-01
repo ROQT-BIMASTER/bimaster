@@ -45,6 +45,7 @@ import ExcelJS from "exceljs";
 import { saveAs } from "file-saver";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { guardFileUpload, reportUploadSuccessShared, reportUploadFailureShared } from "@/lib/utils/sharedUploadGuard";
 import { downloadStorageBlob, triggerBlobDownload } from "@/lib/utils/storage-download";
 import { StoragePreviewDialog } from "@/components/fabrica/StoragePreviewDialog";
 
@@ -189,10 +190,16 @@ export function FichaCustoProdutoEditor({
 
       let uploaded = 0;
       for (const file of Array.from(files)) {
+        const guardOk = await guardFileUpload({ file, module: "fabrica-ficha-custo", userId: user.id, contextId: produto.id });
+        if (!guardOk) continue;
         const ext = file.name.split(".").pop();
         const path = `${produto.id}/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
         const { error: uploadError } = await supabase.storage.from("fabrica-custo-evidencias").upload(path, file);
-        if (uploadError) { logger.error(uploadError); continue; }
+        if (uploadError) {
+          reportUploadFailureShared({ module: "fabrica-ficha-custo", file, userId: user.id, contextId: produto.id, error: uploadError });
+          logger.error(uploadError); continue;
+        }
+        reportUploadSuccessShared({ module: "fabrica-ficha-custo", file, userId: user.id, contextId: produto.id, storagePath: path });
 
         await supabase.from("fabrica_custo_evidencias" as any).insert({
           produto_id: produto.id,
@@ -344,13 +351,19 @@ export function FichaCustoProdutoEditor({
     if (!produto?.id) return;
     setUploadingFor(insumoId);
     try {
+      const guardOk = await guardFileUpload({ file, module: "fabrica-ficha-custo", contextId: insumoId });
+      if (!guardOk) { setUploadingFor(null); return; }
       const ext = file.name.split('.').pop();
       const path = `${produto.id}/${insumoId}/${crypto.randomUUID()}.${ext}`;
       
       const { error: uploadError } = await supabase.storage
         .from("fabrica-custo-evidencias")
         .upload(path, file);
-      if (uploadError) throw uploadError;
+      if (uploadError) {
+        reportUploadFailureShared({ module: "fabrica-ficha-custo", file, contextId: insumoId, error: uploadError });
+        throw uploadError;
+      }
+      reportUploadSuccessShared({ module: "fabrica-ficha-custo", file, contextId: insumoId, storagePath: path });
 
       const user = (await supabase.auth.getUser()).data.user;
       await supabase.from("fabrica_custo_evidencias" as any).insert({
@@ -706,11 +719,17 @@ export function FichaCustoProdutoEditor({
                                     setUploadingFor(req.id);
                                     try {
                                       for (const file of Array.from(files)) {
-                                        const ext = file.name.split('.').pop();
-                                        const targetId = req.insumo_id || 'geral';
-                                        const path = `${produto.id}/${targetId}/${crypto.randomUUID()}.${ext}`;
-                                        const { error: uploadError } = await supabase.storage.from("fabrica-custo-evidencias").upload(path, file);
-                                        if (uploadError) throw uploadError;
+                                         const targetId = req.insumo_id || 'geral';
+                                         const guardOk = await guardFileUpload({ file, module: "fabrica-ficha-custo", contextId: targetId });
+                                         if (!guardOk) continue;
+                                         const ext = file.name.split('.').pop();
+                                         const path = `${produto.id}/${targetId}/${crypto.randomUUID()}.${ext}`;
+                                         const { error: uploadError } = await supabase.storage.from("fabrica-custo-evidencias").upload(path, file);
+                                         if (uploadError) {
+                                           reportUploadFailureShared({ module: "fabrica-ficha-custo", file, contextId: targetId, error: uploadError });
+                                           throw uploadError;
+                                         }
+                                         reportUploadSuccessShared({ module: "fabrica-ficha-custo", file, contextId: targetId, storagePath: path });
                                         const user = (await supabase.auth.getUser()).data.user;
                                          await supabase.from("fabrica_custo_evidencias" as any).insert({
                                           produto_custo_id: req.insumo_id || config?.id,
@@ -817,10 +836,16 @@ export function FichaCustoProdutoEditor({
                     setUploadingFor('geral-requisito');
                     try {
                       for (const file of Array.from(files)) {
+                        const guardOk = await guardFileUpload({ file, module: "fabrica-ficha-custo", contextId: config.id });
+                        if (!guardOk) continue;
                         const ext = file.name.split('.').pop();
                         const path = `${produto.id}/geral/${crypto.randomUUID()}.${ext}`;
                         const { error: uploadError } = await supabase.storage.from("fabrica-custo-evidencias").upload(path, file);
-                        if (uploadError) throw uploadError;
+                        if (uploadError) {
+                          reportUploadFailureShared({ module: "fabrica-ficha-custo", file, contextId: config.id, error: uploadError });
+                          throw uploadError;
+                        }
+                        reportUploadSuccessShared({ module: "fabrica-ficha-custo", file, contextId: config.id, storagePath: path });
                         const user = (await supabase.auth.getUser()).data.user;
                         await supabase.from("fabrica_custo_evidencias" as any).insert({
                           produto_custo_id: config.id,

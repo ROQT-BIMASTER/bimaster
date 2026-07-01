@@ -3,6 +3,7 @@ import { ImagePlus, Loader2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { guardFileUpload, reportUploadSuccessShared, reportUploadFailureShared } from "@/lib/utils/sharedUploadGuard";
 
 export interface ChatAttachment {
   path: string;
@@ -47,15 +48,19 @@ export function AttachImageButton({ briefingId, attachments, setAttachments, dis
           toast.error(`Arquivo acima de 10MB: ${f.name}`);
           continue;
         }
+        // Guard compartilhado (magic bytes / double-extension / MIME real).
+        const ok = await guardFileUpload({ file: f, module: "chat-briefing", userId: uid, contextId: briefingId });
+        if (!ok) continue;
         const safeName = f.name.replace(/[^a-zA-Z0-9._-]/g, "_").slice(0, 80);
         const path = `${briefingId}/${uid}/${crypto.randomUUID()}/${safeName}`;
         const { error: upErr } = await supabase.storage
           .from("briefing-chat-anexos")
           .upload(path, f, { contentType: f.type, upsert: false });
         if (upErr) {
-          toast.error(upErr.message);
+          reportUploadFailureShared({ module: "chat-briefing", file: f, userId: uid, contextId: briefingId, error: upErr, toast: true });
           continue;
         }
+        reportUploadSuccessShared({ module: "chat-briefing", file: f, userId: uid, contextId: briefingId, storagePath: path });
         const { data: signed } = await supabase.storage
           .from("briefing-chat-anexos")
           .createSignedUrl(path, 600);

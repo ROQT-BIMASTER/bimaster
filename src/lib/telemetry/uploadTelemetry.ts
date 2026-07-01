@@ -23,6 +23,23 @@ export type UploadRejectionReason =
   | "metadata_insert_failed"
   | "unknown";
 
+/** Identificador do módulo/tela que originou o upload. */
+export type UploadModule =
+  | "projeto-tarefa"
+  | "chat-v2"
+  | "chat-briefing"
+  | "chat-aprovacao"
+  | "china-chat"
+  | "china-doc"
+  | "china-pasta-digital"
+  | "china-revisao"
+  | "fabrica-produto-foto"
+  | "fabrica-cofre"
+  | "fabrica-cotacao"
+  | "fabrica-xml-insumo"
+  | "fabrica-ficha-custo"
+  | "generic";
+
 export interface UploadAuditEvent {
   status: UploadEventStatus;
   reason?: UploadRejectionReason;
@@ -30,7 +47,11 @@ export interface UploadAuditEvent {
   fileName: string;
   fileType: string;
   fileSize: number;
+  /** Mantido para compat: usado no fluxo de tarefas. Em outros módulos, mesmo valor de contextId. */
   tarefaId: string;
+  /** Id de contexto genérico (conversa, produto, projeto, cofre, etc.). */
+  contextId?: string | null;
+  module?: UploadModule;
   userId: string;
   storagePath?: string;
   at: string;
@@ -172,6 +193,69 @@ export function reportUploadError(input: {
     reason: input.reason,
     message: raw,
     ...baseFields(input),
+  });
+}
+
+// ── Reporters genéricos (multi-módulo) ────────────────────────────────────────
+
+interface GenericInput {
+  module: UploadModule;
+  file: { name: string; type: string; size: number };
+  userId: string;
+  contextId?: string | null;
+}
+
+function genericBase(input: GenericInput): Pick<
+  UploadAuditEvent,
+  "fileName" | "fileType" | "fileSize" | "tarefaId" | "contextId" | "module" | "userId" | "at" | "pageUrl"
+> {
+  return {
+    fileName: input.file.name,
+    fileType: input.file.type || "unknown",
+    fileSize: input.file.size,
+    tarefaId: input.contextId ?? "",
+    contextId: input.contextId ?? null,
+    module: input.module,
+    userId: input.userId,
+    at: new Date().toISOString(),
+    pageUrl: typeof window !== "undefined" ? window.location.href : undefined,
+  };
+}
+
+export function reportGenericUploadSuccess(
+  input: GenericInput & { storagePath: string },
+): UploadAuditEvent {
+  return push({
+    status: "success",
+    storagePath: input.storagePath,
+    ...genericBase(input),
+  });
+}
+
+export function reportGenericUploadRejection(
+  input: GenericInput & { error: unknown; reason?: UploadRejectionReason },
+): UploadAuditEvent {
+  const inferred = inferReasonFromError(input.error);
+  return push({
+    status: "rejected",
+    reason: input.reason ?? inferred.reason,
+    message: inferred.message,
+    ...genericBase(input),
+  });
+}
+
+export function reportGenericUploadError(
+  input: GenericInput & {
+    error: unknown;
+    reason: Extract<UploadRejectionReason, "storage_upload_failed" | "metadata_insert_failed" | "unknown">;
+  },
+): UploadAuditEvent {
+  const raw = typeof input.error === "string" ? input.error : (input.error as Error)?.message ?? "";
+  return push({
+    status: "error",
+    reason: input.reason,
+    message: raw,
+    ...genericBase(input),
   });
 }
 

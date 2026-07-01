@@ -17,6 +17,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { validateFileForUpload } from "@/lib/utils/file-security";
+import { reportGenericUploadSuccess, reportGenericUploadRejection, reportGenericUploadError } from "@/lib/telemetry/uploadTelemetry";
 import { sanitizeStorageSegment } from "@/lib/china/sanitizeTipoKey";
 import { logger } from "@/lib/logger";
 import { toast } from "sonner";
@@ -189,6 +190,13 @@ export function useUploadChinaDocumento() {
         const msg = v.error || "Arquivo rejeitado pela validação de segurança.";
         setError(msg);
         toast.error(msg);
+        reportGenericUploadRejection({
+          module: "china-doc",
+          file,
+          userId: "anon",
+          contextId: submissaoId,
+          error: msg,
+        });
         return null;
       }
 
@@ -239,9 +247,24 @@ export function useUploadChinaDocumento() {
               mime: file.type,
             },
           });
+          reportGenericUploadError({
+            module: "china-doc",
+            file,
+            userId: uid,
+            contextId: submissaoId,
+            error: failure.message,
+            reason: "storage_upload_failed",
+          });
           return null;
         }
         uploadedPath = path;
+        reportGenericUploadSuccess({
+          module: "china-doc",
+          file,
+          userId: uid,
+          contextId: submissaoId,
+          storagePath: path,
+        });
 
         // 6. Signed URL (1 ano — já é cadastrada em arquivo_url; preview renova quando precisar).
         const { data: signed, error: signErr } = await supabase.storage

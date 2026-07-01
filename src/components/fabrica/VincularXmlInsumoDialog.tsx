@@ -26,6 +26,7 @@ import { Upload, FileText, Check, AlertCircle, Database, Loader2, Search } from 
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { parseNFeXml, type NFeXmlData, type NFeXmlProduto } from "@/lib/fabrica/nfe-xml-parser";
+import { guardFileUpload, reportUploadSuccessShared, reportUploadFailureShared } from "@/lib/utils/sharedUploadGuard";
 
 interface VincularXmlInsumoDialogProps {
   open: boolean;
@@ -161,8 +162,15 @@ export function VincularXmlInsumoDialog({
         }
       }
 
+      const guardOk = await guardFileUpload({ file, module: "fabrica-xml-insumo", contextId: data.chave_acesso ?? null });
+      if (!guardOk) return;
       const storagePath = `${Date.now()}_${file.name}`;
-      await supabase.storage.from("fabrica-nfe-xmls").upload(storagePath, file);
+      const { error: xmlUpErr } = await supabase.storage.from("fabrica-nfe-xmls").upload(storagePath, file);
+      if (xmlUpErr) {
+        reportUploadFailureShared({ module: "fabrica-xml-insumo", file, contextId: data.chave_acesso ?? null, error: xmlUpErr, toast: true });
+        return;
+      }
+      reportUploadSuccessShared({ module: "fabrica-xml-insumo", file, contextId: data.chave_acesso ?? null, storagePath });
 
       const { data: { user } } = await supabase.auth.getUser();
 

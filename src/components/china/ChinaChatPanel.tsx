@@ -26,6 +26,7 @@ import { uniqueChannelName } from "@/lib/realtime/channelName";
 import { useUserLanguage, LANGUAGE_LABEL, LANGUAGE_FLAG, type UserLanguage } from "@/hooks/useUserLanguage";
 import { invokeChat } from "@/lib/ai/invokeChat";
 import { validateFileForUpload } from "@/lib/utils/file-security";
+import { reportGenericUploadSuccess, reportGenericUploadError, reportGenericUploadRejection } from "@/lib/telemetry/uploadTelemetry";
 import { MessageTranslation } from "./chat/MessageTranslation";
 import { ChatAttachmentChip, type ChatAnexo } from "./chat/ChatAttachmentChip";
 import { ChatIaActionCard, type IaToolProposal } from "./chat/ChatIaActionCard";
@@ -293,9 +294,18 @@ export function ChinaChatPanel({ submissaoId, produtoNome, tipoRemetente, refere
     const ok: File[] = [];
     for (const f of arr) {
       const v = await validateFileForUpload(f);
-      if (!v.valid) erros.push(`${f.name}: ${v.error}`);
-      else if (f.size > 10 * 1024 * 1024) erros.push(`${f.name}: maior que 10 MB`);
-      else if (!/^(image\/(png|jpeg|webp|gif)|application\/pdf)$/.test(f.type)) erros.push(`${f.name}: formato não suportado`);
+      if (!v.valid) {
+        erros.push(`${f.name}: ${v.error}`);
+        reportGenericUploadRejection({ module: "china-chat", file: f, userId: "anon", contextId: submissaoId, error: v.error });
+      }
+      else if (f.size > 10 * 1024 * 1024) {
+        erros.push(`${f.name}: maior que 10 MB`);
+        reportGenericUploadRejection({ module: "china-chat", file: f, userId: "anon", contextId: submissaoId, error: "maior que 10 MB", reason: "size_exceeded" });
+      }
+      else if (!/^(image\/(png|jpeg|webp|gif)|application\/pdf)$/.test(f.type)) {
+        erros.push(`${f.name}: formato não suportado`);
+        reportGenericUploadRejection({ module: "china-chat", file: f, userId: "anon", contextId: submissaoId, error: "formato não suportado", reason: "invalid_type" });
+      }
       else ok.push(f);
     }
     if (erros.length) erros.forEach((e) => toast.error(e));
@@ -316,7 +326,11 @@ export function ChinaChatPanel({ submissaoId, produtoNome, tipoRemetente, refere
         const { error } = await supabase.storage.from("china-chat-anexos").upload(path, file, {
           contentType: file.type, upsert: false,
         });
-        if (error) throw error;
+        if (error) {
+          reportGenericUploadError({ module: "china-chat", file, userId: user.id, contextId: submissaoId, error, reason: "storage_upload_failed" });
+          throw error;
+        }
+        reportGenericUploadSuccess({ module: "china-chat", file, userId: user.id, contextId: submissaoId, storagePath: path });
         out.push({ path, nome: file.name, mime: file.type, size: file.size });
       }
       return out;

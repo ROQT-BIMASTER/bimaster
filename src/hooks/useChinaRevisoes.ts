@@ -2,6 +2,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { guardFileUpload, reportUploadSuccessShared, reportUploadFailureShared } from "@/lib/utils/sharedUploadGuard";
 
 export interface Anotacao {
   tipo: string;
@@ -229,13 +230,19 @@ async function uploadAnexos(
 
   const out: RevisaoAnexo[] = [];
   for (const f of files) {
+    const passed = await guardFileUpload({ file: f, module: "china-revisao", userId: uid, contextId: submissaoId });
+    if (!passed) continue;
     const safe = f.name.replace(/[^\w.\-]+/g, "_");
     const path = `${uid}/${submissaoId}/revisoes/${revisaoId}/${Date.now()}-${safe}`;
     const { error } = await supabase.storage.from(BUCKET).upload(path, f, {
       contentType: f.type || "application/octet-stream",
       upsert: false,
     });
-    if (error) throw error;
+    if (error) {
+      reportUploadFailureShared({ module: "china-revisao", file: f, userId: uid, contextId: submissaoId, error });
+      throw error;
+    }
+    reportUploadSuccessShared({ module: "china-revisao", file: f, userId: uid, contextId: submissaoId, storagePath: path });
     out.push({ path, nome: f.name, tamanho: f.size, mime: f.type, lado });
   }
   return out;
@@ -548,6 +555,8 @@ export function useContestarComParecer() {
       }
 
       // 4) Upload do novo arquivo principal
+      const guardOk = await guardFileUpload({ file: params.novo_arquivo, module: "china-revisao", userId: user.id, contextId: params.submissao_id });
+      if (!guardOk) throw new Error("Arquivo não passou na validação.");
       const safe = params.novo_arquivo.name.replace(/[^\w.\-]+/g, "_");
       const novoPath = `versoes/${params.submissao_id}/${params.tipo_documento}/v${rodada}/${Date.now()}-${safe}`;
       const { error: upErr } = await supabase.storage.from(BUCKET).upload(
@@ -555,7 +564,11 @@ export function useContestarComParecer() {
         params.novo_arquivo,
         { contentType: params.novo_arquivo.type || "application/octet-stream", upsert: false },
       );
-      if (upErr) throw upErr;
+      if (upErr) {
+        reportUploadFailureShared({ module: "china-revisao", file: params.novo_arquivo, userId: user.id, contextId: params.submissao_id, error: upErr });
+        throw upErr;
+      }
+      reportUploadSuccessShared({ module: "china-revisao", file: params.novo_arquivo, userId: user.id, contextId: params.submissao_id, storagePath: novoPath });
       const { data: pub } = supabase.storage.from(BUCKET).getPublicUrl(novoPath);
 
       // 5) Atualiza documento corrente
