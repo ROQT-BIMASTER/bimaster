@@ -469,6 +469,8 @@ export default function MarketingVisaoGeralPage() {
     to: new Date(),
   }));
   const [page, setPage] = useState(0);
+  const [serieMetric, setSerieMetric] = useState<"views" | "alcance" | "eng">("views");
+  const [serieHidden, setSerieHidden] = useState<Set<string>>(new Set());
 
   const from = range.from ?? subDays(new Date(), 90);
   const to = range.to ?? new Date();
