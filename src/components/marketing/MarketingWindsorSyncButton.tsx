@@ -62,14 +62,30 @@ export function MarketingWindsorSyncButton() {
         return;
       }
 
-      setResultado(data);
+      // A função pode responder em shapes diferentes (por-conector, diagnóstico,
+      // legado). Normalizamos para não estourar no render.
+      const normalizado: WindsorSyncResult = {
+        por_conector: Array.isArray((data as any)?.por_conector)
+          ? ((data as any).por_conector as ConectorResumo[])
+          : [],
+        total: {
+          contas: Number((data as any)?.total?.contas ?? 0),
+          metricas: Number((data as any)?.total?.metricas ?? 0),
+          posts: Number((data as any)?.total?.posts ?? 0),
+        },
+        license_blocked: Boolean((data as any)?.license_blocked),
+      };
+
+      setResultado(normalizado);
       setUltimaExecucao(new Date());
 
-      const { total, license_blocked } = data;
+      const { total, license_blocked, por_conector } = normalizado;
       if (license_blocked) {
         toast.warning(
           "Feed do Windsor bloqueado (licença/limite). Verifique o plano da conta Windsor.",
         );
+      } else if (por_conector.length === 0) {
+        toast.info("Função respondeu sem dados por-conector.");
       } else {
         toast.success(
           `Sincronização concluída: ${total.contas} contas, ${total.metricas} métricas, ${total.posts} posts.`,
