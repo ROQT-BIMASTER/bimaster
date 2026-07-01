@@ -98,6 +98,7 @@ export function useNavV2Data(): NavV2Tree {
                 label: it.label_override ?? it.label,
                 route: it.route as string,
                 icon: it.icon_override ?? it.icon,
+                groupLabel: it.parent_group ?? null,
               }));
             return {
               code: m.module_code,
