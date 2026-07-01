@@ -21,6 +21,11 @@ interface Colab {
   user_id: string;
   nome: string;
   avatar_url: string | null;
+  /**
+   * Identificador secundário (email, cargo) exibido no tooltip do avatar como
+   * `Nome (email)`. Opcional — quando ausente, tooltip mostra apenas o nome.
+   */
+  email?: string | null;
 }
 
 interface Props {
