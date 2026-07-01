@@ -185,8 +185,6 @@ async function run() {
           continue;
         }
       }
-        }
-      }
       // Contrato 5: alt (quando existir) deve casar com displayNome resolvido
       if (alt && alt !== title) {
         fail(id, "alt divergente de title", { alt, title });
