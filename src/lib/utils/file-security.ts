@@ -158,12 +158,14 @@ export async function validateFileForUpload(file: File): Promise<FileValidationR
     };
   }
 
-  // 5. Tamanho
-  if (file.size > MAX_FILE_SIZE_BYTES) {
+  // 5. Tamanho (vídeos podem ir até 100 MB; demais tipos, 20 MB)
+  const maxSize = VIDEO_EXTENSIONS.has(ext) ? MAX_VIDEO_SIZE_BYTES : MAX_FILE_SIZE_BYTES;
+  if (file.size > maxSize) {
+    const maxMb = (maxSize / (1024 * 1024)).toFixed(0);
     return {
       valid: false,
       code: "SIZE_EXCEEDED",
-      error: `Arquivo excede o limite de 20 MB (${(file.size / (1024 * 1024)).toFixed(1)} MB).`,
+      error: `Arquivo excede o limite de ${maxMb} MB (${(file.size / (1024 * 1024)).toFixed(1)} MB).`,
     };
   }
 
