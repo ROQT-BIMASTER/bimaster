@@ -607,7 +607,9 @@ export function MinhasTarefasSimples() {
 
   const handleBridgeAddSubtarefa = useCallback(async (titulo: string, parentId: string, secaoId: string) => {
     if (!user?.id || !selectedProjetoId) return;
-    const tempId = `temp-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+    const tempId = typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+      ? crypto.randomUUID()
+      : `${Date.now().toString(16)}-${Math.random().toString(16).slice(2, 6)}-4${Math.random().toString(16).slice(2, 5)}-a${Math.random().toString(16).slice(2, 5)}-${Math.random().toString(16).slice(2, 14)}`;
     const clientKey = `sub:${parentId}:${titulo.trim().toLowerCase()}:${tempId}`;
     const nowIso = nowSaoPauloISO();
     const optimistic = {
@@ -660,7 +662,7 @@ export function MinhasTarefasSimples() {
 
     const result = await attemptSave("Criar subtarefa", () =>
       supabase.from("projeto_tarefas").insert({
-        titulo, parent_tarefa_id: parentId, secao_id: secaoId,
+        id: tempId, titulo, parent_tarefa_id: parentId, secao_id: secaoId,
         projeto_id: selectedProjetoId, responsavel_id: user.id,
         status: "pendente", prioridade: "media", ordem: 999,
       }).select("*").single(),
