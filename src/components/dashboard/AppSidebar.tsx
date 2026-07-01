@@ -1116,15 +1116,19 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
 
       case "fornecedor_vendas":
         return (
-          <ModuleSubmenu icon={Truck} title="Vendas Futura Fornecedor" colorKey="comercial">
-            <MenuItemLink to="/dashboard/fornecedor" icon={LayoutDashboard} title="Visão geral" end />
-            <MenuItemLink to="/dashboard/fornecedor/vendas" icon={BarChart3} title="Análise de vendas" />
-            <MenuItemLink to="/dashboard/fornecedor/produtos" icon={Package} title="Vendas por produto" />
-            <MenuItemLink to="/dashboard/fornecedor/analises" icon={BarChart2} title="Análises" />
-            <MenuItemLink to="/dashboard/fornecedor/pedidos" icon={ClipboardList} title="Pedidos em andamento" />
-            <MenuItemLink to="/dashboard/fornecedor/pedidos-result" icon={ClipboardList} title="Pedidos (Result)" />
-            <MenuItemLink to="/dashboard/fornecedor/clientes" icon={Users} title="Clientes" />
-          </ModuleSubmenu>
+          <>
+            <ModuleSubmenu icon={Truck} title="Vendas Futura Fornecedor" colorKey="comercial">
+              <MenuItemLink to="/dashboard/fornecedor" icon={LayoutDashboard} title="Visão geral" end />
+              <MenuItemLink to="/dashboard/fornecedor/vendas" icon={BarChart3} title="Análise de vendas" />
+              <MenuItemLink to="/dashboard/fornecedor/produtos" icon={Package} title="Vendas por produto" />
+              <MenuItemLink to="/dashboard/fornecedor/analises" icon={BarChart2} title="Análises" />
+              <MenuItemLink to="/dashboard/fornecedor/pedidos" icon={ClipboardList} title="Pedidos em andamento" />
+              <MenuItemLink to="/dashboard/fornecedor/clientes" icon={Users} title="Clientes" />
+            </ModuleSubmenu>
+            <ModuleSubmenu icon={Truck} title="Vendas Result Union" colorKey="comercial">
+              <MenuItemLink to="/dashboard/fornecedor/pedidos-result" icon={ClipboardList} title="Pedidos em andamento" />
+            </ModuleSubmenu>
+          </>
         );
 
       case "estoque":
