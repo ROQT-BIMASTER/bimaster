@@ -46,6 +46,8 @@ export async function uploadChatAnexo(
   userId: string,
   file: File,
 ): Promise<{ storage_path: string; file_name: string; mime_type: string; size_bytes: number; width?: number; height?: number }> {
+  const ok = await guardFileUpload({ file, module: "chat-v2", userId, contextId: conversaId });
+  if (!ok) throw new Error("Arquivo não passou na validação de upload.");
   const safe = file.name.replace(/[^\w.\-]+/g, "_").slice(0, 80);
   // Ordem das pastas tem que casar com as policies do bucket chat-anexos:
   // foldername[1] = conversa_id (checa participação), foldername[2] = uploader uid.
@@ -54,7 +56,11 @@ export async function uploadChatAnexo(
     contentType: file.type || "application/octet-stream",
     upsert: false,
   });
-  if (error) throw error;
+  if (error) {
+    reportUploadFailureShared({ module: "chat-v2", file, userId, contextId: conversaId, error });
+    throw error;
+  }
+  reportUploadSuccessShared({ module: "chat-v2", file, userId, contextId: conversaId, storagePath: path });
   let width: number | undefined;
   let height: number | undefined;
   if (file.type.startsWith("image/")) {
