@@ -343,12 +343,12 @@ export function TarefaResponsavelSeguidoresEditor({
                       onSelect={() => handleToggle(m.user_id)}
                       className={cn("text-xs", isSelected && "bg-accent/60")}
                     >
-                      <Avatar className="h-5 w-5 mr-2">
-                        <AvatarImage src={m.profile?.avatar_url || undefined} />
-                        <AvatarFallback className="text-[9px]">
-                          {m.profile?.nome?.substring(0, 2).toUpperCase() || "?"}
-                        </AvatarFallback>
-                      </Avatar>
+                      <SmartAvatar
+                        src={m.profile?.avatar_url}
+                        nome={m.profile?.nome}
+                        className="h-5 w-5 mr-2"
+                        fallbackClassName="text-[9px]"
+                      />
                       <span className="flex-1 truncate">{m.profile?.nome || "Membro"}</span>
                       {isSelected && <Check className="h-3.5 w-3.5 text-primary" />}
                     </CommandItem>
