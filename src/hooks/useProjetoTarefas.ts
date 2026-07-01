@@ -19,6 +19,8 @@ export interface ProjetoSecao {
   data_inicio?: string | null;
   data_prazo?: string | null;
   dias_alerta_antes?: number | null;
+  /** Chave estável de renderização para manter a linha otimista durante tempId→id real. */
+  __clientKey?: string;
 }
 
 export interface ProjetoTarefa {
