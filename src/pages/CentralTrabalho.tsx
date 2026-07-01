@@ -46,6 +46,7 @@ import { ProjetoInboxContent } from "@/components/projetos/central/ProjetoInboxC
 import { CentralLayout } from "@/components/projetos/central/CentralLayout";
 import { useAuth } from "@/contexts/AuthContext";
 import { buildReason, rememberReason } from "@/lib/centralSaveReason";
+import { TYPOGRAPHY_BODY_CLASS, typographyRootStyle } from "@/styles/typography";
 
 type TabKey = CentralTab;
 
