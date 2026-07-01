@@ -164,15 +164,8 @@ export function useProjetoTarefaDetalhe(tarefaId: string | undefined, produtoId?
   });
 
   // ===== File validation constants =====
-  const MAX_FILE_SIZE = 20 * 1024 * 1024; // 20MB
-  const ALLOWED_TYPES = [
-    "image/jpeg", "image/png", "image/gif", "image/webp", "image/svg+xml",
-    "application/pdf",
-    "application/vnd.ms-excel", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-    "application/msword", "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-    "application/vnd.ms-powerpoint", "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-    "text/plain", "text/csv",
-  ];
+
+
 
   type UploadAnexoInput = File | { file: File; notificarIds?: string[] };
   const normalizeUpload = (input: UploadAnexoInput): { file: File; notificarIds: string[] } => {
