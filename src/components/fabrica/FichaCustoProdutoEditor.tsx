@@ -190,10 +190,16 @@ export function FichaCustoProdutoEditor({
 
       let uploaded = 0;
       for (const file of Array.from(files)) {
+        const guardOk = await guardFileUpload({ file, module: "fabrica-ficha-custo", userId: user.id, contextId: produto.id });
+        if (!guardOk) continue;
         const ext = file.name.split(".").pop();
         const path = `${produto.id}/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
         const { error: uploadError } = await supabase.storage.from("fabrica-custo-evidencias").upload(path, file);
-        if (uploadError) { logger.error(uploadError); continue; }
+        if (uploadError) {
+          reportUploadFailureShared({ module: "fabrica-ficha-custo", file, userId: user.id, contextId: produto.id, error: uploadError });
+          logger.error(uploadError); continue;
+        }
+        reportUploadSuccessShared({ module: "fabrica-ficha-custo", file, userId: user.id, contextId: produto.id, storagePath: path });
 
         await supabase.from("fabrica_custo_evidencias" as any).insert({
           produto_id: produto.id,
