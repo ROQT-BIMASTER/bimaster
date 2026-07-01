@@ -50,7 +50,7 @@ interface Props {
  */
 function SubtarefaSeguidoresPickerImpl({ subtarefaId, projetoId, colaboradores, isResolving = false }: Props) {
   const { membros } = useProjetoMembros(projetoId);
-  const { addColaborador, removeColaborador } = useProjetoTarefas(projetoId);
+  const { addColaborador, removeColaborador } = useProjetoTarefas(projetoId, { mutationsOnly: true });
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
 
