@@ -26,6 +26,13 @@ export interface NavV2Module {
   label: string;
   icon: string;
   pages: NavV2Page[];
+  /**
+   * Rótulo de agrupamento visual dentro do popover contextual. Preenchido
+   * apenas quando duas categorias foram fundidas no rail (ex.: engrenagem
+   * do banco + categoria sintética Administração). Vazio = renderização
+   * tradicional sem subheader.
+   */
+  sectionLabel?: string;
 }
 
 export interface NavV2Category {
@@ -34,6 +41,7 @@ export interface NavV2Category {
   icon?: string | null;
   modules: NavV2Module[];
 }
+
 
 export interface NavV2Tree {
   categories: NavV2Category[];
