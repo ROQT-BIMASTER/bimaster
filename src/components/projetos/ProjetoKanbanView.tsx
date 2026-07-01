@@ -129,7 +129,11 @@ export function ProjetoKanbanView({ projetoId, darkBg = false, filters = EMPTY_F
     }
     const found = rawTarefas.find((t) => t.id === selectedTarefaId);
     if (!found) return lastTarefaRef.current;
-    const subs = rawTarefas.filter((st) => st.parent_tarefa_id === found.id);
+    const buildSubtree = (parentId: string): ProjetoTarefa[] =>
+      rawTarefas
+        .filter((st) => st.parent_tarefa_id === parentId)
+        .map((st) => ({ ...st, subtarefas: buildSubtree(st.id) }));
+    const subs = buildSubtree(found.id);
     const respIds = (found.responsaveis ?? []).map((r) => r.user_id).sort().join(",");
     const colabIds = (found.colaboradores ?? []).map((c) => c.user_id).sort().join(",");
     const signature =
@@ -137,7 +141,8 @@ export function ProjetoKanbanView({ projetoId, darkBg = false, filters = EMPTY_F
       subs.map((s) => {
         const r = (s.responsaveis ?? []).map((x) => x.user_id).sort().join(",");
         const c = (s.colaboradores ?? []).map((x) => x.user_id).sort().join(",");
-        return `${s.id}:${s.updated_at}:${s.status}:${s.titulo}:${s.responsavel_id ?? ""}:${r}:${c}:${s.prioridade}:${s.estagio ?? ""}:${s.data_prazo ?? ""}:${(s as any).data_inicio_planejada ?? ""}`;
+        const stableId = (s as any).__clientKey || s.id;
+        return `${stableId}:${s.status}:${s.titulo}:${s.responsavel_id ?? ""}:${r}:${c}:${s.prioridade}:${s.estagio ?? ""}:${s.data_prazo ?? ""}:${(s as any).data_inicio_planejada ?? ""}:${(s.subtarefas || []).length}`;
       }).join(";");
     if (signature === lastSignatureRef.current && lastTarefaRef.current) {
       return lastTarefaRef.current;
