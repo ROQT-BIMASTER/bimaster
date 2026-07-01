@@ -545,22 +545,42 @@ export default function MarketingVisaoGeralPage() {
   }, [metricas]);
 
   const serieDiaria = useMemo(() => {
-    const map = new Map<string, number>();
+    // { data: 'YYYY-MM-DD', label, instagram, tiktok, facebook, ... , total }
+    const metricKey =
+      serieMetric === "views" ? "views" : serieMetric === "alcance" ? "alcance" : "engajamento";
+    const byDate = new Map<string, Record<string, number>>();
+    const platsSeen = new Set<string>();
     for (const m of metricas as any[]) {
       const d = m.data as string;
-      map.set(d, (map.get(d) ?? 0) + Number(m.views ?? 0));
+      const plat = (m.mkt_contas?.plataforma ?? "outro") as string;
+      platsSeen.add(plat);
+      if (!byDate.has(d)) byDate.set(d, {});
+      const row = byDate.get(d)!;
+      row[plat] = (row[plat] ?? 0) + Number(m[metricKey] ?? 0);
     }
-    return Array.from(map.entries())
+    const rows = Array.from(byDate.entries())
       .sort(([a], [b]) => a.localeCompare(b))
-      .map(([data, views]) => {
+      .map(([data, byPlat]) => {
         const d = parseLocalDate(data) ?? new Date(`${data}T00:00:00`);
-        return {
+        const row: Record<string, any> = {
           data,
-          views,
           label: format(d, "dd/MM", { locale: ptBR }),
         };
+        let total = 0;
+        for (const p of platsSeen) {
+          const v = Number(byPlat[p] ?? 0);
+          row[p] = v;
+          total += v;
+        }
+        row.total = total;
+        return row;
       });
-  }, [metricas]);
+    const ordem = ["instagram", "tiktok", "facebook"];
+    const plataformas = ordem
+      .filter((p) => platsSeen.has(p))
+      .concat(Array.from(platsSeen).filter((p) => !ordem.includes(p)));
+    return { rows, plataformas };
+  }, [metricas, serieMetric]);
 
   // Signed URLs em batch (top posts + posts do período)
   const allPaths = useMemo(() => {
