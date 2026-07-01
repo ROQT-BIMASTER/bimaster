@@ -131,7 +131,7 @@ function SubtarefaSeguidoresPickerImpl({ subtarefaId, projetoId, colaboradores, 
               "text-muted-foreground hover:text-foreground border border-dashed border-border/60",
           )}
         >
-          {colaboradores.length === 0 ? (
+          {safeColabs.length === 0 ? (
             isResolving ? (
               // Placeholder pulsante quando ainda não sabemos se há seguidores
               // (membros do projeto carregando). Evita "salto" visual entre
