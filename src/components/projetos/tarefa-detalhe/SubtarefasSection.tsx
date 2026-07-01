@@ -19,6 +19,7 @@ import { useProjetoIA } from "@/hooks/useProjetoIA";
 import { SubtarefaResponsavelPicker } from "./SubtarefaResponsavelPicker";
 import { SubtarefaSeguidoresPicker } from "./SubtarefaSeguidoresPicker";
 import { useProjetoMembros } from "@/hooks/useProjetoMembros";
+import { reportSubtarefaArrowEvent } from "@/lib/telemetry/subtarefaArrowTelemetry";
 
 const ESTAGIO_OPTIONS = [
   { value: "briefing", label: "Briefing", color: "bg-purple-500/20 text-purple-400" },
