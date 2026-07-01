@@ -4,6 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useProjetoMembros } from "@/hooks/useProjetoMembros";
 import { useProjetoTarefas } from "@/hooks/useProjetoTarefas";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { SmartAvatar } from "@/components/ui/SmartAvatar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   Command,

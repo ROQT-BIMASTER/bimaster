@@ -3,6 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useProjetoMembros } from "@/hooks/useProjetoMembros";
 import { useProjetoTarefas } from "@/hooks/useProjetoTarefas";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { SmartAvatar } from "@/components/ui/SmartAvatar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   Command,
@@ -102,16 +103,14 @@ function SubtarefaSeguidoresPickerImpl({ subtarefaId, projetoId, colaboradores }
             <>
               <div className="flex items-center">
                 {visible.map((c, idx) => (
-                  <Avatar
+                  <SmartAvatar
                     key={c.user_id}
-                    className={cn("h-4 w-4 ring-1 ring-background", idx > 0 && "-ml-1.5")}
+                    src={c.avatar_url}
+                    nome={c.nome}
                     title={c.nome}
-                  >
-                    <AvatarImage src={c.avatar_url || undefined} />
-                    <AvatarFallback className="text-[7px] bg-primary/15 text-primary">
-                      {c.nome?.substring(0, 2).toUpperCase() || "?"}
-                    </AvatarFallback>
-                  </Avatar>
+                    className={cn("h-4 w-4 ring-1 ring-background", idx > 0 && "-ml-1.5")}
+                    fallbackClassName="text-[7px]"
+                  />
                 ))}
               </div>
               {extra > 0 && (
@@ -148,12 +147,12 @@ function SubtarefaSeguidoresPickerImpl({ subtarefaId, projetoId, colaboradores }
                       onMouseDown={(e) => handlePick(e, m.user_id, nome)}
                       className={cn("text-xs cursor-pointer", active && "bg-accent/60")}
                     >
-                      <Avatar className="h-5 w-5 mr-2">
-                        <AvatarImage src={m.profile?.avatar_url || undefined} />
-                        <AvatarFallback className="text-[9px]">
-                          {nome.substring(0, 2).toUpperCase()}
-                        </AvatarFallback>
-                      </Avatar>
+                      <SmartAvatar
+                        src={m.profile?.avatar_url}
+                        nome={nome}
+                        className="h-5 w-5 mr-2"
+                        fallbackClassName="text-[9px]"
+                      />
                       <span className="flex-1 truncate">{nome}</span>
                       {active && <Check className="h-3.5 w-3.5 text-primary" />}
                     </CommandItem>
