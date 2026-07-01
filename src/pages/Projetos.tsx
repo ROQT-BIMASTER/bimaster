@@ -41,6 +41,7 @@ import { useIsGerenteGeralProjetos } from "@/hooks/useIsGerenteGeralProjetos";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { ProjetoKpiStrip } from "@/components/projetos/ProjetoKpiStrip";
 import { ProjetosLixeiraDialog } from "@/components/projetos/ProjetosLixeiraDialog";
+import { TYPOGRAPHY_BODY_CLASS, typographyRootStyle } from "@/styles/typography";
 
 
 const VER_TODOS_KEY = "projetos:ver-todos";
@@ -199,7 +200,7 @@ export default function Projetos() {
 
   return (
     <SidebarProvider>
-      <div className="min-h-screen flex w-full bg-background">
+      <div className={`min-h-screen flex w-full bg-background ${TYPOGRAPHY_BODY_CLASS}`} style={typographyRootStyle}>
         <SidebarSwitch />
         <main
           className="flex-1 overflow-auto"

@@ -10,13 +10,15 @@ import { Home } from "lucide-react";
 import { usePageBgColor } from "@/hooks/usePageBgColor";
 import { getBgPaletteVars } from "@/lib/colorUtils";
 import { MinhasTarefasSimples } from "@/components/minhas-tarefas/MinhasTarefasSimples";
+import { TYPOGRAPHY_BODY_CLASS, typographyRootStyle } from "@/styles/typography";
 
 export default function MinhasTarefas() {
   const { bgColor } = usePageBgColor("minhas-tarefas");
 
   return (
     <SidebarProvider>
-      <div className="min-h-screen flex w-full bg-background">
+      <div className={`min-h-screen flex w-full bg-background ${TYPOGRAPHY_BODY_CLASS}`} style={typographyRootStyle}>
+
         <SidebarSwitch />
         <main
           className="flex-1 overflow-auto"
