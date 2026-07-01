@@ -151,23 +151,31 @@ export function MarketingWindsorSyncButton() {
                 </tr>
               </thead>
               <tbody>
-                {resultado.por_conector.map((c) => (
-                  <tr key={c.slug} className="border-t border-border">
-                    <td className="px-3 py-2 font-mono">{c.slug}</td>
-                    <td className="px-3 py-2 text-right tabular-nums">{c.contas}</td>
-                    <td className="px-3 py-2 text-right tabular-nums">{c.metricas}</td>
-                    <td className="px-3 py-2 text-right tabular-nums">{c.posts}</td>
-                    <td className="px-3 py-2">
-                      {c.erro === "license_blocked" ? (
-                        <Badge variant="destructive">Licença/limite</Badge>
-                      ) : c.erro ? (
-                        <Badge variant="secondary">{c.erro}</Badge>
-                      ) : (
-                        <Badge variant="outline">OK</Badge>
-                      )}
+                {resultado.por_conector.length === 0 ? (
+                  <tr className="border-t border-border">
+                    <td className="px-3 py-3 text-muted-foreground" colSpan={5}>
+                      Sem conectores retornados.
                     </td>
                   </tr>
-                ))}
+                ) : (
+                  resultado.por_conector.map((c) => (
+                    <tr key={c.slug} className="border-t border-border">
+                      <td className="px-3 py-2 font-mono">{c.slug}</td>
+                      <td className="px-3 py-2 text-right tabular-nums">{c.contas}</td>
+                      <td className="px-3 py-2 text-right tabular-nums">{c.metricas}</td>
+                      <td className="px-3 py-2 text-right tabular-nums">{c.posts}</td>
+                      <td className="px-3 py-2">
+                        {c.erro === "license_blocked" ? (
+                          <Badge variant="destructive">Licença/limite</Badge>
+                        ) : c.erro ? (
+                          <Badge variant="secondary">{c.erro}</Badge>
+                        ) : (
+                          <Badge variant="outline">OK</Badge>
+                        )}
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
               <tfoot className="bg-muted/30">
                 <tr className="border-t border-border font-medium">
