@@ -43,7 +43,7 @@ interface Props {
  * ou um botão tracejado "+" quando vazio. Reutiliza as mutations otimistas
  * `addColaborador` / `removeColaborador` já expostas por `useProjetoTarefas`.
  */
-function SubtarefaSeguidoresPickerImpl({ subtarefaId, projetoId, colaboradores }: Props) {
+function SubtarefaSeguidoresPickerImpl({ subtarefaId, projetoId, colaboradores, isResolving = false }: Props) {
   const { membros } = useProjetoMembros(projetoId);
   const { addColaborador, removeColaborador } = useProjetoTarefas(projetoId);
   const queryClient = useQueryClient();
