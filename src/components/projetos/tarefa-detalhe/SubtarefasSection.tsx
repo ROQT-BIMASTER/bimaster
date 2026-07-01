@@ -25,7 +25,10 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 const MIN_TITLE_LEN = 2;
 const MAX_TITLE_LEN = 200;
 const TREE_INDENT_PX = 24;
-const TREE_ROW_CONTENT_OFFSET_PX = 46;
+// Alinha "Adicionar subitem" e badges de metadados exatamente com a coluna
+// do chevron/checkbox dos filhos: marginLeft do filho (24) + px-2 do filho (8) = 32.
+// Assim subtarefas e subitens ficam na MESMA coluna vertical em drawer e Focus Mode.
+const TREE_ROW_CONTENT_OFFSET_PX = 32;
 
 /**
  * Valida título de novo subitem/subtarefa antes de disparar a criação.
