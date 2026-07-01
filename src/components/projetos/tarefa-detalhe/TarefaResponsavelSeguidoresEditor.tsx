@@ -108,6 +108,18 @@ export function TarefaResponsavelSeguidoresEditor({
     [colaboradores],
   );
 
+  // Lookup email por user_id — usado como `identifier` do SmartAvatar para
+  // desambiguar homônimos e manter o tooltip coerente (`Nome (email)`) mesmo
+  // quando a lista `responsaveis`/`colaboradores` só carrega nome+avatar.
+  const emailByUserId = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const m of membros) {
+      const email = m.profile?.email;
+      if (email) map.set(m.user_id, email);
+    }
+    return map;
+  }, [membros]);
+
   // ─── Responsáveis ──────────────────────────────────────────────────────────
   const adicionarResponsavel = (userId: string) => {
     if (!user || responsaveisIds.has(userId)) return;
