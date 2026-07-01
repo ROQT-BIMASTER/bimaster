@@ -77,6 +77,16 @@ export function LoteAprovacaoCard({ lote }: Props) {
         </div>
       </div>
 
+      {semPermissao && (
+        <AccessDeniedNotice
+          title="Sem permissão para ver o histórico de aprovação"
+          description="Você não é responsável nem membro do projeto/tarefa vinculada a este lote. Solicite acesso ao gestor do projeto."
+          compact
+        />
+      )}
+
+
+
       {/* Pipeline de etapas */}
       <div className="flex items-center gap-1 overflow-x-auto pb-1">
         {etapas.map((et) => {
