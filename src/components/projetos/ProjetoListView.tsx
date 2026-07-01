@@ -67,15 +67,29 @@ export function ProjetoListView({ projetoId, darkBg = false, filters = EMPTY_FIL
   };
   // Abre detalhe automaticamente quando deep-link de menção entrega
   // initialTarefaId (espera as tarefas carregarem para garantir que existe).
+  //
+  // FIX regressão "X não fecha": o auto-open deve ocorrer UMA única vez por
+  // montagem. Antes, a cada refetch/mutation `tarefasLoading` togglava e
+  // este efeito reabria o Sheet imediatamente após o usuário clicar em "X"
+  // — o clique só limpa `?tarefa=` da URL, mas a prop `initialTarefaId`
+  // vem congelada de ProjetoDetalhe (useState inicializado com o valor da
+  // URL no primeiro render) e nunca muda. Sem o guard abaixo, qualquer
+  // refetch subsequente re-sincroniza a URL de volta para o valor inicial.
+  const autoOpenedRef = useRef(false);
   useEffect(() => {
+    if (autoOpenedRef.current) return;
     if (!initialTarefaId) return;
+    if (selectedTarefaId === initialTarefaId) {
+      autoOpenedRef.current = true;
+      return;
+    }
     if (tarefasLoading) return;
-    if (selectedTarefaId === initialTarefaId) return;
     if (tarefas.some((t) => t.id === initialTarefaId)) {
+      autoOpenedRef.current = true;
       setSelectedTarefaId(initialTarefaId);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialTarefaId, tarefasLoading]);
+  }, [initialTarefaId, tarefasLoading, tarefas]);
   // Derive the live tarefa from the freshest `tarefas` array so the detail Sheet
   // reflects optimistic updates and realtime invalidations without remounting.
   // Mantém um snapshot da última tarefa não-nula para evitar flicker durante
