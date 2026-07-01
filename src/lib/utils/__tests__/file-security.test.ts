@@ -220,30 +220,30 @@ describe("describeUploadError", () => {
   });
 });
 
-// ── Casos: documentos/imagens (não-vídeo) dentro e acima de 20 MB ─────────────
+// ── Casos: documentos/imagens (não-vídeo) dentro e acima de 200 MB ────────────
 
 const PNG_MAGIC = [0x89, 0x50, 0x4E, 0x47];
 const DOCX_MAGIC = [0x50, 0x4B, 0x03, 0x04];
 const JPG_MAGIC = [0xFF, 0xD8, 0xFF];
 
-describe("validateFileForUpload — não-vídeos dentro do limite de 20 MB", () => {
+describe("validateFileForUpload — não-vídeos dentro do limite de 200 MB", () => {
   it("aceita PDF de 5 MB", async () => {
     const file = makeFile("relatorio.pdf", "application/pdf", 5 * MB, PDF_MAGIC);
     const result = await validateFileForUpload(file);
     expect(result.valid).toBe(true);
   });
 
-  it("aceita PNG de 19 MB (próximo do limite)", async () => {
-    const file = makeFile("banner.png", "image/png", 19 * MB, PNG_MAGIC);
+  it("aceita PNG de 199 MB (próximo do limite)", async () => {
+    const file = makeFile("banner.png", "image/png", 199 * MB, PNG_MAGIC);
     const result = await validateFileForUpload(file);
     expect(result.valid).toBe(true);
   });
 
-  it("aceita DOCX exatamente no limite de 20 MB", async () => {
+  it("aceita DOCX exatamente no limite de 200 MB", async () => {
     const file = makeFile(
       "doc.docx",
       "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-      20 * MB,
+      200 * MB,
       DOCX_MAGIC,
     );
     const result = await validateFileForUpload(file);
@@ -263,46 +263,46 @@ describe("validateFileForUpload — não-vídeos dentro do limite de 20 MB", () 
   });
 });
 
-describe("validateFileForUpload — não-vídeos acima do limite de 20 MB", () => {
-  it("rejeita PDF de 21 MB com SIZE_EXCEEDED citando 20 MB e sugerindo vídeo até 100 MB", async () => {
-    const file = makeFile("doc.pdf", "application/pdf", 21 * MB, PDF_MAGIC);
+describe("validateFileForUpload — não-vídeos acima do limite de 200 MB", () => {
+  it("rejeita PDF de 201 MB com SIZE_EXCEEDED citando 200 MB e sugerindo vídeo até 500 MB", async () => {
+    const file = makeFile("doc.pdf", "application/pdf", 201 * MB, PDF_MAGIC);
     const result = await validateFileForUpload(file);
     expect(result.valid).toBe(false);
     expect(result.code).toBe("SIZE_EXCEEDED");
-    expect(result.error).toContain("20 MB");
-    expect(result.error).toContain("100 MB");
+    expect(result.error).toContain("200 MB");
+    expect(result.error).toContain("500 MB");
     expect(result.error).toContain(".pdf");
   });
 
-  it("rejeita PNG de 30 MB", async () => {
-    const file = makeFile("hero.png", "image/png", 30 * MB, PNG_MAGIC);
+  it("rejeita PNG de 300 MB", async () => {
+    const file = makeFile("hero.png", "image/png", 300 * MB, PNG_MAGIC);
     const result = await validateFileForUpload(file);
     expect(result.valid).toBe(false);
     expect(result.code).toBe("SIZE_EXCEEDED");
-    expect(result.error).toContain("30");
-    expect(result.error).toContain("20 MB");
+    expect(result.error).toContain("300");
+    expect(result.error).toContain("200 MB");
   });
 
-  it("rejeita XLSX de 50 MB (não deve tratar como vídeo)", async () => {
+  it("rejeita XLSX de 250 MB (não deve tratar como vídeo)", async () => {
     const file = makeFile(
       "planilha.xlsx",
       "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      50 * MB,
+      250 * MB,
       DOCX_MAGIC,
     );
     const result = await validateFileForUpload(file);
     expect(result.valid).toBe(false);
     expect(result.code).toBe("SIZE_EXCEEDED");
-    expect(result.error).toContain("20 MB");
+    expect(result.error).toContain("200 MB");
     expect(result.error).not.toMatch(/handbrake/i);
   });
 
-  it("rejeita ZIP de 25 MB", async () => {
-    const file = makeFile("pacote.zip", "application/zip", 25 * MB, DOCX_MAGIC);
+  it("rejeita ZIP de 210 MB", async () => {
+    const file = makeFile("pacote.zip", "application/zip", 210 * MB, DOCX_MAGIC);
     const result = await validateFileForUpload(file);
     expect(result.valid).toBe(false);
     expect(result.code).toBe("SIZE_EXCEEDED");
-    expect(result.error).toContain("20 MB");
+    expect(result.error).toContain("200 MB");
   });
 });
 
