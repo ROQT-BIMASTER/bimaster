@@ -165,7 +165,8 @@ async function exportFacts(supabase: any, params: ExportParams) {
     throw new Error(`Invalid table_name for facts. Allowed: ${[...ALLOWED_FACT_TABLES].join(', ')}`);
   }
 
-  ];
+
+
 
   const result: any = {};
 
