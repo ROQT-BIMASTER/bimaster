@@ -13,6 +13,8 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { History, Loader2, Download, FileText, ArrowDownToLine, AlertCircle } from "lucide-react";
 import { useChinaDocumentoHistorico, type DocumentoVersaoAnterior } from "@/hooks/useChinaDocumentoHistorico";
+import { AccessDeniedNotice } from "@/components/ui/access-denied-notice";
+import { isPermissionError } from "@/lib/utils/permissionErrors";
 import { downloadStorageBlob, triggerBlobDownload } from "@/lib/utils/storage-download";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -42,7 +44,7 @@ function acaoLabel(acao: DocumentoVersaoAnterior["acao"]): string {
 }
 
 export function DocumentoHistoricoDialog({ open, onOpenChange, documentoId, tipoDocumentoLabel }: Props) {
-  const { data: versoes = [], isLoading } = useChinaDocumentoHistorico(open ? documentoId : null);
+  const { data: versoes = [], isLoading, error } = useChinaDocumentoHistorico(open ? documentoId : null);
   const [downloadingPath, setDownloadingPath] = useState<string | null>(null);
 
   const baixarVersao = async (path: string | null, nome: string | null) => {
@@ -80,6 +82,13 @@ export function DocumentoHistoricoDialog({ open, onOpenChange, documentoId, tipo
           {isLoading ? (
             <div className="p-6 flex items-center justify-center gap-2 text-xs text-muted-foreground">
               <Loader2 className="h-4 w-4 animate-spin" /> Carregando histórico...
+            </div>
+          ) : isPermissionError(error) ? (
+            <div className="p-4">
+              <AccessDeniedNotice
+                title="Sem permissão para ver o histórico"
+                description="Você não tem acesso à submissão deste documento. Solicite acesso ao responsável pela ficha na China."
+              />
             </div>
           ) : versoes.length === 0 ? (
             <div className="p-6 text-center text-xs text-muted-foreground flex flex-col items-center gap-2">

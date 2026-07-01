@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { toFriendlyPermissionMessage } from "@/lib/utils/permissionErrors";
 
 export interface LoteAprovacao {
   id: string;
@@ -172,7 +173,7 @@ export function useCriarLoteAprovacao() {
       toast.success("Lote de aprovação criado");
       qc.invalidateQueries({ queryKey: ["lotes-aprovacao", "tarefa", vars.tarefaId] });
     },
-    onError: (e: any) => toast.error(e?.message || "Falha ao criar lote"),
+    onError: (e: any) => toast.error(toFriendlyPermissionMessage(e, "Falha ao criar lote")),
   });
 }
 
@@ -193,6 +194,6 @@ export function useAvancarEtapa() {
       qc.invalidateQueries({ queryKey: ["lotes-aprovacao"] });
       qc.invalidateQueries({ queryKey: ["lote-eventos", vars.instanciaId] });
     },
-    onError: (e: any) => toast.error(e?.message || "Falha ao avançar etapa"),
+    onError: (e: any) => toast.error(toFriendlyPermissionMessage(e, "Falha ao avançar etapa")),
   });
 }
