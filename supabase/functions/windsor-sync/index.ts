@@ -1,4 +1,4 @@
-// Windsor Sync — Fase 1b (por conector: métricas de conta + posts) — build:2026-07-01T22:00Z
+// Windsor Sync — Fase 1b + views/saves/impressoes — build:2026-07-01T22:30Z
 // Autorização: admin JWT OU header x-cron-secret == CRON_SECRET.
 // Idempotente: upsert em mkt_windsor_map, mkt_contas, mkt_metricas_conta, mkt_posts.
 // Preserva branch admin-only { mode: "diagnostico" }.
