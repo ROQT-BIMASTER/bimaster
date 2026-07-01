@@ -143,7 +143,7 @@ interface ProjetoTarefaDetalheProps {
 }
 
 export function ProjetoTarefaDetalhe({
-  tarefa: tarefaProp, open, onOpenChange, onUpdate, onToggle, onAddSubtarefa, onDelete, secoes = [], onMoveTarefa, projetoIdOverride, highlightCommentId = null, externalSaving = false,
+  tarefa: tarefaProp, open, onOpenChange, onUpdate, onToggle, onAddSubtarefa, onDelete, secoes = [], onMoveTarefa, projetoIdOverride, highlightCommentId = null, externalSaving = false, onOpenSubtarefa,
 }: ProjetoTarefaDetalheProps) {
 
   // Mantém o último snapshot aberto para que refetches/invalidations não
