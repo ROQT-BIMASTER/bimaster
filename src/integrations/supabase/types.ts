@@ -40003,6 +40003,32 @@ export type Database = {
           },
         ]
       }
+      projeto_tarefa_curtidas: {
+        Row: {
+          created_at: string
+          tarefa_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          tarefa_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          tarefa_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "projeto_tarefa_curtidas_tarefa_id_fkey"
+            columns: ["tarefa_id"]
+            isOneToOne: false
+            referencedRelation: "projeto_tarefas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       projeto_tarefa_dependencias: {
         Row: {
           created_at: string | null
@@ -57262,6 +57288,10 @@ export type Database = {
           p_tarefa_ids: string[]
         }
         Returns: number
+      }
+      rpc_toggle_curtida_tarefa: {
+        Args: { p_tarefa_id: string }
+        Returns: Json
       }
       rpc_translation_cache_get_batch: {
         Args: { p_hashes: string[] }

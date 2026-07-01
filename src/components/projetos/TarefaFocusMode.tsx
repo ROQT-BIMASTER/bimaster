@@ -52,6 +52,7 @@ import { ProjetoCorSelector } from "./tarefa-detalhe/ProjetoCorSelector";
 import { useConfirm } from "@/hooks/useConfirm";
 import { ChatAnexoCard } from "./chat/ChatAnexoCard";
 import { SubtarefasSection } from "./tarefa-detalhe/SubtarefasSection";
+import { TarefaCurtirButton } from "./tarefa-detalhe/TarefaCurtirButton";
 
 const ESTAGIO_OPTIONS = [
   { value: "briefing", label: "Briefing", color: "bg-purple-500/20 text-purple-400" },
@@ -422,6 +423,7 @@ export function TarefaFocusMode({
               Salvando…
             </span>
           )}
+          <TarefaCurtirButton tarefaId={tarefa.id} />
           <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={handleExitFocusClick}>
             <Minimize2 className="h-3.5 w-3.5" />
             Sair do Foco

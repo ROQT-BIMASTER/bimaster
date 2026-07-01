@@ -62,6 +62,7 @@ import { TarefaNotasPessoaisSection } from "./tarefa-detalhe/TarefaNotasPessoais
 import { TarefaChatPanel } from "./tarefa-detalhe/TarefaChatPanel";
 import { TarefaResponsavelSeguidoresEditor } from "./tarefa-detalhe/TarefaResponsavelSeguidoresEditor";
 import { SubtarefasSection } from "./tarefa-detalhe/SubtarefasSection";
+import { TarefaCurtirButton } from "./tarefa-detalhe/TarefaCurtirButton";
 
 import { TarefaChinaDocsSection } from "./tarefa-detalhe/TarefaChinaDocsSection";
 import { TarefaProcessoSection } from "./tarefa-detalhe/TarefaProcessoSection";
@@ -617,6 +618,7 @@ export function ProjetoTarefaDetalhe({
                   Chat {messages.length > 0 && `(${messages.length})`}
                 </Button>
               )}
+              <TarefaCurtirButton tarefaId={tarefa.id} />
               {canViewUI("acao_copiar_link") && (
                 <Button
                   variant="ghost"

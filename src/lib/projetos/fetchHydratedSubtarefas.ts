@@ -17,7 +17,9 @@ import type { ProjetoTarefa } from "@/hooks/useProjetoTarefas";
 export async function fetchHydratedSubtarefas(parentId: string): Promise<ProjetoTarefa[]> {
   if (!parentId) return [];
 
-  const { data, error } = await supabase
+  // Cast to `any` para evitar TS2589 (o self-FK de novas tabelas relacionadas
+  // a projeto_tarefas — ex.: projeto_tarefa_curtidas — infla a recursão de tipos).
+  const { data, error } = await (supabase as any)
     .from("projeto_tarefas")
     .select(
       `*,
