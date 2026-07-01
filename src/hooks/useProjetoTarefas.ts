@@ -84,9 +84,10 @@ interface ProjetoTarefasRpcPayload {
   visible_tarefas_count?: number;
 }
 
-export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeiraOpen?: boolean }) {
+export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeiraOpen?: boolean; mutationsOnly?: boolean }) {
   const { user } = useAuth();
   const lixeiraOpen = !!opts?.lixeiraOpen;
+  const mutationsOnly = !!opts?.mutationsOnly;
   const queryClient = useQueryClient();
 
   type PessoaCache = { id: string; nome: string; avatar_url: string | null };
@@ -257,7 +258,7 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
         visibleTarefasCount: payload.visible_tarefas_count ?? 0,
       });
     },
-    enabled: !!projetoId && !!user,
+    enabled: !!projetoId && !!user && !mutationsOnly,
     staleTime: 30_000,
     gcTime: 5 * 60_000,
     placeholderData: (prev) => prev,
@@ -349,7 +350,7 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
       if (error) throw error;
       return data as any[];
     },
-    enabled: !!projetoId && !!user && secoes.length > 0,
+    enabled: !!projetoId && !!user && !mutationsOnly && secoes.length > 0,
   });
 
   const tarefasPorSecao = (secaoId: string) => {
@@ -1163,7 +1164,7 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
       if (error) throw error;
       return (data as number) || 0;
     },
-    enabled: !!projetoId && !!user,
+    enabled: !!projetoId && !!user && !mutationsOnly,
     staleTime: 30_000,
   });
 
@@ -1180,7 +1181,7 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
       if (error) throw error;
       return data as (ProjetoTarefa & { excluida_em: string })[];
     },
-    enabled: !!projetoId && !!user && lixeiraOpen,
+    enabled: !!projetoId && !!user && !mutationsOnly && lixeiraOpen,
   });
 
   // Batch reorder via RPC: 1 round-trip + 1 invalidação para a coluna inteira.
@@ -1222,7 +1223,7 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
   // Observação: o filtro server-side por projeto_id evita ruído cruzado.
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
-    if (!projetoId || !user) return;
+    if (!projetoId || !user || mutationsOnly) return;
     let cancelled = false;
     const scheduleInvalidate = (payload?: any) => {
       if (cancelled) return;
@@ -1324,7 +1325,7 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
         logger.warn(`[useProjetoTarefas] removeChannel throw (${channelName})`, { error: err });
       }
     };
-  }, [projetoId, user, queryClient]);
+  }, [projetoId, user, queryClient, mutationsOnly]);
 
   return {
     secoes,
