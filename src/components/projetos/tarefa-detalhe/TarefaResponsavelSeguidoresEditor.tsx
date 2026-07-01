@@ -453,12 +453,12 @@ export function TarefaResponsavelSeguidoresEditor({
                     className="hover:scale-110 transition-transform"
                     title={`${c.nome} — clique para trocar ou remover`}
                   >
-                    <Avatar className="h-6 w-6 border-2 border-background">
-                      <AvatarImage src={c.avatar_url || undefined} />
-                      <AvatarFallback className="text-[8px] bg-muted">
-                        {c.nome?.substring(0, 2).toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
+                    <SmartAvatar
+                      src={c.avatar_url}
+                      nome={c.nome}
+                      className="h-6 w-6 border-2 border-background"
+                      fallbackClassName="text-[8px] bg-muted"
+                    />
                   </button>
                 </PopoverTrigger>
                 <PopoverContent className="w-64 p-0" align="start" style={{ pointerEvents: "auto" }} onOpenAutoFocus={(e) => e.preventDefault()} onPointerDownOutside={(e) => e.stopPropagation()} onInteractOutside={(e) => e.stopPropagation()}>
