@@ -2,7 +2,7 @@ import { useMemo, useState, useCallback } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { AlertTriangle, Clock, Circle, CheckCircle2, GripVertical } from "lucide-react";
+import { AlertTriangle, Clock, Circle, CheckCircle2, GripVertical, Loader2 } from "lucide-react";
 import { format, isToday, startOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import type { MinaTarefa } from "@/hooks/useMinhasTarefas";
@@ -31,6 +31,8 @@ interface Props {
   onToggle: (id: string, done: boolean) => void;
   onSelect: (t: MinaTarefa) => void;
   onChangePrazo?: (id: string, novaData: string | null) => void;
+  /** IDs de tarefas com mutação em voo (concluir/reabrir/mudar prazo). */
+  pendingIds?: Set<string>;
 }
 
 type ColumnKey = "overdue" | "today" | "upcoming" | "done";
@@ -76,19 +78,22 @@ function DraggableCard({
   tarefa,
   onToggle,
   onSelect,
+  isPending,
 }: {
   tarefa: MinaTarefa;
   onToggle: (id: string, done: boolean) => void;
   onSelect: (t: MinaTarefa) => void;
+  isPending?: boolean;
 }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: tarefa.id,
     data: { tarefa },
+    disabled: isPending,
   });
 
   const style: React.CSSProperties = {
     transform: CSS.Translate.toString(transform),
-    opacity: isDragging ? 0.4 : 1,
+    opacity: isDragging ? 0.4 : isPending ? 0.75 : 1,
     borderLeftColor: tarefa.projeto_cor,
   };
 
@@ -100,30 +105,39 @@ function DraggableCard({
     <Card
       ref={setNodeRef}
       style={style}
-      {...attributes}
-      {...listeners}
-      className={`hover:shadow-md transition-all border-l-3 touch-none cursor-grab active:cursor-grabbing ${
-        isDragging ? "shadow-xl z-50" : ""
-      }`}
+      {...(isPending ? {} : attributes)}
+      {...(isPending ? {} : listeners)}
+      aria-busy={isPending || undefined}
+      className={`hover:shadow-md transition-all border-l-3 touch-none ${
+        isPending ? "cursor-wait ring-1 ring-primary/40" : "cursor-grab active:cursor-grabbing"
+      } ${isDragging ? "shadow-xl z-50" : ""}`}
     >
       <CardContent className="p-3 space-y-2">
         <div className="flex items-start gap-2">
-          <GripVertical className="h-4 w-4 mt-1 text-muted-foreground shrink-0" />
-          <Checkbox
-            checked={isDone}
-            onCheckedChange={(checked) => onToggle(tarefa.id, !!checked)}
-            onPointerDown={(e) => e.stopPropagation()}
-            onClick={(e) => e.stopPropagation()}
-            className="mt-0.5 rounded-full h-4 w-4"
-          />
+          <GripVertical className={`h-4 w-4 mt-1 shrink-0 ${isPending ? "text-muted-foreground/40" : "text-muted-foreground"}`} />
+          {isPending ? (
+            <Loader2
+              className="h-4 w-4 mt-0.5 shrink-0 animate-spin text-primary"
+              aria-label="Atualizando tarefa"
+            />
+          ) : (
+            <Checkbox
+              checked={isDone}
+              onCheckedChange={(checked) => onToggle(tarefa.id, !!checked)}
+              onPointerDown={(e) => e.stopPropagation()}
+              onClick={(e) => e.stopPropagation()}
+              className="mt-0.5 rounded-full h-4 w-4"
+            />
+          )}
           <button
             type="button"
             onPointerDown={(e) => e.stopPropagation()}
             onClick={(e) => {
               e.stopPropagation();
-              onSelect(tarefa);
+              if (!isPending) onSelect(tarefa);
             }}
-            className={`text-sm flex-1 text-left ${isDone ? "line-through text-muted-foreground" : ""}`}
+            disabled={isPending}
+            className={`text-sm flex-1 text-left ${isDone ? "line-through text-muted-foreground" : ""} ${isPending ? "cursor-wait" : ""}`}
           >
             {tarefa.titulo}
           </button>
@@ -144,6 +158,9 @@ function DraggableCard({
               <span className={isOverdue ? "text-destructive font-medium" : ""}>
                 {format(prazo, "d MMM", { locale: ptBR })}
               </span>
+            )}
+            {isPending && (
+              <span className="text-[10px] text-primary font-medium">Salvando…</span>
             )}
           </div>
         </div>
@@ -177,7 +194,7 @@ function OverlayCard({ tarefa }: { tarefa: MinaTarefa }) {
   );
 }
 
-export function MinhasTarefasBoard({ tarefas, onToggle, onSelect, onChangePrazo }: Props) {
+export function MinhasTarefasBoard({ tarefas, onToggle, onSelect, onChangePrazo, pendingIds }: Props) {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [overColumnId, setOverColumnId] = useState<ColumnKey | null>(null);
 
@@ -300,7 +317,7 @@ export function MinhasTarefasBoard({ tarefas, onToggle, onSelect, onChangePrazo 
 
             <DroppableColumn id={col.key} isOver={overColumnId === col.key}>
               {groups[col.key].map((t) => (
-                <DraggableCard key={t.id} tarefa={t} onToggle={onToggle} onSelect={onSelect} />
+                <DraggableCard key={t.id} tarefa={t} onToggle={onToggle} onSelect={onSelect} isPending={pendingIds?.has(t.id)} />
               ))}
               {groups[col.key].length === 0 && (
                 <div className={`text-center py-12 text-muted-foreground text-xs border-2 border-dashed rounded-lg transition-all ${

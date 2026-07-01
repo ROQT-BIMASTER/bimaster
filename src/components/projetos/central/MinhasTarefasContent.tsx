@@ -383,6 +383,16 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
   const [detailOpen, setDetailOpen] = useState(false);
   const { isSaving: isBridgeSaving, attemptSave } = useBridgeSaveRetry();
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  // Tarefas com mutação em voo (concluir/reabrir/mudar prazo). Usado pelo Kanban
+  // e listas para exibir spinner e desabilitar interação sem "engolir" o clique.
+  const [pendingIds, setPendingIds] = useState<Set<string>>(new Set());
+  const markPending = useCallback((ids: string[], on: boolean) => {
+    setPendingIds((prev) => {
+      const next = new Set(prev);
+      for (const id of ids) { if (on) next.add(id); else next.delete(id); }
+      return next;
+    });
+  }, []);
   const [showWeeklySummary, setShowWeeklySummary] = useState<boolean>(
     preferences.show_weekly_summary ?? true,
   );
@@ -892,6 +902,10 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
       ));
     }
 
+    const toastId = `tarefa-toggle-${tarefaId}`;
+    markPending([tarefaId], true);
+    toast.loading(done ? "Concluindo tarefa..." : "Reabrindo tarefa...", { id: toastId });
+
     const { data: fresh, error } = await supabase
       .from("projeto_tarefas")
       .update(update as never)
@@ -900,7 +914,10 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
       .maybeSingle();
     if (error) {
       if (previous) queryClient.setQueryData(cacheKey, previous);
-      toast.error("Erro ao atualizar tarefa", {
+      markPending([tarefaId], false);
+      toast.error(done ? "Não foi possível concluir a tarefa" : "Não foi possível reabrir a tarefa", {
+        id: toastId,
+        description: error.message,
         action: { label: "Tentar novamente", onClick: () => handleToggle(tarefaId, done) },
       });
       return;
@@ -916,8 +933,9 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
     await queryClient.invalidateQueries({ queryKey: ["minhas-tarefas"], refetchType: "active" });
     queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2"] });
     queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-subtarefas-bridge"] });
-    toast.success(done ? "Tarefa concluída! ✓" : "Tarefa reaberta");
-  }, [queryClient, tarefas, user?.id]);
+    markPending([tarefaId], false);
+    toast.success(done ? "Tarefa concluída" : "Tarefa reaberta", { id: toastId });
+  }, [queryClient, tarefas, user?.id, markPending]);
 
   const handleChangePrazo = useCallback(async (tarefaId: string, novaData: string | null) => {
     const cacheKey = ["minhas-tarefas", user?.id] as const;
@@ -927,6 +945,9 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
         t.id === tarefaId ? { ...t, data_prazo: novaData } : t,
       ));
     }
+    const toastId = `tarefa-prazo-${tarefaId}`;
+    markPending([tarefaId], true);
+    toast.loading("Atualizando prazo...", { id: toastId });
     const { data: fresh, error } = await supabase
       .from("projeto_tarefas")
       .update({ data_prazo: novaData } as never)
@@ -935,7 +956,12 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
       .maybeSingle();
     if (error) {
       if (previous) queryClient.setQueryData(cacheKey, previous);
-      toast.error("Não foi possível atualizar o prazo");
+      markPending([tarefaId], false);
+      toast.error("Não foi possível atualizar o prazo", {
+        id: toastId,
+        description: error.message,
+        action: { label: "Tentar novamente", onClick: () => handleChangePrazo(tarefaId, novaData) },
+      });
       return;
     }
     if (fresh) {
@@ -946,8 +972,9 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
     await queryClient.invalidateQueries({ queryKey: ["minhas-tarefas"], refetchType: "active" });
     queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2"] });
     queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-subtarefas-bridge"] });
-    toast.success("Prazo atualizado");
-  }, [queryClient, user?.id]);
+    markPending([tarefaId], false);
+    toast.success("Prazo atualizado", { id: toastId });
+  }, [queryClient, user?.id, markPending]);
 
   const handleSelectTask = useCallback((t: MinaTarefa) => {
     setDetailTarefa(t);
@@ -978,6 +1005,10 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
       ));
     }
 
+    const toastId = `tarefa-bulk-${ids.join(",").slice(0, 40)}`;
+    markPending(ids, true);
+    toast.loading(`Concluindo ${ids.length} tarefa${ids.length > 1 ? "s" : ""}...`, { id: toastId });
+
     const { data: freshRows, error } = await supabase
       .from("projeto_tarefas")
       .update({ status: "concluida", data_conclusao: nowIso })
@@ -985,7 +1016,12 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
       .select("id, status, data_conclusao, updated_at");
     if (error) {
       if (previous) queryClient.setQueryData(cacheKey, previous);
-      toast.error("Erro ao concluir tarefas");
+      markPending(ids, false);
+      toast.error("Não foi possível concluir as tarefas", {
+        id: toastId,
+        description: error.message,
+        action: { label: "Tentar novamente", onClick: () => handleBulkComplete() },
+      });
       return;
     }
 
@@ -1016,7 +1052,8 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
     await queryClient.invalidateQueries({ queryKey: ["minhas-tarefas"], refetchType: "active" });
     queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2"] });
     queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-subtarefas-bridge"] });
-    toast.success(`${ids.length} tarefas concluídas!`);
+    markPending(ids, false);
+    toast.success(`${ids.length} tarefa${ids.length > 1 ? "s concluídas" : " concluída"}`, { id: toastId });
     setSelectedIds(new Set());
   };
 
@@ -1724,7 +1761,7 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
             </Card>
           </div>
         ) : view === "board" ? (
-          <MinhasTarefasBoard tarefas={filtered} onToggle={handleToggle} onChangePrazo={handleChangePrazo} onSelect={handleSelectTask} />
+          <MinhasTarefasBoard tarefas={filtered} onToggle={handleToggle} onChangePrazo={handleChangePrazo} onSelect={handleSelectTask} pendingIds={pendingIds} />
         ) : view === "calendar" ? (
           <MinhasTarefasCalendar tarefas={filtered} onSelect={handleSelectTask} />
         ) : (
