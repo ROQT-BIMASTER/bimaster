@@ -140,7 +140,9 @@ describe("validateFileForUpload — tipos não permitidos", () => {
   });
 
   it("rejeita MP4 com magic bytes inválidos (arquivo falsificado)", async () => {
-    const file = makeFile("fake.mp4", "video/mp4", 5 * MB, [0x00, 0x00, 0x00, 0x00], 4);
+    // Bytes iniciais explicitamente errados (não contêm "ftyp" no offset 4)
+    const wrongBytes = new Uint8Array([0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A]);
+    const file = new File([wrongBytes], "fake.mp4", { type: "video/mp4" });
     const result = await validateFileForUpload(file);
     expect(result.valid).toBe(false);
     expect(result.code).toBe("MAGIC_BYTES_MISMATCH");
