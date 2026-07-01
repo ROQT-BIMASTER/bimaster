@@ -68,6 +68,8 @@ export default function TelasPerdidas() {
   const qc = useQueryClient();
   const [busca, setBusca] = useState("");
   const [somenteInativas, setSomenteInativas] = useState(false);
+  const [origemFiltro, setOrigemFiltro] = useState<string>("__all");
+  const [parentGroupFiltro, setParentGroupFiltro] = useState<string>("__all");
   const [selected, setSelected] = useState<string | null>(null);
 
   const { data: menuItems = [], isLoading } = useQuery({
@@ -75,7 +77,7 @@ export default function TelasPerdidas() {
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("sidebar_menu_items")
-        .select("id, module_code, route, label, ativo");
+        .select("id, module_code, route, label, ativo, parent_group");
       if (error) throw error;
       return (data || []) as MenuRow[];
     },
@@ -83,15 +85,17 @@ export default function TelasPerdidas() {
 
   const appRoutes = useMemo(() => extractAppRoutes(appSource as string), []);
 
-  const { routesInMenu, activeRoutes, modules } = useMemo(() => {
+  const { routesInMenu, activeRoutes, modules, parentGroupByRoute } = useMemo(() => {
     const inMenu = new Set<string>();
     const active = new Set<string>();
     const mods = new Set<string>();
+    const pg = new Map<string, string>();
     for (const it of menuItems) {
       if (it.route) {
         const n = normalize(it.route);
         inMenu.add(n);
         if (it.ativo) active.add(n);
+        if (it.parent_group) pg.set(n, it.parent_group);
       }
       mods.add(it.module_code);
     }
@@ -99,24 +103,50 @@ export default function TelasPerdidas() {
       routesInMenu: inMenu,
       activeRoutes: active,
       modules: Array.from(mods).sort(),
+      parentGroupByRoute: pg,
     };
   }, [menuItems]);
 
   const orphans = useMemo(() => {
     return appRoutes.filter((r) => {
       if (somenteInativas) {
-        // rota existe no menu porém está inativa em todos os itens
         return routesInMenu.has(r) && !activeRoutes.has(r);
       }
       return !routesInMenu.has(r);
     });
   }, [appRoutes, routesInMenu, activeRoutes, somenteInativas]);
 
+  const origensDisponiveis = useMemo(() => {
+    const s = new Set<string>();
+    for (const r of orphans) s.add(topSegment(r));
+    return Array.from(s).sort();
+  }, [orphans]);
+
+  const parentGroupsDisponiveis = useMemo(() => {
+    const s = new Set<string>();
+    for (const r of orphans) {
+      const g = parentGroupByRoute.get(r);
+      if (g) s.add(g);
+    }
+    return Array.from(s).sort();
+  }, [orphans, parentGroupByRoute]);
+
   const filtered = useMemo(() => {
     const q = busca.trim().toLowerCase();
-    if (!q) return orphans;
-    return orphans.filter((r) => r.toLowerCase().includes(q));
-  }, [orphans, busca]);
+    return orphans.filter((r) => {
+      if (q && !r.toLowerCase().includes(q)) return false;
+      if (origemFiltro !== "__all" && topSegment(r) !== origemFiltro) return false;
+      if (parentGroupFiltro !== "__all") {
+        const g = parentGroupByRoute.get(r) ?? "";
+        if (parentGroupFiltro === "__none") {
+          if (g) return false;
+        } else if (g !== parentGroupFiltro) {
+          return false;
+        }
+      }
+      return true;
+    });
+  }, [orphans, busca, origemFiltro, parentGroupFiltro, parentGroupByRoute]);
 
   const grouped = useMemo(() => {
     const g: Record<string, string[]> = {};
