@@ -78,11 +78,30 @@ describe("SmartAvatar – fallback quando avatar_url é nulo/inválido", () => {
 
   it("propaga title com o nome mesmo sem foto", () => {
     render(<SmartAvatar src={null} nome={nome} />);
-    expect(screen.getByTitle(nome)).toBeInTheDocument();
+    // title fica em Avatar (span) e aria-label em fallback
+    expect(screen.getAllByTitle(nome).length).toBeGreaterThan(0);
   });
 
-  it("title customizado sobrepõe o nome", () => {
-    render(<SmartAvatar src={null} nome={nome} title="Perfil de Ana" />);
-    expect(screen.getByTitle("Perfil de Ana")).toBeInTheDocument();
+  it("title customizado sobrepõe o nome e o identifier", () => {
+    render(
+      <SmartAvatar src={null} nome={nome} identifier="ana@x.com" title="Perfil de Ana" />,
+    );
+    expect(screen.getAllByTitle("Perfil de Ana").length).toBeGreaterThan(0);
+  });
+
+  it("identifier: monta tooltip 'Nome (identifier)' automaticamente", () => {
+    render(<SmartAvatar src={null} nome={nome} identifier="ana@x.com" />);
+    expect(screen.getAllByTitle("Ana Dona (ana@x.com)").length).toBeGreaterThan(0);
+  });
+
+  it("identifier em branco é ignorado no tooltip", () => {
+    render(<SmartAvatar src={null} nome={nome} identifier="   " />);
+    expect(screen.getAllByTitle("Ana Dona").length).toBeGreaterThan(0);
+  });
+
+  it("sem nome + identifier: tooltip usa fallback 'Membro (id)'", () => {
+    render(<SmartAvatar src={null} nome={null} identifier="user-42" />);
+    expect(screen.getAllByTitle("Membro (user-42)").length).toBeGreaterThan(0);
+    expect(screen.getByText("ME")).toBeInTheDocument();
   });
 });
