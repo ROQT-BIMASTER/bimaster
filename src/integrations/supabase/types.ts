@@ -53763,6 +53763,10 @@ export type Database = {
         Args: { p_etapa_ordem: number; p_status: string }
         Returns: string
       }
+      _set_internal_cron_secret: {
+        Args: { p_name: string; p_value: string }
+        Returns: undefined
+      }
       _set_rrtask_webhook_secret: {
         Args: { _value: string }
         Returns: undefined
