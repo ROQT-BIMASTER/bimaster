@@ -160,9 +160,20 @@ export function HojeTab({ onGoToTarefas }: Props) {
     }
     const update: any = { status: done ? "concluida" : "pendente" };
     update.data_conclusao = done ? nowSaoPauloISO() : null;
-    const { error } = await supabase.from("projeto_tarefas").update(update).eq("id", id);
+    const { data: fresh, error } = await supabase
+      .from("projeto_tarefas")
+      .update(update)
+      .eq("id", id)
+      .select("id")
+      .maybeSingle();
     if (error) {
       toast.error("Erro ao atualizar tarefa");
+      return;
+    }
+    if (!fresh) {
+      toast.error("Você não tem permissão para alterar esta tarefa", {
+        description: "Peça ao responsável ou ao criador para conceder acesso.",
+      });
       return;
     }
     queryClient.invalidateQueries({ queryKey: ["minhas-tarefas"] });
