@@ -6,6 +6,7 @@ import { useEffect } from "react";
 import { useTarefaMentionableUsers } from "./useTarefaMentionableUsers";
 import { uniqueChannelName } from "@/lib/realtime/channelName";
 import { sanitizeStorageFilename } from "@/lib/utils/sanitizeStorageFilename";
+import { validateFileForUpload } from "@/lib/utils/file-security";
 
 export interface MinhaTarefaAnexo {
   id: string;
