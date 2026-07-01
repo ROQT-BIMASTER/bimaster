@@ -175,8 +175,41 @@ export default function TelasPerdidas() {
           value={busca}
           onChange={(e) => setBusca(e.target.value)}
           placeholder="Filtrar por rota (ex.: /admin, /financeiro...)"
-          className="max-w-sm"
+          className="max-w-xs"
         />
+        <div className="flex items-center gap-1">
+          <Label className="text-xs text-muted-foreground">Origem</Label>
+          <Select value={origemFiltro} onValueChange={setOrigemFiltro}>
+            <SelectTrigger className="h-9 w-[180px]">
+              <SelectValue placeholder="Todas as origens" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__all">Todas as origens</SelectItem>
+              {origensDisponiveis.map((o) => (
+                <SelectItem key={o} value={o}>
+                  /{o}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="flex items-center gap-1">
+          <Label className="text-xs text-muted-foreground">Grupo</Label>
+          <Select value={parentGroupFiltro} onValueChange={setParentGroupFiltro}>
+            <SelectTrigger className="h-9 w-[200px]">
+              <SelectValue placeholder="Todos os grupos" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__all">Todos os grupos</SelectItem>
+              <SelectItem value="__none">Sem parent_group</SelectItem>
+              {parentGroupsDisponiveis.map((g) => (
+                <SelectItem key={g} value={g}>
+                  {g}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
         <label className="flex items-center gap-2 text-xs text-muted-foreground">
           <Checkbox
             checked={somenteInativas}
@@ -184,10 +217,30 @@ export default function TelasPerdidas() {
           />
           Somente rotas com item de menu inativo
         </label>
+        {(busca ||
+          origemFiltro !== "__all" ||
+          parentGroupFiltro !== "__all" ||
+          somenteInativas) && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              setBusca("");
+              setOrigemFiltro("__all");
+              setParentGroupFiltro("__all");
+              setSomenteInativas(false);
+            }}
+          >
+            Limpar
+          </Button>
+        )}
         <div className="ml-auto flex items-center gap-2 text-xs text-muted-foreground">
           <Badge variant="secondary">{appRoutes.length} rotas no App</Badge>
           <Badge variant="secondary">{routesInMenu.size} vinculadas</Badge>
           <Badge variant="destructive">{orphans.length} perdidas</Badge>
+          {filtered.length !== orphans.length && (
+            <Badge variant="outline">{filtered.length} no filtro</Badge>
+          )}
         </div>
       </Card>
 
