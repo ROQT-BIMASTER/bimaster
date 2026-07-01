@@ -618,6 +618,7 @@ export function ProjetoTarefaDetalhe({
                   Chat {messages.length > 0 && `(${messages.length})`}
                 </Button>
               )}
+              <TarefaCurtirButton tarefaId={tarefa.id} />
               {canViewUI("acao_copiar_link") && (
                 <Button
                   variant="ghost"
