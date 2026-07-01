@@ -4,10 +4,37 @@ import { getCorsHeaders } from "../_shared/cors.ts";
 import { secureHandler } from "../_shared/secure-handler.ts";
 
 Deno.serve(secureHandler({
-  auth: "none",
+  auth: "any",
   rateLimit: 10,
   rateLimitPrefix: "sync-all-accounts",
-}, async (req, _ctx) => {
+}, async (req, ctx) => {
+  // Restrict to cron (service-role/api-key) or admin JWT callers
+  const isServiceRole = ctx?.authSource === "api_key";
+  if (!isServiceRole) {
+    const userId = ctx?.userId;
+    if (!userId) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
+      });
+    }
+    const adminCheck = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+    );
+    const { data: roleData } = await adminCheck
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", userId)
+      .eq("role", "admin")
+      .maybeSingle();
+    if (!roleData) {
+      return new Response(JSON.stringify({ error: "Forbidden" }), {
+        status: 403,
+        headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
+      });
+    }
+  }
 
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
