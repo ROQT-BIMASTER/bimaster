@@ -19,6 +19,7 @@ import { useProjetoIA } from "@/hooks/useProjetoIA";
 import { SubtarefaResponsavelPicker } from "./SubtarefaResponsavelPicker";
 import { SubtarefaSeguidoresPicker } from "./SubtarefaSeguidoresPicker";
 import { useProjetoMembros } from "@/hooks/useProjetoMembros";
+import { reportSubtarefaArrowEvent } from "@/lib/telemetry/subtarefaArrowTelemetry";
 
 const ESTAGIO_OPTIONS = [
   { value: "briefing", label: "Briefing", color: "bg-purple-500/20 text-purple-400" },
@@ -206,11 +207,30 @@ export function SubtarefasSection({
             <Button
               variant="ghost"
               size="icon"
-              className="h-6 w-6 shrink-0 text-muted-foreground hover:text-foreground hover:bg-accent"
-              onClick={() => onOpenSubtarefa(st.id)}
+              data-testid="subtarefa-open-arrow"
+              data-subtarefa-id={st.id}
+              aria-label={`Abrir subtarefa: ${st.titulo}`}
               title="Abrir subtarefa"
+              className="h-6 w-6 min-h-6 min-w-6 md:h-6 md:w-6 shrink-0 text-muted-foreground hover:text-foreground hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:opacity-100"
+              onClick={() => {
+                if (!st.id) {
+                  reportSubtarefaArrowEvent({ type: "invalid_id", subtarefaId: st.id });
+                  return;
+                }
+                reportSubtarefaArrowEvent({ type: "click", subtarefaId: st.id });
+                try {
+                  onOpenSubtarefa(st.id);
+                } catch (err) {
+                  reportSubtarefaArrowEvent({
+                    type: "render_error",
+                    subtarefaId: st.id,
+                    extra: { message: (err as Error)?.message },
+                  });
+                  throw err;
+                }
+              }}
             >
-              <ChevronRight className="h-3.5 w-3.5" />
+              <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />
             </Button>
           )}
           {onDelete && (
