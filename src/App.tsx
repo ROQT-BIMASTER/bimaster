@@ -350,6 +350,7 @@ const VersoesClientes = lazyWithRetry(() => import("./pages/admin/VersoesCliente
 const UploadRejeicoesAudit = lazyWithRetry(() => import("./pages/admin/UploadRejeicoesAudit"));
 const CofreTemplates = lazyWithRetry(() => import("./pages/admin/CofreTemplates"));
 const IntegracaoGoogleDrive = lazyWithRetry(() => import("./pages/admin/IntegracaoGoogleDrive"));
+const MarketingIntegracoesPage = lazyWithRetry(() => import("./pages/admin/MarketingIntegracoesPage"));
 const SuporteAdmin = lazyWithRetry(() => import("./pages/admin/SuporteAdmin"));
 const VisibilidadeProjetosAjuda = lazyWithRetry(() => import("./pages/ajuda/VisibilidadeProjetos"));
 const PoliticaPrivacidade = lazyWithRetry(() => import("./pages/PoliticaPrivacidade"));
@@ -806,6 +807,7 @@ function AppContent() {
             <Route path="/admin/uploads-rejeitados" element={<ScreenRoute screenCode="admin"><UploadRejeicoesAudit /></ScreenRoute>} />
             <Route path="/admin/cofre-templates" element={<ScreenRoute screenCode="admin"><CofreTemplates /></ScreenRoute>} />
             <Route path="/admin/integracoes/google-drive" element={<ScreenRoute screenCode="admin"><IntegracaoGoogleDrive /></ScreenRoute>} />
+            <Route path="/admin/marketing-integracoes" element={<ScreenRoute screenCode="admin"><MarketingIntegracoesPage /></ScreenRoute>} />
             <Route path="/admin/suporte" element={<ScreenRoute screenCode="admin"><SuporteAdmin /></ScreenRoute>} />
 
 
