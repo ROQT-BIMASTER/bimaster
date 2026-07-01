@@ -205,6 +205,10 @@ All colors MUST be HSL.
     --input: 222 47% 14%;
     --ring: 221 83% 58%;
 
+    /* Subtarefa: fundo levemente diferenciado (dark) */
+    --subtask: 222 47% 10%;
+    --subtask-hover: 222 47% 13%;
+
     /* Gradients - Dark mode */
     --gradient-primary: linear-gradient(135deg, hsl(221, 83%, 58%) 0%, hsl(262, 83%, 63%) 100%);
     --gradient-secondary: linear-gradient(135deg, hsl(222, 47%, 12%) 0%, hsl(222, 47%, 10%) 100%);
