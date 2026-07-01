@@ -1193,18 +1193,25 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
   useEffect(() => {
     if (!projetoId || !user) return;
     let cancelled = false;
-    const scheduleInvalidate = () => {
+    const scheduleInvalidate = (payload?: any) => {
       if (cancelled) return;
+      // Ignora o "eco" do próprio INSERT/UPDATE do usuário: se o registro
+      // já está no cache com o mesmo updated_at, não há nada a reconciliar
+      // — invalidar ainda notifica subscribers e produz uma "piscada".
+      try {
+        const newRow = payload?.new as { id?: string; updated_at?: string } | undefined;
+        if (newRow?.id) {
+          const cached = queryClient.getQueryData<ProjetoTarefasView>(["projeto-tarefas-v2", projetoId]);
+          const hit = cached?.tarefas?.find((t) => t.id === newRow.id);
+          if (hit && (!newRow.updated_at || hit.updated_at === newRow.updated_at)) {
+            return;
+          }
+        }
+      } catch { /* fall through — invalida se algo der errado */ }
       if (debounceRef.current) clearTimeout(debounceRef.current);
       debounceRef.current = setTimeout(() => {
         if (cancelled) return;
-        // Apenas marca stale, SEM refetch imediato — evita que o INSERT do
-        // próprio usuário (já refletido otimisticamente + swap tempId→id)
-        // dispare um 3º render que troca todas as identidades de objeto e
-        // faz a UI "piscar". Refetch silencioso ocorre no próximo focus
-        // (refetchOnWindowFocus) ou trigger explícito.
         queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2", projetoId], refetchType: "none" });
-        // Contagem da lixeira é um número isolado — pode refetchar sem flicker.
         queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-excluidas-count", projetoId] });
       }, 200);
     };
