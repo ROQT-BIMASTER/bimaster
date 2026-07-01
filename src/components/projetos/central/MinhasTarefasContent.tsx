@@ -902,6 +902,10 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
       ));
     }
 
+    const toastId = `tarefa-toggle-${tarefaId}`;
+    markPending([tarefaId], true);
+    toast.loading(done ? "Concluindo tarefa..." : "Reabrindo tarefa...", { id: toastId });
+
     const { data: fresh, error } = await supabase
       .from("projeto_tarefas")
       .update(update as never)
@@ -910,7 +914,10 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
       .maybeSingle();
     if (error) {
       if (previous) queryClient.setQueryData(cacheKey, previous);
-      toast.error("Erro ao atualizar tarefa", {
+      markPending([tarefaId], false);
+      toast.error(done ? "Não foi possível concluir a tarefa" : "Não foi possível reabrir a tarefa", {
+        id: toastId,
+        description: error.message,
         action: { label: "Tentar novamente", onClick: () => handleToggle(tarefaId, done) },
       });
       return;
@@ -926,8 +933,9 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
     await queryClient.invalidateQueries({ queryKey: ["minhas-tarefas"], refetchType: "active" });
     queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2"] });
     queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-subtarefas-bridge"] });
-    toast.success(done ? "Tarefa concluída! ✓" : "Tarefa reaberta");
-  }, [queryClient, tarefas, user?.id]);
+    markPending([tarefaId], false);
+    toast.success(done ? "Tarefa concluída" : "Tarefa reaberta", { id: toastId });
+  }, [queryClient, tarefas, user?.id, markPending]);
 
   const handleChangePrazo = useCallback(async (tarefaId: string, novaData: string | null) => {
     const cacheKey = ["minhas-tarefas", user?.id] as const;
@@ -937,6 +945,9 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
         t.id === tarefaId ? { ...t, data_prazo: novaData } : t,
       ));
     }
+    const toastId = `tarefa-prazo-${tarefaId}`;
+    markPending([tarefaId], true);
+    toast.loading("Atualizando prazo...", { id: toastId });
     const { data: fresh, error } = await supabase
       .from("projeto_tarefas")
       .update({ data_prazo: novaData } as never)
@@ -945,7 +956,12 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
       .maybeSingle();
     if (error) {
       if (previous) queryClient.setQueryData(cacheKey, previous);
-      toast.error("Não foi possível atualizar o prazo");
+      markPending([tarefaId], false);
+      toast.error("Não foi possível atualizar o prazo", {
+        id: toastId,
+        description: error.message,
+        action: { label: "Tentar novamente", onClick: () => handleChangePrazo(tarefaId, novaData) },
+      });
       return;
     }
     if (fresh) {
