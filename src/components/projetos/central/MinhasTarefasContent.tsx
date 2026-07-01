@@ -635,6 +635,37 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
 
   const handleBridgeAddSubtarefa = useCallback(async (titulo: string, parentId: string, secaoId: string) => {
     if (!user?.id || !selectedProjetoId) return;
+    const tempId = `temp-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+    const clientKey = `sub:${parentId}:${titulo.trim().toLowerCase()}:${tempId}`;
+    const nowIso = new Date().toISOString();
+    const optimistic = {
+      id: tempId,
+      titulo,
+      parent_tarefa_id: parentId,
+      secao_id: secaoId,
+      projeto_id: selectedProjetoId,
+      responsavel_id: user.id,
+      criador_id: user.id,
+      status: "pendente",
+      prioridade: "media",
+      ordem: 999,
+      descricao: null,
+      data_prazo: null,
+      data_conclusao: null,
+      codigo: null,
+      estagio: null,
+      visibilidade: "equipe",
+      produto_id: null,
+      created_at: nowIso,
+      updated_at: nowIso,
+      __clientKey: clientKey,
+    } as ProjetoTarefa;
+    if (detailTarefaId && parentId === detailTarefaId) {
+      queryClient.setQueryData<ProjetoTarefa[]>(["projeto-tarefas-subtarefas-bridge", detailTarefaId], (old = []) => {
+        if (old.some((st) => st.id === tempId || (st as any).__clientKey === clientKey)) return old;
+        return [...old, optimistic];
+      });
+    }
     const result = await attemptSave("Criar subtarefa", () =>
       supabase.from("projeto_tarefas").insert({
         titulo, parent_tarefa_id: parentId, secao_id: secaoId,
@@ -642,15 +673,23 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
         status: "pendente", prioridade: "media", ordem: 999,
       }).select("*").single(),
     );
-    if (!result.ok) return;
+    if (!result.ok) {
+      if (detailTarefaId) {
+        queryClient.setQueryData<ProjetoTarefa[]>(["projeto-tarefas-subtarefas-bridge", detailTarefaId], (old = []) =>
+          old.filter((st) => st.id !== tempId),
+        );
+      }
+      return;
+    }
     const data = (result.data as any)?.data;
-    queryClient.invalidateQueries({ queryKey: ["minhas-tarefas"] });
+    queryClient.invalidateQueries({ queryKey: ["minhas-tarefas"], refetchType: "none" });
     if (detailTarefaId) {
       queryClient.setQueryData<ProjetoTarefa[]>(["projeto-tarefas-subtarefas-bridge", detailTarefaId], (old = []) => {
-        if (!data || parentId !== detailTarefaId || old.some((st) => st.id === data.id)) return old;
-        return [...old, data as ProjetoTarefa];
+        if (!data || parentId !== detailTarefaId) return old;
+        if (old.some((st) => st.id === data.id)) return old.filter((st) => st.id !== tempId);
+        return old.map((st) => st.id === tempId ? ({ ...st, ...(data as ProjetoTarefa), __clientKey: clientKey } as ProjetoTarefa) : st);
       });
-      queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-subtarefas-bridge", detailTarefaId] });
+      queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-subtarefas-bridge", detailTarefaId], refetchType: "none" });
     }
     toast.success("Subtarefa criada");
   }, [queryClient, user?.id, selectedProjetoId, detailTarefaId, attemptSave]);
