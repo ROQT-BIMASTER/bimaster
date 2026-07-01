@@ -609,7 +609,9 @@ export function MinhasTarefasSimples() {
     if (!user?.id || !selectedProjetoId) return;
     const tempId = typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
       ? crypto.randomUUID()
-      : `${Date.now().toString(16)}-${Math.random().toString(16).slice(2, 6)}-4${Math.random().toString(16).slice(2, 5)}-a${Math.random().toString(16).slice(2, 5)}-${Math.random().toString(16).slice(2, 14)}`;
+      : "10000000-1000-4000-8000-100000000000".replace(/[018]/g, (c) =>
+          (Number(c) ^ (Math.random() * 16 >> Number(c) / 4)).toString(16),
+        );
     const clientKey = `sub:${parentId}:${titulo.trim().toLowerCase()}:${tempId}`;
     const nowIso = nowSaoPauloISO();
     const optimistic = {
