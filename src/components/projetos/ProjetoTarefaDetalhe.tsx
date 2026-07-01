@@ -61,7 +61,7 @@ import { TarefaComentariosSection } from "./tarefa-detalhe/TarefaComentariosSect
 import { TarefaNotasPessoaisSection } from "./tarefa-detalhe/TarefaNotasPessoaisSection";
 import { TarefaChatPanel } from "./tarefa-detalhe/TarefaChatPanel";
 import { TarefaResponsavelSeguidoresEditor } from "./tarefa-detalhe/TarefaResponsavelSeguidoresEditor";
-import { SubtarefaResponsavelPicker } from "./tarefa-detalhe/SubtarefaResponsavelPicker";
+import { SubtarefasSection } from "./tarefa-detalhe/SubtarefasSection";
 
 import { TarefaChinaDocsSection } from "./tarefa-detalhe/TarefaChinaDocsSection";
 import { TarefaProcessoSection } from "./tarefa-detalhe/TarefaProcessoSection";
@@ -165,7 +165,6 @@ export function ProjetoTarefaDetalhe({
   const [editingTitle, setEditingTitle] = useState(false);
   const [titleValue, setTitleValue] = useState("");
   const [descValue, setDescValue] = useState("");
-  const [subtarefaValue, setSubtarefaValue] = useState("");
   const [datePicker, setDatePicker] = useState(false);
   const [inicioPicker, setInicioPicker] = useState(false);
   const [proximaAcaoPicker, setProximaAcaoPicker] = useState(false);
@@ -193,53 +192,7 @@ export function ProjetoTarefaDetalhe({
       return (data?.titulo as string | undefined) ?? null;
     },
   });
-  const [editingSubtarefaId, setEditingSubtarefaId] = useState<string | null>(null);
-  const [editingSubtarefaTitulo, setEditingSubtarefaTitulo] = useState("");
-
-
-
-  // === Stable row key para subtarefas ===
-  // Evita unmount/remount do nó DOM quando o cache troca o tempId pelo id
-  // real (createTarefa.onSuccess). Sem isso, a subtarefa recém-criada pisca
-  // ao ganhar o id real porque o React vê uma key nova. Estratégia:
-  // - Cada subtarefa recebe um rowKey persistente armazenado em um Map ref.
-  // - Quando aparece um id real ainda não mapeado, procuramos uma entrada
-  //   temp órfã com mesmo (parent_tarefa_id + titulo) para reusar a rowKey,
-  //   garantindo continuidade visual durante o swap.
-  const rowKeyMapRef = useRef<Map<string, string>>(new Map());
-  const rowKeyCounterRef = useRef(0);
-  const getSubRowKey = useCallback(
-    (st: ProjetoTarefa): string => {
-      const map = rowKeyMapRef.current;
-      const existing = map.get(st.id);
-      if (existing) return existing;
-      // Tenta herdar de um tempId órfão com mesma assinatura (titulo + parent).
-      if (!st.id.startsWith("temp-")) {
-        for (const [k, v] of map) {
-          if (!k.startsWith("temp-")) continue;
-          // Pais batem? (mesmo nó host)
-          // Como a Map só guarda id→key, comparamos via lookup na lista atual.
-          const tempStill = tarefa?.subtarefas?.some(s => s.id === k);
-          if (tempStill) continue; // ainda existe, não é órfão
-          map.delete(k);
-          map.set(st.id, v);
-          return v;
-        }
-      }
-      const fresh = `sub-${++rowKeyCounterRef.current}`;
-      map.set(st.id, fresh);
-      return fresh;
-    },
-    [tarefa?.subtarefas],
-  );
-  // Limpa entradas órfãs do map quando a tarefa pai muda (evita memory leak).
-  useEffect(() => {
-    rowKeyMapRef.current = new Map();
-    rowKeyCounterRef.current = 0;
-  }, [tarefa?.id]);
-
-  const { suggestFields, generateChecklist, loading: iaLoading } = useProjetoIA();
-  const [pendingAISubtarefas, setPendingAISubtarefas] = useState<{ titulo: string; selected: boolean }[]>([]);
+  const { suggestFields, loading: iaLoading } = useProjetoIA();
   const [pendingAIDescricao, setPendingAIDescricao] = useState<{
     descricao: string;
     prioridade: string;
@@ -247,7 +200,6 @@ export function ProjetoTarefaDetalhe({
     dataPrazo: string | null;
     apply: { descricao: boolean; prioridade: boolean; estagio: boolean; dataPrazo: boolean };
   } | null>(null);
-  const [showConcluidas, setShowConcluidas] = useState(false);
   const [focusMode, setFocusMode] = useState(false);
   // Mantém um snapshot da última `tarefa` enquanto o Focus Mode está aberto
   // para evitar que o Dialog desmonte quando o prop `tarefa` ficar nulo
@@ -305,7 +257,6 @@ export function ProjetoTarefaDetalhe({
       skipAutoSaveRef.current = true;
       setTitleValue(tarefa.titulo);
       setDescValue(tarefa.descricao || "");
-      setPendingAISubtarefas([]);
       setAutoSaveStatus("idle");
       if (titleDebounceRef.current) clearTimeout(titleDebounceRef.current);
       if (descDebounceRef.current) clearTimeout(descDebounceRef.current);
@@ -472,13 +423,6 @@ export function ProjetoTarefaDetalhe({
   const handleDownload = async (anexo: any) => {
     await secureDownload(anexo.storage_path, anexo.nome, "projeto-anexos");
   };
-
-  const handleAddSubtarefa = () => {
-    if (!subtarefaValue.trim() || !onAddSubtarefa) return;
-    onAddSubtarefa(subtarefaValue.trim(), tarefa.id, tarefa.secao_id);
-    setSubtarefaValue("");
-  };
-
   const handleProdutoSearch = async (q: string) => {
     setProdutoSearch(q);
     const results = await searchProdutos(q || undefined);
