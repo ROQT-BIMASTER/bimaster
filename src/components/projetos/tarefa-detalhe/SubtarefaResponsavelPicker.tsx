@@ -213,6 +213,8 @@ function SubtarefaResponsavelPickerImpl({
                       <SmartAvatar
                         src={m.profile?.avatar_url}
                         nome={m.profile?.nome}
+                        identifier={m.profile?.email}
+                        fallbackNome="Membro"
                         className="h-5 w-5 mr-2"
                         fallbackClassName="text-[9px]"
                       />
