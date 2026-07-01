@@ -7,7 +7,7 @@ import { logDocAudit } from "@/lib/productDocAudit";
 import { useTarefaMentionableUsers } from "./useTarefaMentionableUsers";
 import { uniqueChannelName } from "@/lib/realtime/channelName";
 import { sanitizeStorageFilename } from "@/lib/utils/sanitizeStorageFilename";
-import { validateFileForUpload } from "@/lib/utils/file-security";
+import { validateFileForUpload, describeUploadError } from "@/lib/utils/file-security";
 
 export interface TarefaComentario {
   id: string;
@@ -239,7 +239,8 @@ export function useProjetoTarefaDetalhe(tarefaId: string | undefined, produtoId?
     },
     onError: (err: Error, _vars, ctx: any) => {
       if (ctx?.previous) queryClient.setQueryData(["tarefa-anexos", tarefaId], ctx.previous);
-      toast.error(err.message);
+      const { title, description } = describeUploadError(err.message);
+      toast.error(title, { description });
     },
     onSuccess: () => {
       toast.success("Anexo enviado!");

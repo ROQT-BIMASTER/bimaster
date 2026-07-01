@@ -6,7 +6,7 @@ import { useEffect } from "react";
 import { useTarefaMentionableUsers } from "./useTarefaMentionableUsers";
 import { uniqueChannelName } from "@/lib/realtime/channelName";
 import { sanitizeStorageFilename } from "@/lib/utils/sanitizeStorageFilename";
-import { validateFileForUpload } from "@/lib/utils/file-security";
+import { validateFileForUpload, describeUploadError } from "@/lib/utils/file-security";
 
 export interface MinhaTarefaAnexo {
   id: string;
@@ -75,7 +75,10 @@ export function useMinhasTarefaDetalhe(tarefaId: string | undefined) {
       queryClient.invalidateQueries({ queryKey: ["minha-tarefa-anexos", tarefaId] });
       toast.success("Anexo enviado!");
     },
-    onError: (err: Error) => toast.error(err.message),
+    onError: (err: Error) => {
+      const { title, description } = describeUploadError(err.message);
+      toast.error(title, { description });
+    },
   });
 
   const deleteAnexo = useMutation({
