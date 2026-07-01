@@ -156,6 +156,8 @@ export function ProjetoTarefaDetalhe({
     lastOpenTarefaRef.current = tarefaProp;
   }
   const tarefa = tarefaProp ?? (open ? lastOpenTarefaRef.current : null);
+  flickerLog("drawer-render", { tarefaId: tarefa?.id, open, isTemp: String(tarefa?.id ?? "").startsWith("temp-") });
+
   const navigate = useNavigate();
   const { id: routeProjetoId } = useParams<{ id: string }>();
   const projetoId = projetoIdOverride || routeProjetoId;
