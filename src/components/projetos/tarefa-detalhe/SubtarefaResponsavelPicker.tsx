@@ -114,6 +114,8 @@ function SubtarefaResponsavelPickerImpl({
           <SmartAvatar
             src={responsavelAvatar}
             nome={responsavelNome}
+            identifier={responsavelEmail}
+            fallbackNome="Membro"
             className="h-7 w-7"
             fallbackClassName="text-[10px]"
           />
@@ -131,6 +133,8 @@ function SubtarefaResponsavelPickerImpl({
             <SmartAvatar
               src={responsavelAvatar}
               nome={responsavelNome}
+              identifier={responsavelEmail}
+              fallbackNome="Membro"
               className="h-4 w-4"
               fallbackClassName="text-[7px]"
             />
