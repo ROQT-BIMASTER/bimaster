@@ -138,10 +138,12 @@ interface ProjetoTarefaDetalheProps {
   highlightCommentId?: string | null;
   /** Indica que uma persistência externa (bridge) está em andamento. Mostra o indicador de "Salvando…" no header e mantém o painel aberto. */
   externalSaving?: boolean;
+  /** Navega para outra tarefa/subtarefa reutilizando o mesmo drawer (dono controla via URL). */
+  onOpenSubtarefa?: (id: string) => void;
 }
 
 export function ProjetoTarefaDetalhe({
-  tarefa: tarefaProp, open, onOpenChange, onUpdate, onToggle, onAddSubtarefa, onDelete, secoes = [], onMoveTarefa, projetoIdOverride, highlightCommentId = null, externalSaving = false,
+  tarefa: tarefaProp, open, onOpenChange, onUpdate, onToggle, onAddSubtarefa, onDelete, secoes = [], onMoveTarefa, projetoIdOverride, highlightCommentId = null, externalSaving = false, onOpenSubtarefa,
 }: ProjetoTarefaDetalheProps) {
 
   // Mantém o último snapshot aberto para que refetches/invalidations não
@@ -172,7 +174,9 @@ export function ProjetoTarefaDetalhe({
   const [produtoSearch, setProdutoSearch] = useState("");
   const [produtoResults, setProdutoResults] = useState<ProdutoAcabado[]>([]);
   const [showProdutoSearch, setShowProdutoSearch] = useState(false);
-  const [selectedSubtarefaId, setSelectedSubtarefaId] = useState<string | null>(null);
+  // Navegação para subtarefas agora é elevada ao dono do drawer via `onOpenSubtarefa`,
+  // que troca `?tarefa=` na URL. Isso mantém UM único Sheet montado (sem pilha, sem flicker).
+
 
   // Quando esta tarefa é uma subtarefa, busca título da tarefa pai para o botão "Voltar".
   const parentTarefaId = (tarefa as any)?.parent_tarefa_id as string | null | undefined;
@@ -191,13 +195,8 @@ export function ProjetoTarefaDetalhe({
   });
   const [editingSubtarefaId, setEditingSubtarefaId] = useState<string | null>(null);
   const [editingSubtarefaTitulo, setEditingSubtarefaTitulo] = useState("");
-  // Derivado da lista live de subtarefas para refletir optimistic updates /
-  // refetches automaticamente — evita stale snapshot ao trocar responsável,
-  // status, etc. via outro caminho (mention, IA, parent task).
-  const selectedSubtarefa = useMemo<ProjetoTarefa | null>(() => {
-    if (!selectedSubtarefaId || !tarefa?.subtarefas) return null;
-    return tarefa.subtarefas.find(st => st.id === selectedSubtarefaId) || null;
-  }, [selectedSubtarefaId, tarefa?.subtarefas]);
+
+
 
   // === Stable row key para subtarefas ===
   // Evita unmount/remount do nó DOM quando o cache troca o tempId pelo id
@@ -554,7 +553,11 @@ export function ProjetoTarefaDetalhe({
                   variant="ghost"
                   size="sm"
                   className="gap-1.5 text-xs rounded-full h-8 px-2 -ml-1 text-muted-foreground hover:text-foreground"
-                  onClick={() => onOpenChange(false)}
+                  onClick={() => {
+                    const parentId = (tarefa as any).parent_tarefa_id as string | null | undefined;
+                    if (parentId && onOpenSubtarefa) onOpenSubtarefa(parentId);
+                    else onOpenChange(false);
+                  }}
                   title={parentTarefaTitulo ? `Voltar para "${parentTarefaTitulo}"` : "Voltar para a tarefa"}
                 >
                   <ChevronLeft className="h-4 w-4" />
@@ -1558,7 +1561,7 @@ export function ProjetoTarefaDetalhe({
                               variant="ghost"
                               size="icon"
                               className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
-                              onClick={() => setSelectedSubtarefaId(st.id)}
+                              onClick={() => onOpenSubtarefa?.(st.id)}
                             >
                               <ChevronRight className="h-3.5 w-3.5" />
                             </Button>
@@ -1778,21 +1781,10 @@ export function ProjetoTarefaDetalhe({
         />
       )}
 
-      {/* Subtask Detail - recursive */}
-      {selectedSubtarefaId && (
-        <ProjetoTarefaDetalhe
-          tarefa={selectedSubtarefa}
-          open={!!selectedSubtarefaId}
-          onOpenChange={(open) => { if (!open) setSelectedSubtarefaId(null); }}
-          onUpdate={onUpdate}
-          onToggle={onToggle}
-          onAddSubtarefa={onAddSubtarefa}
-          onDelete={onDelete}
-          secoes={secoes}
-          onMoveTarefa={onMoveTarefa}
-          projetoIdOverride={projetoId || (selectedSubtarefa as any).projeto_id}
-        />
-      )}
+      {/* Subtask Detail: navegação em múltiplos níveis é feita elevando o id
+          selecionado ao dono do drawer (ProjetoListView) via `onOpenSubtarefa`.
+          Isso mantém UM único Sheet montado — sem pilha, sem flicker. */}
+
       {/* Focus Mode */}
       {focusMode && focusTarefa && (
         <TarefaFocusMode
@@ -1812,7 +1804,7 @@ export function ProjetoTarefaDetalhe({
           onToggle={onToggle}
           onAddSubtarefa={onAddSubtarefa}
           onDelete={onDelete}
-          onOpenSubtarefa={(subId) => setSelectedSubtarefaId(subId)}
+          onOpenSubtarefa={(subId) => onOpenSubtarefa?.(subId)}
           secoes={secoes}
           projetoTipo={projetoTipo}
           externalSaving={externalSaving}

@@ -402,6 +402,7 @@ export function ProjetoListView({ projetoId, darkBg = false, filters = EMPTY_FIL
         secoes={secoes}
         onMoveTarefa={handleMoveTarefa}
         highlightCommentId={selectedTarefaId === initialTarefaId ? highlightCommentId : null}
+        onOpenSubtarefa={(id) => setSelectedTarefaId(id)}
       />
     </>
   );
