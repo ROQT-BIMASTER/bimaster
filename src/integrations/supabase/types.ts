@@ -37400,6 +37400,51 @@ export type Database = {
           },
         ]
       }
+      projeto_anexos_upload_audit: {
+        Row: {
+          bucket_id: string
+          created_at: string
+          extension: string | null
+          file_size: number | null
+          id: string
+          is_video: boolean | null
+          mime_type: string | null
+          object_name: string
+          owner_id: string | null
+          raw_metadata: Json | null
+          rejection_code: string
+          rejection_reason: string
+        }
+        Insert: {
+          bucket_id: string
+          created_at?: string
+          extension?: string | null
+          file_size?: number | null
+          id?: string
+          is_video?: boolean | null
+          mime_type?: string | null
+          object_name: string
+          owner_id?: string | null
+          raw_metadata?: Json | null
+          rejection_code: string
+          rejection_reason: string
+        }
+        Update: {
+          bucket_id?: string
+          created_at?: string
+          extension?: string | null
+          file_size?: number | null
+          id?: string
+          is_video?: boolean | null
+          mime_type?: string | null
+          object_name?: string
+          owner_id?: string | null
+          raw_metadata?: Json | null
+          rejection_code?: string
+          rejection_reason?: string
+        }
+        Relationships: []
+      }
       projeto_atividades: {
         Row: {
           arquivada: boolean
