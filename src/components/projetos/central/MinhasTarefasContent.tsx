@@ -927,16 +927,25 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
         t.id === tarefaId ? { ...t, data_prazo: novaData } : t,
       ));
     }
-    const { error } = await supabase
+    const { data: fresh, error } = await supabase
       .from("projeto_tarefas")
       .update({ data_prazo: novaData } as never)
-      .eq("id", tarefaId);
+      .eq("id", tarefaId)
+      .select("id, data_prazo, updated_at")
+      .maybeSingle();
     if (error) {
       if (previous) queryClient.setQueryData(cacheKey, previous);
       toast.error("Não foi possível atualizar o prazo");
       return;
     }
-    queryClient.invalidateQueries({ queryKey: ["minhas-tarefas"] });
+    if (fresh) {
+      queryClient.setQueryData<MinaTarefa[]>(cacheKey, (curr = []) =>
+        curr.map((t) => (t.id === tarefaId ? { ...t, ...(fresh as Partial<MinaTarefa>) } : t)),
+      );
+    }
+    await queryClient.invalidateQueries({ queryKey: ["minhas-tarefas"], refetchType: "active" });
+    queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2"] });
+    queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-subtarefas-bridge"] });
     toast.success("Prazo atualizado");
   }, [queryClient, user?.id]);
 
