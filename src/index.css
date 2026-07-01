@@ -70,6 +70,10 @@ All colors MUST be HSL.
     --input: 222 14% 88%;
     --ring: 221 72% 55%;
 
+    /* Subtarefa: fundo levemente diferenciado para distinguir de tarefa raiz */
+    --subtask: 222 20% 97%;
+    --subtask-hover: 222 22% 94%;
+
     --radius: 0.625rem;
 
     /* Gradients */
