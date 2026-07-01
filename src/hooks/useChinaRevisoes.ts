@@ -555,6 +555,8 @@ export function useContestarComParecer() {
       }
 
       // 4) Upload do novo arquivo principal
+      const guardOk = await guardFileUpload({ file: params.novo_arquivo, module: "china-revisao", userId: user.id, contextId: params.submissao_id });
+      if (!guardOk) throw new Error("Arquivo não passou na validação.");
       const safe = params.novo_arquivo.name.replace(/[^\w.\-]+/g, "_");
       const novoPath = `versoes/${params.submissao_id}/${params.tipo_documento}/v${rodada}/${Date.now()}-${safe}`;
       const { error: upErr } = await supabase.storage.from(BUCKET).upload(
@@ -562,7 +564,11 @@ export function useContestarComParecer() {
         params.novo_arquivo,
         { contentType: params.novo_arquivo.type || "application/octet-stream", upsert: false },
       );
-      if (upErr) throw upErr;
+      if (upErr) {
+        reportUploadFailureShared({ module: "china-revisao", file: params.novo_arquivo, userId: user.id, contextId: params.submissao_id, error: upErr });
+        throw upErr;
+      }
+      reportUploadSuccessShared({ module: "china-revisao", file: params.novo_arquivo, userId: user.id, contextId: params.submissao_id, storagePath: novoPath });
       const { data: pub } = supabase.storage.from(BUCKET).getPublicUrl(novoPath);
 
       // 5) Atualiza documento corrente
