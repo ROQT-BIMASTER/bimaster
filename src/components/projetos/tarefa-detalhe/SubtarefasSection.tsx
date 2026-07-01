@@ -560,7 +560,7 @@ export function SubtarefasSection({
                 const selected = pendingAISubtarefas.filter((it) => it.selected);
                 if (onAddSubtarefa) {
                   for (const item of selected) {
-                    onAddSubtarefa(item.titulo, tarefa.id, tarefa.secao_id);
+                    onAddSubtarefa(item.titulo, siblingParentId, tarefa.secao_id);
                   }
                 }
                 setPendingAISubtarefas([]);
