@@ -389,7 +389,9 @@ Deno.serve(secureHandler(
       if (fieldsPost && postIdField) {
         const res = await fetchConnector(slug, fieldsPost, preset, API_KEY);
         if (!res.ok) {
-          por_conector.push({ slug, contas: contasCount, metricas: metricasCount, posts: 0, erro: "upstream_error_posts" });
+          if (res.licenseBlocked) licenseBlocked = true;
+          por_conector.push({ slug, contas: contasCount, metricas: metricasCount, posts: 0, erro: res.licenseBlocked ? "license_blocked" : "upstream_error_posts" });
+
           continue;
         }
 
