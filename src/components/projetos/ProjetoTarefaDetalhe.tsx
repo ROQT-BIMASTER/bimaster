@@ -28,6 +28,8 @@ import ProductThumbnail from "@/components/fabrica/ProductThumbnail";
 import { DisplayGradePopover } from "@/components/fabrica/DisplayGradePopover";
 import { cn } from "@/lib/utils";
 import { copyTarefaLink } from "@/lib/utils/copyDeepLink";
+import { flickerLog } from "@/lib/debug/flickerLog";
+
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { parseLocalDate, parseLocalDateOrNow, formatLocalDate } from "@/lib/utils/parseLocalDate";
@@ -154,6 +156,8 @@ export function ProjetoTarefaDetalhe({
     lastOpenTarefaRef.current = tarefaProp;
   }
   const tarefa = tarefaProp ?? (open ? lastOpenTarefaRef.current : null);
+  flickerLog("drawer-render", { tarefaId: tarefa?.id, open, isTemp: String(tarefa?.id ?? "").startsWith("temp-") });
+
   const navigate = useNavigate();
   const { id: routeProjetoId } = useParams<{ id: string }>();
   const projetoId = projetoIdOverride || routeProjetoId;
@@ -280,6 +284,7 @@ export function ProjetoTarefaDetalhe({
 
   useEffect(() => {
     if (tarefa) {
+      flickerLog("drawer-sync-effect", { tarefaId: tarefa.id, isTemp: String(tarefa.id).startsWith("temp-") });
       // Reset everything on task switch and skip the next auto-save trigger
       skipAutoSaveRef.current = true;
       setTitleValue(tarefa.titulo);
@@ -289,6 +294,7 @@ export function ProjetoTarefaDetalhe({
       if (descDebounceRef.current) clearTimeout(descDebounceRef.current);
     }
   }, [tarefa?.id]);
+
 
   const flagSaved = useCallback(() => {
     setAutoSaveStatus("saved");

@@ -8,6 +8,8 @@ import { uniqueChannelName } from "@/lib/realtime/channelName";
 import { registrarAuditoriaTarefa } from "@/lib/projetos/auditoriaTarefa";
 import { todayBR, nowSaoPauloISO } from "@/lib/utils/parseLocalDate";
 import { isDetailGateActive, subscribeDetailGate } from "@/hooks/projetoTarefasOpenGate";
+import { flickerLog } from "@/lib/debug/flickerLog";
+
 
 export interface ProjetoSecao {
   id: string;
@@ -433,6 +435,7 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
       return { data };
     },
     onMutate: async (tarefa) => {
+      flickerLog("mutation-onMutate", { parent: tarefa.parent_tarefa_id, secao: tarefa.secao_id });
       await queryClient.cancelQueries({ queryKey: ["projeto-tarefas-v2", projetoId] });
       const previous = queryClient.getQueryData<ProjetoTarefasView>(["projeto-tarefas-v2", projetoId]);
       const tempId = `temp-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
@@ -470,9 +473,11 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
         tituloNorm: normalizeCreateTitle(tarefa.titulo),
       });
       patchView((v) => ({ ...v, tarefas: [...v.tarefas, optimistic] }));
+      flickerLog("optimistic-insert", { tempId, clientKey });
       return { previous, tempId, clientKey, isSubtarefa: !!tarefa.parent_tarefa_id };
     },
     onError: (err: Error, _vars, context) => {
+      flickerLog("mutation-onError", { message: err.message });
       if (context?.clientKey) pendingCreatesRef.current.delete(context.clientKey);
       if (context?.previous) queryClient.setQueryData(["projeto-tarefas-v2", projetoId], context.previous);
       // Em erro, refetch agora para reconciliar com o servidor.
@@ -480,6 +485,7 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
       toast.error(err.message);
     },
     onSuccess: ({ data }, _vars, context) => {
+      flickerLog("mutation-onSuccess", { tempId: context?.tempId, realId: data?.id });
       // Swap tempId → id real direto no cache, preservando o resto do
       // snapshot otimista. Evita refetch e portanto evita re-mount da row.
       if (data?.id && context?.tempId) {
@@ -504,8 +510,10 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
               : t,
           ),
         }));
+        flickerLog("id-swap-applied", { tempId: context.tempId, realId: data.id });
       }
     },
+
     // Sem onSettled: o swap tempId→id em onSuccess já deixa o cache
     // no estado final. Invalidar/reconciliar aqui só produz notificações
     // extras a subscribers → renders visíveis como "piscadas".
@@ -1218,6 +1226,11 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
     let cancelled = false;
     const scheduleInvalidate = (payload?: any) => {
       if (cancelled) return;
+      flickerLog("realtime-event", {
+        event: payload?.eventType,
+        id: payload?.new?.id ?? payload?.old?.id,
+        table: payload?.table,
+      });
       // Ignora o "eco" do próprio INSERT/UPDATE do usuário: se o registro
       // já está no cache com o mesmo updated_at, não há nada a reconciliar
       // — invalidar ainda notifica subscribers e produz uma "piscada".
@@ -1242,16 +1255,21 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
                 p.tituloNorm === tituloNorm
               ),
             );
-            if (isLocalCreateEcho) return;
+            if (isLocalCreateEcho) {
+              flickerLog("realtime-suppressed-local-echo", { id: newRow.id });
+              return;
+            }
           }
           const cached = queryClient.getQueryData<ProjetoTarefasView>(["projeto-tarefas-v2", projetoId]);
           const hit = cached?.tarefas?.find((t) => t.id === newRow.id);
           if (hit && (!newRow.updated_at || hit.updated_at === newRow.updated_at)) {
+            flickerLog("realtime-suppressed-same-updated_at", { id: newRow.id });
             return;
           }
         }
       } catch { /* fall through — invalida se algo der errado */ }
       if (isDetailGateActive(projetoId)) {
+        flickerLog("realtime-detail-gate-defer");
         scheduleReconcile();
         return;
       }
@@ -1261,12 +1279,14 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
         const eventType = payload?.eventType as string | undefined;
         const newRow = payload?.new as { excluida_em?: string | null } | undefined;
         const oldRow = payload?.old as { excluida_em?: string | null } | undefined;
+        flickerLog("invalidate-fired", { key: "projeto-tarefas-v2", event: eventType });
         queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2", projetoId], refetchType: "none" });
         if (eventType === "DELETE" || (eventType === "UPDATE" && newRow?.excluida_em !== oldRow?.excluida_em)) {
           queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-excluidas-count", projetoId] });
         }
       }, 200);
     };
+
     // Topic único por instância — evita "cannot add postgres_changes callbacks
     // ... after subscribe()" quando o hook monta múltiplas vezes (StrictMode,
     // múltiplos consumers do mesmo projeto).

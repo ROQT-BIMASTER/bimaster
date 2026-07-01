@@ -11,6 +11,8 @@ import "@fontsource/dm-sans/600.css";
 import "@fontsource/dm-sans/700.css";
 import "@fontsource-variable/space-grotesk/index.css";
 import "./index.css";
+import "./lib/debug/flickerLog";
+
 
 
 createRoot(document.getElementById("root")!).render(
