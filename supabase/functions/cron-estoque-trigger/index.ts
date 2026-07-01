@@ -8,6 +8,13 @@
 import { secureHandler } from "../_shared/secure-handler.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
 
+function timingSafeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return diff === 0;
+}
+
 Deno.serve(secureHandler(
   { auth: "none", rateLimit: 6, rateLimitPrefix: "cron-estoque-trigger" },
   async (req) => {
@@ -15,6 +22,24 @@ Deno.serve(secureHandler(
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
     const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const CRON_SECRET = Deno.env.get("CRON_SECRET") || "";
+
+    // Autorização: exige x-cron-secret (pg_cron) OU Bearer service-role.
+    const providedSecret = req.headers.get("x-cron-secret") ?? "";
+    const authHeader = req.headers.get("authorization") ?? "";
+    const bearerToken = authHeader.toLowerCase().startsWith("bearer ")
+      ? authHeader.slice(7).trim()
+      : "";
+    const hasValidSecret = CRON_SECRET.length > 0 && providedSecret.length > 0 &&
+      timingSafeEqual(providedSecret, CRON_SECRET);
+    const hasServiceRole = bearerToken.length > 0 && SERVICE_ROLE.length > 0 &&
+      timingSafeEqual(bearerToken, SERVICE_ROLE);
+    if (!hasValidSecret && !hasServiceRole) {
+      return new Response(
+        JSON.stringify({ error: "forbidden" }),
+        { status: 403, headers: { ...cors, "Content-Type": "application/json" } },
+      );
+    }
+
 
     const startedAt = new Date().toISOString();
     const results: Array<{ step: string; status: number; ok: boolean; body?: unknown }> = [];
