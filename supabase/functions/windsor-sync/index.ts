@@ -347,6 +347,8 @@ Deno.serve(secureHandler(
             data,
             alcance: num(row.reach),
             impressoes: num(row.impressions),
+            views: num(row.views) || num(row.video_views),
+            saves: num(row.saves),
             engajamento: num(row.likes) + num(row.comments) + num(row.shares) + num(row.saves),
           });
         }
