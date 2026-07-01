@@ -247,12 +247,15 @@ export function SubtarefasSection({
     return (
       <div
         key={(st as any).__clientKey || st.id}
+        data-tree-row=""
+        data-depth={depth}
         className={cn(
           "group border-b border-border/40 last:border-b-0 py-2 hover:bg-muted/20 transition-colors rounded-sm",
           depth > 0 && "border-l-2 border-border/30",
         )}
         style={{ marginLeft: `calc(${TREE_INDENT_VAR} * ${depth})` }}
       >
+
         <div className="px-2 space-y-2">
           {/* Linha 1: chevron + checkbox + título + abrir + excluir */}
           <div className="grid grid-cols-[14px_16px_minmax(0,1fr)_auto_auto] items-center gap-x-2">
