@@ -489,6 +489,8 @@ Deno.serve(secureHandler(
     return j(cors, 200, {
       por_conector,
       total: { contas: totalContas, metricas: totalMetricas, posts: totalPosts },
+      license_blocked: licenseBlocked,
     });
+
   },
 ));
