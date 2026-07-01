@@ -94,8 +94,26 @@ function SubtarefaSeguidoresPickerImpl({ subtarefaId, projetoId, colaboradores, 
     toggle(userId, nome);
   };
 
-  const visible = colaboradores.slice(0, 3);
-  const extra = colaboradores.length - visible.length;
+  // Normaliza colaboradores: garante `nome` fallback ("Membro") e trata
+  // `avatar_url` null/undefined/"null"/"undefined" para nunca renderizar
+  // um <img> quebrado — SmartAvatar já cai em iniciais nesse caso.
+  const safeColabs = colaboradores
+    .filter((c) => !!c && !!c.user_id)
+    .map((c) => {
+      const rawUrl = c.avatar_url;
+      const cleanUrl =
+        rawUrl && typeof rawUrl === "string" && rawUrl.trim() && rawUrl !== "null" && rawUrl !== "undefined"
+          ? rawUrl
+          : null;
+      return {
+        user_id: c.user_id,
+        nome: (c.nome && c.nome.trim()) || "Membro",
+        avatar_url: cleanUrl,
+      };
+    });
+
+  const visible = safeColabs.slice(0, 3);
+  const extra = safeColabs.length - visible.length;
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
