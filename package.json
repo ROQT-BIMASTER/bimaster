@@ -28,7 +28,9 @@
     "test:tz:utc": "TZ=UTC vitest run src/lib/utils/__tests__/parseLocalDate.test.ts",
     "test:tz:tokyo": "TZ=Asia/Tokyo vitest run src/lib/utils/__tests__/parseLocalDate.test.ts",
     "test:tz": "npm run test:tz:sp && npm run test:tz:utc && npm run test:tz:tokyo",
-    "lint:edge": "NODE_OPTIONS=--max-old-space-size=8192 eslint --config eslint.config.edge.js 'supabase/functions/**/*.ts' --max-warnings=999999"
+    "lint:edge": "NODE_OPTIONS=--max-old-space-size=8192 eslint --config eslint.config.edge.js 'supabase/functions/**/*.ts' --max-warnings=999999",
+    "storybook": "storybook dev -p 6006",
+    "build-storybook": "storybook build"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
