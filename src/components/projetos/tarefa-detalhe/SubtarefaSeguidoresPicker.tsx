@@ -43,6 +43,17 @@ function SubtarefaSeguidoresPickerImpl({ subtarefaId, projetoId, colaboradores }
 
   const isFollower = (userId: string) => colaboradores.some((c) => c.user_id === userId);
 
+  const invalidateAll = () => {
+    // Mesmos alvos do picker de responsável: view V2 do projeto + as duas
+    // bridges (Central V2 e MinhasTarefas V1) + lista pessoal. Garante que
+    // pilhas de avatares atualizem para todos os usuários e em todos os
+    // pontos onde a subtarefa aparece.
+    queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2", projetoId] });
+    queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-subtarefas-bridge"] });
+    queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-subtarefas-bridge-mt"] });
+    queryClient.invalidateQueries({ queryKey: ["minhas-tarefas"] });
+  };
+
   const toggle = (userId: string, nome: string) => {
     if (isFollower(userId)) {
       removeColaborador.mutate(
@@ -50,7 +61,7 @@ function SubtarefaSeguidoresPickerImpl({ subtarefaId, projetoId, colaboradores }
         {
           onSuccess: () => {
             toast.success(`${nome} removido dos seguidores`);
-            queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2", projetoId] });
+            invalidateAll();
           },
           onError: (err: any) => toast.error(err?.message || "Erro ao remover seguidor"),
         },
@@ -61,7 +72,7 @@ function SubtarefaSeguidoresPickerImpl({ subtarefaId, projetoId, colaboradores }
         {
           onSuccess: () => {
             toast.success(`${nome} adicionado como seguidor`);
-            queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2", projetoId] });
+            invalidateAll();
           },
           onError: (err: any) => toast.error(err?.message || "Erro ao adicionar seguidor"),
         },
