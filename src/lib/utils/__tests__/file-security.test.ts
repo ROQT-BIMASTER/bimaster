@@ -182,8 +182,8 @@ describe("describeUploadError", () => {
   it("mapeia 'payload too large' do backend para mensagem de limite", () => {
     const out = describeUploadError("Payload too large");
     expect(out.title).toBe("Arquivo muito grande");
-    expect(out.description).toContain("20 MB");
-    expect(out.description).toContain("100 MB");
+    expect(out.description).toContain("200 MB");
+    expect(out.description).toContain("500 MB");
     expect(out.description).toMatch(/MP4|MOV|WEBM/);
   });
 
@@ -193,15 +193,15 @@ describe("describeUploadError", () => {
     expect(out.description).toMatch(/MP4|WEBM/);
   });
 
-  it("preserva mensagem client-side de 'excede o limite de 100 MB'", () => {
-    const original = "Vídeo \".mp4\" tem 150.0 MB e excede o limite de 100 MB. Comprima o vídeo.";
+  it("preserva mensagem client-side de 'excede o limite de 500 MB'", () => {
+    const original = "Vídeo \".mp4\" tem 520.0 MB e excede o limite de 500 MB. Comprima o vídeo.";
     const out = describeUploadError(original);
     expect(out.title).toBe("Arquivo acima do limite permitido");
     expect(out.description).toBe(original);
   });
 
-  it("preserva mensagem client-side de 'excede o limite de 20 MB'", () => {
-    const original = "Arquivo \".pdf\" tem 25.0 MB e excede o limite de 20 MB.";
+  it("preserva mensagem client-side de 'excede o limite de 200 MB'", () => {
+    const original = "Arquivo \".pdf\" tem 210.0 MB e excede o limite de 200 MB.";
     const out = describeUploadError(original);
     expect(out.title).toBe("Arquivo acima do limite permitido");
     expect(out.description).toBe(original);
