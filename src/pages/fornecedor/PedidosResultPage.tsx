@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { RefreshCw, Search, ShoppingCart } from "lucide-react";
+import { RefreshCw, Search, ShoppingCart, KanbanSquare, Table as TableIcon } from "lucide-react";
 import { subDays } from "date-fns";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Card, CardContent } from "@/components/ui/card";
@@ -7,10 +7,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { EmptyState } from "@/components/ui/empty-state";
 import { DateRangeFilter } from "@/components/shared/DateRangeFilter";
 import { useRubyspPedidos } from "@/hooks/fornecedor/useRubyspPedidos";
 import { PedidosKanban } from "@/components/fornecedor/pedidos/PedidosKanban";
+import { PedidosTable } from "@/components/fornecedor/pedidos/PedidosTable";
 import { PedidoResultDetalheDrawer } from "@/components/fornecedor/pedidos/PedidoResultDetalheDrawer";
 import { LeadTimeKpisCard } from "@/components/fornecedor/pedidos/LeadTimeKpisCard";
 import { KANBAN_COLUNAS_RESULT } from "@/components/fornecedor/pedidos/etapaTheme";
@@ -24,6 +26,7 @@ export default function PedidosResultPage() {
   const [busca, setBusca] = useState("");
   const [limiarParado, setLimiarParado] = useState(2);
   const [pedidoSelecionado, setPedidoSelecionado] = useState<PedidoRubyspExt | null>(null);
+  const [view, setView] = useState<"kanban" | "tabela">("kanban");
 
   const { data, isLoading, isFetching, refetch, error } = useRubyspPedidos({ dateFrom, dateTo });
 
@@ -102,27 +105,54 @@ export default function PedidosResultPage() {
 
         <LeadTimeKpisCard />
 
-        {isLoading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <Skeleton key={i} className="h-[400px] w-full" />
-            ))}
-          </div>
-        ) : error ? (
-          <EmptyState title="Erro ao carregar pedidos" description={(error as Error).message} />
-        ) : pedidos.length === 0 ? (
-          <EmptyState
-            title="Nenhum pedido no período"
-            description="Backfill em andamento ou nenhum pedido no intervalo selecionado — o painel popula automaticamente conforme a sincronização avança."
-          />
-        ) : (
-          <PedidosKanban
-            pedidos={pedidos}
-            limiarParado={limiarParado}
-            onPedidoClick={(p) => setPedidoSelecionado(p as PedidoRubyspExt)}
-            colunas={KANBAN_COLUNAS_RESULT}
-          />
-        )}
+        <Tabs value={view} onValueChange={(v) => setView(v as "kanban" | "tabela")}>
+          <TabsList>
+            <TabsTrigger value="kanban" className="gap-2">
+              <KanbanSquare className="h-4 w-4" /> Kanban
+            </TabsTrigger>
+            <TabsTrigger value="tabela" className="gap-2">
+              <TableIcon className="h-4 w-4" /> Tabela
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="kanban" className="mt-4">
+            {isLoading ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <Skeleton key={i} className="h-[400px] w-full" />
+                ))}
+              </div>
+            ) : error ? (
+              <EmptyState title="Erro ao carregar pedidos" description={(error as Error).message} />
+            ) : pedidos.length === 0 ? (
+              <EmptyState
+                title="Nenhum pedido no período"
+                description="Backfill em andamento ou nenhum pedido no intervalo selecionado — o painel popula automaticamente conforme a sincronização avança."
+              />
+            ) : (
+              <PedidosKanban
+                pedidos={pedidos}
+                limiarParado={limiarParado}
+                onPedidoClick={(p) => setPedidoSelecionado(p as PedidoRubyspExt)}
+                colunas={KANBAN_COLUNAS_RESULT}
+              />
+            )}
+          </TabsContent>
+
+          <TabsContent value="tabela" className="mt-4">
+            {isLoading ? (
+              <Skeleton className="h-[400px] w-full" />
+            ) : error ? (
+              <EmptyState title="Erro ao carregar pedidos" description={(error as Error).message} />
+            ) : (
+              <PedidosTable
+                pedidos={pedidos}
+                limiarParado={limiarParado}
+                onPedidoClick={(p) => setPedidoSelecionado(p as PedidoRubyspExt)}
+              />
+            )}
+          </TabsContent>
+        </Tabs>
 
         <PedidoResultDetalheDrawer
           pedido={pedidoSelecionado}
