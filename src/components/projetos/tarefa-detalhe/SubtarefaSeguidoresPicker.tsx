@@ -114,10 +114,44 @@ function SubtarefaSeguidoresPickerImpl({ subtarefaId, projetoId, colaboradores, 
           )}
         >
           {colaboradores.length === 0 ? (
-            <>
-              <Plus className="h-3 w-3" />
-              <span className="text-[10px]">Equipe</span>
-            </>
+            isResolving ? (
+              // Placeholder pulsante quando ainda não sabemos se há seguidores
+              // (membros do projeto carregando). Evita "salto" visual entre
+              // o botão "+ Equipe" e a pilha real.
+              <div className="flex items-center" aria-hidden="true">
+                {[0, 1].map((i) => (
+                  <div
+                    key={i}
+                    className={cn(
+                      "h-4 w-4 rounded-full bg-muted/60 animate-pulse ring-1 ring-background",
+                      i > 0 && "-ml-1.5",
+                    )}
+                  />
+                ))}
+              </div>
+            ) : (
+              <>
+                <Plus className="h-3 w-3" />
+                <span className="text-[10px]">Equipe</span>
+              </>
+            )
+          ) : isResolving ? (
+            // Temos user_ids mas nome/avatar ainda não resolveram: pilha
+            // de skeletons no mesmo tamanho final para evitar layout shift.
+            <div className="flex items-center" aria-label="Carregando seguidores">
+              {visible.map((c, idx) => (
+                <div
+                  key={c.user_id}
+                  className={cn(
+                    "h-4 w-4 rounded-full bg-muted/60 animate-pulse ring-1 ring-background",
+                    idx > 0 && "-ml-1.5",
+                  )}
+                />
+              ))}
+              {extra > 0 && (
+                <span className="text-[9px] text-muted-foreground ml-0.5">+{extra}</span>
+              )}
+            </div>
           ) : (
             <>
               <div className="flex items-center">
@@ -137,6 +171,7 @@ function SubtarefaSeguidoresPickerImpl({ subtarefaId, projetoId, colaboradores, 
               )}
             </>
           )}
+
         </button>
       </PopoverTrigger>
       <PopoverContent
