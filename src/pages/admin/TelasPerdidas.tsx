@@ -294,7 +294,8 @@ export default function TelasPerdidas() {
                         Vincular
                       </Button>
                     </li>
-                  ))}
+                    );
+                  })}
                 </ul>
               </ScrollArea>
             </Card>
