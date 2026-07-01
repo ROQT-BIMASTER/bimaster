@@ -32,6 +32,26 @@ export function LoteAprovacaoCard({ lote }: Props) {
   const avancar = useAvancarEtapa();
   const semPermissao = isPermissionError(eventosError);
 
+  // Auditoria: registra leitura permitida/negada dos eventos do lote
+  useEffect(() => {
+    if (semPermissao) {
+      logRlsAccess({
+        resourceType: "fluxo_aprovacao_etapa_eventos",
+        resourceId: lote.id,
+        outcome: "denied",
+        reason: "rls_denied_or_no_access",
+        contexto: { instancia_id: lote.id, config_id: lote.config_id },
+      });
+    } else if (eventos.length > 0) {
+      logRlsAccess({
+        resourceType: "fluxo_aprovacao_etapa_eventos",
+        resourceId: lote.id,
+        outcome: "granted",
+        contexto: { instancia_id: lote.id, eventos: eventos.length },
+      });
+    }
+  }, [semPermissao, eventos.length, lote.id, lote.config_id]);
+
   const [comentario, setComentario] = useState("");
 
   const eventoAtual = eventos.find(
