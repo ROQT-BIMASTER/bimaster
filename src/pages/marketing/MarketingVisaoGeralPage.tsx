@@ -58,25 +58,28 @@ function isoDate(d: Date) {
 
 const PLATAFORMA_META: Record<
   string,
-  { label: string; icon: typeof Instagram; tint: string; text: string }
+  { label: string; icon: typeof Instagram; tint: string; text: string; color: string }
 > = {
   instagram: {
     label: "Instagram",
     icon: Instagram,
     tint: "bg-primary/10 border-primary/30",
     text: "text-primary",
+    color: "hsl(330 70% 55%)",
   },
   tiktok: {
     label: "TikTok",
     icon: Music2,
     tint: "bg-foreground/5 border-foreground/20",
     text: "text-foreground",
+    color: "hsl(0 0% 15%)",
   },
   facebook: {
     label: "Facebook",
     icon: Facebook,
     tint: "bg-accent/40 border-accent",
     text: "text-accent-foreground",
+    color: "hsl(220 75% 50%)",
   },
 };
 
@@ -466,6 +469,8 @@ export default function MarketingVisaoGeralPage() {
     to: new Date(),
   }));
   const [page, setPage] = useState(0);
+  const [serieMetric, setSerieMetric] = useState<"views" | "alcance" | "eng">("views");
+  const [serieHidden, setSerieHidden] = useState<Set<string>>(new Set());
 
   const from = range.from ?? subDays(new Date(), 90);
   const to = range.to ?? new Date();
@@ -540,22 +545,42 @@ export default function MarketingVisaoGeralPage() {
   }, [metricas]);
 
   const serieDiaria = useMemo(() => {
-    const map = new Map<string, number>();
+    // { data: 'YYYY-MM-DD', label, instagram, tiktok, facebook, ... , total }
+    const metricKey =
+      serieMetric === "views" ? "views" : serieMetric === "alcance" ? "alcance" : "engajamento";
+    const byDate = new Map<string, Record<string, number>>();
+    const platsSeen = new Set<string>();
     for (const m of metricas as any[]) {
       const d = m.data as string;
-      map.set(d, (map.get(d) ?? 0) + Number(m.views ?? 0));
+      const plat = (m.mkt_contas?.plataforma ?? "outro") as string;
+      platsSeen.add(plat);
+      if (!byDate.has(d)) byDate.set(d, {});
+      const row = byDate.get(d)!;
+      row[plat] = (row[plat] ?? 0) + Number(m[metricKey] ?? 0);
     }
-    return Array.from(map.entries())
+    const rows = Array.from(byDate.entries())
       .sort(([a], [b]) => a.localeCompare(b))
-      .map(([data, views]) => {
+      .map(([data, byPlat]) => {
         const d = parseLocalDate(data) ?? new Date(`${data}T00:00:00`);
-        return {
+        const row: Record<string, any> = {
           data,
-          views,
           label: format(d, "dd/MM", { locale: ptBR }),
         };
+        let total = 0;
+        for (const p of platsSeen) {
+          const v = Number(byPlat[p] ?? 0);
+          row[p] = v;
+          total += v;
+        }
+        row.total = total;
+        return row;
       });
-  }, [metricas]);
+    const ordem = ["instagram", "tiktok", "facebook"];
+    const plataformas = ordem
+      .filter((p) => platsSeen.has(p))
+      .concat(Array.from(platsSeen).filter((p) => !ordem.includes(p)));
+    return { rows, plataformas };
+  }, [metricas, serieMetric]);
 
   // Signed URLs em batch (top posts + posts do período)
   const allPaths = useMemo(() => {
@@ -689,53 +714,166 @@ export default function MarketingVisaoGeralPage() {
         <PaidPlaceholderCard />
       </div>
 
-      {/* Série diária */}
+      {/* Série diária por rede social */}
       <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Views por dia</CardTitle>
+        <CardHeader className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div>
+            <CardTitle className="text-base">Performance diária por rede social</CardTitle>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {serieMetric === "views"
+                ? "Views por dia"
+                : serieMetric === "alcance"
+                ? "Alcance por dia"
+                : "Engajamento por dia"}{" "}
+              — clique nas redes para mostrar/ocultar
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Filtro métrica */}
+            <div className="inline-flex rounded-md border bg-background p-0.5">
+              {(
+                [
+                  { k: "views" as const, label: "Views", icon: Eye },
+                  { k: "alcance" as const, label: "Alcance", icon: Users },
+                  { k: "eng" as const, label: "Engajamento", icon: Heart },
+                ]
+              ).map(({ k, label, icon: Icon }) => (
+                <button
+                  key={k}
+                  type="button"
+                  onClick={() => setSerieMetric(k)}
+                  className={cn(
+                    "inline-flex items-center gap-1.5 rounded px-2.5 py-1 text-xs font-medium transition-colors",
+                    serieMetric === k
+                      ? "bg-primary text-primary-foreground"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  <Icon className="h-3.5 w-3.5" />
+                  {label}
+                </button>
+              ))}
+            </div>
+            {/* Filtro plataforma (toggle) */}
+            <div className="inline-flex flex-wrap items-center gap-1.5">
+              {serieDiaria.plataformas.map((p) => {
+                const meta = PLATAFORMA_META[p];
+                const Icon = meta?.icon;
+                const hidden = serieHidden.has(p);
+                return (
+                  <button
+                    key={p}
+                    type="button"
+                    onClick={() =>
+                      setSerieHidden((prev) => {
+                        const next = new Set(prev);
+                        if (next.has(p)) next.delete(p);
+                        else next.add(p);
+                        return next;
+                      })
+                    }
+                    className={cn(
+                      "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium transition-all",
+                      hidden
+                        ? "border-border bg-muted/40 text-muted-foreground opacity-60"
+                        : "border-transparent bg-foreground/5 text-foreground hover:bg-foreground/10"
+                    )}
+                    style={
+                      !hidden && meta
+                        ? { borderColor: meta.color, color: meta.color }
+                        : undefined
+                    }
+                    aria-pressed={!hidden}
+                  >
+                    {Icon ? <Icon className="h-3.5 w-3.5" /> : null}
+                    {meta?.label ?? p}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
           {mLoad ? (
-            <div className="h-64 flex items-center justify-center text-sm text-muted-foreground">
+            <div className="h-72 flex items-center justify-center text-sm text-muted-foreground">
               Carregando…
             </div>
-          ) : serieDiaria.length === 0 ? (
-            <div className="h-64 flex items-center justify-center text-sm text-muted-foreground">
+          ) : serieDiaria.rows.length === 0 ? (
+            <div className="h-72 flex items-center justify-center text-sm text-muted-foreground">
               Sem dados no período.
             </div>
           ) : (
-            <div className="h-64">
+            <div className="h-72">
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={serieDiaria}>
+                <LineChart data={serieDiaria.rows} margin={{ top: 8, right: 16, left: 0, bottom: 4 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                  <XAxis
-                    dataKey="label"
-                    stroke="hsl(var(--muted-foreground))"
-                    fontSize={11}
-                  />
+                  <XAxis dataKey="label" stroke="hsl(var(--muted-foreground))" fontSize={11} />
                   <YAxis
                     stroke="hsl(var(--muted-foreground))"
                     fontSize={11}
                     tickFormatter={(v) => nf.format(Number(v))}
                   />
                   <Tooltip
-                    contentStyle={{
-                      background: "hsl(var(--popover))",
-                      border: "1px solid hsl(var(--border))",
-                      borderRadius: 8,
-                      color: "hsl(var(--popover-foreground))",
-                      fontSize: 12,
+                    content={({ active, payload, label }: any) => {
+                      if (!active || !payload?.length) return null;
+                      const items = payload
+                        .filter((p: any) => !serieHidden.has(p.dataKey))
+                        .sort((a: any, b: any) => Number(b.value) - Number(a.value));
+                      const total = items.reduce(
+                        (s: number, p: any) => s + Number(p.value ?? 0),
+                        0
+                      );
+                      return (
+                        <div className="rounded-md border bg-popover px-3 py-2 text-xs text-popover-foreground shadow-md min-w-[200px] space-y-1">
+                          <div className="font-semibold text-sm">Dia {label}</div>
+                          {items.map((p: any) => {
+                            const meta = PLATAFORMA_META[p.dataKey];
+                            const Icon = meta?.icon;
+                            return (
+                              <div
+                                key={p.dataKey}
+                                className="flex items-center justify-between gap-6"
+                              >
+                                <span
+                                  className="inline-flex items-center gap-1.5"
+                                  style={{ color: p.color }}
+                                >
+                                  {Icon ? <Icon className="h-3 w-3" /> : null}
+                                  {meta?.label ?? p.dataKey}
+                                </span>
+                                <span className="font-medium tabular-nums text-foreground">
+                                  {nfFull.format(Number(p.value ?? 0))}
+                                </span>
+                              </div>
+                            );
+                          })}
+                          <div className="mt-1 pt-1 border-t flex items-center justify-between gap-6">
+                            <span className="text-muted-foreground">Total</span>
+                            <span className="font-semibold tabular-nums">
+                              {nfFull.format(total)}
+                            </span>
+                          </div>
+                        </div>
+                      );
                     }}
-                    formatter={(v: number) => nfFull.format(v)}
-                    labelFormatter={(l) => `Dia ${l}`}
                   />
-                  <Line
-                    type="monotone"
-                    dataKey="views"
-                    stroke="hsl(var(--primary))"
-                    strokeWidth={2}
-                    dot={false}
-                  />
+                  {serieDiaria.plataformas.map((p) => {
+                    const meta = PLATAFORMA_META[p];
+                    return (
+                      <Line
+                        key={p}
+                        type="monotone"
+                        dataKey={p}
+                        name={meta?.label ?? p}
+                        stroke={meta?.color ?? "hsl(var(--primary))"}
+                        strokeWidth={2}
+                        dot={false}
+                        activeDot={{ r: 4 }}
+                        hide={serieHidden.has(p)}
+                        isAnimationActive={false}
+                      />
+                    );
+                  })}
                 </LineChart>
               </ResponsiveContainer>
             </div>
