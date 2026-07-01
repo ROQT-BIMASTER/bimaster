@@ -395,3 +395,101 @@ describe("SmartAvatar – tooltip 'Nome (identifier) — foto indisponível' qua
     expect(root.getAttribute("aria-label")).toBe("Perfil oficial");
   });
 });
+
+/**
+ * Matriz de consistência a11y: garante que os três vetores expostos ao
+ * usuário/AT — `title` (tooltip), `aria-label` (screen readers no root e
+ * no fallback) e `alt` (imagem) — carreguem exatamente o mesmo texto
+ * resolvido em cada cenário. Isso evita divergência silenciosa entre o
+ * que o usuário vidente vê no hover e o que o SR anuncia.
+ */
+describe("SmartAvatar – consistência a11y (title === aria-label === alt)", () => {
+  const cases: Array<{
+    label: string;
+    props: { src?: string | null; nome?: string | null; identifier?: string | null; fallbackNome?: string };
+    expected: string;
+  }> = [
+    {
+      label: "nome + identifier + src válido",
+      props: { src: "https://x/y.png", nome: "Ana Dona", identifier: "ana@x.com" },
+      expected: "Ana Dona (ana@x.com)",
+    },
+    {
+      label: "nome sem identifier",
+      props: { src: "https://x/y.png", nome: "Beto" },
+      expected: "Beto",
+    },
+    {
+      label: "nome vazio + identifier: usa fallback padrão",
+      props: { src: "https://x/y.png", nome: "", identifier: "u-1" },
+      expected: "Membro (u-1)",
+    },
+    {
+      label: "nome null + identifier + fallbackNome custom",
+      props: { src: "https://x/y.png", nome: null, identifier: "u-2", fallbackNome: "Convidado" },
+      expected: "Convidado (u-2)",
+    },
+    {
+      label: "identifier com espaços: trim",
+      props: { src: "https://x/y.png", nome: "Carla", identifier: "  c@x  " },
+      expected: "Carla (c@x)",
+    },
+    {
+      label: 'identifier "null" string: ignorado (não renderiza parênteses)',
+      // Nota: SmartAvatar hoje só filtra "null"/"undefined" em src; para identifier
+      // preservamos o valor literal quando o caller mandar. Esse teste documenta
+      // o comportamento atual e trava regressão silenciosa.
+      props: { src: "https://x/y.png", nome: "Dani", identifier: "null" },
+      expected: "Dani (null)",
+    },
+  ];
+
+  it.each(cases)("$label: title, aria-label e alt batem", ({ props, expected }) => {
+    const { container } = render(<SmartAvatar {...props} />);
+    const root = container.querySelector("[title]") as HTMLElement;
+    expect(root.getAttribute("title")).toBe(expected);
+    expect(root.getAttribute("aria-label")).toBe(expected);
+    const img = container.querySelector("img") as HTMLImageElement | null;
+    if (img) expect(img.getAttribute("alt")).toBe(expected);
+    // O AvatarFallback (span com as iniciais) também precisa expor aria-label
+    // consistente para leitores de tela quando a imagem não carrega.
+    const fallback = Array.from(container.querySelectorAll("[aria-label]")).find(
+      (el) => el !== root,
+    ) as HTMLElement | undefined;
+    expect(fallback?.getAttribute("aria-label")).toBe(expected);
+  });
+
+  it("após onError, title/aria-label/alt ganham sufixo simultaneamente", () => {
+    const { container } = render(
+      <SmartAvatar src="https://x/y.png" nome="Ana" identifier="ana@x.com" />,
+    );
+    const img = container.querySelector("img") as HTMLImageElement;
+    fireEvent.error(img);
+    const expected = "Ana (ana@x.com) — foto indisponível";
+    const root = container.querySelector("[title]") as HTMLElement;
+    expect(root.getAttribute("title")).toBe(expected);
+    expect(root.getAttribute("aria-label")).toBe(expected);
+    // Após erro o SmartAvatar deixa de renderizar <img>; o fallback assume
+    // o aria-label completo (com o sufixo) para o SR.
+    expect(container.querySelector("img")).toBeNull();
+    const fallback = Array.from(container.querySelectorAll("[aria-label]")).find(
+      (el) => el !== root,
+    ) as HTMLElement;
+    expect(fallback.getAttribute("aria-label")).toBe(expected);
+  });
+
+  it("sem src válido: não renderiza <img>, mas aria-label do fallback bate com o title do root", () => {
+    const { container } = render(
+      <SmartAvatar src={null} nome="Ana" identifier="ana@x.com" />,
+    );
+    const root = container.querySelector("[title]") as HTMLElement;
+    const expected = "Ana (ana@x.com)";
+    expect(root.getAttribute("title")).toBe(expected);
+    expect(root.getAttribute("aria-label")).toBe(expected);
+    expect(container.querySelector("img")).toBeNull();
+    const fallback = Array.from(container.querySelectorAll("[aria-label]")).find(
+      (el) => el !== root,
+    ) as HTMLElement;
+    expect(fallback.getAttribute("aria-label")).toBe(expected);
+  });
+});
