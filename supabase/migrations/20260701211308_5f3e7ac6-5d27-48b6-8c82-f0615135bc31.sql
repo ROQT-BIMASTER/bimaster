@@ -16,7 +16,7 @@ BEGIN
     SELECT v_fin_id, cm.module_code, COALESCE(cm.label_override,'Tabelas de Preço'), COALESCE(cm.icon_override,'DollarSign'), 20, true
     FROM public.sidebar_category_modules cm
     WHERE cm.category_id = v_precos_cat_id
-    ON CONFLICT DO NOTHING;
+    ON CONFLICT (category_id, module_code) DO NOTHING;
 
     -- Deactivate the duplicate category and its old links so v2 stops showing "$" twice.
     UPDATE public.sidebar_category_modules SET ativo=false WHERE category_id=v_precos_cat_id;
@@ -38,7 +38,7 @@ ON CONFLICT (key) DO UPDATE SET label=EXCLUDED.label, icon=EXCLUDED.icon, ativo=
 INSERT INTO public.sidebar_category_modules (category_id, module_code, label_override, icon_override, ordem, ativo)
 SELECT c.id, 'em_desenvolvimento', 'Telas em Desenvolvimento', 'FlaskConical', 1, true
 FROM public.sidebar_categories c WHERE c.key='em_desenvolvimento'
-ON CONFLICT DO NOTHING;
+ON CONFLICT (category_id, module_code) DO NOTHING;
 
 -- 4) Bulk insert orphan routes as menu items under the new module,
 --    grouped by parent_group. All require admin so the module stays hidden
@@ -165,4 +165,5 @@ VALUES
   ('em_desenvolvimento','dashboard_trade_import_stores','Trade / Import Stores','/dashboard/trade/import-stores','Trade',1170, true),
   ('em_desenvolvimento','dashboard_trade_materiais','Trade / Materiais','/dashboard/trade/materiais','Trade',1180, true),
   ('em_desenvolvimento','dashboard_trade_measurement_guide','Trade / Measurement Guide','/dashboard/trade/measurement-guide','Trade',1190, true),
-  ('em_desenvolvimento','dashboard_trade_minhas_solicitacoes','Trade / Minhas Solicitacoes','/dashboard/trade/minhas-solicitacoes','Trade',1200, true);
+  ('em_desenvolvimento','dashboard_trade_minhas_solicitacoes','Trade / Minhas Solicitacoes','/dashboard/trade/minhas-solicitacoes','Trade',1200, true)
+ON CONFLICT (module_code, item_code) DO NOTHING;
