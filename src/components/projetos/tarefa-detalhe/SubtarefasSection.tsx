@@ -631,18 +631,34 @@ export function SubtarefasSection({
    * Como a indentação é aplicada por `depth * var(--tree-indent)` em cada
    * linha, todos os níveis compartilham o mesmo passo — nenhum nível herda
    * offset de wrapper.
+   *
+   * A lista flat é memoizada (`useMemo` nas variantes `pendentesRows` /
+   * `concluidasRows`), então mudanças de colapso/expansão não recalculam a
+   * árvore inteira — só a fatia afetada dispara re-render, evitando trabalho
+   * desnecessário em tarefas com muitos níveis.
    */
-  const renderTree = (nodes: typeof allSubs, depth = 0): React.ReactNode[] => {
-    const rows: React.ReactNode[] = [];
-    for (const node of nodes) {
-      rows.push(renderSub(node, depth));
-      const children = ((node as any).subtarefas ?? []) as typeof allSubs;
-      if (children.length > 0 && !collapsedIds.has(node.id)) {
-        rows.push(...renderTree(children, depth + 1));
+  const flattenTree = React.useCallback(
+    (nodes: typeof allSubs, depth = 0): Array<{ node: typeof allSubs[number]; depth: number }> => {
+      const out: Array<{ node: typeof allSubs[number]; depth: number }> = [];
+      for (const node of nodes) {
+        out.push({ node, depth });
+        const children = ((node as any).subtarefas ?? []) as typeof allSubs;
+        if (children.length > 0 && !collapsedIds.has(node.id)) {
+          out.push(...flattenTree(children, depth + 1));
+        }
       }
-    }
-    return rows;
-  };
+      return out;
+    },
+    [collapsedIds],
+  );
+
+  const pendentesRows = useMemo(() => flattenTree(pendentes), [flattenTree, pendentes]);
+  const concluidasRows = useMemo(() => flattenTree(concluidas), [flattenTree, concluidas]);
+
+  const renderRows = (rows: Array<{ node: typeof allSubs[number]; depth: number }>) =>
+    rows.map(({ node, depth }) => renderSub(node, depth));
+
+
 
   return (
     <div>
