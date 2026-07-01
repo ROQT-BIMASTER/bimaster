@@ -196,7 +196,8 @@ export function RankingMarcasSection({
         <h2 className="text-lg font-semibold">Ranking de marcas no período</h2>
         <p className="text-xs text-muted-foreground">
           {agg.length} {agg.length === 1 ? "marca" : "marcas"} • {totalPosts}{" "}
-          {totalPosts === 1 ? "post" : "posts"}
+          {totalPosts === 1 ? "post" : "posts"} • Engajamento = curtidas + comentários +
+          compartilhamentos + saves • Taxa = engajamento ÷ views (fallback alcance / impressões)
         </p>
       </div>
 
