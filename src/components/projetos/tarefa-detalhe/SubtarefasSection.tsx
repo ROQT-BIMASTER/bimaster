@@ -76,7 +76,7 @@ export function SubtarefasSection({
   teamMembers,
 }: SubtarefasSectionProps) {
   const { loading: iaLoading, generateChecklist } = useProjetoIA();
-  const { membros } = useProjetoMembros(projetoId || undefined);
+  const { membros, isLoading: membrosLoading } = useProjetoMembros(projetoId || undefined);
   const [subtarefaValue, setSubtarefaValue] = useState("");
   const [editingSubtarefaId, setEditingSubtarefaId] = useState<string | null>(null);
   const [editingSubtarefaTitulo, setEditingSubtarefaTitulo] = useState("");
