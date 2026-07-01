@@ -518,7 +518,7 @@ export function SubtarefasSection({
 
         {/* Linha 3: botão "Adicionar subitem" + input inline (multi-nível) */}
         {onAddSubtarefa && (
-          <div style={{ marginLeft: TREE_ROW_CONTENT_OFFSET_PX }}>
+          <div style={{ marginLeft: TREE_ROW_CONTENT_OFFSET_VAR }}>
             {addingForId === st.id ? (
               <div className="flex items-center gap-1.5">
                 <Input
