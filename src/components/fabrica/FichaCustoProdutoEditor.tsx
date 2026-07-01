@@ -45,6 +45,7 @@ import ExcelJS from "exceljs";
 import { saveAs } from "file-saver";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { guardFileUpload, reportUploadSuccessShared, reportUploadFailureShared } from "@/lib/utils/sharedUploadGuard";
 import { downloadStorageBlob, triggerBlobDownload } from "@/lib/utils/storage-download";
 import { StoragePreviewDialog } from "@/components/fabrica/StoragePreviewDialog";
 
