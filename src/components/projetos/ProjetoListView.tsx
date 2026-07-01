@@ -67,15 +67,42 @@ export function ProjetoListView({ projetoId, darkBg = false, filters = EMPTY_FIL
   };
   // Abre detalhe automaticamente quando deep-link de menção entrega
   // initialTarefaId (espera as tarefas carregarem para garantir que existe).
+  //
+  // FIX regressão "X não fecha": o auto-open deve ocorrer UMA única vez por
+  // montagem. Antes, a cada refetch/mutation `tarefasLoading` togglava e
+  // este efeito reabria o Sheet imediatamente após o usuário clicar em "X"
+  // — o clique só limpa `?tarefa=` da URL, mas a prop `initialTarefaId`
+  // vem congelada de ProjetoDetalhe (useState inicializado com o valor da
+  // URL no primeiro render) e nunca muda. Sem o guard abaixo, qualquer
+  // refetch subsequente re-sincroniza a URL de volta para o valor inicial.
+  // FIX regressão "X não fecha": `initialTarefaId` vem congelado de
+  // ProjetoDetalhe (useState do valor inicial da URL) e nunca é resetado.
+  // Cada refetch/mutation causa remount desta view (comportamento upstream
+  // do wrapper), o que reseta refs locais → auto-open reabre o drawer logo
+  // após o usuário clicar em X. Solução: persistir "já consumido" em
+  // `sessionStorage` por (projeto, tarefa), garantindo idempotência mesmo
+  // atravessando remounts. Sem alteração de arquitetura.
+  const consumedKey = `projListView:autoOpened:${projetoId}:${initialTarefaId ?? ""}`;
+  const readConsumed = () => {
+    try { return sessionStorage.getItem(consumedKey) === "1"; } catch { return false; }
+  };
+  const markConsumed = () => {
+    try { sessionStorage.setItem(consumedKey, "1"); } catch { /* noop */ }
+  };
   useEffect(() => {
     if (!initialTarefaId) return;
+    if (readConsumed()) return;
+    if (selectedTarefaId === initialTarefaId) {
+      markConsumed();
+      return;
+    }
     if (tarefasLoading) return;
-    if (selectedTarefaId === initialTarefaId) return;
     if (tarefas.some((t) => t.id === initialTarefaId)) {
+      markConsumed();
       setSelectedTarefaId(initialTarefaId);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialTarefaId, tarefasLoading]);
+  }, [initialTarefaId, tarefasLoading, tarefas]);
   // Derive the live tarefa from the freshest `tarefas` array so the detail Sheet
   // reflects optimistic updates and realtime invalidations without remounting.
   // Mantém um snapshot da última tarefa não-nula para evitar flicker durante

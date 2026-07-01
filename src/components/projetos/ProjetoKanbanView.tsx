@@ -115,19 +115,36 @@ export function ProjetoKanbanView({ projetoId, darkBg = false, filters = EMPTY_F
       { replace: true },
     );
   };
-  // Derive the live tarefa from the freshest `rawTarefas` array so the detail
-  // Sheet reflects optimistic updates and realtime invalidations. Mantém
-  // snapshot da última tarefa para evitar flicker durante refetches curtos.
+  // Derive the live tarefa from the freshest `rawTarefas` array. Igual ao
+  // ProjetoListView: só retorna referência NOVA quando a assinatura de
+  // conteúdo relevante muda — evita re-render do drawer durante o swap
+  // tempId→realId da criação otimista de subtarefas (raiz das 3 piscadas).
   const lastTarefaRef = useRef<ProjetoTarefa | null>(null);
+  const lastSignatureRef = useRef<string>("");
   const selectedTarefa = useMemo(() => {
     if (!selectedTarefaId) {
       lastTarefaRef.current = null;
+      lastSignatureRef.current = "";
       return null;
     }
     const found = rawTarefas.find((t) => t.id === selectedTarefaId);
     if (!found) return lastTarefaRef.current;
-    const enriched = { ...found, subtarefas: rawTarefas.filter((st) => st.parent_tarefa_id === found.id) };
+    const subs = rawTarefas.filter((st) => st.parent_tarefa_id === found.id);
+    const respIds = (found.responsaveis ?? []).map((r) => r.user_id).sort().join(",");
+    const colabIds = (found.colaboradores ?? []).map((c) => c.user_id).sort().join(",");
+    const signature =
+      `${found.id}|${found.updated_at}|${found.titulo}|${found.status}|${found.responsavel_id ?? ""}|${respIds}|${colabIds}|${found.prioridade}|${found.data_prazo ?? ""}|${(found as any).data_inicio_planejada ?? ""}|${(found as any).data_inicio_real ?? ""}|${found.descricao ?? ""}|${found.estagio ?? ""}|${found.secao_id}|` +
+      subs.map((s) => {
+        const r = (s.responsaveis ?? []).map((x) => x.user_id).sort().join(",");
+        const c = (s.colaboradores ?? []).map((x) => x.user_id).sort().join(",");
+        return `${s.id}:${s.updated_at}:${s.status}:${s.titulo}:${s.responsavel_id ?? ""}:${r}:${c}:${s.prioridade}:${s.estagio ?? ""}:${s.data_prazo ?? ""}:${(s as any).data_inicio_planejada ?? ""}`;
+      }).join(";");
+    if (signature === lastSignatureRef.current && lastTarefaRef.current) {
+      return lastTarefaRef.current;
+    }
+    const enriched = { ...found, subtarefas: subs };
     lastTarefaRef.current = enriched as ProjetoTarefa;
+    lastSignatureRef.current = signature;
     return enriched;
   }, [selectedTarefaId, rawTarefas]);
   // Reload-gate enquanto há tarefa aberta: PWA não recarrega no meio de edição.
@@ -410,6 +427,7 @@ export function ProjetoKanbanView({ projetoId, darkBg = false, filters = EMPTY_F
         onDelete={(id) => softDeleteTarefa.mutate(id)}
         secoes={secoes}
         onMoveTarefa={(tarefaId, secaoOrigemId, secaoDestinoId) => moveTarefaToSecao.mutate({ tarefaId, secaoOrigemId, secaoDestinoId })}
+        onOpenSubtarefa={(id) => setSelectedTarefaId(id)}
       />
     </>
   );
