@@ -230,6 +230,22 @@ export function SubtarefasSection({
   const done = concluidas.length;
   flickerLog("tree-render", { tarefaId: tarefa.id, total, pendentes: pendentes.length });
 
+  // Modo debug visual da árvore. Ative com:
+  //   localStorage.setItem('debug_tree_indent', '1'); location.reload();
+  // Desative com:
+  //   localStorage.removeItem('debug_tree_indent'); location.reload();
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    try {
+      const on = localStorage.getItem("debug_tree_indent") === "1";
+      if (on) document.documentElement.setAttribute("data-tree-debug", "1");
+      else document.documentElement.removeAttribute("data-tree-debug");
+    } catch {
+      /* SSR/privacy modes: ignore */
+    }
+  }, []);
+
+
 
   /**
    * Renderiza UMA linha da árvore. O deslocamento horizontal é SEMPRE
