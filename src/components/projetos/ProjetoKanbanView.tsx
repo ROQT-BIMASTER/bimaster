@@ -136,14 +136,16 @@ export function ProjetoKanbanView({ projetoId, darkBg = false, filters = EMPTY_F
     const subs = buildSubtree(found.id);
     const respIds = (found.responsaveis ?? []).map((r) => r.user_id).sort().join(",");
     const colabIds = (found.colaboradores ?? []).map((c) => c.user_id).sort().join(",");
-    const signature =
-      `${found.id}|${found.updated_at}|${found.titulo}|${found.status}|${found.responsavel_id ?? ""}|${respIds}|${colabIds}|${found.prioridade}|${found.data_prazo ?? ""}|${(found as any).data_inicio_planejada ?? ""}|${(found as any).data_inicio_real ?? ""}|${found.descricao ?? ""}|${found.estagio ?? ""}|${found.secao_id}|` +
-      subs.map((s) => {
+    const subSignature = (s: ProjetoTarefa): string => {
         const r = (s.responsaveis ?? []).map((x) => x.user_id).sort().join(",");
         const c = (s.colaboradores ?? []).map((x) => x.user_id).sort().join(",");
         const stableId = (s as any).__clientKey || s.id;
-        return `${stableId}:${s.status}:${s.titulo}:${s.responsavel_id ?? ""}:${r}:${c}:${s.prioridade}:${s.estagio ?? ""}:${s.data_prazo ?? ""}:${(s as any).data_inicio_planejada ?? ""}:${(s.subtarefas || []).length}`;
-      }).join(";");
+        const childrenSig = (s.subtarefas || []).map(subSignature).join(",");
+        return `${stableId}:${s.status}:${s.titulo}:${s.responsavel_id ?? ""}:${r}:${c}:${s.prioridade}:${s.estagio ?? ""}:${s.data_prazo ?? ""}:${(s as any).data_inicio_planejada ?? ""}:[${childrenSig}]`;
+    };
+    const signature =
+      `${found.id}|${found.updated_at}|${found.titulo}|${found.status}|${found.responsavel_id ?? ""}|${respIds}|${colabIds}|${found.prioridade}|${found.data_prazo ?? ""}|${(found as any).data_inicio_planejada ?? ""}|${(found as any).data_inicio_real ?? ""}|${found.descricao ?? ""}|${found.estagio ?? ""}|${found.secao_id}|` +
+      subs.map(subSignature).join(";");
     if (signature === lastSignatureRef.current && lastTarefaRef.current) {
       return lastTarefaRef.current;
     }
