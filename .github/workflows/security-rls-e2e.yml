@@ -63,3 +63,19 @@ jobs:
         run: |
           chmod +x scripts/security/canary-submissao-projeto.sh
           bash scripts/security/canary-submissao-projeto.sh
+
+  china-approval-rls:
+    name: China + Approval flow RLS lockdown
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run China + Approval RLS E2E
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          E2E_TEST_EMAIL: ${{ secrets.E2E_TEST_EMAIL }}
+          E2E_TEST_PASSWORD: ${{ secrets.E2E_TEST_PASSWORD }}
+          E2E_ALLOW_AUTHED_ROWS: '1'
+        run: |
+          chmod +x scripts/security/e2e-china-approval-rls.sh
+          bash scripts/security/e2e-china-approval-rls.sh
