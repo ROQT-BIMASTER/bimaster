@@ -156,33 +156,49 @@ export function TarefaAnexosSection({
   const handleConfirmUpload = async (payload: UploadConfirmPayload) => {
     const files = pendingFiles;
     setPendingFiles([]);
+    setLastPayload(payload);
     if (files.length === 0) return;
 
-    try {
-      const results = await Promise.all(
-        files.map(f => uploadAnexo.mutateAsync({ file: f, notificarIds: payload.notificarIds })),
-      );
+    // Cria um item de progresso por arquivo (mantém referência ao File p/ retry)
+    const newItems: UploadItem[] = files.map((f, idx) => {
+      const item: UploadItem & { __file?: File } = {
+        id: `${Date.now()}_${idx}_${f.name}`,
+        name: f.name,
+        size: f.size,
+        status: "queued",
+        progress: 5,
+      };
+      (item as any).__file = f;
+      return item;
+    });
+    setUploadItems((prev) => [...newItems, ...prev]);
 
-      // Se usuário marcou "Promover ao Cofre" no upload, dispara sendToCofre
-      if (payload.cofre && produtoId && canPublishToCofre) {
-        const anexoIds = results
-          .map((r: any) => (r && typeof r === "object" ? r.id : null))
-          .filter((id): id is string => !!id);
-        if (anexoIds.length > 0) {
-          const categoriasPorAnexo = Object.fromEntries(
-            anexoIds.map((id) => [id, payload.cofre!.categoria]),
-          );
+    const results = await Promise.all(
+      newItems.map((item, idx) => runUploadForItem(item, files[idx], payload)),
+    );
+
+    // Se usuário marcou "Promover ao Cofre" no upload, dispara sendToCofre com os que subiram
+    if (payload.cofre && produtoId && canPublishToCofre) {
+      const anexoIds = results
+        .map((r) => (r ? r.id : null))
+        .filter((id): id is string => !!id);
+      if (anexoIds.length > 0) {
+        const categoriasPorAnexo = Object.fromEntries(
+          anexoIds.map((id) => [id, payload.cofre!.categoria]),
+        );
+        try {
           await sendToCofre.mutateAsync({
             anexoIds,
             produtoId,
             categoriasPorAnexo,
             projetoId: projetoId || undefined,
           });
+        } catch {
+          // toast tratado na mutation
         }
       }
-    } catch {
-      // toasts são exibidos nas mutations
     }
+  };
   };
 
 
