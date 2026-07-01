@@ -190,6 +190,13 @@ export function useUploadChinaDocumento() {
         const msg = v.error || "Arquivo rejeitado pela validação de segurança.";
         setError(msg);
         toast.error(msg);
+        reportGenericUploadRejection({
+          module: "china-doc",
+          file,
+          userId: "anon",
+          contextId: submissaoId,
+          error: msg,
+        });
         return null;
       }
 
