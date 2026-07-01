@@ -62,14 +62,30 @@ export function MarketingWindsorSyncButton() {
         return;
       }
 
-      setResultado(data);
+      // A função pode responder em shapes diferentes (por-conector, diagnóstico,
+      // legado). Normalizamos para não estourar no render.
+      const normalizado: WindsorSyncResult = {
+        por_conector: Array.isArray((data as any)?.por_conector)
+          ? ((data as any).por_conector as ConectorResumo[])
+          : [],
+        total: {
+          contas: Number((data as any)?.total?.contas ?? 0),
+          metricas: Number((data as any)?.total?.metricas ?? 0),
+          posts: Number((data as any)?.total?.posts ?? 0),
+        },
+        license_blocked: Boolean((data as any)?.license_blocked),
+      };
+
+      setResultado(normalizado);
       setUltimaExecucao(new Date());
 
-      const { total, license_blocked } = data;
+      const { total, license_blocked, por_conector } = normalizado;
       if (license_blocked) {
         toast.warning(
           "Feed do Windsor bloqueado (licença/limite). Verifique o plano da conta Windsor.",
         );
+      } else if (por_conector.length === 0) {
+        toast.info("Função respondeu sem dados por-conector.");
       } else {
         toast.success(
           `Sincronização concluída: ${total.contas} contas, ${total.metricas} métricas, ${total.posts} posts.`,
@@ -135,23 +151,31 @@ export function MarketingWindsorSyncButton() {
                 </tr>
               </thead>
               <tbody>
-                {resultado.por_conector.map((c) => (
-                  <tr key={c.slug} className="border-t border-border">
-                    <td className="px-3 py-2 font-mono">{c.slug}</td>
-                    <td className="px-3 py-2 text-right tabular-nums">{c.contas}</td>
-                    <td className="px-3 py-2 text-right tabular-nums">{c.metricas}</td>
-                    <td className="px-3 py-2 text-right tabular-nums">{c.posts}</td>
-                    <td className="px-3 py-2">
-                      {c.erro === "license_blocked" ? (
-                        <Badge variant="destructive">Licença/limite</Badge>
-                      ) : c.erro ? (
-                        <Badge variant="secondary">{c.erro}</Badge>
-                      ) : (
-                        <Badge variant="outline">OK</Badge>
-                      )}
+                {resultado.por_conector.length === 0 ? (
+                  <tr className="border-t border-border">
+                    <td className="px-3 py-3 text-muted-foreground" colSpan={5}>
+                      Sem conectores retornados.
                     </td>
                   </tr>
-                ))}
+                ) : (
+                  resultado.por_conector.map((c) => (
+                    <tr key={c.slug} className="border-t border-border">
+                      <td className="px-3 py-2 font-mono">{c.slug}</td>
+                      <td className="px-3 py-2 text-right tabular-nums">{c.contas}</td>
+                      <td className="px-3 py-2 text-right tabular-nums">{c.metricas}</td>
+                      <td className="px-3 py-2 text-right tabular-nums">{c.posts}</td>
+                      <td className="px-3 py-2">
+                        {c.erro === "license_blocked" ? (
+                          <Badge variant="destructive">Licença/limite</Badge>
+                        ) : c.erro ? (
+                          <Badge variant="secondary">{c.erro}</Badge>
+                        ) : (
+                          <Badge variant="outline">OK</Badge>
+                        )}
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
               <tfoot className="bg-muted/30">
                 <tr className="border-t border-border font-medium">
