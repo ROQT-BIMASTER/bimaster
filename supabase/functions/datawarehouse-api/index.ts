@@ -104,9 +104,24 @@ Deno.serve(secureHandler({ auth: "none", rateLimit: 60, rateLimitPrefix: "datawa
         throw new Error('User not approved');
       }
 
+      // Require admin or supervisor role — datawarehouse-api uses service_role
+      // and bypasses RLS, so it must not be reachable by low-privilege users.
+      const { data: roles } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', user.id)
+        .in('role', ['admin', 'supervisor']);
+
+      if (!roles || roles.length === 0) {
+        return new Response(
+          JSON.stringify({ error: 'Forbidden: requires admin or supervisor role' }),
+          { status: 403, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } },
+        );
+      }
+
       isAuthenticated = true;
       userId = user.id;
-      logger.log('✅ Authenticated via JWT');
+      logger.log('✅ Authenticated via JWT (admin/supervisor)');
     }
 
     if (!isAuthenticated) {
