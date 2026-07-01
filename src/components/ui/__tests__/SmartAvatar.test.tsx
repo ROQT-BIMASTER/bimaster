@@ -6,6 +6,21 @@ vi.mock("@/lib/utils/avatarUrl", () => ({
   resolveAvatarUrl: async (u: string) => u,
 }));
 
+// Radix Avatar usa `new Image()` interno para decidir se renderiza <img>.
+// Em jsdom o load nunca completa, então o <img> real nunca aparece. Aqui
+// substituímos o wrapper por primitivos DOM diretos para conseguir
+// testar o fluxo de erro (`onError`) do SmartAvatar de forma determinística.
+vi.mock("@/components/ui/avatar", () => {
+  const React = require("react");
+  const Avatar = ({ children, ...props }: any) =>
+    React.createElement("span", props, children);
+  const AvatarImage = ({ onError, ...props }: any) =>
+    React.createElement("img", { ...props, onError });
+  const AvatarFallback = ({ children, ...props }: any) =>
+    React.createElement("span", props, children);
+  return { Avatar, AvatarImage, AvatarFallback };
+});
+
 /**
  * Garante que SmartAvatar sempre exibe iniciais (e o nome como title/alt)
  * quando `avatar_url` é nulo, indefinido ou uma string inválida — nunca
