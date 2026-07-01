@@ -272,9 +272,12 @@ export function TarefaFocusMode({
     await secureDownload(anexo.storage_path, anexo.nome, "projeto-anexos");
   };
 
+  // Parent efetivo para subtarefas novas (irmã da atual quando a tarefa é uma subtarefa).
+  const siblingParentId = rootTarefaId ?? tarefa.id;
+
   const handleAddSubtarefa = () => {
     if (!subtarefaValue.trim() || !onAddSubtarefa) return;
-    onAddSubtarefa(subtarefaValue.trim(), tarefa.id, tarefa.secao_id);
+    onAddSubtarefa(subtarefaValue.trim(), siblingParentId, tarefa.secao_id);
     setSubtarefaValue("");
   };
 
@@ -283,7 +286,7 @@ export function TarefaFocusMode({
       toast.error("Não é possível adicionar subtarefas neste contexto.");
       return;
     }
-    titulos.forEach(t => onAddSubtarefa(t, tarefa.id, tarefa.secao_id));
+    titulos.forEach(t => onAddSubtarefa(t, siblingParentId, tarefa.secao_id));
     toast.success(`${titulos.length} subtarefa${titulos.length > 1 ? "s" : ""} adicionada${titulos.length > 1 ? "s" : ""} com IA.`);
   };
 
