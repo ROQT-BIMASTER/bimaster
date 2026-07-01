@@ -2,6 +2,16 @@ import '@testing-library/jest-dom';
 import { cleanup } from '@testing-library/react';
 import { afterEach, vi } from 'vitest';
 
+// Polyfills exigidos por Radix UI em jsdom
+if (typeof globalThis.ResizeObserver === 'undefined') {
+  // @ts-expect-error test polyfill
+  globalThis.ResizeObserver = class {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  };
+}
+
 // Cleanup após cada teste
 afterEach(() => {
   cleanup();
