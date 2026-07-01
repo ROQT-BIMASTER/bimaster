@@ -191,6 +191,7 @@ const MarketingMissionControlPage = lazyWithRetry(() => import("./pages/Marketin
 const ElevenLabsStudioPage = lazyWithRetry(() => import("./pages/ElevenLabsStudioPage"));
 const StrategyHub = lazyWithRetry(() => import("./pages/marketing/StrategyHub"));
 const SocialNetworksPage = lazyWithRetry(() => import("./pages/SocialNetworksPage"));
+const MarketingVisaoGeralPage = lazyWithRetry(() => import("./pages/marketing/MarketingVisaoGeralPage"));
 const AIAnalytics = lazyWithRetry(() => import("./pages/AIAnalytics"));
 const DesignStudioPage = lazyWithRetry(() => import("./pages/DesignStudioPage"));
 const MiningDataExplorer = lazyWithRetry(() => import("./pages/MiningDataExplorer"));
