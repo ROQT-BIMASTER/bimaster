@@ -26,9 +26,10 @@ interface Props {
 
 export function LoteAprovacaoCard({ lote }: Props) {
   const { data: etapas = [] } = useLoteEtapas(lote.config_id);
-  const { data: eventos = [] } = useLoteEventos(lote.id);
+  const { data: eventos = [], error: eventosError } = useLoteEventos(lote.id);
   const { data: docs = [] } = useLoteDocumentos(lote.id);
   const avancar = useAvancarEtapa();
+  const semPermissao = isPermissionError(eventosError);
 
   const [comentario, setComentario] = useState("");
 
