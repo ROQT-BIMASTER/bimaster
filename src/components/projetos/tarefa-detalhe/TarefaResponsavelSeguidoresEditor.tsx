@@ -5,6 +5,7 @@ import { useProjetoMembros } from "@/hooks/useProjetoMembros";
 import { useProjetoTarefas } from "@/hooks/useProjetoTarefas";
 import { logger } from "@/lib/logger";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { SmartAvatar } from "@/components/ui/SmartAvatar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   Command,
@@ -342,12 +343,12 @@ export function TarefaResponsavelSeguidoresEditor({
                       onSelect={() => handleToggle(m.user_id)}
                       className={cn("text-xs", isSelected && "bg-accent/60")}
                     >
-                      <Avatar className="h-5 w-5 mr-2">
-                        <AvatarImage src={m.profile?.avatar_url || undefined} />
-                        <AvatarFallback className="text-[9px]">
-                          {m.profile?.nome?.substring(0, 2).toUpperCase() || "?"}
-                        </AvatarFallback>
-                      </Avatar>
+                      <SmartAvatar
+                        src={m.profile?.avatar_url}
+                        nome={m.profile?.nome}
+                        className="h-5 w-5 mr-2"
+                        fallbackClassName="text-[9px]"
+                      />
                       <span className="flex-1 truncate">{m.profile?.nome || "Membro"}</span>
                       {isSelected && <Check className="h-3.5 w-3.5 text-primary" />}
                     </CommandItem>
@@ -383,12 +384,12 @@ export function TarefaResponsavelSeguidoresEditor({
                     className="hover:scale-110 transition-transform"
                     title={`${r.nome} — clique para trocar ou remover`}
                   >
-                    <Avatar className="h-6 w-6 border-2 border-background">
-                      <AvatarImage src={r.avatar_url || undefined} />
-                      <AvatarFallback className="text-[9px] bg-primary/20 text-primary font-semibold">
-                        {r.nome?.substring(0, 2).toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
+                    <SmartAvatar
+                      src={r.avatar_url}
+                      nome={r.nome}
+                      className="h-6 w-6 border-2 border-background"
+                      fallbackClassName="text-[9px] bg-primary/20 text-primary font-semibold"
+                    />
                   </button>
                 </PopoverTrigger>
                 <PopoverContent className="w-64 p-0" align="start" style={{ pointerEvents: "auto" }} onOpenAutoFocus={(e) => e.preventDefault()} onPointerDownOutside={(e) => e.stopPropagation()} onInteractOutside={(e) => e.stopPropagation()}>
@@ -452,12 +453,12 @@ export function TarefaResponsavelSeguidoresEditor({
                     className="hover:scale-110 transition-transform"
                     title={`${c.nome} — clique para trocar ou remover`}
                   >
-                    <Avatar className="h-6 w-6 border-2 border-background">
-                      <AvatarImage src={c.avatar_url || undefined} />
-                      <AvatarFallback className="text-[8px] bg-muted">
-                        {c.nome?.substring(0, 2).toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
+                    <SmartAvatar
+                      src={c.avatar_url}
+                      nome={c.nome}
+                      className="h-6 w-6 border-2 border-background"
+                      fallbackClassName="text-[8px] bg-muted"
+                    />
                   </button>
                 </PopoverTrigger>
                 <PopoverContent className="w-64 p-0" align="start" style={{ pointerEvents: "auto" }} onOpenAutoFocus={(e) => e.preventDefault()} onPointerDownOutside={(e) => e.stopPropagation()} onInteractOutside={(e) => e.stopPropagation()}>
