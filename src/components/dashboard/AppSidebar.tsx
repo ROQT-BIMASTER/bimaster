@@ -1237,7 +1237,8 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
           </ModuleSubmenu>
         );
 
-      case "reunioes":
+      case "reunioes": {
+        if (!hasPermission("reunioes_lista") && !hasPermission("reunioes_dashboard")) return null;
         return (
           <SidebarMenuItem>
             <SidebarMenuButton asChild>
@@ -1251,13 +1252,21 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
             </SidebarMenuButton>
           </SidebarMenuItem>
         );
+      }
 
-      case "processos":
+      case "processos": {
+        const procItems = [
+          { url: "/dashboard/processos/consulta", icon: Scale, title: "Consulta de Processos", screenCode: "processos_consulta" },
+          { url: "/dashboard/processos/etapas", icon: Settings, title: "Configurar Etapas", screenCode: "processos_etapas" },
+          { url: "/dashboard/processos/workflows", icon: Layers, title: "Workflows Documentais", screenCode: "processos_workflows" },
+        ];
+        const visible = procItems.filter(i => hasPermission(i.screenCode));
+        if (visible.length === 0 && !isAdmin) return null;
         return (
           <ModuleSubmenu icon={Scale} title="Processos" colorKey="comercial">
-            <MenuItemLink to="/dashboard/processos/consulta" icon={Scale} title="Consulta de Processos" end />
-            <MenuItemLink to="/dashboard/processos/etapas" icon={Settings} title="Configurar Etapas" end />
-            <MenuItemLink to="/dashboard/processos/workflows" icon={Layers} title="Workflows Documentais" end />
+            {visible.map(item => (
+              <MenuItemLink key={item.url} to={item.url} icon={item.icon} title={item.title} colorKey="comercial" end />
+            ))}
             {isAdmin && (
               <>
                 <MenuItemLink to="/dashboard/processos/perfis" icon={Workflow} title="Perfis de Processo" end />
@@ -1268,6 +1277,8 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
             )}
           </ModuleSubmenu>
         );
+      }
+
 
       default:
         return null;
