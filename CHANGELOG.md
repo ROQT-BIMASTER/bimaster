@@ -12,6 +12,14 @@ versionamento conforme [SemVer](https://semver.org/) quando aplicável.
 
 ---
 
+## v3.5.57
+
+- fix(copilot): publica edge functions ausentes (central-copilot, projeto-copilot, estoque-copilot, china-submission-copilot + wrappers v2 + auxiliares + ai-insights/marketing-insights). Todos retornavam 404 NOT_FOUND_FUNCTION_BLOB, quebrando 100% dos chats de IA.
+- feat(copilot): modelo padrão elevado para `openai/gpt-5.5` (reasoning pesado usa `openai/gpt-5.5-pro`).
+- fix(ai-gateway): FALLBACK_CHAIN estendido para gpt-5.5/5.5-pro/5.4-pro degradar até gemini-3-flash.
+
+---
+
 ## v3.5.49
 
 Navegação v2 — unificação dos dois botões "$" e módulo "Em Desenvolvimento":
