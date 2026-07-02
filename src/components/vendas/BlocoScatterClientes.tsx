@@ -1,0 +1,155 @@
+import { useMemo } from "react";
+import {
+  ResponsiveContainer, ScatterChart, Scatter, XAxis, YAxis, ZAxis, Tooltip,
+  ReferenceArea, LabelList, CartesianGrid,
+} from "recharts";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useVendasRankingCliente } from "@/hooks/vendas/useVendasRankingCliente";
+import { formatMi } from "@/lib/vendas/format";
+import { formatCurrency } from "@/lib/formatters";
+
+interface Props {
+  de: string;
+  ate: string;
+  empresa: number | null;
+}
+
+function truncate(s: string, n: number) {
+  return s.length > n ? s.slice(0, n - 1) + "…" : s;
+}
+
+export function BlocoScatterClientes({ de, ate, empresa }: Props) {
+  const { data, isLoading } = useVendasRankingCliente({ de, ate, empresa });
+  const rows = data ?? [];
+
+  const { pontos, destaques, aside, maxY } = useMemo(() => {
+    const ordenados = [...rows].sort((a, b) => b.faturamento - a.faturamento);
+    const top = ordenados.slice(0, 6);
+    const near = ordenados.slice(6, 14);
+    const restante = ordenados.slice(14);
+    return {
+      destaques: top.map((r) => ({
+        x: r.notas,
+        y: r.faturamento,
+        nome: truncate(r.cliente_nome, 20),
+        nomeCompleto: r.cliente_nome,
+      })),
+      aside: near,
+      pontos: restante.map((r) => ({
+        x: r.notas,
+        y: r.faturamento,
+        nome: r.cliente_nome,
+        nomeCompleto: r.cliente_nome,
+      })),
+      maxY: ordenados[0]?.faturamento ?? 0,
+    };
+  }, [rows]);
+
+  return (
+    <section className="pt-14">
+      <div className="flex items-baseline justify-between mb-6 gap-4 flex-wrap">
+        <div>
+          <h2 className="font-display text-xl text-rv-ink">Clientes · valor × recorrência</h2>
+          <p className="text-xs text-rv-text-suave mt-1">
+            Cada ponto é um cliente. Faixa verde marca os clientes-chave (metade superior).
+          </p>
+        </div>
+      </div>
+
+      {isLoading ? (
+        <Skeleton className="h-[380px] w-full" />
+      ) : rows.length === 0 ? (
+        <div className="h-[380px] flex items-center justify-center text-sm text-rv-text-suave border-t border-rv-linha">
+          Sem clientes com vendas no período.
+        </div>
+      ) : (
+        <div className="grid md:grid-cols-4 gap-6 border-t border-rv-linha pt-6">
+          <div className="md:col-span-3">
+            <ResponsiveContainer width="100%" height={380}>
+              <ScatterChart margin={{ top: 16, right: 24, bottom: 32, left: 8 }}>
+                <CartesianGrid stroke="hsl(var(--rv-linha))" strokeDasharray="2 4" />
+                <ReferenceArea
+                  y1={maxY * 0.5}
+                  y2={maxY * 1.05}
+                  fill="hsl(var(--rv-faixa-verde))"
+                  fillOpacity={0.5}
+                  stroke="none"
+                  label={{
+                    value: "Clientes-chave",
+                    position: "insideTopLeft",
+                    fill: "hsl(var(--rv-positivo))",
+                    fontSize: 10,
+                    style: { textTransform: "uppercase", letterSpacing: "0.14em" },
+                  }}
+                />
+                <XAxis
+                  type="number"
+                  dataKey="x"
+                  name="Notas"
+                  tick={{ fontSize: 10, fill: "hsl(var(--rv-text-suave))" }}
+                  axisLine={{ stroke: "hsl(var(--rv-linha))" }}
+                  tickLine={false}
+                  label={{ value: "Nº de notas", position: "insideBottom", offset: -12, fontSize: 10, fill: "hsl(var(--rv-text-suave))" }}
+                />
+                <YAxis
+                  type="number"
+                  dataKey="y"
+                  name="Faturamento"
+                  tick={{ fontSize: 10, fill: "hsl(var(--rv-text-suave))" }}
+                  tickFormatter={(v: number) => formatMi(v)}
+                  axisLine={{ stroke: "hsl(var(--rv-linha))" }}
+                  tickLine={false}
+                  width={72}
+                />
+                <ZAxis range={[36, 36]} />
+                <Tooltip
+                  cursor={{ strokeDasharray: "3 3", stroke: "hsl(var(--rv-muted))" }}
+                  contentStyle={{
+                    borderRadius: 4,
+                    border: "1px solid hsl(var(--rv-linha))",
+                    background: "hsl(var(--rv-bg))",
+                    fontSize: 12,
+                  }}
+                  formatter={(v: number, k: string) =>
+                    k === "y" ? [formatCurrency(v), "Faturamento"] : [Number(v).toLocaleString("pt-BR"), "Notas"]
+                  }
+                  labelFormatter={(_l, p) => (p?.[0]?.payload as any)?.nomeCompleto ?? ""}
+                />
+                <Scatter data={pontos} fill="hsl(var(--rv-muted))" fillOpacity={0.55} />
+                <Scatter data={destaques} fill="hsl(var(--rv-ink))">
+                  <LabelList
+                    dataKey="nome"
+                    position="right"
+                    style={{ fill: "hsl(var(--rv-ink))", fontSize: 10 }}
+                  />
+                </Scatter>
+              </ScatterChart>
+            </ResponsiveContainer>
+          </div>
+
+          <aside className="md:col-span-1">
+            <div className="text-[10px] uppercase tracking-wider text-rv-text-suave mb-3">
+              Próximos destaques
+            </div>
+            <ul className="space-y-2">
+              {aside.map((c) => (
+                <li key={`${c.cliente_id ?? c.cliente_nome}`} className="text-xs text-rv-ink">
+                  <span className="text-rv-muted mr-1.5">•</span>
+                  <span className="truncate inline-block max-w-[85%] align-middle" title={c.cliente_nome}>
+                    {c.cliente_nome}
+                  </span>
+                  <div className="text-[11px] text-rv-text-suave tabular-nums mt-0.5 ml-3">
+                    {formatMi(c.faturamento)} · {c.notas} nt
+                  </div>
+                </li>
+              ))}
+              {aside.length === 0 && (
+                <li className="text-xs text-rv-text-suave">Sem outros destaques.</li>
+              )}
+            </ul>
+          </aside>
+        </div>
+      )}
+    </section>
+  );
+}
