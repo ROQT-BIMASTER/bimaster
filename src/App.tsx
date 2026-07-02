@@ -349,6 +349,7 @@ const VisibilidadeTarefas = lazyWithRetry(() => import("./pages/admin/Visibilida
 const VisibilidadeDetalheTarefa = lazyWithRetry(() => import("./pages/admin/VisibilidadeDetalheTarefa"));
 const VersoesClientes = lazyWithRetry(() => import("./pages/admin/VersoesClientes"));
 const UploadRejeicoesAudit = lazyWithRetry(() => import("./pages/admin/UploadRejeicoesAudit"));
+const DiagnosticoBuckets = lazyWithRetry(() => import("./pages/admin/DiagnosticoBuckets"));
 const CofreTemplates = lazyWithRetry(() => import("./pages/admin/CofreTemplates"));
 const IntegracaoGoogleDrive = lazyWithRetry(() => import("./pages/admin/IntegracaoGoogleDrive"));
 const MarketingIntegracoesPage = lazyWithRetry(() => import("./pages/admin/MarketingIntegracoesPage"));
