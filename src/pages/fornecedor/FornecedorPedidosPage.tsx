@@ -65,10 +65,20 @@ export default function FornecedorPedidosPage() {
               </p>
             </div>
           </div>
-          <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching} className="gap-2">
-            <RefreshCw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
-            Atualizar
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              onClick={() => setCopilotOpen(true)}
+              className="gap-2 bg-pink-600 hover:bg-pink-700 text-white"
+            >
+              <Sparkles className="h-4 w-4" />
+              Copiloto
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching} className="gap-2">
+              <RefreshCw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
+              Atualizar
+            </Button>
+          </div>
         </div>
 
         <Card>
