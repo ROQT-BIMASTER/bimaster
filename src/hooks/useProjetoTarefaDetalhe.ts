@@ -204,7 +204,7 @@ export function useProjetoTarefaDetalhe(tarefaId: string | undefined, produtoId?
         },
       });
 
-      return { id, nome: file.name, row: row as TarefaAnexo };
+      return { id, nome: file.name, row: row as unknown as TarefaAnexo };
     },
     onMutate: async (input: UploadAnexoInput) => {
       const { file } = normalizeUpload(input);
