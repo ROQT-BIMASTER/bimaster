@@ -188,7 +188,7 @@ export async function validateFileForUpload(file: File): Promise<FileValidationR
     return {
       valid: false,
       code: "SIZE_EXCEEDED",
-      error: `Arquivo ".${ext}" tem ${currentMb} MB e excede o limite máximo de 1 GB (1024 MB) por arquivo.`,
+      error: `Arquivo ".${ext}" tem ${currentMb} MB e excede o limite máximo de ${UPLOAD_MAX_LABEL} (${Math.round(UPLOAD_MAX_BYTES / (1024 * 1024))} MB) por arquivo.`,
     };
   }
   // Sinaliza vídeo/design apenas para consumo externo (mensagens contextualizadas).
