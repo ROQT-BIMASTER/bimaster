@@ -13,8 +13,8 @@ export type SubtarefaArrowEventType = "click" | "missing_handler" | "invalid_id"
 export interface SubtarefaArrowEvent {
   type: SubtarefaArrowEventType;
   subtarefaId: string | null | undefined;
-  /** "v1" (Projetos) | "v2" (Central) | "unknown". */
-  surface: "v1" | "v2" | "unknown";
+  /** "v1" (Projetos) | "v2" (Central) | "v1_minhas_tarefas" (Minhas Tarefas legado) | "unknown". */
+  surface: "v1" | "v2" | "v1_minhas_tarefas" | "unknown";
   at: string;
   pageUrl?: string;
   extra?: Record<string, unknown>;
@@ -30,6 +30,7 @@ function detectSurface(): SubtarefaArrowEvent["surface"] {
   if (typeof window === "undefined") return "unknown";
   const p = window.location.pathname;
   if (p.includes("/central")) return "v2";
+  if (p.includes("/minhas-tarefas")) return "v1_minhas_tarefas";
   if (p.includes("/projetos")) return "v1";
   return "unknown";
 }

@@ -944,6 +944,11 @@ export function MinhasTarefasSimples() {
           onMoveTarefa={handleBridgeMoveTarefa}
           projetoIdOverride={selectedProjetoId}
           externalSaving={isBridgeSaving}
+          onOpenSubtarefa={makeOpenSubtarefaHandler<MinaTarefa>({
+            supabase,
+            getCurrent: () => detailTarefa,
+            setCurrent: (next) => setDetailTarefa(next),
+          })}
         />
       </div>
     </TooltipProvider>
