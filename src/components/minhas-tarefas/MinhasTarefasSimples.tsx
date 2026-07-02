@@ -505,6 +505,19 @@ export function MinhasTarefasSimples() {
     return () => releaseDetailGate(selectedProjetoId);
   }, [detailOpen, selectedProjetoId]);
 
+  // Reconciliação silenciosa: ao fechar o painel, alinha a lista com o
+  // servidor uma vez, sem piscar durante a edição (invalidations dos
+  // handlers usam `refetchType:"none"` enquanto o painel está aberto).
+  const wasDetailOpenRef = useRef(false);
+  useEffect(() => {
+    if (wasDetailOpenRef.current && !detailOpen) {
+      queryClient.refetchQueries({ queryKey: ["minhas-tarefas"], type: "active" });
+    }
+    wasDetailOpenRef.current = detailOpen;
+  }, [detailOpen, queryClient]);
+
+
+
   // Subtarefas ao vivo da tarefa aberta — Focus Mode reflete novas
   // subtarefas sem precisar fechar/reabrir o modal.
   const { data: bridgedSubtarefas = [] } = useQuery({
