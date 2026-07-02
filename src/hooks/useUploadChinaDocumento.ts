@@ -17,6 +17,8 @@ import { useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { validateFileForUpload } from "@/lib/utils/file-security";
+import { UPLOAD_MAX_LABEL } from "@/lib/upload/limits";
+import { resumableUpload } from "@/lib/upload/resumableUpload";
 import { reportGenericUploadSuccess, reportGenericUploadRejection, reportGenericUploadError } from "@/lib/telemetry/uploadTelemetry";
 import { sanitizeStorageSegment } from "@/lib/china/sanitizeTipoKey";
 import { logger } from "@/lib/logger";
@@ -72,7 +74,7 @@ function mapStorageError(err: any): UploadFailure {
     return { code: "STORAGE_INVALID_KEY", message: "Nome de arquivo inválido. Renomeie e tente novamente." };
   }
   if (status === 413 || /payload too large|exceeds/i.test(raw)) {
-    return { code: "STORAGE_PAYLOAD_TOO_LARGE", message: "Arquivo excede o limite permitido (20 MB)." };
+    return { code: "STORAGE_PAYLOAD_TOO_LARGE", message: `Arquivo excede o limite permitido (${UPLOAD_MAX_LABEL}).` };
   }
   if (status === 401 || status === 403 || /not authorized|forbidden|denied/i.test(raw)) {
     return { code: "STORAGE_DENIED", message: "Você não tem permissão para enviar este documento." };
@@ -123,22 +125,17 @@ async function uploadWithRetry(
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
     try {
       const { error } = await withTimeout(
-        supabase.storage.from(BUCKET).upload(path, file, {
+        resumableUpload({
+          bucket: BUCKET,
+          path,
+          file,
           upsert: false,
-          contentType: file.type || undefined,
+          skipValidation: true,
         }),
         UPLOAD_TIMEOUT_MS,
         "upload",
       );
-      if (!error) return { ok: true };
-      const failure = mapStorageError(error);
-      if (!isTransient(failure.code) || attempt === MAX_RETRIES) {
-        return { ok: false, failure };
-      }
-      logger.warn("Upload China — retry", {
-        action: "china_upload_retry",
-        metadata: { attempt: attempt + 1, code: failure.code, path },
-      });
+      return { ok: true };
     } catch (err: any) {
       const failure = mapStorageError(err);
       if (!isTransient(failure.code) || attempt === MAX_RETRIES) {
