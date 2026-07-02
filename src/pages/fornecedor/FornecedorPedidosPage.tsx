@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
-import { RefreshCw, Search, KanbanSquare, Table as TableIcon, ShoppingCart } from "lucide-react";
-import { subDays } from "date-fns";
+import { RefreshCw, Search, KanbanSquare, Table as TableIcon, ShoppingCart, Sparkles } from "lucide-react";
+import { subDays, format } from "date-fns";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,7 @@ import { useFornecedorPedidos } from "@/hooks/fornecedor/useFornecedorPedidos";
 import { PedidosKanban } from "@/components/fornecedor/pedidos/PedidosKanban";
 import { PedidosTable } from "@/components/fornecedor/pedidos/PedidosTable";
 import { PedidoDetalheDrawer } from "@/components/fornecedor/pedidos/PedidoDetalheDrawer";
+import { PedidosCopilotDrawer } from "@/components/fornecedor/pedidos/PedidosCopilotDrawer";
 import { FuturaBackButton } from "@/components/fornecedor/FuturaBackButton";
 import type { PedidoFornecedor } from "@/hooks/fornecedor/useFornecedorPedidos";
 
