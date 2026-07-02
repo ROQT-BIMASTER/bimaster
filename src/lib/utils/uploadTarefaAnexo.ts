@@ -89,7 +89,7 @@ export async function uploadTarefaAnexoToStorage(
       tamanho: file.size,
       notificados: cleanedNotificados,
     } as any)
-    .select("id")
+    .select("*")
     .single();
   if (error) {
     reportUploadError({ ...auditBase, error, reason: "metadata_insert_failed" });
@@ -102,5 +102,6 @@ export async function uploadTarefaAnexoToStorage(
     id: (inserted as any)?.id as string,
     storagePath: filePath,
     nome: file.name,
+    row: inserted as Record<string, unknown>,
   };
 }
