@@ -13,6 +13,8 @@ const ALLOWED_EXTENSIONS = new Set([
   "doc", "docx", "xls", "xlsx", "ppt", "pptx", "csv", "xml",
   "zip", "txt",
   "mp4", "mov", "webm",
+  // Arquivos de design (equipes de criação) — limite ampliado para 1 GB
+  "ai", "psd",
 ]);
 
 const ALLOWED_MIME_TYPES = new Set([
@@ -28,7 +30,15 @@ const ALLOWED_MIME_TYPES = new Set([
   "application/xml", "text/xml",
   "application/zip", "application/x-zip-compressed",
   "video/mp4", "video/quicktime", "video/webm",
-  "application/octet-stream", // alguns browsers usam para .docx/.xlsx/.pptx
+  "application/octet-stream", // alguns browsers usam para .docx/.xlsx/.pptx/.psd
+  // Design (Illustrator / Photoshop)
+  "application/postscript",
+  "application/illustrator",
+  "application/vnd.adobe.illustrator",
+  "image/vnd.adobe.photoshop",
+  "application/x-photoshop",
+  "application/photoshop",
+  "image/psd",
 ]);
 
 const DANGEROUS_EXTENSIONS = new Set([
@@ -37,9 +47,11 @@ const DANGEROUS_EXTENSIONS = new Set([
   "pif", "reg", "hta", "wsf", "cpl", "msc",
 ]);
 
-const MAX_FILE_SIZE_BYTES = 200 * 1024 * 1024; // 200 MB (documentos/imagens)
-const MAX_VIDEO_SIZE_BYTES = 500 * 1024 * 1024; // 500 MB (vídeos)
+const MAX_FILE_SIZE_BYTES = 200 * 1024 * 1024;         // 200 MB (documentos/imagens)
+const MAX_VIDEO_SIZE_BYTES = 500 * 1024 * 1024;         // 500 MB (vídeos)
+const MAX_DESIGN_FILE_SIZE_BYTES = 1024 * 1024 * 1024;  // 1 GB (.ai / .psd)
 const VIDEO_EXTENSIONS = new Set(["mp4", "mov", "webm"]);
+const DESIGN_EXTENSIONS = new Set(["ai", "psd"]);
 
 // ── Magic bytes (assinaturas de arquivo) ───────────────────────────────────────
 
@@ -67,6 +79,13 @@ const MAGIC_SIGNATURES: Record<string, MagicSignature[]> = {
   mov:  [{ bytes: [0x66, 0x74, 0x79, 0x70], offset: 4 }],   // ftyp at offset 4 (QuickTime)
   webm: [{ bytes: [0x1A, 0x45, 0xDF, 0xA3] }],              // EBML
   heic: [{ bytes: [0x66, 0x74, 0x79, 0x70], offset: 4 }],   // ftyp at offset 4 (HEIF/HEIC)
+  // Photoshop: sempre inicia com "8BPS"
+  psd:  [{ bytes: [0x38, 0x42, 0x50, 0x53] }],
+  // Illustrator moderno é um PDF (%PDF-...); legado usa PostScript (%!PS-Adobe-...)
+  ai:   [
+    { bytes: [0x25, 0x50, 0x44, 0x46] },                    // %PDF
+    { bytes: [0x25, 0x21, 0x50, 0x53] },                    // %!PS
+  ],
 };
 
 // ── Tipos de resultado ─────────────────────────────────────────────────────────
@@ -136,7 +155,7 @@ export async function validateFileForUpload(file: File): Promise<FileValidationR
     return {
       valid: false,
       code: "EXTENSION_NOT_ALLOWED",
-      error: `Extensão ".${ext}" não é suportada. Formatos aceitos: PDF, imagens (PNG, JPG, WEBP, GIF, HEIC), Office (DOC, DOCX, XLS, XLSX, PPT, PPTX), CSV, XML, TXT, ZIP e vídeos (MP4, MOV, WEBM até 500 MB).`,
+      error: `Extensão ".${ext}" não é suportada. Formatos aceitos: PDF, imagens (PNG, JPG, WEBP, GIF, HEIC), Office (DOC, DOCX, XLS, XLSX, PPT, PPTX), CSV, XML, TXT, ZIP, design (AI, PSD até 1 GB) e vídeos (MP4, MOV, WEBM até 500 MB).`,
     };
   }
 
@@ -149,7 +168,7 @@ export async function validateFileForUpload(file: File): Promise<FileValidationR
     };
   }
 
-  // 4. MIME type (tolerante: aceita octet-stream para .docx/.xlsx)
+  // 4. MIME type (tolerante: aceita octet-stream para .docx/.xlsx/.psd/.ai)
   if (file.type && !ALLOWED_MIME_TYPES.has(file.type)) {
     return {
       valid: false,
@@ -158,18 +177,25 @@ export async function validateFileForUpload(file: File): Promise<FileValidationR
     };
   }
 
-  // 5. Tamanho (vídeos podem ir até 500 MB; demais tipos, 200 MB)
+  // 5. Tamanho (design .ai/.psd até 1 GB; vídeos até 500 MB; demais até 200 MB)
   const isVideo = VIDEO_EXTENSIONS.has(ext);
-  const maxSize = isVideo ? MAX_VIDEO_SIZE_BYTES : MAX_FILE_SIZE_BYTES;
+  const isDesign = DESIGN_EXTENSIONS.has(ext);
+  const maxSize = isDesign
+    ? MAX_DESIGN_FILE_SIZE_BYTES
+    : isVideo
+      ? MAX_VIDEO_SIZE_BYTES
+      : MAX_FILE_SIZE_BYTES;
   if (file.size > maxSize) {
     const maxMb = (maxSize / (1024 * 1024)).toFixed(0);
     const currentMb = (file.size / (1024 * 1024)).toFixed(1);
     return {
       valid: false,
       code: "SIZE_EXCEEDED",
-      error: isVideo
-        ? `Vídeo ".${ext}" tem ${currentMb} MB e excede o limite de ${maxMb} MB. Comprima o vídeo (ex.: HandBrake, MP4 H.264 720p) e tente novamente.`
-        : `Arquivo ".${ext}" tem ${currentMb} MB e excede o limite de ${maxMb} MB para este tipo. Vídeos MP4/MOV/WEBM podem chegar a 500 MB.`,
+      error: isDesign
+        ? `Arquivo de design ".${ext}" tem ${currentMb} MB e excede o limite de ${maxMb} MB.`
+        : isVideo
+          ? `Vídeo ".${ext}" tem ${currentMb} MB e excede o limite de ${maxMb} MB. Comprima o vídeo (ex.: HandBrake, MP4 H.264 720p) e tente novamente.`
+          : `Arquivo ".${ext}" tem ${currentMb} MB e excede o limite de ${maxMb} MB para este tipo. Vídeos MP4/MOV/WEBM podem chegar a 500 MB e arquivos de design (AI/PSD) até 1 GB.`,
     };
   }
 
@@ -220,16 +246,17 @@ export function describeUploadError(message: string): { title: string; descripti
   if (msg.includes("payload too large") || msg.includes("exceeded the maximum") || msg.includes("file_size_limit")) {
     return {
       title: "Arquivo muito grande",
-      description: "O servidor recusou o upload. Limite: 200 MB para documentos/imagens e 500 MB para vídeos (MP4, MOV, WEBM).",
+      description: "O servidor recusou o upload. Limite: 200 MB para documentos/imagens, 500 MB para vídeos (MP4, MOV, WEBM) e 1 GB para arquivos de design (AI, PSD).",
     };
   }
   if (msg.includes("mime type") && msg.includes("not supported")) {
     return {
       title: "Tipo de arquivo não permitido",
-      description: "Formatos aceitos: PDF, imagens, Office, CSV, XML, TXT, ZIP e vídeos MP4/MOV/WEBM.",
+      description: "Formatos aceitos: PDF, imagens, Office, CSV, XML, TXT, ZIP, design (AI/PSD) e vídeos MP4/MOV/WEBM.",
     };
   }
   if (
+    msg.includes("excede o limite de 1 gb") ||
     msg.includes("excede o limite de 500 mb") ||
     msg.includes("excede o limite de 200 mb") ||
     msg.includes("excede o limite de 100 mb") ||
