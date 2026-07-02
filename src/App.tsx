@@ -108,7 +108,7 @@ const PainelExecutivo = lazyWithRetry(() => import("./pages/PainelExecutivo"));
 const PerformanceVendas = lazyWithRetry(() => import("./pages/PerformanceVendas"));
 const AnaliseClientes = lazyWithRetry(() => import("./pages/AnaliseClientes"));
 const DetalhamentoVendas = lazyWithRetry(() => import("./pages/DetalhamentoVendas"));
-const AnaliseVendas = lazyWithRetry(() => import("./pages/vendas/AnaliseVendas"));
+const ResultadosVendas = lazyWithRetry(() => import("./pages/vendas/ResultadosVendas"));
 const AnaliseGeografico = lazyWithRetry(() => import("./pages/AnaliseGeografico"));
 const AnaliseProdutos = lazyWithRetry(() => import("./pages/AnaliseProdutos"));
 const MetasProjecoes = lazyWithRetry(() => import("./pages/MetasProjecoes"));
@@ -759,7 +759,7 @@ function AppContent() {
             <Route path="/dashboard/vendas/analise" element={<Navigate to="/dashboard/fornecedor/vendas" replace />} />
             {/* Módulo Fornecedor */}
             <Route path="/dashboard/fornecedor" element={<ModuleRoute moduleCode="fornecedor"><FornecedorModule /></ModuleRoute>} />
-            <Route path="/dashboard/fornecedor/vendas" element={<ModuleRoute moduleCode="fornecedor"><ScreenProtectedRoute screenCode="fornecedor_vendas"><AnaliseVendas /></ScreenProtectedRoute></ModuleRoute>} />
+            <Route path="/dashboard/fornecedor/vendas" element={<ModuleRoute moduleCode="fornecedor"><ScreenProtectedRoute screenCode="fornecedor_vendas"><ResultadosVendas /></ScreenProtectedRoute></ModuleRoute>} />
             <Route path="/dashboard/fornecedor/estoque" element={<ModuleRoute moduleCode="fornecedor"><ScreenProtectedRoute screenCode="fornecedor_estoque"><FornecedorEstoquePage /></ScreenProtectedRoute></ModuleRoute>} />
             <Route path="/dashboard/fornecedor/depara-ean" element={<ModuleRoute moduleCode="fornecedor"><ScreenProtectedRoute screenCode="fornecedor_depara_ean"><FornecedorDeParaEanPage /></ScreenProtectedRoute></ModuleRoute>} />
             <Route path="/dashboard/fornecedor/pedidos" element={<ModuleRoute moduleCode="fornecedor"><FornecedorPedidosPage /></ModuleRoute>} />
