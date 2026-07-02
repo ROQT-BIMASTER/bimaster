@@ -864,32 +864,37 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
           </ModuleSubmenu>
         );
 
-      case "comercial":
+      case "comercial": {
+        const comercialItems = [
+          { url: "/dashboard/comercial", icon: Home, title: t("comercial.dashboard"), screenCode: "comercial_dashboard", end: true },
+          { url: "/dashboard/comercial/lancamentos", icon: Rocket, title: t("comercial.launches"), screenCode: "comercial_lancamentos" },
+          { url: "/dashboard/painel-executivo", icon: BarChart3, title: "Painel Executivo", screenCode: "ci_executivo" },
+          { url: "/dashboard/performance-vendas", icon: TrendingUp, title: "Performance Vendas", screenCode: "ci_performance" },
+          { url: "/dashboard/clientes", icon: Users, title: "Análise Clientes", screenCode: "ci_clientes" },
+          { url: "/dashboard/detalhamento", icon: FileText, title: "Detalhamento", screenCode: "ci_consolidado" },
+          { url: "/dashboard/produtos", icon: Package, title: "Análise Produtos", screenCode: "ci_produtos" },
+          { url: "/dashboard/geografico", icon: MapPin, title: "Análise Geográfico", screenCode: "ci_geografico" },
+          { url: "/dashboard/consolidado", icon: Layers, title: "Consolidado", screenCode: "ci_consolidado" },
+          { url: "/dashboard/metas", icon: Target, title: "Metas e Projeções", screenCode: "ci_metas" },
+          { url: "/dashboard/comercial/ibge", icon: MapPin, title: t("comercial.ibge"), screenCode: "comercial_ibge" },
+          { url: "/dashboard/comercial/mineracao", icon: Pickaxe, title: t("comercial.mining"), screenCode: "comercial_mineracao" },
+          { url: "/dashboard/comercial/inteligencia", icon: Brain, title: "Inteligência de Mercado", screenCode: "comercial_inteligencia" },
+          { url: "/dashboard/comercial/reativacao", icon: AlertTriangle, title: t("comercial.reactivation"), screenCode: "comercial_reativacao" },
+          { url: "/dashboard/comercial/mapa", icon: MapPin, title: "Mapa Comercial", screenCode: "comercial_mapa" },
+          { url: "/dashboard/comercial/municipios-inteligencia", icon: Building2, title: t("comercial.municipalities"), screenCode: "comercial_municipios" },
+          { url: "/dashboard/comercial/whitespace", icon: Compass, title: t("comercial.whitespace"), screenCode: "comercial_whitespace" },
+        ];
+        const visible = comercialItems.filter(i => hasPermission(i.screenCode));
+        if (visible.length === 0) return null;
         return (
           <ModuleSubmenu icon={Briefcase} title={t("module.comercial")} colorKey="comercial">
-            {hasPermission("comercial_dashboard") && (
-              <MenuItemLink to="/dashboard/comercial" icon={Home} title={t("comercial.dashboard")} colorKey="comercial" end />
-            )}
-            {hasPermission("comercial_lancamentos") && (
-              <MenuItemLink to="/dashboard/comercial/lancamentos" icon={Rocket} title={t("comercial.launches")} colorKey="comercial" />
-            )}
-            <MenuItemLink to="/dashboard/painel-executivo" icon={BarChart3} title="Painel Executivo" colorKey="comercial" />
-            <MenuItemLink to="/dashboard/performance-vendas" icon={TrendingUp} title="Performance Vendas" colorKey="comercial" />
-            <MenuItemLink to="/dashboard/clientes" icon={Users} title="Análise Clientes" colorKey="comercial" />
-            <MenuItemLink to="/dashboard/detalhamento" icon={FileText} title="Detalhamento" colorKey="comercial" />
-            <MenuItemLink to="/dashboard/produtos" icon={Package} title="Análise Produtos" colorKey="comercial" />
-            <MenuItemLink to="/dashboard/geografico" icon={MapPin} title="Análise Geográfico" colorKey="comercial" />
-            <MenuItemLink to="/dashboard/consolidado" icon={Layers} title="Consolidado" colorKey="comercial" />
-            <MenuItemLink to="/dashboard/metas" icon={Target} title="Metas e Projeções" colorKey="comercial" />
-            <MenuItemLink to="/dashboard/comercial/ibge" icon={MapPin} title={t("comercial.ibge")} colorKey="comercial" />
-            <MenuItemLink to="/dashboard/comercial/mineracao" icon={Pickaxe} title={t("comercial.mining")} colorKey="comercial" />
-            <MenuItemLink to="/dashboard/comercial/inteligencia" icon={Brain} title="Inteligência de Mercado" colorKey="comercial" />
-            <MenuItemLink to="/dashboard/comercial/reativacao" icon={AlertTriangle} title={t("comercial.reactivation")} colorKey="comercial" />
-            <MenuItemLink to="/dashboard/comercial/mapa" icon={MapPin} title="Mapa Comercial" colorKey="comercial" />
-            <MenuItemLink to="/dashboard/comercial/municipios-inteligencia" icon={Building2} title={t("comercial.municipalities")} colorKey="comercial" />
-            <MenuItemLink to="/dashboard/comercial/whitespace" icon={Compass} title={t("comercial.whitespace")} colorKey="comercial" />
+            {visible.map(item => (
+              <MenuItemLink key={item.url} to={item.url} icon={item.icon} title={item.title} colorKey="comercial" end={item.end} />
+            ))}
           </ModuleSubmenu>
         );
+      }
+
 
       case "precos":
         return (
@@ -988,47 +993,65 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
           </ModuleSubmenu>
         );
 
-      case "china":
+      case "china": {
+        const chinaItems = [
+          { url: "/dashboard/fabrica-china", icon: Home, title: "Painel 面板", screenCode: "china_dashboard", end: true },
+          { url: "/dashboard/fabrica-china/nova", icon: Upload, title: "Nova Submissão 新提交", screenCode: "china_submissoes" },
+          { url: "/dashboard/fabrica-china/recebimentos", icon: Package, title: "Submissões 提交", screenCode: "china_submissoes" },
+          { url: "/dashboard/fabrica-china/ordens-producao", icon: Factory, title: "Ordens de Produção 生产订单", screenCode: "china_ordens_producao" },
+        ];
+        const visible = chinaItems.filter(i => hasPermission(i.screenCode));
+        const showInbox = isAdmin || hasPermission("compras_inbox_comprador");
+        if (visible.length === 0 && !showInbox) return null;
         return (
           <ModuleSubmenu icon={Globe} title="Fábrica China 中国工厂" colorKey="china">
             <ChinaInboxSidebarItem colorKey="china" />
-            {(isAdmin || hasPermission("compras_inbox_comprador")) && (
+            {showInbox && (
               <MenuItemLink to="/dashboard/compras-internacionais/inbox" icon={Inbox} title="Inbox do Comprador 采购员收件箱" colorKey="china" />
             )}
-            <MenuItemLink to="/dashboard/fabrica-china" icon={Home} title="Painel 面板" colorKey="china" end />
-            <MenuItemLink to="/dashboard/fabrica-china/nova" icon={Upload} title="Nova Submissão 新提交" colorKey="china" />
-            <MenuItemLink to="/dashboard/fabrica-china/recebimentos" icon={Package} title="Submissões 提交" colorKey="china" />
-            {/* Ordens de Compra consolidadas no Inbox do Comprador — não duplicar aqui (ver compras-deep-links.test.ts). */}
-            <MenuItemLink to="/dashboard/fabrica-china/ordens-producao" icon={Factory} title="Ordens de Produção 生产订单" colorKey="china" />
+            {visible.map((item, idx) => (
+              <MenuItemLink key={item.url} to={item.url} icon={item.icon} title={item.title} colorKey="china" end={item.end} />
+            ))}
           </ModuleSubmenu>
         );
+      }
 
-      case "composicao":
+
+      case "composicao": {
+        if (!hasPermission("composicao_checklist")) return null;
         return (
           <ModuleSubmenu icon={FlaskConical} title="Composição" colorKey="fabrica">
             <MenuItemLink to="/dashboard/central/composicao" icon={Inbox} title="Central da Equipe" colorKey="fabrica" end />
             <MenuItemLink to="/dashboard/composicao" icon={FlaskConical} title="Checklist INCI" colorKey="fabrica" end />
-            <MenuItemLink to="/dashboard/composicao/sync" icon={RefreshCw} title="Sync ERP" colorKey="fabrica" end />
+            {isAdmin && (
+              <MenuItemLink to="/dashboard/composicao/sync" icon={RefreshCw} title="Sync ERP" colorKey="fabrica" end />
+            )}
           </ModuleSubmenu>
         );
+      }
 
-      case "amostras":
+      case "amostras": {
+        if (!hasPermission("amostras_recebimento")) return null;
         return (
           <ModuleSubmenu icon={Package} title="Amostras" colorKey="fabrica">
             <MenuItemLink to="/dashboard/central/amostras" icon={Inbox} title="Central da Equipe" colorKey="fabrica" end />
             <MenuItemLink to="/dashboard/amostras" icon={Package} title="Recebimentos" colorKey="fabrica" end />
           </ModuleSubmenu>
         );
+      }
 
-      case "analise_embalagem":
+      case "analise_embalagem": {
+        if (!hasPermission("embalagem_analise")) return null;
         return (
           <ModuleSubmenu icon={Layers} title="Embalagem" colorKey="fabrica">
             <MenuItemLink to="/dashboard/central/embalagens" icon={Inbox} title="Central da Equipe" colorKey="fabrica" end />
             <MenuItemLink to="/dashboard/analise-embalagem" icon={Layers} title="Análises" colorKey="fabrica" end />
           </ModuleSubmenu>
         );
+      }
 
-      case "etiqueta_bula":
+      case "etiqueta_bula": {
+        if (!hasPermission("etiqueta_checklist")) return null;
         return (
           <SidebarMenuItem>
             <SidebarMenuButton asChild>
@@ -1042,16 +1065,26 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
             </SidebarMenuButton>
           </SidebarMenuItem>
         );
+      }
 
-      case "aprovacao_artes":
+      case "aprovacao_artes": {
+        const artesItems = [
+          { url: "/dashboard/central/motor-artes", icon: Inbox, title: "Central da Equipe", screenCode: "aprovacao_artes_lista" },
+          { url: "/dashboard/fluxo-artes", icon: Palette, title: "Motor de Artes", screenCode: "aprovacao_artes_lista" },
+          { url: "/dashboard/aprovacao-artes", icon: ClipboardCheck, title: "Fluxos Legado", screenCode: "aprovacao_artes_lista" },
+          { url: "/dashboard/aprovacao-artes/configuracao", icon: Cog, title: "Configuração", screenCode: "aprovacao_artes_config" },
+        ];
+        const visible = artesItems.filter(i => hasPermission(i.screenCode));
+        if (visible.length === 0) return null;
         return (
           <ModuleSubmenu icon={Palette} title="Aprovação de Artes" colorKey="fabrica">
-            <MenuItemLink to="/dashboard/central/motor-artes" icon={Inbox} title="Central da Equipe" colorKey="fabrica" end />
-            <MenuItemLink to="/dashboard/fluxo-artes" icon={Palette} title="Motor de Artes" colorKey="fabrica" end />
-            <MenuItemLink to="/dashboard/aprovacao-artes" icon={ClipboardCheck} title="Fluxos Legado" colorKey="fabrica" end />
-            <MenuItemLink to="/dashboard/aprovacao-artes/configuracao" icon={Cog} title="Configuração" colorKey="fabrica" end />
+            {visible.map(item => (
+              <MenuItemLink key={item.url} to={item.url} icon={item.icon} title={item.title} colorKey="fabrica" end />
+            ))}
           </ModuleSubmenu>
         );
+      }
+
 
       case "financeiro":
         return (
@@ -1178,9 +1211,16 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
             {isAdmin && hasPermission("projetos_aprovacoes_auditoria") && (
               <MenuItemLink to="/dashboard/projetos/aprovacoes/auditoria" icon={Shield} title="Auditoria de Aprovações" />
             )}
-            <MenuItemLink to="/dashboard/projetos/minhas-tarefas" icon={CheckSquare} title="Minhas tarefas" />
-            <MenuItemLink to="/dashboard/projetos/central" icon={Home} title="Central de Trabalho" />
-            <MenuItemLink to="/dashboard/projetos" icon={FolderKanban} title="Meus Projetos" end />
+            {(isAdmin || hasPermission("projetos_minhas_tarefas")) && (
+              <MenuItemLink to="/dashboard/projetos/minhas-tarefas" icon={CheckSquare} title="Minhas tarefas" />
+            )}
+            {(isAdmin || hasPermission("projetos_home")) && (
+              <MenuItemLink to="/dashboard/projetos/central" icon={Home} title="Central de Trabalho" />
+            )}
+            {(isAdmin || hasPermission("projetos_dashboard")) && (
+              <MenuItemLink to="/dashboard/projetos" icon={FolderKanban} title="Meus Projetos" end />
+            )}
+
             {isAdmin && (
               <>
                 <MenuItemLink to="/dashboard/projetos/vincular-china" icon={Globe} title="Vincular China" />
@@ -1204,7 +1244,8 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
           </ModuleSubmenu>
         );
 
-      case "reunioes":
+      case "reunioes": {
+        if (!hasPermission("reunioes_lista") && !hasPermission("reunioes_dashboard")) return null;
         return (
           <SidebarMenuItem>
             <SidebarMenuButton asChild>
@@ -1218,13 +1259,21 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
             </SidebarMenuButton>
           </SidebarMenuItem>
         );
+      }
 
-      case "processos":
+      case "processos": {
+        const procItems = [
+          { url: "/dashboard/processos/consulta", icon: Scale, title: "Consulta de Processos", screenCode: "processos_consulta" },
+          { url: "/dashboard/processos/etapas", icon: Settings, title: "Configurar Etapas", screenCode: "processos_etapas" },
+          { url: "/dashboard/processos/workflows", icon: Layers, title: "Workflows Documentais", screenCode: "processos_workflows" },
+        ];
+        const visible = procItems.filter(i => hasPermission(i.screenCode));
+        if (visible.length === 0 && !isAdmin) return null;
         return (
           <ModuleSubmenu icon={Scale} title="Processos" colorKey="comercial">
-            <MenuItemLink to="/dashboard/processos/consulta" icon={Scale} title="Consulta de Processos" end />
-            <MenuItemLink to="/dashboard/processos/etapas" icon={Settings} title="Configurar Etapas" end />
-            <MenuItemLink to="/dashboard/processos/workflows" icon={Layers} title="Workflows Documentais" end />
+            {visible.map(item => (
+              <MenuItemLink key={item.url} to={item.url} icon={item.icon} title={item.title} colorKey="comercial" end />
+            ))}
             {isAdmin && (
               <>
                 <MenuItemLink to="/dashboard/processos/perfis" icon={Workflow} title="Perfis de Processo" end />
@@ -1235,6 +1284,8 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
             )}
           </ModuleSubmenu>
         );
+      }
+
 
       default:
         return null;
