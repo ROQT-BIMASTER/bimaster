@@ -1,20 +1,21 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { ArrowUpDown, Maximize2 } from "lucide-react";
+import { ArrowDown, ArrowUp, ArrowUpDown, Maximize2 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useVendasYoy, type YoyDim, type VendasYoyRow } from "@/hooks/vendas/useVendasYoy";
 import { formatMi, formatVarPct, variacaoTone } from "@/lib/vendas/format";
 import { RankingYoyFocoDialog } from "./RankingYoyFocoDialog";
+import { ClienteDetalheDialog } from "./ClienteDetalheDialog";
 
-type SortKey = "faturamento" | "crescimento";
-type SortDir = "asc" | "desc";
+export type SortKey = "faturamento" | "crescimento";
+export type SortDir = "asc" | "desc";
+export type SortState = { key: SortKey; dir: SortDir };
 
 interface Props {
   ano: number;
   empresa: number | null;
 }
 
-/** barra divergente centrada no 0, escala ±120% */
 function DivergingBar({ variacao, novo }: { variacao: number | null; novo: boolean }) {
   if (novo) {
     return (
@@ -29,7 +30,7 @@ function DivergingBar({ variacao, novo }: { variacao: number | null; novo: boole
     return <div className="w-full text-center text-xs text-rv-text-suave">—</div>;
   }
   const clamp = Math.max(-1.2, Math.min(1.2, variacao));
-  const pct = (Math.abs(clamp) / 1.2) * 50; // até 50% de cada lado
+  const pct = (Math.abs(clamp) / 1.2) * 50;
   const positivo = clamp >= 0;
   const color = positivo ? "hsl(var(--rv-positivo))" : "hsl(var(--rv-negativo))";
   const label = formatVarPct(variacao);
@@ -58,21 +59,45 @@ function DivergingBar({ variacao, novo }: { variacao: number | null; novo: boole
   );
 }
 
+export function sortYoyRows(rows: VendasYoyRow[], sort: SortState): VendasYoyRow[] {
+  const arr = [...rows];
+  arr.sort((a, b) => {
+    if (sort.key === "faturamento") {
+      return sort.dir === "desc" ? b.fat_atual - a.fat_atual : a.fat_atual - b.fat_atual;
+    }
+    // crescimento: sempre empurrar null/novo para o final
+    const aNull = a.variacao == null;
+    const bNull = b.variacao == null;
+    if (aNull && bNull) return 0;
+    if (aNull) return 1;
+    if (bNull) return -1;
+    return sort.dir === "desc"
+      ? (b.variacao as number) - (a.variacao as number)
+      : (a.variacao as number) - (b.variacao as number);
+  });
+  return arr;
+}
+
+function SortIcon({ active, dir }: { active: boolean; dir: SortDir }) {
+  if (!active) return <ArrowUpDown className="w-3 h-3" />;
+  return dir === "desc" ? <ArrowDown className="w-3 h-3" /> : <ArrowUp className="w-3 h-3" />;
+}
+
 export function BlocoRankingYoy({ ano, empresa }: Props) {
   const [dim, setDim] = useState<YoyDim>("cliente");
-  const [sort, setSort] = useState<{ key: SortKey; dir: SortDir }>({ key: "faturamento", dir: "desc" });
+  const [sort, setSort] = useState<SortState>({ key: "faturamento", dir: "desc" });
   const [foco, setFoco] = useState(false);
+  const [query, setQuery] = useState("");
+  const [selecionada, setSelecionada] = useState<VendasYoyRow | null>(null);
   const { data, isLoading } = useVendasYoy({ dim, ano, empresa });
 
-  const rows = useMemo(() => {
-    const arr = [...(data ?? [])];
-    arr.sort((a, b) => {
-      const av = sort.key === "faturamento" ? a.fat_atual : (a.variacao ?? -Infinity);
-      const bv = sort.key === "faturamento" ? b.fat_atual : (b.variacao ?? -Infinity);
-      return sort.dir === "desc" ? bv - av : av - bv;
-    });
-    return arr;
-  }, [data, sort]);
+  // reset sort ao trocar dimensão
+  useEffect(() => {
+    setSort({ key: "faturamento", dir: "desc" });
+    setQuery("");
+  }, [dim]);
+
+  const rows = useMemo(() => sortYoyRows(data ?? [], sort), [data, sort]);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const virt = useVirtualizer({
@@ -91,6 +116,9 @@ export function BlocoRankingYoy({ ano, empresa }: Props) {
     { v: "vendedor", label: "Vendedor" },
     { v: "produto", label: "Produto (em breve)", disabled: true },
   ];
+
+  const sortLabel = sort.key === "faturamento" ? "Faturamento" : "Crescimento";
+  const total = data?.length ?? 0;
 
   return (
     <section className="pt-14">
@@ -132,22 +160,26 @@ export function BlocoRankingYoy({ ano, empresa }: Props) {
       </div>
 
       <div className="border-t border-rv-linha">
-        <div className="grid grid-cols-[36px_1fr_120px_1fr_80px] gap-4 py-3 px-1 text-[10px] uppercase tracking-wider text-rv-text-suave border-b border-rv-linha">
+        <div className="grid grid-cols-[36px_1fr_140px_1fr_100px] gap-4 py-3 px-1 text-[10px] uppercase tracking-wider text-rv-text-suave border-b border-rv-linha">
           <div>#</div>
           <div>Nome</div>
           <button
             type="button"
             onClick={() => toggleSort("faturamento")}
-            className="flex items-center justify-end gap-1 hover:text-rv-ink transition-colors"
+            className={`flex items-center justify-end gap-1 transition-colors ${
+              sort.key === "faturamento" ? "text-rv-ink font-medium" : "hover:text-rv-ink"
+            }`}
           >
-            Faturamento <ArrowUpDown className="w-3 h-3" />
+            Faturamento <SortIcon active={sort.key === "faturamento"} dir={sort.dir} />
           </button>
           <button
             type="button"
             onClick={() => toggleSort("crescimento")}
-            className="flex items-center justify-center gap-1 hover:text-rv-ink transition-colors"
+            className={`flex items-center justify-center gap-1 transition-colors ${
+              sort.key === "crescimento" ? "text-rv-ink font-medium" : "hover:text-rv-ink"
+            }`}
           >
-            Crescimento vs {ano - 1} <ArrowUpDown className="w-3 h-3" />
+            Crescimento vs {ano - 1} <SortIcon active={sort.key === "crescimento"} dir={sort.dir} />
           </button>
           <div className="text-right">Notas</div>
         </div>
@@ -162,7 +194,7 @@ export function BlocoRankingYoy({ ano, empresa }: Props) {
           <div className="py-12 text-center text-sm text-rv-text-suave">Sem dados no período.</div>
         ) : (
           <>
-            <div ref={scrollRef} className="max-h-[560px] overflow-y-auto">
+            <div ref={scrollRef} className="max-h-[70vh] overflow-y-auto">
               <div style={{ height: virt.getTotalSize(), position: "relative" }}>
                 {virt.getVirtualItems().map((vi) => {
                   const r: VendasYoyRow = rows[vi.index];
@@ -172,13 +204,15 @@ export function BlocoRankingYoy({ ano, empresa }: Props) {
                     : tone === "negativo" ? "text-rv-negativo"
                     : "text-rv-text-suave";
                   return (
-                    <div
+                    <button
                       key={`${r.chave ?? "na"}-${vi.index}`}
+                      type="button"
+                      onClick={() => setSelecionada(r)}
                       style={{
                         position: "absolute", top: 0, left: 0, right: 0,
                         transform: `translateY(${vi.start}px)`, height: vi.size,
                       }}
-                      className="grid grid-cols-[36px_1fr_120px_1fr_80px] gap-4 items-center px-1 border-b border-rv-linha/60 hover:bg-rv-faixa-verde/40 transition-colors"
+                      className="grid grid-cols-[36px_1fr_140px_1fr_100px] gap-4 items-center px-1 border-b border-rv-linha/60 hover:bg-rv-faixa-verde/40 transition-colors text-left"
                     >
                       <div className="text-xs text-rv-muted tabular-nums">{vi.index + 1}</div>
                       <div className="text-sm text-rv-ink truncate" title={r.nome}>{r.nome}</div>
@@ -189,13 +223,14 @@ export function BlocoRankingYoy({ ano, empresa }: Props) {
                       <div className="text-right text-sm text-rv-muted tabular-nums">
                         {r.notas_atual.toLocaleString("pt-BR")}
                       </div>
-                    </div>
+                    </button>
                   );
                 })}
               </div>
             </div>
-            <div className="py-2 px-1 text-[11px] text-rv-text-suave border-t border-rv-linha">
-              mostrando {rows.length} de {rows.length}
+            <div className="py-2 px-1 text-[11px] text-rv-text-suave border-t border-rv-linha flex items-center justify-between">
+              <span>mostrando {rows.length} de {total} {dim === "cliente" ? "clientes" : "vendedores"}</span>
+              <span>ordenado por {sortLabel} ({sort.dir === "desc" ? "maior → menor" : "menor → maior"})</span>
             </div>
           </>
         )}
@@ -205,6 +240,20 @@ export function BlocoRankingYoy({ ano, empresa }: Props) {
         open={foco}
         onClose={() => setFoco(false)}
         rows={rows}
+        total={total}
+        dim={dim}
+        ano={ano}
+        query={query}
+        onQueryChange={setQuery}
+        sort={sort}
+        onSortChange={setSort}
+        onRowClick={(r) => setSelecionada(r)}
+      />
+
+      <ClienteDetalheDialog
+        open={!!selecionada}
+        onClose={() => setSelecionada(null)}
+        row={selecionada}
         dim={dim}
         ano={ano}
       />
