@@ -16,10 +16,14 @@ const FALLBACK_CHAIN: Record<string, string | null> = {
   "google/gemini-3-flash-preview": "google/gemini-2.5-flash-lite",
   "google/gemini-2.5-flash": "google/gemini-2.5-flash-lite",
   "google/gemini-2.5-flash-lite": null,
+  "openai/gpt-5.5-pro": "openai/gpt-5.5",
+  "openai/gpt-5.5": "openai/gpt-5.2",
+  "openai/gpt-5.4-pro": "openai/gpt-5.4",
+  "openai/gpt-5.4": "openai/gpt-5.2",
   "openai/gpt-5": "openai/gpt-5-mini",
   "openai/gpt-5.2": "openai/gpt-5-mini",
   "openai/gpt-5-mini": "openai/gpt-5-nano",
-  "openai/gpt-5-nano": null,
+  "openai/gpt-5-nano": "google/gemini-3-flash-preview",
 };
 
 export interface CallAIGatewayInput {

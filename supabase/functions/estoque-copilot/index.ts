@@ -551,7 +551,7 @@ Deno.serve(secureHandler(
       filiais: new Map(),
     };
 
-    let model = "google/gemini-3-flash-preview";
+    let model = "openai/gpt-5.5";
     let finalAssistant = "";
     let iterations = 0;
     while (iterations < 5) {
