@@ -1211,9 +1211,16 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
             {isAdmin && hasPermission("projetos_aprovacoes_auditoria") && (
               <MenuItemLink to="/dashboard/projetos/aprovacoes/auditoria" icon={Shield} title="Auditoria de Aprovações" />
             )}
-            <MenuItemLink to="/dashboard/projetos/minhas-tarefas" icon={CheckSquare} title="Minhas tarefas" />
-            <MenuItemLink to="/dashboard/projetos/central" icon={Home} title="Central de Trabalho" />
-            <MenuItemLink to="/dashboard/projetos" icon={FolderKanban} title="Meus Projetos" end />
+            {(isAdmin || hasPermission("projetos_minhas_tarefas")) && (
+              <MenuItemLink to="/dashboard/projetos/minhas-tarefas" icon={CheckSquare} title="Minhas tarefas" />
+            )}
+            {(isAdmin || hasPermission("projetos_home")) && (
+              <MenuItemLink to="/dashboard/projetos/central" icon={Home} title="Central de Trabalho" />
+            )}
+            {(isAdmin || hasPermission("projetos_dashboard")) && (
+              <MenuItemLink to="/dashboard/projetos" icon={FolderKanban} title="Meus Projetos" end />
+            )}
+
             {isAdmin && (
               <>
                 <MenuItemLink to="/dashboard/projetos/vincular-china" icon={Globe} title="Vincular China" />
