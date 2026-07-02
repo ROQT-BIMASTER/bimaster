@@ -3,7 +3,7 @@ import { AlertTriangle, ArrowUpDown, Zap } from "lucide-react";
 import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 import { formatCurrency } from "@/lib/formatters";
 import { parseLocalDate } from "@/lib/utils/parseLocalDate";
@@ -33,6 +33,10 @@ export function PedidosTable({ pedidos, limiarParado, onPedidoClick }: PedidosTa
     });
     return arr;
   }, [pedidos, sortKey, sortDir]);
+
+  const totalGeral = useMemo(() => sorted.reduce((s, p) => s + (p.total_pedido ?? 0), 0), [sorted]);
+
+
 
   const onSort = (k: SortKey) => {
     if (k === sortKey) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
@@ -116,6 +120,18 @@ export function PedidosTable({ pedidos, limiarParado, onPedidoClick }: PedidosTa
           })
         )}
       </TableBody>
+      {sorted.length > 0 && (
+        <TableFooter>
+          <TableRow>
+            <TableCell colSpan={6} className="text-sm text-muted-foreground">
+              Total ({sorted.length} {sorted.length === 1 ? "pedido" : "pedidos"})
+            </TableCell>
+            <TableCell className="text-right font-semibold whitespace-nowrap">
+              {formatCurrency(totalGeral)}
+            </TableCell>
+          </TableRow>
+        </TableFooter>
+      )}
     </Table>
   );
 }
