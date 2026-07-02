@@ -490,6 +490,7 @@ export function ProjetoTarefaDetalhe({
       }}>
         <SheetContent
           side="right"
+          hideClose
           className="w-full sm:max-w-[580px] p-0 flex flex-col overflow-hidden"
           onPointerDownOutside={(e) => {
             // Evita que cliques em conteúdo portalizado (Popover, Select,
@@ -523,7 +524,7 @@ export function ProjetoTarefaDetalhe({
           </SheetHeader>
 
           {/* Top action bar — Asana-style flat header */}
-          <div className="px-5 py-3 border-b border-border/60 flex items-center gap-2">
+          <div className="px-5 py-3 border-b border-border/60 flex items-center gap-2 flex-wrap">
             {(tarefa as any).parent_tarefa_id && (
               <>
                 <Button
@@ -648,6 +649,16 @@ export function ProjetoTarefaDetalhe({
                   Foco
                 </Button>
               )}
+              <Button
+                variant="ghost"
+                size="sm"
+                className="rounded-full h-8 w-8 p-0 shrink-0"
+                onClick={() => onOpenChange(false)}
+                title="Fechar"
+                aria-label="Fechar"
+              >
+                <X className="h-4 w-4" />
+              </Button>
             </div>
           </div>
 

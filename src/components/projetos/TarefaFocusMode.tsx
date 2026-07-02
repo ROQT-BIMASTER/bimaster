@@ -39,7 +39,7 @@ import {
   Minimize2, CheckCircle2, Circle, CalendarIcon, Paperclip, MessageSquare,
   MessageCircle, Upload, FileText, Image, File, Trash2, Download,
   Target, Plus, BarChart3, FolderOpen, ShieldCheck, AlertTriangle, FileSpreadsheet, Lock, ArrowDownToLine,
-  Sparkles, Wand2, Loader2
+  Sparkles, Wand2, Loader2, X
 } from "lucide-react";
 import { CofreOficialTab } from "./CofreOficialTab";
 import { ProductDevStatusBar } from "./ProductDevStatusBar";
@@ -346,6 +346,7 @@ export function TarefaFocusMode({
   return (
     <Dialog open={open} onOpenChange={handleOpenChangeSafe}>
       <DialogContent
+        hideClose
         className="max-w-[98vw] w-[98vw] h-[95vh] p-0 gap-0 flex flex-col overflow-hidden"
         onPointerDownOutside={(e) => {
           // Bloqueia fechamento por clique em conteúdo portalizado
@@ -427,6 +428,16 @@ export function TarefaFocusMode({
           <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={handleExitFocusClick}>
             <Minimize2 className="h-3.5 w-3.5" />
             Sair do Foco
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="rounded-full h-8 w-8 p-0 shrink-0"
+            onClick={handleExitFocusClick}
+            title="Fechar"
+            aria-label="Fechar"
+          >
+            <X className="h-4 w-4" />
           </Button>
         </div>
 
