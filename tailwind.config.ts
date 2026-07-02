@@ -107,6 +107,8 @@ export default {
           bg: "hsl(var(--rv-bg))",
           "faixa-verde": "hsl(var(--rv-faixa-verde))",
           steel: "hsl(var(--rv-steel))",
+          steel2: "hsl(var(--rv-steel2))",
+
           sage: "hsl(var(--rv-sage))",
           tan: "hsl(var(--rv-tan))",
           khaki: "hsl(var(--rv-khaki))",
