@@ -161,6 +161,12 @@ export default function FornecedorPedidosPage() {
           onOpenChange={(o) => { if (!o) setPedidoSelecionado(null); }}
           limiarParado={limiarParado}
         />
+
+        <PedidosCopilotDrawer
+          open={copilotOpen}
+          onOpenChange={setCopilotOpen}
+          scope={copilotScope}
+        />
       </div>
     </DashboardLayout>
   );
