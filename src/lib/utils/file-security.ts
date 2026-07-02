@@ -240,7 +240,7 @@ export function describeUploadError(message: string): { title: string; descripti
   if (msg.includes("payload too large") || msg.includes("exceeded the maximum") || msg.includes("file_size_limit")) {
     return {
       title: "Arquivo muito grande",
-      description: "O servidor recusou o upload. Limite: 200 MB para documentos/imagens, 500 MB para vídeos (MP4, MOV, WEBM) e 1 GB para arquivos de design (AI, PSD).",
+      description: "O servidor recusou o upload. O limite atual do sistema é de 1 GB por arquivo. Se seu arquivo estiver abaixo disso, o bucket de storage ainda está com o cap antigo — solicite ao suporte a elevação para 1 GB.",
     };
   }
   if (msg.includes("mime type") && msg.includes("not supported")) {
@@ -250,11 +250,9 @@ export function describeUploadError(message: string): { title: string; descripti
     };
   }
   if (
-    msg.includes("excede o limite de 1 gb") ||
-    msg.includes("excede o limite de 500 mb") ||
-    msg.includes("excede o limite de 200 mb") ||
-    msg.includes("excede o limite de 100 mb") ||
-    msg.includes("excede o limite de 20 mb")
+    msg.includes("excede o limite") ||
+    msg.includes("1 gb") ||
+    msg.includes("1024 mb")
   ) {
     return {
       title: "Arquivo acima do limite permitido",
