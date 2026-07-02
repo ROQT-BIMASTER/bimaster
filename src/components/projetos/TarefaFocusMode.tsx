@@ -346,6 +346,7 @@ export function TarefaFocusMode({
   return (
     <Dialog open={open} onOpenChange={handleOpenChangeSafe}>
       <DialogContent
+        hideClose
         className="max-w-[98vw] w-[98vw] h-[95vh] p-0 gap-0 flex flex-col overflow-hidden"
         onPointerDownOutside={(e) => {
           // Bloqueia fechamento por clique em conteúdo portalizado
