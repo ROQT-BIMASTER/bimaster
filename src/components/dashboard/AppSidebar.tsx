@@ -1017,32 +1017,41 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
       }
 
 
-      case "composicao":
+      case "composicao": {
+        if (!hasPermission("composicao_checklist")) return null;
         return (
           <ModuleSubmenu icon={FlaskConical} title="Composição" colorKey="fabrica">
             <MenuItemLink to="/dashboard/central/composicao" icon={Inbox} title="Central da Equipe" colorKey="fabrica" end />
             <MenuItemLink to="/dashboard/composicao" icon={FlaskConical} title="Checklist INCI" colorKey="fabrica" end />
-            <MenuItemLink to="/dashboard/composicao/sync" icon={RefreshCw} title="Sync ERP" colorKey="fabrica" end />
+            {isAdmin && (
+              <MenuItemLink to="/dashboard/composicao/sync" icon={RefreshCw} title="Sync ERP" colorKey="fabrica" end />
+            )}
           </ModuleSubmenu>
         );
+      }
 
-      case "amostras":
+      case "amostras": {
+        if (!hasPermission("amostras_recebimento")) return null;
         return (
           <ModuleSubmenu icon={Package} title="Amostras" colorKey="fabrica">
             <MenuItemLink to="/dashboard/central/amostras" icon={Inbox} title="Central da Equipe" colorKey="fabrica" end />
             <MenuItemLink to="/dashboard/amostras" icon={Package} title="Recebimentos" colorKey="fabrica" end />
           </ModuleSubmenu>
         );
+      }
 
-      case "analise_embalagem":
+      case "analise_embalagem": {
+        if (!hasPermission("embalagem_analise")) return null;
         return (
           <ModuleSubmenu icon={Layers} title="Embalagem" colorKey="fabrica">
             <MenuItemLink to="/dashboard/central/embalagens" icon={Inbox} title="Central da Equipe" colorKey="fabrica" end />
             <MenuItemLink to="/dashboard/analise-embalagem" icon={Layers} title="Análises" colorKey="fabrica" end />
           </ModuleSubmenu>
         );
+      }
 
-      case "etiqueta_bula":
+      case "etiqueta_bula": {
+        if (!hasPermission("etiqueta_checklist")) return null;
         return (
           <SidebarMenuItem>
             <SidebarMenuButton asChild>
@@ -1056,16 +1065,26 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
             </SidebarMenuButton>
           </SidebarMenuItem>
         );
+      }
 
-      case "aprovacao_artes":
+      case "aprovacao_artes": {
+        const artesItems = [
+          { url: "/dashboard/central/motor-artes", icon: Inbox, title: "Central da Equipe", screenCode: "aprovacao_artes_lista" },
+          { url: "/dashboard/fluxo-artes", icon: Palette, title: "Motor de Artes", screenCode: "aprovacao_artes_lista" },
+          { url: "/dashboard/aprovacao-artes", icon: ClipboardCheck, title: "Fluxos Legado", screenCode: "aprovacao_artes_lista" },
+          { url: "/dashboard/aprovacao-artes/configuracao", icon: Cog, title: "Configuração", screenCode: "aprovacao_artes_config" },
+        ];
+        const visible = artesItems.filter(i => hasPermission(i.screenCode));
+        if (visible.length === 0) return null;
         return (
           <ModuleSubmenu icon={Palette} title="Aprovação de Artes" colorKey="fabrica">
-            <MenuItemLink to="/dashboard/central/motor-artes" icon={Inbox} title="Central da Equipe" colorKey="fabrica" end />
-            <MenuItemLink to="/dashboard/fluxo-artes" icon={Palette} title="Motor de Artes" colorKey="fabrica" end />
-            <MenuItemLink to="/dashboard/aprovacao-artes" icon={ClipboardCheck} title="Fluxos Legado" colorKey="fabrica" end />
-            <MenuItemLink to="/dashboard/aprovacao-artes/configuracao" icon={Cog} title="Configuração" colorKey="fabrica" end />
+            {visible.map(item => (
+              <MenuItemLink key={item.url} to={item.url} icon={item.icon} title={item.title} colorKey="fabrica" end />
+            ))}
           </ModuleSubmenu>
         );
+      }
+
 
       case "financeiro":
         return (
