@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { uniqueChannelName } from "@/lib/realtime/channelName";
+import { resumableUpload } from "@/lib/upload/resumableUpload";
 
 export interface ComentarioAnexo {
   path: string;
@@ -52,11 +53,12 @@ async function uploadAnexos(
   for (const f of files) {
     const safe = f.name.replace(/[^\w.\-]+/g, "_");
     const path = `${basePath}/${Date.now()}-${safe}`;
-    const { error } = await supabase.storage.from(BUCKET).upload(path, f, {
-      contentType: f.type || "application/octet-stream",
+    await resumableUpload({
+      bucket: BUCKET,
+      path,
+      file: f,
       upsert: false,
     });
-    if (error) throw error;
     out.push({ path, nome: f.name, tamanho: f.size, mime: f.type });
   }
   return out;

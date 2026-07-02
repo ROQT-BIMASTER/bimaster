@@ -2,6 +2,7 @@ import { toFriendlyPermissionMessage } from "@/lib/utils/permissionErrors";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { resumableUpload } from "@/lib/upload/resumableUpload";
 
 export interface ChecklistB2CItem {
   id: string;
@@ -121,14 +122,16 @@ export function useUploadArquivoB2C() {
       const uid = sessionRes.data.user?.id;
       if (!uid) throw new Error("Sessão expirada");
 
-      // path: <uid>/b2c/<submissao>/<item>/<timestamp>-<filename>
+      // path: <uid>/<submissao>/b2c/<item>/<timestamp>-<filename>
       const safeName = args.file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
-      const path = `${uid}/b2c/${args.item.submissao_id}/${args.item.id}/${Date.now()}-${safeName}`;
+      const path = `${uid}/${args.item.submissao_id}/b2c/${args.item.id}/${Date.now()}-${safeName}`;
 
-      const { error: upErr } = await supabase.storage
-        .from("china-documentos")
-        .upload(path, args.file, { upsert: false });
-      if (upErr) throw upErr;
+      await resumableUpload({
+        bucket: "china-documentos",
+        path,
+        file: args.file,
+        upsert: false,
+      });
 
       const { data, error } = await supabase
         .from("china_checklist_brasil_china" as any)
