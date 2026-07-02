@@ -27,18 +27,18 @@ export default function ResultadosVendas() {
   return (
     <DashboardLayout>
       <div className="resultados-vendas-theme min-h-screen bg-rv-bg text-rv-ink">
-        <div className="max-w-7xl mx-auto px-6 md:px-10 py-8">
+        <div className="max-w-[1600px] mx-auto px-6 md:px-10 py-8">
           <HeaderResultados ano={ano} onAnoChange={setAno} anos={anos} />
 
           <BlocoRankingVendedor filters={filters} />
 
           <BlocoScatterClientes de={filters.de!} ate={filters.ate!} empresa={empresa} />
 
-          <div className="grid md:grid-cols-5 gap-10">
-            <div className="md:col-span-3">
+          <div className="grid md:grid-cols-12 gap-10">
+            <div className="md:col-span-7">
               <BlocoMensalYoY ano={ano} empresa={empresa} />
             </div>
-            <div className="md:col-span-2">
+            <div className="md:col-span-5">
               <BlocoShareTabelaPreco de={filters.de!} ate={filters.ate!} empresa={empresa} ano={ano} />
             </div>
           </div>
