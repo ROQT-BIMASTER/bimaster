@@ -36,7 +36,7 @@ export default function ResultadosVendas() {
   return (
     <DashboardLayout>
       <div className="resultados-vendas-theme min-h-screen bg-rv-bg text-rv-ink">
-        <div className="max-w-[1600px] mx-auto px-6 md:px-10 py-8">
+        <div className="w-full px-4 sm:px-6 lg:px-10 xl:px-14 2xl:px-20 py-8">
           <HeaderResultados
             ano={ano}
             onAnoChange={(a) => setFilters((f) => ({ ...f, ano: a }))}
