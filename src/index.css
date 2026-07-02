@@ -155,6 +155,24 @@ All colors MUST be HSL.
     --vendas-accent-softer: 330 82% 97%;
     --vendas-bg: 220 18% 96%;
 
+    /* Resultados de Vendas — paleta editorial terrosa (flat, muito respiro).
+       Usar via classes tailwind rv.* (bg-rv-bg, text-rv-ink, border-rv-linha…). */
+    --rv-ink: 35 10% 22%;            /* #3F3A33 */
+    --rv-text-suave: 43 9% 51%;      /* #8A8577 */
+    --rv-muted: 41 12% 66%;          /* #B4AFA3 */
+    --rv-linha: 46 20% 91%;          /* #ECEAE3 */
+    --rv-bg: 60 20% 98%;             /* #FBFBF9 */
+    --rv-faixa-verde: 90 24% 92%;    /* #EAF0E2 */
+    --rv-steel: 211 22% 69%;         /* #9DB0C4 */
+    --rv-sage: 96 24% 66%;           /* #A7BE96 */
+    --rv-tan: 35 42% 59%;            /* #C4A06A */
+    --rv-khaki: 48 42% 74%;          /* #D8CBA0 */
+    --rv-cinza-barra: 60 8% 82%;     /* #D3D3CC */
+    --rv-positivo: 89 19% 43%;       /* #6E8158 */
+    --rv-negativo: 15 40% 50%;       /* #B06A4F */
+
+
+
     /* Launcher v2 (always dark surface, independent of app theme) */
     --launcher-surface: 222 47% 7%;
     --launcher-surface-elevated: 222 38% 11%;

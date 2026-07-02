@@ -6,8 +6,9 @@ import { ArrowRight, BarChart3, Warehouse, ArrowUpDown, Truck, ShoppingCart } fr
 const items = [
   {
     to: "/dashboard/fornecedor/vendas",
-    title: "Análise de Vendas",
-    desc: "KPIs, ranking e detalhamento das notas faturadas",
+    title: "Resultados de Vendas",
+    desc: "Panorama editorial com evolução mensal, ranking YoY e share por tabela",
+
     icon: BarChart3,
     accent: "border-l-pink-500",
     iconBg: "bg-pink-100 dark:bg-pink-900/40",

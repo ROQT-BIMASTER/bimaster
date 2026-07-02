@@ -98,6 +98,23 @@ export default {
           foreground: "hsl(var(--briefing-accent-foreground))",
           soft: "hsl(var(--briefing-soft))",
         },
+        // Resultados de Vendas — editorial terrosa
+        rv: {
+          ink: "hsl(var(--rv-ink))",
+          "text-suave": "hsl(var(--rv-text-suave))",
+          muted: "hsl(var(--rv-muted))",
+          linha: "hsl(var(--rv-linha))",
+          bg: "hsl(var(--rv-bg))",
+          "faixa-verde": "hsl(var(--rv-faixa-verde))",
+          steel: "hsl(var(--rv-steel))",
+          sage: "hsl(var(--rv-sage))",
+          tan: "hsl(var(--rv-tan))",
+          khaki: "hsl(var(--rv-khaki))",
+          "cinza-barra": "hsl(var(--rv-cinza-barra))",
+          positivo: "hsl(var(--rv-positivo))",
+          negativo: "hsl(var(--rv-negativo))",
+        },
+
       },
       borderRadius: {
         lg: "var(--radius)",
