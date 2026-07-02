@@ -9,7 +9,7 @@ import { useRejeitarComLaudo } from "@/hooks/useChinaRevisoes";
 import { confirmConclusaoTarefa } from "@/lib/projetos/confirmConclusao";
 import { MentionInput } from "@/components/projetos/MentionInput";
 import { useChinaItemMentionableUsers } from "@/hooks/useChinaItemMentionableUsers";
-import { UPLOAD_MAX_LABEL } from "@/lib/upload/limits";
+import { UPLOAD_MAX_BYTES as MAX_BYTES, UPLOAD_MAX_LABEL } from "@/lib/upload/limits";
 
 interface Props {
   open: boolean;
@@ -21,7 +21,6 @@ interface Props {
 }
 
 const MAX_FILES = 10;
-import { UPLOAD_MAX_BYTES as MAX_BYTES } from "@/lib/upload/limits";
 
 export function DialogRejeitarDocumento({
   open,
