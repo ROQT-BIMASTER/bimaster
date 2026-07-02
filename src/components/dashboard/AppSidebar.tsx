@@ -864,32 +864,37 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
           </ModuleSubmenu>
         );
 
-      case "comercial":
+      case "comercial": {
+        const comercialItems = [
+          { url: "/dashboard/comercial", icon: Home, title: t("comercial.dashboard"), screenCode: "comercial_dashboard", end: true },
+          { url: "/dashboard/comercial/lancamentos", icon: Rocket, title: t("comercial.launches"), screenCode: "comercial_lancamentos" },
+          { url: "/dashboard/painel-executivo", icon: BarChart3, title: "Painel Executivo", screenCode: "ci_executivo" },
+          { url: "/dashboard/performance-vendas", icon: TrendingUp, title: "Performance Vendas", screenCode: "ci_performance" },
+          { url: "/dashboard/clientes", icon: Users, title: "Análise Clientes", screenCode: "ci_clientes" },
+          { url: "/dashboard/detalhamento", icon: FileText, title: "Detalhamento", screenCode: "ci_consolidado" },
+          { url: "/dashboard/produtos", icon: Package, title: "Análise Produtos", screenCode: "ci_produtos" },
+          { url: "/dashboard/geografico", icon: MapPin, title: "Análise Geográfico", screenCode: "ci_geografico" },
+          { url: "/dashboard/consolidado", icon: Layers, title: "Consolidado", screenCode: "ci_consolidado" },
+          { url: "/dashboard/metas", icon: Target, title: "Metas e Projeções", screenCode: "ci_metas" },
+          { url: "/dashboard/comercial/ibge", icon: MapPin, title: t("comercial.ibge"), screenCode: "comercial_ibge" },
+          { url: "/dashboard/comercial/mineracao", icon: Pickaxe, title: t("comercial.mining"), screenCode: "comercial_mineracao" },
+          { url: "/dashboard/comercial/inteligencia", icon: Brain, title: "Inteligência de Mercado", screenCode: "comercial_inteligencia" },
+          { url: "/dashboard/comercial/reativacao", icon: AlertTriangle, title: t("comercial.reactivation"), screenCode: "comercial_reativacao" },
+          { url: "/dashboard/comercial/mapa", icon: MapPin, title: "Mapa Comercial", screenCode: "comercial_mapa" },
+          { url: "/dashboard/comercial/municipios-inteligencia", icon: Building2, title: t("comercial.municipalities"), screenCode: "comercial_municipios" },
+          { url: "/dashboard/comercial/whitespace", icon: Compass, title: t("comercial.whitespace"), screenCode: "comercial_whitespace" },
+        ];
+        const visible = comercialItems.filter(i => hasPermission(i.screenCode));
+        if (visible.length === 0) return null;
         return (
           <ModuleSubmenu icon={Briefcase} title={t("module.comercial")} colorKey="comercial">
-            {hasPermission("comercial_dashboard") && (
-              <MenuItemLink to="/dashboard/comercial" icon={Home} title={t("comercial.dashboard")} colorKey="comercial" end />
-            )}
-            {hasPermission("comercial_lancamentos") && (
-              <MenuItemLink to="/dashboard/comercial/lancamentos" icon={Rocket} title={t("comercial.launches")} colorKey="comercial" />
-            )}
-            <MenuItemLink to="/dashboard/painel-executivo" icon={BarChart3} title="Painel Executivo" colorKey="comercial" />
-            <MenuItemLink to="/dashboard/performance-vendas" icon={TrendingUp} title="Performance Vendas" colorKey="comercial" />
-            <MenuItemLink to="/dashboard/clientes" icon={Users} title="Análise Clientes" colorKey="comercial" />
-            <MenuItemLink to="/dashboard/detalhamento" icon={FileText} title="Detalhamento" colorKey="comercial" />
-            <MenuItemLink to="/dashboard/produtos" icon={Package} title="Análise Produtos" colorKey="comercial" />
-            <MenuItemLink to="/dashboard/geografico" icon={MapPin} title="Análise Geográfico" colorKey="comercial" />
-            <MenuItemLink to="/dashboard/consolidado" icon={Layers} title="Consolidado" colorKey="comercial" />
-            <MenuItemLink to="/dashboard/metas" icon={Target} title="Metas e Projeções" colorKey="comercial" />
-            <MenuItemLink to="/dashboard/comercial/ibge" icon={MapPin} title={t("comercial.ibge")} colorKey="comercial" />
-            <MenuItemLink to="/dashboard/comercial/mineracao" icon={Pickaxe} title={t("comercial.mining")} colorKey="comercial" />
-            <MenuItemLink to="/dashboard/comercial/inteligencia" icon={Brain} title="Inteligência de Mercado" colorKey="comercial" />
-            <MenuItemLink to="/dashboard/comercial/reativacao" icon={AlertTriangle} title={t("comercial.reactivation")} colorKey="comercial" />
-            <MenuItemLink to="/dashboard/comercial/mapa" icon={MapPin} title="Mapa Comercial" colorKey="comercial" />
-            <MenuItemLink to="/dashboard/comercial/municipios-inteligencia" icon={Building2} title={t("comercial.municipalities")} colorKey="comercial" />
-            <MenuItemLink to="/dashboard/comercial/whitespace" icon={Compass} title={t("comercial.whitespace")} colorKey="comercial" />
+            {visible.map(item => (
+              <MenuItemLink key={item.url} to={item.url} icon={item.icon} title={item.title} colorKey="comercial" end={item.end} />
+            ))}
           </ModuleSubmenu>
         );
+      }
+
 
       case "precos":
         return (
