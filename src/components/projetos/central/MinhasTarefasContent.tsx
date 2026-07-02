@@ -36,6 +36,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { TarefaResponsavelAvatar } from "@/components/projetos/shared/TarefaResponsavelAvatar";
 import { supabase } from "@/integrations/supabase/client";
+import { makeOpenSubtarefaHandler } from "@/lib/tarefas/openSubtarefaHandler";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useBridgeSaveRetry } from "@/hooks/useBridgeSaveRetry";
@@ -1887,21 +1888,11 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
         onMoveTarefa={handleBridgeMoveTarefa}
         projetoIdOverride={selectedProjetoId}
         externalSaving={isBridgeSaving}
-        onOpenSubtarefa={async (childId) => {
-          // Paridade V1↔V2: abrir subtarefa aninhada dentro do mesmo drawer
-          // (sem fechar/reabrir) buscando a linha e mesclando no `detailTarefa`
-          // atual — preservamos campos derivados (projeto_nome, papel, etc.)
-          // do pai que a subtarefa herda.
-          if (!childId || !detailTarefa) return;
-          const { data } = await supabase
-            .from("projeto_tarefas")
-            .select("*")
-            .eq("id", childId)
-            .maybeSingle();
-          if (data) {
-            setDetailTarefa({ ...detailTarefa, ...(data as any) } as MinaTarefa);
-          }
-        }}
+        onOpenSubtarefa={makeOpenSubtarefaHandler<MinaTarefa>({
+          supabase,
+          getCurrent: () => detailTarefa,
+          setCurrent: (next) => setDetailTarefa(next),
+        })}
       />
     </div>
   );
