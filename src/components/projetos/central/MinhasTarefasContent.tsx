@@ -749,7 +749,9 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
   const handleBridgeMoveTarefa = useCallback(async (tarefaId: string, _o: string, secaoDestinoId: string) => {
     const { error } = await supabase.from("projeto_tarefas").update({ secao_id: secaoDestinoId }).eq("id", tarefaId);
     if (error) { toast.error("Erro ao mover tarefa"); return; }
-    queryClient.invalidateQueries({ queryKey: ["minhas-tarefas"] });
+    // Dispara de dentro do painel aberto ("Mover para") — silencioso; a
+    // lista reconcilia ao fechar o painel (wasDetailOpenRef).
+    queryClient.invalidateQueries({ queryKey: ["minhas-tarefas"], refetchType: "none" });
     toast.success("Tarefa movida");
   }, [queryClient]);
 
