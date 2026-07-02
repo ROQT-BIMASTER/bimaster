@@ -164,7 +164,7 @@ export function BlocoRankingYoy({ ano, empresa, tabelaPrecoId, uf, clienteId, ve
       </div>
 
       <div className="border-t border-rv-linha">
-        <div className="grid grid-cols-[36px_1fr_140px_1fr_100px] gap-4 py-3 px-1 text-[10px] uppercase tracking-wider text-rv-text-suave border-b border-rv-linha">
+        <div className="grid grid-cols-[36px_1fr_140px_1fr_100px] gap-4 py-3 pl-1 pr-4 text-[10px] uppercase tracking-wider text-rv-text-suave border-b border-rv-linha">
           <div>#</div>
           <div>Nome</div>
           <button
