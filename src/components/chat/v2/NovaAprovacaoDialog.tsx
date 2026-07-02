@@ -31,7 +31,7 @@ interface Props {
   conversaId: string;
 }
 
-const MAX_BYTES = 20 * 1024 * 1024; // casa com o file_size_limit do bucket (20MB, política do projeto)
+import { UPLOAD_MAX_BYTES as MAX_BYTES } from "@/lib/upload/limits";
 const ACCEPT = ".pdf,image/*,.doc,.docx,.xls,.xlsx";
 
 export function NovaAprovacaoDialog({ open, onOpenChange, conversaId }: Props) {

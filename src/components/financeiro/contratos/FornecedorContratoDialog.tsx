@@ -46,7 +46,7 @@ interface Props {
   fornecedorNome: string;
 }
 
-const MAX_SIZE = 20 * 1024 * 1024; // 20MB
+import { UPLOAD_MAX_BYTES as MAX_SIZE } from "@/lib/upload/limits";
 const ALLOWED_MIMES = [
   "application/pdf",
   "image/jpeg",

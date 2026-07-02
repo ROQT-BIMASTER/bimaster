@@ -20,7 +20,7 @@ interface Props {
 }
 
 const MAX_FILES = 10;
-const MAX_BYTES = 20 * 1024 * 1024;
+import { UPLOAD_MAX_BYTES as MAX_BYTES } from "@/lib/upload/limits";
 
 export function DialogRejeitarDocumento({
   open,

@@ -31,7 +31,7 @@ import { useAuth } from "@/contexts/AuthContext";
 
 const BUCKET = "china-documentos";
 const MAX_FILES = 5;
-const MAX_BYTES = 20 * 1024 * 1024;
+import { UPLOAD_MAX_BYTES as MAX_BYTES } from "@/lib/upload/limits";
 
 interface Props {
   documentoId: string;
