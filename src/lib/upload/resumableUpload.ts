@@ -1,18 +1,23 @@
 /**
- * Upload resiliente para arquivos grandes (>50 MB) — barra de progresso,
- * cancelamento e retry com backoff exponencial.
+ * Upload resiliente com suporte a upload em partes (TUS/chunked).
  *
- * Estratégia:
- *  1. Cria uma signed upload URL no bucket alvo (short-lived, 60s).
- *  2. Faz PUT XHR direto para o Storage — permite `onUploadProgress`
- *     nativo do browser, `abort()` real e retry idempotente.
- *  3. Timeout adaptativo: base 60s + 200ms por MB (arquivo de 500 MB → ~160s).
+ * Estratégia adaptativa por tamanho:
+ *  - < 5 MB   → fast-path via supabase-js (single-shot).
+ *  - >= 5 MB  → protocolo TUS 1.0 contra o endpoint nativo do Storage
+ *               (`/storage/v1/upload/resumable`), em chunks de 6 MB (múltiplo
+ *               exigido pelo Supabase). Permite retomar após falha de rede,
+ *               reduz risco de timeout de proxy/CDN em requisições longas
+ *               e escala até o limite do bucket (1 GB neste projeto).
  *
- * Callers passam apenas o bucket, path e File; o helper lida com o resto.
- * Reusa `validateFileForUpload` para manter paridade com single-shot.
+ * Vantagens do modo chunked:
+ *  - Uma única requisição HTTP não precisa carregar 1 GB de uma vez.
+ *  - Retry por chunk (backoff exponencial embutido no tus-js-client).
+ *  - Progresso granular (por byte enviado) e `abort()` real.
+ *  - Se a rede cair no meio, o tus-js-client retoma do último chunk aceito.
  */
 import { supabase } from "@/integrations/supabase/client";
 import { validateFileForUpload } from "@/lib/utils/file-security";
+import * as tus from "tus-js-client";
 
 export interface ResumableUploadOptions {
   bucket: string;
@@ -22,10 +27,12 @@ export interface ResumableUploadOptions {
   onProgress?: (percent: number, bytesSent: number, totalBytes: number) => void;
   /** Sinal externo de cancelamento (ex.: usuário clica em "Cancelar"). */
   signal?: AbortSignal;
-  /** Máx. de tentativas por falha transitória (5xx / rede). Default 3. */
+  /** Máx. de tentativas por falha transitória (rede/5xx). Default 5. */
   maxRetries?: number;
   /** Pula `validateFileForUpload` (uso avançado — validador já executado). */
   skipValidation?: boolean;
+  /** Sobrescreve o objeto se já existir. Default false. */
+  upsert?: boolean;
 }
 
 export interface ResumableUploadResult {
@@ -39,114 +46,97 @@ export class ResumableUploadError extends Error {
   }
 }
 
-function computeTimeoutMs(sizeBytes: number): number {
-  const perMb = 200;
-  const base = 60_000;
-  const mb = sizeBytes / (1024 * 1024);
-  return Math.min(base + Math.round(mb * perMb), 30 * 60_000); // cap em 30 min
-}
+// TUS chunk size — Supabase exige múltiplo de 6 MB (exceto o último).
+const TUS_CHUNK_SIZE = 6 * 1024 * 1024;
+const SMALL_UPLOAD_THRESHOLD = 5 * 1024 * 1024;
 
-async function performXhrPut(
-  url: string,
-  file: File,
-  headers: Record<string, string>,
-  opts: {
-    onProgress?: ResumableUploadOptions["onProgress"];
-    signal?: AbortSignal;
-    timeoutMs: number;
-  },
-): Promise<void> {
-  return new Promise((resolve, reject) => {
-    const xhr = new XMLHttpRequest();
-    xhr.open("PUT", url, true);
-    xhr.timeout = opts.timeoutMs;
-    for (const [k, v] of Object.entries(headers)) xhr.setRequestHeader(k, v);
+async function chunkedTusUpload(opts: ResumableUploadOptions & { upsert: boolean }): Promise<void> {
+  const { bucket, path, file, onProgress, signal, maxRetries = 5, upsert } = opts;
 
-    if (opts.onProgress) {
-      xhr.upload.onprogress = (ev) => {
-        if (ev.lengthComputable) {
-          const percent = Math.min(99, Math.round((ev.loaded / ev.total) * 100));
-          opts.onProgress?.(percent, ev.loaded, ev.total);
-        }
-      };
-    }
+  const { data: sess } = await supabase.auth.getSession();
+  const accessToken = sess.session?.access_token;
+  if (!accessToken) throw new ResumableUploadError("no_session", "Sessão expirada. Faça login novamente.");
 
-    xhr.onload = () => {
-      if (xhr.status >= 200 && xhr.status < 300) {
-        opts.onProgress?.(100, file.size, file.size);
+  const supabaseUrl = (import.meta as any).env?.VITE_SUPABASE_URL as string;
+  if (!supabaseUrl) throw new ResumableUploadError("config", "URL do backend não configurada.");
+
+  await new Promise<void>((resolve, reject) => {
+    const upload = new tus.Upload(file, {
+      endpoint: `${supabaseUrl}/storage/v1/upload/resumable`,
+      retryDelays: [0, 800, 1600, 3200, 6400, 12800].slice(0, maxRetries + 1),
+      headers: {
+        authorization: `Bearer ${accessToken}`,
+        "x-upsert": upsert ? "true" : "false",
+      },
+      uploadDataDuringCreation: true,
+      removeFingerprintOnSuccess: true,
+      chunkSize: TUS_CHUNK_SIZE,
+      metadata: {
+        bucketName: bucket,
+        objectName: path,
+        contentType: file.type || "application/octet-stream",
+        cacheControl: "3600",
+      },
+      onError: (err: any) => {
+        const status = err?.originalResponse?.getStatus?.();
+        reject(new ResumableUploadError("tus_error", err?.message || "Falha no upload em partes.", status));
+      },
+      onProgress: (bytesSent, bytesTotal) => {
+        const percent = bytesTotal > 0 ? Math.min(99, Math.round((bytesSent / bytesTotal) * 100)) : 0;
+        onProgress?.(percent, bytesSent, bytesTotal);
+      },
+      onSuccess: () => {
+        onProgress?.(100, file.size, file.size);
         resolve();
-      } else {
-        reject(new ResumableUploadError("http_error", `Upload falhou (${xhr.status}): ${xhr.responseText}`, xhr.status));
-      }
-    };
-    xhr.onerror = () => reject(new ResumableUploadError("network", "Falha de rede durante o upload."));
-    xhr.ontimeout = () => reject(new ResumableUploadError("timeout", `Upload excedeu ${opts.timeoutMs / 1000}s.`));
-    xhr.onabort = () => reject(new ResumableUploadError("aborted", "Upload cancelado."));
+      },
+    });
 
-    if (opts.signal) {
-      if (opts.signal.aborted) {
-        xhr.abort();
+    if (signal) {
+      if (signal.aborted) {
+        reject(new ResumableUploadError("aborted", "Upload cancelado antes do envio."));
         return;
       }
-      opts.signal.addEventListener("abort", () => xhr.abort(), { once: true });
+      signal.addEventListener("abort", () => {
+        upload.abort(true).catch(() => {});
+        reject(new ResumableUploadError("aborted", "Upload cancelado."));
+      }, { once: true });
     }
 
-    xhr.send(file);
+    // Retoma upload anterior se existir fingerprint no localStorage.
+    upload.findPreviousUploads().then((prev) => {
+      if (prev.length > 0) upload.resumeFromPreviousUpload(prev[0]);
+      upload.start();
+    }).catch(() => upload.start());
   });
 }
 
 /**
- * Upload resiliente com progress + retry + abort.
+ * Upload resiliente com progresso, retry e cancelamento.
  *
- * Para arquivos < 5 MB usa o path direto do supabase-js (sem overhead do XHR);
- * arquivos maiores passam pelo XHR com progresso real.
+ * - < 5 MB   → single-shot via supabase-js.
+ * - >= 5 MB  → chunked (TUS) em partes de 6 MB, com retomada automática.
  */
 export async function resumableUpload(opts: ResumableUploadOptions): Promise<ResumableUploadResult> {
-  const { bucket, path, file, onProgress, signal, maxRetries = 3, skipValidation } = opts;
+  const { bucket, path, file, onProgress, skipValidation, upsert = false } = opts;
 
   if (!skipValidation) {
     const v = await validateFileForUpload(file);
     if (!v.valid) throw new ResumableUploadError(v.code || "invalid", v.error || "Arquivo inválido");
   }
 
-  // Arquivos pequenos: fast-path via supabase-js (sem progresso granular)
-  const SMALL_UPLOAD_THRESHOLD = 5 * 1024 * 1024;
+  // Fast-path para arquivos pequenos.
   if (file.size < SMALL_UPLOAD_THRESHOLD) {
     onProgress?.(0, 0, file.size);
-    const { error } = await supabase.storage.from(bucket).upload(path, file, { upsert: false, contentType: file.type || undefined });
+    const { error } = await supabase.storage.from(bucket).upload(path, file, {
+      upsert,
+      contentType: file.type || undefined,
+    });
     if (error) throw new ResumableUploadError("supabase_upload", error.message);
     onProgress?.(100, file.size, file.size);
     return { path };
   }
 
-  // Arquivos grandes: signed upload URL + XHR PUT com progresso
-  let lastErr: unknown = null;
-  for (let attempt = 1; attempt <= maxRetries; attempt++) {
-    if (signal?.aborted) throw new ResumableUploadError("aborted", "Upload cancelado antes do envio.");
-    try {
-      const { data: signed, error: signErr } = await supabase.storage
-        .from(bucket)
-        .createSignedUploadUrl(path);
-      if (signErr || !signed) throw new ResumableUploadError("signed_url", signErr?.message || "Não foi possível preparar upload.");
-
-      await performXhrPut(
-        signed.signedUrl,
-        file,
-        { "Content-Type": file.type || "application/octet-stream", "x-upsert": "false" },
-        { onProgress, signal, timeoutMs: computeTimeoutMs(file.size) },
-      );
-      return { path };
-    } catch (err) {
-      lastErr = err;
-      const e = err as ResumableUploadError;
-      // Não retenta em cancelamento explícito ou erro 4xx (exceto 408/429)
-      const nonRetryable = e.code === "aborted"
-        || (typeof e.status === "number" && e.status >= 400 && e.status < 500 && e.status !== 408 && e.status !== 429);
-      if (nonRetryable || attempt === maxRetries) throw err;
-      // Backoff exponencial: 800ms, 1.6s, 3.2s...
-      const delay = 800 * Math.pow(2, attempt - 1);
-      await new Promise((r) => setTimeout(r, delay));
-    }
-  }
-  throw lastErr instanceof Error ? lastErr : new ResumableUploadError("unknown", "Falha desconhecida no upload.");
+  // Chunked TUS para tudo acima de 5 MB — cobre até 1 GB com retomada.
+  await chunkedTusUpload({ ...opts, upsert });
+  return { path };
 }
