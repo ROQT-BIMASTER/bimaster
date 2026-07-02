@@ -25,6 +25,15 @@ export default function FornecedorPedidosPage() {
   const [limiarParado, setLimiarParado] = useState(2);
   const [view, setView] = useState<"kanban" | "tabela">("kanban");
   const [pedidoSelecionado, setPedidoSelecionado] = useState<PedidoFornecedor | null>(null);
+  const [copilotOpen, setCopilotOpen] = useState(false);
+
+  const copilotScope = useMemo(
+    () => ({
+      date_from: dateFrom ? format(dateFrom, "yyyy-MM-dd") : undefined,
+      date_to: dateTo ? format(dateTo, "yyyy-MM-dd") : undefined,
+    }),
+    [dateFrom, dateTo],
+  );
 
   const { data, isLoading, isFetching, refetch, error } = useFornecedorPedidos({ dateFrom, dateTo });
 
