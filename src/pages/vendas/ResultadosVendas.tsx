@@ -1,6 +1,8 @@
 import { useMemo, useState } from "react";
 import { format } from "date-fns";
+import { Sparkles } from "lucide-react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
+import { Button } from "@/components/ui/button";
 import { HeaderResultados } from "@/components/vendas/HeaderResultados";
 import { FiltrosGlobaisVendas } from "@/components/vendas/FiltrosGlobaisVendas";
 import { BlocoRankingVendedor } from "@/components/vendas/BlocoRankingVendedor";
@@ -9,6 +11,7 @@ import { BlocoMensalYoY } from "@/components/vendas/BlocoMensalYoY";
 import { BlocoShareTabelaPreco } from "@/components/vendas/BlocoShareTabelaPreco";
 import { BlocoRankingYoy } from "@/components/vendas/BlocoRankingYoy";
 import { BlocoUfYoY } from "@/components/vendas/BlocoUfYoY";
+import { PedidosCopilotDrawer } from "@/components/fornecedor/pedidos/PedidosCopilotDrawer";
 import { initialGlobalFilters, type VendasGlobalFilters } from "@/hooks/vendas/vendasFilters";
 import type { VendasFilters } from "@/hooks/useVendasAnalise";
 
@@ -19,6 +22,7 @@ export default function ResultadosVendas() {
   const [filters, setFilters] = useState<VendasGlobalFilters>(() => initialGlobalFilters(nowY));
 
   const { ano, empresa, tabelaPrecoId, uf, clienteId, vendedorId } = filters;
+  const [copilotOpen, setCopilotOpen] = useState(false);
 
   const rankingFilters: VendasFilters = useMemo(() => ({
     de: `${ano}-01-01`,
@@ -87,6 +91,21 @@ export default function ResultadosVendas() {
 
           <div className="h-16" />
         </div>
+
+        <Button
+          size="sm"
+          onClick={() => setCopilotOpen(true)}
+          className="fixed bottom-6 right-6 z-40 gap-2 bg-pink-600 hover:bg-pink-700 text-white shadow-lg"
+        >
+          <Sparkles className="h-4 w-4" />
+          Copiloto
+        </Button>
+
+        <PedidosCopilotDrawer
+          open={copilotOpen}
+          onOpenChange={setCopilotOpen}
+          scope={{ date_from: rankingFilters.de, date_to: rankingFilters.ate }}
+        />
       </div>
     </DashboardLayout>
   );
