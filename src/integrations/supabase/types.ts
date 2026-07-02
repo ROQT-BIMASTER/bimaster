@@ -16353,6 +16353,7 @@ export type Database = {
           cliente_cnpj_cpf: string | null
           cliente_futura_id: number | null
           cliente_nome: string | null
+          cliente_uf: string | null
           created_at: string
           data_emissao: string
           empresa_id: number
@@ -16380,6 +16381,7 @@ export type Database = {
           cliente_cnpj_cpf?: string | null
           cliente_futura_id?: number | null
           cliente_nome?: string | null
+          cliente_uf?: string | null
           created_at?: string
           data_emissao: string
           empresa_id: number
@@ -16407,6 +16409,7 @@ export type Database = {
           cliente_cnpj_cpf?: string | null
           cliente_futura_id?: number | null
           cliente_nome?: string | null
+          cliente_uf?: string | null
           created_at?: string
           data_emissao?: string
           empresa_id?: number
@@ -52888,6 +52891,7 @@ export type Database = {
           cliente_cnpj_cpf: string | null
           cliente_futura_id: number | null
           cliente_nome: string | null
+          cliente_uf: string | null
           coordenador_id: string | null
           coordenador_nome: string | null
           data_emissao: string | null
@@ -57909,10 +57913,12 @@ export type Database = {
       vendas_kpis: {
         Args: {
           p_ate?: string
-          p_coordenador?: string
+          p_cliente?: number
           p_de?: string
           p_empresa?: number
-          p_vendedor?: string
+          p_tabela_preco?: number
+          p_uf?: string
+          p_vendedor?: number
         }
         Returns: {
           clientes: number
@@ -57962,7 +57968,15 @@ export type Database = {
         }[]
       }
       vendas_ranking_cliente: {
-        Args: { p_ate?: string; p_de?: string; p_empresa?: number }
+        Args: {
+          p_ate?: string
+          p_cliente?: number
+          p_de?: string
+          p_empresa?: number
+          p_tabela_preco?: number
+          p_uf?: string
+          p_vendedor?: number
+        }
         Returns: {
           cliente_id: number
           cliente_nome: string
@@ -57985,9 +57999,12 @@ export type Database = {
       vendas_ranking_vendedor: {
         Args: {
           p_ate?: string
-          p_coordenador?: string
+          p_cliente?: number
           p_de?: string
           p_empresa?: number
+          p_tabela_preco?: number
+          p_uf?: string
+          p_vendedor?: number
         }
         Returns: {
           coordenador_id: string
@@ -58004,10 +58021,12 @@ export type Database = {
       vendas_serie_mensal: {
         Args: {
           p_ate?: string
-          p_coordenador?: string
+          p_cliente?: number
           p_de?: string
           p_empresa?: number
-          p_vendedor?: string
+          p_tabela_preco?: number
+          p_uf?: string
+          p_vendedor?: number
         }
         Returns: {
           faturamento: number
@@ -58043,7 +58062,15 @@ export type Database = {
         }[]
       }
       vendas_share_tabela_preco: {
-        Args: { p_ate?: string; p_de?: string; p_empresa?: number }
+        Args: {
+          p_ate?: string
+          p_cliente?: number
+          p_de?: string
+          p_empresa?: number
+          p_tabela_preco?: number
+          p_uf?: string
+          p_vendedor?: number
+        }
         Returns: {
           faturamento: number
           notas: number
@@ -58054,11 +58081,13 @@ export type Database = {
       vendas_top_clientes: {
         Args: {
           p_ate?: string
-          p_coordenador?: string
+          p_cliente?: number
           p_de?: string
           p_empresa?: number
           p_limit?: number
-          p_vendedor?: string
+          p_tabela_preco?: number
+          p_uf?: string
+          p_vendedor?: number
         }
         Returns: {
           cliente_cnpj_cpf: string
@@ -58070,8 +58099,31 @@ export type Database = {
           qtd_un: number
         }[]
       }
+      vendas_uf_yoy: {
+        Args: {
+          p_ano?: number
+          p_cliente?: number
+          p_empresa?: number
+          p_tabela_preco?: number
+          p_vendedor?: number
+        }
+        Returns: {
+          fat_anterior: number
+          fat_atual: number
+          notas_atual: number
+          uf: string
+        }[]
+      }
       vendas_yoy_por_dimensao: {
-        Args: { p_ano?: number; p_dim?: string; p_empresa?: number }
+        Args: {
+          p_ano?: number
+          p_cliente?: number
+          p_dim?: string
+          p_empresa?: number
+          p_tabela_preco?: number
+          p_uf?: string
+          p_vendedor?: number
+        }
         Returns: {
           chave: number
           fat_anterior: number
