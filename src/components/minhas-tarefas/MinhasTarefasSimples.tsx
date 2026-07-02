@@ -27,6 +27,7 @@ import { useMinhasTarefas, type MinaTarefa } from "@/hooks/useMinhasTarefas";
 import { useAuth } from "@/contexts/AuthContext";
 import { parseLocalDate, getToday, getCurrentHourBR, nowSaoPauloISO } from "@/lib/utils/parseLocalDate";
 import { supabase } from "@/integrations/supabase/client";
+import { makeOpenSubtarefaHandler } from "@/lib/tarefas/openSubtarefaHandler";
 
 import { NovaTarefaMinhasDialog } from "@/components/projetos/NovaTarefaMinhasDialog";
 import { ProjetoTarefaDetalhe } from "@/components/projetos/ProjetoTarefaDetalhe";
@@ -944,6 +945,11 @@ export function MinhasTarefasSimples() {
           onMoveTarefa={handleBridgeMoveTarefa}
           projetoIdOverride={selectedProjetoId}
           externalSaving={isBridgeSaving}
+          onOpenSubtarefa={makeOpenSubtarefaHandler<MinaTarefa>({
+            supabase,
+            getCurrent: () => detailTarefa,
+            setCurrent: (next) => setDetailTarefa(next),
+          })}
         />
       </div>
     </TooltipProvider>
