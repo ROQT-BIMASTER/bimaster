@@ -58032,6 +58032,15 @@ export type Database = {
           valor: number
         }[]
       }
+      vendas_share_tabela_preco: {
+        Args: { p_ate?: string; p_de?: string; p_empresa?: number }
+        Returns: {
+          faturamento: number
+          notas: number
+          tabela_preco_id: number
+          tabela_preco_nome: string
+        }[]
+      }
       vendas_top_clientes: {
         Args: {
           p_ate?: string
@@ -58049,6 +58058,18 @@ export type Database = {
           faturamento_com_impostos: number
           notas: number
           qtd_un: number
+        }[]
+      }
+      vendas_yoy_por_dimensao: {
+        Args: { p_ano?: number; p_dim?: string; p_empresa?: number }
+        Returns: {
+          chave: number
+          fat_anterior: number
+          fat_atual: number
+          nome: string
+          notas_atual: number
+          novo: boolean
+          variacao: number
         }[]
       }
       verify_user_password: { Args: { password: string }; Returns: boolean }
