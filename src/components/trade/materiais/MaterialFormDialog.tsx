@@ -10,6 +10,8 @@ import { useCreateMaterial, useUpdateMaterial, type TradeMaterial } from "@/hook
 import { supabase } from "@/integrations/supabase/client";
 import { Upload, X, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { resumableUpload } from "@/lib/upload/resumableUpload";
+import { describeUploadError } from "@/lib/utils/file-security";
 
 const CATEGORIAS = [
   "Banner PDV", "Display de chão", "Wobbler", "Adesivo", "Totem", "Faixa de gôndola", "Stopper", "Outros"
@@ -83,12 +85,12 @@ export function MaterialFormDialog({ open, onOpenChange, material }: Props) {
     try {
       const ext = file.name.split(".").pop();
       const path = `materiais/${Date.now()}.${ext}`;
-      const { error } = await supabase.storage.from("trade-assets").upload(path, file);
-      if (error) throw error;
+      await resumableUpload({ bucket: "trade-assets", path, file, upsert: false });
       const { data: urlData } = supabase.storage.from("trade-assets").getPublicUrl(path);
       setForm(f => ({ ...f, foto_url: urlData.publicUrl }));
     } catch (err: any) {
-      toast.error("Erro no upload: " + err.message);
+      const desc = describeUploadError(err?.message || "Falha no upload");
+      toast.error(desc.title, { description: desc.description });
     } finally {
       setUploading(false);
     }

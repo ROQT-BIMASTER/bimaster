@@ -13,7 +13,8 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Upload } from "lucide-react";
-import { validateFileForUpload } from "@/lib/utils/file-security";
+import { describeUploadError, validateFileForUpload } from "@/lib/utils/file-security";
+import { resumableUpload } from "@/lib/upload/resumableUpload";
 import { useQueryClient } from "@tanstack/react-query";
 
 const CATEGORIAS: Record<string, string> = {
@@ -87,13 +88,13 @@ export function ProjetoCofreUploadDialog({
       const safeName = file.name.replace(/[^\w.\-]+/g, "_");
       const path = `${projetoId}/cofre/${docId}/${safeName}`;
 
-      const { error: upErr } = await supabase.storage
-        .from("projeto-anexos")
-        .upload(path, file, {
-          contentType: file.type || `application/${ext}`,
-          upsert: true,
-        });
-      if (upErr) throw upErr;
+      await resumableUpload({
+        bucket: "projeto-anexos",
+        path,
+        file: file.type ? file : new File([file], file.name, { type: `application/${ext}` }),
+        skipValidation: true,
+        upsert: true,
+      });
 
       const { error } = await (supabase as any)
         .from("projeto_cofre_documentos")
@@ -120,7 +121,8 @@ export function ProjetoCofreUploadDialog({
       reset();
       onOpenChange(false);
     } catch (err: any) {
-      toast.error(err?.message || "Falha no upload");
+      const desc = describeUploadError(err?.message || "Falha no upload");
+      toast.error(desc.title, { description: desc.description });
     } finally {
       setUploading(false);
     }

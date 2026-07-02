@@ -9,6 +9,7 @@ import { useRejeitarComLaudo } from "@/hooks/useChinaRevisoes";
 import { confirmConclusaoTarefa } from "@/lib/projetos/confirmConclusao";
 import { MentionInput } from "@/components/projetos/MentionInput";
 import { useChinaItemMentionableUsers } from "@/hooks/useChinaItemMentionableUsers";
+import { UPLOAD_MAX_LABEL } from "@/lib/upload/limits";
 
 interface Props {
   open: boolean;
@@ -117,7 +118,7 @@ export function DialogRejeitarDocumento({
               accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.rtf,.odt,.ods,.odp,image/*"
             />
             <p className="text-xs text-muted-foreground">
-              Até {MAX_FILES} arquivos, 20MB cada. PDF, imagens, planilhas ou documentos.
+              Até {MAX_FILES} arquivos, {UPLOAD_MAX_LABEL} cada. PDF, imagens, planilhas ou documentos.
             </p>
             {files.length > 0 && (
               <div className="flex flex-wrap gap-2 pt-1">

@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { resumableUpload } from "@/lib/upload/resumableUpload";
 import { toast } from "sonner";
 
 // ── Constants ──
@@ -481,10 +482,7 @@ export function useDeleteFluxoCor() {
 export async function uploadFluxoArteFile(folder: string, file: File) {
   const ext = file.name.split(".").pop();
   const path = `${folder}/${Date.now()}.${ext}`;
-  const { error } = await supabase.storage
-    .from("fluxo-artes")
-    .upload(path, file, { cacheControl: "3600", upsert: false });
-  if (error) throw error;
+  await resumableUpload({ bucket: "fluxo-artes", path, file, upsert: false });
   const { data } = await supabase.storage.from("fluxo-artes").createSignedUrl(path, 31536000);
   return data?.signedUrl || path;
 }

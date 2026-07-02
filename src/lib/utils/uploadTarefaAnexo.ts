@@ -12,6 +12,7 @@
  * e erro de metadata para facilitar suporte.
  */
 import { supabase } from "@/integrations/supabase/client";
+import { resumableUpload } from "@/lib/upload/resumableUpload";
 import { sanitizeStorageFilename } from "@/lib/utils/sanitizeStorageFilename";
 import { validateFileForUpload } from "@/lib/utils/file-security";
 import {
@@ -56,12 +57,16 @@ export async function uploadTarefaAnexoToStorage(
   const filePath = `${userId}/${tarefaId}/${Date.now()}_${sanitizeStorageFilename(file.name)}`;
 
   // 3. Upload ao bucket `projeto-anexos`
-  const { error: uploadError } = await supabase.storage
-    .from("projeto-anexos")
-    .upload(filePath, file);
-  if (uploadError) {
+  try {
+    await resumableUpload({
+      bucket: "projeto-anexos",
+      path: filePath,
+      file,
+      skipValidation: true,
+    });
+  } catch (uploadError) {
     // Erros do backend (ex.: trigger de tamanho, payload too large) chegam aqui.
-    const msg = uploadError.message ?? "";
+    const msg = uploadError instanceof Error ? uploadError.message : String(uploadError ?? "");
     const isSizeOrType =
       /payload too large|exceed|excede|máximo|maximo|mime|tipo|extens/i.test(msg);
     if (isSizeOrType) {
