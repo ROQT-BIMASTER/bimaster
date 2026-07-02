@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { resumableUpload } from "@/lib/upload/resumableUpload";
 import { toast } from "sonner";
 
 // Types
@@ -668,8 +669,7 @@ export function useUploadFluxoAnexo() {
     }) => {
       const { data: { user } } = await supabase.auth.getUser();
       const filePath = `${instanciaId}/${Date.now()}_${file.name}`;
-      const { error: uploadErr } = await supabase.storage.from("aprovacao-artes").upload(filePath, file);
-      if (uploadErr) throw uploadErr;
+      await resumableUpload({ bucket: "aprovacao-artes", path: filePath, file, upsert: false });
 
       const { data: signedData } = await supabase.storage.from("aprovacao-artes").createSignedUrl(filePath, 31536000);
 
@@ -721,8 +721,7 @@ export function useSubstituirFluxoAnexo() {
 
       const newVersao = ((old as any)?.versao || 1) + 1;
       const filePath = `${instanciaId}/${Date.now()}_${file.name}`;
-      const { error: uploadErr } = await supabase.storage.from("aprovacao-artes").upload(filePath, file);
-      if (uploadErr) throw uploadErr;
+      await resumableUpload({ bucket: "aprovacao-artes", path: filePath, file, upsert: false });
 
       const { data: signedData } = await supabase.storage.from("aprovacao-artes").createSignedUrl(filePath, 31536000);
 

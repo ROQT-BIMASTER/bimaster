@@ -13,7 +13,8 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Upload } from "lucide-react";
-import { validateFileForUpload } from "@/lib/utils/file-security";
+import { describeUploadError, validateFileForUpload } from "@/lib/utils/file-security";
+import { resumableUpload } from "@/lib/upload/resumableUpload";
 import { CATEGORIA_LABELS, type BriefingDocumento } from "@/hooks/useBriefingCofre";
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -85,13 +86,13 @@ export function UploadDocumentoDialog({
       const safeName = file.name.replace(/[^\w.\-]+/g, "_");
       const path = `${briefingId}/${docId}/${safeName}`;
 
-      const { error: upErr } = await supabase.storage
-        .from("briefing-cofre")
-        .upload(path, file, {
-          contentType: file.type || `application/${ext}`,
-          upsert: true,
-        });
-      if (upErr) throw upErr;
+      await resumableUpload({
+        bucket: "briefing-cofre",
+        path,
+        file: file.type ? file : new File([file], file.name, { type: `application/${ext}` }),
+        skipValidation: true,
+        upsert: true,
+      });
 
       const patch = {
         nome: nome.trim(),
@@ -143,7 +144,8 @@ export function UploadDocumentoDialog({
       reset();
       onOpenChange(false);
     } catch (err: any) {
-      toast.error(err?.message || "Falha no upload");
+      const desc = describeUploadError(err?.message || "Falha no upload");
+      toast.error(desc.title, { description: desc.description });
     } finally {
       setUploading(false);
     }

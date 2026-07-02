@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { resumableUpload } from "@/lib/upload/resumableUpload";
 import { guardFileUpload, reportUploadSuccessShared, reportUploadFailureShared } from "@/lib/utils/sharedUploadGuard";
 
 export function initials(name?: string | null, email?: string | null): string {
@@ -52,11 +53,15 @@ export async function uploadChatAnexo(
   // Ordem das pastas tem que casar com as policies do bucket chat-anexos:
   // foldername[1] = conversa_id (checa participação), foldername[2] = uploader uid.
   const path = `${conversaId}/${userId}/${Date.now()}_${safe}`;
-  const { error } = await supabase.storage.from("chat-anexos").upload(path, file, {
-    contentType: file.type || "application/octet-stream",
-    upsert: false,
-  });
-  if (error) {
+  try {
+    await resumableUpload({
+      bucket: "chat-anexos",
+      path,
+      file: file.type ? file : new File([file], file.name, { type: "application/octet-stream" }),
+      skipValidation: true,
+      upsert: false,
+    });
+  } catch (error) {
     reportUploadFailureShared({ module: "chat-v2", file, userId, contextId: conversaId, error });
     throw error;
   }

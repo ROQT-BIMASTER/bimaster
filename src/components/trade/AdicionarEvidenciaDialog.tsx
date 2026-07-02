@@ -14,7 +14,9 @@ import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Upload, FileCheck, Loader2, X, Paperclip } from "lucide-react";
+import { describeUploadError } from "@/lib/utils/file-security";
 import { getSafeErrorMessage } from "@/lib/utils/sanitize";
+import { resumableUpload } from "@/lib/upload/resumableUpload";
 
 interface AdicionarEvidenciaDialogProps {
   open: boolean;
@@ -44,14 +46,9 @@ export function AdicionarEvidenciaDialog({
       const newFiles: { name: string; url: string }[] = [];
 
       for (const file of Array.from(files)) {
-        const fileExt = file.name.split(".").pop();
         const filePath = `trade-evidencias/${entry.id}/${Date.now()}-${file.name}`;
 
-        const { error: uploadError } = await supabase.storage
-          .from("attachments")
-          .upload(filePath, file);
-
-        if (uploadError) throw uploadError;
+        await resumableUpload({ bucket: "attachments", path: filePath, file, upsert: false });
 
         const { data: signedData, error: signError } = await supabase.storage
           .from("attachments")
@@ -65,7 +62,9 @@ export function AdicionarEvidenciaDialog({
       setUploadedFiles((prev) => [...prev, ...newFiles]);
       toast.success(`${newFiles.length} arquivo(s) enviado(s)!`);
     } catch (error: any) {
-      toast.error(getSafeErrorMessage(error));
+      const safeMessage = getSafeErrorMessage(error);
+      const desc = describeUploadError(safeMessage);
+      toast.error(desc.title, { description: desc.description });
     } finally {
       setUploading(false);
       // Reset input
