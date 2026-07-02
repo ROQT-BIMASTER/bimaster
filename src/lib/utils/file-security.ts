@@ -47,9 +47,12 @@ const DANGEROUS_EXTENSIONS = new Set([
   "pif", "reg", "hta", "wsf", "cpl", "msc",
 ]);
 
-const MAX_FILE_SIZE_BYTES = 200 * 1024 * 1024;         // 200 MB (documentos/imagens)
-const MAX_VIDEO_SIZE_BYTES = 500 * 1024 * 1024;         // 500 MB (vídeos)
-const MAX_DESIGN_FILE_SIZE_BYTES = 1024 * 1024 * 1024;  // 1 GB (.ai / .psd)
+// Limite unificado de 1 GB para qualquer arquivo suportado.
+// As constantes específicas são mantidas para não quebrar imports/telemetria
+// e por compatibilidade — todas apontam para o mesmo teto de 1 GB.
+const MAX_FILE_SIZE_BYTES = 1024 * 1024 * 1024;         // 1 GB (documentos/imagens)
+const MAX_VIDEO_SIZE_BYTES = 1024 * 1024 * 1024;        // 1 GB (vídeos)
+const MAX_DESIGN_FILE_SIZE_BYTES = 1024 * 1024 * 1024;  // 1 GB (design .ai/.psd)
 const VIDEO_EXTENSIONS = new Set(["mp4", "mov", "webm"]);
 const DESIGN_EXTENSIONS = new Set(["ai", "psd"]);
 
@@ -155,7 +158,7 @@ export async function validateFileForUpload(file: File): Promise<FileValidationR
     return {
       valid: false,
       code: "EXTENSION_NOT_ALLOWED",
-      error: `Extensão ".${ext}" não é suportada. Formatos aceitos: PDF, imagens (PNG, JPG, WEBP, GIF, HEIC), Office (DOC, DOCX, XLS, XLSX, PPT, PPTX), CSV, XML, TXT, ZIP, design (AI, PSD até 1 GB) e vídeos (MP4, MOV, WEBM até 500 MB).`,
+      error: `Extensão ".${ext}" não é suportada. Formatos aceitos: PDF, imagens (PNG, JPG, WEBP, GIF, HEIC), Office (DOC, DOCX, XLS, XLSX, PPT, PPTX), CSV, XML, TXT, ZIP, design (AI, PSD) e vídeos (MP4, MOV, WEBM). Limite unificado de 1 GB por arquivo.`,
     };
   }
 
@@ -177,27 +180,18 @@ export async function validateFileForUpload(file: File): Promise<FileValidationR
     };
   }
 
-  // 5. Tamanho (design .ai/.psd até 1 GB; vídeos até 500 MB; demais até 200 MB)
-  const isVideo = VIDEO_EXTENSIONS.has(ext);
-  const isDesign = DESIGN_EXTENSIONS.has(ext);
-  const maxSize = isDesign
-    ? MAX_DESIGN_FILE_SIZE_BYTES
-    : isVideo
-      ? MAX_VIDEO_SIZE_BYTES
-      : MAX_FILE_SIZE_BYTES;
+  // 5. Tamanho — teto unificado de 1 GB para qualquer extensão suportada
+  const maxSize = MAX_FILE_SIZE_BYTES;
   if (file.size > maxSize) {
-    const maxMb = (maxSize / (1024 * 1024)).toFixed(0);
     const currentMb = (file.size / (1024 * 1024)).toFixed(1);
     return {
       valid: false,
       code: "SIZE_EXCEEDED",
-      error: isDesign
-        ? `Arquivo de design ".${ext}" tem ${currentMb} MB e excede o limite de ${maxMb} MB.`
-        : isVideo
-          ? `Vídeo ".${ext}" tem ${currentMb} MB e excede o limite de ${maxMb} MB. Comprima o vídeo (ex.: HandBrake, MP4 H.264 720p) e tente novamente.`
-          : `Arquivo ".${ext}" tem ${currentMb} MB e excede o limite de ${maxMb} MB para este tipo. Vídeos MP4/MOV/WEBM podem chegar a 500 MB e arquivos de design (AI/PSD) até 1 GB.`,
+      error: `Arquivo ".${ext}" tem ${currentMb} MB e excede o limite máximo de 1 GB (1024 MB) por arquivo.`,
     };
   }
+  // Sinaliza vídeo/design apenas para consumo externo (mensagens contextualizadas).
+  void VIDEO_EXTENSIONS; void DESIGN_EXTENSIONS; void MAX_VIDEO_SIZE_BYTES; void MAX_DESIGN_FILE_SIZE_BYTES;
 
   // 6. Magic bytes
   const signatures = MAGIC_SIGNATURES[ext];
@@ -246,7 +240,7 @@ export function describeUploadError(message: string): { title: string; descripti
   if (msg.includes("payload too large") || msg.includes("exceeded the maximum") || msg.includes("file_size_limit")) {
     return {
       title: "Arquivo muito grande",
-      description: "O servidor recusou o upload. Limite: 200 MB para documentos/imagens, 500 MB para vídeos (MP4, MOV, WEBM) e 1 GB para arquivos de design (AI, PSD).",
+      description: "O servidor recusou o upload. O limite atual do sistema é de 1 GB por arquivo. Se seu arquivo estiver abaixo disso, o bucket de storage ainda está com o cap antigo — solicite ao suporte a elevação para 1 GB.",
     };
   }
   if (msg.includes("mime type") && msg.includes("not supported")) {
@@ -256,11 +250,9 @@ export function describeUploadError(message: string): { title: string; descripti
     };
   }
   if (
-    msg.includes("excede o limite de 1 gb") ||
-    msg.includes("excede o limite de 500 mb") ||
-    msg.includes("excede o limite de 200 mb") ||
-    msg.includes("excede o limite de 100 mb") ||
-    msg.includes("excede o limite de 20 mb")
+    msg.includes("excede o limite") ||
+    msg.includes("1 gb") ||
+    msg.includes("1024 mb")
   ) {
     return {
       title: "Arquivo acima do limite permitido",
