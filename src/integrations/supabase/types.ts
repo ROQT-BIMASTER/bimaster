@@ -41010,6 +41010,7 @@ export type Database = {
           asana_team_gid: string | null
           asana_workspace_gid: string | null
           bg_cor: string | null
+          bloqueado: boolean
           categoria_linha: string | null
           codigo_integracao: string | null
           cor: string | null
@@ -41044,6 +41045,7 @@ export type Database = {
           asana_team_gid?: string | null
           asana_workspace_gid?: string | null
           bg_cor?: string | null
+          bloqueado?: boolean
           categoria_linha?: string | null
           codigo_integracao?: string | null
           cor?: string | null
@@ -41078,6 +41080,7 @@ export type Database = {
           asana_team_gid?: string | null
           asana_workspace_gid?: string | null
           bg_cor?: string | null
+          bloqueado?: boolean
           categoria_linha?: string | null
           codigo_integracao?: string | null
           cor?: string | null
@@ -55145,6 +55148,7 @@ export type Database = {
           asana_team_gid: string | null
           asana_workspace_gid: string | null
           bg_cor: string | null
+          bloqueado: boolean
           categoria_linha: string | null
           codigo_integracao: string | null
           cor: string | null
@@ -56940,6 +56944,7 @@ export type Database = {
           asana_team_gid: string | null
           asana_workspace_gid: string | null
           bg_cor: string | null
+          bloqueado: boolean
           categoria_linha: string | null
           codigo_integracao: string | null
           cor: string | null
