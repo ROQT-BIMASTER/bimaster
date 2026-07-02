@@ -238,8 +238,18 @@ export function describeUploadError(message: string): { title: string; descripti
   const raw = message || "";
   const msg = raw.toLowerCase();
 
+  // "database schema is out of sync" — wrapper do backend devolve esse texto
+  // quando o Storage recusa por cap de bucket / MIME não listado (413/415).
+  // É enganoso: não há migração ausente; o bucket é que está com teto abaixo
+  // do arquivo enviado. Traduzimos para orientação real ao usuário final.
+  const isBucketCap =
+    msg.includes("database schema is out of sync") ||
+    msg.includes("please run migrations") ||
+    msg.includes("schema is out of sync");
+
   // HTTP 413 — Payload Too Large. Pode vir do proxy, do Storage ou do bucket.
   const is413 =
+    isBucketCap ||
     msg.includes("413") ||
     msg.includes("payload too large") ||
     msg.includes("request entity too large") ||
@@ -249,20 +259,26 @@ export function describeUploadError(message: string): { title: string; descripti
     return {
       title: "Arquivo acima do limite aceito pelo servidor",
       description:
-        "O envio foi recusado pelo servidor (código 413). O limite unificado do sistema é de 1 GB por arquivo. " +
-        "Passos sugeridos: (1) confirme que o arquivo tem menos de 1 GB; " +
-        "(2) compacte em .zip ou divida em partes menores; " +
-        "(3) se estiver abaixo de 1 GB e ainda falhar, o bucket de storage está com o cap antigo — " +
-        "abra um chamado no suporte pedindo elevação do limite deste bucket para 1 GB. " +
+        "O envio foi recusado pelo servidor de armazenamento. O limite geral do sistema é de 1 GB por arquivo, " +
+        "mas este bucket ainda está configurado com um teto menor (tipicamente 10–50 MB). " +
+        "Passos sugeridos: (1) tente compactar em .zip ou dividir em partes menores; " +
+        "(2) se precisar enviar arquivos deste tamanho com frequência neste módulo, avise a equipe interna " +
+        "para solicitar ao suporte a elevação do limite deste bucket para 1 GB. " +
         "Sua sessão continua ativa; nenhum dado foi perdido.",
     };
   }
 
-  if (msg.includes("mime type") && msg.includes("not supported")) {
+  if (
+    (msg.includes("mime type") && msg.includes("not supported")) ||
+    msg.includes("invalid_mime_type") ||
+    msg.includes("415")
+  ) {
     return {
-      title: "Tipo de arquivo não permitido",
+      title: "Tipo de arquivo não permitido pelo bucket",
       description:
-        "Formatos aceitos: PDF, imagens, Office, CSV, XML, TXT, ZIP, design (AI/PSD) e vídeos MP4/MOV/WEBM.",
+        "O servidor de armazenamento não aceitou o tipo deste arquivo. Formatos aceitos pelo sistema: " +
+        "PDF, imagens, Office, CSV, XML, TXT, ZIP, design (AI/PSD) e vídeos MP4/MOV/WEBM. " +
+        "Se o formato acima está correto, avise a equipe interna para liberar este MIME no bucket.",
     };
   }
   if (msg.includes("excede o limite") || msg.includes("1 gb") || msg.includes("1024 mb")) {
