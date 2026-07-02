@@ -1,0 +1,1 @@
+ALTER FUNCTION public.vendas_uf_yoy(integer,integer,integer,integer,integer) SECURITY DEFINER;
