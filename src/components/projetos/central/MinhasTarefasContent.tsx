@@ -588,7 +588,7 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
       supabase.from("projeto_tarefas").update(updates as any).eq("id", id),
     );
     if (!result.ok) return; // mantém o painel aberto; toast oferece retry
-    queryClient.invalidateQueries({ queryKey: ["minhas-tarefas"] });
+    queryClient.invalidateQueries({ queryKey: ["minhas-tarefas"], refetchType: "none" });
     if (detailTarefa && detailTarefa.id === id) {
       setDetailTarefa({ ...detailTarefa, ...updates } as MinaTarefa);
     }
