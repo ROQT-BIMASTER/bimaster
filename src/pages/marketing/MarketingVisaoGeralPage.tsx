@@ -600,7 +600,7 @@ export default function MarketingVisaoGeralPage() {
 
   return (
     <DashboardLayout>
-    <div className="container mx-auto py-6 space-y-6">
+    <div className="w-full px-4 sm:px-6 lg:px-10 xl:px-14 2xl:px-20 py-6 space-y-6">
       {/* Header + filtros */}
       <div className="flex flex-col gap-4">
         <div>
