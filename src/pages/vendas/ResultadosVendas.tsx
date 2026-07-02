@@ -91,6 +91,21 @@ export default function ResultadosVendas() {
 
           <div className="h-16" />
         </div>
+
+        <Button
+          size="sm"
+          onClick={() => setCopilotOpen(true)}
+          className="fixed bottom-6 right-6 z-40 gap-2 bg-pink-600 hover:bg-pink-700 text-white shadow-lg"
+        >
+          <Sparkles className="h-4 w-4" />
+          Copiloto
+        </Button>
+
+        <PedidosCopilotDrawer
+          open={copilotOpen}
+          onOpenChange={setCopilotOpen}
+          scope={{ date_from: rankingFilters.de, date_to: rankingFilters.ate }}
+        />
       </div>
     </DashboardLayout>
   );
