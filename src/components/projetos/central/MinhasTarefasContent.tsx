@@ -525,6 +525,20 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
     return () => releaseDetailGate(selectedProjetoId);
   }, [detailOpen, selectedProjetoId]);
 
+  // Reconciliação silenciosa: ao fechar o painel, refaz o fetch da lista
+  // uma única vez para alinhar com o servidor sem piscar durante a edição
+  // (invalidations dos bridges são `refetchType:"none"` enquanto o painel
+  // está aberto).
+  const wasDetailOpenRef = useRef(false);
+  useEffect(() => {
+    if (wasDetailOpenRef.current && !detailOpen) {
+      queryClient.refetchQueries({ queryKey: ["minhas-tarefas"], type: "active" });
+    }
+    wasDetailOpenRef.current = detailOpen;
+  }, [detailOpen, queryClient]);
+
+
+
   // Subtarefas ao vivo da tarefa aberta — alimenta o Focus Mode sem precisar
   // fechar/reabrir o modal a cada nova subtarefa.
   const { data: bridgedSubtarefas = [] } = useQuery({
