@@ -124,7 +124,7 @@ async function uploadWithRetry(
 ): Promise<{ ok: true } | { ok: false; failure: UploadFailure }> {
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
     try {
-      const { error } = await withTimeout(
+      await withTimeout(
         resumableUpload({
           bucket: BUCKET,
           path,
