@@ -14,6 +14,10 @@ export type SortState = { key: SortKey; dir: SortDir };
 interface Props {
   ano: number;
   empresa: number | null;
+  tabelaPrecoId?: number | null;
+  uf?: string | null;
+  clienteId?: number | null;
+  vendedorId?: number | null;
 }
 
 function DivergingBar({ variacao, novo }: { variacao: number | null; novo: boolean }) {
