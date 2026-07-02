@@ -490,6 +490,7 @@ export function ProjetoTarefaDetalhe({
       }}>
         <SheetContent
           side="right"
+          hideClose
           className="w-full sm:max-w-[580px] p-0 flex flex-col overflow-hidden"
           onPointerDownOutside={(e) => {
             // Evita que cliques em conteúdo portalizado (Popover, Select,
