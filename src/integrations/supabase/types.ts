@@ -57961,6 +57961,16 @@ export type Database = {
           valor_total: number
         }[]
       }
+      vendas_ranking_cliente: {
+        Args: { p_ate?: string; p_de?: string; p_empresa?: number }
+        Returns: {
+          cliente_id: number
+          cliente_nome: string
+          faturamento: number
+          notas: number
+          ticket_medio: number
+        }[]
+      }
       vendas_ranking_coordenador: {
         Args: { p_ate?: string; p_de?: string; p_empresa?: number }
         Returns: {
