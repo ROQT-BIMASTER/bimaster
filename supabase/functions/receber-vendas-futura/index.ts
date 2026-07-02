@@ -140,6 +140,7 @@ Deno.serve(secureHandler(
           cliente_futura_id: v.cliente_futura_id ?? null,
           cliente_nome: v.cliente_nome ?? null,
           cliente_cnpj_cpf: v.cliente_cnpj_cpf ?? null,
+          cliente_uf: v.cliente_uf ?? null,
           vendedor_futura_id: v.vendedor_futura_id ?? null,
           tabela_preco_id: v.tabela_preco_id ?? null,
           tabela_preco_nome: v.tabela_preco_nome ?? null,
