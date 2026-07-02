@@ -5,8 +5,15 @@ export interface VendasFilters {
   de: string | null;
   ate: string | null;
   empresa: number | null;
+  /** legado (uuid) — não é enviado às novas RPCs, mantido apenas para telas antigas */
   vendedor: string | null;
+  /** legado (uuid) — idem */
   coordenador: string | null;
+  // Filtros globais da nova tela Resultados de Vendas
+  tabelaPrecoId?: number | null;
+  uf?: string | null;
+  clienteId?: number | null;
+  vendedorId?: number | null; // futura int
 }
 
 function rpcParams(f: VendasFilters) {
@@ -14,8 +21,10 @@ function rpcParams(f: VendasFilters) {
     p_de: f.de,
     p_ate: f.ate,
     p_empresa: f.empresa,
-    p_vendedor: f.vendedor,
-    p_coordenador: f.coordenador,
+    p_tabela_preco: f.tabelaPrecoId ?? null,
+    p_uf: f.uf ?? null,
+    p_cliente: f.clienteId ?? null,
+    p_vendedor: f.vendedorId ?? null,
   };
 }
 
