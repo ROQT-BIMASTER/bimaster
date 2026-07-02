@@ -259,7 +259,7 @@ export function describeUploadError(message: string): { title: string; descripti
     return {
       title: "Arquivo acima do limite aceito pelo servidor",
       description:
-        "O envio foi recusado pelo servidor de armazenamento. O limite geral do sistema é de 1 GB por arquivo, " +
+        `O envio foi recusado pelo servidor de armazenamento. O limite geral do sistema é de ${UPLOAD_MAX_LABEL} por arquivo, ` +
         "mas este bucket ainda está configurado com um teto menor (tipicamente 10–50 MB). " +
         "Passos sugeridos: (1) tente compactar em .zip ou dividir em partes menores; " +
         "(2) se precisar enviar arquivos deste tamanho com frequência neste módulo, avise a equipe interna " +
