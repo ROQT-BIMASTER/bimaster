@@ -219,7 +219,7 @@ export function AnexarEvidenciaDialog({
             <Input
               id="evidencia-file"
               type="file"
-              accept="image/*,application/pdf,.xls,.xlsx,.csv,.doc,.docx,.ppt,.pptx"
+              accept="image/*,application/pdf,.xls,.xlsx,.csv,.doc,.docx,.ppt,.pptx,.ai,.psd,application/postscript,application/illustrator,image/vnd.adobe.photoshop"
               onChange={(e) => handleFile(e.target.files?.[0] ?? null)}
             />
             {file && (
