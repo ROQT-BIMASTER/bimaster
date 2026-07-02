@@ -9,6 +9,7 @@ import { uniqueChannelName } from "@/lib/realtime/channelName";
 import { sanitizeStorageFilename } from "@/lib/utils/sanitizeStorageFilename";
 import { validateFileForUpload, describeUploadError } from "@/lib/utils/file-security";
 import { uploadTarefaAnexoToStorage } from "@/lib/utils/uploadTarefaAnexo";
+import { isUUID } from "@/lib/utils/isUuid";
 
 export interface TarefaComentario {
   id: string;
@@ -180,7 +181,7 @@ export function useProjetoTarefaDetalhe(tarefaId: string | undefined, produtoId?
 
       // Fluxo compartilhado com subtarefas / minhas tarefas:
       // validação + storage upload + insert em projeto_tarefa_anexos.
-      const { id } = await uploadTarefaAnexoToStorage({
+      const { id, row } = await uploadTarefaAnexoToStorage({
         file,
         userId: user!.id,
         tarefaId: tarefaId!,
@@ -203,17 +204,18 @@ export function useProjetoTarefaDetalhe(tarefaId: string | undefined, produtoId?
         },
       });
 
-      return { id, nome: file.name };
+      return { id, nome: file.name, row: row as unknown as TarefaAnexo };
     },
     onMutate: async (input: UploadAnexoInput) => {
       const { file } = normalizeUpload(input);
       const qk = ["tarefa-anexos", tarefaId];
       await queryClient.cancelQueries({ queryKey: qk });
       const previous = queryClient.getQueryData<TarefaAnexo[]>(qk);
-      // Placeholder com flag isUploading — o invalidate no onSettled o substitui
-      // pelo registro real após sucesso, ou rollback remove em caso de falha.
+      // Placeholder com flag isUploading — em onSuccess é substituído pela
+      // linha real do banco; em onError o rollback abaixo remove.
+      const tempId = `temp-${crypto.randomUUID()}`;
       const optimistic: TarefaAnexo & { isUploading?: boolean } = {
-        id: `temp-${crypto.randomUUID()}`,
+        id: tempId,
         tarefa_id: tarefaId!,
         user_id: user!.id,
         nome: file.name,
@@ -224,14 +226,38 @@ export function useProjetoTarefaDetalhe(tarefaId: string | undefined, produtoId?
         isUploading: true,
       };
       queryClient.setQueryData<TarefaAnexo[]>(qk, (old) => [optimistic, ...(old || [])]);
-      return { previous };
+      return { previous, tempId };
     },
     onError: (err: Error, _vars, ctx: any) => {
-      if (ctx?.previous) queryClient.setQueryData(["tarefa-anexos", tarefaId], ctx.previous);
+      const qk = ["tarefa-anexos", tarefaId];
+      if (ctx?.previous) {
+        queryClient.setQueryData(qk, ctx.previous);
+      } else if (ctx?.tempId) {
+        // Defesa extra: se algo alterou o cache entre onMutate e onError,
+        // garante que o placeholder temp-… não fique órfão.
+        queryClient.setQueryData<TarefaAnexo[]>(qk, (old) =>
+          (old || []).filter((a) => a.id !== ctx.tempId),
+        );
+      }
       const { title, description } = describeUploadError(err.message);
       toast.error(title, { description });
     },
-    onSuccess: () => {
+    onSuccess: (data, _vars, ctx: any) => {
+      const qk = ["tarefa-anexos", tarefaId];
+      // Substitui o placeholder pelo registro real preservando a posição na
+      // lista — evita duplicidade e mantém o UUID definitivo do banco.
+      queryClient.setQueryData<TarefaAnexo[]>(qk, (old) => {
+        const list = old || [];
+        const idx = list.findIndex((a) => a.id === ctx?.tempId);
+        if (idx === -1) {
+          // Placeholder já não existe (foi refetched em outro fluxo); só
+          // adiciona no topo se ainda não estiver presente.
+          return list.some((a) => a.id === data.row.id) ? list : [data.row, ...list];
+        }
+        const next = list.slice();
+        next[idx] = data.row;
+        return next;
+      });
       toast.success("Anexo enviado!");
     },
     onSettled: () => {
@@ -242,7 +268,14 @@ export function useProjetoTarefaDetalhe(tarefaId: string | undefined, produtoId?
 
   const deleteAnexo = useMutation({
     mutationFn: async (anexo: TarefaAnexo) => {
-      await supabase.storage.from("projeto-anexos").remove([anexo.storage_path]);
+      // Guard: bloqueia ids temporários (placeholders otimistas) antes que
+      // o Postgres devolva `invalid input syntax for type uuid`.
+      if (!isUUID(anexo?.id)) {
+        throw new Error("Aguarde o upload concluir antes de excluir este anexo.");
+      }
+      if (anexo.storage_path) {
+        await supabase.storage.from("projeto-anexos").remove([anexo.storage_path]);
+      }
       const { error } = await supabase.from("projeto_tarefa_anexos").delete().eq("id", anexo.id);
       if (error) throw error;
     },

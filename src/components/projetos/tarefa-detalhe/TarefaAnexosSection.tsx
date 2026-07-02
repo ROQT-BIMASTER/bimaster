@@ -369,9 +369,27 @@ export function TarefaAnexosSection({
                       </Tooltip>
                     )}
 
-                    <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => deleteAnexo.mutate(a)}>
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
+                    {(() => {
+                      const isTemp = String((a as any)?.id ?? "").startsWith("temp-") || Boolean((a as any)?.isUploading);
+                      return (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7 text-destructive"
+                                onClick={() => deleteAnexo.mutate(a)}
+                                disabled={isTemp}
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
+                            </span>
+                          </TooltipTrigger>
+                          {isTemp && <TooltipContent>Aguarde o upload concluir</TooltipContent>}
+                        </Tooltip>
+                      );
+                    })()}
                   </div>
                 );
               })}

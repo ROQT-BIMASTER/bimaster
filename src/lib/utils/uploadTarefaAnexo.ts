@@ -31,6 +31,12 @@ export interface UploadTarefaAnexoResult {
   id: string;
   storagePath: string;
   nome: string;
+  /**
+   * Linha completa recém-inserida em `projeto_tarefa_anexos`. Os hooks usam
+   * este objeto para substituir o placeholder otimista (`temp-…`) no cache
+   * do React Query, sem depender de refetch.
+   */
+  row: Record<string, unknown>;
 }
 
 export async function uploadTarefaAnexoToStorage(
@@ -83,7 +89,7 @@ export async function uploadTarefaAnexoToStorage(
       tamanho: file.size,
       notificados: cleanedNotificados,
     } as any)
-    .select("id")
+    .select("*")
     .single();
   if (error) {
     reportUploadError({ ...auditBase, error, reason: "metadata_insert_failed" });
@@ -96,5 +102,6 @@ export async function uploadTarefaAnexoToStorage(
     id: (inserted as any)?.id as string,
     storagePath: filePath,
     nome: file.name,
+    row: inserted as Record<string, unknown>,
   };
 }
