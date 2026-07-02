@@ -615,7 +615,7 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
       supabase.from("projeto_tarefas").update(update as never).eq("id", t.id),
     );
     if (!result.ok) return;
-    queryClient.invalidateQueries({ queryKey: ["minhas-tarefas"] });
+    queryClient.invalidateQueries({ queryKey: ["minhas-tarefas"], refetchType: "none" });
     if (detailTarefa && detailTarefa.id === t.id) {
       setDetailTarefa({ ...detailTarefa, ...update } as MinaTarefa);
     }
