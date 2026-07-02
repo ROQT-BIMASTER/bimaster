@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { guardFileUpload, reportUploadSuccessShared, reportUploadFailureShared } from "@/lib/utils/sharedUploadGuard";
+import { resumableUpload } from "@/lib/upload/resumableUpload";
 
 export interface Anotacao {
   tipo: string;
@@ -235,16 +236,22 @@ async function uploadAnexos(
     if (!passed) continue;
     const safe = f.name.replace(/[^\w.\-]+/g, "_");
     const path = `${uid}/${submissaoId}/revisoes/${revisaoId}/${Date.now()}-${safe}`;
-    const { error } = await supabase.storage.from(BUCKET).upload(path, f, {
-      contentType: f.type || "application/octet-stream",
-      upsert: false,
-    });
-    if (error) {
+    let uploadedPath = path;
+    try {
+      const result = await resumableUpload({
+        bucket: BUCKET,
+        path,
+        file: f,
+        upsert: false,
+        skipValidation: true,
+      });
+      uploadedPath = result.path;
+    } catch (error) {
       reportUploadFailureShared({ module: "china-revisao", file: f, userId: uid, contextId: submissaoId, error });
       throw error;
     }
-    reportUploadSuccessShared({ module: "china-revisao", file: f, userId: uid, contextId: submissaoId, storagePath: path });
-    out.push({ path, nome: f.name, tamanho: f.size, mime: f.type, lado });
+    reportUploadSuccessShared({ module: "china-revisao", file: f, userId: uid, contextId: submissaoId, storagePath: uploadedPath });
+    out.push({ path: uploadedPath, nome: f.name, tamanho: f.size, mime: f.type, lado });
   }
   return out;
 }

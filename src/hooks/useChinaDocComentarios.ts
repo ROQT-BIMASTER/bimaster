@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { uniqueChannelName } from "@/lib/realtime/channelName";
+import { resumableUpload } from "@/lib/upload/resumableUpload";
 
 export interface ComentarioAnexo {
   path: string;
@@ -47,16 +48,18 @@ async function getUserName(): Promise<{ id: string; nome: string }> {
 async function uploadAnexos(
   files: File[],
   basePath: string,
+  userId: string,
 ): Promise<ComentarioAnexo[]> {
   const out: ComentarioAnexo[] = [];
   for (const f of files) {
     const safe = f.name.replace(/[^\w.\-]+/g, "_");
-    const path = `${basePath}/${Date.now()}-${safe}`;
-    const { error } = await supabase.storage.from(BUCKET).upload(path, f, {
-      contentType: f.type || "application/octet-stream",
+    const path = `${userId}/${basePath}/${Date.now()}-${safe}`;
+    await resumableUpload({
+      bucket: BUCKET,
+      path,
+      file: f,
       upsert: false,
     });
-    if (error) throw error;
     out.push({ path, nome: f.name, tamanho: f.size, mime: f.type });
   }
   return out;
@@ -145,7 +148,8 @@ export function useAdicionarComentario() {
       if (params.anexos?.length) {
         const anexos = await uploadAnexos(
           params.anexos,
-          `comentarios/${params.submissao_id}/${comentarioId}`,
+          `${params.submissao_id}/comentarios/${comentarioId}`,
+          user.id,
         );
         await supabase
           .from("china_doc_comentarios" as any)

@@ -1,9 +1,9 @@
 /**
  * Admin — Diagnóstico de Storage Buckets
  *
- * Consulta em tempo real a configuração efetiva de cada bucket relevante do
- * Storage (limite de tamanho + MIME types aceitos) diretamente do backend, via
- * a Edge Function `storage-bucket-upload-limits` em modo `list`.
+ * Consulta em tempo real a configuração efetiva de cada bucket relevante
+ * (limite de tamanho + MIME types aceitos) diretamente do backend, via
+ * a função administrativa `storage-bucket-upload-limits` em modo `list`.
  *
  * Serve para confirmar visualmente se o teto de 1 GB e os MIMEs Adobe (.ai /
  * .psd) estão de fato aplicados no ambiente em que a app está rodando —
@@ -121,7 +121,7 @@ export default function DiagnosticoBuckets() {
           <h1 className="text-2xl font-semibold">Diagnóstico de Storage Buckets</h1>
           <p className="text-muted-foreground text-sm mt-1">
             Limite oficial do sistema: <strong>{UPLOAD_MAX_LABEL}</strong> por arquivo. Esta tela
-            mostra o teto efetivo e a whitelist de MIMEs aplicada em cada bucket no ambiente atual.
+             mostra o teto efetivo e a whitelist de MIMEs aplicada em cada bucket monitorado no ambiente atual.
           </p>
         </div>
         <div className="flex gap-2">
@@ -147,14 +147,14 @@ export default function DiagnosticoBuckets() {
           <CardHeader className="pb-2"><CardTitle className="text-sm">Sem MIMEs Adobe</CardTitle></CardHeader>
           <CardContent>
             <div className="text-2xl font-semibold">{stats.missingAdobe.length}</div>
-            <div className="text-xs text-muted-foreground">buckets com whitelist incompleta para .ai/.psd</div>
+              <div className="text-xs text-muted-foreground">inclui os buckets China monitorados</div>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2"><CardTitle className="text-sm">Alvo backend</CardTitle></CardHeader>
           <CardContent>
             <div className="text-2xl font-semibold">{formatBytes(target)}</div>
-            <div className="text-xs text-muted-foreground">valor lido da Edge Function</div>
+             <div className="text-xs text-muted-foreground">valor lido do backend</div>
           </CardContent>
         </Card>
       </div>

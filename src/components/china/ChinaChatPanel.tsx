@@ -26,6 +26,8 @@ import { uniqueChannelName } from "@/lib/realtime/channelName";
 import { useUserLanguage, LANGUAGE_LABEL, LANGUAGE_FLAG, type UserLanguage } from "@/hooks/useUserLanguage";
 import { invokeChat } from "@/lib/ai/invokeChat";
 import { validateFileForUpload } from "@/lib/utils/file-security";
+import { UPLOAD_MAX_BYTES, UPLOAD_MAX_LABEL } from "@/lib/upload/limits";
+import { resumableUpload } from "@/lib/upload/resumableUpload";
 import { reportGenericUploadSuccess, reportGenericUploadError, reportGenericUploadRejection } from "@/lib/telemetry/uploadTelemetry";
 import { MessageTranslation } from "./chat/MessageTranslation";
 import { ChatAttachmentChip, type ChatAnexo } from "./chat/ChatAttachmentChip";
@@ -298,11 +300,11 @@ export function ChinaChatPanel({ submissaoId, produtoNome, tipoRemetente, refere
         erros.push(`${f.name}: ${v.error}`);
         reportGenericUploadRejection({ module: "china-chat", file: f, userId: "anon", contextId: submissaoId, error: v.error });
       }
-      else if (f.size > 10 * 1024 * 1024) {
-        erros.push(`${f.name}: maior que 10 MB`);
-        reportGenericUploadRejection({ module: "china-chat", file: f, userId: "anon", contextId: submissaoId, error: "maior que 10 MB", reason: "size_exceeded" });
+      else if (f.size > UPLOAD_MAX_BYTES) {
+        erros.push(`${f.name}: maior que ${UPLOAD_MAX_LABEL}`);
+        reportGenericUploadRejection({ module: "china-chat", file: f, userId: "anon", contextId: submissaoId, error: `maior que ${UPLOAD_MAX_LABEL}`, reason: "size_exceeded" });
       }
-      else if (!/^(image\/(png|jpeg|webp|gif)|application\/pdf)$/.test(f.type)) {
+      else if (f.type && !/^(image\/(png|jpeg|webp|gif|vnd\.adobe\.photoshop|psd)|application\/(pdf|postscript|illustrator|vnd\.adobe\.illustrator|x-photoshop|photoshop|octet-stream))$/.test(f.type)) {
         erros.push(`${f.name}: formato não suportado`);
         reportGenericUploadRejection({ module: "china-chat", file: f, userId: "anon", contextId: submissaoId, error: "formato não suportado", reason: "invalid_type" });
       }
@@ -323,10 +325,15 @@ export function ChinaChatPanel({ submissaoId, produtoNome, tipoRemetente, refere
         const ext = file.name.split(".").pop() || "bin";
         const safeName = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
         const path = `${submissaoId}/${user.id}/${safeName}`;
-        const { error } = await supabase.storage.from("china-chat-anexos").upload(path, file, {
-          contentType: file.type, upsert: false,
-        });
-        if (error) {
+        try {
+          await resumableUpload({
+            bucket: "china-chat-anexos",
+            path,
+            file,
+            upsert: false,
+            skipValidation: true,
+          });
+        } catch (error) {
           reportGenericUploadError({ module: "china-chat", file, userId: user.id, contextId: submissaoId, error, reason: "storage_upload_failed" });
           throw error;
         }
@@ -962,7 +969,7 @@ export function ChinaChatPanel({ submissaoId, produtoNome, tipoRemetente, refere
                 <input
                   ref={fileInputRef}
                   type="file"
-                  accept="image/png,image/jpeg,image/webp,image/gif,application/pdf"
+                  accept="image/png,image/jpeg,image/webp,image/gif,application/pdf,.ai,.psd"
                   multiple
                   hidden
                   onChange={(e) => { handleSelectFiles(e.target.files); e.target.value = ""; }}
@@ -971,7 +978,7 @@ export function ChinaChatPanel({ submissaoId, produtoNome, tipoRemetente, refere
                   type="button"
                   className="text-muted-foreground hover:text-primary"
                   onClick={() => fileInputRef.current?.click()}
-                  title="Anexar arquivo (imagem ou PDF, até 10 MB) 附件"
+                  title={`Anexar arquivo (imagem, PDF, AI ou PSD, até ${UPLOAD_MAX_LABEL}) 附件`}
                 >
                   <Paperclip className="h-4 w-4" />
                 </button>
