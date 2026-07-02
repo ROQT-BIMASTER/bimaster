@@ -180,27 +180,18 @@ export async function validateFileForUpload(file: File): Promise<FileValidationR
     };
   }
 
-  // 5. Tamanho (design .ai/.psd até 1 GB; vídeos até 500 MB; demais até 200 MB)
-  const isVideo = VIDEO_EXTENSIONS.has(ext);
-  const isDesign = DESIGN_EXTENSIONS.has(ext);
-  const maxSize = isDesign
-    ? MAX_DESIGN_FILE_SIZE_BYTES
-    : isVideo
-      ? MAX_VIDEO_SIZE_BYTES
-      : MAX_FILE_SIZE_BYTES;
+  // 5. Tamanho — teto unificado de 1 GB para qualquer extensão suportada
+  const maxSize = MAX_FILE_SIZE_BYTES;
   if (file.size > maxSize) {
-    const maxMb = (maxSize / (1024 * 1024)).toFixed(0);
     const currentMb = (file.size / (1024 * 1024)).toFixed(1);
     return {
       valid: false,
       code: "SIZE_EXCEEDED",
-      error: isDesign
-        ? `Arquivo de design ".${ext}" tem ${currentMb} MB e excede o limite de ${maxMb} MB.`
-        : isVideo
-          ? `Vídeo ".${ext}" tem ${currentMb} MB e excede o limite de ${maxMb} MB. Comprima o vídeo (ex.: HandBrake, MP4 H.264 720p) e tente novamente.`
-          : `Arquivo ".${ext}" tem ${currentMb} MB e excede o limite de ${maxMb} MB para este tipo. Vídeos MP4/MOV/WEBM podem chegar a 500 MB e arquivos de design (AI/PSD) até 1 GB.`,
+      error: `Arquivo ".${ext}" tem ${currentMb} MB e excede o limite máximo de 1 GB (1024 MB) por arquivo.`,
     };
   }
+  // Sinaliza vídeo/design apenas para consumo externo (mensagens contextualizadas).
+  void VIDEO_EXTENSIONS; void DESIGN_EXTENSIONS; void MAX_VIDEO_SIZE_BYTES; void MAX_DESIGN_FILE_SIZE_BYTES;
 
   // 6. Magic bytes
   const signatures = MAGIC_SIGNATURES[ext];
