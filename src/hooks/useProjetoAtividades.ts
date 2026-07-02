@@ -32,14 +32,30 @@ export function useProjetoAtividades(filter?: InboxFilter) {
   const queryClient = useQueryClient();
 
   const { data: atividades = [], isLoading } = useQuery({
-    queryKey: ["projeto-atividades"],
+    queryKey: ["projeto-atividades", user?.id],
+    enabled: !!user?.id,
     queryFn: async () => {
+      // Escopo: apenas projetos onde o usuário é membro OU criador.
+      // RLS de projeto_atividades libera visibilidade "equipe" para toda a empresa,
+      // mas o inbox pessoal deve mostrar só o que o usuário efetivamente participa.
+      const [membrosRes, criadosRes] = await Promise.all([
+        supabase.from("projeto_membros").select("projeto_id").eq("user_id", user!.id),
+        supabase.from("projetos").select("id").eq("criador_id", user!.id).is("deleted_at", null),
+      ]);
+      const allowed = new Set<string>([
+        ...((membrosRes.data || []).map((m: any) => m.projeto_id)),
+        ...((criadosRes.data || []).map((p: any) => p.id)),
+      ]);
+      if (allowed.size === 0) return [];
+
       const { data, error } = await supabase
         .from("projeto_atividades")
         .select("*")
+        .in("projeto_id", Array.from(allowed))
         .order("created_at", { ascending: false })
         .limit(200);
       if (error) throw error;
+
 
       const userIds = [...new Set((data || []).map(a => a.user_id))];
       const projetoIds = [...new Set((data || []).map(a => a.projeto_id))];
@@ -61,8 +77,8 @@ export function useProjetoAtividades(filter?: InboxFilter) {
         projeto_cor: projetoMap[a.projeto_id]?.cor || "#6366f1",
       })) as ProjetoAtividade[];
     },
-    enabled: !!user,
   });
+
 
   const filtered = useMemo(() => {
     let list = atividades;
