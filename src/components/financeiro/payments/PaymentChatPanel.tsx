@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
+import { UPLOAD_MAX_BYTES } from "@/lib/upload/limits";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -139,7 +140,7 @@ export function PaymentChatPanel({ paymentQueueId, userType, className, compact 
     try {
       const uploaded: typeof pendingFiles = [];
       for (const file of Array.from(files)) {
-        if (file.size > 20 * 1024 * 1024) {
+        if (file.size > UPLOAD_MAX_BYTES) {
           toast.error(`${file.name} excede 20MB`);
           continue;
         }

@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { UPLOAD_MAX_BYTES } from "@/lib/upload/limits";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -122,7 +123,7 @@ export function useSubmissaoPareceres(submissaoId: string | null | undefined) {
       const parecerId = (inserted as any).id as string;
 
       for (const file of args.anexos) {
-        if (file.size > 20 * 1024 * 1024) continue;
+        if (file.size > UPLOAD_MAX_BYTES) continue;
         const path = `${uid}/${submissaoId}/${parecerId}/${crypto.randomUUID()}-${file.name}`;
         const { error: upErr } = await supabase.storage
           .from("china-pareceres")

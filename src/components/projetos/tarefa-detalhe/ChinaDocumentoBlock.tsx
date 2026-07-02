@@ -24,7 +24,7 @@ interface Props {
 }
 
 // Tamanho máximo do upload (20 MB — política global de Storage).
-const MAX_SIZE = 20 * 1024 * 1024;
+import { UPLOAD_MAX_BYTES as MAX_SIZE } from "@/lib/upload/limits";
 
 // Bloqueia executáveis e double-extension comuns.
 const FORBIDDEN_EXT = /\.(exe|bat|cmd|sh|js|jar|com|scr|msi|dll|php|py|rb)(\.|$)/i;

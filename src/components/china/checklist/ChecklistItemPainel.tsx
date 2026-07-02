@@ -88,7 +88,7 @@ const STATUS_CLS: Record<string, string> = {
   planejado: "bg-muted text-muted-foreground border-border",
 };
 
-const MAX_BYTES = 20 * 1024 * 1024;
+import { UPLOAD_MAX_BYTES as MAX_BYTES } from "@/lib/upload/limits";
 
 export function ChecklistItemPainel({
   open,
