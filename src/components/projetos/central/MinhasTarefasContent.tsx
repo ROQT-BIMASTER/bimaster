@@ -1,4 +1,4 @@
-import { memo, useState, useMemo, useCallback, useEffect } from "react";
+import { memo, useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useMinhasTarefas, groupTarefas, type MinaTarefa } from "@/hooks/useMinhasTarefas";
 import { Card, CardContent } from "@/components/ui/card";
@@ -525,6 +525,20 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
     return () => releaseDetailGate(selectedProjetoId);
   }, [detailOpen, selectedProjetoId]);
 
+  // Reconciliação silenciosa: ao fechar o painel, refaz o fetch da lista
+  // uma única vez para alinhar com o servidor sem piscar durante a edição
+  // (invalidations dos bridges são `refetchType:"none"` enquanto o painel
+  // está aberto).
+  const wasDetailOpenRef = useRef(false);
+  useEffect(() => {
+    if (wasDetailOpenRef.current && !detailOpen) {
+      queryClient.refetchQueries({ queryKey: ["minhas-tarefas"], type: "active" });
+    }
+    wasDetailOpenRef.current = detailOpen;
+  }, [detailOpen, queryClient]);
+
+
+
   // Subtarefas ao vivo da tarefa aberta — alimenta o Focus Mode sem precisar
   // fechar/reabrir o modal a cada nova subtarefa.
   const { data: bridgedSubtarefas = [] } = useQuery({
@@ -588,7 +602,7 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
       supabase.from("projeto_tarefas").update(updates as any).eq("id", id),
     );
     if (!result.ok) return; // mantém o painel aberto; toast oferece retry
-    queryClient.invalidateQueries({ queryKey: ["minhas-tarefas"] });
+    queryClient.invalidateQueries({ queryKey: ["minhas-tarefas"], refetchType: "none" });
     if (detailTarefa && detailTarefa.id === id) {
       setDetailTarefa({ ...detailTarefa, ...updates } as MinaTarefa);
     }
@@ -615,7 +629,7 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
       supabase.from("projeto_tarefas").update(update as never).eq("id", t.id),
     );
     if (!result.ok) return;
-    queryClient.invalidateQueries({ queryKey: ["minhas-tarefas"] });
+    queryClient.invalidateQueries({ queryKey: ["minhas-tarefas"], refetchType: "none" });
     if (detailTarefa && detailTarefa.id === t.id) {
       setDetailTarefa({ ...detailTarefa, ...update } as MinaTarefa);
     }
