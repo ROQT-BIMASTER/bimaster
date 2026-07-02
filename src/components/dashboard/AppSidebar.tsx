@@ -993,20 +993,29 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
           </ModuleSubmenu>
         );
 
-      case "china":
+      case "china": {
+        const chinaItems = [
+          { url: "/dashboard/fabrica-china", icon: Home, title: "Painel 面板", screenCode: "china_dashboard", end: true },
+          { url: "/dashboard/fabrica-china/nova", icon: Upload, title: "Nova Submissão 新提交", screenCode: "china_submissoes" },
+          { url: "/dashboard/fabrica-china/recebimentos", icon: Package, title: "Submissões 提交", screenCode: "china_submissoes" },
+          { url: "/dashboard/fabrica-china/ordens-producao", icon: Factory, title: "Ordens de Produção 生产订单", screenCode: "china_ordens_producao" },
+        ];
+        const visible = chinaItems.filter(i => hasPermission(i.screenCode));
+        const showInbox = isAdmin || hasPermission("compras_inbox_comprador");
+        if (visible.length === 0 && !showInbox) return null;
         return (
           <ModuleSubmenu icon={Globe} title="Fábrica China 中国工厂" colorKey="china">
             <ChinaInboxSidebarItem colorKey="china" />
-            {(isAdmin || hasPermission("compras_inbox_comprador")) && (
+            {showInbox && (
               <MenuItemLink to="/dashboard/compras-internacionais/inbox" icon={Inbox} title="Inbox do Comprador 采购员收件箱" colorKey="china" />
             )}
-            <MenuItemLink to="/dashboard/fabrica-china" icon={Home} title="Painel 面板" colorKey="china" end />
-            <MenuItemLink to="/dashboard/fabrica-china/nova" icon={Upload} title="Nova Submissão 新提交" colorKey="china" />
-            <MenuItemLink to="/dashboard/fabrica-china/recebimentos" icon={Package} title="Submissões 提交" colorKey="china" />
-            {/* Ordens de Compra consolidadas no Inbox do Comprador — não duplicar aqui (ver compras-deep-links.test.ts). */}
-            <MenuItemLink to="/dashboard/fabrica-china/ordens-producao" icon={Factory} title="Ordens de Produção 生产订单" colorKey="china" />
+            {visible.map((item, idx) => (
+              <MenuItemLink key={item.url} to={item.url} icon={item.icon} title={item.title} colorKey="china" end={item.end} />
+            ))}
           </ModuleSubmenu>
         );
+      }
+
 
       case "composicao":
         return (
