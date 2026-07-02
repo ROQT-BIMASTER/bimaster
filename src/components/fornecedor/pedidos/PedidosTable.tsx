@@ -34,6 +34,10 @@ export function PedidosTable({ pedidos, limiarParado, onPedidoClick }: PedidosTa
     return arr;
   }, [pedidos, sortKey, sortDir]);
 
+  const totalGeral = useMemo(() => sorted.reduce((s, p) => s + (p.total_pedido ?? 0), 0), [sorted]);
+
+
+
   const onSort = (k: SortKey) => {
     if (k === sortKey) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
     else { setSortKey(k); setSortDir("asc"); }
