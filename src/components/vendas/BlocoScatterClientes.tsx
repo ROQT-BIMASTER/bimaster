@@ -12,14 +12,18 @@ interface Props {
   de: string;
   ate: string;
   empresa: number | null;
+  tabelaPrecoId?: number | null;
+  uf?: string | null;
+  clienteId?: number | null;
+  vendedorId?: number | null;
 }
 
 function truncate(s: string, n: number) {
   return s.length > n ? s.slice(0, n - 1) + "…" : s;
 }
 
-export function BlocoScatterClientes({ de, ate, empresa }: Props) {
-  const { data, isLoading } = useVendasRankingCliente({ de, ate, empresa });
+export function BlocoScatterClientes({ de, ate, empresa, tabelaPrecoId, uf, clienteId, vendedorId }: Props) {
+  const { data, isLoading } = useVendasRankingCliente({ de, ate, empresa, tabelaPrecoId, uf, clienteId, vendedorId });
   const rows = data ?? [];
 
   const { pontos, destaques, aside, maxY } = useMemo(() => {
