@@ -524,7 +524,7 @@ export function ProjetoTarefaDetalhe({
           </SheetHeader>
 
           {/* Top action bar — Asana-style flat header */}
-          <div className="px-5 py-3 border-b border-border/60 flex items-center gap-2">
+          <div className="px-5 py-3 border-b border-border/60 flex items-center gap-2 flex-wrap">
             {(tarefa as any).parent_tarefa_id && (
               <>
                 <Button
