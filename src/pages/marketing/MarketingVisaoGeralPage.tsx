@@ -321,7 +321,14 @@ function PostThumb({
   const Icon = TIPO_ICON[tipo] ?? ImageIcon;
   const [broken, setBroken] = useState(false);
 
-  const isVideo = (post.midia_content_type ?? "").toLowerCase().startsWith("video/");
+  const path = (post.midia_cache_path ?? "").toLowerCase();
+  const ct = (post.midia_content_type ?? "").toLowerCase();
+  const isVideo =
+    ct.startsWith("video/") ||
+    /\.(mp4|mov|webm|m4v)$/i.test(path) ||
+    tipo === "REELS" ||
+    tipo === "VIDEO" ||
+    tipo === "VIDEO_INLINE";
   const canShow = post.midia_status === "ok" && signedUrl && !broken;
 
   if (canShow) {
@@ -329,10 +336,13 @@ function PostThumb({
       return (
         <video
           src={signedUrl}
-          className={cn("h-full w-full object-cover", className)}
+          className={cn("h-full w-full object-cover bg-black", className)}
           muted
+          loop
+          autoPlay
           playsInline
           preload="metadata"
+          controls={false}
           onError={() => setBroken(true)}
         />
       );
@@ -351,11 +361,16 @@ function PostThumb({
   return (
     <div
       className={cn(
-        "h-full w-full flex items-center justify-center bg-muted",
+        "h-full w-full flex items-center justify-center bg-muted relative",
         className
       )}
     >
       <Icon className="h-10 w-10 text-muted-foreground" />
+      {isVideo && (
+        <span className="absolute bottom-1 right-1 text-[9px] uppercase tracking-wide text-muted-foreground bg-background/60 rounded px-1">
+          vídeo
+        </span>
+      )}
     </div>
   );
 }
