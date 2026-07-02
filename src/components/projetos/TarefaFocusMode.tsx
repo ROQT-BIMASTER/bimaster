@@ -429,6 +429,16 @@ export function TarefaFocusMode({
             <Minimize2 className="h-3.5 w-3.5" />
             Sair do Foco
           </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="rounded-full h-8 w-8 p-0 shrink-0"
+            onClick={handleExitFocusClick}
+            title="Fechar"
+            aria-label="Fechar"
+          >
+            <X className="h-4 w-4" />
+          </Button>
         </div>
 
         {/* 2-column layout */}
