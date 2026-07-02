@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { UPLOAD_MAX_BYTES } from "@/lib/upload/limits";
 import { format } from "date-fns";
 import { ptBR, zhCN, enUS } from "date-fns/locale";
 import { Paperclip, Send, MessageSquareWarning, Trash2, Pencil, Download, X, Loader2, MoreVertical, ClipboardList, CheckCircle2 } from "lucide-react";
@@ -48,7 +49,7 @@ export function PareceresSubmissaoCard({
     const files = Array.from(e.target.files || []);
     const valid: File[] = [];
     for (const f of files) {
-      if (f.size > 20 * 1024 * 1024) {
+      if (f.size > UPLOAD_MAX_BYTES) {
         toast.error(t("inbox.pareceres.tamanhoMax"));
         continue;
       }

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { UPLOAD_MAX_BYTES } from "@/lib/upload/limits";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -234,7 +235,7 @@ export function MessageInput({ conversaId, responderA, onClearReply, onTyping, a
     try {
       const anexosMeta = [];
       for (const f of files) {
-        if (f.size > 20 * 1024 * 1024) {
+        if (f.size > UPLOAD_MAX_BYTES) {
           toast.error(`Arquivo ${f.name} excede 20 MB`);
           continue;
         }
