@@ -812,6 +812,7 @@ function AppContent() {
             <Route path="/admin/briefings-fluxos" element={<ScreenRoute screenCode="admin"><BriefingsFluxosPadrao /></ScreenRoute>} />
             <Route path="/admin/versoes-clientes" element={<ScreenRoute screenCode="admin"><VersoesClientes /></ScreenRoute>} />
             <Route path="/admin/uploads-rejeitados" element={<ScreenRoute screenCode="admin"><UploadRejeicoesAudit /></ScreenRoute>} />
+            <Route path="/admin/diagnostico-buckets" element={<ScreenRoute screenCode="admin"><DiagnosticoBuckets /></ScreenRoute>} />
             <Route path="/admin/cofre-templates" element={<ScreenRoute screenCode="admin"><CofreTemplates /></ScreenRoute>} />
             <Route path="/admin/integracoes/google-drive" element={<ScreenRoute screenCode="admin"><IntegracaoGoogleDrive /></ScreenRoute>} />
             <Route path="/admin/marketing-integracoes" element={<ScreenRoute screenCode="admin"><MarketingIntegracoesPage /></ScreenRoute>} />
