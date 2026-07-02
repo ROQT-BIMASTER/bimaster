@@ -77,8 +77,8 @@ export function useProjetoAtividades(filter?: InboxFilter) {
         projeto_cor: projetoMap[a.projeto_id]?.cor || "#6366f1",
       })) as ProjetoAtividade[];
     },
-    enabled: !!user,
   });
+
 
   const filtered = useMemo(() => {
     let list = atividades;
