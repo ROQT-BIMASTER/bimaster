@@ -48,11 +48,12 @@ async function getUserName(): Promise<{ id: string; nome: string }> {
 async function uploadAnexos(
   files: File[],
   basePath: string,
+  userId: string,
 ): Promise<ComentarioAnexo[]> {
   const out: ComentarioAnexo[] = [];
   for (const f of files) {
     const safe = f.name.replace(/[^\w.\-]+/g, "_");
-    const path = `${basePath}/${Date.now()}-${safe}`;
+    const path = `${userId}/${basePath}/${Date.now()}-${safe}`;
     await resumableUpload({
       bucket: BUCKET,
       path,
@@ -147,7 +148,8 @@ export function useAdicionarComentario() {
       if (params.anexos?.length) {
         const anexos = await uploadAnexos(
           params.anexos,
-          `comentarios/${params.submissao_id}/${comentarioId}`,
+          `${params.submissao_id}/comentarios/${comentarioId}`,
+          user.id,
         );
         await supabase
           .from("china_doc_comentarios" as any)
