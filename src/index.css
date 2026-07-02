@@ -164,6 +164,8 @@ All colors MUST be HSL.
     --rv-bg: 60 20% 98%;             /* #FBFBF9 */
     --rv-faixa-verde: 90 24% 92%;    /* #EAF0E2 */
     --rv-steel: 211 22% 69%;         /* #9DB0C4 */
+    --rv-steel2: 210 20% 80%;        /* #BDC9D6 — variação clara p/ ranking */
+
     --rv-sage: 96 24% 66%;           /* #A7BE96 */
     --rv-tan: 35 42% 59%;            /* #C4A06A */
     --rv-khaki: 48 42% 74%;          /* #D8CBA0 */
