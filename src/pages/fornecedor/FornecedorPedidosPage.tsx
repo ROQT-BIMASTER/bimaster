@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
-import { RefreshCw, Search, KanbanSquare, Table as TableIcon, ShoppingCart } from "lucide-react";
-import { subDays } from "date-fns";
+import { RefreshCw, Search, KanbanSquare, Table as TableIcon, ShoppingCart, Sparkles } from "lucide-react";
+import { subDays, format } from "date-fns";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,7 @@ import { useFornecedorPedidos } from "@/hooks/fornecedor/useFornecedorPedidos";
 import { PedidosKanban } from "@/components/fornecedor/pedidos/PedidosKanban";
 import { PedidosTable } from "@/components/fornecedor/pedidos/PedidosTable";
 import { PedidoDetalheDrawer } from "@/components/fornecedor/pedidos/PedidoDetalheDrawer";
+import { PedidosCopilotDrawer } from "@/components/fornecedor/pedidos/PedidosCopilotDrawer";
 import { FuturaBackButton } from "@/components/fornecedor/FuturaBackButton";
 import type { PedidoFornecedor } from "@/hooks/fornecedor/useFornecedorPedidos";
 
@@ -24,6 +25,15 @@ export default function FornecedorPedidosPage() {
   const [limiarParado, setLimiarParado] = useState(2);
   const [view, setView] = useState<"kanban" | "tabela">("kanban");
   const [pedidoSelecionado, setPedidoSelecionado] = useState<PedidoFornecedor | null>(null);
+  const [copilotOpen, setCopilotOpen] = useState(false);
+
+  const copilotScope = useMemo(
+    () => ({
+      date_from: dateFrom ? format(dateFrom, "yyyy-MM-dd") : undefined,
+      date_to: dateTo ? format(dateTo, "yyyy-MM-dd") : undefined,
+    }),
+    [dateFrom, dateTo],
+  );
 
   const { data, isLoading, isFetching, refetch, error } = useFornecedorPedidos({ dateFrom, dateTo });
 
@@ -55,10 +65,20 @@ export default function FornecedorPedidosPage() {
               </p>
             </div>
           </div>
-          <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching} className="gap-2">
-            <RefreshCw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
-            Atualizar
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              onClick={() => setCopilotOpen(true)}
+              className="gap-2 bg-pink-600 hover:bg-pink-700 text-white"
+            >
+              <Sparkles className="h-4 w-4" />
+              Copiloto
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching} className="gap-2">
+              <RefreshCw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
+              Atualizar
+            </Button>
+          </div>
         </div>
 
         <Card>
@@ -140,6 +160,12 @@ export default function FornecedorPedidosPage() {
           open={pedidoSelecionado !== null}
           onOpenChange={(o) => { if (!o) setPedidoSelecionado(null); }}
           limiarParado={limiarParado}
+        />
+
+        <PedidosCopilotDrawer
+          open={copilotOpen}
+          onOpenChange={setCopilotOpen}
+          scope={copilotScope}
         />
       </div>
     </DashboardLayout>

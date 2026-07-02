@@ -32446,6 +32446,81 @@ export type Database = {
           },
         ]
       }
+      pedidos_copilot_alertas: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          cron_expr: string
+          filtros: Json
+          id: string
+          last_run_at: string | null
+          tipo: string
+          titulo: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          cron_expr?: string
+          filtros?: Json
+          id?: string
+          last_run_at?: string | null
+          tipo: string
+          titulo: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          cron_expr?: string
+          filtros?: Json
+          id?: string
+          last_run_at?: string | null
+          tipo?: string
+          titulo?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      pedidos_copilot_relatorios: {
+        Row: {
+          created_at: string
+          expira_em: string
+          filtros: Json
+          id: string
+          markdown: string
+          origem: string
+          salvo: boolean
+          titulo: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          expira_em?: string
+          filtros?: Json
+          id?: string
+          markdown: string
+          origem?: string
+          salvo?: boolean
+          titulo: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          expira_em?: string
+          filtros?: Json
+          id?: string
+          markdown?: string
+          origem?: string
+          salvo?: boolean
+          titulo?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       pentest_findings: {
         Row: {
           category: string
