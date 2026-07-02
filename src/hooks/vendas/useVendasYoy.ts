@@ -15,15 +15,30 @@ export interface VendasYoyRow {
 
 const sb = supabase as any;
 
-export function useVendasYoy(p: { dim: YoyDim; ano: number; empresa?: number | null }) {
+export function useVendasYoy(p: {
+  dim: YoyDim;
+  ano: number;
+  empresa?: number | null;
+  tabelaPrecoId?: number | null;
+  uf?: string | null;
+  clienteId?: number | null;
+  vendedorId?: number | null;
+}) {
   return useQuery({
-    queryKey: ["vendas_yoy_por_dimensao", p.dim, p.ano, p.empresa ?? null],
+    queryKey: [
+      "vendas_yoy_por_dimensao", p.dim, p.ano, p.empresa ?? null,
+      p.tabelaPrecoId ?? null, p.uf ?? null, p.clienteId ?? null, p.vendedorId ?? null,
+    ],
     staleTime: 5 * 60 * 1000,
     queryFn: async (): Promise<VendasYoyRow[]> => {
       const { data, error } = await sb.rpc("vendas_yoy_por_dimensao", {
         p_dim: p.dim,
         p_ano: p.ano,
         p_empresa: p.empresa ?? null,
+        p_tabela_preco: p.tabelaPrecoId ?? null,
+        p_uf: p.uf ?? null,
+        p_cliente: p.clienteId ?? null,
+        p_vendedor: p.vendedorId ?? null,
       });
       if (error) throw error;
       return ((data ?? []) as any[]).map((r) => {
