@@ -235,37 +235,51 @@ export async function validateFilesForUpload(files: File[]): Promise<{ file: Fil
  * ou Storage bucket) em título + descrição amigável para toast.
  */
 export function describeUploadError(message: string): { title: string; description: string } {
-  const msg = (message || "").toLowerCase();
+  const raw = message || "";
+  const msg = raw.toLowerCase();
 
-  // Erros do trigger do banco / bucket Storage
-  if (msg.includes("payload too large") || msg.includes("exceeded the maximum") || msg.includes("file_size_limit")) {
+  // HTTP 413 — Payload Too Large. Pode vir do proxy, do Storage ou do bucket.
+  const is413 =
+    msg.includes("413") ||
+    msg.includes("payload too large") ||
+    msg.includes("request entity too large") ||
+    msg.includes("exceeded the maximum") ||
+    msg.includes("file_size_limit");
+  if (is413) {
     return {
-      title: "Arquivo muito grande",
-      description: "O servidor recusou o upload. O limite atual do sistema é de 1 GB por arquivo. Se seu arquivo estiver abaixo disso, o bucket de storage ainda está com o cap antigo — solicite ao suporte a elevação para 1 GB.",
+      title: "Arquivo acima do limite aceito pelo servidor",
+      description:
+        "O envio foi recusado pelo servidor (código 413). O limite unificado do sistema é de 1 GB por arquivo. " +
+        "Passos sugeridos: (1) confirme que o arquivo tem menos de 1 GB; " +
+        "(2) compacte em .zip ou divida em partes menores; " +
+        "(3) se estiver abaixo de 1 GB e ainda falhar, o bucket de storage está com o cap antigo — " +
+        "abra um chamado no suporte pedindo elevação do limite deste bucket para 1 GB. " +
+        "Sua sessão continua ativa; nenhum dado foi perdido.",
     };
   }
+
   if (msg.includes("mime type") && msg.includes("not supported")) {
     return {
       title: "Tipo de arquivo não permitido",
-      description: "Formatos aceitos: PDF, imagens, Office, CSV, XML, TXT, ZIP, design (AI/PSD) e vídeos MP4/MOV/WEBM.",
+      description:
+        "Formatos aceitos: PDF, imagens, Office, CSV, XML, TXT, ZIP, design (AI/PSD) e vídeos MP4/MOV/WEBM.",
     };
   }
-  if (
-    msg.includes("excede o limite") ||
-    msg.includes("1 gb") ||
-    msg.includes("1024 mb")
-  ) {
-    return {
-      title: "Arquivo acima do limite permitido",
-      description: message,
-    };
+  if (msg.includes("excede o limite") || msg.includes("1 gb") || msg.includes("1024 mb")) {
+    return { title: "Arquivo acima do limite permitido", description: raw };
   }
   if (msg.includes("extensão") || msg.includes("extension")) {
+    return { title: "Tipo de arquivo não permitido", description: raw };
+  }
+  if (msg.includes("aborted") || msg.includes("cancelado")) {
+    return { title: "Upload cancelado", description: "O envio foi interrompido antes de concluir." };
+  }
+  if (msg.includes("network") || msg.includes("rede")) {
     return {
-      title: "Tipo de arquivo não permitido",
-      description: message,
+      title: "Falha de conexão durante o upload",
+      description: "Verifique sua internet e tente novamente. Arquivos grandes retomam automaticamente do último trecho enviado.",
     };
   }
-  return { title: "Falha ao enviar arquivo", description: message };
+  return { title: "Falha ao enviar arquivo", description: raw };
 }
 
