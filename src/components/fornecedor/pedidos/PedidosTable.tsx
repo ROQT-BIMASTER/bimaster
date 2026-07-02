@@ -120,6 +120,18 @@ export function PedidosTable({ pedidos, limiarParado, onPedidoClick }: PedidosTa
           })
         )}
       </TableBody>
+      {sorted.length > 0 && (
+        <TableFooter>
+          <TableRow>
+            <TableCell colSpan={6} className="text-sm text-muted-foreground">
+              Total ({sorted.length} {sorted.length === 1 ? "pedido" : "pedidos"})
+            </TableCell>
+            <TableCell className="text-right font-semibold whitespace-nowrap">
+              {formatCurrency(totalGeral)}
+            </TableCell>
+          </TableRow>
+        </TableFooter>
+      )}
     </Table>
   );
 }
