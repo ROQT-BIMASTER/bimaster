@@ -1,6 +1,8 @@
 import { useMemo, useState } from "react";
 import { format } from "date-fns";
+import { Sparkles } from "lucide-react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
+import { Button } from "@/components/ui/button";
 import { HeaderResultados } from "@/components/vendas/HeaderResultados";
 import { FiltrosGlobaisVendas } from "@/components/vendas/FiltrosGlobaisVendas";
 import { BlocoRankingVendedor } from "@/components/vendas/BlocoRankingVendedor";
@@ -9,6 +11,7 @@ import { BlocoMensalYoY } from "@/components/vendas/BlocoMensalYoY";
 import { BlocoShareTabelaPreco } from "@/components/vendas/BlocoShareTabelaPreco";
 import { BlocoRankingYoy } from "@/components/vendas/BlocoRankingYoy";
 import { BlocoUfYoY } from "@/components/vendas/BlocoUfYoY";
+import { PedidosCopilotDrawer } from "@/components/fornecedor/pedidos/PedidosCopilotDrawer";
 import { initialGlobalFilters, type VendasGlobalFilters } from "@/hooks/vendas/vendasFilters";
 import type { VendasFilters } from "@/hooks/useVendasAnalise";
 
