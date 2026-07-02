@@ -74,10 +74,16 @@ function SubtarefaResponsavelPickerImpl({
           // (c) bridge da tela V1 (`MinhasTarefasSimples`). Sem (b) e (c)
           // a subtarefa continuava mostrando o responsável antigo até
           // fechar/reabrir o drawer nesses contextos.
-          queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2", projetoId] });
+          // (a) e a lista pessoal usam refetchType:"none": o onMutate de
+          // updateTarefa já aplicou patch otimista na V2, e um refetch ativo
+          // aqui atropela o painel aberto ("piscar") — a reconciliação com o
+          // servidor acontece ao fechar o painel (detail gate / reconcile).
+          // As bridges (b)/(c) seguem ativas: são queries pequenas que
+          // alimentam o próprio painel e não têm patch otimista próprio.
+          queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2", projetoId], refetchType: "none" });
           queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-subtarefas-bridge"] });
           queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-subtarefas-bridge-mt"] });
-          queryClient.invalidateQueries({ queryKey: ["minhas-tarefas"] });
+          queryClient.invalidateQueries({ queryKey: ["minhas-tarefas"], refetchType: "none" });
         },
         onError: (err: any) => {
           toast.error(err?.message || "Não foi possível atualizar o responsável");

@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useEffect } from "react";
+import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useBridgeSaveRetry } from "@/hooks/useBridgeSaveRetry";
@@ -505,6 +505,18 @@ export function MinhasTarefasSimples() {
     return () => releaseDetailGate(selectedProjetoId);
   }, [detailOpen, selectedProjetoId]);
 
+  // Reconciliação silenciosa: ao fechar o painel, refaz o fetch da lista uma
+  // única vez para alinhar com o servidor sem piscar durante a edição
+  // (invalidations dos bridges são `refetchType:"none"` enquanto o painel
+  // está aberto). Mesmo padrão de MinhasTarefasContent (Central de Trabalho).
+  const wasDetailOpenRef = useRef(false);
+  useEffect(() => {
+    if (wasDetailOpenRef.current && !detailOpen) {
+      queryClient.refetchQueries({ queryKey: ["minhas-tarefas"], type: "active" });
+    }
+    wasDetailOpenRef.current = detailOpen;
+  }, [detailOpen, queryClient]);
+
   // Subtarefas ao vivo da tarefa aberta — Focus Mode reflete novas
   // subtarefas sem precisar fechar/reabrir o modal.
   const { data: bridgedSubtarefas = [] } = useQuery({
@@ -568,7 +580,11 @@ export function MinhasTarefasSimples() {
       supabase.from("projeto_tarefas").update(updates as any).eq("id", id),
     );
     if (!result.ok) return;
-    queryClient.invalidateQueries({ queryKey: ["minhas-tarefas"] });
+    // refetchType:"none" — o setDetailTarefa abaixo já reflete a edição na UI;
+    // um refetch ativo aqui re-renderiza a lista atrás do painel aberto
+    // ("piscar") e atropela o texto sendo digitado. A lista reconcilia ao
+    // fechar o painel (efeito wasDetailOpenRef).
+    queryClient.invalidateQueries({ queryKey: ["minhas-tarefas"], refetchType: "none" });
     if (detailTarefa && detailTarefa.id === id) {
       setDetailTarefa({ ...detailTarefa, ...updates } as MinaTarefa);
     }
@@ -595,7 +611,8 @@ export function MinhasTarefasSimples() {
       supabase.from("projeto_tarefas").update(update as never).eq("id", t.id),
     );
     if (!result.ok) return;
-    queryClient.invalidateQueries({ queryKey: ["minhas-tarefas"] });
+    // Silencioso com painel aberto — mesma razão do handleBridgeUpdate.
+    queryClient.invalidateQueries({ queryKey: ["minhas-tarefas"], refetchType: "none" });
     if (detailTarefa && detailTarefa.id === t.id) {
       setDetailTarefa({ ...detailTarefa, ...update } as MinaTarefa);
     }
@@ -708,7 +725,9 @@ export function MinhasTarefasSimples() {
   const handleBridgeMoveTarefa = useCallback(async (tarefaId: string, _o: string, secaoDestinoId: string) => {
     const { error } = await supabase.from("projeto_tarefas").update({ secao_id: secaoDestinoId }).eq("id", tarefaId);
     if (error) { toast.error("Erro ao mover tarefa"); return; }
-    queryClient.invalidateQueries({ queryKey: ["minhas-tarefas"] });
+    // Dispara de dentro do painel aberto ("Mover para") — silencioso; a
+    // lista reconcilia ao fechar o painel (wasDetailOpenRef).
+    queryClient.invalidateQueries({ queryKey: ["minhas-tarefas"], refetchType: "none" });
   }, [queryClient]);
 
   const handleBridgeDelete = useCallback(async (tarefaId: string) => {

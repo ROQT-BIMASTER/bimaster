@@ -61,10 +61,15 @@ function SubtarefaSeguidoresPickerImpl({ subtarefaId, projetoId, colaboradores, 
     // bridges (Central V2 e MinhasTarefas V1) + lista pessoal. Garante que
     // pilhas de avatares atualizem para todos os usuários e em todos os
     // pontos onde a subtarefa aparece.
-    queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2", projetoId] });
+    // V2 e lista pessoal com refetchType:"none": addColaborador/
+    // removeColaborador já aplicam patch otimista na V2 (pendingListOps), e
+    // refetch ativo com o painel aberto causa "piscar". Reconciliação ocorre
+    // ao fechar o painel (detail gate / reconcile). Bridges seguem ativas:
+    // alimentam o próprio painel e não têm patch otimista próprio.
+    queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2", projetoId], refetchType: "none" });
     queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-subtarefas-bridge"] });
     queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-subtarefas-bridge-mt"] });
-    queryClient.invalidateQueries({ queryKey: ["minhas-tarefas"] });
+    queryClient.invalidateQueries({ queryKey: ["minhas-tarefas"], refetchType: "none" });
   };
 
   const toggle = (userId: string, nome: string) => {
