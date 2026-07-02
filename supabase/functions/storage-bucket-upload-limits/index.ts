@@ -75,10 +75,29 @@ Deno.serve(secureHandler(
       return json(req, { error: "admin_required" }, 403);
     }
 
-    const before = await listTargetBuckets(admin);
+    // Modo diagnóstico: `{ action: "list" }` retorna a configuração atual dos
+    // buckets sem alterar nada. Sem body ou `{ action: "sync" }` aplica os
+    // limites de 1 GB + MIMEs Adobe (comportamento original).
+    let action: "list" | "sync" = "sync";
+    try {
+      const body = await req.clone().json().catch(() => null) as { action?: string } | null;
+      if (body?.action === "list") action = "list";
+    } catch {
+      // sem body — mantém sync
+    }
 
+    const before = await listTargetBuckets(admin);
     if (before.error) {
       return json(req, { error: "bucket_read_failed", detail: before.error.message }, 500);
+    }
+
+    if (action === "list") {
+      return json(req, {
+        action: "list",
+        target_file_size_limit: ONE_GB_BYTES,
+        adobe_mime_types: ADOBE_MIME_TYPES,
+        buckets: before.data ?? [],
+      });
     }
 
     const updates = [];
@@ -105,6 +124,7 @@ Deno.serve(secureHandler(
     const after = await listTargetBuckets(admin);
 
     return json(req, {
+      action: "sync",
       target_file_size_limit: ONE_GB_BYTES,
       adobe_mime_types: ADOBE_MIME_TYPES,
       before: before.data ?? [],

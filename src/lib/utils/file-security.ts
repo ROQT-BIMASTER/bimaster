@@ -50,7 +50,7 @@ const DANGEROUS_EXTENSIONS = new Set([
 // Limite unificado de upload — fonte única em `@/lib/upload/limits`.
 // As constantes específicas são mantidas como aliases para compatibilidade
 // com imports/telemetria existentes; todas apontam para o mesmo teto.
-import { UPLOAD_MAX_BYTES } from "@/lib/upload/limits";
+import { UPLOAD_MAX_BYTES, UPLOAD_MAX_LABEL } from "@/lib/upload/limits";
 const MAX_FILE_SIZE_BYTES = UPLOAD_MAX_BYTES;
 const MAX_VIDEO_SIZE_BYTES = UPLOAD_MAX_BYTES;
 const MAX_DESIGN_FILE_SIZE_BYTES = UPLOAD_MAX_BYTES;
@@ -188,7 +188,7 @@ export async function validateFileForUpload(file: File): Promise<FileValidationR
     return {
       valid: false,
       code: "SIZE_EXCEEDED",
-      error: `Arquivo ".${ext}" tem ${currentMb} MB e excede o limite máximo de 1 GB (1024 MB) por arquivo.`,
+      error: `Arquivo ".${ext}" tem ${currentMb} MB e excede o limite máximo de ${UPLOAD_MAX_LABEL} (${Math.round(UPLOAD_MAX_BYTES / (1024 * 1024))} MB) por arquivo.`,
     };
   }
   // Sinaliza vídeo/design apenas para consumo externo (mensagens contextualizadas).
@@ -259,7 +259,7 @@ export function describeUploadError(message: string): { title: string; descripti
     return {
       title: "Arquivo acima do limite aceito pelo servidor",
       description:
-        "O envio foi recusado pelo servidor de armazenamento. O limite geral do sistema é de 1 GB por arquivo, " +
+        `O envio foi recusado pelo servidor de armazenamento. O limite geral do sistema é de ${UPLOAD_MAX_LABEL} por arquivo, ` +
         "mas este bucket ainda está configurado com um teto menor (tipicamente 10–50 MB). " +
         "Passos sugeridos: (1) tente compactar em .zip ou dividir em partes menores; " +
         "(2) se precisar enviar arquivos deste tamanho com frequência neste módulo, avise a equipe interna " +
