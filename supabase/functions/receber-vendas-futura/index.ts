@@ -33,6 +33,7 @@ const VendaSchema = z.object({
   cliente_futura_id: z.number().int().optional().nullable(),
   cliente_nome: z.string().optional().nullable(),
   cliente_cnpj_cpf: z.string().optional().nullable(),
+  cliente_uf: z.string().max(2).optional().nullable(),
   vendedor_futura_id: z.number().int().optional().nullable(),
   tabela_preco_id: z.number().int().optional().nullable(),
   tabela_preco_nome: z.string().optional().nullable(),
