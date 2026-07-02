@@ -15,6 +15,9 @@ const TARGET_BUCKETS = [
   "fluxo-artes",
   "aprovacao-artes",
   "trade-assets",
+  "china-documentos",
+  "china-pasta-digital",
+  "china-chat-anexos",
 ] as const;
 
 const ADOBE_MIME_TYPES = [

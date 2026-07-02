@@ -1,5 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
-import { validateFileForUpload } from "@/lib/utils/file-security";
+import { resumableUpload } from "@/lib/upload/resumableUpload";
 
 /**
  * Comprime uma imagem mantendo qualidade aceitável para mobile
@@ -64,19 +64,14 @@ export async function uploadFile(
   file: File
 ): Promise<{ path: string; error: Error | null }> {
   try {
-    // Validação de segurança
-    const validation = await validateFileForUpload(file);
-    if (!validation.valid) {
-      throw new Error(validation.error || "Arquivo rejeitado pela validação de segurança.");
-    }
-
-    const { error } = await supabase.storage.from(bucket).upload(filePath, file, {
+    const result = await resumableUpload({
+      bucket,
+      path: filePath,
+      file,
       upsert: false,
     });
 
-    if (error) throw error;
-
-    return { path: filePath, error: null };
+    return { path: result.path, error: null };
   } catch (error) {
     return { path: '', error: error as Error };
   }
@@ -147,17 +142,12 @@ export async function uploadAndGetSignedUrl(
   expiresIn = 31536000 // 1 ano
 ): Promise<{ signedUrl: string; path: string; error: null } | { signedUrl: null; path: string; error: Error }> {
   try {
-    // Validação de segurança
-    const validation = await validateFileForUpload(file);
-    if (!validation.valid) {
-      throw new Error(validation.error || "Arquivo rejeitado pela validação de segurança.");
-    }
-
-    const { error: uploadError } = await supabase.storage
-      .from(bucket)
-      .upload(filePath, file, { upsert: false });
-
-    if (uploadError) throw uploadError;
+    await resumableUpload({
+      bucket,
+      path: filePath,
+      file,
+      upsert: false,
+    });
 
     const { data, error: signError } = await supabase.storage
       .from(bucket)

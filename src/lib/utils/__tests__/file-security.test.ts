@@ -77,6 +77,12 @@ describe("validateFileForUpload — abaixo do limite unificado de 1 GB", () => {
 });
 
 describe("validateFileForUpload — .ai e .psd (design)", () => {
+  it("aceita arquivo TESTE.psd com assinatura 8BPS e tamanho real enviado pelo usuário", async () => {
+    const file = makeFile("TESTE.psd", "image/vnd.adobe.photoshop", 235_915, PSD_MAGIC);
+    const r = await validateFileForUpload(file);
+    expect(r.valid).toBe(true);
+  });
+
   it("aceita .psd de 800 MB com MIME image/vnd.adobe.photoshop", async () => {
     const file = makeFile("layout.psd", "image/vnd.adobe.photoshop", 800 * MB, PSD_MAGIC);
     const r = await validateFileForUpload(file);
