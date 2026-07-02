@@ -216,7 +216,7 @@ export function BlocoRankingYoy({ ano, empresa, tabelaPrecoId, uf, clienteId, ve
                         position: "absolute", top: 0, left: 0, right: 0,
                         transform: `translateY(${vi.start}px)`, height: vi.size,
                       }}
-                      className="grid grid-cols-[36px_1fr_140px_1fr_100px] gap-4 items-center px-1 border-b border-rv-linha/60 hover:bg-rv-faixa-verde/40 transition-colors text-left"
+                      className="grid grid-cols-[36px_1fr_140px_1fr_100px] gap-4 items-center pl-1 pr-4 border-b border-rv-linha/60 hover:bg-rv-faixa-verde/40 transition-colors text-left"
                     >
                       <div className="text-xs text-rv-muted tabular-nums">{vi.index + 1}</div>
                       <div className="text-sm text-rv-ink truncate" title={r.nome}>{r.nome}</div>
