@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { UPLOAD_MAX_BYTES } from "@/lib/upload/limits";
+import { UPLOAD_MAX_BYTES, UPLOAD_MAX_LABEL } from "@/lib/upload/limits";
 import {
   Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription,
 } from "@/components/ui/sheet";
@@ -69,7 +69,7 @@ export function ChecklistB2CSheet({ open, onOpenChange, submissaoId }: Props) {
       const f = input.files?.[0];
       if (!f) return;
       if (f.size > UPLOAD_MAX_BYTES) {
-        alert("Arquivo acima de 20MB");
+        alert(`Arquivo acima de ${UPLOAD_MAX_LABEL}`);
         return;
       }
       await upload.mutateAsync({ item, file: f });

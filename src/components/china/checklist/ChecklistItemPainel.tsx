@@ -88,7 +88,7 @@ const STATUS_CLS: Record<string, string> = {
   planejado: "bg-muted text-muted-foreground border-border",
 };
 
-import { UPLOAD_MAX_BYTES as MAX_BYTES } from "@/lib/upload/limits";
+import { UPLOAD_MAX_BYTES as MAX_BYTES, UPLOAD_MAX_LABEL } from "@/lib/upload/limits";
 
 export function ChecklistItemPainel({
   open,
@@ -149,7 +149,7 @@ export function ChecklistItemPainel({
   const handleFileChosen = async (file: File) => {
     if (!tipoDocumento) return;
     if (file.size > MAX_BYTES) {
-      toast.error("Arquivo excede 20 MB.");
+      toast.error(`Arquivo excede ${UPLOAD_MAX_LABEL}.`);
       return;
     }
     setUploading(true);
