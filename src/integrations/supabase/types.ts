@@ -57743,6 +57743,7 @@ export type Database = {
         Args: { p_period_key: string; p_period_type: string; p_user_id: string }
         Returns: undefined
       }
+      upload_max_bytes: { Args: never; Returns: number }
       upsert_notion_connection: {
         Args: {
           p_access_token: string

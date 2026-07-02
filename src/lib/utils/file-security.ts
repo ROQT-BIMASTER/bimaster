@@ -47,12 +47,13 @@ const DANGEROUS_EXTENSIONS = new Set([
   "pif", "reg", "hta", "wsf", "cpl", "msc",
 ]);
 
-// Limite unificado de 1 GB para qualquer arquivo suportado.
-// As constantes específicas são mantidas para não quebrar imports/telemetria
-// e por compatibilidade — todas apontam para o mesmo teto de 1 GB.
-const MAX_FILE_SIZE_BYTES = 1024 * 1024 * 1024;         // 1 GB (documentos/imagens)
-const MAX_VIDEO_SIZE_BYTES = 1024 * 1024 * 1024;        // 1 GB (vídeos)
-const MAX_DESIGN_FILE_SIZE_BYTES = 1024 * 1024 * 1024;  // 1 GB (design .ai/.psd)
+// Limite unificado de upload — fonte única em `@/lib/upload/limits`.
+// As constantes específicas são mantidas como aliases para compatibilidade
+// com imports/telemetria existentes; todas apontam para o mesmo teto.
+import { UPLOAD_MAX_BYTES } from "@/lib/upload/limits";
+const MAX_FILE_SIZE_BYTES = UPLOAD_MAX_BYTES;
+const MAX_VIDEO_SIZE_BYTES = UPLOAD_MAX_BYTES;
+const MAX_DESIGN_FILE_SIZE_BYTES = UPLOAD_MAX_BYTES;
 const VIDEO_EXTENSIONS = new Set(["mp4", "mov", "webm"]);
 const DESIGN_EXTENSIONS = new Set(["ai", "psd"]);
 
