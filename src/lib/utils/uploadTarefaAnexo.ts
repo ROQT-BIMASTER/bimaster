@@ -31,6 +31,12 @@ export interface UploadTarefaAnexoResult {
   id: string;
   storagePath: string;
   nome: string;
+  /**
+   * Linha completa recém-inserida em `projeto_tarefa_anexos`. Os hooks usam
+   * este objeto para substituir o placeholder otimista (`temp-…`) no cache
+   * do React Query, sem depender de refetch.
+   */
+  row: Record<string, unknown>;
 }
 
 export async function uploadTarefaAnexoToStorage(
