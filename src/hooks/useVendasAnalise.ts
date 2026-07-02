@@ -5,8 +5,15 @@ export interface VendasFilters {
   de: string | null;
   ate: string | null;
   empresa: number | null;
+  /** legado (uuid) — não é enviado às novas RPCs, mantido apenas para telas antigas */
   vendedor: string | null;
+  /** legado (uuid) — idem */
   coordenador: string | null;
+  // Filtros globais da nova tela Resultados de Vendas
+  tabelaPrecoId?: number | null;
+  uf?: string | null;
+  clienteId?: number | null;
+  vendedorId?: number | null; // futura int
 }
 
 function rpcParams(f: VendasFilters) {
@@ -14,8 +21,10 @@ function rpcParams(f: VendasFilters) {
     p_de: f.de,
     p_ate: f.ate,
     p_empresa: f.empresa,
-    p_vendedor: f.vendedor,
-    p_coordenador: f.coordenador,
+    p_tabela_preco: f.tabelaPrecoId ?? null,
+    p_uf: f.uf ?? null,
+    p_cliente: f.clienteId ?? null,
+    p_vendedor: f.vendedorId ?? null,
   };
 }
 
@@ -63,9 +72,7 @@ export function useVendasRankingVendedor(f: VendasFilters) {
   return useQuery({
     queryKey: ["vendas_ranking_vendedor", f],
     queryFn: async () => {
-      const { data, error } = await sb.rpc("vendas_ranking_vendedor", {
-        p_de: f.de, p_ate: f.ate, p_empresa: f.empresa, p_coordenador: f.coordenador,
-      });
+      const { data, error } = await sb.rpc("vendas_ranking_vendedor", rpcParams(f));
       if (error) throw error;
       return (data || []).map((r: any) => ({
         vendedor_id: r.vendedor_id as string | null,

@@ -14,6 +14,10 @@ export type SortState = { key: SortKey; dir: SortDir };
 interface Props {
   ano: number;
   empresa: number | null;
+  tabelaPrecoId?: number | null;
+  uf?: string | null;
+  clienteId?: number | null;
+  vendedorId?: number | null;
 }
 
 function DivergingBar({ variacao, novo }: { variacao: number | null; novo: boolean }) {
@@ -83,13 +87,13 @@ function SortIcon({ active, dir }: { active: boolean; dir: SortDir }) {
   return dir === "desc" ? <ArrowDown className="w-3 h-3" /> : <ArrowUp className="w-3 h-3" />;
 }
 
-export function BlocoRankingYoy({ ano, empresa }: Props) {
+export function BlocoRankingYoy({ ano, empresa, tabelaPrecoId, uf, clienteId, vendedorId }: Props) {
   const [dim, setDim] = useState<YoyDim>("cliente");
   const [sort, setSort] = useState<SortState>({ key: "faturamento", dir: "desc" });
   const [foco, setFoco] = useState(false);
   const [query, setQuery] = useState("");
   const [selecionada, setSelecionada] = useState<VendasYoyRow | null>(null);
-  const { data, isLoading } = useVendasYoy({ dim, ano, empresa });
+  const { data, isLoading } = useVendasYoy({ dim, ano, empresa, tabelaPrecoId, uf, clienteId, vendedorId });
 
   // reset sort ao trocar dimensão
   useEffect(() => {

@@ -16,10 +16,14 @@ interface Props {
   ate: string;
   empresa: number | null;
   ano: number;
+  tabelaPrecoId?: number | null;
+  uf?: string | null;
+  clienteId?: number | null;
+  vendedorId?: number | null;
 }
 
-export function BlocoShareTabelaPreco({ de, ate, empresa, ano }: Props) {
-  const { data, isLoading } = useVendasShareTabela({ de, ate, empresa });
+export function BlocoShareTabelaPreco({ de, ate, empresa, ano, tabelaPrecoId, uf, clienteId, vendedorId }: Props) {
+  const { data, isLoading } = useVendasShareTabela({ de, ate, empresa, tabelaPrecoId, uf, clienteId, vendedorId });
   const rows = data ?? [];
   const max = rows.reduce((m, r) => Math.max(m, r.share_pct), 0);
 

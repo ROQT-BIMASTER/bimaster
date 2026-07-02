@@ -1,42 +1,35 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
-export type YoyDim = "cliente" | "vendedor";
-
-export interface VendasYoyRow {
-  chave: number | null;
-  nome: string;
+export interface UfYoyRow {
+  uf: string;
   fat_atual: number;
   fat_anterior: number;
-  variacao: number | null; // fat_atual / fat_anterior - 1 (null se fat_anterior = 0)
   notas_atual: number;
-  novo: boolean;           // fat_anterior === 0
+  variacao: number | null; // null se fat_anterior=0
+  novo: boolean;
 }
 
 const sb = supabase as any;
 
-export function useVendasYoy(p: {
-  dim: YoyDim;
+export function useVendasUfYoy(p: {
   ano: number;
   empresa?: number | null;
   tabelaPrecoId?: number | null;
-  uf?: string | null;
   clienteId?: number | null;
   vendedorId?: number | null;
 }) {
   return useQuery({
     queryKey: [
-      "vendas_yoy_por_dimensao", p.dim, p.ano, p.empresa ?? null,
-      p.tabelaPrecoId ?? null, p.uf ?? null, p.clienteId ?? null, p.vendedorId ?? null,
+      "vendas_uf_yoy", p.ano, p.empresa ?? null,
+      p.tabelaPrecoId ?? null, p.clienteId ?? null, p.vendedorId ?? null,
     ],
     staleTime: 5 * 60 * 1000,
-    queryFn: async (): Promise<VendasYoyRow[]> => {
-      const { data, error } = await sb.rpc("vendas_yoy_por_dimensao", {
-        p_dim: p.dim,
+    queryFn: async (): Promise<UfYoyRow[]> => {
+      const { data, error } = await sb.rpc("vendas_uf_yoy", {
         p_ano: p.ano,
         p_empresa: p.empresa ?? null,
         p_tabela_preco: p.tabelaPrecoId ?? null,
-        p_uf: p.uf ?? null,
         p_cliente: p.clienteId ?? null,
         p_vendedor: p.vendedorId ?? null,
       });
@@ -45,14 +38,12 @@ export function useVendasYoy(p: {
         const atual = Number(r.fat_atual ?? 0);
         const ant = Number(r.fat_anterior ?? 0);
         const novo = ant === 0;
-        const variacao = novo ? null : atual / ant - 1;
         return {
-          chave: r.chave ?? null,
-          nome: r.nome ?? "—",
+          uf: (r.uf ?? "—") as string,
           fat_atual: atual,
           fat_anterior: ant,
-          variacao,
           notas_atual: Number(r.notas_atual ?? 0),
+          variacao: novo ? null : atual / ant - 1,
           novo,
         };
       });

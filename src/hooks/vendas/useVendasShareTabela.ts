@@ -11,9 +11,21 @@ export interface ShareTabelaRow {
 
 const sb = supabase as any;
 
-export function useVendasShareTabela(p: { de: string | null; ate: string | null; empresa?: number | null }) {
+export function useVendasShareTabela(p: {
+  de: string | null;
+  ate: string | null;
+  empresa?: number | null;
+  tabelaPrecoId?: number | null;
+  uf?: string | null;
+  clienteId?: number | null;
+  vendedorId?: number | null;
+}) {
   return useQuery({
-    queryKey: ["vendas_share_tabela_preco", p.de, p.ate, p.empresa ?? null],
+    queryKey: [
+      "vendas_share_tabela_preco",
+      p.de, p.ate, p.empresa ?? null,
+      p.tabelaPrecoId ?? null, p.uf ?? null, p.clienteId ?? null, p.vendedorId ?? null,
+    ],
     enabled: !!(p.de && p.ate),
     staleTime: 5 * 60 * 1000,
     queryFn: async (): Promise<ShareTabelaRow[]> => {
@@ -21,6 +33,10 @@ export function useVendasShareTabela(p: { de: string | null; ate: string | null;
         p_de: p.de,
         p_ate: p.ate,
         p_empresa: p.empresa ?? null,
+        p_tabela_preco: p.tabelaPrecoId ?? null,
+        p_uf: p.uf ?? null,
+        p_cliente: p.clienteId ?? null,
+        p_vendedor: p.vendedorId ?? null,
       });
       if (error) throw error;
       const rows = ((data ?? []) as any[]).map((r) => ({

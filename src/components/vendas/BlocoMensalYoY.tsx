@@ -13,18 +13,26 @@ const MESES = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "O
 interface Props {
   ano: number;
   empresa: number | null;
+  tabelaPrecoId?: number | null;
+  uf?: string | null;
+  clienteId?: number | null;
+  vendedorId?: number | null;
 }
 
-export function BlocoMensalYoY({ ano, empresa }: Props) {
+export function BlocoMensalYoY({ ano, empresa, tabelaPrecoId, uf, clienteId, vendedorId }: Props) {
   const anoAnterior = ano - 1;
 
   const filtroAtual: VendasFilters = {
     de: `${ano}-01-01`, ate: `${ano}-12-31`,
     empresa, vendedor: null, coordenador: null,
+    tabelaPrecoId: tabelaPrecoId ?? null, uf: uf ?? null,
+    clienteId: clienteId ?? null, vendedorId: vendedorId ?? null,
   };
   const filtroAnt: VendasFilters = {
     de: `${anoAnterior}-01-01`, ate: `${anoAnterior}-12-31`,
     empresa, vendedor: null, coordenador: null,
+    tabelaPrecoId: tabelaPrecoId ?? null, uf: uf ?? null,
+    clienteId: clienteId ?? null, vendedorId: vendedorId ?? null,
   };
 
   const atual = useVendasSerieMensal(filtroAtual);
