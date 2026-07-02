@@ -79,7 +79,13 @@ async function chunkedTusUpload(opts: ResumableUploadOptions & { upsert: boolean
       },
       onError: (err: any) => {
         const status = err?.originalResponse?.getStatus?.();
-        reject(new ResumableUploadError("tus_error", err?.message || "Falha no upload em partes.", status));
+        const base = err?.message || "Falha no upload em partes.";
+        // Anexa "413" ao texto quando aplicável para que `describeUploadError`
+        // reconheça o payload-too-large e exiba a mensagem amigável correta.
+        const msg = status === 413 && !/413/.test(base)
+          ? `413 Payload Too Large — ${base}`
+          : base;
+        reject(new ResumableUploadError(status === 413 ? "payload_too_large" : "tus_error", msg, status));
       },
       onProgress: (bytesSent, bytesTotal) => {
         const percent = bytesTotal > 0 ? Math.min(99, Math.round((bytesSent / bytesTotal) * 100)) : 0;
