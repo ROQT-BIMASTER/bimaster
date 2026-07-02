@@ -581,7 +581,7 @@ export function MinhasTarefasSimples() {
       supabase.from("projeto_tarefas").update(updates as any).eq("id", id),
     );
     if (!result.ok) return;
-    queryClient.invalidateQueries({ queryKey: ["minhas-tarefas"] });
+    queryClient.invalidateQueries({ queryKey: ["minhas-tarefas"], refetchType: "none" });
     if (detailTarefa && detailTarefa.id === id) {
       setDetailTarefa({ ...detailTarefa, ...updates } as MinaTarefa);
     }
