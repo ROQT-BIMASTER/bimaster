@@ -22,6 +22,7 @@ export default function ResultadosVendas() {
   const [filters, setFilters] = useState<VendasGlobalFilters>(() => initialGlobalFilters(nowY));
 
   const { ano, empresa, tabelaPrecoId, uf, clienteId, vendedorId } = filters;
+  const [copilotOpen, setCopilotOpen] = useState(false);
 
   const rankingFilters: VendasFilters = useMemo(() => ({
     de: `${ano}-01-01`,
