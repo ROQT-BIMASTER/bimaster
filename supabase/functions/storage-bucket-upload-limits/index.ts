@@ -40,6 +40,18 @@ function normalizeMimeTypes(value: unknown): string[] | null {
   return value.filter((item): item is string => typeof item === "string" && item.trim().length > 0);
 }
 
+async function listTargetBuckets(admin: ReturnType<typeof createClient>) {
+  const { data, error } = await admin.storage.listBuckets();
+  if (error) return { data: null, error };
+  const target = new Set<string>(TARGET_BUCKETS);
+  return {
+    data: (data ?? [])
+      .filter((bucket) => target.has(bucket.id))
+      .sort((a, b) => a.id.localeCompare(b.id)),
+    error: null,
+  };
+}
+
 Deno.serve(secureHandler(
   { auth: "jwt", rateLimit: 5, rateLimitPrefix: "storage-bucket-upload-limits" },
   async (req, ctx) => {
@@ -63,12 +75,7 @@ Deno.serve(secureHandler(
       return json(req, { error: "admin_required" }, 403);
     }
 
-    const before = await admin
-      .schema("storage")
-      .from("buckets")
-      .select("id, public, file_size_limit, allowed_mime_types")
-      .in("id", [...TARGET_BUCKETS])
-      .order("id");
+    const before = await listTargetBuckets(admin);
 
     if (before.error) {
       return json(req, { error: "bucket_read_failed", detail: before.error.message }, 500);
@@ -95,12 +102,7 @@ Deno.serve(secureHandler(
       });
     }
 
-    const after = await admin
-      .schema("storage")
-      .from("buckets")
-      .select("id, public, file_size_limit, allowed_mime_types")
-      .in("id", [...TARGET_BUCKETS])
-      .order("id");
+    const after = await listTargetBuckets(admin);
 
     return json(req, {
       target_file_size_limit: ONE_GB_BYTES,
