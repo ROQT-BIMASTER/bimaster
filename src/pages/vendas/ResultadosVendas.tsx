@@ -37,11 +37,15 @@ export default function ResultadosVendas() {
     <DashboardLayout>
       <div className="resultados-vendas-theme min-h-screen bg-rv-bg text-rv-ink">
         <div className="max-w-[1600px] mx-auto px-6 md:px-10 py-8">
-          <HeaderResultados
-            ano={ano}
-            onAnoChange={(a) => setFilters((f) => ({ ...f, ano: a }))}
-            anos={anos}
-          />
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex-1">
+              <HeaderResultados
+                ano={ano}
+                onAnoChange={(a) => setFilters((f) => ({ ...f, ano: a }))}
+                anos={anos}
+              />
+            </div>
+          </div>
 
           <FiltrosGlobaisVendas filters={filters} onChange={setFilters} anos={anos} />
 
