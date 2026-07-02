@@ -73,7 +73,12 @@ export function useMinhasTarefaDetalhe(tarefaId: string | undefined) {
 
   const deleteAnexo = useMutation({
     mutationFn: async (anexo: MinhaTarefaAnexo) => {
-      await supabase.storage.from("projeto-anexos").remove([anexo.storage_path]);
+      if (!isUUID(anexo?.id)) {
+        throw new Error("Aguarde o upload concluir antes de excluir este anexo.");
+      }
+      if (anexo.storage_path) {
+        await supabase.storage.from("projeto-anexos").remove([anexo.storage_path]);
+      }
       const { error } = await supabase.from("projeto_tarefa_anexos").delete().eq("id", anexo.id);
       if (error) throw error;
     },
