@@ -11,13 +11,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Inbox, Loader2, MessageSquare, UserCheck } from "lucide-react";
+import { Inbox, Loader2, MessageSquare, UserCheck, ArrowRightLeft } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { isSuporteV2Enabled } from "@/lib/featureFlags";
 import { useMinhasFilasAgente } from "@/hooks/suporte/useSuporteFilas";
 import { useChamadosDesk } from "@/hooks/suporte/useSuporteChamados";
 import { useSuporteAcoes } from "@/hooks/suporte/useSuporteAcoes";
 import { ChamadoListItem } from "@/components/suporte/ChamadoListItem";
+import { TransferirChamadoDialog } from "@/components/suporte/TransferirChamadoDialog";
 import { ChatThread } from "@/components/chat/v2/ChatThread";
 import { SUPORTE_STATUS_LABEL, type SuporteTicketStatus } from "@/hooks/suporte/types";
 
@@ -28,6 +29,7 @@ export default function SuporteDesk() {
   const [filaAtiva, setFilaAtiva] = useState<string>("todas");
   const [filtroStatus, setFiltroStatus] = useState<string>("abertos");
   const [selecionadoId, setSelecionadoId] = useState<string | null>(null);
+  const [transferOpen, setTransferOpen] = useState(false);
   const { assumir, mudarStatus } = useSuporteAcoes();
 
   const filaIds = useMemo(
