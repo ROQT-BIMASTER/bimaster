@@ -77,5 +77,28 @@ export function useSuporteAcoes() {
     },
   });
 
-  return { abrirChamado, assumir, mudarStatus };
+  const transferir = useMutation({
+    mutationFn: async (input: {
+      ticketId: string;
+      filaDestinoId: string;
+      motivo: string;
+    }): Promise<{ para_fila_nome: string; protocolo: string | null }> => {
+      const { data, error } = await (supabase.rpc as any)("rpc_suporte_transferir", {
+        p_ticket_id: input.ticketId,
+        p_fila_destino_id: input.filaDestinoId,
+        p_motivo: input.motivo,
+      });
+      if (error) throw error;
+      return data as { para_fila_nome: string; protocolo: string | null };
+    },
+    onSuccess: (res) => {
+      invalidate();
+      toast.success(`Chamado transferido para ${res.para_fila_nome}`);
+    },
+    onError: (err: Error) => {
+      toast.error("Erro ao transferir chamado", { description: err.message });
+    },
+  });
+
+  return { abrirChamado, assumir, mudarStatus, transferir };
 }
