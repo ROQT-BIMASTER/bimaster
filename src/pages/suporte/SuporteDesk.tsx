@@ -219,6 +219,15 @@ export default function SuporteDesk() {
           </Card>
         </div>
       </div>
+      {selecionado && (
+        <TransferirChamadoDialog
+          open={transferOpen}
+          onOpenChange={setTransferOpen}
+          ticketId={selecionado.id}
+          filaAtualId={selecionado.fila_id}
+          onTransferido={() => setSelecionadoId(null)}
+        />
+      )}
     </DashboardLayout>
   );
 }
