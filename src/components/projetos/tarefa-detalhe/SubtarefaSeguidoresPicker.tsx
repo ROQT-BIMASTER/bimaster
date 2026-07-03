@@ -1,4 +1,4 @@
-import { memo, useState } from "react";
+import { memo, useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useProjetoMembros } from "@/hooks/useProjetoMembros";
 import { useProjetoTarefas } from "@/hooks/useProjetoTarefas";
@@ -53,6 +53,47 @@ function SubtarefaSeguidoresPickerImpl({ subtarefaId, projetoId, colaboradores, 
   const { addColaborador, removeColaborador } = useProjetoTarefas(projetoId, { mutationsOnly: true });
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
+  const preloadedRef = useRef<Set<string>>(new Set());
+
+  // Pré-carrega avatar_url e cache `profile-mini` dos membros do time assim
+  // que o picker abre. Assim, quando `addColaborador.onMutate` chama
+  // `resolvePessoa` + patch otimista, o `<img>` do SmartAvatar já encontra
+  // o bitmap no cache HTTP do browser e aparece no MESMO frame do clique,
+  // sem placeholder de iniciais intermediário. Só roda 1x por (projeto,user).
+  useEffect(() => {
+    if (!open || !membros || membros.length === 0) return;
+    for (const m of membros) {
+      const uid = m.user_id;
+      if (!uid || preloadedRef.current.has(uid)) continue;
+      preloadedRef.current.add(uid);
+
+      const nome = m.profile?.nome ?? null;
+      const avatar = m.profile?.avatar_url ?? null;
+
+      // 1) Warm-up do cache React Query lido por `resolvePessoa`/
+      //    `enrichPessoaFromProfile` — evita fetch redundante e permite o
+      //    patch otimista já sair com nome+avatar_url reais.
+      queryClient.setQueryData(
+        ["profile-mini", uid],
+        (prev: any) => prev ?? { id: uid, nome, avatar_url: avatar },
+      );
+
+      // 2) Warm-up do cache HTTP do browser: instancia um Image() com
+      //    referrerPolicy compatível com o storage do backend. O bitmap
+      //    fica em memory/disk cache e o próximo <img src> exibe sem
+      //    round-trip. Ignora falhas silenciosamente.
+      if (avatar && typeof window !== "undefined") {
+        try {
+          const img = new window.Image();
+          img.decoding = "async";
+          img.referrerPolicy = "no-referrer";
+          img.src = avatar;
+        } catch {
+          /* preload best-effort */
+        }
+      }
+    }
+  }, [open, membros, queryClient]);
 
   const isFollower = (userId: string) => colaboradores.some((c) => c.user_id === userId);
 
