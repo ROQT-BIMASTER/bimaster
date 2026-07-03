@@ -43,6 +43,8 @@ export default function SuporteMeusChamados() {
   }, [chamados, filtroStatus, busca]);
 
   const selecionado = chamados.find((c) => c.id === selecionadoId) ?? null;
+  const { user } = useAuth();
+  useSuporteIaTrigger(selecionado?.conversa_id, user?.id);
 
   if (!isSuporteV2Enabled()) {
     return (
