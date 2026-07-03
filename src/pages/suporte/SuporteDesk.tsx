@@ -46,6 +46,7 @@ export default function SuporteDesk() {
   }, [chamados, filtroStatus]);
 
   const selecionado = chamados.find((c) => c.id === selecionadoId) ?? null;
+  useSuporteIaTrigger(selecionado?.conversa_id, user?.id);
 
   if (!isSuporteV2Enabled()) {
     return (
