@@ -566,6 +566,12 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
       status: detailTarefa.status,
       prioridade: detailTarefa.prioridade || "media",
       data_prazo: detailTarefa.data_prazo,
+      // Campos de planejamento também exibidos/editáveis pelo drawer.
+      // Sem esses fallbacks o Popover de "Início planejado" nunca reflete o
+      // valor após seleção — o DB salva mas a UI mostra placeholder.
+      data_inicio_planejada: detailTarefa.data_inicio_planejada ?? null,
+      data_proxima_acao: (detailTarefa as any).data_proxima_acao ?? null,
+      alertar_antes: (detailTarefa as any).alertar_antes ?? null,
       data_conclusao: detailTarefa.data_conclusao,
       codigo: detailTarefa.codigo,
       estagio: detailTarefa.estagio,
