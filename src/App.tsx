@@ -120,6 +120,8 @@ const Tarefas = lazyWithRetry(() => import("./pages/Tarefas"));
 const Mapa = lazyWithRetry(() => import("./pages/Mapa"));
 const Chat = lazyWithRetry(() => import("./pages/Chat"));
 const CentralAprovacoesChat = lazyWithRetry(() => import("./pages/CentralAprovacoesChat"));
+const SuporteMeusChamados = lazyWithRetry(() => import("./pages/suporte/SuporteMeusChamados"));
+const SuporteDesk = lazyWithRetry(() => import("./pages/suporte/SuporteDesk"));
 const AguardandoAprovacao = lazyWithRetry(() => import("./pages/AguardandoAprovacao"));
 const UsuarioBloqueado = lazyWithRetry(() => import("./pages/UsuarioBloqueado"));
 const NotFound = lazyWithRetry(() => import("./pages/NotFound"));
@@ -633,6 +635,9 @@ function AppContent() {
             <Route path="/dashboard/tarefas" element={<ProtectedRoute><Tarefas /></ProtectedRoute>} />
             <Route path="/dashboard/chat" element={<ProtectedRoute><Chat /></ProtectedRoute>} />
             <Route path="/dashboard/chat/aprovacoes" element={<ProtectedRoute><CentralAprovacoesChat /></ProtectedRoute>} />
+            {/* Suporte v2 (help desk multi-departamento) — piloto atrás da flag ff_suporte_v2 */}
+            <Route path="/dashboard/suporte" element={<ProtectedRoute><SuporteMeusChamados /></ProtectedRoute>} />
+            <Route path="/dashboard/suporte/desk" element={<ProtectedRoute><SuporteDesk /></ProtectedRoute>} />
             <Route path="/dashboard/configuracoes" element={<ScreenRoute screenCode="admin"><Configuracoes /></ScreenRoute>} />
             <Route path="/dashboard/importar-clientes" element={<ModuleRoute moduleCode="comercial"><ScreenProtectedRoute screenCode="comercial_importar"><ImportarClientes /></ScreenProtectedRoute></ModuleRoute>} />
             <Route path="/dashboard/auditoria" element={<ScreenRoute screenCode="auditoria"><Auditoria /></ScreenRoute>} />
