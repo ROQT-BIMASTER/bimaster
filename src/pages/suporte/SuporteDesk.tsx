@@ -66,15 +66,17 @@ export default function SuporteDesk() {
     );
   }
 
-  if (!filasLoading && filas.length === 0) {
+  const carregandoFilas = isAdmin ? todasLoading : filasLoading;
+  if (!carregandoFilas && filas.length === 0) {
     return (
       <DashboardLayout>
         <div className="flex items-center justify-center h-64">
           <Card>
             <CardContent className="pt-6 text-center text-muted-foreground">
               <Inbox className="h-8 w-8 mx-auto mb-2" />
-              Você não está vinculado a nenhuma fila de suporte. Peça a um administrador para te
-              adicionar como agente de um departamento.
+              {isAdmin
+                ? "Nenhuma fila de suporte cadastrada. Crie uma fila em Admin › Suporte."
+                : "Você não está vinculado a nenhuma fila de suporte. Peça a um administrador para te adicionar como agente de um departamento."}
             </CardContent>
           </Card>
         </div>
