@@ -1,20 +1,13 @@
 import { useEffect, useRef } from "react";
 import { useLocation } from "react-router-dom";
 import { Loader2 } from "lucide-react";
+import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePermissions } from "@/contexts/PermissionsContext";
 import { useImpersonation } from "@/contexts/ImpersonationContext";
 import { AccessDenied } from "@/components/common/AccessDenied";
 import { logger } from "@/lib/logger";
 import { supabase } from "@/integrations/supabase/client";
-
-// Telas cujo acesso negado é auditado (Configurações e correlatas).
-const AUDITED_SCREEN_CODES = new Set([
-  "admin",
-  "configuracoes",
-  "config_geral",
-  "config_storage",
-]);
 
 interface ScreenProtectedRouteProps {
   children: React.ReactNode;
@@ -44,10 +37,12 @@ export const ScreenProtectedRoute = ({
 
   useEffect(() => {
     if (!denied) return;
-    if (!AUDITED_SCREEN_CODES.has(screenCode)) return;
     const key = `${screenCode}|${location.pathname}`;
     if (loggedRef.current === key) return;
     loggedRef.current = key;
+    toast.error("Acesso negado", {
+      description: "Você não tem permissão para acessar esta tela.",
+    });
     supabase.rpc("log_access_denied", {
       _screen_code: screenCode,
       _route: location.pathname + location.search,
