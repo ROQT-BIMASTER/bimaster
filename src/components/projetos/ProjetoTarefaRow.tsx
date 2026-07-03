@@ -13,6 +13,7 @@ import { TarefaRiskBadge } from "./TarefaRiskBadge";
 import { format, isPast, isToday } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { SmartAvatar } from "@/components/ui/SmartAvatar";
 import { Badge } from "@/components/ui/badge";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
@@ -432,12 +433,14 @@ function PersonPicker({ current, members, onSelect }: {
         >
           {current ? (
             <>
-              <Avatar className="h-6 w-6 flex-shrink-0 ring-2 ring-primary/20">
-                <AvatarImage src={current.avatar_url || undefined} referrerPolicy="no-referrer" />
-                <AvatarFallback className="text-[10px] bg-primary/15 text-primary font-semibold">
-                  {current.nome?.substring(0, 2).toUpperCase()}
-                </AvatarFallback>
-              </Avatar>
+              <SmartAvatar
+                src={current.avatar_url}
+                nome={current.nome}
+                identifier={current.id}
+                fallbackNome="Membro"
+                className="h-6 w-6 flex-shrink-0 ring-2 ring-primary/20"
+                fallbackClassName="text-[10px] font-semibold"
+              />
               <span className="text-xs text-foreground/80 truncate hidden xl:inline">{current.nome?.split(" ")[0]}</span>
             </>
           ) : (
@@ -590,10 +593,15 @@ function ColaboradoresPicker({ colaboradores, members, onAdd, onRemove }: {
           {colaboradores.length > 0 ? (
             <>
               {colaboradores.slice(0, 3).map(c => (
-                <Avatar key={c.user_id} className="h-5 w-5 border-2 border-background ring-1 ring-border/30">
-                  <AvatarImage src={c.avatar_url || undefined} />
-                  <AvatarFallback className="text-[8px] bg-muted font-semibold">{c.nome?.substring(0, 2).toUpperCase()}</AvatarFallback>
-                </Avatar>
+                <SmartAvatar
+                  key={c.user_id}
+                  src={c.avatar_url}
+                  nome={c.nome}
+                  identifier={c.user_id}
+                  fallbackNome="Membro"
+                  className="h-5 w-5 border-2 border-background ring-1 ring-border/30"
+                  fallbackClassName="text-[8px] font-semibold"
+                />
               ))}
               {colaboradores.length > 3 && (
                 <div className="h-5 w-5 rounded-full bg-muted border-2 border-background flex items-center justify-center">
