@@ -552,6 +552,61 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
     staleTime: 30_000,
   });
 
+  // Junções responsáveis+seguidores da tarefa aberta.
+  // A view MinaTarefa só carrega o principal (`responsavel_nome/avatar`), então
+  // sem esta consulta o drawer da Central de Trabalho renderiza os arrays
+  // vazios e o editor mostra apenas o CTA "Atribuir responsável"/"Adicionar
+  // seguidor" (avatares não aparecem). As mutações em `useProjetoTarefas`
+  // atualizam esta chave (`tarefa-junctions`) otimisticamente, evitando refetch
+  // e o "piscar" ao adicionar/remover pessoa.
+  const { data: bridgedJunctions } = useQuery({
+    queryKey: ["tarefa-junctions", detailTarefaId],
+    queryFn: async () => {
+      if (!detailTarefaId) return { responsaveis: [], colaboradores: [] };
+      const [respRes, colabRes] = await Promise.all([
+        supabase
+          .from("projeto_tarefa_responsaveis" as any)
+          .select("user_id, papel")
+          .eq("tarefa_id", detailTarefaId),
+        supabase
+          .from("projeto_tarefa_colaboradores")
+          .select("user_id")
+          .eq("tarefa_id", detailTarefaId),
+      ]);
+      const respRows = ((respRes as any).data || []) as Array<{ user_id: string; papel: string | null }>;
+      const colabRows = ((colabRes as any).data || []) as Array<{ user_id: string }>;
+      const ids = Array.from(new Set([
+        ...respRows.map(r => r.user_id),
+        ...colabRows.map(c => c.user_id),
+      ]));
+      const profileMap = new Map<string, { nome: string | null; avatar_url: string | null }>();
+      if (ids.length > 0) {
+        const { data: profiles } = await supabase
+          .from("profiles")
+          .select("id, nome, avatar_url")
+          .in("id", ids);
+        for (const p of (profiles || []) as Array<{ id: string; nome: string | null; avatar_url: string | null }>) {
+          profileMap.set(p.id, { nome: p.nome, avatar_url: p.avatar_url });
+        }
+      }
+      return {
+        responsaveis: respRows.map(r => ({
+          user_id: r.user_id,
+          nome: profileMap.get(r.user_id)?.nome || "Membro",
+          avatar_url: profileMap.get(r.user_id)?.avatar_url || null,
+          papel: r.papel || "responsavel",
+        })),
+        colaboradores: colabRows.map(c => ({
+          user_id: c.user_id,
+          nome: profileMap.get(c.user_id)?.nome || "Membro",
+          avatar_url: profileMap.get(c.user_id)?.avatar_url || null,
+        })),
+      };
+    },
+    enabled: !!detailTarefaId && detailOpen,
+    staleTime: 30_000,
+  });
+
   const bridgedTarefa: ProjetoTarefa | null = useMemo(() => {
     if (!detailTarefa) return null;
     return {
@@ -562,6 +617,15 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
       titulo: detailTarefa.titulo,
       descricao: detailTarefa.descricao,
       responsavel_id: detailTarefa.responsavel_id,
+      responsavel: detailTarefa.responsavel_id
+        ? {
+            id: detailTarefa.responsavel_id,
+            nome: detailTarefa.responsavel_nome || "Membro",
+            avatar_url: detailTarefa.responsavel_avatar_url || null,
+          }
+        : null,
+      responsaveis: bridgedJunctions?.responsaveis || [],
+      colaboradores: bridgedJunctions?.colaboradores || [],
       criador_id: detailTarefa.criador_id,
       status: detailTarefa.status,
       prioridade: detailTarefa.prioridade || "media",
@@ -582,7 +646,7 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
       produto_id: detailTarefa.produto_id,
       subtarefas: bridgedSubtarefas,
     } as ProjetoTarefa;
-  }, [detailTarefa, bridgedSubtarefas]);
+  }, [detailTarefa, bridgedSubtarefas, bridgedJunctions]);
 
   const { data: bridgedSecoes = [] } = useQuery({
     queryKey: ["projeto-secoes-bridge", selectedProjetoId],
