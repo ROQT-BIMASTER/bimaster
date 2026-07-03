@@ -67,6 +67,7 @@ export function ProjetoInboxContent() {
 
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [detailAtividade, setDetailAtividade] = useState<ProjetoAtividade | null>(null);
+  const [filterHoje, setFilterHoje] = useState<boolean>(false);
 
   // Strip any garbage from inbox-related URL params on mount / when they change.
   // Delegates to the central sanitizer so dedup + encoding cleanup is consistent
