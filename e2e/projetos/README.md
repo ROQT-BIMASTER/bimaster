@@ -13,6 +13,7 @@ precisamos de uma rede de segurança que detecte regressões.
 | `baseline-screenshots.spec.ts` | `@baseline` | Captura golden screenshots `fullPage` das telas-alvo da Fase C. |
 | `avatares-seguidores-papeis.spec.ts` | — | Valida avatares e contador `+N` de seguidores para **dono / membro / convidado**, garantindo fallback textual e nenhum `<img>` quebrado sob RLS. Requer `E2E_OWNER_*`, `E2E_MEMBER_*` e (opcional) `E2E_GUEST_*` + `E2E_SEGUIDORES_IDS` (CSV, ≥4 para exercitar o `+N`). |
 | `avatar-fallback-imagem-quebrada.spec.ts` | — | Bloqueia por `page.route()` toda imagem do bucket `avatars` (força 404) e valida que cada `SmartAvatar` desmonta o `<img>`, mantém `title` = `aria-label`(root) = `aria-label`(fallback) e propaga o sufixo `— foto indisponível`. Requer `E2E_OWNER_*` + `E2E_PROJETO_ID` + `E2E_SECAO_ID`. |
+| `avatar-sem-flicker-otimista.spec.ts` | — | Abre o drawer de detalhe de uma tarefa em Meus Projetos e, via `MutationObserver` armado por ação, verifica que adicionar/remover responsáveis e colaboradores NÃO desmonta `<img>` de avatares pré-existentes nem faz o fallback textual "piscar" durante o patch otimista. Requer `E2E_OWNER_*` + `E2E_PROJETO_ID` + `E2E_SECAO_ID` + `E2E_MEMBER_USER_ID`. |
 
 ## Variáveis de ambiente
 
