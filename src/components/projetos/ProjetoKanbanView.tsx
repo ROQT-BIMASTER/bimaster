@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useRef } from "react";
+import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
 import { acquireReloadGate, releaseReloadGate } from "@/lib/pwaReloadGate";
 import { acquireDetailGate, releaseDetailGate } from "@/hooks/projetoTarefasOpenGate";
@@ -46,6 +46,7 @@ import {
   STATUS_LABELS, STATUS_COLORS_KANBAN as STATUS_COLORS,
   ESTAGIO_LABELS, ESTAGIO_COLORS_KANBAN as ESTAGIO_COLORS, ESTAGIO_ACCENT_KANBAN as ESTAGIO_ACCENT,
 } from "@/lib/projetoConstants";
+import { buildTarefaDetalheSnapshot, mergeTarefaDetalheSnapshot, patchTarefaInDetailTree } from "@/lib/projetos/stableTaskDetail";
 
 interface Props {
   projetoId: string;
@@ -115,45 +116,21 @@ export function ProjetoKanbanView({ projetoId, darkBg = false, filters = EMPTY_F
       { replace: true },
     );
   };
-  // Derive the live tarefa from the freshest `rawTarefas` array. Igual ao
-  // ProjetoListView: só retorna referência NOVA quando a assinatura de
-  // conteúdo relevante muda — evita re-render do drawer durante o swap
-  // tempId→realId da criação otimista de subtarefas (raiz das 3 piscadas).
-  const lastTarefaRef = useRef<ProjetoTarefa | null>(null);
-  const lastSignatureRef = useRef<string>("");
-  const selectedTarefa = useMemo(() => {
-    if (!selectedTarefaId) {
-      lastTarefaRef.current = null;
-      lastSignatureRef.current = "";
-      return null;
-    }
-    const found = rawTarefas.find((t) => t.id === selectedTarefaId);
-    if (!found) return lastTarefaRef.current;
-    const buildSubtree = (parentId: string): ProjetoTarefa[] =>
-      rawTarefas
-        .filter((st) => st.parent_tarefa_id === parentId)
-        .map((st) => ({ ...st, subtarefas: buildSubtree(st.id) }));
-    const subs = buildSubtree(found.id);
-    const respIds = (found.responsaveis ?? []).map((r) => r.user_id).sort().join(",");
-    const colabIds = (found.colaboradores ?? []).map((c) => c.user_id).sort().join(",");
-    const subSignature = (s: ProjetoTarefa): string => {
-        const r = (s.responsaveis ?? []).map((x) => x.user_id).sort().join(",");
-        const c = (s.colaboradores ?? []).map((x) => x.user_id).sort().join(",");
-        const stableId = (s as any).__clientKey || s.id;
-        const childrenSig = (s.subtarefas || []).map(subSignature).join(",");
-        return `${stableId}:${s.status}:${s.titulo}:${s.responsavel_id ?? ""}:${r}:${c}:${s.prioridade}:${s.estagio ?? ""}:${s.data_prazo ?? ""}:${(s as any).data_inicio_planejada ?? ""}:[${childrenSig}]`;
-    };
-    const signature =
-      `${found.id}|${found.updated_at}|${found.titulo}|${found.status}|${found.responsavel_id ?? ""}|${respIds}|${colabIds}|${found.prioridade}|${found.data_prazo ?? ""}|${(found as any).data_inicio_planejada ?? ""}|${(found as any).data_inicio_real ?? ""}|${found.descricao ?? ""}|${found.estagio ?? ""}|${found.secao_id}|` +
-      subs.map(subSignature).join(";");
-    if (signature === lastSignatureRef.current && lastTarefaRef.current) {
-      return lastTarefaRef.current;
-    }
-    const enriched = { ...found, subtarefas: subs };
-    lastTarefaRef.current = enriched as ProjetoTarefa;
-    lastSignatureRef.current = signature;
-    return enriched;
-  }, [selectedTarefaId, rawTarefas]);
+  // Mesmo bridge estável da lista: o drawer não depende diretamente da troca
+  // de referência do cache principal durante patches otimistas/refetches.
+  const selectedTarefaFromCache = useMemo(
+    () => buildTarefaDetalheSnapshot(selectedTarefaId, rawTarefas),
+    [selectedTarefaId, rawTarefas],
+  );
+  const [detailTarefa, setDetailTarefa] = useState<ProjetoTarefa | null>(null);
+  useEffect(() => {
+    setDetailTarefa((prev) => {
+      if (!selectedTarefaId) return null;
+      if (!selectedTarefaFromCache) return prev?.id === selectedTarefaId ? prev : null;
+      return mergeTarefaDetalheSnapshot(prev, selectedTarefaFromCache);
+    });
+  }, [selectedTarefaId, selectedTarefaFromCache]);
+  const selectedTarefa = detailTarefa ?? selectedTarefaFromCache;
   // Reload-gate enquanto há tarefa aberta: PWA não recarrega no meio de edição.
   useEffect(() => {
     if (!selectedTarefaId) return;
@@ -295,6 +272,10 @@ export function ProjetoKanbanView({ projetoId, darkBg = false, filters = EMPTY_F
     setOverColumnId(null);
   };
 
+  const patchOpenTarefa = useCallback((id: string, updates: Partial<ProjetoTarefa>) => {
+    setDetailTarefa((prev) => patchTarefaInDetailTree(prev, id, updates));
+  }, []);
+
   if (secoesLoading || tarefasLoading) {
     return <KanbanSkeleton darkBg={darkBg} />;
   }
@@ -428,14 +409,20 @@ export function ProjetoKanbanView({ projetoId, darkBg = false, filters = EMPTY_F
         tarefa={selectedTarefa}
         open={!!selectedTarefaId}
         onOpenChange={(open) => { if (!open) setSelectedTarefaId(null); }}
-        onUpdate={(id, updates) => updateTarefa.mutate({ id, ...updates })}
+        onUpdate={(id, updates) => {
+          patchOpenTarefa(id, updates);
+          updateTarefa.mutate({ id, ...updates });
+        }}
         onToggle={(t) => void confirmAndToggleTarefa(t)}
         onAddSubtarefa={async (titulo, parentId, secaoId) => {
           await createTarefa.mutateAsync({ titulo, secao_id: secaoId, parent_tarefa_id: parentId });
         }}
         onDelete={(id) => softDeleteTarefa.mutate(id)}
         secoes={secoes}
-        onMoveTarefa={(tarefaId, secaoOrigemId, secaoDestinoId) => moveTarefaToSecao.mutate({ tarefaId, secaoOrigemId, secaoDestinoId })}
+        onMoveTarefa={(tarefaId, secaoOrigemId, secaoDestinoId) => {
+          patchOpenTarefa(tarefaId, { secao_id: secaoDestinoId } as Partial<ProjetoTarefa>);
+          moveTarefaToSecao.mutate({ tarefaId, secaoOrigemId, secaoDestinoId });
+        }}
         onOpenSubtarefa={(id) => setSelectedTarefaId(id)}
       />
     </>
