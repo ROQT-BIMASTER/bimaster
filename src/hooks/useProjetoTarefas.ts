@@ -212,6 +212,28 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
     })();
   };
 
+  /**
+   * Atualiza otimisticamente o cache `["tarefa-junctions", tarefaId]` usado
+   * pela Central de Trabalho para renderizar responsáveis/seguidores no
+   * drawer. Mantém a UI sincronizada sem refetch/piscar quando o usuário
+   * adiciona/remove pessoas. Se a chave ainda não existe, cria a estrutura
+   * base — assim o drawer reflete a mudança mesmo se a query inicial ainda
+   * estiver em voo.
+   */
+  type TarefaJunctionsCache = {
+    responsaveis: Array<{ user_id: string; nome: string; avatar_url: string | null; papel: string }>;
+    colaboradores: Array<{ user_id: string; nome: string; avatar_url: string | null }>;
+  };
+  const patchTarefaJunctions = (
+    tarefaId: string,
+    mutator: (curr: TarefaJunctionsCache) => TarefaJunctionsCache,
+  ) => {
+    queryClient.setQueryData<TarefaJunctionsCache>(["tarefa-junctions", tarefaId], (curr) => {
+      const base: TarefaJunctionsCache = curr ?? { responsaveis: [], colaboradores: [] };
+      return mutator(base);
+    });
+  };
+
 
 
   const setPendingListOp = (
