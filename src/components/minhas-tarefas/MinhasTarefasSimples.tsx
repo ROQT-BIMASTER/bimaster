@@ -357,11 +357,15 @@ export function MinhasTarefasSimples() {
     return Array.from(map.values()).sort((a, b) => a.nome.localeCompare(b.nome));
   }, [tarefas, projetoPessoalId]);
 
-  // Contadores dos chips — calculados sobre o dataset completo para não
-  // saltarem ao aplicar busca/projeto/prioridade.
+  // Contadores dos chips — respeitam o filtro de papel (para dar feedback
+  // coerente quando o usuário troca para "Responsável" / "Seguindo"), mas
+  // ignoram busca/projeto/prioridade/quick-filter para não saltarem.
   const chipCounts = useMemo(() => {
     const now = getToday();
-    const pend = tarefas.filter((t) => t.status !== "concluida");
+    const scoped = papelFilter === "all"
+      ? tarefas
+      : tarefas.filter((t) => t.papel === papelFilter);
+    const pend = scoped.filter((t) => t.status !== "concluida");
     return {
       todas: pend.length,
       semPrazo: pend.filter((t) => !t.data_prazo).length,
@@ -373,13 +377,13 @@ export function MinhasTarefasSimples() {
         const p = parseLocalDate(t.data_prazo);
         return p && isBefore(startOfDay(p), now);
       }).length,
-      concluidasHoje: tarefas.filter((t) => {
+      concluidasHoje: scoped.filter((t) => {
         if (t.status !== "concluida") return false;
         const c = parseLocalDate(t.data_conclusao);
         return c && isToday(c);
       }).length,
     };
-  }, [tarefas]);
+  }, [tarefas, papelFilter]);
 
   const filtered = useMemo(() => {
     const now = getToday();
