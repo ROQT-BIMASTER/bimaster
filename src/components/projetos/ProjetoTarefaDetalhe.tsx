@@ -1344,6 +1344,7 @@ export function ProjetoTarefaDetalhe({
                         Sugerir com IA
                       </Button>
                     )}
+                    </div>
                   </div>
 
                   {pendingAIDescricao && (
