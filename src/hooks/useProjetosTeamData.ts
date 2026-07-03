@@ -66,7 +66,14 @@ export function useProjetosTeamData() {
         meuPerfil.supervisor_id == null &&
         DEPTS_INCLUIDOS.includes(meuPerfil.departamento_id ?? "");
 
-      if (isAdmin || isGerenteGeral) {
+      if (isAdmin) {
+        // Admin enxerga 100% dos perfis aprovados da empresa, sem filtro de depto
+        const { data: allProfiles } = await supabase
+          .from("profiles")
+          .select("id")
+          .eq("aprovado", true);
+        memberIds = allProfiles?.map((p) => p.id) || [];
+      } else if (isGerenteGeral) {
         const { data: allProfiles } = await supabase
           .from("profiles")
           .select("id")
