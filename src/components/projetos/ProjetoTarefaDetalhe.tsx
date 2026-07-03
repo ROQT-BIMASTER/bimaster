@@ -29,6 +29,9 @@ import { DisplayGradePopover } from "@/components/fabrica/DisplayGradePopover";
 import { cn } from "@/lib/utils";
 import { copyTarefaLink } from "@/lib/utils/copyDeepLink";
 import { flickerLog } from "@/lib/debug/flickerLog";
+import { isTarefasFlagEnabled } from "@/lib/tarefas/featureFlags";
+import { lockField, unlockField } from "@/lib/tarefas/editingFieldsStore";
+import { trackLocalMutation } from "@/lib/tarefas/lastLocalMutationTracker";
 
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
