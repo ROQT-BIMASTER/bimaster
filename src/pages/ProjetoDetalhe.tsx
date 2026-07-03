@@ -1,13 +1,14 @@
-import { useState, useEffect } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Projeto } from "@/hooks/useProjetos";
-import { useProjetoTarefas } from "@/hooks/useProjetoTarefas";
+import { useProjetoTarefas, type ProjetoTarefa } from "@/hooks/useProjetoTarefas";
 import { useProjetoChinaVinculo } from "@/hooks/useChinaProjeto";
 import { ProjetoHeader } from "@/components/projetos/ProjetoHeader";
 import { ProjetoListView } from "@/components/projetos/ProjetoListView";
 import { ProjetoKanbanView } from "@/components/projetos/ProjetoKanbanView";
+import { ProjetoTarefaDetalhe } from "@/components/projetos/ProjetoTarefaDetalhe";
 import { ProjetoCronogramaView } from "@/components/projetos/ProjetoCronogramaView";
 import { ProjetoCalendarioView } from "@/components/projetos/ProjetoCalendarioView";
 import { PrazosPanel } from "@/components/projetos/PrazosPanel";
@@ -39,6 +40,9 @@ import { RrTasksBoardView } from "@/components/rr-tasks/RrTasksBoardView";
 import { RrTasksBreadcrumb } from "@/components/rr-tasks/RrTasksBreadcrumb";
 import { SubmissaoChinaBoardView } from "@/components/china/submissao-board/SubmissaoChinaBoardView";
 import { SubmissaoPlanilhaTab } from "@/components/projetos/SubmissaoPlanilhaTab";
+import { acquireReloadGate, releaseReloadGate } from "@/lib/pwaReloadGate";
+import { acquireDetailGate, releaseDetailGate } from "@/hooks/projetoTarefasOpenGate";
+import { buildTarefaDetalheSnapshot, mergeTarefaDetalheSnapshot, patchTarefaInDetailTree } from "@/lib/projetos/stableTaskDetail";
 
 
 function isDarkColor(hex: string | null): boolean {
@@ -86,7 +90,20 @@ export default function ProjetoDetalhe({ shared = false }: ProjetoDetalheProps =
   }, []);
   const [lixeiraOpen, setLixeiraOpen] = useState(false);
   const [copilotOpen, setCopilotOpen] = useState(false);
-  const { tarefas, secoes, teamMembers, createTarefa, softDeleteTarefa, restaurarTarefa, tarefasExcluidas, tarefasExcluidasLoading, tarefasExcluidasCount } = useProjetoTarefas(id, { lixeiraOpen });
+  const {
+    tarefas,
+    secoes,
+    teamMembers,
+    createTarefa,
+    updateTarefa,
+    confirmAndToggleTarefa,
+    moveTarefaToSecao,
+    softDeleteTarefa,
+    restaurarTarefa,
+    tarefasExcluidas,
+    tarefasExcluidasLoading,
+    tarefasExcluidasCount,
+  } = useProjetoTarefas(id, { lixeiraOpen });
   const { data: chinaVinculo } = useProjetoChinaVinculo(id);
   const [filters, setFilters] = useState<ProjetoFilters>(EMPTY_FILTERS);
   const [sort, setSort] = useState<ProjetoSort>(DEFAULT_SORT);
@@ -116,6 +133,75 @@ export default function ProjetoDetalhe({ shared = false }: ProjetoDetalheProps =
   const handleAddTarefa = (titulo: string, secaoId: string) => {
     createTarefa.mutate({ titulo, secao_id: secaoId });
   };
+
+  const selectedTarefaId = searchParams.get("tarefa");
+  const setSelectedTarefaId = useCallback((tarefaId: string | null) => {
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        if (tarefaId) next.set("tarefa", tarefaId);
+        else next.delete("tarefa");
+        return next;
+      },
+      { replace: true },
+    );
+  }, [setSearchParams]);
+
+  const selectedTarefaFromCache = useMemo(
+    () => buildTarefaDetalheSnapshot(selectedTarefaId, tarefas),
+    [selectedTarefaId, tarefas],
+  );
+  const [detailTarefa, setDetailTarefa] = useState<ProjetoTarefa | null>(null);
+
+  useEffect(() => {
+    setDetailTarefa((prev) => {
+      if (!selectedTarefaId) return null;
+      if (!selectedTarefaFromCache) return prev?.id === selectedTarefaId ? prev : null;
+      return mergeTarefaDetalheSnapshot(prev, selectedTarefaFromCache);
+    });
+  }, [selectedTarefaId, selectedTarefaFromCache]);
+
+  const selectedTarefa = detailTarefa ?? selectedTarefaFromCache;
+
+  useEffect(() => {
+    if (!selectedTarefaId || !id) return;
+    acquireReloadGate();
+    acquireDetailGate(id);
+    return () => {
+      releaseReloadGate();
+      releaseDetailGate(id);
+    };
+  }, [selectedTarefaId, id]);
+
+  const patchOpenTarefa = useCallback((tarefaId: string, updates: Partial<ProjetoTarefa>) => {
+    setDetailTarefa((prev) => patchTarefaInDetailTree(prev, tarefaId, updates));
+  }, []);
+
+  const handleDetailUpdate = useCallback((tarefaId: string, updates: Partial<ProjetoTarefa>) => {
+    patchOpenTarefa(tarefaId, updates);
+    updateTarefa.mutate({ id: tarefaId, ...updates });
+  }, [patchOpenTarefa, updateTarefa]);
+
+  const handleDetailToggle = useCallback((tarefa: ProjetoTarefa) => {
+    void confirmAndToggleTarefa(tarefa);
+  }, [confirmAndToggleTarefa]);
+
+  const handleDetailAddSubtarefa = useCallback(async (titulo: string, parentId: string, secaoId: string) => {
+    await createTarefa.mutateAsync({ titulo, secao_id: secaoId, parent_tarefa_id: parentId });
+  }, [createTarefa]);
+
+  const handleDetailMove = useCallback((tarefaId: string, secaoOrigemId: string, secaoDestinoId: string) => {
+    patchOpenTarefa(tarefaId, { secao_id: secaoDestinoId } as Partial<ProjetoTarefa>);
+    moveTarefaToSecao.mutate({ tarefaId, secaoOrigemId, secaoDestinoId });
+  }, [moveTarefaToSecao, patchOpenTarefa]);
+
+  const handleDetailClose = useCallback((open: boolean) => {
+    if (open) return;
+    setSelectedTarefaId(null);
+    if (id) {
+      void queryClient.refetchQueries({ queryKey: ["projeto-tarefas-v2", id], type: "active", exact: true });
+    }
+  }, [id, queryClient, setSelectedTarefaId]);
 
   const customBg = !!projeto?.bg_cor;
   const darkBg = isDarkColor(projeto?.bg_cor ?? null);
@@ -250,7 +336,7 @@ export default function ProjetoDetalhe({ shared = false }: ProjetoDetalheProps =
             darkBg ? "bg-white/5 border-white/10" : customBg ? "bg-white/60 border-black/10 backdrop-blur-sm" : "bg-card border-border"
           )}>
             <div className="p-4">
-              {activeTab === "lista" && <ProjetoListView projetoId={projeto.id} darkBg={darkBg} filters={filters} sort={sort} initialTarefaId={deepTarefaId} highlightCommentId={deepComentarioId} />}
+              {activeTab === "lista" && <ProjetoListView projetoId={projeto.id} darkBg={darkBg} filters={filters} sort={sort} initialTarefaId={deepTarefaId} />}
               {activeTab === "quadro" && <ProjetoKanbanView projetoId={projeto.id} darkBg={darkBg} filters={filters} sort={sort} />}
               {activeTab === "cronograma" && <ProjetoCronogramaView projetoId={projeto.id} darkBg={darkBg} filters={filters} sort={sort} />}
               {activeTab === "calendario" && <ProjetoCalendarioView projetoId={projeto.id} darkBg={darkBg} filters={filters} sort={sort} />}
@@ -268,6 +354,20 @@ export default function ProjetoDetalhe({ shared = false }: ProjetoDetalheProps =
           </div>
         </div>
       </main>
+      <ProjetoTarefaDetalhe
+        tarefa={selectedTarefa}
+        open={!!selectedTarefaId}
+        onOpenChange={handleDetailClose}
+        onUpdate={handleDetailUpdate}
+        onToggle={handleDetailToggle}
+        onAddSubtarefa={handleDetailAddSubtarefa}
+        onDelete={(tarefaId) => softDeleteTarefa.mutate(tarefaId)}
+        secoes={secoes}
+        onMoveTarefa={handleDetailMove}
+        projetoIdOverride={projeto.id}
+        highlightCommentId={selectedTarefaId === deepTarefaId ? deepComentarioId : null}
+        onOpenSubtarefa={setSelectedTarefaId}
+      />
       {!shared && (
         <>
           <TourButton tourId={PROJETO_DETALHE_TOUR_ID} tourSteps={projetoDetalheTourSteps} title="Manual do Projeto" description="Aprenda a usar o detalhe do projeto passo a passo" />

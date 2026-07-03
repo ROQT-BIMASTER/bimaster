@@ -570,6 +570,8 @@ export function ProjetoTarefaDetalhe({
         <SheetContent
           side="right"
           hideClose
+          data-testid="projeto-tarefa-detalhe-drawer"
+          data-tarefa-id={tarefa.id}
           className="w-full sm:max-w-[580px] p-0 flex flex-col overflow-hidden"
           onPointerDownOutside={(e) => {
             // Evita que cliques em conteúdo portalizado (Popover, Select,
@@ -830,7 +832,7 @@ export function ProjetoTarefaDetalhe({
                 </div>
 
                 {/* Fields grid */}
-                <div className="grid grid-cols-[120px_1fr] gap-y-3 gap-x-3 text-sm">
+                <div className="grid grid-cols-[120px_1fr] gap-y-3 gap-x-3 text-sm" data-testid="projeto-tarefa-detalhe-fields">
                   {/* Status */}
                   {canViewUI("campo_status") && (<>
                   <span className="text-muted-foreground">Status</span>
@@ -838,7 +840,7 @@ export function ProjetoTarefaDetalhe({
                     if (isPendingValidation) { toast.error("Aguardando aprovação. Não é possível alterar o status."); return; }
                     onUpdate(tarefa.id, { status: v });
                   }} disabled={isPendingValidation}>
-                    <SelectTrigger className="h-8 text-xs border-0 bg-transparent hover:bg-muted/40 px-2 [&>svg]:opacity-40 justify-start gap-2">
+                    <SelectTrigger data-testid="tarefa-status-trigger" className="h-8 text-xs border-0 bg-transparent hover:bg-muted/40 px-2 [&>svg]:opacity-40 justify-start gap-2">
                       {(() => {
                         const s = STATUS_OPTIONS.find(x => x.value === tarefa.status);
                         return s ? (
@@ -857,7 +859,7 @@ export function ProjetoTarefaDetalhe({
                   {canViewUI("campo_prioridade") && (<>
                   <span className="text-muted-foreground">Prioridade</span>
                   <Select value={tarefa.prioridade} onValueChange={v => onUpdate(tarefa.id, { prioridade: v })}>
-                    <SelectTrigger className="h-8 text-xs border-0 bg-transparent hover:bg-muted/40 px-2 [&>svg]:opacity-40 justify-start gap-2">
+                    <SelectTrigger data-testid="tarefa-prioridade-trigger" className="h-8 text-xs border-0 bg-transparent hover:bg-muted/40 px-2 [&>svg]:opacity-40 justify-start gap-2">
                       {(() => {
                         const p = PRIORIDADE_OPTIONS.find(x => x.value === tarefa.prioridade);
                         return p ? (
@@ -876,7 +878,7 @@ export function ProjetoTarefaDetalhe({
                   {canViewUI("campo_estagio") && (<>
                   <span className="text-muted-foreground">Estágio</span>
                   <Select value={tarefa.estagio || ""} onValueChange={v => onUpdate(tarefa.id, { estagio: v } as any)}>
-                    <SelectTrigger className="h-8 text-xs">
+                    <SelectTrigger data-testid="tarefa-estagio-trigger" className="h-8 text-xs">
                       {estagioInfo ? (
                         <Badge className={cn("text-[10px] border-0", estagioInfo.color)}>{estagioInfo.label}</Badge>
                       ) : (
@@ -898,7 +900,7 @@ export function ProjetoTarefaDetalhe({
                   <span className="text-muted-foreground">Data prazo <span className="text-destructive">*</span></span>
                   <Popover open={datePicker} onOpenChange={setDatePicker}>
                     <PopoverTrigger asChild>
-                      <Button variant="outline" size="sm" className={cn("h-8 justify-start text-xs gap-1.5", !tarefa.data_prazo && "border-destructive/50 text-destructive")}>
+                      <Button data-testid="tarefa-data-prazo-trigger" variant="outline" size="sm" className={cn("h-8 justify-start text-xs gap-1.5", !tarefa.data_prazo && "border-destructive/50 text-destructive")}>
                         <CalendarIcon className="h-3.5 w-3.5" />
                         {tarefa.data_prazo
                           ? format(parseLocalDateOrNow(tarefa.data_prazo), "dd MMM yyyy", { locale: ptBR })
@@ -943,7 +945,7 @@ export function ProjetoTarefaDetalhe({
                   <span className="text-muted-foreground">Início planejado <span className="text-destructive">*</span></span>
                   <Popover open={inicioPicker} onOpenChange={setInicioPicker}>
                     <PopoverTrigger asChild>
-                      <Button variant="outline" size="sm" className={cn("h-8 justify-start text-xs gap-1.5", !(tarefa as any).data_inicio_planejada && "border-destructive/50 text-destructive")}>
+                      <Button data-testid="tarefa-data-inicio-trigger" variant="outline" size="sm" className={cn("h-8 justify-start text-xs gap-1.5", !(tarefa as any).data_inicio_planejada && "border-destructive/50 text-destructive")}>
                         <CalendarIcon className="h-3.5 w-3.5" />
                         {(tarefa as any).data_inicio_planejada
                           ? format(parseLocalDateOrNow((tarefa as any).data_inicio_planejada), "dd MMM yyyy", { locale: ptBR })
@@ -970,7 +972,7 @@ export function ProjetoTarefaDetalhe({
                   <span className="text-muted-foreground">Próxima ação</span>
                   <Popover open={proximaAcaoPicker} onOpenChange={setProximaAcaoPicker}>
                     <PopoverTrigger asChild>
-                      <Button variant="outline" size="sm" className="h-8 justify-start text-xs gap-1.5">
+                      <Button data-testid="tarefa-data-proxima-acao-trigger" variant="outline" size="sm" className="h-8 justify-start text-xs gap-1.5">
                         <CalendarIcon className="h-3.5 w-3.5" />
                         {(tarefa as any).data_proxima_acao
                           ? format(parseLocalDateOrNow((tarefa as any).data_proxima_acao), "dd MMM yyyy", { locale: ptBR })
@@ -1018,7 +1020,7 @@ export function ProjetoTarefaDetalhe({
                     value={String((tarefa as any).dias_alerta_antes ?? 2)}
                     onValueChange={v => onUpdate(tarefa.id, { dias_alerta_antes: parseInt(v) } as any)}
                   >
-                    <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                    <SelectTrigger data-testid="tarefa-alertar-antes-trigger" className="h-8 text-xs"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       {[1, 2, 3, 5, 7].map(d => (
                         <SelectItem key={d} value={String(d)}>{d} dia{d > 1 ? "s" : ""}</SelectItem>

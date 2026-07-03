@@ -1,17 +1,14 @@
-import { useState, useMemo, useEffect, useCallback } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
-import { acquireReloadGate, releaseReloadGate } from "@/lib/pwaReloadGate";
-import { acquireDetailGate, releaseDetailGate } from "@/hooks/projetoTarefasOpenGate";
 import { useProjetoTarefas, ProjetoTarefa } from "@/hooks/useProjetoTarefas";
 import { useProjeto } from "@/hooks/useProjetos";
 import { useMetasProgress } from "@/hooks/useMetasProgress";
 import { ProjetoSecao } from "./ProjetoSecao";
 import { NovaSecaoInline } from "./NovaSecaoInline";
-import { ProjetoTarefaDetalhe } from "./ProjetoTarefaDetalhe";
 import { CriarTarefasIADialog } from "./CriarTarefasIADialog";
 import { useProjetoIA } from "@/hooks/useProjetoIA";
 import { Button } from "@/components/ui/button";
-import { Loader2, Sparkles, Ban, ChevronDown, ChevronRight } from "lucide-react";
+import { Sparkles, Ban, ChevronDown, ChevronRight } from "lucide-react";
 import { ProjetoTarefaRow } from "./ProjetoTarefaRow";
 import { ProjetoFilters, ProjetoSort, applyFilters, applySort, hasActiveFilters, EMPTY_FILTERS, DEFAULT_SORT } from "./ProjetoFilterSort";
 import { ColumnConfig, loadColumnConfig, saveColumnConfig, buildGridCols, ColumnConfigPopover } from "./ColumnConfigPopover";
@@ -20,7 +17,6 @@ import { ListSkeleton } from "./ProjetoSkeletons";
 import { logger } from "@/lib/logger";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
-import { buildTarefaDetalheSnapshot, mergeTarefaDetalheSnapshot, patchTarefaInDetailTree } from "@/lib/projetos/stableTaskDetail";
 
 // Legacy export for backwards compat
 export const GRID_COLS = "grid-cols-[20px_20px_1fr_80px_1px_100px_120px_90px_120px_80px_80px]";
@@ -32,15 +28,13 @@ interface ProjetoListViewProps {
   sort?: ProjetoSort;
   /** Abre automaticamente o detalhe desta tarefa (usado por deep-link de menção). */
   initialTarefaId?: string | null;
-  /** Comentário a destacar/rolar dentro da tarefa aberta. */
-  highlightCommentId?: string | null;
 }
 
-export function ProjetoListView({ projetoId, darkBg = false, filters = EMPTY_FILTERS, sort = DEFAULT_SORT, initialTarefaId = null, highlightCommentId = null }: ProjetoListViewProps) {
+export function ProjetoListView({ projetoId, darkBg = false, filters = EMPTY_FILTERS, sort = DEFAULT_SORT, initialTarefaId = null }: ProjetoListViewProps) {
   const {
     secoes, tarefas, tarefasPorSecao, ghostsPorSecao,
     secoesLoading, tarefasLoading,
-    createTarefa, updateTarefa, toggleTarefaCompleta, confirmAndToggleTarefa, moveTarefaToSecao, createSecao,
+    createTarefa, updateTarefa, confirmAndToggleTarefa, createSecao,
     updateSecao, deleteSecao,
     toggleSecaoBriefing, addColaborador, removeColaborador, teamMembers,
     softDeleteTarefa,
@@ -104,33 +98,8 @@ export function ProjetoListView({ projetoId, darkBg = false, filters = EMPTY_FIL
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialTarefaId, tarefasLoading, tarefas]);
-  // Meus Projetos usa o mesmo princípio já aplicado em Minhas Tarefas/Central:
-  // o drawer mantém um snapshot local estável e apenas recebe patches do cache.
-  // Assim refetch/realtime da lista principal não desmonta avatares no meio da edição.
-  const selectedTarefaFromCache = useMemo(
-    () => buildTarefaDetalheSnapshot(selectedTarefaId, tarefas),
-    [selectedTarefaId, tarefas],
-  );
-  const [detailTarefa, setDetailTarefa] = useState<ProjetoTarefa | null>(null);
-  useEffect(() => {
-    setDetailTarefa((prev) => {
-      if (!selectedTarefaId) return null;
-      if (!selectedTarefaFromCache) return prev?.id === selectedTarefaId ? prev : null;
-      return mergeTarefaDetalheSnapshot(prev, selectedTarefaFromCache);
-    });
-  }, [selectedTarefaId, selectedTarefaFromCache]);
-  const selectedTarefa = detailTarefa ?? selectedTarefaFromCache;
-  // Mantém reload-gate ativo enquanto há tarefa aberta: o PWA não recarrega
-  // a página enquanto o usuário estiver em um drawer aberto.
-  useEffect(() => {
-    if (!selectedTarefaId) return;
-    acquireReloadGate();
-    acquireDetailGate(projetoId);
-    return () => {
-      releaseReloadGate();
-      releaseDetailGate(projetoId);
-    };
-  }, [selectedTarefaId, projetoId]);
+  // O drawer de detalhe é renderizado em `ProjetoDetalhe`, fora desta árvore.
+  // Assim, quando a lista troca para skeleton durante refetch, o drawer não desmonta.
   const [iaDialogOpen, setIaDialogOpen] = useState(false);
   const { createTasksWithAI, createFromFile, loading: iaLoading } = useProjetoIA();
   const [columns, setColumns] = useState<ColumnConfig[]>(loadColumnConfig);
@@ -140,8 +109,6 @@ export function ProjetoListView({ projetoId, darkBg = false, filters = EMPTY_FIL
   const metasProgress = useMetasProgress(allTaskIds);
 
   const vis = (key: string) => columns.find(c => c.key === key)?.visible ?? true;
-  const dynamicGrid = `grid-cols-[${buildGridCols(columns)}]`;
-
   const isFiltering = hasActiveFilters(filters);
 
   // Memoize filtered tarefas per section (excluding canceled top-level tasks)
@@ -192,22 +159,8 @@ export function ProjetoListView({ projetoId, darkBg = false, filters = EMPTY_FIL
     setSelectedTarefaId(tarefa.id);
   };
 
-  const patchOpenTarefa = useCallback((id: string, updates: Partial<ProjetoTarefa>) => {
-    setDetailTarefa((prev) => patchTarefaInDetailTree(prev, id, updates));
-  }, []);
-
   const handleUpdateTarefa = (id: string, updates: Partial<ProjetoTarefa>) => {
-    patchOpenTarefa(id, updates);
     updateTarefa.mutate({ id, ...updates });
-  };
-
-  const handleAddSubtarefa = async (titulo: string, parentId: string, secaoId: string) => {
-    await createTarefa.mutateAsync({ titulo, secao_id: secaoId, parent_tarefa_id: parentId });
-  };
-
-  const handleMoveTarefa = (tarefaId: string, secaoOrigemId: string, secaoDestinoId: string) => {
-    patchOpenTarefa(tarefaId, { secao_id: secaoDestinoId } as Partial<ProjetoTarefa>);
-    moveTarefaToSecao.mutate({ tarefaId, secaoOrigemId, secaoDestinoId });
   };
 
   const handleCreateIAItems = async (data: { secoes: { nome: string }[]; tasks: any[]; documentFiles: File[] }) => {
@@ -343,7 +296,7 @@ export function ProjetoListView({ projetoId, darkBg = false, filters = EMPTY_FIL
             ghosts={isFiltering ? [] : ghostsPorSecao(secao.id)}
             temBriefing={(secao as any).tem_briefing || false}
             allSecoes={secoes.map(s => ({ id: s.id, nome: s.nome }))}
-            selectedTarefaId={selectedTarefa?.id}
+            selectedTarefaId={selectedTarefaId ?? undefined}
             onToggleTarefa={handleToggle}
             onSelectTarefa={handleSelectTarefa}
             onAddTarefa={handleAddTarefa}
@@ -370,7 +323,7 @@ export function ProjetoListView({ projetoId, darkBg = false, filters = EMPTY_FIL
             onDelete={(id) => softDeleteTarefa.mutate(id)}
             onSelect={handleSelectTarefa}
             onToggle={handleToggle}
-            selectedTarefaId={selectedTarefa?.id}
+            selectedTarefaId={selectedTarefaId ?? undefined}
             teamMembers={teamMembers}
           />
         )}
@@ -400,20 +353,6 @@ export function ProjetoListView({ projetoId, darkBg = false, filters = EMPTY_FIL
         createTasksWithAI={createTasksWithAI}
         createFromFile={createFromFile}
         loading={iaLoading === "create_tasks" || iaLoading === "create_from_file"}
-      />
-
-      <ProjetoTarefaDetalhe
-        tarefa={selectedTarefa}
-        open={!!selectedTarefaId}
-        onOpenChange={(open) => { if (!open) setSelectedTarefaId(null); }}
-        onUpdate={handleUpdateTarefa}
-        onToggle={handleToggle}
-        onAddSubtarefa={handleAddSubtarefa}
-        onDelete={(id) => softDeleteTarefa.mutate(id)}
-        secoes={secoes}
-        onMoveTarefa={handleMoveTarefa}
-        highlightCommentId={selectedTarefaId === initialTarefaId ? highlightCommentId : null}
-        onOpenSubtarefa={(id) => setSelectedTarefaId(id)}
       />
     </>
   );
