@@ -57,6 +57,38 @@ function SubtarefaResponsavelPickerImpl({
   const { updateTarefa } = useProjetoTarefas(projetoId, { mutationsOnly: true });
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
+  const preloadedRef = useRef<Set<string>>(new Set());
+
+  // Pré-carrega avatar_url e cache `profile-mini` dos membros do time assim
+  // que o picker abre — garante que `resolvePessoa` no `updateTarefa` /
+  // `addResponsavel` já encontre nome+avatar hidratados e o `<img>` do
+  // SmartAvatar do responsável apareça no mesmo frame do clique (bitmap já
+  // no HTTP cache). Roda 1x por (projeto,user).
+  useEffect(() => {
+    if (!open || !membros || membros.length === 0) return;
+    for (const m of membros) {
+      const uid = m.user_id;
+      if (!uid || preloadedRef.current.has(uid)) continue;
+      preloadedRef.current.add(uid);
+      const nome = m.profile?.nome ?? null;
+      const avatar = m.profile?.avatar_url ?? null;
+      queryClient.setQueryData(
+        ["profile-mini", uid],
+        (prev: any) => prev ?? { id: uid, nome, avatar_url: avatar },
+      );
+      if (avatar && typeof window !== "undefined") {
+        try {
+          const img = new window.Image();
+          img.decoding = "async";
+          img.referrerPolicy = "no-referrer";
+          img.src = avatar;
+        } catch {
+          /* preload best-effort */
+        }
+      }
+    }
+  }, [open, membros, queryClient]);
+
 
   const trocar = (novoUserId: string | null) => {
     // Fecha o popover ANTES de disparar a mutation. O onMutate de updateTarefa
