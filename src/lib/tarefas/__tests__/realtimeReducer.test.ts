@@ -12,7 +12,7 @@ const noDeps: ReducerDeps = {
   stashPending: () => {},
 };
 
-interface T {
+interface T extends Record<string, unknown> {
   id: string;
   titulo: string;
   status: string;
