@@ -753,7 +753,7 @@ export default function MeuPerfil() {
 
 
           {/* Card: Segurança / Senha */}
-          <Card>
+          <Card id="senha" ref={senhaCardRef} className="scroll-mt-8">
             <CardHeader>
               <CardTitle className="text-base flex items-center gap-2">
                 <ShieldCheck className="h-4 w-4 text-primary" />
