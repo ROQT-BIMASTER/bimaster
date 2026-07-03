@@ -13,6 +13,7 @@ on:
       - 'src/hooks/useProjetoTarefas.ts'
       - 'src/lib/projetos/stableTaskDetail.ts'
       - 'e2e/projetos/avatar-sem-flicker-otimista.spec.ts'
+      - 'e2e/projetos/avatar-sem-flicker-colaboradores.spec.ts'
       - '.github/workflows/e2e-avatar-sem-flicker.yml'
   workflow_dispatch:
 
@@ -56,7 +57,7 @@ jobs:
           E2E_OWNER_PASSWORD: ${{ secrets.E2E_OWNER_PASSWORD }}
           E2E_TEST_EMAIL: ${{ secrets.E2E_TEST_EMAIL }}
           E2E_TEST_PASSWORD: ${{ secrets.E2E_TEST_PASSWORD }}
-        run: bunx playwright test e2e/projetos/avatar-sem-flicker-otimista.spec.ts --reporter=list,html
+        run: bunx playwright test e2e/projetos/avatar-sem-flicker-otimista.spec.ts e2e/projetos/avatar-sem-flicker-colaboradores.spec.ts --reporter=list,html
       - name: Upload Playwright report
         if: always()
         uses: actions/upload-artifact@v4
