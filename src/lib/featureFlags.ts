@@ -36,11 +36,26 @@ export const isServerSideOrderingEnabled = () =>
   flag("VITE_FF_SERVER_SIDE_ORDERING", "ff_server_side_ordering");
 
 /**
- * Suporte v2 — help desk multi-departamento (Fase 1: abrir chamado com
- * conversa dedicada + painel do agente por fila). Piloto interno.
- * Ativar por usuário: `localStorage.setItem('ff_suporte_v2', '1')`.
+ * Suporte v2 — help desk multi-departamento (Fase 3B: IA por fila +
+ * transferência automática entre departamentos).
+ *
+ * **Default a partir da Fase 3B: LIGADO** para todos os usuários.
+ * Para desligar por usuário (rollback): `localStorage.setItem('ff_suporte_v2', '0')`.
+ * Para desligar globalmente: `VITE_FF_SUPORTE_V2=0` no build.
  */
-export const isSuporteV2Enabled = () => flag("VITE_FF_SUPORTE_V2", "ff_suporte_v2");
+export const isSuporteV2Enabled = (): boolean => {
+  try {
+    const env = (import.meta.env as Record<string, string | undefined>).VITE_FF_SUPORTE_V2;
+    if (env === "0" || env === "false") return false;
+    if (typeof window !== "undefined") {
+      const ls = window.localStorage.getItem("ff_suporte_v2");
+      if (ls === "0") return false;
+    }
+  } catch {
+    // ignore
+  }
+  return true;
+};
 
 /**
  * PWA Heartbeat — quando true, o PWAContext compara periodicamente o
