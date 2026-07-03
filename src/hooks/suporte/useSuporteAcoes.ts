@@ -60,6 +60,25 @@ export function useSuporteAcoes() {
     },
   });
 
+  const transferir = useMutation({
+    mutationFn: async (input: { ticketId: string; paraFilaId: string; motivo?: string }) => {
+      const { data, error } = await (supabase.rpc as any)("rpc_suporte_transferir", {
+        p_ticket_id: input.ticketId,
+        p_para_fila_id: input.paraFilaId,
+        p_motivo: input.motivo ?? null,
+      });
+      if (error) throw error;
+      return data as { ok: boolean; para_fila: string };
+    },
+    onSuccess: (res) => {
+      invalidate();
+      toast.success("Chamado transferido", { description: `Encaminhado para ${res.para_fila}` });
+    },
+    onError: (err: Error) => {
+      toast.error("Erro ao transferir chamado", { description: err.message });
+    },
+  });
+
   const mudarStatus = useMutation({
     mutationFn: async (input: { ticketId: string; status: SuporteTicketStatus }) => {
       const { error } = await (supabase.rpc as any)("rpc_suporte_mudar_status", {
@@ -77,5 +96,5 @@ export function useSuporteAcoes() {
     },
   });
 
-  return { abrirChamado, assumir, mudarStatus };
+  return { abrirChamado, assumir, mudarStatus, transferir };
 }

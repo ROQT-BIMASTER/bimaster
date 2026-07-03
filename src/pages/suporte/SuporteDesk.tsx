@@ -11,13 +11,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Inbox, Loader2, MessageSquare, UserCheck } from "lucide-react";
+import { ArrowRightLeft, Inbox, Loader2, MessageSquare, UserCheck } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { isSuporteV2Enabled } from "@/lib/featureFlags";
 import { useMinhasFilasAgente } from "@/hooks/suporte/useSuporteFilas";
 import { useChamadosDesk } from "@/hooks/suporte/useSuporteChamados";
 import { useSuporteAcoes } from "@/hooks/suporte/useSuporteAcoes";
 import { ChamadoListItem } from "@/components/suporte/ChamadoListItem";
+import { TransferirChamadoDialog } from "@/components/suporte/TransferirChamadoDialog";
 import { ChatThread } from "@/components/chat/v2/ChatThread";
 import { SUPORTE_STATUS_LABEL, type SuporteTicketStatus } from "@/hooks/suporte/types";
 
@@ -28,6 +29,7 @@ export default function SuporteDesk() {
   const [filaAtiva, setFilaAtiva] = useState<string>("todas");
   const [filtroStatus, setFiltroStatus] = useState<string>("abertos");
   const [selecionadoId, setSelecionadoId] = useState<string | null>(null);
+  const [transferirOpen, setTransferirOpen] = useState(false);
   const { assumir, mudarStatus } = useSuporteAcoes();
 
   const filaIds = useMemo(
@@ -155,6 +157,17 @@ export default function SuporteDesk() {
                     <span className="text-sm font-medium truncate">{selecionado.titulo}</span>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
+                    {selecionado.status !== "resolvido" && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="gap-1.5"
+                        onClick={() => setTransferirOpen(true)}
+                      >
+                        <ArrowRightLeft className="h-3.5 w-3.5" />
+                        Transferir
+                      </Button>
+                    )}
                     {selecionado.assignee_id !== user?.id && (
                       <Button
                         size="sm"
@@ -206,6 +219,13 @@ export default function SuporteDesk() {
           </Card>
         </div>
       </div>
+
+      <TransferirChamadoDialog
+        chamado={selecionado}
+        open={transferirOpen}
+        onOpenChange={setTransferirOpen}
+        onTransferido={() => setSelecionadoId(null)}
+      />
     </DashboardLayout>
   );
 }
