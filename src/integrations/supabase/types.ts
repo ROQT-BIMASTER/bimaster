@@ -46724,6 +46724,7 @@ export type Database = {
           resumo: string | null
           sentimento: string | null
           sla_horas: number
+          sla_pausado_em: string | null
           sla_status: string | null
           status: string
           tags: string[]
@@ -46756,6 +46757,7 @@ export type Database = {
           resumo?: string | null
           sentimento?: string | null
           sla_horas?: number
+          sla_pausado_em?: string | null
           sla_status?: string | null
           status?: string
           tags?: string[]
@@ -46788,6 +46790,7 @@ export type Database = {
           resumo?: string | null
           sentimento?: string | null
           sla_horas?: number
+          sla_pausado_em?: string | null
           sla_status?: string | null
           status?: string
           tags?: string[]
@@ -58248,6 +58251,24 @@ export type Database = {
           fonte: string
         }[]
       }
+      suporte_add_horas_comerciais: {
+        Args: { p_calendario_id?: string; p_horas: number; p_inicio: string }
+        Returns: string
+      }
+      suporte_horas_comerciais_entre: {
+        Args: { p_ate: string; p_calendario_id?: string; p_de: string }
+        Returns: number
+      }
+      suporte_recalcular_sla: {
+        Args: { p_base?: string; p_ticket_id: string }
+        Returns: undefined
+      }
+      suporte_resolver_sla: {
+        Args: { p_fila_id: string; p_prioridade: string }
+        Returns: Record<string, unknown>
+      }
+      suporte_retomar_sla: { Args: { p_ticket_id: string }; Returns: undefined }
+      suporte_sla_monitor: { Args: never; Returns: Json }
       tem_acesso_marca: { Args: { p_marca_id: string }; Returns: boolean }
       test_get_minhas_tarefas_central: { Args: never; Returns: Json }
       test_rpc_comentar_item_aprovacao: {
