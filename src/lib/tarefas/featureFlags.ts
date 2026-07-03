@@ -1,9 +1,9 @@
 /**
  * Feature flags do módulo Tarefas (anti-flicker v3).
  *
- * Todas OFF por padrão: enquanto ninguém as ligar, o comportamento de
- * produção não muda. Cada flag protege uma fase da entrega e pode ser
- * desligada em runtime sem redeploy (kill-switch).
+ * Anti-flicker ligado por padrão: o usuário final já recebe patch granular,
+ * batch e proteção de edição sem precisar configurar DevTools. Cada flag pode
+ * ser desligada em runtime sem redeploy (kill-switch).
  *
  * Ordem sugerida de rollout (mesma ordem para rollback, inversa):
  *   1. tarefas_realtime_cirurgico      — reducer + patch granular
@@ -15,9 +15,9 @@
  * Fonte da flag (nesta ordem de precedência):
  *   1. `localStorage["ff:<flag>"]` = `"on" | "off"` (override dev/QA)
  *   2. `window.__TAREFAS_FF__[<flag>]` (injetado por script/E2E)
- *   3. Default: false
+ *   3. Default: true para as proteções anti-flicker de tarefas
  *
- * A leitura via banco (`feature_flags`) fica para uma segunda rodada;
+ * A leitura via backend (`feature_flags`) fica para uma segunda rodada;
  * este helper é intencionalmente síncrono e sem I/O para não introduzir
  * loading state em componentes.
  */
@@ -31,15 +31,24 @@ export type TarefasFeatureFlag =
 
 const LS_PREFIX = "ff:";
 
+const DEFAULT_FLAGS: Record<TarefasFeatureFlag, boolean> = {
+  tarefas_realtime_cirurgico: true,
+  tarefas_realtime_batch: true,
+  tarefas_realtime_dedupe: true,
+  tarefas_descricao_editor_isolado: true,
+  tarefas_drawer_permanente: true,
+};
+
 declare global {
   interface Window {
     __TAREFAS_FF__?: Partial<Record<TarefasFeatureFlag, boolean>>;
   }
 }
 
-/** Leitura síncrona da flag. Retorna `false` em SSR ou quando indefinida. */
+/** Leitura síncrona da flag. Em SSR retorna o default seguro da flag. */
 export function isTarefasFlagEnabled(flag: TarefasFeatureFlag): boolean {
-  if (typeof window === "undefined") return false;
+  const defaultValue = DEFAULT_FLAGS[flag] ?? false;
+  if (typeof window === "undefined") return defaultValue;
   try {
     const ls = window.localStorage?.getItem(LS_PREFIX + flag);
     if (ls === "on") return true;
@@ -49,7 +58,7 @@ export function isTarefasFlagEnabled(flag: TarefasFeatureFlag): boolean {
   }
   const injected = window.__TAREFAS_FF__?.[flag];
   if (typeof injected === "boolean") return injected;
-  return false;
+  return defaultValue;
 }
 
 /** Override runtime (útil em dev tools, Storybook, testes E2E). */
