@@ -1438,7 +1438,12 @@ export function ProjetoTarefaDetalhe({
                     onChange={e => setDescValue(e.target.value)}
                     onBlur={handleDescBlur}
                     placeholder="Do que se trata esta tarefa?"
-                    className="min-h-[80px] text-sm bg-muted/30 border-border/50 resize-none"
+                    className={cn(
+                      "text-sm bg-muted/30 border-border/50 transition-[min-height,max-height] duration-200",
+                      descExpanded
+                        ? "min-h-[320px] max-h-[65vh] resize-y"
+                        : "min-h-[80px] resize-none",
+                    )}
                   />
                 </div>
 
