@@ -162,6 +162,10 @@ export function SmartAvatar({
   const initials = computeInitials(displayNome);
   const showImage = usable && !errored && !!displayUrl;
   const resolvedTitle = title || buildTitle(nome, identifier, fallbackNome, errored);
+  // Seed determinística: prioriza identifier (ex.: user_id) para estabilidade
+  // entre renders com nomes hidratados de forma incremental.
+  const fallbackSeed = String(identifier || displayNome || "?");
+  const fallbackStyle = computeFallbackStyle(fallbackSeed);
 
   return (
     <Avatar className={className} title={resolvedTitle} aria-label={resolvedTitle}>
@@ -176,7 +180,8 @@ export function SmartAvatar({
         />
       )}
       <AvatarFallback
-        className={cn("bg-primary/15 text-primary font-medium", fallbackClassName)}
+        className={cn("font-medium", fallbackClassName)}
+        style={fallbackStyle}
         aria-label={resolvedTitle}
       >
         {initials}
