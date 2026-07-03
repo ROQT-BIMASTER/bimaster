@@ -135,14 +135,57 @@ export function ProjetoInboxContent() {
     [atividades],
   );
 
+  const spDayFmt = useMemo(
+    () => new Intl.DateTimeFormat("en-CA", {
+      timeZone: "America/Sao_Paulo", year: "numeric", month: "2-digit", day: "2-digit",
+    }),
+    [],
+  );
+  const applyHoje = useCallback((list: ProjetoAtividade[]) => {
+    if (!filterHoje) return list;
+    const today = spDayFmt.format(new Date());
+    return list.filter(a => spDayFmt.format(new Date(a.created_at)) === today);
+  }, [filterHoje, spDayFmt]);
+
   const currentList = useMemo<ProjetoAtividade[]>(() => {
     switch (activeTab) {
-      case "favoritas": return favoritas;
-      case "arquivadas": return arquivadas;
+      case "favoritas": return applyHoje(favoritas);
+      case "arquivadas": return applyHoje(arquivadas);
       case "mencoes": return []; // renderizado por <MencoesList /> abaixo
-      default: return atividades;
+      default: return applyHoje(atividades);
     }
-  }, [activeTab, atividades, favoritas, arquivadas]);
+  }, [activeTab, atividades, favoritas, arquivadas, applyHoje]);
+
+  // Estado efetivo dos chips (mutuamente coerente com o subtab ativo).
+  const isTodasActive = activeTab === "atividade" && filterTipos.length === 0 && !filterHoje;
+  const isAprovacoesActive = activeTab === "atividade" && !filterHoje &&
+    filterTipos.length === 1 && filterTipos[0] === "completou";
+  const isTarefasNovasActive = activeTab === "atividade" && !filterHoje &&
+    filterTipos.length === 1 && filterTipos[0] === "criou_tarefa";
+  const isHojeActive = activeTab === "atividade" && filterHoje;
+
+  const handleChipTodas = useCallback(() => {
+    setActiveTab("atividade");
+    setFilterTipos([]);
+    setFilterHoje(false);
+    setSelectedIds(new Set());
+  }, []);
+  const handleChipMencoes = useCallback(() => {
+    setActiveTab("mencoes");
+    setFilterHoje(false);
+    setSelectedIds(new Set());
+  }, []);
+  const handleChipTipo = useCallback((tipo: CentralInboxTipo) => {
+    setActiveTab("atividade");
+    setFilterTipos(prev => (prev.length === 1 && prev[0] === tipo) ? [] : [tipo]);
+    setFilterHoje(false);
+    setSelectedIds(new Set());
+  }, []);
+  const handleChipHoje = useCallback(() => {
+    setActiveTab("atividade");
+    setFilterHoje(v => !v);
+    setSelectedIds(new Set());
+  }, []);
 
   const handleSelect = useCallback((id: string) => {
     setSelectedIds(prev => {
