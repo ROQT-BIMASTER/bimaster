@@ -9,6 +9,13 @@ import { registrarAuditoriaTarefa } from "@/lib/projetos/auditoriaTarefa";
 import { todayBR, nowSaoPauloISO } from "@/lib/utils/parseLocalDate";
 import { isDetailGateActive, subscribeDetailGate } from "@/hooks/projetoTarefasOpenGate";
 import { flickerLog } from "@/lib/debug/flickerLog";
+import { isTarefasFlagEnabled } from "@/lib/tarefas/featureFlags";
+import { applyRealtimePatch, type RealtimePayload } from "@/lib/tarefas/realtimeReducer";
+import { queueRealtimeEvent, clearRealtimeBatch } from "@/lib/tarefas/realtimeBatch";
+import { isEchoOfLocalMutation } from "@/lib/tarefas/lastLocalMutationTracker";
+import { isFieldLocked, stashPendingRemote } from "@/lib/tarefas/editingFieldsStore";
+
+
 
 
 export interface ProjetoSecao {
