@@ -58,7 +58,7 @@ import { RecordRecents } from "./launcher/RecordRecents";
 import { RailTooltipCard } from "./RailTooltipCard";
 import { RailUtilityButton } from "./RailUtilityButton";
 import { useUtilityShortcuts } from "./launcher/UtilityShortcuts";
-import { NavVersionToggle } from "@/components/navigation/NavVersionToggle";
+
 import { getModuleAccent } from "./launcher/moduleColors";
 import {
   findActiveModule,
@@ -346,7 +346,7 @@ export function AppRail({ side = "left" }: AppRailProps) {
             </>
           )}
 
-          <NavVersionToggle variant="rail" />
+          
 
           <Tooltip>
             <TooltipTrigger asChild>
