@@ -356,7 +356,8 @@ const DiagnosticoBuckets = lazyWithRetry(() => import("./pages/admin/Diagnostico
 const CofreTemplates = lazyWithRetry(() => import("./pages/admin/CofreTemplates"));
 const IntegracaoGoogleDrive = lazyWithRetry(() => import("./pages/admin/IntegracaoGoogleDrive"));
 const MarketingIntegracoesPage = lazyWithRetry(() => import("./pages/admin/MarketingIntegracoesPage"));
-const SuporteAdmin = lazyWithRetry(() => import("./pages/admin/SuporteAdmin"));
+// SuporteAdmin descontinuado — a rota /admin/suporte redireciona para /dashboard/suporte/desk.
+// O arquivo src/pages/admin/SuporteAdmin.tsx foi mantido apenas para futura migração do parecer de TI.
 const SolicitacoesAcesso = lazyWithRetry(() => import("./pages/admin/SolicitacoesAcesso"));
 const TelasPerdidas = lazyWithRetry(() => import("./pages/admin/TelasPerdidas"));
 
