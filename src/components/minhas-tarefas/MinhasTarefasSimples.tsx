@@ -844,6 +844,17 @@ export function MinhasTarefasSimples() {
                 <SelectItem value="baixa">Baixa</SelectItem>
               </SelectContent>
             </Select>
+            <Select value={papelFilter} onValueChange={(v) => setPapelFilter(v as PapelFilter)}>
+              <SelectTrigger className="h-8 w-40 text-sm" aria-label="Meu papel">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os papéis</SelectItem>
+                <SelectItem value="responsavel">Responsável</SelectItem>
+                <SelectItem value="colaborador">Colaborador</SelectItem>
+                <SelectItem value="seguidor">Seguindo</SelectItem>
+              </SelectContent>
+            </Select>
             <Select
               value={originFilter}
               onValueChange={(v) => {
