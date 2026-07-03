@@ -47,6 +47,9 @@ export interface SuporteChamado {
   resumo: string | null;
   protocolo: string | null;
   sla_status: string | null;
+  prazo_primeira_resposta_em: string | null;
+  primeira_resposta_em: string | null;
+  prazo_resolucao_em: string | null;
   ultima_interacao_em: string | null;
   resolved_at: string | null;
   created_at: string;
