@@ -28,6 +28,7 @@ import {
   PRIORITY_MAP, PRIORITY_REVERSE,
 } from "@/lib/projetoConstants";
 import { useTarefaDensity } from "@/hooks/useTarefaDensity";
+import { useRowMountCounter } from "@/lib/tarefas/instrumentation";
 
 export type TeamMember = { id: string; nome: string; avatar_url: string | null };
 
