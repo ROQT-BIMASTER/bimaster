@@ -1012,6 +1012,12 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
       patchTarefaJunctions(tarefaId, (c) => c.colaboradores.some(x => x.user_id === userId)
         ? c
         : { ...c, colaboradores: [...c.colaboradores, { user_id: userId, nome: pessoa.nome, avatar_url: pessoa.avatar_url }] });
+      patchSubtarefasBridge(tarefaId, (st) => ({
+        ...st,
+        colaboradores: (st.colaboradores || []).some(c => c.user_id === userId)
+          ? st.colaboradores!
+          : [...(st.colaboradores || []), { user_id: userId, nome: pessoa.nome, avatar_url: pessoa.avatar_url }],
+      }));
       return { previous, tarefaId, userId };
     },
     onError: (err: Error, _vars, context) => {
