@@ -32628,6 +32628,45 @@ export type Database = {
         }
         Relationships: []
       }
+      permissoes_auditoria: {
+        Row: {
+          acao: string
+          alterado_por: string | null
+          alterado_por_email: string | null
+          created_at: string
+          id: string
+          recurso_codigo: string | null
+          recurso_id: string
+          recurso_nome: string | null
+          tabela: string
+          usuario_alvo: string
+        }
+        Insert: {
+          acao: string
+          alterado_por?: string | null
+          alterado_por_email?: string | null
+          created_at?: string
+          id?: string
+          recurso_codigo?: string | null
+          recurso_id: string
+          recurso_nome?: string | null
+          tabela: string
+          usuario_alvo: string
+        }
+        Update: {
+          acao?: string
+          alterado_por?: string | null
+          alterado_por_email?: string | null
+          created_at?: string
+          id?: string
+          recurso_codigo?: string | null
+          recurso_id?: string
+          recurso_nome?: string | null
+          tabela?: string
+          usuario_alvo?: string
+        }
+        Relationships: []
+      }
       photo_analysis_queue: {
         Row: {
           attempts: number | null
