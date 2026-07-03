@@ -54,6 +54,29 @@ function computeInitials(nome?: string | null): string {
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 }
 
+// Paleta determinística (HSL) para fallback de avatar quando o usuário
+// não tem `avatar_url`. Deriva o hue de um hash estável (identifier ou
+// nome), garantindo que o mesmo usuário sempre veja a mesma cor — o pill
+// não pisca entre renders nem depende do fetch pós-save.
+const FALLBACK_SATURATION = 62;
+const FALLBACK_LIGHTNESS = 46;
+
+function hashSeed(seed: string): number {
+  let h = 0;
+  for (let i = 0; i < seed.length; i++) {
+    h = (h * 31 + seed.charCodeAt(i)) | 0;
+  }
+  return Math.abs(h);
+}
+
+function computeFallbackStyle(seed: string): React.CSSProperties {
+  const hue = hashSeed(seed) % 360;
+  return {
+    backgroundColor: `hsl(${hue} ${FALLBACK_SATURATION}% ${FALLBACK_LIGHTNESS}%)`,
+    color: "hsl(0 0% 100%)",
+  };
+}
+
 function isUsableUrl(src?: string | null): src is string {
   if (!src) return false;
   const s = src.trim();
