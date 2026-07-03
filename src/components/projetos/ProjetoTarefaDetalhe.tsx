@@ -11,7 +11,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { useProjetoTarefaMetas, TarefaMeta } from "@/hooks/useProjetoTarefaMetas";
 import { TarefaRiskBadge } from "./TarefaRiskBadge";
 import { Input } from "@/components/ui/input";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
@@ -379,14 +378,28 @@ export function ProjetoTarefaDetalhe({
     };
   }, [releaseEditLocks]);
 
+  const responsaveisDetalheSignature = useMemo(() => {
+    if (!tarefa) return "";
+    const lista = (tarefa.responsaveis || []).map((r) =>
+      `${r.user_id}:${r.nome || "Membro"}:${r.avatar_url || ""}:junction`,
+    );
+    if (tarefa.responsavel_id && tarefa.responsavel && !(tarefa.responsaveis || []).some((r) => r.user_id === tarefa.responsavel_id)) {
+      lista.unshift(
+        `${tarefa.responsavel_id}:${tarefa.responsavel.nome || "Membro"}:${tarefa.responsavel.avatar_url || ""}:principal`,
+      );
+    }
+    return lista.join("|");
+  }, [tarefa?.responsaveis, tarefa?.responsavel_id, tarefa?.responsavel]);
 
+  const seguidoresDetalheSignature = useMemo(() => {
+    if (!tarefa) return "";
+    return (tarefa.colaboradores || [])
+      .map((c) => `${c.user_id}:${c.nome || "Membro"}:${c.avatar_url || ""}`)
+      .join("|");
+  }, [tarefa?.colaboradores]);
 
-  if (!tarefa) return null;
-
-  const isCompleted = tarefa.status === "concluida";
-  const isPendingValidation = (tarefa as any).validacao_status === "pendente_validacao";
-  const estagioInfo = ESTAGIO_OPTIONS.find(e => e.value === tarefa.estagio);
-  const responsaveisDetalhe = (() => {
+  const responsaveisDetalhe = useMemo(() => {
+    if (!tarefa) return [];
     const lista: Array<{ user_id: string; nome: string; avatar_url: string | null; origem: "junction" | "principal" }> = (tarefa.responsaveis || []).map(r => ({
       user_id: r.user_id,
       nome: r.nome || "Membro",
@@ -404,12 +417,24 @@ export function ProjetoTarefaDetalhe({
     }
 
     return lista;
-  })();
-  const seguidoresDetalhe = (tarefa.colaboradores || []).map(c => ({
-    user_id: c.user_id,
-    nome: c.nome || "Membro",
-    avatar_url: c.avatar_url || null,
-  }));
+  }, [responsaveisDetalheSignature]);
+
+  const seguidoresDetalhe = useMemo(() => {
+    if (!tarefa) return [];
+    return (tarefa.colaboradores || []).map(c => ({
+      user_id: c.user_id,
+      nome: c.nome || "Membro",
+      avatar_url: c.avatar_url || null,
+    }));
+  }, [seguidoresDetalheSignature]);
+
+
+
+  if (!tarefa) return null;
+
+  const isCompleted = tarefa.status === "concluida";
+  const isPendingValidation = (tarefa as any).validacao_status === "pendente_validacao";
+  const estagioInfo = ESTAGIO_OPTIONS.find(e => e.value === tarefa.estagio);
 
   const handleEnviarParaValidacao = async () => {
     // Check if there are linked products in junction table

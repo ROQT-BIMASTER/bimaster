@@ -1,10 +1,10 @@
-import { useState, useMemo } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useProjetoMembros } from "@/hooks/useProjetoMembros";
 import { useProjetoTarefas } from "@/hooks/useProjetoTarefas";
 import { logger } from "@/lib/logger";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { SmartAvatar } from "@/components/ui/SmartAvatar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
@@ -82,6 +82,7 @@ export function TarefaResponsavelSeguidoresEditor({
 }: Props) {
   const { user } = useAuth();
   const { membros } = useProjetoMembros(projetoId);
+  const queryClient = useQueryClient();
   const {
     addColaborador,
     removeColaborador,
@@ -92,6 +93,38 @@ export function TarefaResponsavelSeguidoresEditor({
   // Popover por avatar (key = user_id). String vazia = popover "+" geral.
   const [respOpenKey, setRespOpenKey] = useState<string | null>(null);
   const [segOpenKey, setSegOpenKey] = useState<string | null>(null);
+  const preloadedRef = useRef<Set<string>>(new Set());
+
+  // Mesmo warm-up aplicado nos pickers de subtarefa: quando qualquer picker
+  // abre, hidratamos `profile-mini` e o cache HTTP dos avatares dos membros.
+  // Assim o patch otimista já renderiza nome/avatar reais no mesmo frame.
+  useEffect(() => {
+    if ((!respOpenKey && !segOpenKey) || membros.length === 0) return;
+    for (const m of membros) {
+      const uid = m.user_id;
+      if (!uid || preloadedRef.current.has(uid)) continue;
+      preloadedRef.current.add(uid);
+
+      const nome = m.profile?.nome ?? null;
+      const avatar = m.profile?.avatar_url ?? null;
+
+      queryClient.setQueryData(
+        ["profile-mini", uid],
+        (prev: any) => prev ?? { id: uid, nome, avatar_url: avatar },
+      );
+
+      if (avatar && typeof window !== "undefined") {
+        try {
+          const img = new window.Image();
+          img.decoding = "async";
+          img.referrerPolicy = "no-referrer";
+          img.src = avatar;
+        } catch {
+          /* preload best-effort */
+        }
+      }
+    }
+  }, [respOpenKey, segOpenKey, membros, queryClient]);
 
   const busy =
     addResponsavel.isPending ||
