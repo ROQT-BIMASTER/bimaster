@@ -330,35 +330,36 @@ export function ProjetoInboxContent() {
         <CentralChip
           label="Todas"
           count={naoLidas}
-          active={filterTipos.length === 0}
-          onClick={() => setFilterTipos([])}
+          active={isTodasActive}
+          onClick={handleChipTodas}
         />
         <CentralChip
           label="Menções"
           count={mencoes.length}
           active={activeTab === "mencoes"}
-          onClick={() => { setActiveTab("mencoes"); setSelectedIds(new Set()); }}
+          onClick={handleChipMencoes}
         />
         {isProdutoView && (
           <>
             <CentralChip
               label="Aprovações pendentes"
               count={aprovacoesPendentes}
-              active={filterTipos.length === 1 && filterTipos[0] === "completou"}
-              onClick={() => setFilterTipos(["completou"])}
+              active={isAprovacoesActive}
+              onClick={() => handleChipTipo("completou")}
             />
             <CentralChip
               label="Tarefas novas"
               count={tarefasNovas}
-              active={filterTipos.length === 1 && filterTipos[0] === "criou_tarefa"}
-              onClick={() => setFilterTipos(["criou_tarefa"])}
+              active={isTarefasNovasActive}
+              onClick={() => handleChipTipo("criou_tarefa")}
             />
           </>
         )}
         <CentralChip
           label="Hoje"
           count={hoje}
-          onClick={() => { /* visualização de hoje já é destacada no feed; mantém ação não-destrutiva */ }}
+          active={isHojeActive}
+          onClick={handleChipHoje}
           title="Notificações de hoje (America/Sao_Paulo)"
         />
       </CentralChipsPortal>
