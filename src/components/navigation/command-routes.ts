@@ -2,6 +2,7 @@
  * Índice de rotas para o Command Palette (Ctrl+K).
  * Cada rota tem título, path, módulo, ícone e screenCode para filtragem por permissão.
  */
+import { isSuporteV2Enabled } from "@/lib/featureFlags";
 
 export interface CommandRoute {
   title: string;
@@ -18,6 +19,13 @@ export const commandRoutes: CommandRoute[] = [
   { title: "Dashboard", path: "/dashboard", module: "Geral", icon: "Home", keywords: ["inicio", "home"] },
   { title: "Tarefas", path: "/dashboard/tarefas", module: "Geral", icon: "CheckSquare", keywords: ["tasks", "todo"] },
   { title: "Chat", path: "/dashboard/chat", module: "Geral", icon: "MessageSquare", keywords: ["mensagem", "conversa"] },
+  // Suporte v2 (piloto) — entradas só existem com a flag ff_suporte_v2 ligada
+  ...(isSuporteV2Enabled()
+    ? [
+        { title: "Suporte — Meus Chamados", path: "/dashboard/suporte", module: "Geral", icon: "LifeBuoy", keywords: ["suporte", "chamado", "ticket", "helpdesk"] },
+        { title: "Suporte — Desk do Agente", path: "/dashboard/suporte/desk", module: "Geral", icon: "Headset", keywords: ["desk", "atendimento", "fila"] },
+      ]
+    : []),
   { title: "Instalar App", path: "/dashboard/instalar-app", module: "Geral", icon: "Download", keywords: ["pwa", "mobile"] },
   { title: "Configurações", path: "/dashboard/configuracoes", module: "Admin", icon: "Settings", screenCode: "admin", keywords: ["config", "ajustes"] },
   { title: "Auditoria", path: "/dashboard/auditoria", module: "Admin", icon: "Shield", screenCode: "auditoria", keywords: ["logs", "audit"] },
