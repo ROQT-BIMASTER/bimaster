@@ -32,15 +32,28 @@ import {
   Briefcase,
   Factory,
   FolderKanban,
+  KeyRound,
   LayoutGrid,
   Loader2,
+  LogOut,
   Megaphone,
   Search,
   Settings,
   Sparkles,
+  UserCircle,
   Wallet,
   type LucideProps,
 } from "lucide-react";
+import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import {
   Tooltip,
