@@ -68,7 +68,14 @@ const signupSchema = z.object({
     .trim()
     .refine((v) => isValidCPF(v), { message: "CPF inválido" }),
   rg: z.string().trim().min(4, "Informe um RG válido").max(20),
-  password: z.string().min(8, "A senha deve ter no mínimo 8 caracteres").max(100),
+  password: z
+    .string()
+    .min(10, "A senha deve ter no mínimo 10 caracteres")
+    .max(100)
+    .refine((v) => /[A-Z]/.test(v), { message: "Inclua pelo menos uma letra maiúscula" })
+    .refine((v) => /[a-z]/.test(v), { message: "Inclua pelo menos uma letra minúscula" })
+    .refine((v) => /\d/.test(v), { message: "Inclua pelo menos um número" })
+    .refine((v) => /[^A-Za-z0-9]/.test(v), { message: "Inclua pelo menos um símbolo (ex.: !@#$%)" }),
   confirmPassword: z.string(),
 }).strict().refine((d) => d.password === d.confirmPassword, {
   message: "As senhas não coincidem",
