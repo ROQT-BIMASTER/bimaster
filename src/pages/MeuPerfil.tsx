@@ -119,7 +119,15 @@ type ProfileRow = {
 export default function MeuPerfil() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const senhaCardRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (location.hash === "#senha" && senhaCardRef.current) {
+      senhaCardRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, [location.hash]);
 
   const [loading, setLoading] = useState(true);
   const [savingProfile, setSavingProfile] = useState(false);
