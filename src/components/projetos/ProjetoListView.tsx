@@ -34,7 +34,7 @@ export function ProjetoListView({ projetoId, darkBg = false, filters = EMPTY_FIL
   const {
     secoes, tarefas, tarefasPorSecao, ghostsPorSecao,
     secoesLoading, tarefasLoading,
-    createTarefa, updateTarefa, toggleTarefaCompleta, confirmAndToggleTarefa, moveTarefaToSecao, createSecao,
+    createTarefa, updateTarefa, confirmAndToggleTarefa, createSecao,
     updateSecao, deleteSecao,
     toggleSecaoBriefing, addColaborador, removeColaborador, teamMembers,
     softDeleteTarefa,
@@ -163,14 +163,6 @@ export function ProjetoListView({ projetoId, darkBg = false, filters = EMPTY_FIL
 
   const handleUpdateTarefa = (id: string, updates: Partial<ProjetoTarefa>) => {
     updateTarefa.mutate({ id, ...updates });
-  };
-
-  const handleAddSubtarefa = async (titulo: string, parentId: string, secaoId: string) => {
-    await createTarefa.mutateAsync({ titulo, secao_id: secaoId, parent_tarefa_id: parentId });
-  };
-
-  const handleMoveTarefa = (tarefaId: string, secaoOrigemId: string, secaoDestinoId: string) => {
-    moveTarefaToSecao.mutate({ tarefaId, secaoOrigemId, secaoDestinoId });
   };
 
   const handleCreateIAItems = async (data: { secoes: { nome: string }[]; tasks: any[]; documentFiles: File[] }) => {
