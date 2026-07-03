@@ -252,6 +252,36 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
     });
   };
 
+  /**
+   * Aplica patch otimista nas caches `["projeto-tarefas-subtarefas-bridge", *]`
+   * (e a variante `-mt` de MinhasTarefas) para a subtarefa `tarefaId`. Sem
+   * isso, adicionar seguidor/responsável a uma subtarefa aberta na Central
+   * de Trabalho só atualiza `projeto-tarefas-v2` e a tarefa-mãe (junctions),
+   * enquanto o pill "+ Equipe"/avatar da subtarefa continua exibindo o
+   * estado antigo até o refetch do bridge — parecendo que "não funcionou".
+   */
+  const patchSubtarefasBridge = (
+    tarefaId: string,
+    mutator: (curr: ProjetoTarefa) => ProjetoTarefa,
+  ) => {
+    const caches = queryClient.getQueriesData<ProjetoTarefa[]>({
+      predicate: (q) =>
+        Array.isArray(q.queryKey) &&
+        (q.queryKey[0] === "projeto-tarefas-subtarefas-bridge" ||
+          q.queryKey[0] === "projeto-tarefas-subtarefas-bridge-mt"),
+    });
+    for (const [key, list] of caches) {
+      if (!Array.isArray(list)) continue;
+      let changed = false;
+      const next = list.map((st) => {
+        if (st.id !== tarefaId) return st;
+        changed = true;
+        return mutator(st);
+      });
+      if (changed) queryClient.setQueryData(key, next);
+    }
+  };
+
 
 
   const setPendingListOp = (
@@ -982,6 +1012,12 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
       patchTarefaJunctions(tarefaId, (c) => c.colaboradores.some(x => x.user_id === userId)
         ? c
         : { ...c, colaboradores: [...c.colaboradores, { user_id: userId, nome: pessoa.nome, avatar_url: pessoa.avatar_url }] });
+      patchSubtarefasBridge(tarefaId, (st) => ({
+        ...st,
+        colaboradores: (st.colaboradores || []).some(c => c.user_id === userId)
+          ? st.colaboradores!
+          : [...(st.colaboradores || []), { user_id: userId, nome: pessoa.nome, avatar_url: pessoa.avatar_url }],
+      }));
       return { previous, tarefaId, userId };
     },
     onError: (err: Error, _vars, context) => {
@@ -1027,6 +1063,10 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
         ),
       }));
       patchTarefaJunctions(tarefaId, (c) => ({ ...c, colaboradores: c.colaboradores.filter(x => x.user_id !== userId) }));
+      patchSubtarefasBridge(tarefaId, (st) => ({
+        ...st,
+        colaboradores: (st.colaboradores || []).filter(c => c.user_id !== userId),
+      }));
       return { previous, tarefaId, userId };
     },
     onError: (err: Error, _vars, context) => {
@@ -1100,6 +1140,17 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
       patchTarefaJunctions(tarefaId, (c) => c.responsaveis.some(r => r.user_id === userId)
         ? c
         : { ...c, responsaveis: [...c.responsaveis, { user_id: userId, nome: info.nome, avatar_url: info.avatar_url, papel: "responsavel" }] });
+      patchSubtarefasBridge(tarefaId, (st) => {
+        const lista = st.responsaveis || [];
+        if (lista.some(r => r.user_id === userId)) return st;
+        const novaLista = [...lista, { user_id: userId, nome: info.nome, avatar_url: info.avatar_url, papel: "responsavel" }];
+        const patched: ProjetoTarefa = { ...st, responsaveis: novaLista };
+        if (!st.responsavel_id) {
+          patched.responsavel_id = userId;
+          patched.responsavel = { id: userId, nome: info.nome, avatar_url: info.avatar_url };
+        }
+        return patched;
+      });
       return { previous };
     },
     onError: (err: Error, _vars, context) => {
@@ -1151,6 +1202,21 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
         }),
       }));
       patchTarefaJunctions(tarefaId, (c) => ({ ...c, responsaveis: c.responsaveis.filter(r => r.user_id !== userId) }));
+      patchSubtarefasBridge(tarefaId, (st) => {
+        const novaLista = (st.responsaveis || []).filter(r => r.user_id !== userId);
+        const patched: ProjetoTarefa = { ...st, responsaveis: novaLista };
+        if (st.responsavel_id === userId) {
+          const next = novaLista[0];
+          if (next) {
+            patched.responsavel_id = next.user_id;
+            patched.responsavel = { id: next.user_id, nome: next.nome, avatar_url: next.avatar_url };
+          } else {
+            patched.responsavel_id = null;
+            patched.responsavel = null;
+          }
+        }
+        return patched;
+      });
       return { previous };
     },
     onError: (err: Error, _vars, context) => {

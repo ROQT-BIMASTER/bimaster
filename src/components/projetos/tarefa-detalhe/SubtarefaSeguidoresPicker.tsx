@@ -67,8 +67,12 @@ function SubtarefaSeguidoresPickerImpl({ subtarefaId, projetoId, colaboradores, 
     // ao fechar o painel (detail gate / reconcile). Bridges seguem ativas:
     // alimentam o próprio painel e não têm patch otimista próprio.
     queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2", projetoId], refetchType: "none" });
-    queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-subtarefas-bridge"] });
-    queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-subtarefas-bridge-mt"] });
+    // Bridges recebem patch otimista em `addColaborador.onMutate` /
+    // `removeColaborador.onMutate` (via `patchSubtarefasBridge`). Um
+    // refetch ativo aqui atropela o patch e causa piscada no pill/avatar
+    // do seguidor recém-adicionado, então usamos refetchType:"none".
+    queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-subtarefas-bridge"], refetchType: "none" });
+    queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-subtarefas-bridge-mt"], refetchType: "none" });
     queryClient.invalidateQueries({ queryKey: ["minhas-tarefas"], refetchType: "none" });
   };
 
