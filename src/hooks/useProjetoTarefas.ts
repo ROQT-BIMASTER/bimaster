@@ -1008,6 +1008,7 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
             : t
         ),
       }));
+      patchTarefaJunctions(tarefaId, (c) => ({ ...c, colaboradores: c.colaboradores.filter(x => x.user_id !== userId) }));
       return { previous, tarefaId, userId };
     },
     onError: (err: Error, _vars, context) => {
