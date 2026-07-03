@@ -249,7 +249,9 @@ export const SignupForm = () => {
         return;
       }
       logger.error("[SignupForm] erro");
-      toast.error("Erro ao criar conta", { description: "Tente novamente em instantes." });
+      const description =
+        err instanceof Error && err.message ? err.message : "Tente novamente em instantes.";
+      toast.error("Erro ao criar conta", { description });
     } finally {
       setLoading(false);
     }
