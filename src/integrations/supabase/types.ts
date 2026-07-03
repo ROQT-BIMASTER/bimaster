@@ -40754,6 +40754,7 @@ export type Database = {
           data_inicio_planejada: string | null
           data_prazo: string | null
           data_proxima_acao: string | null
+          deleted_at: string | null
           descricao: string | null
           dias_alerta_antes: number
           estagio: string | null
@@ -40797,6 +40798,7 @@ export type Database = {
           data_inicio_planejada?: string | null
           data_prazo?: string | null
           data_proxima_acao?: string | null
+          deleted_at?: string | null
           descricao?: string | null
           dias_alerta_antes?: number
           estagio?: string | null
@@ -40840,6 +40842,7 @@ export type Database = {
           data_inicio_planejada?: string | null
           data_prazo?: string | null
           data_proxima_acao?: string | null
+          deleted_at?: string | null
           descricao?: string | null
           dias_alerta_antes?: number
           estagio?: string | null
@@ -56199,6 +56202,13 @@ export type Database = {
           projeto_nome: string
           status: string
           titulo: string
+        }[]
+      }
+      purge_asana_trash_expired: {
+        Args: never
+        Returns: {
+          projetos_removidos: number
+          tarefas_removidas: number
         }[]
       }
       read_email_batch: {
