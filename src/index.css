@@ -158,8 +158,8 @@ All colors MUST be HSL.
     /* Resultados de Vendas — paleta editorial terrosa (flat, muito respiro).
        Usar via classes tailwind rv.* (bg-rv-bg, text-rv-ink, border-rv-linha…). */
     --rv-ink: 35 10% 22%;            /* #3F3A33 */
-    --rv-text-suave: 43 9% 51%;      /* #8A8577 */
-    --rv-muted: 41 12% 66%;          /* #B4AFA3 */
+    --rv-text-suave: 35 10% 38%;     /* mais escuro p/ legibilidade */
+    --rv-muted: 38 11% 52%;          /* subordinado ao ink, sem sumir */
     --rv-linha: 46 20% 91%;          /* #ECEAE3 */
     --rv-bg: 60 20% 98%;             /* #FBFBF9 */
     --rv-faixa-verde: 90 24% 92%;    /* #EAF0E2 */
