@@ -87,6 +87,9 @@ export function useMinhasTarefas() {
       }));
     },
     enabled: !!user?.id,
+    staleTime: 0,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: "always",
   });
 
   // Realtime: invalida a lista quando qualquer tarefa muda OU quando o usuário
