@@ -137,6 +137,83 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
     return { id: userId, nome: "Membro", avatar_url: null };
   };
 
+  /**
+   * Se o `pessoa` resolvido veio incompleto (avatar_url nulo ou nome
+   * genérico "Membro"), busca o profile em background e faz um patchView
+   * mínimo que atualiza avatar/nome apenas do registro correspondente
+   * (responsavel principal, responsaveis[], colaboradores[] e teamMembers).
+   * Não bloqueia o onMutate — a UI mostra o fallback por ~1 frame e
+   * assim que o profile chega, apenas as `<AvatarImage>` daquele usuário
+   * ganham `src`. Sem invalidação, sem refetch da view.
+   */
+  const enrichPessoaFromProfile = (userId: string, current: PessoaCache): void => {
+    if (!projetoId) return;
+    if (current.avatar_url && current.nome !== "Membro") return;
+    void (async () => {
+      try {
+        const profile = await queryClient.fetchQuery({
+          queryKey: ["profile-mini", userId],
+          queryFn: async () => {
+            const { data } = await supabase
+              .from("profiles")
+              .select("id, nome, avatar_url")
+              .eq("id", userId)
+              .maybeSingle();
+            return (data as { id: string; nome: string | null; avatar_url: string | null } | null) ?? null;
+          },
+          staleTime: 5 * 60 * 1000,
+        });
+        if (!profile) return;
+        const enriched: PessoaCache = {
+          id: profile.id,
+          nome: profile.nome || "Membro",
+          avatar_url: profile.avatar_url ?? null,
+        };
+        // Se o profile veio idêntico ao que já tínhamos, não gera novo render.
+        if (enriched.nome === current.nome && enriched.avatar_url === current.avatar_url) return;
+        patchView((v) => {
+          const teamMembers = v.teamMembers.some(m => m.id === userId)
+            ? v.teamMembers.map(m => m.id === userId
+                ? { id: m.id, nome: enriched.nome, avatar_url: enriched.avatar_url }
+                : m)
+            : [...v.teamMembers, { id: enriched.id, nome: enriched.nome, avatar_url: enriched.avatar_url }];
+          const tarefas = v.tarefas.map(t => {
+            let touched = false;
+            let patched: ProjetoTarefa = t;
+            if (t.responsavel_id === userId && t.responsavel) {
+              patched = { ...patched, responsavel: { id: userId, nome: enriched.nome, avatar_url: enriched.avatar_url } };
+              touched = true;
+            }
+            if (patched.responsaveis?.some(r => r.user_id === userId)) {
+              patched = {
+                ...patched,
+                responsaveis: patched.responsaveis!.map(r => r.user_id === userId
+                  ? { ...r, nome: enriched.nome, avatar_url: enriched.avatar_url }
+                  : r),
+              };
+              touched = true;
+            }
+            if (patched.colaboradores?.some(c => c.user_id === userId)) {
+              patched = {
+                ...patched,
+                colaboradores: patched.colaboradores!.map(c => c.user_id === userId
+                  ? { ...c, nome: enriched.nome, avatar_url: enriched.avatar_url }
+                  : c),
+              };
+              touched = true;
+            }
+            return touched ? patched : t;
+          });
+          return { ...v, teamMembers, tarefas };
+        });
+      } catch (err) {
+        logger.debug("[enrichPessoaFromProfile] fetch falhou", { userId, err });
+      }
+    })();
+  };
+
+
+
   const setPendingListOp = (
     ref: MutableRefObject<Map<string, Map<string, PendingListOp>>>,
     tarefaId: string,
@@ -613,7 +690,9 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
       let novoMembro: { id: string; nome: string; avatar_url: string | null } | null = null;
       if (respChange && novoResponsavelId) {
         novoMembro = resolvePessoa(novoResponsavelId, previous);
+        enrichPessoaFromProfile(novoResponsavelId, novoMembro);
       }
+
       if (respChange) {
         const nextPrimary = new Map(pendingPrimaryRef.current);
         nextPrimary.set(id, { userId: novoResponsavelId ?? null, pessoa: novoMembro });
@@ -843,7 +922,9 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
       await queryClient.cancelQueries({ queryKey: ["projeto-tarefas-v2", projetoId] });
       const previous = queryClient.getQueryData<ProjetoTarefasView>(["projeto-tarefas-v2", projetoId]);
       const pessoa = resolvePessoa(userId, previous);
+      enrichPessoaFromProfile(userId, pessoa);
       setPendingListOp(pendingColaboradoresRef, tarefaId, userId, "add", pessoa);
+
       patchView((v) => ({
         ...v,
         teamMembers: v.teamMembers.some(m => m.id === userId) ? v.teamMembers : [...v.teamMembers, pessoa],
@@ -954,6 +1035,8 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
       await queryClient.cancelQueries({ queryKey: ["projeto-tarefas-v2", projetoId] });
       const previous = queryClient.getQueryData<ProjetoTarefasView>(["projeto-tarefas-v2", projetoId]);
       const info = resolveMembro(userId, previous);
+      enrichPessoaFromProfile(userId, { id: userId, nome: info.nome, avatar_url: info.avatar_url });
+
       patchView((v) => ({
         ...v,
         tarefas: v.tarefas.map(t => {
