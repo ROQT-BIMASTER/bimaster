@@ -922,7 +922,9 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
       await queryClient.cancelQueries({ queryKey: ["projeto-tarefas-v2", projetoId] });
       const previous = queryClient.getQueryData<ProjetoTarefasView>(["projeto-tarefas-v2", projetoId]);
       const pessoa = resolvePessoa(userId, previous);
+      enrichPessoaFromProfile(userId, pessoa);
       setPendingListOp(pendingColaboradoresRef, tarefaId, userId, "add", pessoa);
+
       patchView((v) => ({
         ...v,
         teamMembers: v.teamMembers.some(m => m.id === userId) ? v.teamMembers : [...v.teamMembers, pessoa],
