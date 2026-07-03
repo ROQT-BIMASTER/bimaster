@@ -242,10 +242,6 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
    * base — assim o drawer reflete a mudança mesmo se a query inicial ainda
    * estiver em voo.
    */
-  type TarefaJunctionsCache = {
-    responsaveis: Array<{ user_id: string; nome: string; avatar_url: string | null; papel: string }>;
-    colaboradores: Array<{ user_id: string; nome: string; avatar_url: string | null }>;
-  };
   const patchTarefaJunctions = (
     tarefaId: string,
     mutator: (curr: TarefaJunctionsCache) => TarefaJunctionsCache,
