@@ -99,8 +99,7 @@ export function ProjetoKanbanView({ projetoId, darkBg = false, filters = EMPTY_F
 
   // Tarefa aberta é persistida em `?tarefa=<id>` — sobrevive a reload do PWA,
   // refresh manual e troca de aba (não fecha mais ao voltar de outra aba).
-  const [searchParams, setSearchParams] = useSearchParams();
-  const selectedTarefaId = searchParams.get("tarefa");
+  const [, setSearchParams] = useSearchParams();
   const setSelectedTarefaId = (id: string | null) => {
     setSearchParams(
       (prev) => {
