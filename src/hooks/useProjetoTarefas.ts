@@ -146,6 +146,10 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
    * assim que o profile chega, apenas as `<AvatarImage>` daquele usuário
    * ganham `src`. Sem invalidação, sem refetch da view.
    */
+  type TarefaJunctionsCache = {
+    responsaveis: Array<{ user_id: string; nome: string; avatar_url: string | null; papel: string }>;
+    colaboradores: Array<{ user_id: string; nome: string; avatar_url: string | null }>;
+  };
   const enrichPessoaFromProfile = (userId: string, current: PessoaCache): void => {
     if (!projetoId) return;
     if (current.avatar_url && current.nome !== "Membro") return;
