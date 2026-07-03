@@ -700,19 +700,38 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
       const ok = await confirmConclusaoTarefa({});
       if (!ok) return;
     }
-    const result = await attemptSave("Salvar tarefa", () =>
-      supabase.from("projeto_tarefas").update(updates as any).eq("id", id),
-    );
-    if (!result.ok) return; // mantém o painel aberto; toast oferece retry
-    queryClient.invalidateQueries({ queryKey: ["minhas-tarefas"], refetchType: "none" });
+    // Patch otimista ANTES do await para eliminar o "travado" no Select
+    // "Alertar antes" e no Popover "Próxima ação" — o valor selecionado
+    // aparece no mesmo frame, sem esperar o round-trip da rede.
+    const prevDetail = detailTarefa;
     if (detailTarefa && detailTarefa.id === id) {
       setDetailTarefa({ ...detailTarefa, ...updates } as MinaTarefa);
+    }
+    if (detailTarefaId === id) {
+      queryClient.setQueryData<{ dias_alerta_antes: number | null; data_proxima_acao: string | null; data_inicio_planejada: string | null } | null>(
+        ["tarefa-planning", id],
+        (old) => ({
+          dias_alerta_antes: (updates as any).dias_alerta_antes ?? old?.dias_alerta_antes ?? null,
+          data_proxima_acao: (updates as any).data_proxima_acao ?? old?.data_proxima_acao ?? null,
+          data_inicio_planejada: (updates as any).data_inicio_planejada ?? old?.data_inicio_planejada ?? null,
+        }),
+      );
     }
     if (detailTarefaId) {
       queryClient.setQueryData<ProjetoTarefa[]>(["projeto-tarefas-subtarefas-bridge", detailTarefaId], (old = []) =>
         old.map((st) => st.id === id ? ({ ...st, ...updates } as ProjetoTarefa) : st),
       );
     }
+    const result = await attemptSave("Salvar tarefa", () =>
+      supabase.from("projeto_tarefas").update(updates as any).eq("id", id),
+    );
+    if (!result.ok) {
+      // rollback do estado local se a persistência falhou
+      if (prevDetail && prevDetail.id === id) setDetailTarefa(prevDetail);
+      queryClient.invalidateQueries({ queryKey: ["tarefa-planning", id], refetchType: "active" });
+      return;
+    }
+    queryClient.invalidateQueries({ queryKey: ["minhas-tarefas"], refetchType: "none" });
   }, [queryClient, detailTarefa, detailTarefaId, attemptSave]);
 
   const handleBridgeToggle = useCallback(async (t: ProjetoTarefa) => {
