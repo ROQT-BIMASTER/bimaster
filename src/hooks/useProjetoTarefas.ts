@@ -1140,6 +1140,17 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
       patchTarefaJunctions(tarefaId, (c) => c.responsaveis.some(r => r.user_id === userId)
         ? c
         : { ...c, responsaveis: [...c.responsaveis, { user_id: userId, nome: info.nome, avatar_url: info.avatar_url, papel: "responsavel" }] });
+      patchSubtarefasBridge(tarefaId, (st) => {
+        const lista = st.responsaveis || [];
+        if (lista.some(r => r.user_id === userId)) return st;
+        const novaLista = [...lista, { user_id: userId, nome: info.nome, avatar_url: info.avatar_url, papel: "responsavel" }];
+        const patched: ProjetoTarefa = { ...st, responsaveis: novaLista };
+        if (!st.responsavel_id) {
+          patched.responsavel_id = userId;
+          patched.responsavel = { id: userId, nome: info.nome, avatar_url: info.avatar_url };
+        }
+        return patched;
+      });
       return { previous };
     },
     onError: (err: Error, _vars, context) => {
