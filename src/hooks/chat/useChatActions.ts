@@ -38,6 +38,28 @@ export function useChatActions() {
   const sendMessage = useMutation({
     mutationFn: async (input: SendMessageInput) => {
       if (!uid) throw new Error("não autenticado");
+      const { data: suporteTicketRaw, error: suporteTicketError } = await supabase
+        .from("suporte_tickets" as any)
+        .select("id, owner_id, requester_id")
+        .eq("conversa_id", input.conversaId)
+        .neq("status", "resolvido")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (suporteTicketError) throw suporteTicketError;
+
+      const suporteTicket = suporteTicketRaw as unknown as
+        | { id: string; owner_id: string | null; requester_id: string | null }
+        | null;
+
+      const suporteMeta = suporteTicket
+        ? {
+            ticket_id: suporteTicket.id,
+            ticket_owner_id: suporteTicket.requester_id ?? suporteTicket.owner_id,
+            visibilidade: "broadcast",
+          }
+        : {};
+
       const { data: msg, error } = await supabase
         .from("mensagens")
         .insert([{
@@ -49,8 +71,9 @@ export function useChatActions() {
           encaminhada_de_id: input.encaminhada_de_id ?? null,
           mencoes: input.mencoes ?? [],
           metadata: input.metadata ?? {},
+          ...suporteMeta,
         }] as any)
-        .select("id, conversa_id")
+        .select("id, conversa_id, ticket_id")
         .single();
       if (error) throw error;
       if (input.anexos?.length) {
@@ -81,7 +104,10 @@ export function useChatActions() {
 
       return msg;
     },
-    onSuccess: (m) => invalidate(m.conversa_id),
+    onSuccess: (m) => {
+      invalidate(m.conversa_id);
+      if ((m as any).ticket_id) qc.invalidateQueries({ queryKey: ["suporte"] });
+    },
     onError: (e: any) => toast.error("Erro ao enviar: " + (e?.message ?? "")),
   });
 
