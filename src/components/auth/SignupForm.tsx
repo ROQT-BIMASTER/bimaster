@@ -340,7 +340,7 @@ export const SignupForm = () => {
                   maxLength={100}
                   autoComplete="new-password"
                   className="pr-10"
-                  placeholder="Mínimo 8 caracteres"
+                  placeholder="Mín. 10 caracteres com maiúscula, número e símbolo"
                 />
                 <button
                   type="button"
@@ -352,6 +352,9 @@ export const SignupForm = () => {
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
+              <p className="text-[11px] text-muted-foreground">
+                Use 10+ caracteres com maiúscula, minúscula, número e símbolo. Evite senhas comuns e sequências — senhas em vazamentos públicos são bloqueadas automaticamente.
+              </p>
             </div>
             <div className="space-y-2">
               <Label htmlFor="confirmPassword">Confirmar senha</Label>
