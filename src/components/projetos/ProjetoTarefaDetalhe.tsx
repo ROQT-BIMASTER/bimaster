@@ -570,6 +570,8 @@ export function ProjetoTarefaDetalhe({
         <SheetContent
           side="right"
           hideClose
+          data-testid="projeto-tarefa-detalhe-drawer"
+          data-tarefa-id={tarefa.id}
           className="w-full sm:max-w-[580px] p-0 flex flex-col overflow-hidden"
           onPointerDownOutside={(e) => {
             // Evita que cliques em conteúdo portalizado (Popover, Select,
@@ -830,7 +832,7 @@ export function ProjetoTarefaDetalhe({
                 </div>
 
                 {/* Fields grid */}
-                <div className="grid grid-cols-[120px_1fr] gap-y-3 gap-x-3 text-sm">
+                <div className="grid grid-cols-[120px_1fr] gap-y-3 gap-x-3 text-sm" data-testid="projeto-tarefa-detalhe-fields">
                   {/* Status */}
                   {canViewUI("campo_status") && (<>
                   <span className="text-muted-foreground">Status</span>
