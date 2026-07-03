@@ -82,7 +82,7 @@ export function useUtilityShortcuts(): UtilityShortcut[] {
     });
     shortcuts.push({
       key: "suporte-desk",
-      label: "Desk de Suporte",
+      label: "Central de Suporte",
       description: "Atender chamados das suas filas",
       route: "/dashboard/suporte/desk",
       icon: Headset,

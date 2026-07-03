@@ -23,7 +23,7 @@ export const commandRoutes: CommandRoute[] = [
   ...(isSuporteV2Enabled()
     ? [
         { title: "Suporte — Meus Chamados", path: "/dashboard/suporte", module: "Geral", icon: "LifeBuoy", keywords: ["suporte", "chamado", "ticket", "helpdesk"] },
-        { title: "Suporte — Desk do Agente", path: "/dashboard/suporte/desk", module: "Geral", icon: "Headset", keywords: ["desk", "atendimento", "fila"] },
+        { title: "Suporte — Central de Suporte", path: "/dashboard/suporte/desk", module: "Geral", icon: "Headset", keywords: ["desk", "atendimento", "fila", "central", "suporte"] },
       ]
     : []),
   { title: "Instalar App", path: "/dashboard/instalar-app", module: "Geral", icon: "Download", keywords: ["pwa", "mobile"] },

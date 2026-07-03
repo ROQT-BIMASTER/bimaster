@@ -356,7 +356,8 @@ const DiagnosticoBuckets = lazyWithRetry(() => import("./pages/admin/Diagnostico
 const CofreTemplates = lazyWithRetry(() => import("./pages/admin/CofreTemplates"));
 const IntegracaoGoogleDrive = lazyWithRetry(() => import("./pages/admin/IntegracaoGoogleDrive"));
 const MarketingIntegracoesPage = lazyWithRetry(() => import("./pages/admin/MarketingIntegracoesPage"));
-const SuporteAdmin = lazyWithRetry(() => import("./pages/admin/SuporteAdmin"));
+// SuporteAdmin descontinuado — a rota /admin/suporte redireciona para /dashboard/suporte/desk.
+// O arquivo src/pages/admin/SuporteAdmin.tsx foi mantido apenas para futura migração do parecer de TI.
 const SolicitacoesAcesso = lazyWithRetry(() => import("./pages/admin/SolicitacoesAcesso"));
 const TelasPerdidas = lazyWithRetry(() => import("./pages/admin/TelasPerdidas"));
 
@@ -822,7 +823,7 @@ function AppContent() {
             <Route path="/admin/cofre-templates" element={<ScreenRoute screenCode="admin"><CofreTemplates /></ScreenRoute>} />
             <Route path="/admin/integracoes/google-drive" element={<ScreenRoute screenCode="admin"><IntegracaoGoogleDrive /></ScreenRoute>} />
             <Route path="/admin/marketing-integracoes" element={<ScreenRoute screenCode="admin"><MarketingIntegracoesPage /></ScreenRoute>} />
-            <Route path="/admin/suporte" element={<ScreenRoute screenCode="admin"><SuporteAdmin /></ScreenRoute>} />
+            <Route path="/admin/suporte" element={<Navigate to="/dashboard/suporte/desk" replace />} />
             <Route path="/admin/solicitacoes-acesso" element={<ScreenRoute screenCode="admin"><SolicitacoesAcesso /></ScreenRoute>} />
             <Route path="/dashboard/admin/solicitacoes-acesso" element={<ScreenRoute screenCode="admin"><SolicitacoesAcesso /></ScreenRoute>} />
             <Route path="/admin/telas-perdidas" element={<ScreenRoute screenCode="admin"><TelasPerdidas /></ScreenRoute>} />

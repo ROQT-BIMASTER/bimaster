@@ -1380,7 +1380,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
                   {isSuporteV2Enabled() && (
                     <>
                       <MenuItemLink to="/dashboard/suporte" icon={LifeBuoy} title="Suporte" />
-                      <MenuItemLink to="/dashboard/suporte/desk" icon={Headset} title="Desk de Suporte" />
+                      <MenuItemLink to="/dashboard/suporte/desk" icon={Headset} title="Central de Suporte" />
                     </>
                   )}
                 </>

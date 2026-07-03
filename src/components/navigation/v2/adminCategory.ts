@@ -69,7 +69,7 @@ export function buildAdminCategory(perms: AdminPerms): NavV2Category | null {
     { id: "adm-sis-rel-dev", label: "Rel. Desenvolvimento", route: "/dashboard/relatorio-desenvolvimento", icon: "Package" },
     { id: "adm-sis-portal-erp", label: "Portal ERP", route: "/dashboard/integracao-erp", icon: "Key", screen: "__erp_module__" },
     { id: "adm-sis-sup-api", label: "Suporte API", route: "/dashboard/admin-api-support", icon: "MessageCircle" },
-    { id: "adm-sis-sup-central", label: "Central de Suporte", route: "/admin/suporte", icon: "LifeBuoy" },
+    
     { id: "adm-sis-doc", label: "Documentação Técnica", route: "/admin/documentacao-tecnica", icon: "FileText" },
     { id: "adm-sis-asana", label: "Asana Sync", route: "/dashboard/integracoes/asana", icon: "RefreshCw" },
     { id: "adm-sis-shipsgo", label: "Integração ShipsGo", route: "/dashboard/integracoes/shipsgo", icon: "Ship" },
