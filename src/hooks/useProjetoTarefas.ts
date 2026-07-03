@@ -690,7 +690,9 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
       let novoMembro: { id: string; nome: string; avatar_url: string | null } | null = null;
       if (respChange && novoResponsavelId) {
         novoMembro = resolvePessoa(novoResponsavelId, previous);
+        enrichPessoaFromProfile(novoResponsavelId, novoMembro);
       }
+
       if (respChange) {
         const nextPrimary = new Map(pendingPrimaryRef.current);
         nextPrimary.set(id, { userId: novoResponsavelId ?? null, pessoa: novoMembro });
