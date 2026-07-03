@@ -58029,8 +58029,8 @@ export type Database = {
       }
       rpc_suporte_transferir: {
         Args: {
-          p_fila_destino_id: string
-          p_motivo: string
+          p_motivo?: string
+          p_para_fila_id: string
           p_ticket_id: string
           p_via_ia?: boolean
         }
