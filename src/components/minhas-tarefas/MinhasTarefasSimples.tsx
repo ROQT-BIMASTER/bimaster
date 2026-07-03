@@ -404,6 +404,9 @@ export function MinhasTarefasSimples() {
     if (priorityFilter !== "all") {
       result = result.filter((t) => (t.prioridade || "media") === priorityFilter);
     }
+    if (papelFilter !== "all") {
+      result = result.filter((t) => t.papel === papelFilter);
+    }
     if (originFilter === "pessoal" && projetoPessoalId) {
       result = result.filter((t) => t.projeto_id === projetoPessoalId);
     } else if (originFilter === "projetos" && projetoPessoalId) {
