@@ -13,6 +13,8 @@ import {
 import { LifeBuoy, Plus, Search, Loader2, MessageSquare } from "lucide-react";
 import { isSuporteV2Enabled } from "@/lib/featureFlags";
 import { useMeusChamados } from "@/hooks/suporte/useSuporteChamados";
+import { useSuporteIaTrigger } from "@/hooks/suporte/useSuporteIaTrigger";
+import { useAuth } from "@/contexts/AuthContext";
 import { NovoChamadoDialog } from "@/components/suporte/NovoChamadoDialog";
 import { ChamadoListItem } from "@/components/suporte/ChamadoListItem";
 import { ChatThread } from "@/components/chat/v2/ChatThread";
