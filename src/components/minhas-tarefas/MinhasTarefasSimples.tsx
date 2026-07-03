@@ -55,6 +55,28 @@ type SortMode = "due_asc" | "due_desc" | "created_desc" | "priority";
 type QuickFilter = "all" | "sem_data" | "hoje" | "atrasadas" | "concluidas_hoje";
 type PriorityFilter = "all" | "urgente" | "alta" | "media" | "baixa";
 type OriginFilter = "all" | "pessoal" | "projetos";
+type PapelFilter = "all" | "responsavel" | "colaborador" | "seguidor";
+
+const PAPEL_BADGE: Record<string, { label: string; tone: string }> = {
+  colaborador: { label: "Colaborador", tone: "bg-muted text-muted-foreground" },
+  seguidor: { label: "Seguindo", tone: "bg-muted text-muted-foreground" },
+};
+
+function PapelBadge({ papel }: { papel: MinaTarefa["papel"] }) {
+  const meta = PAPEL_BADGE[papel];
+  if (!meta) return null;
+  return (
+    <span
+      className={cn(
+        "shrink-0 inline-flex items-center rounded px-1.5 py-0 text-[10px] font-medium leading-4",
+        meta.tone,
+      )}
+      title={`Você é ${meta.label.toLowerCase()} nesta tarefa`}
+    >
+      {meta.label}
+    </span>
+  );
+}
 
 const PRIORITY_META: Record<string, { label: string; tone: string }> = {
   urgente: { label: "Urgente", tone: "text-destructive" },
