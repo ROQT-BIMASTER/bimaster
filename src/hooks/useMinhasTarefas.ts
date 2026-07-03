@@ -101,9 +101,12 @@ export function useMinhasTarefas() {
     const invalidate = () => {
       if (timer) clearTimeout(timer);
       timer = setTimeout(() => {
-        qc.invalidateQueries({ queryKey: ["minhas-tarefas", user.id] });
+        // refetchType:"none" evita "flash" de loading em consumidores ativos —
+        // a próxima leitura (foco/next render) resolve o dado atualizado.
+        qc.invalidateQueries({ queryKey: ["minhas-tarefas", user.id], refetchType: "none" });
       }, 250);
     };
+
 
     const channelName = uniqueChannelName(`minhas-tarefas-rt:${user.id}`);
     const channel = supabase
