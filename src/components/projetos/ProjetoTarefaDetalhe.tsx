@@ -39,7 +39,7 @@ import { parseLocalDate, parseLocalDateOrNow, formatLocalDate } from "@/lib/util
 import {
   CheckCircle2, Circle, CalendarIcon, Paperclip, MessageSquare,
   Send, Upload, FileText, Image, File, Trash2, Download,
-  Package, FolderOpen, MessageCircle, Search, X, ArrowRightLeft, Plus, ShieldCheck, ChevronLeft, ChevronRight, ChevronDown, Clock, Sparkles, Loader2, Target, Maximize2, FileSpreadsheet, RotateCcw, Ship, Hash, Copy, Link2
+  Package, FolderOpen, MessageCircle, Search, X, ArrowRightLeft, Plus, ShieldCheck, ChevronLeft, ChevronRight, ChevronDown, Clock, Sparkles, Loader2, Target, Maximize2, Minimize2, FileSpreadsheet, RotateCcw, Ship, Hash, Copy, Link2
 } from "lucide-react";
 import { TarefaFocusMode } from "./TarefaFocusMode";
 import { ProjetoAprovacaoWorkflow } from "./ProjetoAprovacaoWorkflow";
@@ -173,6 +173,10 @@ export function ProjetoTarefaDetalhe({
   const [editingTitle, setEditingTitle] = useState(false);
   const [titleValue, setTitleValue] = useState("");
   const [descValue, setDescValue] = useState("");
+  // Permite expandir a caixa de descrição para leitura confortável do
+  // conteúdo — evita depender apenas da barra de rolagem quando o texto
+  // é longo. Persistido por tarefa (id) para não resetar ao trocar de aba.
+  const [descExpanded, setDescExpanded] = useState(false);
   const [datePicker, setDatePicker] = useState(false);
   const [inicioPicker, setInicioPicker] = useState(false);
   const [proximaAcaoPicker, setProximaAcaoPicker] = useState(false);
@@ -1293,7 +1297,20 @@ export function ProjetoTarefaDetalhe({
                 <div>
                   <div className="flex items-center justify-between mb-2">
                     <h3 className="text-sm font-medium">Descrição</h3>
-                    {!pendingAIDescricao && (
+                    <div className="flex items-center gap-1">
+                      {(descValue?.length ?? 0) > 0 && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 px-2 text-[11px] gap-1 text-muted-foreground hover:text-foreground"
+                          onClick={() => setDescExpanded(v => !v)}
+                          title={descExpanded ? "Recolher descrição" : "Expandir descrição para leitura"}
+                        >
+                          {descExpanded ? <Minimize2 className="h-3 w-3" /> : <Maximize2 className="h-3 w-3" />}
+                          {descExpanded ? "Recolher" : "Expandir"}
+                        </Button>
+                      )}
+                      {!pendingAIDescricao && (
                       <Button
                         variant="ghost"
                         size="sm"
@@ -1327,6 +1344,7 @@ export function ProjetoTarefaDetalhe({
                         Sugerir com IA
                       </Button>
                     )}
+                    </div>
                   </div>
 
                   {pendingAIDescricao && (
@@ -1420,7 +1438,12 @@ export function ProjetoTarefaDetalhe({
                     onChange={e => setDescValue(e.target.value)}
                     onBlur={handleDescBlur}
                     placeholder="Do que se trata esta tarefa?"
-                    className="min-h-[80px] text-sm bg-muted/30 border-border/50 resize-none"
+                    className={cn(
+                      "text-sm bg-muted/30 border-border/50 transition-[min-height,max-height] duration-200",
+                      descExpanded
+                        ? "min-h-[320px] max-h-[65vh] resize-y"
+                        : "min-h-[80px] resize-none",
+                    )}
                   />
                 </div>
 
