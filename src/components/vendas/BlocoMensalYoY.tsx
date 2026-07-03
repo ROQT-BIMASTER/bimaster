@@ -132,8 +132,13 @@ export function BlocoMensalYoY({ ano, empresa, tabelaPrecoId, uf, clienteId, ven
                 borderRadius: 4,
                 border: "1px solid hsl(var(--rv-linha))",
                 background: "hsl(var(--rv-bg))",
+                color: "hsl(var(--rv-ink))",
                 fontSize: 12,
+                padding: "8px 10px",
+                boxShadow: "0 6px 24px -12px hsl(var(--rv-ink) / 0.25)",
               }}
+              labelStyle={{ color: "hsl(var(--rv-ink))", fontWeight: 600, fontSize: 12, marginBottom: 4 }}
+              itemStyle={{ color: "hsl(var(--rv-ink))", fontSize: 12, padding: 0 }}
               formatter={(v: any, k: string) => [
                 v == null ? "—" : formatCurrency(Number(v)),
                 k === "atual" ? String(ano) : String(anoAnterior),
