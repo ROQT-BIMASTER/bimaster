@@ -58,6 +58,29 @@ interface ProjetoDetalheProps {
   shared?: boolean;
 }
 
+// IMPORTANTE: definido no escopo do MÓDULO, não dentro de ProjetoDetalhe.
+// Se declarado no corpo do componente, `Frame` vira uma função nova a cada
+// render → o React trata como um tipo de componente diferente e DESMONTA/
+// REMONTA toda a subárvore (incl. <main> e <ProjetoTarefaDetalhe>) a cada
+// patch otimista, causando a "piscada" do drawer. Como componente estável,
+// o React reconcilia no lugar e o drawer mantém o mesmo nó DOM.
+function Frame({ shared = false, children }: { shared?: boolean; children: React.ReactNode }) {
+  if (shared) {
+    return <div className={`min-h-screen w-full bg-background ${TYPOGRAPHY_BODY_CLASS}`} style={typographyRootStyle}>{children}</div>;
+  }
+  return (
+    <SidebarProvider>
+      <div className={`min-h-screen flex w-full bg-background ${TYPOGRAPHY_BODY_CLASS}`} style={typographyRootStyle}>
+        <SidebarSwitch />
+        <div className="flex-1 min-w-0 flex flex-col">
+          <AppHeaderBar />
+          {children}
+        </div>
+      </div>
+    </SidebarProvider>
+  );
+}
+
 export default function ProjetoDetalhe({ shared = false }: ProjetoDetalheProps = {}) {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -206,26 +229,9 @@ export default function ProjetoDetalhe({ shared = false }: ProjetoDetalheProps =
   const customBg = !!projeto?.bg_cor;
   const darkBg = isDarkColor(projeto?.bg_cor ?? null);
 
-  const Frame = ({ children }: { children: React.ReactNode }) => {
-    if (shared) {
-      return <div className={`min-h-screen w-full bg-background ${TYPOGRAPHY_BODY_CLASS}`} style={typographyRootStyle}>{children}</div>;
-    }
-    return (
-      <SidebarProvider>
-        <div className={`min-h-screen flex w-full bg-background ${TYPOGRAPHY_BODY_CLASS}`} style={typographyRootStyle}>
-          <SidebarSwitch />
-          <div className="flex-1 min-w-0 flex flex-col">
-            <AppHeaderBar />
-            {children}
-          </div>
-        </div>
-      </SidebarProvider>
-    );
-  };
-
   if (isLoading) {
     return (
-      <Frame>
+      <Frame shared={shared}>
         <main className="flex-1 flex items-center justify-center">
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
         </main>
@@ -238,7 +244,7 @@ export default function ProjetoDetalhe({ shared = false }: ProjetoDetalheProps =
       logProjectAccessDenied(id);
     }
     return (
-      <Frame>
+      <Frame shared={shared}>
         <main className="flex-1 flex flex-col items-center justify-center gap-3 text-muted-foreground">
           <ShieldAlert className="h-8 w-8 text-destructive" />
           <p>Você não tem permissão para acessar este projeto.</p>
@@ -254,7 +260,7 @@ export default function ProjetoDetalhe({ shared = false }: ProjetoDetalheProps =
 
 
   return (
-    <Frame>
+    <Frame shared={shared}>
       <main
         className="flex-1 overflow-auto transition-colors duration-300"
         style={
