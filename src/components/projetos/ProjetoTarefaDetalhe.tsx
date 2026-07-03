@@ -1297,7 +1297,20 @@ export function ProjetoTarefaDetalhe({
                 <div>
                   <div className="flex items-center justify-between mb-2">
                     <h3 className="text-sm font-medium">Descrição</h3>
-                    {!pendingAIDescricao && (
+                    <div className="flex items-center gap-1">
+                      {(descValue?.length ?? 0) > 0 && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 px-2 text-[11px] gap-1 text-muted-foreground hover:text-foreground"
+                          onClick={() => setDescExpanded(v => !v)}
+                          title={descExpanded ? "Recolher descrição" : "Expandir descrição para leitura"}
+                        >
+                          {descExpanded ? <Minimize2 className="h-3 w-3" /> : <Maximize2 className="h-3 w-3" />}
+                          {descExpanded ? "Recolher" : "Expandir"}
+                        </Button>
+                      )}
+                      {!pendingAIDescricao && (
                       <Button
                         variant="ghost"
                         size="sm"
