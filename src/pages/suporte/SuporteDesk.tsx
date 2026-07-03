@@ -13,8 +13,9 @@ import {
 } from "@/components/ui/select";
 import { Inbox, Loader2, MessageSquare, UserCheck, ArrowRightLeft } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useUserRole } from "@/hooks/useUserRole";
 import { isSuporteV2Enabled } from "@/lib/featureFlags";
-import { useMinhasFilasAgente } from "@/hooks/suporte/useSuporteFilas";
+import { useMinhasFilasAgente, useSuporteFilas } from "@/hooks/suporte/useSuporteFilas";
 import { useChamadosDesk } from "@/hooks/suporte/useSuporteChamados";
 import { useSuporteAcoes } from "@/hooks/suporte/useSuporteAcoes";
 import { useSuporteIaTrigger } from "@/hooks/suporte/useSuporteIaTrigger";
@@ -25,8 +26,10 @@ import { SUPORTE_STATUS_LABEL, type SuporteTicketStatus } from "@/hooks/suporte/
 
 export default function SuporteDesk() {
   const { user } = useAuth();
+  const { isAdmin } = useUserRole();
   const { data: minhas, isLoading: filasLoading } = useMinhasFilasAgente();
-  const filas = minhas?.filas ?? [];
+  const { data: todasFilas, isLoading: todasLoading } = useSuporteFilas();
+  const filas = isAdmin ? (todasFilas ?? []) : (minhas?.filas ?? []);
   const [filaAtiva, setFilaAtiva] = useState<string>("todas");
   const [filtroStatus, setFiltroStatus] = useState<string>("abertos");
   const [selecionadoId, setSelecionadoId] = useState<string | null>(null);
