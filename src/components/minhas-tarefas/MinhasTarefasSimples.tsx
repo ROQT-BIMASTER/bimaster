@@ -444,7 +444,7 @@ export function MinhasTarefasSimples() {
       }
     });
     return sorted;
-  }, [tarefas, quickFilter, priorityFilter, projectFilter, originFilter, projetoPessoalId, search, sortMode]);
+  }, [tarefas, quickFilter, priorityFilter, projectFilter, originFilter, papelFilter, projetoPessoalId, search, sortMode]);
 
   // Quando o filtro rápido é "concluidas_hoje", apresentamos lista plana
   // (sem os grupos Asana de pendentes).
