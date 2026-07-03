@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useVendasUfYoy, type UfYoyRow } from "@/hooks/vendas/useVendasUfYoy";
 import { formatMi, formatVarPct } from "@/lib/vendas/format";
+import { agruparPorRegiao, type GrupoRegiao } from "@/lib/vendas/regioes";
 
 interface Props {
   ano: number;
@@ -64,48 +65,72 @@ function UfRow({ row }: { row: UfYoyRow }) {
   );
 }
 
+function GrupoRegiaoBlock({ grupo, ano }: { grupo: GrupoRegiao; ano: number }) {
+  return (
+    <div className="break-inside-avoid mb-8">
+      <div className="flex items-baseline justify-between gap-4 pb-2 border-b border-rv-linha">
+        <div className="flex items-baseline gap-3">
+          <h3 className="text-[13px] uppercase tracking-[0.14em] text-rv-ink font-medium">
+            {grupo.regiao}
+          </h3>
+          <span className="text-[10px] uppercase tracking-wider text-rv-text-suave">
+            {grupo.rows.length} {grupo.rows.length === 1 ? "UF" : "UFs"}
+          </span>
+        </div>
+        <div className="flex items-baseline gap-3">
+          <span className="text-sm text-rv-ink tabular-nums">{formatMi(grupo.total_atual)}</span>
+          {grupo.variacao != null && (
+            <span
+              className="text-[11px] tabular-nums font-medium"
+              style={{
+                color:
+                  grupo.variacao >= 0
+                    ? "hsl(var(--rv-positivo))"
+                    : "hsl(var(--rv-negativo))",
+              }}
+            >
+              {formatVarPct(grupo.variacao)}
+            </span>
+          )}
+        </div>
+      </div>
+      <div className="grid grid-cols-[48px_1fr_130px] gap-4 pt-3 pb-2 text-[10px] uppercase tracking-wider text-rv-text-suave">
+        <div>UF</div>
+        <div className="text-right pr-2">Faturamento</div>
+        <div className="text-center">vs {ano - 1}</div>
+      </div>
+      {grupo.rows.map((r) => (
+        <UfRow key={r.uf} row={r} />
+      ))}
+    </div>
+  );
+}
+
 export function BlocoUfYoY({ ano, empresa, tabelaPrecoId, clienteId, vendedorId }: Props) {
   const { data, isLoading } = useVendasUfYoy({ ano, empresa, tabelaPrecoId, clienteId, vendedorId });
 
-  const [left, right] = useMemo(() => {
-    const rows = data ?? [];
-    const mid = Math.ceil(rows.length / 2);
-    return [rows.slice(0, mid), rows.slice(mid)];
-  }, [data]);
+  const grupos = useMemo(() => agruparPorRegiao(data ?? []), [data]);
 
   return (
     <section className="pt-14">
       <div className="mb-6">
-        <h2 className="font-display text-xl text-rv-ink">Vendas por UF — faturamento &amp; YoY</h2>
+        <h2 className="font-display text-xl text-rv-ink">Vendas por região e UF — faturamento &amp; YoY</h2>
         <p className="text-xs text-rv-text-suave mt-1">
-          Faturamento acumulado por estado no mesmo período de {ano - 1} e {ano}. Barra divergente ± até 120%.
+          Faturamento acumulado por região e estado no mesmo período de {ano - 1} e {ano}. Barra divergente ± até 120%.
         </p>
       </div>
 
       {isLoading ? (
         <Skeleton className="h-[280px] w-full" />
-      ) : (data?.length ?? 0) === 0 ? (
+      ) : grupos.length === 0 ? (
         <div className="h-[240px] flex items-center justify-center text-sm text-rv-text-suave border-t border-rv-linha">
           Sem vendas no período.
         </div>
       ) : (
-        <div className="grid md:grid-cols-2 gap-x-12 border-t border-rv-linha pt-4">
-          <div>
-            <div className="grid grid-cols-[48px_1fr_130px] gap-4 pb-2 text-[10px] uppercase tracking-wider text-rv-text-suave border-b border-rv-linha">
-              <div>UF</div>
-              <div className="text-right pr-2">Faturamento</div>
-              <div className="text-center">vs {ano - 1}</div>
-            </div>
-            {left.map((r) => <UfRow key={r.uf} row={r} />)}
-          </div>
-          <div>
-            <div className="grid grid-cols-[48px_1fr_130px] gap-4 pb-2 text-[10px] uppercase tracking-wider text-rv-text-suave border-b border-rv-linha">
-              <div>UF</div>
-              <div className="text-right pr-2">Faturamento</div>
-              <div className="text-center">vs {ano - 1}</div>
-            </div>
-            {right.map((r) => <UfRow key={r.uf} row={r} />)}
-          </div>
+        <div className="md:columns-2 md:gap-x-12 border-t border-rv-linha pt-4">
+          {grupos.map((g) => (
+            <GrupoRegiaoBlock key={g.regiao} grupo={g} ano={ano} />
+          ))}
         </div>
       )}
     </section>
