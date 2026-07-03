@@ -29,6 +29,9 @@ import { DisplayGradePopover } from "@/components/fabrica/DisplayGradePopover";
 import { cn } from "@/lib/utils";
 import { copyTarefaLink } from "@/lib/utils/copyDeepLink";
 import { flickerLog } from "@/lib/debug/flickerLog";
+import { isTarefasFlagEnabled } from "@/lib/tarefas/featureFlags";
+import { lockField, unlockField } from "@/lib/tarefas/editingFieldsStore";
+import { trackLocalMutation } from "@/lib/tarefas/lastLocalMutationTracker";
 
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -282,18 +285,32 @@ export function ProjetoTarefaDetalhe({
   const descDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const skipAutoSaveRef = useRef(true);
 
+  // Guarda id da tarefa cujo edit-lock está ativo, para desbloquear ao trocar.
+  const lockedIdRef = useRef<string | null>(null);
+  const releaseEditLocks = useCallback((id: string | null) => {
+    if (!id) return;
+    if (!isTarefasFlagEnabled("tarefas_descricao_editor_isolado")) return;
+    unlockField(id, "titulo");
+    unlockField(id, "descricao");
+  }, []);
+
   useEffect(() => {
     if (tarefa) {
       flickerLog("drawer-sync-effect", { tarefaId: tarefa.id, isTemp: String(tarefa.id).startsWith("temp-") });
       // Reset everything on task switch and skip the next auto-save trigger
       skipAutoSaveRef.current = true;
+      // Libera locks da tarefa anterior antes de trocar
+      if (lockedIdRef.current && lockedIdRef.current !== tarefa.id) {
+        releaseEditLocks(lockedIdRef.current);
+      }
+      lockedIdRef.current = tarefa.id;
       setTitleValue(tarefa.titulo);
       setDescValue(tarefa.descricao || "");
       setAutoSaveStatus("idle");
       if (titleDebounceRef.current) clearTimeout(titleDebounceRef.current);
       if (descDebounceRef.current) clearTimeout(descDebounceRef.current);
     }
-  }, [tarefa?.id]);
+  }, [tarefa?.id, releaseEditLocks]);
 
 
   const flagSaved = useCallback(() => {
@@ -309,9 +326,18 @@ export function ProjetoTarefaDetalhe({
     if (titleValue.trim() === (tarefa.titulo || "").trim()) return;
     if (!titleValue.trim()) return; // never auto-save empty title
     setAutoSaveStatus("saving");
+    // Marca o campo como "em edição" para o reducer de Realtime não sobrescrever
+    if (isTarefasFlagEnabled("tarefas_descricao_editor_isolado")) {
+      lockField(tarefa.id, "titulo");
+    }
     if (titleDebounceRef.current) clearTimeout(titleDebounceRef.current);
     titleDebounceRef.current = setTimeout(() => {
-      onUpdate(tarefa.id, { titulo: titleValue.trim() });
+      const id = tarefa.id;
+      onUpdate(id, { titulo: titleValue.trim() });
+      if (isTarefasFlagEnabled("tarefas_descricao_editor_isolado")) {
+        trackLocalMutation(id, ["titulo"]);
+        unlockField(id, "titulo");
+      }
       flagSaved();
     }, 700);
     return () => { if (titleDebounceRef.current) clearTimeout(titleDebounceRef.current); };
@@ -322,9 +348,17 @@ export function ProjetoTarefaDetalhe({
     if (!tarefa) return;
     if (descValue === (tarefa.descricao || "")) return;
     setAutoSaveStatus("saving");
+    if (isTarefasFlagEnabled("tarefas_descricao_editor_isolado")) {
+      lockField(tarefa.id, "descricao");
+    }
     if (descDebounceRef.current) clearTimeout(descDebounceRef.current);
     descDebounceRef.current = setTimeout(() => {
-      onUpdate(tarefa.id, { descricao: descValue });
+      const id = tarefa.id;
+      onUpdate(id, { descricao: descValue });
+      if (isTarefasFlagEnabled("tarefas_descricao_editor_isolado")) {
+        trackLocalMutation(id, ["descricao"]);
+        unlockField(id, "descricao");
+      }
       flagSaved();
     }, 900);
     return () => { if (descDebounceRef.current) clearTimeout(descDebounceRef.current); };
@@ -336,8 +370,11 @@ export function ProjetoTarefaDetalhe({
       if (titleDebounceRef.current) clearTimeout(titleDebounceRef.current);
       if (descDebounceRef.current) clearTimeout(descDebounceRef.current);
       if (savedTimerRef.current) clearTimeout(savedTimerRef.current);
+      releaseEditLocks(lockedIdRef.current);
+      lockedIdRef.current = null;
     };
-  }, []);
+  }, [releaseEditLocks]);
+
 
 
   if (!tarefa) return null;
@@ -440,7 +477,13 @@ export function ProjetoTarefaDetalhe({
     if (titleDebounceRef.current) { clearTimeout(titleDebounceRef.current); titleDebounceRef.current = null; }
     if (titleValue.trim() && titleValue !== tarefa.titulo) {
       onUpdate(tarefa.id, { titulo: titleValue.trim() });
+      if (isTarefasFlagEnabled("tarefas_descricao_editor_isolado")) {
+        trackLocalMutation(tarefa.id, ["titulo"]);
+      }
       flagSaved();
+    }
+    if (isTarefasFlagEnabled("tarefas_descricao_editor_isolado")) {
+      unlockField(tarefa.id, "titulo");
     }
   };
 
@@ -448,9 +491,16 @@ export function ProjetoTarefaDetalhe({
     if (descDebounceRef.current) { clearTimeout(descDebounceRef.current); descDebounceRef.current = null; }
     if (descValue !== (tarefa.descricao || "")) {
       onUpdate(tarefa.id, { descricao: descValue });
+      if (isTarefasFlagEnabled("tarefas_descricao_editor_isolado")) {
+        trackLocalMutation(tarefa.id, ["descricao"]);
+      }
       flagSaved();
     }
+    if (isTarefasFlagEnabled("tarefas_descricao_editor_isolado")) {
+      unlockField(tarefa.id, "descricao");
+    }
   };
+
 
 
   const handleDownload = async (anexo: any) => {
