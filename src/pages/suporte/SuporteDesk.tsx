@@ -169,6 +169,17 @@ export default function SuporteDesk() {
                         Assumir
                       </Button>
                     )}
+                    {selecionado.status !== "resolvido" && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="gap-1.5"
+                        onClick={() => setTransferOpen(true)}
+                      >
+                        <ArrowRightLeft className="h-3.5 w-3.5" />
+                        Transferir
+                      </Button>
+                    )}
                     <Select
                       value={selecionado.status}
                       onValueChange={(v) =>
