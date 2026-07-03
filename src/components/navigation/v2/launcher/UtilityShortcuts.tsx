@@ -9,13 +9,14 @@
  * exigem isAdmin OU alguma permissão de módulo ≠ integracao_erp. Instalar/
  * Atualizar App é sempre visível.
  */
-import { Download, Inbox, MessageCircle, RefreshCw, type LucideIcon } from "lucide-react";
+import { Download, Headset, Inbox, LifeBuoy, MessageCircle, RefreshCw, type LucideIcon } from "lucide-react";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useModulePermissions } from "@/hooks/useModulePermissions";
 import { usePWA } from "@/contexts/PWAContext";
+import { isSuporteV2Enabled } from "@/lib/featureFlags";
 
 export interface UtilityShortcut {
-  key: "chat" | "chat-aprovacoes" | "install";
+  key: "chat" | "chat-aprovacoes" | "suporte" | "suporte-desk" | "install";
   label: string;
   description: string;
   route: string;
@@ -66,6 +67,26 @@ export function useUtilityShortcuts(): UtilityShortcut[] {
       route: "/dashboard/chat/aprovacoes",
       icon: Inbox,
       keywords: ["aprovacoes", "aprovações", "chat", "pendentes"],
+    });
+  }
+
+  // Suporte v2 (piloto) — visível só com a flag ff_suporte_v2
+  if (isSuporteV2Enabled()) {
+    shortcuts.push({
+      key: "suporte",
+      label: "Suporte",
+      description: "Abrir e acompanhar chamados por departamento",
+      route: "/dashboard/suporte",
+      icon: LifeBuoy,
+      keywords: ["suporte", "chamado", "ticket", "helpdesk"],
+    });
+    shortcuts.push({
+      key: "suporte-desk",
+      label: "Desk de Suporte",
+      description: "Atender chamados das suas filas",
+      route: "/dashboard/suporte/desk",
+      icon: Headset,
+      keywords: ["desk", "atendimento", "fila", "chamados"],
     });
   }
 

@@ -2,7 +2,7 @@ import {
   Home, Users, Building2, LogOut, Settings, Upload, Shield, 
   LayoutGrid, CheckSquare, MapPin, MessageSquare, Activity, Clock,
   Store, Calendar, Camera, Tag, TrendingUp, Brain, ChevronDown, ChevronRight, ChevronUp, Image, ClipboardCheck, DollarSign, FileText, Download, Phone, Trophy, BarChart3, Sparkles, Package, Factory, Receipt, Layers, Cog, UserCircle, AlertCircle, AlertTriangle, Pause, Wrench, List, Bot, Wallet, Grid3X3, Briefcase, Rocket, PartyPopper, CreditCard, Pickaxe, Compass, Ticket, FolderKanban, Inbox, Mic, Globe, ShoppingCart, Send, Landmark, Palette, FlaskConical, Scale, Network, Key, Megaphone, BarChart2, UserCheck, Target, RefreshCw, X, Headset,
-  ShieldCheck, HeartPulse, Eye, GitCompare, Database, Footprints, MessageCircle, Share2, Wand2, CalendarDays, Workflow, Ship, AlertOctagon, LifeBuoy, PackageSearch, KanbanSquare,
+  ShieldCheck, HeartPulse, Eye, GitCompare, Database, Footprints, MessageCircle, Share2, Wand2, CalendarDays, Workflow, Ship, AlertOctagon, LifeBuoy, Headset, PackageSearch, KanbanSquare,
   Truck, LayoutDashboard, ClipboardList
 } from "lucide-react";
 import { ThemeSelectorPopover } from "@/components/theme/ThemeSelectorPopover";
@@ -14,6 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useSidebarConfig } from "@/hooks/useSidebarConfig";
+import { isSuporteV2Enabled } from "@/lib/featureFlags";
 
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -1375,6 +1376,13 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
                   )}
                   <MenuItemLink to="/dashboard/chat" icon={MessageCircle} title="Chat" />
                   <MenuItemLink to="/dashboard/chat/aprovacoes" icon={Inbox} title="Aprovações do Chat" />
+                  {/* Suporte v2 (piloto) — visível só com a flag ff_suporte_v2 */}
+                  {isSuporteV2Enabled() && (
+                    <>
+                      <MenuItemLink to="/dashboard/suporte" icon={LifeBuoy} title="Suporte" />
+                      <MenuItemLink to="/dashboard/suporte/desk" icon={Headset} title="Desk de Suporte" />
+                    </>
+                  )}
                 </>
               )}
               <MenuItemLink to="/dashboard/instalar-app" icon={needRefresh ? RefreshCw : Download} title={needRefresh ? "Atualizar App" : t("nav.install_app")} />
