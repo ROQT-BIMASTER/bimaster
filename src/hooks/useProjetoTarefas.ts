@@ -146,6 +146,10 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
    * assim que o profile chega, apenas as `<AvatarImage>` daquele usuário
    * ganham `src`. Sem invalidação, sem refetch da view.
    */
+  type TarefaJunctionsCache = {
+    responsaveis: Array<{ user_id: string; nome: string; avatar_url: string | null; papel: string }>;
+    colaboradores: Array<{ user_id: string; nome: string; avatar_url: string | null }>;
+  };
   const enrichPessoaFromProfile = (userId: string, current: PessoaCache): void => {
     if (!projetoId) return;
     if (current.avatar_url && current.nome !== "Membro") return;
@@ -206,10 +210,46 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
           });
           return { ...v, teamMembers, tarefas };
         });
+        // Reflete o profile enriquecido também nas junções abertas pela Central
+        // de Trabalho — evita avatar cinza no drawer enquanto o profile chega.
+        queryClient.getQueryCache().findAll({ queryKey: ["tarefa-junctions"] }).forEach((q) => {
+          const key = q.queryKey as [string, string | undefined];
+          const tId = key[1];
+          if (!tId) return;
+          const curr = q.state.data as TarefaJunctionsCache | undefined;
+          if (!curr) return;
+          const touchedResp = curr.responsaveis.some(r => r.user_id === userId);
+          const touchedColab = curr.colaboradores.some(c => c.user_id === userId);
+          if (!touchedResp && !touchedColab) return;
+          queryClient.setQueryData<TarefaJunctionsCache>(["tarefa-junctions", tId], {
+            responsaveis: curr.responsaveis.map(r => r.user_id === userId
+              ? { ...r, nome: enriched.nome, avatar_url: enriched.avatar_url } : r),
+            colaboradores: curr.colaboradores.map(c => c.user_id === userId
+              ? { ...c, nome: enriched.nome, avatar_url: enriched.avatar_url } : c),
+          });
+        });
       } catch (err) {
         logger.debug("[enrichPessoaFromProfile] fetch falhou", { userId, err });
       }
     })();
+  };
+
+  /**
+   * Atualiza otimisticamente o cache `["tarefa-junctions", tarefaId]` usado
+   * pela Central de Trabalho para renderizar responsáveis/seguidores no
+   * drawer. Mantém a UI sincronizada sem refetch/piscar quando o usuário
+   * adiciona/remove pessoas. Se a chave ainda não existe, cria a estrutura
+   * base — assim o drawer reflete a mudança mesmo se a query inicial ainda
+   * estiver em voo.
+   */
+  const patchTarefaJunctions = (
+    tarefaId: string,
+    mutator: (curr: TarefaJunctionsCache) => TarefaJunctionsCache,
+  ) => {
+    queryClient.setQueryData<TarefaJunctionsCache>(["tarefa-junctions", tarefaId], (curr) => {
+      const base: TarefaJunctionsCache = curr ?? { responsaveis: [], colaboradores: [] };
+      return mutator(base);
+    });
   };
 
 
@@ -939,6 +979,9 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
             : t
         ),
       }));
+      patchTarefaJunctions(tarefaId, (c) => c.colaboradores.some(x => x.user_id === userId)
+        ? c
+        : { ...c, colaboradores: [...c.colaboradores, { user_id: userId, nome: pessoa.nome, avatar_url: pessoa.avatar_url }] });
       return { previous, tarefaId, userId };
     },
     onError: (err: Error, _vars, context) => {
@@ -983,6 +1026,7 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
             : t
         ),
       }));
+      patchTarefaJunctions(tarefaId, (c) => ({ ...c, colaboradores: c.colaboradores.filter(x => x.user_id !== userId) }));
       return { previous, tarefaId, userId };
     },
     onError: (err: Error, _vars, context) => {
@@ -1053,6 +1097,9 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
           return patched;
         }),
       }));
+      patchTarefaJunctions(tarefaId, (c) => c.responsaveis.some(r => r.user_id === userId)
+        ? c
+        : { ...c, responsaveis: [...c.responsaveis, { user_id: userId, nome: info.nome, avatar_url: info.avatar_url, papel: "responsavel" }] });
       return { previous };
     },
     onError: (err: Error, _vars, context) => {
@@ -1103,6 +1150,7 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
           return patched;
         }),
       }));
+      patchTarefaJunctions(tarefaId, (c) => ({ ...c, responsaveis: c.responsaveis.filter(r => r.user_id !== userId) }));
       return { previous };
     },
     onError: (err: Error, _vars, context) => {
