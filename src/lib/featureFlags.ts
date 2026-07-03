@@ -36,6 +36,13 @@ export const isServerSideOrderingEnabled = () =>
   flag("VITE_FF_SERVER_SIDE_ORDERING", "ff_server_side_ordering");
 
 /**
+ * Suporte v2 — help desk multi-departamento (Fase 1: abrir chamado com
+ * conversa dedicada + painel do agente por fila). Piloto interno.
+ * Ativar por usuário: `localStorage.setItem('ff_suporte_v2', '1')`.
+ */
+export const isSuporteV2Enabled = () => flag("VITE_FF_SUPORTE_V2", "ff_suporte_v2");
+
+/**
  * PWA Heartbeat — quando true, o PWAContext compara periodicamente o
  * `APP_VERSION` do bundle atual com a meta `<meta name="app-version">`
  * do `index.html` servido pela rede, e escuta `app_release_pins` via
