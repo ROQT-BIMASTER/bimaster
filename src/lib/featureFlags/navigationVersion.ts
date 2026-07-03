@@ -1,12 +1,11 @@
 /**
- * Feature flag de navegação (v1 = clássica, v2 = AppRail + ContextualSidebar + Launcher).
+ * Feature flag de navegação — 100% dos usuários no ambiente v2 (Beta).
  *
- * Inerte nesta PR: exportado mas não importado por nenhum componente.
- * Consumido a partir da Fase 1 por <SidebarSwitch/> em DashboardLayout.
- *
- * Fonte: coluna `user_ui_preferences.nav_version` (default 'v1', CHECK in ('v1','v2')).
- * A migration que cria a coluna está em supabase/migrations e NÃO é aplicada nesta PR.
- * Enquanto a coluna não existir, o fallback garante 'v1' sem quebrar runtime.
+ * Antes: default 'v1' com opt-in por usuário via user_ui_preferences.nav_version.
+ * Agora: v2 é o único ambiente disponível. A coluna `nav_version` continua
+ * existindo por compatibilidade histórica, mas seu valor é IGNORADO no
+ * runtime — mesmo registros com 'v1' resolvem para 'v2'. Migração 100%
+ * sem migration SQL (front força v2).
  */
 
 import { useQuery } from "@tanstack/react-query";
@@ -14,34 +13,26 @@ import { supabase } from "@/integrations/supabase/client";
 
 export type NavVersion = "v1" | "v2";
 
-export const DEFAULT_NAV_VERSION: NavVersion = "v1";
+export const DEFAULT_NAV_VERSION: NavVersion = "v2";
 
 const QUERY_KEY = ["feature-flag", "nav-version"] as const;
 const STALE_MS = 5 * 60 * 1000;
 
 /**
- * Busca a versão de navegação preferida do usuário autenticado.
- * Retorna 'v1' em qualquer cenário de erro/ausência (sem auth, coluna não migrada,
- * registro inexistente, RLS bloqueada).
+ * Sempre devolve 'v2'. Mantida a assinatura assíncrona/consulta a
+ * `user_ui_preferences` fica desnecessária — retornamos v2 direto para
+ * evitar round-trip e garantir que nenhum usuário volte para v1.
  */
-export async function getNavVersion(userId?: string | null): Promise<NavVersion> {
-  if (!userId) return DEFAULT_NAV_VERSION;
-  try {
-    const { data, error } = await supabase
-      .from("user_ui_preferences" as any)
-      .select("nav_version")
-      .eq("user_id", userId)
-      .maybeSingle();
-    if (error || !data) return DEFAULT_NAV_VERSION;
-    const v = (data as { nav_version?: string | null }).nav_version;
-    return v === "v2" ? "v2" : DEFAULT_NAV_VERSION;
-  } catch {
-    return DEFAULT_NAV_VERSION;
-  }
+export async function getNavVersion(_userId?: string | null): Promise<NavVersion> {
+  // Consumimos supabase apenas para não quebrar tree-shaking em callers que
+  // esperavam o efeito colateral de auth (nenhum hoje).
+  void supabase;
+  return "v2";
 }
 
 /**
- * Hook reativo. Cache 5min. Nunca lança — sempre devolve uma versão válida.
+ * Hook reativo. Sempre retorna 'v2'. Mantido para compatibilidade dos
+ * consumidores atuais (SidebarSwitch, componentes v2).
  */
 export function useNavVersion(): {
   version: NavVersion;
@@ -49,13 +40,11 @@ export function useNavVersion(): {
 } {
   const { data, isLoading } = useQuery({
     queryKey: QUERY_KEY,
-    queryFn: async () => {
-      const { data: auth } = await supabase.auth.getUser();
-      return getNavVersion(auth.user?.id ?? null);
-    },
+    queryFn: async () => "v2" as NavVersion,
     staleTime: STALE_MS,
     gcTime: STALE_MS * 2,
     retry: false,
   });
-  return { version: data ?? DEFAULT_NAV_VERSION, isLoading };
+  return { version: data ?? "v2", isLoading };
 }
+
