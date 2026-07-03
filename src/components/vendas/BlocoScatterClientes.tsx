@@ -26,7 +26,7 @@ export function BlocoScatterClientes({ de, ate, empresa, tabelaPrecoId, uf, clie
   const { data, isLoading } = useVendasRankingCliente({ de, ate, empresa, tabelaPrecoId, uf, clienteId, vendedorId });
   const rows = data ?? [];
 
-  const { pontos, destaques, aside, maxY } = useMemo(() => {
+  const { pontos, proximos, destaques, aside, maxY } = useMemo(() => {
     const ordenados = [...rows].sort((a, b) => b.faturamento - a.faturamento);
     const top = ordenados.slice(0, 6);
     const near = ordenados.slice(6, 14);
@@ -36,6 +36,12 @@ export function BlocoScatterClientes({ de, ate, empresa, tabelaPrecoId, uf, clie
         x: r.notas,
         y: r.faturamento,
         nome: truncate(r.cliente_nome, 20),
+        nomeCompleto: r.cliente_nome,
+      })),
+      proximos: near.map((r) => ({
+        x: r.notas,
+        y: r.faturamento,
+        nome: r.cliente_nome,
         nomeCompleto: r.cliente_nome,
       })),
       aside: near,
@@ -71,18 +77,19 @@ export function BlocoScatterClientes({ de, ate, empresa, tabelaPrecoId, uf, clie
           <div className="md:col-span-3">
             <ResponsiveContainer width="100%" height={380}>
               <ScatterChart margin={{ top: 16, right: 24, bottom: 32, left: 8 }}>
-                <CartesianGrid stroke="hsl(var(--rv-linha))" strokeDasharray="2 4" />
+                <CartesianGrid stroke="hsl(var(--rv-muted) / 0.4)" strokeDasharray="2 4" />
                 <ReferenceArea
                   y1={maxY * 0.5}
                   y2={maxY * 1.05}
                   fill="hsl(var(--rv-faixa-verde))"
-                  fillOpacity={0.5}
+                  fillOpacity={0.55}
                   stroke="none"
                   label={{
                     value: "Clientes-chave",
                     position: "insideTopLeft",
                     fill: "hsl(var(--rv-positivo))",
                     fontSize: 10,
+                    fontWeight: 600,
                     style: { textTransform: "uppercase", letterSpacing: "0.14em" },
                   }}
                 />
@@ -90,24 +97,24 @@ export function BlocoScatterClientes({ de, ate, empresa, tabelaPrecoId, uf, clie
                   type="number"
                   dataKey="x"
                   name="Notas"
-                  tick={{ fontSize: 10, fill: "hsl(var(--rv-text-suave))" }}
+                  tick={{ fontSize: 10, fill: "hsl(var(--rv-ink) / 0.85)" }}
                   axisLine={{ stroke: "hsl(var(--rv-linha))" }}
                   tickLine={false}
-                  label={{ value: "Nº de notas", position: "insideBottom", offset: -12, fontSize: 10, fill: "hsl(var(--rv-text-suave))" }}
+                  label={{ value: "Nº de notas", position: "insideBottom", offset: -12, fontSize: 10, fill: "hsl(var(--rv-ink) / 0.85)" }}
                 />
                 <YAxis
                   type="number"
                   dataKey="y"
                   name="Faturamento"
-                  tick={{ fontSize: 10, fill: "hsl(var(--rv-text-suave))" }}
+                  tick={{ fontSize: 10, fill: "hsl(var(--rv-ink) / 0.85)" }}
                   tickFormatter={(v: number) => formatMi(v)}
                   axisLine={{ stroke: "hsl(var(--rv-linha))" }}
                   tickLine={false}
                   width={72}
                 />
-                <ZAxis range={[36, 36]} />
+                <ZAxis range={[26, 26]} />
                 <Tooltip
-                  cursor={{ strokeDasharray: "3 3", stroke: "hsl(var(--rv-muted))" }}
+                  cursor={{ strokeDasharray: "3 3", stroke: "hsl(var(--rv-ink) / 0.4)" }}
                   contentStyle={{
                     borderRadius: 4,
                     border: "1px solid hsl(var(--rv-linha))",
@@ -119,12 +126,51 @@ export function BlocoScatterClientes({ de, ate, empresa, tabelaPrecoId, uf, clie
                   }
                   labelFormatter={(_l, p) => (p?.[0]?.payload as any)?.nomeCompleto ?? ""}
                 />
-                <Scatter data={pontos} fill="hsl(var(--rv-muted))" fillOpacity={0.55} />
-                <Scatter data={destaques} fill="hsl(var(--rv-ink))">
+                {/* Cauda: pontos menores e um pouco mais definidos */}
+                <Scatter
+                  data={pontos}
+                  fill="hsl(var(--rv-ink))"
+                  fillOpacity={0.45}
+                />
+                {/* Próximos destaques: médio, cor firme */}
+                <Scatter
+                  data={proximos}
+                  fill="hsl(var(--rv-ink) / 0.85)"
+                  shape={(props: any) => {
+                    const { cx, cy } = props;
+                    return <circle cx={cx} cy={cy} r={5} fill="hsl(var(--rv-ink) / 0.85)" />;
+                  }}
+                />
+                {/* Top destaques: verde-oliva com stroke, maior, rótulo com halo */}
+                <Scatter
+                  data={destaques}
+                  fill="hsl(var(--rv-positivo))"
+                  shape={(props: any) => {
+                    const { cx, cy } = props;
+                    return (
+                      <circle
+                        cx={cx}
+                        cy={cy}
+                        r={7}
+                        fill="hsl(var(--rv-positivo))"
+                        stroke="hsl(var(--rv-ink))"
+                        strokeWidth={1.5}
+                      />
+                    );
+                  }}
+                >
                   <LabelList
                     dataKey="nome"
                     position="right"
-                    style={{ fill: "hsl(var(--rv-ink))", fontSize: 10 }}
+                    style={{
+                      fill: "hsl(var(--rv-ink))",
+                      fontSize: 11,
+                      fontWeight: 600,
+                      paintOrder: "stroke",
+                      stroke: "hsl(var(--rv-bg))",
+                      strokeWidth: 3,
+                      strokeLinejoin: "round",
+                    }}
                   />
                 </Scatter>
               </ScatterChart>
@@ -138,11 +184,11 @@ export function BlocoScatterClientes({ de, ate, empresa, tabelaPrecoId, uf, clie
             <ul className="space-y-2">
               {aside.map((c) => (
                 <li key={`${c.cliente_id ?? c.cliente_nome}`} className="text-xs text-rv-ink">
-                  <span className="text-rv-muted mr-1.5">•</span>
+                  <span className="text-rv-positivo mr-1.5">•</span>
                   <span className="truncate inline-block max-w-[85%] align-middle" title={c.cliente_nome}>
                     {c.cliente_nome}
                   </span>
-                  <div className="text-[11px] text-rv-text-suave tabular-nums mt-0.5 ml-3">
+                  <div className="text-[11px] tabular-nums mt-0.5 ml-3" style={{ color: "hsl(var(--rv-ink) / 0.75)" }}>
                     {formatMi(c.faturamento)} · {c.notas} nt
                   </div>
                 </li>
