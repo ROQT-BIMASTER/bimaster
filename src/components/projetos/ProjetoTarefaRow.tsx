@@ -593,10 +593,15 @@ function ColaboradoresPicker({ colaboradores, members, onAdd, onRemove }: {
           {colaboradores.length > 0 ? (
             <>
               {colaboradores.slice(0, 3).map(c => (
-                <Avatar key={c.user_id} className="h-5 w-5 border-2 border-background ring-1 ring-border/30">
-                  <AvatarImage src={c.avatar_url || undefined} />
-                  <AvatarFallback className="text-[8px] bg-muted font-semibold">{c.nome?.substring(0, 2).toUpperCase()}</AvatarFallback>
-                </Avatar>
+                <SmartAvatar
+                  key={c.user_id}
+                  src={c.avatar_url}
+                  nome={c.nome}
+                  identifier={c.user_id}
+                  fallbackNome="Membro"
+                  className="h-5 w-5 border-2 border-background ring-1 ring-border/30"
+                  fallbackClassName="text-[8px] font-semibold"
+                />
               ))}
               {colaboradores.length > 3 && (
                 <div className="h-5 w-5 rounded-full bg-muted border-2 border-background flex items-center justify-center">
