@@ -55,6 +55,28 @@ type SortMode = "due_asc" | "due_desc" | "created_desc" | "priority";
 type QuickFilter = "all" | "sem_data" | "hoje" | "atrasadas" | "concluidas_hoje";
 type PriorityFilter = "all" | "urgente" | "alta" | "media" | "baixa";
 type OriginFilter = "all" | "pessoal" | "projetos";
+type PapelFilter = "all" | "responsavel" | "colaborador" | "seguidor";
+
+const PAPEL_BADGE: Record<string, { label: string; tone: string }> = {
+  colaborador: { label: "Colaborador", tone: "bg-muted text-muted-foreground" },
+  seguidor: { label: "Seguindo", tone: "bg-muted text-muted-foreground" },
+};
+
+function PapelBadge({ papel }: { papel: MinaTarefa["papel"] }) {
+  const meta = PAPEL_BADGE[papel];
+  if (!meta) return null;
+  return (
+    <span
+      className={cn(
+        "shrink-0 inline-flex items-center rounded px-1.5 py-0 text-[10px] font-medium leading-4",
+        meta.tone,
+      )}
+      title={`Você é ${meta.label.toLowerCase()} nesta tarefa`}
+    >
+      {meta.label}
+    </span>
+  );
+}
 
 const PRIORITY_META: Record<string, { label: string; tone: string }> = {
   urgente: { label: "Urgente", tone: "text-destructive" },
@@ -181,6 +203,7 @@ function Row({
       />
       <div className="min-w-0 flex items-center gap-2">
         <PriorityFlag value={t.prioridade} />
+        <PapelBadge papel={t.papel} />
         <span className={cn("text-sm truncate", done && "line-through text-muted-foreground")}>
           {t.titulo}
         </span>
@@ -316,6 +339,7 @@ export function MinhasTarefasSimples() {
   const [projectFilter, setProjectFilter] = useState<string>("all");
   const [priorityFilter, setPriorityFilter] = useState<PriorityFilter>("all");
   const [originFilter, setOriginFilter] = useState<OriginFilter>("all");
+  const [papelFilter, setPapelFilter] = useState<PapelFilter>("all");
   const [quickFilter, setQuickFilter] = useState<QuickFilter>("all");
   const [sortMode, setSortMode] = useState<SortMode>("due_asc");
 
@@ -333,11 +357,15 @@ export function MinhasTarefasSimples() {
     return Array.from(map.values()).sort((a, b) => a.nome.localeCompare(b.nome));
   }, [tarefas, projetoPessoalId]);
 
-  // Contadores dos chips — calculados sobre o dataset completo para não
-  // saltarem ao aplicar busca/projeto/prioridade.
+  // Contadores dos chips — respeitam o filtro de papel (para dar feedback
+  // coerente quando o usuário troca para "Responsável" / "Seguindo"), mas
+  // ignoram busca/projeto/prioridade/quick-filter para não saltarem.
   const chipCounts = useMemo(() => {
     const now = getToday();
-    const pend = tarefas.filter((t) => t.status !== "concluida");
+    const scoped = papelFilter === "all"
+      ? tarefas
+      : tarefas.filter((t) => t.papel === papelFilter);
+    const pend = scoped.filter((t) => t.status !== "concluida");
     return {
       todas: pend.length,
       semPrazo: pend.filter((t) => !t.data_prazo).length,
@@ -349,13 +377,13 @@ export function MinhasTarefasSimples() {
         const p = parseLocalDate(t.data_prazo);
         return p && isBefore(startOfDay(p), now);
       }).length,
-      concluidasHoje: tarefas.filter((t) => {
+      concluidasHoje: scoped.filter((t) => {
         if (t.status !== "concluida") return false;
         const c = parseLocalDate(t.data_conclusao);
         return c && isToday(c);
       }).length,
     };
-  }, [tarefas]);
+  }, [tarefas, papelFilter]);
 
   const filtered = useMemo(() => {
     const now = getToday();
@@ -375,6 +403,9 @@ export function MinhasTarefasSimples() {
     }
     if (priorityFilter !== "all") {
       result = result.filter((t) => (t.prioridade || "media") === priorityFilter);
+    }
+    if (papelFilter !== "all") {
+      result = result.filter((t) => t.papel === papelFilter);
     }
     if (originFilter === "pessoal" && projetoPessoalId) {
       result = result.filter((t) => t.projeto_id === projetoPessoalId);
@@ -413,7 +444,7 @@ export function MinhasTarefasSimples() {
       }
     });
     return sorted;
-  }, [tarefas, quickFilter, priorityFilter, projectFilter, originFilter, projetoPessoalId, search, sortMode]);
+  }, [tarefas, quickFilter, priorityFilter, projectFilter, originFilter, papelFilter, projetoPessoalId, search, sortMode]);
 
   // Quando o filtro rápido é "concluidas_hoje", apresentamos lista plana
   // (sem os grupos Asana de pendentes).
@@ -811,6 +842,17 @@ export function MinhasTarefasSimples() {
                 <SelectItem value="alta">Alta</SelectItem>
                 <SelectItem value="media">Média</SelectItem>
                 <SelectItem value="baixa">Baixa</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={papelFilter} onValueChange={(v) => setPapelFilter(v as PapelFilter)}>
+              <SelectTrigger className="h-8 w-40 text-sm" aria-label="Meu papel">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os papéis</SelectItem>
+                <SelectItem value="responsavel">Responsável</SelectItem>
+                <SelectItem value="colaborador">Colaborador</SelectItem>
+                <SelectItem value="seguidor">Seguindo</SelectItem>
               </SelectContent>
             </Select>
             <Select
