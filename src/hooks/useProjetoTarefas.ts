@@ -1247,6 +1247,74 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
   useEffect(() => {
     if (!projetoId || !user || mutationsOnly) return;
     let cancelled = false;
+
+    const batchScope = `projeto-tarefas-v2:${projetoId}`;
+
+    // Handler cirúrgico: aplica patch granular sobre o cache sem invalidar.
+    // Requer flag `tarefas_realtime_cirurgico`. Cache miss => fallback para
+    // invalidate silencioso, preservando o comportamento em produção.
+    const applyPatchesFromEvents = (events: RealtimePayload<any>[]) => {
+      if (cancelled) return;
+      let needsInvalidate = false;
+      let needsExcluidasCount = false;
+      queryClient.setQueryData<ProjetoTarefasView>(
+        ["projeto-tarefas-v2", projetoId],
+        (old) => {
+          if (!old) { needsInvalidate = true; return old; }
+          let tarefas = old.tarefas;
+          let mutated = false;
+          for (const ev of events) {
+            const id = String((ev.new?.id ?? ev.old?.id ?? "") as string);
+            if (!id) continue;
+            if (ev.eventType === "DELETE") {
+              const idx = tarefas.findIndex((t) => t.id === id);
+              if (idx >= 0) {
+                tarefas = tarefas.filter((t) => t.id !== id);
+                mutated = true;
+                needsExcluidasCount = true;
+              }
+              continue;
+            }
+            const idx = tarefas.findIndex((t) => t.id === id);
+            if (idx < 0) {
+              // INSERT/UPDATE de tarefa que não está no cache — reconciliar
+              needsInvalidate = true;
+              continue;
+            }
+            const current = tarefas[idx];
+            const res = applyRealtimePatch(current, ev, {
+              isEcho: (tid, field) =>
+                isTarefasFlagEnabled("tarefas_realtime_dedupe")
+                  ? isEchoOfLocalMutation(tid, Date.now(), field)
+                  : false,
+              isLocked: (tid, field) => isFieldLocked(tid, field),
+              stashPending: (tid, field, value) => stashPendingRemote(tid, field, value),
+            });
+            if (res.changed) {
+              if (res.next === null) {
+                tarefas = tarefas.filter((t) => t.id !== id);
+              } else {
+                const nextArr = tarefas.slice();
+                nextArr[idx] = res.next as ProjetoTarefa;
+                tarefas = nextArr;
+              }
+              mutated = true;
+              const newRow = ev.new as { excluida_em?: string | null } | null;
+              const oldRow = ev.old as { excluida_em?: string | null } | null;
+              if (newRow?.excluida_em !== oldRow?.excluida_em) needsExcluidasCount = true;
+            }
+          }
+          return mutated ? { ...old, tarefas } : old;
+        },
+      );
+      if (needsInvalidate) {
+        queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2", projetoId], refetchType: "none" });
+      }
+      if (needsExcluidasCount) {
+        queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-excluidas-count", projetoId] });
+      }
+    };
+
     const scheduleInvalidate = (payload?: any) => {
       if (cancelled) return;
       flickerLog("realtime-event", {
@@ -1296,6 +1364,35 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
         scheduleReconcile();
         return;
       }
+
+      // Caminho cirúrgico (flag): batch + patch, sem invalidateQueries global.
+      if (
+        payload?.table === "projeto_tarefas" &&
+        isTarefasFlagEnabled("tarefas_realtime_cirurgico")
+      ) {
+        const ev: RealtimePayload<any> = {
+          eventType: payload.eventType,
+          new: payload.new ?? null,
+          old: payload.old ?? null,
+          commit_timestamp: payload.commit_timestamp,
+        };
+        if (isTarefasFlagEnabled("tarefas_realtime_batch")) {
+          queueRealtimeEvent(
+            {
+              scope: batchScope,
+              onFlush: applyPatchesFromEvents,
+              onOverflow: () => {
+                queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2", projetoId], refetchType: "none" });
+              },
+            },
+            ev,
+          );
+        } else {
+          applyPatchesFromEvents([ev]);
+        }
+        return;
+      }
+
       if (debounceRef.current) clearTimeout(debounceRef.current);
       debounceRef.current = setTimeout(() => {
         if (cancelled) return;
@@ -1335,6 +1432,7 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
     return () => {
       cancelled = true;
       if (debounceRef.current) clearTimeout(debounceRef.current);
+      clearRealtimeBatch(batchScope);
       try {
         const result = supabase.removeChannel(channel) as unknown as Promise<unknown> | unknown;
         if (result && typeof (result as Promise<unknown>).catch === "function") {
@@ -1348,6 +1446,7 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
       }
     };
   }, [projetoId, user, queryClient, mutationsOnly]);
+
 
   return {
     secoes,
