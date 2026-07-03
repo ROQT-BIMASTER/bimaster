@@ -439,7 +439,6 @@ function TicketDrawer({ ticket, onClose }: { ticket: Ticket | null; onClose: () 
         .from("mensagens")
         .select("id, conteudo, remetente_id, created_at, visibilidade")
         .eq("conversa_id", ticket.conversa_id)
-        .or(`ticket_id.eq.${ticket.id},ticket_owner_id.eq.${ticket.owner_id}`)
         .order("created_at", { ascending: true })
         .limit(200);
       if (error) throw error;
