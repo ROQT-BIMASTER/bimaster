@@ -37,10 +37,12 @@ export const ScreenProtectedRoute = ({
 
   useEffect(() => {
     if (!denied) return;
-    if (!AUDITED_SCREEN_CODES.has(screenCode)) return;
     const key = `${screenCode}|${location.pathname}`;
     if (loggedRef.current === key) return;
     loggedRef.current = key;
+    toast.error("Acesso negado", {
+      description: "Você não tem permissão para acessar esta tela.",
+    });
     supabase.rpc("log_access_denied", {
       _screen_code: screenCode,
       _route: location.pathname + location.search,
