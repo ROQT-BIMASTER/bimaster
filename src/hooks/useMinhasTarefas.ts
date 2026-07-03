@@ -140,8 +140,10 @@ export function useMinhasTarefas() {
         invalidate,
       )
       .subscribe((status, err) => {
-        if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
+        if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") {
           logger.warn(`[useMinhasTarefas] Realtime status=${status}`, { error: err });
+          // Canal caiu: garante que a próxima leitura ativa não usa cache stale.
+          qc.invalidateQueries({ queryKey: ["minhas-tarefas", user.id], refetchType: "active" });
         }
       });
 
