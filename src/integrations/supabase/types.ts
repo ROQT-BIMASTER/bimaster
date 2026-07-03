@@ -68,6 +68,36 @@ export type Database = {
         }
         Relationships: []
       }
+      access_denied_audit: {
+        Row: {
+          created_at: string
+          id: string
+          route: string
+          screen_code: string
+          user_agent: string | null
+          user_email: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          route: string
+          screen_code: string
+          user_agent?: string | null
+          user_email?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          route?: string
+          screen_code?: string
+          user_agent?: string | null
+          user_email?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       access_requests: {
         Row: {
           created_at: string
@@ -56007,6 +56037,10 @@ export type Database = {
           nome: string
           tipo: string
         }[]
+      }
+      log_access_denied: {
+        Args: { _route: string; _screen_code: string; _user_agent?: string }
+        Returns: undefined
       }
       log_audit: {
         Args: {
