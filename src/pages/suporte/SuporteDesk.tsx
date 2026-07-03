@@ -129,7 +129,7 @@ export default function SuporteDesk() {
         <div className="grid grid-cols-1 lg:grid-cols-[360px_1fr] gap-4 flex-1 min-h-0">
           {/* Lista */}
           <div className="flex-1 overflow-y-auto space-y-2 pr-1 min-h-0">
-            {isLoading || filasLoading ? (
+            {isLoading || carregandoFilas ? (
               <div className="flex justify-center py-8">
                 <Loader2 className="h-6 w-6 animate-spin text-primary" />
               </div>
