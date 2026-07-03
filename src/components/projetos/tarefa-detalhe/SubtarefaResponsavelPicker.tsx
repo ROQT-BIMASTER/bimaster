@@ -106,13 +106,12 @@ function SubtarefaResponsavelPickerImpl({
           // (c) bridge da tela V1 (`MinhasTarefasSimples`). Sem (b) e (c)
           // a subtarefa continuava mostrando o responsável antigo até
           // fechar/reabrir o drawer nesses contextos.
-          // (a) e a lista pessoal usam refetchType:"none": o onMutate de
-          // updateTarefa já aplicou patch otimista na V2, e um refetch ativo
-          // aqui atropela o painel aberto ("piscar") — a reconciliação com o
-          // servidor acontece ao fechar o painel (detail gate / reconcile).
-          // As bridges (b)/(c) seguem ativas: são queries pequenas que
-          // alimentam o próprio painel e não têm patch otimista próprio.
-          queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2", projetoId], refetchType: "none" });
+          // (a) V2 com refetch ATIVO: o patch otimista não reflete de forma
+          // confiável no snapshot do drawer de Projetos (só aparecia após
+          // reload). O refetch traz a subtarefa já hidratada do servidor.
+          // Seguro pós-fix do wrapper `Frame` em ProjetoDetalhe — a lista
+          // reconcilia no lugar, sem remontar o drawer (sem piscar).
+          queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2", projetoId], refetchType: "active" });
           queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-subtarefas-bridge"], refetchType: "none" });
           queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-subtarefas-bridge-mt"], refetchType: "none" });
           queryClient.invalidateQueries({ queryKey: ["minhas-tarefas"], refetchType: "none" });
