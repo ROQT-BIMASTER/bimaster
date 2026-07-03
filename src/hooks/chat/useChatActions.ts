@@ -38,7 +38,7 @@ export function useChatActions() {
   const sendMessage = useMutation({
     mutationFn: async (input: SendMessageInput) => {
       if (!uid) throw new Error("não autenticado");
-      const { data: suporteTicket, error: suporteTicketError } = await supabase
+      const { data: suporteTicketRaw, error: suporteTicketError } = await supabase
         .from("suporte_tickets" as any)
         .select("id, owner_id, requester_id")
         .eq("conversa_id", input.conversaId)
@@ -47,6 +47,10 @@ export function useChatActions() {
         .limit(1)
         .maybeSingle();
       if (suporteTicketError) throw suporteTicketError;
+
+      const suporteTicket = suporteTicketRaw as
+        | { id: string; owner_id: string | null; requester_id: string | null }
+        | null;
 
       const suporteMeta = suporteTicket
         ? {
