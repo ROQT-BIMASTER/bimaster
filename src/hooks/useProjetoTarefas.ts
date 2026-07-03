@@ -252,6 +252,36 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
     });
   };
 
+  /**
+   * Aplica patch otimista nas caches `["projeto-tarefas-subtarefas-bridge", *]`
+   * (e a variante `-mt` de MinhasTarefas) para a subtarefa `tarefaId`. Sem
+   * isso, adicionar seguidor/responsável a uma subtarefa aberta na Central
+   * de Trabalho só atualiza `projeto-tarefas-v2` e a tarefa-mãe (junctions),
+   * enquanto o pill "+ Equipe"/avatar da subtarefa continua exibindo o
+   * estado antigo até o refetch do bridge — parecendo que "não funcionou".
+   */
+  const patchSubtarefasBridge = (
+    tarefaId: string,
+    mutator: (curr: ProjetoTarefa) => ProjetoTarefa,
+  ) => {
+    const caches = queryClient.getQueriesData<ProjetoTarefa[]>({
+      predicate: (q) =>
+        Array.isArray(q.queryKey) &&
+        (q.queryKey[0] === "projeto-tarefas-subtarefas-bridge" ||
+          q.queryKey[0] === "projeto-tarefas-subtarefas-bridge-mt"),
+    });
+    for (const [key, list] of caches) {
+      if (!Array.isArray(list)) continue;
+      let changed = false;
+      const next = list.map((st) => {
+        if (st.id !== tarefaId) return st;
+        changed = true;
+        return mutator(st);
+      });
+      if (changed) queryClient.setQueryData(key, next);
+    }
+  };
+
 
 
   const setPendingListOp = (
