@@ -1132,6 +1132,7 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
           return patched;
         }),
       }));
+      patchTarefaJunctions(tarefaId, (c) => ({ ...c, responsaveis: c.responsaveis.filter(r => r.user_id !== userId) }));
       return { previous };
     },
     onError: (err: Error, _vars, context) => {
