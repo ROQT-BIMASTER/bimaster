@@ -58027,6 +58027,15 @@ export type Database = {
         Args: { p_status: string; p_ticket_id: string }
         Returns: undefined
       }
+      rpc_suporte_transferir: {
+        Args: {
+          p_fila_destino_id: string
+          p_motivo: string
+          p_ticket_id: string
+          p_via_ia?: boolean
+        }
+        Returns: Json
+      }
       rpc_sync_conversa_vinculada_participantes: {
         Args: { p_conversa_id: string }
         Returns: undefined
