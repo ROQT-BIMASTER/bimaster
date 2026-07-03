@@ -46285,6 +46285,149 @@ export type Database = {
         }
         Relationships: []
       }
+      suporte_calendarios: {
+        Row: {
+          ativo: boolean
+          feriados: string[]
+          id: string
+          intervalos: Json
+          is_default: boolean
+          nome: string
+          timezone: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          feriados?: string[]
+          id?: string
+          intervalos?: Json
+          is_default?: boolean
+          nome: string
+          timezone?: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          feriados?: string[]
+          id?: string
+          intervalos?: Json
+          is_default?: boolean
+          nome?: string
+          timezone?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      suporte_canal_contas: {
+        Row: {
+          ativo: boolean
+          canal: string
+          config: Json
+          created_at: string
+          display_number: string | null
+          fila_padrao_id: string | null
+          id: string
+          identificador: string
+          provedor: string | null
+        }
+        Insert: {
+          ativo?: boolean
+          canal: string
+          config?: Json
+          created_at?: string
+          display_number?: string | null
+          fila_padrao_id?: string | null
+          id?: string
+          identificador: string
+          provedor?: string | null
+        }
+        Update: {
+          ativo?: boolean
+          canal?: string
+          config?: Json
+          created_at?: string
+          display_number?: string | null
+          fila_padrao_id?: string | null
+          id?: string
+          identificador?: string
+          provedor?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "suporte_canal_contas_fila_padrao_id_fkey"
+            columns: ["fila_padrao_id"]
+            isOneToOne: false
+            referencedRelation: "suporte_filas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      suporte_canal_eventos: {
+        Row: {
+          canal: string
+          erro: string | null
+          external_msg_id: string
+          id: string
+          payload: Json
+          processado_em: string | null
+          recebido_em: string
+          status: string
+        }
+        Insert: {
+          canal: string
+          erro?: string | null
+          external_msg_id: string
+          id?: string
+          payload: Json
+          processado_em?: string | null
+          recebido_em?: string
+          status?: string
+        }
+        Update: {
+          canal?: string
+          erro?: string | null
+          external_msg_id?: string
+          id?: string
+          payload?: Json
+          processado_em?: string | null
+          recebido_em?: string
+          status?: string
+        }
+        Relationships: []
+      }
+      suporte_contatos: {
+        Row: {
+          canal: string
+          created_at: string
+          external_id: string
+          id: string
+          metadata: Json
+          nome: string | null
+          profile_id: string | null
+          telefone: string | null
+        }
+        Insert: {
+          canal: string
+          created_at?: string
+          external_id: string
+          id?: string
+          metadata?: Json
+          nome?: string | null
+          profile_id?: string | null
+          telefone?: string | null
+        }
+        Update: {
+          canal?: string
+          created_at?: string
+          external_id?: string
+          id?: string
+          metadata?: Json
+          nome?: string | null
+          profile_id?: string | null
+          telefone?: string | null
+        }
+        Relationships: []
+      }
       suporte_csat: {
         Row: {
           comentario: string | null
@@ -46317,6 +46460,123 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "suporte_tickets"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      suporte_fila_agentes: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          fila_id: string
+          papel: string
+          user_id: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          fila_id: string
+          papel?: string
+          user_id: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          fila_id?: string
+          papel?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "suporte_fila_agentes_fila_id_fkey"
+            columns: ["fila_id"]
+            isOneToOne: false
+            referencedRelation: "suporte_filas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      suporte_filas: {
+        Row: {
+          aceita_chamados: boolean
+          ativo: boolean
+          calendario_id: string | null
+          cor: string | null
+          created_at: string
+          departamento_id: string | null
+          descricao: string | null
+          ia_habilitada: boolean
+          ia_pode_transferir: boolean
+          ia_prompt: string | null
+          icone: string | null
+          id: string
+          nome: string
+          ordem: number
+          sla_primeira_resposta_horas: number
+          sla_resolucao_horas: number
+          slug: string
+          updated_at: string
+        }
+        Insert: {
+          aceita_chamados?: boolean
+          ativo?: boolean
+          calendario_id?: string | null
+          cor?: string | null
+          created_at?: string
+          departamento_id?: string | null
+          descricao?: string | null
+          ia_habilitada?: boolean
+          ia_pode_transferir?: boolean
+          ia_prompt?: string | null
+          icone?: string | null
+          id?: string
+          nome: string
+          ordem?: number
+          sla_primeira_resposta_horas?: number
+          sla_resolucao_horas?: number
+          slug: string
+          updated_at?: string
+        }
+        Update: {
+          aceita_chamados?: boolean
+          ativo?: boolean
+          calendario_id?: string | null
+          cor?: string | null
+          created_at?: string
+          departamento_id?: string | null
+          descricao?: string | null
+          ia_habilitada?: boolean
+          ia_pode_transferir?: boolean
+          ia_prompt?: string | null
+          icone?: string | null
+          id?: string
+          nome?: string
+          ordem?: number
+          sla_primeira_resposta_horas?: number
+          sla_resolucao_horas?: number
+          slug?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "suporte_filas_calendario_fk"
+            columns: ["calendario_id"]
+            isOneToOne: false
+            referencedRelation: "suporte_calendarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "suporte_filas_departamento_id_fkey"
+            columns: ["departamento_id"]
+            isOneToOne: false
+            referencedRelation: "departamentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "suporte_filas_departamento_id_fkey"
+            columns: ["departamento_id"]
+            isOneToOne: false
+            referencedRelation: "mv_analise_departamentos"
+            referencedColumns: ["departamento_id"]
           },
         ]
       }
@@ -46400,70 +46660,168 @@ export type Database = {
           },
         ]
       }
+      suporte_sla_policies: {
+        Row: {
+          fila_id: string
+          id: string
+          primeira_resposta_horas: number
+          prioridade: string
+          resolucao_horas: number
+          updated_at: string
+          usa_horario_comercial: boolean
+        }
+        Insert: {
+          fila_id: string
+          id?: string
+          primeira_resposta_horas: number
+          prioridade: string
+          resolucao_horas: number
+          updated_at?: string
+          usa_horario_comercial?: boolean
+        }
+        Update: {
+          fila_id?: string
+          id?: string
+          primeira_resposta_horas?: number
+          prioridade?: string
+          resolucao_horas?: number
+          updated_at?: string
+          usa_horario_comercial?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "suporte_sla_policies_fila_id_fkey"
+            columns: ["fila_id"]
+            isOneToOne: false
+            referencedRelation: "suporte_filas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       suporte_tickets: {
         Row: {
+          assignee_id: string | null
+          canal: string
+          canal_conta_id: string | null
           categoria: string | null
+          contato_id: string | null
           conversa_id: string
           created_at: string
           escalado_em: string | null
+          fila_id: string | null
           id: string
           owner_id: string
+          prazo_primeira_resposta_em: string | null
+          prazo_resolucao_em: string | null
           prazo_resposta_em: string | null
+          primeira_resposta_em: string | null
           prioridade: string
           projeto_tarefa_id: string | null
+          protocolo: string | null
+          reaberto_em: string | null
+          requester_id: string | null
           resolved_at: string | null
           resumo: string | null
           sentimento: string | null
           sla_horas: number
+          sla_status: string | null
           status: string
+          tags: string[]
           titulo: string | null
           ultima_interacao_em: string
           updated_at: string
         }
         Insert: {
+          assignee_id?: string | null
+          canal?: string
+          canal_conta_id?: string | null
           categoria?: string | null
+          contato_id?: string | null
           conversa_id: string
           created_at?: string
           escalado_em?: string | null
+          fila_id?: string | null
           id?: string
           owner_id: string
+          prazo_primeira_resposta_em?: string | null
+          prazo_resolucao_em?: string | null
           prazo_resposta_em?: string | null
+          primeira_resposta_em?: string | null
           prioridade?: string
           projeto_tarefa_id?: string | null
+          protocolo?: string | null
+          reaberto_em?: string | null
+          requester_id?: string | null
           resolved_at?: string | null
           resumo?: string | null
           sentimento?: string | null
           sla_horas?: number
+          sla_status?: string | null
           status?: string
+          tags?: string[]
           titulo?: string | null
           ultima_interacao_em?: string
           updated_at?: string
         }
         Update: {
+          assignee_id?: string | null
+          canal?: string
+          canal_conta_id?: string | null
           categoria?: string | null
+          contato_id?: string | null
           conversa_id?: string
           created_at?: string
           escalado_em?: string | null
+          fila_id?: string | null
           id?: string
           owner_id?: string
+          prazo_primeira_resposta_em?: string | null
+          prazo_resolucao_em?: string | null
           prazo_resposta_em?: string | null
+          primeira_resposta_em?: string | null
           prioridade?: string
           projeto_tarefa_id?: string | null
+          protocolo?: string | null
+          reaberto_em?: string | null
+          requester_id?: string | null
           resolved_at?: string | null
           resumo?: string | null
           sentimento?: string | null
           sla_horas?: number
+          sla_status?: string | null
           status?: string
+          tags?: string[]
           titulo?: string | null
           ultima_interacao_em?: string
           updated_at?: string
         }
         Relationships: [
           {
+            foreignKeyName: "suporte_tickets_canal_conta_id_fkey"
+            columns: ["canal_conta_id"]
+            isOneToOne: false
+            referencedRelation: "suporte_canal_contas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "suporte_tickets_contato_id_fkey"
+            columns: ["contato_id"]
+            isOneToOne: false
+            referencedRelation: "suporte_contatos"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "suporte_tickets_conversa_id_fkey"
             columns: ["conversa_id"]
             isOneToOne: false
             referencedRelation: "conversas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "suporte_tickets_fila_id_fkey"
+            columns: ["fila_id"]
+            isOneToOne: false
+            referencedRelation: "suporte_filas"
             referencedColumns: ["id"]
           },
         ]
@@ -46499,6 +46857,67 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "suporte_tickets_audit_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "suporte_tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      suporte_transferencias: {
+        Row: {
+          created_at: string
+          de_assignee_id: string | null
+          de_fila_id: string | null
+          id: string
+          motivo: string | null
+          para_assignee_id: string | null
+          para_fila_id: string
+          ticket_id: string
+          transferido_por: string | null
+          via_ia: boolean
+        }
+        Insert: {
+          created_at?: string
+          de_assignee_id?: string | null
+          de_fila_id?: string | null
+          id?: string
+          motivo?: string | null
+          para_assignee_id?: string | null
+          para_fila_id: string
+          ticket_id: string
+          transferido_por?: string | null
+          via_ia?: boolean
+        }
+        Update: {
+          created_at?: string
+          de_assignee_id?: string | null
+          de_fila_id?: string | null
+          id?: string
+          motivo?: string | null
+          para_assignee_id?: string | null
+          para_fila_id?: string
+          ticket_id?: string
+          transferido_por?: string | null
+          via_ia?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "suporte_transferencias_de_fila_id_fkey"
+            columns: ["de_fila_id"]
+            isOneToOne: false
+            referencedRelation: "suporte_filas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "suporte_transferencias_para_fila_id_fkey"
+            columns: ["para_fila_id"]
+            isOneToOne: false
+            referencedRelation: "suporte_filas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "suporte_transferencias_ticket_id_fkey"
             columns: ["ticket_id"]
             isOneToOne: false
             referencedRelation: "suporte_tickets"
@@ -55940,6 +56359,10 @@ export type Database = {
       is_account_quarantined: { Args: { _user_id: string }; Returns: boolean }
       is_admin: { Args: never; Returns: boolean }
       is_admin_or_supervisor: { Args: { _user_id: string }; Returns: boolean }
+      is_agente_fila: {
+        Args: { _fila_id: string; _uid: string }
+        Returns: boolean
+      }
       is_dept_financeiro: { Args: { _user_id: string }; Returns: boolean }
       is_ip_blacklisted: { Args: { p_ip: unknown }; Returns: boolean }
       is_ip_blocked: { Args: { p_ip: unknown }; Returns: boolean }
@@ -55952,6 +56375,7 @@ export type Database = {
         Args: { _supervisor_id: string; _user_id: string }
         Returns: boolean
       }
+      is_suporte_staff: { Args: { _uid: string }; Returns: boolean }
       is_user_in_projetos_department: {
         Args: { _user_id: string }
         Returns: boolean
