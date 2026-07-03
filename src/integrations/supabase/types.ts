@@ -58010,6 +58010,20 @@ export type Database = {
           valor_12m: number
         }[]
       }
+      rpc_suporte_abrir_chamado: {
+        Args: {
+          p_descricao?: string
+          p_fila_id: string
+          p_prioridade?: string
+          p_titulo: string
+        }
+        Returns: Json
+      }
+      rpc_suporte_assumir: { Args: { p_ticket_id: string }; Returns: undefined }
+      rpc_suporte_mudar_status: {
+        Args: { p_status: string; p_ticket_id: string }
+        Returns: undefined
+      }
       rpc_sync_conversa_vinculada_participantes: {
         Args: { p_conversa_id: string }
         Returns: undefined
