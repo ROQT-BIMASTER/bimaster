@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { z } from "zod";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -119,7 +119,15 @@ type ProfileRow = {
 export default function MeuPerfil() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const senhaCardRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (location.hash === "#senha" && senhaCardRef.current) {
+      senhaCardRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, [location.hash]);
 
   const [loading, setLoading] = useState(true);
   const [savingProfile, setSavingProfile] = useState(false);
@@ -745,7 +753,7 @@ export default function MeuPerfil() {
 
 
           {/* Card: Segurança / Senha */}
-          <Card>
+          <Card id="senha" ref={senhaCardRef} className="scroll-mt-8">
             <CardHeader>
               <CardTitle className="text-base flex items-center gap-2">
                 <ShieldCheck className="h-4 w-4 text-primary" />
