@@ -173,6 +173,10 @@ export function ProjetoTarefaDetalhe({
   const [editingTitle, setEditingTitle] = useState(false);
   const [titleValue, setTitleValue] = useState("");
   const [descValue, setDescValue] = useState("");
+  // Permite expandir a caixa de descrição para leitura confortável do
+  // conteúdo — evita depender apenas da barra de rolagem quando o texto
+  // é longo. Persistido por tarefa (id) para não resetar ao trocar de aba.
+  const [descExpanded, setDescExpanded] = useState(false);
   const [datePicker, setDatePicker] = useState(false);
   const [inicioPicker, setInicioPicker] = useState(false);
   const [proximaAcaoPicker, setProximaAcaoPicker] = useState(false);
