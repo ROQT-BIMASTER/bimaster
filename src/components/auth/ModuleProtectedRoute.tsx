@@ -1,9 +1,13 @@
+import { useEffect, useRef } from "react";
+import { useLocation } from "react-router-dom";
 import { Loader2 } from "lucide-react";
+import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePermissions } from "@/contexts/PermissionsContext";
 import { useImpersonation } from "@/contexts/ImpersonationContext";
 import { AccessDenied } from "@/components/common/AccessDenied";
 import { logger } from "@/lib/logger";
+import { supabase } from "@/integrations/supabase/client";
 
 interface ModuleProtectedRouteProps {
   children: React.ReactNode;
@@ -17,8 +21,8 @@ interface ModuleProtectedRouteProps {
  * Deve ser usado DENTRO de ProtectedRoute para autenticação.
  * Respeita o modo de impersonação quando ativo.
  */
-export const ModuleProtectedRoute = ({ 
-  children, 
+export const ModuleProtectedRoute = ({
+  children,
   moduleCode,
   redirectTo = "/dashboard",
   showAccessDenied = true
@@ -26,6 +30,27 @@ export const ModuleProtectedRoute = ({
   const { session } = useAuth();
   const { loading, permissionsReady } = usePermissions();
   const { hasModulePermission } = useImpersonation();
+  const location = useLocation();
+  const loggedRef = useRef<string | null>(null);
+
+  const denied = !!session && permissionsReady && !hasModulePermission(moduleCode);
+
+  useEffect(() => {
+    if (!denied) return;
+    const key = `module:${moduleCode}|${location.pathname}`;
+    if (loggedRef.current === key) return;
+    loggedRef.current = key;
+    toast.error("Acesso negado", {
+      description: "Você não tem permissão para acessar este módulo.",
+    });
+    supabase.rpc("log_access_denied", {
+      _screen_code: `module:${moduleCode}`,
+      _route: location.pathname + location.search,
+      _user_agent: typeof navigator !== "undefined" ? navigator.userAgent : null,
+    }).then(({ error }) => {
+      if (error) logger.warn("[ModuleProtectedRoute] Falha ao registrar tentativa negada:", error);
+    });
+  }, [denied, moduleCode, location.pathname, location.search]);
 
   // Se não há sessão, deixa o ProtectedRoute lidar
   if (!session) {
