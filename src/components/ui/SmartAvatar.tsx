@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { resolveAvatarUrl } from "@/lib/utils/avatarUrl";
 import { cn } from "@/lib/utils";
@@ -52,6 +52,29 @@ function computeInitials(nome?: string | null): string {
   if (parts.length === 0) return "?";
   if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
+// Paleta determinística (HSL) para fallback de avatar quando o usuário
+// não tem `avatar_url`. Deriva o hue de um hash estável (identifier ou
+// nome), garantindo que o mesmo usuário sempre veja a mesma cor — o pill
+// não pisca entre renders nem depende do fetch pós-save.
+const FALLBACK_SATURATION = 62;
+const FALLBACK_LIGHTNESS = 46;
+
+function hashSeed(seed: string): number {
+  let h = 0;
+  for (let i = 0; i < seed.length; i++) {
+    h = (h * 31 + seed.charCodeAt(i)) | 0;
+  }
+  return Math.abs(h);
+}
+
+function computeFallbackStyle(seed: string): CSSProperties {
+  const hue = hashSeed(seed) % 360;
+  return {
+    backgroundColor: `hsl(${hue} ${FALLBACK_SATURATION}% ${FALLBACK_LIGHTNESS}%)`,
+    color: "hsl(0 0% 100%)",
+  };
 }
 
 function isUsableUrl(src?: string | null): src is string {
@@ -139,6 +162,10 @@ export function SmartAvatar({
   const initials = computeInitials(displayNome);
   const showImage = usable && !errored && !!displayUrl;
   const resolvedTitle = title || buildTitle(nome, identifier, fallbackNome, errored);
+  // Seed determinística: prioriza identifier (ex.: user_id) para estabilidade
+  // entre renders com nomes hidratados de forma incremental.
+  const fallbackSeed = String(identifier || displayNome || "?");
+  const fallbackStyle = computeFallbackStyle(fallbackSeed);
 
   return (
     <Avatar className={className} title={resolvedTitle} aria-label={resolvedTitle}>
@@ -153,7 +180,8 @@ export function SmartAvatar({
         />
       )}
       <AvatarFallback
-        className={cn("bg-primary/15 text-primary font-medium", fallbackClassName)}
+        className={cn("font-medium", fallbackClassName)}
+        style={fallbackStyle}
         aria-label={resolvedTitle}
       >
         {initials}
