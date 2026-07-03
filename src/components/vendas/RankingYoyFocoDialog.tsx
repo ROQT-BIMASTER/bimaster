@@ -116,6 +116,15 @@ export function RankingYoyFocoDialog({
                     : tone === "negativo" ? "text-rv-negativo"
                     : "text-rv-text-suave";
                   const ticket = r.notas_atual > 0 ? r.fat_atual / r.notas_atual : 0;
+                  const quedaForte = r.variacao != null && r.variacao <= -0.2;
+                  const altaForte = r.variacao != null && r.variacao >= 0.2;
+                  const borderCls = quedaForte
+                    ? "border-l-2 border-l-rv-negativo"
+                    : altaForte
+                      ? "border-l-2 border-l-rv-positivo"
+                      : "border-l-2 border-l-transparent";
+                  const nomeCls = quedaForte ? "text-rv-negativo" : "text-rv-ink";
+                  const fatCls = quedaForte ? "text-rv-negativo" : "text-rv-ink";
                   return (
                     <button
                       key={`${r.chave ?? "na"}-${vi.index}`}
@@ -125,11 +134,11 @@ export function RankingYoyFocoDialog({
                         position: "absolute", top: 0, left: 0, right: 0,
                         transform: `translateY(${vi.start}px)`, height: vi.size,
                       }}
-                      className="grid grid-cols-[48px_1fr_140px_140px_120px_80px_140px] gap-4 items-center text-left border-b border-rv-linha/60 hover:bg-rv-faixa-verde/50 transition-colors"
+                      className={`grid grid-cols-[48px_1fr_140px_140px_120px_80px_140px] gap-4 items-center text-left border-b border-rv-linha/60 hover:bg-rv-faixa-verde/50 transition-colors pl-1 ${borderCls}`}
                     >
                       <div className="text-xs text-rv-muted tabular-nums">{vi.index + 1}</div>
-                      <div className="text-sm text-rv-ink truncate" title={r.nome}>{r.nome}</div>
-                      <div className="text-right text-sm text-rv-ink tabular-nums">{formatMi(r.fat_atual)}</div>
+                      <div className={`text-sm truncate ${nomeCls}`} title={r.nome}>{r.nome}</div>
+                      <div className={`text-right text-sm tabular-nums ${fatCls}`}>{formatMi(r.fat_atual)}</div>
                       <div className="text-right text-sm text-rv-text-suave tabular-nums">
                         {r.fat_anterior > 0 ? formatMi(r.fat_anterior) : "—"}
                       </div>
