@@ -67,6 +67,7 @@ export function ProjetoInboxContent() {
 
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [detailAtividade, setDetailAtividade] = useState<ProjetoAtividade | null>(null);
+  const [filterHoje, setFilterHoje] = useState<boolean>(false);
 
   // Strip any garbage from inbox-related URL params on mount / when they change.
   // Delegates to the central sanitizer so dedup + encoding cleanup is consistent
@@ -134,14 +135,57 @@ export function ProjetoInboxContent() {
     [atividades],
   );
 
+  const spDayFmt = useMemo(
+    () => new Intl.DateTimeFormat("en-CA", {
+      timeZone: "America/Sao_Paulo", year: "numeric", month: "2-digit", day: "2-digit",
+    }),
+    [],
+  );
+  const applyHoje = useCallback((list: ProjetoAtividade[]) => {
+    if (!filterHoje) return list;
+    const today = spDayFmt.format(new Date());
+    return list.filter(a => spDayFmt.format(new Date(a.created_at)) === today);
+  }, [filterHoje, spDayFmt]);
+
   const currentList = useMemo<ProjetoAtividade[]>(() => {
     switch (activeTab) {
-      case "favoritas": return favoritas;
-      case "arquivadas": return arquivadas;
+      case "favoritas": return applyHoje(favoritas);
+      case "arquivadas": return applyHoje(arquivadas);
       case "mencoes": return []; // renderizado por <MencoesList /> abaixo
-      default: return atividades;
+      default: return applyHoje(atividades);
     }
-  }, [activeTab, atividades, favoritas, arquivadas]);
+  }, [activeTab, atividades, favoritas, arquivadas, applyHoje]);
+
+  // Estado efetivo dos chips (mutuamente coerente com o subtab ativo).
+  const isTodasActive = activeTab === "atividade" && filterTipos.length === 0 && !filterHoje;
+  const isAprovacoesActive = activeTab === "atividade" && !filterHoje &&
+    filterTipos.length === 1 && filterTipos[0] === "completou";
+  const isTarefasNovasActive = activeTab === "atividade" && !filterHoje &&
+    filterTipos.length === 1 && filterTipos[0] === "criou_tarefa";
+  const isHojeActive = activeTab === "atividade" && filterHoje;
+
+  const handleChipTodas = useCallback(() => {
+    setActiveTab("atividade");
+    setFilterTipos([]);
+    setFilterHoje(false);
+    setSelectedIds(new Set());
+  }, []);
+  const handleChipMencoes = useCallback(() => {
+    setActiveTab("mencoes");
+    setFilterHoje(false);
+    setSelectedIds(new Set());
+  }, []);
+  const handleChipTipo = useCallback((tipo: CentralInboxTipo) => {
+    setActiveTab("atividade");
+    setFilterTipos(prev => (prev.length === 1 && prev[0] === tipo) ? [] : [tipo]);
+    setFilterHoje(false);
+    setSelectedIds(new Set());
+  }, []);
+  const handleChipHoje = useCallback(() => {
+    setActiveTab("atividade");
+    setFilterHoje(v => !v);
+    setSelectedIds(new Set());
+  }, []);
 
   const handleSelect = useCallback((id: string) => {
     setSelectedIds(prev => {
@@ -286,35 +330,36 @@ export function ProjetoInboxContent() {
         <CentralChip
           label="Todas"
           count={naoLidas}
-          active={filterTipos.length === 0}
-          onClick={() => setFilterTipos([])}
+          active={isTodasActive}
+          onClick={handleChipTodas}
         />
         <CentralChip
           label="Menções"
           count={mencoes.length}
           active={activeTab === "mencoes"}
-          onClick={() => { setActiveTab("mencoes"); setSelectedIds(new Set()); }}
+          onClick={handleChipMencoes}
         />
         {isProdutoView && (
           <>
             <CentralChip
               label="Aprovações pendentes"
               count={aprovacoesPendentes}
-              active={filterTipos.length === 1 && filterTipos[0] === "completou"}
-              onClick={() => setFilterTipos(["completou"])}
+              active={isAprovacoesActive}
+              onClick={() => handleChipTipo("completou")}
             />
             <CentralChip
               label="Tarefas novas"
               count={tarefasNovas}
-              active={filterTipos.length === 1 && filterTipos[0] === "criou_tarefa"}
-              onClick={() => setFilterTipos(["criou_tarefa"])}
+              active={isTarefasNovasActive}
+              onClick={() => handleChipTipo("criou_tarefa")}
             />
           </>
         )}
         <CentralChip
           label="Hoje"
           count={hoje}
-          onClick={() => { /* visualização de hoje já é destacada no feed; mantém ação não-destrutiva */ }}
+          active={isHojeActive}
+          onClick={handleChipHoje}
           title="Notificações de hoje (America/Sao_Paulo)"
         />
       </CentralChipsPortal>
