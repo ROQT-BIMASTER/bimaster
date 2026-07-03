@@ -8,7 +8,7 @@ import { NovaSecaoInline } from "./NovaSecaoInline";
 import { CriarTarefasIADialog } from "./CriarTarefasIADialog";
 import { useProjetoIA } from "@/hooks/useProjetoIA";
 import { Button } from "@/components/ui/button";
-import { Loader2, Sparkles, Ban, ChevronDown, ChevronRight } from "lucide-react";
+import { Sparkles, Ban, ChevronDown, ChevronRight } from "lucide-react";
 import { ProjetoTarefaRow } from "./ProjetoTarefaRow";
 import { ProjetoFilters, ProjetoSort, applyFilters, applySort, hasActiveFilters, EMPTY_FILTERS, DEFAULT_SORT } from "./ProjetoFilterSort";
 import { ColumnConfig, loadColumnConfig, saveColumnConfig, buildGridCols, ColumnConfigPopover } from "./ColumnConfigPopover";
@@ -109,8 +109,6 @@ export function ProjetoListView({ projetoId, darkBg = false, filters = EMPTY_FIL
   const metasProgress = useMetasProgress(allTaskIds);
 
   const vis = (key: string) => columns.find(c => c.key === key)?.visible ?? true;
-  const dynamicGrid = `grid-cols-[${buildGridCols(columns)}]`;
-
   const isFiltering = hasActiveFilters(filters);
 
   // Memoize filtered tarefas per section (excluding canceled top-level tasks)
