@@ -183,13 +183,8 @@ export default function ProjetoDetalhe({ shared = false }: ProjetoDetalheProps =
   }, [patchOpenTarefa, updateTarefa]);
 
   const handleDetailToggle = useCallback((tarefa: ProjetoTarefa) => {
-    const isCompleting = tarefa.status !== "concluida";
-    patchOpenTarefa(tarefa.id, {
-      status: isCompleting ? "concluida" : "pendente",
-      data_conclusao: isCompleting ? new Date().toISOString() : null,
-    } as Partial<ProjetoTarefa>);
     void confirmAndToggleTarefa(tarefa);
-  }, [confirmAndToggleTarefa, patchOpenTarefa]);
+  }, [confirmAndToggleTarefa]);
 
   const handleDetailAddSubtarefa = useCallback(async (titulo: string, parentId: string, secaoId: string) => {
     await createTarefa.mutateAsync({ titulo, secao_id: secaoId, parent_tarefa_id: parentId });
