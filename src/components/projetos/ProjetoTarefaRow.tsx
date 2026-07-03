@@ -28,6 +28,7 @@ import {
   PRIORITY_MAP, PRIORITY_REVERSE,
 } from "@/lib/projetoConstants";
 import { useTarefaDensity } from "@/hooks/useTarefaDensity";
+import { useRowMountCounter } from "@/lib/tarefas/instrumentation";
 
 export type TeamMember = { id: string; nome: string; avatar_url: string | null };
 
@@ -55,6 +56,7 @@ function ProjetoTarefaRowImpl({
   const [expanded, setExpanded] = useState(false);
   const { isCompact } = useTarefaDensity();
   const { user } = useAuth();
+  useRowMountCounter(tarefa.id);
   const isMine = !!user?.id && tarefa.responsavel_id === user.id;
   const hasSubtarefas = (tarefa.subtarefas?.length || 0) > 0;
   const isCompleted = tarefa.status === "concluida";

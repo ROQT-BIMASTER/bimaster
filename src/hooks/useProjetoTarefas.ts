@@ -12,6 +12,7 @@ import { flickerLog } from "@/lib/debug/flickerLog";
 import { isTarefasFlagEnabled } from "@/lib/tarefas/featureFlags";
 import { applyRealtimePatch, type RealtimePayload } from "@/lib/tarefas/realtimeReducer";
 import { queueRealtimeEvent, clearRealtimeBatch } from "@/lib/tarefas/realtimeBatch";
+import { markTasksUpdated } from "@/lib/tarefas/instrumentation";
 import { isEchoOfLocalMutation } from "@/lib/tarefas/lastLocalMutationTracker";
 import { isFieldLocked, stashPendingRemote } from "@/lib/tarefas/editingFieldsStore";
 
@@ -1307,6 +1308,7 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
           return mutated ? { ...old, tarefas } : old;
         },
       );
+      if (events.length > 0) markTasksUpdated("realtime-batch");
       if (needsInvalidate) {
         queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2", projetoId], refetchType: "none" });
       }
