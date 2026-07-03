@@ -607,6 +607,26 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
     staleTime: 30_000,
   });
 
+  // Campos de planejamento não expostos pela RPC `get_minhas_tarefas_central`
+  // (dias_alerta_antes, data_proxima_acao). Sem esta consulta o Select
+  // "Alertar antes" cai no default 2 mesmo quando o DB tem outro valor,
+  // e o Popover "Próxima ação" abre sempre vazio. Chave separada permite
+  // patch otimista sem invalidar a lista principal (evita piscar a tela).
+  const { data: bridgedPlanning } = useQuery({
+    queryKey: ["tarefa-planning", detailTarefaId],
+    queryFn: async () => {
+      if (!detailTarefaId) return null;
+      const { data } = await supabase
+        .from("projeto_tarefas")
+        .select("dias_alerta_antes, data_proxima_acao, data_inicio_planejada")
+        .eq("id", detailTarefaId)
+        .maybeSingle();
+      return (data as { dias_alerta_antes: number | null; data_proxima_acao: string | null; data_inicio_planejada: string | null } | null) ?? null;
+    },
+    enabled: !!detailTarefaId && detailOpen,
+    staleTime: 30_000,
+  });
+
   const bridgedTarefa: ProjetoTarefa | null = useMemo(() => {
     if (!detailTarefa) return null;
     return {
@@ -633,9 +653,21 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
       // Campos de planejamento também exibidos/editáveis pelo drawer.
       // Sem esses fallbacks o Popover de "Início planejado" nunca reflete o
       // valor após seleção — o DB salva mas a UI mostra placeholder.
-      data_inicio_planejada: detailTarefa.data_inicio_planejada ?? null,
-      data_proxima_acao: (detailTarefa as any).data_proxima_acao ?? null,
-      alertar_antes: (detailTarefa as any).alertar_antes ?? null,
+      // `dias_alerta_antes` e `data_proxima_acao` vêm de bridgedPlanning
+      // (a RPC da lista não os traz) e são sobrescritos otimisticamente
+      // por handleBridgeUpdate para eliminar o "travado em 2 dias".
+      data_inicio_planejada:
+        (detailTarefa as any).data_inicio_planejada
+        ?? bridgedPlanning?.data_inicio_planejada
+        ?? null,
+      data_proxima_acao:
+        (detailTarefa as any).data_proxima_acao
+        ?? bridgedPlanning?.data_proxima_acao
+        ?? null,
+      dias_alerta_antes:
+        (detailTarefa as any).dias_alerta_antes
+        ?? bridgedPlanning?.dias_alerta_antes
+        ?? null,
       data_conclusao: detailTarefa.data_conclusao,
       codigo: detailTarefa.codigo,
       estagio: detailTarefa.estagio,
@@ -646,7 +678,7 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
       produto_id: detailTarefa.produto_id,
       subtarefas: bridgedSubtarefas,
     } as ProjetoTarefa;
-  }, [detailTarefa, bridgedSubtarefas, bridgedJunctions]);
+  }, [detailTarefa, bridgedSubtarefas, bridgedJunctions, bridgedPlanning]);
 
   const { data: bridgedSecoes = [] } = useQuery({
     queryKey: ["projeto-secoes-bridge", selectedProjetoId],
@@ -668,19 +700,38 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
       const ok = await confirmConclusaoTarefa({});
       if (!ok) return;
     }
-    const result = await attemptSave("Salvar tarefa", () =>
-      supabase.from("projeto_tarefas").update(updates as any).eq("id", id),
-    );
-    if (!result.ok) return; // mantém o painel aberto; toast oferece retry
-    queryClient.invalidateQueries({ queryKey: ["minhas-tarefas"], refetchType: "none" });
+    // Patch otimista ANTES do await para eliminar o "travado" no Select
+    // "Alertar antes" e no Popover "Próxima ação" — o valor selecionado
+    // aparece no mesmo frame, sem esperar o round-trip da rede.
+    const prevDetail = detailTarefa;
     if (detailTarefa && detailTarefa.id === id) {
       setDetailTarefa({ ...detailTarefa, ...updates } as MinaTarefa);
+    }
+    if (detailTarefaId === id) {
+      queryClient.setQueryData<{ dias_alerta_antes: number | null; data_proxima_acao: string | null; data_inicio_planejada: string | null } | null>(
+        ["tarefa-planning", id],
+        (old) => ({
+          dias_alerta_antes: (updates as any).dias_alerta_antes ?? old?.dias_alerta_antes ?? null,
+          data_proxima_acao: (updates as any).data_proxima_acao ?? old?.data_proxima_acao ?? null,
+          data_inicio_planejada: (updates as any).data_inicio_planejada ?? old?.data_inicio_planejada ?? null,
+        }),
+      );
     }
     if (detailTarefaId) {
       queryClient.setQueryData<ProjetoTarefa[]>(["projeto-tarefas-subtarefas-bridge", detailTarefaId], (old = []) =>
         old.map((st) => st.id === id ? ({ ...st, ...updates } as ProjetoTarefa) : st),
       );
     }
+    const result = await attemptSave("Salvar tarefa", () =>
+      supabase.from("projeto_tarefas").update(updates as any).eq("id", id),
+    );
+    if (!result.ok) {
+      // rollback do estado local se a persistência falhou
+      if (prevDetail && prevDetail.id === id) setDetailTarefa(prevDetail);
+      queryClient.invalidateQueries({ queryKey: ["tarefa-planning", id], refetchType: "active" });
+      return;
+    }
+    queryClient.invalidateQueries({ queryKey: ["minhas-tarefas"], refetchType: "none" });
   }, [queryClient, detailTarefa, detailTarefaId, attemptSave]);
 
   const handleBridgeToggle = useCallback(async (t: ProjetoTarefa) => {
