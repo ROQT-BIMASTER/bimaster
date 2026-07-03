@@ -82,18 +82,18 @@ export function useSuporteAcoes() {
       ticketId: string;
       filaDestinoId: string;
       motivo: string;
-    }): Promise<{ para_fila_nome: string; protocolo: string | null }> => {
+    }): Promise<{ ok: boolean; para_fila: string }> => {
       const { data, error } = await (supabase.rpc as any)("rpc_suporte_transferir", {
         p_ticket_id: input.ticketId,
-        p_fila_destino_id: input.filaDestinoId,
+        p_para_fila_id: input.filaDestinoId,
         p_motivo: input.motivo,
       });
       if (error) throw error;
-      return data as { para_fila_nome: string; protocolo: string | null };
+      return data as { ok: boolean; para_fila: string };
     },
     onSuccess: (res) => {
       invalidate();
-      toast.success(`Chamado transferido para ${res.para_fila_nome}`);
+      toast.success(`Chamado transferido para ${res.para_fila}`);
     },
     onError: (err: Error) => {
       toast.error("Erro ao transferir chamado", { description: err.message });
