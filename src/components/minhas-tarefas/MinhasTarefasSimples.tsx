@@ -203,6 +203,7 @@ function Row({
       />
       <div className="min-w-0 flex items-center gap-2">
         <PriorityFlag value={t.prioridade} />
+        <PapelBadge papel={t.papel} />
         <span className={cn("text-sm truncate", done && "line-through text-muted-foreground")}>
           {t.titulo}
         </span>
