@@ -1,7 +1,5 @@
-import { useState, useMemo, useEffect, useRef, useCallback } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
-import { acquireReloadGate, releaseReloadGate } from "@/lib/pwaReloadGate";
-import { acquireDetailGate, releaseDetailGate } from "@/hooks/projetoTarefasOpenGate";
 import { useProjetoTarefas, ProjetoTarefa, ProjetoSecao } from "@/hooks/useProjetoTarefas";
 import { ProjetoFilters, ProjetoSort, EMPTY_FILTERS, DEFAULT_SORT } from "./ProjetoFilterSort";
 import { applyProjetoFilters, applyProjetoSort, hasActiveFilters } from "@/lib/projetoFilterUtils";
@@ -46,7 +44,6 @@ import {
   STATUS_LABELS, STATUS_COLORS_KANBAN as STATUS_COLORS,
   ESTAGIO_LABELS, ESTAGIO_COLORS_KANBAN as ESTAGIO_COLORS, ESTAGIO_ACCENT_KANBAN as ESTAGIO_ACCENT,
 } from "@/lib/projetoConstants";
-import { buildTarefaDetalheSnapshot, mergeTarefaDetalheSnapshot, patchTarefaInDetailTree } from "@/lib/projetos/stableTaskDetail";
 
 interface Props {
   projetoId: string;
@@ -116,31 +113,8 @@ export function ProjetoKanbanView({ projetoId, darkBg = false, filters = EMPTY_F
       { replace: true },
     );
   };
-  // Mesmo bridge estável da lista: o drawer não depende diretamente da troca
-  // de referência do cache principal durante patches otimistas/refetches.
-  const selectedTarefaFromCache = useMemo(
-    () => buildTarefaDetalheSnapshot(selectedTarefaId, rawTarefas),
-    [selectedTarefaId, rawTarefas],
-  );
-  const [detailTarefa, setDetailTarefa] = useState<ProjetoTarefa | null>(null);
-  useEffect(() => {
-    setDetailTarefa((prev) => {
-      if (!selectedTarefaId) return null;
-      if (!selectedTarefaFromCache) return prev?.id === selectedTarefaId ? prev : null;
-      return mergeTarefaDetalheSnapshot(prev, selectedTarefaFromCache);
-    });
-  }, [selectedTarefaId, selectedTarefaFromCache]);
-  const selectedTarefa = detailTarefa ?? selectedTarefaFromCache;
-  // Reload-gate enquanto há tarefa aberta: PWA não recarrega no meio de edição.
-  useEffect(() => {
-    if (!selectedTarefaId) return;
-    acquireReloadGate();
-    acquireDetailGate(projetoId);
-    return () => {
-      releaseReloadGate();
-      releaseDetailGate(projetoId);
-    };
-  }, [selectedTarefaId, projetoId]);
+  // O drawer de detalhe é renderizado em `ProjetoDetalhe`, fora desta árvore.
+  // Assim, quando o quadro troca para skeleton durante refetch, o drawer não desmonta.
   const [activeId, setActiveId] = useState<string | null>(null);
   const [overColumnId, setOverColumnId] = useState<string | null>(null);
   const [quickAddSecaoId, setQuickAddSecaoId] = useState<string | null>(null);
@@ -272,10 +246,6 @@ export function ProjetoKanbanView({ projetoId, darkBg = false, filters = EMPTY_F
     setOverColumnId(null);
   };
 
-  const patchOpenTarefa = useCallback((id: string, updates: Partial<ProjetoTarefa>) => {
-    setDetailTarefa((prev) => patchTarefaInDetailTree(prev, id, updates));
-  }, []);
-
   if (secoesLoading || tarefasLoading) {
     return <KanbanSkeleton darkBg={darkBg} />;
   }
@@ -406,11 +376,10 @@ export function ProjetoKanbanView({ projetoId, darkBg = false, filters = EMPTY_F
 
       {/* Task detail sheet */}
       <ProjetoTarefaDetalhe
-        tarefa={selectedTarefa}
+        tarefa={null}
         open={!!selectedTarefaId}
         onOpenChange={(open) => { if (!open) setSelectedTarefaId(null); }}
         onUpdate={(id, updates) => {
-          patchOpenTarefa(id, updates);
           updateTarefa.mutate({ id, ...updates });
         }}
         onToggle={(t) => void confirmAndToggleTarefa(t)}
@@ -420,7 +389,6 @@ export function ProjetoKanbanView({ projetoId, darkBg = false, filters = EMPTY_F
         onDelete={(id) => softDeleteTarefa.mutate(id)}
         secoes={secoes}
         onMoveTarefa={(tarefaId, secaoOrigemId, secaoDestinoId) => {
-          patchOpenTarefa(tarefaId, { secao_id: secaoDestinoId } as Partial<ProjetoTarefa>);
           moveTarefaToSecao.mutate({ tarefaId, secaoOrigemId, secaoDestinoId });
         }}
         onOpenSubtarefa={(id) => setSelectedTarefaId(id)}
