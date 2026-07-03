@@ -34,7 +34,7 @@ export interface MinaTarefa {
   produto_id: string | null;
   created_at: string;
   updated_at: string;
-  papel: "responsavel" | "colaborador";
+  papel: "responsavel" | "colaborador" | "seguidor";
 }
 
 export interface TarefaGroup {
