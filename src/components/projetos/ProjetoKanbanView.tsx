@@ -4,7 +4,6 @@ import { useProjetoTarefas, ProjetoTarefa, ProjetoSecao } from "@/hooks/useProje
 import { ProjetoFilters, ProjetoSort, EMPTY_FILTERS, DEFAULT_SORT } from "./ProjetoFilterSort";
 import { applyProjetoFilters, applyProjetoSort, hasActiveFilters } from "@/lib/projetoFilterUtils";
 import { EmptyState } from "@/components/ui/empty-state";
-import { ProjetoTarefaDetalhe } from "./ProjetoTarefaDetalhe";
 import { NovaTarefaInline } from "./NovaTarefaInline";
 import { NovaSecaoInline } from "./NovaSecaoInline";
 import { KanbanSkeleton } from "./ProjetoSkeletons";
@@ -71,8 +70,8 @@ function DroppableSecao({ id, children, isOver }: { id: string; children: React.
 export function ProjetoKanbanView({ projetoId, darkBg = false, filters = EMPTY_FILTERS, sort = DEFAULT_SORT }: Props) {
   const {
     secoes, tarefas: rawTarefas, secoesLoading, tarefasLoading,
-    tarefasPorSecao: rawTarefasPorSecao, createTarefa, updateTarefa,
-    toggleTarefaCompleta, confirmAndToggleTarefa, moveTarefaToSecao, createSecao, reorderTarefasSecao, softDeleteTarefa,
+    tarefasPorSecao: rawTarefasPorSecao, createTarefa,
+    confirmAndToggleTarefa, moveTarefaToSecao, createSecao, reorderTarefasSecao,
     updateSecao,
   } = useProjetoTarefas(projetoId);
 
@@ -373,26 +372,6 @@ export function ProjetoKanbanView({ projetoId, darkBg = false, filters = EMPTY_F
           {activeTarefa ? <OverlayKanbanCard tarefa={activeTarefa} darkBg={darkBg} /> : null}
         </DragOverlay>
       </DndContext>
-
-      {/* Task detail sheet */}
-      <ProjetoTarefaDetalhe
-        tarefa={null}
-        open={!!selectedTarefaId}
-        onOpenChange={(open) => { if (!open) setSelectedTarefaId(null); }}
-        onUpdate={(id, updates) => {
-          updateTarefa.mutate({ id, ...updates });
-        }}
-        onToggle={(t) => void confirmAndToggleTarefa(t)}
-        onAddSubtarefa={async (titulo, parentId, secaoId) => {
-          await createTarefa.mutateAsync({ titulo, secao_id: secaoId, parent_tarefa_id: parentId });
-        }}
-        onDelete={(id) => softDeleteTarefa.mutate(id)}
-        secoes={secoes}
-        onMoveTarefa={(tarefaId, secaoOrigemId, secaoDestinoId) => {
-          moveTarefaToSecao.mutate({ tarefaId, secaoOrigemId, secaoDestinoId });
-        }}
-        onOpenSubtarefa={(id) => setSelectedTarefaId(id)}
-      />
     </>
   );
 }
