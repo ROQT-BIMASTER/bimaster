@@ -314,7 +314,7 @@ export function ProjetoSecao({
           {(() => {
             const renderRow = (tarefa: ProjetoTarefa) => (
               <ProjetoTarefaRow
-                key={tarefa.id}
+                key={(tarefa as any).__clientKey || tarefa.id}
                 tarefa={tarefa}
                 selected={tarefa.id === selectedTarefaId}
                 onToggle={onToggleTarefa}
@@ -341,7 +341,7 @@ export function ProjetoSecao({
                 items={tarefas}
                 estimatedRowHeight={40}
                 maxHeight={Math.min(720, Math.max(400, window.innerHeight - 320))}
-                getKey={(t) => t.id}
+                getKey={(t) => (t as any).__clientKey || t.id}
                 renderRow={(t) => renderRow(t)}
               />
             );
