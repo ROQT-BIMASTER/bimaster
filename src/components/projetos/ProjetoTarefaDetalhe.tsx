@@ -28,6 +28,8 @@ import { DisplayGradePopover } from "@/components/fabrica/DisplayGradePopover";
 import { cn } from "@/lib/utils";
 import { copyTarefaLink } from "@/lib/utils/copyDeepLink";
 import { flickerLog } from "@/lib/debug/flickerLog";
+import { handleDescricaoImagePaste } from "@/lib/tarefas/pasteImageToDescription";
+import { TarefaDescricaoPreview } from "@/components/tarefas/TarefaDescricaoPreview";
 import { isTarefasFlagEnabled } from "@/lib/tarefas/featureFlags";
 import { lockField, unlockField } from "@/lib/tarefas/editingFieldsStore";
 import { trackLocalMutation } from "@/lib/tarefas/lastLocalMutationTracker";
@@ -1464,7 +1466,16 @@ export function ProjetoTarefaDetalhe({
                     value={descValue}
                     onChange={e => setDescValue(e.target.value)}
                     onBlur={handleDescBlur}
-                    placeholder="Do que se trata esta tarefa?"
+                    onPaste={(e) => {
+                      void handleDescricaoImagePaste({
+                        event: e,
+                        userId: user?.id,
+                        tarefaId: tarefa.id,
+                        value: descValue,
+                        onChange: setDescValue,
+                      });
+                    }}
+                    placeholder="Do que se trata esta tarefa? (dica: cole imagens direto aqui)"
                     className={cn(
                       "text-sm bg-muted/30 border-border/50 transition-[min-height,max-height] duration-200",
                       descExpanded
@@ -1472,6 +1483,12 @@ export function ProjetoTarefaDetalhe({
                         : "min-h-[80px] resize-none",
                     )}
                   />
+                  {/(sb-storage:\/\/)/.test(descValue) && (
+                    <div className="mt-2 p-2 rounded border border-border/50 bg-background/50">
+                      <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-1">Prévia</p>
+                      <TarefaDescricaoPreview value={descValue} className="text-sm space-y-1" />
+                    </div>
+                  )}
                 </div>
 
 

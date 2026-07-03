@@ -24,6 +24,8 @@ import { TAREFA_DETALHE_TELA } from "@/config/tarefa-detalhe-componentes";
 import { MinhasTarefaAnexos } from "./MinhasTarefaAnexos";
 import { MinhasTarefaChat } from "./MinhasTarefaChat";
 import type { MinaTarefa } from "@/hooks/useMinhasTarefas";
+import { handleDescricaoImagePaste } from "@/lib/tarefas/pasteImageToDescription";
+import { TarefaDescricaoPreview } from "@/components/tarefas/TarefaDescricaoPreview";
 
 interface Props {
   tarefa: MinaTarefa | null;
@@ -220,9 +222,25 @@ export function MinhasTarefaDetail({ tarefa, open, onOpenChange }: Props) {
               <Textarea
                 value={descricao}
                 onChange={(e) => setDescricao(e.target.value)}
-                placeholder="Adicione observações sobre esta tarefa..."
+                onPaste={(e) => {
+                  if (!tarefa) return;
+                  void handleDescricaoImagePaste({
+                    event: e,
+                    userId: user?.id,
+                    tarefaId: tarefa.id,
+                    value: descricao,
+                    onChange: setDescricao,
+                  });
+                }}
+                placeholder="Adicione observações sobre esta tarefa... (dica: cole imagens direto aqui)"
                 className="min-h-[80px] text-sm resize-none"
               />
+              {/(sb-storage:\/\/)/.test(descricao) && (
+                <div className="mt-1 p-2 rounded border border-border/50 bg-background/50">
+                  <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-1">Prévia</p>
+                  <TarefaDescricaoPreview value={descricao} className="text-sm space-y-1" />
+                </div>
+              )}
             </div>
           )}
 
