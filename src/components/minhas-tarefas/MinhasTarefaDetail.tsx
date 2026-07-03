@@ -24,6 +24,8 @@ import { TAREFA_DETALHE_TELA } from "@/config/tarefa-detalhe-componentes";
 import { MinhasTarefaAnexos } from "./MinhasTarefaAnexos";
 import { MinhasTarefaChat } from "./MinhasTarefaChat";
 import type { MinaTarefa } from "@/hooks/useMinhasTarefas";
+import { handleDescricaoImagePaste } from "@/lib/tarefas/pasteImageToDescription";
+import { TarefaDescricaoPreview } from "@/components/tarefas/TarefaDescricaoPreview";
 
 interface Props {
   tarefa: MinaTarefa | null;
