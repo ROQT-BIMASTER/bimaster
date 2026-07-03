@@ -433,12 +433,14 @@ function PersonPicker({ current, members, onSelect }: {
         >
           {current ? (
             <>
-              <Avatar className="h-6 w-6 flex-shrink-0 ring-2 ring-primary/20">
-                <AvatarImage src={current.avatar_url || undefined} referrerPolicy="no-referrer" />
-                <AvatarFallback className="text-[10px] bg-primary/15 text-primary font-semibold">
-                  {current.nome?.substring(0, 2).toUpperCase()}
-                </AvatarFallback>
-              </Avatar>
+              <SmartAvatar
+                src={current.avatar_url}
+                nome={current.nome}
+                identifier={current.id}
+                fallbackNome="Membro"
+                className="h-6 w-6 flex-shrink-0 ring-2 ring-primary/20"
+                fallbackClassName="text-[10px] font-semibold"
+              />
               <span className="text-xs text-foreground/80 truncate hidden xl:inline">{current.nome?.split(" ")[0]}</span>
             </>
           ) : (
