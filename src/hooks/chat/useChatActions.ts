@@ -48,7 +48,7 @@ export function useChatActions() {
         .maybeSingle();
       if (suporteTicketError) throw suporteTicketError;
 
-      const suporteTicket = suporteTicketRaw as
+      const suporteTicket = suporteTicketRaw as unknown as
         | { id: string; owner_id: string | null; requester_id: string | null }
         | null;
 
