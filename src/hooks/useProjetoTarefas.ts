@@ -1035,6 +1035,8 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
       await queryClient.cancelQueries({ queryKey: ["projeto-tarefas-v2", projetoId] });
       const previous = queryClient.getQueryData<ProjetoTarefasView>(["projeto-tarefas-v2", projetoId]);
       const info = resolveMembro(userId, previous);
+      enrichPessoaFromProfile(userId, { id: userId, nome: info.nome, avatar_url: info.avatar_url });
+
       patchView((v) => ({
         ...v,
         tarefas: v.tarefas.map(t => {
