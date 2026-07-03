@@ -211,10 +211,45 @@ test.describe("Meus Projetos — colaboradores (seguidores) sem flicker", () => 
     await owner?.auth.signOut();
   });
 
-  test("adicionar e remover colaborador não desmonta <img> pré-existentes nem exibe fallback", async ({
+  test("adicionar e remover colaborador não desmonta <img>, não exibe fallback e não re-fetcha avatares", async ({
     page,
   }) => {
     await loginUi(page, OWNER.email, OWNER.password);
+
+    // -------- Interceptor de rede para requisições relacionadas a avatar --------
+    // Contamos APENAS as requisições disparadas DENTRO da janela armada
+    // (`recording = true`). Fora dela, tudo é ignorado — evita contar o
+    // carregamento inicial dos perfis/imagens.
+    //
+    // Categorias monitoradas:
+    //   - REST profiles:    /rest/v1/profiles*                (select avatar_url/nome)
+    //   - Edge profile-mini: /functions/v1/profile-mini*      (batch de perfis)
+    //   - Edge profiles-batch: /functions/v1/profiles-batch*
+    //   - Storage avatars:  /storage/v1/object/*avatars*      (imagens)
+    //   - Signed URL:       /storage/v1/object/sign/avatars*
+    const recording = { on: false };
+    const hits: { url: string; category: string }[] = [];
+    const classify = (url: string): string | null => {
+      if (/\/rest\/v1\/profiles(\?|$)/.test(url)) return "rest-profiles";
+      if (/\/functions\/v1\/profile-mini(\/|\?|$)/.test(url)) return "edge-profile-mini";
+      if (/\/functions\/v1\/profiles-batch(\/|\?|$)/.test(url)) return "edge-profiles-batch";
+      if (/\/storage\/v1\/object\/(sign\/)?[^?]*avatars/.test(url)) return "storage-avatars";
+      return null;
+    };
+    page.on("request", (req) => {
+      if (!recording.on) return;
+      const cat = classify(req.url());
+      if (cat) hits.push({ url: req.url(), category: cat });
+    });
+    const startRecording = () => {
+      hits.length = 0;
+      recording.on = true;
+    };
+    const stopRecording = () => {
+      recording.on = false;
+      return hits.slice();
+    };
+
     await page.goto(`/dashboard/projetos/${PROJETO_ID}?tarefa=${tarefaId}`);
 
     // Aguarda o botão "Adicionar seguidor" — indica que o editor hidratou.
@@ -224,7 +259,7 @@ test.describe("Meus Projetos — colaboradores (seguidores) sem flicker", () => 
       .waitFor({ timeout: 20_000 });
 
     // Warm-up: dá tempo do preloader de perfis carregar as imagens já visíveis
-    // (avatar do responsável dono). Fora da janela do observer — não conta.
+    // (avatar do responsável dono). Fora da janela do observer/interceptor.
     await page.waitForTimeout(1500);
 
     const clickMember = async () => {
@@ -244,6 +279,7 @@ test.describe("Meus Projetos — colaboradores (seguidores) sem flicker", () => 
 
     // ---------- 1) ADD colaborador ----------
     await armFlickerObserver(page);
+    startRecording();
     await page
       .getByRole("button", { name: "Adicionar seguidor", exact: true })
       .first()
@@ -252,6 +288,7 @@ test.describe("Meus Projetos — colaboradores (seguidores) sem flicker", () => 
     // Aguarda patch otimista + eventual settle.
     await page.waitForTimeout(1200);
     const addStats = await readFlicker(page);
+    const addNet = stopRecording();
     await page.keyboard.press("Escape");
     await page.waitForTimeout(200);
 
@@ -263,15 +300,24 @@ test.describe("Meus Projetos — colaboradores (seguidores) sem flicker", () => 
       addStats.fallbackAppeared,
       "add colaborador: fallback textual apareceu em avatar já montado",
     ).toBe(0);
+    // Nenhuma request de perfil deve ser disparada — patch otimista usa cache.
+    // A imagem do novo colaborador vem pré-aquecida via warm-up de cache do
+    // TanStack Query. Qualquer re-fetch aqui é regressão.
+    expect(
+      addNet,
+      `add colaborador: requests inesperadas de avatar/perfil durante patch otimista: ${JSON.stringify(
+        addNet,
+        null,
+        2,
+      )}`,
+    ).toEqual([]);
 
     // Espera a nova pill de seguidor estabilizar antes da próxima medição.
     await page.waitForTimeout(500);
 
     // ---------- 2) REMOVE colaborador ----------
     await armFlickerObserver(page);
-    // Cada pill de seguidor é um <button> com title contendo
-    // "clique para trocar ou remover" (SubtarefaResponsavelPicker/pill do
-    // TarefaResponsavelSeguidoresEditor). Pega a última — recém-adicionada.
+    startRecording();
     const segPills = page.locator('button[title*="clique para trocar ou remover"]');
     const segCount = await segPills.count();
     expect(segCount, "esperava ao menos uma pill de seguidor após add").toBeGreaterThan(0);
@@ -279,10 +325,9 @@ test.describe("Meus Projetos — colaboradores (seguidores) sem flicker", () => 
     await page.getByRole("option", { name: /remover este seguidor/i }).click();
     await page.waitForTimeout(1200);
     const rmStats = await readFlicker(page);
+    const rmNet = stopRecording();
     await page.keyboard.press("Escape");
 
-    // A remoção legítima do próprio avatar da pill que saiu pode contar 1;
-    // qualquer valor >1 indica flicker em outros avatares.
     expect(
       rmStats.imgsRemoved,
       `remove colaborador: <img> pré-existentes desmontados além da própria pill: ${JSON.stringify(
@@ -293,5 +338,16 @@ test.describe("Meus Projetos — colaboradores (seguidores) sem flicker", () => 
       rmStats.fallbackAppeared,
       "remove colaborador: fallback textual apareceu em outro avatar",
     ).toBe(0);
+    // Remoção também é patch otimista puro — não deve gerar refetch de perfis
+    // nem re-download de imagens já em cache.
+    expect(
+      rmNet,
+      `remove colaborador: requests inesperadas de avatar/perfil durante patch otimista: ${JSON.stringify(
+        rmNet,
+        null,
+        2,
+      )}`,
+    ).toEqual([]);
   });
 });
+
