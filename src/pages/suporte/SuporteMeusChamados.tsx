@@ -13,6 +13,8 @@ import {
 import { LifeBuoy, Plus, Search, Loader2, MessageSquare } from "lucide-react";
 import { isSuporteV2Enabled } from "@/lib/featureFlags";
 import { useMeusChamados } from "@/hooks/suporte/useSuporteChamados";
+import { useSuporteIaTrigger } from "@/hooks/suporte/useSuporteIaTrigger";
+import { useAuth } from "@/contexts/AuthContext";
 import { NovoChamadoDialog } from "@/components/suporte/NovoChamadoDialog";
 import { ChamadoListItem } from "@/components/suporte/ChamadoListItem";
 import { ChatThread } from "@/components/chat/v2/ChatThread";
@@ -41,6 +43,8 @@ export default function SuporteMeusChamados() {
   }, [chamados, filtroStatus, busca]);
 
   const selecionado = chamados.find((c) => c.id === selecionadoId) ?? null;
+  const { user } = useAuth();
+  useSuporteIaTrigger(selecionado?.conversa_id, user?.id);
 
   if (!isSuporteV2Enabled()) {
     return (

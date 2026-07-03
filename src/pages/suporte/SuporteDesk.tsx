@@ -17,6 +17,7 @@ import { isSuporteV2Enabled } from "@/lib/featureFlags";
 import { useMinhasFilasAgente } from "@/hooks/suporte/useSuporteFilas";
 import { useChamadosDesk } from "@/hooks/suporte/useSuporteChamados";
 import { useSuporteAcoes } from "@/hooks/suporte/useSuporteAcoes";
+import { useSuporteIaTrigger } from "@/hooks/suporte/useSuporteIaTrigger";
 import { ChamadoListItem } from "@/components/suporte/ChamadoListItem";
 import { TransferirChamadoDialog } from "@/components/suporte/TransferirChamadoDialog";
 import { ChatThread } from "@/components/chat/v2/ChatThread";
@@ -45,6 +46,7 @@ export default function SuporteDesk() {
   }, [chamados, filtroStatus]);
 
   const selecionado = chamados.find((c) => c.id === selecionadoId) ?? null;
+  useSuporteIaTrigger(selecionado?.conversa_id, user?.id);
 
   if (!isSuporteV2Enabled()) {
     return (
