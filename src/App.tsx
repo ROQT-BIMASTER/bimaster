@@ -91,6 +91,7 @@ const Configuracoes = lazyWithRetry(() => import("./pages/Configuracoes"));
 const MenuConfig = lazyWithRetry(() => import("./pages/dashboard/configuracoes/MenuConfig"));
 const PermissoesModulo = lazyWithRetry(() => import("./pages/dashboard/configuracoes/PermissoesModulo"));
 const ConfiguracoesAcesso = lazyWithRetry(() => import("./pages/dashboard/configuracoes/ConfiguracoesAcesso"));
+const MatrizPermissoes = lazyWithRetry(() => import("./pages/dashboard/configuracoes/MatrizPermissoes"));
 const CrmHome = lazyWithRetry(() => import("./pages/crm/CrmHome"));
 const CrmBots = lazyWithRetry(() => import("./pages/crm/CrmBots"));
 const CrmInbox = lazyWithRetry(() => import("./pages/crm/CrmInbox"));
