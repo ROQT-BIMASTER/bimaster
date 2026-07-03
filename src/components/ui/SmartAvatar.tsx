@@ -69,7 +69,7 @@ function hashSeed(seed: string): number {
   return Math.abs(h);
 }
 
-function computeFallbackStyle(seed: string): React.CSSProperties {
+function computeFallbackStyle(seed: string): CSSProperties {
   const hue = hashSeed(seed) % 360;
   return {
     backgroundColor: `hsl(${hue} ${FALLBACK_SATURATION}% ${FALLBACK_LIGHTNESS}%)`,
