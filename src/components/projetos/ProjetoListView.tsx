@@ -327,7 +327,7 @@ export function ProjetoListView({ projetoId, darkBg = false, filters = EMPTY_FIL
           />
         </div>
       )}
-      <div className={`border rounded-lg overflow-hidden ${darkBg ? "border-white/20 bg-white/5" : "border-border/50 bg-card"}`}>
+      <div data-tarefas-list-root className={`border rounded-lg overflow-hidden ${darkBg ? "border-white/20 bg-white/5" : "border-border/50 bg-card"}`}>
         {/* Column headers */}
         <div className={`flex items-center gap-0 px-3 py-2 border-b font-semibold text-[11px] uppercase tracking-wider ${darkBg ? "border-white/10 bg-white/5 text-white/70" : "border-border/50 bg-muted/50 text-foreground/60"}`}>
           <div className="flex-1 flex items-center gap-0" style={{ display: "grid", gridTemplateColumns: buildGridCols(columns).replace(/_/g, " ") }}>
