@@ -481,7 +481,7 @@ function CanceladasSection({
         <div className="opacity-70">
           {tarefas.map((t) => (
             <ProjetoTarefaRow
-              key={t.id}
+              key={(t as any).__clientKey || t.id}
               tarefa={t}
               onToggle={onToggle}
               onSelect={onSelect}
