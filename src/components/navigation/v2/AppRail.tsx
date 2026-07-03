@@ -32,15 +32,28 @@ import {
   Briefcase,
   Factory,
   FolderKanban,
+  KeyRound,
   LayoutGrid,
   Loader2,
+  LogOut,
   Megaphone,
   Search,
   Settings,
   Sparkles,
+  UserCircle,
   Wallet,
   type LucideProps,
 } from "lucide-react";
+import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import {
   Tooltip,
@@ -348,12 +361,11 @@ export function AppRail({ side = "left" }: AppRailProps) {
 
           
 
-          <Tooltip>
-            <TooltipTrigger asChild>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
               <button
                 type="button"
-                aria-label="Meu perfil"
-                onClick={() => navigate("/dashboard/meu-perfil")}
+                aria-label="Menu do usuário"
                 className="h-9 w-9 rounded-full flex items-center justify-center text-[13px] font-semibold transition-transform hover:scale-105"
                 style={{
                   background: "hsl(var(--primary))",
@@ -362,12 +374,41 @@ export function AppRail({ side = "left" }: AppRailProps) {
               >
                 {userInitial(user?.email)}
               </button>
-            </TooltipTrigger>
-            <TooltipContent side={tooltipSide} className="z-[120]">
-              <div className="text-xs">{user?.email ?? "Perfil"}</div>
-            </TooltipContent>
-
-          </Tooltip>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent side={tooltipSide} align="end" className="w-56 z-[120]">
+              <DropdownMenuLabel className="truncate">
+                {user?.email ?? "Perfil"}
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onSelect={() => navigate("/dashboard/meu-perfil")}>
+                <UserCircle className="h-4 w-4 mr-2" />
+                Meu Perfil
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => navigate("/dashboard/meu-perfil#senha")}>
+                <KeyRound className="h-4 w-4 mr-2" />
+                Alterar Senha
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                className="text-destructive focus:text-destructive"
+                onSelect={async () => {
+                  try {
+                    localStorage.removeItem("user_approved_cache");
+                    localStorage.removeItem("user_active_cache");
+                    localStorage.removeItem("user_role_cache");
+                    await supabase.auth.signOut();
+                    toast.success("Sessão encerrada");
+                    navigate("/auth/login");
+                  } catch {
+                    toast.error("Erro ao encerrar sessão");
+                  }
+                }}
+              >
+                <LogOut className="h-4 w-4 mr-2" />
+                Sair
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </aside>
 
