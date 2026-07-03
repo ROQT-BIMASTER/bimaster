@@ -185,12 +185,24 @@ export const SignupForm = () => {
 
       if (error) {
         const msg = error.message?.toLowerCase() ?? "";
-        if (msg.includes("already") || msg.includes("registered") || msg.includes("exists")) {
+        const code = (error as { code?: string }).code ?? "";
+        if (code === "weak_password" || msg.includes("weak") || msg.includes("pwned") || msg.includes("known to be")) {
+          toast.error("Senha vulnerável", {
+            description:
+              "Essa senha aparece em vazamentos públicos e foi bloqueada por segurança. Escolha uma senha longa (12+ caracteres) misturando maiúsculas, minúsculas, números e símbolos — evite datas, nomes e sequências.",
+          });
+        } else if (
+          code === "user_already_exists" ||
+          code === "email_exists" ||
+          msg.includes("already") ||
+          msg.includes("registered") ||
+          msg.includes("exists")
+        ) {
           toast.error("Email já cadastrado", { description: "Use o link 'Entrar' ou recupere sua senha." });
         } else if (msg.includes("password")) {
           toast.error("Senha não atende aos requisitos", { description: error.message });
         } else {
-          toast.error("Erro ao criar conta", { description: error.message });
+          toast.error("Erro ao criar conta", { description: error.message || "Tente novamente em instantes." });
         }
         return;
       }
