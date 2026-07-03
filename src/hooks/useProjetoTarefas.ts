@@ -206,6 +206,24 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
           });
           return { ...v, teamMembers, tarefas };
         });
+        // Reflete o profile enriquecido também nas junções abertas pela Central
+        // de Trabalho — evita avatar cinza no drawer enquanto o profile chega.
+        queryClient.getQueryCache().findAll({ queryKey: ["tarefa-junctions"] }).forEach((q) => {
+          const key = q.queryKey as [string, string | undefined];
+          const tId = key[1];
+          if (!tId) return;
+          const curr = q.state.data as TarefaJunctionsCache | undefined;
+          if (!curr) return;
+          const touchedResp = curr.responsaveis.some(r => r.user_id === userId);
+          const touchedColab = curr.colaboradores.some(c => c.user_id === userId);
+          if (!touchedResp && !touchedColab) return;
+          queryClient.setQueryData<TarefaJunctionsCache>(["tarefa-junctions", tId], {
+            responsaveis: curr.responsaveis.map(r => r.user_id === userId
+              ? { ...r, nome: enriched.nome, avatar_url: enriched.avatar_url } : r),
+            colaboradores: curr.colaboradores.map(c => c.user_id === userId
+              ? { ...c, nome: enriched.nome, avatar_url: enriched.avatar_url } : c),
+          });
+        });
       } catch (err) {
         logger.debug("[enrichPessoaFromProfile] fetch falhou", { userId, err });
       }
