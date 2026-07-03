@@ -14,6 +14,7 @@ interface AbrirChamadoResult {
   ticket_id: string;
   conversa_id: string;
   protocolo: string;
+  primeira_mensagem_id?: string | null;
 }
 
 /** Ações do módulo Suporte v2 — todas via RPCs SECURITY DEFINER (Fase 1). */
@@ -38,6 +39,12 @@ export function useSuporteAcoes() {
     onSuccess: (res) => {
       invalidate();
       toast.success("Chamado aberto", { description: `Protocolo ${res.protocolo}` });
+      // Dispara IA da fila para a descrição inicial (idempotente pelo replies_to).
+      if (res.primeira_mensagem_id) {
+        supabase.functions
+          .invoke("suporte-agente-v2", { body: { mensagem_id: res.primeira_mensagem_id } })
+          .catch(() => {});
+      }
     },
     onError: (err: Error) => {
       toast.error("Erro ao abrir chamado", { description: err.message });
