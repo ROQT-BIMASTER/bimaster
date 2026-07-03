@@ -477,7 +477,13 @@ export function ProjetoTarefaDetalhe({
     if (titleDebounceRef.current) { clearTimeout(titleDebounceRef.current); titleDebounceRef.current = null; }
     if (titleValue.trim() && titleValue !== tarefa.titulo) {
       onUpdate(tarefa.id, { titulo: titleValue.trim() });
+      if (isTarefasFlagEnabled("tarefas_descricao_editor_isolado")) {
+        trackLocalMutation(tarefa.id, ["titulo"]);
+      }
       flagSaved();
+    }
+    if (isTarefasFlagEnabled("tarefas_descricao_editor_isolado")) {
+      unlockField(tarefa.id, "titulo");
     }
   };
 
@@ -485,9 +491,16 @@ export function ProjetoTarefaDetalhe({
     if (descDebounceRef.current) { clearTimeout(descDebounceRef.current); descDebounceRef.current = null; }
     if (descValue !== (tarefa.descricao || "")) {
       onUpdate(tarefa.id, { descricao: descValue });
+      if (isTarefasFlagEnabled("tarefas_descricao_editor_isolado")) {
+        trackLocalMutation(tarefa.id, ["descricao"]);
+      }
       flagSaved();
     }
+    if (isTarefasFlagEnabled("tarefas_descricao_editor_isolado")) {
+      unlockField(tarefa.id, "descricao");
+    }
   };
+
 
 
   const handleDownload = async (anexo: any) => {
