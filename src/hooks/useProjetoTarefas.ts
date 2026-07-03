@@ -1308,6 +1308,7 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
           return mutated ? { ...old, tarefas } : old;
         },
       );
+      if (needsInvalidate || samples_mutated(events)) markTasksUpdated("realtime-batch");
       if (needsInvalidate) {
         queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2", projetoId], refetchType: "none" });
       }
