@@ -102,12 +102,13 @@ function SubtarefaSeguidoresPickerImpl({ subtarefaId, projetoId, colaboradores, 
     // bridges (Central V2 e MinhasTarefas V1) + lista pessoal. Garante que
     // pilhas de avatares atualizem para todos os usuários e em todos os
     // pontos onde a subtarefa aparece.
-    // V2 e lista pessoal com refetchType:"none": addColaborador/
-    // removeColaborador já aplicam patch otimista na V2 (pendingListOps), e
-    // refetch ativo com o painel aberto causa "piscar". Reconciliação ocorre
-    // ao fechar o painel (detail gate / reconcile). Bridges seguem ativas:
-    // alimentam o próprio painel e não têm patch otimista próprio.
-    queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2", projetoId], refetchType: "none" });
+    // V2: refetch ATIVO. O patch otimista do addColaborador/removeColaborador
+    // não reflete de forma confiável no snapshot do drawer de Projetos
+    // (ProjetoDetalhe → detailTarefa via mergeTarefaDetalheSnapshot) — o
+    // seguidor só aparecia após reload. O refetch traz a lista já hidratada do
+    // servidor. Seguro pós-fix do wrapper `Frame` em ProjetoDetalhe: a lista
+    // reconcilia no lugar, sem remontar o drawer (sem piscar).
+    queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2", projetoId], refetchType: "active" });
     // Bridges recebem patch otimista em `addColaborador.onMutate` /
     // `removeColaborador.onMutate` (via `patchSubtarefasBridge`). Um
     // refetch ativo aqui atropela o patch e causa piscada no pill/avatar
