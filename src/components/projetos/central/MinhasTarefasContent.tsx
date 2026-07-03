@@ -868,13 +868,35 @@ export function MinhasTarefasContent({ initialFilter = null }: Props) {
   }, [queryClient, user?.id, selectedProjetoId, detailTarefaId, attemptSave]);
 
   const handleBridgeMoveTarefa = useCallback(async (tarefaId: string, _o: string, secaoDestinoId: string) => {
+    // Patch otimista ANTES do await — sem isso o Select "Mover para" fica
+    // exibindo a seção antiga (o `value` lê `bridgedTarefa.secao_id`) até o
+    // usuário fechar/reabrir o drawer, dando a impressão de que a ação
+    // falhou. Também evita o "piscar" causado por refetch da lista.
+    const destino = bridgedSecoes.find((s) => s.id === secaoDestinoId);
+    const prevDetail = detailTarefa;
+    if (detailTarefa && detailTarefa.id === tarefaId) {
+      setDetailTarefa({
+        ...detailTarefa,
+        secao_id: secaoDestinoId,
+        secao_nome: destino?.nome ?? detailTarefa.secao_nome,
+      } as MinaTarefa);
+    }
+    queryClient.setQueryData<MinaTarefa[]>(["minhas-tarefas", user?.id], (old = []) =>
+      old.map((t) => t.id === tarefaId ? { ...t, secao_id: secaoDestinoId, secao_nome: destino?.nome ?? t.secao_nome } : t),
+    );
     const { error } = await supabase.from("projeto_tarefas").update({ secao_id: secaoDestinoId }).eq("id", tarefaId);
-    if (error) { toast.error("Erro ao mover tarefa"); return; }
-    // Dispara de dentro do painel aberto ("Mover para") — silencioso; a
-    // lista reconcilia ao fechar o painel (wasDetailOpenRef).
+    if (error) {
+      // rollback
+      if (prevDetail && prevDetail.id === tarefaId) setDetailTarefa(prevDetail);
+      queryClient.invalidateQueries({ queryKey: ["minhas-tarefas"], refetchType: "active" });
+      toast.error("Erro ao mover tarefa");
+      return;
+    }
+    // Silencioso: refetchType none preserva o estado atual sem piscar.
     queryClient.invalidateQueries({ queryKey: ["minhas-tarefas"], refetchType: "none" });
+    queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2"], refetchType: "none" });
     toast.success("Tarefa movida");
-  }, [queryClient]);
+  }, [queryClient, bridgedSecoes, detailTarefa, user?.id]);
 
   const handleBridgeDelete = useCallback(async (tarefaId: string) => {
     const live = bridgedTarefa?.id === tarefaId
