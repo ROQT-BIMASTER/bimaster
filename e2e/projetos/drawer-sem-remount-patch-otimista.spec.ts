@@ -38,9 +38,11 @@ async function signIn(email: string, password: string): Promise<SupabaseClient> 
 
 async function loginUi(page: Page, email: string, password: string) {
   await page.goto("/auth");
-  await page.getByLabel(/e-?mail/i).fill(email);
-  await page.getByLabel(/senha/i).fill(password);
-  await page.getByRole("button", { name: /entrar/i }).click();
+  // IDs estáveis do LoginForm (#email/#password). getByLabel(/senha/i) viola o
+  // strict mode: casa também com o botão aria-label="Mostrar senha".
+  await page.locator("#email").fill(email);
+  await page.locator("#password").fill(password);
+  await page.getByRole("button", { name: /^entrar$/i }).click();
   await page.waitForURL(/\/(dashboard|projetos|central)/, { timeout: 30_000 });
 }
 
