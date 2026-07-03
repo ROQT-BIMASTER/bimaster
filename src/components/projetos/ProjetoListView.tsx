@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useRef } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
 import { acquireReloadGate, releaseReloadGate } from "@/lib/pwaReloadGate";
 import { acquireDetailGate, releaseDetailGate } from "@/hooks/projetoTarefasOpenGate";
@@ -20,6 +20,7 @@ import { ListSkeleton } from "./ProjetoSkeletons";
 import { logger } from "@/lib/logger";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
+import { buildTarefaDetalheSnapshot, mergeTarefaDetalheSnapshot, patchTarefaInDetailTree } from "@/lib/projetos/stableTaskDetail";
 
 // Legacy export for backwards compat
 export const GRID_COLS = "grid-cols-[20px_20px_1fr_80px_1px_100px_120px_90px_120px_80px_80px]";
@@ -103,52 +104,22 @@ export function ProjetoListView({ projetoId, darkBg = false, filters = EMPTY_FIL
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialTarefaId, tarefasLoading, tarefas]);
-  // Derive the live tarefa from the freshest `tarefas` array so the detail Sheet
-  // reflects optimistic updates and realtime invalidations without remounting.
-  // Mantém um snapshot da última tarefa não-nula para evitar flicker durante
-  // refetches curtos em que `find()` pode retornar undefined.
-  //
-  // IMPORTANTE: para evitar que o painel `ProjetoTarefaDetalhe` re-renderize
-  // 2-3x ao criar subtarefa (optimistic insert + swap tempId→id + eventual
-  // refetch), só retornamos uma referência NOVA quando o conteúdo relevante
-  // mudou de fato — comparando `updated_at` da tarefa pai + assinatura das
-  // subtarefas (id|updated_at|status|titulo). Conteúdo idêntico ⇒ mesma
-  // referência ⇒ React.memo não dispara render desnecessário.
-  const lastTarefaRef = useRef<ProjetoTarefa | null>(null);
-  const lastSignatureRef = useRef<string>("");
-  const selectedTarefa = useMemo(() => {
-    if (!selectedTarefaId) {
-      lastTarefaRef.current = null;
-      lastSignatureRef.current = "";
-      return null;
-    }
-    const found = tarefas.find((t) => t.id === selectedTarefaId);
-    if (!found) return lastTarefaRef.current;
-    const buildSubtree = (parentId: string): ProjetoTarefa[] =>
-      tarefas
-        .filter((st) => st.parent_tarefa_id === parentId)
-        .map((st) => ({ ...st, subtarefas: buildSubtree(st.id) }));
-    const subs = buildSubtree(found.id);
-    const respIds = (found.responsaveis ?? []).map((r) => r.user_id).sort().join(",");
-    const colabIds = (found.colaboradores ?? []).map((c) => c.user_id).sort().join(",");
-    const subSignature = (s: ProjetoTarefa): string => {
-        const r = (s.responsaveis ?? []).map((x) => x.user_id).sort().join(",");
-        const c = (s.colaboradores ?? []).map((x) => x.user_id).sort().join(",");
-        const stableId = (s as any).__clientKey || s.id;
-        const childrenSig = (s.subtarefas || []).map(subSignature).join(",");
-        return `${stableId}:${s.status}:${s.titulo}:${s.responsavel_id ?? ""}:${r}:${c}:${s.prioridade}:${s.estagio ?? ""}:${s.data_prazo ?? ""}:${(s as any).data_inicio_planejada ?? ""}:[${childrenSig}]`;
-    };
-    const signature =
-      `${found.id}|${found.updated_at}|${found.titulo}|${found.status}|${found.responsavel_id ?? ""}|${respIds}|${colabIds}|${found.prioridade}|${found.data_prazo ?? ""}|${(found as any).data_inicio_planejada ?? ""}|${(found as any).data_inicio_real ?? ""}|${found.descricao ?? ""}|${found.estagio ?? ""}|${found.secao_id}|` +
-      subs.map(subSignature).join(";");
-    if (signature === lastSignatureRef.current && lastTarefaRef.current) {
-      return lastTarefaRef.current;
-    }
-    const enriched = { ...found, subtarefas: subs };
-    lastTarefaRef.current = enriched as ProjetoTarefa;
-    lastSignatureRef.current = signature;
-    return enriched;
-  }, [selectedTarefaId, tarefas]);
+  // Meus Projetos usa o mesmo princípio já aplicado em Minhas Tarefas/Central:
+  // o drawer mantém um snapshot local estável e apenas recebe patches do cache.
+  // Assim refetch/realtime da lista principal não desmonta avatares no meio da edição.
+  const selectedTarefaFromCache = useMemo(
+    () => buildTarefaDetalheSnapshot(selectedTarefaId, tarefas),
+    [selectedTarefaId, tarefas],
+  );
+  const [detailTarefa, setDetailTarefa] = useState<ProjetoTarefa | null>(null);
+  useEffect(() => {
+    setDetailTarefa((prev) => {
+      if (!selectedTarefaId) return null;
+      if (!selectedTarefaFromCache) return prev?.id === selectedTarefaId ? prev : null;
+      return mergeTarefaDetalheSnapshot(prev, selectedTarefaFromCache);
+    });
+  }, [selectedTarefaId, selectedTarefaFromCache]);
+  const selectedTarefa = detailTarefa ?? selectedTarefaFromCache;
   // Mantém reload-gate ativo enquanto há tarefa aberta: o PWA não recarrega
   // a página enquanto o usuário estiver em um drawer aberto.
   useEffect(() => {
@@ -221,7 +192,12 @@ export function ProjetoListView({ projetoId, darkBg = false, filters = EMPTY_FIL
     setSelectedTarefaId(tarefa.id);
   };
 
+  const patchOpenTarefa = useCallback((id: string, updates: Partial<ProjetoTarefa>) => {
+    setDetailTarefa((prev) => patchTarefaInDetailTree(prev, id, updates));
+  }, []);
+
   const handleUpdateTarefa = (id: string, updates: Partial<ProjetoTarefa>) => {
+    patchOpenTarefa(id, updates);
     updateTarefa.mutate({ id, ...updates });
   };
 
@@ -230,6 +206,7 @@ export function ProjetoListView({ projetoId, darkBg = false, filters = EMPTY_FIL
   };
 
   const handleMoveTarefa = (tarefaId: string, secaoOrigemId: string, secaoDestinoId: string) => {
+    patchOpenTarefa(tarefaId, { secao_id: secaoDestinoId } as Partial<ProjetoTarefa>);
     moveTarefaToSecao.mutate({ tarefaId, secaoOrigemId, secaoDestinoId });
   };
 

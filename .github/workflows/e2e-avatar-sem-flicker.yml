@@ -1,0 +1,75 @@
+name: e2e-avatar-sem-flicker
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+    paths:
+      - 'src/components/projetos/ProjetoListView.tsx'
+      - 'src/components/projetos/ProjetoKanbanView.tsx'
+      - 'src/components/projetos/ProjetoTarefaDetalhe.tsx'
+      - 'src/components/projetos/tarefa-detalhe/TarefaResponsavelSeguidoresEditor.tsx'
+      - 'src/components/projetos/tarefa-detalhe/SubtarefaResponsavelPicker.tsx'
+      - 'src/hooks/useProjetoTarefas.ts'
+      - 'src/lib/projetos/stableTaskDetail.ts'
+      - 'e2e/projetos/avatar-sem-flicker-otimista.spec.ts'
+      - '.github/workflows/e2e-avatar-sem-flicker.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: e2e-avatar-sem-flicker-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  e2e:
+    name: Playwright — Avatar sem flicker
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with: { bun-version: latest }
+      - run: bun install --frozen-lockfile
+      - name: Install Playwright browsers
+        run: bunx playwright install --with-deps chromium
+      - name: Warm-up do preview
+        env:
+          E2E_BASE_URL: ${{ secrets.E2E_BASE_URL }}
+        run: |
+          for i in 1 2 3; do
+            code=$(curl -s -o /dev/null -w "%{http_code}" "$E2E_BASE_URL/" || echo "000")
+            echo "warm-up $i -> $code"
+            [ "$code" = "200" ] && break
+            sleep 3
+          done
+      - name: Run Playwright — avatar sem flicker
+        env:
+          CI: "true"
+          E2E_BASE_URL: ${{ secrets.E2E_BASE_URL }}
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+          E2E_PROJETO_ID: ${{ secrets.E2E_PROJETO_ID }}
+          E2E_SECAO_ID: ${{ secrets.E2E_SECAO_ID }}
+          E2E_MEMBER_USER_ID: ${{ secrets.E2E_MEMBER_USER_ID }}
+          E2E_OWNER_EMAIL: ${{ secrets.E2E_OWNER_EMAIL }}
+          E2E_OWNER_PASSWORD: ${{ secrets.E2E_OWNER_PASSWORD }}
+          E2E_TEST_EMAIL: ${{ secrets.E2E_TEST_EMAIL }}
+          E2E_TEST_PASSWORD: ${{ secrets.E2E_TEST_PASSWORD }}
+        run: bunx playwright test e2e/projetos/avatar-sem-flicker-otimista.spec.ts --reporter=list,html
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-avatar-sem-flicker-${{ github.run_id }}
+          path: playwright-report/
+          retention-days: 14
+          if-no-files-found: ignore
+      - name: Upload test-results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-results-avatar-sem-flicker-${{ github.run_id }}
+          path: test-results/
+          retention-days: 14
+          if-no-files-found: ignore
