@@ -346,7 +346,7 @@ export function AppRail({ side = "left" }: AppRailProps) {
             </>
           )}
 
-          <NavVersionToggle variant="rail" />
+          
 
           <Tooltip>
             <TooltipTrigger asChild>
