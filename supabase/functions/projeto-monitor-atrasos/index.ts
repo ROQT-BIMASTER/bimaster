@@ -4,7 +4,10 @@ import { logger } from "../_shared/logger.ts";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
 
 
-Deno.serve(secureHandler({ auth: "apikey", rateLimit: 0, rateLimitPrefix: "projeto-monitor-atrasos" }, async (req) => {
+// Auth: none — invocado apenas pelo cron `monitor-atrasos-diario` (pg_cron +
+// pg_net). O cron não carrega usuário nem chave de ERP; usar apikey/jwt aqui
+// quebrava a execução (histórico em cron.job_run_details).
+Deno.serve(secureHandler({ auth: "none", rateLimit: 0, rateLimitPrefix: "projeto-monitor-atrasos" }, async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: getCorsHeaders(req) });
   }
