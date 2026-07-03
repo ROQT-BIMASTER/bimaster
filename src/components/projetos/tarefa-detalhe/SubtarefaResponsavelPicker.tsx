@@ -113,8 +113,8 @@ function SubtarefaResponsavelPickerImpl({
           // As bridges (b)/(c) seguem ativas: são queries pequenas que
           // alimentam o próprio painel e não têm patch otimista próprio.
           queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-v2", projetoId], refetchType: "none" });
-          queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-subtarefas-bridge"] });
-          queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-subtarefas-bridge-mt"] });
+          queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-subtarefas-bridge"], refetchType: "none" });
+          queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-subtarefas-bridge-mt"], refetchType: "none" });
           queryClient.invalidateQueries({ queryKey: ["minhas-tarefas"], refetchType: "none" });
         },
         onError: (err: any) => {
