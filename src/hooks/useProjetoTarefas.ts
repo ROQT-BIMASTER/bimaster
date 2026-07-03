@@ -1202,6 +1202,21 @@ export function useProjetoTarefas(projetoId: string | undefined, opts?: { lixeir
         }),
       }));
       patchTarefaJunctions(tarefaId, (c) => ({ ...c, responsaveis: c.responsaveis.filter(r => r.user_id !== userId) }));
+      patchSubtarefasBridge(tarefaId, (st) => {
+        const novaLista = (st.responsaveis || []).filter(r => r.user_id !== userId);
+        const patched: ProjetoTarefa = { ...st, responsaveis: novaLista };
+        if (st.responsavel_id === userId) {
+          const next = novaLista[0];
+          if (next) {
+            patched.responsavel_id = next.user_id;
+            patched.responsavel = { id: next.user_id, nome: next.nome, avatar_url: next.avatar_url };
+          } else {
+            patched.responsavel_id = null;
+            patched.responsavel = null;
+          }
+        }
+        return patched;
+      });
       return { previous };
     },
     onError: (err: Error, _vars, context) => {
