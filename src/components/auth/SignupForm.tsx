@@ -68,7 +68,14 @@ const signupSchema = z.object({
     .trim()
     .refine((v) => isValidCPF(v), { message: "CPF inválido" }),
   rg: z.string().trim().min(4, "Informe um RG válido").max(20),
-  password: z.string().min(8, "A senha deve ter no mínimo 8 caracteres").max(100),
+  password: z
+    .string()
+    .min(10, "A senha deve ter no mínimo 10 caracteres")
+    .max(100)
+    .refine((v) => /[A-Z]/.test(v), { message: "Inclua pelo menos uma letra maiúscula" })
+    .refine((v) => /[a-z]/.test(v), { message: "Inclua pelo menos uma letra minúscula" })
+    .refine((v) => /\d/.test(v), { message: "Inclua pelo menos um número" })
+    .refine((v) => /[^A-Za-z0-9]/.test(v), { message: "Inclua pelo menos um símbolo (ex.: !@#$%)" }),
   confirmPassword: z.string(),
 }).strict().refine((d) => d.password === d.confirmPassword, {
   message: "As senhas não coincidem",
@@ -178,12 +185,24 @@ export const SignupForm = () => {
 
       if (error) {
         const msg = error.message?.toLowerCase() ?? "";
-        if (msg.includes("already") || msg.includes("registered") || msg.includes("exists")) {
+        const code = (error as { code?: string }).code ?? "";
+        if (code === "weak_password" || msg.includes("weak") || msg.includes("pwned") || msg.includes("known to be")) {
+          toast.error("Senha vulnerável", {
+            description:
+              "Essa senha aparece em vazamentos públicos e foi bloqueada por segurança. Escolha uma senha longa (12+ caracteres) misturando maiúsculas, minúsculas, números e símbolos — evite datas, nomes e sequências.",
+          });
+        } else if (
+          code === "user_already_exists" ||
+          code === "email_exists" ||
+          msg.includes("already") ||
+          msg.includes("registered") ||
+          msg.includes("exists")
+        ) {
           toast.error("Email já cadastrado", { description: "Use o link 'Entrar' ou recupere sua senha." });
         } else if (msg.includes("password")) {
           toast.error("Senha não atende aos requisitos", { description: error.message });
         } else {
-          toast.error("Erro ao criar conta", { description: error.message });
+          toast.error("Erro ao criar conta", { description: error.message || "Tente novamente em instantes." });
         }
         return;
       }
@@ -230,7 +249,9 @@ export const SignupForm = () => {
         return;
       }
       logger.error("[SignupForm] erro");
-      toast.error("Erro ao criar conta", { description: "Tente novamente em instantes." });
+      const description =
+        err instanceof Error && err.message ? err.message : "Tente novamente em instantes.";
+      toast.error("Erro ao criar conta", { description });
     } finally {
       setLoading(false);
     }
@@ -319,7 +340,7 @@ export const SignupForm = () => {
                   maxLength={100}
                   autoComplete="new-password"
                   className="pr-10"
-                  placeholder="Mínimo 8 caracteres"
+                  placeholder="Mín. 10 caracteres com maiúscula, número e símbolo"
                 />
                 <button
                   type="button"
@@ -331,6 +352,9 @@ export const SignupForm = () => {
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
+              <p className="text-[11px] text-muted-foreground">
+                Use 10+ caracteres com maiúscula, minúscula, número e símbolo. Evite senhas comuns e sequências — senhas em vazamentos públicos são bloqueadas automaticamente.
+              </p>
             </div>
             <div className="space-y-2">
               <Label htmlFor="confirmPassword">Confirmar senha</Label>
