@@ -83,7 +83,7 @@ export function useMinhasTarefas() {
         produto_id: t.produto_id || null,
         created_at: t.created_at,
         updated_at: t.updated_at,
-        papel: t.papel === "colaborador" ? "colaborador" : "responsavel",
+        papel: t.papel === "seguidor" ? "seguidor" : t.papel === "colaborador" ? "colaborador" : "responsavel",
       }));
     },
     enabled: !!user?.id,
