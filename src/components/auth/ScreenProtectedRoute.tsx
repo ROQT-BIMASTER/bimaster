@@ -37,6 +37,25 @@ export const ScreenProtectedRoute = ({
   const { session } = useAuth();
   const { loading, permissionsReady } = usePermissions();
   const { hasScreenPermission } = useImpersonation();
+  const location = useLocation();
+  const loggedRef = useRef<string | null>(null);
+
+  const denied = !!session && permissionsReady && !hasScreenPermission(screenCode);
+
+  useEffect(() => {
+    if (!denied) return;
+    if (!AUDITED_SCREEN_CODES.has(screenCode)) return;
+    const key = `${screenCode}|${location.pathname}`;
+    if (loggedRef.current === key) return;
+    loggedRef.current = key;
+    supabase.rpc("log_access_denied", {
+      _screen_code: screenCode,
+      _route: location.pathname + location.search,
+      _user_agent: typeof navigator !== "undefined" ? navigator.userAgent : null,
+    }).then(({ error }) => {
+      if (error) logger.warn("[ScreenProtectedRoute] Falha ao registrar tentativa negada:", error);
+    });
+  }, [denied, screenCode, location.pathname, location.search]);
 
   // Se não há sessão, deixa o ProtectedRoute lidar
   if (!session) {
