@@ -339,6 +339,7 @@ export function MinhasTarefasSimples() {
   const [projectFilter, setProjectFilter] = useState<string>("all");
   const [priorityFilter, setPriorityFilter] = useState<PriorityFilter>("all");
   const [originFilter, setOriginFilter] = useState<OriginFilter>("all");
+  const [papelFilter, setPapelFilter] = useState<PapelFilter>("all");
   const [quickFilter, setQuickFilter] = useState<QuickFilter>("all");
   const [sortMode, setSortMode] = useState<SortMode>("due_asc");
 
