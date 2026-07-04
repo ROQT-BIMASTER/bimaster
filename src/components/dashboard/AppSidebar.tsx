@@ -667,13 +667,21 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
   const finBottomItems = [
     { title: "Central de Pagamentos", url: "/dashboard/financeiro/central-pagamentos", icon: CreditCard, screenCode: "financeiro_contas_pagar" },
     { title: "Pagamentos", url: "/dashboard/pagamentos", icon: CreditCard, screenCode: "financeiro_pagamentos" },
-    { title: "Contas Bancárias", url: "/dashboard/bancos", icon: Building2, screenCode: "financeiro_contas_bancarias" },
     { title: "Gestão Contas a Pagar", url: "/dashboard/contas-pagar", icon: FileText, screenCode: "financeiro_contas_pagar_gestao" },
     { title: "Saldos Bancários", url: "/dashboard/financeiro/saldos-bancarios", icon: Wallet, screenCode: "financeiro_saldos_bancarios" },
     { title: "Investimentos", url: "/dashboard/financeiro/investimentos", icon: TrendingUp, screenCode: "financeiro_saldos_bancarios" },
-    { title: "Fornecedores", url: "/dashboard/fornecedores", icon: Users, screenCode: "financeiro_fornecedores" },
-    { title: "Empresas", url: "/dashboard/empresas", icon: Building2, screenCode: "financeiro_empresas" },
-    { title: "Centros de Custo", url: "/dashboard/centros-custo", icon: Layers, screenCode: "financeiro_centros_custo" },
+  ];
+
+  // Módulo "Cadastros" — fonte única para telas de cadastro
+  const cadastrosItems = [
+    { title: "Fornecedores", url: "/dashboard/fornecedores", icon: Users, screenCode: "cadastros_fornecedores" },
+    { title: "Contas Bancárias", url: "/dashboard/bancos", icon: Landmark, screenCode: "cadastros_bancos" },
+    { title: "Portadores", url: "/dashboard/portadores", icon: Wallet, screenCode: "cadastros_portadores" },
+    { title: "Centros de Custo", url: "/dashboard/centros-custo", icon: Layers, screenCode: "cadastros_centros_custo" },
+    { title: "Plano de Contas", url: "/dashboard/financeiro/plano-contas", icon: List, screenCode: "cadastros_plano_contas" },
+    { title: "Departamentos", url: "/dashboard/departamentos", icon: Building2, screenCode: "cadastros_departamentos" },
+    { title: "Empresas", url: "/dashboard/empresas", icon: Building2, screenCode: "cadastros_empresas" },
+    { title: "Clientes", url: "/dashboard/clientes", icon: Users, screenCode: "cadastros_clientes" },
   ];
 
   const tradeSubMenus = [
