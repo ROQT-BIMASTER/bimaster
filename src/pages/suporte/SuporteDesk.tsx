@@ -613,3 +613,17 @@ export default function SuporteDesk() {
     </DashboardLayout>
   );
 }
+
+function MembrosButton({ filaId, onClick }: { filaId: string; onClick: () => void }) {
+  const { data: membros = [] } = useFilaMembros(filaId);
+  return (
+    <Button size="sm" variant="outline" className="h-9 gap-1.5" onClick={onClick}>
+      <Users className="h-3.5 w-3.5" /> Membros
+      {membros.length > 0 && (
+        <Badge variant="secondary" className="ml-1 h-4 px-1.5 text-[10px]">
+          {membros.length}
+        </Badge>
+      )}
+    </Button>
+  );
+}
