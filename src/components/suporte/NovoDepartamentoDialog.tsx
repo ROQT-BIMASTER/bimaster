@@ -14,6 +14,27 @@ import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import {
+  LifeBuoy, Headphones, MessageSquare, Wrench, ShieldCheck, Truck,
+  Building2, DollarSign, ShoppingCart, Users, Cpu, HeartPulse,
+  type LucideIcon,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+
+const ICONES: { key: string; icon: LucideIcon }[] = [
+  { key: "life-buoy", icon: LifeBuoy },
+  { key: "headphones", icon: Headphones },
+  { key: "message-square", icon: MessageSquare },
+  { key: "wrench", icon: Wrench },
+  { key: "shield-check", icon: ShieldCheck },
+  { key: "truck", icon: Truck },
+  { key: "building-2", icon: Building2 },
+  { key: "dollar-sign", icon: DollarSign },
+  { key: "shopping-cart", icon: ShoppingCart },
+  { key: "users", icon: Users },
+  { key: "cpu", icon: Cpu },
+  { key: "heart-pulse", icon: HeartPulse },
+];
 
 interface Props {
   open: boolean;
