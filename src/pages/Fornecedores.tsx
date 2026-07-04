@@ -655,15 +655,17 @@ export default function Fornecedores() {
                 <TableHead>Email</TableHead>
                 <TableHead>Cidade/UF</TableHead>
                 <TableHead>Empresa</TableHead>
+                <TableHead className="text-center">Prazo (d)</TableHead>
+                <TableHead>ERP</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading ? (
-                <TableRow><TableCell colSpan={9} className="text-center py-8"><Loader2 className="h-5 w-5 animate-spin mx-auto" /></TableCell></TableRow>
+                <TableRow><TableCell colSpan={11} className="text-center py-8"><Loader2 className="h-5 w-5 animate-spin mx-auto" /></TableCell></TableRow>
               ) : fornecedores.length === 0 ? (
-                <TableRow><TableCell colSpan={9} className="text-center py-8 text-muted-foreground">Nenhum fornecedor encontrado</TableCell></TableRow>
+                <TableRow><TableCell colSpan={11} className="text-center py-8 text-muted-foreground">Nenhum fornecedor encontrado</TableCell></TableRow>
               ) : (
                 fornecedores.map((f) => {
                   const isExpanded = expandedRow === f.id;
@@ -688,6 +690,8 @@ export default function Fornecedores() {
                             <TableCell className="text-sm">{f.email || "—"}</TableCell>
                             <TableCell className="text-sm">{[f.cidade, f.estado].filter(Boolean).join("/") || "—"}</TableCell>
                             <TableCell className="text-sm">{empresaNome(f.empresa_id)}</TableCell>
+                            <TableCell className="text-center tabular-nums text-sm">{f.prazo_pagamento_padrao ?? "—"}</TableCell>
+                            <TableCell><ErpBadge code={f.erp_code} /></TableCell>
                             <TableCell>{statusBadge(f.status)}</TableCell>
                             <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                               <div className="flex justify-end gap-1">
