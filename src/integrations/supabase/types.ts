@@ -47711,30 +47711,39 @@ export type Database = {
       sync_control_rubysp: {
         Row: {
           id: number
+          solicitar_contas_pagar_em: string | null
           solicitar_historico_em: string | null
           solicitar_pedidos_em: string | null
+          status_contas_pagar: string | null
           status_historico: string | null
           status_pedidos: string | null
+          ultima_exec_contas_pagar: string | null
           ultima_exec_historico: string | null
           ultima_exec_pedidos: string | null
           updated_at: string
         }
         Insert: {
           id?: number
+          solicitar_contas_pagar_em?: string | null
           solicitar_historico_em?: string | null
           solicitar_pedidos_em?: string | null
+          status_contas_pagar?: string | null
           status_historico?: string | null
           status_pedidos?: string | null
+          ultima_exec_contas_pagar?: string | null
           ultima_exec_historico?: string | null
           ultima_exec_pedidos?: string | null
           updated_at?: string
         }
         Update: {
           id?: number
+          solicitar_contas_pagar_em?: string | null
           solicitar_historico_em?: string | null
           solicitar_pedidos_em?: string | null
+          status_contas_pagar?: string | null
           status_historico?: string | null
           status_pedidos?: string | null
+          ultima_exec_contas_pagar?: string | null
           ultima_exec_historico?: string | null
           ultima_exec_pedidos?: string | null
           updated_at?: string
