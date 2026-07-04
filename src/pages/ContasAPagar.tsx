@@ -20,6 +20,7 @@ import {
   ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Trash2, Tags, Building2, LayoutDashboard, CalendarDays, ChevronsUpDown, RefreshCw, CreditCard, MessageSquare
 } from "lucide-react";
 import { DashboardContasPagar } from "@/components/financeiro/DashboardContasPagar";
+import { ContasPagarFrescor } from "@/components/financeiro/ContasPagarFrescor";
 import { CalendarioVencimentos } from "@/components/financeiro/CalendarioVencimentos";
 import { SofiaFloatingChat } from "@/components/financeiro/SofiaFloatingChat";
 import { PaymentChatConsolidado } from "@/components/financeiro/payments/PaymentChatConsolidado";
