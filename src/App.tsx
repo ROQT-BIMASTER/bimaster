@@ -80,6 +80,7 @@ const Contato = lazyWithRetry(() => import("./pages/Contato"));
 const ForgotPassword = lazyWithRetry(() => import("./pages/ForgotPassword"));
 const ResetPassword = lazyWithRetry(() => import("./pages/ResetPassword"));
 const UnsubscribePage = lazyWithRetry(() => import("./pages/UnsubscribePage"));
+const OAuthConsent = lazyWithRetry(() => import("./pages/OAuthConsent"));
 const Dashboard = lazyWithRetry(() => import("./pages/Dashboard"));
 const ProspectsModule = lazyWithRetry(() => import("./pages/modules/ProspectsModule"));
 const MarketingModule = lazyWithRetry(() => import("./pages/modules/MarketingModule"));
@@ -577,6 +578,7 @@ function AppContent() {
             <Route path="/aguardando-aprovacao" element={<AguardandoAprovacao />} />
             <Route path="/usuario-bloqueado" element={<UsuarioBloqueado />} />
            <Route path="/unsubscribe" element={<UnsubscribePage />} />
+           <Route path="/.lovable/oauth/consent" element={<OAuthConsent />} />
            <Route path="/projetos/convite/:token" element={<ConviteAceitar />} />
            <Route path="/privacidade" element={<Privacidade />} />
            <Route path="/termos" element={<Termos />} />

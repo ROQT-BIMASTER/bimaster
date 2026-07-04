@@ -4,6 +4,7 @@ import path from "path";
 import { readFileSync } from "fs";
 import { componentTagger } from "lovable-tagger";
 import { VitePWA } from 'vite-plugin-pwa';
+import { mcpPlugin } from "@lovable.dev/mcp-js/stacks/supabase/vite";
 
 /**
  * Injeta `<meta name="app-version" content="X.Y.Z">` no index.html em
@@ -57,6 +58,7 @@ export default defineConfig(({ mode }) => ({
   plugins: [
     react(),
     appVersionMetaPlugin(),
+    mcpPlugin(),
     VitePWA({
       registerType: 'autoUpdate',
       injectRegister: false,
@@ -103,7 +105,7 @@ export default defineConfig(({ mode }) => ({
         globPatterns: ['**/*.{js,css,ico,png,svg,woff,woff2,json}'],
         maximumFileSizeToCacheInBytes: 10 * 1024 * 1024,
         navigateFallback: '/index.html',
-        navigateFallbackDenylist: [/^\/api/, /^\/~oauth/],
+        navigateFallbackDenylist: [/^\/api/, /^\/~oauth/, /^\/\.well-known/, /^\/\.lovable\/oauth/],
         cleanupOutdatedCaches: true,
         // skipWaiting + clientsClaim: novo SW assume controle imediatamente após
         // ativar (sem precisar fechar todas as abas). Combinado com o listener
