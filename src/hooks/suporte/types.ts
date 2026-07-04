@@ -60,6 +60,7 @@ export interface SuporteChamado {
   sentimento: string | null;
   tags: string[] | null;
   created_at: string;
+  projeto_tarefa_id?: string | null;
   // enriquecidos no client
   fila?: SuporteFila | null;
   requester?: { id: string; nome: string | null; avatar_url: string | null } | null;
