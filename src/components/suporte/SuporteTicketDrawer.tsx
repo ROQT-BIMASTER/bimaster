@@ -11,6 +11,7 @@ import {
 import { UserCheck, ArrowRightLeft } from "lucide-react";
 import { ChatThread } from "@/components/chat/v2/ChatThread";
 import { CsatPrompt } from "@/components/suporte/CsatPrompt";
+import { TicketEtapaBadge } from "@/components/suporte/TicketEtapaBadge";
 import {
   SUPORTE_STATUS_LABEL,
   type SuporteChamado,
