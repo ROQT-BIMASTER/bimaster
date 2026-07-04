@@ -4,6 +4,7 @@ import path from "path";
 import { readFileSync } from "fs";
 import { componentTagger } from "lovable-tagger";
 import { VitePWA } from 'vite-plugin-pwa';
+import { mcpPlugin } from "@lovable.dev/mcp-js/stacks/supabase/vite";
 
 /**
  * Injeta `<meta name="app-version" content="X.Y.Z">` no index.html em
@@ -57,6 +58,7 @@ export default defineConfig(({ mode }) => ({
   plugins: [
     react(),
     appVersionMetaPlugin(),
+    mcpPlugin(),
     VitePWA({
       registerType: 'autoUpdate',
       injectRegister: false,
