@@ -27,7 +27,14 @@ import {
   Users,
   Settings2,
   Plus,
+  CalendarIcon,
 } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { ptBR } from "date-fns/locale";
+import type { DateRange } from "react-day-picker";
+import { useFilaMembros } from "@/hooks/suporte/useFilaMembros";
+import { TicketEtapaBadge } from "@/components/suporte/TicketEtapaBadge";
 import { MembrosFilaDialog } from "@/components/suporte/MembrosFilaDialog";
 import { NovoDepartamentoDialog } from "@/components/suporte/NovoDepartamentoDialog";
 import { FluxoDepartamentoDialog } from "@/components/suporte/FluxoDepartamentoDialog";
