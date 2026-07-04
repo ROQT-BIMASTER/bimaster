@@ -51,6 +51,7 @@ export function SuporteTicketDrawer({ ticket, onClose }: Props) {
                   <span className="text-sm font-medium truncate">
                     {ticket.titulo ?? "(sem título)"}
                   </span>
+                  <TicketEtapaBadge projetoTarefaId={ticket.projeto_tarefa_id} />
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
                   {ticket.assignee_id !== user?.id && (
