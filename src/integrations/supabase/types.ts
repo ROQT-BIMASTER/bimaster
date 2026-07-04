@@ -58499,6 +58499,10 @@ export type Database = {
       }
       suporte_retomar_sla: { Args: { p_ticket_id: string }; Returns: undefined }
       suporte_sla_monitor: { Args: never; Returns: Json }
+      suporte_sync_tarefa_para_fila: {
+        Args: { p_ticket_id: string }
+        Returns: string
+      }
       tem_acesso_marca: { Args: { p_marca_id: string }; Returns: boolean }
       test_get_minhas_tarefas_central: { Args: never; Returns: Json }
       test_rpc_comentar_item_aprovacao: {
