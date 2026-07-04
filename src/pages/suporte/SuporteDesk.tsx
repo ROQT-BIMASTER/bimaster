@@ -164,7 +164,7 @@ export default function SuporteDesk() {
 
   return (
     <DashboardLayout>
-      <div className="flex flex-col gap-3 h-[calc(100vh-6rem)]">
+      <div className="flex flex-col gap-3">
         {/* Cabeçalho */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 flex-wrap">
           <div>
