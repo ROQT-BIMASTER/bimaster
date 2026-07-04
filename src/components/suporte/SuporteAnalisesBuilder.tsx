@@ -27,7 +27,6 @@ import {
 import { PRESETS_SUPORTE, type SuportePreset } from "@/lib/suporte/analisePresets";
 import { SuporteAnaliseChart, type AnaliseChartTipo } from "./SuporteAnaliseChart";
 import { buildAnaliseCsv, downloadBlob } from "@/lib/suporte/csvExport";
-import { formatValor } from "@/lib/suporte/analyticsFormat";
 import type { SuporteFila } from "@/hooks/suporte/types";
 
 interface Props {
