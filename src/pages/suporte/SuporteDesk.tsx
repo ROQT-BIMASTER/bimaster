@@ -492,13 +492,14 @@ export default function SuporteDesk() {
                     {selecionado ? (
                       <>
                         <div className="flex items-center justify-between gap-2 border-b p-2.5">
-                          <div className="flex items-center gap-2 min-w-0">
+                          <div className="flex items-center gap-2 min-w-0 flex-wrap">
                             {selecionado.protocolo && (
                               <Badge variant="outline" className="font-mono text-[10px] shrink-0">
                                 {selecionado.protocolo}
                               </Badge>
                             )}
                             <span className="text-sm font-medium truncate">{selecionado.titulo}</span>
+                            <TicketEtapaBadge projetoTarefaId={selecionado.projeto_tarefa_id} />
                           </div>
                           <div className="flex items-center gap-2 shrink-0">
                             {selecionado.assignee_id !== user?.id && (
