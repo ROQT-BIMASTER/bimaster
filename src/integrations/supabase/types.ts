@@ -46507,6 +46507,57 @@ export type Database = {
           },
         ]
       }
+      suporte_etapa_mensagens: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          fila_id: string
+          id: string
+          mensagem: string | null
+          notificar: boolean
+          secao_id: string
+          status_map: string | null
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          fila_id: string
+          id?: string
+          mensagem?: string | null
+          notificar?: boolean
+          secao_id: string
+          status_map?: string | null
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          fila_id?: string
+          id?: string
+          mensagem?: string | null
+          notificar?: boolean
+          secao_id?: string
+          status_map?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "suporte_etapa_mensagens_fila_id_fkey"
+            columns: ["fila_id"]
+            isOneToOne: false
+            referencedRelation: "suporte_filas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "suporte_etapa_mensagens_secao_id_fkey"
+            columns: ["secao_id"]
+            isOneToOne: false
+            referencedRelation: "projeto_secoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       suporte_fila_agentes: {
         Row: {
           ativo: boolean
@@ -46543,6 +46594,7 @@ export type Database = {
         Row: {
           aceita_chamados: boolean
           ativo: boolean
+          auto_criar_tarefa: boolean
           calendario_id: string | null
           cor: string | null
           created_at: string
@@ -46555,6 +46607,7 @@ export type Database = {
           id: string
           nome: string
           ordem: number
+          projeto_id: string | null
           sla_primeira_resposta_horas: number
           sla_resolucao_horas: number
           slug: string
@@ -46563,6 +46616,7 @@ export type Database = {
         Insert: {
           aceita_chamados?: boolean
           ativo?: boolean
+          auto_criar_tarefa?: boolean
           calendario_id?: string | null
           cor?: string | null
           created_at?: string
@@ -46575,6 +46629,7 @@ export type Database = {
           id?: string
           nome: string
           ordem?: number
+          projeto_id?: string | null
           sla_primeira_resposta_horas?: number
           sla_resolucao_horas?: number
           slug: string
@@ -46583,6 +46638,7 @@ export type Database = {
         Update: {
           aceita_chamados?: boolean
           ativo?: boolean
+          auto_criar_tarefa?: boolean
           calendario_id?: string | null
           cor?: string | null
           created_at?: string
@@ -46595,6 +46651,7 @@ export type Database = {
           id?: string
           nome?: string
           ordem?: number
+          projeto_id?: string | null
           sla_primeira_resposta_horas?: number
           sla_resolucao_horas?: number
           slug?: string
@@ -46621,6 +46678,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "mv_analise_departamentos"
             referencedColumns: ["departamento_id"]
+          },
+          {
+            foreignKeyName: "suporte_filas_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "projetos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "suporte_filas_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "vw_projeto_produtividade"
+            referencedColumns: ["projeto_id"]
           },
         ]
       }
@@ -58121,6 +58192,20 @@ export type Database = {
         Args: { p_patch: Json; p_ticket_ids: string[] }
         Returns: Json
       }
+      rpc_suporte_fila_criar: {
+        Args: {
+          p_cor?: string
+          p_descricao?: string
+          p_icone?: string
+          p_nome: string
+          p_slug: string
+        }
+        Returns: string
+      }
+      rpc_suporte_fila_criar_projeto: {
+        Args: { p_fila_id: string }
+        Returns: string
+      }
       rpc_suporte_fila_membro: {
         Args: {
           p_acao: string
@@ -58129,6 +58214,10 @@ export type Database = {
           p_user_id: string
         }
         Returns: Json
+      }
+      rpc_suporte_fila_vincular_projeto: {
+        Args: { p_fila_id: string; p_projeto_id: string }
+        Returns: undefined
       }
       rpc_suporte_mudar_status: {
         Args: { p_status: string; p_ticket_id: string }
@@ -58387,6 +58476,10 @@ export type Database = {
           label: string
           valor: number
         }[]
+      }
+      suporte_aplicar_status: {
+        Args: { p_ator?: string; p_status: string; p_ticket_id: string }
+        Returns: undefined
       }
       suporte_horas_comerciais_entre: {
         Args: { p_ate: string; p_calendario_id?: string; p_de: string }
