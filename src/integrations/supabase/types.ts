@@ -15653,6 +15653,78 @@ export type Database = {
           },
         ]
       }
+      erp_fornecedores_rubysp: {
+        Row: {
+          agencia: string | null
+          bairro: string | null
+          banco: string | null
+          cep: string | null
+          cidade: string | null
+          cnpj: string | null
+          cnpj_digits: string | null
+          conta: string | null
+          contato: string | null
+          created_at: string
+          email: string | null
+          empresa_par: number | null
+          endereco: string | null
+          inscricao_estadual: string | null
+          nome: string | null
+          prazo_pagamento: number | null
+          raw: Json | null
+          rubysp_fornecedor_id: number
+          sincronizado_em: string | null
+          telefone: string | null
+          uf: string | null
+        }
+        Insert: {
+          agencia?: string | null
+          bairro?: string | null
+          banco?: string | null
+          cep?: string | null
+          cidade?: string | null
+          cnpj?: string | null
+          cnpj_digits?: string | null
+          conta?: string | null
+          contato?: string | null
+          created_at?: string
+          email?: string | null
+          empresa_par?: number | null
+          endereco?: string | null
+          inscricao_estadual?: string | null
+          nome?: string | null
+          prazo_pagamento?: number | null
+          raw?: Json | null
+          rubysp_fornecedor_id: number
+          sincronizado_em?: string | null
+          telefone?: string | null
+          uf?: string | null
+        }
+        Update: {
+          agencia?: string | null
+          bairro?: string | null
+          banco?: string | null
+          cep?: string | null
+          cidade?: string | null
+          cnpj?: string | null
+          cnpj_digits?: string | null
+          conta?: string | null
+          contato?: string | null
+          created_at?: string
+          email?: string | null
+          empresa_par?: number | null
+          endereco?: string | null
+          inscricao_estadual?: string | null
+          nome?: string | null
+          prazo_pagamento?: number | null
+          raw?: Json | null
+          rubysp_fornecedor_id?: number
+          sincronizado_em?: string | null
+          telefone?: string | null
+          uf?: string | null
+        }
+        Relationships: []
+      }
       erp_pedido_itens_rubysp: {
         Row: {
           created_at: string
@@ -55848,6 +55920,13 @@ export type Database = {
             Args: { p_ano?: number; p_empresa_id: string; p_mes?: number }
             Returns: Json
           }
+      fn_transform_fornecedores_rubysp: {
+        Args: never
+        Returns: {
+          atualizados: number
+          inseridos: number
+        }[]
+      }
       gen_codigo_briefing: { Args: never; Returns: string }
       gen_codigo_intake_demanda: { Args: never; Returns: string }
       gerar_creditos_tributarios: {
