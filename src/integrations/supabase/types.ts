@@ -25550,6 +25550,7 @@ export type Database = {
           cidade: string | null
           cnae: string | null
           cnpj: string
+          cnpj_digits: string | null
           codigo_externo: string | null
           codigo_pais: string | null
           complemento: string | null
@@ -25606,6 +25607,7 @@ export type Database = {
           cidade?: string | null
           cnae?: string | null
           cnpj: string
+          cnpj_digits?: string | null
           codigo_externo?: string | null
           codigo_pais?: string | null
           complemento?: string | null
@@ -25662,6 +25664,7 @@ export type Database = {
           cidade?: string | null
           cnae?: string | null
           cnpj?: string
+          cnpj_digits?: string | null
           codigo_externo?: string | null
           codigo_pais?: string | null
           complemento?: string | null
