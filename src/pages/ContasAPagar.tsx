@@ -1317,6 +1317,7 @@ export default function ContasAPagar() {
               filterDiaVencimento={filterDiaVencimento}
               filterDiaPagamento={filterDiaPagamento}
               filterConta={filterConta}
+              filterNatureza={filterNatureza}
             />
           </TabsContent>
 
