@@ -11,7 +11,7 @@ export function useSuporteFilas() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("suporte_filas" as any)
-        .select("id, nome, slug, descricao, cor, icone, ativo, aceita_chamados, ordem")
+        .select("id, nome, slug, descricao, cor, icone, ativo, aceita_chamados, ordem, projeto_id, auto_criar_tarefa")
         .eq("ativo", true)
         .order("ordem", { ascending: true });
       if (error) throw error;
@@ -39,7 +39,7 @@ export function useMinhasFilasAgente() {
 
       const { data: filas, error: fErr } = await supabase
         .from("suporte_filas" as any)
-        .select("id, nome, slug, descricao, cor, icone, ativo, aceita_chamados, ordem")
+        .select("id, nome, slug, descricao, cor, icone, ativo, aceita_chamados, ordem, projeto_id, auto_criar_tarefa")
         .in("id", vs.map((v) => v.fila_id))
         .order("ordem", { ascending: true });
       if (fErr) throw fErr;

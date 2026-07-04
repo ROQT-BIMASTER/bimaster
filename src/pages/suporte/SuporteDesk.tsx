@@ -24,7 +24,13 @@ import {
   LineChart as LineChartIcon,
   Table as TableIcon,
   Columns2,
+  Users,
+  Settings2,
+  Plus,
 } from "lucide-react";
+import { MembrosFilaDialog } from "@/components/suporte/MembrosFilaDialog";
+import { NovoDepartamentoDialog } from "@/components/suporte/NovoDepartamentoDialog";
+import { FluxoDepartamentoDialog } from "@/components/suporte/FluxoDepartamentoDialog";
 import { subDays, format } from "date-fns";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
@@ -105,6 +111,9 @@ export default function SuporteDesk() {
   const [busca, setBusca] = useState("");
   const [selecionadoId, setSelecionadoId] = useState<string | null>(null);
   const [transferOpen, setTransferOpen] = useState(false);
+  const [membrosOpen, setMembrosOpen] = useState(false);
+  const [novoDeptoOpen, setNovoDeptoOpen] = useState(false);
+  const [fluxoOpen, setFluxoOpen] = useState(false);
   const [aba, setAba] = useState<"tickets" | "executiva" | "analises">("tickets");
   const [modoVisao, setModoVisao] = useState<"tabela" | "split">(
     () => (localStorage.getItem("suporte:modo-visao") as "tabela" | "split") ?? "tabela",
@@ -209,6 +218,12 @@ export default function SuporteDesk() {
 
   const exibirSeletor = podeVerTudo || filasSelecionaveis.length > 1;
 
+  const ehLiderDaFila = !!minhas?.vinculos?.some(
+    (v) => v.fila_id === departamentoAtivo && v.ativo && v.papel === "lider",
+  );
+  const podeGerenciarMembros =
+    filaAtivaObj !== null && (isAdmin || ehLiderDaFila);
+
   return (
     <DashboardLayout>
       <div className="flex flex-col gap-3 h-[calc(100vh-var(--dashboard-header,4rem))] min-h-0">
@@ -257,8 +272,57 @@ export default function SuporteDesk() {
                 <SelectItem value="90">Últimos 90 dias</SelectItem>
               </SelectContent>
             </Select>
+            {podeGerenciarMembros && filaAtivaObj && (
+              <>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-9 gap-1.5"
+                  onClick={() => setMembrosOpen(true)}
+                >
+                  <Users className="h-3.5 w-3.5" /> Membros
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-9 gap-1.5"
+                  onClick={() => setFluxoOpen(true)}
+                >
+                  <Settings2 className="h-3.5 w-3.5" /> Fluxo
+                </Button>
+              </>
+            )}
+            {isAdmin && (
+              <Button
+                size="sm"
+                className="h-9 gap-1.5"
+                onClick={() => setNovoDeptoOpen(true)}
+              >
+                <Plus className="h-3.5 w-3.5" /> Novo departamento
+              </Button>
+            )}
           </div>
         </div>
+
+        {filaAtivaObj && (
+          <>
+            <MembrosFilaDialog
+              open={membrosOpen}
+              onOpenChange={setMembrosOpen}
+              filaId={filaAtivaObj.id}
+              filaNome={filaAtivaObj.nome}
+            />
+            <FluxoDepartamentoDialog
+              open={fluxoOpen}
+              onOpenChange={setFluxoOpen}
+              fila={filaAtivaObj}
+            />
+          </>
+        )}
+        <NovoDepartamentoDialog
+          open={novoDeptoOpen}
+          onOpenChange={setNovoDeptoOpen}
+        />
 
         {/* KPIs */}
         <SuporteCentralKpis tickets={ticketsPeriodo} />

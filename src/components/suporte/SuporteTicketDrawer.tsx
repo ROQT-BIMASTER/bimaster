@@ -11,6 +11,7 @@ import {
 import { UserCheck, ArrowRightLeft } from "lucide-react";
 import { ChatThread } from "@/components/chat/v2/ChatThread";
 import { CsatPrompt } from "@/components/suporte/CsatPrompt";
+import { TicketEtapaBadge } from "@/components/suporte/TicketEtapaBadge";
 import {
   SUPORTE_STATUS_LABEL,
   type SuporteChamado,
@@ -50,6 +51,7 @@ export function SuporteTicketDrawer({ ticket, onClose }: Props) {
                   <span className="text-sm font-medium truncate">
                     {ticket.titulo ?? "(sem título)"}
                   </span>
+                  <TicketEtapaBadge projetoTarefaId={ticket.projeto_tarefa_id} />
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
                   {ticket.assignee_id !== user?.id && (
