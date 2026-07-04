@@ -58,6 +58,7 @@ export function NovoDepartamentoDialog({ open, onOpenChange }: Props) {
   const [slugTouched, setSlugTouched] = useState(false);
   const [descricao, setDescricao] = useState("");
   const [cor, setCor] = useState("#185FA5");
+  const [icone, setIcone] = useState<string>("life-buoy");
   const [salvando, setSalvando] = useState(false);
 
   const reset = () => {
@@ -66,6 +67,7 @@ export function NovoDepartamentoDialog({ open, onOpenChange }: Props) {
     setSlugTouched(false);
     setDescricao("");
     setCor("#185FA5");
+    setIcone("life-buoy");
   };
 
   const salvar = async () => {
@@ -80,7 +82,7 @@ export function NovoDepartamentoDialog({ open, onOpenChange }: Props) {
         p_slug: slug.trim(),
         p_descricao: descricao.trim() || null,
         p_cor: cor || null,
-        p_icone: null,
+        p_icone: icone || null,
       });
       if (error) throw error;
       qc.invalidateQueries({ queryKey: ["suporte", "filas"] });
