@@ -179,7 +179,7 @@ export function BlocoRankingYoy({ ano, empresa, tabelaPrecoId, uf, clienteId, ve
       </div>
 
       <div className="border-t border-rv-linha">
-        <div className="grid grid-cols-[36px_1fr_140px_1fr_100px] gap-4 py-3 pl-1 pr-4 text-[10px] uppercase tracking-wider text-rv-text-suave border-b border-rv-linha">
+        <div className={cn("grid gap-4 py-3 pl-1 pr-4 text-[10px] uppercase tracking-wider text-rv-text-suave border-b border-rv-linha", gridCols)}>
           <div>#</div>
           <div>Nome</div>
           <button
@@ -200,6 +200,7 @@ export function BlocoRankingYoy({ ano, empresa, tabelaPrecoId, uf, clienteId, ve
           >
             Crescimento vs {ano - 1} <SortIcon active={sort.key === "crescimento"} dir={sort.dir} />
           </button>
+          {showSituacao && <div className="text-right">Situação</div>}
           <div className="text-right">Notas</div>
         </div>
 
