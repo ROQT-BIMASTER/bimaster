@@ -107,6 +107,17 @@ export function BlocoRankingYoy({ ano, empresa, tabelaPrecoId, uf, clienteId, ve
 
   const rows = useMemo(() => sortYoyRows(data ?? [], sort), [data, sort]);
 
+  // Semáforo financeiro (só faz sentido para clientes)
+  const clienteIds = useMemo(
+    () => (dim === "cliente" ? rows.map((r) => r.chave).filter((x): x is number => x != null) : []),
+    [dim, rows],
+  );
+  const { data: finMap } = usePosicaoFinanceiraClientesBulk(clienteIds);
+  const showSituacao = dim === "cliente";
+  const gridCols = showSituacao
+    ? "grid-cols-[36px_1fr_140px_1fr_130px_80px]"
+    : "grid-cols-[36px_1fr_140px_1fr_100px]";
+
   const scrollRef = useRef<HTMLDivElement>(null);
   const virt = useVirtualizer({
     count: rows.length,
