@@ -18,6 +18,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { NovoChamadoDialog } from "@/components/suporte/NovoChamadoDialog";
 import { ChamadoListItem } from "@/components/suporte/ChamadoListItem";
 import { ChatThread } from "@/components/chat/v2/ChatThread";
+import { CsatPrompt } from "@/components/suporte/CsatPrompt";
 import { SUPORTE_STATUS_LABEL, type SuporteTicketStatus } from "@/hooks/suporte/types";
 
 export default function SuporteMeusChamados() {
