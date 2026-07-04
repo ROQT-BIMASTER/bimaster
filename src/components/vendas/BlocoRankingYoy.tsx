@@ -6,6 +6,10 @@ import { useVendasYoy, type YoyDim, type VendasYoyRow } from "@/hooks/vendas/use
 import { formatMi, formatVarPct, variacaoTone } from "@/lib/vendas/format";
 import { RankingYoyFocoDialog } from "./RankingYoyFocoDialog";
 import { ClienteDetalheDialog } from "./ClienteDetalheDialog";
+import { usePosicaoFinanceiraClientesBulk } from "@/hooks/financeiro/usePosicaoFinanceiraCliente";
+import { computeSemaforo } from "@/lib/financeiro/semaforoCliente";
+import { formatCurrency } from "@/lib/formatters";
+import { cn } from "@/lib/utils";
 
 export type SortKey = "faturamento" | "crescimento";
 export type SortDir = "asc" | "desc";
