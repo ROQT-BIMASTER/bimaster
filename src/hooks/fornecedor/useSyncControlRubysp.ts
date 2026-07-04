@@ -53,7 +53,9 @@ export function useSyncControlRubysp() {
           ...prev,
           ...(alvo === "pedidos"
             ? { status_pedidos: "rodando", solicitado_pedidos_em: new Date().toISOString() }
-            : { status_historico: "rodando", solicitado_historico_em: new Date().toISOString() }),
+            : alvo === "historico"
+            ? { status_historico: "rodando", solicitado_historico_em: new Date().toISOString() }
+            : { status_contas_pagar: "rodando", solicitar_contas_pagar_em: new Date().toISOString() }),
         };
         qc.setQueryData(QUERY_KEY, next);
       }
