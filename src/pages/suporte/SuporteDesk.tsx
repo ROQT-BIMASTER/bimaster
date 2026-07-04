@@ -25,8 +25,12 @@ import {
   Table as TableIcon,
   Columns2,
   Users,
+  Settings2,
+  Plus,
 } from "lucide-react";
 import { MembrosFilaDialog } from "@/components/suporte/MembrosFilaDialog";
+import { NovoDepartamentoDialog } from "@/components/suporte/NovoDepartamentoDialog";
+import { FluxoDepartamentoDialog } from "@/components/suporte/FluxoDepartamentoDialog";
 import { subDays, format } from "date-fns";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
