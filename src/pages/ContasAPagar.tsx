@@ -1264,6 +1264,9 @@ export default function ContasAPagar() {
           </CardContent>
         </Card>
 
+        {/* Frescor da carga do Contas a Pagar */}
+        <ContasPagarFrescor />
+
         {/* Faixa oficial (banco) — valores exatos independentemente da paginação */}
         <Card className="border-primary/20 bg-gradient-to-r from-muted/40 to-background">
           <CardHeader className="pb-3">
